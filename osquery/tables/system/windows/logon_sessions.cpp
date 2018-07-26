@@ -1,6 +1,17 @@
-// clang-format is turned off because the format puts windows.h in the wrong order
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
+ */
+
+// clang-format is turned off to ensure windows.h is first
 // clang-format off
 #include <Windows.h>
+// clang-format on
 #include <NTSecAPI.h>
 #include <sddl.h>
 #include <tchar.h>
@@ -11,132 +22,72 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/windows/process_ops.h"
-// clang-format on
+#include "osquery/filesystem/fileops.h"
 
-#define JAN_1_1601_TO_JAN_1_1970 116444736000000000
-#define HUNDREDNANOSECONDS_TO_SECONDS 10000000
+#define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
 
 namespace osquery {
 namespace tables {
-LONGLONG filetimeToUnixtime(const LARGE_INTEGER& ft) {
-  LARGE_INTEGER date, adjust;
-  date.HighPart = ft.HighPart;
-  date.LowPart = ft.LowPart;
-  adjust.QuadPart = JAN_1_1601_TO_JAN_1_1970;
-  date.QuadPart -= adjust.QuadPart;
-  return date.QuadPart / HUNDREDNANOSECONDS_TO_SECONDS;
-}
+static const std::unordered_map<SECURITY_LOGON_TYPE, std::string>
+    kLogonTypeToStr = {{UndefinedLogonType, "Undefined Logon Type"},
+                       {Interactive, "Interactive"},
+                       {Network, "Network"},
+                       {Batch, "Batch"},
+                       {Service, "Service"},
+                       {Proxy, "Proxy"},
+                       {Unlock, "Unlock"},
+                       {NetworkCleartext, "Network Cleartext"},
+                       {NewCredentials, "New Credentials"},
+                       {RemoteInteractive, "Remote Interactive"},
+                       {CachedInteractive, "Cached Interactive"},
+                       {CachedRemoteInteractive, "Cached Remote Interactive"},
+                       {CachedUnlock, "Cached Unlock"}};
 
-LPWSTR GetLogonType(SECURITY_LOGON_TYPE logonType) {
-  switch (logonType) {
-  case Interactive:
-    return L"Interactive";
-  case Network:
-    return L"Network";
-  case 4:
-    return L"Batch";
-  case 5:
-    return L"Service";
-  case 6:
-    return L"Proxy";
-  case 7:
-    return L"Unlock";
-  case 8:
-    return L"NetworkCleartext";
-  case 9:
-    return L"NewCredentials";
-  case 10:
-    return L"RemoteInteractive";
-  case 11:
-    return L"CachedInteractive";
-  case 12:
-    return L"CachedRemoteInteractive";
-  case 13:
-    return L"CachedUnlock";
-  default:
-    return L"None";
-  }
-}
+QueryData queryLogonSessions(QueryContext& context) {
+  ULONG session_count = 0;
+  PLUID sessions = nullptr;
+  NTSTATUS status = LsaEnumerateLogonSessions(&session_count, &sessions);
 
-QueryData QueryLogonSessions(QueryContext& context) {
   QueryData results;
-  bool loadedManually = false;
-
-  HMODULE module = GetModuleHandle(TEXT("Secur32.dll"));
-
-  if (!module) {
-    module = LoadLibrary(TEXT("Secur32.dll"));
-    loadedManually = true;
-  }
-
-  NTSTATUS(__stdcall * LsaEnumerateLogonSessions)
-  (PULONG LogonSessionCount, PLUID * LogonSessionList);
-  LsaEnumerateLogonSessions =
-      reinterpret_cast<decltype(LsaEnumerateLogonSessions)>(
-          GetProcAddress(module, "LsaEnumerateLogonSessions"));
-
-  NTSTATUS(__stdcall * LsaGetLogonSessionData)
-  (PLUID LogonId, PSECURITY_LOGON_SESSION_DATA * ppLogonSessionData);
-  LsaGetLogonSessionData = reinterpret_cast<decltype(LsaGetLogonSessionData)>(
-      GetProcAddress(module, "LsaGetLogonSessionData"));
-
-  NTSTATUS(__stdcall * LsaFreeReturnBuffer)(PVOID Buffer);
-  LsaFreeReturnBuffer = reinterpret_cast<decltype(LsaFreeReturnBuffer)>(
-      GetProcAddress(module, "LsaFreeReturnBuffer"));
-
-  if (LsaEnumerateLogonSessions && LsaGetLogonSessionData &&
-      LsaFreeReturnBuffer) {
-    PLUID sessions = nullptr;
-    ULONG sessionCount = 0;
-    NTSTATUS status = LsaEnumerateLogonSessions(&sessionCount, &sessions);
-
-    if (status == 0) {
-      for (size_t i = 0; i < sessionCount; i++) {
-        PSECURITY_LOGON_SESSION_DATA sessionData = NULL;
-        NTSTATUS status = LsaGetLogonSessionData(&sessions[i], &sessionData);
-
-        if (status == 0) {
-          Row r;
-          r["logon_id"] = INTEGER(sessionData->LogonId.LowPart);
-          r["user"] = wstringToString(sessionData->UserName.Buffer);
-          r["logon_domain"] = wstringToString(sessionData->LogonDomain.Buffer);
-          r["authentication_package"] =
-              wstringToString(sessionData->AuthenticationPackage.Buffer);
-          r["logon_type"] =
-              wstringToString(GetLogonType(sessionData->LogonType));
-          r["session_id"] = INTEGER(sessionData->Session);
-          LPTSTR sid;
-          if (ConvertSidToStringSid(sessionData->Sid, &sid)) {
-            r["logon_sid"] = sid;
-          }
-          if (sid) {
-            LocalFree(sid);
-          }
-          r["logon_time"] = BIGINT(filetimeToUnixtime(sessionData->LogonTime));
-          r["logon_server"] = wstringToString(sessionData->LogonServer.Buffer);
-          r["dns_domain_name"] =
-              wstringToString(sessionData->DnsDomainName.Buffer);
-          r["upn"] = wstringToString(sessionData->Upn.Buffer);
-          r["logon_script"] = wstringToString(sessionData->LogonScript.Buffer);
-          r["profile_path"] = wstringToString(sessionData->ProfilePath.Buffer);
-          r["home_directory"] =
-              wstringToString(sessionData->HomeDirectory.Buffer);
-          r["home_directory_drive"] =
-              wstringToString(sessionData->HomeDirectoryDrive.Buffer);
-          results.push_back(r);
-        }
+  if (status == STATUS_SUCCESS) {
+    for (ULONG i = 0; i < session_count; i++) {
+      PSECURITY_LOGON_SESSION_DATA session_data = NULL;
+      NTSTATUS status = LsaGetLogonSessionData(&sessions[i], &session_data);
+      if (status != STATUS_SUCCESS) {
+        continue;
       }
-    }
 
-    if (sessions) {
-      LsaFreeReturnBuffer(sessions);
+      Row r;
+      r["logon_id"] = INTEGER(session_data->LogonId.LowPart);
+      r["user"] = wstringToString(session_data->UserName.Buffer);
+      r["logon_domain"] = wstringToString(session_data->LogonDomain.Buffer);
+      r["authentication_package"] =
+          wstringToString(session_data->AuthenticationPackage.Buffer);
+      r["logon_type"] =
+          kLogonTypeToStr.find(SECURITY_LOGON_TYPE(session_data->LogonType))
+              ->second;
+      r["session_id"] = INTEGER(session_data->Session);
+      LPTSTR sid = nullptr;
+      if (ConvertSidToStringSid(session_data->Sid, &sid)) {
+        r["logon_sid"] = sid;
+      }
+      if (sid) {
+        LocalFree(sid);
+      }
+      r["logon_time"] = BIGINT(longIntToUnixtime(session_data->LogonTime));
+      r["logon_server"] = wstringToString(session_data->LogonServer.Buffer);
+      r["dns_domain_name"] =
+          wstringToString(session_data->DnsDomainName.Buffer);
+      r["upn"] = wstringToString(session_data->Upn.Buffer);
+      r["logon_script"] = wstringToString(session_data->LogonScript.Buffer);
+      r["profile_path"] = wstringToString(session_data->ProfilePath.Buffer);
+      r["home_directory"] = wstringToString(session_data->HomeDirectory.Buffer);
+      r["home_directory_drive"] =
+          wstringToString(session_data->HomeDirectoryDrive.Buffer);
+      results.push_back(std::move(r));
     }
-  }
-
-  if (loadedManually) {
-    FreeLibrary(module);
   }
   return results;
-}
+} // namespace tables
 } // namespace tables
 } // namespace osquery
