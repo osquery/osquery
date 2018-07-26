@@ -58,8 +58,7 @@ void LinuxSMBIOSParser::readFromSystab(const std::string& systab) {
     if (line.find("SMBIOS") == 0) {
       auto details = osquery::split(line, "=");
       if (details.size() == 2 && details[1].size() > 2) {
-        long long int address;
-        safeStrtoll(details[1], 16, address);
+        long long int address = tryTo<long long>(details[1], 16).takeOr(0ll);
 
         // Be sure not to read past the 0x000F0000 - 0x00100000 range.
         // Otherwise strict /dev/mem access will generate a log line.
