@@ -1,3 +1,4 @@
+// clang-format is turned off because the format puts windows.h in the wrong order
 // clang-format off
 #include <Windows.h>
 #include <NTSecAPI.h>
@@ -12,7 +13,6 @@
 #include "osquery/core/windows/process_ops.h"
 // clang-format on
 
-#define CHECK_BIT(var, pos) ((var) & (1 << (pos)))
 #define JAN_1_1601_TO_JAN_1_1970 116444736000000000
 #define HUNDREDNANOSECONDS_TO_SECONDS 10000000
 
@@ -27,11 +27,11 @@ LONGLONG filetimeToUnixtime(const LARGE_INTEGER& ft) {
   return date.QuadPart / HUNDREDNANOSECONDS_TO_SECONDS;
 }
 
-LPWSTR GetLogonType(ULONG logonType) {
+LPWSTR GetLogonType(SECURITY_LOGON_TYPE logonType) {
   switch (logonType) {
-  case 2:
+  case Interactive:
     return L"Interactive";
-  case 3:
+  case Network:
     return L"Network";
   case 4:
     return L"Batch";
@@ -86,7 +86,7 @@ QueryData QueryLogonSessions(QueryContext& context) {
 
   if (LsaEnumerateLogonSessions && LsaGetLogonSessionData &&
       LsaFreeReturnBuffer) {
-    PLUID sessions = NULL;
+    PLUID sessions = nullptr;
     ULONG sessionCount = 0;
     NTSTATUS status = LsaEnumerateLogonSessions(&sessionCount, &sessions);
 
@@ -112,7 +112,7 @@ QueryData QueryLogonSessions(QueryContext& context) {
           if (sid) {
             LocalFree(sid);
           }
-          r["logon_time"] = BIGINT(filetimeToUnixtime(sessionData->LogoffTime));
+          r["logon_time"] = BIGINT(filetimeToUnixtime(sessionData->LogonTime));
           r["logon_server"] = wstringToString(sessionData->LogonServer.Buffer);
           r["dns_domain_name"] =
               wstringToString(sessionData->DnsDomainName.Buffer);
