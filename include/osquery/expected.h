@@ -83,10 +83,8 @@ class Expected final {
       "use smart pointers instead. See CppCoreGuidelines for explanation. "
       "https://github.com/isocpp/CppCoreGuidelines/blob/master/"
       "CppCoreGuidelines.md#Rf-unique_ptr");
-  static_assert(
-      !std::is_reference<ValueType>::value,
-      "Expected does not support reference as a value type"
-  );
+  static_assert(!std::is_reference<ValueType>::value,
+                "Expected does not support reference as a value type");
   static_assert(std::is_enum<ErrorCodeEnumType>::value,
                 "ErrorCodeEnumType template parameter must be enum");
 
