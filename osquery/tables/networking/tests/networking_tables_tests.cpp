@@ -29,6 +29,11 @@ TEST_F(NetworkingTablesTests, test_parse_etc_hosts_content) {
             getEtcHostsExpectedResults());
 }
 
+TEST_F(NetworkingTablesTests, test_parse_etc_hosts_ics_content) {
+  EXPECT_EQ(parseEtcHostsContent(getEtcHostsIcsContent()),
+            getEtcHostsIcsExpectedResults());
+}
+
 TEST_F(NetworkingTablesTests, test_parse_etc_protocols_content) {
   EXPECT_EQ(parseEtcProtocolsContent(getEtcProtocolsContent()),
             getEtcProtocolsExpectedResults());

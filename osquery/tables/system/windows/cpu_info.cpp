@@ -31,6 +31,7 @@ QueryData genCpuInfo(QueryContext& context) {
   for (const auto& data : wmiResults) {
     long number = 0;
     data.GetString("DeviceID", r["device_id"]);
+    data.GetString("SocketDesignation", r["socket_designation"]);
     data.GetString("Name", r["model"]);
     data.GetString("Manufacturer", r["manufacturer"]);
     (data.GetLong("ProcessorType", number))

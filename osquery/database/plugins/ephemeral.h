@@ -27,6 +27,13 @@ class EphemeralDatabasePlugin : public DatabasePlugin {
                 const std::string& key,
                 T& value) const;
 
+ private:
+  void setValue(const std::string& domain,
+                const std::string& key,
+                const std::string& value);
+
+  void setValue(const std::string& domain, const std::string& key, int value);
+
  public:
   /// Data retrieval method.
 
@@ -43,6 +50,9 @@ class EphemeralDatabasePlugin : public DatabasePlugin {
   Status put(const std::string& domain,
              const std::string& key,
              int value) override;
+
+  Status putBatch(const std::string& domain,
+                  const DatabaseStringValueList& data) override;
 
   void dumpDatabase() const override;
 

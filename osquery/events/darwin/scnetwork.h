@@ -59,6 +59,11 @@ class SCNetworkEventPublisher
   DECLARE_PUBLISHER("scnetwork");
 
  public:
+  SCNetworkEventPublisher(const std::string& name = "SCNetworkEventPublisher")
+      : EventPublisher() {
+    runnable_name_ = name;
+  }
+
   void configure() override;
 
   Status setUp() override { return Status(1, "Publisher not used"); }

@@ -139,11 +139,11 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
 
     // Virtual tables will be attached to the shell's in-memory SQLite DB.
     retcode = osquery::launchIntoShell(argc, argv);
-    // Finally shutdown.
-    runner.requestShutdown();
   } else {
     retcode = profile(argc, argv);
   }
+  // Finally shutdown.
+  runner.requestShutdown();
   return retcode;
 }
 
@@ -173,7 +173,7 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
   runner.initWorkerWatcher(kWatcherWorkerName);
 
   // Begin adhoc io service thread.
-  startIOService();
+  startIOContext();
 
   if (runner.isDaemon()) {
     return startDaemon(runner);

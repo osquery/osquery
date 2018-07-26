@@ -35,6 +35,14 @@ TEST_F(DatabaseTests, test_set_value_int) {
   EXPECT_TRUE(s.ok());
 }
 
+TEST_F(DatabaseTests, test_set_str_batch) {
+  DatabaseStringValueList batch = {
+      {"str1", "{}"}, {"str2", "{}"}, {"str3", "{}"}};
+
+  auto s = setDatabaseBatch(kLogs, batch);
+  EXPECT_TRUE(s.ok());
+}
+
 TEST_F(DatabaseTests, test_set_value_mix1) {
   auto s = setDatabaseValue(kLogs, "intstr", -1);
   EXPECT_TRUE(s.ok());
@@ -99,6 +107,24 @@ TEST_F(DatabaseTests, test_get_value_mix1) {
 
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(value, expected);
+}
+
+TEST_F(DatabaseTests, test_get_str_batch) {
+  DatabaseStringValueList batch = {
+      {"str1", "{}"}, {"str2", "{}"}, {"str3", "{}"}};
+  auto s = setDatabaseBatch(kLogs, batch);
+  EXPECT_TRUE(s.ok());
+
+  for (const auto& p : batch) {
+    const auto& key = p.first;
+    const auto& expected_value = p.second;
+
+    std::string value;
+    s = getDatabaseValue(kLogs, key, value);
+    EXPECT_TRUE(s.ok());
+
+    EXPECT_EQ(value, expected_value);
+  }
 }
 
 TEST_F(DatabaseTests, test_get_value_mix2) {
@@ -236,4 +262,4 @@ TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_results_v0v1) {
   getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
   EXPECT_EQ(db_results_version, kDatabaseResultsVersion);
 }
-}
+} // namespace osquery

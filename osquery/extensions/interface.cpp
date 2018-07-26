@@ -238,6 +238,7 @@ RouteUUID ExtensionRunner::getUUID() const {
 }
 
 void ExtensionRunner::start() {
+  setThreadName(name() + " " + path_);
   init(uuid_);
 
   VLOG(1) << "Extension service starting: " << path_;

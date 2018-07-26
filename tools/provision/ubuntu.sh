@@ -27,6 +27,9 @@ function distro_main() {
   package doxygen
   package valgrind
 
+  # Needed to build thrift
+  package libfl-dev
+
   # Needed to build LLVM
   package cmake
 

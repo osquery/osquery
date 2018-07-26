@@ -473,3 +473,21 @@ When prototyping new queries the planner enables verbose decisions made by the S
 `--header=true`
 
 Set this value to `false` to disable column name (header) output. If using the shell in an automation or script the header line in `line` or `csv` mode may not be needed.
+
+### Numeric monitoring flags
+
+`--enable_numeric_monitoring=false`
+
+Enable numeric monitoring system. By default it is disabled.
+
+`--numeric_monitoring_plugins=filesystem`
+
+Coma separated numeric monitoring plugins. By default there is only one - filesystem.
+
+`--numeric_monitoring_pre_aggregation_time=60`
+
+Time period in _seconds_ for numeric monitoring pre-aggreagation buffer. During this period of time monitoring points are going to be pre-aggregated and accumulated in buffer. At the end of this period aggregated points will be flushed to `--numeric_monitoring_plugins`. 0 means work without buffer at all. For the most of monitoring data some aggregation will be applied on the user side. It means for such monitoring particular points means not much. And to reduce a disk usage and a network traffic some pre-aggregation is applied on osquery side.
+
+`--numeric_monitoring_filesystem_path=OSQUERY_LOG_HOME/numeric_monitoring.log`
+
+File to dump numeric monitoring records one per line. The format of the line is `<PATH><TAB><VALUE><TAB><TIMESTAMP>`. File will be opened in append mode.

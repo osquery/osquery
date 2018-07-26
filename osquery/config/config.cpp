@@ -28,6 +28,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/flagalias.h"
 
 namespace rj = rapidjson;
 
@@ -94,7 +95,6 @@ std::atomic<size_t> kStartTime;
 
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
-Mutex config_valid_mutex_;
 Mutex config_refresh_mutex_;
 
 /// Several config methods require enumeration via predicate lambdas.
@@ -406,7 +406,7 @@ void Config::scheduledQueries(
     for (auto& it : pack->getSchedule()) {
       std::string name = it.first;
       // The query name may be synthetic.
-      if (pack->getName() != "main" && pack->getName() != "legacy_main") {
+      if (pack->getName() != "main") {
         name = "pack" + FLAGS_pack_delimiter + pack->getName() +
                FLAGS_pack_delimiter + it.first;
       }
@@ -569,33 +569,6 @@ Status Config::updateSource(const std::string& source,
       main_doc.copyFrom(schedule, queries_obj);
       main_doc.add("queries", queries_obj);
       addPack("main", source, main_doc.doc());
-    }
-  }
-
-  if (doc.doc().HasMember("scheduledQueries") && !rf.external()) {
-    auto& schedule = doc.doc()["scheduledQueries"];
-    if (schedule.IsArray()) {
-      auto queries_doc = JSON::newObject();
-      auto queries_obj = queries_doc.getObject();
-
-      for (auto& query : schedule.GetArray()) {
-        if (!query.IsObject()) {
-          // This is a legacy structure, and it is malformed.
-          continue;
-        }
-
-        std::string query_name;
-        if (query.HasMember("name") && query["name"].IsString()) {
-          query_name = query["name"].GetString();
-        }
-        if (query_name.empty()) {
-          return Status(1, "Error getting name from legacy scheduled query");
-        }
-        queries_doc.add(query_name, query, queries_obj);
-      }
-
-      queries_doc.add("queries", queries_obj);
-      addPack("legacy_main", source, queries_doc.doc());
     }
   }
 
@@ -869,26 +842,28 @@ void Config::recordQueryPerformance(const std::string& name,
 
   // Grab access to the non-const schedule item.
   auto& query = performance_.at(name);
-  BIGINT_LITERAL diff = 0;
   if (!r1.at("user_time").empty() && !r0.at("user_time").empty()) {
-    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("user_time")) -
-           AS_LITERAL(BIGINT_LITERAL, r0.at("user_time"));
+    auto ut1 = tryTo<long long>(r1.at("user_time"));
+    auto ut0 = tryTo<long long>(r0.at("user_time"));
+    auto diff = (ut1 && ut0) ? ut1.take() - ut0.take() : 0;
     if (diff > 0) {
       query.user_time += diff;
     }
   }
 
   if (!r1.at("system_time").empty() && !r0.at("system_time").empty()) {
-    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("system_time")) -
-           AS_LITERAL(BIGINT_LITERAL, r0.at("system_time"));
+    auto st1 = tryTo<long long>(r1.at("system_time"));
+    auto st0 = tryTo<long long>(r0.at("system_time"));
+    auto diff = (st1 && st0) ? st1.take() - st0.take() : 0;
     if (diff > 0) {
       query.system_time += diff;
     }
   }
 
   if (!r1.at("resident_size").empty() && !r0.at("resident_size").empty()) {
-    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("resident_size")) -
-           AS_LITERAL(BIGINT_LITERAL, r0.at("resident_size"));
+    auto rs1 = tryTo<long long>(r1.at("resident_size"));
+    auto rs0 = tryTo<long long>(r0.at("resident_size"));
+    auto diff = (rs1 && rs0) ? rs1.take() - rs0.take() : 0;
     if (diff > 0) {
       // Memory is stored as an average of RSS changes between query executions.
       query.average_memory = (query.average_memory * query.executions) + diff;
@@ -999,7 +974,7 @@ Status ConfigPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
   auto action = request.find("action");
   if (action == request.end()) {
-    return Status(1, "Config plugins require an action");
+    return Status::failure("Config plugins require an action");
   }
 
   if (action->second == "genConfig") {

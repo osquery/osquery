@@ -48,10 +48,7 @@ Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return status;
   }
 
-  for (auto& row : emitted_row_list) {
-    add(row);
-  }
-
+  addBatch(emitted_row_list);
   return Status(0, "Ok");
 }
 
@@ -70,6 +67,8 @@ Status AuditProcessEventSubscriber::ProcessEvents(
   // clang-format on
 
   emitted_row_list.clear();
+
+  emitted_row_list.reserve(event_list.size());
 
   for (const auto& event : event_list) {
     if (event.type != AuditEvent::Type::Syscall) {
@@ -171,4 +170,4 @@ const std::set<int>& AuditProcessEventSubscriber::GetSyscallSet() noexcept {
   static const std::set<int> syscall_set = {__NR_execve};
   return syscall_set;
 }
-}
+} // namespace osquery
