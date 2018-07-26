@@ -19,7 +19,7 @@ if (-not (Test-Path $utils)) {
 function Invoke-OsqueryCmake {
   $vsinfo = Get-VSInfo
   $cmake = (Get-Command 'cmake').Source
-  if ($vsinfo.version -eq '15'){
+  if ($vsinfo.version -eq '15' -and -not (Test-Path env:OSQUERY_BUILD_HOST)){
     $cmakeArgs = @(
       '-G "Visual Studio 15 2017 Win64"',
       '-T v141'
