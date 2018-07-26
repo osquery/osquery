@@ -12,6 +12,7 @@
 // clang-format off
 #include <Windows.h>
 // clang-format on
+#include <ntstatus.h>
 #include <NTSecAPI.h>
 #include <sddl.h>
 #include <tchar.h>
@@ -23,8 +24,6 @@
 
 #include "osquery/core/windows/process_ops.h"
 #include "osquery/filesystem/fileops.h"
-
-#define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
 
 namespace osquery {
 namespace tables {
