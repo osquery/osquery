@@ -291,6 +291,32 @@ void genProcUniquePid(QueryContext& context, int pid, Row& r) {
   }
 }
 
+void genProcArch(QueryContext& context, int pid, Row& r) {
+  if (!context.isColumnUsed("cpu_type") &&
+      !context.isColumnUsed("cpu_subtype")) {
+    return;
+  }
+
+  struct proc_archinfo {
+    cpu_type_t p_cputype;
+    cpu_subtype_t p_cpusubtype;
+  };
+
+  struct proc_archinfo archinfo {
+    0, 0
+  };
+  // 19 is the flavor for this API call. It is normally used by Apple code
+  // under the constant PROC_PIDARCHINFO but is unexported
+  size_t status = proc_pidinfo(pid, 19, 0, &archinfo, sizeof(archinfo));
+  if (status == sizeof(archinfo)) {
+    r["cpu_type"] = INTEGER(archinfo.p_cputype);
+    r["cpu_subtype"] = INTEGER(archinfo.p_cpusubtype);
+  } else {
+    r["cpu_type"] = "-1";
+    r["cpu_subtype"] = "-1";
+  }
+}
+
 struct proc_args {
   std::vector<std::string> args;
   std::map<std::string, std::string> env;
@@ -467,6 +493,8 @@ QueryData genProcesses(QueryContext& context) {
     genProcNumThreads(context, pid, r);
 
     genProcUniquePid(context, pid, r);
+
+    genProcArch(context, pid, r);
 
     results.push_back(r);
   }
