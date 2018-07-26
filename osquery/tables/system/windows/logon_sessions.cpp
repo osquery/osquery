@@ -88,6 +88,6 @@ QueryData queryLogonSessions(QueryContext& context) {
     }
   }
   return results;
-} // namespace tables
+} // function queryLogonSessions
 } // namespace tables
 } // namespace osquery
