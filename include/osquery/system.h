@@ -339,5 +339,12 @@ Status createPidFile();
  */
 bool isUserAdmin();
 
+/**
+ * @brief Set the name of the thread
+ *
+ * @return If the name was set successfully
+ */
+Status setThreadName(const std::string& name);
+
 bool checkPlatform(const std::string& platform);
 } // namespace osquery

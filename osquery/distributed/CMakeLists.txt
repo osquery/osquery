@@ -6,13 +6,15 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-ADD_OSQUERY_LIBRARY(TRUE osquery_distributed
-  distributed.cpp
+target_sources(libosquery
+  PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/distributed.cpp"  
 )
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_distributed_plugins
-  plugins/tls_distributed.cpp
+  "${CMAKE_CURRENT_LIST_DIR}/plugins/tls_distributed.cpp"
 )
 
-file(GLOB OSQUERY_DISTRIBUTED_TESTS "tests/*.cpp")
-ADD_OSQUERY_TEST(FALSE ${OSQUERY_DISTRIBUTED_TESTS})
+ADD_OSQUERY_TEST_ADDITIONAL(
+  "${CMAKE_CURRENT_LIST_DIR}/tests/distributed_tests.cpp"
+)

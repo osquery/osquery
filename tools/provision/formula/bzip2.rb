@@ -14,8 +14,6 @@ class Bzip2 < AbstractOsqueryFormula
     sha256 "9198241b2295595a07f0471c560d89afede570550b9d1b7fde1137fd9655273a" => :x86_64_linux
   end
 
-  keg_only :provided_by_macos
-
   def install
     inreplace "Makefile", "$(PREFIX)/man", "$(PREFIX)/share/man"
     # Expect -fPIC for static library.

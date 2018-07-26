@@ -17,7 +17,7 @@ schema([
     Column("home_directory", TEXT, "The home directory for the logon session."),
     Column("home_directory_drive", TEXT, "The drive location of the home directory of the logon session.")
 ])
-implementation("logon_sessions@QueryLogonSessions")
+implementation("logon_sessions@queryLogonSessions")
 examples([
   "select * from logon_sessions;"
 ])

@@ -46,6 +46,7 @@ void InterruptableRunnable::pauseMilli(std::chrono::milliseconds milli) {
 
 void InternalRunnable::run() {
   run_ = true;
+  setThreadName(name());
   start();
 
   // The service is complete.
@@ -57,9 +58,8 @@ Dispatcher& Dispatcher::instance() {
   return instance;
 }
 
-size_t Dispatcher::serviceCount() {
-  auto& self = Dispatcher::instance();
-  ReadLock lock(self.mutex_);
+size_t Dispatcher::serviceCount() const {
+  ReadLock lock(mutex_);
   return services_.size();
 }
 
@@ -144,6 +144,11 @@ void Dispatcher::joinServices() {
 
   self.stopping_ = false;
   DLOG(INFO) << "Services and threads have been cleared";
+}
+
+Dispatcher::~Dispatcher() {
+  stopServices();
+  joinServices();
 }
 
 void Dispatcher::stopServices() {

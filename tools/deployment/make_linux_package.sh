@@ -140,7 +140,7 @@ function main() {
   mkdir -p $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_INSTALL_DIR
   ln -s osqueryd $BINARY_INSTALL_DIR/osqueryi
-  strip $BINARY_INSTALL_DIR/*
+  strip --strip-debug $BINARY_INSTALL_DIR/*
   cp "$CTL_SRC" $BINARY_INSTALL_DIR
 
   # Create the prefix log dir and copy source configs
@@ -188,6 +188,8 @@ function main() {
   if [[ $PACKAGE_TYPE = "deb" ]]; then
     #Change config path in service unit
     sed -i 's/sysconfig/default/g' $INSTALL_PREFIX$SYSTEMD_SERVICE_DST
+    #Change config path in initd script
+    sed -i 's/sysconfig/default/g' $INSTALL_PREFIX$INITD_DST
   fi
 
   log "creating $PACKAGE_TYPE package"

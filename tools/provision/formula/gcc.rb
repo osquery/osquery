@@ -7,22 +7,15 @@ class Gcc < AbstractOsqueryFormula
   url "https://ftp.gnu.org/gnu/gcc/gcc-5.4.0/gcc-5.4.0.tar.bz2"
   mirror "http://ftpmirror.gnu.org/gcc/gcc-5.4.0/gcc-5.4.0.tar.bz2"
   sha256 "608df76dec2d34de6558249d8af4cbee21eceddbcb580d666f7a5a583ca3303a"
-  revision 201
-
-
-  head "svn://gcc.gnu.org/svn/gcc/trunk"
+  revision 202
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "5ded60c4d67735a6d5cf54d8c2bd0d4721b6d66649c6c522626fb4e9f6e35bed" => :x86_64_linux
+    sha256 "28f8788ccd1c595bf535afb3f2fa2083737ea04e96b65f8498c2866fccc531a2" => :x86_64_linux
   end
 
   depends_on "zlib"
-  depends_on "gmp"
-  depends_on "libmpc"
-  depends_on "mpfr"
-  depends_on "isl"
 
   def version_suffix
     version.to_s.slice(/\d/)
@@ -32,7 +25,67 @@ class Gcc < AbstractOsqueryFormula
     `uname -r`.chomp
   end
 
+  resource "mpfr" do
+    url "https://mirrors.ocf.berkeley.edu/debian/pool/main/m/mpfr4/mpfr4_3.1.5.orig.tar.xz"
+    mirror "https://ftp.gnu.org/gnu/mpfr/mpfr-3.1.5.tar.xz"
+    sha256 "015fde82b3979fbe5f83501986d328331ba8ddf008c1ff3da3c238f49ca062bc"
+  end
+
+  resource "libmpc" do
+    url "https://ftp.gnu.org/gnu/mpc/mpc-1.0.3.tar.gz"
+    mirror "http://multiprecision.org/mpc/download/mpc-1.0.3.tar.gz"
+    sha256 "617decc6ea09889fb08ede330917a00b16809b8db88c29c31bfbb49cbf88ecc3"
+  end
+
+  resource "isl" do
+    url "http://isl.gforge.inria.fr/isl-0.15.tar.bz2"
+    mirror "ftp://gcc.gnu.org//pub/gcc/infrastructure/isl-0.15.tar.bz2"
+    sha256 "8ceebbf4d9a81afa2b4449113cee4b7cb14a687d7a549a963deb5e2a41458b6b"
+  end
+
+  resource "gmp" do
+    url "https://gmplib.org/download/gmp/gmp-6.1.1.tar.xz"
+    mirror "https://ftp.gnu.org/gnu/gmp/gmp-6.1.1.tar.xz"
+    sha256 "d36e9c05df488ad630fff17edb50051d6432357f9ce04e34a09b3d818825e831"
+  end
+
   def install
+    mkdir "deps/gmp" do
+      (buildpath/"deps/gmp").install resource("gmp")
+      args = %W[--with-pic --build=core2-linux-gnu]
+
+      system "./configure", *osquery_autoconf_flags, *args
+      system "make"
+      system "make", "install"
+    end
+
+    mkdir "deps/mpfr" do
+      (buildpath/"deps/mpfr").install resource("mpfr")
+      args = %W[--with-gmp=#{prefix}]
+
+      system "./configure", *osquery_autoconf_flags, *args
+      system "make"
+      system "make", "install"
+    end
+
+    mkdir "deps/libmpc" do
+      (buildpath/"deps/libmpc").install resource("libmpc")
+      args = %W[--with-gmp=#{prefix} --with-mpfr=#{prefix}]
+
+      system "./configure", *osquery_autoconf_flags, *args
+      system "make"
+      system "make", "install"
+    end
+
+    mkdir "deps/isl" do
+      (buildpath/"deps/isl").install resource("isl")
+      args = %W[--with-pic --with-gmp-prefix=#{prefix}]
+
+      system "./configure", *osquery_autoconf_flags, *args
+      system "make"
+      system "make", "install"
+    end
+
     # GCC will suffer build errors if forced to use a particular linker.
     ENV.delete "LD"
 
@@ -57,10 +110,10 @@ class Gcc < AbstractOsqueryFormula
       "--enable-languages=#{languages.join(",")}",
       # Make most executables versioned to avoid conflicts.
       "--program-suffix=-#{version_suffix}",
-      "--with-gmp=#{default_prefix}/opt/gmp",
-      "--with-mpfr=#{default_prefix}/opt/mpfr",
-      "--with-mpc=#{default_prefix}/opt/libmpc",
-      "--with-isl=#{default_prefix}/opt/isl",
+      "--with-gmp=#{prefix}",
+      "--with-mpfr=#{prefix}",
+      "--with-mpc=#{prefix}",
+      "--with-isl=#{prefix}",
       "--with-system-zlib",
       "--enable-libstdcxx-time=yes",
       "--enable-stage1-checking",

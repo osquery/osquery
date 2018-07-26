@@ -6,6 +6,9 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
+# Force Powershell to use TLS 1.2
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+
 # Helper function to add an explicit Deny-Write ACE for the Everyone group
 function Set-DenyWriteAcl {
   [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
@@ -251,4 +254,35 @@ function Get-VSInfo {
   $vsinfo.location = $vsinfo.location.trim()
   $vsinfo.version = $vsinfo.version.trim()
   return $vsinfo
+}
+
+# A helper function to derive the latest VS install and call vcvarsall.bat
+function Invoke-VcVarsAll {
+  $vsinfo = Get-VSInfo
+  $vsLoc = $vsinfo.location
+  $vsVersion = $vsinfo.version
+
+  if ($vsLoc -ne '') {
+    $vcvarsall = Join-Path $vsLoc 'VC'
+    if ($vsVersion -eq '15') {
+      $vcvarsall = Join-Path $vcvarsall '\Auxiliary\Build\vcvarsall.bat'
+    } else {
+      $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
+    }
+  
+    # Lastly invoke the environment provisioning script
+    $null = Invoke-BatchFile "$vcvarsall" "amd64"
+    return $true
+  }
+
+  # As a last ditch effort, attempt to find the env variables set by VS2015
+  # in order to derive the location of vcvarsall
+  $vsComnTools = [environment]::GetEnvironmentVariable("VS140COMNTOOLS")
+  if ($vsComnTools -eq '') {
+    return $false
+  }
+  $vcvarsall = Resolve-Path $(Join-Path "$vsComnTools" "..\..\VC")
+  $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
+  $null = Invoke-BatchFile "$vcvarsall" "amd64"
+  return $true
 }

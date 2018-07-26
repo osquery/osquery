@@ -25,7 +25,9 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-void genSignatureForFile(const std::string& path, QueryData& results);
+void genSignatureForFile(const std::string& path,
+                         bool hashResources,
+                         QueryData& results);
 
 // Gets the full path to the current executable (only works on Darwin)
 std::string getExecutablePath() {
@@ -51,7 +53,9 @@ std::string getRealExecutablePath() {
 
 class SignatureTest : public testing::Test {
  protected:
-  void SetUp() { tempFile = kTestWorkingDirectory + "darwin-signature"; }
+  void SetUp() {
+    tempFile = kTestWorkingDirectory + "darwin-signature";
+  }
 
   void TearDown() {
     // End the event loops, and join on the threads.
@@ -70,23 +74,31 @@ class SignatureTest : public testing::Test {
 TEST_F(SignatureTest, test_get_valid_signature) {
   std::string path = "/bin/ls";
 
-  QueryData results;
-  genSignatureForFile(path, results);
+  Row expected = {{"path", path},
+                  {"signed", "1"},
+                  {"identifier", "com.apple.ls"},
+                  {"authority", "Software Signing"}};
 
-  Row expected = {
-      {"path", path},
-      {"signed", "1"},
-      {"identifier", "com.apple.ls"},
-      {"authority", "Software Signing"},
-  };
+  for (bool hash_resources : {true, false}) {
+    QueryData results;
+    genSignatureForFile(path, hash_resources, results);
 
-  for (const auto& column : expected) {
-    EXPECT_EQ(results.front()[column.first], column.second);
+    const auto& first_row = results.front();
+
+    for (const auto& column : expected) {
+      const auto& actual_value = first_row.at(column.first);
+      const auto& expected_value = column.second;
+
+      EXPECT_EQ(expected_value, actual_value)
+          << " for column named " << column.first;
+    }
+
+    EXPECT_EQ(first_row.at("hash_resources"), INTEGER(hash_resources));
+
+    // Could check the team identifier but it is flaky on some distros.
+    // ASSERT_TRUE(results.front()["team_identifier"].length() > 0);
+    ASSERT_TRUE(first_row.at("cdhash").length() > 0);
   }
-
-  // Could check the team identifier but it is flaky on some distros.
-  // ASSERT_TRUE(results.front()["team_identifier"].length() > 0);
-  ASSERT_TRUE(results.front()["cdhash"].length() > 0);
 }
 
 /*
@@ -99,12 +111,15 @@ TEST_F(SignatureTest, test_get_unsigned) {
   std::string path = getRealExecutablePath();
 
   QueryData results;
-  genSignatureForFile(path, results);
+  genSignatureForFile(path, true, results);
 
-  Row expected = {
-      {"path", path}, {"signed", "0"},         {"identifier", ""},
-      {"cdhash", ""}, {"team_identifier", ""}, {"authority", ""},
-  };
+  Row expected = {{"path", path},
+                  {"hash_resources", "1"},
+                  {"signed", "0"},
+                  {"identifier", ""},
+                  {"cdhash", ""},
+                  {"team_identifier", ""},
+                  {"authority", ""}};
 
   for (const auto& column : expected) {
     EXPECT_EQ(results.front()[column.first], column.second);
@@ -149,14 +164,13 @@ TEST_F(SignatureTest, test_get_invalid_signature) {
 
   // Get the signature of this new file.
   QueryData results;
-  genSignatureForFile(newPath, results);
+  genSignatureForFile(newPath, true, results);
 
-  Row expected = {
-      {"path", newPath},
-      {"signed", "0"},
-      {"identifier", "com.apple.ls"},
-      {"authority", "Software Signing"},
-  };
+  Row expected = {{"path", newPath},
+                  {"hash_resources", "1"},
+                  {"signed", "0"},
+                  {"identifier", "com.apple.ls"},
+                  {"authority", "Software Signing"}};
 
   for (const auto& column : expected) {
     EXPECT_EQ(results.front()[column.first], column.second);

@@ -15,38 +15,6 @@ if (-not (Test-Path $utils)) {
 }
 . $utils
 
-# A helper function to derive the latest VS install and call vcvarsall.bat
-function Invoke-VcVarsAll {
-  $vsinfo = Get-VSInfo
-  $vsLoc = $vsinfo.location
-  $vsVersion = $vsinfo.version
-
-  if ($vsLoc -ne '') {
-    $vcvarsall = Join-Path $vsLoc 'VC'
-    if ($vsVersion -eq '15') {
-      $vcvarsall = Join-Path $vcvarsall '\Auxiliary\Build\vcvarsall.bat'
-    } else {
-      $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
-    }
-  
-    # Lastly invoke the environment provisioning script
-    $null = Invoke-BatchFile "$vcvarsall" "amd64"
-    return $true
-  }
-
-  # As a last ditch effort, attempt to find the env variables set by VS2015
-  # in order to derive the location of vcvarsall
-  $vsComnTools = [environment]::GetEnvironmentVariable("VS140COMNTOOLS")
-  if ($vsComnTools -eq '') {
-    return $false
-  }
-  $vcvarsall = Resolve-Path $(Join-Path "$vsComnTools" "..\..\VC")
-  $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
-  $null = Invoke-BatchFile "$vcvarsall" "amd64"
-  return $true
-}
-
-
 # A helper function to call CMake and generate our solution file
 function Invoke-OsqueryCmake {
   $vsinfo = Get-VSInfo

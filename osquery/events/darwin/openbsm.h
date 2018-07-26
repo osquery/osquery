@@ -38,7 +38,6 @@ class OpenBSMConsumerRunner;
 class OpenBSMEventPublisher
     : public EventPublisher<OpenBSMSubscriptionContext, OpenBSMEventContext> {
   DECLARE_PUBLISHER("openbsm");
-
  public:
   Status setUp() override;
 
@@ -48,7 +47,10 @@ class OpenBSMEventPublisher
 
   Status run() override;
 
-  OpenBSMEventPublisher() : EventPublisher() {}
+  OpenBSMEventPublisher(const std::string& name = "OpenBSMEventPublisher")
+      : EventPublisher() {
+    runnable_name_ = name;
+  }
 
   virtual ~OpenBSMEventPublisher() {
     tearDown();

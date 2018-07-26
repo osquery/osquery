@@ -28,49 +28,48 @@ QueryData genPhysicalDiskPerformance(QueryContext& context) {
   for (const auto& disk : perfRes) {
     Row r;
     std::string sPlaceHolder;
-    unsigned long long ullPlaceHolder = 0;
 
     disk.GetString("Name", r["name"]);
 
     disk.GetString("AvgDiskBytesPerRead", sPlaceHolder);
-    safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-    r["avg_disk_bytes_per_read"] = BIGINT(ullPlaceHolder);
+    r["avg_disk_bytes_per_read"] =
+        BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
     disk.GetString("AvgDiskBytesPerWrite", sPlaceHolder);
-    safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-    r["avg_disk_bytes_per_write"] = BIGINT(ullPlaceHolder);
+    r["avg_disk_bytes_per_write"] =
+        BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
 
     disk.GetString("AvgDiskReadQueueLength", sPlaceHolder);
-    safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-    r["avg_disk_read_queue_length"] = BIGINT(ullPlaceHolder);
+    r["avg_disk_read_queue_length"] =
+        BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
     disk.GetString("AvgDiskWriteQueueLength", sPlaceHolder);
-    safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-    r["avg_disk_write_queue_length"] = BIGINT(ullPlaceHolder);
+    r["avg_disk_write_queue_length"] =
+        BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
 
     disk.GetString("AvgDiskSecPerRead", sPlaceHolder);
-    safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-    r["avg_disk_sec_per_read"] = INTEGER(ullPlaceHolder);
+    r["avg_disk_sec_per_read"] =
+        INTEGER(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
     disk.GetString("AvgDiskSecPerWrite", sPlaceHolder);
-    safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-    r["avg_disk_sec_per_write"] = INTEGER(ullPlaceHolder);
+    r["avg_disk_sec_per_write"] =
+        INTEGER(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
 
     disk.GetString("PercentDiskReadTime", sPlaceHolder);
-    safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-    r["percent_disk_read_time"] = INTEGER(ullPlaceHolder);
+    r["percent_disk_read_time"] =
+        INTEGER(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
     disk.GetString("PercentDiskWriteTime", sPlaceHolder);
-    safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-    r["percent_disk_write_time"] = INTEGER(ullPlaceHolder);
+    r["percent_disk_write_time"] =
+        INTEGER(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
 
     disk.GetString("CurrentDiskQueueLength", sPlaceHolder);
-    safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-    r["current_disk_queue_length"] = INTEGER(ullPlaceHolder);
+    r["current_disk_queue_length"] =
+        INTEGER(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
 
     disk.GetString("PercentDiskTime", sPlaceHolder);
-    safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-    r["percent_disk_time"] = INTEGER(ullPlaceHolder);
+    r["percent_disk_time"] =
+        INTEGER(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
 
     disk.GetString("PercentIdleTime", sPlaceHolder);
-    safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-    r["percent_idle_time"] = INTEGER(ullPlaceHolder);
+    r["percent_idle_time"] =
+        INTEGER(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
 
     results.push_back(r);
   }

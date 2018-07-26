@@ -14,30 +14,31 @@
 
 namespace osquery {
 
-void IOServiceRunner::start() {
-  boost::asio::io_service::work work(IOService::get());
-  for (;;) {
+void IOContextRunner::start() {
+  while (!interrupted()) {
     try {
-      IOService::get().run();
+      boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
+          work = boost::asio::make_work_guard(IOContext::get());
+      work.reset();
       return;
     } catch (const std::exception& e) {
-      LOG(WARNING) << "IOServiceRunner: handler exception: " << e.what();
+      LOG(WARNING) << "IOContextRunner: handler exception: " << e.what();
     } catch (...) {
-      LOG(WARNING) << "IOServiceRunner: unknown handler exception";
+      LOG(WARNING) << "IOContextRunner: unknown handler exception";
     }
   }
 }
 
-void IOServiceRunner::stop() {
-  IOService::get().stop();
+void IOContextRunner::stop() {
+  IOContext::get().stop();
 }
 
-void startIOService() {
+void startIOContext() {
 // Windows service needs notifications that threads should die: #4235
 #ifdef WIN32
   boost::asio::detail::win_thread::set_terminate_threads(true);
 #endif
 
-  Dispatcher::addService(std::make_shared<IOServiceRunner>());
+  Dispatcher::addService(std::make_shared<IOContextRunner>());
 }
 } // namespace osquery

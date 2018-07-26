@@ -46,14 +46,14 @@ Status genBin(const fs::path& path, int perms, QueryData& results) {
   if (pw != nullptr) {
     user = std::string(pw->pw_name);
   } else {
-    user = boost::lexical_cast<std::string>(info.st_uid);
+    user = std::to_string(info.st_uid);
   }
 
   std::string group;
   if (gr != nullptr) {
     group = std::string(gr->gr_name);
   } else {
-    group = boost::lexical_cast<std::string>(info.st_gid);
+    group = std::to_string(info.st_gid);
   }
 
   r["username"] = user;

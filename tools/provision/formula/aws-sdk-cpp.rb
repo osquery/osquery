@@ -25,6 +25,8 @@ class AwsSdkCpp < AbstractOsqueryFormula
     args << "-DNO_HTTP_CLIENT=1"
     args << "-DMINIMIZE_SIZE=ON"
     args << "-DBUILD_SHARED_LIBS=OFF"
+    args << "-DENABLE_TESTING=OFF"
+    args << "-DAUTORUN_UNIT_TESTS=OFF"
 
     args << "-DBUILD_ONLY=ec2;firehose;kinesis;sts"
 
