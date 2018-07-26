@@ -30,39 +30,6 @@ HIDDEN_FLAG(bool,
             false,
             "Debug USN journal messages");
 
-namespace {
-/// Read buffer size
-const size_t kUSNJournalReaderBufferSize = 4096U;
-
-/// This variable holds the list of change events we are interested in. Order
-/// is important, as it determines the priority when decompressing/splitting
-/// the `reason` field of the USN journal records.
-const std::vector<DWORD> kUSNChangeReasonFlagList = {
-    USN_REASON_FILE_CREATE,
-    USN_REASON_DATA_OVERWRITE,
-    USN_REASON_DATA_TRUNCATION,
-    USN_REASON_DATA_EXTEND,
-    USN_REASON_FILE_DELETE,
-
-    USN_REASON_RENAME_OLD_NAME,
-    USN_REASON_RENAME_NEW_NAME,
-
-    USN_REASON_NAMED_DATA_EXTEND,
-    USN_REASON_NAMED_DATA_OVERWRITE,
-    USN_REASON_NAMED_DATA_TRUNCATION,
-
-    USN_REASON_TRANSACTED_CHANGE,
-    USN_REASON_BASIC_INFO_CHANGE,
-    USN_REASON_EA_CHANGE,
-    USN_REASON_HARD_LINK_CHANGE,
-    USN_REASON_INDEXABLE_CHANGE,
-    USN_REASON_INTEGRITY_CHANGE,
-    USN_REASON_STREAM_CHANGE,
-    USN_REASON_OBJECT_ID_CHANGE,
-    USN_REASON_REPARSE_POINT_CHANGE,
-    USN_REASON_SECURITY_CHANGE};
-
-/// Used to convert a Windows file attribute bit to its description
 // clang-format off
 const std::unordered_map<int, std::string> kWindowsFileAttributeMap = {
     {FILE_ATTRIBUTE_ARCHIVE, "FILE_ATTRIBUTE_ARCHIVE"},
@@ -86,10 +53,9 @@ const std::unordered_map<int, std::string> kWindowsFileAttributeMap = {
     {FILE_ATTRIBUTE_VIRTUAL, "FILE_ATTRIBUTE_VIRTUAL"}};
 // clang-format on
 
-/// Used to convert an event record type to its description
 // clang-format off
-static const std::unordered_map<USNJournalEventRecord::Type, std::string>
-    kEventToStringMap = {
+const std::unordered_map<USNJournalEventRecord::Type, std::string>
+    kNTFSEventToStringMap = {
         {USNJournalEventRecord::Type::AttributesChange, "AttributesChange"},
         {USNJournalEventRecord::Type::ExtendedAttributesChange, "ExtendedAttributesChange"},
         {USNJournalEventRecord::Type::DirectoryCreation, "DirectoryCreation"},
@@ -123,6 +89,38 @@ static const std::unordered_map<USNJournalEventRecord::Type, std::string>
         {USNJournalEventRecord::Type::DirectorySecurityAttributesChange, "DirectorySecurityAttributesChange"},
         {USNJournalEventRecord::Type::FileSecurityAttributesChange, "FileSecurityAttributesChange"}};
 // clang-format on
+
+namespace {
+/// Read buffer size
+const size_t kUSNJournalReaderBufferSize = 4096U;
+
+/// This variable holds the list of change events we are interested in. Order
+/// is important, as it determines the priority when decompressing/splitting
+/// the `reason` field of the USN journal records.
+const std::vector<DWORD> kUSNChangeReasonFlagList = {
+    USN_REASON_FILE_CREATE,
+    USN_REASON_DATA_OVERWRITE,
+    USN_REASON_DATA_TRUNCATION,
+    USN_REASON_DATA_EXTEND,
+    USN_REASON_FILE_DELETE,
+
+    USN_REASON_RENAME_OLD_NAME,
+    USN_REASON_RENAME_NEW_NAME,
+
+    USN_REASON_NAMED_DATA_EXTEND,
+    USN_REASON_NAMED_DATA_OVERWRITE,
+    USN_REASON_NAMED_DATA_TRUNCATION,
+
+    USN_REASON_TRANSACTED_CHANGE,
+    USN_REASON_BASIC_INFO_CHANGE,
+    USN_REASON_EA_CHANGE,
+    USN_REASON_HARD_LINK_CHANGE,
+    USN_REASON_INDEXABLE_CHANGE,
+    USN_REASON_INTEGRITY_CHANGE,
+    USN_REASON_STREAM_CHANGE,
+    USN_REASON_OBJECT_ID_CHANGE,
+    USN_REASON_REPARSE_POINT_CHANGE,
+    USN_REASON_SECURITY_CHANGE};
 
 // This map is used to convert the `reason` field of the USN record to
 // our internal type. In the pair type, the first field is selected if
@@ -402,9 +400,12 @@ USNJournalReader::~USNJournalReader() {}
 Status USNJournalReader::query(std::string& name,
                                USNFileReferenceNumber& parent_ref,
                                const USNFileReferenceNumber& ref) const {
+  name = "C:\\Windows";
+  return Status(0);
+
   // The query we are going to perform only supports 64-bit reference numbers;
-  // the 128-bit
-  // ones are used when reading but they never actually use the high qword
+  // the 128-bit ones are used when reading but they never actually use the high
+  // qword
   FILE_ID_DESCRIPTOR native_file_id = {};
   GetNativeFileIdFromUSNReference(native_file_id, ref);
 
@@ -424,7 +425,7 @@ Status USNJournalReader::query(std::string& name,
   query.MinMajorVersion = 2U;
   query.MaxMajorVersion = 3U;
 
-  std::uint8_t buffer[2048] = {};
+  std::uint8_t buffer[4096] = {};
   DWORD bytes_read = 0U;
 
   if (!DeviceIoControl(d->volume_handle,
@@ -451,6 +452,7 @@ Status USNJournalReader::query(std::string& name,
   // Validate what we got and return the result to the caller
   const auto usn_record =
       reinterpret_cast<const USN_RECORD*>(buffer + sizeof(USN));
+
   USNFileReferenceNumber current_ref = {};
 
   if (!USNParsers::GetFileReferenceNumber(current_ref, usn_record)) {
@@ -564,7 +566,7 @@ Status USNJournalReader::ProcessAndAppendUSNRecord(
     return Status(1, "Failed to get the parent reference number");
   }
 
-  if (!USNParsers::GetTimeStamp(base_event_record.timestamp, record)) {
+  if (!USNParsers::GetTimeStamp(base_event_record.record_timestamp, record)) {
     return Status(1, "Failed to get the timestamp");
   }
 
@@ -687,7 +689,7 @@ bool GetParentFileReferenceNumber(USNFileReferenceNumber& ref_number,
   }
 }
 
-bool GetTimeStamp(std::time_t& timestamp, const USN_RECORD* record) {
+bool GetTimeStamp(std::time_t& record_timestamp, const USN_RECORD* record) {
   assert(record->MajorVersion != 4U);
 
   LARGE_INTEGER update_timestamp = {};
@@ -709,7 +711,7 @@ bool GetTimeStamp(std::time_t& timestamp, const USN_RECORD* record) {
 
   // Convert the timestamp to seconds and rebase it (from 1601 to the epoch
   // time)
-  timestamp =
+  record_timestamp =
       static_cast<std::time_t>(update_timestamp.QuadPart / 10000000ULL) -
       11644473600ULL;
 
@@ -839,8 +841,8 @@ bool GetEventString(std::string& buffer, const USN_RECORD* record) {
 
 std::ostream& operator<<(std::ostream& stream,
                          const USNJournalEventRecord::Type& type) {
-  auto it = kEventToStringMap.find(type);
-  if (it == kEventToStringMap.end()) {
+  auto it = kNTFSEventToStringMap.find(type);
+  if (it == kNTFSEventToStringMap.end()) {
     stream << "UnknownEventRecordType";
     return stream;
   }
@@ -892,7 +894,7 @@ std::ostream& operator<<(std::ostream& stream,
 
   {
     std::tm local_time;
-    localtime_s(&local_time, &record.timestamp);
+    localtime_s(&local_time, &record.record_timestamp);
 
     char buffer[100] = {};
     std::strftime(buffer, sizeof(buffer), "%y-%m-%d %H:%M:%S", &local_time);

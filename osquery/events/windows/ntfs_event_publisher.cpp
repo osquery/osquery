@@ -161,7 +161,6 @@ std::vector<USNJournalEventRecord> NTFSEventPublisher::acquireJournalRecords() {
 NTFSEventPublisherConfiguration NTFSEventPublisher::readConfiguration() {
   auto config_parser = Config::getParser("file_paths");
   const auto& json = config_parser->getData().doc();
-  const auto& file_accesses = json["file_accesses"];
 
   NTFSEventPublisherConfiguration configuration = {};
 
@@ -430,6 +429,7 @@ Status NTFSEventPublisher::run() {
     case USNJournalEventRecord::Type::FileRename_OldName: {
       d->rename_path_mapper.insert(
           {journal_record.node_ref_number, journal_record});
+
       skip_record = true;
       break;
     }
@@ -454,8 +454,10 @@ Status NTFSEventPublisher::run() {
     // Generate the new event
     NTFSEventRecord event = {};
     event.type = journal_record.type;
-    event.timestamp = journal_record.timestamp;
+    event.record_timestamp = journal_record.record_timestamp;
     event.attributes = journal_record.attributes;
+    event.update_sequence_number = journal_record.update_sequence_number;
+    event.drive_letter = journal_record.drive_letter;
 
     auto status = getPathFromReferenceNumber(event.path,
                                              journal_record.drive_letter,

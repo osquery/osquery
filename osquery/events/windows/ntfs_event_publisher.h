@@ -46,11 +46,17 @@ struct NTFSEventRecord final {
   /// Previous path (only valid for rename operations)
   std::string old_path;
 
-  /// Event timestamp
-  std::time_t timestamp;
+  /// Record timestamp
+  std::time_t record_timestamp{0U};
 
   /// Node attributes
   DWORD attributes;
+
+  /// Update sequence number of the journal record
+  USN update_sequence_number{0U};
+
+  /// Drive letter
+  char drive_letter{0U};
 };
 
 /// This structure is used to save volume handles and reference ids

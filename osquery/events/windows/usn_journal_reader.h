@@ -99,8 +99,8 @@ struct USNJournalEventRecord final {
   /// Reference number for the parent folder
   USNFileReferenceNumber parent_ref_number;
 
-  /// Event timestamp
-  std::time_t timestamp;
+  /// Record timestamp
+  std::time_t record_timestamp;
 
   /// Node attributes
   DWORD attributes;
@@ -117,6 +117,13 @@ static_assert(std::is_move_constructible<USNJournalEventRecord>::value,
 /// the amount of memory used
 using USNPerFileLastRecordType =
     std::map<USNFileReferenceNumber, USNJournalEventRecord::Type>;
+
+/// Used to convert a Windows file attribute bit to its description
+extern const std::unordered_map<int, std::string> kWindowsFileAttributeMap;
+
+/// Used to convert an event record type to its description
+extern const std::unordered_map<USNJournalEventRecord::Type, std::string>
+    kNTFSEventToStringMap;
 
 /// Contains data shared between the USNJournalReader service and the
 /// FileChangePublisher
