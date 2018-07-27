@@ -30,8 +30,6 @@
 namespace osquery {
 namespace tables {
 
-const auto kFreePtr = [](auto ptr) { free(ptr); };
-
 const auto kCloseInfoSet = [](auto infoset) {
   SetupDiDestroyDeviceInfoList(infoset);
 };
@@ -56,11 +54,24 @@ static inline void win32LogWARNING(const std::string& msg,
 
 // Unify the image path as systemRoot can contain systemroot and/or system32
 static inline std::string kNormalizeImage(std::string& path) {
-  std::transform(path.begin(), path.end(), path.begin(), ::tolower);
-  char sys_root[MAX_PATH] = {0};
-  GetSystemDirectory(sys_root, MAX_PATH);
-  return sys_root +
-         boost::regex_replace(path, boost::regex("^.*?system32"), "");
+  boost::algorithm::to_lower(path);
+
+  std::string sys_root(MAX_PATH, '\0');
+  auto ret = GetSystemDirectory(&sys_root.front(),
+                                static_cast<unsigned int>(sys_root.size()));
+  if (ret == 0) {
+    VLOG(1) << "Failed to get the system directory with " << GetLastError();
+    return "";
+  }
+  if (ret > sys_root.size()) {
+    sys_root.resize(ret);
+    ret = GetSystemDirectory(&sys_root.front(),
+                             static_cast<unsigned int>(sys_root.size()));
+  }
+  if (path.find("system32") != std::string::npos) {
+    boost::regex_replace(path, boost::regex("^.*?system32"), "");
+  }
+  return sys_root.append(path);
 }
 
 device_infoset_t setupDevInfoSet(const DWORD flags) {
@@ -97,7 +108,8 @@ Status getDeviceList(const device_infoset_t& infoset,
   auto err = GetLastError();
   if (err != ERROR_NO_MORE_ITEMS) {
     rdevices.clear();
-    return Status(GetLastError(), "Error enumerating installed devices");
+    return Status::failure("Failed to enumerate installed devices with " +
+                           std::to_string(GetLastError()));
   }
   return Status();
 }
@@ -115,14 +127,14 @@ Status getDeviceProperty(const device_infoset_t& infoset,
     return Status();
   }
   if (err != ERROR_INSUFFICIENT_BUFFER) {
-    return Status(GetLastError(),
-                  "Error getting buffer size for device property");
+    return Status::failure(
+        "Failed to get buffer size for device property with " +
+        std::to_string(GetLastError()));
   }
 
-  std::unique_ptr<BYTE, decltype(kFreePtr)> drv_buff(
-      static_cast<PBYTE>(malloc(buff_size)), kFreePtr);
+  auto drv_buff = std::make_unique<BYTE[]>(buff_size);
   if (drv_buff == nullptr) {
-    return Status(1, "Failed to malloc for device property buffer");
+    return Status::failure("Failed to malloc for device property buffer");
   }
 
   ret = SetupDiGetDevicePropertyW(infoset.get(),
@@ -134,7 +146,8 @@ Status getDeviceProperty(const device_infoset_t& infoset,
                                   nullptr,
                                   0);
   if (ret == FALSE) {
-    return Status(GetLastError(), "Error getting device property");
+    return Status::failure("Failed to get device property with " +
+                           std::to_string(GetLastError()));
   }
 
   if (dev_prop_type == DEVPROP_TYPE_UINT32) {
@@ -148,8 +161,8 @@ Status getDeviceProperty(const device_infoset_t& infoset,
     result =
         std::to_string(osquery::filetimeToUnixtime(*(PFILETIME)drv_buff.get()));
   } else {
-    return Status(
-        1, "Unhandled device property type " + std::to_string(dev_prop_type));
+    return Status::failure("Unhandled device property type " +
+                           std::to_string(dev_prop_type));
   }
 
   return Status();
@@ -182,15 +195,15 @@ Status genServiceKeyMap(
     return Status::failure("Failed to retrieve services image path cache");
   }
 
-  char sys_root[MAX_PATH] = {0};
-  GetSystemDirectory(sys_root, MAX_PATH);
   for (auto& row : sql.rows()) {
-    if (row.count("key") == 0 || row.count("data") == 0) {
+    auto key_it = row.find("key");
+    auto data_it = row.find("data");
+    if (key_it == row.end() || data_it == row.end()) {
       continue;
     }
-    services_image_map[row.at("key")] = kNormalizeImage(row.at("data"));
+    services_image_map[key_it->second] = kNormalizeImage(data_it->second);
   }
-  return Status::success();
+  return Status();
 }
 
 QueryData genDrivers(QueryContext& context) {
@@ -250,9 +263,9 @@ QueryData genDrivers(QueryContext& context) {
       r["service_key"] = svc_key;
 
       // If the image map doesn't exist in the cache, manually look it up
-      if (!svc_image_map.empty() &&
-          svc_image_map.find(svc_key) != svc_image_map.end()) {
-        r["image"] = svc_image_map[svc_key];
+      auto svc_key_it = svc_image_map.find(svc_key);
+      if (svc_key_it != svc_image_map.end()) {
+        r["image"] = svc_image_map[svc_key_it->second];
       } else {
         // Manual lookups of the service keys image path are _very_ slow
         VLOG(1) << r["service"]
@@ -282,36 +295,47 @@ QueryData genDrivers(QueryContext& context) {
     row.GetString("DriverProviderName", r["provider"]);
 
     bool is_signed;
-    row.GetBool("IsSigned", is_signed);
-    r["signed"] = is_signed ? INTEGER(1) : INTEGER(0);
+    auto ret = row.GetBool("IsSigned", is_signed);
+    if (ret.ok()) {
+      r["signed"] = is_signed ? INTEGER(1) : INTEGER(0);
+    } else {
+      VLOG(1) << "Failed to get signature status for " << r["device_name"]
+              << " with " << ret.getMessage();
+      r["signed"] = "-1";
+    }
 
     std::string inf_name;
-    row.GetString("InfName", inf_name);
-    std::vector<char> inf(MAX_PATH, 0x0);
-    unsigned long infLen = 0;
-    auto sdiRet =
-        SetupGetInfDriverStoreLocation(inf_name.c_str(),
-                                       nullptr,
-                                       nullptr,
-                                       inf.data(),
-                                       static_cast<unsigned long>(inf.size()),
-                                       &infLen);
-    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-      inf.resize(infLen);
-      sdiRet =
+    ret = row.GetString("InfName", inf_name);
+    if (!ret.ok()) {
+      VLOG(1) << "Failed to retrieve Inf name for " << r["device_name"]
+              << " with " << ret.getMessage();
+    } else {
+      std::vector<char> inf(MAX_PATH, 0x0);
+      unsigned long inf_len = 0;
+      auto sdi_ret =
           SetupGetInfDriverStoreLocation(inf_name.c_str(),
                                          nullptr,
                                          nullptr,
                                          inf.data(),
                                          static_cast<unsigned long>(inf.size()),
-                                         &infLen);
-    }
-    if (sdiRet != TRUE) {
-      VLOG(1) << "Failed to derive full driver INF path for "
-              << r["device_name"] << " with " << GetLastError();
-      r["inf"] = inf_name;
-    } else {
-      r["inf"] = inf.data();
+                                         &inf_len);
+      if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+        inf.resize(inf_len);
+        sdi_ret = SetupGetInfDriverStoreLocation(
+            inf_name.c_str(),
+            nullptr,
+            nullptr,
+            inf.data(),
+            static_cast<unsigned long>(inf.size()),
+            &inf_len);
+      }
+      if (sdi_ret != TRUE) {
+        VLOG(1) << "Failed to derive full driver INF path for "
+                << r["device_name"] << " with " << GetLastError();
+        r["inf"] = inf_name;
+      } else {
+        r["inf"] = inf.data();
+      }
     }
 
     // Add the remaining columns from the APIs
