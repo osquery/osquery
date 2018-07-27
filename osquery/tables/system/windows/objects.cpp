@@ -41,7 +41,7 @@ namespace tables {
 // converted to UTF-8 encoded std::strings when interfacing with the
 // rest of osquery
 //
-typedef std::pair<std::wstring, std::wstring> obj_name_type_pair;
+using obj_name_type_pair = std::pair<std::wstring, std::wstring>;
 
 // arbitrary upper bound on number of supported objects in a single
 // directory to query.  windows provides a means to query a single object

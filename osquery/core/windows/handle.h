@@ -14,7 +14,6 @@
 #include <osquery/status.h>
 
 namespace osquery {
-namespace tables {
 
 class Handle {
   HANDLE _h;
@@ -34,5 +33,4 @@ class Handle {
   void close();
   bool valid();
 };
-} // namespace tables
 } // namespace osquery
