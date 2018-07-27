@@ -1,0 +1,12 @@
+table_name("winbaseobj")
+description("Lists named Windows objects in the default object directories, across all terminal services sessions.")
+schema([
+    Column("session_id", INTEGER, "Terminal Services Session Id", index=True),
+    Column("object_name", TEXT, "Object Name", index=True),
+    Column("object_type", TEXT, "Object Type"),
+])
+implementation("system/windows/Objects@genBaseNamedObjects")
+examples([
+  "select object_name, object_type from winbaseobj",
+  "select * from winbaseobj where type='Mutant'",
+])
