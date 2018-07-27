@@ -24,10 +24,10 @@
 #include "osquery/core/windows/process_ops.h"
 #include "osquery/filesystem/fileops.h"
 
-#define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
-
 namespace osquery {
 namespace tables {
+
+ULONG kLsaStatusSuccess = 0;
 static const std::unordered_map<SECURITY_LOGON_TYPE, std::string>
     kLogonTypeToStr = {{UndefinedLogonType, "Undefined Logon Type"},
                        {Interactive, "Interactive"},
@@ -49,11 +49,11 @@ QueryData queryLogonSessions(QueryContext& context) {
   NTSTATUS status = LsaEnumerateLogonSessions(&session_count, &sessions);
 
   QueryData results;
-  if (status == STATUS_SUCCESS) {
+  if (status == kLsaStatusSuccess) {
     for (ULONG i = 0; i < session_count; i++) {
       PSECURITY_LOGON_SESSION_DATA session_data = NULL;
       NTSTATUS status = LsaGetLogonSessionData(&sessions[i], &session_data);
-      if (status != STATUS_SUCCESS) {
+      if (status != kLsaStatusSuccess) {
         continue;
       }
 
