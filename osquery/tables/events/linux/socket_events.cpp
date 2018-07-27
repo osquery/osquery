@@ -51,13 +51,13 @@ bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
   if (saddr[0] == '0' && saddr[1] == '2') {
     // IPv4
     row["family"] = '2';
-    long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0);
+    long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0l);
     row["remote_port"] = INTEGER(result);
     row["remote_address"] = ip4FromSaddr(saddr, 8);
   } else if (saddr[0] == '0' && saddr[1] == 'A') {
     // IPv6
     row["family"] = "10";
-    long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0);
+    long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0l);
     row["remote_port"] = INTEGER(result);
     std::string address;
     for (size_t i = 0; i < 8; ++i) {
