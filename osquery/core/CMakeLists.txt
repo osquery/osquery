@@ -51,6 +51,7 @@ if(WINDOWS)
       "${CMAKE_CURRENT_LIST_DIR}/windows/process_ops.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/windows/process_ops.h"
       "${CMAKE_CURRENT_LIST_DIR}/windows/process.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/windows/handle.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/windows/utils.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/windows/wmi.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/windows/wmi.h"
