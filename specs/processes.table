@@ -20,8 +20,8 @@ schema([
     Column("resident_size", BIGINT, "Bytes of private memory used by process"),
     Column("total_size", BIGINT, "Total virtual memory size",
         aliases=["phys_footprint"]),
-    Column("user_time", BIGINT, "CPU time spent in user space"),
-    Column("system_time", BIGINT, "CPU time spent in kernel space"),
+    Column("user_time", BIGINT, "CPU time in milliseconds spent in user space"),
+    Column("system_time", BIGINT, "CPU time in milliseconds spent in kernel space"),
     Column("disk_bytes_read", BIGINT, "Bytes read from disk"),
     Column("disk_bytes_written", BIGINT, "Bytes written to disk"),
     Column("start_time", BIGINT,
@@ -33,6 +33,13 @@ schema([
 ])
 extended_schema(WINDOWS, [
     Column("is_elevated_token", INTEGER, "Process uses elevated token yes=1, no=0"),
+])
+
+extended_schema(DARWIN, [
+    Column("upid", BIGINT, "A 64bit pid that is never reused. Returns -1 if we couldn't gather them from the system."),
+    Column("uppid", BIGINT, "The 64bit parent pid that is never reused. Returns -1 if we couldn't gather them from the system."),
+    Column("cpu_type", INTEGER, "A 64bit pid that is never reused. Returns -1 if we couldn't gather them from the system."),
+    Column("cpu_subtype", INTEGER, "The 64bit parent pid that is never reused. Returns -1 if we couldn't gather them from the system."),
 ])
 attributes(cacheable=True)
 implementation("system/processes@genProcesses")

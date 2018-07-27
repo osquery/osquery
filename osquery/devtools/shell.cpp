@@ -38,6 +38,7 @@
 #include <osquery/packs.h>
 #include <osquery/registry_factory.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/process.h"
 #include "osquery/devtools/devtools.h"
 #include "osquery/filesystem/fileops.h"
@@ -343,7 +344,7 @@ static char* one_input_line(FILE* in, char* zPrior, int isContinuation) {
 
 /*
 ** Pretty print structure
- */
+*/
 struct prettyprint_data {
   osquery::QueryData results;
   std::vector<std::string> columns;
@@ -783,7 +784,7 @@ static int shell_exec(
     /* (not the same as sqlite3_exec) */
     struct callback_data* pArg, /* Pointer to struct callback_data */
     char** pzErrMsg /* Error msg written here */
-    ) {
+) {
   // Grab a lock on the managed DB instance.
   auto dbc = osquery::SQLiteDBManager::get();
   auto db = dbc->db();
@@ -1049,15 +1050,12 @@ static int booleanValue(char* zArg) {
   if (i > 0 && zArg[i] == 0) {
     return static_cast<int>(integerValue(zArg) & 0xffffffff);
   }
-  if (sqlite3_stricmp(zArg, "on") == 0 || sqlite3_stricmp(zArg, "yes") == 0) {
-    return 1;
+  auto expected = osquery::tryTo<bool>(std::string{zArg});
+  if (expected.isError()) {
+    fprintf(
+        stderr, "ERROR: Not a boolean value: \"%s\". Assuming \"no\".\n", zArg);
   }
-  if (sqlite3_stricmp(zArg, "off") == 0 || sqlite3_stricmp(zArg, "no") == 0) {
-    return 0;
-  }
-  fprintf(
-      stderr, "ERROR: Not a boolean value: \"%s\". Assuming \"no\".\n", zArg);
-  return 0;
+  return expected.getOr(false) ? 1 : 0;
 }
 
 inline void meta_tables(int nArg, char** azArg) {
@@ -1080,10 +1078,14 @@ inline void meta_schema(int nArg, char** azArg) {
     auto status = osquery::Registry::call(
         "table", table, {{"action", "columns"}}, response);
     if (status.ok()) {
-      fprintf(stdout,
-              "CREATE TABLE %s%s;\n",
-              table.c_str(),
-              osquery::columnDefinition(response, true).c_str());
+      auto const aliases = true;
+      auto const is_extension = false;
+
+      fprintf(
+          stdout,
+          "CREATE TABLE %s%s;\n",
+          table.c_str(),
+          osquery::columnDefinition(response, aliases, is_extension).c_str());
     }
   }
 }
@@ -1221,7 +1223,7 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
   char* azArg[50];
 
   /* Parse the input line into tokens.
-  */
+   */
   while ((zLine[i] != 0) && nArg < ArraySize(azArg)) {
     while (IsSpace(zLine[i])) {
       i++;
@@ -1257,7 +1259,7 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
   }
 
   /* Process the input line.
-  */
+   */
   if (nArg == 0) {
     return 0; /* no tokens, no error */
   }
@@ -1296,8 +1298,9 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
     rc = 2;
   } else if (c == 'f' && strncmp(azArg[0], "features", n) == 0 && nArg == 1) {
     meta_features(p);
-  } else if (c == 'h' && (strncmp(azArg[0], "header", n) == 0 ||
-                          strncmp(azArg[0], "headers", n) == 0) &&
+  } else if (c == 'h' &&
+             (strncmp(azArg[0], "header", n) == 0 ||
+              strncmp(azArg[0], "headers", n) == 0) &&
              nArg > 1 && nArg < 3) {
     p->showHeader = booleanValue(azArg[1]);
   } else if (c == 'h' && strncmp(azArg[0], "help", n) == 0) {
@@ -1351,8 +1354,9 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
                      "%.*s",
                      static_cast<int>(sizeof(p->separator)) - 1,
                      azArg[1]);
-  } else if (c == 's' && (strncmp(azArg[0], "show", n) == 0 ||
-                          strncmp(azArg[0], "summary", n) == 0) &&
+  } else if (c == 's' &&
+             (strncmp(azArg[0], "show", n) == 0 ||
+              strncmp(azArg[0], "summary", n) == 0) &&
              nArg == 1) {
     meta_show(p);
   } else if (c == 't' && n > 1 && strncmp(azArg[0], "tables", n) == 0 &&

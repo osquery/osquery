@@ -71,7 +71,9 @@ class DBFakeEventSubscriber : public EventSubscriber<DBFakeEventPublisher> {
     r["testing"] = "hello from space";
     r["time"] = INTEGER(t);
     r["uptime"] = INTEGER(10);
-    return add(r, t);
+
+    std::vector<Row> row_list = {std::move(r)};
+    return addBatch(row_list, t);
   }
 
   size_t getEventsMax() override {

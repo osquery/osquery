@@ -10,11 +10,14 @@
 
 #include <ctime>
 
+#include <boost/format.hpp>
+
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/numeric_monitoring.h>
 #include <osquery/query.h>
 #include <osquery/system.h>
 
@@ -88,7 +91,8 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   return sql;
 }
 
-inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
+inline Status launchQuery(const std::string& name,
+                          const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
   LOG(INFO) << "Executing scheduled query " << name << ": " << query.query;
   runDecorators(DECORATE_ALWAYS);
@@ -97,7 +101,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   if (!sql.ok()) {
     LOG(ERROR) << "Error executing scheduled query " << name << ": "
                << sql.getMessageString();
-    return;
+    return Status::failure("Error executing scheduled query");
   }
 
   // Fill in a host identifier fields based on configuration or availability.
@@ -118,7 +122,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
     // This is a snapshot query, emit results with a differential or state.
     item.snapshot_results = std::move(sql.rows());
     logSnapshotQuery(item);
-    return;
+    return Status::success();
   }
 
   // Create a database-backed set of query results.
@@ -152,7 +156,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
 
   if (diff_results.added.empty() && diff_results.removed.empty()) {
     // No diff results or events to emit.
-    return;
+    return status;
   }
 
   VLOG(1) << "Found results for query: " << name;
@@ -165,6 +169,20 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
     LOG(ERROR) << error;
     Initializer::requestShutdown(EXIT_CATASTROPHIC, error);
   }
+  return status;
+}
+
+inline void launchQueryWithProfiling(const std::string& name,
+                                     const ScheduledQuery& query) {
+  auto start_time_point = std::chrono::steady_clock::now();
+  auto status = launchQuery(name, query);
+  auto query_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - start_time_point);
+  auto monitoring_path = boost::format("scheduler.executing_query.%s.%s") %
+                         name % (status.ok() ? "success" : "failure");
+  monitoring::record(monitoring_path.str(),
+                     query_duration.count(),
+                     monitoring::PreAggregationType::Min);
 }
 
 void SchedulerRunner::start() {
@@ -177,7 +195,7 @@ void SchedulerRunner::start() {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
             TablePlugin::kCacheInterval = query.splayed_interval;
             TablePlugin::kCacheStep = i;
-            launchQuery(name, query);
+            launchQueryWithProfiling(name, query);
           }
         }));
     // Configuration decorators run on 60 second intervals only.

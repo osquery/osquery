@@ -6,11 +6,12 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-ADD_OSQUERY_LIBRARY(TRUE osquery_dispatcher
-  "${CMAKE_CURRENT_LIST_DIR}/dispatcher.cpp"
+target_sources(libosquery
+  PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/dispatcher.cpp"  
 )
 
-ADD_OSQUERY_TEST(TRUE
+ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/dispatcher_tests.cpp"
 )
 
@@ -24,6 +25,6 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_dispatcher_runners
   "${CMAKE_CURRENT_LIST_DIR}/io_service.h"
 )
 
-ADD_OSQUERY_TEST(FALSE
+ADD_OSQUERY_TEST_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/tests/scheduler_tests.cpp"
 )

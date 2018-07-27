@@ -102,6 +102,63 @@ void DatabasePluginTests::testPut() {
   reset.get();
 }
 
+void DatabasePluginTests::testPutBatch() {
+  DatabaseStringValueList string_batch = {
+      {"test_put_str1", "test_put_str1_value"},
+      {"test_put_str2", "test_put_str2_value"}};
+
+  auto s = getPlugin()->putBatch(kQueries, string_batch);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.getMessage(), "OK");
+
+  for (const auto& p : string_batch) {
+    const auto& key = p.first;
+    const auto& expected_value = p.second;
+
+    std::string value;
+    s = getDatabaseValue(kQueries, key, value);
+    EXPECT_EQ(s.getMessage(), "OK");
+
+    EXPECT_EQ(expected_value, value);
+  }
+
+  DatabaseStringValueList str_batch2 = {
+      {"test_plugin_put_json_str1", "test_put_str1_value"},
+      {"test_plugin_put_json_str2", "test_put_str2_value"}};
+
+  auto json_object = JSON::newObject();
+  for (const auto& p : str_batch2) {
+    const auto& key = p.first;
+    const auto& value = p.second;
+
+    json_object.addRef(key, value);
+  }
+
+  std::string serialized_data;
+  s = json_object.toString(serialized_data);
+  EXPECT_TRUE(s.ok());
+
+  PluginRequest request = {
+      {"action", "putBatch"}, {"domain", kQueries}, {"json", serialized_data}};
+
+  s = Registry::call("database", getName(), request);
+  EXPECT_TRUE(s.ok());
+
+  for (const auto& p : str_batch2) {
+    const auto& key = p.first;
+    const auto& expected_value = p.second;
+
+    std::string value;
+    s = getDatabaseValue(kQueries, key, value);
+    EXPECT_EQ(s.getMessage(), "OK");
+
+    EXPECT_EQ(expected_value, value);
+  }
+
+  auto reset = std::async(std::launch::async, kTestReseter);
+  reset.get();
+}
+
 void DatabasePluginTests::testGet() {
   getPlugin()->put(kQueries, "test_get", "bar");
 
@@ -191,4 +248,4 @@ void DatabasePluginTests::testScanLimit() {
   EXPECT_EQ(s.getMessage(), "OK");
   EXPECT_EQ(keys.size(), 2U);
 }
-}
+} // namespace osquery

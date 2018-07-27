@@ -1,0 +1,21 @@
+table_name("elf_info")
+description("ELF file information.")
+schema([
+    Column("class", TEXT, "Class type, 32 or 64bit"),
+    Column("abi", TEXT, "Section type"),
+    Column("abi_version", INTEGER, "Section virtual address in memory"),
+    Column("type", TEXT, "Offset of section in file"),
+    Column("machine", INTEGER, "Machine type"),
+    Column("version", INTEGER, "Object file version"),
+    Column("entry", BIGINT, "Entry point address"),
+    Column("flags", INTEGER, "ELF header flags"),
+    Column("path", TEXT, "Path to ELF file", required=True, index=True),
+])
+
+implementation("elf_info@getELFInfo")
+examples([
+    "select * from elf_info where path = '/usr/bin/grep'",
+])
+fuzz_paths([
+    "/usr/bin",
+])

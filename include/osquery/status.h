@@ -11,6 +11,7 @@
 #pragma once
 
 #include <osquery/error.h>
+#include <osquery/expected.h>
 #include <sstream>
 #include <string>
 
@@ -33,13 +34,14 @@ namespace osquery {
 
 class Status {
  public:
+  static constexpr int kSuccessCode = 0;
   /**
    * @brief Default constructor
    *
    * Note that the default constructor initialized an osquery::Status instance
    * to a state such that a successful operation is indicated.
    */
-  explicit Status(int c = 0) : code_(c), message_("OK") {}
+  explicit Status(int c = Status::kSuccessCode) : code_(c), message_("OK") {}
 
   /**
    * @brief A constructor which can be used to concisely express the status of
@@ -80,7 +82,8 @@ class Status {
   }
 
   /**
-   * @brief A convenience method to check if the return code is 0
+   * @brief A convenience method to check if the return code is
+   * Status::kSuccessCode
    *
    * @code{.cpp}
    *   auto s = doSomething();
@@ -91,10 +94,11 @@ class Status {
    *   }
    * @endcode
    *
-   * @return a boolean which is true if the status code is 0, false otherwise.
+   * @return a boolean which is true if the status code is Status::kSuccessCode,
+   * false otherwise.
    */
   bool ok() const {
-    return getCode() == 0;
+    return getCode() == Status::kSuccessCode;
   }
 
   /**
@@ -124,6 +128,16 @@ class Status {
     return ok();
   }
 
+  static Status success() {
+    return Status(kSuccessCode);
+  }
+
+  static Status failure(std::string message) {
+    return Status(1, std::move(message));
+  }
+
+  static Status failure(int code, std::string message);
+
   // Below operator implementations useful for testing with gtest
 
   // Enables use of gtest (ASSERT|EXPECT)_EQ
@@ -146,4 +160,14 @@ class Status {
   /// the internal storage of the status message
   std::string message_;
 };
+
+template <typename ToType, typename ValueType, typename ErrorCodeEnumType>
+inline
+    typename std::enable_if<std::is_same<ToType, Status>::value, Status>::type
+    to(const Expected<ValueType, ErrorCodeEnumType>& expected) {
+  return expected
+             ? Status::success()
+             : Status::failure(expected.getError().getFullMessageRecursive());
+}
+
 } // namespace osquery

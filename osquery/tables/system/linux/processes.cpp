@@ -22,15 +22,17 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
-#include <osquery/filesystem/linux/proc.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/utils.h"
+#include "osquery/filesystem/linux/proc.h"
 
 namespace osquery {
 namespace tables {
+
+const int kMSIn1CLKTCK = (1000 / sysconf(_SC_CLK_TCK));
 
 inline std::string getProcAttr(const std::string& attr,
                                const std::string& pid) {
@@ -180,14 +182,8 @@ void genProcessMap(const std::string& pid, QueryData& results) {
     }
 
     r["permissions"] = fields[1];
-    try {
-      auto offset = std::stoll(fields[2], nullptr, 16);
-      r["offset"] = (offset != 0) ? BIGINT(offset) : r["start"];
-
-    } catch (const std::exception& e) {
-      // Value was out of range or could not be interpreted as a hex long long.
-      r["offset"] = "-1";
-    }
+    auto offset = tryTo<long long>(fields[2], 16);
+    r["offset"] = BIGINT((offset) ? offset.take() : -1);
     r["device"] = fields[3];
     r["inode"] = fields[4];
 
@@ -255,11 +251,8 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
     this->system_time = details.at(12);
     this->nice = details.at(16);
     this->threads = details.at(17);
-    try {
-      this->start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
-    } catch (const boost::bad_lexical_cast& e) {
-      this->start_time = "-1";
-    }
+    auto st = tryTo<long>(details.at(19));
+    this->start_time = INTEGER((st) ? st.take() / 100 : -1);
   }
 
   // /proc/N/status may be not available, or readable by this user.
@@ -437,8 +430,10 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["total_size"] = proc_stat.total_size;
 
   // time information
-  r["user_time"] = proc_stat.user_time;
-  r["system_time"] = proc_stat.system_time;
+  auto usr_time = std::strtoull(proc_stat.user_time.data(), nullptr, 10);
+  r["user_time"] = std::to_string(usr_time * kMSIn1CLKTCK);
+  auto sys_time = std::strtoull(proc_stat.system_time.data(), nullptr, 10);
+  r["system_time"] = std::to_string(sys_time * kMSIn1CLKTCK);
   r["start_time"] = proc_stat.start_time;
 
   if (!proc_io.status.ok()) {
@@ -446,12 +441,9 @@ void genProcess(const std::string& pid, QueryData& results) {
     VLOG(1) << proc_io.status.getMessage();
   } else {
     r["disk_bytes_read"] = proc_io.read_bytes;
-    long long write_bytes = 0;
-    long long cancelled_write_bytes = 0;
-
-    osquery::safeStrtoll(proc_io.write_bytes, 10, write_bytes);
-    osquery::safeStrtoll(
-        proc_io.cancelled_write_bytes, 10, cancelled_write_bytes);
+    long long write_bytes = tryTo<long long>(proc_io.write_bytes).takeOr(0ll);
+    long long cancelled_write_bytes =
+        tryTo<long long>(proc_io.cancelled_write_bytes).takeOr(0ll);
 
     r["disk_bytes_written"] =
         std::to_string(write_bytes - cancelled_write_bytes);

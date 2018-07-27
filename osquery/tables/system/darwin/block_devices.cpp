@@ -8,8 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <DiskArbitration/DASession.h>
 #include <DiskArbitration/DADisk.h>
+#include <DiskArbitration/DASession.h>
+#include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>

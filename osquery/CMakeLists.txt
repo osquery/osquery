@@ -23,7 +23,7 @@ set(OSQUERY_BENCHMARKS "")
 # The 'additional' source files are NOT included with SDK (libosquery_additional).
 set(OSQUERY_ADDITIONAL_SOURCES "")
 
-# Temporary hack for additional library, this library is sourceless 
+# Temporary hack for additional library, this library is sourceless
 # so for some reason CMake adds "rm -f" as PostBuild step to XCode project
 if(CMAKE_GENERATOR STREQUAL Xcode)
   set(OSQUERY_ADDITIONAL_SOURCES main/empty.cpp)
@@ -79,23 +79,30 @@ else()
   )
 endif()
 
+#main library
+add_library(libosquery STATIC main/lib.cpp)
+
 # Add subdirectories
-add_subdirectory(config)
-add_subdirectory(core)
-add_subdirectory(database)
-add_subdirectory(devtools)
-add_subdirectory(dispatcher)
-add_subdirectory(distributed)
-add_subdirectory(events)
-add_subdirectory(extensions)
-add_subdirectory(filesystem)
-add_subdirectory(logger)
-add_subdirectory(registry)
-add_subdirectory(sql)
-add_subdirectory(remote)
-add_subdirectory(utils)
+include(config/CMakeLists.txt)
+include(core/CMakeLists.txt)
+include(database/CMakeLists.txt)
+include(devtools/CMakeLists.txt)
+include(dispatcher/CMakeLists.txt)
+include(distributed/CMakeLists.txt)
+include(events/CMakeLists.txt)
+include(extensions/CMakeLists.txt)
+include(filesystem/CMakeLists.txt)
+include(logger/CMakeLists.txt)
+
+include(killswitch/CMakeLists.txt)
+include(registry/CMakeLists.txt)
+include(sql/CMakeLists.txt)
+include(remote/CMakeLists.txt)
+include(utils/CMakeLists.txt)
+include(numeric_monitoring/CMakeLists.txt)
+
 if(NOT SKIP_CARVER)
-  add_subdirectory(carver)
+  include(carver/CMakeLists.txt)
 endif()
 
 # Add externals directory from parent
@@ -111,6 +118,8 @@ if(NOT SKIP_TABLES)
   AMALGAMATE("${CMAKE_SOURCE_DIR}" "utils" AMALGAMATION_UTILS)
   ADD_OSQUERY_LIBRARY_CORE(osquery_amalgamation ${AMALGAMATION_UTILS})
 endif()
+
+target_group_sources(libosquery "${CMAKE_CURRENT_LIST_DIR}")
 
 if(WINDOWS)
   if(CMAKE_BUILD_TYPE EQUAL "DEBUG")
@@ -137,6 +146,7 @@ if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("libboost_regex-mt-${WB_KEY}")
   ADD_OSQUERY_LINK_CORE("libboost_filesystem-mt-${WB_KEY}")
   ADD_OSQUERY_LINK_CORE("libboost_context-mt-${WB_KEY}")
+  ADD_OSQUERY_LINK_CORE("libboost_thread-mt-${WB_KEY}")
   ADD_OSQUERY_LINK_CORE("rocksdb${WO_KEY}")
   ADD_OSQUERY_LINK_CORE("thriftmt${WT_KEY}")
   ADD_OSQUERY_LINK_CORE("gflags_static${WO_KEY}")
@@ -269,14 +279,14 @@ set(OSQUERY_LIBRARY_FLAGS
 )
 JOIN("${OSQUERY_LIBRARY_FLAGS}" " " OSQUERY_LIBRARY_FLAGS)
 
-add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
+target_sources(libosquery PRIVATE ${OSQUERY_OBJECTS})
 target_link_libraries(libosquery ${OSQUERY_LIBS})
 set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
 set_target_properties(libosquery PROPERTIES COMPILE_FLAGS "${OSQUERY_LIBRARY_FLAGS}")
 
 # Create the dynamic libosquery.
 if(DEFINED ENV{OSQUERY_BUILD_SHARED})
-  add_library(libosquery_shared SHARED main/lib.cpp ${OSQUERY_OBJECTS})
+  add_library(a_shared SHARED main/lib.cpp ${OSQUERY_OBJECTS})
   target_link_libraries(libosquery_shared PRIVATE ${OSQUERY_LIBS})
   set_target_properties(libosquery_shared PROPERTIES COMPILE_FLAGS "${OSQUERY_LIBRARY_FLAGS}")
   set_target_properties(libosquery_shared PROPERTIES OUTPUT_NAME osquery)

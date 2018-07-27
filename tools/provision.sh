@@ -23,17 +23,17 @@ LINUXBREW_CORE_REPO="https://github.com/Linuxbrew/homebrew-core"
 
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
-HOMEBREW_CORE="941ca36839ea354031846d73ad538e1e44e673f4"
-LINUXBREW_CORE="f54281a496bb7d3dd2f46b2f3067193d05f5013b"
-HOMEBREW_BREW="ac2cbd2137006ebfe84d8584ccdcb5d78c1130d9"
-LINUXBREW_BREW="20bcce2c176469cec271b46d523eef1510217436"
+HOMEBREW_CORE="99221d219eaa59faf170945b5f94e985d036c118"
+LINUXBREW_CORE="3f057a00ae9f8b12db0c27991a0d967147088f09"
+HOMEBREW_BREW="e39b6f5891f2aa98fa2bef7775aecf73fc246afb"
+LINUXBREW_BREW="c324fccf9fb697615c048ef8160dee1f643d97a2"
 
 # These suffixes are used when building bottle tarballs.
 LINUX_BOTTLE_SUFFIX="x86_64_linux"
 DARWIN_BOTTLE_SUFFIX="sierra"
 
 # If the world needs to be rebuilt, increase the version
-DEPS_VERSION="5"
+DEPS_VERSION="6"
 
 source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/provision/lib.sh"
@@ -42,14 +42,11 @@ function platform_linux_main() {
   brew_tool patchelf
   brew_tool zlib
   brew_tool linux-headers
-  brew_tool gmp
-  brew_tool mpfr
-  brew_tool libmpc
-  brew_tool isl
   brew_tool sqlite
 
   brew_tool osquery/osquery-local/glibc-legacy
   brew_tool osquery/osquery-local/zlib-legacy
+
 
   if [ ! -d "$DEPS_DIR/Cellar/xz" ]; then
     log "Installing temporary xz..."
@@ -70,6 +67,7 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/xz
   brew_dependency osquery/osquery-local/ncurses
   brew_dependency osquery/osquery-local/bzip2
+  brew_dependency osquery/osquery-local/libudev
   brew_dependency osquery/osquery-local/util-linux
 
   # OpenSSL is needed for the final build.
@@ -91,6 +89,7 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libudev
   brew_dependency osquery/osquery-local/libaudit
   brew_dependency osquery/osquery-local/libdpkg
+  brew_dependency osquery/osquery-local/libelfin
 }
 
 function platform_darwin_main() {
@@ -118,6 +117,7 @@ function platform_darwin_main() {
   # Library secondary dependencies.
   brew_dependency osquery/osquery-local/popt
   brew_dependency osquery/osquery-local/berkeley-db
+  brew_dependency osquery/osquery-local/ssdeep-cpp
 
   # libarchive for file carving
   brew_dependency osquery/osquery-local/libarchive
@@ -140,6 +140,7 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/lldpd
   brew_dependency osquery/osquery-local/librdkafka
   brew_dependency osquery/osquery-local/librpm
+  brew_dependency osquery/osquery-local/libsmartctl
 
   # POSIX-shared locally-managed tools.
   brew_dependency osquery/osquery-local/zzuf

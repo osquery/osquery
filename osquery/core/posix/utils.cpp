@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <climits>
 #include <string.h>
-#include <time.h>
 
 #include <osquery/status.h>
 
@@ -29,19 +29,6 @@ std::string platformAsctime(const struct tm* timeptr) {
 
 std::string platformStrerr(int errnum) {
   return ::strerror(errnum);
-}
-
-Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count) {
-  if (dst == nullptr || src == nullptr || nelms == 0) {
-    return Status(1, "Failed to strncpy: invalid arguments");
-  }
-
-  if (count > nelms) {
-    return Status(1, "Failed to strncpy: dst too small");
-  }
-
-  ::strncpy(dst, src, count);
-  return Status(0, "OK");
 }
 
 const std::string canonicalize_file_name(const char* name) {
@@ -67,7 +54,7 @@ const std::string canonicalize_file_name(const char* name) {
   char* buffer = static_cast<char*>(malloc(path_max));
   char* resolved = realpath(name, buffer);
   std::string result = (resolved == nullptr) ? name : resolved;
-  free(buffer)
+  free(buffer);
 #endif
   return result;
 }

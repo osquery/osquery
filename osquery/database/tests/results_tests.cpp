@@ -19,8 +19,6 @@
 
 #include "osquery/tests/test_util.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 class ResultsTests : public testing::Test {};

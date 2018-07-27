@@ -387,6 +387,12 @@ std::string getEtcHostsContent() {
   return content;
 }
 
+std::string getEtcHostsIcsContent() {
+  std::string content;
+  readFile(fs::path(kTestDataPath) / "test_hosts_ics.txt", content);
+  return content;
+}
+
 std::string getEtcProtocolsContent() {
   std::string content;
   readFile(fs::path(kTestDataPath) / "test_protocols.txt", content);
@@ -414,6 +420,14 @@ QueryData getEtcHostsExpectedResults() {
   row6["address"] = "127.0.0.1";
   row6["hostnames"] = "example.net";
   return {row1, row2, row3, row4, row5, row6};
+}
+
+QueryData getEtcHostsIcsExpectedResults() {
+  Row row1;
+
+  row1["address"] = "192.168.11.81";
+  row1["hostnames"] = "VM-q27rkc8son.mshome.net";
+  return {row1};
 }
 
 ::std::ostream& operator<<(::std::ostream& os, const Status& s) {

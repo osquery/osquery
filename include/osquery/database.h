@@ -17,6 +17,9 @@
 #include <osquery/plugin.h>
 
 namespace osquery {
+// A list of key/str pairs; used for write batching with setDatabaseBatch
+using DatabaseStringValueList =
+    std::vector<std::pair<std::string, std::string>>;
 
 class Status;
 /**
@@ -116,6 +119,9 @@ class DatabasePlugin : public Plugin {
   virtual Status put(const std::string& domain,
                      const std::string& key,
                      int value) = 0;
+
+  virtual Status putBatch(const std::string& domain,
+                          const DatabaseStringValueList& data) = 0;
 
   virtual void dumpDatabase() const = 0;
 
@@ -243,6 +249,9 @@ Status setDatabaseValue(const std::string& domain,
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
                         int value);
+
+Status setDatabaseBatch(const std::string& domain,
+                        const DatabaseStringValueList& data);
 
 /// Remove a domain/key identified value from backing-store.
 Status deleteDatabaseValue(const std::string& domain, const std::string& key);

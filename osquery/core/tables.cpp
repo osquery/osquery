@@ -8,15 +8,26 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "osquery/core/conversions.h"
+#include "osquery/core/json.h"
+
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/json.h"
-
 namespace osquery {
+namespace {
+QueryContext queryContextFromRequest(const PluginRequest& request) {
+  QueryContext context;
+  if (request.count("context") > 0) {
+    TablePlugin::setContextFromRequest(request, context);
+  }
+
+  return context;
+};
+} // namespace
 
 FLAG(bool, disable_caching, false, "Disable scheduled query caching");
 
@@ -86,7 +97,6 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
                                         QueryContext& context) {
   auto doc = JSON::newObject();
   doc.fromString(request.at("context"));
-
   if (doc.doc().HasMember("colsUsed")) {
     UsedColumns colsUsed;
     for (const auto& columnName : doc.doc()["colsUsed"].GetArray()) {
@@ -94,7 +104,6 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
     }
     context.colsUsed = colsUsed;
   }
-
   if (!doc.doc().HasMember("constraints") ||
       !doc.doc()["constraints"].IsArray()) {
     return;
@@ -110,35 +119,37 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
 Status TablePlugin::call(const PluginRequest& request,
                          PluginResponse& response) {
   response.clear();
+
   // TablePlugin API calling requires an action.
   if (request.count("action") == 0) {
     return Status(1, "Table plugins must include a request action");
   }
 
-  if (request.at("action") == "generate") {
-    // The "generate" action runs the table implementation using a PluginRequest
-    // with optional serialized QueryContext and returns the QueryData results
-    // as the PluginRequest data.
+  const auto& action = request.at("action");
 
-    // Create a fake table implementation for caching.
-    QueryContext context;
-    if (request.count("context") > 0) {
-      setContextFromRequest(request, context);
-    }
+  if (action == "generate") {
+    auto context = queryContextFromRequest(request);
     response = generate(context);
-  } else if (request.at("action") == "columns") {
-    // The "columns" action returns a PluginRequest filled with column
-    // information such as name and type.
+  } else if (action == "delete") {
+    auto context = queryContextFromRequest(request);
+    response = delete_(context, request);
+  } else if (action == "insert") {
+    auto context = queryContextFromRequest(request);
+    response = insert(context, request);
+  } else if (action == "update") {
+    auto context = queryContextFromRequest(request);
+    response = update(context, request);
+  } else if (action == "columns") {
     response = routeInfo();
   } else {
-    return Status(1, "Unknown table plugin action: " + request.at("action"));
+    return Status(1, "Unknown table plugin action: " + action);
   }
 
   return Status(0, "OK");
 }
 
-std::string TablePlugin::columnDefinition() const {
-  return osquery::columnDefinition(columns());
+std::string TablePlugin::columnDefinition(bool is_extension) const {
+  return osquery::columnDefinition(columns(), is_extension);
 }
 
 PluginResponse TablePlugin::routeInfo() const {
@@ -225,7 +236,7 @@ void TablePlugin::setCache(size_t step,
   }
 }
 
-std::string columnDefinition(const TableColumns& columns) {
+std::string columnDefinition(const TableColumns& columns, bool is_extension) {
   std::map<std::string, bool> epilog;
   bool indexed = false;
   std::vector<std::string> pkeys;
@@ -269,6 +280,13 @@ std::string columnDefinition(const TableColumns& columns) {
     statement += ')';
   }
 
+  // Tables implemented by extension can be made read/write; make sure to always
+  // keep the rowid column, as we need it to reference rows when handling UPDATE
+  // and DELETE queries
+  if (is_extension) {
+    epilog["WITHOUT ROWID"] = false;
+  }
+
   statement += ')';
   for (auto& ei : epilog) {
     if (ei.second) {
@@ -278,38 +296,49 @@ std::string columnDefinition(const TableColumns& columns) {
   return statement;
 }
 
-std::string columnDefinition(const PluginResponse& response, bool aliases) {
+std::string columnDefinition(const PluginResponse& response,
+                             bool aliases,
+                             bool is_extension) {
   TableColumns columns;
   // Maintain a map of column to the type, for alias type lookups.
   std::map<std::string, ColumnType> column_types;
   for (const auto& column : response) {
-    if (column.count("id") == 0) {
+    auto id = column.find("id");
+    if (id == column.end()) {
       continue;
     }
 
-    if (column.at("id") == "column" && column.count("name") &&
-        column.count("type")) {
-      auto options =
-          (column.count("op"))
-              ? (ColumnOptions)AS_LITERAL(INTEGER_LITERAL, column.at("op"))
-              : ColumnOptions::DEFAULT;
-      auto column_type = columnTypeName(column.at("type"));
-      columns.push_back(make_tuple(column.at("name"), column_type, options));
+    auto cname = column.find("name");
+    auto ctype = column.find("type");
+    if (id->second == "column" && cname != column.end() &&
+        ctype != column.end()) {
+      auto options = ColumnOptions::DEFAULT;
+
+      auto cop = column.find("op");
+      if (cop != column.end()) {
+        auto op = tryTo<int>(cop->second);
+        if (op) {
+          options = static_cast<ColumnOptions>(op.take());
+        }
+      }
+      auto column_type = columnTypeName(ctype->second);
+      columns.push_back(make_tuple(cname->second, column_type, options));
       if (aliases) {
-        column_types[column.at("name")] = column_type;
+        column_types[cname->second] = column_type;
       }
-    } else if (column.at("id") == "columnAlias" && column.count("name") &&
-               column.count("target") && aliases) {
-      const auto& target = column.at("target");
-      if (column_types.count(target) == 0) {
-        // No type was defined for the alias target.
-        continue;
+    } else if (id->second == "columnAlias" && cname != column.end() &&
+               aliases) {
+      auto ctarget = column.find("target");
+      if (ctarget != column.end()) {
+        auto target_ctype = column_types.find(ctarget->second);
+        if (target_ctype != column_types.end()) {
+          columns.push_back(make_tuple(
+              cname->second, target_ctype->second, ColumnOptions::HIDDEN));
+        }
       }
-      columns.push_back(make_tuple(
-          column.at("name"), column_types.at(target), ColumnOptions::HIDDEN));
     }
   }
-  return columnDefinition(columns);
+  return columnDefinition(columns, is_extension);
 }
 
 ColumnType columnTypeName(const std::string& type) {
@@ -336,21 +365,23 @@ bool ConstraintList::exists(const ConstraintOperatorFlag ops) const {
 
 bool ConstraintList::matches(const std::string& expr) const {
   // Support each SQL affinity type casting.
-  try {
-    if (affinity == TEXT_TYPE) {
-      return literal_matches<TEXT_LITERAL>(expr);
-    } else if (affinity == INTEGER_TYPE) {
-      INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
-      return literal_matches<INTEGER_LITERAL>(lexpr);
-    } else if (affinity == BIGINT_TYPE) {
-      BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
-      return literal_matches<BIGINT_LITERAL>(lexpr);
-    } else if (affinity == UNSIGNED_BIGINT_TYPE) {
-      UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
-      return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
+  if (affinity == TEXT_TYPE) {
+    return literal_matches<TEXT_LITERAL>(expr);
+  } else if (affinity == INTEGER_TYPE) {
+    auto lexpr = tryTo<INTEGER_LITERAL>(expr);
+    if (lexpr) {
+      return literal_matches<INTEGER_LITERAL>(lexpr.take());
     }
-  } catch (const boost::bad_lexical_cast& /* e */) {
-    // Unsupported affinity type or unable to cast content type.
+  } else if (affinity == BIGINT_TYPE) {
+    auto lexpr = tryTo<BIGINT_LITERAL>(expr);
+    if (lexpr) {
+      return literal_matches<BIGINT_LITERAL>(lexpr.take());
+    }
+  } else if (affinity == UNSIGNED_BIGINT_TYPE) {
+    auto lexpr = tryTo<UNSIGNED_BIGINT_LITERAL>(expr);
+    if (lexpr) {
+      return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr.take());
+    }
   }
 
   return false;
@@ -360,17 +391,21 @@ template <typename T>
 bool ConstraintList::literal_matches(const T& base_expr) const {
   bool aggregate = true;
   for (size_t i = 0; i < constraints_.size(); ++i) {
-    T constraint_expr = AS_LITERAL(T, constraints_[i].expr);
+    auto constraint_expr = tryTo<T>(constraints_[i].expr);
+    if (!constraint_expr) {
+      // Cannot cast input constraint to column type.
+      return false;
+    }
     if (constraints_[i].op == EQUALS) {
-      aggregate = aggregate && (base_expr == constraint_expr);
+      aggregate = aggregate && (base_expr == constraint_expr.take());
     } else if (constraints_[i].op == GREATER_THAN) {
-      aggregate = aggregate && (base_expr > constraint_expr);
+      aggregate = aggregate && (base_expr > constraint_expr.take());
     } else if (constraints_[i].op == LESS_THAN) {
-      aggregate = aggregate && (base_expr < constraint_expr);
+      aggregate = aggregate && (base_expr < constraint_expr.take());
     } else if (constraints_[i].op == GREATER_THAN_OR_EQUALS) {
-      aggregate = aggregate && (base_expr >= constraint_expr);
+      aggregate = aggregate && (base_expr >= constraint_expr.take());
     } else if (constraints_[i].op == LESS_THAN_OR_EQUALS) {
-      aggregate = aggregate && (base_expr <= constraint_expr);
+      aggregate = aggregate && (base_expr <= constraint_expr.take());
     } else {
       // Unsupported constraint. Should match every thing.
       return true;
@@ -393,6 +428,35 @@ std::set<std::string> ConstraintList::getAll(ConstraintOperator op) const {
   }
   return set;
 }
+
+template <typename T>
+std::set<T> ConstraintList::getAll(ConstraintOperator op) const {
+  std::set<T> cs;
+  for (const auto& item : constraints_) {
+    auto exp = tryTo<T>(item.expr);
+    if (exp) {
+      cs.insert(exp.take());
+    }
+  }
+  return cs;
+}
+
+template <>
+std::set<std::string> ConstraintList::getAll(ConstraintOperator op) const {
+  return getAll(op);
+}
+
+/// Explicit getAll for INTEGER.
+template std::set<INTEGER_LITERAL> ConstraintList::getAll<int>(
+    ConstraintOperator) const;
+
+/// Explicit getAll for BIGINT.
+template std::set<long long> ConstraintList::getAll<long long>(
+    ConstraintOperator) const;
+
+/// Explicit getAll for UNSIGNED_BIGINT.
+template std::set<unsigned long long>
+    ConstraintList::getAll<unsigned long long>(ConstraintOperator) const;
 
 void ConstraintList::serialize(JSON& doc, rapidjson::Value& obj) const {
   auto expressions = doc.getArray();
@@ -493,4 +557,4 @@ Status QueryContext::expandConstraints(
   }
   return Status(0);
 }
-}
+} // namespace osquery

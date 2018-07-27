@@ -82,7 +82,7 @@ class Openssl < AbstractOsqueryFormula
     (etc/"openssl").install resource("cacert").files("cacert-2018-03-07.pem" => "cert.pem")
   end
 
-  def caveats; <<-EOS.undent
+  def caveats; <<~EOS
     A CA file has been bootstrapped using certificates from the system
     keychain. To add additional certificates, place .pem files in
       #{openssldir}/certs

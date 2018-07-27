@@ -31,9 +31,9 @@
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/flagalias.h"
 #include "osquery/core/json.h"
 
-namespace pt = boost::property_tree;
 namespace rj = rapidjson;
 
 namespace osquery {
@@ -96,8 +96,6 @@ HIDDEN_FLAG(bool,
  * a helper member for transforming PluginRequest%s to strings.
  */
 CREATE_REGISTRY(LoggerPlugin, "logger");
-
-class LoggerDisabler;
 
 /**
  * @brief A custom Glog log sink for forwarding or buffering status logs.
@@ -205,9 +203,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /**
    * @Brief Is the logger temporarily disabled.
    *
-   * This is an atomic because the friend class LoggerDisabler will toggle the
-   * enabled/disabled flag and call enable()/disable().
-   *
    * The Google Log Sink will still be active, but the send method also checks
    * enabled and drops log lines to the flood if the forwarder is not enabled.
    */
@@ -227,9 +222,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 
   /// Mutex protecting activation and enabling of the buffered status logger.
   Mutex enable_mutex_;
-
- private:
-  friend class LoggerDisabler;
 };
 
 /// Mutex protecting accesses to buffered status logs.
@@ -237,35 +229,6 @@ Mutex kBufferedLogSinkLogs;
 
 /// Mutex protecting queued status log futures.
 Mutex kBufferedLogSinkSenders;
-
-/// Scoped helper to perform logging actions without races.
-class LoggerDisabler : private boost::noncopyable {
- public:
-  LoggerDisabler();
-  ~LoggerDisabler();
-
- private:
-  /// Value of the 'logtostderr' Glog status when constructed.
-  bool stderr_status_;
-
-  /// Value of the BufferedLogSink's enabled status when constructed.
-  bool enabled_;
-};
-
-LoggerDisabler::LoggerDisabler()
-    : stderr_status_(FLAGS_logtostderr),
-      enabled_(BufferedLogSink::get().enabled_) {
-  BufferedLogSink::get().disable();
-  FLAGS_logtostderr = true;
-}
-
-LoggerDisabler::~LoggerDisabler() {
-  // Only enable if the sink was enabled when the disabler was requested.
-  if (enabled_) {
-    BufferedLogSink::get().enable();
-  }
-  FLAGS_logtostderr = stderr_status_;
-}
 
 static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
                                      PluginRequest& request) {
@@ -314,6 +277,11 @@ inline bool logStderrOnly() {
   if (Registry::get().external()) {
     return true;
   }
+
+  if (FLAGS_disable_logging) {
+    return true;
+  }
+
   return Flag::getValue("logger_plugin").find("filesystem") ==
          std::string::npos;
 }
@@ -349,15 +317,11 @@ void setVerboseLevel() {
   }
 
   if (!FLAGS_logger_stderr) {
-    FLAGS_logtostderr = false;
+    FLAGS_stderrthreshold = 3;
     FLAGS_alsologtostderr = false;
   }
 
   if (logStderrOnly()) {
-    FLAGS_logtostderr = true;
-  }
-
-  if (FLAGS_disable_logging) {
     FLAGS_logtostderr = true;
   }
 }
@@ -371,6 +335,10 @@ void initStatusLogger(const std::string& name, bool init_glog) {
   FLAGS_stop_logging_if_full_disk = true;
   // The max size for individual log file is 10MB.
   FLAGS_max_log_size = 10;
+
+  // Begin with only logging to stderr.
+  FLAGS_logtostderr = true;
+  FLAGS_stderrthreshold = 3;
 
   setVerboseLevel();
   // Start the logging, and announce the daemon is starting.

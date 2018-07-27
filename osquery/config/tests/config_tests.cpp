@@ -25,8 +25,6 @@
 #include "osquery/core/process.h"
 #include "osquery/tests/test_util.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 DECLARE_uint64(config_refresh);

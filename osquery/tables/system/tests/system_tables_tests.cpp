@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/format.hpp>
 #include <gflags/gflags.h>
 
 #include <osquery/core.h>
@@ -101,14 +102,13 @@ TEST_F(SystemsTablesTests, test_users) {
 
 TEST_F(SystemsTablesTests, test_processes_memory_cpu) {
   SQL results("select * from osquery_info join processes using (pid)");
-  long long bytes;
-  safeStrtoll(results.rows()[0].at("resident_size"), 0, bytes);
+  long long bytes = std::stoll(results.rows()[0].at("resident_size"), 0, 0);
 
   // Now we expect the running test to use over 1M of RSS.
   bytes = bytes / (1024 * 1024);
   EXPECT_GT(bytes, 1U);
 
-  safeStrtoll(results.rows()[0].at("total_size"), 0, bytes);
+  bytes = std::stoll(results.rows()[0].at("total_size"), 0, 0);
   bytes = bytes / (1024 * 1024);
   EXPECT_GT(bytes, 1U);
 
@@ -116,14 +116,13 @@ TEST_F(SystemsTablesTests, test_processes_memory_cpu) {
   // more than 100 seconds of CPU.
   SQL results2("select * from osquery_info join processes using (pid)");
 
-  long long cpu_start, value;
-  safeStrtoll(results.rows()[0].at("user_time"), 0, cpu_start);
-  safeStrtoll(results2.rows()[0].at("user_time"), 0, value);
+  auto cpu_start = std::stoll(results.rows()[0].at("user_time"), 0, 0);
+  auto value = std::stoll(results2.rows()[0].at("user_time"), 0, 0);
   EXPECT_LT(value - cpu_start, 100U);
   EXPECT_GE(value - cpu_start, 0U);
 
-  safeStrtoll(results.rows()[0].at("user_time"), 0, cpu_start);
-  safeStrtoll(results2.rows()[0].at("user_time"), 0, value);
+  cpu_start = std::stoll(results.rows()[0].at("user_time"), 0, 0);
+  value = std::stoll(results2.rows()[0].at("user_time"), 0, 0);
   EXPECT_LT(value - cpu_start, 100U);
   EXPECT_GE(value - cpu_start, 0U);
 }
@@ -150,10 +149,10 @@ TEST_F(SystemsTablesTests, test_processes_disk_io) {
 
   SQL after("select * from osquery_info join processes using (pid)");
 
-  long long bytes_written_before, bytes_written_after;
-  safeStrtoll(
-      before.rows()[0].at("disk_bytes_written"), 0, bytes_written_before);
-  safeStrtoll(after.rows()[0].at("disk_bytes_written"), 0, bytes_written_after);
+  auto bytes_written_before =
+      std::stoll(before.rows()[0].at("disk_bytes_written"), 0, 0);
+  auto bytes_written_after =
+      std::stoll(after.rows()[0].at("disk_bytes_written"), 0, 0);
 
   EXPECT_GE(bytes_written_after - bytes_written_before, 1024 * 1024);
 }
@@ -201,9 +200,8 @@ TEST_F(SystemsTablesTests, test_win_drivers_query_time) {
     return;
   }
   SQL results("select * from osquery_info join processes using (pid)");
-  long long utime1, systime1;
-  safeStrtoll(results.rows()[0].at("user_time"), 0, utime1);
-  safeStrtoll(results.rows()[0].at("system_time"), 0, systime1);
+  auto utime1 = std::stoll(results.rows()[0].at("user_time"), 0, 0);
+  auto systime1 = std::stoll(results.rows()[0].at("system_time"), 0, 0);
 
   // Query the drivers table and ensure that we don't take too long to exec
   SQL drivers("select * from drivers");
@@ -212,13 +210,12 @@ TEST_F(SystemsTablesTests, test_win_drivers_query_time) {
   ASSERT_GT(drivers.rows().size(), 10U);
 
   // Get a rough idea of the time utilized by the query
-  long long utime2, systime2;
   SQL results2("select * from osquery_info join processes using (pid)");
-  safeStrtoll(results2.rows()[0].at("user_time"), 0, utime2);
-  safeStrtoll(results2.rows()[0].at("system_time"), 0, systime2);
+  auto utime2 = std::stoll(results2.rows()[0].at("user_time"), 0, 0);
+  auto systime2 = std::stoll(results2.rows()[0].at("system_time"), 0, 0);
 
-  EXPECT_LT(utime2 - utime1, 10U);
-  EXPECT_LT(systime2 - systime1, 10U);
+  EXPECT_LT(utime2 - utime1, 10000U);
+  EXPECT_LT(systime2 - systime1, 10000U);
 }
 
 TEST_F(SystemsTablesTests, test_win_crashes_parsing) {
@@ -243,6 +240,7 @@ class HashTableTest : public testing::Test {
   const std::string contentSha1 = "21bd89f4580ef635e87f655fab5807a01e0ff2e9";
   const std::string contentSha256 =
       "6f1c16ac918f64721d14ff4bb3c51fe25ffde92f795ce6dbeb45722ce9d6e05c";
+  const std::string contentSsdeep = "3:Ttn:Jn";
   const std::string badContentMd5 = "e1cd6c58b0d4d9d7bcbfc0ec2b55ce94";
 
   void SetContent(int n) {
@@ -257,8 +255,12 @@ class HashTableTest : public testing::Test {
     tmpPath = boost::filesystem::temp_directory_path();
     tmpPath /= boost::filesystem::unique_path(
         "osquery_hash_t_test-%%%%-%%%%-%%%%-%%%%");
-    qry = std::string("select md5, sha1, sha256 from hash where path='") +
-          tmpPath.string() + "'";
+    auto maybe_ssdeep = isPlatform(PlatformType::TYPE_POSIX) ? ", ssdeep" : "";
+    std::stringstream qry_stream;
+    qry_stream << boost::format(
+                      "select md5, sha1, sha256%s from hash where path='%s'") %
+                      maybe_ssdeep % tmpPath.string();
+    qry = qry_stream.str();
   }
 
   virtual void TearDown() {
@@ -277,6 +279,9 @@ TEST_F(HashTableTest, hashes_are_correct) {
   EXPECT_EQ(rows[0].at("md5"), contentMd5);
   EXPECT_EQ(rows[0].at("sha1"), contentSha1);
   EXPECT_EQ(rows[0].at("sha256"), contentSha256);
+  if (isPlatform(PlatformType::TYPE_POSIX)) {
+    EXPECT_EQ(rows[0].at("ssdeep"), contentSsdeep);
+  }
 }
 
 TEST_F(HashTableTest, test_cache_works) {

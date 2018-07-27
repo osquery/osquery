@@ -32,7 +32,6 @@
 #include "osquery/events/linux/syslog.h"
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 

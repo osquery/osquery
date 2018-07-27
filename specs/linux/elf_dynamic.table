@@ -1,0 +1,16 @@
+table_name("elf_dynamic")
+description("ELF dynamic section information.")
+schema([
+    Column("tag", INTEGER, "Tag ID"),
+    Column("value", INTEGER, "Tag value"),
+    Column("class", INTEGER, "Class (32 or 64)"),
+    Column("path", TEXT, "Path to ELF file", required=True, index=True),
+])
+
+implementation("elf_info@getELFDynamic")
+examples([
+    "select * from elf_dynamic where path = '/usr/bin/grep'",
+])
+fuzz_paths([
+    "/usr/bin",
+])
