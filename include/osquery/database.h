@@ -57,7 +57,7 @@ extern const std::string kCarves;
 extern const std::string kDbVersionKey;
 
 /// The running version of our database schema
-const int kDbCurrentVersion = 1;
+const int kDbCurrentVersion = 2;
 
 /**
  * @brief The "domain" where buffered log results are stored.

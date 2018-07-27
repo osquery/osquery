@@ -262,4 +262,31 @@ TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_results_v0v1) {
   getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
   EXPECT_EQ(db_results_version, "1");
 }
+
+TEST_F(DatabaseTests, test_migration_v1v2) {
+  /* Testing migration from 1 to 2 */
+  Status status = setDatabaseValue(kPersistentSettings, kDbVersionKey, "1");
+  ASSERT_TRUE(status.ok());
+
+  status = setDatabaseValue(
+      kEvents, "data.audit.process_events.0123456789", "event_data");
+  ASSERT_TRUE(status.ok());
+
+  status = upgradeDatabase(2);
+  ASSERT_TRUE(status.ok());
+
+  std::string value;
+  status = getDatabaseValue(kPersistentSettings, kDbVersionKey, value);
+  EXPECT_EQ(value, "2");
+
+  status =
+      getDatabaseValue(kEvents, "data.audit.process_events.0123456789", value);
+  EXPECT_FALSE(status.ok());
+
+  status = getDatabaseValue(
+      kEvents, "data.auditeventpublisher.process_events.0123456789", value);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(value, "event_data");
+}
+
 } // namespace osquery

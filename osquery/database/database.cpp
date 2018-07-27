@@ -10,6 +10,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <regex>
 
 #include <osquery/database.h>
 #include <osquery/flags.h>
@@ -515,6 +516,49 @@ static Status migrateV0V1(void) {
   return Status();
 }
 
+static Status migrateV1V2(void) {
+  std::vector<std::string> keys;
+  std::regex re = std::regex("(.*)\\.audit\\.(.*)");
+
+  Status s = scanDatabaseKeys(kEvents, keys);
+  if (!s.ok()) {
+    return Status(1, "Failed to scan event keys from database: " + s.what());
+  }
+
+  for (const auto& key : keys) {
+    std::smatch match;
+    if (std::regex_match(key, match, re)) {
+      std::string value;
+      std::string new_key =
+          match[1].str() + ".auditeventpublisher." + match[2].str();
+
+      s = getDatabaseValue(kEvents, key, value);
+      if (!s.ok()) {
+        LOG(ERROR) << "Failed to read value for key '" << key
+                   << "'. Key will be kept but won't be migrated!";
+        continue;
+      }
+
+      s = setDatabaseValue(kEvents, new_key, value);
+      if (!s.ok()) {
+        LOG(ERROR) << "Failed to set value for key '" << new_key
+                   << "' migrated from '" << key
+                   << "'. Original key will be kept but won't be migrated!";
+        continue;
+      }
+
+      s = deleteDatabaseValue(kEvents, key);
+      if (!s.ok()) {
+        LOG(WARNING) << "Failed to delete key '" << key
+                     << "' after migration to new key '" << new_key
+                     << "'. Original key will be kept but data was migrated!";
+      }
+    }
+  }
+
+  return Status();
+}
+
 Status upgradeDatabase(int to_version) {
   std::string value;
   Status st = getDatabaseValue(kPersistentSettings, kDbVersionKey, value);
@@ -542,6 +586,11 @@ Status upgradeDatabase(int to_version) {
     case 0:
       LOG(INFO) << "Performing migration: 0 -> 1";
       migrate_status = migrateV0V1();
+      break;
+
+    case 1:
+      LOG(ERROR) << "Performing migration: 1 -> 2";
+      migrate_status = migrateV1V2();
       break;
 
     default:
