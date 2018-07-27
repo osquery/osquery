@@ -13,7 +13,6 @@
 
 #include <windows.h>
 namespace osquery {
-namespace tables {
 
 #define NTSTATUS ULONG
 #define STATUS_SUCCESS 0L
@@ -104,5 +103,4 @@ typedef struct _OBJDIR_INFORMATION {
   BYTE Data[1];
 } OBJDIR_INFORMATION, *POBJDIR_INFORMATION;
 
-} // namespace tables
 } // namespace osquery

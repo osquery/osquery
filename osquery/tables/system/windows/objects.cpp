@@ -150,20 +150,11 @@ Status enumerateBaseNamedObjectsLinks(const std::wstring& session_num,
   //
   //   (2) the object type name be "SymbolicLink"
   //
-  //   (3) the symbolic link point to a directory object
+  //   (3) the symbolic link references a directory object
   //
-  // validate in this order
+  // the validation of (1) is optional as the means to validate (3) will
+  // ensure that the directory object is valid
   //
-
-  // validate (1)
-  //
-  // validate that this appears to be a valid terminal services session id
-  // another approach is to enumerate windows terminal services sessions with
-  // WTSEnumerateSessions and validate against that list
-  //
-  if (!(L"0" == session_num || safeWstrToInt(session_num) > 0)) {
-    return Status(ERROR_INVALID_PARAMETER, "Unrecognized Session Id");
-  }
 
   // validate (2)
   //
@@ -176,7 +167,7 @@ Status enumerateBaseNamedObjectsLinks(const std::wstring& session_num,
   // at this point we have SymbolicLink with a name matching a terminal services
   // session id.   build the fully qualified object path
   //
-  std::wstring qualifiedpath = kBnoLinks + session_num;
+  std::wstring qualifiedpath = kBnoLinks + L"\\" + session_num;
 
   // open the symbolic link itself in order to determine the target of the link
   //
@@ -188,7 +179,7 @@ Status enumerateBaseNamedObjectsLinks(const std::wstring& session_num,
   }
 
   UNICODE_STRING usSymbolicLinkTarget;
-  WCHAR wzTargetLinkBuffer[MAX_PATH];
+  WCHAR wzTargetLinkBuffer[MAX_PATH] = { L'\0' };
   usSymbolicLinkTarget.Buffer = wzTargetLinkBuffer;
   usSymbolicLinkTarget.Length = 0;
   usSymbolicLinkTarget.MaximumLength = MAX_PATH;
