@@ -38,10 +38,10 @@ TEST_F(MdFindTests, test_mdfind_finds_osquery) {
 
   EXPECT_GE(results.size(), 0UL);
 
-  long count;
-  s = safeStrtol(results[0]["count(*)"], 10, count);
-
-  EXPECT_GE(count, 0);
+  for (const auto& row : results) {
+    EXPECT_EQ(row.count("path"), 1);
+    EXPECT_EQ(row.count("query"), 1);
+  }
 }
 } // namespace tables
 } // namespace osquery
