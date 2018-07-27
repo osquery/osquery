@@ -1,7 +1,7 @@
 table_name("autoexec")
 description("Aggregate of executables that will automatically "
 	    "execute on the target machine. This is an amalgamation "
-	    "of other tables like services, scheduled tasks, "
+	    "of other tables like services, scheduled_tasks, "
 	    "startup_items and more.")
 schema([
     Column("path", TEXT, "Path to the executable", index=True),
