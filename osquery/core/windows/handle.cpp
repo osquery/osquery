@@ -14,7 +14,6 @@
 #include "osquery/core/windows/handle.h"
 
 namespace osquery {
-namespace tables {
 
 Handle::Handle() {
   _h = NULL;
@@ -114,5 +113,4 @@ Status Handle::openDirObj(const std::wstring& strName) {
 
   return Status();
 }
-} // namespace tables
 } // namespace osquery
