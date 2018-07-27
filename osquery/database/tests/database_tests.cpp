@@ -196,10 +196,10 @@ TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_empty_v0v1) {
   EXPECT_TRUE(status.ok());
 
   // Stage our database to be pre-upgrade to ensure the logic runs
-  status = setDatabaseValue(kPersistentSettings, "results_version", "0");
+  status = setDatabaseValue(kPersistentSettings, kDbVersionKey, "0");
   EXPECT_TRUE(status.ok());
 
-  status = upgradeDatabase();
+  status = upgradeDatabase(1);
   EXPECT_TRUE(status.ok());
 
   std::string new_empty_list;
@@ -212,8 +212,8 @@ TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_empty_v0v1) {
 
   // Expect our DB upgrade logic to have been set
   std::string db_results_version{""};
-  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
-  EXPECT_EQ(db_results_version, kDatabaseResultsVersion);
+  getDatabaseValue(kPersistentSettings, kDbVersionKey, db_results_version);
+  EXPECT_EQ(db_results_version, "1");
 }
 
 TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_results_v0v1) {
@@ -229,7 +229,7 @@ TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_results_v0v1) {
   EXPECT_TRUE(status.ok());
 
   // Stage our database to be pre-upgrade to ensure the logic runs
-  status = setDatabaseValue(kPersistentSettings, "results_version", "0");
+  status = setDatabaseValue(kPersistentSettings, kDbVersionKey, "0");
   EXPECT_TRUE(status.ok());
 
   rj::Document bad_doc;
@@ -238,7 +238,7 @@ TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_results_v0v1) {
   // EXPECT_TRUE(bad_doc.Parse(bad_json).HasParseError());
   EXPECT_FALSE(bad_doc.IsArray());
 
-  status = upgradeDatabase();
+  status = upgradeDatabase(1);
   EXPECT_TRUE(status.ok());
 
   std::string good_json;
@@ -260,6 +260,6 @@ TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_results_v0v1) {
   // Expect our DB upgrade logic to have been set
   std::string db_results_version{""};
   getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
-  EXPECT_EQ(db_results_version, kDatabaseResultsVersion);
+  EXPECT_EQ(db_results_version, "1");
 }
 } // namespace osquery
