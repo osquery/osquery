@@ -77,6 +77,17 @@ class Expected final {
   using ErrorType = Error<ErrorCodeEnumType>;
   using SelfType = Expected<ValueType, ErrorCodeEnumType>;
 
+  static_assert(
+      !std::is_pointer<ValueType>::value,
+      "Please do not use raw pointers as expected value, "
+      "use smart pointers instead. See CppCoreGuidelines for explanation. "
+      "https://github.com/isocpp/CppCoreGuidelines/blob/master/"
+      "CppCoreGuidelines.md#Rf-unique_ptr");
+  static_assert(!std::is_reference<ValueType>::value,
+                "Expected does not support reference as a value type");
+  static_assert(std::is_enum<ErrorCodeEnumType>::value,
+                "ErrorCodeEnumType template parameter must be enum");
+
  public:
   Expected(ValueType value) : object_{std::move(value)} {}
 
@@ -198,15 +209,6 @@ class Expected final {
   }
 
  private:
-  static_assert(
-      !std::is_pointer<ValueType>::value,
-      "Please do not use raw pointers as expected value, "
-      "use smart pointers instead. See CppCoreGuidelines for explanation. "
-      "https://github.com/isocpp/CppCoreGuidelines/blob/master/"
-      "CppCoreGuidelines.md#Rf-unique_ptr");
-  static_assert(std::is_enum<ErrorCodeEnumType>::value,
-                "ErrorCodeEnumType template parameter must be enum");
-
   boost::variant<ValueType, ErrorType> object_;
   enum ETypeId {
     kValueType_ = 0,
