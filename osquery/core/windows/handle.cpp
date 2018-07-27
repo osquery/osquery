@@ -39,18 +39,18 @@ void Handle::close() {
   }
 }
 
-bool Handle::openSymLinkObj(const std::wstring& strName) {
+Status Handle::openSymLinkObj(const std::wstring& strName) {
   if (valid()) {
-    return false;
+    return Status(ERROR_ALREADY_ASSIGNED, "Handle object already open");
   }
 
   // look up address of NtOpenSymbolicLinkObject, exported from ntdll
   //
   auto NtOpenSymbolicLinkObject =
-      (NTOPENSYMBOLICLINKOBJECT)GetProcAddress(GetModuleHandleA("ntdll"),
-                                               "NtOpenSymbolicLinkObject");
-  if (NULL == NtOpenSymbolicLinkObject) {
-    return false;
+      reinterpret_cast<NTOPENSYMBOLICLINKOBJECT>(GetProcAddress(GetModuleHandleA("ntdll"),
+                                                 "NtOpenSymbolicLinkObject"));
+  if (nullptr == NtOpenSymbolicLinkObject) {
+    return Status(GetLastError(), "Unable to find NtOpenSymbolicLinkObject");
   }
 
   OBJECT_ATTRIBUTES oa;
@@ -68,15 +68,15 @@ bool Handle::openSymLinkObj(const std::wstring& strName) {
 
   auto ntStatus = NtOpenSymbolicLinkObject(&_h, SYMBOLIC_LINK_QUERY, &oa);
   if (STATUS_SUCCESS != ntStatus) {
-    return false;
+    return Status(ntStatus, "NtOpenSymbolicLinkObject returned failure");
   }
 
-  return true;
+  return Status();
 }
 
-bool Handle::openDirObj(const std::wstring& strName) {
+Status Handle::openDirObj(const std::wstring& strName) {
   if (valid()) {
-    return false;
+    return Status(ERROR_ALREADY_ASSIGNED, "Handle object already open");
   }
 
   // NtOpenDirectoryObject is documented on MSDN at
@@ -85,8 +85,8 @@ bool Handle::openDirObj(const std::wstring& strName) {
   auto NtOpenDirectoryObject =
       (NTOPENDIRECTORYOBJECT)GetProcAddress(GetModuleHandleA("ntdll"),
                                             "NtOpenDirectoryObject");
-  if (NULL == NtOpenDirectoryObject) {
-    return false;
+  if (nullptr == NtOpenDirectoryObject) {
+    return Status(GetLastError(), "Unable to find NtOpenDirectoryObject");
   }
 
   // set up object attributes structure to describe the directory object
@@ -109,10 +109,10 @@ bool Handle::openDirObj(const std::wstring& strName) {
   // a valid HANDLE to a kernel object
   auto ntStatus = NtOpenDirectoryObject(&_h, DIRECTORY_QUERY, &oa);
   if (STATUS_SUCCESS != ntStatus) {
-    return false;
+    return Status(ntStatus, "NtOpenDirecotryObject returned failure");
   }
 
-  return true;
+  return Status();
 }
 } // namespace tables
 } // namespace osquery

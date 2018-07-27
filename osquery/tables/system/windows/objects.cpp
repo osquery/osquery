@@ -23,7 +23,7 @@ namespace osquery {
 namespace tables {
 
 // the windows object namespace consists of nested directories,
-// beginning with \
+// rooted at \
 //
 // each directory consists of zero or more entries, each of which consists
 // of an unqualified object name and an object type name.  both are
@@ -33,12 +33,12 @@ namespace tables {
 // in this module.  use a std::pair of std::wstrings to represent this
 // pair and provide a simpler name
 //
-// this type definition is internal to this module and meant as a
+// this type definition is internal to this module and not meant as a
 // type to be used with the rest of osquery.  this note is important
 // because osquery uses UTF-8 encoded std::strings throughout.  Because
 // windows uses UTF-16 strings, which are most easily represented by
 // std::wstring, std::wstrings are used internally to this module and
-// converted to UTF-8 encoded std::strings when communicating with the
+// converted to UTF-8 encoded std::strings when interfacing with the
 // rest of osquery
 //
 typedef std::pair<std::wstring, std::wstring> obj_name_type_pair;
@@ -47,12 +47,18 @@ typedef std::pair<std::wstring, std::wstring> obj_name_type_pair;
 // directory to query.  windows provides a means to query a single object
 // at a time via an index; this arbitrary upper bound is a backstop
 //
-static const unsigned long max_supported_objects = 1024 * 1024;
+static const unsigned long kMaxSupportedObjects = 1024 * 1024;
 
 // arbitrary buffer size to be used when querying for a single
 // object-name--object-type-name pair with NtQueryDirectoryObject
 //
-static const unsigned long obj_buf_size = 8 * 1024;
+static const unsigned long kObjBufSize = 8 * 1024;
+
+// \Sessions\BNOLINKS is the hardcoded object directory where
+// symbolic links to the directories of Base Named Objects on a
+// per-terminal-services-session are found
+//
+const std::wstring kBnoLinks{ L"\\Sessions\\BNOLINKS" };
 
 // enumerate all objects in the Windows object namespace
 // does not provide support for recursion
@@ -71,9 +77,9 @@ Status enumerateObjectNamespace(const std::wstring& directory,
   // associated header or import library
   //
   auto NtQueryDirectoryObject =
-      (NTQUERYDIRECTORYOBJECT)GetProcAddress(GetModuleHandleA("ntdll"),
-                                             "NtQueryDirectoryObject");
-  if (NULL == NtQueryDirectoryObject) {
+      reinterpret_cast<NTQUERYDIRECTORYOBJECT>(GetProcAddress(GetModuleHandleA("ntdll"),
+                                               "NtQueryDirectoryObject"));
+  if (nullptr == NtQueryDirectoryObject) {
     return Status(GetLastError(), "Unable to find NtQueryDirectoryObject");
   }
 
@@ -84,21 +90,22 @@ Status enumerateObjectNamespace(const std::wstring& directory,
   Handle kdo;
   auto status = kdo.openDirObj(directory);
   if (!status.ok()) {
+    VLOG(1) << L"Unable to open object directory: " << status.getCode();
     return status;
   }
 
   // iterator index is incremented by NtQueryDirectoryObject
-  // for safety, bail out at max_supported_objects 
+  // for safety, bail out at kMaxSupportedObjects 
   //
-  for (unsigned long index = 0; index < max_supported_objects;) {
-    unsigned char obj_buf[obj_buf_size] = {0};
+  for (unsigned long index = 0; index < kMaxSupportedObjects;) {
+    unsigned char obj_buf[kObjBufSize] = {0};
     auto pObjDirInfo = reinterpret_cast<POBJDIR_INFORMATION>(obj_buf);
 
     //  get the name and type of the index'th object in the directory
     //
     auto ntStatus = NtQueryDirectoryObject(kdo.getAsHandle(),
                                                pObjDirInfo,
-                                               obj_buf_size,
+                                               kObjBufSize,
                                                TRUE,
                                                FALSE,
                                                &index,
@@ -128,9 +135,9 @@ Status enumerateBaseNamedObjectsLinks(const std::wstring& session_num,
   // look up NtQuerySymbolicLinkObject as exported from ntdll
   //
   auto NtQuerySymbolicLinkObject =
-      (NTQUERYSYMBOLICLINKOBJECT)GetProcAddress(GetModuleHandleA("ntdll"),
-                                                "NtQuerySymbolicLinkObject");
-  if (NULL == NtQuerySymbolicLinkObject) {
+      reinterpret_cast<NTQUERYSYMBOLICLINKOBJECT>(GetProcAddress(GetModuleHandleA("ntdll"),
+                                                  "NtQuerySymbolicLinkObject"));
+  if (nullptr == NtQuerySymbolicLinkObject) {
     return Status(GetLastError(), "Cannot locate NtQuerySymbolicLinkObject");
   }
 
@@ -169,14 +176,14 @@ Status enumerateBaseNamedObjectsLinks(const std::wstring& session_num,
   // at this point we have SymbolicLink with a name matching a terminal services
   // session id.   build the fully qualified object path
   //
-  std::wstring qualifiedpath = L"\\Sessions\\BNOLINKS\\" + session_num;
+  std::wstring qualifiedpath = kBnoLinks + session_num;
 
   // open the symbolic link itself in order to determine the target of the link
   //
   Handle slo;
   auto status = slo.openSymLinkObj(qualifiedpath);
   if (!status.ok()) {
-    // log?
+    VLOG(1) << L"Unable to open symbolic link object: " << status.getCode();
     return status;
   }
 
@@ -201,9 +208,9 @@ QueryData genBaseNamedObjects(QueryContext& context) {
   // enumerate the base named objects in each terminal services session
   //
   std::vector<obj_name_type_pair> sessions;
-  auto status = enumerateObjectNamespace(L"\\Sessions\\BNOLINKS", sessions);
+  auto status = enumerateObjectNamespace(kBnoLinks, sessions);
   if (!status.ok()) {
-    // log warning?
+    VLOG(1) << L"Unable to enumerate kBnoLinks: " << status.getCode();
     return results;
   }
 
