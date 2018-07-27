@@ -10,8 +10,8 @@
 
 #include <Windows.h>
 
-#include "osquery/core/windows/ntapi.h"
 #include "osquery/core/windows/handle.h"
+#include "osquery/core/windows/ntapi.h"
 
 namespace osquery {
 
@@ -45,9 +45,8 @@ Status Handle::openSymLinkObj(const std::wstring& strName) {
 
   // look up address of NtOpenSymbolicLinkObject, exported from ntdll
   //
-  auto NtOpenSymbolicLinkObject =
-      reinterpret_cast<NTOPENSYMBOLICLINKOBJECT>(GetProcAddress(GetModuleHandleA("ntdll"),
-                                                 "NtOpenSymbolicLinkObject"));
+  auto NtOpenSymbolicLinkObject = reinterpret_cast<NTOPENSYMBOLICLINKOBJECT>(
+      GetProcAddress(GetModuleHandleA("ntdll"), "NtOpenSymbolicLinkObject"));
   if (nullptr == NtOpenSymbolicLinkObject) {
     return Status(GetLastError(), "Unable to find NtOpenSymbolicLinkObject");
   }
@@ -81,9 +80,8 @@ Status Handle::openDirObj(const std::wstring& strName) {
   // NtOpenDirectoryObject is documented on MSDN at
   // https://msdn.microsoft.com/en-us/library/bb470234(v=vs.85).aspx
   //
-  auto NtOpenDirectoryObject =
-      (NTOPENDIRECTORYOBJECT)GetProcAddress(GetModuleHandleA("ntdll"),
-                                            "NtOpenDirectoryObject");
+  auto NtOpenDirectoryObject = (NTOPENDIRECTORYOBJECT)GetProcAddress(
+      GetModuleHandleA("ntdll"), "NtOpenDirectoryObject");
   if (nullptr == NtOpenDirectoryObject) {
     return Status(GetLastError(), "Unable to find NtOpenDirectoryObject");
   }

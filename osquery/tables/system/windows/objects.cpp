@@ -14,10 +14,10 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/windows/wmi.h"
 #include "osquery/core/conversions.h"
-#include "osquery/core/windows/ntapi.h"
 #include "osquery/core/windows/handle.h"
+#include "osquery/core/windows/ntapi.h"
+#include "osquery/core/windows/wmi.h"
 
 namespace osquery {
 namespace tables {
@@ -58,7 +58,7 @@ static const unsigned long kObjBufSize = 8 * 1024;
 // symbolic links to the directories of Base Named Objects on a
 // per-terminal-services-session are found
 //
-const std::wstring kBnoLinks{ L"\\Sessions\\BNOLINKS" };
+const std::wstring kBnoLinks{L"\\Sessions\\BNOLINKS"};
 
 // enumerate all objects in the Windows object namespace
 // does not provide support for recursion
@@ -76,9 +76,8 @@ Status enumerateObjectNamespace(const std::wstring& directory,
   // NtQueryDirectoryObject is documented on MSDN, there is no
   // associated header or import library
   //
-  auto NtQueryDirectoryObject =
-      reinterpret_cast<NTQUERYDIRECTORYOBJECT>(GetProcAddress(GetModuleHandleA("ntdll"),
-                                               "NtQueryDirectoryObject"));
+  auto NtQueryDirectoryObject = reinterpret_cast<NTQUERYDIRECTORYOBJECT>(
+      GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryDirectoryObject"));
   if (nullptr == NtQueryDirectoryObject) {
     return Status(GetLastError(), "Unable to find NtQueryDirectoryObject");
   }
@@ -95,7 +94,7 @@ Status enumerateObjectNamespace(const std::wstring& directory,
   }
 
   // iterator index is incremented by NtQueryDirectoryObject
-  // for safety, bail out at kMaxSupportedObjects 
+  // for safety, bail out at kMaxSupportedObjects
   //
   for (unsigned long index = 0; index < kMaxSupportedObjects;) {
     unsigned char obj_buf[kObjBufSize] = {0};
@@ -103,13 +102,8 @@ Status enumerateObjectNamespace(const std::wstring& directory,
 
     //  get the name and type of the index'th object in the directory
     //
-    auto ntStatus = NtQueryDirectoryObject(kdo.getAsHandle(),
-                                               pObjDirInfo,
-                                               kObjBufSize,
-                                               TRUE,
-                                               FALSE,
-                                               &index,
-                                               NULL);
+    auto ntStatus = NtQueryDirectoryObject(
+        kdo.getAsHandle(), pObjDirInfo, kObjBufSize, TRUE, FALSE, &index, NULL);
     if (STATUS_SUCCESS != ntStatus) {
       break;
     }
@@ -129,14 +123,14 @@ Status enumerateObjectNamespace(const std::wstring& directory,
 // objects are found in the windows object directory
 // "\Sessions\BNOLINKS\<sessionnum>"
 //
-Status enumerateBaseNamedObjectsLinks(const std::wstring& session_num,
-                                      const std::wstring& object_type,
-                                      std::vector<obj_name_type_pair>& objects) {
+Status enumerateBaseNamedObjectsLinks(
+    const std::wstring& session_num,
+    const std::wstring& object_type,
+    std::vector<obj_name_type_pair>& objects) {
   // look up NtQuerySymbolicLinkObject as exported from ntdll
   //
-  auto NtQuerySymbolicLinkObject =
-      reinterpret_cast<NTQUERYSYMBOLICLINKOBJECT>(GetProcAddress(GetModuleHandleA("ntdll"),
-                                                  "NtQuerySymbolicLinkObject"));
+  auto NtQuerySymbolicLinkObject = reinterpret_cast<NTQUERYSYMBOLICLINKOBJECT>(
+      GetProcAddress(GetModuleHandleA("ntdll"), "NtQuerySymbolicLinkObject"));
   if (nullptr == NtQuerySymbolicLinkObject) {
     return Status(GetLastError(), "Cannot locate NtQuerySymbolicLinkObject");
   }
@@ -179,7 +173,7 @@ Status enumerateBaseNamedObjectsLinks(const std::wstring& session_num,
   }
 
   UNICODE_STRING usSymbolicLinkTarget;
-  WCHAR wzTargetLinkBuffer[MAX_PATH] = { L'\0' };
+  WCHAR wzTargetLinkBuffer[MAX_PATH] = {L'\0'};
   usSymbolicLinkTarget.Buffer = wzTargetLinkBuffer;
   usSymbolicLinkTarget.Length = 0;
   usSymbolicLinkTarget.MaximumLength = MAX_PATH;

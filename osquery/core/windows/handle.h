@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <windows.h>
 #include <string>
+#include <windows.h>
 
 #include <osquery/status.h>
 

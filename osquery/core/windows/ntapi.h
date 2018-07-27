@@ -10,7 +10,6 @@
 
 #pragma once
 
-
 #include <windows.h>
 namespace osquery {
 
@@ -53,10 +52,10 @@ typedef struct _OBJECT_ATTRIBUTES {
 } OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
 
 typedef NTSTATUS(WINAPI* ZwQueryObject)(HANDLE h,
-  OBJECT_INFORMATION_CLASS oic,
-  PVOID ObjectInformation,
-  ULONG ObjectInformationLength,
-  PULONG ReturnLength);
+                                        OBJECT_INFORMATION_CLASS oic,
+                                        PVOID ObjectInformation,
+                                        ULONG ObjectInformationLength,
+                                        PULONG ReturnLength);
 
 typedef NTSTATUS(WINAPI* ZwQuerySystemInformation)(
     SYSTEM_INFORMATION_CLASS SystemInformationClass,
