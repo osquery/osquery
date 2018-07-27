@@ -23,8 +23,8 @@ QueryData genUserGroups(QueryContext& context) {
   if (context.constraints["uid"].exists(EQUALS)) {
     std::set<std::string> uids = context.constraints["uid"].getAll(EQUALS);
     for (const auto& uid : uids) {
-      long auid{0};
-      if (safeStrtol(uid, 10, auid) && (pwd = getpwuid(auid)) != nullptr) {
+      long auid_exp = tryTo<long>(uid, 10);
+      if (auid_exp && (pwd = getpwuid(auid_exp.get())) != nullptr) {
         user_t<uid_t, gid_t> user;
         user.name = pwd->pw_name;
         user.uid = pwd->pw_uid;

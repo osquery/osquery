@@ -501,9 +501,11 @@ void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
         trimStrs(configline);
 
         if (configline[1] == "blocks") {
-          Status status = safeStrtol(configline[0], 10, mdd.usableSize);
-          if (!status.ok()) {
+          auto const exp = tryTo<long>(configline[0], 10);
+          if (exp.isError()) {
             LOG(WARNING) << "Could not parse usable size of " << mdd.name;
+          } else {
+            mdd.usableSize = exp.get();
           }
 
         } else {

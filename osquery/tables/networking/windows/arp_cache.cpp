@@ -49,11 +49,10 @@ QueryData genIPv4ArpCache(QueryContext& context) {
   };
 
   for (const auto& iface : interfaces) {
-    long interfaceIndex;
 
     if (iface.count("interface") > 0) {
-      safeStrtol(iface.at("interface"), 10, interfaceIndex);
-      mapOfInterfaces[interfaceIndex] =
+      long interface_index = tryTo<long>(iface.at("interface"), 10).getOr(0l);
+      mapOfInterfaces[interface_index] =
           iface.count("mac") > 0 ? iface.at("mac") : "";
     }
   }

@@ -162,9 +162,8 @@ QueryData genOSVersion(QueryContext& context) {
   r["version"] = r["major"] + "." + r["minor"] + "." + r["build"];
   if (version.size() >= 2) {
     auto prodType = 0;
-    long majorVersion = 0, minorVersion = 0;
-    osquery::safeStrtol(version[0], 10, majorVersion);
-    osquery::safeStrtol(version[1], 10, minorVersion);
+    long majorVersion = tryTo<long>(version[0], 10).takeOr(0l);
+    long minorVersion = tryTo<long>(version[1], 10).takeOr(0l);
 
     GetProductInfo(
         majorVersion, minorVersion, 0, 0, reinterpret_cast<DWORD*>(&prodType));
