@@ -39,16 +39,31 @@ HIDDEN_FLAG(bool,
 
 REGISTER(NTFSEventPublisher, "event_publisher", "ntfseventspublisher");
 
-namespace fs = boost::filesystem;
-
 namespace {
-/// This structure is used for the internal components cache
-struct NodeReferenceInfo final {
-  USNFileReferenceNumber parent;
-  std::string name;
+namespace boostfs = boost::filesystem;
+
+std::ostream& operator<<(std::ostream& stream, const NTFSEventRecord& event) {
+  std::ios_base::fmtflags original_stream_settings(stream.flags());
+
+  stream << "usn:\"" << event.update_sequence_number << "\" ";
+  stream << "type:\"" << event.type << "\" ";
+  stream << "record_timestamp:\"" << event.record_timestamp << "\" ";
+  stream << "attributes:\"" << event.attributes << "\" ";
+  stream << "drive_letter:\"" << event.drive_letter << "\" ";
+  stream << "partial:\"" << (event.partial ? "true" : "false") << "\" ";
+
+  if (!event.old_path.empty()) {
+    stream << "old_path:\"" << event.old_path << "\" ";
+  }
+
+  stream << "path:\"" << event.path << "\"";
+
+  stream.flags(original_stream_settings);
+  return stream;
 };
 }
 
+/// Private class data
 struct NTFSEventPublisher::PrivateData final {
   /// Each reader service instance is mapped to the drive letter it is
   /// reading from
@@ -62,17 +77,6 @@ struct NTFSEventPublisher::PrivateData final {
 
   /// This mutex protects the volume data map
   Mutex volume_data_map_mutex;
-
-  /// This cache contains a mapping from ref id to file name. We can gather this
-  /// data passively by just inspecting the journal records and also query the
-  /// volume in case of a cache miss
-  std::unordered_map<USNFileReferenceNumber, NodeReferenceInfo>
-      path_components_cache;
-
-  /// This map is used to merge the rename records (old name and new name) into
-  /// a single event. It is ordered so that we can delete data starting from the
-  /// oldest entries
-  std::map<USNFileReferenceNumber, USNJournalEventRecord> rename_path_mapper;
 };
 
 void NTFSEventPublisher::restartJournalReaderServices(
@@ -94,8 +98,10 @@ void NTFSEventPublisher::restartJournalReaderServices(
 
     auto service = std::make_shared<USNJournalReader>(context);
 
-    d->reader_service_map.insert(
-        {drive_letter, std::make_pair(service, context)});
+    USNJournalReaderInstance instance = {};
+    instance.reader = service;
+    instance.context = context;
+    d->reader_service_map.insert({drive_letter, instance});
 
     Dispatcher::addService(service);
   }
@@ -109,8 +115,8 @@ void NTFSEventPublisher::restartJournalReaderServices(
       continue;
     }
 
-    const auto& service_instance = service_it->second;
-    const auto& service_context = service_instance.second;
+    auto& service_instance = service_it->second;
+    auto& service_context = service_instance.context;
 
     VLOG(1) << "Terminating the USNJournalReader service assigned to drive "
             << drive_letter << ":";
@@ -121,15 +127,13 @@ void NTFSEventPublisher::restartJournalReaderServices(
 }
 
 std::vector<USNJournalEventRecord> NTFSEventPublisher::acquireJournalRecords() {
-  ReadLock lock(d->reader_service_map_mutex);
-
   // We have a reader service for each volume; attempt to fetch data
   // from each one of them
   std::vector<USNJournalEventRecord> record_list;
 
   for (auto& reader_info : d->reader_service_map) {
     auto& reader_instance = reader_info.second;
-    auto& reader_context = reader_instance.second;
+    auto& reader_context = reader_instance.context;
 
     std::vector<USNJournalEventRecord> new_record_list = {};
 
@@ -178,8 +182,11 @@ NTFSEventPublisherConfiguration NTFSEventPublisher::readConfiguration() {
   return configuration;
 }
 
-Status NTFSEventPublisher::getPathFromReferenceNumber(
-    std::string& path, char drive_letter, const USNFileReferenceNumber& ref) {
+Status NTFSEventPublisher::resolvePathFromComponentsCache(
+    std::string& path,
+    PathComponentsCache& path_components_cache,
+    char drive_letter,
+    const USNFileReferenceNumber& ref) {
   path.clear();
 
   // Get the root reference number
@@ -197,28 +204,17 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
   NodeReferenceInfo* current_node_info = nullptr;
 
   while (current_ref != volume_data.root_ref) {
-    auto it = d->path_components_cache.find(current_ref);
-    if (it != d->path_components_cache.end()) {
-      const auto& node_ref_info = it->second;
-
-      components.push_back(node_ref_info.name);
-      current_ref = node_ref_info.parent;
-
-      path_length += node_ref_info.name.size() + 1;
-
-    } else {
-      NodeReferenceInfo node_ref_info = {};
-      status = queryVolumeJournal(
-          node_ref_info.name, node_ref_info.parent, drive_letter, current_ref);
-      if (!status) {
-        return status;
-      }
-
-      components.push_back(node_ref_info.name);
-      current_ref = node_ref_info.parent;
-
-      path_length += node_ref_info.name.size() + 1;
+    auto it = path_components_cache.find(current_ref);
+    if (it == path_components_cache.end()) {
+      return Status(1, "Failed to build the path from the components cache");
     }
+
+    const auto& node_ref_info = it->second;
+
+    components.push_back(node_ref_info.name);
+    current_ref = node_ref_info.parent;
+
+    path_length += node_ref_info.name.size() + 1;
   }
 
   path.reserve(path_length);
@@ -234,22 +230,112 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
   return Status(0);
 }
 
-Status NTFSEventPublisher::queryVolumeJournal(
-    std::string& name,
-    USNFileReferenceNumber& parent_ref,
+Status NTFSEventPublisher::getPathFromReferenceNumber(
+    std::string& path,
+    PathComponentsCache& path_components_cache,
     char drive_letter,
     const USNFileReferenceNumber& ref) {
-  UpgradeLock lock(d->reader_service_map_mutex);
+  path.clear();
 
-  auto it = d->reader_service_map.find(drive_letter);
-  if (it == d->reader_service_map.end()) {
-    return Status(1, "Service is not running");
+  // Get the root folder handle
+  VolumeData volume_data = {};
+  auto status = getVolumeData(volume_data, drive_letter);
+  if (!status.ok()) {
+    return status;
   }
 
-  const auto& service_instance = it->second;
-  const auto& journal_reader = service_instance.first;
+  // See if we have been requested to solve the root folder
+  if (ref == volume_data.root_ref) {
+    path.push_back(drive_letter);
+    path.append(":\\");
 
-  return journal_reader->query(name, parent_ref, ref);
+    return Status(0);
+  }
+
+  // Convert the reference number to the native Windows structure
+  FILE_ID_DESCRIPTOR native_file_id = {};
+  GetNativeFileIdFromUSNReference(native_file_id, ref);
+
+  // Attempt to open the file or folder
+  auto handle =
+      OpenFileById(volume_data.volume_handle,
+                   &native_file_id,
+                   0,
+                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                   nullptr,
+                   FILE_FLAG_BACKUP_SEMANTICS);
+  if (handle == INVALID_HANDLE_VALUE) {
+    std::stringstream message;
+    message << "Failed to open the file in volume " << drive_letter
+            << ":\\. Error: ";
+
+    std::string description;
+    if (!getWindowsErrorDescription(description, ::GetLastError())) {
+      description = "Unknown error";
+    }
+
+    message << description;
+    return Status(1, message.str());
+  }
+
+  auto required_bytes = static_cast<size_t>(::GetFinalPathNameByHandle(
+      handle, nullptr, 0, FILE_NAME_NORMALIZED | VOLUME_NAME_DOS));
+
+  if (required_bytes == 0U) {
+    auto error_code = ::GetLastError();
+    ::CloseHandle(handle);
+
+    std::stringstream message;
+    message << "Failed to determine the path size for the file in volume "
+            << drive_letter << ":\\. Error: ";
+
+    std::string description;
+    if (!getWindowsErrorDescription(description, error_code)) {
+      description = "Unknown error";
+    }
+
+    message << description;
+    return Status(1, message.str());
+  }
+
+  // We are going to add an additional byte, as we may or may not have the null
+  // terminator already included depending on the operating system version
+  std::string buffer;
+  required_bytes += 1U;
+
+  buffer.resize(required_bytes);
+  if (buffer.size() != required_bytes) {
+    throw std::bad_alloc();
+  }
+
+  auto bytes_returned = static_cast<size_t>(
+      ::GetFinalPathNameByHandle(handle,
+                                 &buffer[0],
+                                 static_cast<DWORD>(buffer.size()),
+                                 FILE_NAME_NORMALIZED | VOLUME_NAME_DOS));
+
+  auto error_code = ::GetLastError();
+  ::CloseHandle(handle);
+
+  if (bytes_returned == 0U || bytes_returned >= buffer.size()) {
+    std::stringstream message;
+    message << "Failed to acquire the path for the file in volume "
+            << drive_letter << ":\\. Error: ";
+
+    std::string description;
+    if (!getWindowsErrorDescription(description, error_code)) {
+      description = "Unknown error";
+    }
+
+    message << description;
+    return Status(1, message.str());
+  }
+
+  // Paths follow this form: \\?\C:\\path\\to\\folder; skip the prefix
+  path = buffer.c_str() + 4;
+  buffer.clear();
+
+  return Status(0);
 }
 
 Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
@@ -272,7 +358,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
   VolumeData volume_data = {};
   volume_data.volume_handle =
       ::CreateFile(volume_path.c_str(),
-                   FILE_GENERIC_READ,
+                   GENERIC_READ,
                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                    nullptr,
                    OPEN_EXISTING,
@@ -285,7 +371,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
             << " due to the following error: ";
 
     std::string description;
-    if (!getWindowsErrorDescription(description, GetLastError())) {
+    if (!getWindowsErrorDescription(description, ::GetLastError())) {
       description = "Unknown error";
     }
 
@@ -300,7 +386,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
 
   volume_data.root_folder_handle =
       ::CreateFile(root_folder_path.c_str(),
-                   FILE_SHARE_READ,
+                   GENERIC_READ,
                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                    nullptr,
                    OPEN_EXISTING,
@@ -308,6 +394,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
                    nullptr);
 
   if (volume_data.root_folder_handle == INVALID_HANDLE_VALUE) {
+    auto error_code = ::GetLastError();
     ::CloseHandle(volume_data.volume_handle);
 
     std::stringstream message;
@@ -315,7 +402,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
             << drive_letter << "'. Error: ";
 
     std::string description;
-    if (!getWindowsErrorDescription(description, GetLastError())) {
+    if (!getWindowsErrorDescription(description, error_code)) {
       description = "Unknown error";
     }
 
@@ -334,6 +421,8 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
                        sizeof(buffer),
                        &bytes_read,
                        nullptr)) {
+    auto error_code = ::GetLastError();
+
     ::CloseHandle(volume_data.volume_handle);
     ::CloseHandle(volume_data.root_folder_handle);
 
@@ -342,7 +431,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
             << drive_letter << "'. Error: ";
 
     std::string description;
-    if (!getWindowsErrorDescription(description, GetLastError())) {
+    if (!getWindowsErrorDescription(description, error_code)) {
       description = "Unknown error";
     }
 
@@ -404,6 +493,8 @@ Status NTFSEventPublisher::run() {
     return Status(1, "Publisher disabled via configuration");
   }
 
+  ReadLock lock(d->reader_service_map_mutex);
+
   auto journal_records = acquireJournalRecords();
   if (journal_records.empty()) {
     return Status(0);
@@ -411,13 +502,25 @@ Status NTFSEventPublisher::run() {
 
   auto event_context = createEventContext();
 
+  // We need to perform every step in the right order
   for (const auto& journal_record : journal_records) {
-    // Update the path components cache
+    // Locate the required service
+    auto service_it = d->reader_service_map.find(journal_record.drive_letter);
+    assert(service_it != d->reader_service_map.end());
+
+    auto& service_instance = service_it->second;
+
+    auto& path_components_cache = service_instance.path_components_cache;
+    auto& rename_path_mapper = service_instance.rename_path_mapper;
+
+    // Update the path components cache; right now we just want to collect
+    // the components name. After we generated the event, we will actually
+    // apply rename and delete operations
     NodeReferenceInfo node_ref_info = {};
     node_ref_info.parent = journal_record.parent_ref_number;
     node_ref_info.name = journal_record.name;
 
-    d->path_components_cache.insert(
+    path_components_cache.insert(
         {journal_record.node_ref_number, node_ref_info});
 
     // Track rename records so that we can merge them into a single event
@@ -427,7 +530,7 @@ Status NTFSEventPublisher::run() {
     switch (journal_record.type) {
     case USNJournalEventRecord::Type::DirectoryRename_OldName:
     case USNJournalEventRecord::Type::FileRename_OldName: {
-      d->rename_path_mapper.insert(
+      rename_path_mapper.insert(
           {journal_record.node_ref_number, journal_record});
 
       skip_record = true;
@@ -436,14 +539,14 @@ Status NTFSEventPublisher::run() {
 
     case USNJournalEventRecord::Type::DirectoryRename_NewName:
     case USNJournalEventRecord::Type::FileRename_NewName: {
-      auto it = d->rename_path_mapper.find(journal_record.node_ref_number);
-      if (it == d->rename_path_mapper.end()) {
+      auto it = rename_path_mapper.find(journal_record.node_ref_number);
+      if (it == rename_path_mapper.end()) {
         skip_record = true;
         VLOG(1) << "Failed to remap the rename records";
       }
 
       old_name_record = it->second;
-      d->rename_path_mapper.erase(it);
+      rename_path_mapper.erase(it);
     }
     }
 
@@ -459,54 +562,93 @@ Status NTFSEventPublisher::run() {
     event.update_sequence_number = journal_record.update_sequence_number;
     event.drive_letter = journal_record.drive_letter;
 
-    auto status = getPathFromReferenceNumber(event.path,
-                                             journal_record.drive_letter,
-                                             journal_record.node_ref_number);
+    auto status =
+        resolvePathFromComponentsCache(event.path,
+                                       path_components_cache,
+                                       journal_record.drive_letter,
+                                       journal_record.node_ref_number);
     if (!status.ok()) {
-      VLOG(1) << status.getMessage();
-      event.path = journal_record.name;
-    }
+      status = getPathFromReferenceNumber(event.path,
+                                          path_components_cache,
+                                          journal_record.drive_letter,
+                                          journal_record.node_ref_number);
+      if (!status.ok()) {
+        if (journal_record.type !=
+                USNJournalEventRecord::Type::DirectoryDeletion &&
+            journal_record.type != USNJournalEventRecord::Type::FileDeletion) {
+          VLOG(1) << status.getMessage();
+        }
 
-    status = getPathFromReferenceNumber(event.parent_path,
-                                        journal_record.drive_letter,
-                                        journal_record.parent_ref_number);
-    if (!status.ok()) {
-      VLOG(1) << status.getMessage();
+        event.path = journal_record.name;
+        event.partial = true;
+      }
     }
 
     if (old_name_record.node_ref_number != 0U) {
-      status = getPathFromReferenceNumber(event.old_path,
-                                          old_name_record.drive_letter,
-                                          old_name_record.node_ref_number);
+      status = resolvePathFromComponentsCache(event.old_path,
+                                              path_components_cache,
+                                              old_name_record.drive_letter,
+                                              old_name_record.node_ref_number);
       if (!status.ok()) {
         VLOG(1) << status.getMessage();
-        event.old_path = old_name_record.name;
+        event.partial = true;
       }
+    }
+
+    if (FLAGS_ntfs_event_publisher_debug) {
+      std::stringstream buffer;
+      buffer << "NTFSEventPublisher event: " << event << "\n";
+
+      std::cout << buffer.str();
     }
 
     event_context->event_list.push_back(std::move(event));
 
-    // Update the path components cache by deleting files that are no longer
+    // Update the path components cache by deleting/renaming files that are no
+    // longer
     // available
-    // ...
+    if (journal_record.type == USNJournalEventRecord::Type::DirectoryDeletion ||
+        journal_record.type == USNJournalEventRecord::Type::FileDeletion) {
+      auto it = path_components_cache.find(journal_record.node_ref_number);
+      if (it != path_components_cache.end()) {
+        path_components_cache.erase(it);
+      }
+
+    } else if (journal_record.type ==
+                   USNJournalEventRecord::Type::DirectoryRename_NewName ||
+               journal_record.type ==
+                   USNJournalEventRecord::Type::FileRename_NewName) {
+      auto it = path_components_cache.find(journal_record.node_ref_number);
+      if (it != path_components_cache.end()) {
+        auto& node_ref_info = it->second;
+        node_ref_info.name = journal_record.name;
+      }
+    }
+  }
+
+  // Put a limit on the size of the caches we are using
+  for (auto& p : d->reader_service_map) {
+    auto& service_instance = p.second;
+
+    auto& path_components_cache = service_instance.path_components_cache;
+    auto& rename_path_mapper = service_instance.rename_path_mapper;
+
+    if (path_components_cache.size() >= 20000U) {
+      auto range_start = path_components_cache.begin();
+      auto range_end = std::next(range_start, 10000U);
+
+      path_components_cache.erase(range_start, range_end);
+    }
+
+    if (rename_path_mapper.size() >= 2000U) {
+      auto range_start = rename_path_mapper.begin();
+      auto range_end = std::next(range_start, 1000U);
+
+      rename_path_mapper.erase(range_start, range_end);
+    }
   }
 
   fire(event_context);
-
-  // Put a limit on the size of the caches we are using
-  if (d->path_components_cache.size() >= 20000U) {
-    auto range_start = d->path_components_cache.begin();
-    auto range_end = std::next(range_start, 10000U);
-
-    d->path_components_cache.erase(range_start, range_end);
-  }
-
-  if (d->rename_path_mapper.size() >= 2000U) {
-    auto range_start = d->rename_path_mapper.begin();
-    auto range_end = std::next(range_start, 1000U);
-
-    d->rename_path_mapper.erase(range_start, range_end);
-  }
 
   return Status(0, "OK");
 }

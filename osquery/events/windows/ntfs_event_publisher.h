@@ -37,9 +37,6 @@ struct NTFSEventRecord final {
   /// Event type
   USNJournalEventRecord::Type type;
 
-  /// Parent path
-  std::string parent_path;
-
   /// Path
   std::string path;
 
@@ -57,6 +54,10 @@ struct NTFSEventRecord final {
 
   /// Drive letter
   char drive_letter{0U};
+
+  /// If true, this event is partial; it means that we could only get
+  /// the file or folder name inside path or old_path
+  bool partial{false};
 };
 
 /// This structure is used to save volume handles and reference ids
@@ -84,10 +85,37 @@ struct NTFSEventContext final : public EventContext {
 
 using NTFSEventContextRef = std::shared_ptr<NTFSEventContext>;
 
-/// A USNJournalReaderInstance is an std::pair of the service and its associated
-/// context structure
-using USNJournalReaderInstance =
-    std::pair<USNJournalReaderRef, USNJournalReaderContextRef>;
+/// This structure is used for the path components cache
+struct NodeReferenceInfo final {
+  /// Parent file reference number
+  USNFileReferenceNumber parent;
+
+  /// File or folder name
+  std::string name;
+};
+
+/// The path components cache maps reference numbers to node names
+using PathComponentsCache =
+    std::unordered_map<USNFileReferenceNumber, NodeReferenceInfo>;
+
+/// This structure describes a running USNJournalReader instance
+struct USNJournalReaderInstance final {
+  /// The reader service
+  USNJournalReaderRef reader;
+
+  /// The shared context
+  USNJournalReaderContextRef context;
+
+  /// This cache contains a mapping from ref id to file name. We can gather this
+  /// data passively by just inspecting the journal records and also query the
+  /// volume in case of a cache miss
+  PathComponentsCache path_components_cache;
+
+  /// This map is used to merge the rename records (old name and new name) into
+  /// a single event. It is ordered so that we can delete data starting from the
+  /// oldest entries
+  std::map<USNFileReferenceNumber, USNJournalEventRecord> rename_path_mapper;
+};
 
 /// The NTFSEventPublisher configuration is just a list of drives we are
 /// monitoring
@@ -116,17 +144,19 @@ class NTFSEventPublisher final
   /// monitored
   NTFSEventPublisherConfiguration readConfiguration();
 
-  /// Attempts to resolve the reference number into a full path
+  /// Attempts to resolve the reference number using the path components cache
+  Status resolvePathFromComponentsCache(
+      std::string& path,
+      PathComponentsCache& path_components_cache,
+      char drive_letter,
+      const USNFileReferenceNumber& ref);
+
+  /// Attempts to get the full path for the given file reference. If the path is
+  /// located, it also updates the path components cache
   Status getPathFromReferenceNumber(std::string& path,
+                                    PathComponentsCache& path_components_cache,
                                     char drive_letter,
                                     const USNFileReferenceNumber& ref);
-
-  /// Queries the volume in order to get the node name for an unknown file
-  /// reference number
-  Status queryVolumeJournal(std::string& name,
-                            USNFileReferenceNumber& parent_ref,
-                            char drive_letter,
-                            const USNFileReferenceNumber& ref);
 
   /// Returns a VolumeData structure containing the volume handle and the
   /// root folder reference number

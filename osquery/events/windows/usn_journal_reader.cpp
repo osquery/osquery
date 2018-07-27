@@ -178,6 +178,10 @@ struct USNJournalReader::PrivateData final {
   /// call
   size_t bytes_received{0U};
 
+  /// Initial sequence number; this is the USN that we saw for the first time
+  /// when launching the service
+  USN initial_sequence_number;
+
   /// Sequence number used to query the volume journal
   USN next_update_seq_number{0U};
 
@@ -236,8 +240,9 @@ Status USNJournalReader::initialize() {
   }
 
   /// This is the next USN identifier, to be used when requesting the next
-  /// updates
-  d->next_update_seq_number = journal_data.NextUsn;
+  /// updates; we keep the initial ones for queries
+  d->initial_sequence_number = journal_data.NextUsn;
+  d->next_update_seq_number = d->initial_sequence_number;
 
   // Also save the journal id
   d->journal_id = journal_data.UsnJournalID;
@@ -396,86 +401,6 @@ USNJournalReader::USNJournalReader(
 }
 
 USNJournalReader::~USNJournalReader() {}
-
-Status USNJournalReader::query(std::string& name,
-                               USNFileReferenceNumber& parent_ref,
-                               const USNFileReferenceNumber& ref) const {
-  name = "C:\\Windows";
-  return Status(0);
-
-  // The query we are going to perform only supports 64-bit reference numbers;
-  // the 128-bit ones are used when reading but they never actually use the high
-  // qword
-  FILE_ID_DESCRIPTOR native_file_id = {};
-  GetNativeFileIdFromUSNReference(native_file_id, ref);
-
-  DWORDLONG native_reference = 0U;
-  if (native_file_id.Type == FileIdType) {
-    native_reference = static_cast<DWORDLONG>(native_file_id.FileId.QuadPart);
-  } else {
-    const auto ref_ptr = reinterpret_cast<const DWORDLONG*>(
-        native_file_id.ExtendedFileId.Identifier);
-    native_reference = *ref_ptr;
-  }
-
-  // Attempt to get the USN record for the reference number we have been given
-  MFT_ENUM_DATA_V1 query = {};
-  query.StartFileReferenceNumber = native_reference;
-  query.HighUsn = std::numeric_limits<std::uint64_t>::max();
-  query.MinMajorVersion = 2U;
-  query.MaxMajorVersion = 3U;
-
-  std::uint8_t buffer[4096] = {};
-  DWORD bytes_read = 0U;
-
-  if (!DeviceIoControl(d->volume_handle,
-                       FSCTL_ENUM_USN_DATA,
-                       &query,
-                       sizeof(query),
-                       buffer,
-                       sizeof(buffer),
-                       &bytes_read,
-                       nullptr)) {
-    std::stringstream message;
-    message << "Failed to query the journal for volume '"
-            << d->journal_reader_context->drive_letter << "'. Error: ";
-
-    std::string description;
-    if (!getWindowsErrorDescription(description, GetLastError())) {
-      description = "Unknown error";
-    }
-
-    message << description;
-    return Status(1, message.str());
-  }
-
-  // Validate what we got and return the result to the caller
-  const auto usn_record =
-      reinterpret_cast<const USN_RECORD*>(buffer + sizeof(USN));
-
-  USNFileReferenceNumber current_ref = {};
-
-  if (!USNParsers::GetFileReferenceNumber(current_ref, usn_record)) {
-    return Status(
-        1, "Failed to acquire the file reference number from the record");
-  }
-
-  if (current_ref != ref) {
-    return Status(1, "The requested file reference number was not found");
-  }
-
-  if (!USNParsers::GetParentFileReferenceNumber(parent_ref, usn_record)) {
-    return Status(
-        1, "Failed to acquire the file reference number from the record");
-  }
-
-  if (!USNParsers::GetEventString(name, usn_record)) {
-    return Status(1, "Failed to acquire the file_name string from the record");
-  }
-
-  LOG(ERROR) << "ONE REQUEST HAS PASSED";
-  return Status(0);
-}
 
 // TODO(alessandro): Write a test for this
 Status USNJournalReader::DecompressRecord(

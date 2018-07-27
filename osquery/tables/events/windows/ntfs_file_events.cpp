@@ -176,9 +176,9 @@ Row NTFSEventSubscriber::generateRowFromEvent(const NTFSEventRecord& event) {
   assert(action_description_it != kNTFSEventToStringMap.end());
 
   row["action"] = TEXT(action_description_it->second);
-  row["parent_path"] = TEXT(event.parent_path);
   row["old_path"] = TEXT(event.old_path);
   row["path"] = TEXT(event.path);
+  row["partial"] = INTEGER(event.partial);
 
   {
     std::stringstream buffer;
