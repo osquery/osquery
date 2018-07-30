@@ -250,7 +250,14 @@ bool platformModuleClose(ModuleHandle module) {
   return (::FreeLibrary(static_cast<HMODULE>(module)) != 0);
 }
 
-void setToBackgroundPriority() {}
+void setToBackgroundPriority() {
+  auto ret =
+      SetPriorityClass(GetCurrentProcess(), PROCESS_MODE_BACKGROUND_BEGIN);
+  if (ret != TRUE) {
+    LOG(WARNING) << "Failed to set background process priority with "
+                 << GetLastError();
+  }
+}
 
 // Helper function to determine if thread is running with admin privilege.
 bool isUserAdmin() {
