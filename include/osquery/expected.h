@@ -144,8 +144,12 @@ class Expected final {
     return object_.which() == kErrorType_;
   }
 
-  explicit operator bool() const noexcept {
+  bool isValue() const noexcept {
     return !isError();
+  }
+
+  explicit operator bool() const noexcept {
+    return isValue();
   }
 
   ValueType& get() && = delete;

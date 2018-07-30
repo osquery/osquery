@@ -29,6 +29,7 @@ enum class TestError {
 GTEST_TEST(ExpectedTest, success_contructor_initialization) {
   Expected<std::string, TestError> value = std::string("Test");
   EXPECT_TRUE(value);
+  EXPECT_TRUE(value.isValue());
   EXPECT_FALSE(value.isError());
   EXPECT_EQ(value.get(), "Test");
 }
@@ -37,6 +38,7 @@ GTEST_TEST(ExpectedTest, failure_error_contructor_initialization) {
   Expected<std::string, TestError> error =
       Error<TestError>(TestError::Some, "Please try again");
   EXPECT_FALSE(error);
+  EXPECT_FALSE(error.isValue());
   EXPECT_TRUE(error.isError());
   EXPECT_EQ(error.getErrorCode(), TestError::Some);
 }
