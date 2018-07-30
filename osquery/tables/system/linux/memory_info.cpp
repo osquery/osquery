@@ -50,7 +50,7 @@ QueryData getMemoryInfo(QueryContext& context) {
       for (const auto& singleMap : kMemInfoMap) {
         if (line.find(singleMap.second) == 0) {
           auto const value_exp = tryTo<long>(tokens[1], 10);
-          if (value_exp) {
+          if (!value_exp.isError()) {
             r[singleMap.first] = BIGINT(value_exp.get() * 1024l);
           }
           break;

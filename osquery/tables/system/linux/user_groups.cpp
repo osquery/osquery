@@ -24,7 +24,7 @@ QueryData genUserGroups(QueryContext& context) {
     std::set<std::string> uids = context.constraints["uid"].getAll(EQUALS);
     for (const auto& uid : uids) {
       auto const auid_exp = tryTo<long>(uid, 10);
-      if (auid_exp && (pwd = getpwuid(auid_exp.get())) != nullptr) {
+      if (!auid_exp.isError() && (pwd = getpwuid(auid_exp.get())) != nullptr) {
         user_t<uid_t, gid_t> user;
         user.name = pwd->pw_name;
         user.uid = pwd->pw_uid;

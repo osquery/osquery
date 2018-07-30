@@ -74,9 +74,9 @@ size_t getMachineShard(const std::string& hostname = "", bool force = false) {
   auto hn_hash = getBufferSHA1(hn.c_str(), hn.size());
 
   if (hn_hash.size() >= 2) {
-    auto const hn_char = tryTo<long>(hn_hash.substr(0, 2), 16);
-    if (hn_char) {
-      shard = (hn_char.get() * 100) / 255;
+    auto const hn_num = tryTo<long>(hn_hash.substr(0, 2), 16);
+    if (!hn_num.isError()) {
+      shard = (hn_num.get() * 100) / 255;
     }
   }
   return shard;
@@ -90,13 +90,13 @@ size_t restoreSplayedValue(const std::string& name, size_t interval) {
     // This query name existed before, check the last requested interval.
     auto details = osquery::split(content, ":");
     if (details.size() == 2) {
-      auto const last_interval = tryTo<long>(details[0], 10);
-      auto const last_splay = tryTo<long>(details[1], 10);
-      if (last_interval && last_splay) {
-        if (last_interval.get() == static_cast<long>(interval) &&
-            last_splay.get() > 0) {
+      auto const last_interval_exp = tryTo<long>(details[0], 10);
+      auto const last_splay_exp = tryTo<long>(details[1], 10);
+      if (!last_interval_exp.isError() && !last_splay_exp.isError()) {
+        if (last_interval_exp.get() == static_cast<long>(interval) &&
+            last_splay_exp.get() > 0) {
           // This is a matching interval, use the previous splay.
-          return static_cast<size_t>(last_splay.get());
+          return static_cast<size_t>(last_splay_exp.get());
         }
       }
     }
