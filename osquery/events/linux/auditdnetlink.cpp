@@ -463,14 +463,9 @@ bool AuditdNetlinkReader::clearAuditConfiguration() noexcept {
     }
 
     // Save the rule
-    auto reply_size = sizeof(reply) + reply.ruledata->buflen;
+    const auto reply_size = sizeof(reply) + reply.ruledata->buflen;
 
-    AuditRuleDataObject reply_object;
-    reply_object.resize(reply_size);
-    if (reply_object.size() != reply_size) {
-      VLOG(1) << "Failed to read the audit rule data";
-      return false;
-    }
+    AuditRuleDataObject reply_object(reply_size);
 
     std::memcpy(reply_object.data(), reply.ruledata, reply_size);
     rule_object_list.push_back(reply_object);

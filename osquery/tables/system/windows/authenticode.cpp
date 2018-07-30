@@ -242,12 +242,8 @@ Status getOriginalProgramName(SignatureInformation& signature_info,
     return Status(1, "Failed to access the publisher information");
   }
 
-  std::vector<std::uint8_t> publisher_info_blob_buffer;
-  publisher_info_blob_buffer.resize(static_cast<size_t>(publisher_info_size));
-  if (publisher_info_blob_buffer.size() !=
-      static_cast<size_t>(publisher_info_size)) {
-    return Status(1, "Memory allocation failure");
-  }
+  std::vector<std::uint8_t> publisher_info_blob_buffer(
+      static_cast<size_t>(publisher_info_size));
 
   PSPC_SP_OPUS_INFO publisher_info_blob_ptr =
       reinterpret_cast<PSPC_SP_OPUS_INFO>(publisher_info_blob_buffer.data());
@@ -297,13 +293,7 @@ Status getCertificateInformation(SignatureInformation& signature_info,
       return false;
     }
 
-    std::string buffer;
-    try {
-      buffer.resize(static_cast<size_t>(value_size));
-    } catch (const std::exception&) {
-      VLOG(1) << "Memory allocation error";
-      return false;
-    }
+    std::string buffer(static_cast<size_t>(value_size));
 
     if (!CertGetNameString(certificate_context,
                            CERT_NAME_SIMPLE_DISPLAY_TYPE,
@@ -368,11 +358,8 @@ Status getSignatureInformation(SignatureInformation& signature_info,
     return Status(1, "Failed to get the signer information size");
   }
 
-  std::vector<std::uint8_t> signer_information;
-  signer_information.resize(static_cast<size_t>(signer_info_size));
-  if (signer_information.size() != static_cast<size_t>(signer_info_size)) {
-    return Status(1, "Memory allocation error");
-  }
+  std::vector<std::uint8_t> signer_information(
+      static_cast<size_t>(signer_info_size));
 
   PCMSG_SIGNER_INFO signer_information_ptr =
       reinterpret_cast<PCMSG_SIGNER_INFO>(signer_information.data());
