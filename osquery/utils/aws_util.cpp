@@ -72,7 +72,6 @@ static const std::set<std::string> kAwsRegions = {"us-east-1",
                                                   "ap-south-1",
                                                   "us-east-2",
                                                   "ca-central-1",
-                                                  "eu-west-1",
                                                   "eu-west-2"};
 
 // Default AWS region to use when no region set in flags or profile
@@ -174,7 +173,7 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
 
     response->GetResponseBody() << resp.body();
 
-  } catch (std::exception e) {
+  } catch (const std::exception& e) {
     /* NOTE: This exception must NOT be passed by reference. */
     LOG(ERROR) << "Exception making HTTP request to URL (" << url
                << "): " << e.what();

@@ -114,10 +114,6 @@ QueryData genAuthorizations(QueryContext& context) {
           std::vector<const void*> keys(count);
           std::vector<const void*> values(count);
           CFDictionaryGetKeysAndValues(rights, keys.data(), values.data());
-          if (keys.data() == nullptr || values.data() == nullptr) {
-            CFRelease(rights);
-            return;
-          }
 
           Row r;
           for (CFIndex i = 0; i < count; i++) {

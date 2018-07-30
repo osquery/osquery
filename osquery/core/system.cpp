@@ -119,10 +119,8 @@ std::string getHostname() {
 
   std::vector<char> hostname(size, 0x0);
   std::string hostname_string;
-  if (hostname.data() != nullptr) {
-    gethostname(hostname.data(), size - 1);
-    hostname_string = std::string(hostname.data());
-  }
+  gethostname(hostname.data(), size - 1);
+  hostname_string = std::string(hostname.data());
   boost::algorithm::trim(hostname_string);
   return hostname_string;
 }

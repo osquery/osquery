@@ -321,7 +321,7 @@ static void genGlobs(std::string path,
     size_t wild = path.rfind("**");
     // Allow a trailing slash after the double wild indicator.
     if (glob_results.size() == 0 || wild > path.size() ||
-        wild < path.size() - 3) {
+        wild + 3 < path.size()) {
       break;
     }
 
