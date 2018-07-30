@@ -136,15 +136,8 @@ std::vector<AuditEventRecord> AuditdNetlink::getEvents() noexcept {
 
 AuditdNetlinkReader::AuditdNetlinkReader(AuditdContextRef context)
     : InternalRunnable("AuditdNetlinkReader"),
-      auditd_context_(std::move(context)) {
-  const size_t read_buffer_size = 4096U;
-
-  read_buffer_.resize(read_buffer_size);
-  if (read_buffer_.size() != read_buffer_size) {
-    LOG(ERROR) << "Memory allocation error";
-    throw std::bad_alloc();
-  }
-}
+      auditd_context_(std::move(context)),
+      read_buffer_(4096U) {}
 
 void AuditdNetlinkReader::start() {
   int counter_to_next_status_request = 0;
