@@ -597,11 +597,12 @@ TEST_F(ConversionsTests, tryTo_string_to_boolean_invalid_args) {
 #ifdef DARWIN
 TEST_F(ConversionsTests, stringFromCFString) {
   auto const in_str = std::string{u8"空間"};
-  auto const cf_string_ref = CFStringCreateWithBytes(
-    kCFAllocatorDefault,
-    reinterpret_cast<const UInt8*>(in_str.data()),
-    in_str.size(), kCFStringEncodingUTF8, false
-  );
+  auto const cf_string_ref =
+      CFStringCreateWithBytes(kCFAllocatorDefault,
+                              reinterpret_cast<const UInt8*>(in_str.data()),
+                              in_str.size(),
+                              kCFStringEncodingUTF8,
+                              false);
   auto out_str = stringFromCFString(cf_string_ref);
   EXPECT_EQ(in_str, out_str);
 }
