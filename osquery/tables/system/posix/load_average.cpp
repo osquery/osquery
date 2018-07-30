@@ -20,10 +20,10 @@
 namespace osquery {
 namespace tables {
 
-static constexpr std::array<boost::string_view, 3> periods = {
-    boost::string_view("1m", 2),
-    boost::string_view("5m", 2),
-    boost::string_view("15m", 3)};
+static constexpr std::array<boost::string_view, 3> kPeriods = {
+    {boost::string_view("1m", 2),
+     boost::string_view("5m", 2),
+     boost::string_view("15m", 3)}};
 
 QueryData genLoadAverage(QueryContext& context) {
   QueryData results(3);
@@ -32,7 +32,7 @@ QueryData genLoadAverage(QueryContext& context) {
 
   if (getloadavg(loads, 3) != -1) {
     for (int i = 0; i < 3; i++) {
-      Row r = {{"period", periods[i].data()},
+      Row r = {{"period", kPeriods[i].data()},
                {"average", std::to_string(loads[i])}};
 
       results[i] = r;
