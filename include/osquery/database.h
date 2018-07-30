@@ -53,8 +53,11 @@ extern const std::string kEvents;
 /// The "domain" where the results of carve queries are stored.
 extern const std::string kCarves;
 
+/// The key for the DB version
+extern const std::string kDbVersionKey;
+
 /// The running version of our database schema
-extern const std::string kDatabaseResultsVersion;
+const int kDbCurrentVersion = 1;
 
 /**
  * @brief The "domain" where buffered log results are stored.
@@ -290,5 +293,5 @@ Status ptreeToRapidJSON(const std::string& in, std::string& out);
  *
  * @return Success status of upgrading the database
  */
-Status upgradeDatabase();
+Status upgradeDatabase(int to_version = kDbCurrentVersion);
 } // namespace osquery

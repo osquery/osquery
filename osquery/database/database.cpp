@@ -16,6 +16,7 @@
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/flagalias.h"
 #include "osquery/core/json.h"
 
@@ -47,7 +48,7 @@ const std::string kLogs = "logs";
 const std::string kDbEpochSuffix = "epoch";
 const std::string kDbCounterSuffix = "counter";
 
-const std::string kDatabaseResultsVersion = "1";
+const std::string kDbVersionKey = "results_version";
 
 const std::vector<std::string> kDomains = {
     kPersistentSettings, kQueries, kEvents, kLogs, kCarves};
@@ -514,22 +515,58 @@ static Status migrateV0V1(void) {
   return Status();
 }
 
-Status upgradeDatabase() {
-  std::string db_results_version{""};
-  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
+Status upgradeDatabase(int to_version) {
+  std::string value;
+  Status st = getDatabaseValue(kPersistentSettings, kDbVersionKey, value);
 
-  if (db_results_version == kDatabaseResultsVersion) {
-    return Status();
+  int db_version = 0;
+  /* Since there isn't a reliable way to determined what happen when the read
+   * fails we just assume the key doesn't exist which indicates database
+   * version 0.
+   */
+  if (st.ok()) {
+    auto ret = tryTo<int>(value);
+    if (ret.isError()) {
+      LOG(ERROR) << "Invalid value '" << value << "'for " << kDbVersionKey
+                 << " key. Database is corrupted.";
+      return Status(1, "Invalid value for database version.");
+    } else {
+      db_version = ret.get();
+    }
   }
 
-  auto s = migrateV0V1();
-  if (!s.ok()) {
-    LOG(WARNING) << "Failed to migrate V0 to V1: " << s.what();
-    return Status(1, "DB migration failed");
+  while (db_version != to_version) {
+    Status migrate_status;
+
+    switch (db_version) {
+    case 0:
+      LOG(INFO) << "Performing migration: 0 -> 1";
+      migrate_status = migrateV0V1();
+      break;
+
+    default:
+      LOG(ERROR) << "Logic error: the migration code is broken!";
+      migrate_status = Status(1);
+      break;
+    }
+
+    if (!migrate_status.ok()) {
+      return Status(1, "Database migration failed.");
+    }
+
+    st = setDatabaseValue(
+        kPersistentSettings, kDbVersionKey, std::to_string(db_version + 1));
+    if (!st.ok()) {
+      LOG(ERROR) << "Failed to set new database version after migration. "
+                 << "The DB was correctly migrated from version " << db_version
+                 << " to version " << (db_version + 1)
+                 << " but persisting the new version failed.";
+      return Status(1, "Database migration failed.");
+    }
+
+    db_version++;
   }
 
-  setDatabaseValue(
-      kPersistentSettings, "results_version", kDatabaseResultsVersion);
   return Status();
 }
 } // namespace osquery
