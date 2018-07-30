@@ -342,7 +342,7 @@ bool GetIntegerFieldFromMap(std::uint64_t& value,
   }
   auto exp = tryTo<std::uint64_t>(string_value, base);
   value = exp.getOr(default_value);
-  return !exp.isError();
+  return exp.isValue();
 }
 
 void CopyFieldFromMap(Row& row,

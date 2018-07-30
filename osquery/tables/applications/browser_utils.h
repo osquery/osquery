@@ -33,7 +33,7 @@ QueryData genChromeBasedExtensions(QueryContext& context,
 /// A helper check to rename bool-type values as 1 or 0.
 inline void jsonBoolAsInt(std::string& s) {
   auto expected = tryTo<bool>(s);
-  if (!expected.isError()) {
+  if (expected.isValue()) {
     s = expected.get() ? "1" : "0";
   }
 }
