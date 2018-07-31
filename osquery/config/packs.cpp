@@ -75,7 +75,7 @@ size_t getMachineShard(const std::string& hostname = "", bool force = false) {
 
   if (hn_hash.size() >= 2) {
     auto const hn_num = tryTo<long>(hn_hash.substr(0, 2), 16);
-    if (!hn_num.isError()) {
+    if (hn_num.isValue()) {
       shard = (hn_num.get() * 100) / 255;
     }
   }
@@ -92,7 +92,7 @@ size_t restoreSplayedValue(const std::string& name, size_t interval) {
     if (details.size() == 2) {
       auto const last_interval_exp = tryTo<long>(details[0], 10);
       auto const last_splay_exp = tryTo<long>(details[1], 10);
-      if (!last_interval_exp.isError() && !last_splay_exp.isError()) {
+      if (last_interval_exp.isValue() && last_splay_exp.isValue()) {
         if (last_interval_exp.get() == static_cast<long>(interval) &&
             last_splay_exp.get() > 0) {
           // This is a matching interval, use the previous splay.

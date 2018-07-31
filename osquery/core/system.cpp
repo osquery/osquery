@@ -426,10 +426,10 @@ bool PlatformProcess::cleanup() const {
 static inline bool ownerFromResult(const Row& row, long& uid, long& gid) {
   auto const uid_exp = tryTo<long>(row.at("uid"), 10);
   auto const gid_exp = tryTo<long>(row.at("gid"), 10);
-  if (!uid_exp.isError()) {
+  if (uid_exp.isValue()) {
     uid = uid_exp.get();
   }
-  if (!gid_exp.isError()) {
+  if (gid_exp.isValue()) {
     gid = gid_exp.get();
   }
   return uid_exp && gid_exp;

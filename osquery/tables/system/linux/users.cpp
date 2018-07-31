@@ -55,7 +55,7 @@ QueryData genUsers(QueryContext& context) {
     auto uids = context.constraints["uid"].getAll(EQUALS);
     for (const auto& uid : uids) {
       auto const auid_exp = tryTo<long>(uid, 10);
-      if (!auid_exp.isError()) {
+      if (auid_exp.isValue()) {
         WriteLock lock(pwdEnumerationMutex);
         pwd = getpwuid(auid_exp.get());
         if (pwd != nullptr) {
