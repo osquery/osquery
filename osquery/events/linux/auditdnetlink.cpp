@@ -136,15 +136,8 @@ std::vector<AuditEventRecord> AuditdNetlink::getEvents() noexcept {
 
 AuditdNetlinkReader::AuditdNetlinkReader(AuditdContextRef context)
     : InternalRunnable("AuditdNetlinkReader"),
-      auditd_context_(std::move(context)) {
-  const size_t read_buffer_size = 4096U;
-
-  read_buffer_.resize(read_buffer_size);
-  if (read_buffer_.size() != read_buffer_size) {
-    LOG(ERROR) << "Memory allocation error";
-    throw std::bad_alloc();
-  }
-}
+      auditd_context_(std::move(context)),
+      read_buffer_(4096U) {}
 
 void AuditdNetlinkReader::start() {
   int counter_to_next_status_request = 0;
@@ -470,14 +463,9 @@ bool AuditdNetlinkReader::clearAuditConfiguration() noexcept {
     }
 
     // Save the rule
-    auto reply_size = sizeof(reply) + reply.ruledata->buflen;
+    const auto reply_size = sizeof(reply) + reply.ruledata->buflen;
 
-    AuditRuleDataObject reply_object;
-    reply_object.resize(reply_size);
-    if (reply_object.size() != reply_size) {
-      VLOG(1) << "Failed to read the audit rule data";
-      return false;
-    }
+    AuditRuleDataObject reply_object(reply_size);
 
     std::memcpy(reply_object.data(), reply.ruledata, reply_size);
     rule_object_list.push_back(reply_object);
