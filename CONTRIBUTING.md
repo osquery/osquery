@@ -9,12 +9,11 @@ By contributing to osquery, you agree that your contributions will be licensed u
 ## Guidelines for contributing features to osquery core
 
 The software housed in this repo is known as osquery core. While there are occasional exceptions, contributions to core should abide by the following osquery guiding principles in order to be accepted:
-1. osquery doesn’t pry into user data
-2. osquery doesn’t change the state of the system
-3. osquery doesn’t create network traffic to third parties
-4. osquery’s endpoint binaries have a light memory footprint
-5. osquery minimizes system overhead & maximizes performance
-6. The query schema for osquery seeks uniformity between operating systems
+1. osquery doesn’t change the state of the system
+2. osquery doesn’t create network traffic to third parties
+3. osquery’s endpoint binaries have a light memory footprint
+4. osquery minimizes system overhead & maximizes performance
+5. The query schema for osquery seeks uniformity between operating systems
 
 For new features that do not align with the mission principles of core, you may build outside of osquery core in separate integrated processes called extensions: https://osquery.readthedocs.io/en/stable/development/osquery-sdk/.
 
