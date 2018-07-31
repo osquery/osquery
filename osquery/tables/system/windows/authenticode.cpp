@@ -359,7 +359,7 @@ Status getSignatureInformation(SignatureInformation& signature_info,
   }
 
   std::vector<std::uint8_t> signer_information(
-      static_cast<size_t>(signer_info_size));
+      static_cast<std::size_t>(signer_info_size));
 
   PCMSG_SIGNER_INFO signer_information_ptr =
       reinterpret_cast<PCMSG_SIGNER_INFO>(signer_information.data());
