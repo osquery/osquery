@@ -101,6 +101,13 @@ Status AuditProcessEventSubscriber::ProcessEvents(
       continue;
     }
 
+    const AuditEventRecord* cwd_record =
+        GetEventRecord(event, AUDIT_CWD);
+    if (cwd_record == nullptr) {
+      VLOG(1) << "Malformed AUDIT_CWD event";
+      continue;
+    }
+
     Row row = {};
 
     CopyFieldFromMap(row, syscall_event_record->fields, "auid", "0");
@@ -110,6 +117,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     CopyFieldFromMap(row, syscall_event_record->fields, "euid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "gid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "egid", "0");
+    CopyFieldFromMap(row, cwd_record->fields, "cwd", "0");
 
     std::string field_value;
     GetStringFieldFromMap(field_value, syscall_event_record->fields, "exe", "");
@@ -158,7 +166,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
         row["owner_gid"], first_path_event_record->fields, "ogid", "0");
 
     // Parent is currently not supported on Linux.
-    row["parent"] = "-1";
+    row["parent"] = row["ppid"];
 
     emitted_row_list.push_back(row);
   }
