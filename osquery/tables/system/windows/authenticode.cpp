@@ -293,7 +293,7 @@ Status getCertificateInformation(SignatureInformation& signature_info,
       return false;
     }
 
-    std::string buffer(static_cast<size_t>(value_size));
+    std::string buffer(static_cast<size_t>(value_size), 0);
 
     if (!CertGetNameString(certificate_context,
                            CERT_NAME_SIMPLE_DISPLAY_TYPE,
