@@ -15,6 +15,8 @@
 #include <LM.h>
 // clang-format on
 
+#include <boost/core/ignore_unused.hpp>
+
 #include <osquery/core.h>
 #include <osquery/tables.h>
 #include <osquery/logger.h>
@@ -102,14 +104,18 @@ void processRoamingProfiles(const std::set<std::string>& processedSids,
     r["shell"] = "C:\\Windows\\system32\\cmd.exe";
     r["description"] = "";
 
-    wchar_t accntName[UNLEN] = {0};
-    wchar_t domName[DNLEN] = {0};
-    unsigned long accntNameLen = UNLEN;
-    unsigned long domNameLen = DNLEN;
+    LPSTR accntName[UNLEN] = {0};
+    DWORD accntNameLen = UNLEN;
+    LPSTR domName[DNLEN] = {0};
+    DWORD domNameLen = DNLEN;
     SID_NAME_USE eUse;
     ret = LookupAccountSidW(
         nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
-    r["username"] = ret != 0 ? wstringToString(accntName) : "";
+    r["username"] =
+        ret != 0 ? std::string(accntName, accntNameLen) : std::string{};
+    boost::ignore_unused(domNameLen);
+    boost::ignore_unused(domName);
+    boost::ignore_unused(eUse);
     results.push_back(r);
   }
 }
