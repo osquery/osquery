@@ -243,7 +243,7 @@ Status getOriginalProgramName(SignatureInformation& signature_info,
   }
 
   std::vector<std::uint8_t> publisher_info_blob_buffer(
-      static_cast<size_t>(publisher_info_size));
+      static_cast<std::size_t>(publisher_info_size));
 
   PSPC_SP_OPUS_INFO publisher_info_blob_ptr =
       reinterpret_cast<PSPC_SP_OPUS_INFO>(publisher_info_blob_buffer.data());
@@ -293,7 +293,7 @@ Status getCertificateInformation(SignatureInformation& signature_info,
       return false;
     }
 
-    std::string buffer(static_cast<size_t>(value_size), 0);
+    std::string buffer(static_cast<std::size_t>(value_size), 0);
 
     if (!CertGetNameString(certificate_context,
                            CERT_NAME_SIMPLE_DISPLAY_TYPE,
