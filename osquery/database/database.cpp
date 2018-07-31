@@ -522,14 +522,15 @@ static Status migrateV1V2(void) {
 
   Status s = scanDatabaseKeys(kEvents, keys);
   if (!s.ok()) {
-    return Status(1, "Failed to scan event keys from database: " + s.what());
+    return Status::failure(
+        1, "Failed to scan event keys from database: " + s.what());
   }
 
   for (const auto& key : keys) {
     std::smatch match;
     if (std::regex_match(key, match, re)) {
       std::string value;
-      std::string new_key =
+      const std::string new_key =
           match[1].str() + ".auditeventpublisher." + match[2].str();
 
       s = getDatabaseValue(kEvents, key, value);
@@ -556,7 +557,7 @@ static Status migrateV1V2(void) {
     }
   }
 
-  return Status();
+  return Status::success();
 }
 
 Status upgradeDatabase(int to_version) {
@@ -589,7 +590,7 @@ Status upgradeDatabase(int to_version) {
       break;
 
     case 1:
-      LOG(ERROR) << "Performing migration: 1 -> 2";
+      LOG(INFO) << "Performing migration: 1 -> 2";
       migrate_status = migrateV1V2();
       break;
 
