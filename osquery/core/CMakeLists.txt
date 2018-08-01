@@ -12,6 +12,8 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/conversions.h"
     "${CMAKE_CURRENT_LIST_DIR}/database/database.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/database/database.h"
+    "${CMAKE_CURRENT_LIST_DIR}/database/in_memory_database.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/database/in_memory_database.h"
     "${CMAKE_CURRENT_LIST_DIR}/flags.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.h"
@@ -61,6 +63,7 @@ if(WINDOWS)
 endif()
 
 ADD_OSQUERY_TEST_CORE(
+  "${CMAKE_CURRENT_LIST_DIR}/database/tests/in_memory_database_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/conversions_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/error_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/exptected_tests.cpp"
