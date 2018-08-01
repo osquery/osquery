@@ -34,87 +34,142 @@ const std::string kPCIKeyID = "PCI_ID";
 const std::string kPCIKeyDriver = "DRIVER";
 const std::string kPCISubsysID = "PCI_SUBSYS_ID";
 
-const std::string kPciIdsPath = "/usr/share/misc/pci.ids";
+const std::string kPciidsPath = "/usr/share/misc/pci.ids";
+const std::string kPciidsDeviceClassStartIndicator = "ffff";
+const std::string kPciidsValidHexChars = "0123456789abcdef";
+const char kPciidsCommentChar = '#';
+
+Status PciDB::parseVendor(std::string& line, PciVendor*& cur_vendor) {
+  auto vendor_id = line.substr(0, 4);
+  // Setup current vendor.
+  // Bump 2 chars to account for whitespace separation..
+  auto result =
+      db_.emplace(vendor_id,
+                  PciVendor{vendor_id,
+                            line.substr(6),
+                            std::unordered_map<std::string, PciModel>{}});
+  if (result.second != true) {
+    return Status::failure("failed to save to db for line: " + line);
+  }
+
+  cur_vendor = &result.first->second;
+
+  return Status::success();
+}
+
+Status PciDB::parseModel(std::string& line,
+                         PciVendor* cur_vendor,
+                         PciModel*& cur_model) {
+  if (line.size() < 8) {
+    return Status::failure("line is shorter than 8 characters");
+  }
+
+  if (cur_vendor == nullptr) {
+    return Status::failure("cur_vendor is null for line: " + line);
+  }
+
+  auto model_id = line.substr(1, 4);
+  // Set up current model under the current vendor.
+  // Bump 2 chars to account for whitespace separation.
+  auto result = cur_vendor->models.emplace(
+      model_id,
+      PciModel{model_id,
+               line.substr(7),
+               std::unordered_map<std::string, std::string>{}});
+  if (result.second != true) {
+    return Status::failure("failed to save to models db for line: " + line);
+  }
+
+  cur_model = &result.first->second;
+
+  return Status::success();
+}
+
+Status PciDB::parseSubsystem(std::string& line, PciModel* cur_model) {
+  if (line.size() < 12) {
+    return Status::failure("line is shorter than 12 characters");
+  }
+
+  if (cur_model == nullptr) {
+    return Status::failure("cur_model is null for line: " + line);
+  }
+
+  // Store current subsystem information under current vendor and model.
+  auto subsystemInfo = line.substr(11);
+  boost::trim(subsystemInfo);
+  auto result = cur_model->subsystemInfo.emplace(line.substr(2, 9),
+                                                 std::move(subsystemInfo));
+  if (result.second != true) {
+    return Status::failure("failed to save to subsystems db for line: " + line);
+  }
+
+  return Status::success();
+}
+
+bool PciDB::parseLine(std::string& line,
+                      PciVendor*& cur_vendor,
+                      PciModel*& cur_model) {
+  switch (line.find_first_of(kPciidsValidHexChars)) {
+  case 0: {
+    auto status = parseVendor(line, cur_vendor);
+    if (!status.ok()) {
+      VLOG(1) << "Unexpected error while parsing pci.ids vendor line: "
+              << status.getMessage();
+      return true;
+    }
+
+    // We don't currently handle device class device so remove from DB if we get
+    // the indicator.
+    if (cur_vendor->id == kPciidsDeviceClassStartIndicator) {
+      db_.erase(kPciidsDeviceClassStartIndicator);
+      return false;
+    }
+
+    return true;
+  }
+
+  case 1: {
+    auto status = parseModel(line, cur_vendor, cur_model);
+    if (!status.ok()) {
+      VLOG(1) << "Unexpected error while parsing pci.ids model line: "
+              << status.getMessage();
+    }
+
+    return true;
+  }
+
+  case 2: {
+    auto status = parseSubsystem(line, cur_model);
+    if (!status.ok()) {
+      VLOG(1) << "Unexpected error while parsing pci.ids subsystem line: "
+              << status.getMessage();
+    }
+
+    return true;
+  }
+
+  default:
+    VLOG(1) << "Unexpected pci.ids line format";
+    return true;
+  }
+}
 
 PciDB::PciDB(std::istream& db_filestream) {
   // pci.ids keep track of subsystem information of vendor and models
   // sequentially so we keep track of what the current vendor and models are.
-  std::string cur_vendor, cur_model, line;
+  PciVendor* cur_vendor = nullptr;
+  PciModel* cur_model = nullptr;
+
+  std::string line;
   while (std::getline(db_filestream, line)) {
-    line = line.substr(0, line.find_first_of('#'));
+    line = line.substr(0, line.find_first_of(kPciidsCommentChar));
     boost::trim_right(line);
     if (line.size() < 7) {
       continue;
     }
 
-    switch (line.find_first_of("0123456789abcdef")) {
-    case 0: {
-      // Vendor info.
-      cur_vendor = line.substr(0, 4);
-
-      // Once we get to illege vendor section we can stop since we're not
-      // currently parsing device classes.
-      if (cur_vendor == "ffff") {
-        return;
-      }
-
-      // Setup current vendor.
-      auto& vendor = db_[cur_vendor];
-      vendor.id = cur_vendor;
-      // Bump 2 chars to account for whitespace separation..
-      vendor.name = line.substr(6);
-
-      break;
-    }
-
-    case 1: {
-      // Model info.
-      auto vendor = db_.find(cur_vendor);
-      if (vendor != db_.end() && line.size() > 7) {
-        cur_model = line.substr(1, 4);
-
-        // Set up current model under the current vendor.
-        auto& model = vendor->second.models[cur_model];
-        model.id = cur_model;
-        // Bump 2 chars to account for whitespace separation.
-        model.desc = line.substr(7);
-
-      } else {
-        VLOG(1) << "Unexpected error while parsing pci.ids: current vendor ID "
-                << cur_vendor << " does not exist in DB yet";
-      }
-
-      break;
-    }
-
-    case 2: {
-      // Subsystem info;
-      auto vendor = db_.find(cur_vendor);
-      if (vendor == db_.end()) {
-        VLOG(1) << "Unexpected error while parsing pci.ids: current vendor ID "
-                << cur_vendor << "does not exist in DB yet";
-        continue;
-      }
-
-      auto model = vendor->second.models.find(cur_model);
-      if (model == vendor->second.models.end()) {
-        VLOG(1) << "Unexpected error while parsing pci.ids: current model ID "
-                << cur_model << "does not exist in DB yet";
-        continue;
-      }
-
-      if (line.size() > 11) {
-        // Store current subsystem information under current vendor and model.
-        auto subsystemInfo = line.substr(11);
-        boost::trim(subsystemInfo);
-        model->second.subsystemInfo[line.substr(2, 9)] = subsystemInfo;
-      }
-
-      break;
-    }
-
-    default:
-      VLOG(1) << "Unexpected pci.ids line format";
+    if (parseLine(line, cur_vendor, cur_model) == false) {
+      return;
     }
   }
 }
@@ -126,6 +181,7 @@ Status PciDB::getVendorName(const std::string& vendor_id, std::string& name) {
   }
 
   name = vendor_it->second.name;
+
   return Status::success();
 }
 
@@ -194,10 +250,10 @@ QueryData genPCIDevices(QueryContext& context) {
     return results;
   }
 
-  std::ifstream raw(kPciIdsPath);
+  std::ifstream raw(kPciidsPath);
   if (raw.fail()) {
     LOG(ERROR) << "Unexpected error attempting to read pci.ids at path: "
-               << kPciIdsPath;
+               << kPciidsPath;
     return results;
   }
 
@@ -240,8 +296,8 @@ QueryData genPCIDevices(QueryContext& context) {
       r["vendor_id"] = ids[0];
       r["model_id"] = ids[1];
 
-      // Now that we know we have VENDOR and MODEL ID's, let's actually check on
-      // the system PCI DB for descriptive information.
+      // Now that we know we have VENDOR and MODEL ID's, let's actually check
+      // on the system PCI DB for descriptive information.
       std::string content;
       if (pcidb.getVendorName(ids[0], content).ok()) {
         r["vendor"] = content;
