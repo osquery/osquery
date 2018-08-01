@@ -73,7 +73,12 @@ TLSKillswitchPlugin::refresh() {
 
   // Extract config map from json
   auto it = tree.doc().FindMember("config");
-  content = (it != tree.doc().MemberEnd() && it->value.IsString()) ? it->value.GetString() : "");
+  if (it == tree.doc().MemberEnd()) {
+    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
+                       "killswitch member config is not string");
+  }
+
+  content = it->value.GetString();
 
   auto result = KillswitchPlugin::parseMapJSON(content);
   if (result) {
