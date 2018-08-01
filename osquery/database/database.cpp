@@ -583,14 +583,15 @@ Status upgradeDatabase(int to_version) {
   while (db_version != to_version) {
     Status migrate_status;
 
+    LOG(INFO) << "Performing migration: " << db_version << " -> "
+              << (db_version + 1);
+
     switch (db_version) {
     case 0:
-      LOG(INFO) << "Performing migration: 0 -> 1";
       migrate_status = migrateV0V1();
       break;
 
     case 1:
-      LOG(INFO) << "Performing migration: 1 -> 2";
       migrate_status = migrateV1V2();
       break;
 
@@ -613,6 +614,9 @@ Status upgradeDatabase(int to_version) {
                  << " but persisting the new version failed.";
       return Status(1, "Database migration failed.");
     }
+
+    LOG(INFO) << "Migration " << db_version << " -> " << (db_version + 1)
+              << " successfully completed!";
 
     db_version++;
   }
