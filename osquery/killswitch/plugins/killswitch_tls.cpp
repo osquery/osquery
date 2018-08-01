@@ -46,7 +46,10 @@ Status TLSKillswitchPlugin::setUp() {
   }
 
   uri_ = TLSRequestHelper::makeURI(FLAGS_killswitch_tls_endpoint);
-  return Status(0, "OK");
+  uri_ += ((uri_.find('?') != std::string::npos) ? "&" : "?");
+  uri_ += "request=killswitch";
+
+  return KillswitchRefreshablePlugin::setUp();
 }
 
 ExpectedSuccess<KillswitchRefreshablePlugin::RefreshError>
@@ -63,6 +66,22 @@ TLSKillswitchPlugin::refresh() {
         KillswitchRefreshablePlugin::RefreshError::NoContentReached,
         "Could not retreive config file from network");
   }
+
+  JSON tree;
+  Status parse_status = tree.fromString(content);
+  if (!parse_status.ok()) {
+    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
+                       "Could not parse JSON from TLS killswitch node API");
+  }
+
+  // Extract config map from json
+  auto it = tree.doc().FindMember("config");
+  if (it == tree.doc().MemberEnd()) {
+    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
+                       "killswitch member config is not string");
+  }
+
+  content = it->value.GetString();
 
   auto result = KillswitchPlugin::parseMapJSON(content);
   if (result) {
