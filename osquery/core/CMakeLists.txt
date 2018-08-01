@@ -10,6 +10,8 @@ target_sources(libosquery
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/conversions.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/conversions.h"
+    "${CMAKE_CURRENT_LIST_DIR}/database/database.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/database/database.h"
     "${CMAKE_CURRENT_LIST_DIR}/flags.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.h"
@@ -17,8 +19,8 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/json.h"
     "${CMAKE_CURRENT_LIST_DIR}/process.h"
     "${CMAKE_CURRENT_LIST_DIR}/query.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/system.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/status.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/system.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/tables.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/utils.h"
     "${CMAKE_CURRENT_LIST_DIR}/watcher.cpp"
