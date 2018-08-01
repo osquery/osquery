@@ -70,7 +70,7 @@ public:
   
   void panic(const Error<DatabaseError>& error) {
     LOG(ERROR) << "Database did panic: " << error.getFullMessageRecursive();
-    assert(false && error.getFullMessageRecursive().c_str());
+    assert(false);
   }
 private:
   std::string name_;
