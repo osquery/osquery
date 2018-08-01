@@ -374,29 +374,6 @@ std::vector<std::string> split(const std::string& s, const std::string& delim) {
   return elems;
 }
 
-std::vector<std::string> split(const std::string& s,
-                               char delim,
-                               size_t occurences) {
-  auto delims = std::string(1, delim);
-  // Split the string normally with the required delimiter.
-  auto content = split(s, delims);
-  // While the result split exceeds the number of requested occurrences, join.
-  std::vector<std::string> accumulator;
-  std::vector<std::string> elems;
-  for (size_t i = 0; i < content.size(); i++) {
-    if (i < occurences) {
-      elems.push_back(content.at(i));
-    } else {
-      accumulator.push_back(content.at(i));
-    }
-  }
-  // Join the optional accumulator.
-  if (accumulator.size() > 0) {
-    elems.push_back(boost::algorithm::join(accumulator, delims));
-  }
-  return elems;
-}
-
 std::string getBufferSHA1(const char* buffer, size_t size) {
   // SHA1 produces 160-bit digests, so allocate (5 * 32) bits.
   uint32_t digest[5] = {0};
