@@ -561,6 +561,8 @@ static Status migrateV1V2(void) {
 }
 
 Status upgradeDatabase(int to_version) {
+  LOG(INFO) << "Checking database version for migration";
+
   std::string value;
   Status st = getDatabaseValue(kPersistentSettings, kDbVersionKey, value);
 
