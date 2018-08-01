@@ -46,7 +46,10 @@ Status TLSKillswitchPlugin::setUp() {
   }
 
   uri_ = TLSRequestHelper::makeURI(FLAGS_killswitch_tls_endpoint);
-  return Status(0, "OK");
+  uri_ += ((uri_.find('?') != std::string::npos) ? "&" : "?");
+  uri_ += "request=killswitch";
+
+  return KillswitchRefreshablePlugin::setUp();
 }
 
 ExpectedSuccess<KillswitchRefreshablePlugin::RefreshError>
