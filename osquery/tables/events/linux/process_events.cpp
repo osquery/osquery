@@ -101,12 +101,6 @@ Status AuditProcessEventSubscriber::ProcessEvents(
       continue;
     }
 
-    const AuditEventRecord* cwd_record = GetEventRecord(event, AUDIT_CWD);
-    if (cwd_record == nullptr) {
-      VLOG(1) << "Malformed AUDIT_CWD event";
-      continue;
-    }
-
     const AuditEventRecord* cwd_event_record = GetEventRecord(event, AUDIT_CWD);
     if (cwd_event_record == nullptr) {
       VLOG(1) << "Malformed AUDIT_CWD event";
