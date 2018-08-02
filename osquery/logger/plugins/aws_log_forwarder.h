@@ -200,7 +200,7 @@ class AwsLogForwarder : public BufferedLogForwarder {
       size_t retry_delay =
           (retry == 0 ? 0 : base_retry_delay) + (retry * 1000U);
       if (retry_delay != 0) {
-        pauseMilli(retry_delay);
+        pause(std::chrono::milliseconds(retry_delay));
       }
 
       // Attempt to send the batch

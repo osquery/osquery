@@ -37,7 +37,7 @@ bool InterruptableRunnable::interrupted() {
   return interrupted_;
 }
 
-void InterruptableRunnable::pauseMilli(std::chrono::milliseconds milli) {
+void InterruptableRunnable::pause(std::chrono::milliseconds milli) {
   std::unique_lock<std::mutex> lock(condition_lock);
   if (!interrupted_) {
     condition_.wait_for(lock, milli);

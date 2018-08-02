@@ -511,7 +511,7 @@ TEST_F(ConfigTests, test_config_refresh) {
   // Set a config_refresh value to convince the Config to start the thread.
   FLAGS_config_refresh = 2;
   FLAGS_config_accelerated_refresh = 1;
-  get().setRefresh(FLAGS_config_refresh, 10);
+  get().setRefresh(FLAGS_config_refresh);
 
   // Fail the first config load.
   plugin->fail_ = true;

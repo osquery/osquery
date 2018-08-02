@@ -243,7 +243,7 @@ class Config : private boost::noncopyable {
   Status refresh();
 
   /// Update the refresh rate.
-  void setRefresh(size_t refresh, size_t mod = 0);
+  void setRefresh(size_t refresh_sec);
 
   /// Inspect the refresh rate.
   size_t getRefresh() const;

@@ -9,6 +9,7 @@
  */
 
 #include <algorithm>
+#include <chrono>
 #include <functional>
 #include <map>
 #include <string>
@@ -249,8 +250,7 @@ class ConfigRefreshRunner : public InternalRunnable {
 
  private:
   /// The current refresh rate in seconds.
-  std::atomic<size_t> refresh_{0};
-  std::atomic<size_t> mod_{1000};
+  std::atomic<size_t> refresh_sec_{0};
 
  private:
   friend class Config;
@@ -482,15 +482,12 @@ Status Config::refresh() {
   return status;
 }
 
-void Config::setRefresh(size_t refresh, size_t mod) {
-  refresh_runner_->refresh_ = refresh;
-  if (mod > 0) {
-    refresh_runner_->mod_ = mod;
-  }
+void Config::setRefresh(size_t refresh_sec) {
+  refresh_runner_->refresh_sec_ = refresh_sec;
 }
 
 size_t Config::getRefresh() const {
-  return refresh_runner_->refresh_;
+  return refresh_runner_->refresh_sec_;
 }
 
 Status Config::load() {
@@ -1026,7 +1023,7 @@ void ConfigRefreshRunner::start() {
   while (!interrupted()) {
     // Cool off and time wait the configured period.
     // Apply this interruption initially as at t=0 the config was read.
-    pauseMilli(refresh_ * mod_);
+    pause(std::chrono::seconds(refresh_sec_));
     // Since the pause occurs before the logic, we need to check for an
     // interruption request.
     if (interrupted()) {

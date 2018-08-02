@@ -217,7 +217,8 @@ void SchedulerRunner::start() {
         std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start_time_point);
     if (loop_step_duration + time_drift_ < interval_) {
-      pauseMilli(interval_ - loop_step_duration - time_drift_);
+      pause(std::chrono::milliseconds(interval_ - loop_step_duration -
+                                      time_drift_));
       time_drift_ = std::chrono::milliseconds::zero();
     } else {
       time_drift_ += loop_step_duration - interval_;
