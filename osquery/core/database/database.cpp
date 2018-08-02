@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/core/database/database.h>
 #include <osquery/core/conversions.h>
+#include <osquery/core/database/database.h>
 
 namespace osquery {
 
@@ -22,7 +22,8 @@ Expected<int32_t, DatabaseError> Database::getInt32(const std::string& domain,
       return *value;
     } else {
       return createError(DatabaseError::FailToReadData,
-                         "Failed to convert string to int", value.takeError());
+                         "Failed to convert string to int",
+                         value.takeError());
     }
   } else {
     return string_value.takeError();

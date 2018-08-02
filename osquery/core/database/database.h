@@ -12,10 +12,10 @@
 
 #include <cstdint>
 
+#include <osquery/debug/debug_only.h>
 #include <osquery/error.h>
 #include <osquery/expected.h>
 #include <osquery/logger.h>
-#include <osquery/debug/debug_only.h>
 
 namespace osquery {
 
