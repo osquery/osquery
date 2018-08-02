@@ -48,8 +48,13 @@ class Database {
   }
 
   virtual ExpectedSuccess<DatabaseError> open() = 0;
-  virtual ExpectedSuccess<DatabaseError> destroyDB() = 0;
   virtual void close() = 0;
+
+  // This funcion should completely destroy db, so after next open
+  // db should be fresh new
+  // Implementaion can expect that db is closed before
+  // calling destroyDB and should crash/fail in case when db is still open
+  virtual ExpectedSuccess<DatabaseError> destroyDB() = 0;
 
   // Return default value in case of NotFound error
   Expected<int32_t, DatabaseError> getInt32Or(const std::string& domain,
