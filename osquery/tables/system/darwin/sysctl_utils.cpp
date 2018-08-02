@@ -9,9 +9,15 @@
  */
 
 #include <sys/sysctl.h>
+#include <sys/time.h>
 
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
+
+// ifdef __APPLE__
+#include <mach/machine/vm_param.h>
+#include <mach/machine/vm_types.h>
+#include <mach/mach_types.h>
 
 #include "osquery/tables/system/posix/sysctl_utils.h"
 
@@ -40,6 +46,78 @@ const std::vector<std::string> kControlNames{
 
 const std::vector<std::string> kControlTypes{
     "", "node", "int", "string", "quad", "opaque", "struct"};
+const std::vector<std::string> kOpaqueTypes{
+  "S_clockinfo", "S_loadavg", "S_timeval", "S_xswusage", "T_dev_t", "S_quads"};
+
+void opaquePushback(QueryData& results,
+                    Row& r,
+                    std::string& opaque_name,
+                    std::string opaque_cv,
+                    const std::string& var){
+    r["name"] = opaque_name + "." + var;
+    r["current_value"] = opaque_cv;
+    results.push_back(r);
+  };
+
+void opaqueControlInfo(QueryData& results, Row& r, std::string& opaque_name, char* response, std::string& value){
+  std::string opaque_cv;
+  if (value.compare("S,clockinfo") == 0) {
+      struct clockinfo *ci = (struct clockinfo*) response;
+      opaque_cv = std::to_string(ci->hz);
+      opaquePushback(results, r, opaque_name, opaque_cv, "hz");
+      opaque_cv = std::to_string(ci->tick);
+      opaquePushback(results, r, opaque_name, opaque_cv, "tick");
+      opaque_cv = std::to_string(ci->tickadj);
+      opaquePushback(results, r, opaque_name, opaque_cv, "tickadj");
+      opaque_cv = std::to_string(ci->profhz);
+      opaquePushback(results, r, opaque_name, opaque_cv, "profhz");
+      opaque_cv = std::to_string(ci->stathz);
+      opaquePushback(results, r, opaque_name, opaque_cv, "stathz");
+    }
+  else if (value.compare("S,timeval") == 0) {
+      struct timeval *tv = (struct timeval*) response;
+      opaque_cv = INTEGER((long)tv->tv_sec);
+      opaquePushback(results, r, opaque_name, opaque_cv, "sec");
+      opaque_cv = INTEGER((long)tv->tv_usec);
+      opaquePushback(results, r, opaque_name, opaque_cv, "usec");
+    }
+  else if (value.compare("S,loadavg") == 0) {
+      struct loadavg *tv = (struct loadavg*) response;
+      opaque_cv = INTEGER((double)tv->ldavg[0]/(double)tv->fscale);
+      opaquePushback(results, r, opaque_name, opaque_cv, "ldavg0");
+      opaque_cv = INTEGER((double)tv->ldavg[1]/(double)tv->fscale);
+      opaquePushback(results, r, opaque_name, opaque_cv, "ldavg1");
+      opaque_cv = INTEGER((double)tv->ldavg[2]/(double)tv->fscale);
+      opaquePushback(results, r, opaque_name, opaque_cv, "ldavg2");
+    }
+  else if (value.compare("S,xsw_usage") == 0) {
+      struct xsw_usage *xsu = (struct xsw_usage*) response;
+      opaque_cv = INTEGER((double)xsu->xsu_total/(1024.0 * 1024.0));
+      opaquePushback(results, r, opaque_name, opaque_cv, "xsu_total");
+      opaque_cv = INTEGER((double)xsu->xsu_used/(1024.0 * 1024.0));
+      opaquePushback(results, r, opaque_name, opaque_cv, "xsu_used");
+      opaque_cv = INTEGER((double)xsu->xsu_avail/(1024.0 * 1024.0));
+      opaquePushback(results, r, opaque_name, opaque_cv, "xsu_avail");
+      opaque_cv = xsu->xsu_encrypted ? "(encrypted)" : "";
+      opaquePushback(results, r, opaque_name, opaque_cv, "xsu_encrypted");
+    }
+  else if (value.compare("T,dev_t") == 0) {
+      dev_t *d = (dev_t*) response;
+      opaque_cv = INTEGER(major(*d));
+      opaquePushback(results, r, opaque_name, opaque_cv, "major");
+      opaque_cv = INTEGER(minor(*d));
+      opaquePushback(results, r, opaque_name, opaque_cv, "minor");
+    }
+  else if (value.compare("Q") == 0) {
+      int64_t i = *(int64_t *) response;
+      opaque_cv = INTEGER(i);
+      opaquePushback(results, r, opaque_name, opaque_cv, "i");
+  }
+  else{
+      results.push_back(r);
+  }
+
+}
 
 void genControlInfo(int* oid,
                     size_t oid_size,
@@ -139,7 +217,26 @@ void genControlInfo(int* oid,
     r["config_value"] = config.at(r["name"]);
   }
 
-  results.push_back(r);
+
+  // Logic for OPAQUE expansion
+  if (oid_type == CTLTYPE_STRUCT) {
+    auto value = std::string(response+4);
+    size_t value_size = 0;
+    sysctl(oid, oid_size, 0, &value_size, 0, 0);
+
+    if (value_size > CTL_MAX_VALUE) {
+      // If the value size is larger than the max value, limit.
+      value_size = CTL_MAX_VALUE;
+    }
+
+    sysctl(oid, oid_size, response, &value_size, 0, 0);
+    std::string opaque_name = r["name"];
+    opaqueControlInfo(results, r, opaque_name, response, value);
+  }
+  else {
+    results.push_back(r);
+  }
+
 }
 
 void genControlInfoFromName(const std::string& name, QueryData& results,
