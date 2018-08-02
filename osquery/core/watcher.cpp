@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <cstring>
 #include <chrono>
+#include <cstring>
 
 #include <math.h>
 #include <signal.h>
@@ -288,7 +288,8 @@ void WatcherRunner::watchExtensions() {
         systemLog(error.str());
         LOG(WARNING) << error.str();
         stopChild(*extension.second);
-        pause(std::chrono::seconds(getWorkerLimit(WatchdogLimitType::INTERVAL)));
+        pause(
+            std::chrono::seconds(getWorkerLimit(WatchdogLimitType::INTERVAL)));
       }
 
       // The extension manager also watches for extension-related failures.
