@@ -57,7 +57,6 @@ class InMemoryDatabase final : public Database {
 
   void close() override;
 
-  // Low level access
   Expected<int32_t, DatabaseError> getInt32(const std::string& domain,
                                             const std::string& key) override;
   Expected<std::string, DatabaseError> getString(
