@@ -24,15 +24,6 @@ DECLARE_bool(utc);
 
 class ConversionsTests : public testing::Test {};
 
-TEST_F(ConversionsTests, test_base64) {
-  std::string unencoded = "HELLO";
-  auto encoded = base64Encode(unencoded);
-  EXPECT_NE(encoded.size(), 0U);
-
-  auto unencoded2 = base64Decode(encoded);
-  EXPECT_EQ(unencoded, unencoded2);
-}
-
 TEST_F(ConversionsTests, test_ascii_true) {
   std::string unencoded = "HELLO";
   auto result = isPrintable(unencoded);

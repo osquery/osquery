@@ -8,6 +8,8 @@
 
 target_sources(libosquery
   PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/base64.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/base64.h"
     "${CMAKE_CURRENT_LIST_DIR}/conversions.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/conversions.h"
     "${CMAKE_CURRENT_LIST_DIR}/flags.cpp"
@@ -59,6 +61,7 @@ if(WINDOWS)
 endif()
 
 ADD_OSQUERY_TEST_CORE(
+  "${CMAKE_CURRENT_LIST_DIR}/tests/base64_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/conversions_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/error_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/exptected_tests.cpp"

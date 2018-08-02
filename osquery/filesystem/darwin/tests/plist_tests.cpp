@@ -15,6 +15,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/base64.h"
 #include "osquery/core/conversions.h"
 #include "osquery/tests/test_util.h"
 
@@ -97,7 +98,7 @@ TEST_F(PlistTests, test_parse_plist_content_with_blobs) {
   auto first_element =
       tree.get_child("SessionItems.CustomListItems").begin()->second;
   EXPECT_EQ(first_element.get<std::string>("Name"), "Flux");
-  std::string alias = base64Decode(first_element.get<std::string>("Alias"));
+  std::string alias = base64::decode(first_element.get<std::string>("Alias"));
 
   // Verify we parsed the binary blob correctly
   EXPECT_NE(alias.find("Applications/Flux.app"), std::string::npos);
