@@ -557,6 +557,27 @@ void genSMBIOSMemoryDeviceMappedAddresses(size_t index,
   results.push_back(std::move(r));
 }
 
+void genSMBIOSOEMStrings(const SMBStructHeader* hdr,
+                         uint8_t* address,
+                         uint8_t* textAddrs,
+                         size_t size,
+                         QueryData& results) {
+  const size_t maxOffset = 0x04 + 1;
+  if (hdr->type != kSMBIOSTypeOEMStrings || size < maxOffset) {
+    return;
+  }
+
+  auto handle = dmiWordToHexStr(address, 0x02);
+  const auto maxlen = size - hdr->length;
+
+  auto numStrings = address[0x04];
+  for (auto i = 1; i <= numStrings; i++) {
+    results.emplace_back(Row{{"handle", handle},
+                             {"number", INTEGER(static_cast<int>(i))},
+                             {"value", dmiString(textAddrs, i, maxlen)}});
+  }
+}
+
 std::string dmiString(uint8_t* data, uint8_t index, size_t maxlen) {
   // Guard against faulty SMBIOS data.
   if (index == 0 || maxlen == 0 || data[maxlen - 1] != '\0') {

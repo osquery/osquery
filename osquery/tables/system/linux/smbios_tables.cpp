@@ -223,6 +223,25 @@ QueryData genMemoryDeviceMappedAddresses(QueryContext& context) {
   return results;
 }
 
+QueryData genOEMStrings(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSOEMStrings(hdr, address, textAddrs, size, results);
+  });
+
+  return results;
+}
+
 QueryData genPlatformInfo(QueryContext& context) {
   LinuxSMBIOSParser parser;
   if (!parser.discover()) {
