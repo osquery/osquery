@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <unordered_map>
 #include <boost/variant.hpp>
+#include <unordered_map>
 
 #include <osquery/core/database/database.h>
 
@@ -19,16 +19,17 @@ namespace osquery {
 
 template <typename StorageType>
 class InMemoryStorage final {
-public:
-  void put(const std::string &key, const StorageType value) {
+ public:
+  void put(const std::string& key, const StorageType value) {
     storage_[key] = value;
   }
-  Expected<StorageType, DatabaseError> get(const std::string &key) const {
+  Expected<StorageType, DatabaseError> get(const std::string& key) const {
     auto iter = storage_.find(key);
     if (iter != storage_.end()) {
       return iter->second;
     }
-    return createError(DatabaseError::KeyNotFound, "Can't find value for key ") << key;
+    return createError(DatabaseError::KeyNotFound, "Can't find value for key ")
+           << key;
   }
   std::vector<std::string> getKeys(const std::string& prefix = "") {
     std::vector<std::string> result;
@@ -40,14 +41,15 @@ public:
   std::mutex& getMutex() {
     return mutex_;
   }
-private:
+
+ private:
   std::unordered_map<std::string, StorageType> storage_;
   std::mutex mutex_;
 };
 
 class InMemoryDatabase final : public Database {
-public:
-  explicit InMemoryDatabase(std::string name) : Database(std::move(name)) {};
+ public:
+  explicit InMemoryDatabase(std::string name) : Database(std::move(name)){};
   ~InMemoryDatabase() override {}
 
   ExpectedSuccess<DatabaseError> destroyDB() override;
@@ -55,26 +57,40 @@ public:
 
   void close() override;
 
-  //Low level access
-  Expected<int32_t, DatabaseError> getInt32(const std::string& domain, const std::string& key) override;
-  Expected<std::string, DatabaseError> getString(const std::string& domain, const std::string& key) override;
+  // Low level access
+  Expected<int32_t, DatabaseError> getInt32(const std::string& domain,
+                                            const std::string& key) override;
+  Expected<std::string, DatabaseError> getString(
+      const std::string& domain, const std::string& key) override;
 
-  ExpectedSuccess<DatabaseError> putInt32(const std::string& domain, const std::string& key, const int32_t value) override;
-  ExpectedSuccess<DatabaseError> putString(const std::string& domain, const std::string& key, const std::string& value) override;
+  ExpectedSuccess<DatabaseError> putInt32(const std::string& domain,
+                                          const std::string& key,
+                                          const int32_t value) override;
+  ExpectedSuccess<DatabaseError> putString(const std::string& domain,
+                                           const std::string& key,
+                                           const std::string& value) override;
 
-  Expected<std::vector<std::string>, DatabaseError> getKeys(const std::string& domain, const std::string& prefix = "") override;
+  Expected<std::vector<std::string>, DatabaseError> getKeys(
+      const std::string& domain, const std::string& prefix = "") override;
 
   // This method bypass type validation and will silently update value
   // even if type was changed (e.g int->string)
-  ExpectedSuccess<DatabaseError> putStringsUnsafe(const std::string& domain, std::vector<std::pair<std::string, std::string>>& data) override;
-private:
-  template<typename T>
-  Expected<T, DatabaseError> getValue(const std::string& domain, const std::string& key);
-  template<typename T>
-  ExpectedSuccess<DatabaseError> putValue(const std::string& domain, const std::string& key, const T& value);
+  ExpectedSuccess<DatabaseError> putStringsUnsafe(
+      const std::string& domain,
+      std::vector<std::pair<std::string, std::string>>& data) override;
+
+ private:
+  template <typename T>
+  Expected<T, DatabaseError> getValue(const std::string& domain,
+                                      const std::string& key);
+  template <typename T>
+  ExpectedSuccess<DatabaseError> putValue(const std::string& domain,
+                                          const std::string& key,
+                                          const T& value);
 
   Error<DatabaseError> domainNotFoundError(const std::string& domain);
-private:
+
+ private:
   bool is_open_ = false;
 
   using DataType = boost::variant<std::string, int32_t>;
@@ -84,4 +100,4 @@ private:
   std::unordered_map<std::string, InMemoryStorageRef> storage_;
 };
 
-}
+} // namespace osquery

@@ -63,5 +63,4 @@ GTEST_TEST(InMemoryDatabaseTest, test_unknown_key) {
   EXPECT_EQ(result.takeError(), DatabaseError::KeyNotFound);
 }
 
-
 } // namespace osquery
