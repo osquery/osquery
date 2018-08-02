@@ -69,22 +69,6 @@ inline std::string join(const SequenceType& s, const std::string& tok) {
 }
 
 /**
- * @brief Decode a base64 encoded string.
- *
- * @param encoded The encode base64 string.
- * @return Decoded string.
- */
-std::string base64Decode(std::string encoded);
-
-/**
- * @brief Encode a  string.
- *
- * @param A string to encode.
- * @return Encoded string.
- */
-std::string base64Encode(const std::string& unencoded);
-
-/**
  * @brief Check if a string is ASCII printable
  *
  * @param A string to check.

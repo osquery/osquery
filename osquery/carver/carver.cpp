@@ -23,6 +23,7 @@
 #include <osquery/system.h>
 
 #include "osquery/carver/carver.h"
+#include "osquery/core/base64.h"
 #include "osquery/core/conversions.h"
 #include "osquery/core/hashing.h"
 #include "osquery/core/json.h"
@@ -294,7 +295,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
     params.add("block_id", i);
     params.add("session_id", session_id);
     params.add("request_id", requestId_);
-    params.add("data", base64Encode(std::string(block.begin(), block.end())));
+    params.add("data", base64::encode(std::string(block.begin(), block.end())));
 
     // TODO: Error sending files.
     status = contRequest.call(params);

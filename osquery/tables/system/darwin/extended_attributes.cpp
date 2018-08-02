@@ -19,6 +19,7 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/base64.h"
 #include "osquery/core/conversions.h"
 
 namespace fs = boost::filesystem;
@@ -102,7 +103,7 @@ void setRow(QueryData& results,
   r["directory"] = boost::filesystem::path(path).parent_path().string();
   r["key"] = key;
   auto value_printable = isPrintable(value);
-  r["value"] = (value_printable) ? value : base64Encode(value);
+  r["value"] = (value_printable) ? value : base64::encode(value);
   r["base64"] = (value_printable) ? INTEGER(0) : INTEGER(1);
   results.push_back(r);
 }
