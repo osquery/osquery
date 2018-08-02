@@ -40,6 +40,10 @@ const std::string kPciidsValidHexChars = "0123456789abcdef";
 const char kPciidsCommentChar = '#';
 
 Status PciDB::parseVendor(std::string& line, PciVendor*& cur_vendor) {
+  if (line.size() < 7) {
+    return Status::failure("line is shorter than 7 characters");
+  }
+
   auto vendor_id = line.substr(0, 4);
   // Setup current vendor.
   // Bump 2 chars to account for whitespace separation..
@@ -49,7 +53,8 @@ Status PciDB::parseVendor(std::string& line, PciVendor*& cur_vendor) {
                             line.substr(6),
                             std::unordered_map<std::string, PciModel>{}});
   if (result.second != true) {
-    return Status::failure("failed to save to db for line: " + line);
+    return Status::failure(
+        "failed to save to db for line because key already exists:: " + line);
   }
 
   cur_vendor = &result.first->second;
@@ -77,7 +82,9 @@ Status PciDB::parseModel(std::string& line,
                line.substr(7),
                std::unordered_map<std::string, std::string>{}});
   if (result.second != true) {
-    return Status::failure("failed to save to models db for line: " + line);
+    return Status::failure(
+        "failed to save to models db for line because key already exists:: " +
+        line);
   }
 
   cur_model = &result.first->second;
@@ -100,7 +107,10 @@ Status PciDB::parseSubsystem(std::string& line, PciModel* cur_model) {
   auto result = cur_model->subsystemInfo.emplace(line.substr(2, 9),
                                                  std::move(subsystemInfo));
   if (result.second != true) {
-    return Status::failure("failed to save to subsystems db for line: " + line);
+    return Status::failure(
+        "failed to save to subsystems db for line because key already "
+        "exists: " +
+        line);
   }
 
   return Status::success();
@@ -164,9 +174,6 @@ PciDB::PciDB(std::istream& db_filestream) {
   while (std::getline(db_filestream, line)) {
     line = line.substr(0, line.find_first_of(kPciidsCommentChar));
     boost::trim_right(line);
-    if (line.size() < 7) {
-      continue;
-    }
 
     if (parseLine(line, cur_vendor, cur_model) == false) {
       return;
