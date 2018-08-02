@@ -15,6 +15,7 @@
 #include <osquery/error.h>
 #include <osquery/expected.h>
 #include <osquery/logger.h>
+#include <osquery/debug/debug_only.h>
 
 namespace osquery {
 
@@ -38,9 +39,9 @@ enum class DatabaseError {
 };
 
 class Database {
-public:
-  explicit Database(std::string name): name_(std::move(name)) {};
-  virtual ~Database() {};
+ public:
+  explicit Database(std::string name) : name_(std::move(name)){};
+  virtual ~Database() = default;
 
   const std::string& getName() const {
     return name_;
@@ -51,29 +52,45 @@ public:
   virtual void close() = 0;
 
   // Return default value in case of NotFound error
-  Expected<int32_t, DatabaseError> getInt32Or(const std::string& domain, const std::string& key, const int32_t default_value = 0);
-  Expected<std::string, DatabaseError> getStringOr(const std::string& domain, const std::string& key, const std::string default_value = "");
+  Expected<int32_t, DatabaseError> getInt32Or(const std::string& domain,
+                                              const std::string& key,
+                                              const int32_t default_value = 0);
+  Expected<std::string, DatabaseError> getStringOr(
+      const std::string& domain,
+      const std::string& key,
+      const std::string& default_value = "");
 
-  virtual Expected<int32_t, DatabaseError> getInt32(const std::string& domain, const std::string& key);
-  virtual Expected<std::string, DatabaseError> getString(const std::string& domain, const std::string& key) = 0;
+  virtual Expected<int32_t, DatabaseError> getInt32(const std::string& domain,
+                                                    const std::string& key);
+  virtual Expected<std::string, DatabaseError> getString(
+      const std::string& domain, const std::string& key) = 0;
 
-  virtual ExpectedSuccess<DatabaseError> putInt32(const std::string& domain, const std::string& key, const int32_t value);
-  virtual ExpectedSuccess<DatabaseError> putString(const std::string& domain, const std::string& key, const std::string& value) = 0;
+  virtual ExpectedSuccess<DatabaseError> putInt32(const std::string& domain,
+                                                  const std::string& key,
+                                                  const int32_t value);
+  virtual ExpectedSuccess<DatabaseError> putString(
+      const std::string& domain,
+      const std::string& key,
+      const std::string& value) = 0;
 
-  virtual Expected<std::vector<std::string>, DatabaseError> getKeys(const std::string& domain, const std::string& prefix = "") = 0;
+  virtual Expected<std::vector<std::string>, DatabaseError> getKeys(
+      const std::string& domain, const std::string& prefix = "") = 0;
 
   // This function designed to write batch of data as one operation and get
   // as much performance as possbile. Becuase of this, db may not guarantee
   // data consistency or atomic nature of operation
   // Please see actual function implementaion for details and limitations
-  virtual ExpectedSuccess<DatabaseError> putStringsUnsafe(const std::string& domain, std::vector<std::pair<std::string, std::string>>& data) = 0;
-  
+  virtual ExpectedSuccess<DatabaseError> putStringsUnsafe(
+      const std::string& domain,
+      std::vector<std::pair<std::string, std::string>>& data) = 0;
+
   void panic(const Error<DatabaseError>& error) {
     LOG(ERROR) << "Database did panic: " << error.getFullMessageRecursive();
-    assert(false);
+    debug_only::fail("Database did panic");
   }
-private:
-  std::string name_;
+
+ private:
+  const std::string name_;
 };
 
-}
+} // namespace osquery
