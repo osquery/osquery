@@ -24,6 +24,7 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.h"
     "${CMAKE_CURRENT_LIST_DIR}/flags.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/get.h"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.h"
     "${CMAKE_CURRENT_LIST_DIR}/init.cpp"
@@ -79,6 +80,7 @@ ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/error_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/exptected_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/flags_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/get_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/process_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/query_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/status_tests.cpp"
@@ -86,7 +88,6 @@ ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/tables_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/time_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/watcher_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/utils_tests.cpp"
 )
 
 if(POSIX) 

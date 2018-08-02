@@ -75,7 +75,7 @@ namespace osquery {
 template <typename ValueType_, typename ErrorCodeEnumType>
 class Expected final {
  public:
-  using ValueType = typename std::decay<ValueType_>::type;
+  using ValueType = ValueType_;
   using ErrorType = Error<ErrorCodeEnumType>;
   using SelfType = Expected<ValueType, ErrorCodeEnumType>;
 
