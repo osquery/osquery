@@ -1,5 +1,3 @@
-All osquery development occurs in feature branches and all contributions occur via GitHub Pull Requests. All code must be reviewed, even if it's written by members of the core team, so following the code review process is critical to successful osquery development.
-
 ## Contributor License Agreement ("CLA")
 
 In order to accept your pull request, we need you to submit a CLA. You only need to do this once to work on any of Facebook's open source projects.
@@ -7,6 +5,34 @@ In order to accept your pull request, we need you to submit a CLA. You only need
 Complete your CLA here: <https://code.facebook.com/cla>
 
 By contributing to osquery, you agree that your contributions will be licensed under both the `LICENSE` file and the `COPYING` file in the root directory of this source tree.
+
+## Guidelines for contributing features to osquery core
+
+The software housed in this repo is known as osquery core. While there are occasional exceptions, contributions to core should abide by the following osquery guiding principles in order to be accepted:
+1. osquery doesn’t change the state of the system
+2. osquery doesn’t create network traffic to third parties
+3. osquery’s endpoint binaries have a light memory footprint
+4. osquery minimizes system overhead & maximizes performance
+5. The query schema for osquery seeks uniformity between operating systems
+
+For new features that do not align with the mission principles of core, you may build outside of osquery core in separate integrated processes called extensions: https://osquery.readthedocs.io/en/stable/development/osquery-sdk/.
+
+## Does my contribution belong in Core or in an Extension?
+
+Belongs in Core:
+- Observes guiding principles
+- Has been shared with and approved by osquery project maintainers as a new feature in Core
+- Meets Facebook's testing and quality standards (see CONTRIBUTING.md)
+
+Belongs in an extension:
+- Might not observe the osquery guiding principles
+- Has not been shared with or approved by Facebook as a new feature in Core 
+- Expands the scope of use for osquery beyond endpoint monitoring
+- Integrates with a proprietary or esoteric tool that is not widely applicable
+
+## osquery core contribution process
+
+All osquery development occurs in feature branches and all contributions occur via GitHub Pull Requests. All code must be reviewed, even if it's written by members of the core team, so following the code review process is critical to successful osquery development.
 
 ## Git workflow
 
