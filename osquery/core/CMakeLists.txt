@@ -86,6 +86,7 @@ ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/tables_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/time_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/watcher_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/utils_tests.cpp"
 )
 
 if(POSIX) 
