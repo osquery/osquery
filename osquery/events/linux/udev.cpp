@@ -98,7 +98,7 @@ Status UdevEventPublisher::run() {
     udev_device_unref(device);
   }
 
-  pauseMilli(kUdevMLatency);
+  pause(std::chrono::milliseconds(kUdevMLatency));
   return Status(0, "OK");
 }
 

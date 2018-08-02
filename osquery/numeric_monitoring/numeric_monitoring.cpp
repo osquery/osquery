@@ -182,8 +182,7 @@ class PreAggregationFlusher : public InternalRunnable {
   void start() override {
     while (!interrupted() &&
            0 != FLAGS_numeric_monitoring_pre_aggregation_time) {
-      pauseMilli(
-          std::chrono::seconds(FLAGS_numeric_monitoring_pre_aggregation_time));
+      pause(std::chrono::seconds(FLAGS_numeric_monitoring_pre_aggregation_time));
       PreAggregationBuffer::get().flush();
     }
   }

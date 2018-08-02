@@ -9,6 +9,7 @@
  */
 
 #include <cstring>
+#include <chrono>
 
 #include <math.h>
 #include <signal.h>
@@ -247,7 +248,7 @@ void WatcherRunner::start() {
       // A test harness can end the thread immediately.
       break;
     }
-    pauseMilli(getWorkerLimit(WatchdogLimitType::INTERVAL) * 1000);
+    pause(std::chrono::seconds(getWorkerLimit(WatchdogLimitType::INTERVAL)));
   } while (!interrupted() && ok());
 }
 
@@ -287,7 +288,7 @@ void WatcherRunner::watchExtensions() {
         systemLog(error.str());
         LOG(WARNING) << error.str();
         stopChild(*extension.second);
-        pauseMilli(getWorkerLimit(WatchdogLimitType::INTERVAL) * 1000);
+        pause(std::chrono::seconds(getWorkerLimit(WatchdogLimitType::INTERVAL)));
       }
 
       // The extension manager also watches for extension-related failures.
@@ -530,7 +531,7 @@ void WatcherRunner::createWorker() {
       // Exponential back off for quickly-respawning clients.
       delay += static_cast<size_t>(pow(2, watcher.workerRestartCount()));
       delay = std::min(static_cast<size_t>(FLAGS_watchdog_max_delay), delay);
-      pauseMilli(delay * 1000);
+      pause(std::chrono::seconds(delay));
     }
   }
 
@@ -638,7 +639,7 @@ void WatcherWatcherRunner::start() {
       Initializer::requestShutdown();
       break;
     }
-    pauseMilli(getWorkerLimit(WatchdogLimitType::INTERVAL) * 1000);
+    pause(std::chrono::seconds(getWorkerLimit(WatchdogLimitType::INTERVAL)));
   }
 }
 

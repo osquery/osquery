@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <chrono>
+
 #include <gtest/gtest.h>
 
 #include <osquery/dispatcher.h>
@@ -121,7 +123,7 @@ class BlockingTestRunnable : public InternalTestableRunnable {
 
   virtual void start() override {
     // Wow that's a long sleep!
-    pauseMilli(100 * 1000);
+    pause(std::chrono::seconds(100));
   }
 };
 
