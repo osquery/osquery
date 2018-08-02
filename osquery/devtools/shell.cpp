@@ -107,6 +107,7 @@ static char zHelp[] =
     ".show            Show the current values for various settings\n"
     ".summary         Alias for the show meta command\n"
     ".tables [TABLE]  List names of tables\n"
+    ".types [SQL]     Show result of getQueryColumns for the given query\n"
     ".width [NUM1]+   Set column widths for \"column\" mode\n";
 
 static char zTimerHelp[] =
