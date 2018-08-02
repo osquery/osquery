@@ -20,6 +20,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
+#include <osquery/core/base64.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -240,7 +241,7 @@ static Status pathFromUnknownAlias(const CFDataRef& data, std::string& result) {
 
 /// Parse a Login Items Plist Alias data for bin path
 Status pathFromPlistAliasData(const std::string& data, std::string& result) {
-  auto decoded = base64Decode(data);
+  auto decoded = base64::decode(data);
   if (decoded.size() == 0) {
     // Base64 encoded data (from plist parsing) failed to decode.
     return Status(1, "Failed base64 decode");

@@ -12,6 +12,7 @@
 
 #include <sqlite3.h>
 
+#include "osquery/core/base64.h"
 #include "osquery/core/conversions.h"
 
 namespace osquery {
@@ -43,10 +44,10 @@ static void b64SqliteValue(sqlite3_context* ctx,
       break;
     }
   case B64Type::B64_ENCODE:
-    result = base64Encode(input);
+    result = base64::encode(input);
     break;
   case B64Type::B64_DECODE:
-    result = base64Decode(input);
+    result = base64::decode(input);
     break;
   }
   sqlite3_result_text(
