@@ -148,7 +148,7 @@ Status KernelEventPublisher::run() {
   }
 
   // Pause for a cool-off since we implement comms in a no-blocking mode.
-  pauseMilli(1000);
+  pause(std::chrono::seconds(1));
   return Status(0, "Continue");
 }
 

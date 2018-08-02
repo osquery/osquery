@@ -170,7 +170,7 @@ void BufferedLogForwarder::start() {
     check();
 
     // Cool off and time wait the configured period.
-    pauseMilli(log_period_);
+    pause(std::chrono::milliseconds(log_period_));
   }
 }
 

@@ -196,7 +196,7 @@ void ExtensionWatcher::start() {
   // service is added and started.
   while (!interrupted()) {
     watch();
-    pauseMilli(interval_);
+    pause(std::chrono::milliseconds(interval_));
   }
 }
 
@@ -204,7 +204,7 @@ void ExtensionManagerWatcher::start() {
   // Watch each extension.
   while (!interrupted()) {
     watch();
-    pauseMilli(interval_);
+    pause(std::chrono::milliseconds(interval_));
   }
 
   // When interrupted, request each extension tear down.

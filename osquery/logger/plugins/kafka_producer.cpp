@@ -146,7 +146,7 @@ void KafkaProducerPlugin::pollKafka() {
 
 void KafkaProducerPlugin::start() {
   while (!interrupted() && running_.load()) {
-    pauseMilli(kKafkaPollDuration);
+    pause(std::chrono::milliseconds(kKafkaPollDuration));
     if (interrupted()) {
       return;
     }

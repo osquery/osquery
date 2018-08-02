@@ -30,7 +30,7 @@ class KillswitchRefresher : public InternalRunnable {
   /// A simple wait/interruptible lock.
   void start() override {
     while (!interrupted()) {
-      pauseMilli(std::chrono::milliseconds(update_interval_));
+      pause(std::chrono::milliseconds(update_interval_));
       osquery::Killswitch::get().refresh();
     }
   }

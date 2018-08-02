@@ -50,12 +50,7 @@ class InterruptableRunnable {
   virtual void stop() = 0;
 
   /// Put the runnable into an interruptible sleep.
-  inline void pauseMilli(size_t milli) {
-    pauseMilli(std::chrono::milliseconds(milli));
-  }
-
-  /// Put the runnable into an interruptible sleep.
-  void pauseMilli(std::chrono::milliseconds milli);
+  void pause(std::chrono::milliseconds milli);
 
   /// Name of the InterruptableRunnable which is also the thread name
   std::string runnable_name_;
