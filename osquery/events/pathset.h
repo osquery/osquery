@@ -14,7 +14,6 @@
 #include <set>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 #include <boost/noncopyable.hpp>
 #include <boost/tokenizer.hpp>
@@ -33,21 +32,22 @@ namespace osquery {
  * multiset is protected by lock. It is threadsafe.
  *
  * PathSet can take any of the two policies -
- * 1. PatternedPath - Path can contain pattern '%' and '%%'.
+ * 1. patternedPath - Path can contain pattern '%' and '%%'.
  *                    Path components containing only '%' and '%%' are supported
  *                    e.g. '/This/Path/%'.
  *                    Path components containing partial patterns are not
  *                    supported e.g. '/This/Path/xyz%' ('xyz%' will not be
  *                    treated as pattern).
  *
- * 2. ResolvedPath - path is resolved before being inserted into set.
+ * 2. resolvedPath - path is resolved before being inserted into set.
  *                   But path can match recursively.
  *
  */
 template <typename PathType>
 class PathSet : private boost::noncopyable {
  public:
-  void insert(std::string pattern) {
+  void insert(const std::string& str) {
+    auto pattern = str;
     replaceGlobWildcards(pattern);
     auto vpath = PathType::createVPath(pattern);
 
@@ -61,7 +61,10 @@ class PathSet : private boost::noncopyable {
     auto path = PathType::createPath(str);
 
     ReadLock lock(mset_lock_);
-    return (paths_.find(path) != paths_.end());
+    if (paths_.find(path) != paths_.end()) {
+      return true;
+    }
+    return false;
   }
 
   void clear() {
@@ -81,15 +84,15 @@ class PathSet : private boost::noncopyable {
   mutable Mutex mset_lock_;
 };
 
-class PatternedPath {
+class patternedPath {
  public:
   typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
   typedef std::vector<std::string> Path;
   typedef std::vector<Path> VPath;
   struct Compare {
     bool operator()(const Path& lhs, const Path& rhs) const {
-      size_t psize = std::min(lhs.size(), rhs.size());
-      size_t ndx;
+      size_t psize = (lhs.size() < rhs.size()) ? lhs.size() : rhs.size();
+      unsigned ndx;
       for (ndx = 0; ndx < psize; ++ndx) {
         if (lhs[ndx] == "**" || rhs[ndx] == "**") {
           return false;
@@ -103,7 +106,9 @@ class PatternedPath {
 
         if (rc > 0) {
           return false;
-        }else if (rc < 0) {
+        }
+
+        if (rc < 0) {
           return true;
         }
       }
@@ -155,7 +160,7 @@ class PatternedPath {
   }
 };
 
-class ResolvedPath {
+class resolvedPath {
  public:
   struct Path {
     Path(const std::string& str, bool r = false) : path(str), recursive(r) {}

@@ -79,7 +79,7 @@ using FSEventsEventContextRef = std::shared_ptr<FSEventsEventContext>;
 using FSEventsSubscriptionContextRef =
     std::shared_ptr<FSEventsSubscriptionContext>;
 
-using ExcludePathSet = PathSet<PatternedPath>;
+using ExcludePathSet = PathSet<patternedPath>;
 
 /**
  * @brief An osquery EventPublisher for the Apple FSEvents notification API.
