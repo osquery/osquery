@@ -69,7 +69,7 @@ class DBFakeEventSubscriber : public EventSubscriber<DBFakeEventPublisher> {
   Status testAdd(time_t t, size_t num_of_events = 1) {
     auto indexes = getIndexes(0, t);
     auto records = getRecords(indexes);
-    const int old_records_size = records.size();
+    const size_t old_records_size = records.size();
 
     Row r;
     r["testing"] = "hello from space";
