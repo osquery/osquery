@@ -669,7 +669,8 @@ void AuditdNetlinkParser::start() {
           auditd_context_->unprocessed_records_mutex);
 
       while (auditd_context_->unprocessed_records.empty() && !interrupted()) {
-        auditd_context_->unprocessed_records_cv.wait(lock);
+        auditd_context_->unprocessed_records_cv.wait_for(
+            lock, std::chrono::seconds(1));
       }
 
       queue = std::move(auditd_context_->unprocessed_records);
