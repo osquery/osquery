@@ -32,7 +32,6 @@
 #include "osquery/core/watcher.h"
 #include "osquery/devtools/devtools.h"
 #include "osquery/dispatcher/distributed_runner.h"
-#include "osquery/dispatcher/io_service.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/main/main.h"
@@ -171,9 +170,6 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
   // When a watchdog is used, the current daemon will fork/exec into a worker.
   // In either case the watcher may start optionally loaded extensions.
   runner.initWorkerWatcher(kWatcherWorkerName);
-
-  // Begin adhoc io service thread.
-  startIOContext();
 
   if (runner.isDaemon()) {
     return startDaemon(runner);
