@@ -83,7 +83,6 @@ class DBFakeEventSubscriber : public EventSubscriber<DBFakeEventPublisher> {
 
     auto status = addBatch(row_list, t);
     if (!status.ok()) {
-      EXPECT_EQ(1, 0);
       return Status::failure(
           "Failed to save the batch to the database, with error: " +
           status.getMessage());
@@ -93,7 +92,6 @@ class DBFakeEventSubscriber : public EventSubscriber<DBFakeEventPublisher> {
     records = getRecords(indexes);
 
     if (records.size() != row_list.size() + old_records_size) {
-      EXPECT_EQ(1, 2);
       return Status::failure("We expected " + std::to_string(row_list.size()) +
                              " records but only " +
                              std::to_string(records.size()) + " were found!");
