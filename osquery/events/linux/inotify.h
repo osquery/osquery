@@ -125,7 +125,7 @@ using INotifyEventContextRef = std::shared_ptr<INotifyEventContext>;
 // Publisher container
 using DescriptorINotifySubCtxMap = std::map<int, INotifySubscriptionContextRef>;
 
-using ExcludePathSet = PathSet<patternedPath>;
+using ExcludePathSet = PathSet<PatternedPath>;
 
 /**
  * @brief A Linux `inotify` EventPublisher.
