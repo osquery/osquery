@@ -372,7 +372,8 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
     }
   }
 
-  auto base = fs::path(pattern.substr(0, pattern.find('*'))).make_preferred().string();
+  auto base =
+      fs::path(pattern.substr(0, pattern.find('*'))).make_preferred().string();
 
   if (base.size() > 0) {
     boost::system::error_code ec;
@@ -384,8 +385,9 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
       // Canonicalized directory paths will not include a trailing '/'.
       // However, if the wildcards are applied to files within a directory
       // then the missing '/' changes the wildcard meaning.
-      if (boost::algorithm::ends_with(base, "/") || isDirectory(canonicalized)) {
-          canonicalized += "/";
+      if (boost::algorithm::ends_with(base, "/") ||
+          isDirectory(canonicalized)) {
+        canonicalized += "/";
       }
       // We are unable to canonicalize the meaning of post-wildcard limiters.
       pattern = fs::path(canonicalized + pattern.substr(base.size()))
