@@ -382,11 +382,11 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
                              : base;
 
     if (canonicalized.size() > 0 && canonicalized != base) {
-      // Canonicalized directory paths will not include a trailing '/'.
-      // However, if the wildcards are applied to files within a directory
-      // then the missing '/' changes the wildcard meaning.
       if (boost::algorithm::ends_with(base, "/") ||
           isDirectory(canonicalized)) {
+        // Canonicalized directory paths will not include a trailing '/'.
+        // However, if the wildcards are applied to files within a directory
+        // then the missing '/' changes the wildcard meaning.
         canonicalized += "/";
       }
       // We are unable to canonicalize the meaning of post-wildcard limiters.
