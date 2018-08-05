@@ -373,8 +373,7 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
   }
 
   const auto star_it = pattern.find('*');
-  auto base =
-      fs::path(pattern.substr(0, star_it)).make_preferred().string();
+  auto base = fs::path(pattern.substr(0, star_it)).make_preferred().string();
 
   if (base.size() > 0) {
     boost::system::error_code ec;
