@@ -209,7 +209,7 @@ TEST_F(FilesystemTests, test_intermediate_globbing_directories) {
 
 TEST_F(FilesystemTests, test_canonicalization) {
   std::string complex =
-      (fs::path(kFakeDirectory) / "deep1" / ".." / "deep1" / "..")
+      (fs::path(kFakeDirectory) / "deep1" / ".." / "deep1" / "../")
           .make_preferred()
           .string();
   std::string simple =
