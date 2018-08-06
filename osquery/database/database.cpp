@@ -256,7 +256,7 @@ Status sendPutBatchDatabaseRequest(const std::string& domain,
 Status sendPutDatabaseRequest(const std::string& domain,
                               const DatabaseStringValueList& data) {
   const auto& key = data[0].first;
-  const auto& value = data[1].second;
+  const auto& value = data[0].second;
 
   PluginRequest request = {
       {"action", "put"}, {"domain", domain}, {"key", key}, {"value", value}};
@@ -328,7 +328,7 @@ Status setDatabaseBatch(const std::string& domain,
   // External registries (extensions) do not have databases active.
   // It is not possible to use an extension-based database.
   if (RegistryFactory::get().external()) {
-    if (data.size() >= 1) {
+    if (data.size() > 1) {
       return sendPutBatchDatabaseRequest(domain, data);
     } else {
       return sendPutDatabaseRequest(domain, data);

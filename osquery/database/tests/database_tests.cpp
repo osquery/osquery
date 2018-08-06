@@ -37,7 +37,7 @@ TEST_F(DatabaseTests, test_set_value_int) {
 
 TEST_F(DatabaseTests, test_set_str_batch) {
   DatabaseStringValueList batch = {
-      {"str1", "{}"}, {"str2", "{}"}, {"str3", "{}"}};
+      {"str1", "{a}"}, {"str2", "{b}"}, {"str3", "{c}"}};
 
   auto s = setDatabaseBatch(kLogs, batch);
   EXPECT_TRUE(s.ok());
@@ -111,7 +111,7 @@ TEST_F(DatabaseTests, test_get_value_mix1) {
 
 TEST_F(DatabaseTests, test_get_str_batch) {
   DatabaseStringValueList batch = {
-      {"str1", "{}"}, {"str2", "{}"}, {"str3", "{}"}};
+      {"str1", "{a}"}, {"str2", "{b}"}, {"str3", "{c}"}};
   auto s = setDatabaseBatch(kLogs, batch);
   EXPECT_TRUE(s.ok());
 
