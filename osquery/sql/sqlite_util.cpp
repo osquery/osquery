@@ -151,6 +151,7 @@ Status SQLiteSQLPlugin::query(const std::string& query,
                               bool use_cache) const {
   auto dbc = SQLiteDBManager::get();
   dbc->useCache(use_cache);
+  VLOG(1) << "Calling SQLiteSQLPlugin::query";
   auto result = queryInternal(query, results, dbc);
   dbc->clearAffectedTables();
   return result;
@@ -158,6 +159,8 @@ Status SQLiteSQLPlugin::query(const std::string& query,
 
 Status SQLiteSQLPlugin::getQueryColumns(const std::string& query,
                                         TableColumns& columns) const {
+  VLOG(1) << "Calling SQLiteSQLPlugin::getQueryColumns";
+
   auto dbc = SQLiteDBManager::get();
   return getQueryColumnsInternal(query, columns, dbc);
 }
@@ -173,7 +176,21 @@ Status SQLiteSQLPlugin::getQueryTables(const std::string& query,
 SQLInternal::SQLInternal(const std::string& query, bool use_cache) {
   auto dbc = SQLiteDBManager::get();
   dbc->useCache(use_cache);
+  VLOG(1) << "Calling SQLInternal::SQLInternal";
   status_ = queryInternal(query, results_, dbc);
+
+  if (status_.ok()) {
+    TableColumns tableColumns;
+    status_ = getQueryColumnsInternal(query, tableColumns, dbc);
+    for (const auto& tc : tableColumns) {
+      std::string cname;
+      ColumnType ctype;
+      std::tie(cname, ctype, std::ignore) = tc;
+      columnTypes_[cname] = ctype;
+      VLOG(1) << "Setting column type " << std::get<0>(tc) << " as "
+              << std::get<1>(tc);
+    }
+  }
 
   // One of the advantages of using SQLInternal (aside from the Registry-bypass)
   // is the ability to "deep-inspect" the table attributes and actions.
@@ -484,6 +501,7 @@ int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
 Status queryInternal(const std::string& q,
                      QueryData& results,
                      const SQLiteDBInstanceRef& instance) {
+  VLOG(1) << "Calling queryInternal";
   char* err = nullptr;
   auto lock = instance->attachLock();
   sqlite3_exec(instance->db(), q.c_str(), queryDataCallback, &results, &err);
@@ -499,6 +517,7 @@ Status queryInternal(const std::string& q,
 Status getQueryColumnsInternal(const std::string& q,
                                TableColumns& columns,
                                const SQLiteDBInstanceRef& instance) {
+  VLOG(1) << "Calling getQueryColumnsInternal";
   Status status = Status();
   TableColumns results;
   {

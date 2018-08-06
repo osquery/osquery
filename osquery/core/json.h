@@ -206,6 +206,60 @@ class JSON : private only_movable {
   void add(const std::string& key, int value);
 
   /**
+   * @brief Add a long long value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
+   * The input document must be an object type.
+   */
+  void add(const std::string& key, long long value, rapidjson::Value& obj);
+
+  /**
+   * @brief Add a long long value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
+   * The document must be an object type.
+   */
+  void add(const std::string& key, long long value);
+
+  /**
+   * @brief Add an unsigned long long value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
+   * The input document must be an object type.
+   */
+  void add(const std::string& key, unsigned long long value, rapidjson::Value& obj);
+
+  /**
+   * @brief Add an unsigned long long value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
+   * The document must be an object type.
+   */
+  void add(const std::string& key, unsigned long long value);
+
+  /**
+   * @brief Add a double value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
+   * The input document must be an object type.
+   */
+  void add(const std::string& key, double value, rapidjson::Value& obj);
+
+  /**
+   * @brief Add an double value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
+   * The document must be an object type.
+   */
+  void add(const std::string& key, double value);
+
+  /**
    * @brief Add a bool value to a JSON object by copying the contents.
    *
    * This will add the key and value to an input document. If the key exists

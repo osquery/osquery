@@ -131,15 +131,6 @@ inline std::string __sqliteField(const std::string& source) noexcept {
 /// See the literal type documentation for TEXT_LITERAL.
 #define DOUBLE_LITERAL double
 
-enum ColumnType {
-  UNKNOWN_TYPE = 0,
-  TEXT_TYPE,
-  INTEGER_TYPE,
-  BIGINT_TYPE,
-  UNSIGNED_BIGINT_TYPE,
-  DOUBLE_TYPE,
-  BLOB_TYPE,
-};
 
 /// Map of type constant to the SQLite string-name representation.
 extern const std::map<ColumnType, std::string> kColumnTypeNames;

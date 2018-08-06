@@ -67,6 +67,8 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
                             pid);
   auto t0 = getUnixTime();
   Config::get().recordQueryStart(name);
+  VLOG(1) << "Contsructing new SQLInternal in scheduler's monitor";
+
   SQLInternal sql(query.query, true);
   // Snapshot the performance after, and compare.
   auto t1 = getUnixTime();
@@ -113,6 +115,7 @@ inline Status launchQuery(const std::string& name,
   item.name = name;
   item.identifier = ident;
   item.columns = sql.columns();
+  item.columnTypes = sql.columnTypes();
   item.time = osquery::getUnixTime();
   item.epoch = FLAGS_schedule_epoch;
   item.calendar_time = osquery::getAsciiTime();
@@ -136,8 +139,11 @@ inline Status launchQuery(const std::string& name,
   // We can then ask for a differential from the last time this named query
   // was executed by exact matching each row.
   if (!FLAGS_events_optimize || !sql.eventBased()) {
-    status = dbQuery.addNewResults(
-        std::move(sql.rows()), item.epoch, item.counter, diff_results);
+    status = dbQuery.addNewResults(std::move(sql.rows()),
+                                   item.columnTypes,
+                                   item.epoch,
+                                   item.counter,
+                                   diff_results);
     if (!status.ok()) {
       std::string line =
           "Error adding new results to database: " + status.what();

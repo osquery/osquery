@@ -86,13 +86,15 @@ bool Query::isNewQuery() const {
 }
 
 Status Query::addNewResults(QueryData qd,
+                            const ColumnTypes& colTypes,
                             const uint64_t epoch,
                             uint64_t& counter) const {
   DiffResults dr;
-  return addNewResults(std::move(qd), epoch, counter, dr, false);
+  return addNewResults(std::move(qd), colTypes, epoch, counter, dr, false);
 }
 
 Status Query::addNewResults(QueryData current_qd,
+                            const ColumnTypes& colTypes,
                             const uint64_t current_epoch,
                             uint64_t& counter,
                             DiffResults& dr,
@@ -148,7 +150,7 @@ Status Query::addNewResults(QueryData current_qd,
   if (update_db) {
     // Replace the "previous" query data with the current.
     std::string json;
-    status = serializeQueryDataJSON(*target_gd, json);
+    status = serializeQueryDataJSON(*target_gd, colTypes, json);
     if (!status.ok()) {
       return status;
     }
@@ -169,30 +171,56 @@ Status Query::addNewResults(QueryData current_qd,
 
 Status serializeRow(const Row& r,
                     const ColumnNames& cols,
+                    const ColumnTypes& colTypes,
                     JSON& doc,
                     rj::Value& obj) {
-  if (cols.empty()) {
-    for (const auto& i : r) {
-      doc.addRef(i.first, i.second, obj);
-    }
-  } else {
-    for (const auto& c : cols) {
-      auto i = r.find(c);
-      if (i != r.end()) {
-        doc.addRef(c, i->second, obj);
+  for (const auto& i : r) {
+    if (cols.empty() ||
+        std::find(cols.begin(), cols.end(), i.first) != cols.end()) {
+      if (colTypes.find(i.first) != colTypes.end()) {
+        ColumnType ct = colTypes.find(i.first)->second;
+        try {
+          switch (ct) {
+          case INTEGER_TYPE:
+            doc.add(i.first, std::stoi(i.second), obj);
+            break;
+          case BIGINT_TYPE:
+            doc.add(i.first, std::stoll(i.second), obj);
+            break;
+          case UNSIGNED_BIGINT_TYPE:
+            doc.add(i.first, std::stoull(i.second), obj);
+            break;
+          case DOUBLE_TYPE:
+            doc.add(i.first, std::stod(i.second), obj);
+            break;
+          default:
+            doc.addRef(i.first, i.second, obj);
+          }
+        } catch (...) {
+          LOG(WARNING) << "Error converting " << i.second << " to column type "
+                       << ct << " reverting to serializing it as a string";
+          // TODO Possibly add a field to the JSON with this information so we
+          // can analyze the aggregate in scuba (or not, because this will
+        // affect all osquery users)
+        doc.addRef(i.first, i.second, obj);
+        }
+      } else {
+        // We don't have column type information, so serialize as string
+        doc.addRef(i.first, i.second, obj);
       }
     }
   }
-
   return Status();
 }
 
-Status serializeRowJSON(const Row& r, std::string& json) {
+Status serializeRowJSON(const Row& r,
+                        const ColumnTypes& colTypes,
+                        std::string& json) {
   auto doc = JSON::newObject();
 
   // An empty column list will traverse the row map.
   ColumnNames cols;
-  auto status = serializeRow(r, cols, doc, doc.doc());
+  auto status = serializeRow(r, cols, colTypes, doc, doc.doc());
   if (!status.ok()) {
     return status;
   }
@@ -221,11 +249,13 @@ Status deserializeRowJSON(const std::string& json, Row& r) {
   return deserializeRow(doc.doc(), r);
 }
 
-Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
+Status serializeQueryDataJSON(const QueryData& q,
+                              const ColumnTypes& colTypes,
+                              std::string& json) {
   auto doc = JSON::newArray();
 
   ColumnNames cols;
-  auto status = serializeQueryData(q, cols, doc, doc.doc());
+  auto status = serializeQueryData(q, cols, colTypes, doc, doc.doc());
   if (!status.ok()) {
     return status;
   }
@@ -283,6 +313,7 @@ Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {
 
 Status serializeDiffResults(const DiffResults& d,
                             const ColumnNames& cols,
+                            const ColumnTypes& colTypes,
                             JSON& doc,
                             rj::Document& obj) {
   // Serialize and add "removed" first.
@@ -290,14 +321,14 @@ Status serializeDiffResults(const DiffResults& d,
   // the logger plugins and their aggregations, allowing them to parse chunked
   // lines. Note that the chunking is opaque to the database functions.
   auto removed_arr = doc.getArray();
-  auto status = serializeQueryData(d.removed, cols, doc, removed_arr);
+  auto status = serializeQueryData(d.removed, cols, colTypes, doc, removed_arr);
   if (!status.ok()) {
     return status;
   }
   doc.add("removed", removed_arr, obj);
 
   auto added_arr = doc.getArray();
-  status = serializeQueryData(d.added, cols, doc, added_arr);
+  status = serializeQueryData(d.added, cols, colTypes, doc, added_arr);
   if (!status.ok()) {
     return status;
   }
@@ -326,11 +357,13 @@ Status deserializeDiffResults(const rj::Value& doc, DiffResults& dr) {
   return Status();
 }
 
-Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
+Status serializeDiffResultsJSON(const DiffResults& d,
+                                const ColumnTypes& colTypes,
+                                std::string& json) {
   auto doc = JSON::newObject();
 
   ColumnNames cols;
-  auto status = serializeDiffResults(d, cols, doc, doc.doc());
+  auto status = serializeDiffResults(d, cols, colTypes, doc, doc.doc());
   if (!status.ok()) {
     return status;
   }
@@ -401,7 +434,8 @@ inline void getLegacyFieldsAndDecorations(const JSON& doc, QueryLogItem& item) {
 Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
   if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
     auto obj = doc.getObject();
-    auto status = serializeDiffResults(item.results, item.columns, doc, obj);
+    auto status = serializeDiffResults(
+        item.results, item.columns, item.columnTypes, doc, obj);
     if (!status.ok()) {
       return status;
     }
@@ -409,8 +443,8 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
     doc.add("diffResults", obj);
   } else {
     auto arr = doc.getArray();
-    auto status =
-        serializeQueryData(item.snapshot_results, item.columns, doc, arr);
+    auto status = serializeQueryData(
+        item.snapshot_results, item.columns, item.columnTypes, doc, arr);
     if (!status.ok()) {
       return status;
     }
@@ -443,13 +477,14 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
   auto temp_doc = JSON::newObject();
   if (!item.results.added.empty() || !item.results.removed.empty()) {
     auto status = serializeDiffResults(
-        item.results, item.columns, temp_doc, temp_doc.doc());
+        item.results, item.columns, item.columnTypes, temp_doc, temp_doc.doc());
     if (!status.ok()) {
       return status;
     }
   } else if (!item.snapshot_results.empty()) {
     auto arr = doc.getArray();
-    auto status = serializeQueryData(item.snapshot_results, {}, temp_doc, arr);
+    auto status = serializeQueryData(
+        item.snapshot_results, {}, item.columnTypes, temp_doc, arr);
     if (!status.ok()) {
       return status;
     }
@@ -532,11 +567,12 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& item,
 
 Status serializeQueryData(const QueryData& q,
                           const ColumnNames& cols,
+                          const ColumnTypes& colTypes,
                           JSON& doc,
                           rj::Document& arr) {
   for (const auto& r : q) {
     auto row_obj = doc.getObject();
-    auto status = serializeRow(r, cols, doc, row_obj);
+    auto status = serializeRow(r, cols, colTypes, doc, row_obj);
     if (!status.ok()) {
       return status;
     }

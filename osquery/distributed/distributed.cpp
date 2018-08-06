@@ -96,7 +96,8 @@ Status Distributed::serializeResults(std::string& json) {
   auto statuses_obj = doc.getObject();
   for (const auto& result : results_) {
     auto arr = doc.getArray();
-    auto s = serializeQueryData(result.results, result.columns, doc, arr);
+    auto s = serializeQueryData(
+        result.results, result.columns, result.colTypes, doc, arr);
     if (!s.ok()) {
       return s;
     }
@@ -129,7 +130,7 @@ Status Distributed::runQueries() {
     }
 
     DistributedQueryResult result(
-        request, sql.rows(), sql.columns(), sql.getStatus());
+        request, sql.rows(), sql.columns(), sql.columnTypes(), sql.getStatus());
     addResult(result);
   }
   return flushCompleted();
@@ -307,7 +308,7 @@ Status serializeDistributedQueryResult(const DistributedQueryResult& r,
   }
 
   auto results_arr = doc.getArray();
-  s = serializeQueryData(r.results, r.columns, doc, results_arr);
+  s = serializeQueryData(r.results, r.columns, r.colTypes, doc, results_arr);
   if (!s.ok()) {
     return s;
   }

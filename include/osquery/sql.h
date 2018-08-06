@@ -79,6 +79,13 @@ class SQL : private only_movable {
   const ColumnNames& columns() const;
 
   /**
+   * @brief Column type information for the query
+   *
+   * @return A TableColumns object for the query
+   */
+  const ColumnTypes& columnTypes() const;
+
+  /**
    * @brief Accessor to switch off of when checking the success of a query.
    *
    * @return A bool indicating the success or failure of the operation.
@@ -160,6 +167,9 @@ class SQL : private only_movable {
 
   /// The internal member which holds the column names and order for the query
   ColumnNames columns_;
+
+  /// The internal member which holds the column type information
+  ColumnTypes columnTypes_;
 };
 
 /**

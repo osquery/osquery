@@ -22,6 +22,16 @@
 
 namespace osquery {
 
+enum ColumnType {
+  UNKNOWN_TYPE = 0,
+  TEXT_TYPE,
+  INTEGER_TYPE,
+  BIGINT_TYPE,
+  UNSIGNED_BIGINT_TYPE,
+  DOUBLE_TYPE,
+  BLOB_TYPE,
+};
+
 class Status;
 /**
  * @brief A variant type for the SQLite type affinities.
@@ -43,6 +53,8 @@ using Row = std::map<std::string, RowData>;
  */
 using ColumnNames = std::vector<std::string>;
 
+using ColumnTypes = std::map<std::string, ColumnType>;
+
 /**
  * @brief Serialize a Row into a JSON document.
  *
@@ -55,6 +67,7 @@ using ColumnNames = std::vector<std::string>;
  */
 Status serializeRow(const Row& r,
                     const ColumnNames& cols,
+                    const ColumnTypes& colTypes,
                     JSON& doc,
                     rapidjson::Value& obj);
 
@@ -66,7 +79,9 @@ Status serializeRow(const Row& r,
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeRowJSON(const Row& r, std::string& json);
+Status serializeRowJSON(const Row& r,
+                        const ColumnTypes& colTypes,
+                        std::string& json);
 
 /**
  * @brief Deserialize a Row object from JSON object.
@@ -115,6 +130,7 @@ using QueryDataSet = std::multiset<Row>;
  */
 Status serializeQueryData(const QueryData& q,
                           const ColumnNames& cols,
+                          const ColumnTypes& colTypes,
                           JSON& doc,
                           rapidjson::Document& arr);
 
@@ -126,7 +142,9 @@ Status serializeQueryData(const QueryData& q,
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeQueryDataJSON(const QueryData& q, std::string& json);
+Status serializeQueryDataJSON(const QueryData& q,
+                              const ColumnTypes& colTypes,
+                              std::string& json);
 
 /// Inverse of serializeQueryData, convert JSON to QueryData.
 Status deserializeQueryData(const rapidjson::Value& arr, QueryData& qd);
@@ -185,6 +203,7 @@ struct DiffResults : private only_movable {
  */
 Status serializeDiffResults(const DiffResults& d,
                             const ColumnNames& cols,
+                            const ColumnTypes& colTypes,
                             JSON& doc,
                             rapidjson::Document& obj);
 
@@ -196,7 +215,9 @@ Status serializeDiffResults(const DiffResults& d,
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeDiffResultsJSON(const DiffResults& d, std::string& json);
+Status serializeDiffResultsJSON(const DiffResults& d,
+                                const ColumnTypes& colTypes,
+                                std::string& json);
 
 /**
  * @brief Diff QueryDataSet object and QueryData object
@@ -350,6 +371,9 @@ struct QueryLogItem {
   /// The ordered map of columns from the query.
   ColumnNames columns;
 
+  // The co
+  ColumnTypes columnTypes;
+
   /// equals operator
   bool operator==(const QueryLogItem& comp) const {
     return (comp.results == results) && (comp.name == name);
@@ -488,7 +512,10 @@ class Query {
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(QueryData qd, uint64_t epoch, uint64_t& counter) const;
+  Status addNewResults(QueryData qd,
+                       const ColumnTypes& colTypes,
+                       uint64_t epoch,
+                       uint64_t& counter) const;
 
   /**
    * @brief Add a new set of results to the persistent storage and get back
@@ -507,6 +534,7 @@ class Query {
    * @return the success or failure of the operation.
    */
   Status addNewResults(QueryData qd,
+                       const ColumnTypes& colTypes,
                        uint64_t epoch,
                        uint64_t& counter,
                        DiffResults& dr,

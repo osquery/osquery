@@ -27,6 +27,7 @@ CREATE_LAZY_REGISTRY(SQLPlugin, "sql");
 SQL::SQL(const std::string& query, bool use_cache) {
   TableColumns table_columns;
   status_ = getQueryColumns(query, table_columns);
+  VLOG(1) << "Calling SQL::SQL";
   if (status_.ok()) {
     for (auto c : table_columns) {
       columns_.push_back(std::get<0>(c));
@@ -45,6 +46,10 @@ QueryData& SQL::rows() {
 
 const ColumnNames& SQL::columns() const {
   return columns_;
+}
+
+const ColumnTypes& SQL::columnTypes() const {
+  return columnTypes_;
 }
 
 bool SQL::ok() const {
@@ -189,6 +194,8 @@ Status query(const std::string& q, QueryData& results, bool use_cache) {
 
 Status getQueryColumns(const std::string& q, TableColumns& columns) {
   PluginResponse response;
+  VLOG(1) << "Calling getQueryColumns";
+
   auto status = Registry::call(
       "sql", "sql", {{"action", "columns"}, {"query", q}}, response);
 

@@ -1,4 +1,4 @@
-/**
+ /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
@@ -61,7 +61,7 @@ static void DATABASE_serialize(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range(0), state.range(1));
   while (state.KeepRunning()) {
     auto doc = JSON::newArray();
-    serializeQueryData(qd, {}, doc, doc.doc());
+    serializeQueryData(qd, {}, {}, doc, doc.doc());
   }
 }
 
@@ -72,7 +72,7 @@ static void DATABASE_serialize_column_order(benchmark::State& state) {
   auto cn = getExampleColumnNames(state.range(0));
   while (state.KeepRunning()) {
     auto doc = JSON::newArray();
-    serializeQueryData(qd, cn, doc, doc.doc());
+    serializeQueryData(qd, cn, {}, doc, doc.doc());
   }
 }
 
@@ -86,7 +86,7 @@ static void DATABASE_serialize_json(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range(0), state.range(1));
   while (state.KeepRunning()) {
     std::string content;
-    serializeQueryDataJSON(qd, content);
+    serializeQueryDataJSON(qd, {}, content);
   }
 }
 
@@ -112,7 +112,7 @@ static void DATABASE_query_results(benchmark::State& state) {
     DiffResults diff_results;
     uint64_t counter;
     auto dbq = Query("default", query);
-    dbq.addNewResults(std::move(qd), 0, counter, diff_results);
+    dbq.addNewResults(std::move(qd), {}, 0, counter, diff_results);
   }
 }
 
@@ -147,7 +147,7 @@ static void DATABASE_store_large(benchmark::State& state) {
   // Serialize the example result set into a string.
   std::string content;
   auto qd = getExampleQueryData(20, 100);
-  serializeQueryDataJSON(qd, content);
+  serializeQueryDataJSON(qd, {}, content);
 
   while (state.KeepRunning()) {
     setDatabaseValue(kPersistentSettings, "benchmark", content);
@@ -162,7 +162,7 @@ static void DATABASE_store_append(benchmark::State& state) {
   // Serialize the example result set into a string.
   std::string content;
   auto qd = getExampleQueryData(20, 100);
-  serializeQueryDataJSON(qd, content);
+  serializeQueryDataJSON(qd, {}, content);
 
   size_t k = 0;
   while (state.KeepRunning()) {
