@@ -267,9 +267,7 @@ QueryData genInterfaceAddresses(QueryContext& context) {
 
   const IP_ADAPTER_ADDRESSES* currAdapter = adapters.get();
   while (currAdapter != nullptr) {
-    std::wstring wsAdapterName = std::wstring(currAdapter->FriendlyName);
-    auto adapterName = std::string(wsAdapterName.begin(), wsAdapterName.end());
-
+    auto adapterName = wstringToString(currAdapter->FriendlyName);
     const IP_ADAPTER_UNICAST_ADDRESS* ipaddr = currAdapter->FirstUnicastAddress;
     while (ipaddr != nullptr) {
       Row r;

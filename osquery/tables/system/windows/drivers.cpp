@@ -155,8 +155,7 @@ Status getDeviceProperty(const device_infoset_t& infoset,
   } else if (dev_prop_type == DEVPROP_TYPE_INT32) {
     result = std::to_string(*(PINT32)drv_buff.get());
   } else if (dev_prop_type == DEVPROP_TYPE_STRING) {
-    std::wstring name((PWCHAR)drv_buff.get());
-    result = std::string(name.begin(), name.end());
+    result = wstringToString((PWCHAR)drv_buff.get());
   } else if (dev_prop_type == DEVPROP_TYPE_FILETIME) {
     result =
         std::to_string(osquery::filetimeToUnixtime(*(PFILETIME)drv_buff.get()));
