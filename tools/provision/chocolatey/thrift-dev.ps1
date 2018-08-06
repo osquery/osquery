@@ -27,7 +27,11 @@ $parentPath = $(Split-Path -Parent $MyInvocation.MyCommand.Definition)
 . $(Join-Path $parentPath "osquery_utils.ps1")
 
 # Invoke the MSVC developer tools/env
-Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
+$ret = Invoke-VcVarsAll
+if ($ret -ne $true) {
+	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+	exit
+}
 
 # Time our execution
 $sw = [System.Diagnostics.StopWatch]::startnew()
@@ -78,7 +82,7 @@ Add-Content `
 # Generate the solution files
 $cmake = (Get-Command 'cmake').Source
 $cmakeArgs = @(
-  '-G "Visual Studio 14 2015 Win64"',
+  '-G "Visual Studio 15 2017 Win64"',
   '-DBUILD_COMPILER=ON',
   '-DWITH_SHARED_LIB=OFF',
   '-DBUILD_TESTING=OFF',

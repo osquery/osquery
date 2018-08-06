@@ -89,16 +89,20 @@ if ($envArch -eq 1) {
   Write-Host '[*] Building 32 bit rocksdb libs' -ForegroundColor Cyan
   $arch = 'Win32'
   $platform = 'x86'
-  $cmakeBuildType = 'Visual Studio 14 2015'
+  $cmakeBuildType = 'Visual Studio 15 2017'
 } else {
   Write-Host '[*] Building 64 bit rocksdb libs' -ForegroundColor Cyan
   $arch = 'x64'
   $platform = 'amd64'
-  $cmakeBuildType = 'Visual Studio 14 2015 Win64'
+  $cmakeBuildType = 'Visual Studio 15 2017 Win64'
 }
 
 # Invoke the MSVC developer tools/env
-Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" $platform
+$ret = Invoke-VcVarsAll
+if ($ret -ne $true) {
+	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+	exit
+}
 
 $cmake = (Get-Command 'cmake').Source
 $cmakeArgs = @(
@@ -107,7 +111,7 @@ $cmakeArgs = @(
   '-DROCKSDB_LITE=ON',
   '../'
 )
-Start-OsqueryProcess $cmake $cmakeArgs
+Start-OsqueryProcess $cmake $cmakeArgs $false
 
 # Build the libraries
 $msbuild = (Get-Command 'msbuild').Source
@@ -125,7 +129,7 @@ foreach($cfg in $configurations) {
     '/m',
     '/v:m'
   )
-  Start-OsqueryProcess $msbuild $msbuildArgs
+  Start-OsqueryProcess $msbuild $msbuildArgs $false
 }
 
 # If the build path exists, purge it for a clean packaging

@@ -37,7 +37,11 @@ $currentLoc = Get-Location
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
 
 # Invoke the MSVC developer tools/env
-Invoke-VcVarsAll
+$ret = Invoke-VcVarsAll
+if ($ret -ne $true) {
+	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+	exit
+}
 
 # Time our execution
 $sw = [System.Diagnostics.StopWatch]::startnew()

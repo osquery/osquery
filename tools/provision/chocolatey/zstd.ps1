@@ -18,11 +18,18 @@ $copyright = 'https://github.com/facebook/zstd/blob/master/LICENSE'
 $license = 'https://github.com/facebook/zstd/blob/master/LICENSE'
 $url = "https://github.com/facebook/zstd/archive/v$version.zip"
 
+# Keep track of our location to restore later
+$currentLoc = Get-Location
+
 # Invoke our utilities file
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
 
 # Invoke the MSVC developer tools/env
-Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
+$ret = Invoke-VcVarsAll
+if ($ret -ne $true) {
+	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+	exit
+}
 
 # Time our execution
 $sw = [System.Diagnostics.StopWatch]::startnew()
@@ -52,15 +59,30 @@ if(-not (Test-Path $zipFile)) {
 $sourceDir = Join-Path $(Get-Location) "$packageName-$version"
 if (-not (Test-Path $sourceDir)) {
   $7z = (Get-Command '7z').Source
-  $arg = "x $zipFile"
-  Start-Process -FilePath $7z -ArgumentList $arg -NoNewWindow -Wait
+  $arg = @("x",
+	 $zipFile
+  )
+  Start-OsqueryProcess $7z $arg $false
 }
 Set-Location $sourceDir
+
+Write-Host "1" -ForegroundColor Yellow
 
 $vcxprojLocation = 'build\VS2010\libzstd\libzstd.vcxproj'
 # Patch the AssemblerOutput out of the project
 (Get-Content $vcxprojLocation).replace('<AssemblerOutput>All</AssemblerOutput>', '<AssemblerOutput>NoListing</AssemblerOutput>') | Set-Content $vcxprojLocation
-msbuild "build\VS2010\zstd.sln" /verbosity:minimal /nologo /t:Clean,libzstd /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset=v140
+#msbuild "build\VS2010\zstd.sln" /verbosity:minimal /nologo /t:Clean,libzstd /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset=v141
+$msbuild = (Get-Command 'msbuild').Source
+$msbuildArgs = @(
+	"build\VS2010\zstd.sln",
+	"/verbosity:minimal",
+	"/nologo",
+	"/t:Clean,libzstd",
+	"/p:Platform=x64",
+	"/p:Configuration=Release",
+	"/p:PlatformToolset=v141"
+)
+# Start-OsqueryProcess $msbuild $msbuildArgs $false
  
 # Construct the Chocolatey Package
 $chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'
@@ -98,3 +120,6 @@ else {
     "[-] Failed to build $packageName v$chocoVersion." `
     -ForegroundColor Red
 }
+
+# Restore our working directory
+Set-Location $currentLoc

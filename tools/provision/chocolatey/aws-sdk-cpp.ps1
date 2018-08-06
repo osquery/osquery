@@ -33,7 +33,11 @@ $currentLoc = Get-Location
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
 
 # Invoke the MSVC developer tools/env
-Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
+$ret = Invoke-VcVarsAll
+if ($ret -ne $true) {
+	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+	exit
+}
 
 # Time our execution
 $sw = [System.Diagnostics.StopWatch]::startnew()
@@ -64,7 +68,7 @@ $sourceDir = "$packageName-$version"
 if (-not (Test-Path $sourceDir)) {
   $7z = (Get-Command '7z').Source
   $7zargs = "x $packageName-$version.zip"
-  Start-OsqueryProcess $7z $7zargs
+  Start-OsqueryProcess $7z $7zargs $false
 }
 Set-Location $sourceDir
 
@@ -86,14 +90,14 @@ Set-Location $buildDir
 
 $cmake = (Get-Command 'cmake').Source
 $cmakeArgs = @(
-  '-G "Visual Studio 14 2015 Win64"',
+  '-G "Visual Studio 15 2017 Win64"',
   '-DSTATIC_LINKING=1',
   '-DNO_HTTP_CLIENT=1',
   '-DMINIMIZE_SIZE=ON',
   '-DBUILD_SHARED_LIBS=OFF',
   '../'
 )
-Start-OsqueryProcess $cmake $cmakeArgs
+Start-OsqueryProcess $cmake $cmakeArgs $false
 
 # Build the libraries
 $msbuild = (Get-Command 'msbuild').Source
@@ -106,7 +110,7 @@ foreach($target in $libs) {
     '/m',
     '/v:m'
   )
-  Start-OsqueryProcess $msbuild $msbuildArgs
+  Start-OsqueryProcess $msbuild $msbuildArgs $false
 
   # Bundle debug libs for troubleshooting
   $msbuildArgs = @(
@@ -116,7 +120,7 @@ foreach($target in $libs) {
     '/m',
     '/v:m'
   )
-  Start-OsqueryProcess $msbuild $msbuildArgs
+  Start-OsqueryProcess $msbuild $msbuildArgs $false
 }
 
 # Construct the Chocolatey Package
