@@ -26,7 +26,13 @@ $url = 'https://github.com/google/glog.git'
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
 
 # Invoke the MSVC developer tools/env
-Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
+$ret = Invoke-VcVarsAll
+if ($ret -ne $true) {
+	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+	exit
+}
+
+Write-Host "1" -ForegroundColor Yellow
 
 # Time our execution
 $sw = [System.Diagnostics.StopWatch]::startnew()
@@ -68,12 +74,11 @@ Set-Location $buildDir
 # Generate the .sln
 $cmake = (Get-Command 'cmake').Source
 $cmakeArgs = @(
-  '-G "Visual Studio 14 2015 Win64"',
+  '-G "Visual Studio 15 2017 Win64"',
   '-DCMAKE_PREFIX_PATH=C:\ProgramData\chocolatey\lib\gflags\local\',
   '..\'
 ) 
-$out = Start-OsqueryProcess $cmake $cmakeArgs
-
+$out = Start-OsqueryProcess $cmake $cmakeArgs $false
 
 # Build the libraries
 $msbuild = (Get-Command 'msbuild').Source
@@ -84,7 +89,7 @@ $msbuildArgs = @(
   '/m',
   '/v:m'
 )
-$out = Start-OsqueryProcess $msbuild $msbuildArgs
+$out = Start-OsqueryProcess $msbuild $msbuildArgs $false
 
 $msbuildArgs = @(
   'glog.sln',
@@ -93,7 +98,7 @@ $msbuildArgs = @(
   '/m',
   '/v:m'
 )
-Start-OsqueryProcess $msbuild $msbuildArgs
+Start-OsqueryProcess $msbuild $msbuildArgs $false
 
 # Construct the Chocolatey Package
 $chocoDir = New-Item -ItemType Directory -Path "osquery-choco"

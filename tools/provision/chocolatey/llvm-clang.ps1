@@ -30,7 +30,11 @@ $workingDir = Get-Location
 . $(Join-Path $parentPath "osquery_utils.ps1")
 
 # Invoke the MSVC developer tools/env
-Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
+$ret = Invoke-VcVarsAll
+if ($ret -ne $true) {
+	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+	exit
+}
 
 # Time our execution
 $sw = [System.Diagnostics.StopWatch]::startnew()
@@ -69,7 +73,7 @@ if (-not (Test-Path $sourceDir)) {
       "-ollvm-$version\local",
       "$packageName-$version.exe"
     )
-  Start-OsqueryProcess $7z $7zargs
+  Start-OsqueryProcess $7z $7zargs $false
 }
 Set-Location $sourceDir
 

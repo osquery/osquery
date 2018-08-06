@@ -24,11 +24,17 @@ $license = 'https://raw.githubusercontent.com/miloyip/rapidjson/master/' +
            'license.txt'
 $url = "https://github.com/miloyip/rapidjson/archive/v$version.zip"
 
+$workingDir = Get-Location
+
 # Invoke our utilities file
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
 
 # Invoke the MSVC developer tools/env
-Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
+$ret = Invoke-VcVarsAll
+if ($ret -ne $true) {
+	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+	exit
+}
 
 # Time our execution
 $sw = [System.Diagnostics.StopWatch]::startnew()
@@ -101,3 +107,6 @@ else {
     "[-] Failed to build $packageName v$chocoVersion." `
     -ForegroundColor Red
 }
+
+# Restore our working directory
+Set-Location $workingDir
