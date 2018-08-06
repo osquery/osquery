@@ -98,6 +98,9 @@ std::vector<std::pair<std::string, QueryData>> getTestDBResultStream();
 // vector includes a repeated column name and is in non-alphabetical order
 ColumnNames getSerializedRowColumnNames(bool unordered_and_repeated);
 
+// getSerializedRowColumnTypes TODO Add some tests that use this
+ColumnTypes getSerializedRowColumnTypes();
+
 // getSerializedRow() return an std::pair where pair->first is a string which
 // should serialize to pair->second. pair->second should deserialize
 // to pair->first

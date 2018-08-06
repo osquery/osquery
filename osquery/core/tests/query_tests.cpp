@@ -35,7 +35,7 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
   uint64_t counter = 128;
-  auto status = cf.addNewResults(getTestDBExpectedResults(), 0, counter);
+  auto status = cf.addNewResults(getTestDBExpectedResults(), {}, 0, counter);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(status.toString(), "OK");
   EXPECT_EQ(counter, 0UL);
@@ -52,7 +52,7 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
     // Add the "current" results and output the differentials.
     DiffResults dr;
     counter = 128;
-    auto s = cf.addNewResults(result.second, 0, counter, dr, true);
+    auto s = cf.addNewResults(result.second, {}, 0, counter, dr, true);
     EXPECT_TRUE(s.ok());
     EXPECT_EQ(counter, expected_counter++);
 
@@ -118,7 +118,7 @@ TEST_F(QueryTests, test_query_name_updated) {
   DiffResults dr;
   uint64_t counter = 128;
   auto results = getTestDBExpectedResults();
-  cf.addNewResults(results, 0, counter, dr);
+  cf.addNewResults(results, {}, 0, counter, dr);
   EXPECT_FALSE(cf.isNewQuery());
   EXPECT_EQ(counter, 0UL);
 
@@ -127,7 +127,7 @@ TEST_F(QueryTests, test_query_name_updated) {
   auto cf2 = Query("will_update_query", query);
   EXPECT_TRUE(cf2.isQueryNameInDatabase());
   EXPECT_TRUE(cf2.isNewQuery());
-  cf2.addNewResults(results, 0, counter, dr);
+  cf2.addNewResults(results, {}, 0, counter, dr);
   EXPECT_FALSE(cf2.isNewQuery());
   EXPECT_EQ(counter, 0UL);
 }

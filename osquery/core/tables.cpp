@@ -229,7 +229,7 @@ void TablePlugin::setCache(size_t step,
 
   // Serialize QueryData and save to database.
   std::string content;
-  if (serializeQueryDataJSON(results, content)) {
+  if (serializeQueryDataJSON(results, {}, content)) {
     last_cached_ = step;
     last_interval_ = interval;
     setDatabaseValue(kQueries, "cache." + getName(), content);

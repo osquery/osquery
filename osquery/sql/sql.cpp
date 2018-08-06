@@ -47,6 +47,10 @@ const ColumnNames& SQL::columns() const {
   return columns_;
 }
 
+const ColumnTypes& SQL::columnTypes() const {
+  return columnTypes_;
+}
+
 bool SQL::ok() const {
   return status_.ok();
 }

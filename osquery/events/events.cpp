@@ -591,7 +591,8 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
 
     // Serialize and store the row data, for query-time retrieval.
     std::string serialized_row;
-    auto status = serializeRowJSON(row, serialized_row);
+    ColumnTypes colTypes; // Empty type map for all-string serialization
+    auto status = serializeRowJSON(row, colTypes, serialized_row);
     if (!status.ok()) {
       VLOG(1) << status.getMessage();
       continue;

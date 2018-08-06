@@ -255,6 +255,15 @@ ColumnNames getSerializedRowColumnNames(bool unordered_and_repeated) {
   return cn;
 }
 
+ColumnTypes getSerializedRowColumnTypes() {
+  ColumnTypes ct;
+  ct["alphabetical"] = TEXT_TYPE;
+  ct["foo"] = BIGINT_TYPE;
+  ct["meaning_of_life"] = BIGINT_TYPE;
+  ct["repeated_column"] = DOUBLE_TYPE;
+  return ct;
+}
+
 std::pair<JSON, Row> getSerializedRow(bool unordered_and_repeated) {
   auto cns = getSerializedRowColumnNames(unordered_and_repeated);
 

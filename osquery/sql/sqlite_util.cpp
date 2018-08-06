@@ -151,6 +151,7 @@ Status SQLiteSQLPlugin::query(const std::string& query,
                               bool use_cache) const {
   auto dbc = SQLiteDBManager::get();
   dbc->useCache(use_cache);
+  VLOG(1) << "Calling SQLiteSQLPlugin::query";
   auto result = queryInternal(query, results, dbc);
   dbc->clearAffectedTables();
   return result;
@@ -174,6 +175,17 @@ SQLInternal::SQLInternal(const std::string& query, bool use_cache) {
   auto dbc = SQLiteDBManager::get();
   dbc->useCache(use_cache);
   status_ = queryInternal(query, results_, dbc);
+
+  if (status_.ok()) {
+    TableColumns tableColumns;
+    status_ = getQueryColumnsInternal(query, tableColumns, dbc);
+    for (const auto& tc : tableColumns) {
+      std::string cname;
+      ColumnType ctype;
+      std::tie(cname, ctype, std::ignore) = tc;
+      columnTypes_[cname] = ctype;
+    }
+  }
 
   // One of the advantages of using SQLInternal (aside from the Registry-bypass)
   // is the ability to "deep-inspect" the table attributes and actions.
