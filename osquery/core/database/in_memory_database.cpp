@@ -12,7 +12,39 @@
 #include <osquery/database.h>
 #include <osquery/logger.h>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/core/demangle.hpp>
+
 namespace osquery {
+
+template <typename StorageType>
+std::vector<std::string> InMemoryStorage<StorageType>::getKeys(
+    const std::string& prefix) const {
+  std::vector<std::string> result;
+  for (const auto& iter : storage_) {
+    if (boost::starts_with(iter.first, prefix)) {
+      result.push_back(iter.first);
+    }
+  }
+  return result;
+}
+
+template <typename StorageType>
+void InMemoryStorage<StorageType>::put(const std::string& key,
+                                       const StorageType value) {
+  storage_[key] = value;
+}
+
+template <typename StorageType>
+Expected<StorageType, DatabaseError> InMemoryStorage<StorageType>::get(
+    const std::string& key) const {
+  auto iter = storage_.find(key);
+  if (iter != storage_.end()) {
+    return iter->second;
+  }
+  return createError(DatabaseError::KeyNotFound, "Can't find value for key ")
+         << key;
+}
 
 void InMemoryDatabase::close() {
   VLOG(1) << "Closing db... ";
@@ -37,7 +69,7 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::open() {
 }
 
 Error<DatabaseError> InMemoryDatabase::domainNotFoundError(
-    const std::string& domain) {
+    const std::string& domain) const {
   return createError(DatabaseError::DomainNotFound, "Can't find domain: ")
          << domain;
 }
@@ -63,11 +95,9 @@ Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain,
       auto error =
           createError(DatabaseError::KeyNotFound, "Requested wrong type for: ")
           << domain << ":" << key << " stored type: " << value.type().name()
-          << " requested type " << typeid(T).name();
+          << " requested type " << boost::core::demangle(typeid(T).name());
       LOG(ERROR) << error.getFullMessageRecursive();
-#ifdef DEBUG
-      assert(false && error.getFullMessageRecursive().c_str());
-#endif
+      debug_only::fail(error.getFullMessageRecursive().c_str());
       return std::move(error);
     }
   }
@@ -86,13 +116,13 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::putValue(
     return domainNotFoundError(domain);
   }
   std::lock_guard<std::mutex> lock(storage_iter->second->getMutex());
-#ifdef DEBUG
-  {
-    auto result = storage_iter->second->get(key);
-    assert(result && result.get().type() == typeid(T) &&
-           "changing type is not allowed");
-  }
-#endif
+  debug_only::verify(
+      [&storage_iter, &key]() {
+        auto result = storage_iter->second->get(key);
+        return result && result.get().type() == typeid(T) &&
+               "changing type is not allowed";
+      },
+      "changing type is not allowed");
   storage_iter->second->put(key, value);
   return Success();
 }

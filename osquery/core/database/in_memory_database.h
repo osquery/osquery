@@ -20,24 +20,10 @@ namespace osquery {
 template <typename StorageType>
 class InMemoryStorage final {
  public:
-  void put(const std::string& key, const StorageType value) {
-    storage_[key] = value;
-  }
-  Expected<StorageType, DatabaseError> get(const std::string& key) const {
-    auto iter = storage_.find(key);
-    if (iter != storage_.end()) {
-      return iter->second;
-    }
-    return createError(DatabaseError::KeyNotFound, "Can't find value for key ")
-           << key;
-  }
-  std::vector<std::string> getKeys(const std::string& prefix = "") {
-    std::vector<std::string> result;
-    for (const auto& iter : storage_) {
-      result.push_back(iter.first);
-    }
-    return result;
-  }
+  void put(const std::string& key, const StorageType value);
+  Expected<StorageType, DatabaseError> get(const std::string& key) const;
+  std::vector<std::string> getKeys(const std::string& prefix = "") const;
+
   std::mutex& getMutex() {
     return mutex_;
   }
@@ -87,7 +73,7 @@ class InMemoryDatabase final : public Database {
                                           const std::string& key,
                                           const T& value);
 
-  Error<DatabaseError> domainNotFoundError(const std::string& domain);
+  Error<DatabaseError> domainNotFoundError(const std::string& domain) const;
 
  private:
   bool is_open_ = false;

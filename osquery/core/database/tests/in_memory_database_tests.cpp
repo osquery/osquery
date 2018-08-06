@@ -63,4 +63,20 @@ GTEST_TEST(InMemoryDatabaseTest, test_unknown_key) {
   EXPECT_EQ(result.takeError(), DatabaseError::KeyNotFound);
 }
 
+GTEST_TEST(InMemoryDatabaseTest, test_keys_search) {
+  auto db = std::make_unique<InMemoryDatabase>("test");
+  db->open();
+  db->putInt32(kPersistentSettings, "key_1", 1);
+  db->putInt32(kPersistentSettings, "key_2", 2);
+  db->putInt32(kPersistentSettings, "key_3", 3);
+  db->putInt32(kPersistentSettings, "kEy_1", 4);
+  db->putInt32(kPersistentSettings, "kEy_2", 5);
+  auto result_all = db->getKeys(kPersistentSettings);
+  EXPECT_TRUE(result_all);
+  EXPECT_EQ((*result_all).size(), 5);
+  auto result_some = db->getKeys(kPersistentSettings, "key");
+  EXPECT_TRUE(result_some);
+  EXPECT_EQ((*result_some).size(), 3);
+}
+
 } // namespace osquery
