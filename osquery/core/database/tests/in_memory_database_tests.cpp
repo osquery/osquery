@@ -24,8 +24,17 @@ GTEST_TEST(InMemoryDatabaseTest, test_open) {
 
 GTEST_TEST(InMemoryDatabaseTest, test_destroy) {
   auto db = std::make_unique<InMemoryDatabase>("test");
+  db->open();
+  db->putInt32(kPersistentSettings, "key", 10);
+  db->close();
+  // In memory db should be destroyed on close
+  // but we want to test that destroy is not failing for no reason
   auto result = db->destroyDB();
   EXPECT_TRUE(result);
+  db->open();
+  auto get_result = db->getInt32(kPersistentSettings, "key");
+  EXPECT_FALSE(get_result);
+  EXPECT_EQ(get_result.getError(), DatabaseError::KeyNotFound);
 }
 
 GTEST_TEST(InMemoryDatabaseTest, test_put) {
