@@ -176,13 +176,12 @@ static auto getClient() {
       tl_client = client = std::make_shared<http::Client>();
     }
 
-    if (FLAGS_tls_session_timeout > 0) {
-      if (std::chrono::duration_cast<std::chrono::seconds>(
-              std::chrono::system_clock::now() - last_time_reseted)
-              .count() > FLAGS_tls_session_timeout) {
-        tl_client.reset();
-        last_time_reseted = std::chrono::system_clock::now();
-      }
+    if (FLAGS_tls_session_timeout > 0 &&
+        std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now() - last_time_reseted)
+                .count() > FLAGS_tls_session_timeout) {
+      tl_client.reset();
+      last_time_reseted = std::chrono::system_clock::now();
     }
   } else {
     client = std::make_shared<http::Client>();
