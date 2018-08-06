@@ -208,8 +208,8 @@ Status genServiceKeyMap(
 QueryData genDrivers(QueryContext& context) {
   QueryData results;
 
-  WmiRequest wmiSignedDriverReq("select * from Win32_PnPSignedDriver");
-  auto& wmi_results = wmiSignedDriverReq.results();
+  const WmiRequest wmiSignedDriverReq("select * from Win32_PnPSignedDriver");
+  const auto& wmi_results = wmiSignedDriverReq.results();
 
   // As our list relies on the WMI set we first query and bail if no results
   if (wmi_results.empty()) {

@@ -134,8 +134,8 @@ QueryData genOSVersion(QueryContext& context) {
   const std::string kWmiQuery =
       "SELECT CAPTION,VERSION FROM Win32_OperatingSystem";
 
-  WmiRequest wmiRequest(kWmiQuery);
-  std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
+  const WmiRequest wmiRequest(kWmiQuery);
+  const std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
 
   if (wmiResults.empty()) {
     return {};
