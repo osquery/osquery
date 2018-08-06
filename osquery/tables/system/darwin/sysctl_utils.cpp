@@ -47,15 +47,6 @@ const std::vector<std::string> kControlTypes{
     "", "node", "int", "string", "quad", "opaque", "struct"};
 
 void opaquePushback(QueryData& results,
-                    Row& r,
-                    int opaque_cv,
-                    const std::string& var) {
-    r["field_name"] = var;
-    r["current_value"] = opaque_cv;
-    results.push_back(r);
-  };
-
-void opaquePushback(QueryData& results,
                       Row& r,
                       std::string opaque_cv,
                       const std::string& var) {
@@ -182,8 +173,7 @@ void genControlInfo(int* oid,
   }
 
   // Finally request MIB value.
-  if (oid_type > CTLTYPE_NODE && oid_type <= CTLTYPE_OPAQUE) {
-    auto opaque_value = std::string(response+4);
+  if (oid_type > CTLTYPE_NODE && oid_type < CTLTYPE_OPAQUE) {
     size_t value_size = 0;
     sysctl(oid, oid_size, 0, &value_size, 0, 0);
 
@@ -204,17 +194,22 @@ void genControlInfo(int* oid,
       memcpy(&value, response, sizeof(unsigned long long));
       r["current_value"] = INTEGER(value);
     }
-    // Logic for OPAQUE expansion
-    if (oid_type == CTLTYPE_STRUCT) {
-      opaqueControlInfo(results, r, response, opaque_value);
-    }
-    else {
-      results.push_back(r);
-    }
   }
+  // Logic for OPAQUE expansion
+  if (oid_type == CTLTYPE_STRUCT) {
+    auto opaque_value = std::string(response + 4);
+    size_t value_size = 0;
+    sysctl(oid, oid_size, 0, &value_size, 0, 0);
 
-
-
+    if (value_size > CTL_MAX_VALUE) {
+      // If the value size is larger than the max value, limit.
+      value_size = CTL_MAX_VALUE;
+    }
+    sysctl(oid, oid_size, response, &value_size, 0, 0);
+    opaqueControlInfo(results, r, response, opaque_value);
+  } else {
+    results.push_back(r);
+  }
 }
 
 void genControlInfoFromName(const std::string& name, QueryData& results,
