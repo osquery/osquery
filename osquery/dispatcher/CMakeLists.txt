@@ -8,7 +8,7 @@
 
 target_sources(libosquery
   PRIVATE
-    "${CMAKE_CURRENT_LIST_DIR}/dispatcher.cpp"  
+    "${CMAKE_CURRENT_LIST_DIR}/dispatcher.cpp"
 )
 
 ADD_OSQUERY_TEST_CORE(
@@ -21,8 +21,6 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_dispatcher_runners
   "${CMAKE_CURRENT_LIST_DIR}/scheduler.h"
   "${CMAKE_CURRENT_LIST_DIR}/distributed_runner.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/distributed_runner.h"
-  "${CMAKE_CURRENT_LIST_DIR}/io_service.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/io_service.h"
 )
 
 ADD_OSQUERY_TEST_ADDITIONAL(
