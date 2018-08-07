@@ -52,6 +52,7 @@ class KillswitchPlugin : public Plugin {
 
  private:
   FRIEND_TEST(KillswitchTests, test_killswitch_plugin);
-  FRIEND_TEST(KillswitchFilesystemTests, test_killswitch_filesystem_plugin);
+  FRIEND_TEST(KillswitchFilesystemTests,
+              test_killswitch_filesystem_plugin_legit);
 };
 } // namespace osquery
