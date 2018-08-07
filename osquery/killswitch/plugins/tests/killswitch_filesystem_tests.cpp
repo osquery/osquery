@@ -21,7 +21,7 @@ DECLARE_uint32(killswitch_refresh_rate);
 
 class KillswitchFilesystemTests : public testing::Test {};
 
-TEST_F(KillswitchFilesystemTests, test_killswitch_filesystem_plugin) {
+TEST_F(KillswitchFilesystemTests, test_killswitch_filesystem_plugin_legit) {
   KillswitchFilesystem plugin(kTestDataPath + "test_killswitch.conf");
   EXPECT_TRUE(plugin.refresh());
   {
@@ -35,5 +35,22 @@ TEST_F(KillswitchFilesystemTests, test_killswitch_filesystem_plugin) {
     ASSERT_FALSE(*result);
   }
 }
-
+TEST_F(KillswitchFilesystemTests,
+       test_killswitch_filesystem_plugin_incorrect_key) {
+  KillswitchFilesystem plugin(kTestDataPath +
+                              "test_killswitch_incorrect_key.conf");
+  EXPECT_FALSE(plugin.refresh());
+}
+TEST_F(KillswitchFilesystemTests,
+       test_killswitch_filesystem_plugin_incorrect_value) {
+  KillswitchFilesystem plugin(kTestDataPath +
+                              "test_killswitch_incorrect_value.conf");
+  EXPECT_FALSE(plugin.refresh());
+}
+TEST_F(KillswitchFilesystemTests,
+       test_killswitch_filesystem_plugin_incorrect_no_table) {
+  KillswitchFilesystem plugin(kTestDataPath +
+                              "test_killswitch_incorrect_value.conf");
+  EXPECT_FALSE(plugin.refresh());
+}
 } // namespace osquery
