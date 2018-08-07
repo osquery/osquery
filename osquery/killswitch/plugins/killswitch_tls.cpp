@@ -78,7 +78,12 @@ TLSKillswitchPlugin::refresh() {
   auto it = tree.doc().FindMember("config");
   if (it == tree.doc().MemberEnd()) {
     return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
-                       "killswitch member config is not string");
+                       "killswitch member config is missing");
+  }
+
+  if (!it->value.IsString()) {
+    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
+                       "killswitch member config is not a string");
   }
 
   content = it->value.GetString();
