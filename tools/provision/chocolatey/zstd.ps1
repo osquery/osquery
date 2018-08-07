@@ -64,9 +64,8 @@ if (-not (Test-Path $sourceDir)) {
   )
   Start-OsqueryProcess $7z $arg $false
 }
-Set-Location $sourceDir
 
-Write-Host "1" -ForegroundColor Yellow
+Set-Location $sourceDir
 
 $vcxprojLocation = 'build\VS2010\libzstd\libzstd.vcxproj'
 # Patch the AssemblerOutput out of the project

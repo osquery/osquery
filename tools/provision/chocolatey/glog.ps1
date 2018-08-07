@@ -32,8 +32,6 @@ if ($ret -ne $true) {
 	exit
 }
 
-Write-Host "1" -ForegroundColor Yellow
-
 # Time our execution
 $sw = [System.Diagnostics.StopWatch]::startnew()
 
