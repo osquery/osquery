@@ -238,8 +238,13 @@ TEST_F(INotifyTests, test_inotify_match_subscription) {
     EXPECT_TRUE(event_pub_->shouldFire(sc, ec));
   }
 
-  std::vector<std::string> exclude_paths = {
-      "/etc/ssh/%%", "/etc/", "/etc/ssl/openssl.cnf", "/"};
+  std::vector<std::string> exclude_paths = {"/etc/ssh/%%",
+                                            "/etc/",
+                                            "/etc/ssl/openssl.cnf",
+                                            "/",
+                                            "/home/not_to_monitor%/%%",
+                                            "/dir/%/%%",
+                                            "/tmp/%abc%/%%"};
   for (const auto& path : exclude_paths) {
     event_pub_->exclude_paths_.insert(path);
   }
@@ -260,6 +265,20 @@ TEST_F(INotifyTests, test_inotify_match_subscription) {
     EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
     ec->path = "/etc/ssl/certs/";
     EXPECT_TRUE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/home/not_to_monitor/abc";
+    EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/home/not_to_monitor2/abc";
+    EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/home/not_to_monitor3/abc";
+    EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/home/not_to_monito4/abc";
+    EXPECT_TRUE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/tmp/XabcY/abc";
+    EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/dir/dir2/abc";
+    EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/dir/dir3/abc";
+    EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
   }
 }
 
