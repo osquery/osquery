@@ -23,7 +23,8 @@ $libs = @(
   'aws-cpp-sdk-ec2',
   'aws-cpp-sdk-sts',
   'aws-cpp-sdk-firehose',
-  'aws-cpp-sdk-kinesis'
+  'aws-cpp-sdk-kinesis',
+  'aws-cpp-sdk-sqs'
 )
 
 # Keep current loc to restore later

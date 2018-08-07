@@ -28,7 +28,7 @@ class AwsSdkCpp < AbstractOsqueryFormula
     args << "-DENABLE_TESTING=OFF"
     args << "-DAUTORUN_UNIT_TESTS=OFF"
 
-    args << "-DBUILD_ONLY=ec2;firehose;kinesis;sts"
+    args << "-DBUILD_ONLY=ec2;firehose;kinesis;sqs;sts"
 
     mkdir "build" do
       system "cmake", "..", *args
