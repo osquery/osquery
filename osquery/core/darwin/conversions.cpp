@@ -18,21 +18,19 @@ namespace osquery {
 
 std::string stringFromCFString(const CFStringRef& cf_string) {
   // Access, then convert the CFString. CFStringGetCStringPtr is less-safe.
-  CFIndex length = CFStringGetLength(cf_string);
-  char* buffer = (char*)malloc(length + 1);
-  if (buffer == nullptr) {
+  auto const wlength = CFStringGetLength(cf_string);
+  auto const length =
+      CFStringGetMaximumSizeForEncoding(wlength, kCFStringEncodingUTF8);
+  if (length == kCFNotFound) {
     return "";
   }
-
-  if (!CFStringGetCString(
-          cf_string, buffer, length + 1, kCFStringEncodingASCII)) {
-    free(buffer);
-    return "";
-  }
-
-  // Cleanup allocations.
-  std::string result(buffer);
-  free(buffer);
+  auto result = std::string(length + 1, '\0');
+  // According to documentation: "if there is an error in conversion, the buffer
+  // contains only partial results". And because of that we don't need to check
+  // up the return value.
+  CFStringGetCString(
+      cf_string, &result.front(), result.size(), kCFStringEncodingUTF8);
+  result.resize(result.find('\0'));
   return result;
 }
 
