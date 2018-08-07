@@ -159,8 +159,6 @@ Status SQLiteSQLPlugin::query(const std::string& query,
 
 Status SQLiteSQLPlugin::getQueryColumns(const std::string& query,
                                         TableColumns& columns) const {
-  VLOG(1) << "Calling SQLiteSQLPlugin::getQueryColumns";
-
   auto dbc = SQLiteDBManager::get();
   return getQueryColumnsInternal(query, columns, dbc);
 }
@@ -187,8 +185,6 @@ SQLInternal::SQLInternal(const std::string& query, bool use_cache) {
       ColumnType ctype;
       std::tie(cname, ctype, std::ignore) = tc;
       columnTypes_[cname] = ctype;
-      VLOG(1) << "Setting column type " << std::get<0>(tc) << " as "
-              << std::get<1>(tc);
     }
   }
 
@@ -501,7 +497,6 @@ int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
 Status queryInternal(const std::string& q,
                      QueryData& results,
                      const SQLiteDBInstanceRef& instance) {
-  VLOG(1) << "Calling queryInternal";
   char* err = nullptr;
   auto lock = instance->attachLock();
   sqlite3_exec(instance->db(), q.c_str(), queryDataCallback, &results, &err);
@@ -517,7 +512,6 @@ Status queryInternal(const std::string& q,
 Status getQueryColumnsInternal(const std::string& q,
                                TableColumns& columns,
                                const SQLiteDBInstanceRef& instance) {
-  VLOG(1) << "Calling getQueryColumnsInternal";
   Status status = Status();
   TableColumns results;
   {

@@ -67,9 +67,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
                             pid);
   auto t0 = getUnixTime();
   Config::get().recordQueryStart(name);
-  VLOG(1) << "Contsructing new SQLInternal in scheduler's monitor";
-
-  SQLInternal sql(query.query, true);
+G  SQLInternal sql(query.query, true);
   // Snapshot the performance after, and compare.
   auto t1 = getUnixTime();
   auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
