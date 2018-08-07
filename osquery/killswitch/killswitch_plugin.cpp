@@ -34,11 +34,11 @@ KillswitchPlugin::parseMapJSON(const std::string& content) {
   const auto table = doc.doc().FindMember("table");
   if (table == doc.doc().MemberEnd()) {
     return createError(KillswitchPlugin::ParseMapJSONError::MissingKey,
-                       "killswitch key table containing map was not found");
+                       "Killswitch key table containing map was not found");
   }
   if (!table->value.IsObject()) {
     return createError(KillswitchPlugin::ParseMapJSONError::IncorrectValueType,
-                       "killswitch table value is not an object");
+                       "Killswitch table value is not an object");
   }
 
   for (const auto& keyValue : table->value.GetObject()) {
