@@ -11,6 +11,7 @@
 #include <sys/utsname.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/thread/thread.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/sql.h>
@@ -40,15 +41,12 @@ QueryData genSystemInfo(QueryContext& context) {
     }
   }
 
-  // Can parse /proc/cpuinfo or /proc/meminfo for this data.
-  static long cores = sysconf(_SC_NPROCESSORS_CONF);
-  if (cores > 0) {
-    r["cpu_logical_cores"] = INTEGER(cores);
-    r["cpu_physical_cores"] = INTEGER(cores);
-  } else {
-    r["cpu_logical_cores"] = "-1";
-    r["cpu_physical_cores"] = "-1";
-  }
+  auto logical_cores = boost::thread::hardware_concurrency();
+  r["cpu_logical_cores"] = (logical_cores > 0) ? INTEGER(logical_cores) : "-1";
+
+  auto physical_cores = boost::thread::physical_concurrency();
+  r["cpu_physical_cores"] =
+      (physical_cores > 0) ? INTEGER(physical_cores) : "-1";
 
   static long pages = sysconf(_SC_PHYS_PAGES);
   static long pagesize = sysconf(_SC_PAGESIZE);
