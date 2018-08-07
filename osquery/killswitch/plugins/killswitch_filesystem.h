@@ -29,7 +29,14 @@ class KillswitchFilesystem : public KillswitchRefreshablePlugin {
  private:
   const boost::filesystem::path conf_path_;
 
-  FRIEND_TEST(KillswitchFilesystemTests, test_killswitch_filesystem_plugin);
+  FRIEND_TEST(KillswitchFilesystemTests,
+              test_killswitch_filesystem_plugin_legit);
+  FRIEND_TEST(KillswitchFilesystemTests,
+              test_killswitch_filesystem_plugin_incorrect_key);
+  FRIEND_TEST(KillswitchFilesystemTests,
+              test_killswitch_filesystem_plugin_incorrect_value);
+  FRIEND_TEST(KillswitchFilesystemTests,
+              test_killswitch_filesystem_plugin_incorrect_no_table);
 };
 
 } // namespace osquery
