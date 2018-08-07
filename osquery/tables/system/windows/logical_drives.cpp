@@ -63,8 +63,8 @@ QueryData genLogicalDrives(QueryContext& context) {
         std::string("Associators of {Win32_LogicalDisk.DeviceID='") + deviceId +
         "'} where AssocClass=Win32_LogicalDiskToPartition";
 
-	const WmiRequest wmiLogicalDiskToPartitionReq(assocQuery);
-	const std::vector<WmiResultItem>& wmiLogicalDiskToPartitionResults =
+    const WmiRequest wmiLogicalDiskToPartitionReq(assocQuery);
+    const std::vector<WmiResultItem>& wmiLogicalDiskToPartitionResults =
         wmiLogicalDiskToPartitionReq.results();
 
     if (wmiLogicalDiskToPartitionResults.empty()) {
@@ -79,7 +79,7 @@ QueryData genLogicalDrives(QueryContext& context) {
         std::string(
             "SELECT BootPartition FROM Win32_DiskPartition WHERE DeviceID='") +
         partitionDeviceId + '\'';
-	const WmiRequest wmiPartitionReq(partitionQuery);
+    const WmiRequest wmiPartitionReq(partitionQuery);
 	const std::vector<WmiResultItem>& wmiPartitionResults = wmiPartitionReq.results();
 
     if (wmiPartitionResults.empty()) {
