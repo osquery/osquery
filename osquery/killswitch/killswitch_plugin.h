@@ -38,7 +38,8 @@ class KillswitchPlugin : public Plugin {
   enum class ParseMapJSONError {
     IncorrectKeyType = 1,
     IncorrectValueType = 2,
-    UnknownParsingProblem = 3
+    UnknownParsingProblem = 3,
+    MissingKey = 4
   };
   static Expected<std::unordered_map<std::string, bool>, ParseMapJSONError>
   parseMapJSON(const std::string& content);
@@ -51,6 +52,7 @@ class KillswitchPlugin : public Plugin {
 
  private:
   FRIEND_TEST(KillswitchTests, test_killswitch_plugin);
-  FRIEND_TEST(KillswitchFilesystemTests, test_killswitch_filesystem_plugin);
+  FRIEND_TEST(KillswitchFilesystemTests,
+              test_killswitch_filesystem_plugin_legit);
 };
 } // namespace osquery
