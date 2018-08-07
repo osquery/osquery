@@ -80,7 +80,8 @@ QueryData genLogicalDrives(QueryContext& context) {
             "SELECT BootPartition FROM Win32_DiskPartition WHERE DeviceID='") +
         partitionDeviceId + '\'';
     const WmiRequest wmiPartitionReq(partitionQuery);
-	const std::vector<WmiResultItem>& wmiPartitionResults = wmiPartitionReq.results();
+    const std::vector<WmiResultItem>& wmiPartitionResults =
+        wmiPartitionReq.results();
 
     if (wmiPartitionResults.empty()) {
       results.push_back(r);
