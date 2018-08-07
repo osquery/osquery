@@ -31,7 +31,7 @@ KillswitchPlugin::parseMapJSON(const std::string& content) {
         "Error parsing the killswitch JSON. Content : " + content);
   }
 
-  for (const auto& keyValue : doc.doc().GetObject()) {
+  for (const auto& keyValue : doc.doc()["table"].GetObject()) {
     if (!keyValue.name.IsString()) {
       return createError(KillswitchPlugin::ParseMapJSONError::IncorrectKeyType,
                          "Killswitch config key was not string");
