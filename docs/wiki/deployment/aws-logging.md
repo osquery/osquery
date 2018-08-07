@@ -1,8 +1,8 @@
-As of version 1.7.4, osquery can log results directly to Amazon AWS [Kinesis Streams](https://aws.amazon.com/kinesis/streams/) and [Kinesis Firehose](https://aws.amazon.com/kinesis/firehose/). For users of these services, `osqueryd` can eliminate the need for a separate log forwarding daemon running in your deployments.
+As of version 1.7.4, osquery can log results directly to Amazon AWS [Kinesis Streams](https://aws.amazon.com/kinesis/streams/) and [Kinesis Firehose](https://aws.amazon.com/kinesis/firehose/). Additionally, osquery supports logging to an [SQS Queue](https://aws.amazon.com/sqs/). For users of these services, `osqueryd` can eliminate the need for a separate log forwarding daemon running in your deployments.
 
 ## Configuration
 
-The Kinesis Streams and Kinesis Firehose logger plugins are named `aws_kinesis` and `aws_firehose` respectively. They can be enabled as with other logger plugins using the config flag `logger_plugin`.
+The Kinesis Streams, Kinesis Firehose, and SQS logger plugins are named `aws_kinesis`, `aws_firehose`, and `aws_sqs` respectively. They can be enabled as with other logger plugins using the config flag `logger_plugin`.
 
 Some configuration is shared between the two plugins:
 
@@ -37,6 +37,10 @@ Setting aws_kinesis_random_partition_key to true will use random partition keys 
 
 Similarly for Kinesis Firehose delivery streams, the stream name must be specified with `aws_firehose_stream`, and the period can be configured with `aws_firehose_period`.
 
+### SQS Queue
+
+When logging to an SQS queue, the queue url must be specified with `aws_sqs_queue_url`, and the period can be configured with `aws_sqs_period`.
+
 ### Sample Config File
 ```
 {
@@ -46,6 +50,7 @@ Similarly for Kinesis Firehose delivery streams, the stream name must be specifi
     "logger_plugin": "aws_kinesis,aws_firehose",
     "aws_kinesis_stream": "foo_stream",
     "aws_firehose_stream": "bar_delivery_stream",
+    "aws_sqs_queue_url": "baz_queue_url"
     "aws_access_key_id": "ACCESS_KEY",
     "aws_secret_access_key": "SECRET_KEY",
     "aws_region": "us-east-1"
@@ -60,4 +65,4 @@ Similarly for Kinesis Firehose delivery streams, the stream name must be specifi
 }
 ```
 
-**Note**: Kinesis services have a maximum 1MB record size. Result logs bigger than this will not be forwarded by **osqueryd** as they will be rejected by the Kinesis services.
+**Note**: Kinesis services have a maximum 1MB record size, and the SQS service has a maximum 256KB record size. Result logs bigger than this will not be forwarded by **osqueryd** as they will be rejected by the respective services.
