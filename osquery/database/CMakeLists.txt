@@ -20,6 +20,7 @@ ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/results_tests.cpp"
 )
 
+if(NOT OSQUERY_BUILD_SDK_ONLY)
 ADD_OSQUERY_LIBRARY(FALSE osquery_database_plugins
   "${CMAKE_CURRENT_LIST_DIR}/plugins/rocksdb.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/plugins/rocksdb.h"
@@ -31,6 +32,7 @@ target_compile_definitions(osquery_database_plugins
   PRIVATE
     "-DROCKSDB_LITE=1"
 )
+endif()
 
 ADD_OSQUERY_TEST_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/tests/plugin_tests.cpp"
