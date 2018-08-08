@@ -38,10 +38,6 @@ namespace osquery {
  *                    Path components containing partial patterns are not
  *                    supported e.g. '/This/Path/xyz%' ('xyz%' will not be
  *                    treated as pattern).
- *
- * 2. resolvedPath - path is resolved before being inserted into set.
- *                   But path can match recursively.
- *
  */
 template <typename PathType>
 class PathSet : private boost::noncopyable {
@@ -156,62 +152,6 @@ class patternedPath {
       path.push_back(std::move(component));
     }
     vpath.push_back(std::move(path));
-    return vpath;
-  }
-};
-
-class resolvedPath {
- public:
-  struct Path {
-    Path(const std::string& str, bool r = false) : path(str), recursive(r) {}
-    const std::string path;
-    bool recursive{false};
-  };
-  typedef std::vector<Path> VPath;
-
-  struct Compare {
-    bool operator()(const Path& lhs, const Path& rhs) const {
-      size_t size = (lhs.path.size() < rhs.path.size()) ? lhs.path.size()
-                                                        : rhs.path.size();
-
-      int rc = lhs.path.compare(0, size, rhs.path, 0, size);
-
-      if (rc > 0) {
-        return false;
-      }
-
-      if (rc < 0) {
-        return true;
-      }
-
-      if ((size < rhs.path.size() && lhs.recursive) ||
-          (size < lhs.path.size() && rhs.recursive)) {
-        return false;
-      }
-
-      return (lhs.path.size() < rhs.path.size());
-    }
-  };
-
-  static Path createPath(const std::string& str) {
-    return Path(str);
-  }
-
-  static VPath createVPath(const std::string& str) {
-    bool recursive = false;
-    std::string pattern(str);
-    if (pattern.find("**") != std::string::npos) {
-      recursive = true;
-      pattern = pattern.substr(0, pattern.find("**"));
-    }
-
-    std::vector<std::string> paths;
-    resolveFilePattern(pattern, paths);
-
-    VPath vpath;
-    for (const auto& path : paths) {
-      vpath.push_back(Path(path, recursive));
-    }
     return vpath;
   }
 };
