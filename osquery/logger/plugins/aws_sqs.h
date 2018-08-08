@@ -13,8 +13,8 @@
 #include <vector>
 
 #include <aws/sqs/SQSClient.h>
-#include <aws/sqs/model/SendMessageBatchRequestEntry.h>
 #include <aws/sqs/model/Message.h>
+#include <aws/sqs/model/SendMessageBatchRequestEntry.h>
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
@@ -32,9 +32,7 @@ using ISQSLogForwarder =
 
 class SQSLogForwarder final : public ISQSLogForwarder {
  public:
-  SQSLogForwarder(const std::string& name,
-                  size_t log_period,
-                  size_t max_lines)
+  SQSLogForwarder(const std::string& name, size_t log_period, size_t max_lines)
       : ISQSLogForwarder(name, log_period, max_lines) {}
 
  protected:
@@ -76,4 +74,4 @@ class SQSLoggerPlugin : public LoggerPlugin {
  private:
   std::shared_ptr<SQSLogForwarder> forwarder_{nullptr};
 };
-}
+} // namespace osquery

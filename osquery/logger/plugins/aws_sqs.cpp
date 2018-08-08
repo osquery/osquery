@@ -67,7 +67,8 @@ void SQSLoggerPlugin::init(const std::string& name,
 
 Status SQSLogForwarder::internalSetup() {
   if (FLAGS_aws_sqs_queue_url.empty()) {
-    return Status::failure("Queue URL must be specified with --aws_sqs_queue_url");
+    return Status::failure(
+        "Queue URL must be specified with --aws_sqs_queue_url");
   }
 
   VLOG(1) << "SQS logging initialized with queue URL: "
@@ -76,15 +77,14 @@ Status SQSLogForwarder::internalSetup() {
   return Status::success();
 }
 
-SQSLogForwarder::Outcome SQSLogForwarder::internalSend(
-    const Batch& batch) {
+SQSLogForwarder::Outcome SQSLogForwarder::internalSend(const Batch& batch) {
   Aws::SQS::Model::SendMessageBatchRequest request;
   request.WithQueueUrl(FLAGS_aws_sqs_queue_url).SetEntries(batch);
   return client_->SendMessageBatch(request);
 }
 
-void SQSLogForwarder::initializeRecord(
-    Record& record, Aws::Utils::ByteBuffer& buffer) const {
+void SQSLogForwarder::initializeRecord(Record& record,
+                                       Aws::Utils::ByteBuffer& buffer) const {
   record.SetBody(buffer);
 }
 
@@ -116,8 +116,7 @@ size_t SQSLogForwarder::getFailedRecordCount(Outcome& outcome) const {
   return static_cast<size_t>(outcome.GetResult().GetFailed());
 }
 
-SQSLogForwarder::Result SQSLogForwarder::getResult(
-    Outcome& outcome) const {
+SQSLogForwarder::Result SQSLogForwarder::getResult(Outcome& outcome) const {
   return outcome.GetResult().GetEntries();
 }
-}
+} // namespace osquery
