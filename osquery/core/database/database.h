@@ -32,7 +32,7 @@ enum class DatabaseError {
   DomainNotFound = 9,
   // Corruption or other unrecoverable error after DB can't be longer used
   // Database should be closed, destroyed and opened again
-  // If this error was received during data access, then aplication
+  // If this error was received during data access, then application
   // is likely to die soon
   // See message and/or underlying error for details
   Panic = 10,
@@ -82,7 +82,7 @@ class Database {
       const std::string& domain, const std::string& prefix = "") = 0;
 
   // This function designed to write batch of data as one operation and get
-  // as much performance as possbile. Becuase of this, db may not guarantee
+  // as much performance as possbile. Because of this, db may not guarantee
   // data consistency or atomic nature of operation
   // Please see actual function implementaion for details and limitations
   virtual ExpectedSuccess<DatabaseError> putStringsUnsafe(

@@ -11,8 +11,8 @@
 # $version - The version of the software package to build
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
-$version = '5.7.1'
-$chocoVersion = '5.7.1-r1'
+$version = '5.7.2'
+$chocoVersion = '5.7.2'
 $packageName = "rocksdb"
 $projectSource = 'https://github.com/facebook/rocksdb/'
 $packageSourceUrl = 'https://github.com/facebook/rocksdb/'
@@ -57,7 +57,7 @@ $sourceDir = Join-Path $(Get-Location) "rocksdb-$version"
 if (-not (Test-Path $sourceDir)) {
   $7z = (Get-Command '7z').Source
   $7zargs = "x $packageName-$version.zip"
-  Start-OsqueryProcess $7z $7zargs
+  Start-OsqueryProcess $7z $7zargs $false
 }
 Set-Location $sourceDir
 
@@ -103,6 +103,7 @@ if ($ret -ne $true) {
 	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
 	exit
 }
+
 
 $cmake = (Get-Command 'cmake').Source
 $cmakeArgs = @(
@@ -165,7 +166,7 @@ foreach ($lib in Get-ChildItem "$buildDir\Debug\") {
 Copy-Item "$buildDir\Release\*" $libDir
 Copy-Item -Recurse "$buildDir\..\include\rocksdb" $includeDir
 Copy-Item $buildScript $srcDir
-choco pack
+Start-OsqueryProcess 'choco' @('pack') $false
 
 Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" `
 -ForegroundColor DarkGreen

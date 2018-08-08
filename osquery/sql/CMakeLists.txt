@@ -11,6 +11,7 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/sql.cpp"
 )
 
+if(NOT OSQUERY_BUILD_SDK_ONLY)
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_sql_internal
   "${CMAKE_CURRENT_LIST_DIR}/sqlite_encoding.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/sqlite_filesystem.cpp"
@@ -34,6 +35,7 @@ if(NOT SKIP_CARVER)
     PRIVATE
        "${CMAKE_CURRENT_LIST_DIR}/sqlite_operations.cpp"
   )
+endif()
 endif()
 
 ADD_OSQUERY_TEST_ADDITIONAL(

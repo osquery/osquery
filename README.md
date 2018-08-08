@@ -103,7 +103,7 @@ There are several forms of [eventing](http://osquery.readthedocs.org/en/stable/d
 
 ## License
 
-The osquery project is dual-licensed under Apache 2.0 and GPLv2. You may select, at your option, one of these licenses.
+By contributing to osquery you agree that your contributions will be licensed as defined on the LICENSE file.
 
 ## Vulnerabilities
 
@@ -113,7 +113,5 @@ Facebook has a [bug bounty](https://www.facebook.com/whitehat/) program that inc
 
 ## Learn more
 
-**Want to be a Security Engineer at Facebook?** The osquery development team is hiring! Our team's mission is detect external and internal threats to users' data. We do that by building, deploying, and using intrusion detection tools like osquery. Check out our [position description](https://www.facebook.com/careers/jobs/a0I1200000JXmWQEA1/) or reach out to [`@theopolis`](https://github.com/theopolis).
-
 Read the [launch blog post](https://code.facebook.com/posts/844436395567983/introducing-osquery/) for background on the project.
-If you're interested in learning more about osquery, visit the [users guide](https://osquery.readthedocs.org/) and browse our RFC-labeled Github issues. Development and usage discussion is happing in the osquery Slack, grab an invite automatically: [https://osquery-slack.herokuapp.com/](https://osquery-slack.herokuapp.com/)!
+If you're interested in learning more about osquery, visit the [users guide](https://osquery.readthedocs.org/). Development and usage discussion is happening in the osquery Slack, grab an invite automatically [here](https://slack.osquery.io)!

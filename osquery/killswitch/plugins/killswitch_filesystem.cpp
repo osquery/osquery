@@ -43,7 +43,7 @@ KillswitchFilesystem::refresh() {
   if (!fs::is_regular_file(conf_path_, ec) || ec.value() != errc::success ||
       !readFile(conf_path_, content).ok()) {
     createError(KillswitchRefreshablePlugin::RefreshError::NoContentReached,
-                "config file does not exist: " + conf_path_.string());
+                "Config file does not exist: " + conf_path_.string());
   }
 
   auto result = KillswitchPlugin::parseMapJSON(content);
