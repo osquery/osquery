@@ -1,0 +1,27 @@
+table_name("coreanalytics")
+description("Query application usage from CoreAnalytics files. Ref: https://www.crowdstrike.com/blog/i-know-what-you-did-last-month-a-new-artifact-of-execution-on-macos-10-13/.")
+schema([
+    Column("activations", INTEGER, "Likely provides number of times application was executed."),
+    Column("active_time", INTEGER, "Likely provides the number of seconds that a program ran in the foreground."),
+    Column("activity_periods", INTEGER, "Likely provides the number of instances that a program was brought to the foreground."),
+    Column("app_description", TEXT, "Populated by data that is directly pulled from the Info.plist that resides within the pertinent program’s application bundle.",hidden=True),
+    Column("foreground", TEXT, "YES or NO string value that indicates whether the program was run in the foreground."),
+    Column("idle_timeouts", INTEGER, "Unknown."),
+    Column("launches", INTEGER, "Likely indicates the number of times the program was launched during the diagnostic reporting period. The value of launches will remain at zero if the program was launched prior to the beginning of the diagnostic period."),
+    Column("power_time", INTEGER, "Likely reflects the number of seconds that the program was running and consuming AC power."),
+    Column("process_name", TEXT, "Derived from the CFBundleExecutable key in the Info.plist that resides within the pertinent program’s application bundle."),
+    Column("uptime", INTEGER, "Likely reflects the total time, in number of seconds, that a program has been running. This does not include time that the system was asleep or shut down."),
+    Column("subsystem_name", TEXT, "a.",hidden=True),
+    Column("subsystem_uuid", TEXT, "a.",hidden=True),
+    Column("diag_start", TEXT, "Start time of diagnostic period."),
+    Column("diag_end", TEXT, "End time of diagnostic period."),
+    Column("source_file", TEXT, "Core Analytics file record was collected from.",hidden=True),
+    Column("app_name", TEXT, "Application name parsed from app_description."),
+    Column("app_version", TEXT, "Application version parsed from app_description."),
+])
+implementation("coreanalytics@genCoreAnalyticsResults")
+fuzz_paths(["/Library/Logs/DiagnosticReports/"])
+examples([
+	"select * from coreanalytics;"
+	"select * from coreanalytics where app_name = 'com.apple.Safari';",
+])
