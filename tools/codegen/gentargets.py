@@ -73,6 +73,8 @@ TARGETS_POSTSCRIPT = """    ],
         "-DOSQUERY_BUILD_DISTRO=centos7",
         "-DOSQUERY_PLATFORM_MASK=9",
         "-DFBTHRIFT",
+        "-DRAPIDJSON_HAS_STDSTRING=1",
+        "-DRAPIDJSON_NO_SIZETYPEDEFINE",
     ],
     deps = [
         ":if-cpp2",
