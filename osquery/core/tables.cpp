@@ -430,7 +430,7 @@ std::set<std::string> ConstraintList::getAll(ConstraintOperator op) const {
 }
 
 template <typename T>
-std::set<T> ConstraintList::getAll(ConstraintOperator op /* unused */) const {
+std::set<T> ConstraintList::getAll(ConstraintOperator /* op */) const {
   std::set<T> cs;
   for (const auto& item : constraints_) {
     auto exp = tryTo<T>(item.expr);
