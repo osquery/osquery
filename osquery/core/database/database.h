@@ -40,7 +40,7 @@ enum class DatabaseError {
 
 class Database {
  public:
-  explicit Database(std::string name) : name_(std::move(name)){};
+  explicit Database(std::string name) : name_(std::move(name)) {}
   virtual ~Database() = default;
 
   const std::string& getName() const {
