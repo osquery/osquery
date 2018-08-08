@@ -235,6 +235,11 @@ Status deserializeRow(const rj::Value& doc, Row& r) {
   for (const auto& i : doc.GetObject()) {
     std::string name(i.name.GetString());
     if (!name.empty() && i.value.IsString()) {
+      // TODO This is going crash, as it is, provided we are deserializing any
+      // maps that happen to have values serialized numerically (I'm not sure we
+      // do, we seem to only deserialize into "Row" objects (maps) from
+      // EventSubscriberPlugin::get).  I'm afraid we need to convert our numbers
+      // back into strings.  :(
       r[name] = i.value.GetString();
     }
   }
@@ -466,7 +471,7 @@ Status serializeEvent(const QueryLogItem& item,
   auto columns_obj = doc.getObject();
   for (const auto& i : event_obj.GetObject()) {
     // Yield results as a "columns." map to avoid namespace collisions.
-    doc.addCopy(i.name.GetString(), i.value.GetString(), columns_obj);
+    doc.add(i.name.GetString(), i.value, columns_obj);
   }
 
   doc.add("columns", columns_obj, obj);
