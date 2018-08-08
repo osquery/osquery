@@ -4,7 +4,7 @@ As of version 1.7.4, osquery can log results directly to Amazon AWS [Kinesis Str
 
 The Kinesis Streams, Kinesis Firehose, and SQS logger plugins are named `aws_kinesis`, `aws_firehose`, and `aws_sqs` respectively. They can be enabled as with other logger plugins using the config flag `logger_plugin`.
 
-Some configuration is shared between the two plugins:
+Some configuration is shared between the three plugins:
 
 ```
 --aws_access_key_id VALUE               AWS access key ID override

@@ -8,15 +8,12 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <algorithm>
-
 #include <aws/core/client/AWSError.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/sqs/model/SendMessageBatchRequest.h>
 #include <aws/sqs/model/SendMessageBatchResult.h>
 
-#include <boost/algorithm/string/join.hpp>
-
+#include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
@@ -25,26 +22,34 @@
 
 namespace osquery {
 
-REGISTER(SQSLoggerPlugin, "logger", "aws_sqs");
+static const char* kAwsSQSServiceName = "aws_sqs";
+
+REGISTER(SQSLoggerPlugin, "logger", kAwsSQSServiceName);
 
 FLAG(uint64,
      aws_sqs_period,
      10,
      "Seconds between flushing logs to SQS (default 10)");
 
-FLAG(string, aws_sqs_queue_url, "", "Name of SQS queue URL for logging")
+FLAG(string, aws_sqs_queue_url, "", "URL of SQS queue for logging")
 
 Status SQSLoggerPlugin::setUp() {
   initAwsSdk();
   forwarder_ = std::make_shared<SQSLogForwarder>(
-      "aws_sqs", aws_sqs_queue_url, 500);
+      kAwsSQSServiceName, aws_sqs_queue_url, 500);
   Status s = forwarder_->setUp();
   if (!s.ok()) {
     LOG(ERROR) << "Error initializing SQS logger: " << s.getMessage();
     return s;
   }
-  Dispatcher::addService(forwarder_);
-  return Status(0, "OK");
+
+  s = Dispatcher::addService(forwarder_);
+  if (!s.ok()) {
+    LOG(ERROR) << "Error adding SQS dispatcher service: " << s.getMessage();
+    return s;
+  }
+
+  return Status::success();
 }
 
 Status SQSLoggerPlugin::logString(const std::string& s) {
@@ -56,19 +61,19 @@ Status SQSLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
 }
 
 void SQSLoggerPlugin::init(const std::string& name,
-                               const std::vector<StatusLogLine>& log) {
+                           const std::vector<StatusLogLine>& log) {
   logStatus(log);
 }
 
 Status SQSLogForwarder::internalSetup() {
   if (FLAGS_aws_sqs_queue_url.empty()) {
-    return Status(1, "Queue URL must be specified with --aws_sqs_queue_url");
+    return Status::failure("Queue URL must be specified with --aws_sqs_queue_url");
   }
 
   VLOG(1) << "SQS logging initialized with queue URL: "
           << FLAGS_aws_sqs_queue_url;
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 SQSLogForwarder::Outcome SQSLogForwarder::internalSend(

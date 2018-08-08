@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include <chrono>
-#include <memory>
 #include <vector>
 
 #include <aws/sqs/SQSClient.h>
@@ -19,7 +17,6 @@
 #include <aws/sqs/model/Message.h>
 
 #include <osquery/core.h>
-#include <osquery/dispatcher.h>
 #include <osquery/logger.h>
 
 #include "osquery/logger/plugins/aws_log_forwarder.h"
@@ -55,9 +52,6 @@ class SQSLogForwarder final : public ISQSLogForwarder {
 
   size_t getFailedRecordCount(Outcome& outcome) const override;
   Result getResult(Outcome& outcome) const override;
-
- private:
-  FRIEND_TEST(SQSTests, test_send);
 };
 
 class SQSLoggerPlugin : public LoggerPlugin {
