@@ -513,7 +513,7 @@ static void interrupt_handler(int signal) {
 ** invokes for each row of a query result.
 */
 static int shell_callback(
-    void* pArg, int nArg, char** azArg, char** azCol, int* /*aiType*/) {
+    void* pArg, int nArg, char** azArg, const char** azCol, int* /*aiType*/) {
   int i;
   auto* p = reinterpret_cast<struct callback_data*>(pArg);
 
@@ -1075,7 +1075,7 @@ inline void meta_tables(int nArg, char** azArg) {
 }
 
 inline void meta_types(struct callback_data* pArg, char* zSql) {
-  char* COLUMN_NAMES[] = {"name", "type"};
+  const char* COLUMN_NAMES[] = {"name", "type"};
 
   auto dbc = osquery::SQLiteDBManager::get();
   osquery::TableColumns columns;
