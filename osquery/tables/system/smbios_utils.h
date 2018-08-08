@@ -138,9 +138,9 @@ void genSMBIOSMemoryDeviceMappedAddresses(size_t index,
  *
  * @param data A pointer to the SMBIOS structure.
  * @param address A pointer to the stacked data following the structure.
- * @Param offset The field index into address.
+ * @Param index The index of the stacked string.
  */
-std::string dmiString(uint8_t* data, uint8_t* address, size_t offset);
+std::string dmiString(uint8_t* data, uint8_t* address, uint8_t index);
 
 /**
  * @brief Return std::string representation of a bitfield.
