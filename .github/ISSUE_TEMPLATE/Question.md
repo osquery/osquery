@@ -7,14 +7,15 @@ about: You have a question about osquery
 
 # Question
 
-DO NOT submit issues for questions about osquery, osquery deployments or anything other than bug reports, feature requests or blueprints.
+**We are happy to help, however please DO NOT submit issues for questions about osquery.**
 
-To asks any questions checkout or Slack or other support channels:
+We only use issues to track bugs, feature requests or blueprints, for everything else check out Slack or the other channels bellow:
 
 Slack : https://slack.osquery.io/
 
 Reddit : https://www.reddit.com/r/osquery/
-StackOverflow : https://stackoverflow.com/tags/osquery
+
+Stack Overflow : https://stackoverflow.com/tags/osquery
 
 
 **If you go ahead and submit an issue with a question it will not be answered.**
