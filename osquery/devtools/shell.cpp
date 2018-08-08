@@ -797,7 +797,8 @@ static char* save_err_msg(sqlite3* db) {
 */
 static int shell_exec(
     const char* zSql, /* SQL to be evaluated */
-    int (*xCallback)(void*, int, char**, char**, int*), /* Callback function */
+    int (*xCallback)(
+        void*, int, char**, const char**, int*), /* Callback function */
     /* (not the same as sqlite3_exec) */
     struct callback_data* pArg, /* Pointer to struct callback_data */
     char** pzErrMsg /* Error msg written here */
