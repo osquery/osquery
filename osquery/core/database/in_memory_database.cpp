@@ -119,8 +119,7 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::putValue(
   debug_only::verify(
       [&storage_iter, &key]() {
         auto result = storage_iter->second->get(key);
-        return result && result.get().type() == typeid(T) &&
-               "changing type is not allowed";
+        return result && result.get().type() == typeid(T);
       },
       "changing type is not allowed");
   storage_iter->second->put(key, value);
