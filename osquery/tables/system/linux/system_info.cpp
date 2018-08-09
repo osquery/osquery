@@ -44,9 +44,7 @@ QueryData genSystemInfo(QueryContext& context) {
   auto logical_cores = boost::thread::hardware_concurrency();
   r["cpu_logical_cores"] = (logical_cores > 0) ? INTEGER(logical_cores) : "-1";
 
-  auto physical_cores = boost::thread::physical_concurrency();
-  r["cpu_physical_cores"] =
-      (physical_cores > 0) ? INTEGER(physical_cores) : "-1";
+  r["cpu_physical_cores"] = INTEGER(boost::thread::physical_concurrency());
 
   static long pages = sysconf(_SC_PHYS_PAGES);
   static long pagesize = sysconf(_SC_PAGESIZE);
