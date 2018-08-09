@@ -28,6 +28,7 @@ namespace tables {
 
 const std::string kPCIKeySlot = "PCI_SLOT_NAME";
 const std::string kPCIKeyClass = "ID_PCI_CLASS_FROM_DATABASE";
+const std::string kPCIKeySubclass = "ID_PCI_SUBCLASS_FROM_DATABASE";
 const std::string kPCIKeyVendor = "ID_VENDOR_FROM_DATABASE";
 const std::string kPCIKeyModel = "ID_MODEL_FROM_DATABASE";
 const std::string kPCIKeyID = "PCI_ID";
@@ -286,6 +287,8 @@ QueryData genPCIDevices(QueryContext& context) {
     Row r;
     r["pci_slot"] = UdevEventPublisher::getValue(device.get(), kPCIKeySlot);
     r["pci_class"] = UdevEventPublisher::getValue(device.get(), kPCIKeyClass);
+    r["pci_subclass"] =
+        UdevEventPublisher::getValue(device.get(), kPCIKeySubclass);
     r["driver"] = UdevEventPublisher::getValue(device.get(), kPCIKeyDriver);
     r["vendor"] = UdevEventPublisher::getValue(device.get(), kPCIKeyVendor);
     r["model"] = UdevEventPublisher::getValue(device.get(), kPCIKeyModel);

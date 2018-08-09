@@ -17,9 +17,11 @@ schema([
 ])
 
 extended_schema(LINUX, [
+    Column("pci_subclass", TEXT, "PCI Device subclass"),
     Column("subsystem_vendor_id", TEXT, "Vendor ID of PCI device subsystem"),
     Column("subsystem_vendor", TEXT, "Vendor of PCI device subsystem"),
     Column("subsystem_model_id", TEXT, "Model ID of PCI device subsystem"),
     Column("subsystem_model", TEXT, "Device description of PCI device subsystem"),
 ])
+
 implementation("pci_devices@genPCIDevices")
