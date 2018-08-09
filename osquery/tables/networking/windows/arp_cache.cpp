@@ -42,7 +42,7 @@ QueryData genIPv4ArpCache(QueryContext& context) {
   QueryData results;
   auto interfaces = genInterfaceDetails(context);
   const WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor",
-                          (BSTR)L"ROOT\\StandardCimv2");
+                                (BSTR)L"ROOT\\StandardCimv2");
   const auto& wmiResults = wmiSystemReq.results();
   std::map<long, std::string> mapOfInterfaces = {
       {1, ""}, // loopback

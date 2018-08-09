@@ -185,7 +185,7 @@ class WmiRequest {
   WmiRequest(WmiRequest&& src);
   ~WmiRequest();
 
-  const std::vector<WmiResultItem>& results() const{
+  const std::vector<WmiResultItem>& results() const {
     return results_;
   }
 
@@ -194,7 +194,7 @@ class WmiRequest {
   *
   * @returns the status of the WMI request.
   */
-  Status getStatus() const{
+  Status getStatus() const {
     return status_;
   }
 

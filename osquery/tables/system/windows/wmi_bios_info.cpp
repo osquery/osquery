@@ -146,8 +146,8 @@ QueryData genBiosInfo(QueryContext& context) {
 
   if (kQueryMap.find(manufacturer) != kQueryMap.end()) {
     const WmiRequest wmiBiosReq(std::get<0>(kQueryMap.at(manufacturer)),
-                          (std::get<1>(kQueryMap.at(manufacturer))));
-	const std::vector<WmiResultItem>& wmiResults = wmiBiosReq.results();
+                                (std::get<1>(kQueryMap.at(manufacturer))));
+    const std::vector<WmiResultItem>& wmiResults = wmiBiosReq.results();
 
     for (unsigned int i = 0; i < wmiResults.size(); ++i) {
       Row r;
