@@ -356,8 +356,8 @@ void genSMBIOSMemoryDevices(size_t index,
     r["set"] = INTEGER(static_cast<int>(address[0x0F]));
   }
 
-  r["device_locator"] = dmiString(textAddrs, address, 0x10);
-  r["bank_locator"] = dmiString(textAddrs, address, 0x11);
+  r["device_locator"] = dmiString(textAddrs, address[0x10]);
+  r["bank_locator"] = dmiString(textAddrs, address[0x11]);
 
   auto memoryType = kSMBIOSMemoryTypeTable.find(address[0x12]);
   if (memoryType != kSMBIOSMemoryTypeTable.end()) {
@@ -377,10 +377,10 @@ void genSMBIOSMemoryDevices(size_t index,
     r["configured_clock_speed"] = INTEGER(speed);
   }
 
-  r["manufacturer"] = dmiString(textAddrs, address, 0x17);
-  r["serial_number"] = dmiString(textAddrs, address, 0x18);
-  r["asset_tag"] = dmiString(textAddrs, address, 0x19);
-  r["part_number"] = dmiString(textAddrs, address, 0x1A);
+  r["manufacturer"] = dmiString(textAddrs, address[0x17]);
+  r["serial_number"] = dmiString(textAddrs, address[0x18]);
+  r["asset_tag"] = dmiString(textAddrs, address[0x19]);
+  r["part_number"] = dmiString(textAddrs, address[0x1A]);
 
   auto vt = dmiToWord(address, 0x22);
   if (vt != 0) {
@@ -551,8 +551,7 @@ void genSMBIOSMemoryDeviceMappedAddresses(size_t index,
   results.push_back(std::move(r));
 }
 
-std::string dmiString(uint8_t* data, uint8_t* address, size_t offset) {
-  auto index = address[offset];
+std::string dmiString(uint8_t* data, uint8_t index) {
   if (index == 0) {
     return "";
   }

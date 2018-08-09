@@ -242,9 +242,9 @@ QueryData genPlatformInfo(QueryContext& context) {
 
     Row r;
 
-    r["vendor"] = dmiString(textAddrs, address, 0x04);
-    r["version"] = dmiString(textAddrs, address, 0x05);
-    r["date"] = dmiString(textAddrs, address, 0x08);
+    r["vendor"] = dmiString(textAddrs, address[0x04]);
+    r["version"] = dmiString(textAddrs, address[0x05]);
+    r["date"] = dmiString(textAddrs, address[0x08]);
 
     // Firmware load address as a WORD.
     size_t firmware_address = (address[0x07] << 8) + address[0x06];

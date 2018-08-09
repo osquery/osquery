@@ -133,14 +133,13 @@ void genSMBIOSMemoryDeviceMappedAddresses(size_t index,
  *
  * SMBIOS strings are 0-terminated and 'stacked' at the end of the type
  * structure. Each structure identifies (loosely) the type of data within.
- * Using the structure field 'handle' or offset, the stacked data can be parsed
- * and a string returned.
+ * Using the structure location for where the strings start and the index of
+ * target string, the stacked data can be parsed and a string returned.
  *
- * @param data A pointer to the SMBIOS structure.
- * @param address A pointer to the stacked data following the structure.
- * @Param offset The field index into address.
+ * @param data A pointer to the stacked data suffixing the SMBIOS structure.
+ * @Param index The index of the stacked string.
  */
-std::string dmiString(uint8_t* data, uint8_t* address, size_t offset);
+std::string dmiString(uint8_t* data, uint8_t index);
 
 /**
  * @brief Return std::string representation of a bitfield.
