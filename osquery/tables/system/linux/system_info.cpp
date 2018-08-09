@@ -107,10 +107,10 @@ QueryData genSystemInfo(QueryContext& context) {
           return;
         }
 
-        r["hardware_vendor"] = dmiString(textAddrs, address, address[0x04]);
-        r["hardware_model"] = dmiString(textAddrs, address, address[0x05]);
-        r["hardware_version"] = dmiString(textAddrs, address, address[0x06]);
-        r["hardware_serial"] = dmiString(textAddrs, address, address[0x07]);
+        r["hardware_vendor"] = dmiString(textAddrs, address[0x04]);
+        r["hardware_model"] = dmiString(textAddrs, address[0x05]);
+        r["hardware_version"] = dmiString(textAddrs, address[0x06]);
+        r["hardware_serial"] = dmiString(textAddrs, address[0x07]);
       }));
     }
   }
