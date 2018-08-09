@@ -14,7 +14,7 @@
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
 $version = '1.66.0'
-$chocoVersion = '1.66.0-r1'
+$chocoVersion = '1.66.0-r2'
 $versionUnderscores = $version -replace '\.', '_'
 $packageName = 'boost-msvc14'
 $projectSource = `
