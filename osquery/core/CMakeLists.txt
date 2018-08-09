@@ -6,6 +6,11 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
+target_compile_definitions(libosquery
+  PRIVATE
+    "-DROCKSDB_LITE=1"
+)
+
 target_sources(libosquery
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/base64.cpp"
@@ -16,6 +21,8 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/database/database.h"
     "${CMAKE_CURRENT_LIST_DIR}/database/in_memory_database.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/database/in_memory_database.h"
+    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.h"
     "${CMAKE_CURRENT_LIST_DIR}/flags.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.h"
