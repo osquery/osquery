@@ -182,8 +182,8 @@ std::string generateHostUUID() {
     hardware_uuid = std::string(out);
   }
 #elif WIN32
-  WmiRequest wmiUUIDReq("Select UUID from Win32_ComputerSystemProduct");
-  std::vector<WmiResultItem>& wmiUUIDResults = wmiUUIDReq.results();
+  const WmiRequest wmiUUIDReq("Select UUID from Win32_ComputerSystemProduct");
+  const std::vector<WmiResultItem>& wmiUUIDResults = wmiUUIDReq.results();
   if (wmiUUIDResults.size() != 0) {
     wmiUUIDResults[0].GetString("UUID", hardware_uuid);
   }

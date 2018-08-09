@@ -41,9 +41,9 @@ const std::map<unsigned char, const std::string> kMapOfState = {
 QueryData genIPv4ArpCache(QueryContext& context) {
   QueryData results;
   auto interfaces = genInterfaceDetails(context);
-  WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor",
-                          (BSTR)L"ROOT\\StandardCimv2");
-  auto& wmiResults = wmiSystemReq.results();
+  const WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor",
+                                (BSTR)L"ROOT\\StandardCimv2");
+  const auto& wmiResults = wmiSystemReq.results();
   std::map<long, std::string> mapOfInterfaces = {
       {1, ""}, // loopback
   };

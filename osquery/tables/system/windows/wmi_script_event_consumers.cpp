@@ -24,11 +24,11 @@ QueryData genScriptConsumers(QueryContext& context) {
   ss << "SELECT * FROM ActiveScriptEventConsumer";
 
   BSTR bstr = ::SysAllocString(L"ROOT\\Subscription");
-  WmiRequest request(ss.str(), bstr);
+  const WmiRequest request(ss.str(), bstr);
   ::SysFreeString(bstr);
 
   if (request.getStatus().ok()) {
-    auto& results = request.results();
+    const auto& results = request.results();
     for (const auto& result : results) {
       Row r;
 

@@ -22,8 +22,8 @@ QueryData genCpuInfo(QueryContext& context) {
   Row r;
   QueryData results;
 
-  WmiRequest wmiSystemReq("SELECT * FROM Win32_Processor");
-  std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
+  const WmiRequest wmiSystemReq("SELECT * FROM Win32_Processor");
+  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   if (wmiResults.empty()) {
     LOG(WARNING) << "Error retreiving information from WMI.";
     return results;
