@@ -1090,9 +1090,7 @@ inline void meta_types(struct callback_data* pArg, char* zSql) {
       const auto& name = std::get<0>(column_info);
       const auto& type = columnTypeName(std::get<1>(column_info));
 
-      std::vector<const char*> row;
-      row.push_back(name.c_str());
-      row.push_back(type.c_str());
+      std::vector<const char*> row{{name.c_str(), type.c_str()}};
 
       shell_callback(pArg, 2, &row[0], COLUMN_NAMES, nullptr);
     }
