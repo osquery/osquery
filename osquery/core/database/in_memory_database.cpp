@@ -48,7 +48,7 @@ Expected<StorageType, DatabaseError> InMemoryStorage<StorageType>::get(
 
 void InMemoryDatabase::close() {
   VLOG(1) << "Closing db... ";
-  assert(!is_open_ && "database is not open");
+  debug_only::verifyTrue(is_open_, "database is not open");
   is_open_ = false;
   destroyDB();
 }
@@ -60,7 +60,7 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::destroyDB() {
 }
 
 ExpectedSuccess<DatabaseError> InMemoryDatabase::open() {
-  assert(is_open_ && "database is already open");
+  debug_only::verifyTrue(!is_open_, "database is already open");
   for (const auto& domain : kDomains) {
     storage_[domain] = std::make_unique<InMemoryStorage<DataType>>();
   }
@@ -77,7 +77,7 @@ Error<DatabaseError> InMemoryDatabase::domainNotFoundError(
 template <typename T>
 Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain,
                                                       const std::string& key) {
-  assert(is_open_ && "database is not open");
+  debug_only::verifyTrue(is_open_, "database is not open");
   if (!is_open_) {
     return createError(DatabaseError::DatabaseIsNotOpen, "Database is closed");
   }
@@ -107,7 +107,7 @@ Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain,
 template <typename T>
 ExpectedSuccess<DatabaseError> InMemoryDatabase::putValue(
     const std::string& domain, const std::string& key, const T& value) {
-  assert(is_open_ && "database is not open");
+  debug_only::verifyTrue(is_open_, "database is not open");
   if (!is_open_) {
     return createError(DatabaseError::DatabaseIsNotOpen, "Database is closed");
   }
@@ -150,7 +150,7 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::putInt32(
 
 Expected<std::vector<std::string>, DatabaseError> InMemoryDatabase::getKeys(
     const std::string& domain, const std::string& prefix) {
-  assert(is_open_ && "database is not open");
+  debug_only::verifyTrue(is_open_, "database is not open");
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {
     return domainNotFoundError(domain);
@@ -161,7 +161,7 @@ Expected<std::vector<std::string>, DatabaseError> InMemoryDatabase::getKeys(
 ExpectedSuccess<DatabaseError> InMemoryDatabase::putStringsUnsafe(
     const std::string& domain,
     std::vector<std::pair<std::string, std::string>>& data) {
-  assert(is_open_ && "database is not open");
+  debug_only::verifyTrue(is_open_, "database is not open");
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {
     return domainNotFoundError(domain);
