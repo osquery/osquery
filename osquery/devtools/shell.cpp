@@ -512,8 +512,11 @@ static void interrupt_handler(int signal) {
 ** This is the callback routine that the shell
 ** invokes for each row of a query result.
 */
-static int shell_callback(
-    void* pArg, int nArg, char** azArg, char** azCol, int* /*aiType*/) {
+static int shell_callback(void* pArg,
+                          int nArg,
+                          const char** azArg,
+                          const char** azCol,
+                          int* /*aiType*/) {
   int i;
   auto* p = reinterpret_cast<struct callback_data*>(pArg);
 
@@ -668,7 +671,7 @@ static int shell_callback(
       break;
     }
     for (i = 0; i < nArg; i++) {
-      char* z = azArg[i];
+      const char* z = azArg[i];
       if (z == nullptr) {
         z = p->nullvalue;
       }
@@ -797,7 +800,8 @@ static char* save_err_msg(sqlite3* db) {
 */
 static int shell_exec(
     const char* zSql, /* SQL to be evaluated */
-    int (*xCallback)(void*, int, char**, char**, int*), /* Callback function */
+    int (*xCallback)(
+        void*, int, const char**, const char**, int*), /* Callback function */
     /* (not the same as sqlite3_exec) */
     struct callback_data* pArg, /* Pointer to struct callback_data */
     char** pzErrMsg /* Error msg written here */
@@ -860,9 +864,9 @@ static int shell_exec(
           if (pData == nullptr) {
             rc = SQLITE_NOMEM;
           } else {
-            auto** azCols =
-                reinterpret_cast<char**>(pData); /* Names of result columns */
-            char** azVals = &azCols[nCol]; /* Results */
+            const auto** azCols = reinterpret_cast<const char**>(
+                pData); /* Names of result columns */
+            const char** azVals = &azCols[nCol]; /* Results */
             auto* aiTypes =
                 reinterpret_cast<int*>(&azVals[nCol]); /* Result types */
             int i;
@@ -1075,7 +1079,7 @@ inline void meta_tables(int nArg, char** azArg) {
 }
 
 inline void meta_types(struct callback_data* pArg, char* zSql) {
-  char* COLUMN_NAMES[] = {"name", "type"};
+  const char* COLUMN_NAMES[] = {"name", "type"};
 
   auto dbc = osquery::SQLiteDBManager::get();
   osquery::TableColumns columns;
@@ -1086,9 +1090,7 @@ inline void meta_types(struct callback_data* pArg, char* zSql) {
       const auto& name = std::get<0>(column_info);
       const auto& type = columnTypeName(std::get<1>(column_info));
 
-      std::vector<char*> row;
-      row.push_back(const_cast<char*>(name.c_str()));
-      row.push_back(const_cast<char*>(type.c_str()));
+      std::vector<const char*> row{{name.c_str(), type.c_str()}};
 
       shell_callback(pArg, 2, &row[0], COLUMN_NAMES, nullptr);
     }
