@@ -21,6 +21,7 @@ freebsd:memory_arrays
 freebsd:memory_error_info
 freebsd:memory_array_mapped_addresses
 freebsd:memory_device_mapped_addresses
+freebsd:oem_strings
 
 # Blacklisting as an example:
 example
