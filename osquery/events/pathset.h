@@ -51,7 +51,7 @@ class PathSet : private boost::noncopyable {
     auto path = PathType::createPath(str);
 
     ReadLock lock(mset_lock_);
-    for (auto& pattern : patterns_) {
+    for (const auto& pattern : patterns_) {
       if (compare(pattern, path)) {
         return true;
       }
@@ -82,32 +82,32 @@ class patternedPath {
   typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
   typedef std::vector<std::string> Path;
   struct Compare {
-    bool compareStrings(boost::string_view vlhs,
-                        boost::string_view vrhs) const {
-      if (vlhs[0] == '*' && vlhs[vlhs.size() - 1] == '*') {
-        vlhs = vlhs.substr(1, vlhs.size() - 2);
-        if (vrhs.size() >= vlhs.size() &&
-            vrhs.find(vlhs) != boost::string_view::npos) {
+    bool compareStrings(boost::string_view pattern,
+                        boost::string_view str) const {
+      if (pattern[0] == '*' && pattern[pattern.size() - 1] == '*') {
+        pattern = pattern.substr(1, pattern.size() - 2);
+        if (str.size() >= pattern.size() &&
+            str.find(pattern) != boost::string_view::npos) {
           return true;
         }
         return false;
-      } else if (vlhs[0] == '*') {
-        vlhs = vlhs.substr(1);
-        if (vlhs.size() <= vrhs.size()) {
-          vrhs = vrhs.substr(vrhs.size() - vlhs.size());
+      } else if (pattern[0] == '*') {
+        pattern = pattern.substr(1);
+        if (pattern.size() <= str.size()) {
+          str = str.substr(str.size() - pattern.size());
         } else {
           return false;
         }
-      } else if (vlhs[vlhs.size() - 1] == '*') {
-        vlhs = vlhs.substr(0, vlhs.size() - 1);
-        if (vlhs.size() <= vrhs.size()) {
-          vrhs = vrhs.substr(0, vlhs.size());
+      } else if (pattern[pattern.size() - 1] == '*') {
+        pattern = pattern.substr(0, pattern.size() - 1);
+        if (pattern.size() <= str.size()) {
+          str = str.substr(0, pattern.size());
         } else {
           return false;
         }
       }
 
-      return (vlhs.compare(vrhs) == 0);
+      return (pattern == str);
     }
 
     bool operator()(const Path& lhs, const Path& rhs) const {
