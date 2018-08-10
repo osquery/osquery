@@ -95,9 +95,7 @@ std::string Flag::getValue(const std::string& name) {
 }
 
 long int Flag::getInt32Value(const std::string& name) {
-  long int value = 0;
-  safeStrtol(Flag::getValue(name), 10, value);
-  return value;
+  return tryTo<long int>(Flag::getValue(name), 10).takeOr(0l);
 }
 
 std::string Flag::getType(const std::string& name) {

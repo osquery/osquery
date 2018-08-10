@@ -424,11 +424,15 @@ bool PlatformProcess::cleanup() const {
 #ifndef WIN32
 
 static inline bool ownerFromResult(const Row& row, long& uid, long& gid) {
-  if (!safeStrtol(row.at("uid"), 10, uid) ||
-      !safeStrtol(row.at("gid"), 10, gid)) {
-    return false;
+  auto const uid_exp = tryTo<long>(row.at("uid"), 10);
+  auto const gid_exp = tryTo<long>(row.at("gid"), 10);
+  if (uid_exp.isValue()) {
+    uid = uid_exp.get();
   }
-  return true;
+  if (gid_exp.isValue()) {
+    gid = gid_exp.get();
+  }
+  return uid_exp.isValue() && gid_exp.isValue();
 }
 
 DropPrivilegesRef DropPrivileges::get() {
@@ -488,10 +492,10 @@ bool setThreadEffective(uid_t uid, gid_t gid) {
 }
 
 bool DropPrivileges::dropTo(const std::string& uid, const std::string& gid) {
-  unsigned long int _uid = 0;
-  unsigned long int _gid = 0;
-  if (!safeStrtoul(uid, 10, _uid).ok() || !safeStrtoul(gid, 10, _gid).ok() ||
-      !dropTo(static_cast<uid_t>(_uid), static_cast<gid_t>(_gid))) {
+  auto const uid_exp = tryTo<uid_t>(uid, 10);
+  auto const gid_exp = tryTo<gid_t>(gid, 10);
+  if (uid_exp.isError() || gid_exp.isError() ||
+      !dropTo(uid_exp.get(), gid_exp.get())) {
     return false;
   }
   return true;

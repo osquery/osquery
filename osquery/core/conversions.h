@@ -76,18 +76,6 @@ inline std::string join(const SequenceType& s, const std::string& tok) {
  */
 bool isPrintable(const std::string& check);
 
-/// Safely convert a string representation of an integer base.
-inline Status safeStrtol(const std::string& rep, size_t base, long int& out) {
-  char* end{nullptr};
-  out = strtol(rep.c_str(), &end, static_cast<int>(base));
-  if (end == nullptr || end == rep.c_str() || *end != '\0' ||
-      ((out == LONG_MIN || out == LONG_MAX) && errno == ERANGE)) {
-    out = 0;
-    return Status(1);
-  }
-  return Status(0);
-}
-
 /// Safely convert a std::wstring to an integer
 inline int safeWstrToInt(std::wstring str) {
   // std::stoi can throw, and std::stol doesn't support std::wstring
@@ -111,42 +99,6 @@ inline Status safeStrtoul(const std::string& rep,
     return Status(1);
   }
   return Status(0);
-}
-
-/// Safely convert unicode escaped ASCII.
-inline std::string unescapeUnicode(const std::string& escaped) {
-  if (escaped.size() < 6) {
-    return escaped;
-  }
-
-  std::string unescaped;
-  unescaped.reserve(escaped.size());
-  for (size_t i = 0; i < escaped.size(); ++i) {
-    if (i < escaped.size() - 5 && '\\' == escaped[i] && 'u' == escaped[i + 1]) {
-      // Assume 2-byte wide unicode.
-      long value{0};
-      Status stat = safeStrtol(escaped.substr(i + 2, 4), 16, value);
-      if (!stat.ok()) {
-        LOG(WARNING) << "Unescaping a string with length: " << escaped.size()
-                     << " failed at: " << i;
-        return "";
-      }
-      if (value < 255) {
-        unescaped += static_cast<char>(value);
-        i += 5;
-        continue;
-      }
-    } else if (i < escaped.size() - 1 && '\\' == escaped[i] &&
-               '\\' == escaped[i + 1]) {
-      // In the case of \\users 'sers' is not a unicode character
-      // If we see \\ we should skip them and we do this by adding
-      // an extra jump forward.
-      unescaped += escaped[i];
-      ++i;
-    }
-    unescaped += escaped[i];
-  }
-  return unescaped;
 }
 
 /**
@@ -357,5 +309,41 @@ inline typename std::enable_if<std::is_same<ToType, bool>::value,
                                Expected<ToType, ConversionError>>::type
 tryTo(std::string from) {
   return impl::stringToBool(std::move(from));
+}
+
+/// Safely convert unicode escaped ASCII.
+inline std::string unescapeUnicode(const std::string& escaped) {
+  if (escaped.size() < 6) {
+    return escaped;
+  }
+
+  std::string unescaped;
+  unescaped.reserve(escaped.size());
+  for (size_t i = 0; i < escaped.size(); ++i) {
+    if (i < escaped.size() - 5 && '\\' == escaped[i] && 'u' == escaped[i + 1]) {
+      // Assume 2-byte wide unicode.
+      auto const exp = tryTo<long>(escaped.substr(i + 2, 4), 16);
+      if (exp.isError()) {
+        LOG(WARNING) << "Unescaping a string with length: " << escaped.size()
+                     << " failed at: " << i;
+        return "";
+      }
+      long const value = exp.get();
+      if (value < 255) {
+        unescaped += static_cast<char>(value);
+        i += 5;
+        continue;
+      }
+    } else if (i < escaped.size() - 1 && '\\' == escaped[i] &&
+               '\\' == escaped[i + 1]) {
+      // In the case of \\users 'sers' is not a unicode character
+      // If we see \\ we should skip them and we do this by adding
+      // an extra jump forward.
+      unescaped += escaped[i];
+      ++i;
+    }
+    unescaped += escaped[i];
+  }
+  return unescaped;
 }
 }

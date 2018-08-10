@@ -143,8 +143,7 @@ void DeviceHelper::inodes(
         predicate) {
   // Given a set of constraint inodes, convert each to an INUM.
   for (const auto& inode : inodes) {
-    long int inode_meta = 0;
-    safeStrtol(inode, 10, inode_meta);
+    long int inode_meta = tryTo<long int>(inode, 10).takeOr(0l);
     auto* file = new TskFsFile();
     if (file->open(fs, file, static_cast<TSK_INUM_T>(inode_meta)) == 0) {
       // Attempt to get the meta and filesystem name for the inode.
