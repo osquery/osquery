@@ -432,7 +432,7 @@ static inline bool ownerFromResult(const Row& row, long& uid, long& gid) {
   if (gid_exp.isValue()) {
     gid = gid_exp.get();
   }
-  return uid_exp && gid_exp;
+  return uid_exp.isValue() && gid_exp.isValue();
 }
 
 DropPrivilegesRef DropPrivileges::get() {

@@ -338,13 +338,13 @@ inline std::string unescapeUnicode(const std::string& escaped) {
   for (size_t i = 0; i < escaped.size(); ++i) {
     if (i < escaped.size() - 5 && '\\' == escaped[i] && 'u' == escaped[i + 1]) {
       // Assume 2-byte wide unicode.
-      auto exp = tryTo<long>(escaped.substr(i + 2, 4), 16);
+      auto const exp = tryTo<long>(escaped.substr(i + 2, 4), 16);
       if (exp.isError()) {
         LOG(WARNING) << "Unescaping a string with length: " << escaped.size()
                      << " failed at: " << i;
         return "";
       }
-      long const value = exp.take();
+      long const value = exp.get();
       if (value < 255) {
         unescaped += static_cast<char>(value);
         i += 5;
