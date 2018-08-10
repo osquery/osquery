@@ -140,7 +140,7 @@ class patternedPath {
     Path path;
 
     if (str == "/") {
-      path.push_back("");
+      path.push_back("/");
     }
 
     for (std::string component : tokens) {

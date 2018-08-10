@@ -279,6 +279,8 @@ TEST_F(INotifyTests, test_inotify_match_subscription) {
     EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
     ec->path = "/dir/dir3/abc";
     EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/";
+    EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
   }
 }
 
