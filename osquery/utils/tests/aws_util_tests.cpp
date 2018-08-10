@@ -25,6 +25,11 @@ DECLARE_string(aws_secret_access_key);
 DECLARE_string(aws_profile_name);
 DECLARE_string(aws_region);
 DECLARE_string(aws_sts_region);
+DECLARE_string(aws_proxy_scheme);
+DECLARE_string(aws_proxy_host);
+DECLARE_uint64(aws_proxy_port);
+DECLARE_string(aws_proxy_username);
+DECLARE_string(aws_proxy_password);
 
 static const char* kAwsProfileFileEnvVar = "AWS_SHARED_CREDENTIALS_FILE";
 static const char* kAwsAccessKeyEnvVar = "AWS_ACCESS_KEY_ID";
@@ -204,5 +209,40 @@ TEST_F(AwsUtilTests, test_append_log_type_to_json) {
   status = appendLogTypeToJson("status", full_json);
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(expected_full, full_json);
+}
+
+TEST_F(AwsUtilTests, test_set_proxy) {
+  Aws::Client::ClientConfiguration client_config;
+
+  const std::string host = "foo.bar.baz";
+  const uint64_t port = 3000, const std::string username = "foo_username";
+  const std::string password = "bar_password";
+
+  // Test with valid proxy values.
+  FLAGS_aws_proxy_scheme = "http";
+  FLAGS_aws_proxy_host = host;
+  FLAGS_aws_proxy_port = port;
+  FLAGS_aws_proxy_username = username;
+  FLAGS_aws_proxy_password = password;
+
+  setAWSProxy(client_config);
+
+  ASSERT_EQ(Aws::Http::Scheme::HTTP, client_config.proxyScheme);
+  ASSERT_EQ(host, client_config.proxyHost);
+  ASSERT_EQ(port, client_config.proxyPort);
+  ASSERT_EQ(username, client_config.proxyUserName);
+  ASSERT_EQ(password, client_config.proxyPassword);
+
+  // Test with invalid proxy scheme.
+  FLAGS_aws_proxy_scheme = "htpt";
+
+  setAWSProxy(client_config);
+
+  // Default should be HTTPS for missing/invalid scheme
+  ASSERT_EQ(Aws::Http::Scheme::HTTPS, client_config.proxyScheme);
+  ASSERT_EQ(host, client_config.proxyHost);
+  ASSERT_EQ(port, client_config.proxyPort);
+  ASSERT_EQ(username, client_config.proxyUserName);
+  ASSERT_EQ(password, client_config.proxyPassword);
 }
 }

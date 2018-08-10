@@ -57,6 +57,21 @@ FLAG(uint64,
      aws_sts_timeout,
      3600,
      "AWS STS assume role credential validity in seconds (default 3600)");
+FLAG(string,
+     aws_proxy_scheme,
+     "https",
+     "Proxy HTTP scheme for use in AWS client config (http or https, default "
+     "https)");
+FLAG(string, aws_proxy_host, "", "Proxy host for use in AWS client config");
+FLAG(uint16, aws_proxy_port, 0, "Proxy port for use in AWS client config");
+FLAG(string,
+     aws_proxy_username,
+     "",
+     "Proxy username for use in AWS client config");
+FLAG(string,
+     aws_proxy_password,
+     "",
+     "Proxy password for use in AWS client config");
 
 /// Map of AWS region name to AWS::Region enum.
 static const std::set<std::string> kAwsRegions = {"us-east-1",
@@ -476,5 +491,14 @@ Status appendLogTypeToJson(const std::string& log_type, std::string& log) {
     log.pop_back();
   }
   return Status(0, "OK");
+}
+
+void setAWSProxy(Aws::Client::ClientConfiguration& config) {
+  config.proxyScheme =
+      Aws::Http::SchemeMapper::FromString(FLAGS_aws_proxy_scheme);
+  config.proxyHost = FLAGS_aws_proxy_host;
+  config.proxyPort = FLAGS_aws_proxy_port;
+  config.proxyUserName = FLAGS_aws_proxy_username;
+  config.proxyPassword = FLAGS_aws_proxy_password;
 }
 }

@@ -201,6 +201,10 @@ Status makeAWSClient(std::shared_ptr<Client>& client,
   } else {
     client_config.region = region;
   }
+
+  // Setup any proxy options on the config
+  setAWSProxy(client_config);
+
   client = std::make_shared<Client>(
       std::make_shared<OsqueryAWSCredentialsProviderChain>(sts), client_config);
   return Status(0);
@@ -217,4 +221,13 @@ Status makeAWSClient(std::shared_ptr<Client>& client,
  * @return 0 if successful, 1 if there were issues
  */
 Status appendLogTypeToJson(const std::string& log_type, std::string& log);
+
+/**
+ * @brief Set proxy information on the AWS ClientConfiguration using
+ * relevant flags for scheme, host, port, username, and password
+ *
+ * @param config Pointer to Aws::Client::ClientConfiguration struct
+ *  on which to set the proxy values
+ */
+void setAWSProxy(Aws::Client::ClientConfiguration& config);
 }
