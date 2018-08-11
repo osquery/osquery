@@ -44,21 +44,12 @@ inline std::string getExtensionSocket(
   return (uuid == 0) ? path : path + "." + std::to_string(uuid);
 }
 
-/// External (extensions) SQL implementation of the osquery query API.
-Status queryExternal(const std::string& query, QueryData& results);
-
-/// External (extensions) SQL implementation of the osquery getQueryColumns API.
-Status getQueryColumnsExternal(const std::string& query, TableColumns& columns);
-
 /// External (extensions) SQL implementation plugin provider for "sql" registry.
 class ExternalSQLPlugin : public SQLPlugin {
  public:
   Status query(const std::string& query,
                QueryData& results,
-               bool use_cache = false) const override {
-    static_cast<void>(use_cache);
-    return queryExternal(query, results);
-  }
+               bool use_cache = false) const override;
 
   Status getQueryTables(const std::string& query,
                         std::vector<std::string>& tables) const override {
@@ -68,9 +59,7 @@ class ExternalSQLPlugin : public SQLPlugin {
   }
 
   Status getQueryColumns(const std::string& query,
-                         TableColumns& columns) const override {
-    return getQueryColumnsExternal(query, columns);
-  }
+                         TableColumns& columns) const override;
 };
 
 /// Status get a list of active extenions.
