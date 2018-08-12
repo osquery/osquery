@@ -300,7 +300,7 @@ void genSMBIOSTable(size_t index,
                     size_t size,
                     QueryData& results) {
   Row r;
-  // The index is a supliment that keeps track of table order.
+  // The index is a supplement that keeps track of table order.
   r["number"] = INTEGER(index++);
   r["type"] = INTEGER((unsigned short)hdr->type);
   if (kSMBIOSTypeDescriptions.count(hdr->type) > 0) {
@@ -323,7 +323,8 @@ void genSMBIOSMemoryDevices(size_t index,
                             uint8_t* textAddrs,
                             size_t size,
                             QueryData& results) {
-  if (hdr->type != kSMBIOSTypeMemoryDevice || size < 0x12) {
+  const size_t maxOffset = 0x26 + 4;
+  if (hdr->type != kSMBIOSTypeMemoryDevice || size < maxOffset) {
     return;
   }
 
@@ -356,8 +357,9 @@ void genSMBIOSMemoryDevices(size_t index,
     r["set"] = INTEGER(static_cast<int>(address[0x0F]));
   }
 
-  r["device_locator"] = dmiString(textAddrs, address[0x10]);
-  r["bank_locator"] = dmiString(textAddrs, address[0x11]);
+  const auto maxlen = size - hdr->length;
+  r["device_locator"] = dmiString(textAddrs, address[0x10], maxlen);
+  r["bank_locator"] = dmiString(textAddrs, address[0x11], maxlen);
 
   auto memoryType = kSMBIOSMemoryTypeTable.find(address[0x12]);
   if (memoryType != kSMBIOSMemoryTypeTable.end()) {
@@ -377,10 +379,10 @@ void genSMBIOSMemoryDevices(size_t index,
     r["configured_clock_speed"] = INTEGER(speed);
   }
 
-  r["manufacturer"] = dmiString(textAddrs, address[0x17]);
-  r["serial_number"] = dmiString(textAddrs, address[0x18]);
-  r["asset_tag"] = dmiString(textAddrs, address[0x19]);
-  r["part_number"] = dmiString(textAddrs, address[0x1A]);
+  r["manufacturer"] = dmiString(textAddrs, address[0x17], maxlen);
+  r["serial_number"] = dmiString(textAddrs, address[0x18], maxlen);
+  r["asset_tag"] = dmiString(textAddrs, address[0x19], maxlen);
+  r["part_number"] = dmiString(textAddrs, address[0x1A], maxlen);
 
   auto vt = dmiToWord(address, 0x22);
   if (vt != 0) {
@@ -405,7 +407,8 @@ void genSMBIOSMemoryArrays(size_t index,
                            uint8_t* address,
                            size_t size,
                            QueryData& results) {
-  if (hdr->type != kSMBIOSTypeMemoryArray || size < 0x12) {
+  const size_t maxOffset = 0x0F + 8;
+  if (hdr->type != kSMBIOSTypeMemoryArray || size < maxOffset) {
     return;
   }
 
@@ -450,7 +453,8 @@ void genSMBIOSMemoryArrayMappedAddresses(size_t index,
                                          uint8_t* address,
                                          size_t size,
                                          QueryData& results) {
-  if (hdr->type != kSMBIOSTypeMemoryArrayMappedAddress || size < 0x12) {
+  const size_t maxOffset = 0x17 + 8;
+  if (hdr->type != kSMBIOSTypeMemoryArrayMappedAddress || size < maxOffset) {
     return;
   }
 
@@ -477,7 +481,8 @@ void genSMBIOSMemoryErrorInfo(size_t index,
                               uint8_t* address,
                               size_t size,
                               QueryData& results) {
-  if (hdr->type != kSMBIOSTypeMemoryErrorInformation || size < 0x12) {
+  const size_t maxOffset = 0x13 + 4;
+  if (hdr->type != kSMBIOSTypeMemoryErrorInformation || size < maxOffset) {
     return;
   }
 
@@ -527,7 +532,8 @@ void genSMBIOSMemoryDeviceMappedAddresses(size_t index,
                                           uint8_t* address,
                                           size_t size,
                                           QueryData& results) {
-  if (hdr->type != kSMBIOSTypeMemoryDeviceMappedAddress || size < 0x12) {
+  const size_t maxOffset = 0x1B + 8;
+  if (hdr->type != kSMBIOSTypeMemoryDeviceMappedAddress || size < maxOffset) {
     return;
   }
 
@@ -551,21 +557,36 @@ void genSMBIOSMemoryDeviceMappedAddresses(size_t index,
   results.push_back(std::move(r));
 }
 
-std::string dmiString(uint8_t* data, uint8_t index) {
-  if (index == 0) {
+std::string dmiString(uint8_t* data, uint8_t index, size_t maxlen) {
+  // Guard against faulty SMBIOS data.
+  if (index == 0 || maxlen == 0 || data[maxlen - 1] != '\0') {
     return "";
   }
 
+  size_t size = 0;
   auto bp = reinterpret_cast<char*>(data);
   while (index > 1) {
+    if (size > maxlen - 1) {
+      break;
+    }
+
     while (*bp != 0) {
+      if (++size > maxlen - 1) {
+        break;
+      }
       bp++;
     }
+    size++;
     bp++;
     index--;
   }
 
-  std::string str{bp};
+  if (size > maxlen - 1) {
+    // String exceeds text address space, structure seems corrupt.
+    return "";
+  }
+
+  std::string str(bp);
   // Sometimes vendors leave extraneous spaces on the right side.
   boost::algorithm::trim_right(str);
   return str;
