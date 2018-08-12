@@ -38,8 +38,7 @@ namespace osquery {
 template <typename PathType>
 class PathSet : private boost::noncopyable {
  public:
-  void insert(const std::string& str) {
-    auto pattern = str;
+  void insert(std::string pattern) {
     replaceGlobWildcards(pattern);
     auto path = PathType::createPath(std::move(pattern));
 
@@ -79,7 +78,6 @@ class PathSet : private boost::noncopyable {
 
 class patternedPath {
  public:
-  typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
   typedef std::vector<std::string> Path;
   struct Compare {
     bool compareStrings(boost::string_view pattern,
@@ -110,32 +108,32 @@ class patternedPath {
       return (pattern == str);
     }
 
-    bool operator()(const Path& lhs, const Path& rhs) const {
-      auto psize = std::min(lhs.size(), rhs.size());
-      unsigned ndx;
-      for (ndx = 0; ndx < psize; ++ndx) {
-        if (lhs[ndx] == "**") {
+    bool operator()(const Path& pattern, const Path& str) const {
+      auto psize = std::min(pattern.size(), str.size());
+      for (size_t ndx = 0; ndx < psize; ++ndx) {
+        if (pattern[ndx] == "**") {
           return true;
         }
 
-        if (lhs[ndx] == "*") {
+        if (pattern[ndx] == "*") {
           continue;
         }
 
         // compare with partial patterns
-        if (compareStrings(lhs[ndx], rhs[ndx]) == true) {
+        if (compareStrings(pattern[ndx], str[ndx]) == true) {
           continue;
         } else {
           return false;
         }
       }
 
-      return (lhs.size() == rhs.size());
+      return (pattern.size() == str.size());
     }
   };
 
   static Path createPath(std::string str) {
     boost::char_separator<char> sep{"/"};
+    typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
     tokenizer tokens(str, sep);
     Path path;
 
