@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include "boost/variant.hpp"
+#include <boost/variant.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "osquery/sql/sqlite_util.h"
