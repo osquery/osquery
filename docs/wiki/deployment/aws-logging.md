@@ -15,6 +15,7 @@ Some configuration is shared between the two plugins:
 --aws_sts_region VALUE                  AWS STS assume role region
 --aws_sts_session_name VALUE            AWS STS session name
 --aws_sts_timeout VALUE                 AWS STS temporary credential timeout period in seconds (900-3600)
+--aws_enable_proxy VALUE                Enable proxying of HTTP/HTTPS requests in AWS client config (true or false)
 --aws_proxy_scheme VALUE                Proxy HTTP scheme for use in AWS client config (http or https)
 --aws_proxy_host VALUE                  Proxy host for use in AWS client config
 --aws_proxy_port VALUE                  Proxy port for use in AWS client config

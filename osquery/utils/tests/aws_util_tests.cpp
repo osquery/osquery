@@ -25,9 +25,10 @@ DECLARE_string(aws_secret_access_key);
 DECLARE_string(aws_profile_name);
 DECLARE_string(aws_region);
 DECLARE_string(aws_sts_region);
+DECLARE_bool(aws_enable_proxy);
 DECLARE_string(aws_proxy_scheme);
 DECLARE_string(aws_proxy_host);
-DECLARE_uint64(aws_proxy_port);
+DECLARE_uint32(aws_proxy_port);
 DECLARE_string(aws_proxy_username);
 DECLARE_string(aws_proxy_password);
 
@@ -220,6 +221,7 @@ TEST_F(AwsUtilTests, test_set_proxy_valid) {
   const std::string password = "bar_password";
 
   // Test with valid proxy values.
+  FLAGS_aws_enable_proxy = true;
   FLAGS_aws_proxy_scheme = "http";
   FLAGS_aws_proxy_host = host;
   FLAGS_aws_proxy_port = port;
@@ -244,6 +246,7 @@ TEST_F(AwsUtilTests, test_set_proxy_invalid) {
   const std::string password = "bar_password";
 
   // Test with invalid proxy scheme value.
+  FLAGS_aws_enable_proxy = true;
   FLAGS_aws_proxy_scheme = "htpt";
   FLAGS_aws_proxy_host = host;
   FLAGS_aws_proxy_port = port;
