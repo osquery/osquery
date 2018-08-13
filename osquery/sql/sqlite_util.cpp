@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <boost/lexical_cast.hpp>
 #include <boost/variant.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/sql/virtual_table.h"
@@ -481,7 +481,7 @@ Status osquery_exec(
       columns.reserve(nCol);
 
       for (int i = 0; i < nCol; i++) {
-        columns.push_back(static_cast<int64_t>(sqlite3_column_name(pStmt, i)));
+        columns.push_back(sqlite3_column_name(pStmt, i));
       }
     }
 
@@ -491,7 +491,7 @@ Status osquery_exec(
     for (int i = 0; i < nCol; i++) {
       switch (sqlite3_column_type(pStmt, i)) {
       case SQLITE_INTEGER:
-        rows.back().push_back(sqlite3_column_int64(pStmt, i));
+        rows.back().push_back(static_cast<int64_t>(sqlite3_column_int64(pStmt, i)));
         break;
       case SQLITE_FLOAT:
         rows.back().push_back(sqlite3_column_double(pStmt, i));
