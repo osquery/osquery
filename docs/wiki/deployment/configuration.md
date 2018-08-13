@@ -326,7 +326,7 @@ The `platform` key can be:
 - `darwin` for MacOS hosts
 - `freebsd` for FreeBSD hosts
 - `linux` for any RedHat or Debian-based hosts
-- `posix` for `linux`, `freebsd`, and `linux` hosts
+- `posix` for `darwin`, `freebsd`, and `linux` hosts
 - `windows` for any Windows desktop or server hosts
 - `any` or `all` for all, alternatively no platform key selects all
 
