@@ -80,6 +80,7 @@ Status genRoute(const struct rt_msghdr *route,
                 Row &r) {
   r["flags"] = INTEGER(route->rtm_flags);
   r["mtu"] = INTEGER(route->rtm_rmx.rmx_mtu);
+  r["hopcount"] = INTEGER(route->rtm_rmx.rmx_hopcount);
 
   if ((route->rtm_addrs & RTA_DST) == RTA_DST) {
     r["destination"] = ipAsString(addr_map[RTAX_DST]);
