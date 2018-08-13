@@ -9,6 +9,7 @@
  */
 
 #include "boost/variant.hpp"
+#include <boost/lexical_cast.hpp>
 
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/sql/virtual_table.h"
@@ -19,7 +20,6 @@
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 
-#include <boost/lexical_cast.hpp>
 
 namespace osquery {
 
@@ -481,7 +481,7 @@ Status osquery_exec(
       columns.reserve(nCol);
 
       for (int i = 0; i < nCol; i++) {
-        columns.push_back(sqlite3_column_name(pStmt, i));
+        columns.push_back(static_cast<int64_t>(sqlite3_column_name(pStmt, i)));
       }
     }
 
