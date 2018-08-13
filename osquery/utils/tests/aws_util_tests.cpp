@@ -211,11 +211,12 @@ TEST_F(AwsUtilTests, test_append_log_type_to_json) {
   ASSERT_EQ(expected_full, full_json);
 }
 
-TEST_F(AwsUtilTests, test_set_proxy) {
+TEST_F(AwsUtilTests, test_set_proxy_valid) {
   Aws::Client::ClientConfiguration client_config;
 
   const std::string host = "foo.bar.baz";
-  const uint64_t port = 3000, const std::string username = "foo_username";
+  const uint64_t port = 3000;
+  const std::string username = "foo_username";
   const std::string password = "bar_password";
 
   // Test with valid proxy values.
@@ -232,9 +233,22 @@ TEST_F(AwsUtilTests, test_set_proxy) {
   ASSERT_EQ(port, client_config.proxyPort);
   ASSERT_EQ(username, client_config.proxyUserName);
   ASSERT_EQ(password, client_config.proxyPassword);
+}
 
-  // Test with invalid proxy scheme.
+TEST_F(AwsUtilTests, test_set_proxy_invalid) {
+  Aws::Client::ClientConfiguration client_config;
+
+  const std::string host = "foo.bar.baz";
+  const uint64_t port = 3000;
+  const std::string username = "foo_username";
+  const std::string password = "bar_password";
+
+  // Test with invalid proxy scheme value.
   FLAGS_aws_proxy_scheme = "htpt";
+  FLAGS_aws_proxy_host = host;
+  FLAGS_aws_proxy_port = port;
+  FLAGS_aws_proxy_username = username;
+  FLAGS_aws_proxy_password = password;
 
   setAWSProxy(client_config);
 
