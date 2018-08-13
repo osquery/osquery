@@ -1,0 +1,13 @@
+table_name("interface_ipv6")
+description("IPv6 configuration and stats of network interfaces.")
+schema([
+    Column("interface", TEXT, "Interface name"),
+    Column("hlim", INTEGER, "Current Hop Limit"),
+    Column("forwarding", INTEGER, "Enable IP forwarding"),
+    Column("redirect", INTEGER, "Accept ICMP redirect messages"),
+    Column("rtadv", INTEGER, "Accept Router Advertisement"),
+])
+implementation("networking/interface_ip@genInterfaceIpv6")
+fuzz_paths([
+    "/proc/sys/net/ipv6/conf",
+])

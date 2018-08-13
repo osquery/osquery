@@ -23,5 +23,7 @@ freebsd:memory_array_mapped_addresses
 freebsd:memory_device_mapped_addresses
 freebsd:oem_strings
 
+window:interface_ipv6
+
 # Blacklisting as an example:
 example
