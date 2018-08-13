@@ -465,7 +465,7 @@ Status osquery_exec(
     sqlite3* db,
     const std::string& q,
     std::vector<std::string>& columns,
-    std::vector<std::vector<boost::variant<long long, double, std::string>>>&
+    std::vector<std::vector<boost::variant<int64_t, double, std::string>>>&
         rows) {
   sqlite3_stmt* pStmt = nullptr;
   sqlite3_prepare_v2(db, q.c_str(), -1, &pStmt, nullptr);
@@ -524,7 +524,7 @@ Status queryInternal(const std::string& q,
                      const SQLiteDBInstanceRef& instance) {
   auto lock = instance->attachLock();
   std::vector<std::string> columns;
-  std::vector<std::vector<boost::variant<long long, double, std::string>>> rows;
+  std::vector<std::vector<boost::variant<int64_t, double, std::string>>> rows;
 
   auto status = osquery_exec(instance->db(), q, columns, rows);
 
