@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "boost/variant.hpp"
+
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/sql/virtual_table.h"
 
@@ -459,40 +461,85 @@ Status QueryPlanner::applyTypes(TableColumns& columns) {
   return Status(0);
 }
 
-int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
-  if (argument == nullptr) {
-    VLOG(1) << "Query execution failed: received a bad callback argument";
-    return SQLITE_MISUSE;
-  }
+Status osquery_exec(
+    sqlite3* db,
+    const std::string& q,
+    std::vector<std::string>& columns,
+    std::vector<std::vector<boost::variant<long long, double, std::string>>>&
+        rows) {
+  sqlite3_stmt* pStmt = nullptr;
+  sqlite3_prepare_v2(db, q.c_str(), -1, &pStmt, nullptr);
 
-  auto qData = static_cast<QueryData*>(argument);
-  Row r;
-  for (int i = 0; i < argc; i++) {
-    if (column[i] != nullptr) {
-      if (r.count(column[i])) {
-        // Found a column name collision in the result.
-        VLOG(1) << "Detected overloaded column name " << column[i]
-                << " in query result consider using aliases";
+  if (!pStmt) {
+    return Status::failure("Failed to parse query");
+  }
+  int nCol = 0;
+  int rc = SQLITE_DONE;
+  while ((rc = sqlite3_step(pStmt)) == SQLITE_ROW) {
+    if (rows.size() == 0) {
+      nCol = sqlite3_column_count(pStmt);
+      columns.reserve(nCol);
+
+      for (int i = 0; i < nCol; i++) {
+        columns.push_back(sqlite3_column_name(pStmt, i));
       }
-      r[column[i]] = (argv[i] != nullptr) ? argv[i] : FLAGS_nullvalue;
+    }
+
+    rows.push_back(
+        std::vector<boost::variant<long long, double, std::string>>());
+    rows.back().reserve(nCol);
+
+    for (int i = 0; i < nCol; i++) {
+      switch (sqlite3_column_type(pStmt, i)) {
+      case SQLITE_INTEGER:
+        rows.back().push_back(sqlite3_column_int64(pStmt, i));
+        break;
+      case SQLITE_FLOAT:
+        rows.back().push_back(sqlite3_column_double(pStmt, i));
+        break;
+      case SQLITE_TEXT:
+      case SQLITE_BLOB:
+        rows.back().push_back(std::string(
+            reinterpret_cast<const char*>(sqlite3_column_text(pStmt, i))));
+        break;
+      default:
+        rows.back().push_back(FLAGS_nullvalue);
+        break;
+      }
     }
   }
-  (*qData).push_back(std::move(r));
-  return 0;
+
+  if (rc != SQLITE_DONE) {
+    LOG(ERROR) << "For query " << q
+               << " finished result step by unexpected status " << rc;
+  }
+
+  sqlite3_finalize(pStmt);
+  sqlite3_db_release_memory(db);
+  return Status::success();
 }
 
 Status queryInternal(const std::string& q,
                      QueryData& results,
                      const SQLiteDBInstanceRef& instance) {
-  char* err = nullptr;
   auto lock = instance->attachLock();
-  sqlite3_exec(instance->db(), q.c_str(), queryDataCallback, &results, &err);
-  sqlite3_db_release_memory(instance->db());
-  if (err != nullptr) {
-    auto error_string = std::string(err);
-    sqlite3_free(err);
-    return Status(1, "Error running query: " + error_string);
+  std::vector<std::string> columns;
+  std::vector<std::vector<boost::variant<long long, double, std::string>>> rows;
+
+  auto status = osquery_exec(instance->db(), q, columns, rows);
+
+  if (!status.ok()) {
+    return status;
   }
+
+  for (const auto& row : rows) {
+    Row r;
+    for (size_t i = 0; i < columns.size(); i++) {
+      r[columns[i]] = boost::lexical_cast<std::string>(row[i]);
+    }
+    results.push_back(std::move(r));
+  }
+
   return Status(0, "OK");
 }
 
