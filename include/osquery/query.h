@@ -96,6 +96,8 @@ Status deserializeRowJSON(const std::string& json, Row& r);
  */
 using QueryData = std::vector<Row>;
 
+using QueryDataJson = std::vector<rapidjson::Document>;
+
 /**
  * @brief Set representation result returned from a osquery SQL query
  *

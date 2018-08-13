@@ -308,13 +308,30 @@ extern const std::map<std::string, QueryPlanner::Opcode> kSQLOpcodes;
  * useful for testing.
  *
  * @param q the query to execute
- * @param results The QueryData struct to emit row on query success.
+ * @param results The QueryData struct to emit rows on query success.
  * @param db the SQLite3 database to execute query q against
  *
  * @return A status indicating SQL query results.
  */
 Status queryInternal(const std::string& q,
                      QueryData& results,
+                     const SQLiteDBInstanceRef& instance);
+
+/**
+ * @brief SQLite Internal: Execute a query on a specific database
+ *
+ * If you need to use a different database, other than the osquery default,
+ * use this method and pass along a pointer to a SQLite3 database. This is
+ * useful for testing.
+ *
+ * @param q the query to execute
+ * @param results The QueryDataJson vector to emit rows on query success.
+ * @param db the SQLite3 database to execute query q against
+ *
+ * @return A status indicating SQL query results.
+ */
+Status queryInternal(const std::string& q,
+                     QueryDataJson& results,
                      const SQLiteDBInstanceRef& instance);
 
 /**
