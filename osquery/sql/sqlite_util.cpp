@@ -485,8 +485,7 @@ Status osquery_exec(
       }
     }
 
-    rows.push_back(
-        std::vector<boost::variant<long long, double, std::string>>());
+    rows.push_back(std::vector<boost::variant<int64_t, double, std::string>>());
     rows.back().reserve(nCol);
 
     for (int i = 0; i < nCol; i++) {
