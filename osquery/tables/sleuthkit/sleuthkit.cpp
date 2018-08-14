@@ -386,8 +386,8 @@ QueryData genDeviceFile(QueryContext& context) {
     // For each require device path, open a device helper that checks the
     // image, checks the volume, and allows partition iteration.
     DeviceHelper dh(dev);
-    dh.partitions(([&results, &dev, &dh, &parts, &inodes, &paths](
-        const TskVsPartInfo* part) {
+    dh.partitions(([&results, &dh, &parts, &inodes, &paths](
+                       const TskVsPartInfo* part) {
       // The table also requires a partition for searching.
       auto address = std::to_string(part->getAddr());
       if (address != *parts.begin()) {
