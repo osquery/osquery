@@ -107,6 +107,7 @@ class Expected final {
   Expected& operator=(Expected&& other) {
     if (this != &other) {
       object_ = std::move(other.object_);
+      errorChecked_ = other.errorChecked_;
       other.errorChecked_ = true;
     }
     return *this;
