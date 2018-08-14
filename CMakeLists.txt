@@ -176,6 +176,9 @@ if(NOT WIN32)
 endif()
 
 if(POSIX)
+  add_compile_options(
+    -Werror
+  )
   if(CLANG)
     add_compile_options(
       -Qunused-arguments

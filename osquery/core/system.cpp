@@ -483,7 +483,11 @@ bool DropPrivileges::dropTo(const std::string& user) {
 
 bool setThreadEffective(uid_t uid, gid_t gid) {
 #if defined(__APPLE__)
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
   return (pthread_setugid_np(uid, gid) == 0);
+#pragma GCC diagnostic pop
 #elif defined(__linux__)
   return (syscall(SYS_setresgid, -1, gid, -1) == 0 &&
           syscall(SYS_setresuid, -1, uid, -1) == 0);

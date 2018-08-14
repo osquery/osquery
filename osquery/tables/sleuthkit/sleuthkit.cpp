@@ -346,7 +346,7 @@ QueryData genDeviceHash(QueryContext& context) {
 
       dh.inodes(inodes,
                 fs,
-                ([&results, &address, &dev, &dh, &fs](const std::string& inode,
+                ([&results, &address, &dev](const std::string& inode,
                                                       TskFsFile* file,
                                                       const std::string& path) {
                   Row r;
@@ -386,7 +386,7 @@ QueryData genDeviceFile(QueryContext& context) {
     // For each require device path, open a device helper that checks the
     // image, checks the volume, and allows partition iteration.
     DeviceHelper dh(dev);
-    dh.partitions(([&results, &dev, &dh, &parts, &inodes, &paths](
+    dh.partitions(([&results, &dh, &parts, &inodes, &paths](
         const TskVsPartInfo* part) {
       // The table also requires a partition for searching.
       auto address = std::to_string(part->getAddr());
