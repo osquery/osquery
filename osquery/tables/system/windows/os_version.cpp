@@ -134,8 +134,8 @@ QueryData genOSVersion(QueryContext& context) {
   const std::string kWmiQuery =
       "SELECT CAPTION,VERSION FROM Win32_OperatingSystem";
 
-  WmiRequest wmiRequest(kWmiQuery);
-  std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
+  const WmiRequest wmiRequest(kWmiQuery);
+  const std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
 
   if (wmiResults.empty()) {
     return {};
@@ -162,9 +162,8 @@ QueryData genOSVersion(QueryContext& context) {
   r["version"] = r["major"] + "." + r["minor"] + "." + r["build"];
   if (version.size() >= 2) {
     auto prodType = 0;
-    long majorVersion = 0, minorVersion = 0;
-    osquery::safeStrtol(version[0], 10, majorVersion);
-    osquery::safeStrtol(version[1], 10, minorVersion);
+    long const majorVersion = tryTo<long>(version[0], 10).takeOr(0l);
+    long const minorVersion = tryTo<long>(version[1], 10).takeOr(0l);
 
     GetProductInfo(
         majorVersion, minorVersion, 0, 0, reinterpret_cast<DWORD*>(&prodType));

@@ -17,11 +17,11 @@
 
 namespace osquery {
 
-const char Killswitch::killswitch_[] = "killswitch";
-const char Killswitch::action_[] = "action";
-const char Killswitch::isEnabled_[] = "isEnabled";
-const char Killswitch::key_[] = "key";
-const char Killswitch::refresh_[] = "refresh";
+const char* Killswitch::killswitch_ = "killswitch";
+const char* Killswitch::action_ = "action";
+const char* Killswitch::isEnabled_ = "isEnabled";
+const char* Killswitch::key_ = "key";
+const char* Killswitch::refresh_ = "refresh";
 
 FLAG(bool, enable_killswitch, false, "Enable killswitch plugin");
 FLAG(string,

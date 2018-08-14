@@ -16,6 +16,7 @@ ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/logger_tests.cpp"
 )
 
+if(NOT OSQUERY_BUILD_SDK_ONLY)
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_logger_plugins
   "${CMAKE_CURRENT_LIST_DIR}/plugins/buffered.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/plugins/filesystem_logger.cpp"
@@ -36,6 +37,7 @@ elseif(WINDOWS)
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/plugins/windows_event_log.cpp"
   )
+endif()
 endif()
 
 # Keep the logger testing in the additional to test filesystem logging.

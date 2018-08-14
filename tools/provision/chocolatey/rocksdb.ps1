@@ -11,8 +11,8 @@
 # $version - The version of the software package to build
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
-$version = '5.7.1'
-$chocoVersion = '5.7.1-r1'
+$version = '5.7.2'
+$chocoVersion = '5.7.2'
 $packageName = "rocksdb"
 $projectSource = 'https://github.com/facebook/rocksdb/'
 $packageSourceUrl = 'https://github.com/facebook/rocksdb/'
@@ -57,7 +57,7 @@ $sourceDir = Join-Path $(Get-Location) "rocksdb-$version"
 if (-not (Test-Path $sourceDir)) {
   $7z = (Get-Command '7z').Source
   $7zargs = "x $packageName-$version.zip"
-  Start-OsqueryProcess $7z $7zargs
+  Start-OsqueryProcess $7z $7zargs $false
 }
 Set-Location $sourceDir
 
@@ -89,16 +89,16 @@ if ($envArch -eq 1) {
   Write-Host '[*] Building 32 bit rocksdb libs' -ForegroundColor Cyan
   $arch = 'Win32'
   $platform = 'x86'
-  $cmakeBuildType = 'Visual Studio 14 2015'
+  $cmakeBuildType = 'Visual Studio 15 2017'
 } else {
   Write-Host '[*] Building 64 bit rocksdb libs' -ForegroundColor Cyan
   $arch = 'x64'
   $platform = 'amd64'
-  $cmakeBuildType = 'Visual Studio 14 2015 Win64'
+  $cmakeBuildType = 'Visual Studio 15 2017 Win64'
 }
 
 # Invoke the MSVC developer tools/env
-Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" $platform
+Invoke-VcVarsAll
 
 $cmake = (Get-Command 'cmake').Source
 $cmakeArgs = @(
@@ -107,7 +107,7 @@ $cmakeArgs = @(
   '-DROCKSDB_LITE=ON',
   '../'
 )
-Start-OsqueryProcess $cmake $cmakeArgs
+Start-OsqueryProcess $cmake $cmakeArgs $false
 
 # Build the libraries
 $msbuild = (Get-Command 'msbuild').Source
@@ -125,7 +125,7 @@ foreach($cfg in $configurations) {
     '/m',
     '/v:m'
   )
-  Start-OsqueryProcess $msbuild $msbuildArgs
+  Start-OsqueryProcess $msbuild $msbuildArgs $false
 }
 
 # If the build path exists, purge it for a clean packaging
@@ -161,7 +161,7 @@ foreach ($lib in Get-ChildItem "$buildDir\Debug\") {
 Copy-Item "$buildDir\Release\*" $libDir
 Copy-Item -Recurse "$buildDir\..\include\rocksdb" $includeDir
 Copy-Item $buildScript $srcDir
-choco pack
+Start-OsqueryProcess 'choco' @('pack') $false
 
 Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" `
 -ForegroundColor DarkGreen

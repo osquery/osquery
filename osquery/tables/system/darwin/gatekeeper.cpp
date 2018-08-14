@@ -76,7 +76,9 @@ QueryData genGateKeeper(QueryContext& context) {
   auto gke_status = SQL::selectAllFrom("plist", "path", EQUALS, kGkeStatusPath);
 
   if (gke_status.empty()) {
-    r["assessments_enabled"] = INTEGER(0);
+    // The absence of the file indicates that Gatekeeper is fully enabled
+    r["assessments_enabled"] = INTEGER(1);
+    r["dev_id_enabled"] = INTEGER(1);
   }
 
   for (const auto& row : gke_status) {

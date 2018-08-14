@@ -37,8 +37,7 @@ extern long getUptime();
 }
 
 std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
-  long result{0};
-  safeStrtol(saddr.substr(offset, 8), 16, result);
+  long const result = tryTo<long>(saddr.substr(offset, 8), 16).takeOr(0l);
   return std::to_string((result & 0xff000000) >> 24) + '.' +
          std::to_string((result & 0x00ff0000) >> 16) + '.' +
          std::to_string((result & 0x0000ff00) >> 8) + '.' +
@@ -52,15 +51,13 @@ bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
   if (saddr[0] == '0' && saddr[1] == '2') {
     // IPv4
     row["family"] = '2';
-    long result{0};
-    safeStrtol(saddr.substr(4, 4), 16, result);
+    long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0l);
     row["remote_port"] = INTEGER(result);
     row["remote_address"] = ip4FromSaddr(saddr, 8);
   } else if (saddr[0] == '0' && saddr[1] == 'A') {
     // IPv6
     row["family"] = "10";
-    long result{0};
-    safeStrtol(saddr.substr(4, 4), 16, result);
+    long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0l);
     row["remote_port"] = INTEGER(result);
     std::string address;
     for (size_t i = 0; i < 8; ++i) {

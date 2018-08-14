@@ -6,9 +6,13 @@ The public API and SDK headers are documented via **doxygen**. To generate web-b
 
 ## Extensions
 
-Extensions are separate processes built using osquery **core** designed to register one or more plugins. An extension may be compiled and linked using an external build system, against proprietary code, and will be version-compatible with our publicly-built binary packages on [https://osquery.io/downloads](https://osquery.io/downloads).
+Extensions are separate processes that communicate over a Thrift IPC channel to osquery **core** in order to register one or more plugins or virtual tables. An extension allows you to develop independently: it may be compiled and linked using an external build system, against proprietary code. Your extension will be version-compatible with our publicly-built binary packages on [https://osquery.io/downloads](https://osquery.io/downloads).
 
-osquery extensions should statically link the **core** code and use the `<osquery/sdk.h>` helper include file. Let's walk through a basic example extension (source for [example_extension.cpp](https://github.com/facebook/osquery/blob/master/osquery/examples/example_extension.cpp)):
+Extensions use osquery's [Thrift API](https://github.com/facebook/osquery/blob/master/osquery.thrift) to communicate between **osqueryi** or **osqueryd** and the extension process. Extensions are commonly written in C++, but can also be developed [in Python](https://github.com/osquery/osquery-python), [in Go](https://github.com/kolide/osquery-go), or in really any language that supports [Thrift](https://thrift.apache.org/).
+
+Only the osquery SDK provides the simple `startExtension` symbol that manages the life of your process, including the Thrift service threads and a watchdog.
+
+osquery extensions should statically link the **core** code and use the `<osquery/sdk.h>` helper include file. C++ extensions should link: boost, thrift, glog, gflags, and optionally rocksdb for eventing. Let's walk through a basic example extension in C++ (source for [example_extension.cpp](https://github.com/facebook/osquery/blob/master/osquery/examples/example_extension.cpp)):
 
 ```cpp
 // Note 1: Include the sdk.h helper.
@@ -16,7 +20,7 @@ osquery extensions should statically link the **core** code and use the `<osquer
 
 using namespace osquery;
 
-// Note 2: Define at least one plugin.
+// Note 2: Define at least one plugin or table.
 class ExampleTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const override {
@@ -37,7 +41,7 @@ class ExampleTablePlugin : public TablePlugin {
   }
 };
 
-// Note 3: Use REGISTER_EXTERNAL to define your plugin.
+// Note 3: Use REGISTER_EXTERNAL to define your plugin or table.
 REGISTER_EXTERNAL(ExampleTablePlugin, "table", "example");
 
 int main(int argc, char* argv[]) {
@@ -51,25 +55,24 @@ int main(int argc, char* argv[]) {
     runner.requestShutdown(status.getCode());
   }
 
-  // Finally shutdown.
+  // Finally, shutdown.
   runner.waitForShutdown();
   return 0;
 }
 ```
 
-Extensions use osquery's [Thrift API](https://github.com/facebook/osquery/blob/master/osquery.thrift) to communicate between **osqueryi** or **osqueryd** and the extension process. They may be written in any language that supports [Thrift](https://thrift.apache.org/). Only the osquery SDK provides the simple `startExtension` symbol that manages the life of your process including Thrift service threads and a watchdog. C++ extensions should link: boost, thrift, glog, gflags, and optionally rocksdb for eventing.
-
-The **osqueryi** or **osqueryd** processes start an "extension manager" Thrift service thread that listens for extension register calls on a UNIX domain socket. Extensions may only communicate if the processes can read/write to this socket. An extension process running as a non-privileged user cannot register plugins to an **osqueryd** process running as root. Both the osquery core and C++ extensions using `startExtension` will deregister plugins if the communication becomes latent. Both are configurable using gflags or config options.
+The **osqueryi** or **osqueryd** processes start an "extension manager" Thrift service thread that listens for extension register calls on a UNIX domain socket. Extensions may only communicate if the processes can read/write to this socket. An extension process running as a non-privileged user cannot register plugins to an **osqueryd** process running as root. Both the osquery core and C++ extensions using `startExtension` will deregister plugins if the communication becomes latent. Both of these settings are configurable using gflags or the osquery config options.
 
 ### Using the example extension
 
 Please see the deployment [guide on extensions](../deployment/extensions.md) for a more-complete overview of how and why extensions are used.
 
-If you [build from source](../development/building.md), you will build an example extension. The code can be found in the [`osquery/examples`](https://github.com/facebook/osquery/blob/master/osquery/examples/example_extension.cpp) folder; it adds a config plugin called "example" and additional table called "example". There are two ways to run an extension: load the extension at an arbitrary time after shell or daemon execution, or request an "autoload" of extensions. The auto-loading method has several advantages such as dependencies on external config plugins, and the same management and process monitoring applied to osquery worker processes.
+If you [build from source](../development/building.md), you will build an example extension. The code can be found in the [`osquery/examples`](https://github.com/facebook/osquery/blob/master/osquery/examples/example_extension.cpp) folder; it adds a config plugin called "example" and additional table called "example". There are two ways to run an extension: load the extension at an arbitrary time after shell or daemon execution, or request an "autoload" of extensions. The auto-loading method has several advantages, such as allowing dependencies on external config plugins and inheriting the same process monitoring as is applied to the osquery core worker processes.
 
-The **osqueryi** shell also allows a quick and easy command-line autoload using `--extension`, let's review both options:
+The **osqueryi** shell also allows a quick and easy command-line autoload using `--extension`. Let's review both options.
 
-To load the example extension in the shell try:
+First, to load the example extension in the osquery interactive shell, we start osqueryi:
+
 ```
 $ ./build/darwin/osquery/osqueryi
 osquery> SELECT path FROM osquery_extensions;
@@ -82,7 +85,7 @@ osquery> ^Z
 [1]  + 98777 suspended  ./build/darwin/osquery/osqueryi
 ```
 
-Here we have started a shell process, inspected the UNIX domain socket path used for extensions, and suspended the process temporarily.
+Here we have started the osquery shell process, inspected the UNIX domain socket path it uses to communicate with extension processes, and then suspended the process temporarily.
 
 ```
 $ ./build/darwin/osquery/example_extension.ext --help
@@ -99,7 +102,7 @@ osquery project page <https://osquery.io>.
 $ ./build/darwin/osquery/example_extension.ext --socket /Users/USERNAME/.osquery/shell.em &
 ```
 
-Before executing the extension we've inspected the potential CLI flags, which are a subset of the shell or daemon's [CLI flags](../installation/cli-flags.md). The example extension is executed in the background so we can resume the shell and use the provided 'example' table.
+Before executing the extension we've inspected the potential CLI flags, which are a subset of the shell or daemon's [CLI flags](../installation/cli-flags.md). We executed the example extension in the background, so now we can resume the osqeury shell and use the 'example' table provided by the extension.
 
 ```
 [2] 98795
@@ -114,9 +117,10 @@ osquery> SELECT * FROM example;
 osquery>
 ```
 
-If the responsible shell or daemon process ends the extension will soon after detect the loss of communication and also shutdown. Read more about the lifecycle of extensions in the deployment guide.
+If the responsible osquery shell or daemon process ends, the extension will detect the loss of communication and also shutdown soon after. Read more about the lifecycle of extensions in the deployment guide.
 
-Alternatively, try:
+The second, and simpler, way to manually load an extension is at the osqueryi command line with `--extension`:
+
 ```
 $ ./build/darwin/osquery/osqueryi --extension ./build/darwin/osquery/example_extension.ext
 ```
@@ -125,16 +129,17 @@ $ ./build/darwin/osquery/osqueryi --extension ./build/darwin/osquery/example_ext
 
 Your "external" extension, in the sense that the code is developed and contained somewhere external from the osquery repository, can be built semi-automatically.
 
-1. Symlink your external extension directory into `./external`.
+1. Symlink your external extension source code directory into `./external`. (`ln -s [extension_source_dir] [osquery_external_subdir]` on Linux or macOS, `mklink /D [osquery_external_subdir] [extension_source_dir]` on Windows)
 2. Make sure the symlink contains `extension_` as a prefix.
 3. Run `make externals`.
 
-This will find and compile all `.*\.{cpp,c,mm}` files within your external directory. If you need something more complicated add a `CMakeLists.txt` to your directory and add your targets to the `externals` target.
+This will find and compile all `.*\.{cpp,c,mm}` files within your external directory. If you need something more complicated, add a `CMakeLists.txt` to your directory and add your targets to the `externals` target.
 
 See [`CMake/CMakeLibs.cmake`](https://github.com/facebook/osquery/blob/master/CMake/CMakeLibs.cmake) for more information about the `ADD_OSQUERY_EXTENSION` CMake macro.
 
 Example:
-```
+
+```sh
 (osquery) $ ln -s ~/git/fun-osquery-extension ./external/extension_fun
 (osquery) $ ls ./external/extension_fun/
 fun.cpp
@@ -148,28 +153,28 @@ Scanning dependencies of target external_extension_awesome
 [100%] Built target externals
 ```
 
-## Bundling extensions into a single executable
-All the extensions declared with the **add_osquery_extension_ex()** CMake function will be automatically bundled into a single executable.
+## Bundling multiple extensions into a single-executable extension
+
+All of the extensions declared with the **add_osquery_extension_ex()** CMake function will be automatically bundled into a single executable.
 
 The executable name and version can be changed using the following two environment variables:
 
-1. OSQUERY_EXTENSION_GROUP_NAME (default: osquery_extension_group)
-2. OSQUERY_EXTENSION_GROUP_VERSION (default: 1.0)
+1. `OSQUERY_EXTENSION_GROUP_NAME` (default: `osquery_extension_group`)
+2. `OSQUERY_EXTENSION_GROUP_VERSION` (default: `1.0`)
 
 It is important to provide a header file that can be included by the generated main.cpp file; its purpose is to define the types used by the **REGISTER_EXTERNAL** directive.
 
 An example is included in the `osquery/examples/extension_group_example`.
 
-Please note that when using bundling the source directory of each extension is added to the include folder list; developers should always use uniquely named include files. Additionally if you are using RapidJSON documents in your extension, you should instead leverage the osquery `json.h` header to avoid linking issues from how we have configured RapidJSON `#define`s.
-
+Please note that when using bundling, the source directory of each extension is added to the `include` list; developers should always use uniquely named include files. Additionally, if you are using RapidJSON documents in your extension, then you should instead leverage the osquery `json.h` header to avoid linking issues due to how we have configured RapidJSON `#define`s.
 
 ## Thrift API
 
-[Thrift](https://thrift.apache.org/) is a code-generation/cross-language service development framework. osquery uses Thrift to allow plugin extensions for config retrieval, log export, table implementations, event subscribers, and event publishers. We also use Thrift to wrap our SQL implementation using SQLite.
+[Thrift](https://thrift.apache.org/) is a code-generation/cross-language service development framework. osquery uses Thrift to allow extensions to implement plugins for config retrieval, log export, table implementations, event subscribers, and event publishers. We also use Thrift to wrap our SQL implementation using SQLite.
 
-**Extension API**
+### Extension API
 
-An extension process should implement the following API. During an extension's set up it will "broadcast" all the registered plugins to a shell or daemon process. Then the extension will be asked to start a UNIX domain socket and Thrift service thread implementing the `ping` and `call` methods.
+An extension process should implement the following API. During an extension's set up it will "broadcast" all of its registered plugins to the osquery shell or daemon process. Then the extension will be asked to start a UNIX domain socket and Thrift service thread implementing the `ping` and `call` methods.
 
 ```thrift
 service Extension {
@@ -188,7 +193,7 @@ service Extension {
 
 When an extension becomes unavailable, the shell or daemon process will automatically deregister those plugins.
 
-**Extension Manager API (osqueryi/osqueryd)**
+### Extension Manager API (osqueryi/osqueryd)
 
 ```thrift
 service ExtensionManager extends Extension {

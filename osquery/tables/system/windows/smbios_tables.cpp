@@ -21,11 +21,11 @@ QueryData genPlatformInfo(QueryContext& context) {
   std::string query =
       "select Manufacturer, SMBIOSBIOSVersion, ReleaseDate, "
       "SystemBiosMajorVersion, SystemBiosMinorVersion from Win32_BIOS";
-  WmiRequest request(query);
+  const WmiRequest request(query);
   if (!request.getStatus().ok()) {
     return results;
   }
-  std::vector<WmiResultItem>& wmiResults = request.results();
+  const std::vector<WmiResultItem>& wmiResults = request.results();
   if (wmiResults.size() != 1) {
     return results;
   }

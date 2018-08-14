@@ -10,7 +10,6 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <regex>
 
 #include <osquery/database.h>
 #include <osquery/flags.h>
@@ -256,7 +255,7 @@ Status sendPutBatchDatabaseRequest(const std::string& domain,
 Status sendPutDatabaseRequest(const std::string& domain,
                               const DatabaseStringValueList& data) {
   const auto& key = data[0].first;
-  const auto& value = data[1].second;
+  const auto& value = data[0].second;
 
   PluginRequest request = {
       {"action", "put"}, {"domain", domain}, {"key", key}, {"value", value}};
@@ -328,7 +327,7 @@ Status setDatabaseBatch(const std::string& domain,
   // External registries (extensions) do not have databases active.
   // It is not possible to use an extension-based database.
   if (RegistryFactory::get().external()) {
-    if (data.size() >= 1) {
+    if (data.size() > 1) {
       return sendPutBatchDatabaseRequest(domain, data);
     } else {
       return sendPutDatabaseRequest(domain, data);
@@ -518,7 +517,7 @@ static Status migrateV0V1(void) {
 
 static Status migrateV1V2(void) {
   std::vector<std::string> keys;
-  std::regex re = std::regex("(.*)\\.audit\\.(.*)");
+  const std::string audit_str(".audit.");
 
   Status s = scanDatabaseKeys(kEvents, keys);
   if (!s.ok()) {
@@ -527,11 +526,11 @@ static Status migrateV1V2(void) {
   }
 
   for (const auto& key : keys) {
-    std::smatch match;
-    if (std::regex_match(key, match, re)) {
+    const auto pos = key.find(audit_str);
+    if (pos != std::string::npos) {
       std::string value;
-      const std::string new_key =
-          match[1].str() + ".auditeventpublisher." + match[2].str();
+      std::string new_key = key;
+      new_key.replace(pos, audit_str.length(), ".auditeventpublisher.");
 
       s = getDatabaseValue(kEvents, key, value);
       if (!s.ok()) {

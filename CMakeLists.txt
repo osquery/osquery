@@ -213,7 +213,7 @@ if(POSIX)
   endif()
 elseif(WINDOWS)
   add_compile_options(
-    /EHsc
+    /EHs
     /W3
     /guard:cf
   )

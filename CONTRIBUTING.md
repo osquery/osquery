@@ -1,150 +1,189 @@
-## Contributor License Agreement ("CLA")
+# Contributing to osquery
 
-In order to accept your pull request, we need you to submit a CLA. You only need to do this once to work on any of Facebook's open source projects.
+We want to make contributing to osquery as simple and transparent as possible. These guidelines
+explain the basics of the osquery development process and how you can contribute too. Please read
+these guidelines before submitting your code as they are designed to save you time later on when
+your code is under review and give you the basics of how to get started.
 
-Complete your CLA here: <https://code.facebook.com/cla>
+## Our Development Process
 
-By contributing to osquery, you agree that your contributions will be licensed under both the `LICENSE` file and the `COPYING` file in the root directory of this source tree.
+### Open Development
+
+All osquery development happens on [GitHub](https://github.com/facebook/osquery) which is our source
+of truth. All contributions, both from core team members and external contributors, happen via pull
+requests and go through the same review process. We use GitHub issues to track bugs and feature
+requests including the ones from the core team.
+
+Both our core team and community members are on the osquery [Slack](https://osquery.slack.com).
+Feel free to register using the following [link](https://slack.osquery.io/) if you haven't done so
+yet.
+
+The osquery team also hosts regular office hours where the community is invited to discuss osquery
+development with the core team. You are welcome to join. Office hours are announced on our Slack on
+the `officehours` channel.
+
+### Blueprints
+
+If you plan to submit a change to the osquery core, a new big feature, or in
+general a change that merits discussion, start by opening a
+[Blueprint](https://github.com/facebook/osquery/issues/new?template=Blueprint.md) issue.
+
+A blueprint issue is a standard GitHub issue, tagged with the label
+[blueprint](https://github.com/facebook/osquery/labels/blueprint), which describes your idea, the
+problem you're solving and how you plan to implement your solution. The goal of the blueprint is to
+allow both the core team and the community to discuss whether a certain change is desirable and will
+be accepted, and identify possible problems with the implementation before it even starts.
+
+There aren't strict guidelines on when a blueprint is needed or not, so you should use your best
+judgement or just ping the osquery team on our `core` channel on Slack, but to help you out here are
+some examples of changes which **would** benefit from a blueprint:
+
+* Change the basic functioning of the query scheduler
+* Alter the thrift interfaces
+* Reimplement the logger interface
+* Add a new plugin type
+
+There isn't either a strict format for the blueprints, but make sure to include what problem you're
+trying to solve and how you plan to solve it. We can go from that and ask more information if
+necessary. If you have code already, even if it is only a proof-of-concept that will be dropped
+later, please submit it as a PR and associate it with the blueprint by mentioning the blueprint
+issue on the pull request.
+
+Please remember that blueprints are mostly designed to save **you** time by preventing you from
+implementing code which won't be accepted or will need to be extensively modified later on. Please
+use the right [template](https://github.com/facebook/osquery/issues/new?template=Blueprint.md) for
+the issue. Feel free to advertise your blueprint and ask for feedback on Slack.
+
+### Pull requests
+
+All contributions are submitted via pull requests open against the
+[master](https://github.com/facebook/osquery/tree/master) branch. We **do not** push code directly
+to the master branch and pull requests are all reviewed before being merged including the ones from
+the core team.
+
+**Do not submit multiple unrelated changes on the same PR.** A pull request must represent a single
+body of work. If your work requires a bug-fix, submit that first on a separate PR, the same goes for
+refactors. If you can split your work into multiple smaller PRs please also do so. This is of utmost
+importance to allow fast reviews and to simplify regression tracking, reverts and references.
+
+Start by developing your feature on your feature branch and when ready submit a pull request against
+the osquery master branch. The initial PR should preferably **contain a single commit**.
+
+If you're unfamiliar with GitHub or how pull requests work, GitHub has a very easy to follow guide
+that teaches you how to fork the project and submit your first PR. You can follow it
+[here](https://guides.github.com/activities/forking/).
+
+Don't forget to tag the issues you're addressing on the body of your PR description. If your PR
+is intended to close an issue keywords (like `fixes` or `closes`) as defined on [GitHub
+Help](https://help.github.com/articles/closing-issues-using-keywords/).
+
+Once you submit your PR the core team will review it and trigger CI tests on our Jenkins instance. A
+common source of test failures is wrong code formatting. All the code you submit should be formatted
+with `clang-format`, but you shouldn't format more than the code you touch, just run `make
+format_master` and amend your commit with any resulting changes before submitting.
+
+If the tests fail or the reviewer requests changes, please submit those changes by **appending new
+commits** to your feature branch. **Avoid amending old commits** as that makes it harder for the
+reviewer to track your updates. If you need to keep your PR up-to-date with master the preferred way
+is to rebase your branch on master and force-push. Finally the core team might help you with getting
+your PR accepted by pushing directly to your branch when that makes sense.
+
+Once at least one core team member approves your pull request and Jenkins is happy (remember tests
+need to pass for all supported platforms) the PR is ready to merge. The core team will merge your PR
+by squashing all your commits into one. The commit body message will be removed but the PR number
+will be kept in the title so that you can link back a commit to a PR and check the full discussion
+and reviews on GitHub.
+
+Only the core team can merge pull requests and therefore at least one core team member will always
+review your PR, however reviews from the community are highly encouraged and desirable.
+
+Finally we try to keep only active PRs open. If your PR is stale we will close it, however if you
+want to get back to it at a certain point feel free to re-open, or comment on it.
+
+### A note about labels
+
+The core team uses labels to tag each and every pull request. If you care about their meaning take a
+look at [labels](https://github.com/facebook/osquery/labels) on GitHub. However, only the core team
+can label issues and PRs, so you don't need to care too much about this.
+
+### Milestones and release versions
+
+We currently do not use any strict versioning scheme and we cut new versions as we feel it makes
+sense according to the new features implemented, whether critical bug-fixes where merged, the size
+of the release (i.e. how many commits since last version), etc.  We will however keep some near
+future milestones open and tag each PR with the milestone we think it is going to be merged for.
+
+Milestones are used for larger releases and we might cut patch releases as we go. If your PR is
+tagged with the next milestone you can expect it to be merged as soon as it is ready. If your PR is
+tagged with a later milestone we'll only merge it after the previous milestones are closed.
+
+### Branches and tags
+
+The osquery repo contains only the [master](https://github.com/facebook/osquery/tree/master) branch
+which we do our best to keep stable. We don't keep feature or release branches. The master branch
+will always keep a linear history and no merge commits are allowed. All our releases are tagged.
+
+
+## Bug reports and feature requests
+
+Developing code is not the only way to contribute to osquery. Submitting bug reports and new ideas
+is also valuable and appreciated.
+
+We use GitHub issues to track bugs and feature requests. To submit a bug report follow the [Bug
+Report](https://github.com/facebook/osquery/issues/new?template=Bug_Report.md) template, to submit
+a feature request use the [Feature
+Request](https://github.com/facebook/osquery/issues/new?template=Feature_Request.md) template.
+
+**Please only use issues for bug reports or feature requests**. If you have deployment questions or
+issues or a general question about osquery hit our Slack instead as you'll have better support
+there. To improve the chances you have a quicker answer search through the available channels and
+choose the most appropriate one and fallback to general as a last resort.
+
+**If you're using a vendor please use the appropriate channel as we won't be able to support vendor
+deployments on the non-vendor channels.**
+
 
 ## Guidelines for contributing features to osquery core
 
-The software housed in this repo is known as osquery core. While there are occasional exceptions, contributions to core should abide by the following osquery guiding principles in order to be accepted:
+The software housed in this repo is known as osquery core. While there are occasional exceptions,
+contributions to core should abide by the following osquery guiding principles in order to be
+accepted:
+
 1. osquery doesn’t change the state of the system
 2. osquery doesn’t create network traffic to third parties
 3. osquery’s endpoint binaries have a light memory footprint
 4. osquery minimizes system overhead & maximizes performance
 5. The query schema for osquery seeks uniformity between operating systems
 
-For new features that do not align with the mission principles of core, you may build outside of osquery core in separate integrated processes called extensions: https://osquery.readthedocs.io/en/stable/development/osquery-sdk/.
+For new features that do not align with the mission principles of core, you may build outside of
+osquery core in separate integrated processes called extensions:
+https://osquery.readthedocs.io/en/stable/development/osquery-sdk/.
 
-## Does my contribution belong in Core or in an Extension?
+### Does my contribution belong in Core or in an Extension?
 
 Belongs in Core:
-- Observes guiding principles
-- Has been shared with and approved by osquery project maintainers as a new feature in Core
-- Meets Facebook's testing and quality standards (see CONTRIBUTING.md)
+
+* Observes guiding principles
+* Has been shared with and approved by osquery project maintainers as a new feature in Core
+* Meets Facebook's testing and quality standards
 
 Belongs in an extension:
-- Might not observe the osquery guiding principles
-- Has not been shared with or approved by Facebook as a new feature in Core 
-- Expands the scope of use for osquery beyond endpoint monitoring
-- Integrates with a proprietary or esoteric tool that is not widely applicable
 
-## osquery core contribution process
+* Might not observe the osquery core guiding principles
+* Has not been shared with or approved by Facebook as a new feature in Core
+* Expands the scope of use for osquery beyond endpoint monitoring
+* Integrates with a proprietary or esoteric tool that is not widely applicable
 
-All osquery development occurs in feature branches and all contributions occur via GitHub Pull Requests. All code must be reviewed, even if it's written by members of the core team, so following the code review process is critical to successful osquery development.
 
-## Git workflow
+## Contributor License Agreement ("CLA")
 
-Please do all of your development in a feature branch, on your own fork of osquery. You should clone osquery normally, like this:
+In order to accept your pull request, we need you to submit a CLA. You only need to do this once to
+work on any of Facebook's open source projects.
 
-```
-git clone git@github.com:facebook/osquery.git
-```
+Complete your CLA at https://code.facebook.com/cla.
 
-Then, your "remote" should be set up as follows:
 
-```
-$ cd osquery
-$ git remote -v
-origin  git@github.com:facebook/osquery.git (fetch)
-origin  git@gitHub.com:facebook/osquery.git (push)
-```
+## License
 
-Now, use the GitHub UI to fork osquery to your personal GitHub organization. Then, add the remote URL of your fork to git's local remotes:
-
-```
-$ git remote add $USER git@github.com:$USER/osquery.git
-```
-
-Now, your "remote" should be set up as follows:
-
-```
-$ git remote -v
-marpaia git@github.com:marpaiagitaia/osquery.git (fetch)
-marpaia git@github.com:marpaia/osquery.git (push)
-origin  git@github.com:facebook/osquery.git (fetch)
-origin  git@gitHub.com:facebook/osquery.git (push)
-```
-
-When you're ready to start working on a new feature, create a new branch:
-
-```
-$ git checkout -b my-feature
-```
-
-Write your code and when you're ready to put up a Pull Request, push your local branch to your fork:
-
-```
-$ git add .
-$ git commit -m "my awesome feature!"
-$ git push -u $USER my-feature
-```
-
-Visit https://github.com/facebook/osquery and use the web UI to create a Pull Request. Once your pull request has gone through sufficient review and iteration, please squash all of your commits into one commit.
-
-## Pull Request workflow
-
-In most cases your PR should represent a single body of work. It is fine to change unrelated small-things like nits or code-format issues but make every effort to submit isolated changes. This makes documentation, references, regression tracking and if needed, a revert, easier.
-
-## Updating Pull Requests
-
-Pull requests will often need revision, most likely after the required code review from the friendly core development team. :D
-
-Please feel free to add several commits to your Pull Request. When it comes time to merge into **master** all commits in a Pull Request will be squashed using GitHub's tooling into a single commit. The development team will usually choose to remove the commit body and keep the GitHub-appended `(#PR)` number in the commit title.
-
-**You make updates to your pull request**
-
-If the pull request needs changes, or you decide to update the content, consider 'amending' your previous commit:
-
-```
-$ git commit --amend
-```
-
-Like squashing, this changes the branch history so you'll need to force push the changes to update the pull request:
-
-```
-$ git push -f
-```
-
-In all cases, if the pull request is triggering automatic build/integration tests, the tests will rerun reflecting your changes.
-
-### Linking issues
-
-Once you submit your pull request, link the GitHub issue which your Pull Request implements. To do this, if the relevant issue is #7, then simply type "#7" somewhere in the Pull Request description or comments. This links the Pull Request with the issue, which makes things easier to track down later on.
-
-### Adding the appropriate labels
-
-To facilitate development, osquery developers adhere to a particular label workflow. The core development team will assign labels as appropriate.
-
-#### "ready for review" vs "in progress"
-
-Pull Requests are a great way to track the on-going development of an existing feature. For this reason, if you create a Pull Request and it's not ready for review just yet, attach the "in progress" label. If the Pull Request is ready for review, attach the "ready for review" label. Once the "ready for review" label has been applied, a member of the osquery core team will review your Pull Request.
-
-#### Topic labels
-
-Are you creating a new osquery table? Attach the **virtual tables** label.
-
-Are you in some way altering build/test infrastructure? Attach the **build/test infrastructure** label.
-
-Are you fixing a memory leak? Attach the **memory leak** label.
-
-The pattern here should be pretty obvious. Please put the appropriate effort into attaching the appropriate labels to your Pull Request.
-
-## Unit Test expectations
-
-All code that you submit to osquery should include automated tests. See the [unit testing guide](https://osquery.readthedocs.org/en/latest/development/unit-tests/) for instructions on how to create tests.
-
-## Memory leak expectations
-
-osquery runs in the context of long running processes. It's critical that there are no memory leaks in osquery code. All code should be thoroughly tested for leaks. See the [memory leak testing guide](https://osquery.readthedocs.org/en/latest/deployment/performance-safety/) for more information on how to test your code for memory leaks.
-
-When you submit a Pull Request, please consider including the output of a valgrind analysis.
-
-## Calling systems tools
-
-If you think that shelling out and executing a bash command is a good idea, it's not.
-
-If you want to call a system executable or call system libraries via a tool, use the underlying C/C++ APIs that the tool uses to implement your functionality. Several tables (kextstat, processes, nvram, last, etc) were created by dissecting core systems tools and using the underlying APIs.
-
-It's worth noting that you should exercise caution when copying code of any kind, especially core systems tools. Often times, core utilities developers recognize that their software will only be executed in the context of short-lived processes. For this reason, there are often memory leaks in the default behavior of these utilities. Put care into ensuring that you don't unknowingly introduce memory leaks into osquery.
+By contributing to osquery you agree that your contributions will be licensed as defined on the
+[LICENSE](LICENSE) file.

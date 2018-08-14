@@ -223,6 +223,31 @@ GTEST_TEST(ExpectedTest, take_value_from_expected_with_error) {
 #endif
 }
 
+GTEST_TEST(ExpectedTest, get_error_from_expected_with_value) {
+  auto action = []() {
+    auto expected = Expected<int, TestError>(228);
+    const auto& error = expected.getError();
+    boost::ignore_unused(error);
+  };
+#ifndef NDEBUG
+  ASSERT_DEATH(action(), "Do not try to get error from Expected with value");
+#else
+  boost::ignore_unused(action);
+#endif
+}
+
+GTEST_TEST(ExpectedTest, take_error_from_expected_with_value) {
+  auto action = []() {
+    auto expected = Expected<int, TestError>(228);
+    return expected.takeError();
+  };
+#ifndef NDEBUG
+  ASSERT_DEATH(action(), "Do not try to get error from Expected with value");
+#else
+  boost::ignore_unused(action);
+#endif
+}
+
 GTEST_TEST(ExpectedTest, value__getOr) {
   const auto expectedValue = Expected<int, TestError>(225);
   EXPECT_EQ(expectedValue.getOr(29), 225);

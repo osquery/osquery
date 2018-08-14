@@ -25,8 +25,8 @@ QueryData genVideoInfo(QueryContext& context) {
   Row r;
   QueryData results;
 
-  WmiRequest wmiSystemReq("SELECT * FROM Win32_VideoController");
-  std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
+  const WmiRequest wmiSystemReq("SELECT * FROM Win32_VideoController");
+  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   if (wmiResults.empty()) {
     LOG(WARNING) << "Failed to retrieve video information";
     return {};

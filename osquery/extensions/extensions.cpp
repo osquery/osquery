@@ -522,18 +522,18 @@ Status startExtension(const std::string& manager_path,
           << sdk_version << ") registered";
   return Status(0, std::to_string(uuid));
 }
-
-Status queryExternal(const std::string& manager_path,
-                     const std::string& query,
-                     QueryData& results) {
+Status ExternalSQLPlugin::query(const std::string& query,
+                                QueryData& results,
+                                bool use_cache) const {
+  static_cast<void>(use_cache);
   // Make sure the extension path exists, and is writable.
-  auto status = extensionPathActive(manager_path);
+  auto status = extensionPathActive(FLAGS_extensions_socket);
   if (!status.ok()) {
     return status;
   }
 
   try {
-    ExtensionManagerClient client(manager_path);
+    ExtensionManagerClient client(FLAGS_extensions_socket);
     status = client.query(query, results);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
@@ -542,22 +542,17 @@ Status queryExternal(const std::string& manager_path,
   return status;
 }
 
-Status queryExternal(const std::string& query, QueryData& results) {
-  return queryExternal(FLAGS_extensions_socket, query, results);
-}
-
-Status getQueryColumnsExternal(const std::string& manager_path,
-                               const std::string& query,
-                               TableColumns& columns) {
+Status ExternalSQLPlugin::getQueryColumns(const std::string& query,
+                                          TableColumns& columns) const {
   // Make sure the extension path exists, and is writable.
-  auto status = extensionPathActive(manager_path);
+  auto status = extensionPathActive(FLAGS_extensions_socket);
   if (!status.ok()) {
     return status;
   }
 
   QueryData qd;
   try {
-    ExtensionManagerClient client(manager_path);
+    ExtensionManagerClient client(FLAGS_extensions_socket);
     status = client.getQueryColumns(query, qd);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
@@ -572,11 +567,6 @@ Status getQueryColumnsExternal(const std::string& manager_path,
   }
 
   return status;
-}
-
-Status getQueryColumnsExternal(const std::string& query,
-                               TableColumns& columns) {
-  return getQueryColumnsExternal(FLAGS_extensions_socket, query, columns);
 }
 
 Status pingExtension(const std::string& path) {

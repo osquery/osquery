@@ -20,11 +20,11 @@ namespace osquery {
 
 class Killswitch : private boost::noncopyable {
  public:
-  static const char killswitch_[];
-  static const char action_[];
-  static const char isEnabled_[];
-  static const char key_[];
-  static const char refresh_[];
+  static const char* killswitch_;
+  static const char* action_;
+  static const char* isEnabled_;
+  static const char* key_;
+  static const char* refresh_;
 
  private:
   Killswitch();
@@ -57,8 +57,6 @@ class Killswitch : private boost::noncopyable {
   };
   Expected<bool, Killswitch::IsEnabledError> isEnabled(const std::string& key);
 
-  FRIEND_TEST(KillswitchJSONTests, test_killswitch_JSON_plugin_initial_values);
-  FRIEND_TEST(KillswitchJSONTests, test_killswitch_JSON_plugin_switch_valid);
   FRIEND_TEST(KillswitchTests, test_killswitch_plugin);
 };
 

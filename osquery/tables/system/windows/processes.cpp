@@ -300,7 +300,7 @@ QueryData genProcesses(QueryContext& context) {
     }
   }
 
-  WmiRequest request(query);
+  const WmiRequest request(query);
   if (request.getStatus().ok()) {
     for (const auto& item : request.results()) {
       long pid = 0;

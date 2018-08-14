@@ -20,6 +20,8 @@
 #include <boost/blank.hpp>
 #include <boost/variant.hpp>
 
+#include <osquery/debug/debug_only.h>
+
 /**
  * Utility class that should be used in function that return
  * either error or value. Expected enforce developer to test for success and
@@ -102,11 +104,18 @@ class Expected final {
   Expected(const Expected&) = delete;
   Expected(ErrorBase* error) = delete;
 
-  Expected& operator=(Expected&& other) = default;
+  Expected& operator=(Expected&& other) {
+    if (this != &other) {
+      object_ = std::move(other.object_);
+      other.errorChecked_ = true;
+    }
+    return *this;
+  }
+
   Expected& operator=(const Expected& other) = delete;
 
   ~Expected() {
-    assert(errorChecked_ && "Error was not checked");
+    errorChecked_.verify("Error was not checked");
   }
 
   static SelfType success(ValueType value) {
@@ -124,11 +133,13 @@ class Expected final {
 
   ErrorType takeError() && = delete;
   ErrorType takeError() & {
+    verifyIsError();
     return std::move(boost::get<ErrorType>(object_));
   }
 
   const ErrorType& getError() const&& = delete;
   const ErrorType& getError() const& {
+    verifyIsError();
     return boost::get<ErrorType>(object_);
   }
 
@@ -138,9 +149,7 @@ class Expected final {
   }
 
   bool isError() const noexcept {
-#ifndef NDEBUG
-    errorChecked_ = true;
-#endif
+    errorChecked_.set(true);
     return object_.which() == kErrorType_;
   }
 
@@ -154,19 +163,13 @@ class Expected final {
 
   ValueType& get() && = delete;
   ValueType& get() & {
-#ifndef NDEBUG
-    assert(object_.which() == kValueType_ &&
-           "Do not try to get value from Expected with error");
-#endif
+    verifyIsValue();
     return boost::get<ValueType>(object_);
   }
 
   const ValueType& get() const&& = delete;
   const ValueType& get() const& {
-#ifndef NDEBUG
-    assert(object_.which() == kValueType_ &&
-           "Do not try to get value from Expected with error");
-#endif
+    verifyIsValue();
     return boost::get<ValueType>(object_);
   }
 
@@ -213,14 +216,23 @@ class Expected final {
   }
 
  private:
+  inline void verifyIsError() const {
+    debug_only::verify([this]() { return object_.which() == kErrorType_; },
+                       "Do not try to get error from Expected with value");
+  }
+
+  inline void verifyIsValue() const {
+    debug_only::verify([this]() { return object_.which() == kValueType_; },
+                       "Do not try to get value from Expected with error");
+  }
+
+ private:
   boost::variant<ValueType, ErrorType> object_;
   enum ETypeId {
     kValueType_ = 0,
     kErrorType_ = 1,
   };
-#ifndef NDEBUG
-  mutable bool errorChecked_ = false;
-#endif
+  debug_only::Var<bool> errorChecked_ = false;
 };
 
 template <typename ValueType, typename ErrorCodeEnumType>
