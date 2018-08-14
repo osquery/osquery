@@ -588,7 +588,9 @@ Status setThreadName(const std::string& name) {
       return Status();
     }
   }
-  return Status(1);
+  return Status::failure();
+#else
+  return Status::failure();
 #endif
 }
 
