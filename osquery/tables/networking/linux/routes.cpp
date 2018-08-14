@@ -138,7 +138,7 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
       while (RTA_OK(xattr, xattr_size)) {
         switch (xattr->rta_type) {
         case RTAX_HOPLIMIT:
-          r["hopcount"] = INTEGER(*(int*)RTA_DATA(xattr));
+          r["hopcount"] = INTEGER(*reinterpret_cast<int*>(RTA_DATA(xattr)));
           break;
         }
         xattr = RTA_NEXT(xattr, xattr_size);
