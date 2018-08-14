@@ -19,8 +19,9 @@
 namespace osquery {
 namespace tables {
 
+namespace {
 const std::string kIpv6SysConfig = "all";
-const std::map<std::string, std::string> kIpv6ProcEntry = {
+const std::unordered_map<std::string, std::string> kIpv6ProcEntry = {
     {"forwarding", "forwarding"},
     {"redirect", "accept_redirects"},
     {"hlim", "hop_limit"},
@@ -35,8 +36,8 @@ inline std::string getIpv6Attr(const std::string& intf,
 int getIpv6Config(const std::string& attr,
                   const std::string& intf = kIpv6SysConfig) {
   std::string content;
-  auto ipv6_attr = getIpv6Attr(intf, attr);
-  if (readFile(ipv6_attr, content).ok()) {
+  auto ipv6Attr = getIpv6Attr(intf, attr);
+  if (readFile(ipv6Attr, content).ok()) {
     boost::trim(content);
     auto ret = tryTo<int>(content);
     if (ret.isValue()) {
@@ -45,6 +46,7 @@ int getIpv6Config(const std::string& attr,
   }
   return -1;
 }
+} // namespace
 
 void genIpv6FromIntf(const std::string& iface, QueryData& results) {
   Row r;
@@ -60,13 +62,13 @@ void genIpv6FromIntf(const std::string& iface, QueryData& results) {
   r["hlim"] = INTEGER(getIpv6Config("hlim", iface));
   int forwarding = getIpv6Config("forwarding", iface);
   r["forwarding"] = INTEGER(forwarding);
-  int sys_redirect = getIpv6Config("redirect");
-  int intf_redirect = getIpv6Config("redirect", iface);
-  r["redirect"] = INTEGER(forwarding ? sys_redirect && intf_redirect
-                                     : sys_redirect || intf_redirect);
+  int redirect = getIpv6Config("redirect");
+  int ifaceRedirect = getIpv6Config("redirect", iface);
+  r["redirect"] = INTEGER(forwarding ? redirect && ifaceRedirect
+                                     : redirect || ifaceRedirect);
   int rtadv = getIpv6Config("rtadv", iface);
   r["rtadv"] = INTEGER(rtadv == 2 ? 1 : rtadv && (!forwarding));
-  results.push_back(r);
+  results.emplace_back(std::move(r));
 }
 
 QueryData genInterfaceIpv6(QueryContext& context) {

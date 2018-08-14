@@ -27,7 +27,8 @@
 namespace osquery {
 namespace tables {
 
-const std::map<std::string, int> kIpv6SysctlObjects = {
+namespace {
+const std::unordered_map<std::string, int> kIpv6SysctlObjects = {
     {"forwarding", IPV6CTL_FORWARDING},
     {"redirect", IPV6CTL_SENDREDIRECTS},
     {"hlim", IPV6CTL_DEFHLIM},
@@ -37,21 +38,28 @@ const std::map<std::string, int> kIpv6SysctlObjects = {
 int getSysIpv6Config(const std::string& attr) {
   int value;
   size_t size = sizeof(value);
-  int mib[] = {CTL_NET, PF_INET6, IPPROTO_IPV6, kIpv6SysctlObjects.at(attr)};
-  return !sysctl(mib, 4, &value, &size, NULL, 0) ? value : -1;
+  auto sysctlObject = kIpv6SysctlObjects.find(attr);
+  if (sysctlObject == kIpv6SysctlObjects.end()) {
+    VLOG(1) << "No such sysctl object identifier: \"" << attr << "\"";
+    return -1;
+  }
+  int mib[] = {CTL_NET, PF_INET6, IPPROTO_IPV6, sysctlObject->second};
+  return !sysctl(mib, 4, &value, &size, nullptr, 0) ? value : -1;
 }
+} // namespace
 
 void genIpv6FromIntf(const std::string& iface, QueryData& results) {
   Row r;
-  std::map<std::string, int> ifaceCfg;
+  int ifaceHlim = 0;
+  int ifaceRtadv = 0;
 
   int fd = socket(AF_INET6, SOCK_DGRAM, 0);
   if (fd >= 0) {
     struct in6_ndireq nd;
     memcpy(nd.ifname, iface.c_str(), sizeof(nd.ifname));
     if (ioctl(fd, SIOCGIFINFO_IN6, &nd) >= 0) {
-      ifaceCfg["hlim"] = nd.ndi.chlim;
-      ifaceCfg["rtadv"] = nd.ndi.flags & ND6_IFF_ACCEPT_RTADV;
+      ifaceHlim = nd.ndi.chlim;
+      ifaceRtadv = nd.ndi.flags & ND6_IFF_ACCEPT_RTADV;
     } else {
       VLOG(1) << "Error getting information from intf: " << iface;
     }
@@ -61,14 +69,13 @@ void genIpv6FromIntf(const std::string& iface, QueryData& results) {
   }
 
   r["interface"] = iface;
-  r["hlim"] =
-      INTEGER(ifaceCfg["hlim"] ? ifaceCfg["hlim"] : getSysIpv6Config("hlim"));
-  r["rtadv"] = INTEGER(getSysIpv6Config("rtadv") > 0 && ifaceCfg["rtadv"]);
-  // FreeBSD does not support some of the configuration at the interface level
+  r["hlim"] = INTEGER(ifaceHlim ? ifaceHlim : getSysIpv6Config("hlim"));
+  r["rtadv"] = INTEGER(getSysIpv6Config("rtadv") > 0 && ifaceRtadv);
+  // FreeBSD does not support some of the configurations at the interface level
   for (const auto& attr : {"forwarding", "redirect"}) {
     r[attr] = INTEGER(getSysIpv6Config(attr));
   }
-  results.push_back(r);
+  results.emplace_back(std::move(r));
 }
 
 QueryData genInterfaceIpv6(QueryContext& context) {
