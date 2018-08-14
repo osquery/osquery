@@ -8,7 +8,11 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#ifdef OSQUERY_WINDOWS
+#include <Winsock2.h>
+#else
 #include <arpa/inet.h>
+#endif
 
 #include <osquery/core/database/rocksdb_database.h>
 #include <osquery/logger.h>
