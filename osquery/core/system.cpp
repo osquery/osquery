@@ -568,11 +568,12 @@ DropPrivileges::~DropPrivileges() {
 #endif
 
 Status setThreadName(const std::string& name) {
-  int return_code;
 #if defined(__APPLE__)
-  return_code = pthread_setname_np(name.c_str());
+  int return_code = pthread_setname_np(name.c_str());
+  return Status(return_code == 0 ? 0 : 1);
 #elif defined(__linux__)
-  return_code = pthread_setname_np(pthread_self(), name.c_str());
+  int return_code = pthread_setname_np(pthread_self(), name.c_str());
+  return Status(return_code == 0 ? 0 : 1);
 #elif defined(WIN32)
   // SetThreadDescription is available in builds newer than 1607 of windows 10
   // and works even if there is no debugger.
@@ -589,7 +590,6 @@ Status setThreadName(const std::string& name) {
   }
   return Status(1);
 #endif
-  return Status(return_code == 0 ? 0 : 1);
 }
 
 bool checkPlatform(const std::string& platform) {
