@@ -134,7 +134,7 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
       break;
     case RTA_METRICS:
       struct rtattr* xattr = static_cast<struct rtattr*> RTA_DATA(attr);
-      uint32_t xattr_size = RTA_PAYLOAD(attr);
+      const auto xattr_size = RTA_PAYLOAD(attr);
       while (RTA_OK(xattr, xattr_size)) {
         switch (xattr->rta_type) {
         case RTAX_HOPLIMIT:
