@@ -346,9 +346,9 @@ QueryData genDeviceHash(QueryContext& context) {
 
       dh.inodes(inodes,
                 fs,
-                ([&results, &address, &dev, &dh, &fs](const std::string& inode,
-                                                      TskFsFile* file,
-                                                      const std::string& path) {
+                ([&results, &address, &dev](const std::string& inode,
+                                            TskFsFile* file,
+                                            const std::string& path) {
                   Row r;
                   r["device"] = dev;
                   r["partition"] = address;
