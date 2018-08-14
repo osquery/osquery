@@ -10,9 +10,9 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <boost/filesystem.hpp>
 
 #include <osquery/core/database/rocksdb_database.h>
 #include <osquery/database.h>
@@ -20,8 +20,7 @@
 namespace osquery {
 
 class RocksdbDatabaseTest : public ::testing::Test {
-
-protected:
+ protected:
   std::string path_;
 
   virtual void SetUp() {
@@ -35,7 +34,6 @@ protected:
   virtual void TearDown() {
     boost::filesystem::remove_all(path_);
   }
-
 };
 
 std::string randomDBPath() {
