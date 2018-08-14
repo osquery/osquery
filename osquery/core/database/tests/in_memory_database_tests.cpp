@@ -41,9 +41,8 @@ GTEST_TEST(InMemoryDatabaseTest, test_put) {
   auto db = std::make_unique<InMemoryDatabase>("test");
   auto result = db->putInt32("test", "test", 23);
   EXPECT_FALSE(result);
-  EXPECT_EQ(result.getError(), DatabaseError::DatabaseIsNotOpen);
-  result = db->open();
-  EXPECT_TRUE(result);
+  EXPECT_EQ(result.getError(), DatabaseError::DbIsNotOpen);
+  EXPECT_TRUE(db->open());
   EXPECT_TRUE(db->putInt32(kPersistentSettings, "test_key_int", 12));
   auto int_value = db->getInt32(kPersistentSettings, "test_key_int");
   EXPECT_TRUE(int_value);

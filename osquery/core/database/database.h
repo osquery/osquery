@@ -22,8 +22,8 @@ namespace osquery {
 enum class DatabaseError {
   // Unknown error, currently unused
   Unknown = 1,
-  DatabaseIsNotOpen = 2,
-  DatabasePathDoesNotExists = 3,
+  DbIsNotOpen = 2,
+  InvalidPath = 3,
   FailToDestroyDB = 4,
   FailToOpenDatabase = 5,
   FailToReadData = 6,
