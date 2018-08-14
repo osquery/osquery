@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <thread>
+
 #include <sys/utsname.h>
 
 #include <boost/algorithm/string.hpp>
@@ -41,7 +43,7 @@ QueryData genSystemInfo(QueryContext& context) {
     }
   }
 
-  auto logical_cores = boost::thread::hardware_concurrency();
+  auto logical_cores = std::thread::hardware_concurrency();
   r["cpu_logical_cores"] = (logical_cores > 0) ? INTEGER(logical_cores) : "-1";
 
   r["cpu_physical_cores"] = INTEGER(boost::thread::physical_concurrency());
