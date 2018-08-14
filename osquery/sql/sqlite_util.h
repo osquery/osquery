@@ -325,13 +325,13 @@ Status queryInternal(const std::string& q,
  * useful for testing.
  *
  * @param q the query to execute
- * @param results The QueryDataJson vector to emit rows on query success.
+ * @param results The QueryDataTyped vector to emit rows on query success.
  * @param db the SQLite3 database to execute query q against
  *
  * @return A status indicating SQL query results.
  */
 Status queryInternal(const std::string& q,
-                     QueryDataJson& results,
+                     QueryDataTyped& results,
                      const SQLiteDBInstanceRef& instance);
 
 /**

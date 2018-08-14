@@ -11,6 +11,7 @@
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/sql/virtual_table.h"
 
+#include <iostream>
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -18,8 +19,6 @@
 #include <osquery/sql.h>
 
 #include <boost/lexical_cast.hpp>
-
-namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -465,101 +464,100 @@ Status QueryPlanner::applyTypes(TableColumns& columns) {
 Status queryInternal(const std::string& query,
                      QueryData& results,
                      const SQLiteDBInstanceRef& instance) {
-  QueryDataJson jsonResults;
-Status status = queryInternal(query, jsonResults, instance);
-  for (rj::Document& obj : jsonResults) {
+  QueryDataTyped typedResults;
+  Status status = queryInternal(query, typedResults, instance);
+  for (const auto& row : typedResults) {
     Row r;
-    for (rj::Value::ConstMemberIterator itr = obj.MemberBegin();
-         itr != obj.MemberEnd();
-         ++itr) {
-      r[itr->name.GetString()] = itr->value.GetString();
+    for (const auto& col : row) {
+      r[col.first] = boost::lexical_cast<std::string>(col.second);
     }
-    results.push_back(r);
+    results.push_back(std::move(r));
   }
   return status;
 }
 
+int readRows(sqlite3_stmt* prepared_statement, QueryDataTyped& results) {
+  int rc = SQLITE_ROW;
+  // First collect the column names and types
+  int num_columns = sqlite3_column_count(prepared_statement);
+  std::vector<std::string> colNames;
+  colNames.reserve(num_columns);
+  for (int i = 0; i < num_columns; i++) {
+    colNames.push_back(sqlite3_column_name(prepared_statement, i));
+  }
+
+  do {
+    RowTyped row;
+    for (int i = 0; i < num_columns; i++) {
+      switch (sqlite3_column_type(prepared_statement, i)) {
+      case SQLITE_INTEGER:
+        row[colNames[i]] =
+            static_cast<int64_t>(sqlite3_column_int64(prepared_statement, i));
+        break;
+      case SQLITE_FLOAT:
+        row[colNames[i]] = sqlite3_column_double(prepared_statement, i);
+        break;
+      case SQLITE_NULL:
+        row[colNames[i]] = FLAGS_nullvalue;
+        break;
+      default:
+        // Everything else (SQLITE_TEXT, SQLITE3_TEXT, SQLITE_BLOB) is
+        // obtained/conveyed as text/string
+        row[colNames[i]] = std::string(reinterpret_cast<const char*>(
+            sqlite3_column_text(prepared_statement, i)));
+      }
+    }
+    results.push_back(std::move(row));
+    rc = sqlite3_step(prepared_statement);
+  } while (SQLITE_ROW == rc);
+  return rc;
+}
+
 Status queryInternal(const std::string& query,
-                     QueryDataJson& results,
+                     QueryDataTyped& results,
                      const SQLiteDBInstanceRef& instance) {
-  sqlite3_stmt* pStmt{nullptr}; /* Statement to execute. */
+  sqlite3_stmt* prepared_statement{nullptr}; /* Statement to execute. */
 
   int rc = SQLITE_OK; /* Return Code */
-  int rc2; /* Used to temporarily hold rc at end of big while loop */
-  const char* zLeftover; /* Tail of unprocessed SQL */
-  const char* zSql = query.c_str(); /* SQL to be processed */
+  const char* leftover_sql = nullptr; /* Tail of unprocessed SQL */
+  const char* sql = query.c_str(); /* SQL to be processed */
 
   /* The big while loop.  One iteration per statement */
-  while ((zSql[0] != 0) && (SQLITE_OK == rc)) {
-    auto lock = instance->attachLock();
+  while ((sql[0] != 0) && (SQLITE_OK == rc)) {
+    const auto lock = instance->attachLock();
 
-    rc = sqlite3_prepare_v2(instance->db(), zSql, -1, &pStmt, &zLeftover);
-    if (rc != SQLITE_OK || pStmt == nullptr) {
-      if (pStmt != nullptr) {
-        sqlite3_finalize(pStmt);
+    rc = sqlite3_prepare_v2(
+        instance->db(), sql, -1, &prepared_statement, &leftover_sql);
+    if (rc != SQLITE_OK || prepared_statement == nullptr) {
+      if (prepared_statement != nullptr) {
+        sqlite3_finalize(prepared_statement);
       }
-      return Status(1, sqlite3_errmsg(instance->db()));
+      return Status::failure(sqlite3_errmsg(instance->db()));
     } else {
-      if (pStmt == nullptr) {
+      if (prepared_statement == nullptr) {
         /* this happens for a comment or white-space */
-        zSql = zLeftover;
-        while (isspace(zSql[0])) {
-          zSql++;
+        sql = leftover_sql;
+        while (isspace(sql[0])) {
+          sql++;
         }
         continue;
       }
 
-      rc = sqlite3_step(pStmt);
+      rc = sqlite3_step(prepared_statement);
       /* if we have a result set row... */
       if (SQLITE_ROW == rc) {
-        // First collect the column names and types
-        int nCol = sqlite3_column_count(pStmt);
-        std::vector<std::string> colNames(nCol);
-        for (int i = 0; i < nCol; i++) {
-          colNames.push_back(sqlite3_column_name(pStmt, i));
-        }
-
-        do {
-          rj::Document row;
-          row.SetObject();
-          rj::Document::AllocatorType& allocator = row.GetAllocator();
-          for (int i = 0; i < nCol; i++) {
-            rj::Value k = rj::Value(rj::StringRef(colNames[i]), allocator);
-            rj::Value v;
-            switch (sqlite3_column_type(pStmt, i)) {
-            case SQLITE_INTEGER:
-              v = rj::Value(sqlite3_column_int(pStmt, i));
-              break;
-            case SQLITE_FLOAT:
-              v = rj::Value(sqlite3_column_double(pStmt, i));
-              break;
-            case SQLITE_NULL:
-              break;
-            default:
-              v = rj::Value(
-                  rj::StringRef(std::string(reinterpret_cast<const char*>(
-                      sqlite3_column_text(pStmt, i)))),
-                  allocator);
-            }
-            if (!v.IsNull()) {
-              row.AddMember(k.Move(), v.Move(), allocator);
-            }
-          }
-          results.push_back(std::move(row));
-
-          rc = sqlite3_step(pStmt);
-        } while (SQLITE_ROW == rc);
+        rc = readRows(prepared_statement, results);
       }
 
       /* Finalize the statement just executed, regardless.  */
-      rc2 = sqlite3_finalize(pStmt);
+      int rc2 = sqlite3_finalize(prepared_statement);
       /* Return error if rc of or just prior to finalize is not OK */
-      if (rc != SQLITE_OK || rc2 != SQLITE_OK) {
+      if (!(rc == SQLITE_OK || rc == SQLITE_DONE) || rc2 != SQLITE_OK) {
         return Status(1, sqlite3_errmsg(instance->db()));
       }
-      zSql = zLeftover;
-      while (isspace(zSql[0])) {
-        zSql++;
+      sql = leftover_sql;
+      while (isspace(sql[0])) {
+        sql++;
       }
     }
   } /* end while */

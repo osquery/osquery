@@ -15,6 +15,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <boost/variant.hpp>
 
 #include <osquery/core.h>
 
@@ -24,7 +25,7 @@ namespace osquery {
 
 class Status;
 /**
- * @brief A variant type for the SQLite type affinities.
+ * @brief Alias for string.
  */
 using RowData = std::string;
 
@@ -35,6 +36,19 @@ using RowData = std::string;
  * the Row's respective value
  */
 using Row = std::map<std::string, RowData>;
+
+/**
+ * @brief A variant type for the SQLite type affinities.
+ */
+using RowDataTyped = boost::variant<int64_t, double, std::string>;
+
+/**
+ * @brief A single row from a database query
+ *
+ * Row is a simple map where individual column names are keys, which map to
+ * the Row's respective typed value
+ */
+using RowTyped = std::map<std::string, RowDataTyped>;
 
 /**
  * @brief A vector of column names associated with a query
@@ -96,7 +110,7 @@ Status deserializeRowJSON(const std::string& json, Row& r);
  */
 using QueryData = std::vector<Row>;
 
-using QueryDataJson = std::vector<rapidjson::Document>;
+using QueryDataTyped = std::vector<RowTyped>;
 
 /**
  * @brief Set representation result returned from a osquery SQL query
