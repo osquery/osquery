@@ -74,10 +74,10 @@ void getLimit(QueryData& results) {
     }
     Row r;
     r["type"] = it.first;
-    r["soft_limit"] = (rlp.rlim_cur == ULONG_MAX)
+    r["soft_limit"] = (rlp.rlim_cur == RLIM_INFINITY)
                           ? "unlimited"
                           : std::to_string(rlp.rlim_cur);
-    r["hard_limit"] = (rlp.rlim_max == ULONG_MAX)
+    r["hard_limit"] = (rlp.rlim_max == RLIM_INFINITY)
                           ? "unlimited"
                           : std::to_string(rlp.rlim_max);
     results.push_back(r);

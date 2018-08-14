@@ -570,7 +570,10 @@ DropPrivileges::~DropPrivileges() {
 Status setThreadName(const std::string& name) {
 #if defined(__APPLE__)
   int return_code = pthread_setname_np(name.c_str());
-  return Status(return_code == 0 ? 0 : 1);
+  return return_code == 0 ? Status::success()
+                          : Status::failure(
+                                "In setThreadName pthread_setname_np failed to "
+                                "set the name");
 #elif defined(__linux__)
   int return_code = pthread_setname_np(pthread_self(), name.c_str());
   return Status(return_code == 0 ? 0 : 1);
