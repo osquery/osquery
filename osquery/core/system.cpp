@@ -564,11 +564,18 @@ DropPrivileges::~DropPrivileges() {
 #endif
 
 Status setThreadName(const std::string& name) {
-  int return_code;
 #if defined(__APPLE__)
-  return_code = pthread_setname_np(name.c_str());
+  int return_code = pthread_setname_np(name.c_str());
+  return return_code == 0 ? Status::success()
+                          : Status::failure(
+                                "In setThreadName pthread_setname_np failed to "
+                                "set the name");
 #elif defined(__linux__)
-  return_code = pthread_setname_np(pthread_self(), name.c_str());
+  int return_code = pthread_setname_np(pthread_self(), name.c_str());
+  return return_code == 0 ? Status::success()
+                          : Status::failure(
+                                "In setThreadName pthread_setname_np failed to "
+                                "set the name");
 #elif defined(WIN32)
   // SetThreadDescription is available in builds newer than 1607 of windows 10
   // and works even if there is no debugger.
@@ -580,12 +587,14 @@ Status setThreadName(const std::string& name) {
     std::wstring wideName{stringToWstring(name)};
     HRESULT hr = pfnSetThreadDescription(GetCurrentThread(), wideName.c_str());
     if (!FAILED(hr)) {
-      return Status();
+      return Status::success();
     }
   }
-  return Status(1);
+  return Status::failure(
+      "setThreadName failed due GetProcAddress returning null");
+#else
+  return Status::failure("setThreadName requested for unknown OS");
 #endif
-  return Status(return_code == 0 ? 0 : 1);
 }
 
 bool checkPlatform(const std::string& platform) {
