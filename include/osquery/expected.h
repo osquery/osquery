@@ -104,7 +104,17 @@ class Expected final {
   Expected(const Expected&) = delete;
   Expected(ErrorBase* error) = delete;
 
-  Expected& operator=(Expected&& other) = default;
+  Expected& operator=(Expected&& other) {
+    if (this != &other) {
+      errorChecked_.verify("Error was not checked");
+
+      object_ = std::move(other.object_);
+      errorChecked_ = other.errorChecked_;
+      other.errorChecked_ = true;
+    }
+    return *this;
+  }
+
   Expected& operator=(const Expected& other) = delete;
 
   ~Expected() {
