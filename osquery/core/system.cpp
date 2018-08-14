@@ -588,7 +588,8 @@ Status setThreadName(const std::string& name) {
       return Status();
     }
   }
-  return Status::failure("setThreadName failed due GetProcAddress returning null");
+  return Status::failure(
+      "setThreadName failed due GetProcAddress returning null");
 #else
   return Status::failure("setThreadName requested for unknown OS");
 #endif
