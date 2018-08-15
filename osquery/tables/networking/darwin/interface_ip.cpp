@@ -27,7 +27,7 @@ namespace osquery {
 namespace tables {
 
 namespace {
-const std:unordered_:map<std::string, int> kIpv6SysctlObjects = {
+const std::unordered_map<std::string, int> kIpv6SysctlObjects = {
     {"forwarding", IPV6CTL_FORWARDING},
     {"redirect", IPV6CTL_SENDREDIRECTS},
     {"hlim", IPV6CTL_DEFHLIM},
@@ -43,7 +43,7 @@ int getSysIpv6Config(const std::string& attr) {
     return -1;
   }
   int mib[] = {CTL_NET, PF_INET6, IPPROTO_IPV6, sysctlObject->second};
-  return !sysctl(mib, 4, &value, &size, nullptr, 0) ? value : -1;
+  return sysctl(mib, 4, &value, &size, nullptr, 0) < 0 ? -1 : value;
 }
 } // namespace
 

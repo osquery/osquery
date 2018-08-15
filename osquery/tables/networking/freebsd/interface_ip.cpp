@@ -44,7 +44,7 @@ int getSysIpv6Config(const std::string& attr) {
     return -1;
   }
   int mib[] = {CTL_NET, PF_INET6, IPPROTO_IPV6, sysctlObject->second};
-  return !sysctl(mib, 4, &value, &size, nullptr, 0) ? value : -1;
+  return sysctl(mib, 4, &value, &size, nullptr, 0) < 0 ? -1 : value;
 }
 } // namespace
 
