@@ -44,8 +44,6 @@ class Config : private boost::noncopyable {
  private:
   Config();
 
-  std::map<std::string, std::string> restoreConfigBackup();
-
   void backupConfig(const std::map<std::string, std::string>& config);
 
  public:
@@ -53,6 +51,12 @@ class Config : private boost::noncopyable {
 
   /// Singleton accessor.
   static Config& get();
+
+  /**
+   * @brief restoreConfigBackup retrieve backed up config
+   * @return config persisted int the database
+   */
+  std::map<std::string, std::string> restoreConfigBackup();
 
   /**
    * @brief Update the internal config data.
