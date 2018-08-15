@@ -75,6 +75,12 @@ CLI_FLAG(uint64,
          config_accelerated_refresh,
          300,
          "Interval to wait if reading a configuration fails");
+
+CLI_FLAG(bool,
+         config_enable_backup,
+         false,
+         "Backup new config and use it if failed to refresh");
+
 FLAG_ALIAS(google::uint64,
            config_tls_accelerated_refresh,
            config_accelerated_refresh);
@@ -98,6 +104,7 @@ std::atomic<size_t> kStartTime;
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
 Mutex config_refresh_mutex_;
+Mutex config_backup_mutex_;
 
 /// Several config methods require enumeration via predicate lambdas.
 RecursiveMutex config_schedule_mutex_;
@@ -454,6 +461,10 @@ Status Config::refresh() {
       setRefresh(FLAGS_config_accelerated_refresh);
     }
 
+    if (FLAGS_config_enable_backup) {
+      update(restoreConfigBackup());
+    }
+
     loaded_ = true;
     return status;
   } else if (getRefresh() != FLAGS_config_refresh) {
@@ -529,6 +540,54 @@ void stripConfigComments(std::string& json) {
     sink += line + '\n';
   }
   json = sink;
+}
+
+std::map<std::string, std::string> Config::restoreConfigBackup() {
+  if (!FLAGS_config_enable_backup) {
+    return std::map<std::string, std::string>();
+  }
+
+  VLOG(1) << "Restoring backed up config from the database";
+  std::vector<std::string> keys;
+  std::map<std::string, std::string> config;
+
+  WriteLock lock(config_backup_mutex_);
+  scanDatabaseKeys(kPersistentSettings, keys, kConfigPersistencePrefix);
+
+  for (const auto& key : keys) {
+    std::string value;
+    Status status = getDatabaseValue(kPersistentSettings, key, value);
+    if (!status.ok()) {
+      continue;
+    }
+    config[key.substr(kConfigPersistencePrefix.length())] = std::move(value);
+  }
+
+  return config;
+}
+
+void Config::backupConfig(const std::map<std::string, std::string>& config) {
+  if (!FLAGS_config_enable_backup) {
+    return;
+  }
+
+  VLOG(1) << "BackupConfig started";
+  std::vector<std::string> keys;
+
+  WriteLock lock(config_backup_mutex_);
+  scanDatabaseKeys(kPersistentSettings, keys, kConfigPersistencePrefix);
+  for (const auto& key : keys) {
+    if (config.find(key.substr(kConfigPersistencePrefix.length())) ==
+        config.end()) {
+      deleteDatabaseValue(kPersistentSettings, key);
+    }
+  }
+
+  for (const auto& source : config) {
+    setDatabaseValue(kPersistentSettings,
+                     kConfigPersistencePrefix + source.first,
+                     source.second);
+  }
 }
 
 Status Config::updateSource(const std::string& source,
@@ -687,6 +746,7 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   // files, set options, etc.
   // Before this occurs, take an opportunity to purge stale state.
   purge();
+  backupConfig(config);
 
   bool needs_reconfigure = false;
   for (const auto& source : config) {

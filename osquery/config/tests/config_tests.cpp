@@ -29,6 +29,7 @@ namespace osquery {
 
 DECLARE_uint64(config_refresh);
 DECLARE_uint64(config_accelerated_refresh);
+DECLARE_bool(config_enable_backup);
 
 const std::string kConfigTestNonBlacklistQuery{
     "pack_unrestricted_pack_process_heartbeat"};
@@ -106,6 +107,31 @@ class TestConfigPlugin : public ConfigPlugin {
   std::atomic<size_t> gen_config_count_{0};
   std::atomic<size_t> gen_pack_count_{0};
   std::atomic<bool> fail_{false};
+};
+
+class TestDataConfigParserPlugin : public ConfigParserPlugin {
+ public:
+  std::vector<std::string> keys() const override {
+    return {"data"};
+  }
+
+  Status setUp() override {
+    return Status::success();
+  }
+
+  Status update(const std::string& source,
+                const ParserConfig& config) override {
+    source_ = source;
+    config_.clear();
+    for (const auto& entry : config) {
+      std::string content;
+      entry.second.toString(content);
+      config_[entry.first] = content;
+    }
+    return Status::success();
+  }
+  std::string source_{""};
+  std::map<std::string, std::string> config_;
 };
 
 TEST_F(ConfigTests, test_plugin) {
@@ -564,5 +590,61 @@ TEST_F(ConfigTests, test_config_refresh) {
   FLAGS_config_refresh = refresh;
   FLAGS_config_accelerated_refresh = refresh_acceleratred;
   rf.registry("config")->remove("test");
+}
+
+TEST_F(ConfigTests, test_config_backup) {
+  const auto config_enable_backup_saved = FLAGS_config_enable_backup;
+  FLAGS_config_enable_backup = true;
+
+  get().reset();
+  const std::map<std::string, std::string> expected_config = {{"a", "b"},
+                                                              {"c", "d"}};
+  get().backupConfig(expected_config);
+  const auto config = get().restoreConfigBackup();
+  EXPECT_EQ(config, expected_config);
+
+  FLAGS_config_enable_backup = config_enable_backup_saved;
+}
+
+TEST_F(ConfigTests, test_config_backup_integrate) {
+  const auto config_enable_backup_saved = FLAGS_config_enable_backup;
+  FLAGS_config_enable_backup = true;
+
+  get().reset();
+  auto& rf = RegistryFactory::get();
+  auto data_parser = std::make_shared<TestDataConfigParserPlugin>();
+  auto success_plugin = std::make_shared<TestConfigPlugin>();
+  auto fail_plugin = std::make_shared<TestConfigPlugin>();
+  fail_plugin->fail_ = true;
+  success_plugin->fail_ = false;
+
+  rf.registry("config")->add("test_success", success_plugin);
+  rf.registry("config")->add("test_fail", fail_plugin);
+  rf.registry("config_parser")->add("test", data_parser);
+  // Change the active config plugin.
+  EXPECT_TRUE(rf.setActive("config", "test_success").ok());
+
+  auto status = get().refresh();
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(success_plugin->gen_config_count_, 1);
+
+  auto source_backup = data_parser->source_;
+  auto config_backup = data_parser->config_;
+
+  EXPECT_TRUE(source_backup.length() > 0);
+
+  get().reset();
+  data_parser->source_.clear();
+  data_parser->config_.clear();
+  EXPECT_TRUE(rf.setActive("config", "test_fail").ok());
+
+  status = get().refresh();
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(fail_plugin->gen_config_count_, 1);
+
+  EXPECT_EQ(data_parser->source_, source_backup);
+  EXPECT_EQ(data_parser->config_, config_backup);
+
+  FLAGS_config_enable_backup = config_enable_backup_saved;
 }
 }

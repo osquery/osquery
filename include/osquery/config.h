@@ -44,6 +44,10 @@ class Config : private boost::noncopyable {
  private:
   Config();
 
+  std::map<std::string, std::string> restoreConfigBackup();
+
+  void backupConfig(const std::map<std::string, std::string>& config);
+
  public:
   ~Config();
 
@@ -313,6 +317,9 @@ class Config : private boost::noncopyable {
   void reset();
 
  private:
+  /// Prefix to persist config data
+  const std::string kConfigPersistencePrefix{"config_persistence."};
+
   /// Schedule of packs and their queries.
   std::unique_ptr<Schedule> schedule_;
 
@@ -354,6 +361,8 @@ class Config : private boost::noncopyable {
   friend class FileEventsTableTests;
   friend class DecoratorsConfigParserPluginTests;
   friend class SchedulerTests;
+  FRIEND_TEST(ConfigTests, test_config_backup);
+  FRIEND_TEST(ConfigTests, test_config_backup_integrate);
   FRIEND_TEST(ConfigTests, test_config_refresh);
   FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
   FRIEND_TEST(ConfigTests, test_nonblacklist_query);
