@@ -19,7 +19,7 @@
 
 #include <boost/lexical_cast.hpp>
 
-    namespace osquery {
+namespace osquery {
 
 FLAG(string,
      disable_tables,
@@ -476,7 +476,7 @@ Status queryInternal(const std::string& query,
   return status;
 }
 
-int readRows(sqlite3_stmt * prepared_statement, QueryDataTyped & results) {
+int readRows(sqlite3_stmt* prepared_statement, QueryDataTyped& results) {
   int rc = SQLITE_ROW;
   // First collect the column names and types
   int num_columns = sqlite3_column_count(prepared_statement);
