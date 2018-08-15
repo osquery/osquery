@@ -11,7 +11,6 @@
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/sql/virtual_table.h"
 
-#include <iostream>
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -20,7 +19,7 @@
 
 #include <boost/lexical_cast.hpp>
 
-namespace osquery {
+    namespace osquery {
 
 FLAG(string,
      disable_tables,
@@ -466,6 +465,7 @@ Status queryInternal(const std::string& query,
                      const SQLiteDBInstanceRef& instance) {
   QueryDataTyped typedResults;
   Status status = queryInternal(query, typedResults, instance);
+  results.reserve(typedResults.size());
   for (const auto& row : typedResults) {
     Row r;
     for (const auto& col : row) {
@@ -476,7 +476,7 @@ Status queryInternal(const std::string& query,
   return status;
 }
 
-int readRows(sqlite3_stmt* prepared_statement, QueryDataTyped& results) {
+int readRows(sqlite3_stmt * prepared_statement, QueryDataTyped & results) {
   int rc = SQLITE_ROW;
   // First collect the column names and types
   int num_columns = sqlite3_column_count(prepared_statement);
@@ -528,7 +528,7 @@ Status queryInternal(const std::string& query,
 
     rc = sqlite3_prepare_v2(
         instance->db(), sql, -1, &prepared_statement, &leftover_sql);
-    if (rc != SQLITE_OK || prepared_statement == nullptr) {
+    if (rc != SQLITE_OK) {
       if (prepared_statement != nullptr) {
         sqlite3_finalize(prepared_statement);
       }
@@ -549,12 +549,16 @@ Status queryInternal(const std::string& query,
         rc = readRows(prepared_statement, results);
       }
 
-      /* Finalize the statement just executed, regardless.  */
-      int rc2 = sqlite3_finalize(prepared_statement);
-      /* Return error if rc of or just prior to finalize is not OK */
-      if (!(rc == SQLITE_OK || rc == SQLITE_DONE) || rc2 != SQLITE_OK) {
-        return Status(1, sqlite3_errmsg(instance->db()));
+      if (!(rc == SQLITE_OK || rc == SQLITE_DONE)) {
+        return Status::failure(sqlite3_errmsg(instance->db()));
       }
+
+      rc = sqlite3_finalize(prepared_statement);
+
+      if (rc != SQLITE_OK) {
+        return Status::failure(sqlite3_errmsg(instance->db()));
+      }
+
       sql = leftover_sql;
       while (isspace(sql[0])) {
         sql++;

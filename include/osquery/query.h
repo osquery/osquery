@@ -10,12 +10,12 @@
 
 #pragma once
 
+#include <boost/variant.hpp>
 #include <map>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
-#include <boost/variant.hpp>
 
 #include <osquery/core.h>
 
