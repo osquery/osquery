@@ -27,6 +27,9 @@ namespace tables {
 #define MAX_NETLINK_SIZE 8192
 #define MAX_NETLINK_ATTEMPTS 8
 
+constexpr auto kDefaultIpv6Route = "::";
+constexpr auto kDefaultIpv4Route = "0.0.0.0";
+
 std::string getNetlinkIP(int family, const char* buffer) {
   char dst[INET6_ADDRSTRLEN] = {0};
 
@@ -136,7 +139,11 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
   }
 
   if (!has_destination) {
-    r["destination"] = "0.0.0.0";
+    if (message->rtm_family == AF_INET) {
+      r["destination"] = kDefaultIpv4Route;
+    } else if (message->rtm_family == AF_INET6) {
+      r["destination"] = kDefaultIpv6Route;
+    }
     if (message->rtm_dst_len) {
       mask = (int)message->rtm_dst_len;
     }
