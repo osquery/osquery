@@ -236,15 +236,17 @@ QueryData genPlatformInfo(QueryContext& context) {
                             uint8_t* address,
                             uint8_t* textAddrs,
                             size_t size) {
-    if (hdr->type != kSMBIOSTypeBIOS || size < 0x12) {
+    const size_t maxOffset = 0x15;
+    if (hdr->type != kSMBIOSTypeBIOS || size < maxOffset) {
       return;
     }
 
     Row r;
 
-    r["vendor"] = dmiString(textAddrs, address[0x04]);
-    r["version"] = dmiString(textAddrs, address[0x05]);
-    r["date"] = dmiString(textAddrs, address[0x08]);
+    const auto maxlen = size - hdr->length;
+    r["vendor"] = dmiString(textAddrs, address[0x04], maxlen);
+    r["version"] = dmiString(textAddrs, address[0x05], maxlen);
+    r["date"] = dmiString(textAddrs, address[0x08], maxlen);
 
     // Firmware load address as a WORD.
     size_t firmware_address = (address[0x07] << 8) + address[0x06];
@@ -257,8 +259,8 @@ QueryData genPlatformInfo(QueryContext& context) {
     r["size"] = std::to_string(firmware_size * 1024);
 
     // Minor and major BIOS revisions.
-    r["revision"] = std::to_string((size_t)address[0x14]) + "." +
-                    std::to_string((size_t)address[0x15]);
+    r["revision"] = std::to_string(static_cast<size_t>(address[0x14])) + "." +
+                    std::to_string(static_cast<size_t>(address[0x15]));
     r["volume_size"] = "0";
     r["extra"] = "";
     results.push_back(r);
