@@ -21,7 +21,12 @@
 namespace osquery {
 namespace tables {
 
-std::string getStringOfValue(CFTypeRef value) {
+const int MAX_RECURSION_DEPTH = 2;
+
+std::string getStringOfValue(CFTypeRef value, int depth) {
+  if (depth >= MAX_RECURSION_DEPTH) {
+    return "";
+  }
   std::string rvalue;
 
   if (CFGetTypeID(value) == CFNumberGetTypeID()) {
@@ -34,10 +39,10 @@ std::string getStringOfValue(CFTypeRef value) {
     for (int i = 0; i < CFArrayGetCount(static_cast<CFArrayRef>(value)); ++i) {
       CFTypeRef b = CFArrayGetValueAtIndex(static_cast<CFArrayRef>(value), i);
       if (i == 0) {
-        rvalue = getStringOfValue(b);
+        rvalue = getStringOfValue(b, depth + 1);
       } else {
         // beware of recursion....
-        rvalue = rvalue + "," + getStringOfValue(b);
+        rvalue = rvalue + "," + getStringOfValue(b, depth + 1);
       }
     }
   } else if (CFGetTypeID(value) == CFBooleanGetTypeID()) {
@@ -78,11 +83,10 @@ void genResults(const std::string& path, QueryData& results) {
       continue;
     }
 
-    Row r;
-
     CFStringRef valuetype = CFCopyTypeIDDescription(CFGetTypeID(value));
-    rvalue = getStringOfValue(value);
+    rvalue = getStringOfValue(value, 0);
 
+    Row r;
     r["path"] = stringFromCFString(static_cast<CFStringRef>(tr));
     r["key"] = stringFromCFString(static_cast<CFStringRef>(key));
     r["value"] = rvalue;

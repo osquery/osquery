@@ -4,7 +4,7 @@ schema([
     Column("path", TEXT, "Path of the file", required=True),
     Column("key", TEXT, "Name of the metadata key"),
     Column("value", TEXT, "Value stored in the metadata key"),
-    Column("valuetype", TEXT, "CoreFoundation Type of data stored in value", hidden=True),
+    Column("valuetype", TEXT, "CoreFoundation type of data stored in value", hidden=True),
 ])
 implementation("mdls@genMdlsResults")
 fuzz_paths([])
