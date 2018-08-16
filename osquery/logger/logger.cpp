@@ -273,7 +273,6 @@ static void deserializeIntermediateLog(const PluginRequest& request,
 }
 
 inline bool logStderrOnly() {
-  // Do not write logfiles if filesystem is not included as a plugin.
   if (Registry::get().external()) {
     return true;
   }
