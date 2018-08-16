@@ -278,12 +278,7 @@ inline bool logStderrOnly() {
     return true;
   }
 
-  if (FLAGS_disable_logging) {
-    return true;
-  }
-
-  return Flag::getValue("logger_plugin").find("filesystem") ==
-         std::string::npos;
+  return FLAGS_disable_logging;
 }
 
 void setVerboseLevel() {
