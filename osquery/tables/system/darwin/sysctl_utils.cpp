@@ -9,9 +9,14 @@
  */
 
 #include <sys/sysctl.h>
+#include <sys/time.h>
 
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
+
+#include <mach/machine/vm_param.h>
+#include <mach/machine/vm_types.h>
+#include <mach/mach_types.h>
 
 #include "osquery/tables/system/posix/sysctl_utils.h"
 
@@ -40,6 +45,58 @@ const std::vector<std::string> kControlNames{
 
 const std::vector<std::string> kControlTypes{
     "", "node", "int", "string", "quad", "opaque", "struct"};
+
+void opaquePushback(QueryData& results,
+                      Row& r,
+                      std::string opaque_cv,
+                      const std::string& var) {
+      r["field_name"] = var;
+      r["current_value"] = opaque_cv;
+      results.push_back(r);
+  };
+
+void opaqueControlInfo(QueryData& results,
+                       Row& r,
+                       char* response,
+                       std::string& value) {
+  if (value.compare("S,clockinfo") == 0) {
+      struct clockinfo *ci = (struct clockinfo*) response;
+      opaquePushback(results, r, INTEGER(ci->hz), "hz");
+      opaquePushback(results, r, INTEGER(ci->tick), "tick");
+      opaquePushback(results, r, INTEGER(ci->tickadj), "tickadj");
+      opaquePushback(results, r, INTEGER(ci->profhz), "profhz");
+      opaquePushback(results, r, INTEGER(ci->stathz), "stathz");
+    }
+  else if (value.compare("S,timeval") == 0) {
+      struct timeval *tv = (struct timeval*) response;
+      opaquePushback(results, r, INTEGER((long)tv->tv_sec), "sec");
+      opaquePushback(results, r, INTEGER((long)tv->tv_usec), "usec");
+    }
+  else if (value.compare("S,loadavg") == 0) {
+      struct loadavg *tv = (struct loadavg*) response;
+      opaquePushback(results, r,
+        DOUBLE((double)tv->ldavg[0]/(double)tv->fscale), "ldavg0");
+      opaquePushback(results, r,
+        DOUBLE((double)tv->ldavg[1]/(double)tv->fscale), "ldavg1");
+      opaquePushback(results, r,
+        DOUBLE((double)tv->ldavg[2]/(double)tv->fscale), "ldavg2");
+    }
+  else if (value.compare("S,xsw_usage") == 0) {
+      struct xsw_usage *xsu = (struct xsw_usage*) response;
+      opaquePushback(results, r,
+        DOUBLE((double)xsu->xsu_total/(1024.0 * 1024.0)), "xsu_total");
+      opaquePushback(results, r,
+        DOUBLE((double)xsu->xsu_used/(1024.0 * 1024.0)), "xsu_used");
+      opaquePushback(results, r,
+        DOUBLE((double)xsu->xsu_avail/(1024.0 * 1024.0)), "xsu_avail");
+      opaquePushback(results, r,
+        xsu->xsu_encrypted ? INTEGER(1) : INTEGER(0), "xsu_encrypted");
+    }
+  else {
+      results.push_back(r);
+    }
+
+}
 
 void genControlInfo(int* oid,
                     size_t oid_size,
@@ -110,6 +167,11 @@ void genControlInfo(int* oid,
     }
   }
 
+  // If this MIB was set using sysctl.conf add the value.
+  if (config.count(r.at("name")) > 0) {
+    r["config_value"] = config.at(r["name"]);
+  }
+
   // Finally request MIB value.
   if (oid_type > CTLTYPE_NODE && oid_type < CTLTYPE_OPAQUE) {
     size_t value_size = 0;
@@ -133,13 +195,21 @@ void genControlInfo(int* oid,
       r["current_value"] = INTEGER(value);
     }
   }
+  // Logic for OPAQUE expansion
+  if (oid_type == CTLTYPE_STRUCT) {
+    auto opaque_value = std::string(response + 4);
+    size_t value_size = 0;
+    sysctl(oid, oid_size, 0, &value_size, 0, 0);
 
-  // If this MIB was set using sysctl.conf add the value.
-  if (config.count(r.at("name")) > 0) {
-    r["config_value"] = config.at(r["name"]);
+    if (value_size > CTL_MAX_VALUE) {
+      // If the value size is larger than the max value, limit.
+      value_size = CTL_MAX_VALUE;
+    }
+    sysctl(oid, oid_size, response, &value_size, 0, 0);
+    opaqueControlInfo(results, r, response, opaque_value);
+  } else {
+    results.push_back(r);
   }
-
-  results.push_back(r);
 }
 
 void genControlInfoFromName(const std::string& name, QueryData& results,
