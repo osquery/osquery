@@ -49,7 +49,6 @@ FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 
 /// Log each added or removed line individually, as an "event".
 FLAG(bool, logger_event_type, true, "Log scheduled results as events");
-FLAG_ALIAS(bool, log_result_events, logger_event_type);
 
 /// Log each row from a snapshot query individually, as an "event".
 FLAG(bool,

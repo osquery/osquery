@@ -229,7 +229,7 @@ Consider the following example:
 
 If a query identifies multiple state changes, the batched format will include all results in a single log line. If you're programmatically parsing lines and loading them into a backend datastore, this is probably the best solution.
 
-To enable batch log lines, launch osqueryd with the `--log_result_events=false` argument.
+To enable batch log lines, launch osqueryd with the `--logger_event_type=false` argument.
 
 Example output of `SELECT name, path, pid FROM processes;` (whitespace added for readability):
 
