@@ -336,7 +336,7 @@ Built-in options include: **filesystem**, **tls**, **syslog**, and several Amazo
 
 `--disable_logging=false`
 
-Disable logs forwarding to the logger plugins. However logs to the stderr are still forwarded and can be limited using the flag --logger_min_stderr (called status logs) and query result [logging](../deployment/logging.md).
+Disable forwarding of the status logs and the query results  to the logger plugins. Logs  are still forwarded to the stderr and can be filtered using the flag --logger_min_stderr(status) [logging](../deployment/logging.md).
 
 `--logger_event_type=true`
 
