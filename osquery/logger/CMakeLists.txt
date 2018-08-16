@@ -69,6 +69,7 @@ if(NOT SKIP_AWS)
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_logger_aws_plugins
     "${CMAKE_CURRENT_LIST_DIR}/plugins/aws_firehose.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/plugins/aws_kinesis.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/plugins/aws_sqs.cpp"
   )
 
   ADD_OSQUERY_TEST_ADDITIONAL(
@@ -81,6 +82,7 @@ if(NOT SKIP_AWS)
     ADD_OSQUERY_LINK_CORE("wevtapi.lib")
   endif()
 
+  ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-sqs")
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-kinesis")
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-firehose")
 endif()

@@ -19,7 +19,7 @@ On Windows this directory defaults to `C:\ProgramData\osquery\log`.
 
 ## Logger plugins
 
-osquery includes logger plugins that support configurable logging to a variety of interfaces. The built in logger plugins are **filesystem** (default), **tls**, **syslog** (for POSIX), **windows_event_log** (for Windows), **kinesis**, **firehose**, and **kafka_producer**. Multiple logger plugins may be used simultaneously, effectively copying logs to each interface. To enable multiple loggers set the `--logger_plugin` option to a comma separated list, do not include spaces, of the requested plugins.
+osquery includes logger plugins that support configurable logging to a variety of interfaces. The built in logger plugins are **filesystem** (default), **tls**, **syslog** (for POSIX), **windows_event_log** (for Windows), **kinesis**, **firehose**, **sqs**, and **kafka_producer**. Multiple logger plugins may be used simultaneously, effectively copying logs to each interface. To enable multiple loggers set the `--logger_plugin` option to a comma separated list, do not include spaces, of the requested plugins.
 
 For information on configuring logger plugins, see [logging/results flags](../installation/cli-flags.md#loggingresults-flags). Developing new logger plugins is explored in the [development docs](../development/logger-plugins.md). We recommend setting the logger plugin and logger settings via the osquery *flagfile*.
 
