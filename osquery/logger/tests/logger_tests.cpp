@@ -339,25 +339,6 @@ TEST_F(LoggerTests, test_multiple_loggers) {
   // Now that the "test" logger is initialized, the status log will be
   // forwarded.
   EXPECT_EQ(1U, LoggerTests::statuses_logged);
-
-  // Multiple logger plugins have a 'primary' concept.
-  auto flag_default = FLAGS_logger_secondary_status_only;
-  FLAGS_logger_secondary_status_only = true;
-  logString("this is another test", "added");
-  // Only one log line will be appended since 'second_test' is secondary.
-  EXPECT_EQ(3U, LoggerTests::log_lines.size());
-  // Only one status line will be forwarded.
-  LOG(WARNING) << "Logger test is generating another warning (6)";
-  EXPECT_EQ(2U, LoggerTests::statuses_logged);
-  FLAGS_logger_secondary_status_only = flag_default;
-  logString("this is a third test", "added");
-  EXPECT_EQ(5U, LoggerTests::log_lines.size());
-
-  // Reconfigure the second logger to forward status logs.
-  test_logger->shouldLogStatus = true;
-  initLogger("logger_test");
-  LOG(WARNING) << "Logger test is generating another warning (7)";
-  EXPECT_EQ(4U, LoggerTests::statuses_logged);
 }
 
 TEST_F(LoggerTests, test_logger_scheduled_query) {
