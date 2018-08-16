@@ -99,6 +99,7 @@ rocksdb::Options RocksdbDatabase::getOptions() {
 std::vector<rocksdb::ColumnFamilyDescriptor>
 RocksdbDatabase::createDefaultColumnFamilies(const rocksdb::Options& options) {
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
+  column_families.reserve(kDomains.size() + 1);
   column_families.push_back(rocksdb::ColumnFamilyDescriptor(
       rocksdb::kDefaultColumnFamilyName, options));
   for (const auto& cf_name : kDomains) {
@@ -142,17 +143,16 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::openInternal(
   auto column_families = createDefaultColumnFamilies(options);
   auto db_path = boost::filesystem::path(path).make_preferred();
   auto db_parent_path_status = boost::filesystem::status(db_path.parent_path());
-  if (!boost::filesystem::exists(db_parent_path_status) ||
-      !boost::filesystem::is_directory(db_parent_path_status) ||
-      !boost::filesystem::permissions_present(db_parent_path_status)) {
+  bool exists = boost::filesystem::exists(db_parent_path_status);
+  bool is_directory = boost::filesystem::is_directory(db_parent_path_status);
+  bool are_permissions_set =
+      boost::filesystem::permissions_present(db_parent_path_status);
+  if (!exists || !is_directory || !are_permissions_set) {
     return createError(DatabaseError::InvalidPath,
                        "database path doesn't exist or invalid.\nPath:'")
            << path.string() << "'\nParent: '" << db_path.parent_path().string()
-           << "'\nexists:" << boost::filesystem::exists(db_parent_path_status)
-           << "'\nis_directory:"
-           << boost::filesystem::is_directory(db_parent_path_status)
-           << "'\npermissions_present:"
-           << boost::filesystem::permissions_present(db_parent_path_status);
+           << "'\nexists:" << exists << "'\nis_directory:" << is_directory
+           << "'\npermissions_present:" << are_permissions_set;
   }
   std::vector<Handle*> raw_handles;
   rocksdb::DB* raw_db_handle = nullptr;
@@ -306,13 +306,13 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::putString(
   return result.takeError();
 }
 
-Expected<int, DatabaseError> RocksdbDatabase::getInt32(
+Expected<int32_t, DatabaseError> RocksdbDatabase::getInt32(
     const std::string& domain, const std::string& key) {
   Expected<std::string, DatabaseError> buffer = getRawBytes(domain, key);
   if (buffer) {
     std::string value = buffer.take();
     if (BOOST_LIKELY(value.back() == kIntTag)) {
-      int result = *(reinterpret_cast<const int*>(value.data()));
+      int32_t result = *(reinterpret_cast<const int32_t*>(value.data()));
       return ntohl(result);
     } else {
       auto type_error = createError(RocksdbError::UnexpectedValueType,
@@ -330,7 +330,7 @@ Expected<int, DatabaseError> RocksdbDatabase::getInt32(
 
 ExpectedSuccess<DatabaseError> RocksdbDatabase::putInt32(
     const std::string& domain, const std::string& key, const int32_t value) {
-  int tmp_value = htonl(value);
+  int32_t tmp_value = htonl(value);
   std::string buffer;
   buffer.reserve(sizeof(int32_t) + sizeof(int8_t));
   buffer.append(reinterpret_cast<const char*>(&tmp_value), 4);
@@ -340,7 +340,7 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::putInt32(
 
 ExpectedSuccess<DatabaseError> RocksdbDatabase::putStringsUnsafe(
     const std::string& domain,
-    std::vector<std::pair<std::string, std::string>>& data) {
+    const std::vector<std::pair<std::string, std::string>>& data) {
   auto handle = getHandle(domain);
   if (handle) {
     std::shared_ptr<Handle> handle_ptr = handle.take();

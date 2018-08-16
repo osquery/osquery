@@ -62,7 +62,7 @@ class InMemoryDatabase final : public Database {
   // even if type was changed (e.g int->string)
   ExpectedSuccess<DatabaseError> putStringsUnsafe(
       const std::string& domain,
-      std::vector<std::pair<std::string, std::string>>& data) override;
+      const std::vector<std::pair<std::string, std::string>>& data) override;
 
  private:
   template <typename T>

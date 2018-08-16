@@ -69,7 +69,7 @@ class RocksdbDatabase final : public Database {
   // may happen in case of failure, but opertaion itself is still atomic
   ExpectedSuccess<DatabaseError> putStringsUnsafe(
       const std::string& domain,
-      std::vector<std::pair<std::string, std::string>>& data) override;
+      const std::vector<std::pair<std::string, std::string>>& data) override;
 
  private:
   rocksdb::Options getOptions();

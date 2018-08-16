@@ -87,7 +87,7 @@ class Database {
   // Please see actual function implementaion for details and limitations
   virtual ExpectedSuccess<DatabaseError> putStringsUnsafe(
       const std::string& domain,
-      std::vector<std::pair<std::string, std::string>>& data) = 0;
+      const std::vector<std::pair<std::string, std::string>>& data) = 0;
 
   void panic(const Error<DatabaseError>& error) {
     LOG(ERROR) << "Database did panic: " << error.getFullMessageRecursive();

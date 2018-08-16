@@ -160,7 +160,7 @@ Expected<std::vector<std::string>, DatabaseError> InMemoryDatabase::getKeys(
 
 ExpectedSuccess<DatabaseError> InMemoryDatabase::putStringsUnsafe(
     const std::string& domain,
-    std::vector<std::pair<std::string, std::string>>& data) {
+    const std::vector<std::pair<std::string, std::string>>& data) {
   debug_only::verifyTrue(is_open_, "database is not open");
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {
