@@ -15,4 +15,11 @@ schema([
     #Column("thunderbolt", INTEGER, "1 If PCI device is thunderbolt else 0"),
     #Column("removable", INTEGER, "1 If PCI device is removable else 0"),
 ])
+
+extended_schema(LINUX, [
+    Column("subsystem_vendor_id", TEXT, "Vendor ID of PCI device subsystem"),
+    Column("subsystem_vendor", TEXT, "Vendor of PCI device subsystem"),
+    Column("subsystem_model_id", TEXT, "Model ID of PCI device subsystem"),
+    Column("subsystem_model", TEXT, "Device description of PCI device subsystem"),
+])
 implementation("pci_devices@genPCIDevices")
