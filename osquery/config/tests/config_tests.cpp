@@ -601,7 +601,20 @@ TEST_F(ConfigTests, test_config_backup) {
                                                               {"c", "d"}};
   get().backupConfig(expected_config);
   const auto config = get().restoreConfigBackup();
-  EXPECT_EQ(config, expected_config);
+  EXPECT_TRUE(config);
+  EXPECT_EQ(*config, expected_config);
+
+  FLAGS_config_enable_backup = config_enable_backup_saved;
+}
+
+TEST_F(ConfigTests, test_config_backup_disabled) {
+  const auto config_enable_backup_saved = FLAGS_config_enable_backup;
+
+  get().reset();
+
+  FLAGS_config_enable_backup = false;
+  const auto config = get().restoreConfigBackup();
+  EXPECT_FALSE(config);
 
   FLAGS_config_enable_backup = config_enable_backup_saved;
 }

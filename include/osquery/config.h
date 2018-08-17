@@ -15,10 +15,10 @@
 #include <vector>
 
 #include <osquery/core.h>
+#include <osquery/core/json.h>
+#include <osquery/expected.h>
 #include <osquery/plugin.h>
 #include <osquery/query.h>
-
-#include "osquery/core/json.h"
 
 namespace osquery {
 
@@ -52,11 +52,13 @@ class Config : private boost::noncopyable {
   /// Singleton accessor.
   static Config& get();
 
+  enum class RestoreConfigError { BackupDisabled = 1 };
   /**
    * @brief restoreConfigBackup retrieve backed up config
    * @return config persisted int the database
    */
-  std::map<std::string, std::string> restoreConfigBackup();
+  Expected<std::map<std::string, std::string>, Config::RestoreConfigError>
+  restoreConfigBackup();
 
   /**
    * @brief Update the internal config data.
@@ -370,6 +372,7 @@ class Config : private boost::noncopyable {
   FRIEND_TEST(ConfigTests, test_config_refresh);
   FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
   FRIEND_TEST(ConfigTests, test_nonblacklist_query);
+  FRIEND_TEST(ConfigTests, test_config_backup_disabled);
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_add_view);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_swap_view);

@@ -461,11 +461,17 @@ Status Config::refresh() {
       setRefresh(FLAGS_config_accelerated_refresh);
     }
 
+    loaded_ = true;
+
     if (FLAGS_config_enable_backup) {
-      update(restoreConfigBackup());
+      const auto result = restoreConfigBackup();
+      if (!result) {
+        return Status::failure(result.getError().getFullMessageRecursive());
+      } else {
+        update(*result);
+      }
     }
 
-    loaded_ = true;
     return status;
   } else if (getRefresh() != FLAGS_config_refresh) {
     VLOG(1) << "Normal configuration delay restored";
@@ -542,9 +548,11 @@ void stripConfigComments(std::string& json) {
   json = sink;
 }
 
-std::map<std::string, std::string> Config::restoreConfigBackup() {
+Expected<std::map<std::string, std::string>, Config::RestoreConfigError>
+Config::restoreConfigBackup() {
   if (!FLAGS_config_enable_backup) {
-    return std::map<std::string, std::string>();
+    return createError(Config::RestoreConfigError::BackupDisabled,
+                       "Config persistense is disabled.");
   }
 
   VLOG(1) << "Restoring backed up config from the database";
@@ -558,6 +566,9 @@ std::map<std::string, std::string> Config::restoreConfigBackup() {
     std::string value;
     Status status = getDatabaseValue(kPersistentSettings, key, value);
     if (!status.ok()) {
+      VLOG(1)
+          << "restoreConfigBackup database failed to retrieve config for key "
+          << key;
       continue;
     }
     config[key.substr(kConfigPersistencePrefix.length())] = std::move(value);
