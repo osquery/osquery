@@ -174,6 +174,17 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region);
 Status getAWSRegion(std::string& region, bool sts = false);
 
 /**
+ * @brief Set HTTP/HTTPS proxy information on the AWS ClientConfiguration
+ * using relevant flags for scheme, host, port, username, and password
+ *
+ * This is a no-op if the 'aws_enable_proxy' flag is not set to true.
+ *
+ * @param config Pointer to Aws::Client::ClientConfiguration struct
+ *  on which to set the proxy values
+ */
+void setAWSProxy(Aws::Client::ClientConfiguration& config);
+
+/**
  * @brief Instantiate an AWS client with the appropriate osquery configs,
  *
  * This will pull the region and authentication configs from the appropriate
@@ -201,6 +212,10 @@ Status makeAWSClient(std::shared_ptr<Client>& client,
   } else {
     client_config.region = region;
   }
+
+  // Setup any proxy options on the config if desired
+  setAWSProxy(client_config);
+
   client = std::make_shared<Client>(
       std::make_shared<OsqueryAWSCredentialsProviderChain>(sts), client_config);
   return Status(0);
