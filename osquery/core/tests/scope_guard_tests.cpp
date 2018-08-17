@@ -26,147 +26,37 @@ namespace osquery {
 
 class ScopeGuardTests : public testing::Test {};
 
-TEST_F(ScopeGuardTests, value_access) {
-  auto text = std::string{"Nothing changes because the guard make a copy"};
+TEST_F(ScopeGuardTests, guard_is_called) {
+  auto guard_has_been_called = false;
   {
-    auto guard = scope_guard::value(
-        text, [](const auto& resource) { boost::ignore_unused(resource); });
-    EXPECT_EQ(*guard, text);
-    guard->assign("the new thing");
-    EXPECT_EQ(*guard, "the new thing");
+    auto guard = ScopeGuard<>::create(
+        [&guard_has_been_called]() { guard_has_been_called = true; });
+    ASSERT_FALSE(guard_has_been_called);
   }
-  EXPECT_EQ(text, "Nothing changes because the guard make a copy");
+  ASSERT_TRUE(guard_has_been_called);
 }
 
-TEST_F(ScopeGuardTests, value_with_ref_access) {
-  auto text = std::string{
-      "It is going to be changed because of std::reference_wrapper"};
+TEST_F(ScopeGuardTests, guard_is_called_by_release) {
+  auto calls_counter = int{0};
   {
-    auto guard = scope_guard::value(std::ref(text), [](const auto& resource) {
-      boost::ignore_unused(resource);
-    });
-    EXPECT_EQ(guard->get(), text);
-    guard->get().assign("It has been changed");
-    EXPECT_EQ(guard->get(), "It has been changed");
+    auto guard = ScopeGuard<>::create([&calls_counter]() { ++calls_counter; });
+    EXPECT_EQ(calls_counter, 0);
+    guard.release();
+    EXPECT_EQ(calls_counter, 1);
   }
-  EXPECT_EQ(text, "It has been changed");
-}
-
-TEST_F(ScopeGuardTests, cref_access) {
-  auto const text = std::string{
-      "It is going to be changed because of std::reference_wrapper"};
-  {
-    auto guard =
-        scope_guard::cref(text, [text_copy = text](const auto& resource) {
-          EXPECT_EQ(resource, text_copy);
-        });
-    EXPECT_EQ(guard->get(), text);
-  }
-}
-
-TEST_F(ScopeGuardTests, demolisher_is_called) {
-  auto demolisher_has_been_called = false;
-  {
-    auto guard = scope_guard::value(
-        34978, [&demolisher_has_been_called](const auto& resource) {
-          demolisher_has_been_called = true;
-        });
-    ASSERT_EQ(*guard, 34978);
-  }
-  EXPECT_TRUE(demolisher_has_been_called);
-}
-
-TEST_F(ScopeGuardTests, atExit_is_called) {
-  auto demolisher_has_been_called = false;
-  {
-    auto guard = scope_guard::atExit(
-        [&demolisher_has_been_called]() {
-          demolisher_has_been_called = true;
-        });
-    ASSERT_FALSE(demolisher_has_been_called);
-  }
-  ASSERT_TRUE(demolisher_has_been_called);
-}
-
-namespace {
-
-class DeletionCounter final {
- public:
-  explicit DeletionCounter() {
-    ++counter;
-  }
-  DeletionCounter(const DeletionCounter&) {
-    ++counter;
-  }
-  DeletionCounter(DeletionCounter&&) {
-    ++counter;
-  }
-  DeletionCounter& operator=(const DeletionCounter&) {
-    ++counter;
-    return *this;
-  }
-  DeletionCounter& operator=(DeletionCounter&&) {
-    ++counter;
-    return *this;
-  }
-  ~DeletionCounter() {
-    --counter;
-  }
-
-  static int counter;
-};
-
-int DeletionCounter::counter = 0;
-
-} // namespace
-
-TEST_F(ScopeGuardTests, deletion) {
-  // Substitution of deleter in std::unique_ptr can cause memory leaks.
-  // Let's check it doesn't happen.
-  {
-    DeletionCounter::counter = 0;
-    auto guard =
-        scope_guard::value(DeletionCounter{}, [](const auto& resource) {
-          boost::ignore_unused(resource);
-          EXPECT_EQ(DeletionCounter::counter, 1);
-        });
-    EXPECT_EQ(DeletionCounter::counter, 1);
-  }
-  EXPECT_EQ(DeletionCounter::counter, 0);
-}
-
-namespace {
-
-class MoveOnlyTestClass {
- public:
-  explicit MoveOnlyTestClass(std::string text) : msg(std::move(text)) {}
-  MoveOnlyTestClass(const MoveOnlyTestClass&) = delete;
-  MoveOnlyTestClass(MoveOnlyTestClass&&) = default;
-  MoveOnlyTestClass& operator=(const MoveOnlyTestClass&) = delete;
-  MoveOnlyTestClass& operator=(MoveOnlyTestClass&&) = default;
-
-  std::string msg;
-};
-
-} // namespace
-
-TEST_F(ScopeGuardTests, value_with_move_only_object) {
-  const auto guard = scope_guard::value(
-      MoveOnlyTestClass{"Resource acquisition is initialization"},
-      [](const auto& resource) { boost::ignore_unused(resource); });
-  EXPECT_EQ(guard->msg, "Resource acquisition is initialization");
+  EXPECT_EQ(calls_counter, 2);
 }
 
 TEST_F(ScopeGuardTests, example_time_measurement) {
   auto duration = std::chrono::duration<double>{0};
   {
-    auto guard = scope_guard::atExit(
-        [&duration, start=std::chrono::steady_clock::now()]() {
+    auto guard = ScopeGuard<>::create(
+        [&duration, start = std::chrono::steady_clock::now()]() {
           duration = std::chrono::steady_clock::now() - start;
         });
-    std::this_thread::sleep_for(std::chrono::microseconds{2});
+    std::this_thread::sleep_for(std::chrono::milliseconds{1});
   }
-  EXPECT_GE(duration, std::chrono::microseconds{2});
+  EXPECT_GE(duration, std::chrono::milliseconds{1});
 }
 
 TEST_F(ScopeGuardTests, example_temporary_file) {
@@ -175,13 +65,8 @@ TEST_F(ScopeGuardTests, example_temporary_file) {
       fs::unique_path(
           "osquery.core.tests.resource_manager_tests.temporary_file.%%%%.log");
   {
-    const auto guard = scope_guard::atExit(
-      [&file_path=tmp_file_path]() {
-        if (fs::exists(file_path)) {
-          fs::remove(file_path);
-        }
-      }
-    );
+    const auto guard = ScopeGuard<>::create(
+        [& file_path = tmp_file_path]() { fs::remove(file_path); });
     { // create file
       auto fout = std::ofstream(tmp_file_path.native(),
                                 std::ios::out | std::ios::binary);

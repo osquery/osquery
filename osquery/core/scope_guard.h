@@ -15,60 +15,51 @@
 namespace osquery {
 
 /**
- * Scoupe guards
- * To be sure that resources are always released/closed/verified in face of
- * multiple return statements from the function
+ * The RAII based scoupe guard class.
+ *
+ * To be sure that resources are always released/removed/closed/verified/stoped
+ * in face of multiple return statements from the function.
+ *
+ * It takes functor object by value during the counstruction. It is going to be
+ * called once during the destruction of ScopeGuard object. Besides the case
+ * when release method is called manually.
+ *
+ * There is helper function to create the object of guard.
+ * @code{.cpp}
+ *   {
+ *     auto const manager = ScopeGuard<>::create(
+ *       [&file_path]() { fs::remove(file_path); }
+ *     );
+ *       ...
+ *     // it will be removed at the end of scope
+ *   }
+ * @endcode
  */
-namespace scope_guard {
-
-template <typename ValueType, typename FinalRoutineType>
-auto value(ValueType resource, FinalRoutineType final_routine) {
-  auto deleter = [final_routine = std::move(final_routine)](ValueType* res) {
-    final_routine(*res);
-    delete res;
-  };
-  return std::unique_ptr<ValueType, decltype(deleter)>(
-      new ValueType{std::move(resource)}, std::move(deleter));
-}
-
-template <typename ValueType, typename FinalRoutineType>
-auto cref(ValueType const& resourceRef, FinalRoutineType final_routine) {
-  auto deleter = [final_routine = std::move(final_routine)](auto res) {
-    final_routine(res->get());
-    delete res;
-  };
-  using ValueConstRefWrapperType = std::reference_wrapper<ValueType const>;
-  return std::unique_ptr<ValueConstRefWrapperType, decltype(deleter)>(
-      new ValueConstRefWrapperType{resourceRef}, std::move(deleter));
-}
-
-namespace impl {
-
-template<
-  typename FinalRoutineType
->
-class Guard final {
-public:
-  explicit Guard(FinalRoutineType final_routine)
-    : final_routine_(std::move(final_routine))
-  {
+template <typename...>
+class ScopeGuard final {
+ public:
+  template <typename FinalRoutineType>
+  static inline auto create(FinalRoutineType final_routine) {
+    return ScopeGuard<FinalRoutineType>(std::move(final_routine));
   }
+};
 
-  ~Guard() {
+template <typename FinalRoutineType>
+class ScopeGuard<FinalRoutineType> final {
+ public:
+  explicit ScopeGuard(FinalRoutineType final_routine)
+      : final_routine_(std::move(final_routine)) {}
+
+  ~ScopeGuard() {
     final_routine_();
   }
 
-private:
+  inline void release() {
+    final_routine_();
+  }
+
+ private:
   FinalRoutineType final_routine_;
 };
-
-} // namespace impl
-
-template <typename FinalRoutineType>
-auto atExit(FinalRoutineType final_routine) {
-  return impl::Guard<FinalRoutineType>(std::move(final_routine));
-}
-
-} // namespace scope_guard
 
 } // namespace osquery
