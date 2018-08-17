@@ -79,7 +79,7 @@ CLI_FLAG(uint64,
 CLI_FLAG(bool,
          config_enable_backup,
          false,
-         "Backup new config and use it if failed to refresh");
+         "Backup config and use it when refresh fails");
 
 FLAG_ALIAS(google::uint64,
            config_tls_accelerated_refresh,
