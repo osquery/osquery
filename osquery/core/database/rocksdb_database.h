@@ -99,7 +99,7 @@ class RocksdbDatabase final : public Database {
   rocksdb::WriteOptions batch_write_options_;
   std::unique_ptr<rocksdb::DB> db_ = nullptr;
 
-  std::string path_;
+  const std::string path_;
   std::unordered_map<std::string, HandleRef> handles_map_;
 };
 

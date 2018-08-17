@@ -141,11 +141,11 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::openInternal(
     const rocksdb::Options& options, const boost::filesystem::path& path) {
   VLOG(1) << "Will try to open db at path: " << path.string();
   auto column_families = createDefaultColumnFamilies(options);
-  auto db_path = boost::filesystem::path(path).make_preferred();
-  auto db_parent_path_status = boost::filesystem::status(db_path.parent_path());
-  bool exists = boost::filesystem::exists(db_parent_path_status);
-  bool is_directory = boost::filesystem::is_directory(db_parent_path_status);
-  bool are_permissions_set =
+  const auto db_path = boost::filesystem::path(path).make_preferred();
+  const auto db_parent_path_status = boost::filesystem::status(db_path.parent_path());
+  const bool exists = boost::filesystem::exists(db_parent_path_status);
+  const bool is_directory = boost::filesystem::is_directory(db_parent_path_status);
+  const bool are_permissions_set =
       boost::filesystem::permissions_present(db_parent_path_status);
   if (!exists || !is_directory || !are_permissions_set) {
     return createError(DatabaseError::InvalidPath,
