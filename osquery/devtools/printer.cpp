@@ -135,8 +135,11 @@ void jsonPrint(const QueryData& q) {
   printf("[\n");
   for (size_t i = 0; i < q.size(); ++i) {
     std::string row_string;
-
-    if (serializeRowJSON(q[i], row_string).ok()) {
+    RowTyped rt;
+    for (const auto& col : q[i]) {
+      rt[col.first] = col.second;
+    }
+    if (serializeRowJSON(rt, row_string).ok()) {
       printf("  %s", row_string.c_str());
       if (i < q.size() - 1) {
         printf(",\n");

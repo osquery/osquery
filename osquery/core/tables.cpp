@@ -214,9 +214,9 @@ QueryData TablePlugin::getCache() const {
   // Lookup results from database and deserialize.
   std::string content;
   getDatabaseValue(kQueries, "cache." + getName(), content);
-  QueryData results;
+  QueryDataTyped results;
   deserializeQueryDataJSON(content, results);
-  return results;
+  return results.getNonTyped();
 }
 
 void TablePlugin::setCache(size_t step,

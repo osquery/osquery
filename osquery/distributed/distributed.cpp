@@ -336,14 +336,14 @@ Status deserializeDistributedQueryResult(const rj::Value& obj,
     return s;
   }
 
-  QueryData results;
+  QueryDataTyped results;
   s = deserializeQueryData(obj["results"], results);
   if (!s.ok()) {
     return s;
   }
 
   r.request = request;
-  r.results = results;
+  r.results = results.getNonTyped();
 
   return Status();
 }

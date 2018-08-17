@@ -10,7 +10,9 @@
 
 #pragma once
 
+#include <boost/lexical_cast.hpp>
 #include <boost/variant.hpp>
+
 #include <map>
 #include <set>
 #include <string>
@@ -48,7 +50,22 @@ using RowDataTyped = boost::variant<int64_t, double, std::string>;
  * Row is a simple map where individual column names are keys, which map to
  * the Row's respective typed value
  */
-using RowTyped = std::map<std::string, RowDataTyped>;
+struct RowTyped : std::map<std::string, RowDataTyped> {
+  RowTyped() {}
+  RowTyped(Row r) {
+    for (auto& c : r) {
+      insert({c.first, c.second});
+    }
+  }
+
+  Row getNonTyped() {
+    Row r;
+    for (auto it = begin(); it != end(); ++it) {
+      r[it->first] = boost::lexical_cast<std::string>(it->second);
+    }
+    return r;
+  }
+};
 
 /**
  * @brief A vector of column names associated with a query
@@ -67,7 +84,7 @@ using ColumnNames = std::vector<std::string>;
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeRow(const Row& r,
+Status serializeRow(const RowTyped& r,
                     const ColumnNames& cols,
                     JSON& doc,
                     rapidjson::Value& obj);
@@ -80,7 +97,7 @@ Status serializeRow(const Row& r,
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeRowJSON(const Row& r, std::string& json);
+Status serializeRowJSON(const RowTyped& r, std::string& json);
 
 /**
  * @brief Deserialize a Row object from JSON object.
@@ -90,7 +107,7 @@ Status serializeRowJSON(const Row& r, std::string& json);
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status deserializeRow(const rapidjson::Value& obj, Row& r);
+Status deserializeRow(const rapidjson::Value& obj, RowTyped& r);
 
 /**
  * @brief Deserialize a Row object from a JSON string.
@@ -100,7 +117,7 @@ Status deserializeRow(const rapidjson::Value& obj, Row& r);
  *
  * @return Status indicating the success or failure of the operation
  */
-Status deserializeRowJSON(const std::string& json, Row& r);
+Status deserializeRowJSON(const std::string& json, RowTyped& r);
 
 /**
  * @brief The result set returned from a osquery SQL query
@@ -110,14 +127,28 @@ Status deserializeRowJSON(const std::string& json, Row& r);
  */
 using QueryData = std::vector<Row>;
 
-using QueryDataTyped = std::vector<RowTyped>;
+struct QueryDataTyped : std::vector<RowTyped> {
+  QueryDataTyped() {}
+  QueryDataTyped(QueryData qd) {
+    for (auto& r : qd) {
+      push_back(RowTyped(r));
+    }
+  }
 
+  QueryData getNonTyped() {
+    QueryData qd;
+    for (size_t i = 0; i < size(); i++) {
+      qd.push_back(at(i).getNonTyped());
+    }
+    return qd;
+  }
+};
 /**
  * @brief Set representation result returned from a osquery SQL query
  *
- * QueryDataSet -  It's set of Rows for fast search of a specific row.
+ * QueryDataSet -  It's set of RowTypeds for fast search of a specific row.
  */
-using QueryDataSet = std::multiset<Row>;
+using QueryDataSet = std::multiset<RowTyped>;
 
 /**
  * @brief Serialize a QueryData object into a JSON array.
@@ -129,11 +160,10 @@ using QueryDataSet = std::multiset<Row>;
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeQueryData(const QueryData& q,
+Status serializeQueryData(const QueryDataTyped& q,
                           const ColumnNames& cols,
                           JSON& doc,
                           rapidjson::Document& arr);
-
 /**
  * @brief Serialize a QueryData object into a JSON string.
  *
@@ -142,16 +172,16 @@ Status serializeQueryData(const QueryData& q,
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeQueryDataJSON(const QueryData& q, std::string& json);
+Status serializeQueryDataJSON(const QueryDataTyped& q, std::string& json);
 
 /// Inverse of serializeQueryData, convert JSON to QueryData.
-Status deserializeQueryData(const rapidjson::Value& arr, QueryData& qd);
+Status deserializeQueryData(const rapidjson::Value& arr, QueryDataTyped& qd);
 
 /// Inverse of serializeQueryData, convert JSON to QueryDataSet.
 Status deserializeQueryData(const rapidjson::Value& arr, QueryDataSet& qd);
 
 /// Inverse of serializeQueryDataJSON, convert a JSON string to QueryData.
-Status deserializeQueryDataJSON(const std::string& json, QueryData& qd);
+Status deserializeQueryDataJSON(const std::string& json, QueryDataTyped& qd);
 
 /// Inverse of serializeQueryDataJSON, convert a JSON string to QueryDataSet.
 Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd);
@@ -167,10 +197,10 @@ Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd);
 struct DiffResults : private only_movable {
  public:
   /// vector of added rows
-  QueryData added;
+  QueryDataTyped added;
 
   /// vector of removed rows
-  QueryData removed;
+  QueryDataTyped removed;
 
   DiffResults() {}
   DiffResults(DiffResults&&) = default;
@@ -225,7 +255,7 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json);
  *
  * @see DiffResults
  */
-DiffResults diff(QueryDataSet& old_, QueryData& new_);
+DiffResults diff(QueryDataSet& old_, QueryDataTyped& new_);
 
 /**
  * @brief Add a Row to a QueryData if the Row hasn't appeared in the QueryData
@@ -241,21 +271,12 @@ DiffResults diff(QueryDataSet& old_, QueryData& new_);
  *
  * @return true if the Row was added to the QueryData, false if it was not
  */
-bool addUniqueRowToQueryData(QueryData& q, const Row& r);
+bool addUniqueRowToQueryData(QueryDataTyped& q, const RowTyped& r);
 
 /**
- * @brief Construct a new QueryData from an existing one, replacing all
- * non-ASCII characters with their \\u encoding.
- *
- * This function is intended as a workaround for
- * https://svn.boost.org/trac/boost/ticket/8883,
- * and will allow rows containing data with non-ASCII characters to be stored in
- * the database and parsed back into a JSON document.
- *
- * @param oldData the old QueryData to copy
- * @param newData the new escaped QueryData object
+ * Replaces the non-printable bytes of a string with their \\x encoding
  */
-void escapeQueryData(const QueryData& oldData, QueryData& newData);
+void escapeNonPrintableBytes(std::string& data);
 
 /**
  * @brief performance statistics about a query
@@ -340,7 +361,7 @@ struct QueryLogItem {
   DiffResults results;
 
   /// Optional snapshot results, no differential applied.
-  QueryData snapshot_results;
+  QueryDataTyped snapshot_results;
 
   /// The name of the scheduled query.
   std::string name;
@@ -362,9 +383,6 @@ struct QueryLogItem {
 
   /// A set of additional fields to emit with the log line.
   std::map<std::string, std::string> decorations;
-
-  /// The ordered map of columns from the query.
-  ColumnNames columns;
 
   /// equals operator
   bool operator==(const QueryLogItem& comp) const {
@@ -504,7 +522,9 @@ class Query {
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(QueryData qd, uint64_t epoch, uint64_t& counter) const;
+  Status addNewResults(QueryDataTyped qd,
+                       uint64_t epoch,
+                       uint64_t& counter) const;
 
   /**
    * @brief Add a new set of results to the persistent storage and get back
@@ -522,7 +542,7 @@ class Query {
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(QueryData qd,
+  Status addNewResults(QueryDataTyped qd,
                        uint64_t epoch,
                        uint64_t& counter,
                        DiffResults& dr,
@@ -535,7 +555,7 @@ class Query {
    *
    * @return the success or failure of the operation.
    */
-  Status getCurrentResults(QueryData& qd);
+  Status getCurrentResults(QueryDataTyped& qd);
 
  public:
   /**

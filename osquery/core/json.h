@@ -84,6 +84,17 @@ class JSON : private only_movable {
   void pushCopy(const std::string& value, rapidjson::Value& arr);
 
   /**
+   * @brief Add a rj::Value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
+   * The input document must be an object type.
+   */
+  void addCopy(const std::string& key,
+               const rapidjson::Value& value,
+               rapidjson::Value& obj);
+
+  /**
    * @brief Add a string value to a JSON object by copying the contents.
    *
    * This will add the key and value to an input document. If the key exists
@@ -222,6 +233,41 @@ class JSON : private only_movable {
    * The document must be an object type.
    */
   void add(const std::string& key, bool value);
+
+  /**
+   * @brief Add an unsigned int64_t to a JSON object by copying the
+   * contents.
+   *
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
+   * The input document must be an object type.
+   */
+  void add(const std::string& key, int64_t value, rapidjson::Value& obj);
+  /**
+   * @brief Add an unsigned int64_t to a JSON object by copying the
+   * contents.
+   *
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
+   * The document must be an object type.
+   */
+  void add(const std::string& key, int64_t value);
+  /**
+   * @brief Add a double value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
+   * The input document must be an object type.
+   */
+  void add(const std::string& key, double value, rapidjson::Value& obj);
+  /**
+   * @brief Add an double value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
+   * The document must be an object type.
+   */
+  void add(const std::string& key, double value);
 
   /// Add a JSON document as a member.
   void add(const std::string& key, const rapidjson::Value& value);

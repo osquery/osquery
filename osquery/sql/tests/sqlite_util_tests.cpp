@@ -77,7 +77,7 @@ TEST_F(SQLiteUtilTests, test_reset) {
   SQLiteDBManager::resetPrimary();
   auto instance = SQLiteDBManager::get();
 
-  QueryData results;
+  QueryDataTyped results;
   queryInternal("select * from test_view", results, instance);
 
   // Assume the internal (primary) database we reset and recreated.
@@ -86,7 +86,7 @@ TEST_F(SQLiteUtilTests, test_reset) {
 
 TEST_F(SQLiteUtilTests, test_direct_query_execution) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal(kTestQuery, results, dbc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results, getTestDBExpectedResults());
@@ -94,7 +94,7 @@ TEST_F(SQLiteUtilTests, test_direct_query_execution) {
 
 TEST_F(SQLiteUtilTests, test_aggregate_query) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal(kTestQuery, results, dbc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results, getTestDBExpectedResults());
@@ -112,7 +112,7 @@ TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
       ASSERT_TRUE(false);
     }
 
-    QueryData expected;
+    QueryDataTyped expected;
     auto status = queryInternal(kTestQuery, expected, dbc);
     EXPECT_EQ(expected, r.second);
   }
@@ -120,7 +120,7 @@ TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
 
 TEST_F(SQLiteUtilTests, test_affected_tables) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal("SELECT * FROM time", results, dbc);
 
   // Since the table scanned from "time", it should be recorded as affected.
@@ -133,14 +133,14 @@ TEST_F(SQLiteUtilTests, test_table_attributes_event_based) {
   {
     SQLInternal sql_internal("select * from process_events");
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-      EXPECT_TRUE(sql_internal.ok());
+      EXPECT_TRUE(sql_internal.getStatus().ok());
       EXPECT_TRUE(sql_internal.eventBased());
     }
   }
 
   {
     SQLInternal sql_internal("select * from time");
-    EXPECT_TRUE(sql_internal.ok());
+    EXPECT_TRUE(sql_internal.getStatus().ok());
     EXPECT_FALSE(sql_internal.eventBased());
   }
 }

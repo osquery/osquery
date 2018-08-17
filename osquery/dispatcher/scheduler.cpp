@@ -11,6 +11,7 @@
 #include <ctime>
 
 #include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
@@ -79,10 +80,12 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
     // Calculate a size as the expected byte output of results.
     // This does not dedup result differentials and is not aware of snapshots.
     size_t size = 0;
-    for (const auto& row : sql.rows()) {
+    for (const auto& row : sql.rowsTyped()) {
       for (const auto& column : row) {
         size += column.first.size();
-        size += column.second.size();
+        // Reviewers, does this seem reasonable, or should we do something like
+        // https://stackoverflow.com/questions/27012488/c-extract-size-of-boostvariant-element
+        size += sizeof(column.second);
       }
     }
     // Always called while processes table is working.
@@ -98,9 +101,9 @@ inline Status launchQuery(const std::string& name,
   runDecorators(DECORATE_ALWAYS);
 
   auto sql = monitor(name, query);
-  if (!sql.ok()) {
+  if (!sql.getStatus().ok()) {
     LOG(ERROR) << "Error executing scheduled query " << name << ": "
-               << sql.getMessageString();
+               << sql.getStatus().toString();
     return Status::failure("Error executing scheduled query");
   }
 
@@ -112,7 +115,7 @@ inline Status launchQuery(const std::string& name,
   QueryLogItem item;
   item.name = name;
   item.identifier = ident;
-  item.columns = sql.columns();
+
   item.time = osquery::getUnixTime();
   item.epoch = FLAGS_schedule_epoch;
   item.calendar_time = osquery::getAsciiTime();
@@ -120,7 +123,7 @@ inline Status launchQuery(const std::string& name,
 
   if (query.options.count("snapshot") && query.options.at("snapshot")) {
     // This is a snapshot query, emit results with a differential or state.
-    item.snapshot_results = std::move(sql.rows());
+    item.snapshot_results = std::move(sql.rowsTyped());
     logSnapshotQuery(item);
     return Status::success();
   }
@@ -128,7 +131,17 @@ inline Status launchQuery(const std::string& name,
   // Create a database-backed set of query results.
   auto dbQuery = Query(name, query);
   // Comparisons and stores must include escaped data.
-  sql.escapeResults();
+  for (auto& r : sql.rowsTyped()) {
+    for (auto& i : r) {
+      if (i.second.type() == typeid(std::string)) {
+        std::string val = boost::get<std::string>(i.second);
+        escapeNonPrintableBytes(val);
+        if (val != boost::get<std::string>(i.second)) {
+          r[i.first] = val;
+        }
+      }
+    }
+  }
 
   Status status;
   DiffResults& diff_results = item.results;
@@ -137,7 +150,7 @@ inline Status launchQuery(const std::string& name,
   // was executed by exact matching each row.
   if (!FLAGS_events_optimize || !sql.eventBased()) {
     status = dbQuery.addNewResults(
-        std::move(sql.rows()), item.epoch, item.counter, diff_results);
+        std::move(sql.rowsTyped()), item.epoch, item.counter, diff_results);
     if (!status.ok()) {
       std::string line =
           "Error adding new results to database: " + status.what();
@@ -147,7 +160,7 @@ inline Status launchQuery(const std::string& name,
       Initializer::requestShutdown(EXIT_CATASTROPHIC, line);
     }
   } else {
-    diff_results.added = std::move(sql.rows());
+    diff_results.added = std::move(sql.rowsTyped());
   }
 
   if (query.options.count("removed") && !query.options.at("removed")) {

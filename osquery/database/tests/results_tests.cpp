@@ -25,8 +25,8 @@ class ResultsTests : public testing::Test {};
 
 TEST_F(ResultsTests, test_simple_diff) {
   QueryDataSet os;
-  QueryData o;
-  QueryData n;
+  QueryDataTyped o;
+  QueryDataTyped n;
 
   Row r1;
   r1["foo"] = "bar";
@@ -53,7 +53,7 @@ TEST_F(ResultsTests, test_deserialize_row_json) {
   serializeRowJSON(results.second, input);
 
   // Pull the serialized JSON back into a Row output container.
-  Row output;
+  RowTyped output;
   auto s = deserializeRowJSON(input, output);
   EXPECT_TRUE(s.ok());
   // The output container should match the input row.
@@ -92,7 +92,7 @@ TEST_F(ResultsTests, test_deserialize_query_data_json) {
   auto results = getSerializedQueryDataJSON();
 
   // Pull the serialized JSON back into a QueryData output container.
-  QueryData output;
+  QueryDataTyped output;
   auto s = deserializeQueryDataJSON(results.first, output);
   EXPECT_TRUE(s.ok());
   // The output container should match the input query data.
@@ -147,7 +147,7 @@ TEST_F(ResultsTests, test_deserialize_query_log_item_json) {
 }
 
 TEST_F(ResultsTests, test_adding_duplicate_rows_to_query_data) {
-  Row r1, r2, r3;
+  RowTyped r1, r2, r3;
   r1["foo"] = "bar";
   r1["baz"] = "boo";
 
@@ -157,7 +157,7 @@ TEST_F(ResultsTests, test_adding_duplicate_rows_to_query_data) {
   r3["foo"] = "baz";
   r3["baz"] = "bop";
 
-  QueryData q;
+  QueryDataTyped q;
   bool s;
 
   s = addUniqueRowToQueryData(q, r1);

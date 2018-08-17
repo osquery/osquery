@@ -273,14 +273,16 @@ TEST_F(LoggerTests, test_logger_snapshots) {
   item.calendar_time = "no_time";
 
   // Add a fake set of results.
-  item.results.added.push_back({{"test_column", "test_value"}});
+  RowTyped rt;
+  rt["test_column"] = "test_value";
+  item.results.added.push_back(rt);
   logSnapshotQuery(item);
 
   // Expect the plugin to optionally handle snapshot logging.
   EXPECT_EQ(1U, LoggerTests::snapshot_rows_added);
 
   // Expect a single event, event though there were two added.
-  item.results.added.push_back({{"test_column", "test_value"}});
+  item.results.added.push_back(rt);
   logSnapshotQuery(item);
   EXPECT_EQ(2U, LoggerTests::snapshot_rows_added);
 
@@ -371,13 +373,17 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
   item.calendar_time = "no_time";
   item.epoch = 0L;
   item.counter = 0L;
-  item.results.added.push_back({{"test_column", "test_value"}});
+  RowTyped rt;
+  rt["test_column"] = "test_value";
+  item.results.added.push_back(rt);
   logQueryLogItem(item);
   EXPECT_EQ(1U, LoggerTests::log_lines.size());
 
   // The entire removed/added is one event when result events is false.
   FLAGS_logger_event_type = false;
-  item.results.removed.push_back({{"test_column", "test_new_value\n"}});
+  RowTyped rt2;
+  rt2["test_column"] = "test_new_value\n";
+  item.results.removed.push_back(rt2);
   logQueryLogItem(item);
   EXPECT_EQ(2U, LoggerTests::log_lines.size());
   FLAGS_logger_event_type = true;

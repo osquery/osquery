@@ -361,7 +361,7 @@ void EventSubscriberPlugin::expireCheck() {
   getDatabaseValue(kEvents, data_key + "." + toIndex(threshold_key), content);
 
   // Decode the value into a row structure to extract the time.
-  Row r;
+  RowTyped r;
   if (!deserializeRowJSON(content, r) || r.count("time") == 0) {
     return;
   }
@@ -533,15 +533,16 @@ void EventSubscriberPlugin::get(RowYield& yield,
   // Select mapped_records using event_ids as keys.
   std::string data_value;
   for (const auto& record : mapped_records) {
-    Row r;
+    RowTyped rt;
     auto status = getDatabaseValue(kEvents, record, data_value);
     if (data_value.length() == 0) {
       // There is no record here, interesting error case.
       continue;
     }
-    status = deserializeRowJSON(data_value, r);
+    status = deserializeRowJSON(data_value, rt);
     data_value.clear();
     if (status.ok()) {
+      Row r = rt.getNonTyped();
       yield(r);
     }
   }

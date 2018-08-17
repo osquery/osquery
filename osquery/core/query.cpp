@@ -85,14 +85,14 @@ bool Query::isNewQuery() const {
   return (query != query_);
 }
 
-Status Query::addNewResults(QueryData qd,
+Status Query::addNewResults(QueryDataTyped qd,
                             const uint64_t epoch,
                             uint64_t& counter) const {
   DiffResults dr;
   return addNewResults(std::move(qd), epoch, counter, dr, false);
 }
 
-Status Query::addNewResults(QueryData current_qd,
+Status Query::addNewResults(QueryDataTyped current_qd,
                             const uint64_t current_epoch,
                             uint64_t& counter,
                             DiffResults& dr,
@@ -167,27 +167,43 @@ Status Query::addNewResults(QueryData current_qd,
   return Status(0, "OK");
 }
 
-Status serializeRow(const Row& r,
+class DocAppenderVisitor : public boost::static_visitor<> {
+ public:
+  DocAppenderVisitor(JSON& dc, rj::Value& ob) : doc(dc), obj(ob) {}
+  void operator()(const std::string& key, const int64_t& i) const {
+    doc.add(key, i, obj);
+  }
+
+  void operator()(const std::string& key, const std::string& str) const {
+    doc.addRef(key, str, obj);
+  }
+
+  void operator()(const std::string& key, const double& d) const {
+    doc.add(key, d, obj);
+  }
+
+ private:
+  JSON& doc;
+  rj::Value& obj;
+};
+
+Status serializeRow(const RowTyped& r,
                     const ColumnNames& cols,
                     JSON& doc,
                     rj::Value& obj) {
-  if (cols.empty()) {
-    for (const auto& i : r) {
-      doc.addRef(i.first, i.second, obj);
-    }
-  } else {
-    for (const auto& c : cols) {
-      auto i = r.find(c);
-      if (i != r.end()) {
-        doc.addRef(c, i->second, obj);
-      }
+  DocAppenderVisitor const visitor(doc, obj);
+
+  for (const auto& i : r) {
+    if (cols.empty() ||
+        std::find(cols.begin(), cols.end(), i.first) != cols.end()) {
+      boost::variant<std::string> key = i.first;
+      boost::apply_visitor(visitor, key, i.second);
     }
   }
-
   return Status();
 }
 
-Status serializeRowJSON(const Row& r, std::string& json) {
+Status serializeRowJSON(const RowTyped& r, std::string& json) {
   auto doc = JSON::newObject();
 
   // An empty column list will traverse the row map.
@@ -199,21 +215,27 @@ Status serializeRowJSON(const Row& r, std::string& json) {
   return doc.toString(json);
 }
 
-Status deserializeRow(const rj::Value& doc, Row& r) {
+Status deserializeRow(const rj::Value& doc, RowTyped& r) {
   if (!doc.IsObject()) {
     return Status(1);
   }
 
   for (const auto& i : doc.GetObject()) {
     std::string name(i.name.GetString());
-    if (!name.empty() && i.value.IsString()) {
-      r[name] = i.value.GetString();
+    if (!name.empty()) {
+      if (i.value.IsString()) {
+        r[name] = i.value.GetString();
+      } else if (i.value.IsDouble()) {
+        r[name] = i.value.GetDouble();
+      } else if (i.value.IsInt64()) {
+        r[name] = i.value.GetInt64();
+      }
     }
   }
   return Status();
 }
 
-Status deserializeRowJSON(const std::string& json, Row& r) {
+Status deserializeRowJSON(const std::string& json, RowTyped& r) {
   auto doc = JSON::newObject();
   if (!doc.fromString(json) || !doc.doc().IsObject()) {
     return Status(1, "Cannot deserializing JSON");
@@ -221,7 +243,7 @@ Status deserializeRowJSON(const std::string& json, Row& r) {
   return deserializeRow(doc.doc(), r);
 }
 
-Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
+Status serializeQueryDataJSON(const QueryDataTyped& q, std::string& json) {
   auto doc = JSON::newArray();
 
   ColumnNames cols;
@@ -232,13 +254,13 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
   return doc.toString(json);
 }
 
-Status deserializeQueryData(const rj::Value& arr, QueryData& qd) {
+Status deserializeQueryData(const rj::Value& arr, QueryDataTyped& qd) {
   if (!arr.IsArray()) {
     return Status(1);
   }
 
   for (const auto& i : arr.GetArray()) {
-    Row r;
+    RowTyped r;
     auto status = deserializeRow(i, r);
     if (!status.ok()) {
       return status;
@@ -254,7 +276,7 @@ Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
   }
 
   for (const auto& i : v.GetArray()) {
-    Row r;
+    RowTyped r;
     auto status = deserializeRow(i, r);
     if (!status.ok()) {
       return status;
@@ -264,7 +286,7 @@ Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
   return Status();
 }
 
-Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
+Status deserializeQueryDataJSON(const std::string& json, QueryDataTyped& qd) {
   auto doc = JSON::newArray();
   if (!doc.fromString(json) || !doc.doc().IsArray()) {
     return Status(1, "Cannot deserializing JSON");
@@ -289,6 +311,7 @@ Status serializeDiffResults(const DiffResults& d,
   // A property tree is somewhat ordered, this provides a loose contract to
   // the logger plugins and their aggregations, allowing them to parse chunked
   // lines. Note that the chunking is opaque to the database functions.
+
   auto removed_arr = doc.getArray();
   auto status = serializeQueryData(d.removed, cols, doc, removed_arr);
   if (!status.ok()) {
@@ -302,6 +325,7 @@ Status serializeDiffResults(const DiffResults& d,
     return status;
   }
   doc.add("added", added_arr, obj);
+
   return Status();
 }
 
@@ -337,7 +361,7 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
   return doc.toString(json);
 }
 
-DiffResults diff(QueryDataSet& old, QueryData& current) {
+DiffResults diff(QueryDataSet& old, QueryDataTyped& current) {
   DiffResults r;
 
   for (auto& i : current) {
@@ -401,7 +425,7 @@ inline void getLegacyFieldsAndDecorations(const JSON& doc, QueryLogItem& item) {
 Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
   if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
     auto obj = doc.getObject();
-    auto status = serializeDiffResults(item.results, item.columns, doc, obj);
+    auto status = serializeDiffResults(item.results, {}, doc, obj);
     if (!status.ok()) {
       return status;
     }
@@ -409,8 +433,7 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
     doc.add("diffResults", obj);
   } else {
     auto arr = doc.getArray();
-    auto status =
-        serializeQueryData(item.snapshot_results, item.columns, doc, arr);
+    auto status = serializeQueryData(item.snapshot_results, {}, doc, arr);
     if (!status.ok()) {
       return status;
     }
@@ -432,7 +455,7 @@ Status serializeEvent(const QueryLogItem& item,
   auto columns_obj = doc.getObject();
   for (const auto& i : event_obj.GetObject()) {
     // Yield results as a "columns." map to avoid namespace collisions.
-    doc.addCopy(i.name.GetString(), i.value.GetString(), columns_obj);
+    doc.add(i.name.GetString(), i.value, columns_obj);
   }
 
   doc.add("columns", columns_obj, obj);
@@ -442,8 +465,8 @@ Status serializeEvent(const QueryLogItem& item,
 Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
   auto temp_doc = JSON::newObject();
   if (!item.results.added.empty() || !item.results.removed.empty()) {
-    auto status = serializeDiffResults(
-        item.results, item.columns, temp_doc, temp_doc.doc());
+    auto status =
+        serializeDiffResults(item.results, {}, temp_doc, temp_doc.doc());
     if (!status.ok()) {
       return status;
     }
@@ -467,6 +490,7 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
       doc.push(obj);
     }
   }
+
   return Status();
 }
 
@@ -530,7 +554,7 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& item,
   return Status();
 }
 
-Status serializeQueryData(const QueryData& q,
+Status serializeQueryData(const QueryDataTyped& q,
                           const ColumnNames& cols,
                           JSON& doc,
                           rj::Document& arr) {
@@ -545,11 +569,38 @@ Status serializeQueryData(const QueryData& q,
   return Status();
 }
 
-bool addUniqueRowToQueryData(QueryData& q, const Row& r) {
+bool addUniqueRowToQueryData(QueryDataTyped& q, const RowTyped& r) {
   if (std::find(q.begin(), q.end(), r) != q.end()) {
     return false;
   }
   q.push_back(r);
   return true;
+}
+
+void escapeNonPrintableBytes(std::string& data) {
+  std::string escaped;
+  // clang-format off
+  char const hex_chars[16] = {
+    '0', '1', '2', '3', '4', '5', '6', '7',
+    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+  };
+  // clang-format on
+
+  bool needs_replacement = false;
+  for (size_t i = 0; i < data.length(); i++) {
+    if (((unsigned char)data[i]) < 0x20 || ((unsigned char)data[i]) >= 0x80) {
+      needs_replacement = true;
+      escaped += "\\x";
+      escaped += hex_chars[(((unsigned char)data[i])) >> 4];
+      escaped += hex_chars[((unsigned char)data[i] & 0x0F) >> 0];
+    } else {
+      escaped += data[i];
+    }
+  }
+
+  // Only replace if any escapes were made.
+  if (needs_replacement) {
+    data = std::move(escaped);
+  }
 }
 }

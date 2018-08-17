@@ -59,33 +59,6 @@ std::string SQL::getMessageString() const {
   return status_.toString();
 }
 
-static inline void escapeNonPrintableBytes(std::string& data) {
-  std::string escaped;
-  // clang-format off
-  char const hex_chars[16] = {
-    '0', '1', '2', '3', '4', '5', '6', '7',
-    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
-  };
-  // clang-format on
-
-  bool needs_replacement = false;
-  for (size_t i = 0; i < data.length(); i++) {
-    if (((unsigned char)data[i]) < 0x20 || ((unsigned char)data[i]) >= 0x80) {
-      needs_replacement = true;
-      escaped += "\\x";
-      escaped += hex_chars[(((unsigned char)data[i])) >> 4];
-      escaped += hex_chars[((unsigned char)data[i] & 0x0F) >> 0];
-    } else {
-      escaped += data[i];
-    }
-  }
-
-  // Only replace if any escapes were made.
-  if (needs_replacement) {
-    data = std::move(escaped);
-  }
-}
-
 void escapeNonPrintableBytesEx(std::string& data) {
   return escapeNonPrintableBytes(data);
 }

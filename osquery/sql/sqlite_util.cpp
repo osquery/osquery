@@ -173,13 +173,21 @@ Status SQLiteSQLPlugin::getQueryTables(const std::string& query,
 SQLInternal::SQLInternal(const std::string& query, bool use_cache) {
   auto dbc = SQLiteDBManager::get();
   dbc->useCache(use_cache);
-  status_ = queryInternal(query, results_, dbc);
+  status_ = queryInternal(query, resultsTyped_, dbc);
 
   // One of the advantages of using SQLInternal (aside from the Registry-bypass)
   // is the ability to "deep-inspect" the table attributes and actions.
   event_based_ = (dbc->getAttributes() & TableAttributes::EVENT_BASED) != 0;
 
   dbc->clearAffectedTables();
+}
+
+QueryDataTyped& SQLInternal::rowsTyped() {
+  return resultsTyped_;
+}
+
+const Status& SQLInternal::getStatus() const {
+  return status_;
 }
 
 bool SQLInternal::eventBased() const {

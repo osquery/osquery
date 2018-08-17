@@ -19,9 +19,9 @@
 
 namespace osquery {
 
-QueryData getExampleQueryData(size_t x, size_t y) {
-  QueryData qd;
-  Row r;
+QueryDataTyped getExampleQueryData(size_t x, size_t y) {
+  QueryDataTyped qd;
+  RowTyped r;
 
   // Fill in a row with x;
   for (size_t i = 0; i < x; i++) {
@@ -36,7 +36,7 @@ QueryData getExampleQueryData(size_t x, size_t y) {
 
 QueryDataSet getExampleQueryDataSet(size_t x, size_t y) {
   QueryDataSet qds;
-  Row r;
+  RowTyped r;
 
   // Fill in a row with x;
   for (size_t i = 0; i < x; i++) {
@@ -96,7 +96,7 @@ BENCHMARK(DATABASE_serialize_json)
     ->ArgPair(10, 100);
 
 static void DATABASE_diff(benchmark::State& state) {
-  QueryData qd = getExampleQueryData(state.range(0), state.range(1));
+  QueryDataTyped qd = getExampleQueryData(state.range(0), state.range(1));
   QueryDataSet qds = getExampleQueryDataSet(state.range(0), state.range(1));
   while (state.KeepRunning()) {
     auto d = diff(qds, qd);

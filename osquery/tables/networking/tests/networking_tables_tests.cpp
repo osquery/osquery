@@ -26,17 +26,17 @@ class NetworkingTablesTests : public testing::Test {};
 
 TEST_F(NetworkingTablesTests, test_parse_etc_hosts_content) {
   EXPECT_EQ(parseEtcHostsContent(getEtcHostsContent()),
-            getEtcHostsExpectedResults());
+            getEtcHostsExpectedResults().getNonTyped());
 }
 
 TEST_F(NetworkingTablesTests, test_parse_etc_hosts_ics_content) {
   EXPECT_EQ(parseEtcHostsContent(getEtcHostsIcsContent()),
-            getEtcHostsIcsExpectedResults());
+            getEtcHostsIcsExpectedResults().getNonTyped());
 }
 
 TEST_F(NetworkingTablesTests, test_parse_etc_protocols_content) {
   EXPECT_EQ(parseEtcProtocolsContent(getEtcProtocolsContent()),
-            getEtcProtocolsExpectedResults());
+            getEtcProtocolsExpectedResults().getNonTyped());
 }
 
 TEST_F(NetworkingTablesTests, test_listening_ports) {

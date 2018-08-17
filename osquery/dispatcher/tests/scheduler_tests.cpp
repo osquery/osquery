@@ -52,7 +52,7 @@ TEST_F(SchedulerTests, test_monitor) {
   query.splayed_interval = 11;
   query.query = "select * from time";
   auto results = monitor(name, query);
-  EXPECT_EQ(results.rows().size(), 1U);
+  EXPECT_EQ(results.rowsTyped().size(), 1U);
 
   // Ask the config instance for the monitored performance.
   QueryPerformance perf;

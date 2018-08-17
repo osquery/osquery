@@ -579,6 +579,7 @@ Status logQueryLogItem(const QueryLogItem& results,
   }
 
   std::vector<std::string> json_items;
+
   Status status;
   if (FLAGS_logger_event_type) {
     status = serializeQueryLogItemAsEventsJSON(results, json_items);

@@ -171,65 +171,65 @@ JSON getPackWithFakeVersion() {
   return JSON::newFromValue(doc.doc()["packs"]["fake_version_pack"]);
 }
 
-QueryData getTestDBExpectedResults() {
-  QueryData d;
-  Row row1;
+QueryDataTyped getTestDBExpectedResults() {
+  QueryDataTyped d;
+  RowTyped row1;
   row1["username"] = "mike";
-  row1["age"] = "23";
+  row1["age"] = (int64_t)23;
   d.push_back(row1);
-  Row row2;
+  RowTyped row2;
   row2["username"] = "matt";
-  row2["age"] = "24";
+  row2["age"] = (int64_t)24;
   d.push_back(row2);
   return d;
 }
 
-std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
-  std::vector<std::pair<std::string, QueryData>> results;
+std::vector<std::pair<std::string, QueryDataTyped>> getTestDBResultStream() {
+  std::vector<std::pair<std::string, QueryDataTyped>> results;
 
   std::string q2 =
       R"(INSERT INTO test_table (username, age) VALUES ("joe", 25))";
-  QueryData d2;
-  Row row2_1;
+  QueryDataTyped d2;
+  RowTyped row2_1;
   row2_1["username"] = "mike";
-  row2_1["age"] = "23";
+  row2_1["age"] = (int64_t)23;
   d2.push_back(row2_1);
-  Row row2_2;
+  RowTyped row2_2;
   row2_2["username"] = "matt";
-  row2_2["age"] = "24";
+  row2_2["age"] = (int64_t)24;
   d2.push_back(row2_2);
-  Row row2_3;
+  RowTyped row2_3;
   row2_3["username"] = "joe";
-  row2_3["age"] = "25";
+  row2_3["age"] = (int64_t)25;
   d2.push_back(row2_3);
   results.push_back(std::make_pair(q2, d2));
 
   std::string q3 = R"(UPDATE test_table SET age = 27 WHERE username = "matt")";
-  QueryData d3;
-  Row row3_1;
+  QueryDataTyped d3;
+  RowTyped row3_1;
   row3_1["username"] = "mike";
-  row3_1["age"] = "23";
+  row3_1["age"] = (int64_t)23;
   d3.push_back(row3_1);
-  Row row3_2;
+  RowTyped row3_2;
   row3_2["username"] = "matt";
-  row3_2["age"] = "27";
+  row3_2["age"] = (int64_t)27;
   d3.push_back(row3_2);
-  Row row3_3;
+  RowTyped row3_3;
   row3_3["username"] = "joe";
-  row3_3["age"] = "25";
+  row3_3["age"] = (int64_t)25;
   d3.push_back(row3_3);
   results.push_back(std::make_pair(q3, d3));
 
   std::string q4 =
       R"(DELETE FROM test_table WHERE username = "matt" AND age = 27)";
-  QueryData d4;
-  Row row4_1;
+  QueryDataTyped d4;
+  RowTyped row4_1;
   row4_1["username"] = "mike";
-  row4_1["age"] = "23";
+  row4_1["age"] = (int64_t)23;
   d4.push_back(row4_1);
-  Row row4_2;
+  RowTyped row4_2;
   row4_2["username"] = "joe";
-  row4_2["age"] = "25";
+  row4_2["age"] = (int64_t)25;
   d4.push_back(row4_2);
   results.push_back(std::make_pair(q4, d4));
 
@@ -255,10 +255,10 @@ ColumnNames getSerializedRowColumnNames(bool unordered_and_repeated) {
   return cn;
 }
 
-std::pair<JSON, Row> getSerializedRow(bool unordered_and_repeated) {
+std::pair<JSON, RowTyped> getSerializedRow(bool unordered_and_repeated) {
   auto cns = getSerializedRowColumnNames(unordered_and_repeated);
 
-  Row r;
+  RowTyped r;
   auto doc = JSON::newObject();
   for (const auto& cn : cns) {
     auto c_value = cn + "_value";
@@ -268,9 +268,11 @@ std::pair<JSON, Row> getSerializedRow(bool unordered_and_repeated) {
   return std::make_pair(std::move(doc), r);
 }
 
-std::pair<JSON, QueryData> getSerializedQueryData() {
+std::pair<JSON, QueryDataTyped> getSerializedQueryData() {
   auto r = getSerializedRow(false);
-  QueryData q = {r.second, r.second};
+  QueryDataTyped q;
+  q.push_back(r.second);
+  q.push_back(r.second);
 
   JSON doc = JSON::newArray();
   auto arr1 = doc.getArray();
@@ -284,9 +286,11 @@ std::pair<JSON, QueryData> getSerializedQueryData() {
   return std::make_pair(std::move(doc), q);
 }
 
-std::pair<JSON, QueryData> getSerializedQueryDataWithColumnOrder() {
+std::pair<JSON, QueryDataTyped> getSerializedQueryDataWithColumnOrder() {
   auto r = getSerializedRow(true);
-  QueryData q = {r.second, r.second};
+  QueryDataTyped q;
+  q.push_back(r.second);
+  q.push_back(r.second);
   JSON doc = JSON::newArray();
   auto arr1 = doc.getArray();
   doc.copyFrom(r.first.doc(), arr1);
@@ -319,7 +323,7 @@ std::pair<std::string, DiffResults> getSerializedDiffResultsJSON() {
   return std::make_pair(output, std::move(results.second));
 }
 
-std::pair<std::string, QueryData> getSerializedQueryDataJSON() {
+std::pair<std::string, QueryDataTyped> getSerializedQueryDataJSON() {
   auto results = getSerializedQueryData();
   std::string output;
   results.first.toString(output);
@@ -399,13 +403,13 @@ std::string getEtcProtocolsContent() {
   return content;
 }
 
-QueryData getEtcHostsExpectedResults() {
-  Row row1;
-  Row row2;
-  Row row3;
-  Row row4;
-  Row row5;
-  Row row6;
+QueryDataTyped getEtcHostsExpectedResults() {
+  RowTyped row1;
+  RowTyped row2;
+  RowTyped row3;
+  RowTyped row4;
+  RowTyped row5;
+  RowTyped row6;
 
   row1["address"] = "127.0.0.1";
   row1["hostnames"] = "localhost";
@@ -419,15 +423,24 @@ QueryData getEtcHostsExpectedResults() {
   row5["hostnames"] = "example.com example";
   row6["address"] = "127.0.0.1";
   row6["hostnames"] = "example.net";
-  return {row1, row2, row3, row4, row5, row6};
+  QueryDataTyped q;
+  q.push_back(row1);
+  q.push_back(row2);
+  q.push_back(row3);
+  q.push_back(row4);
+  q.push_back(row5);
+  q.push_back(row6);
+  return q;
 }
 
-QueryData getEtcHostsIcsExpectedResults() {
-  Row row1;
+QueryDataTyped getEtcHostsIcsExpectedResults() {
+  RowTyped row1;
 
   row1["address"] = "192.168.11.81";
   row1["hostnames"] = "VM-q27rkc8son.mshome.net";
-  return {row1};
+  QueryDataTyped q;
+  q.push_back(row1);
+  return q;
 }
 
 ::std::ostream& operator<<(::std::ostream& os, const Status& s) {
@@ -435,28 +448,31 @@ QueryData getEtcHostsIcsExpectedResults() {
             << R"("))";
 }
 
-QueryData getEtcProtocolsExpectedResults() {
-  Row row1;
-  Row row2;
-  Row row3;
+QueryDataTyped getEtcProtocolsExpectedResults() {
+  RowTyped row1;
+  RowTyped row2;
+  RowTyped row3;
 
   row1["name"] = "ip";
-  row1["number"] = "0";
+  row1["number"] = (int64_t)0;
   row1["alias"] = "IP";
   row1["comment"] = "internet protocol, pseudo protocol number";
   row2["name"] = "icmp";
-  row2["number"] = "1";
+  row2["number"] = (int64_t)1;
   row2["alias"] = "ICMP";
   row2["comment"] = "internet control message protocol";
   row3["name"] = "tcp";
-  row3["number"] = "6";
+  row3["number"] = (int64_t)6;
   row3["alias"] = "TCP";
   row3["comment"] = "transmission control protocol";
-
-  return {row1, row2, row3};
+  QueryDataTyped q;
+  q.push_back(row1);
+  q.push_back(row2);
+  q.push_back(row3);
+  return q;
 }
 
-QueryData genRows(EventSubscriberPlugin* sub) {
+QueryDataTyped genRows(EventSubscriberPlugin* sub) {
   auto vtc = new VirtualTableContent();
   QueryContext context(vtc);
   RowGenerator::pull_type generator(std::bind(&EventSubscriberPlugin::genTable,
@@ -464,7 +480,7 @@ QueryData genRows(EventSubscriberPlugin* sub) {
                                               std::placeholders::_1,
                                               std::move(context)));
 
-  QueryData results;
+  QueryDataTyped results;
   if (!generator) {
     delete vtc;
     return results;
