@@ -57,7 +57,8 @@ class Config : private boost::noncopyable {
    * @brief restoreConfigBackup retrieve backed up config
    * @return config persisted int the database
    */
-  Expected<std::map<std::string, std::string>, Config::RestoreConfigError>
+  static Expected<std::map<std::string, std::string>,
+                  Config::RestoreConfigError>
   restoreConfigBackup();
 
   /**
@@ -323,9 +324,6 @@ class Config : private boost::noncopyable {
   void reset();
 
  private:
-  /// Prefix to persist config data
-  const std::string kConfigPersistencePrefix{"config_persistence."};
-
   /// Schedule of packs and their queries.
   std::unique_ptr<Schedule> schedule_;
 

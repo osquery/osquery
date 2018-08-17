@@ -35,6 +35,12 @@
 namespace rj = rapidjson;
 
 namespace osquery {
+namespace {
+/// Prefix to persist config data
+const std::string kConfigPersistencePrefix{"config_persistence."};
+
+using ConfigMap = std::map<std::string, std::string>;
+}; // namespace
 
 /**
  * @brief Config plugin registry.
@@ -548,8 +554,7 @@ void stripConfigComments(std::string& json) {
   json = sink;
 }
 
-Expected<std::map<std::string, std::string>, Config::RestoreConfigError>
-Config::restoreConfigBackup() {
+Expected<ConfigMap, Config::RestoreConfigError> Config::restoreConfigBackup() {
   if (!FLAGS_config_enable_backup) {
     return createError(Config::RestoreConfigError::BackupDisabled,
                        "Config persistense is disabled.");
@@ -557,7 +562,7 @@ Config::restoreConfigBackup() {
 
   VLOG(1) << "Restoring backed up config from the database";
   std::vector<std::string> keys;
-  std::map<std::string, std::string> config;
+  ConfigMap config;
 
   WriteLock lock(config_backup_mutex_);
   scanDatabaseKeys(kPersistentSettings, keys, kConfigPersistencePrefix);
@@ -577,7 +582,7 @@ Config::restoreConfigBackup() {
   return config;
 }
 
-void Config::backupConfig(const std::map<std::string, std::string>& config) {
+void Config::backupConfig(const ConfigMap& config) {
   if (!FLAGS_config_enable_backup) {
     return;
   }
@@ -730,7 +735,7 @@ void Config::applyParsers(const std::string& source,
   }
 }
 
-Status Config::update(const std::map<std::string, std::string>& config) {
+Status Config::update(const ConfigMap& config) {
   // A config plugin may call update from an extension. This will update
   // the config instance within the extension process and the update must be
   // reflected in the core.
@@ -757,7 +762,6 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   // files, set options, etc.
   // Before this occurs, take an opportunity to purge stale state.
   purge();
-  backupConfig(config);
 
   bool needs_reconfigure = false;
   for (const auto& source : config) {
@@ -768,7 +772,8 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     }
 
     if (!status.ok()) {
-      // The content was not parsed correctly.
+      LOG(ERROR) << "Content was not parsed correctly. " << source.first << ": "
+                 << source.second;
       return status;
     }
     // If a source was updated and the content has changed, then the registry
@@ -804,6 +809,8 @@ Status Config::update(const std::map<std::string, std::string>& config) {
       }
     }
   }
+
+  backupConfig(config);
 
   return Status(0, "OK");
 }
