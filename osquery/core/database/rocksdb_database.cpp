@@ -142,9 +142,11 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::openInternal(
   VLOG(1) << "Will try to open db at path: " << path.string();
   auto column_families = createDefaultColumnFamilies(options);
   const auto db_path = boost::filesystem::path(path).make_preferred();
-  const auto db_parent_path_status = boost::filesystem::status(db_path.parent_path());
+  const auto db_parent_path_status =
+      boost::filesystem::status(db_path.parent_path());
   const bool exists = boost::filesystem::exists(db_parent_path_status);
-  const bool is_directory = boost::filesystem::is_directory(db_parent_path_status);
+  const bool is_directory =
+      boost::filesystem::is_directory(db_parent_path_status);
   const bool are_permissions_set =
       boost::filesystem::permissions_present(db_parent_path_status);
   if (!exists || !is_directory || !are_permissions_set) {
@@ -286,7 +288,8 @@ Expected<std::string, DatabaseError> RocksdbDatabase::getString(
         result_str.back() == kIntTag) {
       auto type_error = createError(RocksdbError::UnexpectedValueType,
                                     "Fetching string as integer");
-      assert(false && type_error.getFullMessageRecursive().c_str());
+      LOG(ERROR) << type_error.getFullMessageRecursive().c_str();
+      assert(false);
       return createError(DatabaseError::KeyNotFound, "", std::move(type_error));
     }
 #endif
