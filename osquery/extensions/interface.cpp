@@ -103,8 +103,8 @@ Status ExtensionManagerInterface::registerExtension(
   // Every call to registerExtension is assigned a new RouteUUID.
   uuid = static_cast<uint16_t>(rand());
   LOG(INFO) << "Registering extension (" << info.name << ", " << uuid
-          << ", version=" << info.version << ", sdk=" << info.sdk_version
-          << ")";
+            << ", version=" << info.version << ", sdk=" << info.sdk_version
+            << ")";
 
   auto status = RegistryFactory::get().addBroadcast(uuid, registry);
   if (!status.ok()) {
