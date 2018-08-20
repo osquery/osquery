@@ -593,9 +593,6 @@ TEST_F(ConfigTests, test_config_refresh) {
 }
 
 TEST_F(ConfigTests, test_config_backup) {
-  const auto config_enable_backup_saved = FLAGS_config_enable_backup;
-  FLAGS_config_enable_backup = true;
-
   get().reset();
   const std::map<std::string, std::string> expected_config = {{"a", "b"},
                                                               {"c", "d"}};
@@ -603,20 +600,6 @@ TEST_F(ConfigTests, test_config_backup) {
   const auto config = get().restoreConfigBackup();
   EXPECT_TRUE(config);
   EXPECT_EQ(*config, expected_config);
-
-  FLAGS_config_enable_backup = config_enable_backup_saved;
-}
-
-TEST_F(ConfigTests, test_config_backup_disabled) {
-  const auto config_enable_backup_saved = FLAGS_config_enable_backup;
-
-  get().reset();
-
-  FLAGS_config_enable_backup = false;
-  const auto config = get().restoreConfigBackup();
-  EXPECT_FALSE(config);
-
-  FLAGS_config_enable_backup = config_enable_backup_saved;
 }
 
 TEST_F(ConfigTests, test_config_backup_integrate) {
