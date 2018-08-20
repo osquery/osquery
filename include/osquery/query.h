@@ -10,14 +10,14 @@
 
 #pragma once
 
-#include <boost/lexical_cast.hpp>
-#include <boost/variant.hpp>
-
 #include <map>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <boost/lexical_cast.hpp>
+#include <boost/variant.hpp>
 
 #include <osquery/core.h>
 
@@ -53,15 +53,15 @@ using RowDataTyped = boost::variant<int64_t, double, std::string>;
 struct RowTyped : std::map<std::string, RowDataTyped> {
   RowTyped() {}
   RowTyped(Row r) {
-    for (auto& c : r) {
+    for (const auto& c : r) {
       insert({c.first, c.second});
     }
   }
 
-  Row getNonTyped() {
+  Row getNonTyped() const {
     Row r;
-    for (auto it = begin(); it != end(); ++it) {
-      r[it->first] = boost::lexical_cast<std::string>(it->second);
+    for (const auto& it : *this) {
+      r[it.first] = boost::lexical_cast<std::string>(it.second);
     }
     return r;
   }
@@ -137,8 +137,9 @@ struct QueryDataTyped : std::vector<RowTyped> {
 
   QueryData getNonTyped() {
     QueryData qd;
-    for (size_t i = 0; i < size(); i++) {
-      qd.push_back(at(i).getNonTyped());
+    qd.reserve(size());
+    for (const auto& it : *this) {
+      qd.push_back(it.getNonTyped());
     }
     return qd;
   }
