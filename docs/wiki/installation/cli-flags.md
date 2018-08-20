@@ -358,10 +358,6 @@ The minimum level for status logs written to stderr. Use the following values: `
 
 The default behavior is to also write status logs to stderr. Set this flag to false to disable writing (copying) status logs to stderr. In this case `--verbose` is respected.
 
-`--logger_secondary_status_only=false`
-
-This is a rarely used logger plugin option. When enabled, the "secondary" logger plugins will only receive status logs. For an example if your `-logger_plugin=tls,firehose,syslog` then status logs would be sent to all 3 plugins, and query results will only be sent to `tls`.
-
 `--host_identifier=hostname`
 
 Field used to identify the host running osquery: **hostname**, **uuid**, **ephemeral**, **instance**, **specified**.
