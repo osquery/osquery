@@ -483,7 +483,10 @@ bool DropPrivileges::dropTo(const std::string& user) {
 
 bool setThreadEffective(uid_t uid, gid_t gid) {
 #if defined(__APPLE__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
   return (pthread_setugid_np(uid, gid) == 0);
+#pragma GCC diagnostic pop
 #elif defined(__linux__)
   return (syscall(SYS_setresgid, -1, gid, -1) == 0 &&
           syscall(SYS_setresuid, -1, uid, -1) == 0);
@@ -564,11 +567,18 @@ DropPrivileges::~DropPrivileges() {
 #endif
 
 Status setThreadName(const std::string& name) {
-  int return_code;
 #if defined(__APPLE__)
-  return_code = pthread_setname_np(name.c_str());
+  int return_code = pthread_setname_np(name.c_str());
+  return return_code == 0
+             ? Status::success()
+             : Status::failure("pthread_setname_np failed with error " +
+                               std::to_string(return_code));
 #elif defined(__linux__)
-  return_code = pthread_setname_np(pthread_self(), name.c_str());
+  int return_code = pthread_setname_np(pthread_self(), name.c_str());
+  return return_code == 0
+             ? Status::success()
+             : Status::failure("pthread_setname_np failed with error " +
+                               std::to_string(return_code));
 #elif defined(WIN32)
   // SetThreadDescription is available in builds newer than 1607 of windows 10
   // and works even if there is no debugger.
@@ -580,12 +590,14 @@ Status setThreadName(const std::string& name) {
     std::wstring wideName{stringToWstring(name)};
     HRESULT hr = pfnSetThreadDescription(GetCurrentThread(), wideName.c_str());
     if (!FAILED(hr)) {
-      return Status();
+      return Status::success();
     }
   }
-  return Status(1);
+  return Status::failure(
+      "setThreadName failed due to GetProcAddress returning null");
+#else
+  return Status::failure("setThreadName not supported on this OS");
 #endif
-  return Status(return_code == 0 ? 0 : 1);
 }
 
 bool checkPlatform(const std::string& platform) {

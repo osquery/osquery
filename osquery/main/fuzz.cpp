@@ -15,6 +15,7 @@
 
 /* Use these defines to flip the fuzzing harnesses. */
 // #define OSQUERY_FUZZ_SQL
+// #define OSQUERY_FUZZ_SMBIOS
 #define OSQUERY_FUZZ_CONFIG
 
 void init() {
@@ -30,6 +31,57 @@ void init() {
   osquery::PluginResponse rsp;
   osquery::Registry::get().call("sql", r, rsp);
 }
+
+/**
+ * Example: This will fuzz SMBIOS content, which is not user-controllable.
+ */
+#ifdef OSQUERY_FUZZ_SMBIOS
+
+#include "osquery/tables/system/smbios_utils.h"
+
+class FuzzSMBIOSParser : public osquery::tables::SMBIOSParser {
+ public:
+  FuzzSMBIOSParser(const uint8_t* data, size_t size) {
+    table_data_ = (uint8_t*)malloc(size);
+    table_size_ = size;
+    memcpy(table_data_, data, size);
+  }
+
+ public:
+  virtual ~FuzzSMBIOSParser() {
+    if (table_data_ != nullptr) {
+      free(table_data_);
+      table_data_ = nullptr;
+    }
+  }
+};
+
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+  static bool setup = false;
+  if (!setup) {
+    init();
+    setup = true;
+  }
+
+  FuzzSMBIOSParser parser(data, size);
+  osquery::QueryData results;
+
+  parser.tables(([&results](size_t index,
+                            const osquery::tables::SMBStructHeader* hdr,
+                            uint8_t* address,
+                            uint8_t* textAddrs,
+                            size_t size) {
+    genSMBIOSTable(index, hdr, address, size, results);
+    genSMBIOSMemoryDevices(index, hdr, address, textAddrs, size, results);
+    genSMBIOSMemoryArrays(index, hdr, address, size, results);
+    genSMBIOSMemoryArrayMappedAddresses(index, hdr, address, size, results);
+    genSMBIOSMemoryErrorInfo(index, hdr, address, size, results);
+    genSMBIOSMemoryDeviceMappedAddresses(index, hdr, address, size, results);
+  }));
+
+  return 0;
+}
+#endif
 
 /**
  * Example: This will mostly fuzz SQLites internals.

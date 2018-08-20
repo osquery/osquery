@@ -19,6 +19,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/hashing.h"
 #include "osquery/core/json.h"
 
 namespace rj = rapidjson;
@@ -71,7 +72,10 @@ size_t getMachineShard(const std::string& hostname = "", bool force = false) {
 
   // An optional input hostname may override hostname detection for testing.
   auto hn = (hostname.empty()) ? getHostname() : hostname;
-  auto hn_hash = getBufferSHA1(hn.c_str(), hn.size());
+
+  Hash hash(HASH_TYPE_SHA1);
+  hash.update(hn.c_str(), hn.size());
+  auto hn_hash = hash.digest();
 
   if (hn_hash.size() >= 2) {
     auto const hn_num = tryTo<long>(hn_hash.substr(0, 2), 16);

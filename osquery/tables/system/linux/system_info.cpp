@@ -8,9 +8,12 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <thread>
+
 #include <sys/utsname.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/thread/thread.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/sql.h>
@@ -40,15 +43,10 @@ QueryData genSystemInfo(QueryContext& context) {
     }
   }
 
-  // Can parse /proc/cpuinfo or /proc/meminfo for this data.
-  static long cores = sysconf(_SC_NPROCESSORS_CONF);
-  if (cores > 0) {
-    r["cpu_logical_cores"] = INTEGER(cores);
-    r["cpu_physical_cores"] = INTEGER(cores);
-  } else {
-    r["cpu_logical_cores"] = "-1";
-    r["cpu_physical_cores"] = "-1";
-  }
+  auto logical_cores = std::thread::hardware_concurrency();
+  r["cpu_logical_cores"] = (logical_cores > 0) ? INTEGER(logical_cores) : "-1";
+
+  r["cpu_physical_cores"] = INTEGER(boost::thread::physical_concurrency());
 
   static long pages = sysconf(_SC_PHYS_PAGES);
   static long pagesize = sysconf(_SC_PAGESIZE);
@@ -107,10 +105,11 @@ QueryData genSystemInfo(QueryContext& context) {
           return;
         }
 
-        r["hardware_vendor"] = dmiString(textAddrs, address[0x04]);
-        r["hardware_model"] = dmiString(textAddrs, address[0x05]);
-        r["hardware_version"] = dmiString(textAddrs, address[0x06]);
-        r["hardware_serial"] = dmiString(textAddrs, address[0x07]);
+        auto maxlen = size - hdr->length;
+        r["hardware_vendor"] = dmiString(textAddrs, address[0x04], maxlen);
+        r["hardware_model"] = dmiString(textAddrs, address[0x05], maxlen);
+        r["hardware_version"] = dmiString(textAddrs, address[0x06], maxlen);
+        r["hardware_serial"] = dmiString(textAddrs, address[0x07], maxlen);
       }));
     }
   }

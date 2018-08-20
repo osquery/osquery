@@ -137,9 +137,10 @@ void genSMBIOSMemoryDeviceMappedAddresses(size_t index,
  * target string, the stacked data can be parsed and a string returned.
  *
  * @param data A pointer to the stacked data suffixing the SMBIOS structure.
- * @Param index The index of the stacked string.
+ * @param index The index of the stacked string.
+ * @param maxlen The size of the text region.
  */
-std::string dmiString(uint8_t* data, uint8_t index);
+std::string dmiString(uint8_t* data, uint8_t index, size_t maxlen);
 
 /**
  * @brief Return std::string representation of a bitfield.

@@ -11,5 +11,9 @@ schema([
     Column("metric", INTEGER, "Cost of route. Lowest is preferred"),
     Column("type", TEXT, "Type of route"),
 ])
+
+extended_schema(POSIX, [
+    Column("hopcount", INTEGER, "Max hops expected"),
+])
 attributes(cacheable=True)
 implementation("networking/routes@genRoutes")
