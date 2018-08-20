@@ -56,7 +56,7 @@ static void LOGGER_logstatus_plugin(benchmark::State& state) {
   FLAGS_stderrthreshold = google::GLOG_WARNING;
   while (state.KeepRunning()) {
     LOG(INFO) << "INFO";
-    relayStatusLogs(true);
+    relayStatusLogs();
   }
 
   rf.setActive("logger", active);

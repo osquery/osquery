@@ -352,13 +352,10 @@ Status logSnapshotQuery(const QueryLogItem& item);
  * Extensions, the registry, configuration, and optional config/logger plugins
  * are all protected as a monitored worker.
  */
-void relayStatusLogs(bool async = false);
+void relayStatusLogs();
 
 /// Inspect the number of internal-buffered status log lines.
 size_t queuedStatuses();
-
-/// Inspect the number of active internal status log sender threads.
-size_t queuedSenders();
 
 /**
  * @brief Write a log line to the OS system log.
