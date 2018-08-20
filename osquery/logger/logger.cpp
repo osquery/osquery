@@ -321,11 +321,6 @@ void initStatusLogger(const std::string& name, bool init_glog) {
 }
 
 void initLogger(const std::string& name) {
-  // Check if logging is disabled, if so then no need to shuttle intermediates.
-  if (FLAGS_disable_logging) {
-    return;
-  }
-
   // Stop the buffering sink and store the intermediate logs.
   BufferedLogSink::get().disable();
   BufferedLogSink::get().resetPlugins();
