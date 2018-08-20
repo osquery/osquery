@@ -114,7 +114,7 @@ TEST_F(FilesystemTests, test_write_file) {
   ASSERT_TRUE(isWritable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, 0400, true));
+  EXPECT_TRUE(writeTextFile(test_file, content, 0400));
   ASSERT_TRUE(pathExists(test_file).ok());
 
   // On POSIX systems, root can still read/write.
@@ -123,7 +123,7 @@ TEST_F(FilesystemTests, test_write_file) {
   EXPECT_TRUE(isReadable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, 0000, true));
+  EXPECT_TRUE(writeTextFile(test_file, content, 0000));
   ASSERT_TRUE(pathExists(test_file).ok());
 
   // On POSIX systems, root can still read/write.

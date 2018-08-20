@@ -98,8 +98,7 @@ Status readFile(const boost::filesystem::path& path,
  */
 Status writeTextFile(const boost::filesystem::path& path,
                      const std::string& content,
-                     int permissions = 0660,
-                     bool force_permissions = false);
+                     int permissions = 0660);
 
 /**
  * @brief Check if a path is writable.

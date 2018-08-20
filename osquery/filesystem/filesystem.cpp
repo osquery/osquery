@@ -51,8 +51,7 @@ static const size_t kMaxRecursiveGlobs = 64;
 
 Status writeTextFile(const fs::path& path,
                      const std::string& content,
-                     int permissions,
-                     bool force_permissions) {
+                     int permissions) {
   // Open the file with the request permissions.
   PlatformFile output_fd(
       path, PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND, permissions);
