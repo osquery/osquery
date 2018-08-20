@@ -167,10 +167,12 @@ endif()
 
 if(APPLE OR LINUX)
   ADD_OSQUERY_LINK_CORE("libdl")
+  ADD_OSQUERY_LINK_CORE("rocksdb_lite")
   ADD_OSQUERY_LINK_ADDITIONAL("rocksdb_lite")
 elseif(FREEBSD)
   ADD_OSQUERY_LINK_CORE("icuuc")
   ADD_OSQUERY_LINK_CORE("linenoise")
+  ADD_OSQUERY_LINK_CORE("rocksdb-lite")
   ADD_OSQUERY_LINK_ADDITIONAL("rocksdb-lite")
 endif()
 

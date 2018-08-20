@@ -125,6 +125,7 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
   bool has_destination = false;
   r["metric"] = "0";
   r["hopcount"] = INTEGER(0);
+  r["mtu"] = INTEGER(0);
   while (RTA_OK(attr, attr_size)) {
     switch (attr->rta_type) {
     case RTA_OIF:
@@ -155,6 +156,9 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
       auto xattr_size = RTA_PAYLOAD(attr);
       while (RTA_OK(xattr, xattr_size)) {
         switch (xattr->rta_type) {
+        case RTAX_MTU:
+          r["mtu"] = INTEGER(*reinterpret_cast<int*>(RTA_DATA(xattr)));
+          break;
         case RTAX_HOPLIMIT:
           r["hopcount"] = INTEGER(*reinterpret_cast<int*>(RTA_DATA(xattr)));
           break;
@@ -191,8 +195,6 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
   // This is the cidr-formatted mask
   r["netmask"] = INTEGER(mask);
 
-  // Fields not supported by Linux routes:
-  r["mtu"] = "0";
   results.push_back(r);
 }
 

@@ -79,7 +79,7 @@ Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain,
                                                       const std::string& key) {
   debug_only::verifyTrue(is_open_, "database is not open");
   if (!is_open_) {
-    return createError(DatabaseError::DatabaseIsNotOpen, "Database is closed");
+    return createError(DatabaseError::DbIsNotOpen, "Database is closed");
   }
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {
@@ -109,7 +109,7 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::putValue(
     const std::string& domain, const std::string& key, const T& value) {
   debug_only::verifyTrue(is_open_, "database is not open");
   if (!is_open_) {
-    return createError(DatabaseError::DatabaseIsNotOpen, "Database is closed");
+    return createError(DatabaseError::DbIsNotOpen, "Database is closed");
   }
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {
@@ -160,7 +160,7 @@ Expected<std::vector<std::string>, DatabaseError> InMemoryDatabase::getKeys(
 
 ExpectedSuccess<DatabaseError> InMemoryDatabase::putStringsUnsafe(
     const std::string& domain,
-    std::vector<std::pair<std::string, std::string>>& data) {
+    const std::vector<std::pair<std::string, std::string>>& data) {
   debug_only::verifyTrue(is_open_, "database is not open");
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {

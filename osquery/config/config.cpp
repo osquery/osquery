@@ -35,6 +35,14 @@
 namespace rj = rapidjson;
 
 namespace osquery {
+namespace {
+/// Prefix to persist config data
+const std::string kConfigPersistencePrefix{"config_persistence."};
+
+using ConfigMap = std::map<std::string, std::string>;
+
+std::atomic<bool> is_first_time_refresh(true);
+}; // namespace
 
 /**
  * @brief Config plugin registry.
@@ -75,6 +83,12 @@ CLI_FLAG(uint64,
          config_accelerated_refresh,
          300,
          "Interval to wait if reading a configuration fails");
+
+CLI_FLAG(bool,
+         config_enable_backup,
+         false,
+         "Backup config and use it when refresh fails");
+
 FLAG_ALIAS(google::uint64,
            config_tls_accelerated_refresh,
            config_accelerated_refresh);
@@ -98,6 +112,7 @@ std::atomic<size_t> kStartTime;
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
 Mutex config_refresh_mutex_;
+Mutex config_backup_mutex_;
 
 /// Several config methods require enumeration via predicate lambdas.
 RecursiveMutex config_schedule_mutex_;
@@ -455,6 +470,16 @@ Status Config::refresh() {
     }
 
     loaded_ = true;
+
+    if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
+      const auto result = restoreConfigBackup();
+      if (!result) {
+        return Status::failure(result.getError().getFullMessageRecursive());
+      } else {
+        update(*result);
+      }
+    }
+
     return status;
   } else if (getRefresh() != FLAGS_config_refresh) {
     VLOG(1) << "Normal configuration delay restored";
@@ -479,6 +504,7 @@ Status Config::refresh() {
     status = update(response[0]);
   }
 
+  is_first_time_refresh = false;
   loaded_ = true;
   return status;
 }
@@ -529,6 +555,50 @@ void stripConfigComments(std::string& json) {
     sink += line + '\n';
   }
   json = sink;
+}
+
+Expected<ConfigMap, Config::RestoreConfigError> Config::restoreConfigBackup() {
+  LOG(INFO) << "Restoring backed up config from the database";
+  std::vector<std::string> keys;
+  ConfigMap config;
+
+  WriteLock lock(config_backup_mutex_);
+  scanDatabaseKeys(kPersistentSettings, keys, kConfigPersistencePrefix);
+
+  for (const auto& key : keys) {
+    std::string value;
+    Status status = getDatabaseValue(kPersistentSettings, key, value);
+    if (!status.ok()) {
+      LOG(ERROR)
+          << "restoreConfigBackup database failed to retrieve config for key "
+          << key;
+      return createError(Config::RestoreConfigError::DatabaseError,
+                         "Could not retrieve value for the key: " + key);
+    }
+    config[key.substr(kConfigPersistencePrefix.length())] = std::move(value);
+  }
+
+  return config;
+}
+
+void Config::backupConfig(const ConfigMap& config) {
+  LOG(INFO) << "BackupConfig started";
+  std::vector<std::string> keys;
+
+  WriteLock lock(config_backup_mutex_);
+  scanDatabaseKeys(kPersistentSettings, keys, kConfigPersistencePrefix);
+  for (const auto& key : keys) {
+    if (config.find(key.substr(kConfigPersistencePrefix.length())) ==
+        config.end()) {
+      deleteDatabaseValue(kPersistentSettings, key);
+    }
+  }
+
+  for (const auto& source : config) {
+    setDatabaseValue(kPersistentSettings,
+                     kConfigPersistencePrefix + source.first,
+                     source.second);
+  }
 }
 
 Status Config::updateSource(const std::string& source,
@@ -660,7 +730,7 @@ void Config::applyParsers(const std::string& source,
   }
 }
 
-Status Config::update(const std::map<std::string, std::string>& config) {
+Status Config::update(const ConfigMap& config) {
   // A config plugin may call update from an extension. This will update
   // the config instance within the extension process and the update must be
   // reflected in the core.
@@ -697,7 +767,8 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     }
 
     if (!status.ok()) {
-      // The content was not parsed correctly.
+      LOG(ERROR) << "updateSource failed to parse config, of source: "
+                 << source.first << " and content: " << source.second;
       return status;
     }
     // If a source was updated and the content has changed, then the registry
@@ -732,6 +803,10 @@ Status Config::update(const std::map<std::string, std::string>& config) {
         plugin->configure();
       }
     }
+  }
+
+  if (FLAGS_config_enable_backup) {
+    backupConfig(config);
   }
 
   return Status(0, "OK");
@@ -801,6 +876,7 @@ void Config::reset() {
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
   loaded_ = false;
+  is_first_time_refresh = true;
 
   refresh_runner_ = std::make_shared<ConfigRefreshRunner>();
   started_thread_ = false;

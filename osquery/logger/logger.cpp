@@ -39,8 +39,6 @@ namespace rj = rapidjson;
 namespace osquery {
 
 FLAG(bool, verbose, false, "Enable verbose informational messages");
-FLAG_ALIAS(bool, verbose_debug, verbose);
-FLAG_ALIAS(bool, debug, verbose);
 
 /// Despite being a configurable option, this is only read/used at load.
 FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
@@ -303,12 +301,7 @@ void setVerboseLevel() {
   } else {
     FLAGS_minloglevel = Flag::getInt32Value("logger_min_status");
 
-    if (!Flag::isDefault("logger_min_stderr")) {
-      auto i = Flag::getInt32Value("logger_min_stderr");
-      FLAGS_stderrthreshold = static_cast<decltype(FLAGS_logger_min_stderr)>(i);
-    } else if (Flag::isDefault("stderrthreshold")) {
-      FLAGS_stderrthreshold = default_level;
-    }
+    FLAGS_stderrthreshold = Flag::getInt32Value("logger_min_stderr");
   }
 
   if (!FLAGS_logger_stderr) {

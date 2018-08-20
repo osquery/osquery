@@ -27,8 +27,6 @@ namespace osquery {
  */
 const std::set<std::string> kVerboseOptions{
     "verbose",
-    "verbose_debug",
-    "debug",
     "minloglevel",
     "logger_min_status",
     "stderrthreshold",
