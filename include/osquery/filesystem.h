@@ -18,6 +18,8 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include "osquery/filesystem/fileops.h"
+
 namespace osquery {
 
 class Status;
@@ -93,13 +95,15 @@ Status readFile(const boost::filesystem::path& path,
  * @param content the text that should be written exactly to disk.
  * @param permissions the filesystem permissions to request when opening.
  * @param force_permissions always `chmod` the path after opening.
+ * @param mode to open file with
  *
  * @return an instance of Status, indicating success or failure.
  */
 Status writeTextFile(const boost::filesystem::path& path,
                      const std::string& content,
                      int permissions = 0660,
-                     bool force_permissions = false);
+                     bool force_permissions = false,
+                     int mode = PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND);
 
 /**
  * @brief Check if a path is writable.
