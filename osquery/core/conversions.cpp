@@ -12,6 +12,8 @@
 #include <locale>
 #include <unordered_map>
 
+#include <boost/io/detail/quoted_manip.hpp>
+
 #include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
