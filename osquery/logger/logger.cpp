@@ -75,20 +75,6 @@ FLAG(int32,
 CLI_FLAG(bool, logger_stderr, true, "Write status logs to stderr");
 
 /**
- * @brief This hidden flag is for testing status logging.
- *
- * When enabled, logs are pushed directly to logger plugin from Glog.
- * Otherwise they are buffered and an async request for draining is sent
- * for each log.
- *
- * Within the daemon, logs are drained every 3 seconds.
- */
-HIDDEN_FLAG(bool,
-            logger_status_sync,
-            false,
-            "Always send status logs synchronously");
-
-/**
  * @brief Logger plugin registry.
  *
  * This creates an osquery registry for "logger" which may implement
@@ -182,10 +168,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   void setPrimary(const std::string& plugin);
 
  public:
-  /// Queue of sender functions that relay status logs to all plugins.
-  std::queue<std::future<void>> senders;
-
- public:
   BufferedLogSink(BufferedLogSink const&) = delete;
   void operator=(BufferedLogSink const&) = delete;
 
@@ -226,9 +208,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 
 /// Mutex protecting accesses to buffered status logs.
 Mutex kBufferedLogSinkLogs;
-
-/// Mutex protecting queued status log futures.
-Mutex kBufferedLogSinkSenders;
 
 static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
                                      PluginRequest& request) {
@@ -387,7 +366,6 @@ void initLogger(const std::string& name) {
   if (forward) {
     // Begin forwarding after all plugins have been set up.
     BufferedLogSink::get().enable();
-    relayStatusLogs(true);
   }
 }
 
@@ -452,30 +430,11 @@ void BufferedLogSink::send(google::LogSeverity severity,
                      toUnixTime(tm_time),
                      std::string()});
   }
-
-  // The daemon will relay according to the schedule.
-  if (enabled_ && !Initializer::isDaemon()) {
-    relayStatusLogs(FLAGS_logger_status_sync);
-  }
 }
 
 void BufferedLogSink::WaitTillSent() {
-  std::future<void> first;
-
-  {
-    WriteLock lock(kBufferedLogSinkSenders);
-    if (senders.empty()) {
-      return;
-    }
-    first = std::move(senders.back());
-    senders.pop();
-  }
-
-  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-    first.wait();
-  } else {
-    // Windows is locking by scheduling an async on the main thread.
-    first.wait_for(std::chrono::microseconds(100));
+  if (enabled_ && !Initializer::isDaemon()) {
+    relayStatusLogs();
   }
 }
 
@@ -643,12 +602,7 @@ size_t queuedStatuses() {
   return BufferedLogSink::get().dump().size();
 }
 
-size_t queuedSenders() {
-  ReadLock lock(kBufferedLogSinkSenders);
-  return BufferedLogSink::get().senders.size();
-}
-
-void relayStatusLogs(bool async) {
+void relayStatusLogs() {
   if (FLAGS_disable_logging || !DatabasePlugin::kDBInitialized) {
     // The logger plugins may not be setUp if logging is disabled.
     // If the database is not setUp, or is in a reset, status logs continue
@@ -656,14 +610,6 @@ void relayStatusLogs(bool async) {
     return;
   }
 
-  {
-    ReadLock lock(kBufferedLogSinkLogs);
-    if (BufferedLogSink::get().dump().size() == 0) {
-      return;
-    }
-  }
-
-  auto sender = ([]() {
     auto identifier = getHostIdentifier();
 
     // Construct a status log plugin request.
@@ -691,19 +637,6 @@ void relayStatusLogs(bool async) {
         Registry::call("logger", logger, request, response);
       }
     }
-  });
-
-  if (async) {
-    sender();
-  } else {
-    std::packaged_task<void()> task(std::move(sender));
-    auto result = task.get_future();
-    std::thread(std::move(task)).detach();
-
-    // Lock accesses to the sender queue.
-    WriteLock lock(kBufferedLogSinkSenders);
-    BufferedLogSink::get().senders.push(std::move(result));
-  }
 }
 
 void systemLog(const std::string& line) {

@@ -24,7 +24,6 @@ namespace osquery {
 
 DECLARE_int32(logger_min_status);
 DECLARE_bool(logger_secondary_status_only);
-DECLARE_bool(logger_status_sync);
 DECLARE_bool(logger_event_type);
 DECLARE_bool(logger_snapshot_event_type);
 DECLARE_bool(disable_logging);
@@ -35,7 +34,6 @@ class LoggerTests : public testing::Test {
     // Backup the logging status, then disable.
     logging_status_ = FLAGS_disable_logging;
     FLAGS_disable_logging = false;
-    FLAGS_logger_status_sync = true;
 
     // Setup / initialize static members.
     log_lines.clear();
@@ -46,7 +44,6 @@ class LoggerTests : public testing::Test {
 
   void TearDown() override {
     FLAGS_disable_logging = logging_status_;
-    FLAGS_logger_status_sync = false;
   }
 
   // Track lines emitted to logString
@@ -151,11 +148,12 @@ TEST_F(LoggerTests, test_logger_init) {
   // This will be printed to stdout.
   LOG(WARNING) << "Logger test is generating a warning status (1)";
   initLogger("logger_test");
+  LOG(WARNING) << "Logger test is generating a warning status (2)";
 
   // The warning message will have been buffered and sent to the active logger
   // which is test.
-  EXPECT_EQ(1U, LoggerTests::status_messages.size());
-  EXPECT_EQ(1U, LoggerTests::statuses_logged);
+  EXPECT_EQ(2U, LoggerTests::status_messages.size());
+  EXPECT_EQ(2U, LoggerTests::statuses_logged);
 }
 
 TEST_F(LoggerTests, test_log_string) {
@@ -444,7 +442,6 @@ TEST_F(LoggerTests, test_recursion) {
   LOG(WARNING) << "Log to the recursive logger";
   EXPECT_EQ(1U, plugin->statuses);
 
-  FLAGS_logger_status_sync = false;
   LOG(WARNING) << "recurse";
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     for (size_t i = 0; i < 100; i++) {
@@ -465,14 +462,13 @@ TEST_F(LoggerTests, test_recursion) {
   EXPECT_EQ(3U, plugin->statuses);
 
   // All of recursive log lines will sink during the next call.
-  relayStatusLogs(true);
+  relayStatusLogs();
   EXPECT_EQ(4U, plugin->statuses);
-  relayStatusLogs(true);
+  relayStatusLogs();
   EXPECT_EQ(5U, plugin->statuses);
   kToolType = tool_type;
 
   EXPECT_EQ(0U, queuedStatuses());
-  EXPECT_EQ(0U, queuedSenders());
 
   // Make sure the test file does not create a filesystem log.
   // This will happen if the logtostderr is not set.
