@@ -13,11 +13,6 @@
 #include <unordered_map>
 
 #include <boost/io/detail/quoted_manip.hpp>
-#if (BOOST_VERSION >= 106600)
-#include <boost/uuid/detail/sha1.hpp>
-#else
-#include <boost/uuid/sha1.hpp>
-#endif
 
 #include <osquery/logger.h>
 
@@ -351,22 +346,6 @@ std::vector<std::string> split(const std::string& s,
     elems.push_back(boost::algorithm::join(accumulator, delims));
   }
   return elems;
-}
-
-std::string getBufferSHA1(const char* buffer, size_t size) {
-  // SHA1 produces 160-bit digests, so allocate (5 * 32) bits.
-  uint32_t digest[5] = {0};
-  boost::uuids::detail::sha1 sha1;
-  sha1.process_bytes(buffer, size);
-  sha1.get_digest(digest);
-
-  // Convert digest to desired hex string representation.
-  std::stringstream result;
-  result << std::hex << std::setfill('0');
-  for (size_t i = 0; i < 5; ++i) {
-    result << std::setw(sizeof(uint32_t) * 2) << digest[i];
-  }
-  return result.str();
 }
 
 size_t operator"" _sz(unsigned long long int x) {

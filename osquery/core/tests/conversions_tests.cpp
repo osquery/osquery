@@ -75,12 +75,6 @@ TEST_F(ConversionsTests, test_split_occurences) {
   EXPECT_EQ(split(content, ':', 1), expected);
 }
 
-TEST_F(ConversionsTests, test_buffer_sha1) {
-  std::string test = "test\n";
-  EXPECT_EQ("4e1243bd22c66e76c2ba9eddc1f91394e57f9f83",
-            getBufferSHA1(test.c_str(), test.size()));
-}
-
 TEST_F(ConversionsTests, test_json_array) {
   auto doc = JSON::newArray();
 

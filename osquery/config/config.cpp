@@ -30,6 +30,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/flagalias.h"
+#include "osquery/core/hashing.h"
 
 namespace rj = rapidjson;
 
@@ -898,7 +899,9 @@ void Config::getPerformanceStats(
 }
 
 bool Config::hashSource(const std::string& source, const std::string& content) {
-  auto new_hash = getBufferSHA1(content.c_str(), content.size());
+  Hash hash(HASH_TYPE_SHA1);
+  hash.update(content.c_str(), content.size());
+  auto new_hash = hash.digest();
 
   WriteLock wlock(config_hash_mutex_);
   if (hash_[source] == new_hash) {
@@ -924,7 +927,10 @@ Status Config::genHash(std::string& hash) const {
   for (const auto& it : hash_) {
     add(it.second);
   }
-  hash = getBufferSHA1(buffer.data(), buffer.size());
+
+  Hash new_hash(HASH_TYPE_SHA1);
+  new_hash.update(buffer.data(), buffer.size());
+  hash = new_hash.digest();
 
   return Status(0, "OK");
 }

@@ -138,15 +138,6 @@ inline size_t utf8StringSize(const std::string& str) {
   return res;
 }
 
-/*
- * @brief Request a SHA1 hash from the contents of a buffer.
- *
- * @param buffer A caller-controlled buffer (already allocated).
- * @param size The length of the controlled buffer.
- * @return A string (hex) representation of the hash digest.
- */
-std::string getBufferSHA1(const char* buffer, size_t size);
-
 #ifdef DARWIN
 /**
  * @brief Convert a CFStringRef to a std::string.

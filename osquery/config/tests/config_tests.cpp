@@ -240,23 +240,33 @@ TEST_F(ConfigTests, test_pack_removal) {
 }
 
 TEST_F(ConfigTests, test_content_update) {
+  const std::string source{"awesome"};
+
   // Read config content manually.
   std::string content;
   readFile(kTestDataPath + "test_parse_items.conf", content);
 
   // Create the output of a `genConfig`.
   std::map<std::string, std::string> config_data;
-  config_data["awesome"] = content;
+  config_data[source] = content;
 
   // Update, then clear, packs should have been cleared.
   get().update(config_data);
+  auto source_hash = get().getHash(source);
+  // TODO(#5069/#5070) unsure why this value is different on Windows.
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    EXPECT_EQ("c755b2762de2ef45415972cc3c2af15109f16f1c", source_hash);
+  } else {
+    EXPECT_EQ("29d117ea900322c88e85e349db01ee386727a484", source_hash);
+  }
+
   size_t count = 0;
   auto packCounter = [&count](const Pack& pack) { count++; };
   get().packs(packCounter);
   EXPECT_GT(count, 0U);
 
   // Now clear.
-  config_data["awesome"] = "";
+  config_data[source] = "";
   get().update(config_data);
   count = 0;
   get().packs(packCounter);
