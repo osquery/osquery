@@ -92,6 +92,8 @@ class RocksdbDatabase final : public Database {
                                              const std::string& key,
                                              const std::string& value);
 
+  bool validateInt32StorageBuffer(const std::string& buffer);
+
  private:
   bool in_panic_ = false;
   rocksdb::ReadOptions default_read_options_;

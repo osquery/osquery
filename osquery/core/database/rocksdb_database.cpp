@@ -29,7 +29,7 @@ HIDDEN_FLAG(uint64, rocksdb_buffer_blocks, 256, "Write buffer blocks (4k)");
 
 static const int kMaxLogMessageBufferSize = 65536;
 
-static const int8_t kIntTag = 0x1;
+static const uint16_t kIntTag = 0x8101;
 
 class RocksDBLogger : public rocksdb::Logger {
  public:
@@ -277,22 +277,27 @@ Expected<RocksdbDatabase::HandleRef, DatabaseError> RocksdbDatabase::getHandle(
   return handle->second;
 }
 
+bool RocksdbDatabase::validateInt32StorageBuffer(const std::string& buffer) {
+  // This check is not 100% reliable so run it only in debug
+  // 1. Check data size, if data size is equal to int32 storage size
+  // 2. Jump to last 2 bytes, convert than to host byte order and compare to
+  // tag
+  return (buffer.size() == sizeof(int32_t) + sizeof(kIntTag) &&
+          ntohs(*(uint16_t*)(buffer.data() + sizeof(int32_t))) == kIntTag);
+}
+
 Expected<std::string, DatabaseError> RocksdbDatabase::getString(
     const std::string& domain, const std::string& key) {
   auto result = getRawBytes(domain, key);
   if (result) {
     std::string result_str = result.take();
-#ifdef DEBUG
-    // This check is not 100% reliable so run it only in debug
-    if (result_str.size() == sizeof(int32_t) + sizeof(int8_t) &&
-        result_str.back() == kIntTag) {
+    if (BOOST_UNLIKELY(validateInt32StorageBuffer(result_str))) {
       auto type_error = createError(RocksdbError::UnexpectedValueType,
                                     "Fetching string as integer");
       LOG(ERROR) << type_error.getFullMessageRecursive().c_str();
       assert(false);
       return createError(DatabaseError::KeyNotFound, "", std::move(type_error));
     }
-#endif
     return result_str;
   }
   return result.takeError();
@@ -314,7 +319,7 @@ Expected<int32_t, DatabaseError> RocksdbDatabase::getInt32(
   Expected<std::string, DatabaseError> buffer = getRawBytes(domain, key);
   if (buffer) {
     std::string value = buffer.take();
-    if (BOOST_LIKELY(value.back() == kIntTag)) {
+    if (BOOST_LIKELY(validateInt32StorageBuffer(value))) {
       int32_t result = *(reinterpret_cast<const int32_t*>(value.data()));
       return ntohl(result);
     } else {
@@ -334,10 +339,11 @@ Expected<int32_t, DatabaseError> RocksdbDatabase::getInt32(
 ExpectedSuccess<DatabaseError> RocksdbDatabase::putInt32(
     const std::string& domain, const std::string& key, const int32_t value) {
   int32_t tmp_value = htonl(value);
+  uint16_t tag = htons(kIntTag);
   std::string buffer;
   buffer.reserve(sizeof(int32_t) + sizeof(int8_t));
   buffer.append(reinterpret_cast<const char*>(&tmp_value), 4);
-  buffer.append(reinterpret_cast<const char*>(&kIntTag), 1);
+  buffer.append(reinterpret_cast<const char*>(&tag), 2);
   return putString(domain, key, buffer);
 }
 

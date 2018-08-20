@@ -54,7 +54,7 @@ TEST_F(RocksdbDatabaseTest, test_open) {
 
 TEST_F(RocksdbDatabaseTest, test_destroy) {
   auto db = std::make_unique<RocksdbDatabase>("test", path_);
-  EXPECT_TRUE(db->open());
+  ASSERT_TRUE(db->open());
   EXPECT_TRUE(db->putInt32(kPersistentSettings, "key", 10));
   db->close();
   auto result = db->destroyDB();
@@ -84,7 +84,7 @@ TEST_F(RocksdbDatabaseTest, test_put) {
 
 TEST_F(RocksdbDatabaseTest, test_domain_error) {
   auto db = std::make_unique<RocksdbDatabase>("test", path_);
-  EXPECT_TRUE(db->open());
+  ASSERT_TRUE(db->open());
   auto result = db->putInt32("bad_domain", "key", 12);
   EXPECT_FALSE(result);
   EXPECT_EQ(result.takeError(), DatabaseError::DomainNotFound);
@@ -92,7 +92,7 @@ TEST_F(RocksdbDatabaseTest, test_domain_error) {
 
 TEST_F(RocksdbDatabaseTest, test_unknown_key) {
   auto db = std::make_unique<RocksdbDatabase>("test", path_);
-  EXPECT_TRUE(db->open());
+  ASSERT_TRUE(db->open());
   EXPECT_TRUE(db->putInt32(kPersistentSettings, "key", 12));
   auto result = db->getInt32(kPersistentSettings, "key_");
   EXPECT_FALSE(result);
@@ -101,7 +101,7 @@ TEST_F(RocksdbDatabaseTest, test_unknown_key) {
 
 TEST_F(RocksdbDatabaseTest, test_keys_search) {
   auto db = std::make_unique<RocksdbDatabase>("test", path_);
-  EXPECT_TRUE(db->open());
+  ASSERT_TRUE(db->open());
   EXPECT_TRUE(db->putInt32(kPersistentSettings, "key_1", 1));
   EXPECT_TRUE(db->putInt32(kPersistentSettings, "key_2", 2));
   EXPECT_TRUE(db->putInt32(kPersistentSettings, "key_3", 3));
