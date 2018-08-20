@@ -306,12 +306,7 @@ void setVerboseLevel() {
       FLAGS_minloglevel = default_level;
     }
 
-    if (!Flag::isDefault("logger_min_stderr")) {
-      auto i = Flag::getInt32Value("logger_min_stderr");
-      FLAGS_stderrthreshold = static_cast<decltype(FLAGS_logger_min_stderr)>(i);
-    } else if (Flag::isDefault("stderrthreshold")) {
-      FLAGS_stderrthreshold = default_level;
-    }
+    FLAGS_stderrthreshold = Flag::getInt32Value("logger_min_stderr");
   }
 
   if (!FLAGS_logger_stderr) {

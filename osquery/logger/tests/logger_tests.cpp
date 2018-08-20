@@ -18,11 +18,11 @@
 #include <osquery/registry_factory.h>
 
 DECLARE_int32(minloglevel);
-DECLARE_int32(stderrthreshold);
 
 namespace osquery {
 
 DECLARE_int32(logger_min_status);
+DECLARE_int32(logger_min_stderr);
 DECLARE_bool(logger_secondary_status_only);
 DECLARE_bool(logger_status_sync);
 DECLARE_bool(logger_event_type);
@@ -211,13 +211,13 @@ TEST_F(LoggerTests, test_logger_status_level) {
   EXPECT_EQ(2U, LoggerTests::statuses_logged);
   FLAGS_minloglevel = minloglevel;
 
-  auto stderrthreshold = FLAGS_stderrthreshold;
-  FLAGS_stderrthreshold = 2;
+  const auto logger_min_stderr = FLAGS_logger_min_stderr;
+  FLAGS_logger_min_stderr = 2;
   setVerboseLevel();
 
   LOG(WARNING) << "Logger test is generating a warning status";
   EXPECT_EQ(3U, LoggerTests::statuses_logged);
-  FLAGS_stderrthreshold = stderrthreshold;
+  FLAGS_logger_min_stderr = logger_min_stderr;
 
   auto logger_min_status = FLAGS_logger_min_status;
   FLAGS_logger_min_status = 1;
