@@ -40,6 +40,8 @@ namespace {
 const std::string kConfigPersistencePrefix{"config_persistence."};
 
 using ConfigMap = std::map<std::string, std::string>;
+
+std::atomic<bool> is_first_time_refresh(true);
 }; // namespace
 
 /**
@@ -469,7 +471,7 @@ Status Config::refresh() {
 
     loaded_ = true;
 
-    if (FLAGS_config_enable_backup) {
+    if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
       const auto result = restoreConfigBackup();
       if (!result) {
         return Status::failure(result.getError().getFullMessageRecursive());
@@ -502,6 +504,7 @@ Status Config::refresh() {
     status = update(response[0]);
   }
 
+  is_first_time_refresh = false;
   loaded_ = true;
   return status;
 }
@@ -555,12 +558,7 @@ void stripConfigComments(std::string& json) {
 }
 
 Expected<ConfigMap, Config::RestoreConfigError> Config::restoreConfigBackup() {
-  if (!FLAGS_config_enable_backup) {
-    return createError(Config::RestoreConfigError::BackupDisabled,
-                       "Config persistense is disabled.");
-  }
-
-  VLOG(1) << "Restoring backed up config from the database";
+  LOG(INFO) << "Restoring backed up config from the database";
   std::vector<std::string> keys;
   ConfigMap config;
 
@@ -571,10 +569,11 @@ Expected<ConfigMap, Config::RestoreConfigError> Config::restoreConfigBackup() {
     std::string value;
     Status status = getDatabaseValue(kPersistentSettings, key, value);
     if (!status.ok()) {
-      VLOG(1)
+      LOG(ERROR)
           << "restoreConfigBackup database failed to retrieve config for key "
           << key;
-      continue;
+      return createError(Config::RestoreConfigError::DatabaseError,
+                         "Could not retrieve value for the key: " + key);
     }
     config[key.substr(kConfigPersistencePrefix.length())] = std::move(value);
   }
@@ -583,11 +582,7 @@ Expected<ConfigMap, Config::RestoreConfigError> Config::restoreConfigBackup() {
 }
 
 void Config::backupConfig(const ConfigMap& config) {
-  if (!FLAGS_config_enable_backup) {
-    return;
-  }
-
-  VLOG(1) << "BackupConfig started";
+  LOG(INFO) << "BackupConfig started";
   std::vector<std::string> keys;
 
   WriteLock lock(config_backup_mutex_);
@@ -772,8 +767,8 @@ Status Config::update(const ConfigMap& config) {
     }
 
     if (!status.ok()) {
-      LOG(ERROR) << "Content was not parsed correctly. " << source.first << ": "
-                 << source.second;
+      LOG(ERROR) << "updateSource failed to parse config, of source: "
+                 << source.first << " and content: " << source.second;
       return status;
     }
     // If a source was updated and the content has changed, then the registry
@@ -810,7 +805,9 @@ Status Config::update(const ConfigMap& config) {
     }
   }
 
-  backupConfig(config);
+  if (FLAGS_config_enable_backup) {
+    backupConfig(config);
+  }
 
   return Status(0, "OK");
 }
@@ -879,6 +876,7 @@ void Config::reset() {
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
   loaded_ = false;
+  is_first_time_refresh = true;
 
   refresh_runner_ = std::make_shared<ConfigRefreshRunner>();
   started_thread_ = false;
