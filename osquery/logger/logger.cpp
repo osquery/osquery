@@ -358,7 +358,6 @@ BufferedLogSink& BufferedLogSink::get() {
 }
 
 void BufferedLogSink::setUp() {
-  WriteLock lock(primary_mutex_);
   google::AddLogSink(&get());
 }
 
