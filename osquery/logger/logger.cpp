@@ -270,20 +270,6 @@ static void deserializeIntermediateLog(const PluginRequest& request,
   }
 }
 
-inline bool logStderrOnly() {
-  // Do not write logfiles if filesystem is not included as a plugin.
-  if (Registry::get().external()) {
-    return true;
-  }
-
-  if (FLAGS_disable_logging) {
-    return true;
-  }
-
-  return Flag::getValue("logger_plugin").find("filesystem") ==
-         std::string::npos;
-}
-
 void setVerboseLevel() {
   auto default_level = google::GLOG_INFO;
   if (Initializer::isShell()) {
@@ -314,9 +300,7 @@ void setVerboseLevel() {
     FLAGS_alsologtostderr = false;
   }
 
-  if (logStderrOnly()) {
-    FLAGS_logtostderr = true;
-  }
+  FLAGS_logtostderr = true;
 }
 
 void initStatusLogger(const std::string& name, bool init_glog) {
