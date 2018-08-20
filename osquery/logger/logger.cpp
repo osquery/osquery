@@ -272,14 +272,6 @@ static void deserializeIntermediateLog(const PluginRequest& request,
   }
 }
 
-inline bool logStderrOnly() {
-  if (Registry::get().external()) {
-    return true;
-  }
-
-  return FLAGS_disable_logging;
-}
-
 void setVerboseLevel() {
   auto default_level = google::GLOG_INFO;
   if (Initializer::isShell()) {
@@ -315,9 +307,7 @@ void setVerboseLevel() {
     FLAGS_alsologtostderr = false;
   }
 
-  if (logStderrOnly()) {
-    FLAGS_logtostderr = true;
-  }
+  FLAGS_logtostderr = true;
 }
 
 void initStatusLogger(const std::string& name, bool init_glog) {
