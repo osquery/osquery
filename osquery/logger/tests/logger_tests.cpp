@@ -58,7 +58,6 @@ class LoggerTests : public testing::Test {
 
   // Count calls to logStatus
   static size_t statuses_logged;
-  static size_t events_logged;
   // Count added and removed snapshot rows
   static size_t snapshot_rows_added;
   static size_t snapshot_rows_removed;
@@ -72,7 +71,6 @@ std::vector<std::string> LoggerTests::log_lines;
 StatusLogLine LoggerTests::last_status;
 std::vector<std::string> LoggerTests::status_messages;
 size_t LoggerTests::statuses_logged = 0;
-size_t LoggerTests::events_logged = 0;
 size_t LoggerTests::snapshot_rows_added = 0;
 size_t LoggerTests::snapshot_rows_removed = 0;
 
@@ -89,19 +87,6 @@ inline void placeStatuses(const std::vector<StatusLogLine>& log) {
 
 class TestLoggerPlugin : public LoggerPlugin {
  protected:
-  bool usesLogStatus() override {
-    return shouldLogStatus;
-  }
-
-  bool usesLogEvent() override {
-    return shouldLogEvent;
-  }
-
-  Status logEvent(const std::string& e) override {
-    LoggerTests::events_logged++;
-    return Status(0, "OK");
-  }
-
   Status logString(const std::string& s) override {
     LoggerTests::log_lines.push_back(s);
     return Status(0, s);
@@ -122,13 +107,6 @@ class TestLoggerPlugin : public LoggerPlugin {
     LoggerTests::snapshot_rows_removed += 0;
     return Status(0, "OK");
   }
-
- public:
-  /// Allow test methods to change status logging state.
-  bool shouldLogStatus{true};
-
-  /// Allow test methods to change event logging state.
-  bool shouldLogEvent{true};
 };
 
 TEST_F(LoggerTests, test_plugin) {
@@ -230,40 +208,6 @@ TEST_F(LoggerTests, test_logger_status_level) {
   FLAGS_logger_min_status = logger_min_status;
 }
 
-TEST_F(LoggerTests, test_feature_request) {
-  // Retrieve the test logger plugin.
-  auto plugin = RegistryFactory::get().plugin("logger", "test");
-  auto logger = std::dynamic_pointer_cast<TestLoggerPlugin>(plugin);
-
-  logger->shouldLogEvent = false;
-  logger->shouldLogStatus = false;
-  auto status = Registry::call("logger", "test", {{"action", "features"}});
-  EXPECT_EQ(0, status.getCode());
-
-  logger->shouldLogStatus = true;
-  status = Registry::call("logger", "test", {{"action", "features"}});
-  EXPECT_EQ(LOGGER_FEATURE_LOGSTATUS, status.getCode());
-}
-
-TEST_F(LoggerTests, test_logger_variations) {
-  // Retrieve the test logger plugin.
-  auto plugin = RegistryFactory::get().plugin("logger", "test");
-  auto logger = std::dynamic_pointer_cast<TestLoggerPlugin>(plugin);
-  // Change the behavior.
-  logger->shouldLogStatus = false;
-
-  // Call the logger initialization again, then reset the behavior.
-  initLogger("duplicate_logger");
-  logger->shouldLogStatus = true;
-
-  // This will be printed to stdout.
-  LOG(WARNING) << "Logger test is generating a warning status (3)";
-
-  // Since the initLogger call triggered a failed init, meaning the logger
-  // does NOT handle Glog logs, there will be no statuses logged.
-  EXPECT_EQ(0U, LoggerTests::statuses_logged);
-}
-
 TEST_F(LoggerTests, test_logger_snapshots) {
   // A snapshot query should not include removed items.
   QueryLogItem item;
@@ -302,10 +246,6 @@ class SecondTestLoggerPlugin : public LoggerPlugin {
     return Status(0, "OK");
   }
 
-  bool usesLogStatus() override {
-    return true;
-  }
-
  protected:
   void init(const std::string& binary_name,
             const std::vector<StatusLogLine>& log) override {
@@ -321,7 +261,6 @@ TEST_F(LoggerTests, test_multiple_loggers) {
 
   auto test_plugin = rf.registry("logger")->plugin("test");
   auto test_logger = std::dynamic_pointer_cast<TestLoggerPlugin>(test_plugin);
-  test_logger->shouldLogStatus = false;
 
   // With two active loggers, the string should be added twice.
   logString("this is a test", "added");
@@ -331,33 +270,14 @@ TEST_F(LoggerTests, test_multiple_loggers) {
   // Refer to the above notes about status logs not emitting until the logger
   // it initialized. We do a 0-test to check for dead locks around attempting
   // to forward Glog-based sinks recursively into our sinks.
-  EXPECT_EQ(0U, LoggerTests::statuses_logged);
+  EXPECT_EQ(1U, LoggerTests::statuses_logged);
 
   // Now try to initialize multiple loggers (1) forwards, (2) does not.
   initLogger("logger_test");
   LOG(WARNING) << "Logger test is generating a warning status (5)";
   // Now that the "test" logger is initialized, the status log will be
   // forwarded.
-  EXPECT_EQ(1U, LoggerTests::statuses_logged);
-
-  // Multiple logger plugins have a 'primary' concept.
-  auto flag_default = FLAGS_logger_secondary_status_only;
-  FLAGS_logger_secondary_status_only = true;
-  logString("this is another test", "added");
-  // Only one log line will be appended since 'second_test' is secondary.
-  EXPECT_EQ(3U, LoggerTests::log_lines.size());
-  // Only one status line will be forwarded.
-  LOG(WARNING) << "Logger test is generating another warning (6)";
-  EXPECT_EQ(2U, LoggerTests::statuses_logged);
-  FLAGS_logger_secondary_status_only = flag_default;
-  logString("this is a third test", "added");
-  EXPECT_EQ(5U, LoggerTests::log_lines.size());
-
-  // Reconfigure the second logger to forward status logs.
-  test_logger->shouldLogStatus = true;
-  initLogger("logger_test");
-  LOG(WARNING) << "Logger test is generating another warning (7)";
-  EXPECT_EQ(4U, LoggerTests::statuses_logged);
+  EXPECT_EQ(3U, LoggerTests::statuses_logged);
 }
 
 TEST_F(LoggerTests, test_logger_scheduled_query) {
@@ -397,10 +317,6 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
 
 class RecursiveLoggerPlugin : public LoggerPlugin {
  protected:
-  bool usesLogStatus() override {
-    return true;
-  }
-
   Status logString(const std::string& s) override {
     return Status(0, s);
   }

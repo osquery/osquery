@@ -23,10 +23,6 @@ class WindowsEventLoggerPlugin : public LoggerPlugin {
  public:
   virtual ~WindowsEventLoggerPlugin();
 
-  bool usesLogStatus() override {
-    return true;
-  }
-
  protected:
   Status logString(const std::string& s) override;
   void init(const std::string& name,

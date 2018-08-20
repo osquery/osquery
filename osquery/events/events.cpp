@@ -602,10 +602,6 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
       serialized_row.pop_back();
     }
 
-    // Logger plugins may request events to be forwarded directly.
-    // If no active logger is marked 'usesLogEvent' then this is a no-op.
-    EventFactory::forwardEvent(serialized_row);
-
     // Store the event data in the batch
     database_data.push_back(std::make_pair(
         "data." + dbNamespace() + "." + row["eid"], serialized_row));
@@ -685,16 +681,6 @@ void EventPublisherPlugin::removeSubscriptions(const std::string& subscriber) {
                        return (subscription->subscriber_name == subscriber);
                      });
   subscriptions_.erase(end, subscriptions_.end());
-}
-
-void EventFactory::addForwarder(const std::string& logger) {
-  getInstance().loggers_.push_back(logger);
-}
-
-void EventFactory::forwardEvent(const std::string& event) {
-  for (const auto& logger : getInstance().loggers_) {
-    Registry::call("logger", logger, {{"event", event}});
-  }
 }
 
 void EventFactory::configUpdate() {
