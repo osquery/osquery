@@ -12,7 +12,7 @@ set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-DARWIN_BOX="macos10.12"
+DARWIN_BOX="macos10.13"
 LINUX_BOX="ubuntu16.04"
 
 function usage() {
