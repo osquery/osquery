@@ -209,10 +209,6 @@ void SchedulerRunner::start() {
       resetDatabase();
     }
 
-    // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
-    if ((i % 3) == 0) {
-      relayStatusLogs();
-    }
     auto loop_step_duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start_time_point);
