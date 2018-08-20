@@ -14,9 +14,9 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
+#include <mach/mach_types.h>
 #include <mach/machine/vm_param.h>
 #include <mach/machine/vm_types.h>
-#include <mach/mach_types.h>
 
 #include "osquery/tables/system/posix/sysctl_utils.h"
 
@@ -47,55 +47,64 @@ const std::vector<std::string> kControlTypes{
     "", "node", "int", "string", "quad", "opaque", "struct"};
 
 void opaquePushback(QueryData& results,
-                      Row& r,
-                      std::string opaque_cv,
-                      const std::string& var) {
-      r["field_name"] = var;
-      r["current_value"] = opaque_cv;
-      results.push_back(r);
-  };
+                    Row& r,
+                    std::string opaque_cv,
+                    const std::string& var) {
+  r["field_name"] = var;
+  r["current_value"] = opaque_cv;
+  results.push_back(r);
+};
 
 void opaqueControlInfo(QueryData& results,
                        Row& r,
                        char* response,
                        std::string& value) {
   if (value.compare("S,clockinfo") == 0) {
-      struct clockinfo *ci = (struct clockinfo*) response;
-      opaquePushback(results, r, INTEGER(ci->hz), "hz");
-      opaquePushback(results, r, INTEGER(ci->tick), "tick");
-      opaquePushback(results, r, INTEGER(ci->tickadj), "tickadj");
-      opaquePushback(results, r, INTEGER(ci->profhz), "profhz");
-      opaquePushback(results, r, INTEGER(ci->stathz), "stathz");
-    }
-  else if (value.compare("S,timeval") == 0) {
-      struct timeval *tv = (struct timeval*) response;
-      opaquePushback(results, r, INTEGER((long)tv->tv_sec), "sec");
-      opaquePushback(results, r, INTEGER((long)tv->tv_usec), "usec");
-    }
-  else if (value.compare("S,loadavg") == 0) {
-      struct loadavg *tv = (struct loadavg*) response;
-      opaquePushback(results, r,
-        DOUBLE((double)tv->ldavg[0]/(double)tv->fscale), "ldavg0");
-      opaquePushback(results, r,
-        DOUBLE((double)tv->ldavg[1]/(double)tv->fscale), "ldavg1");
-      opaquePushback(results, r,
-        DOUBLE((double)tv->ldavg[2]/(double)tv->fscale), "ldavg2");
-    }
-  else if (value.compare("S,xsw_usage") == 0) {
-      struct xsw_usage *xsu = (struct xsw_usage*) response;
-      opaquePushback(results, r,
-        DOUBLE((double)xsu->xsu_total/(1024.0 * 1024.0)), "xsu_total");
-      opaquePushback(results, r,
-        DOUBLE((double)xsu->xsu_used/(1024.0 * 1024.0)), "xsu_used");
-      opaquePushback(results, r,
-        DOUBLE((double)xsu->xsu_avail/(1024.0 * 1024.0)), "xsu_avail");
-      opaquePushback(results, r,
-        xsu->xsu_encrypted ? INTEGER(1) : INTEGER(0), "xsu_encrypted");
-    }
-  else {
-      results.push_back(r);
-    }
-
+    struct clockinfo* ci = reinterpret_cast<clockinfo*>(response);
+    opaquePushback(results, r, INTEGER(ci->hz), "hz");
+    opaquePushback(results, r, INTEGER(ci->tick), "tick");
+    opaquePushback(results, r, INTEGER(ci->tickadj), "tickadj");
+    opaquePushback(results, r, INTEGER(ci->profhz), "profhz");
+    opaquePushback(results, r, INTEGER(ci->stathz), "stathz");
+  } else if (value.compare("S,timeval") == 0) {
+    struct timeval* tv = reinterpret_cast<timeval*>(response);
+    opaquePushback(results, r, INTEGER((long)tv->tv_sec), "sec");
+    opaquePushback(results, r, INTEGER((long)tv->tv_usec), "usec");
+  } else if (value.compare("S,loadavg") == 0) {
+    struct loadavg* tv = reinterpret_cast<loadavg*>(response);
+    opaquePushback(results,
+                   r,
+                   DOUBLE((double)tv->ldavg[0] / (double)tv->fscale),
+                   "ldavg0");
+    opaquePushback(results,
+                   r,
+                   DOUBLE((double)tv->ldavg[1] / (double)tv->fscale),
+                   "ldavg1");
+    opaquePushback(results,
+                   r,
+                   DOUBLE((double)tv->ldavg[2] / (double)tv->fscale),
+                   "ldavg2");
+  } else if (value.compare("S,xsw_usage") == 0) {
+    struct xsw_usage* xsu = reinterpret_cast<xsw_usage*>(response);
+    opaquePushback(results,
+                   r,
+                   DOUBLE((double)xsu->xsu_total / (1024.0 * 1024.0)),
+                   "xsu_total");
+    opaquePushback(results,
+                   r,
+                   DOUBLE((double)xsu->xsu_used / (1024.0 * 1024.0)),
+                   "xsu_used");
+    opaquePushback(results,
+                   r,
+                   DOUBLE((double)xsu->xsu_avail / (1024.0 * 1024.0)),
+                   "xsu_avail");
+    opaquePushback(results,
+                   r,
+                   xsu->xsu_encrypted ? INTEGER(1) : INTEGER(0),
+                   "xsu_encrypted");
+  } else {
+    results.push_back(r);
+  }
 }
 
 void genControlInfo(int* oid,
@@ -168,8 +177,9 @@ void genControlInfo(int* oid,
   }
 
   // If this MIB was set using sysctl.conf add the value.
-  if (config.count(r.at("name")) > 0) {
-    r["config_value"] = config.at(r["name"]);
+  auto const cfgValueIt = config.find(r.at("name"));
+  if (cfgValueIt != config.end()) {
+    r["config_value"] = cfgValueIt->second;
   }
 
   // Finally request MIB value.
