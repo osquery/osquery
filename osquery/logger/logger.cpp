@@ -39,8 +39,6 @@ namespace rj = rapidjson;
 namespace osquery {
 
 FLAG(bool, verbose, false, "Enable verbose informational messages");
-FLAG_ALIAS(bool, verbose_debug, verbose);
-FLAG_ALIAS(bool, debug, verbose);
 
 /// Despite being a configurable option, this is only read/used at load.
 FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
@@ -251,20 +249,6 @@ static void deserializeIntermediateLog(const PluginRequest& request,
   }
 }
 
-inline bool logStderrOnly() {
-  // Do not write logfiles if filesystem is not included as a plugin.
-  if (Registry::get().external()) {
-    return true;
-  }
-
-  if (FLAGS_disable_logging) {
-    return true;
-  }
-
-  return Flag::getValue("logger_plugin").find("filesystem") ==
-         std::string::npos;
-}
-
 void setVerboseLevel() {
   auto default_level = google::GLOG_INFO;
   if (Initializer::isShell()) {
@@ -280,19 +264,9 @@ void setVerboseLevel() {
     FLAGS_alsologtostderr = true;
     FLAGS_v = 1;
   } else {
-    if (!Flag::isDefault("logger_min_status")) {
-      auto i = Flag::getInt32Value("logger_min_status");
-      FLAGS_minloglevel = static_cast<decltype(FLAGS_minloglevel)>(i);
-    } else if (Flag::isDefault("minloglevel")) {
-      FLAGS_minloglevel = default_level;
-    }
+    FLAGS_minloglevel = Flag::getInt32Value("logger_min_status");
 
-    if (!Flag::isDefault("logger_min_stderr")) {
-      auto i = Flag::getInt32Value("logger_min_stderr");
-      FLAGS_stderrthreshold = static_cast<decltype(FLAGS_logger_min_stderr)>(i);
-    } else if (Flag::isDefault("stderrthreshold")) {
-      FLAGS_stderrthreshold = default_level;
-    }
+    FLAGS_stderrthreshold = Flag::getInt32Value("logger_min_stderr");
   }
 
   if (!FLAGS_logger_stderr) {
@@ -300,9 +274,7 @@ void setVerboseLevel() {
     FLAGS_alsologtostderr = false;
   }
 
-  if (logStderrOnly()) {
-    FLAGS_logtostderr = true;
-  }
+  FLAGS_logtostderr = true;
 }
 
 void initStatusLogger(const std::string& name, bool init_glog) {

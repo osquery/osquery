@@ -97,7 +97,7 @@ HIDDEN_FLAG(uint64,
 CLI_FLAG(bool,
          enable_extensions_watchdog,
          false,
-         "Disable userland watchdog for extensions processes");
+         "Enable userland watchdog for extensions processes");
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 

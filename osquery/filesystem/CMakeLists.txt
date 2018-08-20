@@ -8,8 +8,10 @@
 
 if(NOT WINDOWS)
   ADD_OSQUERY_LINK_ADDITIONAL("archive")
+  ADD_OSQUERY_LINK_CORE("zstd")
   ADD_OSQUERY_LINK_ADDITIONAL("zstd")
 else()
+  ADD_OSQUERY_LINK_CORE("zstd_static")
   ADD_OSQUERY_LINK_ADDITIONAL("archive_static")
   ADD_OSQUERY_LINK_ADDITIONAL("zstd_static")
 endif()
