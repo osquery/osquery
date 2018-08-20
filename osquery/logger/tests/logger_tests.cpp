@@ -17,8 +17,6 @@
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 
-DECLARE_int32(minloglevel);
-
 namespace osquery {
 
 DECLARE_int32(logger_min_status);
@@ -196,30 +194,30 @@ TEST_F(LoggerTests, test_logger_log_status) {
 }
 
 TEST_F(LoggerTests, test_logger_status_level) {
-  auto minloglevel = FLAGS_minloglevel;
-  FLAGS_minloglevel = 0;
+  const auto logger_min_status = FLAGS_logger_min_status;
+  FLAGS_logger_min_status = 0;
   // This will be printed to stdout.
   LOG(INFO) << "Logger test is generating an info status";
   EXPECT_EQ(1U, LoggerTests::statuses_logged);
 
-  FLAGS_minloglevel = 1;
+  FLAGS_logger_min_status = 1;
   setVerboseLevel();
 
   LOG(INFO) << "Logger test is generating an info status";
   EXPECT_EQ(1U, LoggerTests::statuses_logged);
   LOG(WARNING) << "Logger test is generating a warning status";
   EXPECT_EQ(2U, LoggerTests::statuses_logged);
-  FLAGS_minloglevel = minloglevel;
+  FLAGS_logger_min_status = logger_min_status;
 
   const auto logger_min_stderr = FLAGS_logger_min_stderr;
   FLAGS_logger_min_stderr = 2;
   setVerboseLevel();
+  FLAGS_logger_min_status = logger_min_status;
 
   LOG(WARNING) << "Logger test is generating a warning status";
   EXPECT_EQ(3U, LoggerTests::statuses_logged);
   FLAGS_logger_min_stderr = logger_min_stderr;
 
-  auto logger_min_status = FLAGS_logger_min_status;
   FLAGS_logger_min_status = 1;
   setVerboseLevel();
 
