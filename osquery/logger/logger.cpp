@@ -245,12 +245,6 @@ static void deserializeIntermediateLog(const PluginRequest& request,
 }
 
 void setVerboseLevel() {
-  auto default_level = google::GLOG_INFO;
-  if (Initializer::isShell()) {
-    // Do log only WARNING, ERROR to log sinks.
-    default_level = google::GLOG_WARNING;
-  }
-
   if (Flag::getValue("verbose") == "true") {
     // Turn verbosity up to 1.
     // Do log DEBUG, INFO, WARNING, ERROR to their log files.
@@ -260,7 +254,6 @@ void setVerboseLevel() {
     FLAGS_v = 1;
   } else {
     FLAGS_minloglevel = Flag::getInt32Value("logger_min_status");
-
     FLAGS_stderrthreshold = Flag::getInt32Value("logger_min_stderr");
   }
 
