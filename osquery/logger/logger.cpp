@@ -439,6 +439,10 @@ const std::vector<std::string>& BufferedLogSink::enabledPlugins() const {
   return sinks_;
 }
 
+BufferedLogSink::~BufferedLogSink() {
+  enabled_ = false;
+}
+
 Status LoggerPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
   QueryLogItem item;
