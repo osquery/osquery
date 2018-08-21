@@ -12,74 +12,75 @@
 #include <gtest/gtest.h>
 
 #include <osquery/core/get.h>
+#include <osquery/logger.h>
 
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
 
-namespace {
-
-template <typename MapType>
-void testTryTake() {
-  auto m = MapType{
-      {"key", "value"},
-      {"kKey", "vValue"},
-  };
-  ASSERT_EQ(m.size(), 2);
-  {
-    auto exp = tryTake(m, "key");
-    ASSERT_FALSE(exp.isError());
-    EXPECT_EQ(exp.get(), "value");
-  }
-  ASSERT_EQ(m.size(), 1);
-  {
-    auto exp = tryTake(m, "absent key");
-    ASSERT_TRUE(exp.isError());
-    EXPECT_EQ(exp.getErrorCode(), GetError::KeyError);
-  }
-  ASSERT_EQ(m.size(), 1);
-}
-
-} // namespace
-
-GTEST_TEST(GetTests, tryTake_on_map) {
-  testTryTake<std::map<std::string, std::string>>();
-}
-GTEST_TEST(GetTests, tryTake_on_unordered_map) {
-  testTryTake<std::unordered_map<std::string, std::string>>();
-}
-
-namespace {
-
-template <typename MapType>
-void testTakeOr() {
-  auto m = MapType{
-      {"key", "value"},
-      {"kKey", "vValue"},
-  };
-  ASSERT_EQ(m.size(), 2);
-  {
-    auto const exp = tryTakeCopy(m, "key");
-    ASSERT_TRUE(exp.isValue());
-    EXPECT_EQ(exp.get(), "value");
-  }
-  {
-    auto const exp = tryTakeCopy(m, "no such key");
-    ASSERT_TRUE(exp.isError());
-    EXPECT_EQ(exp.getErrorCode(), GetError::KeyError);
-  }
-}
-
-} // namespace
-
-GTEST_TEST(GetTests, tryTakeCopy_on_map) {
-  testTakeOr<std::map<std::string, std::string>>();
-}
-
-GTEST_TEST(GetTests, tryTakeCopy_on_unordered_map) {
-  testTakeOr<std::unordered_map<std::string, std::string>>();
-}
-
+// namespace {
+//
+// template <typename MapType>
+// void testTryTake() {
+//   auto m = MapType{
+//       {"key", "value"},
+//       {"kKey", "vValue"},
+//   };
+//   ASSERT_EQ(m.size(), 2);
+//   {
+//     auto exp = tryTake(m, "key");
+//     ASSERT_FALSE(exp.isError());
+//     EXPECT_EQ(exp.get(), "value");
+//   }
+//   ASSERT_EQ(m.size(), 1);
+//   {
+//     auto exp = tryTake(m, "absent key");
+//     ASSERT_TRUE(exp.isError());
+//     EXPECT_EQ(exp.getErrorCode(), GetError::KeyError);
+//   }
+//   ASSERT_EQ(m.size(), 1);
+// }
+//
+// } // namespace
+//
+// GTEST_TEST(GetTests, tryTake_on_map) {
+//   testTryTake<std::map<std::string, std::string>>();
+// }
+// GTEST_TEST(GetTests, tryTake_on_unordered_map) {
+//   testTryTake<std::unordered_map<std::string, std::string>>();
+// }
+//
+// namespace {
+//
+// template <typename MapType>
+// void testTakeOr() {
+//   auto m = MapType{
+//       {"key", "value"},
+//       {"kKey", "vValue"},
+//   };
+//   ASSERT_EQ(m.size(), 2);
+//   {
+//     auto const exp = tryTakeCopy(m, "key");
+//     ASSERT_TRUE(exp.isValue());
+//     EXPECT_EQ(exp.get(), "value");
+//   }
+//   {
+//     auto const exp = tryTakeCopy(m, "no such key");
+//     ASSERT_TRUE(exp.isError());
+//     EXPECT_EQ(exp.getErrorCode(), GetError::KeyError);
+//   }
+// }
+//
+// } // namespace
+//
+// GTEST_TEST(GetTests, tryTakeCopy_on_map) {
+//   testTakeOr<std::map<std::string, std::string>>();
+// }
+//
+// GTEST_TEST(GetTests, tryTakeCopy_on_unordered_map) {
+//   testTakeOr<std::unordered_map<std::string, std::string>>();
+// }
+//
 namespace {
 
 class TestValue {
@@ -120,6 +121,19 @@ GTEST_TEST(GetTests, getOr_non_copyable_object_in_map) {
 
 GTEST_TEST(GetTests, getOr_non_copyable_object_in_unordered_map) {
   testGetOr<std::unordered_map<std::string, TestValue>>();
+}
+
+GTEST_TEST(GetTests, getOr_non_const_ref) {
+  auto m = std::unordered_map<std::string, std::string>{
+      {"key", "value"},
+      {"kKey", "vValue"},
+  };
+  auto str = std::string{};
+  auto& ref = getOr(m, "no exists", str);
+  ASSERT_EQ(ref, "default value");
+  static_assert(
+      std::is_const<std::remove_reference<decltype(ref)>::type>::value,
+      "Return reference have to be constant");
 }
 
 } // namespace osquery

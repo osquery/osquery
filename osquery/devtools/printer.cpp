@@ -30,7 +30,7 @@ std::string generateToken(const std::map<std::string, size_t>& lengths,
                           const std::vector<std::string>& columns) {
   std::string out = "+";
   for (const auto& col : columns) {
-    size_t size = getOr(lengths, col, col.size()) + 2;
+    size_t size = tryTakeCopy(lengths, col).takeOr(col.size()) + 2;
     if (getEnvVar("ENHANCE").is_initialized()) {
       std::string e = "\xF0\x9F\x90\x8C";
       e[2] += kOffset[1];

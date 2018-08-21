@@ -109,6 +109,9 @@ tryTakeCopy(MapType const& from, KeyType const& key) {
   return it->second;
 }
 
+template <typename T>
+class Eprst;
+
 /**
  * @brief Get constant reference to the object in given table by key
  * or constant reference to default value.
@@ -121,12 +124,14 @@ tryTakeCopy(MapType const& from, KeyType const& key) {
  */
 template <typename MapType,
           typename KeyType = typename MapType::key_type,
-          typename ValueType = typename MapType::mapped_type>
-inline typename std::enable_if<
-    impl::IsMap<MapType>::value,
-    typename std::add_lvalue_reference<
-        typename std::add_const<ValueType>::type>::type>::type
-getOr(MapType const& from, KeyType const& key, const ValueType& defaultValue) {
+          typename DefaultValueType = typename MapType::mapped_type>
+inline typename std::enable_if<impl::IsMap<MapType>::value,
+                               typename MapType::mapped_type const&>::type
+getOr(MapType const& from,
+      KeyType const& key,
+      DefaultValueType&& defaultValue) {
+  static_assert(std::is_lvalue_reference<DefaultValueType>::value,
+                "A default value is suppose to be reference to a mapped_type");
   auto const it = from.find(key);
   if (it == from.end()) {
     return defaultValue;
