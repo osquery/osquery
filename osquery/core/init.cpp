@@ -210,7 +210,7 @@ static std::thread::id kMainThreadId;
 unsigned long kLegacyThreadId;
 
 /// When no flagfile is provided via CLI, attempt to read flag 'defaults'.
-const std::string kBackupDefaultFlagfile{OSQUERY_HOME "/osquery.flags.default"};
+const std::string kBackupDefaultFlagfile{OSQUERY_HOME "osquery.flags.default"};
 
 const size_t kDatabaseMaxRetryCount{25};
 const size_t kDatabaseRetryDelay{200};
