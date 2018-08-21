@@ -49,7 +49,9 @@ Status appendDirectoryEntryAttributes(QueryData& results,
     r["path"] = path;
     r["key"] = name;
 
-    auto value_printable = isPrintable(value);
+    // The 'security.selinux' attribute from SELinux adds an additional
+    // null terminator at the end of the value
+    auto value_printable = (name == "security.selinux") || isPrintable(value);
     r["value"] = (value_printable) ? value : base64::encode(value);
     r["base64"] = (value_printable) ? INTEGER(0) : INTEGER(1);
 
