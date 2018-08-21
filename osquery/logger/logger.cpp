@@ -188,6 +188,9 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /// Create the log sink as buffering or forwarding.
   BufferedLogSink() = default;
 
+  /// Stop the log sink.
+  ~BufferedLogSink();
+
  private:
   /// Intermediate log storage until an osquery logger is initialized.
   std::vector<StatusLogLine> logs_;
