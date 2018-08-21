@@ -23,6 +23,14 @@
 #include "osquery/core/windows/wmi.h"
 #include "osquery/events/windows/usn_journal_reader.h"
 
+#ifndef FILE_ATTRIBUTE_RECALL_ON_OPEN
+#define FILE_ATTRIBUTE_RECALL_ON_OPEN 0x00040000
+#endif
+
+#ifndef FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS
+#define FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS 0x00400000
+#endif
+
 namespace osquery {
 /// This debug flag will print the incoming events
 HIDDEN_FLAG(bool,
@@ -521,23 +529,27 @@ Status USNJournalReader::ProcessAndAppendUSNRecord(
 void GetNativeFileIdFromUSNReference(FILE_ID_DESCRIPTOR& file_id,
                                      const USNFileReferenceNumber& ref) {
   std::vector<unsigned char> buffer;
-  boostmp::export_bits(ref, std::back_inserter(buffer), 8);
-  assert(buffer.size() == sizeof(FILE_ID_128::Identifier) ||
-         buffer.size() == sizeof(std::uint64_t));
+  boostmp::export_bits(ref, std::back_inserter(buffer), 8, false);
 
   file_id = {};
   file_id.dwSize = sizeof(FILE_ID_DESCRIPTOR);
 
-  if (buffer.size() == sizeof(std::uint64_t)) {
+  // export_bits will only push as many unsinged chars as are needed to
+  // represent
+  // a value, so we've no guarantee to sizes, but if bits are set above the 64th
+  // bit, it's an extended file id
+  if (buffer.size() <= sizeof(std::uint64_t)) {
     file_id.Type = FileIdType;
 
+    buffer.resize(sizeof(std::uint64_t));
     auto id_ptr = reinterpret_cast<const std::uint64_t*>(buffer.data());
     file_id.FileId.QuadPart = *id_ptr;
 
   } else {
     file_id.Type = ExtendedFileIdType;
+    buffer.resize(sizeof(FILE_ID_128::Identifier));
 
-    for (auto i = 0U; i < sizeof(FILE_ID_128::Identifier); i++) {
+    for (auto i = 0U; i < buffer.size(); i++) {
       file_id.ExtendedFileId.Identifier[i] = buffer[i];
     }
   }
@@ -577,8 +589,11 @@ bool GetFileReferenceNumber(USNFileReferenceNumber& ref_number,
     const auto& byte_array = reinterpret_cast<const USN_RECORD_V3*>(record)
                                  ->FileReferenceNumber.Identifier;
 
-    boostmp::import_bits(
-        ref_number, byte_array, byte_array + sizeof(FILE_ID_128::Identifier));
+    boostmp::import_bits(ref_number,
+                         byte_array,
+                         byte_array + sizeof(FILE_ID_128::Identifier),
+                         0,
+                         false);
 
     return true;
   }
@@ -603,8 +618,11 @@ bool GetParentFileReferenceNumber(USNFileReferenceNumber& ref_number,
     const auto& byte_array = reinterpret_cast<const USN_RECORD_V3*>(record)
                                  ->ParentFileReferenceNumber.Identifier;
 
-    boostmp::import_bits(
-        ref_number, byte_array, byte_array + sizeof(FILE_ID_128::Identifier));
+    boostmp::import_bits(ref_number,
+                         byte_array,
+                         byte_array + sizeof(FILE_ID_128::Identifier),
+                         0,
+                         false);
 
     return true;
   }
