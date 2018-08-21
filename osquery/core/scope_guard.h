@@ -1,11 +1,9 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
+ *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed as defined on the LICENSE file found in the
+ *  root directory of this source tree.
  */
 
 #pragma once
@@ -15,14 +13,13 @@
 namespace osquery {
 
 /**
- * The RAII based scoupe guard class.
+ * The RAII based scope guard class.
  *
  * To be sure that resources are always released/removed/closed/verified/stoped
  * in face of multiple return statements from the function.
  *
- * It takes functor object by value during the counstruction. It is going to be
- * called once during the destruction of ScopeGuard object. Besides the case
- * when release method is called manually.
+ * It takes functor object by value during the construction. It is going to be
+ * called once and only once during the destruction of ScopeGuard object.
  *
  * There is helper function to create the object of guard.
  * @code{.cpp}
@@ -51,10 +48,6 @@ class ScopeGuard<FinalRoutineType> final {
       : final_routine_(std::move(final_routine)) {}
 
   ~ScopeGuard() {
-    final_routine_();
-  }
-
-  inline void release() {
     final_routine_();
   }
 
