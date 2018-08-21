@@ -395,9 +395,16 @@ QueryData genFDEStatus(QueryContext& context) {
 
   auto block_devices = SQL::selectAllFrom("block_devices");
   for (const auto& row : block_devices) {
-    const auto bsd_name = row.at("name").substr(kDeviceNamePrefix.size());
-    auto mount = SQL::selectAllFrom("mounts", "device", EQUALS, bsd_name);
+    auto name = row.at("name");
+    // FIXME: fetching all mounts is not efficient, we need to
+    // fetch all mounts before loop
+    auto mount = SQL::selectAllFrom("mounts", "device", EQUALS, name);
     @autoreleasepool {
+      const auto bsd_name = name.substr(kDeviceNamePrefix.size());
+      if (mount.size() > 1) {
+        assert(false && "Found multiple mounts for one device!");
+        LOG(ERROR) << "Found multiple mounts for " << name;
+      }
       genFDEStatusForBSDName(bsd_name, row.at("uuid"), isAPFS(mount), results);
     }
   }
