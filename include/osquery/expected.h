@@ -106,7 +106,7 @@ class Expected final {
 
   Expected& operator=(Expected&& other) {
     if (this != &other) {
-      errorChecked_.verify("Error was not checked");
+      errorChecked_.verify("Expected was not checked before assigning");
 
       object_ = std::move(other.object_);
       errorChecked_ = other.errorChecked_;
@@ -118,7 +118,7 @@ class Expected final {
   Expected& operator=(const Expected& other) = delete;
 
   ~Expected() {
-    errorChecked_.verify("Error was not checked");
+    errorChecked_.verify("Expected was not checked before destruction");
   }
 
   static SelfType success(ValueType value) {

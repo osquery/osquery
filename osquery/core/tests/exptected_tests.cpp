@@ -172,13 +172,33 @@ GTEST_TEST(ExpectedTest, error_handling_example) {
   }
 }
 
-GTEST_TEST(ExpectedTest, error_was_not_checked) {
+GTEST_TEST(ExpectedTest, expected_was_not_checked_before_destruction_failure) {
   auto action = []() { auto expected = ExpectedSuccess<TestError>{Success()}; };
 #ifndef NDEBUG
-  ASSERT_DEATH(action(), "Error was not checked");
+  ASSERT_DEATH(action(), "Expected was not checked before destruction");
 #else
   boost::ignore_unused(action);
 #endif
+}
+
+GTEST_TEST(ExpectedTest, expected_was_not_checked_before_assigning_failure) {
+  auto action = []() {
+    auto expected = ExpectedSuccess<TestError>{Success()};
+    expected = ExpectedSuccess<TestError>{Success()};
+    expected.isValue();
+  };
+#ifndef NDEBUG
+  ASSERT_DEATH(action(), "Expected was not checked before assigning");
+#else
+  boost::ignore_unused(action);
+#endif
+}
+
+GTEST_TEST(ExpectedTest, expected_move_is_safe) {
+  auto expected = ExpectedSuccess<TestError>{Success()};
+  expected.isValue();
+  expected = ExpectedSuccess<TestError>{Success()};
+  expected.isValue();
 }
 
 GTEST_TEST(ExpectedTest, get_value_from_expected_with_error) {
