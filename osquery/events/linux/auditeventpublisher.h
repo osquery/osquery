@@ -28,6 +28,7 @@ struct UserAuditEventData final {
 
 struct SyscallAuditEventData final {
   std::uint64_t syscall_number;
+  bool succeeded;
 
   pid_t process_id;
   pid_t parent_process_id;

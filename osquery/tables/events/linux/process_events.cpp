@@ -80,6 +80,10 @@ Status AuditProcessEventSubscriber::ProcessEvents(
       continue;
     }
 
+    if (!event_data.succeeded) {
+      continue;
+    }
+
     const AuditEventRecord* syscall_event_record =
         GetEventRecord(event, AUDIT_SYSCALL);
     if (syscall_event_record == nullptr) {

@@ -1200,6 +1200,10 @@ Status ProcessFileEventSubscriber::ProcessEvents(
       continue;
     }
 
+    if (!event_data.succeeded) {
+      continue;
+    }
+
     AuditdFimSyscallContext syscall_context = {};
     syscall_context.syscall_number = event_data.syscall_number;
     syscall_context.process_id = event_data.process_id;

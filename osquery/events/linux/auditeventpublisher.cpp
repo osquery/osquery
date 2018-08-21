@@ -179,11 +179,11 @@ void AuditEventPublisher::ProcessEvents(
       GetStringFieldFromMap(
           syscall_status, audit_event_record.fields, "success", "yes");
 
-      // By discarding this event, we will also automatically discard any other
-      // attached record
-      if (syscall_status != "yes") {
-        continue;
-      }
+      // Some events do not emit a reliable 'success' field (i.e.: operations
+      // on non-blocking sockets like connect()). Collect these events even
+      // if it appears like they have failed. The subscribers will know what
+      // to do.
+      data.succeeded = (syscall_status == "yes");
 
       std::uint64_t process_id;
       if (!GetIntegerFieldFromMap(

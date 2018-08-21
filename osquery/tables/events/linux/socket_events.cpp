@@ -141,6 +141,9 @@ Status SocketEventSubscriber::ProcessEvents(
 
     Row row = {};
     const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
+    if (!event_data.succeeded) {
+      continue;
+    }
 
     if (event_data.syscall_number == __NR_connect) {
       row["action"] = "connect";
