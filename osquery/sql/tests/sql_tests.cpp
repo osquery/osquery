@@ -67,8 +67,8 @@ TEST_F(SQLTests, test_raw_access_context) {
   EXPECT_EQ(results.size(), 2U);
 
   results = SQL::selectAllFrom("test", "test_int", EQUALS, "2");
-  EXPECT_EQ(results.size(), 2U);
-  EXPECT_EQ(results[0]["test_int"], "0");
+  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["test_int"], "2");
 }
 
 TEST_F(SQLTests, test_sql_escape) {
