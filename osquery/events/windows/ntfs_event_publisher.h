@@ -185,7 +185,6 @@ class NTFSEventPublisher final
   void tearDown() override;
 };
 
-// TODO(alessandro): write a test for this
 /// Converts a USNFileReferenceNumber to a FILE_ID_DESCRIPTOR for the
 /// OpenFileById Windows API
 void GetNativeFileIdFromUSNReference(FILE_ID_DESCRIPTOR& file_id,

@@ -200,45 +200,36 @@ class USNJournalReader final : public InternalRunnable {
 
 using USNJournalReaderRef = std::shared_ptr<USNJournalReader>;
 
-// TODO(alessandro): Write a test for this
 /// Converts our USNFileReferenceNumber type to the native format
 void GetNativeFileIdFromUSNReference(FILE_ID_DESCRIPTOR& file_id,
                                      const USNFileReferenceNumber& ref);
 
 namespace USNParsers {
-// TODO(alessandro): Write a test for this
 /// Acquires the update sequence number from the record
 bool GetUpdateSequenceNumber(USN& usn, const USN_RECORD* record);
 
-// TODO(alessandro): Write a test for this
 /// Acquires the file reference number for the node
 bool GetFileReferenceNumber(USNFileReferenceNumber& ref_number,
                             const USN_RECORD* record);
 
-// TODO(alessandro): Write a test for this
 /// Acquires the file reference number for the parent node
 bool GetParentFileReferenceNumber(USNFileReferenceNumber& ref_number,
                                   const USN_RECORD* record);
 
-// TODO(alessandro): Write a test for this
 /// Acquires the record timestamp
 bool GetTimeStamp(std::time_t& timestamp, const USN_RECORD* record);
 
-// TODO(alessandro): Write a test for this
 /// Acquires the file attribute bits from the record
 bool GetAttributes(DWORD& attributes, const USN_RECORD* record);
 
-// TODO(alessandro): Write a test for this
 /// Acquires the `reason` DWORD containing a bit for each event type
 bool GetReason(DWORD& reason, const USN_RECORD* record);
 
-// TODO(alessandro): Write a test for this
 /// Converts the given `reason` bit into the internal record type
 bool GetEventType(USNJournalEventRecord::Type& type,
                   DWORD reason_bit,
                   DWORD journal_file_attributes);
 
-// TODO(alessandro): Write a test for this
 /// Acquires the string buffer from the record
 bool GetEventString(std::string& buffer, const USN_RECORD* record);
 }
