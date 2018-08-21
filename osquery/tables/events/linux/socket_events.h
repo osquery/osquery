@@ -30,4 +30,12 @@ class SocketEventSubscriber final
   static const std::set<int>& GetSyscallSet() noexcept;
 };
 
+/// Parses an hex-encoded IPv4 address
+std::string ip4FromSaddr(const std::string& saddr, ushort offset);
+
+/// Parses an hex-encoded sockaddr structure
+bool parseSockAddr(int syscall_number,
+                   const std::string& saddr,
+                   Row& row,
+                   bool& unix_socket);
 } // namespace osquery

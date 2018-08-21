@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <asm/unistd_64.h>
 #include <stdio.h>
 
 #include <gtest/gtest.h>
@@ -22,6 +23,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/auditdnetlink.h"
+#include "osquery/tables/events/linux/socket_events.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
@@ -29,7 +31,10 @@ namespace osquery {
 DECLARE_bool(audit_allow_unix);
 
 /// Internal audit subscriber (socket events) testable methods.
-extern void parseSockAddr(const std::string& saddr, Row& r, bool& unix_socket);
+extern bool parseSockAddr(int syscall_number,
+                          const std::string& saddr,
+                          Row& r,
+                          bool& unix_socket);
 
 using StringMap = std::map<std::string, std::string>;
 
@@ -105,11 +110,25 @@ bool SimpleUpdate(size_t t, const StringMap& f, StringMap& m) {
   return true;
 }
 
+const std::string kUnixTestSaddr = "0100002F746D702F6F7371756572792E656D";
+const std::string kExpectedUnixSocket = "/tmp/osquery.em";
+
+const std::string kIPv4TestSaddr = "020004BC7F0000010000000000000000";
+const std::string kExpectedIPv4Address = "127.0.0.1";
+
+const std::string kIPv6TestSaddr =
+    "0A0004BC000000000000000000000000000000000000000100000000";
+
+const std::string kExpectedIPv6Address =
+    "0000:0000:0000:0000:0000:0000:0000:0001";
+
+const std::string kExpectedPortNumber = "1212";
+
 TEST_F(AuditTests, test_parse_sock_addr) {
   Row r;
   std::string msg = "02001F907F0000010000000000000000";
   bool unix_socket;
-  parseSockAddr(msg, r, unix_socket);
+  parseSockAddr(__NR_connect, msg, r, unix_socket);
   ASSERT_FALSE(r["remote_address"].empty());
   EXPECT_EQ(r["remote_address"], "127.0.0.1");
   EXPECT_EQ(r["family"], "2");
@@ -117,7 +136,7 @@ TEST_F(AuditTests, test_parse_sock_addr) {
 
   Row r3;
   std::string msg2 = "0A001F9100000000FE80000000000000022522FFFEB03684000000";
-  parseSockAddr(msg2, r3, unix_socket);
+  parseSockAddr(__NR_connect, msg2, r3, unix_socket);
   ASSERT_FALSE(r3["remote_address"].empty());
   EXPECT_EQ(r3["remote_address"], "fe80:0000:0000:0000:0225:22ff:feb0:3684");
   EXPECT_EQ(r3["remote_port"], "8081");
@@ -126,13 +145,251 @@ TEST_F(AuditTests, test_parse_sock_addr) {
   FLAGS_audit_allow_unix = true;
   Row r4;
   std::string msg3 = "01002F746D702F6F7371756572792E656D0000";
-  parseSockAddr(msg3, r4, unix_socket);
+  parseSockAddr(__NR_connect, msg3, r4, unix_socket);
   ASSERT_FALSE(r4["socket"].empty());
   EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
 
   msg3 = "0100002F746D702F6F7371756572792E656D";
-  parseSockAddr(msg3, r4, unix_socket);
+  parseSockAddr(__NR_connect, msg3, r4, unix_socket);
   EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
   FLAGS_audit_allow_unix = socket_flag;
 }
+
+TEST_F(AuditTests, parseSockAddr_invalid_syscall) {
+  size_t result = 0U;
+  size_t expected = SocketEventSubscriber::GetSyscallSet().size();
+
+  Row dummy_param1;
+  bool dummy_param2 = false;
+
+  for (int i = __NR_read; i <= __NR_mlock2; i++) {
+    if (parseSockAddr(i, kUnixTestSaddr, dummy_param1, dummy_param2)) {
+      result++;
+    }
+  }
+
+  EXPECT_EQ(result, expected);
 }
+
+// Bind syscalls
+TEST_F(AuditTests, parseSockAddr_unix_bind) {
+  Row row;
+  bool is_unix_socket = false;
+
+  auto succeeded =
+      parseSockAddr(__NR_bind, kUnixTestSaddr, row, is_unix_socket);
+
+  EXPECT_TRUE(succeeded);
+  if (!succeeded) {
+    return;
+  }
+
+  EXPECT_TRUE(is_unix_socket);
+  EXPECT_EQ(row["action"], "bind");
+  EXPECT_EQ(row["family"], "1");
+
+  EXPECT_EQ(row["socket"], kExpectedUnixSocket);
+
+  EXPECT_TRUE(row["local_address"].empty());
+  EXPECT_EQ(row["local_port"], "0");
+
+  EXPECT_TRUE(row["remote_address"].empty());
+  EXPECT_EQ(row["remote_port"], "0");
+}
+
+TEST_F(AuditTests, parseSockAddr_ipv4_bind) {
+  Row row;
+  bool is_unix_socket = false;
+
+  auto succeeded =
+      parseSockAddr(__NR_bind, kIPv4TestSaddr, row, is_unix_socket);
+
+  EXPECT_TRUE(succeeded);
+  if (!succeeded) {
+    return;
+  }
+
+  EXPECT_FALSE(is_unix_socket);
+  EXPECT_EQ(row["action"], "bind");
+  EXPECT_EQ(row["family"], "2");
+
+  EXPECT_EQ(row["local_address"], kExpectedIPv4Address);
+  EXPECT_EQ(row["local_port"], kExpectedPortNumber);
+
+  EXPECT_TRUE(row["remote_address"].empty());
+  EXPECT_TRUE(row["remote_port"].empty());
+}
+
+TEST_F(AuditTests, parseSockAddr_ipv6_bind) {
+  Row row;
+  bool is_unix_socket = false;
+
+  auto succeeded =
+      parseSockAddr(__NR_bind, kIPv6TestSaddr, row, is_unix_socket);
+
+  EXPECT_TRUE(succeeded);
+  if (!succeeded) {
+    return;
+  }
+
+  EXPECT_FALSE(is_unix_socket);
+  EXPECT_EQ(row["action"], "bind");
+  EXPECT_EQ(row["family"], "10");
+
+  EXPECT_EQ(row["local_address"], kExpectedIPv6Address);
+  EXPECT_EQ(row["local_port"], kExpectedPortNumber);
+
+  EXPECT_TRUE(row["remote_address"].empty());
+  EXPECT_TRUE(row["remote_port"].empty());
+}
+
+// Accept syscalls
+TEST_F(AuditTests, parseSockAddr_unix_accept) {
+  Row row;
+  bool is_unix_socket = false;
+
+  for (auto syscall : {__NR_accept, __NR_accept4}) {
+    auto succeeded =
+        parseSockAddr(syscall, kUnixTestSaddr, row, is_unix_socket);
+
+    EXPECT_TRUE(succeeded);
+    if (!succeeded) {
+      return;
+    }
+
+    EXPECT_TRUE(is_unix_socket);
+    EXPECT_EQ(row["action"], "accept");
+    EXPECT_EQ(row["family"], "1");
+
+    EXPECT_EQ(row["socket"], kExpectedUnixSocket);
+
+    EXPECT_TRUE(row["remote_address"].empty());
+    EXPECT_EQ(row["remote_port"], "0");
+
+    EXPECT_TRUE(row["local_address"].empty());
+    EXPECT_EQ(row["local_port"], "0");
+  }
+}
+
+TEST_F(AuditTests, parseSockAddr_ipv4_accept) {
+  Row row;
+  bool is_unix_socket = false;
+
+  for (auto syscall : {__NR_accept, __NR_accept4}) {
+    auto succeeded =
+        parseSockAddr(syscall, kIPv4TestSaddr, row, is_unix_socket);
+
+    EXPECT_TRUE(succeeded);
+    if (!succeeded) {
+      return;
+    }
+
+    EXPECT_FALSE(is_unix_socket);
+    EXPECT_EQ(row["action"], "accept");
+    EXPECT_EQ(row["family"], "2");
+
+    EXPECT_EQ(row["remote_address"], kExpectedIPv4Address);
+    EXPECT_EQ(row["remote_port"], kExpectedPortNumber);
+
+    EXPECT_TRUE(row["local_address"].empty());
+    EXPECT_TRUE(row["local_port"].empty());
+  }
+}
+
+TEST_F(AuditTests, parseSockAddr_ipv6_accept) {
+  Row row;
+  bool is_unix_socket = false;
+
+  for (auto syscall : {__NR_accept, __NR_accept4}) {
+    auto succeeded =
+        parseSockAddr(syscall, kIPv6TestSaddr, row, is_unix_socket);
+
+    EXPECT_TRUE(succeeded);
+    if (!succeeded) {
+      return;
+    }
+
+    EXPECT_FALSE(is_unix_socket);
+    EXPECT_EQ(row["action"], "accept");
+    EXPECT_EQ(row["family"], "10");
+
+    EXPECT_EQ(row["remote_address"], kExpectedIPv6Address);
+    EXPECT_EQ(row["remote_port"], kExpectedPortNumber);
+
+    EXPECT_TRUE(row["local_address"].empty());
+    EXPECT_TRUE(row["local_port"].empty());
+  }
+}
+
+// Connect syscalls
+TEST_F(AuditTests, parseSockAddr_unix_connect) {
+  Row row;
+  bool is_unix_socket = false;
+
+  auto succeeded =
+      parseSockAddr(__NR_connect, kUnixTestSaddr, row, is_unix_socket);
+
+  EXPECT_TRUE(succeeded);
+  if (!succeeded) {
+    return;
+  }
+
+  EXPECT_TRUE(is_unix_socket);
+  EXPECT_EQ(row["action"], "connect");
+  EXPECT_EQ(row["family"], "1");
+
+  EXPECT_EQ(row["socket"], kExpectedUnixSocket);
+
+  EXPECT_TRUE(row["remote_address"].empty());
+  EXPECT_EQ(row["remote_port"], "0");
+
+  EXPECT_TRUE(row["local_address"].empty());
+  EXPECT_EQ(row["local_port"], "0");
+}
+
+TEST_F(AuditTests, parseSockAddr_ipv4_connect) {
+  Row row;
+  bool is_unix_socket = false;
+
+  auto succeeded =
+      parseSockAddr(__NR_connect, kIPv4TestSaddr, row, is_unix_socket);
+
+  EXPECT_TRUE(succeeded);
+  if (!succeeded) {
+    return;
+  }
+
+  EXPECT_FALSE(is_unix_socket);
+  EXPECT_EQ(row["action"], "connect");
+  EXPECT_EQ(row["family"], "2");
+
+  EXPECT_EQ(row["remote_address"], kExpectedIPv4Address);
+  EXPECT_EQ(row["remote_port"], kExpectedPortNumber);
+
+  EXPECT_TRUE(row["local_address"].empty());
+  EXPECT_TRUE(row["local_port"].empty());
+}
+
+TEST_F(AuditTests, parseSockAddr_ipv6_connect) {
+  Row row;
+  bool is_unix_socket = false;
+
+  auto succeeded =
+      parseSockAddr(__NR_connect, kIPv6TestSaddr, row, is_unix_socket);
+
+  EXPECT_TRUE(succeeded);
+  if (!succeeded) {
+    return;
+  }
+
+  EXPECT_FALSE(is_unix_socket);
+  EXPECT_EQ(row["action"], "connect");
+  EXPECT_EQ(row["family"], "10");
+
+  EXPECT_EQ(row["remote_address"], kExpectedIPv6Address);
+  EXPECT_EQ(row["remote_port"], kExpectedPortNumber);
+
+  EXPECT_TRUE(row["local_address"].empty());
+  EXPECT_TRUE(row["local_port"].empty());
+}
+} // namespace osquery

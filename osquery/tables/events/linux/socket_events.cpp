@@ -44,22 +44,37 @@ std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
          std::to_string((result & 0x000000ff));
 }
 
-bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
+bool parseSockAddr(int syscall_number,
+                   const std::string& saddr,
+                   Row& row,
+                   bool& unix_socket) {
   unix_socket = false;
 
-  std::string address_column;
-  std::string port_column;
-  if (row["action"] == "bind") {
-    address_column = "local_address";
-    port_column = "local_port";
+  // Set the action based on the syscall number
+  if (syscall_number == __NR_connect) {
+    row["action"] = "connect";
+  } else if (syscall_number == __NR_bind) {
+    row["action"] = "bind";
+  } else if (syscall_number == __NR_accept || syscall_number == __NR_accept4) {
+    row["action"] = "accept";
+  } else {
+    return false;
+  }
 
-    row["remote_address"] = "0";
+  // Select the right column depending on the syscall we are
+  // handling
+  std::string port_column;
+  std::string address_column;
+
+  if (syscall_number == __NR_bind) {
+    port_column = "local_port";
+    address_column = "local_address";
+    row["remote_address"] = "";
     row["remote_port"] = "0";
   } else {
-    address_column = "remote_address";
     port_column = "remote_port";
-
-    row["local_address"] = "0";
+    address_column = "remote_address";
+    row["local_address"] = "";
     row["local_port"] = "0";
   }
 
@@ -141,15 +156,55 @@ Status SocketEventSubscriber::ProcessEvents(
 
     Row row = {};
     const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
-    if (!event_data.succeeded) {
+    if (GetSyscallSet().count(event_data.syscall_number) == 0) {
       continue;
     }
 
-    if (event_data.syscall_number == __NR_connect) {
-      row["action"] = "connect";
-    } else if (event_data.syscall_number == __NR_bind) {
-      row["action"] = "bind";
-    } else {
+    /*
+     * This is how syscalls are reported now:
+     *
+     * - connect, bind
+     * Report always. If the event succeeded, then the socket is blocking and
+     * we know for sure that the operation has happened.
+     *
+     * If the event is marked as failed, we can end up in the following cases:
+     * 1. Blocking socket: the syscall has definitely failed.
+     * 2. Non-blocking socket: the syscall has returned -1 with errno
+     * EINPROGRESS. We can't determine if the operation will fail or not
+     * (without tracking all socket operations).
+     *
+     * - accept
+     * Report only when succeeded; the non-blocking socket attribute has no
+     * effect on this syscall.
+     *
+     */
+
+    bool skip_event = true;
+
+    switch (event_data.syscall_number) {
+    case __NR_connect:
+    case __NR_bind: {
+      skip_event = false;
+      if (event_data.succeeded) {
+        row["status"] = "succeeded";
+      } else {
+        row["status"] = "unknown";
+      }
+      break;
+    }
+
+    case __NR_accept:
+    case __NR_accept4: {
+      if (event_data.succeeded) {
+        skip_event = false;
+        row["status"] = "succeeded";
+      }
+
+      break;
+    }
+    }
+
+    if (skip_event) {
       continue;
     }
 
@@ -197,7 +252,7 @@ Status SocketEventSubscriber::ProcessEvents(
     row["remote_port"] = '0';
 
     bool unix_socket;
-    if (!parseSockAddr(saddr, row, unix_socket)) {
+    if (!parseSockAddr(event_data.syscall_number, saddr, row, unix_socket)) {
       VLOG(1) << "Malformed syscall event. The saddr field in the "
                  "AUDIT_SOCKADDR record could not be parsed: \""
               << saddr << "\"";
@@ -215,7 +270,8 @@ Status SocketEventSubscriber::ProcessEvents(
 }
 
 const std::set<int>& SocketEventSubscriber::GetSyscallSet() noexcept {
-  static const std::set<int> syscall_set = {__NR_bind, __NR_connect};
+  static const std::set<int> syscall_set = {
+      __NR_bind, __NR_connect, __NR_accept, __NR_accept4};
   return syscall_set;
 }
 } // namespace osquery
