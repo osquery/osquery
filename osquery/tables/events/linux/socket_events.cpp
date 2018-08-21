@@ -31,6 +31,12 @@ HIDDEN_FLAG(bool,
             false,
             "Allow socket events to collect domain sockets");
 
+HIDDEN_FLAG(
+    bool,
+    audit_disable_accept_syscalls,
+    false,
+    "Prevents socket_events from collecting accept()/accept4() syscall events");
+
 // Depend on the external getUptime table method.
 namespace tables {
 extern long getUptime();
@@ -269,9 +275,17 @@ Status SocketEventSubscriber::ProcessEvents(
   return Status(0, "Ok");
 }
 
-const std::set<int>& SocketEventSubscriber::GetSyscallSet() noexcept {
-  static const std::set<int> syscall_set = {
+const std::unordered_set<int>& SocketEventSubscriber::GetSyscallSet() noexcept {
+  static const std::unordered_set<int> reduced_syscall_set = {__NR_bind,
+                                                              __NR_connect};
+
+  static const std::unordered_set<int> full_syscall_set = {
       __NR_bind, __NR_connect, __NR_accept, __NR_accept4};
-  return syscall_set;
+
+  if (FLAGS_audit_disable_accept_syscalls) {
+    return reduced_syscall_set;
+  } else {
+    return full_syscall_set;
+  }
 }
 } // namespace osquery

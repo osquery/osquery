@@ -27,7 +27,7 @@ class SocketEventSubscriber final
       const std::vector<AuditEvent>& event_list) noexcept;
 
   /// Returns the set of syscalls that this subscriber can handle
-  static const std::set<int>& GetSyscallSet() noexcept;
+  static const std::unordered_set<int>& GetSyscallSet() noexcept;
 };
 
 /// Parses an hex-encoded IPv4 address
