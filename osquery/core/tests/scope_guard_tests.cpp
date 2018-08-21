@@ -52,8 +52,8 @@ TEST_F(ScopeGuardTests, example_temporary_file) {
       fs::unique_path(
           "osquery.core.tests.resource_manager_tests.temporary_file.%%%%.log");
   { // create file
-    auto fout = std::ofstream(tmp_file_path.native(),
-                              std::ios::out | std::ios::binary);
+    auto fout =
+        std::ofstream(tmp_file_path.native(), std::ios::out | std::ios::binary);
     fout << "write some text to temporary file";
   }
   {
