@@ -405,8 +405,40 @@ void BufferedLogSink::send(google::LogSeverity severity,
 }
 
 void BufferedLogSink::WaitTillSent() {
-  if (enabled_ && !Initializer::isDaemon()) {
-    relayStatusLogs();
+  if (!enabled_ || FLAGS_disable_logging || !DatabasePlugin::kDBInitialized) {
+    // Sink might not be enabled
+    // The logger plugins may not be setUp if logging is disabled.
+    // If the database is not setUp, or is in a reset, status logs continue
+    // to buffer.
+    return;
+  }
+
+  auto identifier = getHostIdentifier();
+
+  // Construct a status log plugin request.
+  PluginRequest request = {{"status", "true"}};
+  {
+    WriteLock lock(kBufferedLogSinkLogs);
+    auto& status_logs = BufferedLogSink::get().dump();
+    for (auto& log : status_logs) {
+      // Copy the host identifier into each status log.
+      log.identifier = std::move(identifier);
+    }
+
+    serializeIntermediateLog(status_logs, request);
+
+    // Flush the buffered status logs.
+    status_logs.clear();
+  }
+
+  auto logger_plugin = RegistryFactory::get().getActive("logger");
+  for (const auto& logger : osquery::split(logger_plugin, ",")) {
+    auto& enabled = BufferedLogSink::get().enabledPlugins();
+    if (std::find(enabled.begin(), enabled.end(), logger) != enabled.end()) {
+      // Skip the registry's logic, and send directly to the core's logger.
+      PluginResponse response;
+      Registry::call("logger", logger, request, response);
+    }
   }
 }
 
@@ -572,43 +604,6 @@ Status logSnapshotQuery(const QueryLogItem& item) {
 size_t queuedStatuses() {
   ReadLock lock(kBufferedLogSinkLogs);
   return BufferedLogSink::get().dump().size();
-}
-
-void relayStatusLogs() {
-  if (FLAGS_disable_logging || !DatabasePlugin::kDBInitialized) {
-    // The logger plugins may not be setUp if logging is disabled.
-    // If the database is not setUp, or is in a reset, status logs continue
-    // to buffer.
-    return;
-  }
-
-  auto identifier = getHostIdentifier();
-
-  // Construct a status log plugin request.
-  PluginRequest request = {{"status", "true"}};
-  {
-    WriteLock lock(kBufferedLogSinkLogs);
-    auto& status_logs = BufferedLogSink::get().dump();
-    for (auto& log : status_logs) {
-      // Copy the host identifier into each status log.
-      log.identifier = identifier;
-    }
-
-    serializeIntermediateLog(status_logs, request);
-
-    // Flush the buffered status logs.
-    status_logs.clear();
-  }
-
-  auto logger_plugin = RegistryFactory::get().getActive("logger");
-  for (const auto& logger : osquery::split(logger_plugin, ",")) {
-    auto& enabled = BufferedLogSink::get().enabledPlugins();
-    if (std::find(enabled.begin(), enabled.end(), logger) != enabled.end()) {
-      // Skip the registry's logic, and send directly to the core's logger.
-      PluginResponse response;
-      Registry::call("logger", logger, request, response);
-    }
-  }
 }
 
 void systemLog(const std::string& line) {

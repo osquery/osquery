@@ -132,12 +132,6 @@ TEST_F(FilesystemLoggerTests, test_log_status) {
   readFile(status_path, content);
   lines = osquery::split(content, "\n").size();
   EXPECT_EQ(6U, lines);
-
-  relayStatusLogs();
-  content.clear();
-  readFile(status_path, content);
-  lines = osquery::split(content, "\n").size();
-  EXPECT_EQ(6U, lines);
 }
 
 TEST_F(FilesystemLoggerTests, test_log_snapshot) {

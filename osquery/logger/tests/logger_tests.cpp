@@ -441,28 +441,12 @@ TEST_F(LoggerTests, test_recursion) {
   EXPECT_EQ(1U, plugin->statuses);
 
   LOG(WARNING) << "recurse";
-  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    for (size_t i = 0; i < 100; i++) {
-      std::this_thread::sleep_for(std::chrono::microseconds(10));
-      if (plugin->statuses == 3U) {
-        break;
-      }
-    }
-  }
   EXPECT_EQ(3U, plugin->statuses);
 
   // Try again with the tool type as a daemon.
   auto tool_type = kToolType;
   kToolType = ToolType::DAEMON;
   LOG(WARNING) << "recurse";
-
-  // The daemon calls the status relay within the scheduler.
-  EXPECT_EQ(3U, plugin->statuses);
-
-  // All of recursive log lines will sink during the next call.
-  relayStatusLogs();
-  EXPECT_EQ(4U, plugin->statuses);
-  relayStatusLogs();
   EXPECT_EQ(5U, plugin->statuses);
   kToolType = tool_type;
 
