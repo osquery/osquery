@@ -92,14 +92,12 @@ Status readFile(const boost::filesystem::path& path,
  * @param path the path of the file that you would like to write.
  * @param content the text that should be written exactly to disk.
  * @param permissions the filesystem permissions to request when opening.
- * @param force_permissions always `chmod` the path after opening.
  *
  * @return an instance of Status, indicating success or failure.
  */
 Status writeTextFile(const boost::filesystem::path& path,
                      const std::string& content,
-                     int permissions = 0660,
-                     bool force_permissions = false);
+                     int permissions = 0660);
 
 /**
  * @brief Check if a path is writable.
