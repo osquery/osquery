@@ -27,7 +27,7 @@ class ScopeGuardTests : public testing::Test {};
 TEST_F(ScopeGuardTests, guard_is_called) {
   auto guard_has_been_called = false;
   {
-    auto guard = ScopeGuard<>::create(
+    auto guard = scope_guard::create(
         [&guard_has_been_called]() { guard_has_been_called = true; });
     ASSERT_FALSE(guard_has_been_called);
   }
@@ -37,7 +37,7 @@ TEST_F(ScopeGuardTests, guard_is_called) {
 TEST_F(ScopeGuardTests, example_time_measurement) {
   auto duration = std::chrono::duration<double>{0};
   {
-    auto guard = ScopeGuard<>::create(
+    auto guard = scope_guard::create(
         [&duration, start = std::chrono::steady_clock::now()]() {
           duration = std::chrono::steady_clock::now() - start;
         });
@@ -57,7 +57,7 @@ TEST_F(ScopeGuardTests, example_temporary_file) {
     fout << "write some text to temporary file";
   }
   {
-    const auto guard = ScopeGuard<>::create(
+    const auto guard = scope_guard::create(
         [& file_path = tmp_file_path]() { fs::remove(file_path); });
     ASSERT_TRUE(fs::exists(tmp_file_path)); // let's check file exists
   }

@@ -12,6 +12,7 @@
 
 namespace osquery {
 
+namespace scope_guard {
 /**
  * The RAII based scope guard class.
  *
@@ -19,12 +20,12 @@ namespace osquery {
  * in face of multiple return statements from the function.
  *
  * It takes functor object by value during the construction. It is going to be
- * called once and only once during the destruction of ScopeGuard object.
+ * called once and only once during the destruction of Guard object.
  *
  * There is helper function to create the object of guard.
  * @code{.cpp}
  *   {
- *     auto const manager = ScopeGuard<>::create(
+ *     auto const manager = scope_guard::create(
  *       [&file_path]() { fs::remove(file_path); }
  *     );
  *       ...
@@ -32,27 +33,25 @@ namespace osquery {
  *   }
  * @endcode
  */
-template <typename...>
-class ScopeGuard final {
- public:
-  template <typename FinalRoutineType>
-  static inline auto create(FinalRoutineType final_routine) {
-    return ScopeGuard<FinalRoutineType>(std::move(final_routine));
-  }
-};
-
 template <typename FinalRoutineType>
-class ScopeGuard<FinalRoutineType> final {
+class Guard final {
  public:
-  explicit ScopeGuard(FinalRoutineType final_routine)
+  explicit Guard(FinalRoutineType final_routine)
       : final_routine_(std::move(final_routine)) {}
 
-  ~ScopeGuard() {
+  ~Guard() {
     final_routine_();
   }
 
  private:
   FinalRoutineType final_routine_;
 };
+
+template <typename FinalRoutineType>
+inline auto create(FinalRoutineType&& final_routine) {
+  return Guard<FinalRoutineType>(std::forward<FinalRoutineType>(final_routine));
+}
+
+} // namespace scope_guard
 
 } // namespace osquery
