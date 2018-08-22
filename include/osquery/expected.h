@@ -110,7 +110,7 @@ class Expected final {
 
       object_ = std::move(other.object_);
       errorChecked_ = other.errorChecked_;
-      other.errorChecked_ = true;
+      other.errorChecked_.set(true);
     }
     return *this;
   }
