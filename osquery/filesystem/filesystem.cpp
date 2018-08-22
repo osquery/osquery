@@ -31,7 +31,6 @@
 #include <osquery/system.h>
 
 #include "osquery/core/json.h"
-#include "osquery/filesystem/fileops.h"
 
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
@@ -51,10 +50,10 @@ static const size_t kMaxRecursiveGlobs = 64;
 
 Status writeTextFile(const fs::path& path,
                      const std::string& content,
-                     int permissions) {
+                     int permissions,
+                     int mode) {
   // Open the file with the request permissions.
-  PlatformFile output_fd(
-      path, PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND, permissions);
+  PlatformFile output_fd(path, mode, permissions);
   if (!output_fd.isValid()) {
     return Status(1, "Could not create file: " + path.string());
   }
