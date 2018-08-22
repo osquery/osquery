@@ -156,7 +156,7 @@ Status decodeSpecialExtendedAttribute(ExtendedAttributes& output,
   if (name == kWhereFromXattr) {
     status = parseWhereFrom(output, path);
   } else if (name == kQuarantineXattr) {
-    auto status = parseQuarantineFile(output, path);
+    status = parseQuarantineFile(output, path);
   } else {
     status = Status(1, "Invalid special attribute name");
   }
