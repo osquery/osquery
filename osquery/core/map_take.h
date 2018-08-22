@@ -1,11 +1,9 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
+ *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed as defined on the LICENSE file found in the
+ *  root directory of this source tree.
  */
 
 #pragma once
@@ -32,7 +30,7 @@ namespace osquery {
  *      @endcode
  *      Have more short and simple:
  *      @code{.cpp}
- *        auto const it = tryTakeCopy(table, "key").takeOr(ValueType{});
+ *        auto const takenValue = tryTakeCopy(table, "key").takeOr(ValueType{});
  *      @endcode
  *
  *   2. To avoid nonoptimal code with two exactly the same lookups, e.g.:
@@ -42,12 +40,12 @@ namespace osquery {
  *
  *   3. To reduce the possibility of dangerous misstypes such as:
  *      @code{.cpp}
- *        auto takenValue = table.count("key") ? table.at("Key") : ValueType{};
+ *        auto takenValue = table.count("key") ? table.at("KeY") : ValueType{};
  *      @endcode
  */
 
-enum class GetError {
-  KeyError,
+enum class MapTakeError {
+  NoSuchKey = 1,
 };
 
 namespace impl {
@@ -70,17 +68,17 @@ struct IsMap<std::unordered_map<TemplateArgs...>> : std::true_type {};
  * @param key to look up by in the table
  *
  * @return Expected object with value if such key exists in the table,
- * otherwise Error of type GetError
+ * otherwise Error of type MapTakeError
  */
 template <typename MapType,
           typename KeyType = typename MapType::key_type,
           typename ValueType = typename MapType::mapped_type>
 inline typename std::enable_if<impl::IsMap<MapType>::value,
-                               Expected<ValueType, GetError>>::type
+                               Expected<ValueType, MapTakeError>>::type
 tryTake(MapType& table, const KeyType& key) {
   auto it = table.find(key);
   if (it == table.end()) {
-    return createError(GetError::KeyError, "no such key in the table");
+    return createError(MapTakeError::NoSuchKey, "no such key in the table");
   }
   auto item = std::move(it->second);
   table.erase(it);
@@ -94,47 +92,17 @@ tryTake(MapType& table, const KeyType& key) {
  * @param key to look up by in the table
  *
  * @return Expected object with value if such key exists in the table,
- * otherwise Error of type GetError
+ * otherwise Error of type MapTakeError
  */
 template <typename MapType,
           typename KeyType = typename MapType::key_type,
           typename ValueType = typename MapType::mapped_type>
 inline typename std::enable_if<impl::IsMap<MapType>::value,
-                               Expected<ValueType, GetError>>::type
+                               Expected<ValueType, MapTakeError>>::type
 tryTakeCopy(MapType const& from, KeyType const& key) {
   auto const it = from.find(key);
   if (it == from.end()) {
-    return createError(GetError::KeyError, "no such key in the table");
-  }
-  return it->second;
-}
-
-template <typename T>
-class Eprst;
-
-/**
- * @brief Get constant reference to the object in given table by key
- * or constant reference to default value.
- *
- * @param table to look up (std::map or std::unordered_map)
- * @param key to look up by in the table
- *
- * @return constant reference to the object in given table by key, if such key
- * exists in the table, otherwise constant reference to given default value
- */
-template <typename MapType,
-          typename KeyType = typename MapType::key_type,
-          typename DefaultValueType = typename MapType::mapped_type>
-inline typename std::enable_if<impl::IsMap<MapType>::value,
-                               typename MapType::mapped_type const&>::type
-getOr(MapType const& from,
-      KeyType const& key,
-      DefaultValueType&& defaultValue) {
-  static_assert(std::is_lvalue_reference<DefaultValueType>::value,
-                "A default value is suppose to be reference to a mapped_type");
-  auto const it = from.find(key);
-  if (it == from.end()) {
-    return defaultValue;
+    return createError(MapTakeError::NoSuchKey, "no such key in the table");
   }
   return it->second;
 }

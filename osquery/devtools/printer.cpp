@@ -15,7 +15,7 @@
 #include <osquery/flags.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/core/get.h"
+#include "osquery/core/map_take.h"
 #include "osquery/core/process.h"
 #include "osquery/devtools/devtools.h"
 
