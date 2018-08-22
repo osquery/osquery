@@ -19,6 +19,7 @@
 #include <queue>
 #include <thread>
 
+#include <boost/filesystem/path.hpp>
 #include <boost/noncopyable.hpp>
 
 #include <osquery/database.h>
@@ -43,7 +44,7 @@ FLAG(bool, verbose, false, "Enable verbose informational messages");
 /// Despite being a configurable option, this is only read/used at load.
 FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
-FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
+FLAG(string, logger_plugin, "", "Logger plugin name");
 
 /// Log each added or removed line individually, as an "event".
 FLAG(bool, logger_event_type, true, "Log scheduled results as events");
@@ -62,9 +63,11 @@ FLAG(int32,
      logger_min_stderr,
      0,
      "Minimum level for statuses written to stderr");
-
-/// It is difficult to set logging to stderr on/off at runtime.
-CLI_FLAG(bool, logger_stderr, true, "Write status logs to stderr");
+FLAG(string,
+     logger_path,
+     OSQUERY_LOG_HOME,
+     "Directory path for ERROR/WARN/INFO logging");
+FLAG(int32, logger_mode, 0640, "Decimal mode for log files (default '0640')");
 
 /**
  * @brief This hidden flag is for testing status logging.
@@ -250,34 +253,38 @@ void setVerboseLevel() {
     // Do log DEBUG, INFO, WARNING, ERROR to their log files.
     // Do log the above and verbose=1 to stderr (can be turned off later).
     FLAGS_minloglevel = google::GLOG_INFO;
-    FLAGS_alsologtostderr = true;
+    FLAGS_stderrthreshold = google::GLOG_INFO;
     FLAGS_v = 1;
   } else {
     FLAGS_minloglevel = Flag::getInt32Value("logger_min_status");
     FLAGS_stderrthreshold = Flag::getInt32Value("logger_min_stderr");
+    FLAGS_v = 0;
   }
-
-  if (!FLAGS_logger_stderr) {
-    FLAGS_stderrthreshold = 3;
-    FLAGS_alsologtostderr = false;
-  }
-
-  FLAGS_logtostderr = true;
 }
 
 void initStatusLogger(const std::string& name, bool init_glog) {
+  // Begining of GLOG flags which should never be changed in osquery
 #ifndef FBTHRIFT
   // No color available when using fbthrift.
   FLAGS_colorlogtostderr = true;
 #endif
-  FLAGS_logbufsecs = 0;
+  // Make sure path format matches the OS
+  FLAGS_log_dir = boost::filesystem::path(FLAGS_logger_path).string();
+  FLAGS_logfile_mode = FLAGS_logger_mode;
+  // If we allow it to be true, logs will not go to the GLOG file logs.
+  FLAGS_logtostderr = false;
+  // If we allow it to be true, we will not be able to filter logs going to the
+  // stderr
+  FLAGS_alsologtostderr = false;
+  // To make osquery GLOGlogs easy to distinguish
+  FLAGS_log_prefix = "osquery_GLOG";
+  // If disk is found full, GLOG will stop writing to the disk, for some time
   FLAGS_stop_logging_if_full_disk = true;
   // The max size for individual log file is 10MB.
   FLAGS_max_log_size = 10;
-
-  // Begin with only logging to stderr.
-  FLAGS_logtostderr = true;
-  FLAGS_stderrthreshold = 3;
+  FLAGS_logbufsecs = 0;
+  FLAGS_logbuflevel = 0;
+  // End of GLOG flags which should never be changed in osquery
 
   setVerboseLevel();
   // Start the logging, and announce the daemon is starting.
