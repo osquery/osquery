@@ -35,8 +35,8 @@ $currentLoc = Get-Location
 # Invoke the MSVC developer tools/env
 $ret = Invoke-VcVarsAll
 if ($ret -ne $true) {
-	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
-	exit
+  Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+  exit
 }
 
 # Time our execution
@@ -74,8 +74,8 @@ Set-Location $sourceDir
 
 # Set the cmake logic to generate a static build for us
 $staticBuild = "`nset(CMAKE_CXX_FLAGS_RELEASE `"`${CMAKE_CXX_FLAGS_RELEASE} " +
-              "/MT`")`nset(CMAKE_CXX_FLAGS_DEBUG `"`${CMAKE_CXX_FLAGS_DEBUG} " +
-              "/MTd`")"
+               "/MT`")`nset(CMAKE_CXX_FLAGS_DEBUG `"`${CMAKE_CXX_FLAGS_DEBUG} " +
+               "/MTd`")"
 
 foreach($lib in $libs) {
   Add-Content `
