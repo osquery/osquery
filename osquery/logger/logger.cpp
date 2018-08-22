@@ -186,12 +186,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /// Track multiple loggers that should receive sinks from the send forwarder.
   std::vector<std::string> sinks_;
 
-  /// Keep track of the first, or 'primary' logger.
-  std::string primary_;
-
-  /// Mutex for checking primary status.
-  mutable Mutex primary_mutex_;
-
   /// Mutex protecting activation and enabling of the buffered status logger.
   Mutex enable_mutex_;
 };
