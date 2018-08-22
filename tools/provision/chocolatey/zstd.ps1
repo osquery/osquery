@@ -27,8 +27,8 @@ $currentLoc = Get-Location
 # Invoke the MSVC developer tools/env
 $ret = Invoke-VcVarsAll
 if ($ret -ne $true) {
-	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
-	exit
+  Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+  exit
 }
 
 # Time our execution
@@ -70,7 +70,6 @@ Set-Location $sourceDir
 $vcxprojLocation = 'build\VS2010\libzstd\libzstd.vcxproj'
 # Patch the AssemblerOutput out of the project
 (Get-Content $vcxprojLocation).replace('<AssemblerOutput>All</AssemblerOutput>', '<AssemblerOutput>NoListing</AssemblerOutput>') | Set-Content $vcxprojLocation
-#msbuild "build\VS2010\zstd.sln" /verbosity:minimal /nologo /t:Clean,libzstd /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset=v141
 $msbuild = (Get-Command 'msbuild').Source
 $msbuildArgs = @(
 	"build\VS2010\zstd.sln",
@@ -81,7 +80,7 @@ $msbuildArgs = @(
 	"/p:Configuration=Release",
 	"/p:PlatformToolset=v141"
 )
-# Start-OsqueryProcess $msbuild $msbuildArgs $false
+Start-OsqueryProcess $msbuild $msbuildArgs $false
  
 # Construct the Chocolatey Package
 $chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'
