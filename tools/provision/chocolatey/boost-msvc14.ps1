@@ -39,8 +39,8 @@ $currentLoc = Get-Location
 # Invoke the MSVC developer tools/env
 $ret = Invoke-VcVarsAll
 if ($ret -ne $true) {
-	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
-	exit
+  Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+  exit
 }
 
 # Time our execution
