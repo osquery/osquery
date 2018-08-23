@@ -131,11 +131,14 @@ QueryData genCoreAnalyticsResults(QueryContext& context) {
         struct tm tm;
         // if strptime fails set diag_end to whatever was read from the file
         auto ts = std::string(itr->value.GetString());
-        auto dt = ts.substr(0, 19) + ts.substr(22, 6);
-        if (strptime(dt.c_str(), "%F %T %z", &tm) == nullptr) {
-          diag_end = itr->value.GetString();
-        } else {
-          diag_end = std::to_string(toUnixTime(&tm));
+        //check length of the timestamp in case apple changes the format
+        if (ts.length() <= 27) {
+          auto dt = ts.substr(0, 19) + ts.substr(22, 6);
+          if (strptime(dt.c_str(), "%F %T %z", &tm) == nullptr) {
+            diag_end = itr->value.GetString();
+          } else {
+            diag_end = std::to_string(toUnixTime(&tm));
+          }
         }
       }
 
