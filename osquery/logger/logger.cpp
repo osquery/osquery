@@ -47,7 +47,6 @@ FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 
 /// Log each added or removed line individually, as an "event".
 FLAG(bool, logger_event_type, true, "Log scheduled results as events");
-FLAG_ALIAS(bool, log_result_events, logger_event_type);
 
 /// Log each row from a snapshot query individually, as an "event".
 FLAG(bool,
@@ -57,11 +56,6 @@ FLAG(bool,
 
 /// Alias for the minloglevel used internally by GLOG.
 FLAG(int32, logger_min_status, 0, "Minimum level for status log recording");
-
-FLAG(bool,
-     logger_secondary_status_only,
-     false,
-     "Only send status logs to secondary logger plugins");
 
 /// Alias for the stderrthreshold used internally by GLOG.
 FLAG(int32,
@@ -156,26 +150,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /// Retrieve the list of enabled plugins that should have logs forwarded.
   const std::vector<std::string>& enabledPlugins() const;
 
-  /**
-   * @brief Check if a given logger plugin was the first or 'primary'.
-   *
-   * Within the osquery core the BufferedLogSink acts as a router for status
-   * logs. While initializing it inspects the set of logger plugins and saves
-   * the first as the 'primary'.
-   *
-   * Checks within the core may act on this state. Checks within extensions
-   * cannot, and thus any check for primary logger plugins is true.
-   * While this is a limitation, in practice if a remote logger plugin is called
-   * it is intended to receive all logging data.
-   *
-   * @param plugin Check if this target plugin is primary.
-   * @return true of the provided plugin was the first specified.
-   */
-  bool isPrimaryLogger(const std::string& plugin) const;
-
-  /// Set the primary logger plugin is none has been previously specified.
-  void setPrimary(const std::string& plugin);
-
  public:
   /// Queue of sender functions that relay status logs to all plugins.
   std::queue<std::future<void>> senders;
@@ -205,12 +179,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 
   /// Track multiple loggers that should receive sinks from the send forwarder.
   std::vector<std::string> sinks_;
-
-  /// Keep track of the first, or 'primary' logger.
-  std::string primary_;
-
-  /// Mutex for checking primary status.
-  mutable Mutex primary_mutex_;
 };
 
 /// Mutex protecting accesses to buffered status logs.
@@ -262,12 +230,6 @@ static void deserializeIntermediateLog(const PluginRequest& request,
 }
 
 void setVerboseLevel() {
-  auto default_level = google::GLOG_INFO;
-  if (Initializer::isShell()) {
-    // Do log only WARNING, ERROR to log sinks.
-    default_level = google::GLOG_WARNING;
-  }
-
   if (Flag::getValue("verbose") == "true") {
     // Turn verbosity up to 1.
     // Do log DEBUG, INFO, WARNING, ERROR to their log files.
@@ -277,7 +239,6 @@ void setVerboseLevel() {
     FLAGS_v = 1;
   } else {
     FLAGS_minloglevel = Flag::getInt32Value("logger_min_status");
-
     FLAGS_stderrthreshold = Flag::getInt32Value("logger_min_stderr");
   }
 
@@ -328,7 +289,6 @@ void initLogger(const std::string& name) {
   auto logger_plugin = RegistryFactory::get().getActive("logger");
   // Allow multiple loggers, make sure each is accessible.
   for (const auto& logger : osquery::split(logger_plugin, ",")) {
-    BufferedLogSink::get().setPrimary(logger);
     if (!RegistryFactory::get().exists("logger", logger)) {
       continue;
     }
@@ -414,20 +374,8 @@ void BufferedLogSink::WaitTillSent() {
   }
 }
 
-void BufferedLogSink::setPrimary(const std::string& plugin) {
-  WriteLock lock(primary_mutex_);
-  if (primary_.empty()) {
-    primary_ = plugin;
-  }
-}
-
 std::vector<StatusLogLine>& BufferedLogSink::dump() {
   return logs_;
-}
-
-bool BufferedLogSink::isPrimaryLogger(const std::string& plugin) const {
-  WriteLock lock(primary_mutex_);
-  return (primary_.empty() || plugin == primary_);
 }
 
 void BufferedLogSink::addPlugin(const std::string& name) {
@@ -488,11 +436,6 @@ Status logString(const std::string& message,
 
   Status status;
   for (const auto& logger : osquery::split(receiver, ",")) {
-    if (FLAGS_logger_secondary_status_only &&
-        !BufferedLogSink::get().isPrimaryLogger(logger)) {
-      continue;
-    }
-
     if (Registry::get().exists("logger", logger, true)) {
       auto plugin = Registry::get().plugin("logger", logger);
       auto logger_plugin = std::dynamic_pointer_cast<LoggerPlugin>(plugin);
@@ -555,11 +498,6 @@ Status logSnapshotQuery(const QueryLogItem& item) {
   for (const auto& json : json_items) {
     auto receiver = RegistryFactory::get().getActive("logger");
     for (const auto& logger : osquery::split(receiver, ",")) {
-      if (FLAGS_logger_secondary_status_only &&
-          !BufferedLogSink::get().isPrimaryLogger(logger)) {
-        continue;
-      }
-
       if (Registry::get().exists("logger", logger, true)) {
         auto plugin = Registry::get().plugin("logger", logger);
         auto logger_plugin = std::dynamic_pointer_cast<LoggerPlugin>(plugin);

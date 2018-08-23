@@ -5,6 +5,9 @@ targets = {
   "macos10.12" => {
     "box" => "jhcook/macos-sierra"
   },
+  "macos10.13" => {
+    "box" => "monsenso/macos-10.13"
+  },
   "debian7" => {
     "box" => "bento/debian-7"
   },
@@ -187,7 +190,7 @@ Vagrant.configure("2") do |config|
           ]
       end
 
-      if name == 'macos10.12'
+      if name.start_with?('macos')
         config.vm.provision "shell",
           inline: "dseditgroup -o read vagrant || dseditgroup -o create vagrant"
         build.vm.synced_folder ".", "/vagrant", group: "staff", type: "rsync",

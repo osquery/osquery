@@ -46,7 +46,7 @@ TEST_F(EnrollTests, test_enroll_secret_retrieval) {
   FLAGS_enroll_secret_path =
     (fs::path(kTestWorkingDirectory) / "secret.txt").
     make_preferred().string();
-  writeTextFile(FLAGS_enroll_secret_path, "test_secret\n", 0600, false);
+  writeTextFile(FLAGS_enroll_secret_path, "test_secret\n", 0600);
   // Make sure the file content was read and trimmed.
   auto secret = getEnrollSecret();
   EXPECT_EQ(secret, "test_secret");
