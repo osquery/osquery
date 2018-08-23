@@ -299,15 +299,6 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 #endif
   }
 
-  Flag::create("logtostderr",
-               {"Log messages to stderr in addition to the logger plugin(s)",
-                false,
-                false,
-                true,
-                false});
-  Flag::create("stderrthreshold",
-               {"Stderr log level threshold", false, false, true, false});
-
   // osquery implements a custom help/usage output.
   bool default_flags = true;
   for (int i = 1; i < *argc_; i++) {

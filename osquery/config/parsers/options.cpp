@@ -26,15 +26,7 @@ namespace osquery {
  * the verbosity.
  */
 const std::set<std::string> kVerboseOptions{
-    "verbose",
-    "minloglevel",
-    "logger_min_status",
-    "stderrthreshold",
-    "logger_min_stderr",
-    "logger_stderr",
-    "logtostderr",
-    "alsologtostderr",
-};
+    "verbose", "logger_min_status", "logger_min_stderr"};
 
 /**
  * @brief A simple ConfigParserPlugin for an "options" dictionary key.

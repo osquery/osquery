@@ -44,7 +44,7 @@ FLAG(bool, verbose, false, "Enable verbose informational messages");
 /// Despite being a configurable option, this is only read/used at load.
 FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
-FLAG(string, logger_plugin, "", "Logger plugin name");
+FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 
 /// Log each added or removed line individually, as an "event".
 FLAG(bool, logger_event_type, true, "Log scheduled results as events");
@@ -63,10 +63,12 @@ FLAG(int32,
      logger_min_stderr,
      0,
      "Minimum level for statuses written to stderr");
+
 FLAG(string,
      logger_path,
      OSQUERY_LOG_HOME,
      "Directory path for ERROR/WARN/INFO logging");
+
 FLAG(int32, logger_mode, 0640, "Decimal mode for log files (default '0640')");
 
 /**
