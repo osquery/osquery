@@ -278,8 +278,6 @@ void initStatusLogger(const std::string& name, bool init_glog) {
   // If we allow it to be true, we will not be able to filter logs going to the
   // stderr
   FLAGS_alsologtostderr = false;
-  // To make osquery GLOGlogs easy to distinguish
-  FLAGS_log_prefix = "osquery_GLOG";
   // If disk is found full, GLOG will stop writing to the disk, for some time
   FLAGS_stop_logging_if_full_disk = true;
   // The max size for individual log file is 10MB.
