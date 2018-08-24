@@ -132,7 +132,7 @@ QueryData genCoreAnalyticsResults(QueryContext& context) {
         // if strptime fails set diag_end to whatever was read from the file
         auto ts = std::string(itr->value.GetString());
         //check length of the timestamp in case apple changes the format
-        if (ts.length() <= 27) {
+        if (ts.length() >= 28) {
           auto dt = ts.substr(0, 19) + ts.substr(22, 6);
           if (strptime(dt.c_str(), "%F %T %z", &tm) == nullptr) {
             diag_end = itr->value.GetString();
@@ -140,6 +140,9 @@ QueryData genCoreAnalyticsResults(QueryContext& context) {
             diag_end = std::to_string(toUnixTime(&tm));
           }
         }
+          else {
+            diag_end = std::to_string(toUnixTime(&tm));
+          }
       }
 
       itr = obj.doc().FindMember("startTimestamp");
