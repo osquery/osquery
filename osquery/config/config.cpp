@@ -23,6 +23,7 @@
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
+#include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
@@ -472,11 +473,15 @@ Status Config::refresh() {
     loaded_ = true;
 
     if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
-      const auto result = restoreConfigBackup();
-      if (!result) {
-        return Status::failure(result.getError().getFullMessageRecursive());
+      if (Killswitch::get().isConfigBackupEnabled()) {
+        const auto result = restoreConfigBackup();
+        if (!result) {
+          return Status::failure(result.getError().getFullMessageRecursive());
+        } else {
+          update(*result);
+        }
       } else {
-        update(*result);
+        LOG(INFO) << "Config backup is disabled by the killswitch";
       }
     }
 
