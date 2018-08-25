@@ -9,7 +9,7 @@ The tools make low-level operating system analytics and monitoring both performa
 
 | Platform | Build status  | | | |
 |----------|---------------|---|---|---|
-MacOS 10.x    | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildMacOS/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildMacOS/) | | **Homepage:** | https://osquery.io
+MacOS 10.13    | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildMacOS/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildMacOS/) | | **Homepage:** | https://osquery.io
 CentOS 6.x | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Downloads:** | https://osquery.io/downloads
 CentOS 7.x   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Tables:** | https://osquery.io/schema
 Ubuntu 14.04   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | **Packs:** | [https://osquery.io/packs](https://github.com/facebook/osquery/tree/master/packs)
