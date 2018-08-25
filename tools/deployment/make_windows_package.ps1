@@ -285,6 +285,12 @@ foreach ($c in $(Get-ChildItem $certsPath)) {
 
 $wix += @'
             </Component>
+            <Component Id="osquery.man">
+              <File Id="osquery.man" KeyPath="yes"
+                Source="$windowsEventLogManifestPath">
+              <util:EventManifest  MessageFile="%systemdrive%\ProgramData\osquery\osqueryd\osqueryd.exe"  ResourceFile="%systemdrive%\ProgramData\osquery\osqueryd\osqueryd.exe"></util:EventManifest>
+              </File>
+            </Component>
           </Directory>
           <Directory Id="FileSystemLogging" Name="log"/>
         </Directory>
