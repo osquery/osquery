@@ -29,7 +29,7 @@ const std::vector<uint8_t> kMEIUpdateGUID{
 };
 
 struct mei_response {
-  uint32_t maxlen;
+  uint32_t response_size;
   uint8_t version;
 };
 

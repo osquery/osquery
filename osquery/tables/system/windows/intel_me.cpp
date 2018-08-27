@@ -111,9 +111,6 @@ void getHECIDriverVersion(QueryData& results) {
 
   // Response data from driver open.
   struct mei_response response;
-  // Response from FirmwareUpdate HECI GUID.
-  struct mei_version version;
-
   ret = DeviceIoControl(driver,
                         ioctlConnectClient,
                         (LPVOID)kMEIUpdateGUID.data(),
@@ -129,6 +126,11 @@ void getHECIDriverVersion(QueryData& results) {
     return;
   }
 
+  if (response.version != 0x1) {
+    VLOG(1) << "Intel MEI version is unsupported";
+    return;
+  }
+
   unsigned char fw_cmd[4] = {0};
   ret = WriteFile(
       driver, static_cast<void*>(fw_cmd), sizeof(fw_cmd), nullptr, nullptr);
@@ -136,19 +138,29 @@ void getHECIDriverVersion(QueryData& results) {
     VLOG(1) << "HECI driver write failed with " << GetLastError();
   }
 
-  memset(&version, 0, sizeof(version));
-  ret = ReadFile(driver, &version, sizeof(version), nullptr, nullptr);
+  // Response from FirmwareUpdate HECI GUID.
+  std::vector<std::uint8_t> read_buffer;
+  read_buffer.resize(static_cast<size_t>(response.response_size));
+
+  ret = ReadFile(driver,
+                 read_buffer.data(),
+                 static_cast<DWORD>(read_buffer.size()),
+                 nullptr,
+                 nullptr);
   if (ret != TRUE) {
+    memset(read_buffer.data(), 0, read_buffer.size());
     VLOG(1) << "HECI driver read failed with " << GetLastError();
   }
 
   CloseHandle(driver);
 
+  auto version = reinterpret_cast<const mei_version*>(read_buffer.data());
+
   Row r;
-  r["version"] = std::to_string(version.major) + '.' +
-                 std::to_string(version.minor) + '.' +
-                 std::to_string(version.hotfix) + '.' +
-                 std::to_string(version.build);
+  r["version"] = std::to_string(version->major) + '.' +
+                 std::to_string(version->minor) + '.' +
+                 std::to_string(version->hotfix) + '.' +
+                 std::to_string(version->build);
 
   results.push_back(r);
 }
