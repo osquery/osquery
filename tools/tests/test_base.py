@@ -708,8 +708,6 @@ def getTestDirectory(base):
 # Grab the latest info log
 def getLatestInfoLog(base):
     info_path = os.path.join(base, "osqueryd.INFO")
-    if os.name != "nt":
-        return info_path
     query = "select path from file where path like '{}' ORDER BY mtime DESC LIMIT 1;".format(info_path+'%')
     osqueryi = OsqueryWrapper(getLatestOsqueryBinary('osqueryi'))
     results = osqueryi.run_query(query)

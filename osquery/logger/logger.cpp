@@ -308,6 +308,10 @@ void initLogger(const std::string& name) {
   PluginRequest init_request = {{"init", name}};
   PluginRequest features_request = {{"action", "features"}};
   auto logger_plugin = RegistryFactory::get().getActive("logger");
+
+  google::ShutdownGoogleLogging();
+  initStatusLogger(name, true);
+
   // Allow multiple loggers, make sure each is accessible.
   for (const auto& logger : osquery::split(logger_plugin, ",")) {
     if (!RegistryFactory::get().exists("logger", logger)) {
@@ -343,11 +347,9 @@ BufferedLogSink& BufferedLogSink::get() {
 
 void BufferedLogSink::setUp() {
   WriteLock lock(enable_mutex_);
-
-  if (!active_) {
-    active_ = true;
-    google::AddLogSink(&get());
-  }
+  active_ = true;
+  google::RemoveLogSink(&get());
+  google::AddLogSink(&get());
 }
 
 void BufferedLogSink::disable() {

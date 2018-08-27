@@ -108,6 +108,5 @@ Status FilesystemLoggerPlugin::logSnapshot(const std::string& s) {
 
 void FilesystemLoggerPlugin::init(const std::string& name,
                                   const std::vector<StatusLogLine>& log) {
-
 }
 }

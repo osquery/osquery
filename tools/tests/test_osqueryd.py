@@ -210,15 +210,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
             "verbose": True,
         })
 
-        info_path = os.path.join(logger_path, "osqueryd.INFO")
-
-        def pathDoesntExist():
-            if os.path.exists(info_path):
-                return False
-            return True
-
         self.assertTrue(daemon.isAlive())
-        self.assertTrue(pathDoesntExist())
         daemon.kill()
 
     def test_8_hostid_uuid(self):

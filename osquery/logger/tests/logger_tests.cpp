@@ -332,6 +332,7 @@ TEST_F(LoggerTests, test_multiple_loggers) {
   EXPECT_EQ(0U, LoggerTests::statuses_logged);
 
   // Now try to initialize multiple loggers (1) forwards, (2) does not.
+  relayStatusLogs(true);
   initLogger("logger_test");
   LOG(WARNING) << "Logger test is generating a warning status (5)";
   // Now that the "test" logger is initialized, the status log will be
