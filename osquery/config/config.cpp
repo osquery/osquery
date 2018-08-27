@@ -471,18 +471,17 @@ Status Config::refresh() {
     }
 
     loaded_ = true;
-
-    if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
-      if (Killswitch::get().isConfigBackupEnabled()) {
+    if (Killswitch::get().isConfigBackupEnabled()) {
+      if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
         const auto result = restoreConfigBackup();
         if (!result) {
           return Status::failure(result.getError().getFullMessageRecursive());
         } else {
           update(*result);
         }
-      } else {
-        LOG(INFO) << "Config backup is disabled by the killswitch";
       }
+    } else {
+      LOG(INFO) << "Config backup is disabled by the killswitch";
     }
 
     return status;
