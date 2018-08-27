@@ -680,8 +680,8 @@ void Initializer::start() const {
   // Initialize the status and result plugin logger.
   if (!FLAGS_disable_logging) {
     initActivePlugin("logger", FLAGS_logger_plugin);
+    initLogger(binary_);
   }
-  initLogger(binary_);
 
   // Initialize the distributed plugin, if necessary
   if (!FLAGS_disable_distributed) {
