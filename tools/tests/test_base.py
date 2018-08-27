@@ -704,12 +704,10 @@ def getTestDirectory(base):
     utils.reset_dir(path)
     return path
 
-import os
 # Grab the latest info log
 def getLatestInfoLog(base):
-    print("DEBUGTEST", os.listdir(base))
-    info_path = os.path.join(base, "osqueryd.INFO")
-    query = "select path from file where path like '{}' ORDER BY mtime DESC LIMIT 1;".format(info_path+'%')
+    info_path = os.path.join(base, "osqueryd.%INFO%")
+    query = "select path from file where path like '{}' ORDER BY mtime DESC LIMIT 1;".format(info_path)
     osqueryi = OsqueryWrapper(getLatestOsqueryBinary('osqueryi'))
     results = osqueryi.run_query(query)
     if len(results) > 0:
