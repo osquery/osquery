@@ -32,13 +32,9 @@ class Killswitch : private boost::noncopyable {
  public:
   virtual ~Killswitch();
 
-  /*
-   * // It's always recommended to specify GitHub handle and the creating time,
-   * // while implementing the new killswitch.
-   * // Author: @guliashvili    <-- Put GitHub handle(@githubhandle)
-   * // Creation Time: 11/07/2018 <-- Put the killswitch creation
-   * time(dd/mm/yyyy) bool isMyTutorialFeatureEnabled();
-   */
+  // Author: @guliashvili
+  // Creation Time: 24/08/2018
+  bool isConfigBackupEnabled();
 
   static Killswitch& get() {
     static Killswitch killswitch;
