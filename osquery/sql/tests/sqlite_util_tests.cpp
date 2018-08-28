@@ -92,22 +92,22 @@ TEST_F(SQLiteUtilTests, test_direct_query_execution) {
   EXPECT_EQ(results, getTestDBExpectedResults());
 }
 
-TEST_F(SQLiteUtilTests, test_passing_callback_no_data_param) {
-  char* err = nullptr;
-  auto dbc = getTestDBC();
-  sqlite3_exec(dbc->db(), kTestQuery.c_str(), queryDataCallback, nullptr, &err);
-  EXPECT_TRUE(err != nullptr);
-  if (err != nullptr) {
-    sqlite3_free(err);
-  }
-}
-
 TEST_F(SQLiteUtilTests, test_aggregate_query) {
   auto dbc = getTestDBC();
   QueryData results;
   auto status = queryInternal(kTestQuery, results, dbc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results, getTestDBExpectedResults());
+}
+
+TEST_F(SQLiteUtilTests, test_no_results_query) {
+  auto dbc = getTestDBC();
+  QueryData results;
+  auto status = queryInternal(
+      "select * from test_table where username=\"A_NON_EXISTENT_NAME\"",
+      results,
+      dbc);
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {

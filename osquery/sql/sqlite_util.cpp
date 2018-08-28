@@ -459,41 +459,110 @@ Status QueryPlanner::applyTypes(TableColumns& columns) {
   return Status(0);
 }
 
-int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
-  if (argument == nullptr) {
-    VLOG(1) << "Query execution failed: received a bad callback argument";
-    return SQLITE_MISUSE;
-  }
-
-  auto qData = static_cast<QueryData*>(argument);
-  Row r;
-  for (int i = 0; i < argc; i++) {
-    if (column[i] != nullptr) {
-      if (r.count(column[i])) {
-        // Found a column name collision in the result.
-        VLOG(1) << "Detected overloaded column name " << column[i]
-                << " in query result consider using aliases";
-      }
-      r[column[i]] = (argv[i] != nullptr) ? argv[i] : FLAGS_nullvalue;
-    }
-  }
-  (*qData).push_back(std::move(r));
-  return 0;
-}
-
-Status queryInternal(const std::string& q,
+// Wrapper for legacy method until all uses can be replaced
+Status queryInternal(const std::string& query,
                      QueryData& results,
                      const SQLiteDBInstanceRef& instance) {
-  char* err = nullptr;
-  auto lock = instance->attachLock();
-  sqlite3_exec(instance->db(), q.c_str(), queryDataCallback, &results, &err);
-  sqlite3_db_release_memory(instance->db());
-  if (err != nullptr) {
-    auto error_string = std::string(err);
-    sqlite3_free(err);
-    return Status(1, "Error running query: " + error_string);
+  QueryDataTyped typedResults;
+  Status status = queryInternal(query, typedResults, instance);
+  if (status.ok()) {
+    results.reserve(typedResults.size());
+    for (const auto& row : typedResults) {
+      Row r;
+      for (const auto& col : row) {
+        r[col.first] = boost::lexical_cast<std::string>(col.second);
+      }
+      results.push_back(std::move(r));
+    }
   }
-  return Status(0, "OK");
+  return status;
+}
+
+Status readRows(sqlite3_stmt* prepared_statement,
+                QueryDataTyped& results,
+                const SQLiteDBInstanceRef& instance) {
+  int rc = sqlite3_step(prepared_statement);
+  /* if we have a result set row... */
+  if (SQLITE_ROW == rc) {
+    // First collect the column names
+    int num_columns = sqlite3_column_count(prepared_statement);
+    std::vector<std::string> colNames;
+    colNames.reserve(num_columns);
+    for (int i = 0; i < num_columns; i++) {
+      colNames.push_back(sqlite3_column_name(prepared_statement, i));
+    }
+
+    do {
+      RowTyped row;
+      for (int i = 0; i < num_columns; i++) {
+        switch (sqlite3_column_type(prepared_statement, i)) {
+        case SQLITE_INTEGER:
+          row[colNames[i]] =
+              static_cast<int64_t>(sqlite3_column_int64(prepared_statement, i));
+          break;
+        case SQLITE_FLOAT:
+          row[colNames[i]] = sqlite3_column_double(prepared_statement, i);
+          break;
+        case SQLITE_NULL:
+          row[colNames[i]] = FLAGS_nullvalue;
+          break;
+        default:
+          // Everything else (SQLITE_TEXT, SQLITE3_TEXT, SQLITE_BLOB) is
+          // obtained/conveyed as text/string
+          row[colNames[i]] = std::string(reinterpret_cast<const char*>(
+              sqlite3_column_text(prepared_statement, i)));
+        }
+      }
+      results.push_back(std::move(row));
+      rc = sqlite3_step(prepared_statement);
+    } while (SQLITE_ROW == rc);
+  }
+  if (rc != SQLITE_DONE) {
+    return Status::failure(sqlite3_errmsg(instance->db()));
+  }
+
+  rc = sqlite3_finalize(prepared_statement);
+  if (rc != SQLITE_OK) {
+    return Status::failure(sqlite3_errmsg(instance->db()));
+  }
+
+  return Status::success();
+}
+
+Status queryInternal(const std::string& query,
+                     QueryDataTyped& results,
+                     const SQLiteDBInstanceRef& instance) {
+  sqlite3_stmt* prepared_statement{nullptr}; /* Statement to execute. */
+
+  int rc = SQLITE_OK; /* Return Code */
+  const char* leftover_sql = nullptr; /* Tail of unprocessed SQL */
+  const char* sql = query.c_str(); /* SQL to be processed */
+
+  /* The big while loop.  One iteration per statement */
+  while ((sql[0] != '\0') && (SQLITE_OK == rc)) {
+    const auto lock = instance->attachLock();
+
+    // Trim leading whitespace
+    while (isspace(sql[0])) {
+      sql++;
+    }
+    rc = sqlite3_prepare_v2(
+        instance->db(), sql, -1, &prepared_statement, &leftover_sql);
+    if (rc != SQLITE_OK) {
+      Status s = Status::failure(sqlite3_errmsg(instance->db()));
+      sqlite3_finalize(prepared_statement);
+      return s;
+    }
+
+    Status s = readRows(prepared_statement, results, instance);
+    if (!s.ok()) {
+      return s;
+    }
+
+    sql = leftover_sql;
+  } /* end while */
+  sqlite3_db_release_memory(instance->db());
+  return Status::success();
 }
 
 Status getQueryColumnsInternal(const std::string& q,
@@ -529,7 +598,7 @@ Status getQueryColumnsInternal(const std::string& q,
       auto col_type = sqlite3_column_decltype(stmt, i);
 
       if (col_name == nullptr) {
-        status = Status(1, "Could not get column type");
+        status = Status(1, "Could not get column name");
         break;
       }
 
