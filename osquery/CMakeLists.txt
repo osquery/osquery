@@ -34,11 +34,9 @@ set(OSQUERY_ADDITIONAL_TESTS "")
 set(OSQUERY_TABLES_TESTS "")
 
 # Add all and extra for osquery code.
-add_compile_options(
-  -Werror
-)
 if(CLANG AND POSIX)
   add_compile_options(
+    -Werror
     -Wall
     -Wextra
     -pedantic
