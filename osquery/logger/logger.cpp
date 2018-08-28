@@ -276,8 +276,6 @@ void initStatusLogger(const std::string& name, bool init_glog) {
 }
 
 void initLogger(const std::string& name) {
-  // Stop the buffering sink and store the intermediate logs.
-  BufferedLogSink::get().disable();
   BufferedLogSink::get().resetPlugins();
 
   bool forward = false;
