@@ -29,6 +29,10 @@
 #include <WinSock2.h>
 #endif
 
+#if defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
+
 #include <ctime>
 #include <sstream>
 
@@ -579,6 +583,10 @@ Status setThreadName(const std::string& name) {
              ? Status::success()
              : Status::failure("pthread_setname_np failed with error " +
                                std::to_string(return_code));
+#elif defined(__FreeBSD__)
+  // FreeBSD silently ignores errors and does not return an error code
+  pthread_set_name_np(pthread_self(), name.c_str());
+  return Status::success();
 #elif defined(WIN32)
   // SetThreadDescription is available in builds newer than 1607 of windows 10
   // and works even if there is no debugger.
