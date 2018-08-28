@@ -117,6 +117,14 @@ function build_target() {
   fi
 }
 
+function test_target() {
+  if [[ "$RUN_TARGET" = "debug" ]]; then
+    $MAKE test_debug
+  else
+    $MAKE test
+  fi
+}
+
 function check_deterministic() {
   # Expect the project to have been built.
   ALIAS=$DISTRO
@@ -180,6 +188,6 @@ function build() {
 
   if [[ $RUN_TESTS = true ]]; then
     # Run code unit and integration tests.
-    $MAKE test
+    test_target
   fi
 }

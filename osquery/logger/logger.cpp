@@ -131,9 +131,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /// Accessor/mutator to dump all of the buffered logs.
   std::vector<StatusLogLine>& dump();
 
-  /// Remove the buffered log sink from Glog.
-  void disable();
-
   /// Add the buffered log sink to Glog.
   void enable();
 
@@ -170,7 +167,7 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /// Create the log sink as buffering or forwarding.
   BufferedLogSink() = default;
 
-  /// Remove the log sink.
+  /// Stop the log sink.
   ~BufferedLogSink();
 
  private:
@@ -185,20 +182,8 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
    */
   std::atomic<bool> enabled_{false};
 
-  /// Boolean to help the logger disabler, no need to take action if not active.
-  bool active_{false};
-
   /// Track multiple loggers that should receive sinks from the send forwarder.
   std::vector<std::string> sinks_;
-
-  /// Keep track of the first, or 'primary' logger.
-  std::string primary_;
-
-  /// Mutex for checking primary status.
-  mutable Mutex primary_mutex_;
-
-  /// Mutex protecting activation and enabling of the buffered status logger.
-  Mutex enable_mutex_;
 };
 
 /// Mutex protecting accesses to buffered status logs.
@@ -291,17 +276,13 @@ void initStatusLogger(const std::string& name, bool init_glog) {
   if (init_glog) {
     google::InitGoogleLogging(name.c_str());
   }
-  BufferedLogSink::get().setUp();
+
+  if (!FLAGS_disable_logging) {
+    BufferedLogSink::get().setUp();
+  }
 }
 
 void initLogger(const std::string& name) {
-  // Check if logging is disabled, if so then no need to shuttle intermediates.
-  if (FLAGS_disable_logging) {
-    return;
-  }
-
-  // Stop the buffering sink and store the intermediate logs.
-  BufferedLogSink::get().disable();
   BufferedLogSink::get().resetPlugins();
 
   bool forward = false;
@@ -346,34 +327,12 @@ BufferedLogSink& BufferedLogSink::get() {
 }
 
 void BufferedLogSink::setUp() {
-  WriteLock lock(enable_mutex_);
-  active_ = true;
   google::RemoveLogSink(&get());
   google::AddLogSink(&get());
 }
 
-void BufferedLogSink::disable() {
-  WriteLock lock(enable_mutex_);
-
-  if (enabled_) {
-    enabled_ = false;
-    if (active_) {
-      active_ = false;
-      google::RemoveLogSink(&get());
-    }
-  }
-}
-
 void BufferedLogSink::enable() {
-  WriteLock lock(enable_mutex_);
-
-  if (!enabled_) {
-    enabled_ = true;
-    if (!active_) {
-      active_ = true;
-      google::AddLogSink(&get());
-    }
-  }
+  enabled_ = true;
 }
 
 void BufferedLogSink::send(google::LogSeverity severity,
@@ -383,10 +342,6 @@ void BufferedLogSink::send(google::LogSeverity severity,
                            const struct ::tm* tm_time,
                            const char* message,
                            size_t message_len) {
-  if (FLAGS_disable_logging) {
-    return;
-  }
-
   // WARNING, be extremely careful when accessing data here.
   // This should not cause any persistent storage or logging actions.
   {
@@ -443,7 +398,7 @@ const std::vector<std::string>& BufferedLogSink::enabledPlugins() const {
 }
 
 BufferedLogSink::~BufferedLogSink() {
-  disable();
+  enabled_ = false;
 }
 
 Status LoggerPlugin::call(const PluginRequest& request,

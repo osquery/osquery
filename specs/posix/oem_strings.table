@@ -1,0 +1,9 @@
+table_name("oem_strings")
+description("OEM defined strings retrieved from SMBIOS.")
+schema([
+    Column("handle", TEXT, "Handle, or instance number, associated with the Type 11 structure"),
+    Column("number", INTEGER, "The string index of the structure"),
+    Column("value", TEXT, "The value of the OEM string"),
+])
+
+implementation("smbios_tables@genOEMStrings")

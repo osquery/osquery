@@ -98,27 +98,30 @@ class Expected final {
   explicit Expected(ErrorCodeEnumType code, std::string message)
       : object_{ErrorType(code, message)} {}
 
-  Expected(Expected&& other) = default;
-
   Expected() = delete;
-  Expected(const Expected&) = delete;
   Expected(ErrorBase* error) = delete;
+
+  Expected(Expected&& other)
+      : object_(std::move(other.object_)), errorChecked_(other.errorChecked_) {
+    other.errorChecked_.set(true);
+  }
 
   Expected& operator=(Expected&& other) {
     if (this != &other) {
-      errorChecked_.verify("Error was not checked");
+      errorChecked_.verify("Expected was not checked before assigning");
 
       object_ = std::move(other.object_);
       errorChecked_ = other.errorChecked_;
-      other.errorChecked_ = true;
+      other.errorChecked_.set(true);
     }
     return *this;
   }
 
+  Expected(const Expected&) = delete;
   Expected& operator=(const Expected& other) = delete;
 
   ~Expected() {
-    errorChecked_.verify("Error was not checked");
+    errorChecked_.verify("Expected was not checked before destruction");
   }
 
   static SelfType success(ValueType value) {

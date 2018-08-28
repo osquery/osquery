@@ -36,6 +36,7 @@ set(OSQUERY_TABLES_TESTS "")
 # Add all and extra for osquery code.
 if(CLANG AND POSIX)
   add_compile_options(
+    -Werror
     -Wall
     -Wextra
     -pedantic
@@ -472,6 +473,16 @@ if(NOT SKIP_TESTS)
     target_link_libraries(osquery_tables_tests gtest gmock libosquery_testing)
     SET_OSQUERY_COMPILE(osquery_tables_tests "${GTEST_FLAGS}")
     add_test(osquery_tables_tests osquery_tables_tests ${TEST_ARGS})
+
+    include(tests/integration/CMakeLists.txt)
+    add_executable(osquery_integration_tests main/tests.cpp $<TARGET_OBJECTS:osquery_tables_integration_tests>)
+    ADD_DEFAULT_LINKS(osquery_integration_tests TRUE)
+    target_link_libraries(osquery_integration_tests gtest gmock libosquery_testing)
+    SET_OSQUERY_COMPILE(osquery_integration_tests "${GTEST_FLAGS}")
+    add_test(NAME
+              osquery_integration_tests
+            COMMAND
+              osquery_tables_tests ${TEST_ARGS})
   endif()
 
   # Build the example extension with the SDK.

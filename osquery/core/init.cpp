@@ -383,6 +383,11 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     FLAGS_disable_watchdog = true;
   }
 
+  if (isWatcher()) {
+    FLAGS_disable_database = true;
+    FLAGS_disable_logging = true;
+  }
+
   // Initialize the status and results logger.
   initStatusLogger(binary_, init_glog);
   if (kToolType != ToolType::EXTENSION) {
@@ -477,8 +482,6 @@ void Initializer::initShell() const {
 void Initializer::initWatcher() const {
   // The watcher should not log into or use a persistent database.
   if (isWatcher()) {
-    FLAGS_disable_database = true;
-    FLAGS_disable_logging = true;
     DatabasePlugin::setAllowOpen(true);
     DatabasePlugin::initPlugin();
   }
@@ -671,8 +674,8 @@ void Initializer::start() const {
   // Initialize the status and result plugin logger.
   if (!FLAGS_disable_logging) {
     initActivePlugin("logger", FLAGS_logger_plugin);
+    initLogger(binary_);
   }
-  initLogger(binary_);
 
   // Initialize the distributed plugin, if necessary
   if (!FLAGS_disable_distributed) {
