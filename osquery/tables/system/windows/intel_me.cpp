@@ -125,7 +125,14 @@ void getHECIDriverVersion(QueryData& results) {
                         nullptr);
 
   if (ret == 0) {
-    VLOG(1) << "Device IOCTL call failed with " << GetLastError();
+    auto last_error = GetLastError();
+    if (last_error == ERROR_GEN_FAILURE) {
+      VLOG(1) << "The driver is already in use by another client and can't be "
+                 "queried at this time";
+    } else {
+      VLOG(1) << "Device IOCTL call failed with " << last_error;
+    }
+
     CloseHandle(driver);
     return;
   }
