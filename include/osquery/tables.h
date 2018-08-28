@@ -26,6 +26,7 @@
 #include <boost/core/ignore_unused.hpp>
 #include <boost/coroutine2/coroutine.hpp>
 #include <boost/optional.hpp>
+#include <sqlite3.h>
 
 #include <osquery/core.h>
 #include <osquery/plugin.h>
@@ -300,6 +301,9 @@ using TableColumns =
 /// Alias for map of column alias sets.
 using ColumnAliasSet = std::map<std::string, std::set<std::string>>;
 
+/// Alias for a map of alias to canonical column names
+using AliasColumnMap = std::map<std::string, std::string>;
+
 /// Forward declaration of QueryContext for ConstraintList relationships.
 struct QueryContext;
 
@@ -499,6 +503,9 @@ struct VirtualTableContent {
   /// Transient set of virtual table used columns
   std::unordered_map<size_t, UsedColumns> colsUsed;
 
+  /// Transient set of virtual table used columns (as bitmasks)
+  std::unordered_map<size_t, sqlite_uint64> colsUsedMasks;
+
   /*
    * @brief A table implementation specific query result cache.
    *
@@ -634,6 +641,10 @@ struct QueryContext : private only_movable {
   /// Check if any of the given columns is used by the query
   bool isAnyColumnUsed(std::initializer_list<std::string> colNames) const;
 
+  inline bool isAnyColumnUsed(uint64_t mask) const {
+    return (mask & *colsUsedMask) != 0;
+  }
+
   template <typename Type>
   inline void setTextColumnIfUsed(Row& r,
                                   const std::string& colName,
@@ -696,6 +707,7 @@ struct QueryContext : private only_movable {
   ConstraintMap constraints;
 
   boost::optional<UsedColumns> colsUsed;
+  boost::optional<uint64_t> colsUsedMask;
 
  private:
   /// If false then the context is maintaining an ephemeral cache.
@@ -746,6 +758,20 @@ class TablePlugin : public Plugin {
   /// Define a map of target columns to optional aliases.
   virtual ColumnAliasSet columnAliases() const {
     return ColumnAliasSet();
+  }
+
+  /// Define a map of aliases to canoical columns
+  virtual AliasColumnMap aliasedColumns() const {
+    AliasColumnMap result;
+
+    for (const auto& columnAliases : columnAliases()) {
+      const auto& columnName = columnAliases.first;
+      for (const auto& alias : columnAliases.second) {
+        result[alias] = columnName;
+      }
+    }
+
+    return AliasColumnMap();
   }
 
   /// Return a set of attribute flags.
@@ -928,10 +954,6 @@ class TablePlugin : public Plugin {
   static void setRequestFromContext(const QueryContext& context,
                                     PluginRequest& request);
 
-  /// Helper data structure transformation methods.
-  static void setContextFromRequest(const PluginRequest& request,
-                                    QueryContext& context);
-
  public:
   /**
    * @brief Add a virtual table that exists in an extension.
@@ -949,6 +971,10 @@ class TablePlugin : public Plugin {
   static void removeExternal(const std::string& name);
 
  private:
+  /// Helper data structure transformation methods.
+  QueryContext getContextFromRequest(const PluginRequest& request) const;
+
+  uint64_t usedColumnNamesToMask(const UsedColumns usedColumns) const;
   friend class RegistryFactory;
   FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
   FRIEND_TEST(VirtualTableTests, test_extension_tableplugin_columndefinition);

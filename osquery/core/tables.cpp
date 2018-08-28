@@ -18,16 +18,6 @@
 #include <osquery/tables.h>
 
 namespace osquery {
-namespace {
-QueryContext queryContextFromRequest(const PluginRequest& request) {
-  QueryContext context;
-  if (request.count("context") > 0) {
-    TablePlugin::setContextFromRequest(request, context);
-  }
-
-  return context;
-};
-} // namespace
 
 FLAG(bool, disable_caching, false, "Disable scheduled query caching");
 
@@ -90,11 +80,16 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
     doc.add("colsUsed", colsUsed);
   }
 
+  if (context.colsUsedMask) {
+    doc.add("colsUsedMask", *context.colsUsedMask);
+  }
+
   doc.toString(request["context"]);
 }
 
-void TablePlugin::setContextFromRequest(const PluginRequest& request,
-                                        QueryContext& context) {
+QueryContext TablePlugin::getContextFromRequest(
+    const PluginRequest& request) const {
+  QueryContext context;
   auto doc = JSON::newObject();
   doc.fromString(request.at("context"));
   if (doc.doc().HasMember("colsUsed")) {
@@ -104,9 +99,15 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
     }
     context.colsUsed = colsUsed;
   }
+  if (doc.doc().HasMember("colsUsedMask")) {
+    context.colsUsedMask = doc.doc()["colsUsedMask"].GetUint64();
+  } else {
+    context.colsUsedMask = usedColumnNamesToMask(*context.colsUsed);
+  }
+
   if (!doc.doc().HasMember("constraints") ||
       !doc.doc()["constraints"].IsArray()) {
-    return;
+    return context;
   }
 
   // Set the context limit and deserialize each column constraint list.
@@ -114,6 +115,28 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
     auto column_name = constraint["name"].GetString();
     context.constraints[column_name].deserialize(constraint);
   }
+
+  return context;
+}
+
+uint64_t TablePlugin::usedColumnNamesToMask(
+    const UsedColumns usedColumns) const {
+  uint64_t result = 0;
+
+  const auto columns = this->columns();
+  const auto aliases = this->aliasedColumns();
+  for (size_t i = 0; i < columns.size(); i++) {
+    auto column_name = std::get<0>(columns[i]);
+    const auto& aliased_name = aliases.find(column_name);
+    if (aliased_name != aliases.end()) {
+      column_name = aliased_name->second;
+    }
+    if (usedColumns.find(column_name) != usedColumns.end()) {
+      result |= 1 << i;
+    }
+  }
+
+  return result;
 }
 
 Status TablePlugin::call(const PluginRequest& request,
@@ -128,16 +151,16 @@ Status TablePlugin::call(const PluginRequest& request,
   const auto& action = request.at("action");
 
   if (action == "generate") {
-    auto context = queryContextFromRequest(request);
+    auto context = getContextFromRequest(request);
     response = generate(context);
   } else if (action == "delete") {
-    auto context = queryContextFromRequest(request);
+    auto context = getContextFromRequest(request);
     response = delete_(context, request);
   } else if (action == "insert") {
-    auto context = queryContextFromRequest(request);
+    auto context = getContextFromRequest(request);
     response = insert(context, request);
   } else if (action == "update") {
-    auto context = queryContextFromRequest(request);
+    auto context = getContextFromRequest(request);
     response = update(context, request);
   } else if (action == "columns") {
     response = routeInfo();
