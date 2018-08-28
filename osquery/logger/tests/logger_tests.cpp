@@ -21,7 +21,6 @@ namespace osquery {
 
 DECLARE_int32(logger_min_status);
 DECLARE_int32(logger_min_stderr);
-DECLARE_bool(logger_secondary_status_only);
 DECLARE_bool(logger_status_sync);
 DECLARE_bool(logger_event_type);
 DECLARE_bool(logger_snapshot_event_type);

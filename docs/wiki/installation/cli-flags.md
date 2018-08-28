@@ -354,10 +354,6 @@ The minimum level for status log recording. Use the following values: `INFO = 0,
 
 The minimum level for status logs written to stderr. Use the following values: `INFO = 0, WARNING = 1, ERROR = 2`. To disable all status messages use 3+. It does NOT limit or control the types sent to the logger plugin. When using `--verbose` this value is ignored.
 
-`--logger_stderr=true`
-
-The default behavior is to also write status logs to stderr. Set this flag to false to disable writing (copying) status logs to stderr. In this case `--verbose` is respected.
-
 `--host_identifier=hostname`
 
 Field used to identify the host running osquery: **hostname**, **uuid**, **ephemeral**, **instance**, **specified**.
