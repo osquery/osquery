@@ -604,6 +604,7 @@ endif()
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
+include_directories("${CMAKE_BINARY_DIR}/generated")
 
 if(NOT FREEBSD)
   include_directories("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")

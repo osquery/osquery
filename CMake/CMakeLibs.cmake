@@ -557,6 +557,30 @@ macro(GENERATE_TABLE TABLE_FILE FOREIGN NAME BASE_PATH OUTPUT)
   list(APPEND ${OUTPUT} "${TABLE_FILE_GEN}")
 endmacro(GENERATE_TABLE)
 
+macro(GENERATE_ROW TABLE_FILE NAME BASE_PATH OUTPUT)
+  GET_GENERATION_DEPS(${BASE_PATH})
+  set(ROW_FILE_GEN "${TABLE_FILE}")
+  string(REGEX REPLACE
+          ".*/specs.*/(.*)\\.table"
+          "${CMAKE_BINARY_DIR}/generated/osquery/rows/\\1.h"
+          ROW_FILE_GEN
+          ${ROW_FILE_GEN}
+          )
+
+  add_custom_command(
+          OUTPUT "${ROW_FILE_GEN}"
+          COMMAND "${PYTHON_EXECUTABLE}"
+          "${BASE_PATH}/tools/codegen/gentable.py"
+          "--header"
+          "${TABLE_FILE}"
+          "${ROW_FILE_GEN}"
+          DEPENDS ${TABLE_FILE} ${GENERATION_DEPENDENCIES}
+          WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  )
+
+  list(APPEND ${OUTPUT} "${ROW_FILE_GEN}")
+endmacro(GENERATE_ROW)
+
 macro(AMALGAMATE BASE_PATH NAME OUTPUT)
   GET_GENERATION_DEPS(${BASE_PATH})
   if("${NAME}" STREQUAL "foreign")
@@ -570,6 +594,7 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
 
   foreach(TARGET ${TARGETS})
     GENERATE_TABLE("${TARGET}" "${FOREIGN}" "${NAME}" "${BASE_PATH}" GENERATED_TARGETS)
+    GENERATE_ROW("${TARGET}" "${NAME}" "${BASE_PATH}" GENERATED_TARGETS)
   endforeach()
 
   # Include the generated folder in make clean.

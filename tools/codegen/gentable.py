@@ -205,6 +205,7 @@ class TableState(Singleton):
         self.fuzz_paths = []
         self.has_options = False
         self.has_column_aliases = False
+        self.strongly_typed_rows = False
         self.generator = False
 
     def columns(self):
@@ -237,6 +238,8 @@ class TableState(Singleton):
             self.has_options = True
         if "event_subscriber" in self.attributes:
             self.generator = True
+        if "strongly_typed_rows" in self.attributes:
+            self.strongly_typed_rows = True
         if "cacheable" in self.attributes:
             if self.generator:
                 print(lightred(
@@ -287,6 +290,7 @@ class TableState(Singleton):
             has_options=self.has_options,
             has_column_aliases=self.has_column_aliases,
             generator=self.generator,
+            strongly_typed_rows=self.strongly_typed_rows,
             attribute_set=[TABLE_ATTRIBUTES[attr] for attr in self.attributes if attr in TABLE_ATTRIBUTES],
         )
 
@@ -446,6 +450,8 @@ def main(argc, argv):
     )
     parser.add_argument("--disable-blacklist", default=False,
         action="store_true")
+    parser.add_argument("--header", default=False, action="store_true",
+                        help="Generate the header file instead of cpp")
     parser.add_argument("--foreign", default=False, action="store_true",
         help="Generate a foreign table")
     parser.add_argument("--templates", default=SCRIPT_DIR + "/templates",
@@ -472,7 +478,12 @@ def main(argc, argv):
             if not args.disable_blacklist and blacklisted:
                 table.blacklist(output)
             else:
-                template_type = "default" if not args.foreign else "foreign"
+                if args.header:
+                    template_type = "typed_row"
+                elif args.foreign:
+                    template_type = "foreign"
+                else:
+                    template_type = "default"
                 table.generate(output, template=template_type)
 
 if __name__ == "__main__":

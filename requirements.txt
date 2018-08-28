@@ -1,4 +1,4 @@
-Jinja2==2.8
+Jinja2==2.10
 argparse
 
 # The pip / setup tools for Windows will not include psutil

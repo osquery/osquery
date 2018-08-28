@@ -156,9 +156,6 @@ class TableRow {
 
   virtual ~TableRow() {}
 
-  TableRow(const TableRow&) = delete;
-  TableRow& operator=(const TableRow&) = delete;
-
   virtual int get_rowid(sqlite_int64 default_value,
                         sqlite_int64* pRowid) const = 0;
 
@@ -171,6 +168,10 @@ class TableRow {
   virtual TableRowHolder clone() const = 0;
 
   virtual operator Row() const = 0;
+
+ protected:
+  TableRow(const TableRow&) = default;
+  TableRow& operator=(const TableRow&) = default;
 };
 
 class DynamicTableRow : public TableRow {
