@@ -318,6 +318,23 @@ Status queryInternal(const std::string& q,
                      const SQLiteDBInstanceRef& instance);
 
 /**
+ * @brief SQLite Internal: Execute a query on a specific database
+ *
+ * If you need to use a different database, other than the osquery default,
+ * use this method and pass along a pointer to a SQLite3 database. This is
+ * useful for testing.
+ *
+ * @param q the query to execute
+ * @param results The QueryDataTyped vector to emit rows on query success.
+ * @param db the SQLite3 database to execute query q against
+ *
+ * @return A status indicating SQL query results.
+ */
+Status queryInternal(const std::string& q,
+                     QueryDataTyped& results,
+                     const SQLiteDBInstanceRef& instance);
+
+/**
  * @brief SQLite Intern: Analyze a query, providing information about the
  * result columns
  *
