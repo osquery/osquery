@@ -23,6 +23,10 @@
 #include "osquery/tables/system/intel_me.hpp"
 
 namespace osquery {
+namespace {
+const size_t kMinResponseSize = 0x38U;
+}
+
 namespace tables {
 
 DEFINE_GUID(HECI_INTERFACE_GUID,
@@ -131,6 +135,13 @@ void getHECIDriverVersion(QueryData& results) {
     return;
   }
 
+  if (response.maxlen < kMinResponseSize) {
+    VLOG(1) << "Invalid maxlen size";
+    return;
+  } else if (response.maxlen != 0x1000) {
+    VLOG(1) << "The returned maxlen field value is unexpected";
+  }
+
   unsigned char fw_cmd[4] = {0};
   ret = WriteFile(
       driver, static_cast<void*>(fw_cmd), sizeof(fw_cmd), nullptr, nullptr);
@@ -139,20 +150,25 @@ void getHECIDriverVersion(QueryData& results) {
   }
 
   // Response from FirmwareUpdate HECI GUID.
-  std::vector<std::uint8_t> read_buffer;
-  read_buffer.resize(static_cast<size_t>(response.response_size));
+  std::vector<std::uint8_t> read_buffer(response.maxlen);
+  DWORD bytes_read = 0U;
 
   ret = ReadFile(driver,
                  read_buffer.data(),
                  static_cast<DWORD>(read_buffer.size()),
-                 nullptr,
+                 &bytes_read,
                  nullptr);
-  if (ret != TRUE) {
-    memset(read_buffer.data(), 0, read_buffer.size());
-    VLOG(1) << "HECI driver read failed with " << GetLastError();
-  }
 
   CloseHandle(driver);
+
+  if (ret != TRUE) {
+    std::fill(read_buffer.begin(), read_buffer.end(), 0U);
+    VLOG(1) << "HECI driver read failed with " << GetLastError();
+  } else if (static_cast<size_t>(bytes_read) < kMinResponseSize) {
+    // This is unlikely
+    std::fill(read_buffer.begin(), read_buffer.end(), 0U);
+    VLOG(1) << "The driver has not returned enough bytes";
+  }
 
   auto version = reinterpret_cast<const mei_version*>(read_buffer.data());
 
