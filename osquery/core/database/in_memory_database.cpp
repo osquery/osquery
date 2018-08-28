@@ -50,7 +50,9 @@ void InMemoryDatabase::close() {
   VLOG(1) << "Closing db... ";
   debug_only::verifyTrue(is_open_, "database is not open");
   is_open_ = false;
-  destroyDB();
+  auto status = destroyDB();
+  debug_only::verifyTrue(status.isValue(),
+                         "InMemoryDatabase::destroyDB couldn't fail");
 }
 
 ExpectedSuccess<DatabaseError> InMemoryDatabase::destroyDB() {
@@ -119,7 +121,7 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::putValue(
   debug_only::verify(
       [&storage_iter, &key]() {
         auto result = storage_iter->second->get(key);
-        return result && result.get().type() == typeid(T);
+        return result ? result.get().type() == typeid(T) : true;
       },
       "changing type is not allowed");
   storage_iter->second->put(key, value);
