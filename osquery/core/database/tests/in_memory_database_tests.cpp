@@ -24,23 +24,14 @@ GTEST_TEST(InMemoryDatabaseTest, test_open) {
 
 GTEST_TEST(InMemoryDatabaseTest, test_destroy) {
   auto db = std::make_unique<InMemoryDatabase>("test");
-  {
-    auto status = db->open();
-    ASSERT_TRUE(status.isValue());
-  }
-  {
-    auto status = db->putInt32(kPersistentSettings, "key", 10);
-    ASSERT_TRUE(status.isValue());
-  }
+  ASSERT_FALSE(db->open().isError());
+  ASSERT_FALSE(db->putInt32(kPersistentSettings, "key", 10).isError());
   db->close();
   // In memory db should be destroyed on close
   // but we want to test that destroy is not failing for no reason
   auto result = db->destroyDB();
   EXPECT_TRUE(result);
-  {
-    auto status = db->open();
-    ASSERT_TRUE(status.isValue());
-  }
+  ASSERT_FALSE(db->open().isError());
   auto get_result = db->getInt32(kPersistentSettings, "key");
   EXPECT_FALSE(get_result);
   EXPECT_EQ(get_result.getError(), DatabaseError::KeyNotFound);
@@ -67,10 +58,7 @@ GTEST_TEST(InMemoryDatabaseTest, test_put) {
 
 GTEST_TEST(InMemoryDatabaseTest, test_domain_error) {
   auto db = std::make_unique<InMemoryDatabase>("test");
-  {
-    auto status = db->open();
-    ASSERT_TRUE(status.isValue());
-  }
+  ASSERT_FALSE(db->open().isError());
   auto result = db->putInt32("bad_domain", "key", 12);
   EXPECT_FALSE(result);
   EXPECT_EQ(result.takeError(), DatabaseError::DomainNotFound);
@@ -78,14 +66,8 @@ GTEST_TEST(InMemoryDatabaseTest, test_domain_error) {
 
 GTEST_TEST(InMemoryDatabaseTest, test_unknown_key) {
   auto db = std::make_unique<InMemoryDatabase>("test");
-  {
-    auto status = db->open();
-    ASSERT_TRUE(status.isValue());
-  }
-  {
-    auto status = db->putInt32(kPersistentSettings, "key", 12);
-    ASSERT_TRUE(status.isValue());
-  }
+  ASSERT_FALSE(db->open().isError());
+  ASSERT_FALSE(db->putInt32(kPersistentSettings, "key", 12).isError());
   auto result = db->getInt32(kPersistentSettings, "key_");
   EXPECT_FALSE(result);
   EXPECT_EQ(result.takeError(), DatabaseError::KeyNotFound);
@@ -93,30 +75,12 @@ GTEST_TEST(InMemoryDatabaseTest, test_unknown_key) {
 
 GTEST_TEST(InMemoryDatabaseTest, test_keys_search) {
   auto db = std::make_unique<InMemoryDatabase>("test");
-  {
-    auto status = db->open();
-    ASSERT_TRUE(status.isValue());
-  }
-  {
-    auto status = db->putInt32(kPersistentSettings, "key_1", 1);
-    ASSERT_TRUE(status.isValue());
-  }
-  {
-    auto status = db->putInt32(kPersistentSettings, "key_2", 2);
-    ASSERT_TRUE(status.isValue());
-  }
-  {
-    auto status = db->putInt32(kPersistentSettings, "key_3", 3);
-    ASSERT_TRUE(status.isValue());
-  }
-  {
-    auto status = db->putInt32(kPersistentSettings, "kEy_1", 4);
-    ASSERT_TRUE(status.isValue());
-  }
-  {
-    auto status = db->putInt32(kPersistentSettings, "kEy_2", 5);
-    ASSERT_TRUE(status.isValue());
-  }
+  ASSERT_FALSE(db->open().isError());
+  ASSERT_FALSE(db->putInt32(kPersistentSettings, "key_1", 1).isError());
+  ASSERT_FALSE(db->putInt32(kPersistentSettings, "key_2", 2).isError());
+  ASSERT_FALSE(db->putInt32(kPersistentSettings, "key_3", 3).isError());
+  ASSERT_FALSE(db->putInt32(kPersistentSettings, "kEy_1", 4).isError());
+  ASSERT_FALSE(db->putInt32(kPersistentSettings, "kEy_2", 5).isError());
   auto result_all = db->getKeys(kPersistentSettings);
   EXPECT_TRUE(result_all);
   EXPECT_EQ((*result_all).size(), 5);
