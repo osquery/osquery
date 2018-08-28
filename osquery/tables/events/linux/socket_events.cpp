@@ -47,18 +47,34 @@ std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
 bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
   unix_socket = false;
 
+  std::string address_column;
+  std::string port_column;
+  if (row["action"] == "bind") {
+    address_column = "local_address";
+    port_column = "local_port";
+
+    row["remote_address"] = "0";
+    row["remote_port"] = "0";
+  } else {
+    address_column = "remote_address";
+    port_column = "remote_port";
+
+    row["local_address"] = "0";
+    row["local_port"] = "0";
+  }
+
   // The protocol is not included in the audit message.
   if (saddr[0] == '0' && saddr[1] == '2') {
     // IPv4
     row["family"] = '2';
     long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0l);
-    row["remote_port"] = INTEGER(result);
-    row["remote_address"] = ip4FromSaddr(saddr, 8);
+    row[port_column] = INTEGER(result);
+    row[address_column] = ip4FromSaddr(saddr, 8);
   } else if (saddr[0] == '0' && saddr[1] == 'A') {
     // IPv6
     row["family"] = "10";
     long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0l);
-    row["remote_port"] = INTEGER(result);
+    row[port_column] = INTEGER(result);
     std::string address;
     for (size_t i = 0; i < 8; ++i) {
       address += saddr.substr(16 + (i * 4), 4);
@@ -67,13 +83,11 @@ bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
       }
     }
     boost::algorithm::to_lower(address);
-    row["remote_address"] = std::move(address);
+    row[address_column] = std::move(address);
   } else if (saddr[0] == '0' && saddr[1] == '1' && saddr.size() > 6) {
     unix_socket = true;
 
     row["family"] = '1';
-    row["local_port"] = '0';
-    row["remote_port"] = '0';
     off_t begin = (saddr[4] == '0' && saddr[5] == '0') ? 6 : 4;
     auto end = saddr.substr(begin).find("00");
     end = (end == std::string::npos) ? saddr.size() : end + 4;
