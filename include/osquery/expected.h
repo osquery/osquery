@@ -98,11 +98,13 @@ class Expected final {
   explicit Expected(ErrorCodeEnumType code, std::string message)
       : object_{ErrorType(code, message)} {}
 
-  Expected(Expected&& other) = default;
-
   Expected() = delete;
-  Expected(const Expected&) = delete;
   Expected(ErrorBase* error) = delete;
+
+  Expected(Expected&& other)
+      : object_(std::move(other.object_)), errorChecked_(other.errorChecked_) {
+    other.errorChecked_.set(true);
+  }
 
   Expected& operator=(Expected&& other) {
     if (this != &other) {
@@ -115,6 +117,7 @@ class Expected final {
     return *this;
   }
 
+  Expected(const Expected&) = delete;
   Expected& operator=(const Expected& other) = delete;
 
   ~Expected() {

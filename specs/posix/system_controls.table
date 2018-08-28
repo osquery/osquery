@@ -8,6 +8,10 @@ schema([
     Column("config_value", TEXT, "The MIB value set in /etc/sysctl.conf"),
     Column("type", TEXT, "Data type"),
 ])
+extended_schema(DARWIN, [
+    Column("field_name", TEXT, "Specific attribute of opaque type"),
+])
+
 implementation("system_controls@genSystemControls")
 fuzz_paths([
     "/run/sysctl.d/",
