@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -14,34 +13,30 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
+#include <osquery/logger.h>
+
 namespace osquery {
 
-class users : public IntegrationTableTest {};
+class UsersTest : public IntegrationTableTest {};
 
-TEST_F(users, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from users");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"uid", IntType}
-  //      {"gid", IntType}
-  //      {"uid_signed", IntType}
-  //      {"gid_signed", IntType}
-  //      {"username", NormalType}
-  //      {"description", NormalType}
-  //      {"directory", NormalType}
-  //      {"shell", NormalType}
-  //      {"uuid", NormalType}
-  //      {"type", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(UsersTest, sanity) {
+  QueryData rows = execute_query("select * from users");
+  ASSERT_GT(rows.size(), 0ul); // There is must be at least one user
+  auto row_map = ValidatatioMap{
+      {"uid", NonNegativeInt},
+      {"gid", NonNegativeInt},
+      {"uid_signed", IntType},
+      {"gid_signed", IntType},
+      {"username", NonEmptyString},
+      {"description", NormalType},
+      {"directory", NonEmptyString}, // The directory path could be fake
+      {"shell", FileOnDisk},
+      {"uuid", NormalType},
+#ifdef OSQUERY_WINDOWS
+      {"type", NormalType},
+#endif
+  };
+  validate_rows(rows, row_map);
 }
 
 } // namespace osquery
