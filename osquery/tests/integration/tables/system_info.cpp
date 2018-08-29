@@ -16,37 +16,27 @@
 
 namespace osquery {
 
-class systemInfo : public IntegrationTableTest {};
+class SystemInfo : public IntegrationTableTest {};
 
-TEST_F(systemInfo, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from system_info");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"hostname", NormalType}
-  //      {"uuid", NormalType}
-  //      {"cpu_type", NormalType}
-  //      {"cpu_subtype", NormalType}
-  //      {"cpu_brand", NormalType}
-  //      {"cpu_physical_cores", IntType}
-  //      {"cpu_logical_cores", IntType}
-  //      {"cpu_microcode", NormalType}
-  //      {"physical_memory", IntType}
-  //      {"hardware_vendor", NormalType}
-  //      {"hardware_model", NormalType}
-  //      {"hardware_version", NormalType}
-  //      {"hardware_serial", NormalType}
-  //      {"computer_name", NormalType}
-  //      {"local_hostname", NormalType}
-  //}
-  // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+TEST_F(SystemInfo, test_sanity) {
+  QueryData data = execute_query("select * from system_info");
+  ASSERT_EQ(data.size(), 1ul);
+  ValidatatioMap row_map = {{"hostname", NormalType},
+                            {"uuid", ValidUUID},
+                            {"cpu_type", NonEmptyString},
+                            {"cpu_subtype", NormalType},
+                            {"cpu_brand", NormalType},
+                            {"cpu_physical_cores", NonNegativeInt},
+                            {"cpu_logical_cores", NonNegativeInt},
+                            {"cpu_microcode", NormalType},
+                            {"physical_memory", NonNegativeInt},
+                            {"hardware_vendor", NormalType},
+                            {"hardware_model", NormalType},
+                            {"hardware_version", NormalType},
+                            {"hardware_serial", NonEmptyString},
+                            {"computer_name", NormalType},
+                            {"local_hostname", NonEmptyString}};
+  EXPECT_TRUE(validate_rows(data, row_map));
 }
 
 } // namespace osquery
