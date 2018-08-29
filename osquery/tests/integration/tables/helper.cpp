@@ -104,7 +104,7 @@ void IntegrationTableTest::validate_row(const Row& row,
           << value << " failed";
     } else {
       ASSERT_TRUE(
-          boost::get<std::shared_ptr<DataCheck>>(validator)->validate(value))
+          boost::get<CustomCheckerType>(validator)(value)
           << "Custom validator of the column " << key << " with value " << value
           << " failed";
     }
