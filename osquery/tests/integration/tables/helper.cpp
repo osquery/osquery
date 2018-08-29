@@ -42,8 +42,7 @@ QueryData IntegrationTableTest::execute_query(std::string query) {
 void IntegrationTableTest::validate_row(const Row& row,
                                         const ValidatatioMap& validation_map) {
   ASSERT_EQ(row.size(), validation_map.size())
-      << "Expected number of columns does not match with number of columns "
-         "genereated";
+      << "Unexpected number of columns";
   for (auto iter : validation_map) {
     std::string key = iter.first;
     auto row_data_iter = row.find(key);
