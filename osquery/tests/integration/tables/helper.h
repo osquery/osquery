@@ -17,7 +17,7 @@
 
 namespace osquery {
 
-class IntMinMaxCheck {
+class IntMinMaxCheck final {
  public:
   explicit IntMinMaxCheck(int min, int max) : min_(min), max_(max){};
 
@@ -28,7 +28,7 @@ class IntMinMaxCheck {
   const int max_;
 };
 
-class SpecificValuesCheck {
+class SpecificValuesCheck final {
  public:
   explicit SpecificValuesCheck(std::initializer_list<std::string> list)
       : set_(list) {}
