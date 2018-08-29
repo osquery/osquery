@@ -49,30 +49,28 @@ TEST_F(File, test_sanity) {
       "\"");
   EXPECT_EQ(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
-       {"path", NormalType},
-       {"directory", NormalType},
-       {"filename", NormalType},
-       {"inode", IntType},
-       {"uid", IntType},
-       {"gid", IntType},
-       {"mode", NormalType},
-       {"device", IntType},
-       {"size", IntType},
-       {"block_size", IntType},
-       {"atime", IntType},
-       {"mtime", IntType},
-       {"ctime", IntType},
-       {"btime", IntType},
-       {"hard_links", IntType},
-       {"symlink", IntType},
-       {"type", NormalType}
-  };
-  #ifdef WIN32
-    row_map["attributes"] = NormalType;
-    row_map["volume_serial"] = NormalType;
-    row_map["file_id"] = NormalType;
-  #endif
+  ValidatatioMap row_map = {{"path", NormalType},
+                            {"directory", NormalType},
+                            {"filename", NormalType},
+                            {"inode", IntType},
+                            {"uid", IntType},
+                            {"gid", IntType},
+                            {"mode", NormalType},
+                            {"device", IntType},
+                            {"size", IntType},
+                            {"block_size", IntType},
+                            {"atime", IntType},
+                            {"mtime", IntType},
+                            {"ctime", IntType},
+                            {"btime", IntType},
+                            {"hard_links", IntType},
+                            {"symlink", IntType},
+                            {"type", NormalType}};
+#ifdef WIN32
+  row_map["attributes"] = NormalType;
+  row_map["volume_serial"] = NormalType;
+  row_map["file_id"] = NormalType;
+#endif
 
   validate_rows(data, row_map);
   ASSERT_EQ(data[0]["path"], filepath.string());
