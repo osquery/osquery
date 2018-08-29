@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -14,30 +13,40 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
+#include <osquery/logger.h>
+
 namespace osquery {
 
-class debPackages : public IntegrationTableTest {};
+class DebPackages : public IntegrationTableTest {};
 
-TEST_F(debPackages, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from deb_packages");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"name", NormalType}
-  //      {"version", NormalType}
-  //      {"source", NormalType}
-  //      {"size", IntType}
-  //      {"arch", NormalType}
-  //      {"revision", NormalType}
-  //}
-  // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+TEST_F(DebPackages, test_sanity) {
+  QueryData rows = execute_query("select * from deb_packages");
+  if (rows.size() > 0) {
+    ValidatatioMap row_map = {
+        {"name", NonEmptyString},
+        {"version", NonEmptyString},
+        {"source", NormalType},
+        {"size", IntType},
+        {"arch", NonEmptyString},
+        {"revision", NormalType},
+    };
+    EXPECT_TRUE(validate_rows(rows, row_map));
+
+    auto all_packages = std::unordered_set<std::string>{};
+    for (const auto& row : rows) {
+      auto pckg_name = row.at("name");
+      all_packages.insert(pckg_name);
+    }
+
+    ASSERT_EQ(all_packages.count("dpkg"), 1u);
+    ASSERT_EQ(all_packages.count("linux-base"), 1u);
+    ASSERT_EQ(all_packages.count("linux-firmware"), 1u);
+    ASSERT_EQ(all_packages.count("linux-generic"), 1u);
+
+  } else {
+    LOG(WARNING) << "Empty results of query from 'deb_packages', assume there "
+                    "is no dpkg in the system";
+  }
 }
 
 } // namespace osquery
