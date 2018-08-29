@@ -53,7 +53,7 @@ void IntegrationTableTest::validate_row(const Row& row,
     if (validator.type() == typeid(int)) {
       int flags = boost::get<int>(validator);
       ASSERT_TRUE(validate_value_using_flags(value, flags))
-          << "standard validator of the column " << key << " with value "
+          << "Standard validator of the column " << key << " with value "
           << value << " and flags faild";
     } else {
       ASSERT_TRUE(
