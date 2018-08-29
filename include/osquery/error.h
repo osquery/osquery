@@ -47,6 +47,8 @@ class Error final : public ErrorBase {
         message_(std::move(message)),
         underlyingError_(std::move(underlying_error)) {}
 
+  virtual ~Error() = default;
+
   Error(Error&& other) = default;
   Error(const Error& other) = delete;
 
