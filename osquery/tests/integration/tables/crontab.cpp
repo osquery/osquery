@@ -42,7 +42,7 @@ TEST_F(Crontab, test_sanity) {
                             {"day_of_week", CronValuesCheck(0, 6, days_list)},
                             {"command", NonEmptyString},
                             {"path", FileOnDisk}};
-  EXPECT_TRUE(validate_rows(data, row_map));
+  validate_rows(data, row_map);
 }
 
 } // namespace osquery

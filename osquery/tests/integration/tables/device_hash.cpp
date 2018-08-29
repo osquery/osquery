@@ -37,7 +37,7 @@ TEST_F(deviceHash, test_sanity) {
   //      {"sha256", NormalType}
   //}
   // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+  // validate_rows(data, row_map);
 }
 
 } // namespace osquery

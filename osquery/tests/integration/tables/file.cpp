@@ -51,7 +51,7 @@ TEST_F(file, test_sanity) {
   //      {"file_id", NormalType}
   //}
   // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+  // validate_rows(data, row_map);
 }
 
 } // namespace osquery

@@ -34,7 +34,7 @@ TEST_F(userSshKeys, test_sanity) {
   //      {"encrypted", IntType}
   //}
   // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+  // validate_rows(data, row_map);
 }
 
 } // namespace osquery

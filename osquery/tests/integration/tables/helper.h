@@ -83,9 +83,10 @@ class IntegrationTableTest : public ::testing::Test {
   virtual void TearDown() {}
 
   QueryData execute_query(std::string query);
-  static bool validate_row(const Row& row,
+
+  static void validate_row(const Row& row,
                            const ValidatatioMap& validation_map);
-  static bool validate_rows(const std::vector<Row>& rows,
+  static void validate_rows(const std::vector<Row>& rows,
                             const ValidatatioMap& validation_map);
   static bool validate_value_using_flags(const std::string& value, int flags);
   static bool is_valid_hex(const std::string& value);

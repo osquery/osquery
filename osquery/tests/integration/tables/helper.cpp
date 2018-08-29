@@ -86,14 +86,34 @@ QueryData IntegrationTableTest::execute_query(std::string query) {
   return sql.rows();
 }
 
-bool IntegrationTableTest::validate_rows(const std::vector<Row>& rows,
-                                         const ValidatatioMap& validation_map) {
-  for (auto row : rows) {
-    if (!validate_row(row, validation_map)) {
-      return false;
+void IntegrationTableTest::validate_row(const Row& row,
+                                        const ValidatatioMap& validation_map) {
+  ASSERT_EQ(row.size(), validation_map.size())
+      << "Unexpected number of columns";
+  for (auto iter : validation_map) {
+    std::string key = iter.first;
+    auto row_data_iter = row.find(key);
+    ASSERT_NE(row_data_iter, row.end())
+        << "Could not find column " << key << " in the generated columns";
+    std::string value = row_data_iter->second;
+    ValidatatioDataType validator = iter.second;
+    if (validator.type() == typeid(int)) {
+      int flags = boost::get<int>(validator);
+      ASSERT_TRUE(validate_value_using_flags(value, flags))
+          << "Standard validator of the column " << key << " with value "
+          << value << " failed";
+    } else {
+      ASSERT_TRUE(boost::get<CustomCheckerType>(validator)(value))
+          << "Custom validator of the column " << key << " with value " << value
+          << " failed";
     }
   }
-  return true;
+}
+void IntegrationTableTest::validate_rows(const std::vector<Row>& rows,
+                                         const ValidatatioMap& validation_map) {
+  for (auto row : rows) {
+    validate_row(row, validation_map);
+  }
 }
 
 bool IntegrationTableTest::is_valid_hex(const std::string& value) {
@@ -188,35 +208,4 @@ bool IntegrationTableTest::validate_value_using_flags(const std::string& value,
 
   return true;
 }
-
-bool IntegrationTableTest::validate_row(const Row& row,
-                                        const ValidatatioMap& validation_map) {
-  if (row.size() != validation_map.size()) {
-    return false;
-  }
-
-  for (auto iter : validation_map) {
-    std::string key = iter.first;
-    auto row_data_iter = row.find(key);
-    if (row_data_iter == row.end()) {
-      return false;
-    }
-
-    std::string value = row_data_iter->second;
-
-    ValidatatioDataType validator = iter.second;
-    if (validator.type() == typeid(int)) {
-      int flags = boost::get<int>(validator);
-      if (!validate_value_using_flags(value, flags)) {
-        return false;
-      }
-    } else {
-      if (!boost::get<CustomCheckerType>(validator)(value)) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
 } // namespace osquery

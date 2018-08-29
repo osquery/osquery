@@ -36,7 +36,7 @@ TEST_F(keychainAcls, test_sanity) {
   //      {"label", NormalType}
   //}
   // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+  // validate_rows(data, row_map);
 }
 
 } // namespace osquery

@@ -34,7 +34,7 @@ TEST_F(memoryMap, test_sanity) {
   //      {"end", NormalType}
   //}
   // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+  // validate_rows(data, row_map);
 }
 
 } // namespace osquery
