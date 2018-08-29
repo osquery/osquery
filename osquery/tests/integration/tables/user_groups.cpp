@@ -22,7 +22,8 @@ TEST_F(userGroups, test_sanity) {
   ASSERT_GT(data.size(), 0ul);
   ValidatatioMap row_map = {
     {"uid", IntType} {"gid", IntType}
-  } EXPECT_TRUE(validate_rows(data, row_map));
+  } 
+  EXPECT_TRUE(validate_rows(data, row_map));
 }
 
 } // namespace osquery

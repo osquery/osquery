@@ -17,32 +17,39 @@
 
 namespace osquery {
 
-class DataCheck {
- public:
-  virtual ~DataCheck() = default;
-  virtual bool validate(std::string string) = 0;
-};
-
-class IntMinMaxCheck : public DataCheck {
+class IntMinMaxCheck final {
  public:
   explicit IntMinMaxCheck(int min, int max) : min_(min), max_(max){};
-  virtual ~IntMinMaxCheck() = default;
-  virtual bool validate(std::string string) override;
+
+  bool operator()(const std::string& string) const;
 
  private:
   const int min_;
   const int max_;
 };
 
-class SpecificValuesCheck : public DataCheck {
+class SpecificValuesCheck final {
  public:
   explicit SpecificValuesCheck(std::initializer_list<std::string> list)
       : set_(list) {}
-  virtual ~SpecificValuesCheck() = default;
-  virtual bool validate(std::string string) override;
+  bool operator()(const std::string& string) const;
 
  private:
   const std::unordered_set<std::string> set_;
+};
+
+class CronValuesCheck final {
+ public:
+  explicit CronValuesCheck(int min,
+                           int max,
+                           std::unordered_set<std::string> values = {})
+      : min_(min), max_(max), values_(std::move(values)){};
+  bool operator()(const std::string& string) const;
+
+ private:
+  const int min_;
+  const int max_;
+  const std::unordered_set<std::string> values_;
 };
 
 class IntegrationTableTest : public ::testing::Test {
@@ -67,7 +74,8 @@ class IntegrationTableTest : public ::testing::Test {
     NonEmptyString = NonEmpty | NormalType | NonNull,
   };
 
-  using ValidatatioDataType = boost::variant<int, std::shared_ptr<DataCheck>>;
+  using CustomCheckerType = std::function<bool(const std::string&)>;
+  using ValidatatioDataType = boost::variant<int, CustomCheckerType>;
   using ValidatatioMap = std::unordered_map<std::string, ValidatatioDataType>;
 
   virtual void SetUp() {}
@@ -75,9 +83,10 @@ class IntegrationTableTest : public ::testing::Test {
   virtual void TearDown() {}
 
   QueryData execute_query(std::string query);
-  static bool validate_row(const Row& row,
+
+  static void validate_row(const Row& row,
                            const ValidatatioMap& validation_map);
-  static bool validate_rows(const std::vector<Row>& rows,
+  static void validate_rows(const std::vector<Row>& rows,
                             const ValidatatioMap& validation_map);
   static bool validate_value_using_flags(const std::string& value, int flags);
   static bool is_valid_hex(const std::string& value);

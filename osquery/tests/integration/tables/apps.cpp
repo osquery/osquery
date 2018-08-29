@@ -50,7 +50,7 @@ TEST_F(apps, test_sanity) {
   //      {"last_opened_time", NormalType}
   //}
   // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+  // validate_rows(data, row_map);
 }
 
 } // namespace osquery
