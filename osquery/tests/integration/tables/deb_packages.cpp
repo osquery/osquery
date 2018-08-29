@@ -22,8 +22,6 @@ class DebPackages : public IntegrationTableTest {};
 TEST_F(DebPackages, test_sanity) {
   QueryData rows = execute_query("select * from deb_packages");
   if (rows.size() > 0) {
-    ASSERT_GE(rows.size(), 4ul);
-
     ValidatatioMap row_map = {
         {"name", NonEmptyString},
         {"version", NonEmptyString},
@@ -39,10 +37,12 @@ TEST_F(DebPackages, test_sanity) {
       auto pckg_name = row.at("name");
       all_packages.insert(pckg_name);
     }
+
     ASSERT_EQ(all_packages.count("dpkg"), 1u);
     ASSERT_EQ(all_packages.count("linux-base"), 1u);
     ASSERT_EQ(all_packages.count("linux-firmware"), 1u);
     ASSERT_EQ(all_packages.count("linux-generic"), 1u);
+
   } else {
     LOG(WARNING) << "Empty results of query from 'deb_packages', assume there "
                     "is no dpkg in the system";
