@@ -79,6 +79,10 @@ class IntegrationTableTest : public ::testing::Test {
                            const ValidatatioMap& validation_map);
   static bool validate_rows(const std::vector<Row>& rows,
                             const ValidatatioMap& validation_map);
+  static void validate_row_assert(const Row& row,
+                                  const ValidatatioMap& validation_map);
+  static void validate_rows_assert(const std::vector<Row>& rows,
+                                   const ValidatatioMap& validation_map);
   static bool validate_value_using_flags(const std::string& value, int flags);
   static bool is_valid_hex(const std::string& value);
 };
