@@ -103,8 +103,7 @@ void IntegrationTableTest::validate_row(const Row& row,
           << "Standard validator of the column " << key << " with value "
           << value << " failed";
     } else {
-      ASSERT_TRUE(
-          boost::get<CustomCheckerType>(validator)(value)
+      ASSERT_TRUE(boost::get<CustomCheckerType>(validator)(value))
           << "Custom validator of the column " << key << " with value " << value
           << " failed";
     }
