@@ -12,9 +12,6 @@
 // Sanity check integration test for known_hosts
 // Spec file: specs/posix/known_hosts.table
 
-#include <boost/asio.hpp>
-#include <osquery/logger.h>
-
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
