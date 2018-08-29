@@ -38,14 +38,13 @@ class SpecificValuesCheck final {
   const std::unordered_set<std::string> set_;
 };
 
-class CronValuesCheck : public DataCheck {
+class CronValuesCheck final {
  public:
   explicit CronValuesCheck(int min,
                            int max,
                            std::unordered_set<std::string> values = {})
       : min_(min), max_(max), values_(std::move(values)){};
-  virtual ~CronValuesCheck() = default;
-  virtual bool validate(std::string string) override;
+  bool operator()(const std::string& string) const;
 
  private:
   const int min_;

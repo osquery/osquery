@@ -21,7 +21,7 @@ namespace osquery {
 
 namespace fs = boost::filesystem;
 
-bool CronValuesCheck::validate(std::string string) {
+bool CronValuesCheck::operator()(const std::string& string) const {
   // Fast asterisk check, its most common
   if (string == "*") {
     return true;
