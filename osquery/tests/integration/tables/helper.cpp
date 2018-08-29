@@ -54,12 +54,12 @@ void IntegrationTableTest::validate_row(const Row& row,
       int flags = boost::get<int>(validator);
       ASSERT_TRUE(validate_value_using_flags(value, flags))
           << "Standard validator of the column " << key << " with value "
-          << value << " faild";
+          << value << " failed";
     } else {
       ASSERT_TRUE(
           boost::get<std::shared_ptr<DataCheck>>(validator)->validate(value))
           << "Custom validator of the column " << key << " with value " << value
-          << " faild";
+          << " failed";
     }
   }
 }
