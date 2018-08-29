@@ -25,9 +25,9 @@ TEST_F(OsVersion, test_sanity) {
   ValidatatioMap row_map = {
       {"name", NonEmptyString},
       {"version", NonEmptyString},
-      {"major", IntType},
-      {"minor", IntType},
-      {"patch", IntType},
+      {"major", NonNegativeInt},
+      {"minor", NonNegativeInt},
+      {"patch", NonNegativeInt},
       {"build", NonEmptyString},
       {"platform", NonEmptyString},
       {"platform_like", NonEmptyString},
