@@ -20,9 +20,7 @@ class userGroups : public IntegrationTableTest {};
 TEST_F(userGroups, test_sanity) {
   QueryData data = execute_query("select * from user_groups");
   ASSERT_GT(data.size(), 0ul);
-  ValidatatioMap row_map = {
-    {"uid", IntType} {"gid", IntType}
-  } 
+  ValidatatioMap row_map = {{"uid", IntType} {"gid", IntType}};
   EXPECT_TRUE(validate_rows(data, row_map));
 }
 
