@@ -22,11 +22,11 @@ TEST_F(KernelModules, test_sanity) {
   QueryData data = execute_query("select * from kernel_modules");
   ASSERT_GE(data.size(), 0ul);
   ValidatatioMap row_map = {
-       {"name", NonEmptyString},
-       {"size", NonNegativeInt},
-       {"used_by", NonEmptyString},
-       {"status", NonEmptyString},
-       {"address", NonNegativeInt},
+      {"name", NonEmptyString},
+      {"size", NonNegativeInt},
+      {"used_by", NonEmptyString},
+      {"status", NonEmptyString},
+      {"address", NonNegativeInt},
   };
   EXPECT_TRUE(validate_rows(data, row_map));
 }
