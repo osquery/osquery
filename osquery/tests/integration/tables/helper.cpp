@@ -21,6 +21,53 @@ namespace osquery {
 
 namespace fs = boost::filesystem;
 
+bool CronValuesCheck::validate(std::string string) {
+  // Fast asterisk check, its most common
+  if (string == "*") {
+    return true;
+  }
+
+  // Specific value check
+  auto cast_result = tryTo<int64_t>(string);
+  if (cast_result) {
+    // its int, so we can do easy validation
+    int64_t int_value = cast_result.get();
+    return (int_value >= min_ && int_value <= max_);
+  }
+
+  // Check */3 format
+  if (boost::starts_with(string, "*/")) {
+    std::string subvalue = string.substr(2);
+    auto subvalue_int = tryTo<int64_t>(subvalue);
+    return subvalue_int.isValue();
+  }
+
+  std::vector<std::string> components;
+  boost::split(components, string, boost::is_any_of(","));
+  for (auto component : components) {
+    // Predefined value check like: sun, mon
+    boost::algorithm::to_lower(component);
+    if (values_.find(component) != values_.end()) {
+      continue;
+    }
+    // just number
+    if (tryTo<int64_t>(component)) {
+      continue;
+    }
+    std::vector<std::string> sub_components;
+    boost::split(sub_components, component, boost::is_any_of("-"));
+    if (sub_components.size() == 2) {
+      if (tryTo<int64_t>(sub_components[0]) &&
+          tryTo<int64_t>(sub_components[1])) {
+        continue;
+      }
+    }
+    // sub_components.size() > 2 || sub_components.size() == 1
+    return false;
+  }
+  return true;
+}
+
 bool IntMinMaxCheck::validate(std::string string) {
   auto cast_result = tryTo<int>(string);
   if (!cast_result) {
