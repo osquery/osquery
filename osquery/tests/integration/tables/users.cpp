@@ -13,15 +13,13 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
-#include <osquery/logger.h>
-
 namespace osquery {
 
 class UsersTest : public IntegrationTableTest {};
 
 TEST_F(UsersTest, sanity) {
   QueryData rows = execute_query("select * from users");
-  ASSERT_GT(rows.size(), 0ul); // There is must be at least one user
+  ASSERT_GT(rows.size(), 0ul); // There must be at least one user
   auto row_map = ValidatatioMap{
       {"uid", NonNegativeInt},
       {"gid", NonNegativeInt},
@@ -31,7 +29,7 @@ TEST_F(UsersTest, sanity) {
       {"description", NormalType},
       {"directory", NonEmptyString}, // The directory path could be fake
       {"shell", FileOnDisk},
-      {"uuid", NormalType},
+      {"uuid", ValidUUID},
 #ifdef OSQUERY_WINDOWS
       {"type", NormalType},
 #endif
