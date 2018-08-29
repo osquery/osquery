@@ -28,8 +28,6 @@ class Hash : public IntegrationTableTest {
   }
 
   void TearDown() override {
-    namespace fs = boost::filesystem;
-
     fs::remove(path.native());
   }
 
