@@ -16,27 +16,19 @@
 
 namespace osquery {
 
-class kernelModules : public IntegrationTableTest {};
+class KernelModules : public IntegrationTableTest {};
 
-TEST_F(kernelModules, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from kernel_modules");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"name", NormalType}
-  //      {"size", NormalType}
-  //      {"used_by", NormalType}
-  //      {"status", NormalType}
-  //      {"address", NormalType}
-  //}
-  // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+TEST_F(KernelModules, test_sanity) {
+  QueryData data = execute_query("select * from kernel_modules");
+  ASSERT_GT(data.size(), 0ul);
+  ValidatatioMap row_map = {
+      {"name", NonEmptyString},
+      {"size", NonNegativeInt},
+      {"used_by", NonEmptyString},
+      {"status", NonEmptyString},
+      {"address", NonNegativeInt},
+  };
+  EXPECT_TRUE(validate_rows(data, row_map));
 }
 
 } // namespace osquery

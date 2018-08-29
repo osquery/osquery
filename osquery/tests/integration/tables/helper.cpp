@@ -79,7 +79,7 @@ bool IntegrationTableTest::validate_value_using_flags(const std::string& value,
   }
 
   if ((flags & IntType) > 0) {
-    auto cast_result = tryTo<int>(value);
+    auto cast_result = tryTo<int64_t>(value);
     if (!cast_result) {
       return false;
     }
