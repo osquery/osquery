@@ -23,20 +23,20 @@ TEST_F(Time, test_sanity) {
   ASSERT_EQ(data.size(), 1ul);
 
   ValidatatioMap row_map = {
-       {"weekday", NonEmptyString},
-       {"year", IntType},
-       {"month", IntType},
-       {"day", IntType},
-       {"hour", IntType},
-       {"minutes", IntType},
-       {"seconds", IntType},
-       {"timezone", NonEmptyString},
-       {"local_time", IntType},
-       {"local_timezone", NonEmptyString},
-       {"unix_time", IntType},
-       {"timestamp", NonEmptyString},
-       {"datetime", NonEmptyString},
-       {"iso_8601", NonEmptyString},
+      {"weekday", NonEmptyString},
+      {"year", IntType},
+      {"month", IntType},
+      {"day", IntType},
+      {"hour", IntType},
+      {"minutes", IntType},
+      {"seconds", IntType},
+      {"timezone", NonEmptyString},
+      {"local_time", IntType},
+      {"local_timezone", NonEmptyString},
+      {"unix_time", IntType},
+      {"timestamp", NonEmptyString},
+      {"datetime", NonEmptyString},
+      {"iso_8601", NonEmptyString},
   };
   validate_rows(data, row_map);
 }
