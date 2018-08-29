@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -16,28 +15,28 @@
 
 namespace osquery {
 
-class last : public IntegrationTableTest {};
+class Last: public IntegrationTableTest {};
 
-TEST_F(last, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from last");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"username", NormalType}
-  //      {"tty", NormalType}
-  //      {"pid", IntType}
-  //      {"type", IntType}
-  //      {"time", IntType}
-  //      {"host", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(Last, test_sanity) {
+  QueryData data = execute_query("select * from last");
+
+  /* We can safely assume at least one user logged in to the system */
+  ASSERT_GE(data.size(), 1ul);
+
+  ValidatatioMap row_map = {
+    {"username", NonEmptyString},
+    {"tty", NormalType},
+    {"pid", NonNegativeInt},
+    {"type", NonNegativeInt},
+    {"time", NonNegativeInt},
+    {"host", NormalType},
+  };
+
+  validate_rows(data, row_map);
+
+  for (const auto& r : data) {
+    std::cout << r.at("username") << std::endl;
+  }
 }
 
 } // namespace osquery
