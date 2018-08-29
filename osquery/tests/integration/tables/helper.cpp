@@ -21,7 +21,7 @@ namespace osquery {
 
 namespace fs = boost::filesystem;
 
-bool CronValuesCheck::validate(std::string string) {
+bool CronValuesCheck::operator()(const std::string& string) const {
   // Fast asterisk check, its most common
   if (string == "*") {
     return true;
@@ -68,7 +68,7 @@ bool CronValuesCheck::validate(std::string string) {
   return true;
 }
 
-bool IntMinMaxCheck::validate(std::string string) {
+bool IntMinMaxCheck::operator()(const std::string& string) const {
   auto cast_result = tryTo<int>(string);
   if (!cast_result) {
     return false;
@@ -77,7 +77,7 @@ bool IntMinMaxCheck::validate(std::string string) {
   return value >= min_ && value <= max_;
 }
 
-bool SpecificValuesCheck::validate(std::string string) {
+bool SpecificValuesCheck::operator()(const std::string& string) const {
   return set_.find(string) != set_.end();
 }
 
@@ -211,7 +211,7 @@ bool IntegrationTableTest::validate_row(const Row& row,
         return false;
       }
     } else {
-      if (!boost::get<std::shared_ptr<DataCheck>>(validator)->validate(value)) {
+      if (!boost::get<CustomCheckerType>(validator)(value)) {
         return false;
       }
     }

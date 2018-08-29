@@ -18,12 +18,11 @@ TEST_F(UptimeTests, test_sanity) {
   QueryData data = execute_query("select * from uptime");
   ASSERT_EQ(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
-      {"days", NonNegativeInt},
-      {"hours", std::make_shared<IntMinMaxCheck>(0, 24)},
-      {"minutes", std::make_shared<IntMinMaxCheck>(0, 60)},
-      {"seconds", std::make_shared<IntMinMaxCheck>(0, 60)},
-      {"total_seconds", NonNegativeInt}};
+  ValidatatioMap row_map = {{"days", NonNegativeInt},
+                            {"hours", IntMinMaxCheck(0, 24)},
+                            {"minutes", IntMinMaxCheck(0, 60)},
+                            {"seconds", IntMinMaxCheck(0, 60)},
+                            {"total_seconds", NonNegativeInt}};
 
   EXPECT_TRUE(validate_rows(data, row_map));
 }

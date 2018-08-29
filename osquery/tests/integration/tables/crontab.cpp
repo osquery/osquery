@@ -34,15 +34,14 @@ TEST_F(Crontab, test_sanity) {
                                                 "dec"};
   std::unordered_set<std::string> days_list = {
       "mon", "tue", "wed", "thu", "fri", "sat", "sun"};
-  ValidatatioMap row_map = {
-      {"event", NormalType},
-      {"minute", std::make_shared<CronValuesCheck>(0, 59)},
-      {"hour", std::make_shared<CronValuesCheck>(0, 23)},
-      {"day_of_month", std::make_shared<CronValuesCheck>(1, 31)},
-      {"month", std::make_shared<CronValuesCheck>(1, 31, month_list)},
-      {"day_of_week", std::make_shared<CronValuesCheck>(0, 6, days_list)},
-      {"command", NonEmptyString},
-      {"path", FileOnDisk}};
+  ValidatatioMap row_map = {{"event", NormalType},
+                            {"minute", CronValuesCheck(0, 59)},
+                            {"hour", CronValuesCheck(0, 23)},
+                            {"day_of_month", CronValuesCheck(1, 31)},
+                            {"month", CronValuesCheck(1, 31, month_list)},
+                            {"day_of_week", CronValuesCheck(0, 6, days_list)},
+                            {"command", NonEmptyString},
+                            {"path", FileOnDisk}};
   EXPECT_TRUE(validate_rows(data, row_map));
 }
 
