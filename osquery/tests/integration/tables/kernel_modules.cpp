@@ -20,7 +20,7 @@ class KernelModules : public IntegrationTableTest {};
 
 TEST_F(KernelModules, test_sanity) {
   QueryData data = execute_query("select * from kernel_modules");
-  ASSERT_GE(data.size(), 0ul);
+  ASSERT_GT(data.size(), 0ul);
   ValidatatioMap row_map = {
       {"name", NonEmptyString},
       {"size", NonNegativeInt},
