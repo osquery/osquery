@@ -45,6 +45,21 @@ class SpecificValuesCheck : public DataCheck {
   const std::unordered_set<std::string> set_;
 };
 
+class CronValuesCheck : public DataCheck {
+ public:
+  explicit CronValuesCheck(int min,
+                           int max,
+                           std::unordered_set<std::string> values = {})
+      : min_(min), max_(max), values_(std::move(values)){};
+  virtual ~CronValuesCheck() = default;
+  virtual bool validate(std::string string) override;
+
+ private:
+  const int min_;
+  const int max_;
+  const std::unordered_set<std::string> values_;
+};
+
 class IntegrationTableTest : public ::testing::Test {
  protected:
   enum {

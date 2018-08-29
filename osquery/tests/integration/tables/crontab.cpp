@@ -16,30 +16,34 @@
 
 namespace osquery {
 
-class crontab : public IntegrationTableTest {};
+class Crontab : public IntegrationTableTest {};
 
-TEST_F(crontab, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from crontab");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"event", NormalType}
-  //      {"minute", NormalType}
-  //      {"hour", NormalType}
-  //      {"day_of_month", NormalType}
-  //      {"month", NormalType}
-  //      {"day_of_week", NormalType}
-  //      {"command", NormalType}
-  //      {"path", NormalType}
-  //}
-  // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+TEST_F(Crontab, test_sanity) {
+  QueryData data = execute_query("select * from crontab");
+  std::unordered_set<std::string> month_list = {"jan",
+                                                "feb",
+                                                "mar",
+                                                "apr",
+                                                "may",
+                                                "jun",
+                                                "jul",
+                                                "aug",
+                                                "sep",
+                                                "oct",
+                                                "nov",
+                                                "dec"};
+  std::unordered_set<std::string> days_list = {
+      "mon", "tue", "wed", "thu", "fri", "sat", "sun"};
+  ValidatatioMap row_map = {
+      {"event", NormalType},
+      {"minute", std::make_shared<CronValuesCheck>(0, 59)},
+      {"hour", std::make_shared<CronValuesCheck>(0, 23)},
+      {"day_of_month", std::make_shared<CronValuesCheck>(1, 31)},
+      {"month", std::make_shared<CronValuesCheck>(1, 31, month_list)},
+      {"day_of_week", std::make_shared<CronValuesCheck>(0, 6, days_list)},
+      {"command", NonEmptyString},
+      {"path", FileOnDisk}};
+  EXPECT_TRUE(validate_rows(data, row_map));
 }
 
 } // namespace osquery
