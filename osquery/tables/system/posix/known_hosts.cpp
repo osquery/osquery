@@ -70,7 +70,8 @@ QueryData getKnownHostsKeys(QueryContext& context) {
     auto gid = row.find("gid");
     auto directory = row.find("directory");
     if (uid != row.end() && gid != row.end() && directory != row.end()) {
-      impl::genSSHkeysForHosts(uid->second, gid->second, directory->second, results);
+      impl::genSSHkeysForHosts(
+          uid->second, gid->second, directory->second, results);
     }
   }
 

@@ -8,7 +8,6 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-
 #include <fstream>
 
 #include <boost/filesystem.hpp>
@@ -27,15 +26,13 @@ TEST_F(KnownHostsImplTests, get_from_file) {
   namespace fs = boost::filesystem;
 
   auto results = QueryData{};
-  auto directory =
-      fs::temp_directory_path() /
-      fs::unique_path("osquery.known_hosts_impl_tests.%%%%-%%%%");
+  auto directory = fs::temp_directory_path() /
+                   fs::unique_path("osquery.known_hosts_impl_tests.%%%%-%%%%");
 
   ASSERT_TRUE(fs::create_directories(directory));
 
-  auto const path_guard = scope_guard::create(
-   [directory]() { fs::remove_all(directory); }
-  );
+  auto const path_guard =
+      scope_guard::create([directory]() { fs::remove_all(directory); });
 
   auto ssh_directory = directory / fs::path(".ssh");
 
@@ -43,7 +40,8 @@ TEST_F(KnownHostsImplTests, get_from_file) {
 
   auto filepath = ssh_directory / fs::path("known_hosts");
 
-  auto const first_line = R"raw(github.com,11:da:3a2a:3a2s:a0a0:0:2:1 ssh-rsa ZmIK)raw";
+  auto const first_line =
+      R"raw(github.com,11:da:3a2a:3a2s:a0a0:0:2:1 ssh-rsa ZmIK)raw";
   auto const second_line = R"raw(gist.github.com ssh-rsa bmlsCg==)raw";
   {
     auto fout =
