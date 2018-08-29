@@ -25,7 +25,9 @@ class ErrorBase {
   virtual std::string getFullMessage() const = 0;
   virtual std::string getShortMessageRecursive() const = 0;
   virtual std::string getFullMessageRecursive() const = 0;
-  virtual ~ErrorBase(){};
+  virtual ~ErrorBase() = default;
+  ErrorBase() = default;
+  ErrorBase(const ErrorBase& other) = default;
 };
 
 template <typename ErrorCodeEnumType>
