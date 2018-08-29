@@ -25,6 +25,7 @@
 namespace osquery {
 namespace {
 const size_t kMinResponseSize = 0x38U;
+const std::unordered_set<size_t> kExpectedMaxLenValues = {512U, 4096U};
 }
 
 namespace tables {
@@ -138,15 +139,16 @@ void getHECIDriverVersion(QueryData& results) {
   }
 
   if (response.version != 0x1) {
-    VLOG(1) << "Intel MEI version is unsupported";
+    VLOG(1) << "Intel MEI version is unsupported: " << response.version;
     return;
   }
 
   if (response.maxlen < kMinResponseSize) {
-    VLOG(1) << "Invalid maxlen size";
+    VLOG(1) << "Invalid maxlen size: " << response.maxlen;
     return;
-  } else if (response.maxlen != 0x1000) {
-    VLOG(1) << "The returned maxlen field value is unexpected";
+  } else if (kExpectedMaxLenValues.count(response.maxlen) == 0U) {
+    VLOG(1) << "The returned maxlen field value is unexpected: "
+            << response.maxlen;
   }
 
   unsigned char fw_cmd[4] = {0};
