@@ -30,7 +30,7 @@ TEST_F(DebPackages, test_sanity) {
         {"arch", NonEmptyString},
         {"revision", NormalType},
     };
-    EXPECT_TRUE(validate_rows(rows, row_map));
+    validate_rows(rows, row_map);
 
     auto all_packages = std::unordered_set<std::string>{};
     for (const auto& row : rows) {

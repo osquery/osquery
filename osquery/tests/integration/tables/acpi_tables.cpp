@@ -34,7 +34,7 @@ TEST_F(acpiTables, test_sanity) {
   //      {"md5", NormalType}
   //}
   // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+  // validate_rows(data, row_map);
 }
 
 } // namespace osquery
