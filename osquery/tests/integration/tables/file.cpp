@@ -20,7 +20,7 @@
 
 namespace osquery {
 
-class File : public IntegrationTableTest {
+class FileTests : public IntegrationTableTest {
  public:
   boost::filesystem::path filepath;
 
@@ -42,7 +42,7 @@ class File : public IntegrationTableTest {
   }
 };
 
-TEST_F(File, test_sanity) {
+TEST_F(FileTests, test_sanity) {
   QueryData data = execute_query(
       "select * from file where path like \"" +
       (filepath.parent_path() / boost::filesystem::path("%.txt")).string() +
@@ -53,8 +53,8 @@ TEST_F(File, test_sanity) {
                             {"directory", DirectoryOnDisk},
                             {"filename", NonEmptyString},
                             {"inode", IntType},
-                            {"uid", IntType},
-                            {"gid", IntType},
+                            {"uid", NonNegativeInt},
+                            {"gid", NonNegativeInt},
                             {"mode", NormalType},
                             {"device", IntType},
                             {"size", NonNegativeInt},
@@ -65,7 +65,7 @@ TEST_F(File, test_sanity) {
                             {"btime", NonNegativeInt},
                             {"hard_links", IntType},
                             {"symlink", IntType},
-                            {"type", NormalType}};
+                            {"type", NonEmptyString}};
 #ifdef WIN32
   row_map["attributes"] = NormalType;
   row_map["volume_serial"] = NormalType;
