@@ -36,7 +36,7 @@ TEST_F(SystemInfo, test_sanity) {
                             {"hardware_serial", NonEmptyString},
                             {"computer_name", NormalType},
                             {"local_hostname", NonEmptyString}};
-  EXPECT_TRUE(validate_rows(data, row_map));
+  validate_rows(data, row_map);
 }
 
 } // namespace osquery

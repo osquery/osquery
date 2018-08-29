@@ -28,7 +28,7 @@ TEST_F(KernelModules, test_sanity) {
       {"status", NonEmptyString},
       {"address", NonNegativeInt},
   };
-  EXPECT_TRUE(validate_rows(data, row_map));
+  validate_rows(data, row_map);
 }
 
 } // namespace osquery

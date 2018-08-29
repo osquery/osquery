@@ -59,7 +59,7 @@ TEST_F(Hash, test_sanity) {
             "a58dd8680234c1f8cc2ef2b325a43733605a7f16f288e072de8eae81fd8d6433");
   ASSERT_EQ(data[0]["ssdeep"], "3:f4oo8MRwRJFGW1gC64:f4kPvtHF");
 
-  EXPECT_TRUE(validate_rows(data, row_map));
+  validate_rows(data, row_map);
 }
 
 } // namespace osquery
