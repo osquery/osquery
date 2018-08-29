@@ -33,7 +33,7 @@ TEST_F(timeMachineBackups, test_sanity) {
   //      {"backup_date", IntType}
   //}
   // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+  // validate_rows(data, row_map);
 }
 
 } // namespace osquery

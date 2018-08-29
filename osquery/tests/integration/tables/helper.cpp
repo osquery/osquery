@@ -39,18 +39,8 @@ QueryData IntegrationTableTest::execute_query(std::string query) {
   return sql.rows();
 }
 
-bool IntegrationTableTest::validate_rows(const std::vector<Row>& rows,
-                                         const ValidatatioMap& validation_map) {
-  for (auto row : rows) {
-    if (!validate_row(row, validation_map)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-void IntegrationTableTest::validate_row_assert(
-    const Row& row, const ValidatatioMap& validation_map) {
+void IntegrationTableTest::validate_row(const Row& row,
+                                        const ValidatatioMap& validation_map) {
   ASSERT_EQ(row.size(), validation_map.size());
   for (auto iter : validation_map) {
     std::string key = iter.first;
@@ -67,10 +57,10 @@ void IntegrationTableTest::validate_row_assert(
     }
   }
 }
-void IntegrationTableTest::validate_rows_assert(
-    const std::vector<Row>& rows, const ValidatatioMap& validation_map) {
+void IntegrationTableTest::validate_rows(const std::vector<Row>& rows,
+                                         const ValidatatioMap& validation_map) {
   for (auto row : rows) {
-    validate_row_assert(row, validation_map);
+    validate_row(row, validation_map);
   }
 }
 
@@ -164,36 +154,6 @@ bool IntegrationTableTest::validate_value_using_flags(const std::string& value,
     }
   }
 
-  return true;
-}
-
-bool IntegrationTableTest::validate_row(const Row& row,
-                                        const ValidatatioMap& validation_map) {
-  if (row.size() != validation_map.size()) {
-    return false;
-  }
-
-  for (auto iter : validation_map) {
-    std::string key = iter.first;
-    auto row_data_iter = row.find(key);
-    if (row_data_iter == row.end()) {
-      return false;
-    }
-
-    std::string value = row_data_iter->second;
-
-    ValidatatioDataType validator = iter.second;
-    if (validator.type() == typeid(int)) {
-      int flags = boost::get<int>(validator);
-      if (!validate_value_using_flags(value, flags)) {
-        return false;
-      }
-    } else {
-      if (!boost::get<std::shared_ptr<DataCheck>>(validator)->validate(value)) {
-        return false;
-      }
-    }
-  }
   return true;
 }
 

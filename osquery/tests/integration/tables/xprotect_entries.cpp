@@ -38,7 +38,7 @@ TEST_F(xprotectEntries, test_sanity) {
   //      {"uses_pattern", IntType}
   //}
   // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+  // validate_rows(data, row_map);
 }
 
 } // namespace osquery

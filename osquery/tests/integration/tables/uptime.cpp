@@ -25,6 +25,6 @@ TEST_F(UptimeTests, test_sanity) {
       {"seconds", std::make_shared<IntMinMaxCheck>(0, 60)},
       {"total_seconds", NonNegativeInt}};
 
-  EXPECT_TRUE(validate_rows(data, row_map));
+  validate_rows(data, row_map);
 }
 } // namespace osquery
