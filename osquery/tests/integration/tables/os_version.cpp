@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -16,31 +15,25 @@
 
 namespace osquery {
 
-class osVersion : public IntegrationTableTest {};
+class OsVersion : public IntegrationTableTest {};
 
-TEST_F(osVersion, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from os_version");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"name", NormalType}
-  //      {"version", NormalType}
-  //      {"major", IntType}
-  //      {"minor", IntType}
-  //      {"patch", IntType}
-  //      {"build", NormalType}
-  //      {"platform", NormalType}
-  //      {"platform_like", NormalType}
-  //      {"codename", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(OsVersion, test_sanity) {
+  QueryData data = execute_query("select * from os_version");
+
+  ASSERT_EQ(data.size(), 1ul);
+
+  ValidatatioMap row_map = {
+      {"name", NonEmptyString},
+      {"version", NonEmptyString},
+      {"major", NonNegativeInt},
+      {"minor", NonNegativeInt},
+      {"patch", NonNegativeInt},
+      {"build", NonEmptyString},
+      {"platform", NonEmptyString},
+      {"platform_like", NonEmptyString},
+      {"codename", NormalType},
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace osquery
