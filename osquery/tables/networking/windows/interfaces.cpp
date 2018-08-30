@@ -129,7 +129,7 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
   if (req3.getStatus().ok()) {
     const auto& results = req3.results();
     if (!results.empty()) {
-      bool bPlaceHolder;
+      bool bPlaceHolder = false;
       std::vector<std::string> vPlaceHolder;
       results[0].GetBool("DHCPEnabled", bPlaceHolder);
       r["dhcp_enabled"] = INTEGER(bPlaceHolder);
