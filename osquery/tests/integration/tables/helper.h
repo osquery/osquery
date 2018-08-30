@@ -19,13 +19,12 @@ namespace osquery {
 
 class IntMinMaxCheck final {
  public:
-  explicit IntMinMaxCheck(int min, int max) : min_(min), max_(max){};
-
+  explicit IntMinMaxCheck(int64_t min, int64_t max) : min_(min), max_(max){};
   bool operator()(const std::string& string) const;
 
  private:
-  const int min_;
-  const int max_;
+  const int64_t min_;
+  const int64_t max_;
 };
 
 class SpecificValuesCheck final {
@@ -40,15 +39,15 @@ class SpecificValuesCheck final {
 
 class CronValuesCheck final {
  public:
-  explicit CronValuesCheck(int min,
-                           int max,
+  explicit CronValuesCheck(int64_t min,
+                           int64_t max,
                            std::unordered_set<std::string> values = {})
       : min_(min), max_(max), values_(std::move(values)){};
   bool operator()(const std::string& string) const;
 
  private:
-  const int min_;
-  const int max_;
+  const int64_t min_;
+  const int64_t max_;
   const std::unordered_set<std::string> values_;
 };
 
