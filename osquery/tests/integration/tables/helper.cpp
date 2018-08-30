@@ -69,11 +69,11 @@ bool CronValuesCheck::operator()(const std::string& string) const {
 }
 
 bool IntMinMaxCheck::operator()(const std::string& string) const {
-  auto cast_result = tryTo<int>(string);
+  auto cast_result = tryTo<int64_t>(string);
   if (!cast_result) {
     return false;
   }
-  int value = cast_result.get();
+  auto const value = cast_result.get();
   return value >= min_ && value <= max_;
 }
 
@@ -150,7 +150,7 @@ bool IntegrationTableTest::validate_value_using_flags(const std::string& value,
     if (!cast_result) {
       return false;
     }
-    int intValue = cast_result.get();
+    auto intValue = cast_result.get();
     if ((flags & NonNegative) > 0) {
       if (intValue < 0) {
         return false;
