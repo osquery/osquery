@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -16,25 +15,14 @@
 
 namespace osquery {
 
-class processOpenFiles : public IntegrationTableTest {};
+class ProcessOpenFilesTest : public IntegrationTableTest {};
 
-TEST_F(processOpenFiles, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from process_open_files");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"pid", IntType}
-  //      {"fd", IntType}
-  //      {"path", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(ProcessOpenFilesTest, test_sanity) {
+  QueryData data = execute_query("select * from process_open_files");
+  ASSERT_GT(data.size(), 0ul);
+  ValidatatioMap row_map = {
+      {"pid", NonNegativeInt}, {"fd", NonNegativeInt}, {"path", FileOnDisk}};
+  validate_rows(data, row_map);
 }
 
 } // namespace osquery
