@@ -76,7 +76,7 @@ void genAddressesFromAddr(const struct ifaddrs* addr, QueryData& results) {
       r["point_to_point"] = dest_address;
     }
   }
-
+  r["type"] = "unknown";
   results.push_back(r);
 }
 
