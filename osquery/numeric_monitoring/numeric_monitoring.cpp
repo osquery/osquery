@@ -29,7 +29,7 @@ FLAG(bool,
 FLAG(string,
      numeric_monitoring_plugins,
      "filesystem",
-     "Coma separated numeric monitoring plugins names");
+     "Comma separated numeric monitoring plugins names");
 FLAG(uint64,
      numeric_monitoring_pre_aggregation_time,
      60,
