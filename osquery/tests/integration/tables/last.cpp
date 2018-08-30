@@ -15,7 +15,7 @@
 
 namespace osquery {
 
-class Last: public IntegrationTableTest {};
+class Last : public IntegrationTableTest {};
 
 TEST_F(Last, test_sanity) {
   QueryData data = execute_query("select * from last");
@@ -24,12 +24,12 @@ TEST_F(Last, test_sanity) {
   ASSERT_GE(data.size(), 1ul);
 
   ValidatatioMap row_map = {
-    {"username", NonEmptyString},
-    {"tty", NormalType},
-    {"pid", NonNegativeInt},
-    {"type", NonNegativeInt},
-    {"time", NonNegativeInt},
-    {"host", NormalType},
+      {"username", NonEmptyString},
+      {"tty", NormalType},
+      {"pid", NonNegativeInt},
+      {"type", NonNegativeInt},
+      {"time", NonNegativeInt},
+      {"host", NormalType},
   };
 
   validate_rows(data, row_map);
