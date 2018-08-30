@@ -14,27 +14,52 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
+#include <algorithm>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 namespace osquery {
 
-class processEnvs : public IntegrationTableTest {};
+class ProcessEnvs : public IntegrationTableTest {
+ public:
+  ProcessEnvs()
+      : env_name("OSQUERY_TEST_ENV_NAME"),
+        env_value("osquery_test_env_value") {}
 
-TEST_F(processEnvs, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from process_envs");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"pid", IntType}
-  //      {"key", NormalType}
-  //      {"value", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  void SetUp() override {
+    ::setenv(env_name.c_str(), env_value.c_str(), 1);
+  }
+
+  void TearDown() override {
+    ::unsetenv(env_name.c_str());
+  }
+
+  const std::string env_name;
+  const std::string env_value;
+};
+
+TEST_F(ProcessEnvs, test_sanity) {
+  QueryData data = execute_query("select * from process_envs");
+
+  ValidatatioMap row_map = {
+      {"pid", NonNegativeInt},
+      {"key", NonEmptyString},
+      {"value", NormalType},
+  };
+  validate_rows(data, row_map);
+
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    std::string pid = std::to_string(::getpid());
+    Row r{
+        {"pid", pid},
+        {"key", env_name},
+        {"value", env_value},
+    };
+
+    ASSERT_NE(std::find(data.begin(), data.end(), r), data.end())
+        << "Test env variable not found";
+  }
 }
 
 } // namespace osquery
