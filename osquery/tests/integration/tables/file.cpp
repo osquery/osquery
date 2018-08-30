@@ -12,46 +12,70 @@
 // Sanity check integration test for file
 // Spec file: specs/utility/file.table
 
+#include <fstream>
+
 #include <osquery/tests/integration/tables/helper.h>
+
+#include <boost/filesystem.hpp>
 
 namespace osquery {
 
-class file : public IntegrationTableTest {};
+class FileTests : public IntegrationTableTest {
+ public:
+  boost::filesystem::path filepath;
 
-TEST_F(file, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from file");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"path", NormalType}
-  //      {"directory", NormalType}
-  //      {"filename", NormalType}
-  //      {"inode", IntType}
-  //      {"uid", IntType}
-  //      {"gid", IntType}
-  //      {"mode", NormalType}
-  //      {"device", IntType}
-  //      {"size", IntType}
-  //      {"block_size", IntType}
-  //      {"atime", IntType}
-  //      {"mtime", IntType}
-  //      {"ctime", IntType}
-  //      {"btime", IntType}
-  //      {"hard_links", IntType}
-  //      {"symlink", IntType}
-  //      {"type", NormalType}
-  //      {"attributes", NormalType}
-  //      {"volume_serial", NormalType}
-  //      {"file_id", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  virtual void SetUp() {
+    auto directory =
+        boost::filesystem::temp_directory_path() /
+        boost::filesystem::unique_path("test-integration-file-table.%%%%-%%%%");
+    ASSERT_TRUE(boost::filesystem::create_directory(directory));
+    filepath = directory / boost::filesystem::path("file-table-test.txt");
+    {
+      auto fout = std::ofstream(filepath.native(), std::ios::out);
+      fout.open(filepath.string(), std::ios::out);
+      fout << "test";
+    }
+  }
+
+  virtual void TearDown() {
+    boost::filesystem::remove_all(filepath.parent_path());
+  }
+};
+
+TEST_F(FileTests, test_sanity) {
+  QueryData data = execute_query(
+      "select * from file where path like \"" +
+      (filepath.parent_path() / boost::filesystem::path("%.txt")).string() +
+      "\"");
+  EXPECT_EQ(data.size(), 1ul);
+
+  ValidatatioMap row_map = {{"path", FileOnDisk},
+                            {"directory", DirectoryOnDisk},
+                            {"filename", NonEmptyString},
+                            {"inode", IntType},
+                            {"uid", NonNegativeInt},
+                            {"gid", NonNegativeInt},
+                            {"mode", NormalType},
+                            {"device", IntType},
+                            {"size", NonNegativeInt},
+                            {"block_size", NonNegativeInt},
+                            {"atime", NonNegativeInt},
+                            {"mtime", NonNegativeInt},
+                            {"ctime", NonNegativeInt},
+                            {"btime", NonNegativeInt},
+                            {"hard_links", IntType},
+                            {"symlink", IntType},
+                            {"type", NonEmptyString}};
+#ifdef WIN32
+  row_map["attributes"] = NormalType;
+  row_map["volume_serial"] = NormalType;
+  row_map["file_id"] = NormalType;
+#endif
+
+  validate_rows(data, row_map);
+  ASSERT_EQ(data[0]["path"], filepath.string());
+  ASSERT_EQ(data[0]["directory"], filepath.parent_path().string());
+  ASSERT_EQ(data[0]["filename"], filepath.filename().string());
 }
 
 } // namespace osquery
