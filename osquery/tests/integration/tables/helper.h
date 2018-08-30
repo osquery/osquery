@@ -71,6 +71,7 @@ class IntegrationTableTest : public ::testing::Test {
     Bool = 1 << 12,
 
     NonNegativeInt = IntType | NonEmpty | NonNull | NonNegative,
+    NonNegativeOrErrorInt = IntType | NonEmpty | NonNull | NonNegativeOrError,
     NonEmptyString = NonEmpty | NormalType | NonNull,
   };
 
