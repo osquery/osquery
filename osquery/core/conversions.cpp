@@ -212,6 +212,33 @@ void JSON::add(const std::string& key, bool value) {
   add(key, value, doc());
 }
 
+void JSON::add(const std::string& key, int64_t value, rj::Value& obj) {
+  assert(obj.IsObject());
+  auto itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    obj.RemoveMember(itr);
+  }
+  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                rj::Value(value).Move(),
+                doc_.GetAllocator());
+}
+void JSON::add(const std::string& key, int64_t value) {
+  add(key, value, doc());
+}
+void JSON::add(const std::string& key, double value, rj::Value& obj) {
+  assert(obj.IsObject());
+  auto itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    obj.RemoveMember(itr);
+  }
+  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                rj::Value(value).Move(),
+                doc_.GetAllocator());
+}
+void JSON::add(const std::string& key, double value) {
+  add(key, value, doc());
+}
+
 Status JSON::toString(std::string& str) const {
   rj::StringBuffer sb;
   rj::Writer<rj::StringBuffer> writer(sb);
