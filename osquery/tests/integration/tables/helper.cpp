@@ -12,6 +12,7 @@
 #include <unordered_set>
 
 #include <boost/filesystem.hpp>
+#include <boost/io/detail/quoted_manip.hpp>
 #include <boost/uuid/string_generator.hpp>
 
 #include <osquery/core/conversions.h>
@@ -94,18 +95,19 @@ void IntegrationTableTest::validate_row(const Row& row,
     std::string key = iter.first;
     auto row_data_iter = row.find(key);
     ASSERT_NE(row_data_iter, row.end())
-        << "Could not find column " << key << " in the generated columns";
+        << "Could not find column " << boost::io::quoted(key)
+        << " in the generated columns";
     std::string value = row_data_iter->second;
     ValidatatioDataType validator = iter.second;
     if (validator.type() == typeid(int)) {
       int flags = boost::get<int>(validator);
       ASSERT_TRUE(validate_value_using_flags(value, flags))
-          << "Standard validator of the column " << key << " with value "
-          << value << " failed";
+          << "Standard validator of the column " << boost::io::quoted(key)
+          << " with value " << boost::io::quoted(value) << " failed";
     } else {
       ASSERT_TRUE(boost::get<CustomCheckerType>(validator)(value))
-          << "Custom validator of the column " << key << " with value " << value
-          << " failed";
+          << "Custom validator of the column " << boost::io::quoted(key)
+          << " with value " << boost::io::quoted(value) << " failed";
     }
   }
 }
