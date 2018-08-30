@@ -158,6 +158,11 @@ bool IntegrationTableTest::validate_value_using_flags(const std::string& value,
         return false;
       }
     }
+    if ((flags & NonNegative) > 0) {
+      if (intValue < -1) {
+        return false;
+      }
+    }
   }
 
   if ((flags & FileOnDisk) > 0) {
