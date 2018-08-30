@@ -15,9 +15,9 @@
 
 namespace osquery {
 
-class userGroups : public IntegrationTableTest {};
+class UserGroups : public IntegrationTableTest {};
 
-TEST_F(userGroups, test_sanity) {
+TEST_F(UserGroups, test_sanity) {
   QueryData data = execute_query("select * from user_groups");
   ASSERT_GT(data.size(), 0ul);
   ValidatatioMap row_map = {{"uid", NonNegativeInt}, {"gid", NonNegativeInt}};
