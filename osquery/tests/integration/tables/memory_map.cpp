@@ -28,7 +28,7 @@ TEST_F(MemoryMapTest, test_sanity) {
   validate_rows(data, row_map);
 
   for (const auto& row : data) {
-    auto start = tryTo<unsigned long long>(row.at("start");
+    auto start = tryTo<unsigned long long>(row.at("start"));
     auto end = tryTo<unsigned long long>(row.at("end"));
     ASSERT_TRUE(start)
         << "start in memory map does not fit in unsigned long long";
