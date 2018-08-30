@@ -478,7 +478,7 @@ Enable numeric monitoring system. By default it is disabled.
 
 `--numeric_monitoring_plugins=filesystem`
 
-Coma separated numeric monitoring plugins. By default there is only one - filesystem.
+Comma separated numeric monitoring plugins. By default there is only one - filesystem.
 
 `--numeric_monitoring_pre_aggregation_time=60`
 
