@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -16,36 +15,30 @@
 
 namespace osquery {
 
-class time : public IntegrationTableTest {};
+class Time : public IntegrationTableTest {};
 
-TEST_F(time, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from time");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"weekday", NormalType}
-  //      {"year", IntType}
-  //      {"month", IntType}
-  //      {"day", IntType}
-  //      {"hour", IntType}
-  //      {"minutes", IntType}
-  //      {"seconds", IntType}
-  //      {"timezone", NormalType}
-  //      {"local_time", IntType}
-  //      {"local_timezone", NormalType}
-  //      {"unix_time", IntType}
-  //      {"timestamp", NormalType}
-  //      {"datetime", NormalType}
-  //      {"iso_8601", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(Time, test_sanity) {
+  QueryData data = execute_query("select * from time");
+
+  ASSERT_EQ(data.size(), 1ul);
+
+  ValidatatioMap row_map = {
+      {"weekday", NonEmptyString},
+      {"year", IntType},
+      {"month", IntMinMaxCheck(1, 12)},
+      {"day", IntMinMaxCheck(1, 31)},
+      {"hour", IntMinMaxCheck(0, 24)},
+      {"minutes", IntMinMaxCheck(0, 59)},
+      {"seconds", IntMinMaxCheck(0, 59)},
+      {"timezone", NonEmptyString},
+      {"local_time", NonNegativeInt},
+      {"local_timezone", NonEmptyString},
+      {"unix_time", NonNegativeInt},
+      {"timestamp", NonEmptyString},
+      {"datetime", NonEmptyString},
+      {"iso_8601", NonEmptyString},
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace osquery
