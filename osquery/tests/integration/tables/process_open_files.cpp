@@ -10,7 +10,10 @@
 
 // Sanity check integration test for process_open_files
 // Spec file: specs/posix/process_open_files.table
+
 #include <unistd.h>
+
+#include <boost/filesystem.hpp>
 
 #include <osquery/tests/integration/tables/helper.h>
 
