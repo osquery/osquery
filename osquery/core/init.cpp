@@ -52,6 +52,11 @@
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
 
+#include <osquery/ev2/manager.h>
+#include <osquery/evgen/linux/udev.h>
+#include <osquery/tables/system/linux/udev.h>
+
+
 #ifdef __linux__
 #include <sys/syscall.h>
 
@@ -695,6 +700,16 @@ void Initializer::start() const {
     initActivePlugin(monitoring::registryName(),
                      FLAGS_numeric_monitoring_plugins);
   }
+
+  // Hack
+  auto em = std::make_shared<ev2::EventManager>();
+  auto udevpub = std::make_shared<evgen::UdevPublisher>();
+  em->register_publisher(udevpub);
+
+  auto udevtable = std::make_shared<UdevTable>(em);
+
+  Dispatcher::addService(udevpub);
+  Dispatcher::addService(udevtable);
 
   // Start event threads.
   osquery::attachEvents();
