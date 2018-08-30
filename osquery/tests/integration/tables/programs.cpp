@@ -20,7 +20,7 @@ class Programs : public IntegrationTableTest {};
 TEST_F(Programs, test_sanity) {
   QueryData data = execute_query("select * from programs");
   ASSERT_GT(data.size(), 0ul);
-  ValidatatioMap row_map = {{"name", NonEmpty},
+  ValidatatioMap row_map = {{"name", NonEmptyString},
                             {"version", NormalType},
                             {"install_location", NormalType},
                             {"install_source", NormalType},
