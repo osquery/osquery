@@ -96,8 +96,10 @@ QueryData IntegrationTableTest::execute_query(std::string query) {
 
 void IntegrationTableTest::validate_row(const Row& row,
                                         const ValidatatioMap& validation_map) {
-  ASSERT_EQ(row.size(), validation_map.size())
-      << "Unexpected number of columns";
+  for (auto const& rec : row) {
+    EXPECT_NE(validation_map.count(rec.first), std::size_t{0})
+        << "Unexpected column " << boost::io::quoted(rec.first) << " in a row";
+  }
   for (auto iter : validation_map) {
     std::string key = iter.first;
     auto row_data_iter = row.find(key);
