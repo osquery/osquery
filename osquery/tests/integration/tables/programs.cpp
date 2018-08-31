@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -16,31 +15,21 @@
 
 namespace osquery {
 
-class programs : public IntegrationTableTest {};
+class ProgramsTest : public IntegrationTableTest {};
 
-TEST_F(programs, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from programs");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"name", NormalType}
-  //      {"version", NormalType}
-  //      {"install_location", NormalType}
-  //      {"install_source", NormalType}
-  //      {"language", NormalType}
-  //      {"publisher", NormalType}
-  //      {"uninstall_string", NormalType}
-  //      {"install_date", NormalType}
-  //      {"identifying_number", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(ProgramsTest, test_sanity) {
+  QueryData data = execute_query("select * from programs");
+  ASSERT_GT(data.size(), 0ul);
+  ValidatatioMap row_map = {{"name", NonEmptyString},
+                            {"version", NormalType},
+                            {"install_location", NormalType},
+                            {"install_source", NormalType},
+                            {"language", NormalType},
+                            {"publisher", NormalType},
+                            {"uninstall_string", NormalType},
+                            {"install_date", NormalType},
+                            {"identifying_number", NormalType}};
+  validate_rows(data, row_map);
 }
 
 } // namespace osquery
