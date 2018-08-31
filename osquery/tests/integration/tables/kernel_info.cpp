@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -16,26 +15,15 @@
 
 namespace osquery {
 
-class kernelInfo : public IntegrationTableTest {};
+class KernelInfo : public IntegrationTableTest {};
 
-TEST_F(kernelInfo, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from kernel_info");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"version", NormalType}
-  //      {"arguments", NormalType}
-  //      {"path", NormalType}
-  //      {"device", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(KernelInfo, test_sanity) {
+  QueryData data = execute_query("select * from kernel_info");
+  ValidatatioMap row_map = {{"version", NonEmptyString},
+                            {"arguments", NormalType},
+                            {"path", FileOnDisk},
+                            {"device", ValidUUID}};
+  validate_rows(data, row_map);
 }
 
 } // namespace osquery
