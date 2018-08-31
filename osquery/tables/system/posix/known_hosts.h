@@ -20,7 +20,6 @@ QueryData getKnownHostsKeys(QueryContext& context);
 
 namespace impl {
 
-// const std::vector<std::string> kSSHKnownHostskeys = {".ssh/known_hosts"};
 void genSSHkeysForHosts(const std::string& uid,
                         const std::string& gid,
                         const std::string& directory,
