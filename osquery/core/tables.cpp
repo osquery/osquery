@@ -81,7 +81,7 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
   }
 
   if (context.colsUsedMask) {
-    doc.add("colsUsedMask", *context.colsUsedMask);
+    doc.add("colsUsedMask", context.colsUsedMask->to_ullong());
   }
 
   doc.toString(request["context"]);

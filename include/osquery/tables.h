@@ -302,7 +302,7 @@ using TableColumns =
 using ColumnAliasSet = std::map<std::string, std::set<std::string>>;
 
 /// Alias for a map of alias to canonical column names
-using AliasColumnMap = std::map<std::string, std::string>;
+using AliasColumnMap = std::unordered_map<std::string, std::string>;
 
 /// Forward declaration of QueryContext for ConstraintList relationships.
 struct QueryContext;
@@ -504,7 +504,7 @@ struct VirtualTableContent {
   std::unordered_map<size_t, UsedColumns> colsUsed;
 
   /// Transient set of virtual table used columns (as bitmasks)
-  std::unordered_map<size_t, sqlite_uint64> colsUsedMasks;
+  std::unordered_map<size_t, std::bitset<64>> colsUsedMasks;
 
   /*
    * @brief A table implementation specific query result cache.
@@ -641,8 +641,8 @@ struct QueryContext : private only_movable {
   /// Check if any of the given columns is used by the query
   bool isAnyColumnUsed(std::initializer_list<std::string> colNames) const;
 
-  inline bool isAnyColumnUsed(uint64_t mask) const {
-    return (mask & *colsUsedMask) != 0;
+  inline bool isAnyColumnUsed(std::bitset<64> mask) const {
+    return (*colsUsedMask & mask).any();
   }
 
   template <typename Type>
@@ -707,7 +707,7 @@ struct QueryContext : private only_movable {
   ConstraintMap constraints;
 
   boost::optional<UsedColumns> colsUsed;
-  boost::optional<uint64_t> colsUsedMask;
+  boost::optional<std::bitset<64>> colsUsedMask;
 
  private:
   /// If false then the context is maintaining an ephemeral cache.

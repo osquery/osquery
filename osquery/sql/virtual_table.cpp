@@ -984,7 +984,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     context.colsUsedMask = content->colsUsedMasks[idxNum];
   } else {
     // Unspecified; have to assume all columns are used
-    context.colsUsedMask = UINT64_MAX;
+    context.colsUsedMask->set();
   }
   if (content->colsUsed.size() > 0) {
     context.colsUsed = content->colsUsed[idxNum];
