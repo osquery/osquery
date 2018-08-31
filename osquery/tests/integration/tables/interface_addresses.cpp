@@ -12,33 +12,38 @@
 // Sanity check integration test for interface_addresses
 // Spec file: specs/interface_addresses.table
 
+#include <unordered_set>
+
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
 
-class interfaceAddresses : public IntegrationTableTest {};
+class InterfaceAddressesTest : public IntegrationTableTest {};
 
-TEST_F(interfaceAddresses, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from interface_addresses");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"interface", NormalType}
-  //      {"address", NormalType}
-  //      {"mask", NormalType}
-  //      {"broadcast", NormalType}
-  //      {"point_to_point", NormalType}
-  //      {"type", NormalType}
-  //      {"friendly_name", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(InterfaceAddressesTest, sanity) {
+  QueryData const rows = execute_query("select * from interface_addresses");
+  auto const verifyEmptyStringOrIpAddress = [](auto const& value) {
+    return value.empty() ? true : verifyIpAddress(value);
+  };
+  auto const row_map = ValidatatioMap{
+      {"interface", NonEmptyString},
+      {"address", verifyIpAddress},
+      {"mask", verifyIpAddress},
+      {"broadcast", verifyEmptyStringOrIpAddress},
+      {"point_to_point", verifyEmptyStringOrIpAddress},
+      {"type",
+       SpecificValuesCheck{"dhcp", "manual", "auto", "other", "unknown"}},
+#ifdef OSQUERY_WINDOWS
+      {"friendly_name", NormalType},
+#endif
+  };
+  validate_rows(rows, row_map);
+  auto addresses = std::unordered_set<std::string>{};
+  for (auto const& row : rows) {
+    addresses.insert(row.at("address"));
+  }
+  EXPECT_EQ(addresses.size(), rows.size())
+      << "Addresses associated with interfaces must be unique";
 }
 
 } // namespace osquery
