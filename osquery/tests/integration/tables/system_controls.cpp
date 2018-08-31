@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -15,29 +14,29 @@
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
+namespace {
 
-class systemControls : public IntegrationTableTest {};
+class SystemControlsTest : public IntegrationTableTest {};
 
-TEST_F(systemControls, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from system_controls");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"name", NormalType}
-  //      {"oid", NormalType}
-  //      {"subsystem", NormalType}
-  //      {"current_value", NormalType}
-  //      {"config_value", NormalType}
-  //      {"type", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(SystemControlsTest, sanity) {
+  auto const rows = execute_query("select * from system_controls");
+  auto const row_map = ValidatatioMap{
+      {"name", NonEmptyString},
+      {"oid", NonEmptyString},
+      {"subsystem",
+       SpecificValuesCheck{
+           "", "kern", "vm", "vfs", "net", "debug", "hw", "machdep", "user"}},
+      {"current_value", NormalType},
+      {"config_value", NormalType},
+      {"type",
+       SpecificValuesCheck{
+           "", "node", "int", "string", "quad", "opaque", "struct"}},
+#ifdef __APPLE__
+      {"field_name", NormalType},
+#endif
+  };
+  validate_rows(rows, row_map);
 }
 
+} // namespace
 } // namespace osquery
