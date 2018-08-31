@@ -51,6 +51,8 @@ class CronValuesCheck final {
   const std::unordered_set<std::string> values_;
 };
 
+bool verifyIpAddress(std::string const& value);
+
 class IntegrationTableTest : public ::testing::Test {
  protected:
   enum {

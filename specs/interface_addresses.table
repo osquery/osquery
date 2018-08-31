@@ -6,7 +6,7 @@ schema([
     Column("mask", TEXT, "Interface netmask"),
     Column("broadcast", TEXT, "Broadcast address for the interface"),
     Column("point_to_point", TEXT, "PtP address for the interface"),
-    Column("type", TEXT, "Type of address. One of dhcp, manual, auto, other")
+    Column("type", TEXT, "Type of address. One of dhcp, manual, auto, other, unknown")
 ])
 extended_schema(WINDOWS, [
     Column("friendly_name", TEXT, "The friendly display name of the interface."),
