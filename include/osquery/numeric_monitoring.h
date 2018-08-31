@@ -63,9 +63,9 @@ void record(const std::string& path,
 
 /**
  * Force flush the pre-aggregation buffer.
- * Only for tests, please do not use it anywhere.
+ * Please use it, only when it's totally necessary.
  */
-void flushForTests();
+void flush();
 
 }; // namespace monitoring
 
