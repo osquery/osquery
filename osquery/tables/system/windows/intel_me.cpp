@@ -26,7 +26,7 @@ namespace osquery {
 namespace {
 const size_t kMinResponseSize = 0x38U;
 const std::unordered_set<size_t> kExpectedMaxLenValues = {512U, 4096U};
-}
+} // namespace
 
 namespace tables {
 
@@ -190,5 +190,5 @@ QueryData getIntelMEInfo(QueryContext& context) {
   getHECIDriverVersion(results);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
