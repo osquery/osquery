@@ -16,28 +16,19 @@
 
 namespace osquery {
 
-class loggedInUsers : public IntegrationTableTest {};
+class LoggedInUsersTest : public IntegrationTableTest {};
 
-TEST_F(loggedInUsers, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from logged_in_users");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"type", NormalType}
-  //      {"user", NormalType}
-  //      {"tty", NormalType}
-  //      {"host", NormalType}
-  //      {"time", IntType}
-  //      {"pid", IntType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(LoggedInUsersTest, sanity) {
+  auto const rows = execute_query("select * from logged_in_users");
+  auto const row_map = ValidatatioMap{
+      {"type", NonEmptyString},
+      {"user", NormalType},
+      {"tty", NormalType},
+      {"host", NormalType},
+      {"time", NonNegativeInt},
+      {"pid", NonNegativeInt},
+  };
+  validate_rows(rows, row_map);
 }
 
 } // namespace osquery
