@@ -12,34 +12,33 @@
 // Sanity check integration test for apt_sources
 // Spec file: specs/posix/apt_sources.table
 
+#include <osquery/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
+namespace {
 
-class aptSources : public IntegrationTableTest {};
+class AptSourcesTest : public IntegrationTableTest {};
 
-TEST_F(aptSources, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from apt_sources");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"name", NormalType}
-  //      {"source", NormalType}
-  //      {"base_uri", NormalType}
-  //      {"release", NormalType}
-  //      {"version", NormalType}
-  //      {"maintainer", NormalType}
-  //      {"components", NormalType}
-  //      {"architectures", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(AptSourcesTest, sanity) {
+  QueryData data = execute_query("select * from apt_sources");
+  if (data.empty()) {
+    LOG(WARNING) << "select from \"apt_sources\" table returned no results and "
+                    "therefore won't be tested";
+  } else {
+    auto const row_map = ValidatatioMap{
+        {"name", NonEmptyString},
+        {"source", FileOnDisk},
+        {"base_uri", NonEmptyString},
+        {"release", NonEmptyString},
+        {"version", NonEmptyString},
+        {"maintainer", NonEmptyString},
+        {"components", NonEmptyString},
+        {"architectures", NonEmptyString},
+    };
+    validate_rows(data, row_map);
+  }
 }
 
+} // namespace
 } // namespace osquery
