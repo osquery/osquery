@@ -31,7 +31,7 @@ TEST_F(InterfaceAddressesTest, sanity) {
       {"mask", verifyIpAddress},
       {"broadcast", verifyEmptyStringOrIpAddress},
       {"point_to_point", verifyEmptyStringOrIpAddress},
-      {"type", SpecificValuesCheck{"manual", "dhcp", "auto", "unknown"}},
+      {"type", SpecificValuesCheck{"dhcp", "manual", "auto", "other", "unknown"}},
 #ifdef OSQUERY_WINDOWS
       {"friendly_name", NormalType},
 #endif
