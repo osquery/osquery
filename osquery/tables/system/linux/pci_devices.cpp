@@ -183,7 +183,8 @@ PciDB::PciDB(std::istream& db_filestream) {
   }
 }
 
-Status PciDB::getVendorName(const std::string& vendor_id, std::string& name) {
+Status PciDB::getVendorName(const std::string& vendor_id,
+                            std::string& name) const {
   auto vendor_it = db_.find(vendor_id);
   if (vendor_it == db_.end()) {
     return Status::failure("Vendor ID does not exist");
@@ -196,7 +197,7 @@ Status PciDB::getVendorName(const std::string& vendor_id, std::string& name) {
 
 Status PciDB::getModel(const std::string& vendor_id,
                        const std::string& model_id,
-                       std::string& model) {
+                       std::string& model) const {
   auto vendor_it = db_.find(vendor_id);
   if (vendor_it == db_.end()) {
     return Status::failure("Vendor ID does not exist");
@@ -216,7 +217,7 @@ Status PciDB::getSubsystemInfo(const std::string& vendor_id,
                                const std::string& model_id,
                                const std::string& subsystem_vendor_id,
                                const std::string& subsystem_device_id,
-                               std::string& subsystem) {
+                               std::string& subsystem) const {
   auto vendor_it = db_.find(vendor_id);
   if (vendor_it == db_.end()) {
     return Status::failure("Vendor ID does not exist");
@@ -236,6 +237,103 @@ Status PciDB::getSubsystemInfo(const std::string& vendor_id,
   }
 
   subsystem = subsystem_it->second;
+
+  return Status::success();
+}
+
+Status enrichPCISubsysInfo(Row& row,
+                           std::string& subsystem_attr,
+                           const std::string& vendor_id,
+                           const std::string& model_id,
+                           const PciDB& pcidb) {
+  boost::algorithm::to_lower(subsystem_attr);
+  std::vector<std::string> subsystem_ids;
+  boost::split(subsystem_ids, subsystem_attr, boost::is_any_of(":"));
+
+  if (subsystem_ids.size() != 2) {
+    return Status::failure(
+        "Expected 2 identifiers from sysFs device subsystem attribute, but "
+        "got " +
+        std::to_string(subsystem_ids.size()));
+  }
+
+  row.emplace("subsystem_vendor_id", "0x" + subsystem_ids[0]);
+  row.emplace("subsystem_model_id", "0x" + subsystem_ids[1]);
+
+  std::string content;
+  if (pcidb.getVendorName(subsystem_ids[0], content).ok()) {
+    row.emplace("subsystem_vendor", std::move(content));
+  }
+
+  if (pcidb
+          .getSubsystemInfo(
+              vendor_id, model_id, subsystem_ids[0], subsystem_ids[1], content)
+          .ok()) {
+    row.emplace("subsystem_model", std::move(content));
+  }
+
+  return Status::success();
+}
+
+Status extractPCIDeviceInfo(Row& row,
+                            std::string&& device_attr,
+                            std::string&& subsystem_attr,
+                            const PciDB& pcidb) {
+  // pci.ids lower cases everything, so we follow suit.
+  boost::algorithm::to_lower(device_attr);
+  std::vector<std::string> ids;
+  boost::split(ids, device_attr, boost::is_any_of(":"));
+
+  if (ids.size() != 2) {
+    row.emplace("vendor_id", "0");
+    row.emplace("model_id", "0");
+
+    return Status::failure(
+        "Expected 2 identifiers from sysFs device attribute, but got " +
+        std::to_string(ids.size()));
+  }
+
+  row.emplace("vendor_id", "0x" + ids[0]);
+  row.emplace("model_id", "0x" + ids[1]);
+
+  // Now that we know we have VENDOR and MODEL ID's, let's actually check
+  // on the system PCI DB for descriptive information.  This implies that the
+  // system's local PCI DB would contain more update to date information than
+  // the one packaged with hwdb.
+  std::string content;
+  if (pcidb.getVendorName(ids[0], content).ok()) {
+    row["vendor"] = content;
+  }
+
+  if (pcidb.getModel(ids[0], ids[1], content).ok()) {
+    row["model"] = content;
+  }
+
+  // Try to enrich model with subsystem info.
+  return enrichPCISubsysInfo(row, subsystem_attr, ids[0], ids[1], pcidb);
+}
+
+Status extractPCIClassIDAttrs(Row& row, std::string&& pci_class_attr) {
+  // pci.ids lower cases everything, so we follow suit.
+  boost::algorithm::to_lower(pci_class_attr);
+
+  auto id_len = pci_class_attr.length();
+  switch (id_len) {
+  case 5:
+    row.emplace("pci_class_id", "0x0" + pci_class_attr.substr(0, 1));
+    row.emplace("pci_subclass_id", "0x" + pci_class_attr.substr(1, 2));
+    break;
+
+  case 6:
+    row.emplace("pci_class_id", "0x" + pci_class_attr.substr(0, 2));
+    row.emplace("pci_subclass_id", "0x" + pci_class_attr.substr(2, 2));
+    break;
+
+  default:
+    return Status::failure(
+        "Expected PCI Class ID to be 6 or 7 characters long, but got " +
+        std::to_string(id_len));
+  }
 
   return Status::success();
 }
@@ -294,86 +392,24 @@ QueryData genPCIDevices(QueryContext& context) {
     r["vendor"] = UdevEventPublisher::getValue(device.get(), kPCIKeyVendor);
     r["model"] = UdevEventPublisher::getValue(device.get(), kPCIKeyModel);
 
-    // TODO: extract to separate function
-    // VENDOR:MODEL ID is in the form of HHHH:HHHH.
-    std::vector<std::string> ids;
-    auto device_id = UdevEventPublisher::getValue(device.get(), kPCIKeyID);
-
-    // pci.ids lower cases everything, so we follow suit.
-    boost::algorithm::to_lower(device_id);
-
-    boost::split(ids, device_id, boost::is_any_of(":"));
-
-    if (ids.size() == 2) {
-      r["vendor_id"] = ids[0];
-      r["model_id"] = ids[1];
-
-      // Now that we know we have VENDOR and MODEL ID's, let's actually check
-      // on the system PCI DB for descriptive information.
-      std::string content;
-      if (pcidb.getVendorName(ids[0], content).ok()) {
-        r["vendor"] = content;
-      }
-
-      if (pcidb.getModel(ids[0], ids[1], content).ok()) {
-        r["model"] = content;
-      }
-
-      // Try to enrich model with subsystem info.
-      std::vector<std::string> subsystem_ids;
-      auto subsystem_id =
-          UdevEventPublisher::getValue(device.get(), kPCISubsysID);
-
-      boost::algorithm::to_lower(subsystem_id);
-
-      boost::split(subsystem_ids, subsystem_id, boost::is_any_of(":"));
-
-      if (subsystem_ids.size() == 2) {
-        r["subsystem_vendor_id"] = subsystem_ids[0];
-        r["subsystem_model_id"] = subsystem_ids[1];
-
-        if (pcidb.getVendorName(subsystem_ids[0], content).ok()) {
-          r["subsystem_vendor"] = content;
-        }
-
-        if (pcidb
-                .getSubsystemInfo(
-                    ids[0], ids[1], subsystem_ids[0], subsystem_ids[1], content)
-                .ok()) {
-          r["subsystem_model"] = content;
-        }
-      }
+    auto status = extractPCIDeviceInfo(
+        r,
+        UdevEventPublisher::getValue(device.get(), kPCIKeyID),
+        UdevEventPublisher::getValue(device.get(), kPCISubsysID),
+        pcidb);
+    if (!status.ok()) {
+      VLOG(1) << "Unexpected error extracting PCI Device information: "
+              << status.getMessage();
     }
 
-    // Set invalid vendor/model IDs to 0.
-    if (r["vendor_id"].size() == 0) {
-      r["vendor_id"] = "0";
+    status = extractPCIClassIDAttrs(
+        r, UdevEventPublisher::getValue(device.get(), kPCIClassID));
+    if (!status.ok()) {
+      VLOG(1) << "Failed to extract PCI class attributes: "
+              << status.getMessage();
     }
 
-    if (r["model_id"].size() == 0) {
-      r["model_id"] = "0";
-    }
-
-    // TODO: extract to seperate function
-    auto pci_class_id = UdevEventPublisher::getValue(device.get(), kPCIClassID);
-    auto id_len = pci_class_id.length();
-    switch (id_len) {
-    case 5:
-      r["pci_class_id"] = "0x0" + pci_class_id.substr(0, 1);
-      r["pci_subclass_id"] = "0x" + pci_class_id.substr(1, 2);
-      break;
-
-    case 6:
-      r["pci_class_id"] = "0x" + pci_class_id.substr(0, 2);
-      r["pci_subclass_id"] = "0x" + pci_class_id.substr(2, 2);
-      break;
-
-    default:
-      VLOG(1) << "Expected PCI Class ID to be 6 or 7 characters long, but got "
-              << id_len;
-    }
-
-    results.push_back(r);
+    results.emplace_back(std::move(r));
   }
 
   return results;
