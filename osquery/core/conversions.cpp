@@ -102,21 +102,6 @@ void JSON::add(const std::string& key, const rj::Value& value, rj::Value& obj) {
 }
 
 void JSON::addCopy(const std::string& key,
-                   const rj::Value& value,
-                   rj::Value& obj) {
-  assert(obj.IsObject());
-  auto itr = obj.FindMember(key);
-  if (itr != obj.MemberEnd()) {
-    obj.RemoveMember(itr);
-  }
-  rj::Value vc;
-  vc.CopyFrom(value, doc_.GetAllocator());
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
-                vc.Move(),
-                doc_.GetAllocator());
-}
-
-void JSON::addCopy(const std::string& key,
                    const std::string& value,
                    rj::Value& obj) {
   assert(obj.IsObject());

@@ -84,17 +84,6 @@ class JSON : private only_movable {
   void pushCopy(const std::string& value, rapidjson::Value& arr);
 
   /**
-   * @brief Add a rj::Value to a JSON object by copying the contents.
-   *
-   * This will add the key and value to an input document. If the key exists
-   * the value will be replaced.
-   * The input document must be an object type.
-   */
-  void addCopy(const std::string& key,
-               const rapidjson::Value& value,
-               rapidjson::Value& obj);
-
-  /**
    * @brief Add a string value to a JSON object by copying the contents.
    *
    * This will add the key and value to an input document. If the key exists
