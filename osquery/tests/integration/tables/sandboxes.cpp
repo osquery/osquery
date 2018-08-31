@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -14,30 +13,29 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
+#include <osquery/logger.h>
+
 namespace osquery {
 
-class sandboxes : public IntegrationTableTest {};
+class Sandboxes : public IntegrationTableTest {};
 
-TEST_F(sandboxes, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from sandboxes");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"label", NormalType}
-  //      {"user", NormalType}
-  //      {"enabled", IntType}
-  //      {"build_id", NormalType}
-  //      {"bundle_path", NormalType}
-  //      {"path", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(Sandboxes, test_sanity) {
+  QueryData data = execute_query("select * from sandboxes");
+
+  if (!data.empty()) {
+    ValidatatioMap row_map = {
+        {"label", NonEmptyString},
+        {"user", NonEmptyString},
+        {"enabled", Bool},
+        {"build_id", NonEmptyString},
+        {"bundle_path", NormalType},
+        {"path", DirectoryOnDisk},
+    };
+    validate_rows(data, row_map);
+  } else {
+    LOG(WARNING)
+        << "sandboxes table returned no results and therefore won't be tested";
+  }
 }
 
 } // namespace osquery
