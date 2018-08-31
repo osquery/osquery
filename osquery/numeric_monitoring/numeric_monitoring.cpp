@@ -196,7 +196,7 @@ FlusherIsScheduled schedule() {
 
 } // namespace
 
-void flushForTests() {
+void flush() {
   PreAggregationBuffer::get().flush();
 }
 
