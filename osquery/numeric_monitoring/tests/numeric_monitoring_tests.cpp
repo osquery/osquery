@@ -91,7 +91,7 @@ GTEST_TEST(NumericMonitoringTests, record_with_buffer) {
       monitoring::registryName(), FLAGS_numeric_monitoring_plugins);
   ASSERT_TRUE(status.ok());
 
-  monitoring::flushForTests();
+  monitoring::flush();
   NumericMonitoringInMemoryTestPlugin::points.clear();
 
   const auto monitoring_path = "some.path.to.heaven";
@@ -104,7 +104,7 @@ GTEST_TEST(NumericMonitoringTests, record_with_buffer) {
   monitoring::record(monitoring_path,
                      monitoring::ValueType{93},
                      monitoring::PreAggregationType::Sum);
-  monitoring::flushForTests();
+  monitoring::flush();
 
   EXPECT_EQ(1, NumericMonitoringInMemoryTestPlugin::points.size());
   EXPECT_EQ(monitoring_path,
@@ -132,7 +132,7 @@ GTEST_TEST(NumericMonitoringTests, record_without_buffer) {
   FLAGS_numeric_monitoring_plugins = kNameForTestPlugin;
   FLAGS_numeric_monitoring_pre_aggregation_time = 0;
 
-  monitoring::flushForTests();
+  monitoring::flush();
   NumericMonitoringInMemoryTestPlugin::points.clear();
 
   auto status = RegistryFactory::get().setActive(
