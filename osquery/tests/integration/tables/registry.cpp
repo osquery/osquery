@@ -15,29 +15,23 @@
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
+namespace {
 
-class registry : public IntegrationTableTest {};
+class RegistryTest : public IntegrationTableTest {};
 
-TEST_F(registry, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from registry");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"key", NormalType}
-  //      {"path", NormalType}
-  //      {"name", NormalType}
-  //      {"type", NormalType}
-  //      {"data", NormalType}
-  //      {"mtime", IntType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(RegistryTest, sanity) {
+  QueryData const rows = execute_query("select * from registry");
+  ASSERT_GT(rows.size(), 0ul);
+  auto const row_map = ValidatatioMap{
+      {"key", NonEmptyString},
+      {"path", NonEmptyString},
+      {"name", NonEmptyString},
+      {"type", NonEmptyString},
+      {"data", NormalType},
+      {"mtime", NonNegativeInt},
+  };
+  validate_rows(rows, row_map);
 }
 
+} // namespace
 } // namespace osquery
