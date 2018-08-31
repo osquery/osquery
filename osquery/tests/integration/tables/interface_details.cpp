@@ -38,7 +38,7 @@ TEST_F(InterfaceDetailsTest, sanity) {
       {"collisions", NonNegativeInt},
       {"last_change", IntType},
 #ifdef OSQUERY_POSIX
-      {"link_speed", IntType},
+      {"link_speed", NonNegativeInt},
 #endif
 #ifdef OSQUERY_LINUX
       {"pci_slot", NormalType},
