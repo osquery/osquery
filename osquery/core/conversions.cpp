@@ -164,7 +164,7 @@ void JSON::add(const std::string& key, const char* value) {
   add(key, value, doc());
 }
 
-void JSON::add(const std::string& key, size_t value, rj::Value& obj) {
+void JSON::add(const std::string& key, unsigned int value, rj::Value& obj) {
   assert(obj.IsObject());
   auto itr = obj.FindMember(key);
   if (itr != obj.MemberEnd()) {
@@ -172,11 +172,11 @@ void JSON::add(const std::string& key, size_t value, rj::Value& obj) {
   }
 
   obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
-                rj::Value(static_cast<uint64_t>(value)).Move(),
+                rj::Value(value).Move(),
                 doc_.GetAllocator());
 }
 
-void JSON::add(const std::string& key, size_t value) {
+void JSON::add(const std::string& key, unsigned int value) {
   add(key, value, doc());
 }
 
@@ -196,6 +196,72 @@ void JSON::add(const std::string& key, int value) {
   add(key, value, doc());
 }
 
+void JSON::add(const std::string& key, unsigned long value, rj::Value& obj) {
+  assert(obj.IsObject());
+  auto itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    obj.RemoveMember(itr);
+  }
+
+  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                rj::Value(static_cast<uint64_t>(value)).Move(),
+                doc_.GetAllocator());
+}
+
+void JSON::add(const std::string& key, unsigned long value) {
+  add(key, value, doc());
+}
+
+void JSON::add(const std::string& key, long value, rj::Value& obj) {
+  assert(obj.IsObject());
+  auto itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    obj.RemoveMember(itr);
+  }
+
+  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                rj::Value(static_cast<int64_t>(value)).Move(),
+                doc_.GetAllocator());
+}
+
+void JSON::add(const std::string& key, long value) {
+  add(key, value, doc());
+}
+
+void JSON::add(const std::string& key, long long value, rj::Value& obj) {
+  assert(obj.IsObject());
+  auto itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    obj.RemoveMember(itr);
+  }
+
+  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                rj::Value(value).Move(),
+                doc_.GetAllocator());
+}
+
+void JSON::add(const std::string& key, long long value) {
+  add(key, value, doc());
+}
+
+void JSON::add(const std::string& key,
+               unsigned long long value,
+               rj::Value& obj) {
+  assert(obj.IsObject());
+  auto itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    obj.RemoveMember(itr);
+  }
+
+  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                rj::Value(value).Move(),
+                doc_.GetAllocator());
+}
+
+void JSON::add(const std::string& key, unsigned long long value) {
+  add(key, value, doc());
+}
+
 void JSON::add(const std::string& key, bool value, rj::Value& obj) {
   assert(obj.IsObject());
   auto itr = obj.FindMember(key);
@@ -212,19 +278,6 @@ void JSON::add(const std::string& key, bool value) {
   add(key, value, doc());
 }
 
-void JSON::add(const std::string& key, int64_t value, rj::Value& obj) {
-  assert(obj.IsObject());
-  auto itr = obj.FindMember(key);
-  if (itr != obj.MemberEnd()) {
-    obj.RemoveMember(itr);
-  }
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
-                rj::Value(value).Move(),
-                doc_.GetAllocator());
-}
-void JSON::add(const std::string& key, int64_t value) {
-  add(key, value, doc());
-}
 void JSON::add(const std::string& key, double value, rj::Value& obj) {
   assert(obj.IsObject());
   auto itr = obj.FindMember(key);
@@ -235,6 +288,7 @@ void JSON::add(const std::string& key, double value, rj::Value& obj) {
                 rj::Value(value).Move(),
                 doc_.GetAllocator());
 }
+
 void JSON::add(const std::string& key, double value) {
   add(key, value, doc());
 }
