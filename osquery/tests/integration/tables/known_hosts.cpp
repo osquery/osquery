@@ -12,29 +12,28 @@
 // Sanity check integration test for known_hosts
 // Spec file: specs/posix/known_hosts.table
 
+#include <osquery/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
+namespace {
 
-class knownHosts : public IntegrationTableTest {};
+class KnownHostsTest : public IntegrationTableTest {};
 
-TEST_F(knownHosts, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from known_hosts");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"uid", IntType}
-  //      {"key", NormalType}
-  //      {"key_file", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(KnownHostsTest, sanity) {
+  QueryData const rows = execute_query("select * from known_hosts");
+  if (rows.empty()) {
+    LOG(WARNING) << "select from \"known_hosts\" table returned no results and "
+                    "therefore won't be tested";
+  } else {
+    auto const row_map = ValidatatioMap{
+        {"uid", IntType},
+        {"key", NonEmptyString},
+        {"key_file", FileOnDisk},
+    };
+    validate_rows(rows, row_map);
+  }
 }
 
+} // namespace
 } // namespace osquery
