@@ -22,12 +22,12 @@ TEST_F(RegistryTest, sanity) {
   QueryData const rows = execute_query("select * from registry");
   ASSERT_GT(rows.size(), 0ul);
   auto const row_map = ValidatatioMap{
-       {"key", NonEmptyString},
-       {"path", NonEmptyString},
-       {"name", NonEmptyString},
-       {"type", NonEmptyString},
-       {"data", NormalType},
-       {"mtime", NonNegativeInt},
+      {"key", NonEmptyString},
+      {"path", NonEmptyString},
+      {"name", NonEmptyString},
+      {"type", NonEmptyString},
+      {"data", NormalType},
+      {"mtime", NonNegativeInt},
   };
   validate_rows(rows, row_map);
 }
