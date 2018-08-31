@@ -19,10 +19,10 @@ class KernelInfo : public IntegrationTableTest {};
 
 TEST_F(KernelInfo, test_sanity) {
   QueryData data = execute_query("select * from kernel_info");
-  ValidatatioMap row_map = {{"version", NormalType},
+  ValidatatioMap row_map = {{"version", NonEmptyString},
                             {"arguments", NormalType},
-                            {"path", NormalType},
-                            {"device", NormalType}};
+                            {"path", FileOnDisk},
+                            {"device", ValidUUID}};
   validate_rows(data, row_map);
 }
 
