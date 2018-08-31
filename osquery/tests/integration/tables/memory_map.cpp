@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -12,29 +11,29 @@
 // Sanity check integration test for memory_map
 // Spec file: specs/linux/memory_map.table
 
+#include <osquery/core/conversions.h>
+
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
 
-class memoryMap : public IntegrationTableTest {};
+class MemoryMapTest : public IntegrationTableTest {};
 
-TEST_F(memoryMap, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from memory_map");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"name", NormalType}
-  //      {"start", NormalType}
-  //      {"end", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(MemoryMapTest, test_sanity) {
+  QueryData data = execute_query("select * from memory_map");
+  ASSERT_GT(data.size(), 0ul);
+  ValidatatioMap row_map = {{"name", NonEmptyString},
+                            {"start", NonNegativeInt},
+                            {"end", NonNegativeInt}};
+  validate_rows(data, row_map);
+
+  for (const auto& row : data) {
+    auto start = tryTo<unsigned long long>(row.at("start"));
+    auto end = tryTo<unsigned long long>(row.at("end"));
+    ASSERT_TRUE(start) << "start does not fit in unsigned long long";
+    ASSERT_TRUE(end) << "end does not fit in unsigned long long";
+    ASSERT_LE(*start, *end) << "start should be less than or equal to end";
+  }
 }
 
 } // namespace osquery
