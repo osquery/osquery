@@ -14,12 +14,13 @@
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
+namespace {
 
 class UsersTest : public IntegrationTableTest {};
 
 TEST_F(UsersTest, sanity) {
   QueryData rows = execute_query("select * from users");
-  ASSERT_GT(rows.size(), 0ul); // There must be at least one user
+  ASSERT_GE(rows.size(), 1ul); // There must be at least one user
   auto row_map = ValidatatioMap{
       {"uid", NonNegativeInt},
       {"gid", NonNegativeInt},
@@ -37,4 +38,5 @@ TEST_F(UsersTest, sanity) {
   validate_rows(rows, row_map);
 }
 
+} // namespace
 } // namespace osquery
