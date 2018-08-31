@@ -15,6 +15,7 @@
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
+namespace {
 
 class RegistryTest : public IntegrationTableTest {};
 
@@ -32,4 +33,5 @@ TEST_F(RegistryTest, sanity) {
   validate_rows(rows, row_map);
 }
 
+} // namespace
 } // namespace osquery
