@@ -32,8 +32,7 @@ TEST_F(MemoryMapTest, test_sanity) {
     auto end = tryTo<unsigned long long>(row.at("end"));
     ASSERT_TRUE(start)
         << "start in memory map does not fit in unsigned long long";
-    ASSERT_TRUE(end)
-        << "start in memory map does not fit in unsigned long long";
+    ASSERT_TRUE(end) << "end in memory map does not fit in unsigned long long";
     ASSERT_LE(*start, *end)
         << "in memory map start should be less or equal to end";
   }
