@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -12,29 +11,53 @@
 // Sanity check integration test for process_open_files
 // Spec file: specs/posix/process_open_files.table
 
+#include <unistd.h>
+
+#include <boost/filesystem.hpp>
+
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
 
-class processOpenFiles : public IntegrationTableTest {};
+class ProcessOpenFilesTest : public IntegrationTableTest {
+ public:
+  boost::filesystem::path filepath;
 
-TEST_F(processOpenFiles, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from process_open_files");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"pid", IntType}
-  //      {"fd", IntType}
-  //      {"path", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  virtual void SetUp() {
+    auto directory =
+        boost::filesystem::temp_directory_path() /
+        boost::filesystem::unique_path("test-process-open-files.%%%%-%%%%");
+    ASSERT_TRUE(boost::filesystem::create_directory(directory));
+    filepath = directory / boost::filesystem::path("file-table-test.txt");
+    {
+      auto fout = std::ofstream(filepath.native(), std::ios::out);
+      fout.open(filepath.string(), std::ios::out);
+      fout << "test";
+    }
+  }
+
+  virtual void TearDown() {
+    boost::filesystem::remove_all(filepath.parent_path());
+  }
+};
+
+TEST_F(ProcessOpenFilesTest, test_sanity) {
+  QueryData data = execute_query("select * from process_open_files");
+  ASSERT_GT(data.size(), 0ul);
+  ValidatatioMap row_map = {
+      {"pid", NonNegativeInt}, {"fd", NonNegativeInt}, {"path", FileOnDisk}};
+  validate_rows(data, row_map);
+
+  std::string self_pid = std::to_string(getpid());
+  bool found_self_file_open = false;
+  for (const auto& row : data) {
+    if (row.at("pid") == self_pid && row.at("path") == filepath.string()) {
+      found_self_file_open = true;
+      break;
+    }
+  }
+  ASSERT_TRUE(found_self_file_open)
+      << "process_open_files tables could not find opened file by test";
 }
 
 } // namespace osquery
