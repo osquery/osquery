@@ -138,11 +138,6 @@ void getHECIDriverVersion(QueryData& results) {
     return;
   }
 
-  if (response.version != 0x1) {
-    VLOG(1) << "Intel MEI version is unsupported: " << response.version;
-    return;
-  }
-
   if (response.maxlen < kMinResponseSize) {
     VLOG(1) << "Invalid maxlen size: " << response.maxlen;
     return;
