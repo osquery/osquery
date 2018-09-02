@@ -18,10 +18,17 @@
 namespace osquery {
 namespace tables {
 QueryData genController(QueryContext& context) {
+  QueryData results;
   Row r;
+
   SPDocument* doc = [SPDocument new];
   NSDictionary* data = [[[doc reportForDataType:@"SPiBridgeDataType"]
       objectForKey:@"_items"] lastObject];
+
+  if (data == nullptr) {
+    return results;
+  }
+
   NSString* bootUuid = [data objectForKey:@"ibridge_boot_uuid"];
   NSString* modelName = [data objectForKey:@"ibridge_model_name"];
   NSString* build = [data objectForKey:@"ibridge_build"];
@@ -38,7 +45,9 @@ QueryData genController(QueryContext& context) {
     r["firmware_version"] = [build UTF8String];
   }
 
-  return {r};
+  results.push_back(r);
+  return results;
 }
-}
-}
+
+} // namespace tables
+} // namespace osquery
