@@ -699,6 +699,10 @@ void Initializer::start() const {
                      FLAGS_numeric_monitoring_plugins);
   }
 
+  if (Killswitch::get().isAppStartMonitorEnabled()) {
+    monitoring::record("osqueryStart", 1, monitoring::PreAggregationType::Sum);
+  }
+
   // Start event threads.
   osquery::attachEvents();
   EventFactory::delay();
