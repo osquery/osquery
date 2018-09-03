@@ -33,6 +33,12 @@ enum class PreAggregationType {
   Sum,
   Min,
   Max,
+  Avg,
+  Stddev,
+  P10,
+  P50,
+  P95,
+  P99,
   // not existing PreAggregationType, upper limit definition
   InvalidTypeUpperLimit,
 };

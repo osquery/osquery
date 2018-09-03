@@ -29,32 +29,6 @@ GTEST_TEST(PreAggregationPoint, tryToUpdate_same_path_none) {
   ASSERT_FALSE(prev_pt.tryToAggregate(new_pt));
 }
 
-GTEST_TEST(PreAggregationPoint, tryToUpdate_same_path_different_types) {
-  const auto now = monitoring::Clock::now();
-  const auto path = "test.path.to.nowhere/paranoid";
-
-  using UnderType = std::underlying_type<monitoring::PreAggregationType>::type;
-  const auto upper_limit = static_cast<UnderType>(
-      monitoring::PreAggregationType::InvalidTypeUpperLimit);
-
-  for (auto prev_ind = UnderType{}; prev_ind < upper_limit; ++prev_ind) {
-    for (auto new_ind = UnderType{}; new_ind < upper_limit; ++new_ind) {
-      auto prev_aggr = static_cast<monitoring::PreAggregationType>(prev_ind);
-      auto prev_pt = monitoring::Point(path, 1, prev_aggr, now);
-
-      auto new_aggr = static_cast<monitoring::PreAggregationType>(new_ind);
-      auto new_pt = monitoring::Point(path, 1, new_aggr, now);
-
-      if (new_aggr == prev_aggr &&
-          new_aggr != monitoring::PreAggregationType::None) {
-        ASSERT_TRUE(prev_pt.tryToAggregate(new_pt));
-      } else {
-        ASSERT_FALSE(prev_pt.tryToAggregate(new_pt));
-      }
-    }
-  }
-}
-
 GTEST_TEST(PreAggregationPoint, tryToUpdate_different_path_sum) {
   const auto now = monitoring::Clock::now();
   const auto prev_path = "test.path.to.nowhere/something";
