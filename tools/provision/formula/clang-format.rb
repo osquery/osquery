@@ -4,6 +4,7 @@ class ClangFormat < AbstractOsqueryFormula
   desc "Formatting tools for C, C++, Obj-C, Java, JavaScript, TypeScript"
   homepage "https://clang.llvm.org/docs/ClangFormat.html"
   version "2018-04-24"
+  url "https://llvm.org/svn/llvm-project/llvm/tags/google/stable/2018-04-24/", :using => :svn
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -14,11 +15,6 @@ class ClangFormat < AbstractOsqueryFormula
   depends_on "cmake" => :build
   depends_on "ninja" => :build
   depends_on "subversion" => :build
-
-  resource "libcxx" do
-    url "https://releases.llvm.org/5.0.0/libcxx-5.0.0.src.tar.xz"
-    sha256 "eae5981e9a21ef0decfcac80a1af584ddb064a32805f95a57c7c83a5eb28c9b1"
-  end
 
   def install
     (buildpath/"projects/libcxx").install resource("libcxx")
