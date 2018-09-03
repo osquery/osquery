@@ -40,10 +40,6 @@ bool Killswitch::isConfigBackupEnabled() {
   return isNewCodeEnabled("configBackupSwitch");
 }
 
-bool Killswitch::isConfigBackupEnabled() {
-  return isNewCodeEnabled("configBackupSwitch");
-}
-
 bool Killswitch::isNewCodeEnabled(const std::string& key) {
   auto result = isEnabled(key);
   if (result) {
