@@ -32,7 +32,7 @@ FLAG(string,
 Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
-bool isExecutingQueryMonitorEnabled() {
+bool Killswitch::isExecutingQueryMonitorEnabled() {
   return isNewCodeEnabled("executingQueryMonitorSwitch");
 }
 
