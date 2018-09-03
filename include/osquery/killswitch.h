@@ -33,7 +33,7 @@ class Killswitch : private boost::noncopyable {
 
   // Author: @guliashvili
   // Creation Time: 3/09/2018
-  bool Killswitch::isAppStartMonitorEnabled();
+  bool isAppStartMonitorEnabled();
 
   // Author: @guliashvili
   // Creation Time: 3/09/2018
