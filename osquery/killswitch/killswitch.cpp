@@ -32,6 +32,10 @@ FLAG(string,
 Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
+bool Killswitch::isTotalQueryCounterMonitorEnabled() {
+  return isNewCodeEnabled("totalQueryCounterMonitorSwitch");
+}
+
 bool Killswitch::isExecutingQueryMonitorEnabled() {
   return isNewCodeEnabled("executingQueryMonitorSwitch");
 }
