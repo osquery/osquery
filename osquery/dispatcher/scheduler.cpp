@@ -16,6 +16,7 @@
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
+#include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/numeric_monitoring.h>
 #include <osquery/query.h>
@@ -178,11 +179,14 @@ inline void launchQueryWithProfiling(const std::string& name,
   auto status = launchQuery(name, query);
   auto query_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - start_time_point);
-  auto monitoring_path = boost::format("scheduler.executing_query.%s.%s") %
-                         name % (status.ok() ? "success" : "failure");
-  monitoring::record(monitoring_path.str(),
-                     query_duration.count(),
-                     monitoring::PreAggregationType::Min);
+  if (Killswitch::get().isExecutingQueryMonitorEnabled()) {
+    auto monitoring_path = boost::format("scheduler.executing_query.%s.%s") %
+                           name % (status.ok() ? "success" : "failure");
+
+    monitoring::record(monitoring_path.str(),
+                       query_duration.count(),
+                       monitoring::PreAggregationType::Min);
+  }
 }
 
 void SchedulerRunner::start() {
