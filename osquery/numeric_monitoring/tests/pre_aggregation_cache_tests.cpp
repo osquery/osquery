@@ -51,7 +51,7 @@ GTEST_TEST(PreAggregationPoint, tryToUpdate_same_path_different_types) {
       auto new_aggr = static_cast<monitoring::PreAggregationType>(new_ind);
       auto new_pt = monitoring::Point(path, 1, new_aggr, now);
       if (new_aggr == prev_aggr &&
-          nonaggregatable.find(new_aggr) != nonaggregatable.end()) {
+          nonaggregatable.find(new_aggr) == nonaggregatable.end()) {
         ASSERT_TRUE(prev_pt.tryToAggregate(new_pt));
       } else {
         ASSERT_FALSE(prev_pt.tryToAggregate(new_pt));
