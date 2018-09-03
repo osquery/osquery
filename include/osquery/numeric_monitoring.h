@@ -35,10 +35,10 @@ enum class PreAggregationType {
   Max,
   Avg,
   Stddev,
-  P10,
-  P50,
-  P95,
-  P99,
+  P10, // Estimates 10th percentile
+  P50, // Estimates 50th percentile
+  P95, // Estimates 95th percentile
+  P99, // Estimates 99th percentile
   // not existing PreAggregationType, upper limit definition
   InvalidTypeUpperLimit,
 };
