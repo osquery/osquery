@@ -16,7 +16,7 @@ endif
 
 DISTRO := $(shell . ./tools/lib.sh; _platform)
 DISTRO_VERSION := $(shell . ./tools/lib.sh; _distro $(DISTRO))
-DARWIN_BUILD := 10.12
+DARWIN_BUILD := 10.13
 ifeq ($(DISTRO),darwin)
 	BUILD_NAME = darwin$(DISTRO_VERSION)
 else ifeq ($(DISTRO),freebsd)

@@ -9,7 +9,7 @@ The tools make low-level operating system analytics and monitoring both performa
 
 | Platform | Build status  | | | |
 |----------|---------------|---|---|---|
-macOS 10.12    | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.12/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.12/) | | **Homepage:** | https://osquery.io
+MacOS 10.13    | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildMacOS/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildMacOS/) | | **Homepage:** | https://osquery.io
 CentOS 6.x | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Downloads:** | https://osquery.io/downloads
 CentOS 7.x   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Tables:** | https://osquery.io/schema
 Ubuntu 14.04   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | **Packs:** | [https://osquery.io/packs](https://github.com/facebook/osquery/tree/master/packs)
@@ -78,7 +78,7 @@ These queries can be:
 For latest stable builds for OS X (pkg) and Linux (deb/rpm), as well as yum and apt repository information visit [https://osquery.io/downloads](https://osquery.io/downloads/). Windows 10, 8, Server 2012 and 2016 packages are published to [Chocolatey](https://chocolatey.org/packages/osquery).
 
 The list of supported platforms for **running** osquery is massive:
-- Apple OS X 10.10, 10.11, and macOS 10.12
+- Apple OS X 10.10, 10.11, and macOS 10.12, 10.13
 - Any 64bit Linux OS with `glibc >= 2.13` and `zlib >= 1.2`
 - Windows 10, 8, Server 2012, and 2016
 
@@ -88,7 +88,7 @@ Building osquery from source is encouraged! [Check out the documentation](https:
 
 We *officially* support a subset of OS versions for **building** because it is rather intense.
 - Ubuntu 14.04 and 16.04, CentOS 6.5 and 7
-- Apple macOS 10.12
+- Apple macOS 10.13
 - Windows 10 and Server 2016
 
 ## File Integrity Monitoring (FIM)
