@@ -179,7 +179,7 @@ inline void launchQueryWithProfiling(const std::string& name,
   auto status = launchQuery(name, query);
   auto query_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - start_time_point);
-  if (isExecutingQueryMonitorEnabled()) {
+  if (Killswitch::get().isExecutingQueryMonitorEnabled()) {
     auto monitoring_path = boost::format("scheduler.executing_query.%s.%s") %
                            name % (status.ok() ? "success" : "failure");
 
