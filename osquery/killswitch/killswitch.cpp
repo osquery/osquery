@@ -32,6 +32,10 @@ FLAG(string,
 Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
+bool Killswitch::isExecutingQueryMonitorEnabled() {
+  return isNewCodeEnabled("executingQueryMonitorSwitch");
+}
+
 bool Killswitch::isConfigBackupEnabled() {
   return isNewCodeEnabled("configBackupSwitch");
 }
