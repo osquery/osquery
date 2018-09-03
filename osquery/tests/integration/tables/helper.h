@@ -55,23 +55,19 @@ class IntegrationTableTest : public ::testing::Test {
  protected:
   enum {
     NormalType = 0 << 0,
-    IntType = 1 << 0,
-
-    NonEmpty = 1 << 1,
-    NonNull = 1 << 2,
-    NonNegative = 1 << 3,
-    NonNegativeOrError = 1 << 4, // -1 is considered as the error value
-    NonZero = 1 << 5,
-    FileOnDisk = 1 << 6,
-    DirectoryOnDisk = 1 << 7,
-    ValidUUID = 1 << 8,
-    MD5 = 1 << 9,
-    SHA256 = 1 << 10,
-    SHA1 = 1 << 11,
-    Bool = 1 << 12,
-
-    NonNegativeInt = IntType | NonEmpty | NonNull | NonNegative,
-    NonNegativeOrErrorInt = IntType | NonEmpty | NonNull | NonNegativeOrError,
+    IntType = 1 << 1,
+    NonEmpty = 1 << 2,
+    NonNull = 1 << 3,
+    NonZero = 1 << 4,
+    FileOnDisk = 1 << 5,
+    DirectoryOnDisk = 1 << 6,
+    ValidUUID = 1 << 7,
+    MD5 = 1 << 8,
+    SHA256 = 1 << 9,
+    SHA1 = 1 << 10,
+    Bool = 1 << 11,
+    NonNegativeInt = IntType | NonEmpty | NonNull | (1 << 12),
+    NonNegativeOrErrorInt = IntType | NonEmpty | NonNull | (1 << 13),
     NonEmptyString = NonEmpty | NormalType | NonNull,
   };
 
