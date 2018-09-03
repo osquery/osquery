@@ -700,7 +700,7 @@ void Initializer::start() const {
   }
 
   if (Killswitch::get().isAppStartMonitorEnabled()) {
-    monitoring::record("osqueryStart", 1, monitoring::PreAggregationType::Sum);
+    monitoring::record("osquery.start", 1, monitoring::PreAggregationType::Sum);
   }
 
   // Start event threads.
