@@ -181,8 +181,14 @@ TEST_F(FSEventsTests, test_fsevents_match_subscription) {
   EXPECT_TRUE(status.ok());
   event_pub->configure();
 
-  std::vector<std::string> exclude_paths = {
-      "/etc/ssh/%%", "/etc/", "/etc/ssl/openssl.cnf", "/"};
+  std::vector<std::string> exclude_paths = {"/etc/ssh/%%",
+                                            "/etc/",
+                                            "/etc/ssl/openssl.cnf",
+                                            "/",
+                                            "/etc/pam.d/su%",
+                                            "/etc/pam.d/%asswd",
+                                            "/etc/%/%udit_%"};
+
   for (const auto& path : exclude_paths) {
     event_pub->exclude_paths_.insert(path);
   }
@@ -199,6 +205,16 @@ TEST_F(FSEventsTests, test_fsevents_match_subscription) {
     EXPECT_FALSE(event_pub->shouldFire(sc, ec));
     ec->path = "/private/etc/ssl/certs/";
     EXPECT_TRUE(event_pub->shouldFire(sc, ec));
+    ec->path = "/private/etc/pam.d/su";
+    EXPECT_FALSE(event_pub->shouldFire(sc, ec));
+    ec->path = "/private/etc/pam.d/sudo";
+    EXPECT_FALSE(event_pub->shouldFire(sc, ec));
+    ec->path = "/private/etc/pam.d/sshd";
+    EXPECT_TRUE(event_pub->shouldFire(sc, ec));
+    ec->path = "/private/etc/pam.d/passwd";
+    EXPECT_FALSE(event_pub->shouldFire(sc, ec));
+    ec->path = "/private/etc/security/audit_control";
+    EXPECT_FALSE(event_pub->shouldFire(sc, ec));
   }
   EventFactory::deregisterEventPublisher("fsevents");
 }

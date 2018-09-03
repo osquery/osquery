@@ -11,12 +11,12 @@
 #pragma once
 
 #include <mutex>
-#include <set>
 #include <string>
 #include <vector>
 
 #include <boost/noncopyable.hpp>
 #include <boost/tokenizer.hpp>
+#include <boost/utility/string_view.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -24,107 +24,121 @@
 namespace osquery {
 
 /**
- * @brief multiset based implementation for path search.
+ * @brief Vector based implemention for path search.
  *
- * 'multiset' is used because with patterns we can serach for equivalent keys.
- * Since  '/This/Path/is' ~= '/This/Path/%' ~= '/This/Path/%%' (equivalent).
+ * PathSet applies the following policy -
+ * patternedPath -    Path can contain pattern '%' and '%%'.
+ *                    Path components containing partial patterns are also
+ *                    supported e.g. '/This/Path/xyz%' or '/This/Path/%xyz'
+ *                    or '/This/Path/%xyz%' but '/This/Path/xy%z'
+ *                    is not supported i.e. 'xy%z' is considered as normal
+ *                    string.
  *
- * multiset is protected by lock. It is threadsafe.
- *
- * PathSet can take any of the two policies -
- * 1. patternedPath - Path can contain pattern '%' and '%%'.
- *                    Path components containing only '%' and '%%' are supported
- *                    e.g. '/This/Path/%'.
- *                    Path components containing partial patterns are not
- *                    supported e.g. '/This/Path/xyz%' ('xyz%' will not be
- *                    treated as pattern).
  */
 template <typename PathType>
 class PathSet : private boost::noncopyable {
  public:
-  void insert(const std::string& str) {
-    auto pattern = str;
+  void insert(std::string pattern) {
     replaceGlobWildcards(pattern);
-    auto vpath = PathType::createVPath(pattern);
+    auto path = PathType::createPath(std::move(pattern));
 
     WriteLock lock(mset_lock_);
-    for (auto& path : vpath) {
-      paths_.insert(std::move(path));
-    }
+    patterns_.push_back(std::move(path));
   }
 
   bool find(const std::string& str) const {
     auto path = PathType::createPath(str);
 
     ReadLock lock(mset_lock_);
-    if (paths_.find(path) != paths_.end()) {
-      return true;
+    for (const auto& pattern : patterns_) {
+      if (compare(pattern, path)) {
+        return true;
+      }
     }
     return false;
   }
 
   void clear() {
     WriteLock lock(mset_lock_);
-    paths_.clear();
+    patterns_.clear();
   }
 
   bool empty() const {
     ReadLock lock(mset_lock_);
-    return paths_.empty();
+    return patterns_.empty();
   }
 
  private:
   typedef typename PathType::Path Path;
   typedef typename PathType::Compare Compare;
-  std::multiset<Path, Compare> paths_;
+  std::vector<Path> patterns_;
   mutable Mutex mset_lock_;
+  Compare compare;
 };
 
 class patternedPath {
  public:
-  typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
   typedef std::vector<std::string> Path;
-  typedef std::vector<Path> VPath;
   struct Compare {
-    bool operator()(const Path& lhs, const Path& rhs) const {
-      size_t psize = (lhs.size() < rhs.size()) ? lhs.size() : rhs.size();
-      unsigned ndx;
-      for (ndx = 0; ndx < psize; ++ndx) {
-        if (lhs[ndx] == "**" || rhs[ndx] == "**") {
+    bool compareStrings(boost::string_view pattern,
+                        boost::string_view str) const {
+      if (pattern[0] == '*' && pattern[pattern.size() - 1] == '*') {
+        pattern = pattern.substr(1, pattern.size() - 2);
+        if (str.size() >= pattern.size() &&
+            str.find(pattern) != boost::string_view::npos) {
+          return true;
+        }
+        return false;
+      } else if (pattern[0] == '*') {
+        pattern = pattern.substr(1);
+        if (pattern.size() <= str.size()) {
+          str = str.substr(str.size() - pattern.size());
+        } else {
           return false;
         }
+      } else if (pattern[pattern.size() - 1] == '*') {
+        pattern = pattern.substr(0, pattern.size() - 1);
+        if (pattern.size() <= str.size()) {
+          str = str.substr(0, pattern.size());
+        } else {
+          return false;
+        }
+      }
 
-        if (lhs[ndx] == "*" || rhs[ndx] == "*") {
+      return (pattern == str);
+    }
+
+    bool operator()(const Path& pattern, const Path& str) const {
+      auto psize = std::min(pattern.size(), str.size());
+      for (size_t ndx = 0; ndx < psize; ++ndx) {
+        if (pattern[ndx] == "**") {
+          return true;
+        }
+
+        if (pattern[ndx] == "*") {
           continue;
         }
 
-        int rc = lhs[ndx].compare(rhs[ndx]);
-
-        if (rc > 0) {
+        // compare with partial patterns
+        if (compareStrings(pattern[ndx], str[ndx]) == true) {
+          continue;
+        } else {
           return false;
         }
-
-        if (rc < 0) {
-          return true;
-        }
       }
 
-      if ((ndx == rhs.size() && rhs[ndx - 1] == "*") ||
-          (ndx == lhs.size() && lhs[ndx - 1] == "*")) {
-        return false;
-      }
-
-      return (lhs.size() < rhs.size());
+      return (pattern.size() == str.size());
     }
   };
 
-  static Path createPath(const std::string& str) {
+  static Path createPath(std::string str) {
     boost::char_separator<char> sep{"/"};
+    typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
     tokenizer tokens(str, sep);
     Path path;
 
     if (str == "/") {
-      path.push_back("");
+      path.push_back("/");
     }
 
     for (std::string component : tokens) {
@@ -132,28 +146,5 @@ class patternedPath {
     }
     return path;
   }
-
-  static VPath createVPath(const std::string& str) {
-    boost::char_separator<char> sep{"/"};
-    tokenizer tokens(str, sep);
-    VPath vpath;
-    Path path;
-
-    if (str == "/") {
-      path.push_back("");
-    }
-
-    for (std::string component : tokens) {
-      if (component == "**") {
-        vpath.push_back(path);
-        path.push_back(std::move(component));
-        break;
-      }
-      path.push_back(std::move(component));
-    }
-    vpath.push_back(std::move(path));
-    return vpath;
-  }
 };
-
 } // namespace osquery
