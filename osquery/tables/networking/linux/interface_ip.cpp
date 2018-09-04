@@ -9,8 +9,6 @@
  */
 
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/assign/list_of.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include "osquery/core/conversions.h"
 #include <osquery/filesystem.h>
@@ -22,10 +20,10 @@ namespace tables {
 namespace {
 const std::string kIpv6SysConfig = "all";
 const std::unordered_map<std::string, std::string> kIpv6ProcEntry = {
-    {"forwarding", "forwarding"},
-    {"redirect", "accept_redirects"},
-    {"hlim", "hop_limit"},
-    {"rtadv", "accept_ra"},
+    {"forwarding_enabled", "forwarding"},
+    {"redirect_accept", "accept_redirects"},
+    {"hop_limit", "hop_limit"},
+    {"rtadv_accept", "accept_ra"},
 };
 
 inline std::string getIpv6Attr(const std::string& intf,
@@ -59,15 +57,15 @@ void genIpv6FromIntf(const std::string& iface, QueryData& results) {
    *   - linux/include/linux/inetdevice.h
    */
   r["interface"] = iface;
-  r["hlim"] = INTEGER(getIpv6Config("hlim", iface));
-  int forwarding = getIpv6Config("forwarding", iface);
-  r["forwarding"] = INTEGER(forwarding);
-  int redirect = getIpv6Config("redirect");
-  int ifaceRedirect = getIpv6Config("redirect", iface);
-  r["redirect"] = INTEGER(forwarding ? redirect && ifaceRedirect
-                                     : redirect || ifaceRedirect);
-  int rtadv = getIpv6Config("rtadv", iface);
-  r["rtadv"] = INTEGER(rtadv == 2 ? 1 : rtadv && (!forwarding));
+  r["hop_limit"] = INTEGER(getIpv6Config("hop_limit", iface));
+  int forwarding = getIpv6Config("forwarding_enabled", iface);
+  r["forwarding_enabled"] = INTEGER(forwarding);
+  int redirect = getIpv6Config("redirect_accept");
+  int ifaceRedirect = getIpv6Config("redirect_accept", iface);
+  r["redirect_accept"] = INTEGER(forwarding ? redirect && ifaceRedirect
+                                            : redirect || ifaceRedirect);
+  int rtadv = getIpv6Config("rtadv_accept", iface);
+  r["rtadv_accept"] = INTEGER(rtadv == 2 ? 1 : rtadv && (!forwarding));
   results.emplace_back(std::move(r));
 }
 

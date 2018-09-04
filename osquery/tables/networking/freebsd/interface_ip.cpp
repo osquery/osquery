@@ -10,6 +10,7 @@
 
 #include <net/if.h>
 #include <netinet/in.h>
+#include <netinet/icmp6.h>
 #include <netinet6/in6_var.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -28,11 +29,12 @@ namespace osquery {
 namespace tables {
 
 namespace {
-const std::unordered_map<std::string, int> kIpv6SysctlObjects = {
-    {"forwarding", IPV6CTL_FORWARDING},
-    {"redirect", IPV6CTL_SENDREDIRECTS},
-    {"hlim", IPV6CTL_DEFHLIM},
-    {"rtadv", IPV6CTL_ACCEPT_RTADV},
+const std::unordered_map<std::string, std::tuple<int, int>> kIpv6SysctlObjects =
+    {
+        {"forwarding_enabled", {IPPROTO_IPV6, IPV6CTL_FORWARDING}},
+        {"redirect_accept", {IPPROTO_ICMPV6, ICMPV6CTL_REDIRACCEPT}},
+        {"hop_limit", {IPPROTO_IPV6, IPV6CTL_DEFHLIM}},
+        {"rtadv_accept", {IPPROTO_IPV6, IPV6CTL_ACCEPT_RTADV}},
 };
 
 int getSysIpv6Config(const std::string& attr) {
@@ -43,7 +45,9 @@ int getSysIpv6Config(const std::string& attr) {
     VLOG(1) << "No such sysctl object identifier: \"" << attr << "\"";
     return -1;
   }
-  int mib[] = {CTL_NET, PF_INET6, IPPROTO_IPV6, sysctlObject->second};
+  auto proto = std::get<0>(sysctlObject->second);
+  auto object = std::get<1>(sysctlObject->second);
+  int mib[] = {CTL_NET, PF_INET6, proto, object};
   return sysctl(mib, 4, &value, &size, nullptr, 0) < 0 ? -1 : value;
 }
 } // namespace
@@ -69,10 +73,12 @@ void genIpv6FromIntf(const std::string& iface, QueryData& results) {
   }
 
   r["interface"] = iface;
-  r["hlim"] = INTEGER(ifaceHlim ? ifaceHlim : getSysIpv6Config("hlim"));
-  r["rtadv"] = INTEGER(getSysIpv6Config("rtadv") > 0 && ifaceRtadv);
+  r["hop_limit"] =
+      INTEGER(ifaceHlim ? ifaceHlim : getSysIpv6Config("hop_limit"));
+  r["rtadv_accept"] =
+      INTEGER(getSysIpv6Config("rtadv_accept") > 0 && ifaceRtadv);
   // FreeBSD does not support some of the configurations at the interface level
-  for (const auto& attr : {"forwarding", "redirect"}) {
+  for (const auto& attr : {"forwarding_enabled", "redirect_accept"}) {
     r[attr] = INTEGER(getSysIpv6Config(attr));
   }
   results.emplace_back(std::move(r));
