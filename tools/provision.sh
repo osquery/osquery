@@ -39,10 +39,10 @@ source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/provision/lib.sh"
 
 function platform_linux_main() {
-  brew_tool patchelf
-  brew_tool zlib
-  brew_tool linux-headers
-  brew_tool sqlite
+  brew_tool osquery/osquery-local/patchelf
+  brew_tool osquery/osquery-local/zlib
+  brew_tool osquery/osquery-local/linux-headers
+  brew_tool osquery/osquery-local/sqlite
 
   brew_tool osquery/osquery-local/glibc-legacy
   brew_tool osquery/osquery-local/zlib-legacy
@@ -93,14 +93,14 @@ function platform_linux_main() {
 }
 
 function platform_darwin_main() {
-  brew_tool readline
-  brew_tool sqlite
-  brew_tool pkg-config
-  brew_tool makedepend
-  brew_tool clang-format
-  brew_tool autoconf
-  brew_tool automake
-  brew_tool libtool
+  brew_tool osquery/osquery-local/readline
+  brew_tool osquery/osquery-local/sqlite
+  brew_tool osquery/osquery-local/pkg-config
+  brew_tool osquery/osquery-local/makedepend
+  brew_tool osquery/osquery-local/clang-format
+  brew_tool osquery/osquery-local/autoconf
+  brew_tool osquery/osquery-local/automake
+  brew_tool osquery/osquery-local/libtool
 
   brew_dependency osquery/osquery-local/xz
   brew_dependency osquery/osquery-local/cmake
