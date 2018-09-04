@@ -162,8 +162,13 @@ bool IntegrationTableTest::validate_value_using_flags(const std::string& value,
       return false;
     }
     auto intValue = cast_result.get();
-    if ((flags & NonNegative) > 0) {
+    if ((flags & NonNegativeInt) > 0) {
       if (intValue < 0) {
+        return false;
+      }
+    }
+    if ((flags & NonNegativeOrErrorInt) > 0) {
+      if (intValue < -1) {
         return false;
       }
     }
