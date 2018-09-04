@@ -50,7 +50,7 @@ void getHECIDriverVersion(QueryData& results) {
       guid, nullptr, nullptr, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
 
   if (deviceInfo == INVALID_HANDLE_VALUE) {
-    VLOG(1) << "Failed to open MEI device with " << GetLastError();
+    LOG(WARNING) << "Failed to open MEI device with " << GetLastError();
     return;
   }
 
@@ -96,7 +96,7 @@ void getHECIDriverVersion(QueryData& results) {
 
   // HECI driver was not found
   if (devPath.empty()) {
-    VLOG(1) << "Could not locate HECI driver";
+    LOG(WARNING) << "Could not locate HECI driver";
     return;
   }
 
@@ -108,7 +108,8 @@ void getHECIDriverVersion(QueryData& results) {
                              0,
                              nullptr);
   if (driver == INVALID_HANDLE_VALUE) {
-    VLOG(1) << "Failed to open handle to device path with " << GetLastError();
+    LOG(WARNING) << "Failed to open handle to device path with "
+                 << GetLastError();
     return;
   }
 
@@ -128,10 +129,11 @@ void getHECIDriverVersion(QueryData& results) {
   if (ret == 0) {
     auto last_error = GetLastError();
     if (last_error == ERROR_GEN_FAILURE) {
-      VLOG(1) << "The driver is already in use by another client and can't be "
-                 "queried at this time";
+      LOG(WARNING)
+          << "The driver is already in use by another client and can't be "
+             "queried at this time";
     } else {
-      VLOG(1) << "Device IOCTL call failed with " << last_error;
+      LOG(WARNING) << "Device IOCTL call failed with " << last_error;
     }
 
     CloseHandle(driver);
@@ -139,18 +141,18 @@ void getHECIDriverVersion(QueryData& results) {
   }
 
   if (response.maxlen < kMinResponseSize) {
-    VLOG(1) << "Invalid maxlen size: " << response.maxlen;
+    LOG(WARNING) << "Invalid maxlen size: " << response.maxlen;
     return;
   } else if (kExpectedMaxLenValues.count(response.maxlen) == 0U) {
-    VLOG(1) << "The returned maxlen field value is unexpected: "
-            << response.maxlen;
+    LOG(WARNING) << "The returned maxlen field value is unexpected: "
+                 << response.maxlen;
   }
 
   unsigned char fw_cmd[4] = {0};
   ret = WriteFile(
       driver, static_cast<void*>(fw_cmd), sizeof(fw_cmd), nullptr, nullptr);
   if (ret != TRUE) {
-    VLOG(1) << "HECI driver write failed with " << GetLastError();
+    LOG(WARNING) << "HECI driver write failed with " << GetLastError();
   }
 
   // Response from FirmwareUpdate HECI GUID.
@@ -167,11 +169,11 @@ void getHECIDriverVersion(QueryData& results) {
 
   if (ret != TRUE) {
     std::fill(read_buffer.begin(), read_buffer.end(), 0U);
-    VLOG(1) << "HECI driver read failed with " << GetLastError();
+    LOG(WARNING) << "HECI driver read failed with " << GetLastError();
   } else if (static_cast<size_t>(bytes_read) < kMinResponseSize) {
     // This is unlikely
     std::fill(read_buffer.begin(), read_buffer.end(), 0U);
-    VLOG(1) << "The driver has not returned enough bytes";
+    LOG(WARNING) << "The driver has not returned enough bytes";
   }
 
   auto version = reinterpret_cast<const mei_version*>(read_buffer.data());
