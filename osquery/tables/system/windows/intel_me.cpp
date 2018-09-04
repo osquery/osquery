@@ -24,7 +24,6 @@
 
 namespace osquery {
 namespace {
-const size_t kMinResponseSize = 0x38U;
 const std::unordered_set<size_t> kExpectedMaxLenValues = {512U, 4096U};
 } // namespace
 
@@ -140,7 +139,7 @@ void getHECIDriverVersion(QueryData& results) {
     return;
   }
 
-  if (response.maxlen < kMinResponseSize) {
+  if (response.maxlen < sizeof(mei_version)) {
     LOG(WARNING) << "Invalid maxlen size: " << response.maxlen;
     return;
   } else if (kExpectedMaxLenValues.count(response.maxlen) == 0U) {
@@ -170,7 +169,7 @@ void getHECIDriverVersion(QueryData& results) {
   if (ret != TRUE) {
     std::fill(read_buffer.begin(), read_buffer.end(), 0U);
     LOG(WARNING) << "HECI driver read failed with " << GetLastError();
-  } else if (static_cast<size_t>(bytes_read) < kMinResponseSize) {
+  } else if (static_cast<size_t>(bytes_read) < sizeof(mei_version)) {
     // This is unlikely
     std::fill(read_buffer.begin(), read_buffer.end(), 0U);
     LOG(WARNING) << "The driver has not returned enough bytes";
