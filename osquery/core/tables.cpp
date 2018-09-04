@@ -90,6 +90,10 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
 QueryContext TablePlugin::getContextFromRequest(
     const PluginRequest& request) const {
   QueryContext context;
+  if (request.count("context") == 0) {
+    return context;
+  }
+
   auto doc = JSON::newObject();
   doc.fromString(request.at("context"));
   if (doc.doc().HasMember("colsUsed")) {
@@ -101,7 +105,7 @@ QueryContext TablePlugin::getContextFromRequest(
   }
   if (doc.doc().HasMember("colsUsedMask")) {
     context.colsUsedMask = doc.doc()["colsUsedMask"].GetUint64();
-  } else {
+  } else if (context.colsUsed) {
     context.colsUsedMask = usedColumnNamesToMask(*context.colsUsed);
   }
 

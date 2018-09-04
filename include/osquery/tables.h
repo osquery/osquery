@@ -642,7 +642,7 @@ struct QueryContext : private only_movable {
   bool isAnyColumnUsed(std::initializer_list<std::string> colNames) const;
 
   inline bool isAnyColumnUsed(std::bitset<64> mask) const {
-    return (*colsUsedMask & mask).any();
+    return !colsUsedMask || (*colsUsedMask & mask).any();
   }
 
   template <typename Type>
