@@ -23,6 +23,10 @@
 #include "osquery/tables/system/intel_me.hpp"
 
 namespace osquery {
+namespace {
+const std::unordered_set<size_t> kExpectedMaxLenValues = {512U, 4096U};
+} // namespace
+
 namespace tables {
 
 DEFINE_GUID(HECI_INTERFACE_GUID,
@@ -45,7 +49,7 @@ void getHECIDriverVersion(QueryData& results) {
       guid, nullptr, nullptr, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
 
   if (deviceInfo == INVALID_HANDLE_VALUE) {
-    VLOG(1) << "Failed to open MEI device with " << GetLastError();
+    LOG(WARNING) << "Failed to open MEI device with " << GetLastError();
     return;
   }
 
@@ -91,7 +95,7 @@ void getHECIDriverVersion(QueryData& results) {
 
   // HECI driver was not found
   if (devPath.empty()) {
-    VLOG(1) << "Could not locate HECI driver";
+    LOG(WARNING) << "Could not locate HECI driver";
     return;
   }
 
@@ -103,7 +107,8 @@ void getHECIDriverVersion(QueryData& results) {
                              0,
                              nullptr);
   if (driver == INVALID_HANDLE_VALUE) {
-    VLOG(1) << "Failed to open handle to device path with " << GetLastError();
+    LOG(WARNING) << "Failed to open handle to device path with "
+                 << GetLastError();
     return;
   }
 
@@ -111,9 +116,6 @@ void getHECIDriverVersion(QueryData& results) {
 
   // Response data from driver open.
   struct mei_response response;
-  // Response from FirmwareUpdate HECI GUID.
-  struct mei_version version;
-
   ret = DeviceIoControl(driver,
                         ioctlConnectClient,
                         (LPVOID)kMEIUpdateGUID.data(),
@@ -124,31 +126,62 @@ void getHECIDriverVersion(QueryData& results) {
                         nullptr);
 
   if (ret == 0) {
-    VLOG(1) << "Device IOCTL call failed with " << GetLastError();
+    auto last_error = GetLastError();
+    if (last_error == ERROR_GEN_FAILURE) {
+      LOG(WARNING)
+          << "The driver is already in use by another client and can't be "
+             "queried at this time";
+    } else {
+      LOG(WARNING) << "Device IOCTL call failed with " << last_error;
+    }
+
     CloseHandle(driver);
     return;
+  }
+
+  if (response.maxlen < sizeof(mei_version)) {
+    LOG(WARNING) << "Invalid maxlen size: " << response.maxlen;
+    return;
+  } else if (kExpectedMaxLenValues.count(response.maxlen) == 0U) {
+    LOG(WARNING) << "The returned maxlen field value is unexpected: "
+                 << response.maxlen;
   }
 
   unsigned char fw_cmd[4] = {0};
   ret = WriteFile(
       driver, static_cast<void*>(fw_cmd), sizeof(fw_cmd), nullptr, nullptr);
   if (ret != TRUE) {
-    VLOG(1) << "HECI driver write failed with " << GetLastError();
+    LOG(WARNING) << "HECI driver write failed with " << GetLastError();
   }
 
-  memset(&version, 0, sizeof(version));
-  ret = ReadFile(driver, &version, sizeof(version), nullptr, nullptr);
-  if (ret != TRUE) {
-    VLOG(1) << "HECI driver read failed with " << GetLastError();
-  }
+  // Response from FirmwareUpdate HECI GUID.
+  std::vector<std::uint8_t> read_buffer(response.maxlen);
+  DWORD bytes_read = 0U;
+
+  ret = ReadFile(driver,
+                 read_buffer.data(),
+                 static_cast<DWORD>(read_buffer.size()),
+                 &bytes_read,
+                 nullptr);
 
   CloseHandle(driver);
 
+  if (ret != TRUE) {
+    std::fill(read_buffer.begin(), read_buffer.end(), 0U);
+    LOG(WARNING) << "HECI driver read failed with " << GetLastError();
+  } else if (static_cast<size_t>(bytes_read) < sizeof(mei_version)) {
+    // This is unlikely
+    std::fill(read_buffer.begin(), read_buffer.end(), 0U);
+    LOG(WARNING) << "The driver has not returned enough bytes";
+  }
+
+  auto version = reinterpret_cast<const mei_version*>(read_buffer.data());
+
   Row r;
-  r["version"] = std::to_string(version.major) + '.' +
-                 std::to_string(version.minor) + '.' +
-                 std::to_string(version.hotfix) + '.' +
-                 std::to_string(version.build);
+  r["version"] = std::to_string(version->major) + '.' +
+                 std::to_string(version->minor) + '.' +
+                 std::to_string(version->hotfix) + '.' +
+                 std::to_string(version->build);
 
   results.push_back(r);
 }
@@ -158,5 +191,5 @@ QueryData getIntelMEInfo(QueryContext& context) {
   getHECIDriverVersion(results);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
