@@ -33,6 +33,10 @@ class Killswitch : private boost::noncopyable {
 
   // Author: @guliashvili
   // Creation Time: 3/09/2018
+  bool isAppStartMonitorEnabled();
+
+  // Author: @guliashvili
+  // Creation Time: 3/09/2018
   bool isExecutingQueryMonitorEnabled();
 
   // Author: @guliashvili
