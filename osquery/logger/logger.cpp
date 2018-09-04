@@ -446,7 +446,7 @@ Status logString(const std::string& message,
 }
 
 namespace {
-const std::string kTotalQueryCounterMonitorPath("total.query.counter");
+const std::string kTotalQueryCounterMonitorPath("query.total.count");
 }
 
 Status logQueryLogItem(const QueryLogItem& results) {
