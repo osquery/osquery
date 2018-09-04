@@ -84,7 +84,7 @@ static inline void getOptimizeData(EventTime& o_time,
   {
     std::string content;
     getDatabaseValue(kEvents, "optimize_eid." + query_name, content);
-    o_eid = tryTo<std::size_t>(content).getOr(std::size_t{0});
+    o_eid = tryTo<std::size_t>(content).takeOr(std::size_t{0});
   }
 }
 

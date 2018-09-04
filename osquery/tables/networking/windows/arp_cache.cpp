@@ -51,7 +51,7 @@ QueryData genIPv4ArpCache(QueryContext& context) {
   for (const auto& iface : interfaces) {
 
     if (iface.count("interface") > 0) {
-      long interface_index = tryTo<long>(iface.at("interface"), 10).getOr(0l);
+      long interface_index = tryTo<long>(iface.at("interface"), 10).takeOr(0l);
       mapOfInterfaces[interface_index] =
           iface.count("mac") > 0 ? iface.at("mac") : "";
     }
