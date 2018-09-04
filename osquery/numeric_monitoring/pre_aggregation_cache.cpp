@@ -46,6 +46,12 @@ bool Point::tryToAggregate(const Point& new_point) {
   time_point_ = std::max(time_point_, new_point.time_point_);
   switch (pre_aggregation_type_) {
   case PreAggregationType::None:
+  case PreAggregationType::Avg:
+  case PreAggregationType::Stddev:
+  case PreAggregationType::P10:
+  case PreAggregationType::P50:
+  case PreAggregationType::P95:
+  case PreAggregationType::P99:
     return false;
   case PreAggregationType::Sum:
     value_ = value_ + new_point.value_;
