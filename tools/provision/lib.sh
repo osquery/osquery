@@ -58,6 +58,7 @@ function setup_brew() {
   fi
   ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
 
+  export HOMEBREW_NO_ANALYTICS=1 # dissable analytics https://docs.brew.sh/Analytics
   export HOMEBREW_NO_ANALYTICS_THIS_RUN=1
   export HOMEBREW_NO_AUTO_UPDATE=1
   export HOMEBREW_CACHE="$DEPS/.cache/"
@@ -65,6 +66,9 @@ function setup_brew() {
   export HOMEBREW_NO_EMOJI=1
   export HOMEBREW_BOTTLE_ARCH=core2
   export BREW="$DEPS/bin/brew"
+
+  log "dissabling brew analytics"
+  $DEPS/bin/brew analytics off
 
   # Grab full clone to perform a pin
   if [[ ! "$ACTION" = "bottle" ]]; then
@@ -116,12 +120,12 @@ function json_attributes() {
 }
 
 function set_deps_compilers() {
-  if [[ "$1" = "gcc" ]]; then
-    export CC="$DEPS/bin/gcc"
-    export CXX="$DEPS/bin/g++"
-  elif [[ -f "$DEPS/bin/clang" ]]; then
+  if [[ -x "$DEPS/bin/clang" ]]; then
     export CC="$DEPS/bin/clang"
     export CXX="$DEPS/bin/clang++"
+  elif [[ -x  "$DEPS/bin/gcc" ]]; then
+    export CC="$DEPS/bin/gcc"
+    export CXX="$DEPS/bin/g++"
   else
     unset CC
     unset CXX
@@ -246,11 +250,8 @@ function brew_tool() {
 
 function brew_dependency() {
   # Essentially uses clang instead of GCC.
-  set_deps_compilers clang
+  set_deps_compilers
   brew_internal "dependency" $@
-  if [[ -f "$DEPS/bin/gcc" ]]; then
-    set_deps_compilers gcc
-  fi
 }
 
 function brew_link() {

@@ -33,6 +33,12 @@ enum class PreAggregationType {
   Sum,
   Min,
   Max,
+  Avg,
+  Stddev,
+  P10, // Estimates 10th percentile
+  P50, // Estimates 50th percentile
+  P95, // Estimates 95th percentile
+  P99, // Estimates 99th percentile
   // not existing PreAggregationType, upper limit definition
   InvalidTypeUpperLimit,
 };
@@ -63,9 +69,9 @@ void record(const std::string& path,
 
 /**
  * Force flush the pre-aggregation buffer.
- * Only for tests, please do not use it anywhere.
+ * Please use it, only when it's totally necessary.
  */
-void flushForTests();
+void flush();
 
 }; // namespace monitoring
 

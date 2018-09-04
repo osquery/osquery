@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 #include <unordered_set>
 
+#include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
 #include <boost/uuid/string_generator.hpp>
@@ -82,6 +83,12 @@ bool SpecificValuesCheck::operator()(const std::string& string) const {
   return set_.find(string) != set_.end();
 }
 
+bool verifyIpAddress(std::string const& value) {
+  auto err = boost::system::error_code{};
+  boost::asio::ip::make_address(value, err);
+  return !err;
+}
+
 QueryData IntegrationTableTest::execute_query(std::string query) {
   SQLInternal sql(query, false);
   return sql.rows();
@@ -89,8 +96,10 @@ QueryData IntegrationTableTest::execute_query(std::string query) {
 
 void IntegrationTableTest::validate_row(const Row& row,
                                         const ValidatatioMap& validation_map) {
-  ASSERT_EQ(row.size(), validation_map.size())
-      << "Unexpected number of columns";
+  for (auto const& rec : row) {
+    EXPECT_NE(validation_map.count(rec.first), std::size_t{0})
+        << "Unexpected column " << boost::io::quoted(rec.first) << " in a row";
+  }
   for (auto iter : validation_map) {
     std::string key = iter.first;
     auto row_data_iter = row.find(key);
@@ -153,8 +162,13 @@ bool IntegrationTableTest::validate_value_using_flags(const std::string& value,
       return false;
     }
     auto intValue = cast_result.get();
-    if ((flags & NonNegative) > 0) {
+    if ((flags & NonNegativeInt) > 0) {
       if (intValue < 0) {
+        return false;
+      }
+    }
+    if ((flags & NonNegativeOrErrorInt) > 0) {
+      if (intValue < -1) {
         return false;
       }
     }
