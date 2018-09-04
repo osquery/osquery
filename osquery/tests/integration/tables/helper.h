@@ -57,11 +57,9 @@ class IntegrationTableTest : public ::testing::Test {
  protected:
   enum {
     NormalType = 0 << 0,
-    IntType = 1 << 0,
-
-    NonEmpty = 1 << 1,
-    NonNull = 1 << 2,
-    NonNegative = 1 << 3,
+    IntType = 1 << 1,
+    NonEmpty = 1 << 2,
+    NonNull = 1 << 3,
     NonZero = 1 << 4,
     FileOnDisk = 1 << 5,
     DirectoryOnDisk = 1 << 6,
@@ -70,8 +68,8 @@ class IntegrationTableTest : public ::testing::Test {
     SHA256 = 1 << 9,
     SHA1 = 1 << 10,
     Bool = 1 << 11,
-
-    NonNegativeInt = IntType | NonEmpty | NonNull | NonNegative,
+    NonNegativeInt = IntType | NonEmpty | NonNull | (1 << 12),
+    NonNegativeOrErrorInt = IntType | NonEmpty | NonNull | (1 << 13),
     NonEmptyString = NonEmpty | NormalType | NonNull,
   };
 
