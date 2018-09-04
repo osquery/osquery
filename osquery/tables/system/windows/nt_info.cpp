@@ -10,7 +10,6 @@
 
 #include <osquery/logger.h>
 #include <osquery/sql.h>
-#include <osquery/status.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
@@ -32,8 +31,7 @@ QueryData genNtInfo(QueryContext& context) {
         data.GetString("ClientSiteName", r["client_site_name"]);
         data.GetString("DcSiteName", r["dc_site_name"]);
         data.GetString("DnsForestName", r["dns_forest_name"]);
-        data.GetString("DomainControllerAddress",
-                       r["domain_controller_address"]);
+        data.GetString("DomainControllerAddress", r["domain_controller_address"]);
         data.GetString("DomainControllerName", r["domain_controller_name"]);
         data.GetString("DomainName", r["domain_name"]);
         data.GetString("Status", r["status"]);
@@ -41,10 +39,10 @@ QueryData genNtInfo(QueryContext& context) {
       }
     } else {
       LOG(WARNING) << "WMI resultset empty.";
-    }
+    } 
   } else {
-    VLOG(1) << wmiSystemReq.getStatus().getMessage();
-  }
+      VLOG(1) << wmiSystemReq.getStatus().getMessage();
+    }
   return results;
 }
 } // namespace tables
