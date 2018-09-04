@@ -69,24 +69,32 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
       std::string sPlaceHolder;
 
       results[0].GetString("PacketsReceivedPerSec", sPlaceHolder);
-      r["ipackets"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
+      r["ipackets"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
       results[0].GetString("PacketsSentPerSec", sPlaceHolder);
-      r["opackets"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
+      r["opackets"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
 
       results[0].GetString("BytesReceivedPerSec", sPlaceHolder);
-      r["ibytes"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
+      r["ibytes"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
       results[0].GetString("BytesSentPerSec", sPlaceHolder);
-      r["obytes"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
+      r["obytes"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
 
       results[0].GetString("PacketsReceivedErrors", sPlaceHolder);
-      r["ierrors"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
+      r["ierrors"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
       results[0].GetString("PacketsOutboundErrors", sPlaceHolder);
-      r["oerrors"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
+      r["oerrors"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
 
       results[0].GetString("PacketsReceivedDiscarded", sPlaceHolder);
-      r["idrops"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
+      r["idrops"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
       results[0].GetString("PacketsOutboundDiscarded", sPlaceHolder);
-      r["odrops"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
+      r["odrops"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
     } else {
       LOG(INFO) << "Failed to retrieve network statistics for interface "
                 << r["interface"];
