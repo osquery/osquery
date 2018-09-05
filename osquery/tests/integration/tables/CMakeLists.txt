@@ -75,6 +75,7 @@ if(POSIX)
       "${CMAKE_CURRENT_LIST_DIR}/bitlocker_info.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/block_devices.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/chocolatey_packages.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/cpu_info.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/cpu_time.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/crontab.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/disk_encryption.cpp"
@@ -196,7 +197,6 @@ if(WINDOWS)
       "${CMAKE_CURRENT_LIST_DIR}/certificates.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/intel_me_info.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/startup_items.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/cpu_info.cpp"
   )
 endif()
 
