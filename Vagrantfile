@@ -21,7 +21,7 @@ targets = {
     "box" => "elastic/centos-6-x86_64"
   },
   "centos7" => {
-    "box" => "elastic/centos-7-x86_64"
+    "box" => "centos/7"
   },
   "ubuntu15.04" => {
     "box" => "bento/ubuntu-15.04"
