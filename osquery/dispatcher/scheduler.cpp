@@ -8,9 +8,23 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#ifdef LINUX
+
+#define _GNU_SOURCE
+
+#include <cerrno>
+#include <cstring>
+
+#include <sys/resource.h>
+#include <sys/time.h>
+
+#endif
+
+#include <algorithm>
 #include <ctime>
 
 #include <boost/format.hpp>
+#include <boost/io/detail/quoted_manip.hpp>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
@@ -172,18 +186,85 @@ inline Status launchQuery(const std::string& name,
   }
   return status;
 }
+void recordRusageStatDifference(int start_stat,
+                                int end_stat,
+                                const std::string& stat_name) {
+  if (start_stat == 0) {
+    LOG(ERROR) << "rusage field " << boost::io::quoted(stat_name)
+               << " is not supported";
+  } else if (start_stat <= end_stat) {
+    monitoring::record(
+        stat_name, end_stat - start_stat, monitoring::PreAggregationType::P50);
+  } else {
+    LOG(WARNING) << "possible overflow detected in rusage field: "
+                 << boost::io::quoted(stat_name);
+  }
+}
+
+void recordRusageStatDifference(const struct timeval& start_stat,
+                                const struct timeval& end_stat,
+                                const std::string& stat_name) {
+  const int microsecond_per_second = 1000000;
+  recordRusageStatDifference(
+      start_stat.tv_sec * microsecond_per_second + start_stat.tv_usec,
+      end_stat.tv_sec * microsecond_per_second + end_stat.tv_usec,
+      stat_name);
+}
 
 inline void launchQueryWithProfiling(const std::string& name,
                                      const ScheduledQuery& query) {
   auto start_time_point = std::chrono::steady_clock::now();
-  auto status = launchQuery(name, query);
+#ifdef LINUX
+  struct rusage start_stats = {0};
+  auto rusage_start_status = getrusage(RUSAGE_THREAD, &start_stats);
+  if (rusage_start_status != 0) {
+    LOG(ERROR) << "Start of linux query profiling failed. error code: "
+               << rusage_start_status
+               << " message: " << boost::io::quoted(strerror(errno));
+  }
+#endif
+
+  const auto status = launchQuery(name, query);
+
+  const auto monitoring_path_prefix =
+      (boost::format("scheduler.executing_query.%s.%s") % name %
+       (status.ok() ? "success" : "failure"))
+          .str();
+
+#ifdef LINUX
+  if (rusage_start_status == 0) {
+    struct rusage end_stats = {0};
+    const auto rusage_end_status = getrusage(RUSAGE_THREAD, &end_stats);
+    if (rusage_end_status == 0) {
+      recordRusageStatDifference(start_stats.ru_maxrss,
+                                 end_stats.ru_maxrss,
+                                 monitoring_path_prefix + ".maxrss");
+      recordRusageStatDifference(start_stats.ru_inblock,
+                                 end_stats.ru_inblock,
+                                 monitoring_path_prefix + ".input.load");
+      recordRusageStatDifference(start_stats.ru_oublock,
+                                 end_stats.ru_oublock,
+                                 monitoring_path_prefix + ".output.load");
+      recordRusageStatDifference(start_stats.ru_utime,
+                                 end_stats.ru_utime,
+                                 monitoring_path_prefix + ".time.user.micros");
+      recordRusageStatDifference(
+          start_stats.ru_stime,
+          end_stats.ru_stime,
+          monitoring_path_prefix + ".time.system.micros");
+
+    } else {
+      LOG(ERROR) << "End of linux query profiling failed. error code: "
+                 << rusage_end_status
+                 << " message: " << boost::io::quoted(strerror(errno));
+    }
+  }
+#endif
+
   auto query_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - start_time_point);
   if (Killswitch::get().isExecutingQueryMonitorEnabled()) {
-    auto monitoring_path = boost::format("scheduler.executing_query.%s.%s") %
-                           name % (status.ok() ? "success" : "failure");
-
-    monitoring::record(monitoring_path.str(),
+    monitoring::record(monitoring_path_prefix + ".duration",
                        query_duration.count(),
                        monitoring::PreAggregationType::Min);
   }
