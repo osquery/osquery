@@ -1,4 +1,4 @@
-table_name("coreanalytics")
+table_name("app_core_analytics")
 description("Query application usage from CoreAnalytics files. Ref: https://www.crowdstrike.com/blog/i-know-what-you-did-last-month-a-new-artifact-of-execution-on-macos-10-13/.")
 schema([
     Column("activations", INTEGER, "Likely provides number of times application was executed."),
@@ -19,9 +19,9 @@ schema([
     Column("app_name", TEXT, "Application name parsed from app_description."),
     Column("app_version", TEXT, "Application version parsed from app_description."),
 ])
-implementation("coreanalytics@genCoreAnalyticsResults")
+implementation("app_core_analytics@genCoreAnalyticsResults")
 fuzz_paths(["/Library/Logs/DiagnosticReports/"])
 examples([
-	"select * from coreanalytics;"
-	"select * from coreanalytics where app_name = 'com.apple.Safari';",
+	"select * from app_core_analytics;"
+	"select * from app_core_analytics where app_name = 'com.apple.Safari';",
 ])
