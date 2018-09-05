@@ -240,6 +240,9 @@ $wix +=
             <File Id='osquery.flags'
               Name='osquery.flags'
               Source='OSQUERY_FLAGS_PATH'/>
+            <File Id='osquery.man'
+              Name='osquery.man'
+              Source='OSQUERY_MAN_PATH'/>
             <File Id='osquery_utils.ps1'
               Name='osquery_utils.ps1'
               Source='OSQUERY_UTILS_PATH'/>
@@ -285,12 +288,6 @@ foreach ($c in $(Get-ChildItem $certsPath)) {
 
 $wix += @'
             </Component>
-            <Component Id="osquery.man">
-              <File Id="osquery.man" KeyPath="yes"
-                Source="$windowsEventLogManifestPath">
-              <util:EventManifest  MessageFile="%systemdrive%\ProgramData\osquery\osqueryd\osqueryd.exe"  ResourceFile="%systemdrive%\ProgramData\osquery\osqueryd\osqueryd.exe"></util:EventManifest>
-              </File>
-            </Component>
           </Directory>
           <Directory Id="FileSystemLogging" Name="log"/>
         </Directory>
@@ -329,6 +326,7 @@ $wix += @'
   $wix = $wix -Replace 'OSQUERY_CERTS_PATH', "certs"
   $wix = $wix -Replace 'OSQUERY_IMAGE_PATH', "$buildPath\osquery.ico"
   $wix = $wix -Replace 'OSQUERY_MGMT_PATH', "$scriptPath\tools\manage-osqueryd.ps1"
+  $wix = $wix -Replace 'OSQUERY_MAN_PATH', "$scriptPath\tools\wel\osquery.man"
 
   $wix | Out-File -Encoding 'UTF8' "$buildPath\osquery.wxs"
 
