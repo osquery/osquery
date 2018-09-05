@@ -87,11 +87,11 @@ Status WmiResultItem::GetBool(const std::string& name, bool& ret) const {
   return Status(0);
 }
 
-Status WmiResultItem::GetDateTime(const std::string& name, 
-                                  bool is_local, 
+Status WmiResultItem::GetDateTime(const std::string& name,
+                                  bool is_local,
                                   FILETIME& ft) const {
   std::wstring property_name = stringToWstring(name);
-  
+
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
@@ -103,11 +103,9 @@ Status WmiResultItem::GetDateTime(const std::string& name,
     return Status(-1, "Expected VT_BSTR, got something else.");
   }
 
-  ISWbemDateTime *dt = nullptr;
-  hr = CoCreateInstance(CLSID_SWbemDateTime, 
-                        nullptr, 
-                        CLSCTX_INPROC_SERVER, 
-                        IID_PPV_ARGS(&dt));
+  ISWbemDateTime* dt = nullptr;
+  hr = CoCreateInstance(
+      CLSID_SWbemDateTime, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dt));
   if (!SUCCEEDED(hr)) {
     VariantClear(&value);
     return Status(-1, "Failed to create SWbemDateTime object.");

@@ -29,14 +29,15 @@ std::string to_iso8601_datetime(const FILETIME& ft) {
 
   std::ostringstream iso_date;
   iso_date << std::setfill('0');
-  iso_date << std::setw(4) << date.wYear << "-" << std::setw(2) << 
-    date.wMonth << "-" << std::setw(2) << date.wDay << "T" << std::setw(2) << 
-    date.wHour << ":" << std::setw(2) << date.wMinute << ":" << std::setw(2) << 
-    date.wSecond << "." << std::setw(3) << date.wMilliseconds;
+  iso_date << std::setw(4) << date.wYear << "-" << std::setw(2) << date.wMonth
+           << "-" << std::setw(2) << date.wDay << "T" << std::setw(2)
+           << date.wHour << ":" << std::setw(2) << date.wMinute << ":"
+           << std::setw(2) << date.wSecond << "." << std::setw(3)
+           << date.wMilliseconds;
 
   TIME_ZONE_INFORMATION tz = {0};
   if (GetTimeZoneInformationForYear(date.wYear, nullptr, &tz) == FALSE) {
-    // NOTE(andy): On error getting timezone information, return an empty 
+    // NOTE(andy): On error getting timezone information, return an empty
     //             string
     return "";
   }
@@ -46,8 +47,8 @@ std::string to_iso8601_datetime(const FILETIME& ft) {
   LONG wHours = tMin / 60;
   LONG wMinute = tMin - (wHours * 60);
 
-  iso_date << ((tz.Bias > 0) ? "-" : "+") << std::setw(2) << wHours << ":" <<
-    std::setw(2) << wMinute;
+  iso_date << ((tz.Bias > 0) ? "-" : "+") << std::setw(2) << wHours << ":"
+           << std::setw(2) << wMinute;
   return iso_date.str();
 }
 
