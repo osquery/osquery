@@ -21,6 +21,8 @@ if(APPLE)
     "${CMAKE_CURRENT_LIST_DIR}/darwin/fsevents.h"
     "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.h"
+    "${CMAKE_CURRENT_LIST_DIR}/darwin/log_events.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/darwin/log_events.h"
     "${CMAKE_CURRENT_LIST_DIR}/darwin/openbsm.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/darwin/openbsm.h"
     "${CMAKE_CURRENT_LIST_DIR}/darwin/scnetwork.cpp"
