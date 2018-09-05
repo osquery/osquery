@@ -189,7 +189,7 @@ inline Status launchQuery(const std::string& name,
 void recordRusageStatDifference(int start_stat,
                                 int end_stat,
                                 const std::string& stat_name) {
-  if (start_stat == 0) {
+  if (end_stat == 0) {
     LOG(ERROR) << "rusage field " << boost::io::quoted(stat_name)
                << " is not supported";
   } else if (start_stat <= end_stat) {
@@ -236,7 +236,7 @@ inline void launchQueryWithProfiling(const std::string& name,
     struct rusage end_stats = {0};
     const auto rusage_end_status = getrusage(RUSAGE_THREAD, &end_stats);
     if (rusage_end_status == 0) {
-      recordRusageStatDifference(start_stats.ru_maxrss,
+      recordRusageStatDifference(0,
                                  end_stats.ru_maxrss,
                                  monitoring_path_prefix + ".maxrss");
       recordRusageStatDifference(start_stats.ru_inblock,
