@@ -1,0 +1,25 @@
+table_name("darwin_unified_log_events")
+description("Entries from the MacOS unified system log.")
+schema([
+    Column("category", TEXT, "Category"),
+    Column("activityID", BIGINT, "Activity ID"),
+    Column("eventType", TEXT, "Log Event Type"),
+    Column("processImageUUID", TEXT, "UUID of the process image"),
+    Column("processUniqueID", BIGINT, "Unique ID of the process"),
+    Column("threadID", BIGINT, "Thread ID"),
+    Column("timestamp", TEXT, "Date and time"),
+    Column("traceID", BIGINT, "Trace ID"),
+    Column("messageType", TEXT, "Log Message Type"),
+    Column("senderProgramCounter", TEXT, "Sending process PC"),
+    Column("processID", BIGINT, "Process ID"),
+    Column("machTimestamp", BIGINT, "Log Event Timestamp"),
+    Column("timezoneName", TEXT, "Timezone"),
+    Column("subsystem", TEXT, "Subsystem"),
+    Column("eventMessage", TEXT, "Message"),
+    Column("senderImageUUID", TEXT, "Sending image UUID"),
+    Column("processImagePath", TEXT, "Path to process image"),
+    Column("senderImagePath", TEXT, "Path to sending image"),
+    Column("time", BIGINT, "Time"),
+])
+attributes(event_subscriber=True)
+implementation("events/darwin/darwin_unified_log_events@darwin_unified_log_events::genTable")
