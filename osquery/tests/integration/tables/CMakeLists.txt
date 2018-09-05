@@ -6,14 +6,14 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-target_sources(osquery_tables_integration_tests 
+target_sources(osquery_tables_integration_tests
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/helper.h"
     "${CMAKE_CURRENT_LIST_DIR}/helper.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/uptime.cpp"
 )
 
-target_sources(osquery_tables_integration_tests 
+target_sources(osquery_tables_integration_tests
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/arp_cache.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/carbon_black_info.cpp"
@@ -62,8 +62,8 @@ target_sources(osquery_tables_integration_tests
     "${CMAKE_CURRENT_LIST_DIR}/yara_events.cpp"
 )
 
-if(POSIX) 
-  target_sources(osquery_tables_integration_tests 
+if(POSIX)
+  target_sources(osquery_tables_integration_tests
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/acpi_tables.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/appcompat_shims.cpp"
@@ -75,7 +75,6 @@ if(POSIX)
       "${CMAKE_CURRENT_LIST_DIR}/bitlocker_info.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/block_devices.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/chocolatey_packages.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/cpu_info.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/cpu_time.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/crontab.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/disk_encryption.cpp"
@@ -155,7 +154,7 @@ if(POSIX)
 endif()
 
 if(LINUX)
-  target_sources(osquery_tables_integration_tests 
+  target_sources(osquery_tables_integration_tests
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/deb_packages.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/ec2_instance_metadata.cpp"
@@ -192,16 +191,17 @@ if(LINUX)
 endif()
 
 if(WINDOWS)
-  target_sources(osquery_tables_integration_tests 
+  target_sources(osquery_tables_integration_tests
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/certificates.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/intel_me_info.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/startup_items.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/cpu_info.cpp"
   )
 endif()
 
 if(FREEBSD)
-  target_sources(osquery_tables_integration_tests 
+  target_sources(osquery_tables_integration_tests
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/fbsd_kmods.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/pkg_packages.cpp"
@@ -209,7 +209,7 @@ if(FREEBSD)
 endif()
 
 if(APPLE)
-  target_sources(osquery_tables_integration_tests 
+  target_sources(osquery_tables_integration_tests
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/account_policy_data.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/ad_config.cpp"
@@ -274,5 +274,5 @@ if(APPLE)
       "${CMAKE_CURRENT_LIST_DIR}/xprotect_entries.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/xprotect_meta.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/xprotect_reports.cpp"
-  ) 
+  )
 endif()
