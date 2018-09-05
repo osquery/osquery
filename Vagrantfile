@@ -128,7 +128,11 @@ Vagrant.configure("2") do |config|
     else
       v.cpus = 2
     end
-    v.memory = 4096
+    if ENV['OSQUERY_BUILD_MEMORY']
+      v.memory = ENV['OSQUERY_BUILD_MEMORY'].to_i
+    else
+      v.memory = 4096
+    end
   end
 
   config.vm.provider :aws do |aws, override|
