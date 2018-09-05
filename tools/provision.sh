@@ -90,6 +90,7 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libaudit
   brew_dependency osquery/osquery-local/libdpkg
   brew_dependency osquery/osquery-local/libelfin
+  brew_dependency osquery/osquery-local/libsmartctl
 }
 
 function platform_darwin_main() {
@@ -109,6 +110,7 @@ function platform_darwin_main() {
 
   brew_dependency osquery/osquery-local/python
   brew_dependency osquery/osquery-local/bison
+  brew_dependency osquery/osquery-local/libsmartctl
 
   platform_posix_main
 }
@@ -140,7 +142,6 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/lldpd
   brew_dependency osquery/osquery-local/librdkafka
   brew_dependency osquery/osquery-local/librpm
-  brew_dependency osquery/osquery-local/libsmartctl
 
   # POSIX-shared locally-managed tools.
   brew_dependency osquery/osquery-local/zzuf
