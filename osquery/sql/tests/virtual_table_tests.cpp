@@ -833,4 +833,155 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
   EXPECT_EQ(10U, i->scans);
   EXPECT_EQ(10U, j->scans);
 }
+
+class colsUsedTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("col1", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("col2", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("col3", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+  ColumnAliasSet columnAliases() const override {
+    return {
+        {"col2", {"aliasToCol2"}},
+    };
+  }
+
+ public:
+  QueryData generate(QueryContext& context) override {
+    Row r;
+    if (context.isColumnUsed("col1")) {
+      r["col1"] = "value1";
+    }
+    if (context.isColumnUsed("col2")) {
+      r["col2"] = "value2";
+    }
+    if (context.isColumnUsed("col3")) {
+      r["col3"] = "value3";
+    }
+    return {r};
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_used_columns);
+  FRIEND_TEST(VirtualTableTests, test_used_columns_with_alias);
+};
+
+TEST_F(VirtualTableTests, test_used_columns) {
+  // Add testing table to the registry.
+  auto tables = RegistryFactory::get().registry("table");
+  auto colsUsed = std::make_shared<colsUsedTablePlugin>();
+  tables->add("colsUsed1", colsUsed);
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal(
+      "colsUsed1", colsUsed->columnDefinition(false), dbc, false);
+
+  QueryData results;
+  auto status = queryInternal("SELECT col1, col3 FROM colsUsed1", results, dbc);
+  EXPECT_TRUE(status.ok());
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["col1"], "value1");
+  EXPECT_EQ(results[0].find("col2"), results[0].end());
+  EXPECT_EQ(results[0]["col3"], "value3");
+  EXPECT_EQ(results[0].find("aliasToCol2"), results[0].end());
+}
+
+TEST_F(VirtualTableTests, test_used_columns_with_alias) {
+  // Add testing table to the registry.
+  auto tables = RegistryFactory::get().registry("table");
+  auto colsUsed = std::make_shared<colsUsedTablePlugin>();
+  tables->add("colsUsed2", colsUsed);
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal(
+      "colsUsed2", colsUsed->columnDefinition(false), dbc, false);
+
+  QueryData results;
+  auto status =
+      queryInternal("SELECT aliasToCol2 FROM colsUsed2", results, dbc);
+  EXPECT_TRUE(status.ok());
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0].find("col1"), results[0].end());
+  EXPECT_EQ(results[0].find("col2"), results[0].end());
+  EXPECT_EQ(results[0].find("col3"), results[0].end());
+  EXPECT_EQ(results[0]["aliasToCol2"], "value2");
+}
+
+class colsUsedBitsetTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("col1", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("col2", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("col3", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+  ColumnAliasSet columnAliases() const override {
+    return {
+        {"col2", {"aliasToCol2"}},
+    };
+  }
+
+ public:
+  QueryData generate(QueryContext& context) override {
+    Row r;
+    if (context.isAnyColumnUsed(UsedColumnsBitset(0x1))) {
+      r["col1"] = "value1";
+    }
+    if (context.isAnyColumnUsed(UsedColumnsBitset(0x2))) {
+      r["col2"] = "value2";
+    }
+    if (context.isAnyColumnUsed(UsedColumnsBitset(0x4))) {
+      r["col3"] = "value3";
+    }
+    return {r};
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_used_columns_bitset);
+  FRIEND_TEST(VirtualTableTests, test_used_columns_bitset_with_alias);
+};
+
+TEST_F(VirtualTableTests, test_used_columns_bitset) {
+  // Add testing table to the registry.
+  auto tables = RegistryFactory::get().registry("table");
+  auto colsUsed = std::make_shared<colsUsedBitsetTablePlugin>();
+  tables->add("colsUsedBitset1", colsUsed);
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal(
+      "colsUsedBitset1", colsUsed->columnDefinition(false), dbc, false);
+
+  QueryData results;
+  auto status =
+      queryInternal("SELECT col1, col3 FROM colsUsedBitset1", results, dbc);
+  EXPECT_TRUE(status.ok());
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["col1"], "value1");
+  EXPECT_EQ(results[0].find("col2"), results[0].end());
+  EXPECT_EQ(results[0]["col3"], "value3");
+  EXPECT_EQ(results[0].find("aliasToCol2"), results[0].end());
+}
+
+TEST_F(VirtualTableTests, test_used_columns_bitset_with_alias) {
+  // Add testing table to the registry.
+  auto tables = RegistryFactory::get().registry("table");
+  auto colsUsed = std::make_shared<colsUsedBitsetTablePlugin>();
+  tables->add("colsUsedBitset2", colsUsed);
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal(
+      "colsUsedBitset2", colsUsed->columnDefinition(false), dbc, false);
+
+  QueryData results;
+  auto status =
+      queryInternal("SELECT aliasToCol2 FROM colsUsedBitset2", results, dbc);
+  EXPECT_TRUE(status.ok());
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0].find("col1"), results[0].end());
+  EXPECT_EQ(results[0].find("col2"), results[0].end());
+  EXPECT_EQ(results[0].find("col3"), results[0].end());
+  EXPECT_EQ(results[0]["aliasToCol2"], "value2");
+}
 } // namespace osquery
