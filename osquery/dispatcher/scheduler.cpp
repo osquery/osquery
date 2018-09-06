@@ -213,11 +213,11 @@ void recordRusageStatDifference(const struct timeval& start_stat,
   recordRusageStatDifference(
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::seconds(start_stat.tv_sec) +
-          std::chrono::seconds(start_stat.tv_usec))
+          std::chrono::microseconds(start_stat.tv_usec))
           .count(),
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::seconds(end_stat.tv_sec) +
-          std::chrono::seconds(end_stat.tv_usec))
+          std::chrono::microseconds(end_stat.tv_usec))
           .count(),
       stat_name);
 }
