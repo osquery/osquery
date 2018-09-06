@@ -8,23 +8,6 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#ifdef OSQUERY_POSIX
-
-#ifdef __linux__
-// Needed for linux specific RUSAGE_THREAD, before including anything else
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-#endif
-
-#include <cerrno>
-#include <cstring>
-
-#include <sys/resource.h>
-#include <sys/time.h>
-
-#endif
-
 #include <algorithm>
 #include <ctime>
 
@@ -43,6 +26,7 @@
 
 #include "osquery/config/parsers/decorators.h"
 #include "osquery/core/process.h"
+#include "osquery/dispatcher/query_profiler.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/sql/sqlite_util.h"
 
@@ -111,8 +95,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   return sql;
 }
 
-inline Status launchQuery(const std::string& name,
-                          const ScheduledQuery& query) {
+Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
   LOG(INFO) << "Executing scheduled query " << name << ": " << query.query;
   runDecorators(DECORATE_ALWAYS);
@@ -192,120 +175,6 @@ inline Status launchQuery(const std::string& name,
   return status;
 }
 
-void recordRusageStatDifference(int start_stat,
-                                int end_stat,
-                                const std::string& stat_name) {
-  if (end_stat == 0) {
-    TLOG << "rusage field " << boost::io::quoted(stat_name)
-         << " is not supported";
-  } else if (start_stat <= end_stat) {
-    monitoring::record(
-        stat_name, end_stat - start_stat, monitoring::PreAggregationType::P50);
-  } else {
-    LOG(WARNING) << "Possible overflow detected in rusage field: "
-                 << boost::io::quoted(stat_name);
-  }
-}
-
-void recordRusageStatDifference(const struct timeval& start_stat,
-                                const struct timeval& end_stat,
-                                const std::string& stat_name) {
-  recordRusageStatDifference(
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::seconds(start_stat.tv_sec) +
-          std::chrono::microseconds(start_stat.tv_usec))
-          .count(),
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::seconds(end_stat.tv_sec) +
-          std::chrono::microseconds(end_stat.tv_usec))
-          .count(),
-      stat_name);
-}
-
-inline void launchQueryWithProfiling(const std::string& name,
-                                     const ScheduledQuery& query) {
-  auto start_time_point = std::chrono::steady_clock::now();
-
-#ifdef OSQUERY_POSIX
-  const bool is_posix_profiling_enabled =
-      Killswitch::get().isPosixProfilingEnabled();
-  int rusage_start_status = -1;
-  struct rusage start_stats;
-  const int who =
-#ifdef __linux__
-      RUSAGE_THREAD; // Linux supports more granular control over what we
-                     // profile
-#else
-      RUSAGE_SELF;
-#endif
-
-  if (is_posix_profiling_enabled) {
-    rusage_start_status = getrusage(who, &start_stats);
-
-    if (rusage_start_status != 0) {
-      LOG(ERROR) << "Start of linux query profiling failed. error code: "
-                 << rusage_start_status
-                 << " message: " << boost::io::quoted(strerror(errno));
-    }
-  }
-#endif
-
-  const auto status = launchQuery(name, query);
-
-  const auto monitoring_path_prefix =
-      (boost::format("scheduler.executing_query.%s.%s") % name %
-       (status.ok() ? "success" : "failure"))
-          .str();
-
-#ifdef OSQUERY_POSIX
-  if (is_posix_profiling_enabled) {
-    if (rusage_start_status == 0) {
-      struct rusage end_stats;
-      const auto rusage_end_status = getrusage(who, &end_stats);
-
-      if (rusage_end_status == 0) {
-        recordRusageStatDifference(
-            0, end_stats.ru_maxrss, monitoring_path_prefix + ".rss.max");
-
-        recordRusageStatDifference(start_stats.ru_maxrss,
-                                   end_stats.ru_maxrss,
-                                   monitoring_path_prefix + ".rss.increase");
-
-        recordRusageStatDifference(start_stats.ru_inblock,
-                                   end_stats.ru_inblock,
-                                   monitoring_path_prefix + ".input.load");
-
-        recordRusageStatDifference(start_stats.ru_oublock,
-                                   end_stats.ru_oublock,
-                                   monitoring_path_prefix + ".output.load");
-
-        recordRusageStatDifference(start_stats.ru_utime,
-                                   end_stats.ru_utime,
-                                   monitoring_path_prefix + ".time.user.milis");
-
-        recordRusageStatDifference(
-            start_stats.ru_stime,
-            end_stats.ru_stime,
-            monitoring_path_prefix + ".time.system.milis");
-
-      } else {
-        LOG(ERROR) << "End of linux query profiling failed. error code: "
-                   << rusage_end_status
-                   << " message: " << boost::io::quoted(strerror(errno));
-      }
-    }
-  }
-#endif
-
-  auto query_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      std::chrono::steady_clock::now() - start_time_point);
-  if (Killswitch::get().isExecutingQueryMonitorEnabled()) {
-    monitoring::record(monitoring_path_prefix + ".time.real.milis",
-                       query_duration.count(),
-                       monitoring::PreAggregationType::Min);
-  }
-}
-
 void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
@@ -316,7 +185,8 @@ void SchedulerRunner::start() {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
             TablePlugin::kCacheInterval = query.splayed_interval;
             TablePlugin::kCacheStep = i;
-            launchQueryWithProfiling(name, query);
+            launchQueryWithProfiling(
+                name, std::bind(launchQuery, std::ref(name), std::ref(query)));
           }
         }));
     // Configuration decorators run on 60 second intervals only.
