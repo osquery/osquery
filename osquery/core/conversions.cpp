@@ -236,7 +236,7 @@ void JSON::add(const std::string& key, long long value, rj::Value& obj) {
   }
 
   obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
-                rj::Value(value).Move(),
+                rj::Value(static_cast<int64_t>(value)).Move(),
                 doc_.GetAllocator());
 }
 
@@ -254,7 +254,7 @@ void JSON::add(const std::string& key,
   }
 
   obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
-                rj::Value(value).Move(),
+                rj::Value(static_cast<uint64_t>(value)).Move(),
                 doc_.GetAllocator());
 }
 
