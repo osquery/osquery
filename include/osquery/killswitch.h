@@ -7,11 +7,14 @@
  * (found in the COPYING file in the root directory of this source tree). You
  * may select, at your option, one of the above-listed licenses.
  */
+
 #pragma once
+
 #include <string>
 
 #include <boost/core/noncopyable.hpp>
 
+#include <osquery/core.h>
 #include <osquery/expected.h>
 #include <osquery/status.h>
 
