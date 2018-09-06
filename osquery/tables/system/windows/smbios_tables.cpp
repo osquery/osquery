@@ -19,7 +19,7 @@
 namespace osquery {
 namespace tables {
 
-std::string to_iso8601_datetime(const FILETIME& ft) {
+std::string to_iso8601_date(const FILETIME& ft) {
   SYSTEMTIME date = {0};
 
   if (FileTimeToSystemTime(&ft, &date) == FALSE) {
@@ -30,25 +30,8 @@ std::string to_iso8601_datetime(const FILETIME& ft) {
   std::ostringstream iso_date;
   iso_date << std::setfill('0');
   iso_date << std::setw(4) << date.wYear << "-" << std::setw(2) << date.wMonth
-           << "-" << std::setw(2) << date.wDay << "T" << std::setw(2)
-           << date.wHour << ":" << std::setw(2) << date.wMinute << ":"
-           << std::setw(2) << date.wSecond << "." << std::setw(3)
-           << date.wMilliseconds;
+           << "-" << std::setw(2) << date.wDay;
 
-  TIME_ZONE_INFORMATION tz = {0};
-  if (GetTimeZoneInformationForYear(date.wYear, nullptr, &tz) == FALSE) {
-    // NOTE(andy): On error getting timezone information, return an empty
-    //             string
-    return "";
-  }
-
-  // NOTE(andy): Calculate time zone portion of date time
-  LONG tMin = std::abs(tz.Bias);
-  LONG wHours = tMin / 60;
-  LONG wMinute = tMin - (wHours * 60);
-
-  iso_date << ((tz.Bias > 0) ? "-" : "+") << std::setw(2) << wHours << ":"
-           << std::setw(2) << wMinute;
   return iso_date.str();
 }
 
@@ -80,7 +63,7 @@ QueryData genPlatformInfo(QueryContext& context) {
   FILETIME release_date = {0};
   wmiResults[0].GetDateTime("ReleaseDate", false, release_date);
 
-  r["date"] = to_iso8601_datetime(release_date);
+  r["date"] = to_iso8601_date(release_date);
 
   results.push_back(r);
   return results;
