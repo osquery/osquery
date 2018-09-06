@@ -202,7 +202,7 @@ void recordRusageStatDifference(int start_stat,
     monitoring::record(
         stat_name, end_stat - start_stat, monitoring::PreAggregationType::P50);
   } else {
-    LOG(WARNING) << "possible overflow detected in rusage field: "
+    LOG(WARNING) << "Possible overflow detected in rusage field: "
                  << boost::io::quoted(stat_name);
   }
 }
