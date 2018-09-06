@@ -44,8 +44,8 @@ bool Killswitch::isAppStartMonitorEnabled() {
   return isNewCodeEnabled("appStartMonitorSwitch");
 }
 
-bool Killswitch::isExecutingQueryMonitorEnabled() {
-  return isNewCodeEnabled("executingQueryMonitorSwitch");
+bool Killswitch::isWindowsProfilingEnabled() {
+  return isNewCodeEnabled("windowsProfilingSwitch");
 }
 
 bool Killswitch::isConfigBackupEnabled() {

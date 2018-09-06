@@ -10,9 +10,9 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 
-#include <osquery/killswitch.h>
 #include <osquery/status.h>
 
 namespace osquery {

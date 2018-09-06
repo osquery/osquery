@@ -26,6 +26,7 @@
 #include <boost/io/detail/quoted_manip.hpp>
 
 #include <osquery/dispatcher/query_profiler.h>
+#include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/numeric_monitoring.h>
 
@@ -143,11 +144,10 @@ void launchQueryWithPosixProfiling(const std::string& name,
   const auto query_duration =
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - start_time_point);
-  if (Killswitch::get().isExecutingQueryMonitorEnabled()) {
-    monitoring::record(monitoring_path_prefix + ".time.real.milis",
-                       query_duration.count(),
-                       monitoring::PreAggregationType::Min);
-  }
+
+  monitoring::record(monitoring_path_prefix + ".time.real.milis",
+                     query_duration.count(),
+                     monitoring::PreAggregationType::Min);
 }
 } // namespace
 void launchQueryWithProfiling(const std::string& name,
