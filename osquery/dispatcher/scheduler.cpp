@@ -227,7 +227,7 @@ inline void launchQueryWithProfiling(const std::string& name,
   auto start_time_point = std::chrono::steady_clock::now();
 
 #ifdef OSQUERY_POSIX
-  const bool is_linux_profiling_enabled =
+  const bool is_posix_profiling_enabled =
       Killswitch::get().isPosixProfilingEnabled();
   int rusage_start_status = -1;
   struct rusage start_stats;
@@ -239,7 +239,7 @@ inline void launchQueryWithProfiling(const std::string& name,
       RUSAGE_SELF;
 #endif
 
-  if (is_linux_profiling_enabled) {
+  if (is_posix_profiling_enabled) {
     rusage_start_status = getrusage(who, &start_stats);
 
     if (rusage_start_status != 0) {
@@ -258,7 +258,7 @@ inline void launchQueryWithProfiling(const std::string& name,
           .str();
 
 #ifdef OSQUERY_POSIX
-  if (is_linux_profiling_enabled) {
+  if (is_posix_profiling_enabled) {
     if (rusage_start_status == 0) {
       struct rusage end_stats;
       const auto rusage_end_status = getrusage(who, &end_stats);
