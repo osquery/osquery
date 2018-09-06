@@ -125,9 +125,9 @@ QueryData SQL::selectFrom(const std::initializer_list<std::string>& columns,
     colsUsed.insert(column);
     ctx.colsUsed = colsUsed;
   }
-  // We can't set colsUsedMask here (because we don't know the column indexes).
-  // The plugin that handles the request will figure it out from the column
-  // names.
+  // We can't set colsUsedBitset here (because we don't know the column
+  // indexes). The plugin that handles the request will figure it out from the
+  // column names.
   TablePlugin::setRequestFromContext(ctx, request);
 
   PluginResponse response;

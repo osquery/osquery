@@ -875,7 +875,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   // Add the constraint set to the table's tracked constraints.
   pVtab->content->constraints[pIdxInfo->idxNum] = std::move(constraints);
   pVtab->content->colsUsed[pIdxInfo->idxNum] = std::move(colsUsed);
-  pVtab->content->colsUsedMasks[pIdxInfo->idxNum] = pIdxInfo->colUsed;
+  pVtab->content->colsUsedBitsets[pIdxInfo->idxNum] = pIdxInfo->colUsed;
   pIdxInfo->estimatedCost = cost;
   return SQLITE_OK;
 }
@@ -980,11 +980,11 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     }
   }
 
-  if (content->colsUsedMasks.size() > 0) {
-    context.colsUsedMask = content->colsUsedMasks[idxNum];
+  if (content->colsUsedBitsets.size() > 0) {
+    context.colsUsedBitset = content->colsUsedBitsets[idxNum];
   } else {
     // Unspecified; have to assume all columns are used
-    context.colsUsedMask->set();
+    context.colsUsedBitset->set();
   }
   if (content->colsUsed.size() > 0) {
     context.colsUsed = content->colsUsed[idxNum];

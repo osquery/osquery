@@ -463,6 +463,9 @@ using ConstraintSet = std::vector<std::pair<std::string, struct Constraint>>;
 /// Keep track of which columns are used
 using UsedColumns = std::unordered_set<std::string>;
 
+/// Keep track of which columns are used, as a bitset
+using UsedColumnsBitset = std::bitset<64>;
+
 /**
  * @brief osquery table content descriptor.
  *
@@ -504,7 +507,7 @@ struct VirtualTableContent {
   std::unordered_map<size_t, UsedColumns> colsUsed;
 
   /// Transient set of virtual table used columns (as bitmasks)
-  std::unordered_map<size_t, std::bitset<64>> colsUsedMasks;
+  std::unordered_map<size_t, UsedColumnsBitset> colsUsedBitsets;
 
   /*
    * @brief A table implementation specific query result cache.
@@ -641,8 +644,8 @@ struct QueryContext : private only_movable {
   /// Check if any of the given columns is used by the query
   bool isAnyColumnUsed(std::initializer_list<std::string> colNames) const;
 
-  inline bool isAnyColumnUsed(std::bitset<64> mask) const {
-    return !colsUsedMask || (*colsUsedMask & mask).any();
+  inline bool isAnyColumnUsed(UsedColumnsBitset desiredBitset) const {
+    return !colsUsedBitset || (*colsUsedBitset & desiredBitset).any();
   }
 
   template <typename Type>
@@ -707,7 +710,7 @@ struct QueryContext : private only_movable {
   ConstraintMap constraints;
 
   boost::optional<UsedColumns> colsUsed;
-  boost::optional<std::bitset<64>> colsUsedMask;
+  boost::optional<UsedColumnsBitset> colsUsedBitset;
 
  private:
   /// If false then the context is maintaining an ephemeral cache.
@@ -974,7 +977,7 @@ class TablePlugin : public Plugin {
   /// Helper data structure transformation methods.
   QueryContext getContextFromRequest(const PluginRequest& request) const;
 
-  uint64_t usedColumnNamesToMask(const UsedColumns usedColumns) const;
+  UsedColumnsBitset usedColumnsToBitset(const UsedColumns usedColumns) const;
   friend class RegistryFactory;
   FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
   FRIEND_TEST(VirtualTableTests, test_extension_tableplugin_columndefinition);

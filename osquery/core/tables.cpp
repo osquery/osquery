@@ -80,8 +80,8 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
     doc.add("colsUsed", colsUsed);
   }
 
-  if (context.colsUsedMask) {
-    doc.add("colsUsedMask", context.colsUsedMask->to_ullong());
+  if (context.colsUsedBitset) {
+    doc.add("colsUsedBitset", context.colsUsedBitset->to_ullong());
   }
 
   doc.toString(request["context"]);
@@ -103,10 +103,10 @@ QueryContext TablePlugin::getContextFromRequest(
     }
     context.colsUsed = colsUsed;
   }
-  if (doc.doc().HasMember("colsUsedMask")) {
-    context.colsUsedMask = doc.doc()["colsUsedMask"].GetUint64();
+  if (doc.doc().HasMember("colsUsedBitset")) {
+    context.colsUsedBitset = doc.doc()["colsUsedBitset"].GetUint64();
   } else if (context.colsUsed) {
-    context.colsUsedMask = usedColumnNamesToMask(*context.colsUsed);
+    context.colsUsedBitset = usedColumnsToBitset(*context.colsUsed);
   }
 
   if (!doc.doc().HasMember("constraints") ||
@@ -123,9 +123,9 @@ QueryContext TablePlugin::getContextFromRequest(
   return context;
 }
 
-uint64_t TablePlugin::usedColumnNamesToMask(
+UsedColumnsBitset TablePlugin::usedColumnsToBitset(
     const UsedColumns usedColumns) const {
-  uint64_t result = 0;
+  UsedColumnsBitset result;
 
   const auto columns = this->columns();
   const auto aliases = this->aliasedColumns();
@@ -136,7 +136,7 @@ uint64_t TablePlugin::usedColumnNamesToMask(
       column_name = aliased_name->second;
     }
     if (usedColumns.find(column_name) != usedColumns.end()) {
-      result |= 1 << i;
+      result.set(i);
     }
   }
 
