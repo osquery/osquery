@@ -23,7 +23,6 @@ std::string to_iso8601_date(const FILETIME& ft) {
   SYSTEMTIME date = {0};
 
   if (FileTimeToSystemTime(&ft, &date) == FALSE) {
-    // NOTE(andy): Failure to convert to SYSTEMTIME yields empty response
     return "";
   }
 
@@ -63,7 +62,8 @@ QueryData genPlatformInfo(QueryContext& context) {
   FILETIME release_date = {0};
   wmiResults[0].GetDateTime("ReleaseDate", false, release_date);
 
-  r["date"] = to_iso8601_date(release_date);
+  auto s = to_iso8601_date(release_date);
+  r["date"] = s.empty() ? "-1" : s;
 
   results.push_back(r);
   return results;
