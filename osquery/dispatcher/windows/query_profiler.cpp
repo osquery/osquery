@@ -14,6 +14,7 @@
 
 #include <osquery/dispatcher/query_profiler.h>
 #include <osquery/killswitch.h>
+#include <osquery/numeric_monitoring.h>
 
 namespace osquery {
 void launchQueryWithProfiling(const std::string& name,
