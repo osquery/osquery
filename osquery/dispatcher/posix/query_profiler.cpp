@@ -17,6 +17,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <cstdint>
 
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -40,8 +41,8 @@ int getRusageWho() {
 #endif
 }
 
-void recordRusageStatDifference(int start_stat,
-                                int end_stat,
+void recordRusageStatDifference(int64_t start_stat,
+                                int64_t end_stat,
                                 const std::string& stat_name) {
   if (end_stat == 0) {
     TLOG << "rusage field " << boost::io::quoted(stat_name)
