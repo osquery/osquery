@@ -32,6 +32,10 @@ class Killswitch : private boost::noncopyable {
   virtual ~Killswitch();
 
   // Author: @guliashvili
+  // Creation Time: 5/09/2018
+  bool isLinuxProfilingEnabled();
+
+  // Author: @guliashvili
   // Creation Time: 3/09/2018
   bool isAppStartMonitorEnabled();
 

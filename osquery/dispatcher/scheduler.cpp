@@ -8,9 +8,14 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#ifdef LINUX
+#ifdef OSQUERY_POSIX
 
+#ifdef __linux__
+// Needed for linux specific RUSAGE_THREAD, before including anything else
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
+#endif
 
 #include <cerrno>
 #include <cstring>
@@ -190,8 +195,8 @@ void recordRusageStatDifference(int start_stat,
                                 int end_stat,
                                 const std::string& stat_name) {
   if (end_stat == 0) {
-    LOG(ERROR) << "rusage field " << boost::io::quoted(stat_name)
-               << " is not supported";
+    LOG(INFO) << "rusage field " << boost::io::quoted(stat_name)
+              << " is not supported";
   } else if (start_stat <= end_stat) {
     monitoring::record(
         stat_name, end_stat - start_stat, monitoring::PreAggregationType::P50);
@@ -214,13 +219,25 @@ void recordRusageStatDifference(const struct timeval& start_stat,
 inline void launchQueryWithProfiling(const std::string& name,
                                      const ScheduledQuery& query) {
   auto start_time_point = std::chrono::steady_clock::now();
-#ifdef LINUX
-  struct rusage start_stats = {0};
-  auto rusage_start_status = getrusage(RUSAGE_THREAD, &start_stats);
-  if (rusage_start_status != 0) {
-    LOG(ERROR) << "Start of linux query profiling failed. error code: "
-               << rusage_start_status
-               << " message: " << boost::io::quoted(strerror(errno));
+#ifdef OSQUERY_POSIX
+  const bool is_linux_profiling_enabled =
+      Killswitch::get().isLinuxProfilingEnabled();
+  int rusage_start_status = -1;
+  struct rusage start_stats;
+  const int who =
+#ifdef __linux__
+      RUSAGE_THREAD;
+#else
+      RUSAGE_SELF;
+#endif
+
+  if (is_linux_profiling_enabled) {
+    rusage_start_status = getrusage(who, &start_stats);
+    if (rusage_start_status != 0) {
+      LOG(ERROR) << "Start of linux query profiling failed. error code: "
+                 << rusage_start_status
+                 << " message: " << boost::io::quoted(strerror(errno));
+    }
   }
 #endif
 
@@ -231,32 +248,34 @@ inline void launchQueryWithProfiling(const std::string& name,
        (status.ok() ? "success" : "failure"))
           .str();
 
-#ifdef LINUX
-  if (rusage_start_status == 0) {
-    struct rusage end_stats = {0};
-    const auto rusage_end_status = getrusage(RUSAGE_THREAD, &end_stats);
-    if (rusage_end_status == 0) {
-      recordRusageStatDifference(0,
-                                 end_stats.ru_maxrss,
-                                 monitoring_path_prefix + ".maxrss");
-      recordRusageStatDifference(start_stats.ru_inblock,
-                                 end_stats.ru_inblock,
-                                 monitoring_path_prefix + ".input.load");
-      recordRusageStatDifference(start_stats.ru_oublock,
-                                 end_stats.ru_oublock,
-                                 monitoring_path_prefix + ".output.load");
-      recordRusageStatDifference(start_stats.ru_utime,
-                                 end_stats.ru_utime,
-                                 monitoring_path_prefix + ".time.user.micros");
-      recordRusageStatDifference(
-          start_stats.ru_stime,
-          end_stats.ru_stime,
-          monitoring_path_prefix + ".time.system.micros");
+#ifdef OSQUERY_POSIX
+  if (is_linux_profiling_enabled) {
+    if (rusage_start_status == 0) {
+      struct rusage end_stats;
+      const auto rusage_end_status = getrusage(who, &end_stats);
+      if (rusage_end_status == 0) {
+        recordRusageStatDifference(
+            0, end_stats.ru_maxrss, monitoring_path_prefix + ".maxrss");
+        recordRusageStatDifference(start_stats.ru_inblock,
+                                   end_stats.ru_inblock,
+                                   monitoring_path_prefix + ".input.load");
+        recordRusageStatDifference(start_stats.ru_oublock,
+                                   end_stats.ru_oublock,
+                                   monitoring_path_prefix + ".output.load");
+        recordRusageStatDifference(
+            start_stats.ru_utime,
+            end_stats.ru_utime,
+            monitoring_path_prefix + ".time.user.micros");
+        recordRusageStatDifference(
+            start_stats.ru_stime,
+            end_stats.ru_stime,
+            monitoring_path_prefix + ".time.system.micros");
 
-    } else {
-      LOG(ERROR) << "End of linux query profiling failed. error code: "
-                 << rusage_end_status
-                 << " message: " << boost::io::quoted(strerror(errno));
+      } else {
+        LOG(ERROR) << "End of linux query profiling failed. error code: "
+                   << rusage_end_status
+                   << " message: " << boost::io::quoted(strerror(errno));
+      }
     }
   }
 #endif

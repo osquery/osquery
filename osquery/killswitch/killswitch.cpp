@@ -32,6 +32,10 @@ FLAG(string,
 Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
+bool Killswitch::isLinuxProfilingEnabled() {
+  return isNewCodeEnabled("linuxProfilingSwitch");
+}
+
 bool Killswitch::isAppStartMonitorEnabled() {
   return isNewCodeEnabled("appStartMonitorSwitch");
 }
