@@ -90,7 +90,7 @@ There are a few different methods to ensure you have configured auditing correct
 4. Verify that your osquery configuration has a query to `SELECT` from the process_events and/or socket_events tables
 5. You may also run auditing using osqueryi:
 ```
-$ osqueryi --audit_allow_config=true --audit_allow_sockets=true --audit_persist=true --disable_audit=false  --events_expiry=1 --events_max=50000 --logger_plugin=filesystem  --disable_events=false
+$ osqueryi --audit_allow_config=true --audit_allow_sockets=true --audit_persist=true --disable_audit=false --events_expiry=1 --events_max=50000 --logger_plugin=filesystem  --disable_events=false
 ```
 
 If you would like to debug the raw audit events as osqueryd sees them, use the hidden flag `--audit_debug`. This will print all of the RAW audit lines to osquery's stdout.
