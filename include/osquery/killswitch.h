@@ -48,7 +48,7 @@ class Killswitch : private boost::noncopyable {
 
   // Author: @guliashvili
   // Creation Time: 3/09/2018
-  bool isExecutingQueryMonitorEnabled();
+  bool isWindowsProfilingEnabled();
 
   // Author: @guliashvili
   // Creation Time: 24/08/2018

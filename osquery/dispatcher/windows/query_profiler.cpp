@@ -11,6 +11,7 @@
 #include <chrono>
 
 #include <osquery/dispatcher/query_profiler.h>
+#include <osquery/killswitch.h>
 
 namespace osquery {
 void launchQueryWithProfiling(const std::string& name,
@@ -24,7 +25,7 @@ void launchQueryWithProfiling(const std::string& name,
   const auto query_duration =
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - start_time_point);
-  if (Killswitch::get().isExecutingQueryMonitorEnabled()) {
+  if (Killswitch::get().isWindowsProfilingEnabled()) {
     monitoring::record(monitoring_path_prefix + ".time.real.milis",
                        query_duration.count(),
                        monitoring::PreAggregationType::Min);
