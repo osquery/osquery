@@ -117,10 +117,10 @@ class PciDB {
 };
 
 /// Extracts PCI device information into row for provided sysFS attributes.
-Status extractPCIDeviceInfo(Row& row,
-                            std::string&& device_attr,
-                            std::string&& subsystem_attr,
-                            const PciDB& pcidb);
+Status extractPCIVendorModelInfoByPciDB(Row& row,
+                                        std::string&& device_attr,
+                                        std::string&& subsystem_attr,
+                                        const PciDB& pcidb);
 
 ///  Extracts PCI class identifier information into row for provided sysFs
 ///  attribute.

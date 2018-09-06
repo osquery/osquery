@@ -275,10 +275,28 @@ Status enrichPCISubsysInfo(Row& row,
   return Status::success();
 }
 
-Status extractPCIDeviceInfo(Row& row,
-                            std::string&& device_attr,
-                            std::string&& subsystem_attr,
-                            const PciDB& pcidb) {
+static inline void delUdevDevice(udev_device* d) {
+  udev_device_unref(d);
+}
+
+Status extractPCIVendorModelInfo(
+    Row& row,
+    std::unique_ptr<udev_device, std::function<void(udev_device*)>>& device,
+    const PciDB& pcidb) {
+  row["vendor"] = UdevEventPublisher::getValue(device.get(), kPCIKeyVendor);
+  row["model"] = UdevEventPublisher::getValue(device.get(), kPCIKeyModel);
+
+  return extractPCIVendorModelInfoByPciDB(
+      row,
+      UdevEventPublisher::getValue(device.get(), kPCIKeyID),
+      UdevEventPublisher::getValue(device.get(), kPCISubsysID),
+      pcidb);
+}
+
+Status extractPCIVendorModelInfoByPciDB(Row& row,
+                                        std::string&& device_attr,
+                                        std::string&& subsystem_attr,
+                                        const PciDB& pcidb) {
   // pci.ids lower cases everything, so we follow suit.
   boost::algorithm::to_lower(device_attr);
   std::vector<std::string> ids;
@@ -373,11 +391,10 @@ QueryData genPCIDevices(QueryContext& context) {
   struct udev_list_entry *device_entries, *entry;
   device_entries = udev_enumerate_get_list_entry(enumerate.get());
 
-  auto del_udev_device = [](udev_device* d) { udev_device_unref(d); };
   udev_list_entry_foreach(entry, device_entries) {
     const char* path = udev_list_entry_get_name(entry);
-    std::unique_ptr<udev_device, decltype(del_udev_device)> device(
-        udev_device_new_from_syspath(udev_handle.get(), path), del_udev_device);
+    std::unique_ptr<udev_device, std::function<void(udev_device*)>> device(
+        udev_device_new_from_syspath(udev_handle.get(), path), delUdevDevice);
     if (device.get() == nullptr) {
       VLOG(1) << "Could not get device";
       return results;
@@ -389,14 +406,8 @@ QueryData genPCIDevices(QueryContext& context) {
     r["pci_subclass"] =
         UdevEventPublisher::getValue(device.get(), kPCIKeySubclass);
     r["driver"] = UdevEventPublisher::getValue(device.get(), kPCIKeyDriver);
-    r["vendor"] = UdevEventPublisher::getValue(device.get(), kPCIKeyVendor);
-    r["model"] = UdevEventPublisher::getValue(device.get(), kPCIKeyModel);
 
-    auto status = extractPCIDeviceInfo(
-        r,
-        UdevEventPublisher::getValue(device.get(), kPCIKeyID),
-        UdevEventPublisher::getValue(device.get(), kPCISubsysID),
-        pcidb);
+    auto status = extractPCIVendorModelInfo(r, device, pcidb);
     if (!status.ok()) {
       VLOG(1) << "Unexpected error extracting PCI Device information: "
               << status.getMessage();
