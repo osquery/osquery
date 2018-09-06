@@ -23,8 +23,7 @@ namespace {
 int getRusageWho() {
   return
 #ifdef __linux__
-      RUSAGE_THREAD; // Linux supports more granular control over what we
-                     // profile
+      RUSAGE_THREAD; // Linux supports more granular profiling
 #else
       RUSAGE_SELF;
 #endif
@@ -132,20 +131,20 @@ void launchQueryWithPosixProfiling(const std::string& name,
   const auto query_duration =
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - start_time_point);
-  // if (Killswitch::get().isExecutingQueryMonitorEnabled()) {
-  monitoring::record(monitoring_path_prefix + ".time.real.milis",
-                     query_duration.count(),
-                     monitoring::PreAggregationType::Min);
-  // }
+  if (Killswitch::get().isExecutingQueryMonitorEnabled()) {
+    monitoring::record(monitoring_path_prefix + ".time.real.milis",
+                       query_duration.count(),
+                       monitoring::PreAggregationType::Min);
+  }
 }
 } // namespace
 void launchQueryWithProfiling(const std::string& name,
                               std::function<Status()> launchQuery) {
-  // if (Killswitch::get().isPosixProfilingEnabled()) {
-  launchQueryWithPosixProfiling(name, launchQuery);
-  // } else {
-  //   launchQuery(); // Just execute the query
-  // }
+  if (Killswitch::get().isPosixProfilingEnabled()) {
+    launchQueryWithPosixProfiling(name, launchQuery);
+  } else {
+    launchQuery(); // Just execute the query
+  }
 }
 
 } // namespace osquery
