@@ -191,6 +191,7 @@ inline Status launchQuery(const std::string& name,
   }
   return status;
 }
+
 void recordRusageStatDifference(int start_stat,
                                 int end_stat,
                                 const std::string& stat_name) {
@@ -209,16 +210,20 @@ void recordRusageStatDifference(int start_stat,
 void recordRusageStatDifference(const struct timeval& start_stat,
                                 const struct timeval& end_stat,
                                 const std::string& stat_name) {
-  const int microsecond_per_second = 1000000;
+  const int milliseconds_per_second =
+      std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::seconds(1))
+          .count();
   recordRusageStatDifference(
-      start_stat.tv_sec * microsecond_per_second + start_stat.tv_usec,
-      end_stat.tv_sec * microsecond_per_second + end_stat.tv_usec,
+      start_stat.tv_sec * milliseconds_per_second + start_stat.tv_usec,
+      end_stat.tv_sec * milliseconds_per_second + end_stat.tv_usec,
       stat_name);
 }
 
 inline void launchQueryWithProfiling(const std::string& name,
                                      const ScheduledQuery& query) {
   auto start_time_point = std::chrono::steady_clock::now();
+
 #ifdef OSQUERY_POSIX
   const bool is_linux_profiling_enabled =
       Killswitch::get().isLinuxProfilingEnabled();
@@ -233,6 +238,7 @@ inline void launchQueryWithProfiling(const std::string& name,
 
   if (is_linux_profiling_enabled) {
     rusage_start_status = getrusage(who, &start_stats);
+
     if (rusage_start_status != 0) {
       LOG(ERROR) << "Start of linux query profiling failed. error code: "
                  << rusage_start_status
@@ -253,19 +259,27 @@ inline void launchQueryWithProfiling(const std::string& name,
     if (rusage_start_status == 0) {
       struct rusage end_stats;
       const auto rusage_end_status = getrusage(who, &end_stats);
+
       if (rusage_end_status == 0) {
         recordRusageStatDifference(
-            0, end_stats.ru_maxrss, monitoring_path_prefix + ".maxrss");
+            0, end_stats.ru_maxrss, monitoring_path_prefix + ".rss.max");
+
+        recordRusageStatDifference(start_stats.ru_maxrss,
+                                   end_stats.ru_maxrss,
+                                   monitoring_path_prefix + ".rss.increase");
+
         recordRusageStatDifference(start_stats.ru_inblock,
                                    end_stats.ru_inblock,
                                    monitoring_path_prefix + ".input.load");
+
         recordRusageStatDifference(start_stats.ru_oublock,
                                    end_stats.ru_oublock,
                                    monitoring_path_prefix + ".output.load");
-        recordRusageStatDifference(
-            start_stats.ru_utime,
-            end_stats.ru_utime,
-            monitoring_path_prefix + ".time.user.micros");
+
+        recordRusageStatDifference(start_stats.ru_utime,
+                                   end_stats.ru_utime,
+                                   monitoring_path_prefix + ".time.user.micros");
+
         recordRusageStatDifference(
             start_stats.ru_stime,
             end_stats.ru_stime,
@@ -280,10 +294,10 @@ inline void launchQueryWithProfiling(const std::string& name,
   }
 #endif
 
-  auto query_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+  auto query_duration = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::steady_clock::now() - start_time_point);
   if (Killswitch::get().isExecutingQueryMonitorEnabled()) {
-    monitoring::record(monitoring_path_prefix + ".duration",
+    monitoring::record(monitoring_path_prefix + ".time.real.micros",
                        query_duration.count(),
                        monitoring::PreAggregationType::Min);
   }
