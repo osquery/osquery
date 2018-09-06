@@ -10,6 +10,8 @@
 
 #include <chrono>
 
+#include <boost/format.hpp>
+
 #include <osquery/dispatcher/query_profiler.h>
 #include <osquery/killswitch.h>
 
