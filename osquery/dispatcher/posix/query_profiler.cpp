@@ -16,8 +16,8 @@
 #endif
 
 #include <cerrno>
-#include <cstring>
 #include <cstdint>
+#include <cstring>
 
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -69,7 +69,7 @@ void recordRusageStatDifference(const struct timeval& start_stat,
           std::chrono::seconds(end_stat.tv_sec) +
           std::chrono::microseconds(end_stat.tv_usec))
           .count(),
-      stat_name);
+      stat_name + ".milis");
 }
 
 void recordRusageStatDifference(const struct rusage& start_stats,
@@ -92,11 +92,11 @@ void recordRusageStatDifference(const struct rusage& start_stats,
 
   recordRusageStatDifference(start_stats.ru_utime,
                              end_stats.ru_utime,
-                             monitoring_path_prefix + ".time.user.milis");
+                             monitoring_path_prefix + ".time.user");
 
   recordRusageStatDifference(start_stats.ru_stime,
                              end_stats.ru_stime,
-                             monitoring_path_prefix + ".time.system.milis");
+                             monitoring_path_prefix + ".time.system");
 }
 
 enum class RusageError { FatalError = 1 };
