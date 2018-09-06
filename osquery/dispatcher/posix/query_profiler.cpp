@@ -1,3 +1,13 @@
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
+ */
+
 #ifdef __linux__
 // Needed for linux specific RUSAGE_THREAD, before including anything else
 #ifndef _GNU_SOURCE
@@ -14,12 +24,13 @@
 #include <boost/format.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
 
+#include <osquery/dispatcher/query_profiler.h>
 #include <osquery/logger.h>
 #include <osquery/numeric_monitoring.h>
 
-#include <osquery/dispatcher/query_profiler.h>
 namespace osquery {
 namespace {
+
 int getRusageWho() {
   return
 #ifdef __linux__
@@ -63,11 +74,11 @@ void recordRusageStatDifference(const struct rusage& start_stats,
                                 const struct rusage& end_stats,
                                 const std::string& monitoring_path_prefix) {
   recordRusageStatDifference(
-      0, end_stats.ru_maxrss, monitoring_path_prefix + ".rss.max");
+      0, end_stats.ru_maxrss, monitoring_path_prefix + ".rss.max.kb");
 
   recordRusageStatDifference(start_stats.ru_maxrss,
                              end_stats.ru_maxrss,
-                             monitoring_path_prefix + ".rss.increase");
+                             monitoring_path_prefix + ".rss.increase.kb");
 
   recordRusageStatDifference(start_stats.ru_inblock,
                              end_stats.ru_inblock,
