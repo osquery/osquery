@@ -69,7 +69,7 @@ void recordRusageStatDifference(const struct timeval& start_stat,
           std::chrono::seconds(end_stat.tv_sec) +
           std::chrono::microseconds(end_stat.tv_usec))
           .count(),
-      stat_name + ".milis");
+      stat_name + ".millis");
 }
 
 void recordRusageStatDifference(const struct rusage& start_stats,
@@ -145,7 +145,7 @@ void launchQueryWithPosixProfiling(const std::string& name,
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - start_time_point);
 
-  monitoring::record(monitoring_path_prefix + ".time.real.milis",
+  monitoring::record(monitoring_path_prefix + ".time.real.millis",
                      query_duration.count(),
                      monitoring::PreAggregationType::Min);
 }
