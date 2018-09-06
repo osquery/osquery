@@ -228,7 +228,7 @@ inline void launchQueryWithProfiling(const std::string& name,
 
 #ifdef OSQUERY_POSIX
   const bool is_linux_profiling_enabled =
-      Killswitch::get().isLinuxProfilingEnabled();
+      Killswitch::get().isPosixProfilingEnabled();
   int rusage_start_status = -1;
   struct rusage start_stats;
   const int who =
