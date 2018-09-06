@@ -87,7 +87,7 @@ TEST_F(ConversionsTests, test_json_array) {
     long value3 = -10L;
     doc.add("key3", value3, obj);
     long long value4 = -10LL;
-    doc .add("key4", value4, obj);
+    doc.add("key4", value4, obj);
     double value5 = 3.14159265359;
     doc.add("key5", value5, obj);
     doc.push(obj);
