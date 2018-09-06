@@ -210,13 +210,15 @@ void recordRusageStatDifference(int start_stat,
 void recordRusageStatDifference(const struct timeval& start_stat,
                                 const struct timeval& end_stat,
                                 const std::string& stat_name) {
-  const int milliseconds_per_second =
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::seconds(1))
-          .count();
   recordRusageStatDifference(
-      start_stat.tv_sec * milliseconds_per_second + start_stat.tv_usec,
-      end_stat.tv_sec * milliseconds_per_second + end_stat.tv_usec,
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::seconds(start_stat.tv_sec) +
+          std::chrono::seconds(start_stat.tv_usec))
+          .count(),
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::seconds(end_stat.tv_sec) +
+          std::chrono::seconds(end_stat.tv_usec))
+          .count(),
       stat_name);
 }
 
@@ -278,12 +280,12 @@ inline void launchQueryWithProfiling(const std::string& name,
 
         recordRusageStatDifference(start_stats.ru_utime,
                                    end_stats.ru_utime,
-                                   monitoring_path_prefix + ".time.user.micros");
+                                   monitoring_path_prefix + ".time.user.milis");
 
         recordRusageStatDifference(
             start_stats.ru_stime,
             end_stats.ru_stime,
-            monitoring_path_prefix + ".time.system.micros");
+            monitoring_path_prefix + ".time.system.milis");
 
       } else {
         LOG(ERROR) << "End of linux query profiling failed. error code: "
@@ -297,7 +299,7 @@ inline void launchQueryWithProfiling(const std::string& name,
   auto query_duration = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::steady_clock::now() - start_time_point);
   if (Killswitch::get().isExecutingQueryMonitorEnabled()) {
-    monitoring::record(monitoring_path_prefix + ".time.real.micros",
+    monitoring::record(monitoring_path_prefix + ".time.real.milis",
                        query_duration.count(),
                        monitoring::PreAggregationType::Min);
   }
