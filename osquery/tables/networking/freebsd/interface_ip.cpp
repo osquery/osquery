@@ -8,18 +8,21 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+// clang-format off
 #include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/icmp6.h>
 #include <netinet6/in6_var.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/sysctl.h>
-#include <sys/types.h>
 // Small hack to make the header compatible with C++
 #define prf_ra in6_prflags::prf_ra
 #include <netinet6/nd6.h>
 #undef prf_ra
+// clang-format on
+
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
+#include <sys/types.h>
 
 #include <osquery/logger.h>
 #include <osquery/tables.h>
