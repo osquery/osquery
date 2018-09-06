@@ -196,8 +196,8 @@ void recordRusageStatDifference(int start_stat,
                                 int end_stat,
                                 const std::string& stat_name) {
   if (end_stat == 0) {
-    LOG(INFO) << "rusage field " << boost::io::quoted(stat_name)
-              << " is not supported";
+    TLOG << "rusage field " << boost::io::quoted(stat_name)
+         << " is not supported";
   } else if (start_stat <= end_stat) {
     monitoring::record(
         stat_name, end_stat - start_stat, monitoring::PreAggregationType::P50);
@@ -233,7 +233,8 @@ inline void launchQueryWithProfiling(const std::string& name,
   struct rusage start_stats;
   const int who =
 #ifdef __linux__
-      RUSAGE_THREAD;
+      RUSAGE_THREAD; // Linux supports more granular control over what we
+                     // profile
 #else
       RUSAGE_SELF;
 #endif
