@@ -56,6 +56,14 @@ bool parseSockAddr(int syscall_number,
                    bool& unix_socket) {
   unix_socket = false;
 
+  row["protocol"] = '0';
+
+  row["local_address"] = "";
+  row["local_port"] = "0";
+
+  row["remote_address"] = "";
+  row["remote_port"] = "0";
+
   // Set the action based on the syscall number
   if (syscall_number == __NR_connect) {
     row["action"] = "connect";
@@ -75,13 +83,9 @@ bool parseSockAddr(int syscall_number,
   if (syscall_number == __NR_bind) {
     port_column = "local_port";
     address_column = "local_address";
-    row["remote_address"] = "";
-    row["remote_port"] = "0";
   } else {
     port_column = "remote_port";
     address_column = "remote_address";
-    row["local_address"] = "";
-    row["local_port"] = "0";
   }
 
   // The protocol is not included in the audit message.
@@ -253,10 +257,6 @@ Status SocketEventSubscriber::ProcessEvents(
     row["uptime"] = std::to_string(tables::getUptime());
 
     // Set some sane defaults and then attempt to parse the sockaddr value
-    row["protocol"] = '0';
-    row["local_port"] = '0';
-    row["remote_port"] = '0';
-
     bool unix_socket;
     if (!parseSockAddr(event_data.syscall_number, saddr, row, unix_socket)) {
       VLOG(1) << "Malformed syscall event. The saddr field in the "

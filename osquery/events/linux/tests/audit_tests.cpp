@@ -217,7 +217,7 @@ TEST_F(AuditTests, parseSockAddr_ipv4_bind) {
   EXPECT_EQ(row["local_port"], kExpectedPortNumber);
 
   EXPECT_TRUE(row["remote_address"].empty());
-  EXPECT_TRUE(row["remote_port"].empty());
+  EXPECT_EQ(row["remote_port"], "0");
 }
 
 TEST_F(AuditTests, parseSockAddr_ipv6_bind) {
@@ -240,7 +240,7 @@ TEST_F(AuditTests, parseSockAddr_ipv6_bind) {
   EXPECT_EQ(row["local_port"], kExpectedPortNumber);
 
   EXPECT_TRUE(row["remote_address"].empty());
-  EXPECT_TRUE(row["remote_port"].empty());
+  EXPECT_EQ(row["remote_port"], "0");
 }
 
 // Accept syscalls
@@ -292,7 +292,7 @@ TEST_F(AuditTests, parseSockAddr_ipv4_accept) {
     EXPECT_EQ(row["remote_port"], kExpectedPortNumber);
 
     EXPECT_TRUE(row["local_address"].empty());
-    EXPECT_TRUE(row["local_port"].empty());
+    EXPECT_EQ(row["local_port"], "0");
   }
 }
 
@@ -317,7 +317,7 @@ TEST_F(AuditTests, parseSockAddr_ipv6_accept) {
     EXPECT_EQ(row["remote_port"], kExpectedPortNumber);
 
     EXPECT_TRUE(row["local_address"].empty());
-    EXPECT_TRUE(row["local_port"].empty());
+    EXPECT_EQ(row["local_port"], "0");
   }
 }
 
@@ -367,7 +367,7 @@ TEST_F(AuditTests, parseSockAddr_ipv4_connect) {
   EXPECT_EQ(row["remote_port"], kExpectedPortNumber);
 
   EXPECT_TRUE(row["local_address"].empty());
-  EXPECT_TRUE(row["local_port"].empty());
+  EXPECT_EQ(row["local_port"], "0");
 }
 
 TEST_F(AuditTests, parseSockAddr_ipv6_connect) {
@@ -390,6 +390,6 @@ TEST_F(AuditTests, parseSockAddr_ipv6_connect) {
   EXPECT_EQ(row["remote_port"], kExpectedPortNumber);
 
   EXPECT_TRUE(row["local_address"].empty());
-  EXPECT_TRUE(row["local_port"].empty());
+  EXPECT_EQ(row["local_port"], "0");
 }
 } // namespace osquery
