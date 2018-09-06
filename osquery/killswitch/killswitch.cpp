@@ -36,6 +36,10 @@ bool Killswitch::isPosixProfilingEnabled() {
   return isNewCodeEnabled("posixProfilingSwitch");
 }
 
+bool Killswitch::isTotalQueryCounterMonitorEnabled() {
+  return isNewCodeEnabled("totalQueryCounterMonitorSwitch");
+}
+
 bool Killswitch::isAppStartMonitorEnabled() {
   return isNewCodeEnabled("appStartMonitorSwitch");
 }

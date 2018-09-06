@@ -26,7 +26,9 @@
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/killswitch.h>
 #include <osquery/logger.h>
+#include <osquery/numeric_monitoring.h>
 #include <osquery/registry_factory.h>
 #include <osquery/system.h>
 
@@ -443,6 +445,10 @@ Status logString(const std::string& message,
   return status;
 }
 
+namespace {
+const std::string kTotalQueryCounterMonitorPath("query.total.count");
+}
+
 Status logQueryLogItem(const QueryLogItem& results) {
   return logQueryLogItem(results, RegistryFactory::get().getActive("logger"));
 }
@@ -451,6 +457,11 @@ Status logQueryLogItem(const QueryLogItem& results,
                        const std::string& receiver) {
   if (FLAGS_disable_logging) {
     return Status(0, "Logging disabled");
+  }
+
+  if (Killswitch::get().isTotalQueryCounterMonitorEnabled()) {
+    monitoring::record(
+        kTotalQueryCounterMonitorPath, 1, monitoring::PreAggregationType::Sum);
   }
 
   std::vector<std::string> json_items;
@@ -475,6 +486,11 @@ Status logQueryLogItem(const QueryLogItem& results,
 Status logSnapshotQuery(const QueryLogItem& item) {
   if (FLAGS_disable_logging) {
     return Status(0, "Logging disabled");
+  }
+
+  if (Killswitch::get().isTotalQueryCounterMonitorEnabled()) {
+    monitoring::record(
+        kTotalQueryCounterMonitorPath, 1, monitoring::PreAggregationType::Sum);
   }
 
   std::vector<std::string> json_items;
