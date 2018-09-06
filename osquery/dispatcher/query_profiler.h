@@ -13,6 +13,7 @@
 #include <string>
 
 #include <osquery/status.h>
+#include <osquery/killswitch.h>
 
 namespace osquery {
 void launchQueryWithProfiling(const std::string& name,
