@@ -125,7 +125,6 @@ using InternalThreadRef = std::unique_ptr<std::thread>;
  */
 class Dispatcher : private boost::noncopyable {
  public:
-  virtual ~Dispatcher();
   /**
    * @brief The primary way to access the Dispatcher factory facility.
    *

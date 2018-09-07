@@ -146,11 +146,6 @@ void Dispatcher::joinServices() {
   DLOG(INFO) << "Services and threads have been cleared";
 }
 
-Dispatcher::~Dispatcher() {
-  stopServices();
-  joinServices();
-}
-
 void Dispatcher::stopServices() {
   auto& self = instance();
   self.stopping_ = true;
