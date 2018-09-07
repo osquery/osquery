@@ -343,31 +343,15 @@ int xRowid(sqlite3_vtab_cursor* cur, sqlite_int64* pRowid) {
   *pRowid = 0;
 
   const BaseCursor* pCur = (BaseCursor*)cur;
-  auto data_it = std::next(pCur->data.begin(), pCur->row);
-  if (data_it >= pCur->data.end()) {
+  auto data_it = std::next(pCur->rows.begin(), pCur->row);
+  if (data_it >= pCur->rows.end()) {
     return SQLITE_ERROR;
   }
 
   // Use the rowid returned by the extension, if available; most likely, this
   // will only be used by extensions providing read/write tables
   const auto& current_row = *data_it;
-
-  auto rowid_it = current_row.find("rowid");
-  if (rowid_it != current_row.end()) {
-    const auto& rowid_text_field = rowid_it->second;
-
-    auto exp = tryTo<long long>(rowid_text_field, 10);
-    if (exp.isError()) {
-      VLOG(1) << "Invalid rowid value returned " << exp.getError();
-      return SQLITE_ERROR;
-    }
-    *pRowid = exp.take();
-
-  } else {
-    *pRowid = pCur->row;
-  }
-
-  return SQLITE_OK;
+  return current_row->get_rowid(pCur->row, pRowid);
 }
 
 int xUpdate(sqlite3_vtab* p,
@@ -683,70 +667,14 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
     // Requested column index greater than column set size.
     return SQLITE_ERROR;
   }
-  if (!pCur->uses_generator && pCur->row >= pCur->data.size()) {
+  if (!pCur->uses_generator && pCur->row >= pCur->rows.size()) {
     // Request row index greater than row set size.
     return SQLITE_ERROR;
   }
 
-  auto& column_name = std::get<0>(pVtab->content->columns[col]);
-  auto& type = std::get<1>(pVtab->content->columns[col]);
-  if (pVtab->content->aliases.count(column_name)) {
-    // Overwrite the aliased column with the type and name of the new column.
-    type = std::get<1>(
-        pVtab->content->columns[pVtab->content->aliases.at(column_name)]);
-    column_name = std::get<0>(
-        pVtab->content->columns[pVtab->content->aliases.at(column_name)]);
-  }
-
-  Row* row = nullptr;
-  if (pCur->uses_generator) {
-    row = &pCur->current;
-  } else {
-    row = &pCur->data[pCur->row];
-  }
-
-  // Attempt to cast each xFilter-populated row/column to the SQLite type.
-  const auto& value = (*row)[column_name];
-  if (row->count(column_name) == 0) {
-    // Missing content.
-    VLOG(1) << "Error " << column_name << " is empty";
-    sqlite3_result_null(ctx);
-  } else if (type == TEXT_TYPE || type == BLOB_TYPE) {
-    sqlite3_result_text(
-        ctx, value.c_str(), static_cast<int>(value.size()), SQLITE_STATIC);
-  } else if (type == INTEGER_TYPE) {
-    auto afinite = tryTo<long>(value, 0);
-    if (afinite.isError()) {
-      VLOG(1) << "Error casting " << column_name << " (" << value
-              << ") to INTEGER";
-      sqlite3_result_null(ctx);
-    } else {
-      sqlite3_result_int(ctx, afinite.take());
-    }
-  } else if (type == BIGINT_TYPE || type == UNSIGNED_BIGINT_TYPE) {
-    auto afinite = tryTo<long long>(value, 0);
-    if (afinite.isError()) {
-      VLOG(1) << "Error casting " << column_name << " (" << value
-              << ") to BIGINT";
-      sqlite3_result_null(ctx);
-    } else {
-      sqlite3_result_int64(ctx, afinite.take());
-    }
-  } else if (type == DOUBLE_TYPE) {
-    char* end = nullptr;
-    double afinite = strtod(value.c_str(), &end);
-    if (end == nullptr || end == value.c_str() || *end != '\0') {
-      VLOG(1) << "Error casting " << column_name << " (" << value
-              << ") to DOUBLE";
-      sqlite3_result_null(ctx);
-    } else {
-      sqlite3_result_double(ctx, afinite);
-    }
-  } else {
-    LOG(ERROR) << "Error unknown column type " << column_name;
-  }
-
-  return SQLITE_OK;
+  TableRowHolder& row =
+      pCur->uses_generator ? pCur->current : pCur->rows[pCur->row];
+  return row->get_column(ctx, cur->pVtab, col);
 }
 
 static inline bool sensibleComparison(ColumnType type, unsigned char op) {
@@ -1016,7 +944,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   }
 
   // Reset the virtual table contents.
-  pCur->data.clear();
+  pCur->rows.clear();
   options.clear();
 
   // Generate the row data set.
@@ -1036,15 +964,17 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
       }
       return SQLITE_OK;
     }
-    pCur->data = table->generate(context);
+    pCur->rows = table->generate(context);
   } else {
     PluginRequest request = {{"action", "generate"}};
     TablePlugin::setRequestFromContext(context, request);
-    Registry::call("table", pVtab->content->name, request, pCur->data);
+    QueryData qd;
+    Registry::call("table", pVtab->content->name, request, qd);
+    pCur->rows = tableRowsFromQueryData(std::move(qd));
   }
 
   // Set the number of rows.
-  pCur->n = pCur->data.size();
+  pCur->n = pCur->rows.size();
   return SQLITE_OK;
 }
 

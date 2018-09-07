@@ -43,13 +43,13 @@ struct BaseCursor : private boost::noncopyable {
   size_t id{0};
 
   /// Table data generated from last access.
-  QueryData data;
+  TableRows rows;
 
   /// Callable generator.
   std::unique_ptr<RowGenerator::pull_type> generator{nullptr};
 
   /// Results of current call.
-  Row current;
+  TableRowHolder current;
 
   /// Does the backing local table use a generator type.
   bool uses_generator{false};

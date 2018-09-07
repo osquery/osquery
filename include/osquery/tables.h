@@ -30,6 +30,7 @@
 #include <sqlite3.h>
 
 #include <osquery/core.h>
+#include <osquery/core/json.h>
 #include <osquery/plugin.h>
 #include <osquery/query.h>
 
@@ -40,6 +41,8 @@
         "clang diagnostic ignored \"-Wdeprecated-declarations\"")(expr);       \
     _Pragma("clang diagnostic pop")                                            \
   } while (0)
+
+namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -142,6 +145,54 @@ enum ColumnType {
   DOUBLE_TYPE,
   BLOB_TYPE,
 };
+
+class TableRow;
+
+using TableRowHolder = std::unique_ptr<TableRow>;
+
+class TableRow {
+ public:
+  TableRow() = default;
+
+  virtual ~TableRow() {}
+
+  TableRow(const TableRow&) = delete;
+  TableRow& operator=(const TableRow&) = delete;
+
+  virtual int get_rowid(sqlite_int64 default_value,
+                        sqlite_int64* pRowid) const = 0;
+
+  virtual int get_column(sqlite3_context* ctx,
+                         sqlite3_vtab* pVtab,
+                         int col) = 0;
+};
+
+class DynamicTableRow : public TableRow {
+ public:
+  DynamicTableRow() : row() {}
+
+  DynamicTableRow(Row&& r) : row(std::move(r)) {}
+
+  DynamicTableRow(
+      std::initializer_list<std::pair<const std::string, std::string>> init)
+      : row(init) {}
+
+  DynamicTableRow(const DynamicTableRow&) = delete;
+  DynamicTableRow& operator=(const DynamicTableRow&) = delete;
+
+  virtual int get_rowid(sqlite_int64 default_value, sqlite_int64* pRowid) const;
+
+  virtual int get_column(sqlite3_context* ctx, sqlite3_vtab* pVtab, int col);
+
+ private:
+  Row row;
+};
+
+using TableRows = std::vector<TableRowHolder>;
+
+/// Converts a QueryData struct to TableRows. Intended for use only in generated
+/// code.
+TableRows tableRowsFromQueryData(QueryData&& rows);
 
 /// Map of type constant to the SQLite string-name representation.
 extern const std::map<ColumnType, std::string> kColumnTypeNames;
@@ -529,7 +580,7 @@ struct VirtualTableContent {
   std::map<std::string, Row> cache;
 };
 
-using RowGenerator = boost::coroutines2::coroutine<Row&>;
+using RowGenerator = boost::coroutines2::coroutine<std::unique_ptr<TableRow>>;
 using RowYield = RowGenerator::push_type;
 
 /**
@@ -801,9 +852,9 @@ class TablePlugin : public Plugin {
    * @param context A query context filled in by SQLite's virtual table API.
    * @return The result rows for this table, given the query context.
    */
-  virtual QueryData generate(QueryContext& context) {
+  virtual TableRows generate(QueryContext& context) {
     (void)context;
-    return QueryData();
+    return TableRows();
   }
 
   /// Callback for DELETE statements
