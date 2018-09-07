@@ -16,6 +16,7 @@
 #endif
 
 #include <cerrno>
+#include <cstdint>
 #include <cstring>
 
 #include <sys/resource.h>
@@ -41,8 +42,8 @@ int getRusageWho() {
 #endif
 }
 
-void recordRusageStatDifference(int start_stat,
-                                int end_stat,
+void recordRusageStatDifference(int64_t start_stat,
+                                int64_t end_stat,
                                 const std::string& stat_name) {
   if (end_stat == 0) {
     TLOG << "rusage field " << boost::io::quoted(stat_name)
@@ -68,7 +69,7 @@ void recordRusageStatDifference(const struct timeval& start_stat,
           std::chrono::seconds(end_stat.tv_sec) +
           std::chrono::microseconds(end_stat.tv_usec))
           .count(),
-      stat_name);
+      stat_name + ".millis");
 }
 
 void recordRusageStatDifference(const struct rusage& start_stats,
@@ -91,11 +92,11 @@ void recordRusageStatDifference(const struct rusage& start_stats,
 
   recordRusageStatDifference(start_stats.ru_utime,
                              end_stats.ru_utime,
-                             monitoring_path_prefix + ".time.user.milis");
+                             monitoring_path_prefix + ".time.user");
 
   recordRusageStatDifference(start_stats.ru_stime,
                              end_stats.ru_stime,
-                             monitoring_path_prefix + ".time.system.milis");
+                             monitoring_path_prefix + ".time.system");
 }
 
 enum class RusageError { FatalError = 1 };
@@ -144,7 +145,7 @@ void launchQueryWithPosixProfiling(const std::string& name,
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - start_time_point);
 
-  monitoring::record(monitoring_path_prefix + ".time.real.milis",
+  monitoring::record(monitoring_path_prefix + ".time.real.millis",
                      query_duration.count(),
                      monitoring::PreAggregationType::Min);
 }
