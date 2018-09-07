@@ -20,26 +20,30 @@ namespace tables {
 
 QueryData genPerfProcProcess(QueryContext& context) {
   QueryData results_data;
-  const WmiRequest request("SELECT CreatingProcessID, ElapsedTime, HandleCount, Name, PageFileBytes, PageFileBytesPeak, PercentPrivilegedTime, PercentProcessorTime, PercentUserTime FROM Win32_PerfFormattedData_PerfProc_Process");
+  const WmiRequest request(
+    "SELECT CreatingProcessID, ElapsedTime, HandleCount, Name, "
+    "PageFileBytes, PageFileBytesPeak, PercentPrivilegedTime, "
+    "PercentProcessorTime, PercentUserTime FROM "
+    "Win32_PerfFormattedData_PerfProc_Process");
 
   if (request.getStatus().ok()) {
     const auto& results = request.results();
     for (const auto& result : results) {
       Row r;
-	  long process_id = 0;
-	  long handle_count = 0;
-	  result.GetLong("CreatingProcessID", process_id);
-	  r["pid"] = INTEGER(process_id);
-	  result.GetString("ElapsedTime", r["elapsed_time"]);
-	  result.GetLong("HandleCount", handle_count);
-	  r["handle_count"] = INTEGER(handle_count);
-	  result.GetString("Name", r["name"]);
-	  result.GetString("PageFileBytes", r["page_file_bytes"]);
-	  result.GetString("PageFileBytesPeak", r["page_file_bytes_peak"]);
-	  result.GetString("PercentPrivilegedTime", r["percent_privileged_time"]);
-	  result.GetString("PercentProcessorTime", r["percent_processor_time"]);
-	  result.GetString("PercentUserTime", r["percent_user_time"]);
-	  results_data.push_back(r);
+      long process_id = 0;
+      long handle_count = 0;
+      result.GetLong("CreatingProcessID", process_id);
+      r["pid"] = INTEGER(process_id);
+      result.GetString("ElapsedTime", r["elapsed_time"]);
+      result.GetLong("HandleCount", handle_count);
+      r["handle_count"] = INTEGER(handle_count);
+      result.GetString("Name", r["name"]);
+      result.GetString("PageFileBytes", r["page_file_bytes"]);
+      result.GetString("PageFileBytesPeak", r["page_file_bytes_peak"]);
+      result.GetString("PercentPrivilegedTime", r["percent_privileged_time"]);
+      result.GetString("PercentProcessorTime", r["percent_processor_time"]);
+      result.GetString("PercentUserTime", r["percent_user_time"]);
+      results_data.push_back(r);
     }
   }
 
