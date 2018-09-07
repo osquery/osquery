@@ -21,10 +21,10 @@ namespace tables {
 QueryData genPerfProcProcess(QueryContext& context) {
   QueryData results_data;
   const WmiRequest request(
-    "SELECT CreatingProcessID, ElapsedTime, HandleCount, Name, "
-    "PageFileBytes, PageFileBytesPeak, PercentPrivilegedTime, "
-    "PercentProcessorTime, PercentUserTime FROM "
-    "Win32_PerfFormattedData_PerfProc_Process");
+      "SELECT CreatingProcessID, ElapsedTime, HandleCount, Name, "
+      "PageFileBytes, PageFileBytesPeak, PercentPrivilegedTime, "
+      "PercentProcessorTime, PercentUserTime FROM "
+      "Win32_PerfFormattedData_PerfProc_Process");
 
   if (request.getStatus().ok()) {
     const auto& results = request.results();
