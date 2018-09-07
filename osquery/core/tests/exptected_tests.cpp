@@ -302,9 +302,7 @@ GTEST_TEST(ExpectedTest, error__takeOr_with_user_defined_class) {
 
 GTEST_TEST(ExpectedTest, value_takeOr_with_rvalue_as_an_argument) {
   auto value = int{312};
-  auto callable = []() -> Expected<int, TestError> {
-    return 306;
-  };
+  auto callable = []() -> Expected<int, TestError> { return 306; };
   value = callable().takeOr(value);
   EXPECT_EQ(value, 306);
 }
