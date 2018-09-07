@@ -28,9 +28,11 @@ namespace tables {
 
 const std::string kPCIKeySlot = "PCI_SLOT_NAME";
 const std::string kPCIKeyClass = "ID_PCI_CLASS_FROM_DATABASE";
+const std::string kPCIKeySubclass = "ID_PCI_SUBCLASS_FROM_DATABASE";
 const std::string kPCIKeyVendor = "ID_VENDOR_FROM_DATABASE";
 const std::string kPCIKeyModel = "ID_MODEL_FROM_DATABASE";
 const std::string kPCIKeyID = "PCI_ID";
+const std::string kPCIClassID = "PCI_CLASS";
 const std::string kPCIKeyDriver = "DRIVER";
 const std::string kPCISubsysID = "PCI_SUBSYS_ID";
 
@@ -286,10 +288,13 @@ QueryData genPCIDevices(QueryContext& context) {
     Row r;
     r["pci_slot"] = UdevEventPublisher::getValue(device.get(), kPCIKeySlot);
     r["pci_class"] = UdevEventPublisher::getValue(device.get(), kPCIKeyClass);
+    r["pci_subclass"] =
+        UdevEventPublisher::getValue(device.get(), kPCIKeySubclass);
     r["driver"] = UdevEventPublisher::getValue(device.get(), kPCIKeyDriver);
     r["vendor"] = UdevEventPublisher::getValue(device.get(), kPCIKeyVendor);
     r["model"] = UdevEventPublisher::getValue(device.get(), kPCIKeyModel);
 
+    // TODO: extract to separate function
     // VENDOR:MODEL ID is in the form of HHHH:HHHH.
     std::vector<std::string> ids;
     auto device_id = UdevEventPublisher::getValue(device.get(), kPCIKeyID);
@@ -347,6 +352,25 @@ QueryData genPCIDevices(QueryContext& context) {
 
     if (r["model_id"].size() == 0) {
       r["model_id"] = "0";
+    }
+
+    // TODO: extract to seperate function
+    auto pci_class_id = UdevEventPublisher::getValue(device.get(), kPCIClassID);
+    auto id_len = pci_class_id.length();
+    switch (id_len) {
+    case 5:
+      r["pci_class_id"] = "0x0" + pci_class_id.substr(0, 1);
+      r["pci_subclass_id"] = "0x" + pci_class_id.substr(1, 2);
+      break;
+
+    case 6:
+      r["pci_class_id"] = "0x" + pci_class_id.substr(0, 2);
+      r["pci_subclass_id"] = "0x" + pci_class_id.substr(2, 2);
+      break;
+
+    default:
+      VLOG(1) << "Expected PCI Class ID to be 6 or 7 characters long, but got "
+              << id_len;
     }
 
     results.push_back(r);

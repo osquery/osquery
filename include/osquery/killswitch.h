@@ -32,6 +32,10 @@ class Killswitch : private boost::noncopyable {
   virtual ~Killswitch();
 
   // Author: @guliashvili
+  // Creation Time: 4/09/2018
+  bool isTotalQueryCounterMonitorEnabled();
+
+  // Author: @guliashvili
   // Creation Time: 3/09/2018
   bool isAppStartMonitorEnabled();
 
