@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <bitset>
 #include <map>
 #include <set>
 #include <unordered_map>
