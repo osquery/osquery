@@ -29,7 +29,7 @@ void launchQueryWithProfiling(const std::string& name,
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - start_time_point);
   if (Killswitch::get().isWindowsProfilingEnabled()) {
-    monitoring::record(monitoring_path_prefix + ".time.real.milis",
+    monitoring::record(monitoring_path_prefix + ".time.real.millis",
                        query_duration.count(),
                        monitoring::PreAggregationType::Min);
   }
