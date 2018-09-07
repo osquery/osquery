@@ -31,6 +31,8 @@ const std::map<std::string, std::string> kExtensionKeys = {
     {"author", "author"},
     {"background.persistent", "persistent"}};
 
+const std::string kExtensionPermissionKey = "permissions";
+
 void genExtension(const std::string& uid,
                   const std::string& path,
                   QueryData& results) {
@@ -74,6 +76,19 @@ void genExtension(const std::string& uid,
     }
   }
 
+  // Fetch the permission array from the manifest file
+  std::vector<std::string> permission_list;
+
+  const auto& perm_array_obj = tree.get_child_optional(kExtensionPermissionKey);
+  if (perm_array_obj) {
+    for (const auto& perm_obj : perm_array_obj.get()) {
+      const auto& permission = perm_obj.second.get_value<std::string>();
+      permission_list.push_back(permission);
+    }
+  } else {
+    permission_list = {""};
+  }
+
   std::string localized_prefix = "__MSG_";
   Row r;
   r["uid"] = uid;
@@ -103,7 +118,12 @@ void genExtension(const std::string& uid,
 
   r["identifier"] = fs::path(path).parent_path().parent_path().leaf().string();
   r["path"] = path;
-  results.push_back(r);
+
+  // Emit one row for each permission we have
+  for (const auto& permission : permission_list) {
+    r["permission"] = permission;
+    results.push_back(r);
+  }
 }
 
 QueryData genChromeBasedExtensions(QueryContext& context,
