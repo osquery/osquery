@@ -19,29 +19,23 @@ namespace osquery {
 class routes : public IntegrationTableTest {};
 
 TEST_F(routes, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from routes");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"destination", NormalType}
-  //      {"netmask", NormalType}
-  //      {"gateway", NormalType}
-  //      {"source", NormalType}
-  //      {"flags", IntType}
-  //      {"interface", NormalType}
-  //      {"mtu", IntType}
-  //      {"metric", IntType}
-  //      {"type", NormalType}
-  //      {"hopcount", IntType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  QueryData const data = execute_query("select * from routes");
+
+  auto const row_map = ValidatatioMap{
+      {"destination", verifyIpAddress},
+      {"netmask", IntType},
+      {"gateway", verifyEmptyStringOrIpAddress},
+      {"source", verifyEmptyStringOrIpAddress},
+      {"flags", IntType},
+      {"interface", NonEmptyString},
+      {"mtu", IntType},
+      {"metric", IntType},
+      {"type",
+       SpecificValuesCheck{
+           "local", "broadcast", "anycast", "gateway", "other"}},
+      {"hopcount", IntMinMaxCheck(0, 255)},
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace osquery
