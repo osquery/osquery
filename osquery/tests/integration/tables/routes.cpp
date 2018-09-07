@@ -18,7 +18,7 @@ namespace osquery {
 
 class routes : public IntegrationTableTest {};
 
-TEST_F(routes, test_sanity) {
+TEST_F(RoutesTest, test_sanity) {
   QueryData const data = execute_query("select * from routes");
 
   auto const row_map = ValidatatioMap{

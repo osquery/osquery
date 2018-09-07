@@ -18,7 +18,7 @@ namespace osquery {
 
 class arpCache : public IntegrationTableTest {};
 
-TEST_F(arpCache, test_sanity) {
+TEST_F(ArpCacheTest, test_sanity) {
   QueryData data = execute_query("select * from arp_cache");
 
   auto const row_map = ValidatatioMap{
