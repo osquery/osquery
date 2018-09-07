@@ -183,10 +183,61 @@ class DynamicTableRow : public TableRow {
   virtual int get_rowid(sqlite_int64 default_value, sqlite_int64* pRowid) const;
 
   virtual int get_column(sqlite3_context* ctx, sqlite3_vtab* pVtab, int col);
+  inline std::string& operator[](const std::string& key) {
+    return row[key];
+  }
+
+  inline std::string& operator[](std::string&& key) {
+    return row[key];
+  }
+
+  inline size_t count(const std::string& key) const {
+    return row.count(key);
+  }
 
  private:
   Row row;
 };
+
+/// Syntactic sugar making DynamicRows inside of TableRowHolders easier to work
+/// with. This should go away once strongly typed rows are used everywhere.
+class DynamicTableRowHolder {
+ public:
+  DynamicTableRowHolder() : row(new DynamicTableRow()), ptr(row) {}
+
+  DynamicTableRowHolder(
+      std::initializer_list<std::pair<const std::string, std::string>> init)
+      : row(new DynamicTableRow(init)), ptr(row) {}
+
+  inline operator TableRowHolder &&() {
+    return std::move(ptr);
+  }
+
+  inline std::string& operator[](const std::string& key) {
+    return (*row)[key];
+  }
+
+  inline std::string& operator[](std::string&& key) {
+    return (*row)[key];
+  }
+
+  inline size_t count(const std::string& key) {
+    return (*row).count(key);
+  }
+
+ private:
+  DynamicTableRow* row;
+  TableRowHolder ptr;
+};
+
+inline DynamicTableRowHolder make_table_row() {
+  return DynamicTableRowHolder();
+}
+
+inline DynamicTableRowHolder make_table_row(
+    std::initializer_list<std::pair<const std::string, std::string>> init) {
+  return DynamicTableRowHolder(init);
+}
 
 using TableRows = std::vector<TableRowHolder>;
 

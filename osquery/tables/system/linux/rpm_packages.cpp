@@ -207,7 +207,7 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
 
     // Iterate over every file in this package.
     for (size_t i = 0; rpmfiNext(fi) >= 0 && i < file_count; i++) {
-      Row r;
+      auto r = make_table_row();
       auto path = rpmfiFN(fi);
       r["package"] = package_name;
       r["path"] = (path != nullptr) ? path : "";
@@ -224,7 +224,7 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
         r["sha256"] = (digest != nullptr) ? digest : "";
       }
 
-      yield(r);
+      yield(std::move(r));
     }
 
     rpmfiFree(fi);

@@ -111,13 +111,13 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
 {% endif %}\
   }
 {% else %}\
-  QueryData generate(QueryContext& context) override {
+  TableRows generate(QueryContext& context) override {
 {% if attributes.cacheable %}\
     if (isCached(kCacheStep, context)) {
       return getCache();
     }
 {% endif %}\
-    auto results = tables::{{function}}(context);
+    TableRows results = osquery::tableRowsFromQueryData(tables::{{function}}(context));
 {% if attributes.cacheable %}\
     setCache(kCacheStep, kCacheInterval, context, results);
 {% endif %}

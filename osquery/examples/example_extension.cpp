@@ -36,14 +36,14 @@ class ExampleTable : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& request) {
-    QueryData results;
+  TableRows generate(QueryContext& request) {
+    TableRows results;
 
-    Row r;
+    auto r = make_table_row();
     r["example_text"] = "example";
     r["example_integer"] = INTEGER(1);
 
-    results.push_back(r);
+    results.push_back(std::move(r));
     return results;
   }
 };
@@ -70,8 +70,8 @@ class ComplexExampleTable : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& request) {
-    Row r;
+  TableRows generate(QueryContext& request) {
+    auto r = make_table_row();
 
     // Use the basic 'force' flag to check implicit SQL usage.
     auto flags =
@@ -86,7 +86,9 @@ class ComplexExampleTable : public TablePlugin {
       r["database_test"] = content;
     }
 
-    return {r};
+    TableRows result;
+    result.push_back(std::move(r));
+    return result;
   }
 };
 

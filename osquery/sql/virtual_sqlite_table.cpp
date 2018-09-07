@@ -31,10 +31,10 @@ const char* getSystemVFS(bool respect_locking) {
   return nullptr;
 }
 
-Status genSqliteQueryRow(sqlite3_stmt* stmt,
-                         QueryData& qd,
+Status genSqliteTableRow(sqlite3_stmt* stmt,
+                         TableRows& qd,
                          const fs::path& sqlite_db) {
-  Row r;
+  auto r = make_table_row();
   for (int i = 0; i < sqlite3_column_count(stmt); ++i) {
     auto column_name = std::string(sqlite3_column_name(stmt, i));
     auto column_type = sqlite3_column_type(stmt, i);
@@ -63,13 +63,13 @@ Status genSqliteQueryRow(sqlite3_stmt* stmt,
   } else {
     r["path"] = sqlite_db.string();
   }
-  qd.push_back(r);
+  qd.push_back(std::move(r));
   return Status();
 }
 
-Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
+Status genTableRowsForSqliteTable(const fs::path& sqlite_db,
                                   const std::string& sqlite_query,
-                                  QueryData& results,
+                                  TableRows& results,
                                   bool respect_locking) {
   sqlite3* db = nullptr;
   if (!pathExists(sqlite_db).ok()) {
@@ -99,7 +99,7 @@ Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
   }
 
   while ((sqlite3_step(stmt)) == SQLITE_ROW) {
-    auto s = genSqliteQueryRow(stmt, results, sqlite_db);
+    auto s = genSqliteTableRow(stmt, results, sqlite_db);
     if (!s.ok()) {
       break;
     }

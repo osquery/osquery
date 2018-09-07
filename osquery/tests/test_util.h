@@ -156,7 +156,7 @@ struct SplitStringTestData {
 std::vector<SplitStringTestData> generateSplitStringTestData();
 
 // Helper function to generate all rows from a generator-based table.
-QueryData genRows(EventSubscriberPlugin* sub);
+TableRows genRows(EventSubscriberPlugin* sub);
 
 // generate a small directory structure for testing
 void createMockFileStructure();
