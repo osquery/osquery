@@ -94,11 +94,11 @@ class WmiResultItem {
   Status GetBool(const std::string& name, bool& ret) const;
 
   /**
-  * @brief Windows WMI Helper function to retrieve a local/non-local FILETIME
-  * from WMI query.
-  *
-  * @returns Status indiciating the success of the query
-  */
+   * @brief Windows WMI Helper function to retrieve a local/non-local FILETIME
+   * from WMI query.
+   *
+   * @returns Status indiciating the success of the query
+   */
   Status GetDateTime(const std::string& name,
                      bool is_local,
                      FILETIME& ft) const;
