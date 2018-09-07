@@ -341,7 +341,7 @@ bool GetIntegerFieldFromMap(std::uint64_t& value,
     return false;
   }
   auto exp = tryTo<std::uint64_t>(string_value, base);
-  value = exp.getOr(default_value);
+  value = exp.takeOr(std::move(default_value));
   return exp.isValue();
 }
 

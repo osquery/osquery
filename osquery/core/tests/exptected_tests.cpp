@@ -268,18 +268,6 @@ GTEST_TEST(ExpectedTest, take_error_from_expected_with_value) {
 #endif
 }
 
-GTEST_TEST(ExpectedTest, value__getOr) {
-  const auto expectedValue = Expected<int, TestError>(225);
-  EXPECT_EQ(expectedValue.getOr(29), 225);
-  EXPECT_EQ(expectedValue.getOr(-29), 225);
-}
-
-GTEST_TEST(ExpectedTest, error__getOr) {
-  const auto err = Expected<int, TestError>(TestError::Semantic, "message");
-  EXPECT_EQ(err.getOr(37), 37);
-  EXPECT_EQ(err.getOr(-59), -59);
-}
-
 GTEST_TEST(ExpectedTest, value__takeOr) {
   const auto text = std::string{"some text"};
   auto callable = [&text]() -> Expected<std::string, TestError> {
