@@ -185,8 +185,10 @@ class Expected final {
   }
 
   template <typename ValueTypeUniversal = ValueType>
-  typename std::enable_if<std::is_same<ValueTypeUniversal, ValueType>::value,
-                          ValueType>::type
+  typename std::enable_if<
+      std::is_same<typename std::decay<ValueTypeUniversal>::type,
+                   ValueType>::value,
+      ValueType>::type
   takeOr(ValueTypeUniversal&& defaultValue) {
     if (isError()) {
       return std::forward<ValueTypeUniversal>(defaultValue);
