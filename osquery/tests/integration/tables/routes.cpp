@@ -16,7 +16,7 @@
 
 namespace osquery {
 
-class routes : public IntegrationTableTest {};
+class RoutesTest : public IntegrationTableTest {};
 
 TEST_F(RoutesTest, test_sanity) {
   QueryData const data = execute_query("select * from routes");
@@ -33,7 +33,9 @@ TEST_F(RoutesTest, test_sanity) {
       {"type",
        SpecificValuesCheck{
            "local", "broadcast", "anycast", "gateway", "other"}},
+#ifdef OSQUERY_POSIX
       {"hopcount", IntMinMaxCheck(0, 255)},
+#endif
   };
   validate_rows(data, row_map);
 }

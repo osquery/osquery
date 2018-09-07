@@ -16,7 +16,7 @@
 
 namespace osquery {
 
-class arpCache : public IntegrationTableTest {};
+class ArpCacheTest : public IntegrationTableTest {};
 
 TEST_F(ArpCacheTest, test_sanity) {
   QueryData data = execute_query("select * from arp_cache");
