@@ -300,4 +300,20 @@ GTEST_TEST(ExpectedTest, error__takeOr_with_user_defined_class) {
             "427 BC - 347 BC");
 }
 
+GTEST_TEST(ExpectedTest, value_takeOr_with_rvalue_as_an_argument) {
+  auto value = int{312};
+  auto callable = []() -> Expected<int, TestError> { return 306; };
+  value = callable().takeOr(value);
+  EXPECT_EQ(value, 306);
+}
+
+GTEST_TEST(ExpectedTest, error_takeOr_with_rvalue_as_an_argument) {
+  auto value = int{312};
+  auto callable = []() -> Expected<int, TestError> {
+    return createError(TestError::Logical, "error message");
+  };
+  value = callable().takeOr(value);
+  EXPECT_EQ(value, 312);
+}
+
 } // namespace osquery
