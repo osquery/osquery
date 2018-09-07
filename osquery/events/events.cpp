@@ -327,8 +327,9 @@ void EventSubscriberPlugin::expireCheck() {
     unsigned long min_key_value = 0;
     unsigned long max_key_value = 0;
     for (const auto& key : keys) {
-      unsigned long key_value = 0;
-      safeStrtoul(key.substr(key.rfind('.') + 1), 10, key_value);
+      auto const key_value =
+          tryTo<unsigned long int>(key.substr(key.rfind('.') + 1), 10)
+              .takeOr(0ul);
 
       if (key_value < static_cast<unsigned long>(threshold_key)) {
         min_key_value = (min_key_value == 0 || key_value < min_key_value)
@@ -524,9 +525,9 @@ void EventSubscriberPlugin::get(RowYield& yield,
 
   if (FLAGS_events_optimize && !records.empty()) {
     // If records were returned save the ordered-last as the optimization EID.
-    unsigned long int eidr = 0;
-    if (safeStrtoul(records.back().first, 10, eidr)) {
-      optimize_eid_ = static_cast<size_t>(eidr);
+    auto const eidr_exp = tryTo<unsigned long int>(records.back().first, 10);
+    if (eidr_exp.isValue()) {
+      optimize_eid_ = static_cast<size_t>(eidr_exp.get());
     }
   }
 

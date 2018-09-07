@@ -91,9 +91,10 @@ static inline void flagsFromSysfs(const std::string& name, size_t& flags) {
 
   // This will take the form, 0xVALUE\n.
   if (content[0] == '0' && content[1] == 'x') {
-    unsigned long int lflags = 0;
-    if (safeStrtoul(content.substr(2, content.size() - 3), 16, lflags)) {
-      flags |= lflags & sysfsFlags;
+    auto const lflags_exp =
+        tryTo<unsigned long int>(content.substr(2, content.size() - 3), 16);
+    if (lflags_exp.isValue()) {
+      flags |= lflags_exp.get() & sysfsFlags;
     }
   }
 }
