@@ -19,6 +19,7 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
+namespace {
 
 #define kManifestFile "/manifest.json"
 
@@ -32,6 +33,7 @@ const std::map<std::string, std::string> kExtensionKeys = {
     {"background.persistent", "persistent"}};
 
 const std::string kExtensionPermissionKey = "permissions";
+} // namespace
 
 void genExtension(const std::string& uid,
                   const std::string& path,
@@ -81,7 +83,10 @@ void genExtension(const std::string& uid,
 
   const auto& perm_array_obj = tree.get_child_optional(kExtensionPermissionKey);
   if (perm_array_obj) {
-    for (const auto& perm_obj : perm_array_obj.get()) {
+    const auto& perm_array_contents = perm_array_obj.get();
+    permission_list.reserve(perm_array_contents.size());
+
+    for (const auto& perm_obj : perm_array_contents) {
       const auto& permission = perm_obj.second.get_value<std::string>();
       permission_list.push_back(permission);
     }
