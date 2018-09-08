@@ -165,6 +165,8 @@ class TableRow {
   virtual int get_column(sqlite3_context* ctx,
                          sqlite3_vtab* pVtab,
                          int col) = 0;
+
+  virtual operator Row() const = 0;
 };
 
 class DynamicTableRow : public TableRow {
@@ -179,6 +181,10 @@ class DynamicTableRow : public TableRow {
 
   DynamicTableRow(const DynamicTableRow&) = delete;
   DynamicTableRow& operator=(const DynamicTableRow&) = delete;
+
+  explicit operator Row() const {
+    return row;
+  }
 
   virtual int get_rowid(sqlite_int64 default_value, sqlite_int64* pRowid) const;
 

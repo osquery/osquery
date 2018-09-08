@@ -222,6 +222,14 @@ UsedColumnsBitset TablePlugin::usedColumnsToBitset(
   return result;
 }
 
+PluginResponse tableRowsToPluginResponse(const TableRows& rows) {
+  PluginResponse result;
+  for (const auto& row : rows) {
+    result.push_back(static_cast<Row>(*row));
+  }
+  return result;
+}
+
 Status TablePlugin::call(const PluginRequest& request,
                          PluginResponse& response) {
   response.clear();
@@ -235,7 +243,8 @@ Status TablePlugin::call(const PluginRequest& request,
 
   if (action == "generate") {
     auto context = getContextFromRequest(request);
-    response = generate(context);
+    TableRows result = generate(context);
+    response = tableRowsToPluginResponse(result);
   } else if (action == "delete") {
     auto context = getContextFromRequest(request);
     response = delete_(context, request);
