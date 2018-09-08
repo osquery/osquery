@@ -465,7 +465,8 @@ using ConstraintSet = std::vector<std::pair<std::string, struct Constraint>>;
 using UsedColumns = std::unordered_set<std::string>;
 
 /// Keep track of which columns are used, as a bitset
-using UsedColumnsBitset = std::bitset<std::numeric_limits<decltype(sqlite3_index_info().colUsed)>::digits>;
+using UsedColumnsBitset = std::bitset<
+    std::numeric_limits<decltype(sqlite3_index_info().colUsed)>::digits>;
 
 /**
  * @brief osquery table content descriptor.
