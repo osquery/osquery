@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/logger.h>
+#include <osquery/rows/processes.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/tests/test_util.h"
@@ -20,30 +21,32 @@
 namespace osquery {
 namespace tables {
 
-void genProcUniquePid(QueryContext& context, int pid, Row& r);
-void genProcArch(QueryContext& context, int pid, Row& r);
+void genProcUniquePid(QueryContext& context, int pid, processesRow& r);
+void genProcArch(QueryContext& context, int pid, processesRow& r);
 
 class DarwinProcessesTests : public testing::Test {};
 
 TEST_F(DarwinProcessesTests, test_unique_pid) {
-  Row r;
+  processesRow r;
   QueryContext ctx;
   ctx.colsUsed = UsedColumns({"upid"});
+  ctx.colsUsedBitset = processesRow::UPID;
   genProcUniquePid(ctx, 1, r);
-  EXPECT_NE(r["upid"], "-1");
-  EXPECT_NE(r["uppid"], "-1");
+  EXPECT_NE(r.upid_col, -1);
+  EXPECT_NE(r.uppid_col, -1);
 }
 
 TEST_F(DarwinProcessesTests, test_process_arch) {
   if (getuid() != 0 || getgid() != 0) {
     return;
   }
-  Row r;
+  processesRow r;
   QueryContext ctx;
   ctx.colsUsed = UsedColumns({"cpu_type"});
+  ctx.colsUsedBitset = processesRow::CPU_TYPE;
   genProcArch(ctx, 1, r);
-  EXPECT_NE(r["cpu_type"], "-1");
-  EXPECT_NE(r["cpu_subtype"], "-1");
+  EXPECT_NE(r.cpu_type_col, -1);
+  EXPECT_NE(r.cpu_subtype_col, -1);
 }
 } // namespace tables
 } // namespace osquery
