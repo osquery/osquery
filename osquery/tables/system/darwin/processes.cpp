@@ -317,18 +317,56 @@ void genProcArch(QueryContext& context, int pid, processesRow& r) {
   }
 }
 
-struct proc_args {
-  std::vector<std::string> args;
-  std::map<std::string, std::string> env;
-};
+std::string getProcCmdline(int pid) {
+  static const auto argmax = genMaxArgs();
+  static std::unique_ptr<char[]> pprocargs{new char[argmax]};
+  size_t len = argmax;
+  char* procargs = pprocargs.get();
+  int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
+  if (sysctl(mib, 3, procargs, &len, nullptr, 0) == -1 || len == 0) {
+    return "";
+  }
 
-proc_args getProcRawArgs(int pid, size_t argmax) {
-  proc_args args;
+  // The number of arguments is an integer in front of the result buffer.
+  int nargs = 0;
+  memcpy(&nargs, procargs, sizeof(nargs));
+  if (nargs == 1) {
+    return "";
+  }
+
+  // Walk the \0-tokenized list of arguments until reaching the returned 'max'
+  // number of arguments or the number appended to the front.
+  char* ptr = procargs;
+  char* cmdline = nullptr;
+  for (int i = 0; i < nargs && ptr < procargs + len; i++) {
+    // Find the end of the arg
+    while (ptr < procargs + len && *ptr != '\0') {
+      ptr += 1;
+    }
+
+    // Replace the null with a space except for the final null in the cmdline
+    if (*ptr == '\0' && i < nargs - 1) {
+      *ptr = ' ';
+      ptr += 1;
+    }
+
+    // The command line is considered to start after the first arg (which is the
+    // exe name)
+    if (i == 0) {
+      cmdline = ptr;
+    }
+  }
+
+  return cmdline;
+}
+
+std::map<std::string, std::string> getProcEnv(int pid, size_t argmax) {
+  std::map<std::string, std::string> env;
   std::unique_ptr<char[]> pprocargs{new char[argmax]};
   char* procargs = pprocargs.get();
   int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
   if (sysctl(mib, 3, procargs, &argmax, nullptr, 0) == -1 || argmax == 0) {
-    return args;
+    return env;
   }
 
   // The number of arguments is an integer in front of the result buffer.
@@ -350,19 +388,17 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
     auto string_arg = std::string(current_arg);
     if (string_arg.size() > 0) {
       if (nargs > 0) {
-        // The first nargs are CLI arguments, afterward they are environment.
-        args.args.push_back(string_arg);
         nargs--;
       } else {
         size_t idx = string_arg.find_first_of("=");
         if (idx != std::string::npos && idx > 0) {
-          args.env[string_arg.substr(0, idx)] = string_arg.substr(idx + 1);
+          env[string_arg.substr(0, idx)] = string_arg.substr(idx + 1);
         }
       }
     }
     current_arg += string_arg.size() + 1;
   }
-  return args;
+  return env;
 }
 
 void genProcCmdline(const QueryContext& context, int pid, processesRow& r) {
@@ -370,10 +406,8 @@ void genProcCmdline(const QueryContext& context, int pid, processesRow& r) {
     return;
   }
 
-  int argmax = genMaxArgs();
   // The command line invocation including arguments.
-  auto args = getProcRawArgs(pid, argmax);
-  std::string cmdline = boost::algorithm::join(args.args, " ");
+  std::string cmdline = getProcCmdline(pid);
   r.cmdline_col = std::move(cmdline);
 }
 
@@ -501,8 +535,8 @@ QueryData genProcessEnvs(QueryContext& context) {
   auto pidlist = getProcList(context);
   int argmax = genMaxArgs();
   for (const auto& pid : pidlist) {
-    auto args = getProcRawArgs(pid, argmax);
-    for (const auto& env : args.env) {
+    auto envs = getProcEnv(pid, argmax);
+    for (const auto& env : envs) {
       Row r;
       r["pid"] = INTEGER(pid);
       r["key"] = env.first;
