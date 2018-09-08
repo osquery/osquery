@@ -141,7 +141,7 @@ TEST_F(TablesTests, test_constraint_map_cast) {
 class TestTablePlugin : public TablePlugin {
  public:
   void testSetCache(size_t step, size_t interval) {
-    QueryData r;
+    TableRows r;
     QueryContext ctx;
     ctx.useCache(true);
     setCache(step, interval, ctx, r);

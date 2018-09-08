@@ -419,15 +419,17 @@ class cacheTablePlugin : public TablePlugin {
   }
 
  public:
-  QueryData generate(QueryContext& context) override {
+  TableRows generate(QueryContext& context) override {
+    TableRows results;
     if (context.isCached("awesome_data")) {
       // There is cache entry for awesome data.
-      return {{{"data", "more_awesome_data"}}};
+      results.push_back(make_table_row({{"data", "more_awesome_data"}}));
     } else {
-      Row r = {{"data", "awesome_data"}};
-      context.setCache("awesome_data", r);
-      return {r};
+      auto tr = make_table_row({{"data", "awesome_data"}});
+      context.setCache("awesome_data", static_cast<TableRowHolder&&>(tr));
+      results.push_back(std::move(tr));
     }
+    return results;
   }
 
  private:
@@ -472,16 +474,18 @@ class tableCacheTablePlugin : public TablePlugin {
     return TableAttributes::CACHEABLE;
   }
 
-  QueryData generate(QueryContext& ctx) override {
+  TableRows generate(QueryContext& ctx) override {
     if (isCached(60, ctx)) {
       return getCache();
     }
 
     generates_++;
-    Row r;
+    auto r = make_table_row();
     r["i"] = "1";
-    setCache(60, 1, ctx, {r});
-    return {r};
+    TableRows result;
+    result.push_back(std::move(r));
+    setCache(60, 1, ctx, result);
+    return result;
   }
 
   size_t generates_{0};

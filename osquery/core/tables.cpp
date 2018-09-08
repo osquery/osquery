@@ -115,6 +115,19 @@ int DynamicTableRow::get_column(sqlite3_context* ctx,
   return SQLITE_OK;
 }
 
+Status DynamicTableRow::serialize(JSON& doc, rj::Value& obj) const {
+  for (const auto& i : row) {
+    doc.addRef(i.first, i.second, obj);
+  }
+
+  return Status();
+}
+
+TableRowHolder DynamicTableRow::clone() const {
+  Row new_row = row;
+  return TableRowHolder(new DynamicTableRow(std::move(new_row)));
+}
+
 Status TablePlugin::addExternal(const std::string& name,
                                 const PluginResponse& response) {
   // Attach the table.
@@ -308,6 +321,67 @@ TableRows tableRowsFromQueryData(QueryData&& rows) {
   return result;
 }
 
+Status serializeQueryRows(const TableRows& q, JSON& doc, rj::Document& arr) {
+  for (const auto& r : q) {
+    auto row_obj = doc.getObject();
+    auto status = r->serialize(doc, row_obj);
+    if (!status.ok()) {
+      return status;
+    }
+    doc.push(row_obj, arr);
+  }
+  return Status();
+}
+
+Status serializeTableRowsJSON(const TableRows& q, std::string& json) {
+  auto doc = JSON::newArray();
+
+  auto status = serializeQueryRows(q, doc, doc.doc());
+  if (!status.ok()) {
+    return status;
+  }
+  return doc.toString(json);
+}
+
+Status deserializeRow(const rj::Value& doc, DynamicTableRowHolder& r) {
+  if (!doc.IsObject()) {
+    return Status(1);
+  }
+
+  for (const auto& i : doc.GetObject()) {
+    std::string name(i.name.GetString());
+    if (!name.empty() && i.value.IsString()) {
+      r[name] = i.value.GetString();
+    }
+  }
+  return Status();
+}
+
+Status deserializeQueryRows(const rj::Value& arr, TableRows& qd) {
+  if (!arr.IsArray()) {
+    return Status(1);
+  }
+
+  for (const auto& i : arr.GetArray()) {
+    auto r = make_table_row();
+    auto status = deserializeRow(i, r);
+    if (!status.ok()) {
+      return status;
+    }
+    qd.push_back(std::move(r));
+  }
+  return Status();
+}
+
+Status deserializeTableRowsJSON(const std::string& json, TableRows& qd) {
+  auto doc = JSON::newArray();
+  if (!doc.fromString(json) || !doc.doc().IsArray()) {
+    return Status(1, "Cannot deserializing JSON");
+  }
+
+  return deserializeQueryRows(doc.doc(), qd);
+}
+
 static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
   if (!ctx.useCache()) {
     // The query execution did not request use of the warm cache.
@@ -334,27 +408,27 @@ bool TablePlugin::isCached(size_t step, const QueryContext& ctx) const {
   return (step < last_cached_ + last_interval_ && cacheAllowed(columns(), ctx));
 }
 
-QueryData TablePlugin::getCache() const {
+TableRows TablePlugin::getCache() const {
   VLOG(1) << "Retrieving results from cache for table: " << getName();
   // Lookup results from database and deserialize.
   std::string content;
   getDatabaseValue(kQueries, "cache." + getName(), content);
-  QueryData results;
-  deserializeQueryDataJSON(content, results);
+  TableRows results;
+  deserializeTableRowsJSON(content, results);
   return results;
 }
 
 void TablePlugin::setCache(size_t step,
                            size_t interval,
                            const QueryContext& ctx,
-                           const QueryData& results) {
+                           const TableRows& results) {
   if (FLAGS_disable_caching || !cacheAllowed(columns(), ctx)) {
     return;
   }
 
   // Serialize QueryData and save to database.
   std::string content;
-  if (serializeQueryDataJSON(results, content)) {
+  if (serializeTableRowsJSON(results, content)) {
     last_cached_ = step;
     last_interval_ = interval;
     setDatabaseValue(kQueries, "cache." + getName(), content);
@@ -637,27 +711,17 @@ bool QueryContext::useCache() const {
   return use_cache_;
 }
 
-void QueryContext::setCache(const std::string& index, Row _cache) {
-  table_->cache[index] = std::move(_cache);
-}
-
 void QueryContext::setCache(const std::string& index,
-                            const std::string& key,
-                            std::string _item) {
-  table_->cache[index][key] = std::move(_item);
+                            const TableRowHolder& _cache) {
+  table_->cache[index] = _cache->clone();
 }
 
 bool QueryContext::isCached(const std::string& index) const {
   return (table_->cache.count(index) != 0);
 }
 
-const Row& QueryContext::getCache(const std::string& index) {
-  return table_->cache[index];
-}
-
-const std::string& QueryContext::getCache(const std::string& index,
-                                          const std::string& key) {
-  return table_->cache[index][key];
+TableRowHolder QueryContext::getCache(const std::string& index) {
+  return table_->cache[index]->clone();
 }
 
 bool QueryContext::hasConstraint(const std::string& column,

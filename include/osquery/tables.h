@@ -166,6 +166,10 @@ class TableRow {
                          sqlite3_vtab* pVtab,
                          int col) = 0;
 
+  virtual Status serialize(JSON& doc, rj::Value& obj) const = 0;
+
+  virtual TableRowHolder clone() const = 0;
+
   virtual operator Row() const = 0;
 };
 
@@ -189,6 +193,11 @@ class DynamicTableRow : public TableRow {
   virtual int get_rowid(sqlite_int64 default_value, sqlite_int64* pRowid) const;
 
   virtual int get_column(sqlite3_context* ctx, sqlite3_vtab* pVtab, int col);
+
+  virtual Status serialize(JSON& doc, rj::Value& obj) const;
+
+  virtual TableRowHolder clone() const;
+
   inline std::string& operator[](const std::string& key) {
     return row[key];
   }
@@ -250,6 +259,10 @@ using TableRows = std::vector<TableRowHolder>;
 /// Converts a QueryData struct to TableRows. Intended for use only in generated
 /// code.
 TableRows tableRowsFromQueryData(QueryData&& rows);
+
+Status serializeTableRowsJSON(const TableRows& q, std::string& json);
+
+Status deserializeTableRowsJSON(const std::string& json, TableRows& results);
 
 /// Map of type constant to the SQLite string-name representation.
 extern const std::map<ColumnType, std::string> kColumnTypeNames;
@@ -634,7 +647,7 @@ struct VirtualTableContent {
    * The in-memory, non-backing store, cache is expired after each query run.
    * This caching does not affect or use the schedule results cache.
    */
-  std::map<std::string, Row> cache;
+  std::map<std::string, TableRowHolder> cache;
 };
 
 using RowGenerator = boost::coroutines2::coroutine<std::unique_ptr<TableRow>>;
@@ -797,10 +810,7 @@ struct QueryContext : private only_movable {
   bool isCached(const std::string& index) const;
 
   /// Retrieve an index within the query cache.
-  const Row& getCache(const std::string& index);
-
-  /// Helper to retrieve a keyed element within the query cache.
-  const std::string& getCache(const std::string& index, const std::string& key);
+  TableRowHolder getCache(const std::string& index);
 
   /// Request the context use the warm query cache.
   void useCache(bool use_cache);
@@ -809,12 +819,7 @@ struct QueryContext : private only_movable {
   bool useCache() const;
 
   /// Set the entire cache for an index.
-  void setCache(const std::string& index, Row _cache);
-
-  /// Helper to set a keyed element within the query cache.
-  void setCache(const std::string& index,
-                const std::string& key,
-                std::string _item);
+  void setCache(const std::string& index, const TableRowHolder& _cache);
 
   /// The map of column name to constraint list.
   ConstraintMap constraints;
@@ -1012,7 +1017,7 @@ class TablePlugin : public Plugin {
    *
    * @return The deserialized row data of cached results.
    */
-  QueryData getCache() const;
+  TableRows getCache() const;
 
   /**
    * @brief Similar to getCache, stores the results from generate.
@@ -1024,7 +1029,7 @@ class TablePlugin : public Plugin {
   void setCache(size_t step,
                 size_t interval,
                 const QueryContext& ctx,
-                const QueryData& results);
+                const TableRows& results);
 
  private:
   /// The last time in seconds the table data results were saved to cache.
