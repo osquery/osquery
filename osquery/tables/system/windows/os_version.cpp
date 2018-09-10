@@ -132,7 +132,7 @@ QueryData genOSVersion(QueryContext& context) {
   std::string version_string;
 
   const std::string kWmiQuery =
-      "SELECT CAPTION,VERSION FROM Win32_OperatingSystem";
+      "SELECT CAPTION,VERSION,INSTALLDATE FROM Win32_OperatingSystem";
 
   const WmiRequest wmiRequest(kWmiQuery);
   const std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
@@ -140,7 +140,8 @@ QueryData genOSVersion(QueryContext& context) {
   if (wmiResults.empty()) {
     return {};
   }
-
+  
+  wmiResults[0].GetString("InstallDate", r["install_date"]);
   wmiResults[0].GetString("Caption", r["name"]);
   wmiResults[0].GetString("Version", version_string);
   auto version = osquery::split(version_string, ".");
