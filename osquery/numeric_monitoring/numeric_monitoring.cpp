@@ -211,7 +211,7 @@ void flush() {
 void record(const std::string& path,
             ValueType value,
             PreAggregationType pre_aggregation,
-            bool sync,
+            const bool sync,
             TimePoint time_point) {
   if (!FLAGS_enable_numeric_monitoring) {
     return;
