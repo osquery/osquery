@@ -16,26 +16,18 @@
 
 namespace osquery {
 
-class arpCache : public IntegrationTableTest {};
+class ArpCacheTest : public IntegrationTableTest {};
 
-TEST_F(arpCache, test_sanity) {
-  // 1. Query data
-  // QueryData data = execute_query("select * from arp_cache");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"address", NormalType}
-  //      {"mac", NormalType}
-  //      {"interface", NormalType}
-  //      {"permanent", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(ArpCacheTest, test_sanity) {
+  QueryData data = execute_query("select * from arp_cache");
+
+  auto const row_map = ValidatatioMap{
+      {"address", verifyIpAddress},
+      {"mac", verifyMacAddress},
+      {"interface", NonEmptyString},
+      {"permanent", Bool},
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace osquery
