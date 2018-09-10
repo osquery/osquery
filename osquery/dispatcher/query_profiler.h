@@ -16,6 +16,6 @@
 #include <osquery/status.h>
 
 namespace osquery {
-void launchQueryWithProfiling(const std::string& name,
-                              std::function<Status()> launchQuery);
+Status launchQueryWithProfiling(const std::string& name,
+                                std::function<Status()> launchQuery);
 }

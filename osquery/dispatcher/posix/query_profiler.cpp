@@ -113,9 +113,8 @@ Expected<struct rusage, RusageError> callRusage() {
   }
 }
 
-void launchQueryWithPosixProfiling(const std::string& name,
-                                   std::function<Status()> launchQuery) {
-  const auto start_time_point = std::chrono::steady_clock::now();
+Status launchQueryWithPosixProfiling(const std::string& name,
+                                     std::function<Status()> launchQuery) {
   auto rusage_start = callRusage();
 
   if (!rusage_start) {
@@ -123,7 +122,14 @@ void launchQueryWithPosixProfiling(const std::string& name,
                << rusage_start.getError().getFullMessageRecursive();
   }
 
+  const auto start_time_point = std::chrono::steady_clock::now();
+
   const auto status = launchQuery();
+
+  const auto query_duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - start_time_point);
+
   const auto monitoring_path_prefix =
       (boost::format("scheduler.executing_query.%s.%s") % name %
        (status.ok() ? "success" : "failure"))
@@ -141,21 +147,19 @@ void launchQueryWithPosixProfiling(const std::string& name,
     }
   }
 
-  const auto query_duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now() - start_time_point);
-
   monitoring::record(monitoring_path_prefix + ".time.real.millis",
                      query_duration.count(),
                      monitoring::PreAggregationType::Min);
+
+  return status;
 }
 } // namespace
-void launchQueryWithProfiling(const std::string& name,
-                              std::function<Status()> launchQuery) {
+Status launchQueryWithProfiling(const std::string& name,
+                                std::function<Status()> launchQuery) {
   if (Killswitch::get().isPosixProfilingEnabled()) {
-    launchQueryWithPosixProfiling(name, launchQuery);
+    return launchQueryWithPosixProfiling(name, launchQuery);
   } else {
-    launchQuery(); // Just execute the query
+    return launchQuery(); // Just execute the query
   }
 }
 
