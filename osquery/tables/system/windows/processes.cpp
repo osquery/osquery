@@ -144,7 +144,7 @@ Status getProcList(std::set<long>& pids) {
   return Status(0, "Ok");
 }
 
-void genProcess(const WmiResultItem& result, QueryData& results_data) {
+void genProcess(const WmiResultItem& result, QueryData& results_data, QueryContext& context, std::map<std::int32_t, std::map<std::string, std::int64_t>> perfData) {
   Row r;
   Status s;
   long pid;
@@ -157,19 +157,34 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   s = result.GetLong("ProcessId", pid);
   r["pid"] = s.ok() ? BIGINT(pid) : BIGINT(-1);
 
+  if (context.isAnyColumnUsed({"elapsed_time", "handle_count", "page_file_bytes", "page_file_bytes_peak", "percent_privileged_time", "percent_processor_time", "percent_user_time"})) {
+    std::map<std::string, std::int64_t> procPerfData;
+    procPerfData = perfData[pid];
+    r["elapsed_time"] = BIGINT(procPerfData["elapsed_time"]);
+    r["handle_count"] = BIGINT(procPerfData["handle_count"]);
+    r["page_file_bytes"] = BIGINT(procPerfData["page_file_bytes"]);
+    r["page_file_bytes_peak"] = BIGINT(procPerfData["page_file_bytes_peak"]);
+    r["percent_privileged_time"] = BIGINT(procPerfData["percent_privileged_time"]);
+    r["percent_processor_time"] = BIGINT(procPerfData["percent_processor_time"]);
+    r["percent_user_time"] = BIGINT(procPerfData["percent_user_time"]);
+  }
+  
   long uid = -1;
   long gid = -1;
   HANDLE hProcess = nullptr;
-  if (pid == currentPid) {
-    hProcess = GetCurrentProcess();
-  } else {
-    hProcess =
-        OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
-  }
 
-  if (GetLastError() == ERROR_ACCESS_DENIED) {
-    uid = 0;
-    gid = 0;
+  if (context.isAnyColumnUsed({"uid", "gid", "cwd", "root", "user_time", "system_time", "start_time", "is_elevated_token"})) {
+    if (pid == currentPid) {
+      hProcess = GetCurrentProcess();
+    } else {
+      hProcess =
+          OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
+    }
+
+    if (GetLastError() == ERROR_ACCESS_DENIED) {
+      uid = 0;
+      gid = 0;
+    }
   }
 
   result.GetString("Name", r["name"]);
@@ -190,15 +205,17 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   result.GetString("VirtualSize", sPlaceHolder);
   r["total_size"] = BIGINT(sPlaceHolder);
 
-  std::vector<char> fileName(MAX_PATH + 1, 0x0);
-  if (pid == currentPid) {
-    GetModuleFileName(nullptr, fileName.data(), MAX_PATH);
-  } else {
-    GetModuleFileNameEx(hProcess, nullptr, fileName.data(), MAX_PATH);
-  }
+  if (context.isAnyColumnUsed({"cwd", "root"})) {
+    std::vector<char> fileName(MAX_PATH + 1, 0x0);
+    if (pid == currentPid) {
+      GetModuleFileName(nullptr, fileName.data(), MAX_PATH);
+    } else {
+      GetModuleFileNameEx(hProcess, nullptr, fileName.data(), MAX_PATH);
+    }
 
-  r["cwd"] = SQL_TEXT(fileName.data());
-  r["root"] = r["cwd"];
+    r["cwd"] = SQL_TEXT(fileName.data());
+    r["root"] = r["cwd"];
+  }
 
   r["pgroup"] = "-1";
   r["euid"] = "-1";
@@ -206,69 +223,117 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   r["egid"] = "-1";
   r["sgid"] = "-1";
 
-  FILETIME createTime;
-  FILETIME exitTime;
-  FILETIME kernelTime;
-  FILETIME userTime;
-  auto procRet =
-      GetProcessTimes(hProcess, &createTime, &exitTime, &kernelTime, &userTime);
-  if (procRet == FALSE) {
-    r["user_time"] = BIGINT(-1);
-    r["system_time"] = BIGINT(-1);
-    r["start_time"] = BIGINT(-1);
-  } else {
-    // Windows stores proc times in 100 nanosecond ticks
-    ULARGE_INTEGER utime;
-    utime.HighPart = userTime.dwHighDateTime;
-    utime.LowPart = userTime.dwLowDateTime;
-    r["user_time"] = BIGINT(utime.QuadPart / 10000);
-    utime.HighPart = kernelTime.dwHighDateTime;
-    utime.LowPart = kernelTime.dwLowDateTime;
-    r["system_time"] = BIGINT(utime.QuadPart / 10000);
-    r["start_time"] = BIGINT(osquery::filetimeToUnixtime(createTime));
+  if (context.isAnyColumnUsed({"user_time", "system_time", "start_time"})) {
+    FILETIME createTime;
+    FILETIME exitTime;
+    FILETIME kernelTime;
+    FILETIME userTime;
+    auto procRet =
+        GetProcessTimes(hProcess, &createTime, &exitTime, &kernelTime, &userTime);
+    if (procRet == FALSE) {
+      r["user_time"] = BIGINT(-1);
+      r["system_time"] = BIGINT(-1);
+      r["start_time"] = BIGINT(-1);
+    } else {
+      // Windows stores proc times in 100 nanosecond ticks
+      ULARGE_INTEGER utime;
+      utime.HighPart = userTime.dwHighDateTime;
+      utime.LowPart = userTime.dwLowDateTime;
+      r["user_time"] = BIGINT(utime.QuadPart / 10000);
+      utime.HighPart = kernelTime.dwHighDateTime;
+      utime.LowPart = kernelTime.dwLowDateTime;
+      r["system_time"] = BIGINT(utime.QuadPart / 10000);
+      r["start_time"] = BIGINT(osquery::filetimeToUnixtime(createTime));
+    }
   }
 
-  /// Get the process UID and GID from its SID
-  HANDLE tok = nullptr;
-  std::vector<char> tokUser(sizeof(TOKEN_USER), 0x0);
-  auto ret = OpenProcessToken(hProcess, TOKEN_READ, &tok);
-  if (ret != 0 && tok != nullptr) {
-    unsigned long tokOwnerBuffLen;
-    ret = GetTokenInformation(tok, TokenUser, nullptr, 0, &tokOwnerBuffLen);
-    if (ret == 0 && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-      tokUser.resize(tokOwnerBuffLen);
-      ret = GetTokenInformation(
-          tok, TokenUser, tokUser.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
-    }
+  if (context.isAnyColumnUsed({"uid", "gid", "is_elevated_token"})) {
+    /// Get the process UID and GID from its SID
+    HANDLE tok = nullptr;
+    std::vector<char> tokUser(sizeof(TOKEN_USER), 0x0);
+    auto ret = OpenProcessToken(hProcess, TOKEN_READ, &tok);
+    if (ret != 0 && tok != nullptr) {
+      unsigned long tokOwnerBuffLen;
+      ret = GetTokenInformation(tok, TokenUser, nullptr, 0, &tokOwnerBuffLen);
+      if (ret == 0 && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+        tokUser.resize(tokOwnerBuffLen);
+        ret = GetTokenInformation(
+            tok, TokenUser, tokUser.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
+      }
 
-    // Check if the process is using an elevated token
-    auto elevated = FALSE;
-    TOKEN_ELEVATION Elevation;
-    DWORD cbSize = sizeof(TOKEN_ELEVATION);
-    if (GetTokenInformation(
-            tok, TokenElevation, &Elevation, sizeof(Elevation), &cbSize)) {
-      elevated = Elevation.TokenIsElevated;
-    }
+      // Check if the process is using an elevated token
+      auto elevated = FALSE;
+      TOKEN_ELEVATION Elevation;
+      DWORD cbSize = sizeof(TOKEN_ELEVATION);
+      if (GetTokenInformation(
+              tok, TokenElevation, &Elevation, sizeof(Elevation), &cbSize)) {
+        elevated = Elevation.TokenIsElevated;
+      }
 
-    r["is_elevated_token"] = elevated ? INTEGER(1) : INTEGER(0);
-  }
-  if (uid != 0 && ret != 0 && !tokUser.empty()) {
-    auto sid = PTOKEN_OWNER(tokUser.data())->Owner;
-    r["uid"] = INTEGER(getUidFromSid(sid));
-    r["gid"] = INTEGER(getGidFromSid(sid));
-  } else {
-    r["uid"] = INTEGER(uid);
-    r["gid"] = INTEGER(gid);
+      r["is_elevated_token"] = elevated ? INTEGER(1) : INTEGER(0);
+    }
+    if (uid != 0 && ret != 0 && !tokUser.empty()) {
+      auto sid = PTOKEN_OWNER(tokUser.data())->Owner;
+      r["uid"] = INTEGER(getUidFromSid(sid));
+      r["gid"] = INTEGER(getGidFromSid(sid));
+    } else {
+      r["uid"] = INTEGER(uid);
+      r["gid"] = INTEGER(gid);
+    }
+    if (tok != nullptr) {
+      CloseHandle(tok);
+      tok = nullptr;
+    }
   }
 
   if (hProcess != nullptr) {
     CloseHandle(hProcess);
   }
-  if (tok != nullptr) {
-    CloseHandle(tok);
-    tok = nullptr;
-  }
+
   results_data.push_back(r);
+}
+
+std::map<std::int32_t, std::map<std::string, std::int64_t>> genPerfPerProcess() {
+  std::map<std::int32_t, std::map<std::string, std::int64_t>> returnData;
+  const WmiRequest request(
+	  "SELECT CreatingProcessID, ElapsedTime, HandleCount, Name, "
+	  "PageFileBytes, PageFileBytesPeak, PercentPrivilegedTime, "
+	  "PercentProcessorTime, PercentUserTime FROM "
+	  "Win32_PerfFormattedData_PerfProc_Process");
+
+  if (request.getStatus().ok()) {
+	  const auto& results = request.results();
+	  for (const auto& result : results) {
+		  std::map<std::string, std::int64_t> process_data;
+		  long processID;
+		  long handleCount = 0;
+		  std::string percentPrivilagedTime;
+		  std::string percentProcessorTime;
+		  std::string percentUserTime;
+		  std::string elapsedTime;
+		  std::string pageFileBytes;
+		  std::string pageFileBytesPeak;
+
+		  result.GetString("ElapsedTime", elapsedTime);
+		  result.GetLong("HandleCount", handleCount);
+		  result.GetString("PageFileBytes", pageFileBytes);
+		  result.GetString("PageFileBytesPeak", pageFileBytesPeak);
+		  result.GetString("PercentPrivilegedTime", percentPrivilagedTime);
+		  result.GetString("PercentProcessorTime", percentProcessorTime);
+		  result.GetString("PercentUserTime", percentUserTime);
+
+		  process_data["elapsed_time"] = std::stoll(elapsedTime);
+		  process_data["handle_count"] = handleCount;
+		  process_data["page_file_bytes"] = std::stoll(pageFileBytes);
+		  process_data["page_file_bytes_peak"] = std::stoll(pageFileBytesPeak);
+		  process_data["percent_privileged_time"] = std::stoll(percentPrivilagedTime);
+		  process_data["percent_processor_time"] = std::stoll(percentProcessorTime);
+		  process_data["percent_user_time"] = std::stoll(percentUserTime);
+		  result.GetLong("CreatingProcessID", processID);
+		  returnData[processID] = process_data;
+	  }
+  }
+  return returnData;
 }
 
 QueryData genProcesses(QueryContext& context) {
@@ -299,13 +364,17 @@ QueryData genProcesses(QueryContext& context) {
       query += " WHERE " + boost::algorithm::join(constraints, " OR ");
     }
   }
+  std::map<std::int32_t, std::map<std::string, std::int64_t>> perfData;
+  if (context.isAnyColumnUsed({"elapsed_time", "handle_count", "page_file_bytes", "page_file_bytes_peak", "percent_privileged_time", "percent_processor_time", "percent_user_time"})) {
+    perfData = genPerfPerProcess();
+  }
 
   const WmiRequest request(query);
   if (request.getStatus().ok()) {
     for (const auto& item : request.results()) {
       long pid = 0;
       if (item.GetLong("ProcessId", pid).ok()) {
-        genProcess(item, results);
+        genProcess(item, results, context, perfData);
       }
     }
   }
