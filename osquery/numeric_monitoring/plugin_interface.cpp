@@ -32,6 +32,7 @@ RecordKeys createRecordKeys() {
   keys.value = "value";
   keys.timestamp = "timestamp";
   keys.pre_aggregation = "pre_aggregation";
+  keys.sync = "sync";
   return keys;
 };
 
