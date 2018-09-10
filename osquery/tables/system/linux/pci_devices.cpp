@@ -239,7 +239,7 @@ Status PciDB::getSubsystemInfo(const std::string& vendor_id,
 }
 
 Status enrichPCISubsysInfo(Row& row,
-                           std::string& subsystem_attr,
+                           std::string subsystem_attr,
                            const std::string& vendor_id,
                            const std::string& model_id,
                            const PciDB& pcidb) {
@@ -254,17 +254,21 @@ Status enrichPCISubsysInfo(Row& row,
         std::to_string(subsystem_ids.size()));
   }
 
-  row.emplace("subsystem_vendor_id", "0x" + subsystem_ids[0]);
-  row.emplace("subsystem_model_id", "0x" + subsystem_ids[1]);
+  auto subsys_vendor_id = subsystem_ids[0];
+  auto subsys_model_id = subsystem_ids[1];
+
+  row.emplace("subsystem_vendor_id", "0x" + subsys_vendor_id);
+  row.emplace("subsystem_model_id", "0x" + subsys_model_id);
 
   std::string content;
-  if (pcidb.getVendorName(subsystem_ids[0], content).ok()) {
+  if (pcidb.getVendorName(subsys_vendor_id, content).ok()) {
     row.emplace("subsystem_vendor", std::move(content));
   }
 
+  content.clear();
   if (pcidb
           .getSubsystemInfo(
-              vendor_id, model_id, subsystem_ids[0], subsystem_ids[1], content)
+              vendor_id, model_id, subsys_vendor_id, subsys_model_id, content)
           .ok()) {
     row.emplace("subsystem_model", std::move(content));
   }
@@ -272,13 +276,9 @@ Status enrichPCISubsysInfo(Row& row,
   return Status::success();
 }
 
-static inline void delUdevDevice(udev_device* d) {
-  udev_device_unref(d);
-}
-
 Status extractPCIVendorModelInfo(
     Row& row,
-    std::unique_ptr<udev_device, std::function<void(udev_device*)>>& device,
+    std::unique_ptr<udev_device, decltype(&udev_device_unref)>& device,
     const PciDB& pcidb) {
   row["vendor"] = UdevEventPublisher::getValue(device.get(), kPCIKeyVendor);
   row["model"] = UdevEventPublisher::getValue(device.get(), kPCIKeyModel);
@@ -291,8 +291,8 @@ Status extractPCIVendorModelInfo(
 }
 
 Status extractPCIVendorModelInfoByPciDB(Row& row,
-                                        std::string&& device_attr,
-                                        std::string&& subsystem_attr,
+                                        std::string device_attr,
+                                        std::string subsystem_attr,
                                         const PciDB& pcidb) {
   // pci.ids lower cases everything, so we follow suit.
   boost::algorithm::to_lower(device_attr);
@@ -308,27 +308,31 @@ Status extractPCIVendorModelInfoByPciDB(Row& row,
         std::to_string(ids.size()));
   }
 
-  row.emplace("vendor_id", "0x" + ids[0]);
-  row.emplace("model_id", "0x" + ids[1]);
+  auto vendor_id = ids[0];
+  auto model_id = ids[1];
+
+  row.emplace("vendor_id", "0x" + vendor_id);
+  row.emplace("model_id", "0x" + model_id);
 
   // Now that we know we have VENDOR and MODEL ID's, let's actually check
   // on the system PCI DB for descriptive information.  This implies that the
   // system's local PCI DB would contain more update to date information than
   // the one packaged with hwdb.
   std::string content;
-  if (pcidb.getVendorName(ids[0], content).ok()) {
+  if (pcidb.getVendorName(vendor_id, content).ok()) {
     row["vendor"] = content;
   }
 
-  if (pcidb.getModel(ids[0], ids[1], content).ok()) {
+  content.clear();
+  if (pcidb.getModel(vendor_id, model_id, content).ok()) {
     row["model"] = content;
   }
 
   // Try to enrich model with subsystem info.
-  return enrichPCISubsysInfo(row, subsystem_attr, ids[0], ids[1], pcidb);
+  return enrichPCISubsysInfo(row, subsystem_attr, vendor_id, model_id, pcidb);
 }
 
-Status extractPCIClassIDAttrs(Row& row, std::string&& pci_class_attr) {
+Status extractPCIClassIDAttrs(Row& row, std::string pci_class_attr) {
   // pci.ids lower cases everything, so we follow suit.
   boost::algorithm::to_lower(pci_class_attr);
 
@@ -390,8 +394,10 @@ QueryData genPCIDevices(QueryContext& context) {
 
   udev_list_entry_foreach(entry, device_entries) {
     const char* path = udev_list_entry_get_name(entry);
-    std::unique_ptr<udev_device, std::function<void(udev_device*)>> device(
-        udev_device_new_from_syspath(udev_handle.get(), path), delUdevDevice);
+
+    std::unique_ptr<udev_device, decltype(&udev_device_unref)> device(
+        udev_device_new_from_syspath(udev_handle.get(), path),
+        udev_device_unref);
     if (device.get() == nullptr) {
       VLOG(1) << "Could not get device";
       return results;

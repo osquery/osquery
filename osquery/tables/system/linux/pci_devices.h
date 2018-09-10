@@ -116,13 +116,13 @@ class PciDB {
 
 /// Extracts PCI device information into row for provided sysFS attributes.
 Status extractPCIVendorModelInfoByPciDB(Row& row,
-                                        std::string&& device_attr,
-                                        std::string&& subsystem_attr,
+                                        std::string device_attr,
+                                        std::string subsystem_attr,
                                         const PciDB& pcidb);
 
 ///  Extracts PCI class identifier information into row for provided sysFs
 ///  attribute.
-Status extractPCIClassIDAttrs(Row& row, std::string&& pci_class_attr);
+Status extractPCIClassIDAttrs(Row& row, std::string pci_class_attr);
 
 } // namespace tables
 } // namespace osquery
