@@ -83,23 +83,17 @@ void genExtension(const std::string& uid,
 
   const auto& perm_array_obj = tree.get_child_optional(kExtensionPermissionKey);
   if (perm_array_obj) {
-    std::stringstream temp_stream;
-
     const auto& perm_array_contents = perm_array_obj.get();
     for (auto it = perm_array_contents.begin(); it != perm_array_contents.end();
          ++it) {
       const auto& perm_obj = *it;
       const auto& permission = perm_obj.second.get_value<std::string>();
-      temp_stream << permission;
+      permission_list.append(permission);
 
       if (std::next(it, 1) != perm_array_contents.end()) {
-        temp_stream << ", ";
+        permission_list.append(", ");
       }
     }
-
-    permission_list = temp_stream.str();
-  } else {
-    permission_list = "";
   }
 
   std::string localized_prefix = "__MSG_";
