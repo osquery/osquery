@@ -79,24 +79,33 @@ void genExtension(const std::string& uid,
   }
 
   // Fetch the permission array from the manifest file
-  std::vector<std::string> permission_list;
+  std::string permission_list;
 
   const auto& perm_array_obj = tree.get_child_optional(kExtensionPermissionKey);
   if (perm_array_obj) {
-    const auto& perm_array_contents = perm_array_obj.get();
-    permission_list.reserve(perm_array_contents.size());
+    std::stringstream temp_stream;
 
-    for (const auto& perm_obj : perm_array_contents) {
+    const auto& perm_array_contents = perm_array_obj.get();
+    for (auto it = perm_array_contents.begin(); it != perm_array_contents.end();
+         ++it) {
+      const auto& perm_obj = *it;
       const auto& permission = perm_obj.second.get_value<std::string>();
-      permission_list.push_back(permission);
+      temp_stream << permission;
+
+      if (std::next(it, 1) != perm_array_contents.end()) {
+        temp_stream << ", ";
+      }
     }
+
+    permission_list = temp_stream.str();
   } else {
-    permission_list = {""};
+    permission_list = "";
   }
 
   std::string localized_prefix = "__MSG_";
   Row r;
   r["uid"] = uid;
+  r[kExtensionPermissionKey] = permission_list;
   // Most of the keys are in the top-level JSON dictionary.
   for (const auto& it : kExtensionKeys) {
     std::string key = tree.get<std::string>(it.first, "");
@@ -123,12 +132,7 @@ void genExtension(const std::string& uid,
 
   r["identifier"] = fs::path(path).parent_path().parent_path().leaf().string();
   r["path"] = path;
-
-  // Emit one row for each permission we have
-  for (const auto& permission : permission_list) {
-    r["permission"] = permission;
-    results.push_back(r);
-  }
+  results.push_back(r);
 }
 
 QueryData genChromeBasedExtensions(QueryContext& context,
