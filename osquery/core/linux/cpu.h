@@ -14,7 +14,6 @@
 #include <vector>
 
 namespace osquery {
-
 namespace cpu {
 
 /**
@@ -64,5 +63,4 @@ Expected<std::string, Error> getPresentRaw();
 Expected<Mask, Error> getPresent();
 
 } // namespace cpu
-
 } // namespace osquery

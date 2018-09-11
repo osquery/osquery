@@ -10,12 +10,9 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/logger.h>
 #include <osquery/tests/test_util.h>
 
 #include "osquery/core/linux/cpu.h"
-
-namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace {
