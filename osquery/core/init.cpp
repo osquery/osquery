@@ -217,6 +217,26 @@ const size_t kDatabaseRetryDelay{200};
 std::function<void()> Initializer::shutdown_{nullptr};
 RecursiveMutex Initializer::shutdown_mutex_;
 
+namespace {
+
+Status initWorkDirectories() {
+  auto const recursive = true;
+  auto const ignore_existence = true;
+  auto status = createDirectory(
+      boost::filesystem::path(OSQUERY_LOG_HOME), recursive, ignore_existence);
+  if (!status.ok()) {
+    return status;
+  }
+  status = createDirectory(
+      boost::filesystem::path(OSQUERY_DB_HOME), recursive, ignore_existence);
+  if (!status.ok()) {
+    return status;
+  }
+  return Status::success();
+}
+
+} // namespace
+
 static inline void printUsage(const std::string& binary, ToolType tool) {
   // Parse help options before gflags. Only display osquery-related options.
   fprintf(stdout, DESCRIPTION, kVersion.c_str());
@@ -372,6 +392,13 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   if (isShell()) {
     // Initialize the shell after setting modified defaults and parsing flags.
     initShell();
+  }
+  if (isDaemon()) {
+    auto const status = initWorkDirectories();
+    if (!status.ok()) {
+      LOG(ERROR) << "Could not initialize work directories " << status.what();
+      shutdown(EXIT_FAILURE);
+    }
   }
 
   std::signal(SIGABRT, signalHandler);
