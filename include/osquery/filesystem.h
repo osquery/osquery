@@ -238,7 +238,7 @@ Status isDirectory(const boost::filesystem::path& path);
  * @brief Create the directory
  *
  * @param path to the intended directory
- * @param recursive if true make parent directories as needed
+ * @param recursive - make parent directories as needed
  * @param ignore_existence - no error if directory already exists
  *
  * @return Status of operation
