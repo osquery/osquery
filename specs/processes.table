@@ -33,13 +33,13 @@ schema([
 ])
 extended_schema(WINDOWS, [
     Column("is_elevated_token", INTEGER, "Process uses elevated token yes=1, no=0"),
-    Column("elapsed_time", BIGINT, "Process uses elevated token yes=1, no=0"),
-    Column("handle_count", BIGINT, "Process uses elevated token yes=1, no=0"),
-    Column("page_file_bytes", BIGINT, "Process uses elevated token yes=1, no=0"),
-    Column("page_file_bytes_peak", BIGINT, "Process uses elevated token yes=1, no=0"),
-    Column("percent_privileged_time", BIGINT, "Process uses elevated token yes=1, no=0"),
-    Column("percent_processor_time", BIGINT, "Process uses elevated token yes=1, no=0"),
-    Column("percent_user_time", INTEGER, "Process uses elevated token yes=1, no=0"),
+    Column("elapsed_time", BIGINT, "Elapsed time, in seconds, that this process has been running."),
+    Column("handle_count", BIGINT, "Total number of handles that the process has open. This number is the sum of the handles currently opened by each thread in the process."),
+    Column("page_file_bytes", BIGINT, "Value, in bytes, that this process has used in the paging file(s)."),
+    Column("page_file_bytes_peak", BIGINT, "Maximum number, in bytes, that this process has used in the paging file(s)."),
+    Column("percent_privileged_time", BIGINT, "Percentage of elapsed time that this thread has spent executing code in privileged mode."),
+    Column("percent_processor_time", BIGINT, "Percentage of elapsed time that all of the threads of this process used the processor to execute instructions."),
+    Column("percent_user_time", BIGINT, "Percentage of elapsed time that this process's threads have spent executing code in user mode."),
 ])
 
 extended_schema(DARWIN, [
