@@ -53,6 +53,10 @@ class CronValuesCheck final {
 
 bool verifyIpAddress(std::string const& value);
 
+bool verifyEmptyStringOrIpAddress(std::string const& value);
+
+bool verifyMacAddress(std::string const& value);
+
 class IntegrationTableTest : public ::testing::Test {
  protected:
   enum {
