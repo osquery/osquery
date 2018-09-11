@@ -50,7 +50,7 @@ void recordRusageStatDifference(int64_t start_stat,
          << " is not supported";
   } else if (start_stat <= end_stat) {
     monitoring::record(
-        stat_name, end_stat - start_stat, monitoring::PreAggregationType::P50);
+        stat_name, end_stat - start_stat, monitoring::PreAggregationType::P99);
   } else {
     LOG(WARNING) << "Possible overflow detected in rusage field: "
                  << boost::io::quoted(stat_name);
