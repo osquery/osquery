@@ -243,7 +243,7 @@ Status isDirectory(const boost::filesystem::path& path);
  *
  * @return Status of operation
  */
-Status createDirectory(const boost::filesystem::path& dir_path,
+Status createDirectory(const boost::filesystem::path& path,
                        bool recursive = false,
                        bool ignore_existence = false);
 
