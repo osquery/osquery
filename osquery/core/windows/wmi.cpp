@@ -87,6 +87,57 @@ Status WmiResultItem::GetBool(const std::string& name, bool& ret) const {
   return Status(0);
 }
 
+Status WmiResultItem::GetDateTime(const std::string& name,
+                                  bool is_local,
+                                  FILETIME& ft) const {
+  std::wstring property_name = stringToWstring(name);
+
+  VARIANT value;
+  HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
+  if (hr != S_OK) {
+    return Status(-1, "Error retrieving datetime from WMI query result.");
+  }
+
+  if (value.vt != VT_BSTR) {
+    VariantClear(&value);
+    return Status(-1, "Expected VT_BSTR, got something else.");
+  }
+
+  ISWbemDateTime* dt = nullptr;
+  hr = CoCreateInstance(
+      CLSID_SWbemDateTime, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dt));
+  if (!SUCCEEDED(hr)) {
+    VariantClear(&value);
+    return Status(-1, "Failed to create SWbemDateTime object.");
+  }
+
+  hr = dt->put_Value(value.bstrVal);
+  VariantClear(&value);
+
+  if (!SUCCEEDED(hr)) {
+    dt->Release();
+    return Status(-1, "Failed to set SWbemDateTime value.");
+  }
+
+  BSTR filetime_str = {0};
+  hr = dt->GetFileTime(is_local ? VARIANT_TRUE : VARIANT_FALSE, &filetime_str);
+  if (!SUCCEEDED(hr)) {
+    dt->Release();
+    return Status(-1, "GetFileTime failed.");
+  }
+
+  ULARGE_INTEGER ui = {};
+
+  ui.QuadPart = _wtoi64(filetime_str);
+  ft.dwLowDateTime = ui.LowPart;
+  ft.dwHighDateTime = ui.HighPart;
+
+  SysFreeString(filetime_str);
+  dt->Release();
+
+  return Status(0);
+}
+
 Status WmiResultItem::GetUChar(const std::string& name,
                                unsigned char& ret) const {
   std::wstring property_name = stringToWstring(name);
