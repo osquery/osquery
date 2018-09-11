@@ -236,6 +236,7 @@ if(APPLE)
       "${CMAKE_CURRENT_LIST_DIR}/gatekeeper.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/gatekeeper_approved_apps.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/homebrew_packages.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/ibridge.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/iokit_devicetree.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/iokit_registry.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/kernel_extensions.cpp"
