@@ -225,8 +225,8 @@ void initWorkDirectories() {
     auto const ignore_existence = true;
     auto const status = createDirectory(
         boost::filesystem::path(FLAGS_database_path).parent_path(),
-        recursive, ignore_existence
-    );
+        recursive,
+        ignore_existence);
     if (!status.ok()) {
       LOG(WARNING) << "Could not initialize db directory " << status.what();
     }
