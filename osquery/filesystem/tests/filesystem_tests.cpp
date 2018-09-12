@@ -105,13 +105,6 @@ TEST_F(FilesystemTests, test_remove_path) {
   EXPECT_FALSE(pathExists(test_dir).ok());
 }
 
-TEST_F(FilesystemTests, test_remove_path_akindyakov) {
-  fs::path test_path(kTestWorkingDirectory);
-  test_path /= "akindyakov_th";
-  test_path /= "akindyakov_file";
-  ASSERT_FALSE(pathExists(test_path).ok());
-}
-
 TEST_F(FilesystemTests, test_write_file) {
   fs::path test_file(kTestWorkingDirectory + "fstests-file2");
   std::string content(2048, 'A');

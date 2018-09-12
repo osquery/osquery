@@ -454,21 +454,9 @@ Status createDirectory(const boost::filesystem::path& dir_path,
   if (ignore_existence && isDirectory(dir_path).ok()) {
     return Status::success();
   }
-  auto msg = std::string{"Could not create directory "} + dir_path.string();
-  if (err) {
-    msg += ": ";
-    msg += err.message();
-  }
-  return Status::failure(msg);
-}
-
-Status createDirectoryRecursive(const boost::filesystem::path& dir_path) {
-  auto err = boost::system::error_code{};
-  if (boost::filesystem::create_directories(dir_path, err)) {
-    return Status::success();
-  }
-  auto msg =
-      std::string{"Could not create directory and parents"} + dir_path.string();
+  auto msg = std::string{"Could not create directory \""};
+  msg += dir_path.string();
+  msg += '"';
   if (err) {
     msg += ": ";
     msg += err.message();
