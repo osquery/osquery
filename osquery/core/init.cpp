@@ -227,10 +227,12 @@ Status initWorkDirectories() {
   if (!status.ok()) {
     return status;
   }
-  status = createDirectory(
-      boost::filesystem::path(OSQUERY_DB_HOME), recursive, ignore_existence);
-  if (!status.ok()) {
-    return status;
+  if (!FLAGS_disable_database) {
+    status = createDirectory(
+        boost::filesystem::path(OSQUERY_DB_HOME), recursive, ignore_existence);
+    if (!status.ok()) {
+      return status;
+    }
   }
   return Status::success();
 }
