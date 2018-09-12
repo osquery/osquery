@@ -228,7 +228,7 @@ void initWorkDirectories() {
         recursive,
         ignore_existence);
     if (!status.ok()) {
-      LOG(WARNING) << "Could not initialize db directory " << status.what();
+      LOG(ERROR) << "Could not initialize db directory " << status.what();
     }
   }
 }
