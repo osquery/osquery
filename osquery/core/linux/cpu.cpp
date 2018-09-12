@@ -14,7 +14,6 @@
 #include <boost/io/detail/quoted_manip.hpp>
 
 #include <fstream>
-#include <functional>
 
 namespace osquery {
 namespace cpu {
@@ -53,7 +52,7 @@ Expected<Mask, Error> decodeMaskFromString(const std::string& encoded_str) {
        it != It{};
        ++it) {
     auto const interval = boost::copy_range<std::string>(*it);
-    auto dash_pos = interval.find("-");
+    auto const dash_pos = interval.find("-");
     if (dash_pos == std::string::npos) {
       auto num_exp = decodeCpuNumber(interval);
       if (num_exp.isError()) {

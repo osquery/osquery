@@ -10,8 +10,8 @@
 
 #include <osquery/expected.h>
 
+#include <bitset>
 #include <string>
-#include <vector>
 
 namespace osquery {
 namespace cpu {
