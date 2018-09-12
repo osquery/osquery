@@ -1,0 +1,16 @@
+table_name("ntdomains")
+description("Display basic NT domain information of a Windows machine.")
+schema([
+    Column("name", TEXT, "The label by which the object is known."),
+    Column("client_site_name", TEXT, "The name of the site where the domain controller is configured."),
+    Column("dc_site_name", TEXT, "The name of the site where the domain controller is located."),
+    Column("dns_forest_name", TEXT, "The name of the root of the DNS tree."),
+    Column("domain_controller_address", TEXT, "The IP Address of the discovered domain controller.."),
+    Column("domain_controller_name", TEXT, "The name of the discovered domain controller."),
+    Column("domain_name", TEXT, "The name of the domain."),
+    Column("status", TEXT, "The current status of the domain object."),
+])
+implementation("system/windows/ntdomains@genNtdomains")
+examples([
+  "select * from ntdomains",
+])
