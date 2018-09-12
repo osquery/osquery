@@ -219,22 +219,18 @@ RecursiveMutex Initializer::shutdown_mutex_;
 
 namespace {
 
-Status initWorkDirectories() {
-  auto const recursive = true;
-  auto const ignore_existence = true;
-  auto status = createDirectory(
-      boost::filesystem::path(OSQUERY_LOG_HOME), recursive, ignore_existence);
-  if (!status.ok()) {
-    return status;
-  }
+void initWorkDirectories() {
   if (!FLAGS_disable_database) {
-    status = createDirectory(
-        boost::filesystem::path(OSQUERY_DB_HOME), recursive, ignore_existence);
+    auto const recursive = true;
+    auto const ignore_existence = true;
+    auto const status = createDirectory(
+        boost::filesystem::path(FLAGS_database_path).parent_path(),
+        recursive, ignore_existence
+    );
     if (!status.ok()) {
-      return status;
+      LOG(WARNING) << "Could not initialize db directory " << status.what();
     }
   }
-  return Status::success();
 }
 
 } // namespace
@@ -396,11 +392,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     initShell();
   }
   if (isDaemon()) {
-    auto const status = initWorkDirectories();
-    if (!status.ok()) {
-      LOG(ERROR) << "Could not initialize work directories " << status.what();
-      shutdown(EXIT_FAILURE);
-    }
+    initWorkDirectories();
   }
 
   std::signal(SIGABRT, signalHandler);
