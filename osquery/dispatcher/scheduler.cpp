@@ -21,12 +21,12 @@
 #include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/numeric_monitoring.h>
+#include <osquery/profiler/profiler.h>
 #include <osquery/query.h>
 #include <osquery/system.h>
 
 #include "osquery/config/parsers/decorators.h"
 #include "osquery/core/process.h"
-#include "osquery/dispatcher/query_profiler.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/sql/sqlite_util.h"
 
@@ -185,7 +185,7 @@ void SchedulerRunner::start() {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
             TablePlugin::kCacheInterval = query.splayed_interval;
             TablePlugin::kCacheStep = i;
-            launchQueryWithProfiling(
+            launchWithProfiling(
                 name, std::bind(launchQuery, std::ref(name), std::ref(query)));
           }
         }));

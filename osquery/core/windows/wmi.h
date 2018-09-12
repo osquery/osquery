@@ -94,11 +94,11 @@ class WmiResultItem {
   Status GetBool(const std::string& name, bool& ret) const;
 
   /**
-  * @brief Windows WMI Helper function to retrieve an unsigned Char from WMI
-  * query
-  *
-  * @returns Status indiciating the success of the query
-  */
+   * @brief Windows WMI Helper function to retrieve an unsigned Char from WMI
+   * query
+   *
+   * @returns Status indiciating the success of the query
+   */
   Status GetUChar(const std::string& name, unsigned char& ret) const;
 
   /**

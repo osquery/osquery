@@ -25,7 +25,7 @@
 #include <boost/format.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
 
-#include <osquery/dispatcher/query_profiler.h>
+#include <osquery/profiler/profiler.h>
 #include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/numeric_monitoring.h>
@@ -114,7 +114,7 @@ Expected<struct rusage, RusageError> callRusage() {
 }
 
 Status launchQueryWithPosixProfiling(const std::string& name,
-                                     std::function<Status()> launchQuery) {
+                                     std::function<Status()> launcher) {
   auto rusage_start = callRusage();
 
   if (!rusage_start) {
@@ -124,7 +124,7 @@ Status launchQueryWithPosixProfiling(const std::string& name,
 
   const auto start_time_point = std::chrono::steady_clock::now();
 
-  const auto status = launchQuery();
+  const auto status = launcher();
 
   const auto query_duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -154,12 +154,13 @@ Status launchQueryWithPosixProfiling(const std::string& name,
   return status;
 }
 } // namespace
-Status launchQueryWithProfiling(const std::string& name,
-                                std::function<Status()> launchQuery) {
+
+Status launchWithProfiling(const std::string& name,
+                                std::function<Status()> launcher){
   if (Killswitch::get().isPosixProfilingEnabled()) {
-    return launchQueryWithPosixProfiling(name, launchQuery);
+    return launchQueryWithPosixProfiling(name, launcher);
   } else {
-    return launchQuery(); // Just execute the query
+    return launcher(); // Just execute the query
   }
 }
 

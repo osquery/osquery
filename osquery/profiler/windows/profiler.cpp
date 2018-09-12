@@ -12,15 +12,16 @@
 
 #include <boost/format.hpp>
 
-#include <osquery/dispatcher/query_profiler.h>
+#include <osquery/profiler/profiler.h>
 #include <osquery/killswitch.h>
 #include <osquery/numeric_monitoring.h>
 
 namespace osquery {
-Status launchQueryWithProfiling(const std::string& name,
-                                std::function<Status()> launchQuery) {
+
+Status launchWithProfiling(const std::string& name,
+                           std::function<Status()> launcher){
   const auto start_time_point = std::chrono::steady_clock::now();
-  const auto status = launchQuery();
+  const auto status = launcher();
   const auto monitoring_path_prefix =
       (boost::format("scheduler.executing_query.%s.%s") % name %
        (status.ok() ? "success" : "failure"))

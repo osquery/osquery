@@ -21,21 +21,7 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_dispatcher_runners
   "${CMAKE_CURRENT_LIST_DIR}/scheduler.h"
   "${CMAKE_CURRENT_LIST_DIR}/distributed_runner.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/distributed_runner.h"
-  "${CMAKE_CURRENT_LIST_DIR}/query_profiler.h"
 )
-if(POSIX)
-  target_sources(libosquery
-    PRIVATE
-      "${CMAKE_CURRENT_LIST_DIR}/posix/query_profiler.cpp"
-  )
-endif()
-
-if(WINDOWS)
-  target_sources(libosquery
-    PRIVATE
-      "${CMAKE_CURRENT_LIST_DIR}/windows/query_profiler.cpp"
-  )
-endif()
 
 ADD_OSQUERY_TEST_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/tests/scheduler_tests.cpp"
