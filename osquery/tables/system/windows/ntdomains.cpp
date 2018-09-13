@@ -31,8 +31,7 @@ QueryData genNtdomains(QueryContext& context) {
         data.GetString("ClientSiteName", r["client_site_name"]);
         data.GetString("DcSiteName", r["dc_site_name"]);
         data.GetString("DnsForestName", r["dns_forest_name"]);
-        data.GetString("DomainControllerAddress",
-                       r["domain_controller_address"]);
+        data.GetString("DomainControllerAddress", r["domain_controller_address"]);
         data.GetString("DomainControllerName", r["domain_controller_name"]);
         data.GetString("DomainName", r["domain_name"]);
         data.GetString("Status", r["status"]);
@@ -42,8 +41,8 @@ QueryData genNtdomains(QueryContext& context) {
       LOG(WARNING) << "WMI resultset empty.";
     }
   } else {
-    VLOG(1) << wmiSystemReq.getStatus().getMessage();
-  }
+      VLOG(1) << wmiSystemReq.getStatus().getMessage();
+    }
   return results;
 }
 } // namespace tables
