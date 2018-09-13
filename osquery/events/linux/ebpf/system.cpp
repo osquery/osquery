@@ -44,7 +44,7 @@ KernelReleaseVersion getKernelReleaseVersion() {
   auto const major_number_pos = release.find('.');
   if (major_number_pos == std::string::npos) {
     LOG(WARNING) << "Wrong major version field "
-        << boost::io::quoted(utsbuf.release);
+                 << boost::io::quoted(utsbuf.release);
     debug_only::fail("Wrong major version field");
     return version;
   }
@@ -53,13 +53,14 @@ KernelReleaseVersion getKernelReleaseVersion() {
   auto const minor_number_pos = release.find(major_number_pos + 1, '.');
   if (minor_number_pos == std::string::npos) {
     LOG(WARNING) << "Wrong minor version field "
-        << boost::io::quoted(utsbuf.release);
+                 << boost::io::quoted(utsbuf.release);
     debug_only::fail("Wrong release minor version field");
     return version;
   }
-  version.minor = tryTo<int>(release.substr(major_number_pos + 1,
-                                        minor_number_pos - major_number_pos))
-                  .takeOr(0);
+  version.minor =
+      tryTo<int>(release.substr(major_number_pos + 1,
+                                minor_number_pos - major_number_pos))
+          .takeOr(0);
 
   auto const patch_number_pos = release.find(minor_number_pos + 1, '-');
   if (patch_number_pos == std::string::npos) {
@@ -67,9 +68,10 @@ KernelReleaseVersion getKernelReleaseVersion() {
     debug_only::fail("Wrong release patches field");
     return version;
   }
-  version.patches = tryTo<int>(release.substr(minor_number_pos + 1,
-                                        patch_number_pos - minor_number_pos))
-                  .takeOr(0);
+  version.patches =
+      tryTo<int>(release.substr(minor_number_pos + 1,
+                                patch_number_pos - minor_number_pos))
+          .takeOr(0);
   return version;
 }
 
