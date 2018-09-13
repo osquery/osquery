@@ -10,7 +10,6 @@
 
 #include "osquery/events/linux/ebpf/ebpf.h"
 
-#include <osquery/logger.h>
 #include <osquery/tests/test_util.h>
 
 #include <gtest/gtest.h>
