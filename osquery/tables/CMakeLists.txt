@@ -22,6 +22,7 @@ endif()
 if(APPLE)
   set(TABLE_PLATFORM "darwin")
 
+  ADD_OSQUERY_LINK_ADDITIONAL("-framework AppKit")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreFoundation")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreWLAN")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreGraphics")

@@ -6,14 +6,14 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-target_sources(osquery_tables_integration_tests 
+target_sources(osquery_tables_integration_tests
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/helper.h"
     "${CMAKE_CURRENT_LIST_DIR}/helper.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/uptime.cpp"
 )
 
-target_sources(osquery_tables_integration_tests 
+target_sources(osquery_tables_integration_tests
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/arp_cache.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/carbon_black_info.cpp"
@@ -63,8 +63,8 @@ target_sources(osquery_tables_integration_tests
     "${CMAKE_CURRENT_LIST_DIR}/yara_events.cpp"
 )
 
-if(POSIX) 
-  target_sources(osquery_tables_integration_tests 
+if(POSIX)
+  target_sources(osquery_tables_integration_tests
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/acpi_tables.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/appcompat_shims.cpp"
@@ -156,7 +156,7 @@ if(POSIX)
 endif()
 
 if(LINUX)
-  target_sources(osquery_tables_integration_tests 
+  target_sources(osquery_tables_integration_tests
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/deb_packages.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/ec2_instance_metadata.cpp"
@@ -193,7 +193,7 @@ if(LINUX)
 endif()
 
 if(WINDOWS)
-  target_sources(osquery_tables_integration_tests 
+  target_sources(osquery_tables_integration_tests
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/certificates.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/intel_me_info.cpp"
@@ -202,7 +202,7 @@ if(WINDOWS)
 endif()
 
 if(FREEBSD)
-  target_sources(osquery_tables_integration_tests 
+  target_sources(osquery_tables_integration_tests
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/fbsd_kmods.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/pkg_packages.cpp"
@@ -210,7 +210,7 @@ if(FREEBSD)
 endif()
 
 if(APPLE)
-  target_sources(osquery_tables_integration_tests 
+  target_sources(osquery_tables_integration_tests
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/account_policy_data.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/ad_config.cpp"
@@ -256,6 +256,7 @@ if(APPLE)
       "${CMAKE_CURRENT_LIST_DIR}/power_sensors.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/preferences.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/quicklook_cache.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/running_apps.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/safari_extensions.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/sandboxes.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/shared_folders.cpp"
@@ -275,5 +276,5 @@ if(APPLE)
       "${CMAKE_CURRENT_LIST_DIR}/xprotect_entries.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/xprotect_meta.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/xprotect_reports.cpp"
-  ) 
+  )
 endif()
