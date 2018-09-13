@@ -12,14 +12,14 @@
 
 #include <boost/format.hpp>
 
-#include <osquery/profiler/profiler.h>
 #include <osquery/killswitch.h>
 #include <osquery/numeric_monitoring.h>
+#include <osquery/profiler/profiler.h>
 
 namespace osquery {
 
 Status launchWithProfiling(const std::string& name,
-                           std::function<Status()> launcher){
+                           std::function<Status()> launcher) {
   const auto start_time_point = std::chrono::steady_clock::now();
   const auto status = launcher();
   const auto monitoring_path_prefix =

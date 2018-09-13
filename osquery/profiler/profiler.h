@@ -18,5 +18,5 @@
 namespace osquery {
 
 Status launchWithProfiling(const std::string& name,
-                                std::function<Status()> launcher);
+                           std::function<Status()> launcher);
 }

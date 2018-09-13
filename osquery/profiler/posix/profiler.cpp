@@ -25,10 +25,10 @@
 #include <boost/format.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
 
-#include <osquery/profiler/profiler.h>
 #include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/numeric_monitoring.h>
+#include <osquery/profiler/profiler.h>
 
 namespace osquery {
 namespace {
@@ -156,7 +156,7 @@ Status launchQueryWithPosixProfiling(const std::string& name,
 } // namespace
 
 Status launchWithProfiling(const std::string& name,
-                                std::function<Status()> launcher){
+                           std::function<Status()> launcher) {
   if (Killswitch::get().isPosixProfilingEnabled()) {
     return launchQueryWithPosixProfiling(name, launcher);
   } else {
