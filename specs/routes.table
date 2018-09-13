@@ -2,7 +2,7 @@ table_name("routes")
 description("The active route table for the host system.")
 schema([
     Column("destination", TEXT, "Destination IP address"),
-    Column("netmask", TEXT, "Netmask length"),
+    Column("netmask", INTEGER, "Netmask length"),
     Column("gateway", TEXT, "Route gateway"),
     Column("source", TEXT, "Route source"),
     Column("flags", INTEGER, "Flags to describe route"),
