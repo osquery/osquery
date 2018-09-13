@@ -140,7 +140,7 @@ QueryData genOSVersion(QueryContext& context) {
   if (wmiResults.empty()) {
     return {};
   }
-  
+
   wmiResults[0].GetString("InstallDate", r["install_date"]);
   wmiResults[0].GetString("Caption", r["name"]);
   wmiResults[0].GetString("Version", version_string);
