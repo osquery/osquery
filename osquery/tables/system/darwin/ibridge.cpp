@@ -10,6 +10,7 @@
 
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/core/map_take.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/darwin/iokit.hpp"
@@ -23,7 +24,7 @@ namespace tables {
 
 /// as defined in
 /// /System/Library/Frameworks/Kernel.framework/Headers/IOKit/IOPlatformExpert.h
-static const std::map<uint32_t, std::string> kCoprocessorVersions = {
+static const std::unordered_map<uint32_t, std::string> kCoprocessorVersions = {
     {0x00000000, ""},
     {0x00010000, "Apple T1 Chip"},
     {0x00020000, "Apple T2 Chip"},
@@ -63,9 +64,10 @@ static inline void genAppleCoprocessorVersion(Row& r) {
     uint32_t version = {0};
     memcpy(&version, buffer, 4);
 
-    r["coprocessor_version"] = (kCoprocessorVersions.count(version) > 0)
-                                   ? kCoprocessorVersions.at(version)
-                                   : "unknown";
+    //r["coprocessor_version"] = (kCoprocessorVersions.count(version) > 0)
+    //                               ? kCoprocessorVersions.at(version)
+    //                               : "unknown";
+    r["coprocessor_version"] = tryTakeCopy(kCoprocessorVersions, version).takeOr(std::string{"unknown"});
     free(buffer);
   }
   CFRelease(properties);
