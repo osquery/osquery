@@ -39,7 +39,7 @@ Expected<int, MapError> mapCreate(enum bpf_map_type map_type,
       err_code = MapError::NotSupportedBySystem;
     }
     return createError(MapError::SystemError, "Creating eBPF map failed: ")
-           << boost::io::quoted(strerror(errno));
+           << boost::io::quoted(strerror(errno)) << " " << __NR_bpf;
   }
   return ret;
 }

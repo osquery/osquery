@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <linux/bpf.h>
+
 #ifndef __NR_perf_event_open
 #if defined(__PPC__)
 #define __NR_perf_event_open 319
