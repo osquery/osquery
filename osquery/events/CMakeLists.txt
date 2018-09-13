@@ -48,6 +48,7 @@ else()
     "${CMAKE_CURRENT_LIST_DIR}/linux/ebpf/map.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/ebpf/map.h"
     "${CMAKE_CURRENT_LIST_DIR}/linux/ebpf/system.h"
+    "${CMAKE_CURRENT_LIST_DIR}/linux/ebpf/system.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/inotify.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/inotify.h"
     "${CMAKE_CURRENT_LIST_DIR}/linux/syslog.cpp"

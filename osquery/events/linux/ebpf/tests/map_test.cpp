@@ -21,14 +21,13 @@ namespace {
 class EbpfMapTests : public testing::Test {};
 
 TEST_F(EbpfMapTests, int_key_int_value) {
-  auto const size = std::size_t{12};
-  auto map_exp = ebpf::createMap<int, int, BPF_MAP_TYPE_HASH>(size);
-  if (map_exp.isError() &&
-      map_exp.getErrorCode() == ebpf::MapError::NotSupportedBySystem) {
-    LOG(WARNING) << "This system does not support eBPF map function, test will "
-                    "be skipped";
+  if (!ebpf::isSupportedBySystem()) {
+    LOG(WARNING) << "This system does not support eBPF of required vesion, "
+                    "test will be skipped";
     return;
   }
+  auto const size = std::size_t{12};
+  auto map_exp = ebpf::createMap<int, int, BPF_MAP_TYPE_HASH>(size);
   ASSERT_TRUE(map_exp.isValue())
       << map_exp.getError().getFullMessageRecursive();
   auto map = map_exp.take();
@@ -75,18 +74,17 @@ TEST_F(EbpfMapTests, int_key_int_value) {
 }
 
 TEST_F(EbpfMapTests, int_key_struct_value) {
+  if (!ebpf::isSupportedBySystem()) {
+    LOG(WARNING) << "This system does not support eBPF of required vesion, "
+                    "test will be skipped";
+    return;
+  }
   struct Value {
     int left;
     int right;
   };
   auto const size = std::size_t{128};
   auto map_exp = ebpf::createMap<int, Value, BPF_MAP_TYPE_ARRAY>(size);
-  if (map_exp.isError() &&
-      map_exp.getErrorCode() == ebpf::MapError::NotSupportedBySystem) {
-    LOG(WARNING) << "This system does not support eBPF map function, test will "
-                    "be skipped";
-    return;
-  }
   ASSERT_TRUE(map_exp.isValue());
   auto map = map_exp.take();
   ASSERT_EQ(map.size(), size);

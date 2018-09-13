@@ -11,3 +11,4 @@
 #pragma once
 
 #include "osquery/events/linux/ebpf/map.h"
+#include "osquery/events/linux/ebpf/system.h"

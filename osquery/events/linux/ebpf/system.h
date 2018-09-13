@@ -11,6 +11,7 @@
 #pragma once
 
 #include <linux/bpf.h>
+#include <linux/version.h>
 
 #ifndef __NR_perf_event_open
 #if defined(__PPC__)
@@ -39,3 +40,11 @@
 #error __NR_bpf is undefined, probably this arch is not supported.
 #endif
 #endif
+
+namespace osquery {
+namespace ebpf {
+
+bool isSupportedBySystem();
+
+} // namespace ebpf
+} // namespace osquery
