@@ -12,9 +12,9 @@ namespace ebpf {
 namespace impl {
 
 Expected<int, MapError> mapCreate(enum bpf_map_type map_type,
-                               std::size_t key_size,
-                               std::size_t value_size,
-                               std::size_t max_entries) {
+                                  std::size_t key_size,
+                                  std::size_t value_size,
+                                  std::size_t max_entries) {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(union bpf_attr));
   attr.map_type = map_type;
@@ -31,9 +31,9 @@ Expected<int, MapError> mapCreate(enum bpf_map_type map_type,
 }
 
 ExpectedSuccess<MapError> mapUpdateElement(const int fd,
-                                        void const* key,
-                                        void const* value,
-                                        unsigned long long flags) {
+                                           void const* key,
+                                           void const* value,
+                                           unsigned long long flags) {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(union bpf_attr));
   attr.map_fd = fd;
@@ -51,8 +51,8 @@ ExpectedSuccess<MapError> mapUpdateElement(const int fd,
 }
 
 ExpectedSuccess<MapError> mapLookupElement(const int fd,
-                                        void const* key,
-                                        void* value) {
+                                           void const* key,
+                                           void* value) {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(union bpf_attr));
   attr.map_fd = fd;

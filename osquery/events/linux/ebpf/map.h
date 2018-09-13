@@ -21,14 +21,16 @@ namespace impl {
  */
 
 Expected<int, MapError> mapCreate(enum bpf_map_type map_type,
-                               std::size_t key_size,
-                               std::size_t value_size,
-                               std::size_t max_entries);
+                                  std::size_t key_size,
+                                  std::size_t value_size,
+                                  std::size_t max_entries);
 ExpectedSuccess<MapError> mapUpdateElement(int fd,
-                                        void const* key,
-                                        void const* value,
-                                        unsigned long long flags);
-ExpectedSuccess<MapError> mapLookupElement(int fd, void const* key, void* value);
+                                           void const* key,
+                                           void const* value,
+                                           unsigned long long flags);
+ExpectedSuccess<MapError> mapLookupElement(int fd,
+                                           void const* key,
+                                           void* value);
 ExpectedSuccess<MapError> mapDeleteElement(int fd, void const* key);
 
 } // namespace impl
@@ -43,8 +45,8 @@ class Map final {
       std::is_pod<KeyType>::value && std::is_pod<ValueType>::value,
       "Both key type and value type must be a plain old data type (POD)");
   /**
-   * The only constructor of Map is private for purpose. Use createMap function instead.
-   * Map should not be created in case of creating eBPF map failure.
+   * The only constructor of Map is private for purpose. Use createMap function
+   * instead. Map should not be created in case of creating eBPF map failure.
    */
   explicit Map(int fd, std::size_t size) : fd_(fd), size_(size) {}
 
@@ -81,8 +83,8 @@ class Map final {
   }
 
   ExpectedSuccess<MapError> updateElement(KeyType const& key,
-                                       ValueType const& value,
-                                       unsigned long long flags = BPF_ANY) {
+                                          ValueType const& value,
+                                          unsigned long long flags = BPF_ANY) {
     auto exp = impl::mapUpdateElement(fd_,
                                       static_cast<void const*>(&key),
                                       static_cast<void const*>(&value),
@@ -110,7 +112,8 @@ class Map final {
   }
 
   template <typename KType, typename VType, enum bpf_map_type type>
-  friend Expected<Map<KType, VType, type>, MapError> createMap(std::size_t size);
+  friend Expected<Map<KType, VType, type>, MapError> createMap(
+      std::size_t size);
 
  private:
   int fd_ = -1;

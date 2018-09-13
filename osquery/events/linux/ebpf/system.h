@@ -2,11 +2,11 @@
 
 #ifndef __NR_perf_event_open
 #if defined(__PPC__)
-#define __NR_perf_event_open  319
+#define __NR_perf_event_open 319
 #elif defined(__i386__)
-#define __NR_perf_event_open  336
+#define __NR_perf_event_open 336
 #elif defined(__x86_64__)
-#define __NR_perf_event_open  298
+#define __NR_perf_event_open 298
 #else
 #error __NR_perf_event_open is undefined, probably this arch is not supported.
 #endif
