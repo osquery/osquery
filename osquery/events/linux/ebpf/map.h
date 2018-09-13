@@ -20,7 +20,7 @@ namespace ebpf {
 enum class MapError {
   SystemError = 1,
   NoSuchKey = 2,
-  InvalidArgument = 3,
+  NotSupportedBySystem = 3,
 };
 
 namespace impl {

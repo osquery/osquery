@@ -34,6 +34,10 @@ Expected<int, MapError> mapCreate(enum bpf_map_type map_type,
 
   int const ret = syscall(__NR_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
   if (ret < 0) {
+    auto err_code = MapError::SystemError;
+    if (errno == ENOSYS) {
+      err_code = MapError::NotSupportedBySystem;
+    }
     return createError(MapError::SystemError, "Creating eBPF map failed: ")
            << boost::io::quoted(strerror(errno));
   }
