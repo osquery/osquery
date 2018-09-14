@@ -17,13 +17,6 @@
 
 namespace osquery {
 
-enum DatabaseSchemaVersion {
-  kDatabaseSchemaV1 = 1,
-  kDatabaseSchemaV2 = 2,
-  kDatabaseSchemaV3 = 3,
-  kDatabaseSchemaVersionCurrent = kDatabaseSchemaV3,
-};
-
 enum class RocksdbMigrationError {
   InvalidArgument = 1,
   FailToOpen = 2,
@@ -34,46 +27,7 @@ enum class RocksdbMigrationError {
   FailMoveDatabase = 8,
 };
 
-class RocksdbMigration final {
- public:
-  static ExpectedSuccess<RocksdbMigrationError> migrateDatabase(
-      const std::string& path);
-  RocksdbMigration(const std::string& path);
-
- private:
-  struct DatabaseHandle {
-    std::unique_ptr<rocksdb::DB> db_handle = nullptr;
-    rocksdb::Options options;
-    std::string path;
-    std::unordered_map<std::string,
-                       std::unique_ptr<rocksdb::ColumnFamilyHandle>>
-        handles;
-  };
-  DatabaseHandle input_db_;
-  DatabaseHandle output_db_;
-
-  std::string source_path_;
-  std::unordered_map<int,
-                     std::function<Expected<int, RocksdbMigrationError>(
-                         const std::string& src, const std::string& dst)>>
-      migration_map_;
-
- private:
-  static Expected<DatabaseHandle, RocksdbMigrationError> openDatabase(
-      const std::string& path, bool create_if_missing, bool error_if_exists);
-  static ExpectedSuccess<RocksdbMigrationError> dropDbMigration(
-      const std::string& src_path, const std::string& dst_path);
-  static ExpectedSuccess<RocksdbMigrationError> moveDb(
-      const std::string& src_path, const std::string& dst_path);
-
-  Expected<int, RocksdbMigrationError> getVersion(const DatabaseHandle& db);
-  ExpectedSuccess<RocksdbMigrationError> migrateFromVersion(int version);
-
-  void buildMigrationMap();
-
-  std::string randomOutputPath();
-
-  ExpectedSuccess<RocksdbMigrationError> migrateIfNeeded();
-};
+static ExpectedSuccess<RocksdbMigrationError> migrateDatabase(
+    const std::string& path);
 
 } // namespace osquery

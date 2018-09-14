@@ -20,11 +20,55 @@ namespace osquery {
 
 namespace fs = boost::filesystem;
 
-ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateDatabase(
-    const std::string& path) {
-  auto migration = std::make_unique<RocksdbMigration>(path);
-  return migration->migrateIfNeeded();
-}
+namespace {
+
+enum DatabaseSchemaVersion {
+  kDatabaseSchemaV1 = 1,
+  kDatabaseSchemaV2 = 2,
+  kDatabaseSchemaV3 = 3,
+  kDatabaseSchemaVersionCurrent = kDatabaseSchemaV3,
+};
+
+class RocksdbMigration final {
+ public:
+  RocksdbMigration(const std::string& path);
+  ExpectedSuccess<RocksdbMigrationError> migrateIfNeeded();
+
+ private:
+  struct DatabaseHandle {
+    std::unique_ptr<rocksdb::DB> db_handle = nullptr;
+    rocksdb::Options options;
+    std::string path;
+    std::unordered_map<std::string,
+                       std::unique_ptr<rocksdb::ColumnFamilyHandle>>
+        handles;
+  };
+  DatabaseHandle input_db_;
+  DatabaseHandle output_db_;
+
+  std::string source_path_;
+  std::unordered_map<int,
+                     std::function<Expected<int, RocksdbMigrationError>(
+                         const std::string& src, const std::string& dst)>>
+      migration_map_;
+
+ private:
+  static Expected<DatabaseHandle, RocksdbMigrationError> openDatabase(
+      const std::string& path, bool create_if_missing, bool error_if_exists);
+  static ExpectedSuccess<RocksdbMigrationError> dropDbMigration(
+      const std::string& src_path, const std::string& dst_path);
+  static ExpectedSuccess<RocksdbMigrationError> moveDb(
+      const std::string& src_path, const std::string& dst_path);
+
+  Expected<int, RocksdbMigrationError> getVersion(const DatabaseHandle& db);
+  ExpectedSuccess<RocksdbMigrationError> migrateFromVersion(int version);
+
+  void buildMigrationMap();
+
+  std::string randomOutputPath();
+};
+
+} // namespace
 
 RocksdbMigration::RocksdbMigration(const std::string& path) {
   auto boost_path = fs::path(path).make_preferred();
@@ -125,12 +169,14 @@ ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateFromVersion(
 
 ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::moveDb(
     const std::string& src_path, const std::string& dst_path) {
-  if (BOOST_UNLIKELY(fs::exists(fs::path(dst_path)))) {
-    return createError(RocksdbMigrationError::FailMoveDatabase,
-                       "Database at dst path already exists: ")
-           << dst_path;
-  }
   boost::system::error_code ec;
+  if (BOOST_UNLIKELY(fs::exists(fs::path(dst_path), ec))) {
+    return createError(RocksdbMigrationError::FailMoveDatabase,
+                       "Database at dst path already exists or path is not "
+                       "accessible. Path: ")
+           << dst_path << "Error: " << ec.value() << " " << ec.message();
+  }
+
   fs::rename(src_path, dst_path, ec);
   if (ec.value() == boost::system::errc::success) {
     return Success();
@@ -223,6 +269,13 @@ std::string RocksdbMigration::randomOutputPath() {
   path.append("migration");
   path.append(boost::uuids::to_string(uuid));
   return path.string();
+}
+
+// Suppressing warnign till function will be acctually used
+__attribute__((unused)) ExpectedSuccess<RocksdbMigrationError> migrateDatabase(
+    const std::string& path) {
+  auto migration = std::make_unique<RocksdbMigration>(path);
+  return migration->migrateIfNeeded();
 }
 
 } // namespace osquery
