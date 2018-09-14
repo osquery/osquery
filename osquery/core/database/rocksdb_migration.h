@@ -11,9 +11,6 @@
 #pragma once
 
 #include <osquery/expected.h>
-#include <rocksdb/db.h>
-
-#include <unordered_map>
 
 namespace osquery {
 
@@ -27,7 +24,7 @@ enum class RocksdbMigrationError {
   FailMoveDatabase = 8,
 };
 
-static ExpectedSuccess<RocksdbMigrationError> migrateDatabase(
+ExpectedSuccess<RocksdbMigrationError> migrateRocksDBDatabase(
     const std::string& path);
 
 } // namespace osquery

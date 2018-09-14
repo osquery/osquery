@@ -8,6 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <rocksdb/db.h>
+
+#include <unordered_map>
+
 #include <osquery/core/conversions.h>
 #include <osquery/core/database/rocksdb_migration.h>
 
@@ -130,6 +134,7 @@ ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateFromVersion(
     }
     VLOG(1) << "Migrating from version: " << version
             << ". Src path: " << src_path << ". Dst path: " << dst_path;
+
     auto migration_result = iter->second(src_path, dst_path);
     if (migration_result) {
       int new_version = migration_result.take();
@@ -142,6 +147,7 @@ ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateFromVersion(
     } else {
       return migration_result.takeError();
     }
+
     if (drop_src_data) {
       VLOG(1) << "Destroying db at path: " << src_path;
       rocksdb::DestroyDB(src_path, rocksdb::Options());
@@ -155,22 +161,21 @@ ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateFromVersion(
   auto original_src = source_path_;
   auto new_src = src_path;
 
-  auto move1 = moveDb(original_src, temp_store);
-  if (move1) {
-    auto move2 = moveDb(new_src, original_src);
-    if (move2) {
+  auto move = moveDb(original_src, temp_store);
+  if (move) {
+    move = moveDb(new_src, original_src);
+    if (move) {
       rocksdb::DestroyDB(temp_store, rocksdb::Options());
       return Success();
     }
-    return move2.takeError();
   }
-  return move1.takeError();
+  return move.takeError();
 }
 
 ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::moveDb(
     const std::string& src_path, const std::string& dst_path) {
   boost::system::error_code ec;
-  if (BOOST_UNLIKELY(fs::exists(fs::path(dst_path), ec))) {
+  if (fs::exists(fs::path(dst_path), ec)) {
     return createError(RocksdbMigrationError::FailMoveDatabase,
                        "Database at dst path already exists or path is not "
                        "accessible. Path: ")
@@ -178,12 +183,11 @@ ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::moveDb(
   }
 
   fs::rename(src_path, dst_path, ec);
-  if (ec.value() == boost::system::errc::success) {
-    return Success();
-  } else {
+  if (!ec) {
     return createError(RocksdbMigrationError::FailMoveDatabase, "Move failed: ")
            << ec.value() << " " << ec.message();
   }
+  return Success();
 }
 
 Expected<RocksdbMigration::DatabaseHandle, RocksdbMigrationError>
@@ -271,8 +275,7 @@ std::string RocksdbMigration::randomOutputPath() {
   return path.string();
 }
 
-// Suppressing warnign till function will be acctually used
-__attribute__((unused)) ExpectedSuccess<RocksdbMigrationError> migrateDatabase(
+ExpectedSuccess<RocksdbMigrationError> migrateRocksDBDatabase(
     const std::string& path) {
   auto migration = std::make_unique<RocksdbMigration>(path);
   return migration->migrateIfNeeded();
