@@ -32,6 +32,9 @@ TEST_F(OsVersion, test_sanity) {
       {"platform", NonEmptyString},
       {"platform_like", NonEmptyString},
       {"codename", NormalType},
+#ifdef OSQUERY_WINDOWS
+      {"installdate", NonEmptyString},
+#endif
   };
   validate_rows(data, row_map);
 }
