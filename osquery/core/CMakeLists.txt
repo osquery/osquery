@@ -23,6 +23,8 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/database/in_memory_database.h"
     "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.h"
+    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_migration.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_migration.h"
     "${CMAKE_CURRENT_LIST_DIR}/flags.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/map_take.h"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.cpp"
