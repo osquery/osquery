@@ -59,15 +59,17 @@ QueryData genTime(QueryContext& context) {
   strftime(iso_8601, sizeof(iso_8601), "%FT%TZ", &gmt);
 
   if (context.isColumnUsed("timestamp_sys100ns")) {
-	  const WmiRequest request("SELECT Timestamp_Sys100NS FROM Win32_PerfRawData_PerfProc_Process where idprocess = 0");
-	  const std::vector<WmiResultItem>& wmiResults = request.results();
-	  if (!wmiResults.empty()) {
-		  std::string numProcs;
-		  wmiResults[1].GetString("Timestamp_Sys100NS", numProcs);
-		  r["timestamp_sys100ns"] = BIGINT(std::stoll(numProcs));
-	  }
+    const WmiRequest request(
+        "SELECT Timestamp_Sys100NS FROM Win32_PerfRawData_PerfProc_Process "
+        "where idprocess = 0");
+    const std::vector<WmiResultItem>& wmiResults = request.results();
+    if (!wmiResults.empty()) {
+      std::string numProcs;
+      wmiResults[1].GetString("Timestamp_Sys100NS", numProcs);
+      r["timestamp_sys100ns"] = BIGINT(std::stoll(numProcs));
+    }
   }
- 
+
   r["weekday"] = SQL_TEXT(weekday);
   r["year"] = INTEGER(now.tm_year + 1900);
   r["month"] = INTEGER(now.tm_mon + 1);
@@ -96,5 +98,5 @@ QueryData genTime(QueryContext& context) {
   results.push_back(r);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

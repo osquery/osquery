@@ -316,28 +316,27 @@ std::map<std::int32_t, std::map<std::string, std::int64_t>>
 genPerfPerProcess() {
   std::map<std::int32_t, std::map<std::string, std::int64_t>> returnData;
   const WmiRequest request(
-	  "SELECT IDProcess, ElapsedTime, "
-	  "HandleCount, PercentProcessorTime FROM "
-	  "Win32_PerfRawData_PerfProc_Process");
+      "SELECT IDProcess, ElapsedTime, "
+      "HandleCount, PercentProcessorTime FROM "
+      "Win32_PerfRawData_PerfProc_Process");
 
   if (request.getStatus().ok()) {
-	  const auto& results = request.results();
-	  for (const auto& result : results) {
-		  std::map<std::string, std::int64_t> process_data;
-		  long processID;
-		  long handleCount = 0;
-		  std::string elapsedTime;
-		  std::string percentProcessorTime;
+    const auto& results = request.results();
+    for (const auto& result : results) {
+      std::map<std::string, std::int64_t> process_data;
+      long processID;
+      long handleCount = 0;
+      std::string elapsedTime;
+      std::string percentProcessorTime;
 
-
-		  result.GetString("ElapsedTime", elapsedTime);
-		  result.GetLong("HandleCount", handleCount);
-		  result.GetString("PercentProcessorTime", percentProcessorTime);
-		  process_data["elapsed_time"] = std::stoll(elapsedTime);
-		  process_data["percent_processor_time"] = std::stoll(percentProcessorTime);
-		  result.GetLong("IDProcess", processID);
-		  returnData[processID] = process_data;
-	  }
+      result.GetString("ElapsedTime", elapsedTime);
+      result.GetLong("HandleCount", handleCount);
+      result.GetString("PercentProcessorTime", percentProcessorTime);
+      process_data["elapsed_time"] = std::stoll(elapsedTime);
+      process_data["percent_processor_time"] = std::stoll(percentProcessorTime);
+      result.GetLong("IDProcess", processID);
+      returnData[processID] = process_data;
+    }
   }
   return returnData;
 }
