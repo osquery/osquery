@@ -45,7 +45,7 @@ CodeProfiler::~CodeProfiler() {
             code_profiler_data_end.getWallTime() -
             code_profiler_data_->getWallTime());
 
-    monitoring::record(monitoring_path_prefix + ".time.wall.millis",
+    monitoring::record(name_ + ".time.wall.millis",
                        query_duration.count(),
                        monitoring::PreAggregationType::Min);
   }
