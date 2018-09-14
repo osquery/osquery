@@ -42,8 +42,8 @@ Status getChromeProfileName(std::string& name, const fs::path& path) {
 
   std::string json_data;
   if (!forensicReadFile(path / kProfilePreferencesFile, json_data).ok()) {
-    return Status(
-        1, "Failed to read the Preferences file for profile " + path.string());
+    return Status::failure("Failed to read the Preferences file for profile " +
+                           path.string());
   }
 
   pt::ptree tree;
@@ -52,18 +52,20 @@ Status getChromeProfileName(std::string& name, const fs::path& path) {
     json_stream << json_data;
     pt::read_json(json_stream, tree);
   } catch (const pt::json_parser::json_parser_error&) {
-    return Status(
-        1, "Failed to parse the Preferences file for profile " + path.string());
+    return Status::failure("Failed to parse the Preferences file for profile " +
+                           path.string());
   }
 
   const auto& profile_obj = tree.get_child_optional(kProfilePreferenceKey);
   if (!profile_obj) {
-    return Status(1, "The following profile is malformed: " + path.string());
+    return Status::failure("The following profile is malformed: " +
+                           path.string());
   }
 
   name = profile_obj.get().get<std::string>("name", "");
   if (name.empty()) {
-    return Status(1, "The following profile has no name: " + path.string());
+    return Status::failure("The following profile has no name: " +
+                           path.string());
   }
 
   return Status(0);
@@ -199,7 +201,8 @@ QueryData genChromeBasedExtensions(QueryContext& context,
         std::string profile_name;
         auto status = getChromeProfileName(profile_name, profile_path);
         if (!status.ok()) {
-          LOG(WARNING) << status.getMessage();
+          LOG(WARNING) << "Getting Chrome profile name failed: "
+                       << status.getMessage();
         }
 
         // Generate an addons list from their extensions JSON.
