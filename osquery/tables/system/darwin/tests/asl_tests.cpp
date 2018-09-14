@@ -172,9 +172,9 @@ TEST_F(AslTests, test_convert_like_regex) {
 
 TEST_F(AslTests, test_actual_query) {
   auto version = SQL::selectAllFrom("os_version");
-  unsigned long minor_version;
-  auto s = safeStrtoul(version[0]["minor"], 10, minor_version);
-  if (minor_version >= 12) {
+  auto minor_version_exp = tryTo<unsigned long int>(version[0]["minor"], 10);
+  ASSERT_TRUE(minor_version_exp.isValue());
+  if (minor_version_exp.get() >= 12) {
     // macOS Sierra and above do not support ASL.
     return;
   }

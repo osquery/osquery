@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -9,25 +8,25 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-// Sanity check integration test for arp_cache
-// Spec file: specs/arp_cache.table
+// Sanity check integration test for interface_ipv6
+// Spec file: specs/interface_ipv6.table
 
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
 
-class ArpCacheTest : public IntegrationTableTest {};
+class InterfaceIpv6Test : public IntegrationTableTest {};
 
-TEST_F(ArpCacheTest, test_sanity) {
-  QueryData data = execute_query("select * from arp_cache");
-
+TEST_F(InterfaceIpv6Test, sanity) {
+  QueryData const rows = execute_query("select * from interface_ipv6");
   auto const row_map = ValidatatioMap{
-      {"address", verifyIpAddress},
-      {"mac", verifyMacAddress},
       {"interface", NonEmptyString},
-      {"permanent", Bool},
+      {"hop_limit", IntMinMaxCheck(0, 255)},
+      {"forwarding_enabled", Bool},
+      {"redirect_accept", Bool},
+      {"rtadv_accept", Bool},
   };
-  validate_rows(data, row_map);
+  validate_rows(rows, row_map);
 }
 
 } // namespace osquery

@@ -762,7 +762,9 @@ bool AuditdNetlinkParser::ParseAuditReply(
     return false;
   }
 
-  safeStrtoul(message_view.substr(6, 10).to_string(), 10, event_record.time);
+  event_record.time =
+      tryTo<unsigned long int>(message_view.substr(6, 10).to_string(), 10)
+          .takeOr(event_record.time);
   event_record.audit_id = message_view.substr(6, preamble_end - 6).to_string();
 
   // SELinux doesn't output valid audit records; just save them as they are
