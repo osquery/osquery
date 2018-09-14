@@ -24,7 +24,7 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-const std::string kYARAHome{OSQUERY_HOME "/yara/"};
+const std::string kYARAHome{OSQUERY_HOME "yara/"};
 
 void YARACompilerCallback(int error_level,
                           const char* file_name,

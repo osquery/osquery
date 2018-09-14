@@ -58,7 +58,7 @@ CLI_FLAG(string,
 
 CLI_FLAG(string,
          extensions_autoload,
-         OSQUERY_HOME "/extensions.load",
+         OSQUERY_HOME "extensions.load",
          "Optional path to a list of autoloaded & managed extensions");
 
 CLI_FLAG(string,
