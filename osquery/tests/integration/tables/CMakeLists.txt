@@ -34,6 +34,7 @@ target_sources(osquery_tables_integration_tests
     "${CMAKE_CURRENT_LIST_DIR}/hash.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/interface_addresses.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/interface_details.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/interface_ipv6.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/kernel_info.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/listening_ports.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/lldp_neighbors.cpp"

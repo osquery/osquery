@@ -35,7 +35,11 @@ static void b64SqliteValue(sqlite3_context* ctx,
     sqlite3_result_null(ctx);
     return;
   }
-  std::string input((char*)sqlite3_value_text(argv[0]));
+
+  const auto* value = sqlite3_value_text(argv[0]);
+  auto size = static_cast<size_t>(sqlite3_value_bytes(argv[0]));
+
+  std::string input(reinterpret_cast<const char*>(value), size);
   std::string result;
   switch (encode) {
   case B64Type::B64_ENCODE_CONDITIONAL:

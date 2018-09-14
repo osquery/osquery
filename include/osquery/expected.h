@@ -179,21 +179,16 @@ class Expected final {
     return boost::get<ValueType>(object_);
   }
 
-  const ValueType& getOr(const ValueType& defaultValue) const {
-    if (isError()) {
-      return defaultValue;
-    }
-    return boost::get<ValueType>(object_);
-  }
-
   ValueType take() && = delete;
   ValueType take() & {
     return std::move(get());
   }
 
   template <typename ValueTypeUniversal = ValueType>
-  typename std::enable_if<std::is_same<ValueTypeUniversal, ValueType>::value,
-                          ValueType>::type
+  typename std::enable_if<
+      std::is_same<typename std::decay<ValueTypeUniversal>::type,
+                   ValueType>::value,
+      ValueType>::type
   takeOr(ValueTypeUniversal&& defaultValue) {
     if (isError()) {
       return std::forward<ValueTypeUniversal>(defaultValue);

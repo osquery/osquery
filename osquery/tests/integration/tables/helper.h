@@ -17,43 +17,53 @@
 
 namespace osquery {
 
-class DataCheck {
+class IntMinMaxCheck final {
  public:
-  virtual ~DataCheck() = default;
-  virtual bool validate(std::string string) = 0;
-};
-
-class IntMinMaxCheck : public DataCheck {
- public:
-  explicit IntMinMaxCheck(int min, int max) : min_(min), max_(max){};
-  virtual ~IntMinMaxCheck() = default;
-  virtual bool validate(std::string string) override;
+  explicit IntMinMaxCheck(int64_t min, int64_t max) : min_(min), max_(max){};
+  bool operator()(const std::string& string) const;
 
  private:
-  const int min_;
-  const int max_;
+  const int64_t min_;
+  const int64_t max_;
 };
 
-class SpecificValuesCheck : public DataCheck {
+class SpecificValuesCheck final {
  public:
   explicit SpecificValuesCheck(std::initializer_list<std::string> list)
       : set_(list) {}
-  virtual ~SpecificValuesCheck() = default;
-  virtual bool validate(std::string string) override;
+  bool operator()(const std::string& string) const;
 
  private:
   const std::unordered_set<std::string> set_;
 };
 
+class CronValuesCheck final {
+ public:
+  explicit CronValuesCheck(int64_t min,
+                           int64_t max,
+                           std::unordered_set<std::string> values = {})
+      : min_(min), max_(max), values_(std::move(values)){};
+  bool operator()(const std::string& string) const;
+
+ private:
+  const int64_t min_;
+  const int64_t max_;
+  const std::unordered_set<std::string> values_;
+};
+
+bool verifyIpAddress(std::string const& value);
+
+bool verifyEmptyStringOrIpAddress(std::string const& value);
+
+bool verifyMacAddress(std::string const& value);
+
 class IntegrationTableTest : public ::testing::Test {
  protected:
   enum {
     NormalType = 0 << 0,
-    IntType = 1 << 0,
-
-    NonEmpty = 1 << 1,
-    NonNull = 1 << 2,
-    NonNegative = 1 << 3,
+    IntType = 1 << 1,
+    NonEmpty = 1 << 2,
+    NonNull = 1 << 3,
     NonZero = 1 << 4,
     FileOnDisk = 1 << 5,
     DirectoryOnDisk = 1 << 6,
@@ -62,12 +72,13 @@ class IntegrationTableTest : public ::testing::Test {
     SHA256 = 1 << 9,
     SHA1 = 1 << 10,
     Bool = 1 << 11,
-
-    NonNegativeInt = IntType | NonEmpty | NonNull | NonNegative,
+    NonNegativeInt = IntType | NonEmpty | NonNull | (1 << 12),
+    NonNegativeOrErrorInt = IntType | NonEmpty | NonNull | (1 << 13),
     NonEmptyString = NonEmpty | NormalType | NonNull,
   };
 
-  using ValidatatioDataType = boost::variant<int, std::shared_ptr<DataCheck>>;
+  using CustomCheckerType = std::function<bool(const std::string&)>;
+  using ValidatatioDataType = boost::variant<int, CustomCheckerType>;
   using ValidatatioMap = std::unordered_map<std::string, ValidatatioDataType>;
 
   virtual void SetUp() {}
@@ -75,9 +86,10 @@ class IntegrationTableTest : public ::testing::Test {
   virtual void TearDown() {}
 
   QueryData execute_query(std::string query);
-  static bool validate_row(const Row& row,
+
+  static void validate_row(const Row& row,
                            const ValidatatioMap& validation_map);
-  static bool validate_rows(const std::vector<Row>& rows,
+  static void validate_rows(const std::vector<Row>& rows,
                             const ValidatatioMap& validation_map);
   static bool validate_value_using_flags(const std::string& value, int flags);
   static bool is_valid_hex(const std::string& value);

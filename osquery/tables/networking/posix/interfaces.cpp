@@ -76,7 +76,7 @@ void genAddressesFromAddr(const struct ifaddrs* addr, QueryData& results) {
       r["point_to_point"] = dest_address;
     }
   }
-
+  r["type"] = "unknown";
   results.push_back(r);
 }
 
@@ -91,9 +91,10 @@ static inline void flagsFromSysfs(const std::string& name, size_t& flags) {
 
   // This will take the form, 0xVALUE\n.
   if (content[0] == '0' && content[1] == 'x') {
-    unsigned long int lflags = 0;
-    if (safeStrtoul(content.substr(2, content.size() - 3), 16, lflags)) {
-      flags |= lflags & sysfsFlags;
+    auto const lflags_exp =
+        tryTo<unsigned long int>(content.substr(2, content.size() - 3), 16);
+    if (lflags_exp.isValue()) {
+      flags |= lflags_exp.get() & sysfsFlags;
     }
   }
 }
@@ -181,6 +182,7 @@ void genDetailsFromAddr(const struct ifaddrs* addr,
         r["type"] = INTEGER_FROM_UCHAR(ifr.ifr_hwaddr.sa_family);
       }
 
+      r["link_speed"] = "0";
       if (context.isColumnUsed("link_speed")) {
         struct ethtool_cmd cmd;
         ifr.ifr_data = reinterpret_cast<char*>(&cmd);
@@ -200,6 +202,8 @@ void genDetailsFromAddr(const struct ifaddrs* addr,
 
       if (ioctl(fd, SIOCETHTOOL, &ifr) >= 0) {
         r["pci_slot"] = drvInfo.bus_info;
+      } else {
+        r["pci_slot"] = "-1";
       }
 
       close(fd);
@@ -229,6 +233,7 @@ void genDetailsFromAddr(const struct ifaddrs* addr,
     r["odrops"] = INTEGER(0);
     r["collisions"] = BIGINT_FROM_UINT32(ifd->ifi_collisions);
     r["last_change"] = BIGINT_FROM_UINT32(ifd->ifi_lastchange.tv_sec);
+    r["link_speed"] = "0";
     if (context.isColumnUsed("link_speed")) {
       int fd = socket(AF_INET, SOCK_DGRAM, 0);
       if (fd >= 0) {

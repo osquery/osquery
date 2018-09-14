@@ -29,7 +29,7 @@ FLAG(bool,
 FLAG(string,
      numeric_monitoring_plugins,
      "filesystem",
-     "Coma separated numeric monitoring plugins names");
+     "Comma separated numeric monitoring plugins names");
 FLAG(uint64,
      numeric_monitoring_pre_aggregation_time,
      60,
@@ -67,7 +67,12 @@ const auto& getAggregationTypeToStringTable() {
           {PreAggregationType::Sum, "sum"},
           {PreAggregationType::Min, "min"},
           {PreAggregationType::Max, "max"},
-      };
+          {PreAggregationType::Avg, "avg"},
+          {PreAggregationType::Stddev, "stddev"},
+          {PreAggregationType::P10, "p10"},
+          {PreAggregationType::P50, "p50"},
+          {PreAggregationType::P95, "p95"},
+          {PreAggregationType::P99, "p99"}};
   return table;
 }
 
@@ -196,7 +201,7 @@ FlusherIsScheduled schedule() {
 
 } // namespace
 
-void flushForTests() {
+void flush() {
   PreAggregationBuffer::get().flush();
 }
 

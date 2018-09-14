@@ -159,15 +159,15 @@ class WritableTable : public TablePlugin {
       row["rowid"] = std::to_string(new_rowid);
 
     } else {
-      unsigned long long int existing_rowid;
-      status = safeStrtoull(request.at("id"), 10, existing_rowid);
-      if (!status.ok()) {
+      auto const existing_rowid_exp =
+          tryTo<unsigned long long>(request.at("id"), 10);
+      if (existing_rowid_exp.isError()) {
         return {
             {std::make_pair("status", "failure"),
              std::make_pair("message", "Invalid rowid defined by osquery")}};
       }
 
-      row["rowid"] = std::to_string(existing_rowid);
+      row["rowid"] = std::to_string(existing_rowid_exp.get());
     }
 
     // Finally, save the row; also pass the primary key we calculated so that

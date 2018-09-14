@@ -11,7 +11,10 @@
 #include <gtest/gtest.h>
 #include <unordered_set>
 
+#include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/regex.hpp>
 #include <boost/uuid/string_generator.hpp>
 
 #include <osquery/core/conversions.h>
@@ -21,17 +24,81 @@ namespace osquery {
 
 namespace fs = boost::filesystem;
 
-bool IntMinMaxCheck::validate(std::string string) {
-  auto cast_result = tryTo<int>(string);
+bool CronValuesCheck::operator()(const std::string& string) const {
+  // Fast asterisk check, its most common
+  if (string == "*") {
+    return true;
+  }
+
+  // Specific value check
+  auto cast_result = tryTo<int64_t>(string);
+  if (cast_result) {
+    // its int, so we can do easy validation
+    int64_t int_value = cast_result.get();
+    return (int_value >= min_ && int_value <= max_);
+  }
+
+  // Check */3 format
+  if (boost::starts_with(string, "*/")) {
+    std::string subvalue = string.substr(2);
+    auto subvalue_int = tryTo<int64_t>(subvalue);
+    return subvalue_int.isValue();
+  }
+
+  std::vector<std::string> components;
+  boost::split(components, string, boost::is_any_of(","));
+  for (auto component : components) {
+    // Predefined value check like: sun, mon
+    boost::algorithm::to_lower(component);
+    if (values_.find(component) != values_.end()) {
+      continue;
+    }
+    // just number
+    if (tryTo<int64_t>(component)) {
+      continue;
+    }
+    std::vector<std::string> sub_components;
+    boost::split(sub_components, component, boost::is_any_of("-"));
+    if (sub_components.size() == 2) {
+      if (tryTo<int64_t>(sub_components[0]) &&
+          tryTo<int64_t>(sub_components[1])) {
+        continue;
+      }
+    }
+    // sub_components.size() > 2 || sub_components.size() == 1
+    return false;
+  }
+  return true;
+}
+
+bool IntMinMaxCheck::operator()(const std::string& string) const {
+  auto cast_result = tryTo<int64_t>(string);
   if (!cast_result) {
     return false;
   }
-  int value = cast_result.get();
+  auto const value = cast_result.get();
   return value >= min_ && value <= max_;
 }
 
-bool SpecificValuesCheck::validate(std::string string) {
+bool SpecificValuesCheck::operator()(const std::string& string) const {
   return set_.find(string) != set_.end();
+}
+
+bool verifyIpAddress(std::string const& value) {
+  auto err = boost::system::error_code{};
+  boost::asio::ip::make_address(value, err);
+  return !err;
+}
+
+bool verifyEmptyStringOrIpAddress(std::string const& value) {
+  return value.empty() ? true : verifyIpAddress(value);
+}
+
+bool verifyMacAddress(std::string const& value) {
+  boost::smatch match;
+  // IEEE 802: six groups of two hexadecimal digits, separated by '-' or ':'
+  boost::regex rxMacAddress("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$");
+  return boost::regex_match(value, match, rxMacAddress);
 }
 
 QueryData IntegrationTableTest::execute_query(std::string query) {
@@ -39,14 +106,37 @@ QueryData IntegrationTableTest::execute_query(std::string query) {
   return sql.rows();
 }
 
-bool IntegrationTableTest::validate_rows(const std::vector<Row>& rows,
-                                         const ValidatatioMap& validation_map) {
-  for (auto row : rows) {
-    if (!validate_row(row, validation_map)) {
-      return false;
+void IntegrationTableTest::validate_row(const Row& row,
+                                        const ValidatatioMap& validation_map) {
+  for (auto const& rec : row) {
+    EXPECT_NE(validation_map.count(rec.first), std::size_t{0})
+        << "Unexpected column " << boost::io::quoted(rec.first) << " in a row";
+  }
+  for (auto iter : validation_map) {
+    std::string key = iter.first;
+    auto row_data_iter = row.find(key);
+    ASSERT_NE(row_data_iter, row.end())
+        << "Could not find column " << boost::io::quoted(key)
+        << " in the generated columns";
+    std::string value = row_data_iter->second;
+    ValidatatioDataType validator = iter.second;
+    if (validator.type() == typeid(int)) {
+      int flags = boost::get<int>(validator);
+      ASSERT_TRUE(validate_value_using_flags(value, flags))
+          << "Standard validator of the column " << boost::io::quoted(key)
+          << " with value " << boost::io::quoted(value) << " failed";
+    } else {
+      ASSERT_TRUE(boost::get<CustomCheckerType>(validator)(value))
+          << "Custom validator of the column " << boost::io::quoted(key)
+          << " with value " << boost::io::quoted(value) << " failed";
     }
   }
-  return true;
+}
+void IntegrationTableTest::validate_rows(const std::vector<Row>& rows,
+                                         const ValidatatioMap& validation_map) {
+  for (auto row : rows) {
+    validate_row(row, validation_map);
+  }
 }
 
 bool IntegrationTableTest::is_valid_hex(const std::string& value) {
@@ -79,13 +169,18 @@ bool IntegrationTableTest::validate_value_using_flags(const std::string& value,
   }
 
   if ((flags & IntType) > 0) {
-    auto cast_result = tryTo<int>(value);
+    auto cast_result = tryTo<int64_t>(value);
     if (!cast_result) {
       return false;
     }
-    int intValue = cast_result.get();
-    if ((flags & NonNegative) > 0) {
+    auto intValue = cast_result.get();
+    if ((flags & NonNegativeInt) > 0) {
       if (intValue < 0) {
+        return false;
+      }
+    }
+    if ((flags & NonNegativeOrErrorInt) > 0) {
+      if (intValue < -1) {
         return false;
       }
     }
@@ -141,35 +236,4 @@ bool IntegrationTableTest::validate_value_using_flags(const std::string& value,
 
   return true;
 }
-
-bool IntegrationTableTest::validate_row(const Row& row,
-                                        const ValidatatioMap& validation_map) {
-  if (row.size() != validation_map.size()) {
-    return false;
-  }
-
-  for (auto iter : validation_map) {
-    std::string key = iter.first;
-    auto row_data_iter = row.find(key);
-    if (row_data_iter == row.end()) {
-      return false;
-    }
-
-    std::string value = row_data_iter->second;
-
-    ValidatatioDataType validator = iter.second;
-    if (validator.type() == typeid(int)) {
-      int flags = boost::get<int>(validator);
-      if (!validate_value_using_flags(value, flags)) {
-        return false;
-      }
-    } else {
-      if (!boost::get<std::shared_ptr<DataCheck>>(validator)->validate(value)) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
 } // namespace osquery

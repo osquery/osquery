@@ -392,6 +392,11 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     FLAGS_disable_watchdog = true;
   }
 
+  if (isWatcher()) {
+    FLAGS_disable_database = true;
+    FLAGS_disable_logging = true;
+  }
+
   // Initialize the status and results logger.
   initStatusLogger(binary_, init_glog);
   if (kToolType != ToolType::EXTENSION) {
@@ -486,8 +491,6 @@ void Initializer::initShell() const {
 void Initializer::initWatcher() const {
   // The watcher should not log into or use a persistent database.
   if (isWatcher()) {
-    FLAGS_disable_database = true;
-    FLAGS_disable_logging = true;
     DatabasePlugin::setAllowOpen(true);
     DatabasePlugin::initPlugin();
   }
@@ -694,6 +697,10 @@ void Initializer::start() const {
   if (FLAGS_enable_numeric_monitoring) {
     initActivePlugin(monitoring::registryName(),
                      FLAGS_numeric_monitoring_plugins);
+  }
+
+  if (Killswitch::get().isAppStartMonitorEnabled()) {
+    monitoring::record("osquery.start", 1, monitoring::PreAggregationType::Sum);
   }
 
   // Start event threads.

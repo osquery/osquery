@@ -240,6 +240,9 @@ $wix +=
             <File Id='osquery.flags'
               Name='osquery.flags'
               Source='OSQUERY_FLAGS_PATH'/>
+            <File Id='osquery.man'
+              Name='osquery.man'
+              Source='OSQUERY_MAN_PATH'/>
             <File Id='osquery_utils.ps1'
               Name='osquery_utils.ps1'
               Source='OSQUERY_UTILS_PATH'/>
@@ -323,6 +326,7 @@ $wix += @'
   $wix = $wix -Replace 'OSQUERY_CERTS_PATH', "certs"
   $wix = $wix -Replace 'OSQUERY_IMAGE_PATH', "$buildPath\osquery.ico"
   $wix = $wix -Replace 'OSQUERY_MGMT_PATH', "$scriptPath\tools\manage-osqueryd.ps1"
+  $wix = $wix -Replace 'OSQUERY_MAN_PATH', "$scriptPath\tools\wel\osquery.man"
 
   $wix | Out-File -Encoding 'UTF8' "$buildPath\osquery.wxs"
 

@@ -268,18 +268,6 @@ GTEST_TEST(ExpectedTest, take_error_from_expected_with_value) {
 #endif
 }
 
-GTEST_TEST(ExpectedTest, value__getOr) {
-  const auto expectedValue = Expected<int, TestError>(225);
-  EXPECT_EQ(expectedValue.getOr(29), 225);
-  EXPECT_EQ(expectedValue.getOr(-29), 225);
-}
-
-GTEST_TEST(ExpectedTest, error__getOr) {
-  const auto err = Expected<int, TestError>(TestError::Semantic, "message");
-  EXPECT_EQ(err.getOr(37), 37);
-  EXPECT_EQ(err.getOr(-59), -59);
-}
-
 GTEST_TEST(ExpectedTest, value__takeOr) {
   const auto text = std::string{"some text"};
   auto callable = [&text]() -> Expected<std::string, TestError> {
@@ -310,6 +298,22 @@ GTEST_TEST(ExpectedTest, error__takeOr_with_user_defined_class) {
   };
   EXPECT_EQ(callable().takeOr(SomeTestClass("427 BC", "347 BC")).text,
             "427 BC - 347 BC");
+}
+
+GTEST_TEST(ExpectedTest, value_takeOr_with_rvalue_as_an_argument) {
+  auto value = int{312};
+  auto callable = []() -> Expected<int, TestError> { return 306; };
+  value = callable().takeOr(value);
+  EXPECT_EQ(value, 306);
+}
+
+GTEST_TEST(ExpectedTest, error_takeOr_with_rvalue_as_an_argument) {
+  auto value = int{312};
+  auto callable = []() -> Expected<int, TestError> {
+    return createError(TestError::Logical, "error message");
+  };
+  value = callable().takeOr(value);
+  EXPECT_EQ(value, 312);
 }
 
 } // namespace osquery

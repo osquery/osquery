@@ -438,6 +438,32 @@ Status isDirectory(const fs::path& path) {
   return Status(ec.value(), ec.message());
 }
 
+Status createDirectory(const boost::filesystem::path& dir_path,
+                       bool const recursive,
+                       bool const ignore_existence) {
+  auto err = boost::system::error_code{};
+  bool is_created = false;
+  if (recursive) {
+    is_created = boost::filesystem::create_directories(dir_path, err);
+  } else {
+    is_created = boost::filesystem::create_directory(dir_path, err);
+  }
+  if (is_created) {
+    return Status::success();
+  }
+  if (ignore_existence && isDirectory(dir_path).ok()) {
+    return Status::success();
+  }
+  auto msg = std::string{"Could not create directory \""};
+  msg += dir_path.string();
+  msg += '"';
+  if (err) {
+    msg += ": ";
+    msg += err.message();
+  }
+  return Status::failure(msg);
+}
+
 std::set<fs::path> getHomeDirectories() {
   std::set<fs::path> results;
 

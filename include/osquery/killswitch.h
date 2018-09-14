@@ -2,12 +2,11 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed under both the Apache 2.0 license (found in
+ * the LICENSE file in the root directory of this source tree) and the GPLv2
+ * (found in the COPYING file in the root directory of this source tree). You
+ * may select, at your option, one of the above-listed licenses.
  */
-
 #pragma once
 #include <string>
 
@@ -31,6 +30,18 @@ class Killswitch : private boost::noncopyable {
 
  public:
   virtual ~Killswitch();
+
+  // Author: @guliashvili
+  // Creation Time: 4/09/2018
+  bool isTotalQueryCounterMonitorEnabled();
+
+  // Author: @guliashvili
+  // Creation Time: 3/09/2018
+  bool isAppStartMonitorEnabled();
+
+  // Author: @guliashvili
+  // Creation Time: 3/09/2018
+  bool isExecutingQueryMonitorEnabled();
 
   // Author: @guliashvili
   // Creation Time: 24/08/2018

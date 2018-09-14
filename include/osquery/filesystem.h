@@ -235,6 +235,19 @@ Status movePath(const boost::filesystem::path& from,
 Status isDirectory(const boost::filesystem::path& path);
 
 /**
+ * @brief Create the directory
+ *
+ * @param path to the intended directory
+ * @param recursive - make parent directories as needed
+ * @param ignore_existence - no error if directory already exists
+ *
+ * @return Status of operation
+ */
+Status createDirectory(const boost::filesystem::path& path,
+                       bool recursive = false,
+                       bool ignore_existence = false);
+
+/**
  * @brief Return a vector of all home directories on the system.
  *
  * @return a vector of string paths containing all home directories.

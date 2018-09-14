@@ -1571,8 +1571,8 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
                               FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_OFFLINE |
                               FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_SYSTEM |
                               FILE_ATTRIBUTE_TEMPORARY;
-
-  if (fs::is_directory(path)) {
+  boost::system::error_code ec;
+  if (fs::is_directory(path, ec) && ec.value() == errc::success) {
     FLAGS_AND_ATTRIBUTES |= FILE_FLAG_BACKUP_SEMANTICS;
   }
 

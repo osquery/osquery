@@ -42,7 +42,7 @@ TEST_F(mounts, test_sanity) {
   //      {"flags", NormalType}
   //}
   // 4. Perform validation
-  // EXPECT_TRUE(validate_rows(data, row_map));
+  // validate_rows(data, row_map);
 }
 
 } // namespace osquery

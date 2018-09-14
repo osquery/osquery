@@ -69,24 +69,32 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
       std::string sPlaceHolder;
 
       results[0].GetString("PacketsReceivedPerSec", sPlaceHolder);
-      r["ipackets"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
+      r["ipackets"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
       results[0].GetString("PacketsSentPerSec", sPlaceHolder);
-      r["opackets"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
+      r["opackets"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
 
       results[0].GetString("BytesReceivedPerSec", sPlaceHolder);
-      r["ibytes"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
+      r["ibytes"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
       results[0].GetString("BytesSentPerSec", sPlaceHolder);
-      r["obytes"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
+      r["obytes"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
 
       results[0].GetString("PacketsReceivedErrors", sPlaceHolder);
-      r["ierrors"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
+      r["ierrors"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
       results[0].GetString("PacketsOutboundErrors", sPlaceHolder);
-      r["oerrors"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
+      r["oerrors"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
 
       results[0].GetString("PacketsReceivedDiscarded", sPlaceHolder);
-      r["idrops"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
+      r["idrops"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
       results[0].GetString("PacketsOutboundDiscarded", sPlaceHolder);
-      r["odrops"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).getOr(0));
+      r["odrops"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).takeOr(0ull));
     } else {
       LOG(INFO) << "Failed to retrieve network statistics for interface "
                 << r["interface"];
@@ -129,7 +137,7 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
   if (req3.getStatus().ok()) {
     const auto& results = req3.results();
     if (!results.empty()) {
-      bool bPlaceHolder;
+      bool bPlaceHolder = false;
       std::vector<std::string> vPlaceHolder;
       results[0].GetBool("DHCPEnabled", bPlaceHolder);
       r["dhcp_enabled"] = INTEGER(bPlaceHolder);

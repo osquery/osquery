@@ -4,17 +4,14 @@ class Libiptables < AbstractOsqueryFormula
   desc "Device Mapper development"
   homepage "http://netfilter.samba.org/"
   license "GPL-2.0+"
-  url "https://osquery-packages.s3.amazonaws.com/deps/iptables-1.4.21.tar.gz"
-  sha256 "ce1335c91764dc87a26978bd3725c510c2564853184c6e470e0a0f785f420f89"
-  revision 200
+  url "https://www.netfilter.org/projects/iptables/files/iptables-1.8.0.tar.bz2"
+  sha256 "c4cbfa187c4296e4bc2e347ebbc21e309def7274773f20f0df0b8feaf7e8de50"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "f39461e4549f49bacccbed6a28fd077177304328c2ed480679e6ff10363806e4" => :x86_64_linux
+    sha256 "b3d67a93150bd442e3f4b46841c693e23f2cf189c3f5f9990a29522c574993fa" => :x86_64_linux
   end
-
-  patch :DATA
 
   def install
     args = [
@@ -27,24 +24,6 @@ class Libiptables < AbstractOsqueryFormula
     end
     cd "include" do
       system "make", "install"
-    end
+		end
   end
 end
-
-__END__
-diff -Nur iptables-1.4.21/include/linux/netfilter_ipv4/ip_tables.h iptables-1.4.21-patched/include/linux/netfilter_ipv4/ip_tables.h
---- iptables-1.4.21/include/linux/netfilter_ipv4/ip_tables.h	2013-11-22 03:18:13.000000000 -0800
-+++ iptables-1.4.21-patched/include/linux/netfilter_ipv4/ip_tables.h	2016-07-07 21:03:53.742011569 -0700
-@@ -218,10 +218,11 @@
- static __inline__ struct xt_entry_target *
- ipt_get_target(struct ipt_entry *e)
- {
--	return (void *)e + e->target_offset;
-+	return (struct ipt_entry_target *)((char *)e + e->target_offset);
- }
- 
- /*
-  *	Main firewall chains definitions and global var's definitions.
-  */
- #endif /* _IPTABLES_H */
-+
