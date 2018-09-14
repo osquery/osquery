@@ -34,12 +34,7 @@ schema([
 extended_schema(WINDOWS, [
     Column("is_elevated_token", INTEGER, "Process uses elevated token yes=1, no=0"),
     Column("elapsed_time", BIGINT, "Process uses elevated token yes=1, no=0"),
-    Column("handle_count", BIGINT, "Process uses elevated token yes=1, no=0"),
-    Column("page_file_bytes", BIGINT, "Process uses elevated token yes=1, no=0"),
-    Column("page_file_bytes_peak", BIGINT, "Process uses elevated token yes=1, no=0"),
-    Column("percent_privileged_time", BIGINT, "Process uses elevated token yes=1, no=0"),
     Column("percent_processor_time", BIGINT, "Process uses elevated token yes=1, no=0"),
-    Column("percent_user_time", INTEGER, "Process uses elevated token yes=1, no=0"),
 ])
 
 extended_schema(DARWIN, [

@@ -19,5 +19,8 @@ schema([
         aliases=["date_time"]),
     Column("iso_8601", TEXT, "Current time (ISO format) in the system"),
 ])
+extended_schema(WINDOWS, [
+    Column("timestamp_sys100ns", BIGINT, "Process uses elevated token yes=1, no=0"),
+])
 attributes(utility=True)
 implementation("time@genTime")

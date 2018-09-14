@@ -17,6 +17,8 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/windows/wmi.h"
+
 namespace osquery {
 
 DECLARE_bool(utc);
@@ -56,6 +58,16 @@ QueryData genTime(QueryContext& context) {
   char iso_8601[21] = {0};
   strftime(iso_8601, sizeof(iso_8601), "%FT%TZ", &gmt);
 
+  if (context.isColumnUsed("timestamp_sys100ns")) {
+	  const WmiRequest request("SELECT Timestamp_Sys100NS FROM Win32_PerfRawData_PerfProc_Process where idprocess = 0");
+	  const std::vector<WmiResultItem>& wmiResults = request.results();
+	  if (!wmiResults.empty()) {
+		  std::string numProcs;
+		  wmiResults[1].GetString("Timestamp_Sys100NS", numProcs);
+		  r["timestamp_sys100ns"] = BIGINT(std::stoll(numProcs));
+	  }
+  }
+ 
   r["weekday"] = SQL_TEXT(weekday);
   r["year"] = INTEGER(now.tm_year + 1900);
   r["month"] = INTEGER(now.tm_mon + 1);

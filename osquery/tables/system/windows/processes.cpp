@@ -296,40 +296,23 @@ void genProcess(const WmiResultItem& result, QueryData& results_data, QueryConte
 std::map<std::int32_t, std::map<std::string, std::int64_t>> genPerfPerProcess() {
   std::map<std::int32_t, std::map<std::string, std::int64_t>> returnData;
   const WmiRequest request(
-	  "SELECT CreatingProcessID, ElapsedTime, HandleCount, Name, "
-	  "PageFileBytes, PageFileBytesPeak, PercentPrivilegedTime, "
-	  "PercentProcessorTime, PercentUserTime FROM "
-	  "Win32_PerfFormattedData_PerfProc_Process");
+	  "SELECT IDProcess, ElapsedTime, "
+	  "PercentProcessorTime FROM "
+	  "Win32_PerfRawData_PerfProc_Process");
 
   if (request.getStatus().ok()) {
 	  const auto& results = request.results();
 	  for (const auto& result : results) {
 		  std::map<std::string, std::int64_t> process_data;
 		  long processID;
-		  long handleCount = 0;
-		  std::string percentPrivilagedTime;
-		  std::string percentProcessorTime;
-		  std::string percentUserTime;
 		  std::string elapsedTime;
-		  std::string pageFileBytes;
-		  std::string pageFileBytesPeak;
+		  std::string percentProcessorTime;
 
 		  result.GetString("ElapsedTime", elapsedTime);
-		  result.GetLong("HandleCount", handleCount);
-		  result.GetString("PageFileBytes", pageFileBytes);
-		  result.GetString("PageFileBytesPeak", pageFileBytesPeak);
-		  result.GetString("PercentPrivilegedTime", percentPrivilagedTime);
 		  result.GetString("PercentProcessorTime", percentProcessorTime);
-		  result.GetString("PercentUserTime", percentUserTime);
-
 		  process_data["elapsed_time"] = std::stoll(elapsedTime);
-		  process_data["handle_count"] = handleCount;
-		  process_data["page_file_bytes"] = std::stoll(pageFileBytes);
-		  process_data["page_file_bytes_peak"] = std::stoll(pageFileBytesPeak);
-		  process_data["percent_privileged_time"] = std::stoll(percentPrivilagedTime);
 		  process_data["percent_processor_time"] = std::stoll(percentProcessorTime);
-		  process_data["percent_user_time"] = std::stoll(percentUserTime);
-		  result.GetLong("CreatingProcessID", processID);
+		  result.GetLong("IDProcess", processID);
 		  returnData[processID] = process_data;
 	  }
   }
