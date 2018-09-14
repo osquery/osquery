@@ -144,7 +144,11 @@ Status getProcList(std::set<long>& pids) {
   return Status(0, "Ok");
 }
 
-void genProcess(const WmiResultItem& result, QueryData& results_data, QueryContext& context, std::map<std::int32_t, std::map<std::string, std::int64_t>> perfData) {
+void genProcess(
+    const WmiResultItem& result,
+    QueryData& results_data,
+    QueryContext& context,
+    std::map<std::int32_t, std::map<std::string, std::int64_t>> perfData) {
   Row r;
   Status s;
   long pid;
@@ -157,23 +161,38 @@ void genProcess(const WmiResultItem& result, QueryData& results_data, QueryConte
   s = result.GetLong("ProcessId", pid);
   r["pid"] = s.ok() ? BIGINT(pid) : BIGINT(-1);
 
-  if (context.isAnyColumnUsed({"elapsed_time", "handle_count", "page_file_bytes", "page_file_bytes_peak", "percent_privileged_time", "percent_processor_time", "percent_user_time"})) {
+  if (context.isAnyColumnUsed({"elapsed_time",
+                               "handle_count",
+                               "page_file_bytes",
+                               "page_file_bytes_peak",
+                               "percent_privileged_time",
+                               "percent_processor_time",
+                               "percent_user_time"})) {
     std::map<std::string, std::int64_t> procPerfData;
     procPerfData = perfData[pid];
     r["elapsed_time"] = BIGINT(procPerfData["elapsed_time"]);
     r["handle_count"] = BIGINT(procPerfData["handle_count"]);
     r["page_file_bytes"] = BIGINT(procPerfData["page_file_bytes"]);
     r["page_file_bytes_peak"] = BIGINT(procPerfData["page_file_bytes_peak"]);
-    r["percent_privileged_time"] = BIGINT(procPerfData["percent_privileged_time"]);
-    r["percent_processor_time"] = BIGINT(procPerfData["percent_processor_time"]);
+    r["percent_privileged_time"] =
+        BIGINT(procPerfData["percent_privileged_time"]);
+    r["percent_processor_time"] =
+        BIGINT(procPerfData["percent_processor_time"]);
     r["percent_user_time"] = BIGINT(procPerfData["percent_user_time"]);
   }
-  
+
   long uid = -1;
   long gid = -1;
   HANDLE hProcess = nullptr;
 
-  if (context.isAnyColumnUsed({"uid", "gid", "cwd", "root", "user_time", "system_time", "start_time", "is_elevated_token"})) {
+  if (context.isAnyColumnUsed({"uid",
+                               "gid",
+                               "cwd",
+                               "root",
+                               "user_time",
+                               "system_time",
+                               "start_time",
+                               "is_elevated_token"})) {
     if (pid == currentPid) {
       hProcess = GetCurrentProcess();
     } else {
@@ -228,8 +247,8 @@ void genProcess(const WmiResultItem& result, QueryData& results_data, QueryConte
     FILETIME exitTime;
     FILETIME kernelTime;
     FILETIME userTime;
-    auto procRet =
-        GetProcessTimes(hProcess, &createTime, &exitTime, &kernelTime, &userTime);
+    auto procRet = GetProcessTimes(
+        hProcess, &createTime, &exitTime, &kernelTime, &userTime);
     if (procRet == FALSE) {
       r["user_time"] = BIGINT(-1);
       r["system_time"] = BIGINT(-1);
@@ -293,11 +312,12 @@ void genProcess(const WmiResultItem& result, QueryData& results_data, QueryConte
   results_data.push_back(r);
 }
 
-std::map<std::int32_t, std::map<std::string, std::int64_t>> genPerfPerProcess() {
+std::map<std::int32_t, std::map<std::string, std::int64_t>>
+genPerfPerProcess() {
   std::map<std::int32_t, std::map<std::string, std::int64_t>> returnData;
   const WmiRequest request(
 	  "SELECT IDProcess, ElapsedTime, "
-	  "PercentProcessorTime FROM "
+	  "HandleCount, PercentProcessorTime FROM "
 	  "Win32_PerfRawData_PerfProc_Process");
 
   if (request.getStatus().ok()) {
@@ -305,10 +325,13 @@ std::map<std::int32_t, std::map<std::string, std::int64_t>> genPerfPerProcess() 
 	  for (const auto& result : results) {
 		  std::map<std::string, std::int64_t> process_data;
 		  long processID;
+		  long handleCount = 0;
 		  std::string elapsedTime;
 		  std::string percentProcessorTime;
 
+
 		  result.GetString("ElapsedTime", elapsedTime);
+		  result.GetLong("HandleCount", handleCount);
 		  result.GetString("PercentProcessorTime", percentProcessorTime);
 		  process_data["elapsed_time"] = std::stoll(elapsedTime);
 		  process_data["percent_processor_time"] = std::stoll(percentProcessorTime);
@@ -348,7 +371,13 @@ QueryData genProcesses(QueryContext& context) {
     }
   }
   std::map<std::int32_t, std::map<std::string, std::int64_t>> perfData;
-  if (context.isAnyColumnUsed({"elapsed_time", "handle_count", "page_file_bytes", "page_file_bytes_peak", "percent_privileged_time", "percent_processor_time", "percent_user_time"})) {
+  if (context.isAnyColumnUsed({"elapsed_time",
+                               "handle_count",
+                               "page_file_bytes",
+                               "page_file_bytes_peak",
+                               "percent_privileged_time",
+                               "percent_processor_time",
+                               "percent_user_time"})) {
     perfData = genPerfPerProcess();
   }
 
