@@ -32,18 +32,11 @@ TEST_F(OsVersion, test_sanity) {
       {"platform", NonEmptyString},
       {"platform_like", NonEmptyString},
       {"codename", NormalType},
+  #ifdef OSQUERY_WINDOWS
+      {"installdate", NonEmptyString},
+  #endif
   };
   validate_rows(data, row_map);
-}
-
-// Test for install_date in Windows. This should be removed when other OS get
-// this
-TEST_F(OsVersion, test_installdate) {
-  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    SQL results("select install_date from os_version");
-    EXPECT_EQ(results.rows().size(), 1U);
-    EXPECT_FALSE(results.rows()[0].at("install_date").empty());
-  }
 }
 
 } // namespace osquery
