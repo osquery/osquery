@@ -55,7 +55,7 @@ void genExtension(const std::string& uid,
     return;
   }
 
-  pt::ptree messagetree;
+  pt::iptree messagetree;
   // Find out if there are localized values for fields
   if (!tree.get<std::string>("default_locale", "").empty()) {
     // Read the localized variables into a second ptree
