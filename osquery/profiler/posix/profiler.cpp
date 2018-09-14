@@ -158,7 +158,7 @@ CodeProfiler::~CodeProfiler() {
     const auto query_duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(
             code_profiler_data_end.getWallTime() -
-            code_profiler_data_.getWallTime());
+            code_profiler_data_->getWallTime());
     monitoring::record(name_ + ".time.wall.millis",
                        query_duration.count(),
                        monitoring::PreAggregationType::Min);
