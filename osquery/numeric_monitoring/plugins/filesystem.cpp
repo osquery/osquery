@@ -40,6 +40,7 @@ NumericMonitoringFilesystemPlugin::NumericMonitoringFilesystemPlugin(
       monitoring::recordKeys().path,
       monitoring::recordKeys().value,
       monitoring::recordKeys().timestamp,
+      monitoring::recordKeys().sync,
   }
   , separator_{'\t'}
   , log_file_path_(

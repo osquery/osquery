@@ -56,10 +56,12 @@ TEST_F(NumericMonitoringFilesystemPluginTests, simple_workflow) {
         R"path(p !"#$%&'()*+,-./0127:;<=>?@0AZ[\]^_`4bcyz{|}~)path";
     const auto value = double{1.5};
     const auto tm = int{1051};
+    const auto sync = true;
     const auto request = PluginRequest{
         {monitoring::recordKeys().path, path},
         {monitoring::recordKeys().value, std::to_string(value)},
         {monitoring::recordKeys().timestamp, std::to_string(tm)},
+        {monitoring::recordKeys().sync, sync ? "true" : "false"},
     };
     auto response = PluginResponse{};
     EXPECT_TRUE(plugin.call(request, response).ok());
@@ -72,19 +74,28 @@ TEST_F(NumericMonitoringFilesystemPluginTests, simple_workflow) {
         std::ifstream(log_path.native(), std::ios::in | std::ios::binary);
     auto line = std::string{};
 
-    std::getline(fin, line);
-    auto first_line = split(line, "\t");
-    EXPECT_EQ(first_line.size(), 3);
-    EXPECT_EQ(first_line[0], path);
-    EXPECT_NEAR(std::stod(first_line[1]), value, 0.00001);
-    EXPECT_EQ(std::stol(first_line[2]), tm);
-
-    std::getline(fin, line);
-    auto second_line = split(line, "\t");
-    EXPECT_EQ(second_line.size(), 3);
-    EXPECT_EQ(second_line[0], path);
-    EXPECT_NEAR(std::stod(second_line[1]), value, 0.00001);
-    EXPECT_EQ(std::stol(second_line[2]), tm);
+    {
+      std::getline(fin, line);
+      auto first_line = split(line, "\t");
+      EXPECT_EQ(first_line.size(), request.size());
+      EXPECT_EQ(first_line[0], path);
+      EXPECT_NEAR(std::stod(first_line[1]), value, 0.00001);
+      EXPECT_EQ(std::stol(first_line[2]), tm);
+      const auto sync_extracted = tryTo<bool>(first_line[3]);
+      EXPECT_TRUE(sync_extracted);
+      EXPECT_EQ(*sync_extracted, sync);
+    }
+    {
+      std::getline(fin, line);
+      auto second_line = split(line, "\t");
+      EXPECT_EQ(second_line.size(), request.size());
+      EXPECT_EQ(second_line[0], path);
+      EXPECT_NEAR(std::stod(second_line[1]), value, 0.00001);
+      EXPECT_EQ(std::stol(second_line[2]), tm);
+      const auto sync_extracted = tryTo<bool>(second_line[3]);
+      EXPECT_TRUE(sync_extracted);
+      EXPECT_EQ(*sync_extracted, sync);
+    }
   }
   fs::remove(log_path);
 }
