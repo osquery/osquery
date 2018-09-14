@@ -302,6 +302,7 @@ void genProcess(
   results_data.push_back(r);
 }
 
+// collect perf data into a hashmap by pid to later be refferenced
 std::map<std::int32_t, std::map<std::string, std::int64_t>>
 genPerfPerProcess() {
   std::map<std::int32_t, std::map<std::string, std::int64_t>> returnData;
