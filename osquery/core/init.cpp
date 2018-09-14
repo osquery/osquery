@@ -305,18 +305,6 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   }
 #endif
 
-  // Handled boost filesystem locale problems fixes in 1.56.
-  // See issue #1559 for the discussion and upstream boost patch.
-  try {
-    boost::filesystem::path::codecvt();
-  } catch (const std::runtime_error& /* e */) {
-#ifdef WIN32
-    setlocale(LC_ALL, "C");
-#else
-    setenv("LC_ALL", "C", 1);
-#endif
-  }
-
   Flag::create("logtostderr",
                {"Log messages to stderr in addition to the logger plugin(s)",
                 false,
