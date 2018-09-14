@@ -59,12 +59,12 @@ QueryData genTime(QueryContext& context) {
   strftime(iso_8601, sizeof(iso_8601), "%FT%TZ", &gmt);
 
   if (context.isColumnUsed("timestamp_sys100ns")) {
-	FILETIME ft = { 0 };
-	GetSystemTimeAsFileTime(&ft);
-	LARGE_INTEGER li = { 0 };
-	li.LowPart = ft.dwLowDateTime;
-	li.HighPart = ft.dwHighDateTime;
-	long long int hns = li.QuadPart;
+    FILETIME ft = {0};
+    GetSystemTimeAsFileTime(&ft);
+    LARGE_INTEGER li = {0};
+    li.LowPart = ft.dwLowDateTime;
+    li.HighPart = ft.dwHighDateTime;
+    long long int hns = li.QuadPart;
     r["timestamp_sys100ns"] = BIGINT(hns);
   }
 

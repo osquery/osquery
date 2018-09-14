@@ -161,9 +161,8 @@ void genProcess(
   s = result.GetLong("ProcessId", pid);
   r["pid"] = s.ok() ? BIGINT(pid) : BIGINT(-1);
 
-  if (context.isAnyColumnUsed({"elapsed_time",
-                               "handle_count",
-                               "percent_processor_time"})) {
+  if (context.isAnyColumnUsed(
+          {"elapsed_time", "handle_count", "percent_processor_time"})) {
     std::map<std::string, std::int64_t> procPerfData;
     procPerfData = perfData[pid];
     r["elapsed_time"] = BIGINT(procPerfData["elapsed_time"]);
@@ -323,9 +322,9 @@ genPerfPerProcess() {
       result.GetString("ElapsedTime", elapsedTime);
       result.GetLong("HandleCount", handleCount);
       result.GetString("PercentProcessorTime", percentProcessorTime);
-	  process_data["elapsed_time"] = std::stoll(elapsedTime);
-	  process_data["handle_count"] = handleCount;
-	  process_data["percent_processor_time"] = std::stoll(percentProcessorTime);
+      process_data["elapsed_time"] = std::stoll(elapsedTime);
+      process_data["handle_count"] = handleCount;
+      process_data["percent_processor_time"] = std::stoll(percentProcessorTime);
       result.GetLong("IDProcess", processID);
       returnData[processID] = process_data;
     }
