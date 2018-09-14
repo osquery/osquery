@@ -17,8 +17,6 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/windows/wmi.h"
-
 namespace osquery {
 
 DECLARE_bool(utc);
