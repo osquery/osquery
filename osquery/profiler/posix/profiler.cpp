@@ -57,24 +57,6 @@ static Expected<struct rusage, RusageError> callRusage() {
   }
 }
 
-class CodeProfilerData {
- public:
-  CodeProfilerData()
-      : rusage_data_(callRusage()),
-        wall_time_(std::chrono::steady_clock::now()) {}
-
-  const std::chrono::time_point<std::chrono::steady_clock>& getWallTime() {
-    return wall_time_;
-  }
-  Expected<struct rusage, RusageError> takeRusageData() {
-    return std::move(rusage_data_);
-  }
-
- private:
-  Expected<struct rusage, RusageError> rusage_data_;
-  std::chrono::time_point<std::chrono::steady_clock> wall_time_;
-};
-
 void recordRusageStatDifference(int64_t start_stat,
                                 int64_t end_stat,
                                 const std::string& stat_name) {
@@ -132,33 +114,25 @@ void recordRusageStatDifference(const struct rusage& start_stats,
                              monitoring_path_prefix + ".time.system");
 }
 
-void recordRusageStatDifference(CodeProfilerData& start_stats,
-                                CodeProfilerData& end_stats,
-                                const std::string& monitoring_path_prefix) {
-  auto rusage_start = start_stats.takeRusageData();
-  if (!rusage_start) {
-    LOG(ERROR) << "rusage_start error: "
-               << rusage_start.getError().getFullMessageRecursive();
-  } else {
-    auto rusage_end = end_stats.takeRusageData();
-    if (!rusage_end) {
-      LOG(ERROR) << "rusage_end error: "
-                 << rusage_end.getError().getFullMessageRecursive();
-    } else {
-      recordRusageStatDifference(
-          *rusage_start, *rusage_end, monitoring_path_prefix);
-    }
+} // namespace
+
+class CodeProfiler::CodeProfilerData {
+ public:
+  CodeProfilerData()
+      : rusage_data_(callRusage()),
+        wall_time_(std::chrono::steady_clock::now()) {}
+
+  const std::chrono::time_point<std::chrono::steady_clock>& getWallTime() {
+    return wall_time_;
+  }
+  Expected<struct rusage, RusageError> takeRusageData() {
+    return std::move(rusage_data_);
   }
 
-  const auto query_duration =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          end_stats.getWallTime() - start_stats.getWallTime());
-  monitoring::record(monitoring_path_prefix + ".time.wall.millis",
-                     query_duration.count(),
-                     monitoring::PreAggregationType::Min);
-}
-
-} // namespace
+ private:
+  Expected<struct rusage, RusageError> rusage_data_;
+  std::chrono::time_point<std::chrono::steady_clock> wall_time_;
+};
 
 CodeProfiler::CodeProfiler(std::string name)
     : name_(name), code_profiler_data_(new CodeProfilerData()) {}
@@ -166,8 +140,28 @@ CodeProfiler::CodeProfiler(std::string name)
 CodeProfiler::~CodeProfiler() {
   if (Killswitch::get().isPosixProfilingEnabled()) {
     CodeProfilerData code_profiler_data_end;
-    recordRusageStatDifference(
-        *code_profiler_data_, code_profiler_data_end, name_);
+
+    auto rusage_start = code_profiler_data_->takeRusageData();
+    if (!rusage_start) {
+      LOG(ERROR) << "rusage_start error: "
+                 << rusage_start.getError().getFullMessageRecursive();
+    } else {
+      auto rusage_end = code_profiler_data_end.takeRusageData();
+      if (!rusage_end) {
+        LOG(ERROR) << "rusage_end error: "
+                   << rusage_end.getError().getFullMessageRecursive();
+      } else {
+        recordRusageStatDifference(*rusage_start, *rusage_end, name_);
+      }
+    }
+
+    const auto query_duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            code_profiler_data_end.getWallTime() -
+            code_profiler_data_.getWallTime());
+    monitoring::record(name_ + ".time.wall.millis",
+                       query_duration.count(),
+                       monitoring::PreAggregationType::Min);
   }
 }
 

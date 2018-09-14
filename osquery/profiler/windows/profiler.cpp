@@ -17,9 +17,8 @@
 #include <osquery/profiler/profiler.h>
 
 namespace osquery {
-namespace {
 
-class CodeProfilerData {
+class CodeProfiler::CodeProfilerData {
  public:
   CodeProfilerData() : wall_time_(std::chrono::steady_clock::now()) {}
 
@@ -30,8 +29,6 @@ class CodeProfilerData {
  private:
   std::chrono::time_point<std::chrono::steady_clock> wall_time_;
 };
-
-} // namespace
 
 CodeProfiler::CodeProfiler(std::string name)
     : name_(name), code_profiler_data_(new CodeProfilerData()) {}

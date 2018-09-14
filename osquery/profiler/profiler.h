@@ -14,9 +14,6 @@
 #include <string>
 
 namespace osquery {
-namespace {
-class CodeProfilerData;
-}
 
 class CodeProfiler final {
  public:
@@ -29,6 +26,8 @@ class CodeProfiler final {
   }
 
  private:
+  class CodeProfilerData;
+
   std::string name_;
   std::unique_ptr<CodeProfilerData> code_profiler_data_;
 };
