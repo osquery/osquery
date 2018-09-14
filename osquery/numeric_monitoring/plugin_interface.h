@@ -29,6 +29,7 @@ struct RecordKeys {
   std::string value;
   std::string timestamp;
   std::string pre_aggregation;
+  std::string sync;
 };
 
 const RecordKeys& recordKeys();

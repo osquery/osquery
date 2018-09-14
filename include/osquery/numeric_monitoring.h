@@ -52,6 +52,9 @@ enum class PreAggregationType {
  * @param pre_aggregation An preliminary aggregation type for this particular
  * path @see PreAggregationType. It allows some numeric monitoring plugins
  * pre-aggregate points before send it.
+ * @param sync when true pushes record without any buffering. This value is also
+ * propagated to the plugin, so call to the plugin only returns once record is
+ * sent.
  * @param time_point A time of new point, in vast majority of cases it is just
  * a now time (default time).
  *
@@ -65,6 +68,7 @@ enum class PreAggregationType {
 void record(const std::string& path,
             ValueType value,
             PreAggregationType pre_aggregation = PreAggregationType::None,
+            const bool sync = false,
             TimePoint time_point = Clock::now());
 
 /**
