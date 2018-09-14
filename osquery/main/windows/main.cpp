@@ -26,7 +26,7 @@ DECLARE_string(flagfile);
 
 namespace osquery {
 
-static const std::string kDefaultFlagsFile{OSQUERY_HOME "\\osquery.flags"};
+static const std::string kDefaultFlagsFile{OSQUERY_HOME "osquery.flags"};
 static const std::string kServiceName{"osqueryd"};
 static const std::string kServiceDisplayName{"osquery daemon service"};
 
