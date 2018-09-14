@@ -17,11 +17,14 @@
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/iterator/filter_iterator.hpp>
 
 #include <osquery/config.h>
+#include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
+#include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/killswitch.h>
 #include <osquery/logger.h>
@@ -32,6 +35,7 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/flagalias.h"
 #include "osquery/core/hashing.h"
+#include "osquery/filesystem/fileops.h"
 
 namespace rj = rapidjson;
 
@@ -93,6 +97,11 @@ CLI_FLAG(bool,
 FLAG_ALIAS(google::uint64,
            config_tls_accelerated_refresh,
            config_accelerated_refresh);
+
+FLAG(string,
+     blacklist_db_path,
+     OSQUERY_LOG_HOME "blacklist.db",
+     "Location for the blacklisting mechanism database");
 
 DECLARE_string(config_plugin);
 DECLARE_string(pack_delimiter);
@@ -176,14 +185,6 @@ class Schedule : private boost::noncopyable {
  private:
   /// Underlying storage for the packs
   container packs_;
-
-  /**
-   * @brief The schedule will check and record previously executing queries.
-   *
-   * If a query is found on initialization, the name will be recorded, it is
-   * possible to skip previously failed queries.
-   */
-  std::string failed_query_;
 
   /**
    * @brief List of blacklisted queries.
@@ -313,9 +314,24 @@ Schedule::Schedule() {
   restoreScheduleBlacklist(blacklist_);
 
   // Check if any queries were executing when the tool last stopped.
-  getDatabaseValue(kPersistentSettings, kExecutingQuery, failed_query_);
+  std::string failed_query_;
+  if (Killswitch::get().isFileBlacklistingEnabled()) {
+    const auto status = readFile(FLAGS_blacklist_db_path, failed_query_);
+    if (!status.ok()) {
+      failed_query_.clear();
+    }
+  } else {
+    getDatabaseValue(kPersistentSettings, kExecutingQuery, failed_query_);
+  }
+
   if (!failed_query_.empty()) {
     LOG(WARNING) << "Scheduled query may have failed: " << failed_query_;
+    boost::system::error_code ec;
+    boost::filesystem::remove(FLAGS_blacklist_db_path, ec);
+    if (ec) {
+      LOG(ERROR) << "Could not remove failed_query file: "
+                 << FLAGS_blacklist_db_path << " with error: " << ec.message();
+    }
     setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
     // Add this query name to the blacklist and save the blacklist.
     blacklist_[failed_query_] = getUnixTime() + 86400;
@@ -961,6 +977,11 @@ void Config::recordQueryPerformance(const std::string& name,
 void Config::recordQueryStart(const std::string& name) {
   // There should only ever be a single executing query in the schedule.
   setDatabaseValue(kPersistentSettings, kExecutingQuery, name);
+  writeTextFile(FLAGS_blacklist_db_path,
+                name,
+                0660,
+                PF_WRITE | PF_NONBLOCK | PF_CREATE_ALWAYS);
+
   // Store the time this query name last executed for later results eviction.
   // When configuration updates occur the previous schedule is searched for
   // 'stale' query names, aka those that have week-old or longer last execute

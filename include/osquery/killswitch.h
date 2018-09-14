@@ -32,6 +32,10 @@ class Killswitch : private boost::noncopyable {
   virtual ~Killswitch();
 
   // Author: @guliashvili
+  // Creation Time: 14/09/2018
+  bool isFileBlacklistingEnabled();
+
+  // Author: @guliashvili
   // Creation Time: 4/09/2018
   bool isTotalQueryCounterMonitorEnabled();
 

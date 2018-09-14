@@ -32,6 +32,10 @@ FLAG(string,
 Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
+bool Killswitch::isFileBlacklistingEnabled() {
+  return isNewCodeEnabled("fileBlacklistingSwitch");
+}
+
 bool Killswitch::isTotalQueryCounterMonitorEnabled() {
   return isNewCodeEnabled("totalQueryCounterMonitorSwitch");
 }
