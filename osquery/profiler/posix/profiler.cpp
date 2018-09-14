@@ -42,6 +42,39 @@ int getRusageWho() {
 #endif
 }
 
+enum class RusageError { FatalError = 1 };
+
+static Expected<struct rusage, RusageError> callRusage() {
+  struct rusage stats;
+  const int who = getRusageWho();
+  auto rusage_status = getrusage(who, &stats);
+  if (rusage_status != -1) {
+    return stats;
+  } else {
+    return createError(RusageError::FatalError, "")
+           << "Linux query profiling failed. error code: " << rusage_status
+           << " message: " << boost::io::quoted(strerror(errno));
+  }
+}
+
+class CodeProfilerData {
+ public:
+  CodeProfilerData()
+      : rusage_data_(callRusage()),
+        wall_time_(std::chrono::steady_clock::now()) {}
+
+  const std::chrono::time_point<std::chrono::steady_clock>& getWallTime() {
+    return wall_time_;
+  }
+  Expected<struct rusage, RusageError> takeRusageData() {
+    return std::move(rusage_data_);
+  }
+
+ private:
+  Expected<struct rusage, RusageError> rusage_data_;
+  std::chrono::time_point<std::chrono::steady_clock> wall_time_;
+};
+
 void recordRusageStatDifference(int64_t start_stat,
                                 int64_t end_stat,
                                 const std::string& stat_name) {
@@ -99,68 +132,42 @@ void recordRusageStatDifference(const struct rusage& start_stats,
                              monitoring_path_prefix + ".time.system");
 }
 
-enum class RusageError { FatalError = 1 };
-Expected<struct rusage, RusageError> callRusage() {
-  struct rusage stats;
-  const int who = getRusageWho();
-  auto rusage_status = getrusage(who, &stats);
-  if (rusage_status != -1) {
-    return stats;
-  } else {
-    return createError(RusageError::FatalError, "")
-           << "Linux query profiling failed. error code: " << rusage_status
-           << " message: " << boost::io::quoted(strerror(errno));
-  }
-}
-
-Status launchQueryWithPosixProfiling(const std::string& name,
-                                     std::function<Status()> launcher) {
-  auto rusage_start = callRusage();
-
+void recordRusageStatDifference(CodeProfilerData& start_stats,
+                                CodeProfilerData& end_stats,
+                                const std::string& monitoring_path_prefix) {
+  auto rusage_start = start_stats.takeRusageData();
   if (!rusage_start) {
     LOG(ERROR) << "rusage_start error: "
                << rusage_start.getError().getFullMessageRecursive();
-  }
-
-  const auto start_time_point = std::chrono::steady_clock::now();
-
-  const auto status = launcher();
-
-  const auto query_duration =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::steady_clock::now() - start_time_point);
-
-  const auto monitoring_path_prefix =
-      (boost::format("scheduler.executing_query.%s.%s") % name %
-       (status.ok() ? "success" : "failure"))
-          .str();
-
-  if (rusage_start) {
-    const auto rusage_end = callRusage();
-
-    if (rusage_end) {
-      recordRusageStatDifference(
-          *rusage_start, *rusage_end, monitoring_path_prefix);
-    } else {
+  } else {
+    auto rusage_end = end_stats.takeRusageData();
+    if (!rusage_end) {
       LOG(ERROR) << "rusage_end error: "
                  << rusage_end.getError().getFullMessageRecursive();
+    } else {
+      recordRusageStatDifference(
+          *rusage_start, *rusage_end, monitoring_path_prefix);
     }
   }
 
-  monitoring::record(monitoring_path_prefix + ".time.real.millis",
+  const auto query_duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          end_stats.getWallTime() - start_stats.getWallTime());
+  monitoring::record(monitoring_path_prefix + ".time.wall.millis",
                      query_duration.count(),
                      monitoring::PreAggregationType::Min);
-
-  return status;
 }
+
 } // namespace
 
-Status launchWithProfiling(const std::string& name,
-                           std::function<Status()> launcher) {
+CodeProfiler::CodeProfiler(std::string name)
+    : name_(name), code_profiler_data_(new CodeProfilerData()) {}
+
+CodeProfiler::~CodeProfiler() {
   if (Killswitch::get().isPosixProfilingEnabled()) {
-    return launchQueryWithPosixProfiling(name, launcher);
-  } else {
-    return launcher(); // Just execute the query
+    CodeProfilerData code_profiler_data_end;
+    recordRusageStatDifference(
+        *code_profiler_data_, code_profiler_data_end, name_);
   }
 }
 

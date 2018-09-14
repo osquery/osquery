@@ -17,23 +17,38 @@
 #include <osquery/profiler/profiler.h>
 
 namespace osquery {
+namespace {
 
-Status launchWithProfiling(const std::string& name,
-                           std::function<Status()> launcher) {
-  const auto start_time_point = std::chrono::steady_clock::now();
-  const auto status = launcher();
-  const auto monitoring_path_prefix =
-      (boost::format("scheduler.executing_query.%s.%s") % name %
-       (status.ok() ? "success" : "failure"))
-          .str();
-  const auto query_duration =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::steady_clock::now() - start_time_point);
+class CodeProfilerData {
+ public:
+  CodeProfilerData() : wall_time_(std::chrono::steady_clock::now()) {}
+
+  const std::chrono::time_point<std::chrono::steady_clock>& getWallTime() {
+    return wall_time_;
+  }
+
+ private:
+  std::chrono::time_point<std::chrono::steady_clock> wall_time_;
+};
+
+} // namespace
+
+CodeProfiler::CodeProfiler(std::string name)
+    : name_(name), code_profiler_data_(new CodeProfilerData()) {}
+
+CodeProfiler::~CodeProfiler() {
   if (Killswitch::get().isWindowsProfilingEnabled()) {
-    monitoring::record(monitoring_path_prefix + ".time.real.millis",
+    CodeProfilerData code_profiler_data_end;
+
+    const auto query_duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            code_profiler_data_end.getWallTime() -
+            code_profiler_data_->getWallTime());
+
+    monitoring::record(monitoring_path_prefix + ".time.wall.millis",
                        query_duration.count(),
                        monitoring::PreAggregationType::Min);
   }
-  return status;
 }
+
 } // namespace osquery

@@ -10,13 +10,27 @@
 
 #pragma once
 
-#include <functional>
+#include <memory>
 #include <string>
 
-#include <osquery/status.h>
-
 namespace osquery {
-
-Status launchWithProfiling(const std::string& name,
-                           std::function<Status()> launcher);
+namespace {
+class CodeProfilerData;
 }
+
+class CodeProfiler final {
+ public:
+  CodeProfiler(std::string name);
+
+  ~CodeProfiler();
+
+  void appendName(const std::string& appendName) {
+    name_ += appendName;
+  }
+
+ private:
+  std::string name_;
+  std::unique_ptr<CodeProfilerData> code_profiler_data_;
+};
+
+} // namespace osquery

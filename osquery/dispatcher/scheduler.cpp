@@ -185,8 +185,12 @@ void SchedulerRunner::start() {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
             TablePlugin::kCacheInterval = query.splayed_interval;
             TablePlugin::kCacheStep = i;
-            launchWithProfiling(
-                name, std::bind(launchQuery, std::ref(name), std::ref(query)));
+            {
+              CodeProfiler codeProfiler(
+                  (boost::format("scheduler.executing_query.%s") % name).str());
+              const auto status = launchQuery(name, query);
+              codeProfiler.appendName(status.ok() ? ".success" : ".failure");
+            };
           }
         }));
     // Configuration decorators run on 60 second intervals only.
