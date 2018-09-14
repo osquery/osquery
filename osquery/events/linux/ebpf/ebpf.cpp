@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "osquery/events/linux/ebpf/ebpf.h"
 #include "osquery/events/linux/ebpf/system.h"
 
 namespace osquery {
