@@ -13,8 +13,6 @@
 #include <osquery/core/conversions.h>
 #include <osquery/debug/debug_only.h>
 
-#include <linux/version.h>
-
 #include <sys/utsname.h>
 
 #include <cstring>
@@ -68,13 +66,6 @@ KernelReleaseVersion getKernelReleaseVersion() {
 }
 
 } // namespace impl
-
-bool isSupportedBySystem() {
-  constexpr int kMinimalLinuxVersionCode = KERNEL_VERSION(4, 9, 0);
-  auto const version = impl::getKernelReleaseVersion();
-  return kMinimalLinuxVersionCode <=
-         KERNEL_VERSION(version.major, version.minor, version.patches);
-}
 
 } // namespace ebpf
 } // namespace osquery

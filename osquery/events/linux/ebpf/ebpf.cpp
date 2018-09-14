@@ -8,14 +8,16 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#pragma once
-
-#include "osquery/events/linux/ebpf/map.h"
+#include "osquery/events/linux/ebpf/system.h"
 
 namespace osquery {
 namespace ebpf {
 
-bool isSupportedBySystem();
+bool isSupportedBySystem() {
+  auto const version = impl::getKernelReleaseVersion();
+  return kMinimalLinuxVersionCode <=
+         KERNEL_VERSION(version.major, version.minor, version.patches);
+}
 
 } // namespace ebpf
 } // namespace osquery

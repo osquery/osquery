@@ -12,6 +12,7 @@
 
 #include <linux/bpf.h>
 #include <linux/perf_event.h>
+#include <linux/version.h>
 
 #ifndef __NR_perf_event_open
 #if defined(__PPC__)
@@ -44,7 +45,7 @@
 namespace osquery {
 namespace ebpf {
 
-bool isSupportedBySystem();
+constexpr int kMinimalLinuxVersionCode = KERNEL_VERSION(4, 9, 0);
 
 namespace impl {
 
