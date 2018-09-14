@@ -13,6 +13,8 @@
 #include <osquery/core/conversions.h>
 #include <osquery/debug/debug_only.h>
 
+#include <linux/version.h>
+
 #include <sys/utsname.h>
 
 #include <cstring>

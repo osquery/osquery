@@ -11,7 +11,7 @@
 #pragma once
 
 #include <linux/bpf.h>
-#include <linux/version.h>
+#include <linux/perf_event.h>
 
 #ifndef __NR_perf_event_open
 #if defined(__PPC__)
