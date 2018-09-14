@@ -56,7 +56,7 @@ struct KernelReleaseVersion {
 
 KernelReleaseVersion getKernelReleaseVersion();
 
-}
+} // namespace impl
 
 } // namespace ebpf
 } // namespace osquery
