@@ -23,7 +23,7 @@ TEST_F(RoutesTest, test_sanity) {
 
   auto const row_map = ValidatatioMap{
       {"destination", verifyIpAddress},
-      {"netmask", IntType},
+      {"netmask", IntMinMaxCheck(0, 128)},
       {"gateway", verifyEmptyStringOrIpAddress},
       {"source", verifyEmptyStringOrIpAddress},
       {"flags", IntType},
