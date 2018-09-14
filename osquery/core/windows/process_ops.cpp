@@ -24,31 +24,32 @@ std::string psidToString(PSID sid) {
 }
 
 int getUidFromSid(PSID sid) {
-  unsigned long uid = -1;
+  unsigned long const uid_default = -1;
   LPTSTR sidString;
   if (ConvertSidToStringSid(sid, &sidString) == 0) {
     VLOG(1) << "getUidFromSid failed ConvertSidToStringSid error " +
                    std::to_string(GetLastError());
     LocalFree(sidString);
-    return uid;
+    return uid_default;
   }
   auto toks = osquery::split(sidString, "-");
 
   if (toks.size() < 1) {
     LocalFree(sidString);
-    return uid;
+    return uid_default;
   }
 
-  auto ret = safeStrtoul(toks.at(toks.size() - 1), 10, uid);
+  auto uid_exp = tryTo<unsigned long int>(toks.at(toks.size() - 1), 10);
 
-  if (!ret.ok()) {
+  if (uid_exp.isError()) {
     LocalFree(sidString);
-    VLOG(1) << "getUidFromSid failed with safeStrtoul failed to parse PSID";
-    return uid;
+    VLOG(1) << "failed to parse PSID "
+            << uid_exp.getError().getFullMessageRecursive();
+    return uid_default;
   }
 
   LocalFree(sidString);
-  return uid;
+  return uid_exp.take();
 }
 
 int getGidFromSid(PSID sid) {
@@ -82,7 +83,7 @@ int getGidFromSid(PSID sid) {
     LPTSTR sidString;
     ConvertSidToStringSid(sid, &sidString);
     auto toks = osquery::split(sidString, "-");
-    safeStrtoul(toks.at(toks.size() - 1), 10, gid);
+    gid = tryTo<unsigned long int>(toks.at(toks.size() - 1), 10).takeOr(gid);
     LocalFree(sidString);
 
   } else if (ret == NERR_Success) {

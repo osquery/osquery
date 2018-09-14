@@ -32,8 +32,20 @@ FLAG(string,
 Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
-bool Killswitch::isExecutingQueryMonitorEnabled() {
-  return isNewCodeEnabled("executingQueryMonitorSwitch");
+bool Killswitch::isPosixProfilingEnabled() {
+  return isNewCodeEnabled("posixProfilingSwitch");
+}
+
+bool Killswitch::isTotalQueryCounterMonitorEnabled() {
+  return isNewCodeEnabled("totalQueryCounterMonitorSwitch");
+}
+
+bool Killswitch::isAppStartMonitorEnabled() {
+  return isNewCodeEnabled("appStartMonitorSwitch");
+}
+
+bool Killswitch::isWindowsProfilingEnabled() {
+  return isNewCodeEnabled("windowsProfilingSwitch");
 }
 
 bool Killswitch::isConfigBackupEnabled() {

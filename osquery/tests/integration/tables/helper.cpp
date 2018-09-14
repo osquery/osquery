@@ -14,6 +14,7 @@
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
+#include <boost/regex.hpp>
 #include <boost/uuid/string_generator.hpp>
 
 #include <osquery/core/conversions.h>
@@ -89,6 +90,17 @@ bool verifyIpAddress(std::string const& value) {
   return !err;
 }
 
+bool verifyEmptyStringOrIpAddress(std::string const& value) {
+  return value.empty() ? true : verifyIpAddress(value);
+}
+
+bool verifyMacAddress(std::string const& value) {
+  boost::smatch match;
+  // IEEE 802: six groups of two hexadecimal digits, separated by '-' or ':'
+  boost::regex rxMacAddress("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$");
+  return boost::regex_match(value, match, rxMacAddress);
+}
+
 QueryData IntegrationTableTest::execute_query(std::string query) {
   SQLInternal sql(query, false);
   return sql.rows();
@@ -162,8 +174,13 @@ bool IntegrationTableTest::validate_value_using_flags(const std::string& value,
       return false;
     }
     auto intValue = cast_result.get();
-    if ((flags & NonNegative) > 0) {
+    if ((flags & NonNegativeInt) > 0) {
       if (intValue < 0) {
+        return false;
+      }
+    }
+    if ((flags & NonNegativeOrErrorInt) > 0) {
+      if (intValue < -1) {
         return false;
       }
     }

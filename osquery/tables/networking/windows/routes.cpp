@@ -147,8 +147,7 @@ QueryData genRoutes(QueryContext& context) {
       r["type"] = currentRow.Loopback ? "local" : "remote";
     }
     r["interface"] = SQL_TEXT(interfaceIpAddress);
-    r["netmask"] =
-        SQL_TEXT(std::to_string(currentRow.DestinationPrefix.PrefixLength));
+    r["netmask"] = INTEGER(currentRow.DestinationPrefix.PrefixLength);
     // TODO: implement routes flags
     r["flags"] = SQL_TEXT("-1");
 

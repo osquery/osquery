@@ -67,7 +67,12 @@ const auto& getAggregationTypeToStringTable() {
           {PreAggregationType::Sum, "sum"},
           {PreAggregationType::Min, "min"},
           {PreAggregationType::Max, "max"},
-      };
+          {PreAggregationType::Avg, "avg"},
+          {PreAggregationType::Stddev, "stddev"},
+          {PreAggregationType::P10, "p10"},
+          {PreAggregationType::P50, "p50"},
+          {PreAggregationType::P95, "p95"},
+          {PreAggregationType::P99, "p99"}};
   return table;
 }
 
@@ -125,9 +130,10 @@ class PreAggregationBuffer final {
   void record(const std::string& path,
               const ValueType& value,
               const PreAggregationType& pre_aggregation,
+              const bool sync,
               const TimePoint& time_point) {
-    if (0 == FLAGS_numeric_monitoring_pre_aggregation_time) {
-      dispatchOne(path, value, pre_aggregation, time_point);
+    if (0 == FLAGS_numeric_monitoring_pre_aggregation_time || sync) {
+      dispatchOne(path, value, pre_aggregation, sync, time_point);
     } else {
       std::lock_guard<std::mutex> lock(mutex_);
       cache_.addPoint(Point(path, value, pre_aggregation, time_point));
@@ -138,7 +144,7 @@ class PreAggregationBuffer final {
     auto points = takeCachedPoints();
     for (const auto& pt : points) {
       dispatchOne(
-          pt.path_, pt.value_, pt.pre_aggregation_type_, pt.time_point_);
+          pt.path_, pt.value_, pt.pre_aggregation_type_, false, pt.time_point_);
     }
   }
 
@@ -152,6 +158,7 @@ class PreAggregationBuffer final {
   void dispatchOne(const std::string& path,
                    const ValueType& value,
                    const PreAggregationType& pre_aggregation,
+                   const bool sync,
                    const TimePoint& time_point) {
     auto status = Registry::call(
         registryName(),
@@ -162,6 +169,7 @@ class PreAggregationBuffer final {
             {recordKeys().pre_aggregation, to<std::string>(pre_aggregation)},
             {recordKeys().timestamp,
              std::to_string(time_point.time_since_epoch().count())},
+            {recordKeys().sync, sync ? "true" : "false"},
         });
     if (!status.ok()) {
       LOG(ERROR) << "Data loss. Numeric monitoring point dispatch failed: "
@@ -203,12 +211,13 @@ void flush() {
 void record(const std::string& path,
             ValueType value,
             PreAggregationType pre_aggregation,
+            const bool sync,
             TimePoint time_point) {
   if (!FLAGS_enable_numeric_monitoring) {
     return;
   }
   PreAggregationBuffer::get().record(
-      path, value, pre_aggregation, std::move(time_point));
+      path, value, pre_aggregation, sync, std::move(time_point));
 }
 
 } // namespace monitoring

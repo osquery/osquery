@@ -210,12 +210,30 @@ static std::thread::id kMainThreadId;
 unsigned long kLegacyThreadId;
 
 /// When no flagfile is provided via CLI, attempt to read flag 'defaults'.
-const std::string kBackupDefaultFlagfile{OSQUERY_HOME "/osquery.flags.default"};
+const std::string kBackupDefaultFlagfile{OSQUERY_HOME "osquery.flags.default"};
 
 const size_t kDatabaseMaxRetryCount{25};
 const size_t kDatabaseRetryDelay{200};
 std::function<void()> Initializer::shutdown_{nullptr};
 RecursiveMutex Initializer::shutdown_mutex_;
+
+namespace {
+
+void initWorkDirectories() {
+  if (!FLAGS_disable_database) {
+    auto const recursive = true;
+    auto const ignore_existence = true;
+    auto const status = createDirectory(
+        boost::filesystem::path(FLAGS_database_path).parent_path(),
+        recursive,
+        ignore_existence);
+    if (!status.ok()) {
+      LOG(ERROR) << "Could not initialize db directory " << status.what();
+    }
+  }
+}
+
+} // namespace
 
 static inline void printUsage(const std::string& binary, ToolType tool) {
   // Parse help options before gflags. Only display osquery-related options.
@@ -372,6 +390,9 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   if (isShell()) {
     // Initialize the shell after setting modified defaults and parsing flags.
     initShell();
+  }
+  if (isDaemon()) {
+    initWorkDirectories();
   }
 
   std::signal(SIGABRT, signalHandler);
@@ -697,6 +718,10 @@ void Initializer::start() const {
   if (FLAGS_enable_numeric_monitoring) {
     initActivePlugin(monitoring::registryName(),
                      FLAGS_numeric_monitoring_plugins);
+  }
+
+  if (Killswitch::get().isAppStartMonitorEnabled()) {
+    monitoring::record("osquery.start", 1, monitoring::PreAggregationType::Sum);
   }
 
   // Start event threads.

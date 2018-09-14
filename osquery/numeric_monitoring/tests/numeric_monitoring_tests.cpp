@@ -97,7 +97,12 @@ GTEST_TEST(NumericMonitoringTests, record_with_buffer) {
   const auto monitoring_path = "some.path.to.heaven";
   monitoring::record(monitoring_path,
                      monitoring::ValueType{83},
-                     monitoring::PreAggregationType::Sum);
+                     monitoring::PreAggregationType::Sum,
+                     false);
+  monitoring::record(monitoring_path,
+                     monitoring::ValueType{84},
+                     monitoring::PreAggregationType::Sum,
+                     true);
   monitoring::record(monitoring_path,
                      monitoring::ValueType{88},
                      monitoring::PreAggregationType::Sum);
@@ -106,7 +111,7 @@ GTEST_TEST(NumericMonitoringTests, record_with_buffer) {
                      monitoring::PreAggregationType::Sum);
   monitoring::flush();
 
-  EXPECT_EQ(1, NumericMonitoringInMemoryTestPlugin::points.size());
+  EXPECT_EQ(2, NumericMonitoringInMemoryTestPlugin::points.size());
   EXPECT_EQ(monitoring_path,
             NumericMonitoringInMemoryTestPlugin::points.back().at(
                 monitoring::recordKeys().path));

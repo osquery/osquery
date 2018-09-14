@@ -19,6 +19,7 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
+namespace {
 
 #define kManifestFile "/manifest.json"
 
@@ -30,6 +31,9 @@ const std::map<std::string, std::string> kExtensionKeys = {
     {"update_url", "update_url"},
     {"author", "author"},
     {"background.persistent", "persistent"}};
+
+const std::string kExtensionPermissionKey = "permissions";
+} // namespace
 
 void genExtension(const std::string& uid,
                   const std::string& path,
@@ -51,7 +55,7 @@ void genExtension(const std::string& uid,
     return;
   }
 
-  pt::ptree messagetree;
+  pt::iptree messagetree;
   // Find out if there are localized values for fields
   if (!tree.get<std::string>("default_locale", "").empty()) {
     // Read the localized variables into a second ptree
@@ -74,9 +78,33 @@ void genExtension(const std::string& uid,
     }
   }
 
+  // Fetch the permission array from the manifest file
+  std::string permission_list;
+
+  const auto& perm_array_obj = tree.get_child_optional(kExtensionPermissionKey);
+  if (perm_array_obj) {
+    const auto& perm_array_contents = perm_array_obj.get();
+
+    std::vector<std::string> perm_vector;
+    perm_vector.reserve(perm_array_contents.size());
+
+    for (auto it = perm_array_contents.begin(); it != perm_array_contents.end();
+         ++it) {
+      const auto& perm_obj = *it;
+      const auto& permission =
+          perm_obj.second.get_value_optional<std::string>();
+      if (permission) {
+        perm_vector.emplace_back(*permission);
+      }
+    }
+
+    permission_list = boost::algorithm::join(perm_vector, ", ");
+  }
+
   std::string localized_prefix = "__MSG_";
   Row r;
   r["uid"] = uid;
+  r[kExtensionPermissionKey] = permission_list;
   // Most of the keys are in the top-level JSON dictionary.
   for (const auto& it : kExtensionKeys) {
     std::string key = tree.get<std::string>(it.first, "");

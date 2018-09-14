@@ -23,6 +23,8 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/database/in_memory_database.h"
     "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.h"
+    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_migration.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_migration.h"
     "${CMAKE_CURRENT_LIST_DIR}/flags.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/map_take.h"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.cpp"
@@ -46,6 +48,14 @@ if(APPLE)
       "${CMAKE_CURRENT_LIST_DIR}/darwin/conversions.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.hpp"
+  )
+endif()
+
+if(LINUX)
+  target_sources(libosquery
+    PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/linux/cpu.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/linux/cpu.h"
   )
 endif()
 
@@ -96,4 +106,10 @@ if(POSIX)
   ADD_OSQUERY_TEST_CORE(
     "${CMAKE_CURRENT_LIST_DIR}/tests/posix/permissions_tests.cpp"
   )   
+endif()
+
+if(LINUX)
+  ADD_OSQUERY_TEST_CORE(
+    "${CMAKE_CURRENT_LIST_DIR}/linux/tests/cpu_test.cpp"
+  )
 endif()

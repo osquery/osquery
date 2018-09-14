@@ -22,9 +22,7 @@ class InterfaceAddressesTest : public IntegrationTableTest {};
 
 TEST_F(InterfaceAddressesTest, sanity) {
   QueryData const rows = execute_query("select * from interface_addresses");
-  auto const verifyEmptyStringOrIpAddress = [](auto const& value) {
-    return value.empty() ? true : verifyIpAddress(value);
-  };
+
   auto const row_map = ValidatatioMap{
       {"interface", NonEmptyString},
       {"address", verifyIpAddress},

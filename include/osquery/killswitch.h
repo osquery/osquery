@@ -7,11 +7,14 @@
  * (found in the COPYING file in the root directory of this source tree). You
  * may select, at your option, one of the above-listed licenses.
  */
+
 #pragma once
+
 #include <string>
 
 #include <boost/core/noncopyable.hpp>
 
+#include <osquery/core.h>
 #include <osquery/expected.h>
 #include <osquery/status.h>
 
@@ -32,8 +35,20 @@ class Killswitch : private boost::noncopyable {
   virtual ~Killswitch();
 
   // Author: @guliashvili
+  // Creation Time: 5/09/2018
+  bool isPosixProfilingEnabled();
+
+  // Author: @guliashvili
+  // Creation Time: 4/09/2018
+  bool isTotalQueryCounterMonitorEnabled();
+
+  // Author: @guliashvili
   // Creation Time: 3/09/2018
-  bool isExecutingQueryMonitorEnabled();
+  bool isAppStartMonitorEnabled();
+
+  // Author: @guliashvili
+  // Creation Time: 3/09/2018
+  bool isWindowsProfilingEnabled();
 
   // Author: @guliashvili
   // Creation Time: 24/08/2018
