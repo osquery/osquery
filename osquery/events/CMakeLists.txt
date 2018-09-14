@@ -86,6 +86,7 @@ elseif(LINUX)
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/process_file_events_tests.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/syslog_tests.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/ebpf/tests/map_test.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/linux/ebpf/tests/system_tests.cpp"
   )
 elseif(WINDOWS)
   ADD_OSQUERY_TEST_ADDITIONAL(

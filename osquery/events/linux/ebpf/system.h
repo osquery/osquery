@@ -46,5 +46,17 @@ namespace ebpf {
 
 bool isSupportedBySystem();
 
+namespace impl {
+
+struct KernelReleaseVersion {
+  int major = 0;
+  int minor = 0;
+  int patches = 0;
+};
+
+KernelReleaseVersion getKernelReleaseVersion();
+
+} // namespace impl
+
 } // namespace ebpf
 } // namespace osquery
