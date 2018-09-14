@@ -49,6 +49,14 @@ if(APPLE)
   )
 endif()
 
+if(LINUX)
+  target_sources(libosquery
+    PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/linux/cpu.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/linux/cpu.h"
+  )
+endif()
+
 if(POSIX)
   target_sources(libosquery
     PRIVATE
@@ -96,4 +104,10 @@ if(POSIX)
   ADD_OSQUERY_TEST_CORE(
     "${CMAKE_CURRENT_LIST_DIR}/tests/posix/permissions_tests.cpp"
   )   
+endif()
+
+if(LINUX)
+  ADD_OSQUERY_TEST_CORE(
+    "${CMAKE_CURRENT_LIST_DIR}/linux/tests/cpu_test.cpp"
+  )
 endif()
