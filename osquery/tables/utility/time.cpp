@@ -59,15 +59,13 @@ QueryData genTime(QueryContext& context) {
   strftime(iso_8601, sizeof(iso_8601), "%FT%TZ", &gmt);
 
   if (context.isColumnUsed("timestamp_sys100ns")) {
-    const WmiRequest request(
-        "SELECT Timestamp_Sys100NS FROM Win32_PerfRawData_PerfProc_Process "
-        "where idprocess = 0");
-    const std::vector<WmiResultItem>& wmiResults = request.results();
-    if (!wmiResults.empty()) {
-      std::string numProcs;
-      wmiResults[1].GetString("Timestamp_Sys100NS", numProcs);
-      r["timestamp_sys100ns"] = BIGINT(std::stoll(numProcs));
-    }
+	FILETIME ft = { 0 };
+	GetSystemTimeAsFileTime(&ft);
+	LARGE_INTEGER li = { 0 };
+	li.LowPart = ft.dwLowDateTime;
+	li.HighPart = ft.dwHighDateTime;
+	long long int hns = li.QuadPart;
+    r["timestamp_sys100ns"] = BIGINT(hns);
   }
 
   r["weekday"] = SQL_TEXT(weekday);
