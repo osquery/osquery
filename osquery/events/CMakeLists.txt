@@ -44,6 +44,9 @@ else()
     "${CMAKE_CURRENT_LIST_DIR}/linux/auditdnetlink.h"
     "${CMAKE_CURRENT_LIST_DIR}/linux/auditeventpublisher.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/auditeventpublisher.h"
+    "${CMAKE_CURRENT_LIST_DIR}/linux/ebpf/ebpf.h"
+    "${CMAKE_CURRENT_LIST_DIR}/linux/ebpf/system.h"
+    "${CMAKE_CURRENT_LIST_DIR}/linux/ebpf/system.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/inotify.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/inotify.h"
     "${CMAKE_CURRENT_LIST_DIR}/linux/syslog.cpp"
@@ -80,6 +83,7 @@ elseif(LINUX)
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/inotify_tests.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/process_file_events_tests.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/syslog_tests.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/linux/ebpf/tests/system_tests.cpp"
   )
 elseif(WINDOWS)
   ADD_OSQUERY_TEST_ADDITIONAL(
