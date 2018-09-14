@@ -40,7 +40,7 @@ class RocksdbMigration final {
 
  private:
   struct DatabaseHandle {
-    std::unique_ptr<rocksdb::DB> db_handle = nullptr;
+    std::unique_ptr<rocksdb::DB> db_handle;
     rocksdb::Options options;
     std::string path;
     std::unordered_map<std::string,
