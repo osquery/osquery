@@ -154,14 +154,15 @@ Status SyslogEventPublisher::run() {
   // weird and there is a huge amount of input, we limit how many logs we
   // take in per run to avoid pegging the CPU.
   for (size_t i = 0; i < FLAGS_syslog_rate_limit; ++i) {
-    if (readStream_.rdbuf()->in_avail() == 0) {
+    std::string line;
+    std::getline(readStream_, line);
+    if (line.length() == 0 || isEnding()) {
       // If there is no pending data, we have flushed everything and can wait
       // until the next time EventFactory calls run(). This also allows the
       // thread to join when it is stopped by EventFactory.
       return Status(0, "OK");
     }
-    std::string line;
-    std::getline(readStream_, line);
+
     auto ec = createEventContext();
     Status status = populateEventContext(line, ec);
     if (status.ok()) {
@@ -181,6 +182,7 @@ Status SyslogEventPublisher::run() {
 }
 
 void SyslogEventPublisher::tearDown() {
+  readStream_.close();
   unlockPipe();
 }
 
