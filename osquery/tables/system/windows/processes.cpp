@@ -49,6 +49,9 @@ const std::map<unsigned long, std::string> kMemoryConstants = {
     {PAGE_NOCACHE, "PAGE_NOCACHE"},
     {PAGE_WRITECOMBINE, "PAGE_WRITECOMBINE"},
 };
+const std::string kWinProcPerfQuery =
+    "SELECT IDProcess, ElapsedTime, HandleCount, PercentProcessorTime FROM "
+    "Win32_PerfRawData_PerfProc_Process";
 
 /// Given a pid, enumerates all loaded modules and memory pages for that process
 Status genMemoryMap(unsigned long pid, QueryData& results) {
@@ -146,9 +149,9 @@ Status getProcList(std::set<long>& pids) {
 
 void genProcess(
     const WmiResultItem& result,
+    std::map<std::int32_t, std::map<std::string, std::int64_t>>& perfData,
     QueryData& results_data,
-    QueryContext& context,
-    std::map<std::int32_t, std::map<std::string, std::int64_t>> perfData) {
+    QueryContext& context) {
   Row r;
   Status s;
   long pid;
@@ -303,34 +306,33 @@ void genProcess(
 }
 
 // collect perf data into a hashmap by pid to later be refferenced
-std::map<std::int32_t, std::map<std::string, std::int64_t>>
-genPerfPerProcess() {
-  std::map<std::int32_t, std::map<std::string, std::int64_t>> returnData;
-  const WmiRequest request(
-      "SELECT IDProcess, ElapsedTime, "
-      "HandleCount, PercentProcessorTime FROM "
-      "Win32_PerfRawData_PerfProc_Process");
 
-  if (request.getStatus().ok()) {
-    const auto& results = request.results();
-    for (const auto& result : results) {
-      std::map<std::string, std::int64_t> process_data;
-      long processID;
-      long handleCount = 0;
-      std::string elapsedTime;
-      std::string percentProcessorTime;
+void genPerfPerProcess(
+    std::map<std::int32_t, std::map<std::string, std::int64_t>>& perfData) {
+  const WmiRequest request(kWinProcPerfQuery);
 
-      result.GetString("ElapsedTime", elapsedTime);
-      result.GetLong("HandleCount", handleCount);
-      result.GetString("PercentProcessorTime", percentProcessorTime);
-      process_data["elapsed_time"] = std::stoll(elapsedTime);
-      process_data["handle_count"] = handleCount;
-      process_data["percent_processor_time"] = std::stoll(percentProcessorTime);
-      result.GetLong("IDProcess", processID);
-      returnData[processID] = process_data;
-    }
+  if (!request.getStatus().ok()) {
+    VLOG(1) << "Failed to query process perf data from WMI";
+    return;
   }
-  return returnData;
+
+  const auto& results = request.results();
+  for (const auto& result : results) {
+    std::map<std::string, std::int64_t> processData;
+    long processID;
+    long handleCount = 0;
+    std::string elapsedTime;
+    std::string percentProcessorTime;
+
+    result.GetString("ElapsedTime", elapsedTime);
+    result.GetLong("HandleCount", handleCount);
+    result.GetString("PercentProcessorTime", percentProcessorTime);
+    processData["elapsed_time"] = std::stoll(elapsedTime);
+    processData["handle_count"] = handleCount;
+    processData["percent_processor_time"] = std::stoll(percentProcessorTime);
+    result.GetLong("IDProcess", processID);
+	perfData[processID] = processData;
+  }
 }
 
 QueryData genProcesses(QueryContext& context) {
@@ -362,14 +364,9 @@ QueryData genProcesses(QueryContext& context) {
     }
   }
   std::map<std::int32_t, std::map<std::string, std::int64_t>> perfData;
-  if (context.isAnyColumnUsed({"elapsed_time",
-                               "handle_count",
-                               "page_file_bytes",
-                               "page_file_bytes_peak",
-                               "percent_privileged_time",
-                               "percent_processor_time",
-                               "percent_user_time"})) {
-    perfData = genPerfPerProcess();
+  if (context.isAnyColumnUsed(
+          {"elapsed_time", "handle_count", "percent_processor_time"})) {
+    genPerfPerProcess(perfData);
   }
 
   const WmiRequest request(query);
@@ -377,7 +374,7 @@ QueryData genProcesses(QueryContext& context) {
     for (const auto& item : request.results()) {
       long pid = 0;
       if (item.GetLong("ProcessId", pid).ok()) {
-        genProcess(item, results, context, perfData);
+        genProcess(item, perfData, results, context);
       }
     }
   }
