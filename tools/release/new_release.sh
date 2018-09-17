@@ -28,7 +28,7 @@ function main() {
   OSQUERY=$2
   SITE=$3
 
-  echo "[+] Checking out version $VERSION"
+  echo "[+] Checking out osquery version $VERSION"
   (cd $OSQUERY; git checkout $VERSION)
 
   echo "[+] Writing new table API"
