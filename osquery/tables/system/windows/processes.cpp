@@ -147,7 +147,10 @@ Status getProcList(std::set<long>& pids) {
   return Status(0, "Ok");
 }
 
-void genProcess(const long pid, const WmiResultItem& result, Row& r, QueryContext& context) {
+void genProcess(const long pid,
+                const WmiResultItem& result,
+                Row& r,
+                QueryContext& context) {
   Status s;
   long lPlaceHolder;
   std::string sPlaceHolder;
@@ -343,6 +346,7 @@ QueryData genProcesses(QueryContext& context) {
     }
   }
 
+  // get per process data
   std::map<std::int32_t, std::map<std::string, std::int64_t>> perfData;
   if (context.isAnyColumnUsed(
           {"elapsed_time", "handle_count", "percent_processor_time"})) {
@@ -356,7 +360,7 @@ QueryData genProcesses(QueryContext& context) {
       Row r;
       if (item.GetLong("ProcessId", pid).ok()) {
         r["pid"] = BIGINT(pid);
-
+        // add per process perf data
         if (context.isAnyColumnUsed(
                 {"elapsed_time", "handle_count", "percent_processor_time"})) {
           std::map<std::string, std::int64_t> procPerfData;
