@@ -147,32 +147,13 @@ Status getProcList(std::set<long>& pids) {
   return Status(0, "Ok");
 }
 
-void genProcess(
-    const WmiResultItem& result,
-    std::map<std::int32_t, std::map<std::string, std::int64_t>>& perfData,
-    QueryData& results_data,
-    QueryContext& context) {
-  Row r;
+void genProcess(const long pid, const WmiResultItem& result, Row& r, QueryContext& context) {
   Status s;
-  long pid;
   long lPlaceHolder;
   std::string sPlaceHolder;
 
   /// Store current process pid for more efficient API use.
   auto currentPid = GetCurrentProcessId();
-
-  s = result.GetLong("ProcessId", pid);
-  r["pid"] = s.ok() ? BIGINT(pid) : BIGINT(-1);
-
-  if (context.isAnyColumnUsed(
-          {"elapsed_time", "handle_count", "percent_processor_time"})) {
-    std::map<std::string, std::int64_t> procPerfData;
-    procPerfData = perfData[pid];
-    r["elapsed_time"] = BIGINT(procPerfData["elapsed_time"]);
-    r["handle_count"] = BIGINT(procPerfData["handle_count"]);
-    r["percent_processor_time"] =
-        BIGINT(procPerfData["percent_processor_time"]);
-  }
 
   long uid = -1;
   long gid = -1;
@@ -301,8 +282,6 @@ void genProcess(
   if (hProcess != nullptr) {
     CloseHandle(hProcess);
   }
-
-  results_data.push_back(r);
 }
 
 // collect perf data into a hashmap by pid to later be refferenced
@@ -331,7 +310,7 @@ void genPerfPerProcess(
     processData["handle_count"] = handleCount;
     processData["percent_processor_time"] = std::stoll(percentProcessorTime);
     result.GetLong("IDProcess", processID);
-	perfData[processID] = processData;
+    perfData[processID] = processData;
   }
 }
 
@@ -363,6 +342,7 @@ QueryData genProcesses(QueryContext& context) {
       query += " WHERE " + boost::algorithm::join(constraints, " OR ");
     }
   }
+
   std::map<std::int32_t, std::map<std::string, std::int64_t>> perfData;
   if (context.isAnyColumnUsed(
           {"elapsed_time", "handle_count", "percent_processor_time"})) {
@@ -373,9 +353,25 @@ QueryData genProcesses(QueryContext& context) {
   if (request.getStatus().ok()) {
     for (const auto& item : request.results()) {
       long pid = 0;
+      Row r;
       if (item.GetLong("ProcessId", pid).ok()) {
-        genProcess(item, perfData, results, context);
+        r["pid"] = BIGINT(pid);
+
+        if (context.isAnyColumnUsed(
+                {"elapsed_time", "handle_count", "percent_processor_time"})) {
+          std::map<std::string, std::int64_t> procPerfData;
+          procPerfData = perfData[pid];
+          r["elapsed_time"] = BIGINT(procPerfData["elapsed_time"]);
+          r["handle_count"] = BIGINT(procPerfData["handle_count"]);
+          r["percent_processor_time"] =
+              BIGINT(procPerfData["percent_processor_time"]);
+        }
+
+        genProcess(pid, item, r, context);
+      } else {
+        r["pid"] = BIGINT(-1);
       }
+      results.push_back(r);
     }
   }
 
