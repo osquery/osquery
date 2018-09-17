@@ -17,6 +17,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/filesystem/fileops.h"
+#include "osquery/core/utils.h"
 
 namespace fs = boost::filesystem;
 
@@ -99,6 +100,17 @@ void genFileInfo(const fs::path& path,
   } else {
     r["type"] = "unknown";
   }
+
+#if defined(__APPLE__)
+  std::string bsd_file_attr;
+  auto s = describeBSDFileFlags(bsd_file_attr, file_stat.st_flags);
+  if (!s.ok()) {
+    LOG(WARNING) << "File \"" << path
+                 << "\" generated a warning: " << s.getMessage();
+  }
+
+  r["bsd_flags"] = bsd_file_attr;
+#endif
 
 #else
 

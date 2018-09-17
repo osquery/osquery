@@ -46,6 +46,7 @@ if(APPLE)
   target_sources(libosquery
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/darwin/conversions.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/darwin/bsd_file_flags.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.hpp"
   )
@@ -111,5 +112,11 @@ endif()
 if(LINUX)
   ADD_OSQUERY_TEST_CORE(
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/cpu_test.cpp"
+  )
+endif()
+
+if(APPLE)
+  ADD_OSQUERY_TEST_CORE(
+    "${CMAKE_CURRENT_LIST_DIR}/darwin/tests/bsd_file_flags_tests.cpp"
   )
 endif()

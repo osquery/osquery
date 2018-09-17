@@ -24,6 +24,9 @@ extended_schema(WINDOWS, [
     Column("volume_serial", TEXT, "Volume serial number"),
     Column("file_id", TEXT, "file ID"),
 ])
+extended_schema(DARWIN, [
+    Column("bsd_flags", TEXT, "The BSD file flags")
+])
 attributes(utility=True)
 implementation("utility/file@genFile")
 examples([

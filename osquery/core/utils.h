@@ -10,8 +10,11 @@
 
 #pragma once
 
+#include <cstdint>
 #include <ctime>
 #include <string>
+
+#include <osquery/status.h>
 
 namespace osquery {
 
@@ -24,5 +27,9 @@ std::string platformStrerr(int errnum);
 #ifdef OSQUERY_POSIX
 /// Safer way to do realpath
 const std::string canonicalize_file_name(const char* name);
+#endif
+
+#ifdef __APPLE__
+Status describeBSDFileFlags(std::string& output, std::uint32_t st_flags);
 #endif
 }
