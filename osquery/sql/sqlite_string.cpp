@@ -150,6 +150,41 @@ static void ip4StringToDecimalFunc(sqlite3_context* context,
   }
 }
 
+/**
+ * @brief Convert a hexadecimal string to integer
+ */
+static void hexStringToDecimalFunc(sqlite3_context* context,
+                                   int argc,
+                                   sqlite3_value** argv) {
+  assert(argc == 1);
+
+  if (SQLITE_NULL == sqlite3_value_type(argv[0])) {
+    sqlite3_result_null(context);
+    return;
+  }
+
+  long value = tryTo<long>(std::string((char*)sqlite3_value_text(argv[0])), 16).takeOr(0l);
+  sqlite3_result_int64(context, value);
+}
+
+/**
+ * @brief Convert an integer to hexadecimal string
+ */
+static void decimalToHexStringFunc(sqlite3_context* context,
+                                   int argc,
+                                   sqlite3_value** argv) {
+  assert(argc == 1);
+
+  if (SQLITE_NULL == sqlite3_value_type(argv[0])) {
+    sqlite3_result_null(context);
+    return;
+  }
+
+  char str[65];
+  int len = std::snprintf(str, 65, "%#x", sqlite3_value_int(argv[0]));
+  sqlite3_result_text(context, str, len, SQLITE_TRANSIENT);
+}
+
 void registerStringExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "split",
@@ -173,6 +208,22 @@ void registerStringExtensions(sqlite3* db) {
                           SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           ip4StringToDecimalFunc,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "from_hex",
+                          1,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          hexStringToDecimalFunc,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "to_hex",
+                          1,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          decimalToHexStringFunc,
                           nullptr,
                           nullptr);
 }

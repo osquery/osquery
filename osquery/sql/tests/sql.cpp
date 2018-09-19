@@ -166,6 +166,67 @@ TEST_F(SQLTests, test_sql_sha256) {
             "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 }
 
+TEST_F(SQLTests, test_sql_from_hex) {
+  QueryData d;
+  query("select from_hex('0x010') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "16");
+
+  query("select from_hex('10') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "16");
+
+  query("select from_hex('10') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "16");
+
+  query("select from_hex('0XDEADBEEF') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "3735928559");
+
+  query("select from_hex('0xdeadbeef') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "3735928559");
+}
+
+TEST_F(SQLTests, test_sql_to_hex) {
+  QueryData d;
+  query("select to_hex('16') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0x10");
+
+  query("select to_hex(16) as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0x10");
+
+  query("select to_hex('10') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0xa");
+
+  query("select to_hex(3735928559) as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0xdeadbeef");
+}
+
+TEST_F(SQLTests, test_sql_hex_roundtrip) {
+  QueryData d;
+  query("select from_hex(to_hex('16')) as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "16");
+
+  query("select to_hex(from_hex('16')) as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0x16");
+
+  query("select from_hex(to_hex('10')) as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "10");
+
+  query("select to_hex(from_hex('0xdeadbeef')) as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0xdeadbeef");
+}
+
 #ifdef OSQUERY_POSIX
 TEST_F(SQLTests, test_sql_ssdeep_compare) {
   QueryData d;
