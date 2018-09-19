@@ -166,6 +166,58 @@ TEST_F(SQLTests, test_sql_sha256) {
             "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 }
 
+TEST_F(SQLTests, test_sql_version_less) {
+  QueryData d;
+  query("select version_less('1.1.1.1', '1.1.1.1') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0");
+
+  query("select version_less('1.1.1.1', '1.2.1.1') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "1");
+
+  query("select version_less('2.1.1.1', '1.2.1.1') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0");
+
+  query("select version_less('2.1.1.1', '2.1.0.1') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0");
+
+  query("select version_less('2.1.0.0', '2.1.0.1') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "1");
+
+  query("select version_less('321.123.0.0', '32.1.2.3') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0");
+
+  query("select version_less('321.123.0.0', '32.1.2.3') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0");
+
+  query("select version_less('0.22.0.0', '0.22.0.3') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "1");
+
+  query("select version_less('22.22.0.0', '0.22.0.3') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0");
+
+  query("select version_less('0.5.5-19-ga7b9229', '0.5.5-22-g85b16ae') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "1");
+
+  query("select version_less('0.5.5-19-ga7b9229', '0.5.6') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "1");
+
+  query("select version_less('0.5.5-22-g85b16ae', '0.5.5-19-ga7b9229') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "0");
+
+}
+
 #ifdef OSQUERY_POSIX
 TEST_F(SQLTests, test_sql_ssdeep_compare) {
   QueryData d;

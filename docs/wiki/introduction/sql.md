@@ -76,7 +76,7 @@ osquery> SELECT * FROM osquery_info;
           uuid = 4892E1C6-F800-5F8E-92B1-BC2216C29D4F
    instance_id = 94c004b0-49e5-4ece-93e6-96c1939c0f83
        version = 2.4.6
-   config_hash = 
+   config_hash =
   config_valid = 0
     extensions = active
 build_platform = darwin
@@ -260,6 +260,8 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
 </details>
 
 **String functions**
+
+- `version_less(VERSION1, VERSION2)`: returns an integer representing `VERSION1 < VERSION2` when they are interpreted as version strings (eg. '1.2.3.4'). Combined with the normal `==` string comparison, any desired comparison on version strings is possible.
 
 String parsing functions are always helpful, some help within subqueries so they make sense as local-additions:
 

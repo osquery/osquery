@@ -150,6 +150,53 @@ static void ip4StringToDecimalFunc(sqlite3_context* context,
   }
 }
 
+/**
+ * @brief Compare two software version strings
+ */
+static void versionLessFunc(sqlite3_context* context,
+                            int argc,
+                            sqlite3_value** argv) {
+  assert(argc == 2);
+
+  if (SQLITE_NULL == sqlite3_value_type(argv[0]) ||
+      SQLITE_NULL == sqlite3_value_type(argv[1])) {
+    sqlite3_result_null(context);
+    return;
+  }
+
+  int major1 = 0, minor1 = 0, patch1 = 0, build1 = 0;
+  std::sscanf((char*)sqlite3_value_text(argv[0]),
+              "%d.%d.%d%*[.-]%d",
+              &major1,
+              &minor1,
+              &patch1,
+              &build1);
+  int major2 = 0, minor2 = 0, patch2 = 0, build2 = 0;
+  std::sscanf((char*)sqlite3_value_text(argv[1]),
+              "%d.%d.%d%*[.-]%d",
+              &major2,
+              &minor2,
+              &patch2,
+              &build2);
+
+  int result = false;
+  if (major1 < major2) {
+    result = true;
+  } else if (major1 == major2) {
+    if (minor1 < minor2) {
+      result = true;
+    } else if (minor1 == minor2) {
+      if (patch1 < patch2) {
+        result = true;
+      } else if (patch1 == patch2) {
+        result = build1 < build2;
+      }
+    }
+  }
+
+  sqlite3_result_int(context, result);
+  }
+
 void registerStringExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "split",
@@ -173,6 +220,14 @@ void registerStringExtensions(sqlite3* db) {
                           SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           ip4StringToDecimalFunc,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "version_less",
+                          2,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          versionLessFunc,
                           nullptr,
                           nullptr);
 }
