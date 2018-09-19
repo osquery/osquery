@@ -281,6 +281,10 @@ boost::optional<std::string> getHomeDirectory() {
   }
 }
 
+bool platformSetSafeDbPerms(const std::string& path) {
+  return platformChmod(path, S_IRWXU);
+}
+
 bool platformChmod(const std::string& path, mode_t perms) {
   return (::chmod(path.c_str(), perms) == 0);
 }

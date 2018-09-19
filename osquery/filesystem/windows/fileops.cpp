@@ -1082,6 +1082,96 @@ size_t PlatformFile::size() const {
   return ::GetFileSize(handle_, nullptr);
 }
 
+bool platformSetSafeDbPerms(const std::string& path) {
+  unsigned long sid_size = SECURITY_MAX_SID_SIZE;
+  std::vector<char> admins_buf(sid_size);
+  PSID admins = static_cast<PSID>(admins_buf.data());
+  if (!::CreateWellKnownSid(
+          WinBuiltinAdministratorsSid, nullptr, admins, &sid_size)) {
+    return false;
+  }
+
+  std::vector<char> system_buf(sid_size);
+  PSID system = static_cast<PSID>(system_buf.data());
+  if (!::CreateWellKnownSid(WinLocalSystemSid, nullptr, system, &sid_size)) {
+    return false;
+  }
+
+  std::vector<char> world_buf(sid_size);
+  PSID world = static_cast<PSID>(world_buf.data());
+  if (!::CreateWellKnownSid(WinWorldSid, nullptr, world, &sid_size)) {
+    return false;
+  }
+
+  EXPLICIT_ACCESS admins_ea;
+  admins_ea.grfAccessMode = SET_ACCESS;
+  admins_ea.grfAccessPermissions = GENERIC_ALL;
+  admins_ea.grfInheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+
+  PTRUSTEE_A trust = static_cast<PTRUSTEE_A>(malloc(sizeof(TRUSTEE_A)));
+  BuildTrusteeWithSidA(trust, admins);
+  admins_ea.Trustee = *trust;
+
+  // Set the Administrators ACE
+  PACL new_dacl = nullptr;
+  auto ret = SetEntriesInAcl(1, &admins_ea, nullptr, &new_dacl);
+  if (ret != ERROR_SUCCESS) {
+    VLOG(1) << "Failed to set DB permissions for Administrators";
+    LocalFree(new_dacl);
+    free(trust);
+    return false;
+  }
+
+  // Set the SYSTEM ACE
+  EXPLICIT_ACCESS sys_ea;
+  sys_ea.grfAccessMode = SET_ACCESS;
+  sys_ea.grfAccessPermissions = GENERIC_ALL;
+  sys_ea.grfInheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+
+  BuildTrusteeWithSidA(trust, system);
+  sys_ea.Trustee = *trust;
+  ret = SetEntriesInAcl(1, &sys_ea, new_dacl, &new_dacl);
+  if (ret != ERROR_SUCCESS) {
+    VLOG(1) << "Failed to set DB permissions for SYSTEM";
+    LocalFree(new_dacl);
+    free(trust);
+    return false;
+  }
+
+  // Grant Everyone the ability to read the DACL
+  EXPLICIT_ACCESS world_ea;
+  world_ea.grfAccessMode = SET_ACCESS;
+  world_ea.grfAccessPermissions = READ_CONTROL;
+  world_ea.grfInheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+
+  BuildTrusteeWithSidA(trust, world);
+  world_ea.Trustee = *trust;
+  ret = SetEntriesInAcl(1, &world_ea, new_dacl, &new_dacl);
+  if (ret != ERROR_SUCCESS) {
+    VLOG(1) << "Failed to set DB permissions for SYSTEM";
+    LocalFree(new_dacl);
+    free(trust);
+    return false;
+  }
+
+  // Apply 'safe' DACL and avoid returning to attempt applying the DACL
+  ret = SetNamedSecurityInfoA(
+      const_cast<char*>(path.c_str()),
+      SE_FILE_OBJECT,
+      OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+          DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+      admins,
+      admins,
+      new_dacl,
+      nullptr);
+  if (ret != ERROR_SUCCESS) {
+    LOG(WARNING) << "Failed to apply safe permssions to the database";
+  }
+  LocalFree(new_dacl);
+  free(trust);
+  return true;
+}
+
 bool platformChmod(const std::string& path, mode_t perms) {
   PACL dacl = nullptr;
   PSID owner = nullptr;
@@ -1179,10 +1269,7 @@ bool platformChmod(const std::string& path, mode_t perms) {
   }
 
   // Lastly, apply the permissions to the object
-  // SetNamedSecurityInfoA takes a mutable string for the path parameter
-  std::vector<char> mutable_path(path.begin(), path.end());
-  mutable_path.push_back('\0');
-  if (SetNamedSecurityInfoA(mutable_path.data(),
+  if (SetNamedSecurityInfoA(const_cast<char*>(path.c_str()),
                             SE_FILE_OBJECT,
                             DACL_SECURITY_INFORMATION,
                             nullptr,
@@ -1750,4 +1837,4 @@ fs::path getSystemRoot() {
 Status platformLstat(const std::string& path, struct stat& d_stat) {
   return Status(1);
 }
-}
+} // namespace osquery

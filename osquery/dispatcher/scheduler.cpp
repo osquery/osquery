@@ -142,8 +142,8 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
     status = dbQuery.addNewResults(
         std::move(sql.rows()), item.epoch, item.counter, diff_results);
     if (!status.ok()) {
-      std::string line =
-          "Error adding new results to database: " + status.what();
+      std::string line = "Error adding new results to database for query " +
+                         name + ": " + status.what();
       LOG(ERROR) << line;
 
       // If the database is not available then the daemon cannot continue.

@@ -550,9 +550,10 @@ TEST_F(FileOpsTests, test_access) {
 }
 
 TEST_F(FileOpsTests, test_safe_permissions) {
-  const auto root_dir =
-      (fs::temp_directory_path() / "safe-perms-test").string();
-  const auto temp_file = root_dir + "/test";
+  const auto root_path = fs::temp_directory_path() / "safe-perms-test";
+  const auto temp_file = (root_path / "test").string();
+  const auto root_dir = root_path.string();
+
   const int all_access = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP |
                          S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;
 
@@ -630,6 +631,41 @@ TEST_F(FileOpsTests, test_safe_permissions) {
   EXPECT_TRUE(platformChmod(temp_file, all_access));
 
   fs::remove_all(root_dir);
+}
+
+TEST_F(FileOpsTests, test_safe_db_permissions) {
+  const auto db_path = fs::temp_directory_path() / "safe-db-perms-test.db";
+  const auto sst_file = (db_path / "1234.sst").string();
+  const auto db = db_path.string();
+
+  fs::create_directories(db);
+
+  // Ensure that 'safe' permissions get applied correctly
+  {
+    EXPECT_TRUE(platformSetSafeDbPerms(db));
+
+    PlatformFile fd(sst_file, PF_CREATE_ALWAYS | PF_WRITE);
+    ASSERT_TRUE(fd.isValid());
+
+    // The 'hasSafePermissions' function ensures no low priv writes can occur
+    auto status = fd.hasSafePermissions();
+
+    EXPECT_TRUE(fd.hasSafePermissions().ok());
+    EXPECT_EQ(0, status.getCode());
+  }
+
+  // Ensure that we still have read and write access to the db
+  {
+    EXPECT_EQ(0, platformAccess(db, R_OK | W_OK));
+    EXPECT_EQ(0, platformAccess(sst_file, R_OK | W_OK));
+  }
+
+  // Tear down our mock DB files
+  const int all_access = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP |
+                         S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;
+  EXPECT_TRUE(platformChmod(db, all_access));
+  EXPECT_TRUE(platformChmod(sst_file, all_access));
+  fs::remove_all(db);
 }
 
 TEST_F(FileOpsTests, test_glob) {
@@ -739,4 +775,4 @@ TEST_F(FileOpsTests, test_zero_permissions_file) {
     EXPECT_EQ(boost::none, platformFopen(path, "r"));
   }
 }
-}
+} // namespace osquery

@@ -337,6 +337,15 @@ boost::optional<std::string> getHomeDirectory();
 bool platformChmod(const std::string& path, mode_t perms);
 
 /**
+ * @brief Sets 'safe' permissions for the database backing osquery
+ *
+ * @note Safe DB perms are equivalent to a chmod 0700 for root on posix
+ * so we emulate this by granting Full perms to SYSTEM and Administrators
+ * only.
+ */
+bool platformSetSafeDbPerms(const std::string& path);
+
+/**
  * @brief Multi-platform implementation of glob.
  * @note glob support is not 100% congruent with Linux glob. There are slight
  *       differences in how GLOB_TILDE and GLOB_BRACE are implemented.
