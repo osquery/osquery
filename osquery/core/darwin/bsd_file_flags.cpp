@@ -32,9 +32,7 @@ std::uint32_t getBsdFlagMask() {
 }
 } // namespace
 
-/// Builds a list of the known BSD file flags specified by st_flags (see the
-/// stat structure). Foreign bits are added to the list as a hexadecimal number
-Status describeBSDFileFlags(std::string& output, std::uint32_t st_flags) {
+bool describeBSDFileFlags(std::string& output, std::uint32_t st_flags) {
   output.clear();
 
   static const auto flag_mask = getBsdFlagMask();
@@ -50,21 +48,22 @@ Status describeBSDFileFlags(std::string& output, std::uint32_t st_flags) {
     }
   }
 
-  auto foreign_bits = st_flags & (~flag_mask);
-  if (foreign_bits != 0U) {
+  // Get the bits that are not documented and show them as a hex number
+  auto undocumented_flags = st_flags & (~flag_mask);
+  if (undocumented_flags != 0U) {
     std::stringstream buffer;
     buffer << "0x" << std::setw(8) << std::setfill('0') << std::hex
-           << foreign_bits;
+           << undocumented_flags;
 
     label_list.push_back(buffer.str());
   }
 
   output = boost::algorithm::join(label_list, ", ");
 
-  if (foreign_bits != 0U) {
-    return Status::failure("Foreign bits were found in the st_flags field");
+  if (undocumented_flags != 0U) {
+    return false;
   }
 
-  return Status(0);
+  return true;
 }
 } // namespace osquery

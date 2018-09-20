@@ -30,6 +30,10 @@ const std::string canonicalize_file_name(const char* name);
 #endif
 
 #ifdef __APPLE__
-Status describeBSDFileFlags(std::string& output, std::uint32_t st_flags);
+/// Builds a list of the known BSD file flags specified by st_flags (see the
+/// stat structure). Foreign bits are added to the list as a hexadecimal number
+/// If undocumented bits are found inside the st_flags value, the function will
+/// include them in the output as a hexadecimal value and return false.
+bool describeBSDFileFlags(std::string& output, std::uint32_t st_flags);
 #endif
 }

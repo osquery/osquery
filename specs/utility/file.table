@@ -25,7 +25,7 @@ extended_schema(WINDOWS, [
     Column("file_id", TEXT, "file ID"),
 ])
 extended_schema(DARWIN, [
-    Column("bsd_flags", TEXT, "The BSD file flags")
+    Column("bsd_flags", TEXT, "The BSD file flags (chflags). Possible values: NODUMP, UF_IMMUTABLE, UF_APPEND, OPAQUE, HIDDEN, ARCHIVED, SF_IMMUTABLE, SF_APPEND")
 ])
 attributes(utility=True)
 implementation("utility/file@genFile")

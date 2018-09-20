@@ -102,14 +102,14 @@ void genFileInfo(const fs::path& path,
   }
 
 #if defined(__APPLE__)
-  std::string bsd_file_attr;
-  auto s = describeBSDFileFlags(bsd_file_attr, file_stat.st_flags);
-  if (!s.ok()) {
-    LOG(WARNING) << "File \"" << path
-                 << "\" generated a warning: " << s.getMessage();
+  std::string bsd_file_flags_description;
+  if (!describeBSDFileFlags(bsd_file_flags_description, file_stat.st_flags)) {
+    LOG(WARNING)
+        << "The following file had undocumented BSD file flags (chflags) set: "
+        << path;
   }
 
-  r["bsd_flags"] = bsd_file_attr;
+  r["bsd_flags"] = bsd_file_flags_description;
 #endif
 
 #else
