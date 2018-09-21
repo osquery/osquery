@@ -14,11 +14,11 @@
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/process/process.h>
 #include <osquery/registry_factory.h>
+#include <osquery/sql/virtual_table.h>
 #include <osquery/system.h>
-
-#include "osquery/core/process.h"
-#include "osquery/sql/virtual_table.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 

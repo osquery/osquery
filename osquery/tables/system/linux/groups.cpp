@@ -8,13 +8,13 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <mutex>
 #include <set>
 
 #include <grp.h>
 
 #include <osquery/core.h>
 #include <osquery/tables.h>
+#include <osquery/utils/mutex.h>
 
 namespace osquery {
 namespace tables {

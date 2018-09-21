@@ -1,0 +1,9 @@
+[download]
+  in_build = true
+  max_number_of_retries = 3
+
+[python#py2]
+  interpreter = python2
+
+[python#py3]
+  interpreter = python3

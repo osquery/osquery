@@ -20,22 +20,20 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <osquery/core.h>
+#include <osquery/core/watcher.h>
 #include <osquery/database.h>
+#include <osquery/devtools/devtools.h>
+#include <osquery/dispatcher/distributed_runner.h>
+#include <osquery/dispatcher/scheduler.h>
 #include <osquery/extensions.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/main/main.h>
+#include <osquery/process/process.h>
 #include <osquery/registry_factory.h>
+#include <osquery/sql/sqlite_util.h>
 #include <osquery/system.h>
-
-#include "osquery/core/process.h"
-#include "osquery/core/utils.h"
-#include "osquery/core/watcher.h"
-#include "osquery/devtools/devtools.h"
-#include "osquery/dispatcher/distributed_runner.h"
-#include "osquery/dispatcher/scheduler.h"
-#include "osquery/filesystem/fileops.h"
-#include "osquery/main/main.h"
-#include "osquery/sql/sqlite_util.h"
 
 namespace fs = boost::filesystem;
 

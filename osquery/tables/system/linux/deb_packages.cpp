@@ -20,7 +20,7 @@ extern "C" {
 
 #include <boost/algorithm/string.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>

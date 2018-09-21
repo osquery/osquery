@@ -8,26 +8,39 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
-#include <gflags/gflags.h>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/database.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
+DECLARE_bool(disable_database);
 namespace tables {
 
-class SystemsTablesTests : public testing::Test {};
+class SystemsTablesTests : public testing::Test {
+ protected:
+  void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+};
 
 TEST_F(SystemsTablesTests, test_os_version) {
   SQL results("select * from os_version");

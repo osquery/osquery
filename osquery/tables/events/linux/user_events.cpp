@@ -8,10 +8,11 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <osquery/events/linux/auditeventpublisher.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include "osquery/events/linux/auditeventpublisher.h"
+#include <osquery/utils/system/uptime.h>
 
 namespace osquery {
 
@@ -19,11 +20,6 @@ FLAG(bool,
      audit_allow_user_events,
      true,
      "Allow the audit publisher to install user events-related rules");
-
-// Depend on the external getUptime table method.
-namespace tables {
-extern long getUptime();
-}
 
 class UserEventSubscriber final : public EventSubscriber<AuditEventPublisher> {
  public:
@@ -78,7 +74,7 @@ Status UserEventSubscriber::ProcessEvents(
     for (const auto& record : event.record_list) {
       Row row = {};
 
-      row["uptime"] = INTEGER(tables::getUptime());
+      row["uptime"] = INTEGER(getUptime());
       row["type"] = INTEGER(record.type);
 
       CopyFieldFromMap(row, record.fields, "uid", "");

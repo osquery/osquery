@@ -9,7 +9,7 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/system.h>
 
 #include <thrift/lib/cpp/async/TAsyncSocket.h>

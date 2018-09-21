@@ -22,9 +22,8 @@ import os
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(SCRIPT_DIR + "/../tests")
 
-from utils import platform
+from osquery.tools.tests import utils
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -36,7 +35,7 @@ TEMPLATES = {}
 RESERVED = ["n", "index"]
 
 # Set the platform in osquery-language
-PLATFORM = platform()
+PLATFORM = utils.platform()
 
 # Supported SQL types for spec
 class DataType(object):
@@ -437,7 +436,7 @@ def implementation(impl_string, generator=False):
             sys.exit(1)
 
 
-def main(argc, argv):
+def main():
     parser = argparse.ArgumentParser(
         "Generate C++ Table Plugin from specfile.")
     parser.add_argument(
@@ -465,7 +464,7 @@ def main(argc, argv):
         # Adding a 3rd parameter will enable the blacklist
 
         setup_templates(args.templates)
-        with open(filename, "rU") as file_handle:
+        with open(filename, "r") as file_handle:
             tree = ast.parse(file_handle.read())
             exec(compile(tree, "<string>", "exec"))
             blacklisted = is_blacklisted(table.table_name, path=filename)
@@ -476,5 +475,4 @@ def main(argc, argv):
                 table.generate(output, template=template_type)
 
 if __name__ == "__main__":
-    SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-    main(len(sys.argv), sys.argv)
+    main()

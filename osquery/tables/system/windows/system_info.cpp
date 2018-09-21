@@ -14,7 +14,7 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
+#include <osquery/utils/conversions/tryto.h>
 #include "osquery/core/windows/wmi.h"
 #include "osquery/tables/system/windows/registry.h"
 

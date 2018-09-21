@@ -8,12 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/core.h>
+#include <osquery/events/darwin/iokit.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
-
-#include "osquery/events/darwin/iokit.h"
 
 namespace osquery {
 

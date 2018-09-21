@@ -10,15 +10,20 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/database.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include "osquery/tests/test_additional_util.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/system.h>
 
 namespace osquery {
 
-class SyslogLoggerTests : public testing::Test {};
+class SyslogLoggerTests : public testing::Test {
+protected:
+ void SetUp() {
+   Initializer::platformSetup();
+   registryAndPluginInit();
+ }
+};
 
 TEST_F(SyslogLoggerTests, test_syslog) {
   auto active = Registry::get().getActive("logger");

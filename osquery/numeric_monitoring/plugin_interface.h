@@ -15,29 +15,12 @@
 
 #include <osquery/core.h>
 #include <osquery/expected.h>
-#include <osquery/plugin.h>
+#include <osquery/plugins/plugin.h>
 #include <osquery/query.h>
 
 #include <osquery/numeric_monitoring.h>
 
 namespace osquery {
-
-namespace monitoring {
-
-struct RecordKeys {
-  std::string path;
-  std::string value;
-  std::string timestamp;
-  std::string pre_aggregation;
-  std::string sync;
-};
-
-const RecordKeys& recordKeys();
-
-const char* registryName();
-
-} // namespace monitoring
-
 /**
  * @brief Interface class for numeric monitoring system plugins.
  * e.g. @see NumericMonitoringFilesystemPlugin from

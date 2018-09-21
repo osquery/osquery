@@ -17,7 +17,7 @@
 #ifdef WIN32
 #include <iomanip>
 #include <map>
-#include <windows.h>
+#include <osquery/utils/system/system.h>
 #else
 #include <unistd.h>
 #endif
@@ -29,7 +29,8 @@
 #include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
 
-#include <osquery/status.h>
+#include <osquery/utils/status.h>
+#include <osquery/utils/system/env.h>
 
 namespace osquery {
 

@@ -8,10 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 
-#include "osquery/core/windows/handle.h"
-#include "osquery/core/windows/ntapi.h"
+#include <osquery/core/windows/handle.h>
+#include <osquery/core/windows/ntapi.h>
 
 namespace osquery {
 

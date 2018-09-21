@@ -16,12 +16,11 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/events/linux/udev.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/events/linux/udev.h"
-#include "osquery/tables/system/linux/pci_devices.h"
+#include <osquery/tables/system/linux/pci_devices.h>
 
 namespace osquery {
 namespace tables {

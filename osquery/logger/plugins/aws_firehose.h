@@ -10,9 +10,12 @@
 
 #pragma once
 
+#include "aws_log_forwarder.h"
+
 #include <chrono>
 #include <memory>
 #include <vector>
+#include <gflags/gflags.h>
 
 #include <aws/firehose/FirehoseClient.h>
 #include <aws/firehose/model/PutRecordBatchResponseEntry.h>
@@ -20,9 +23,8 @@
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
-#include <osquery/logger.h>
+#include <osquery/plugins/logger.h>
 
-#include "osquery/logger/plugins/aws_log_forwarder.h"
 
 namespace osquery {
 

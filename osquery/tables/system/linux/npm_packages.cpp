@@ -12,12 +12,10 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
+#include <osquery/utils/json.h>
 
 namespace fs = boost::filesystem;
 
@@ -58,9 +56,13 @@ void genPackageResults(const std::string& directory, QueryData& results) {
     // Manually get nested key (Author name)
     if (doc.doc().HasMember("author")) {
       const auto& author = doc.doc()["author"];
-      if (author.HasMember("name")) {
-        const auto& author_name = author["name"];
-        r["author"] = (author_name.IsString()) ? author_name.GetString() : "";
+      if (author.IsString()) {
+          r["author"] = author.GetString();
+      } else if (author.IsObject()) {
+        if (author.HasMember("name")) {
+          const auto& author_name = author["name"];
+          r["author"] = (author_name.IsString()) ? author_name.GetString() : "";
+        }
       }
     }
 

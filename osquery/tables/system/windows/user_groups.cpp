@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 // clang-format off
 #include <LM.h>
 // clang-format on
@@ -18,11 +18,11 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
-#include "osquery/core/process.h"
-#include "osquery/core/windows/process_ops.h"
-#include "osquery/core/windows/wmi.h"
 #include "osquery/tables/system/windows/registry.h"
-#include "osquery/core/conversions.h"
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/process/process.h>
+#include <osquery/process/windows/process_ops.h>
 
 namespace osquery {
 

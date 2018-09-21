@@ -47,10 +47,6 @@ function audit() {
   log "Running various code/change audits!"
 
   echo ""
-  log "Initializing and updating all submodules"
-  checkout_thirdparty
-
-  echo ""
   log "Checking for source files marked executable"
   check_executable
 

@@ -19,8 +19,7 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/tables/system/freebsd/procstat.h"
+#include <osquery/tables/system/freebsd/procstat.h>
 
 namespace osquery {
 namespace tables {

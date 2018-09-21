@@ -14,7 +14,7 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/tables.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 
 namespace osquery {

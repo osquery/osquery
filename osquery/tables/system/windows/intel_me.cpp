@@ -9,7 +9,7 @@
  */
 
 // clang-format off
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 #include <SetupAPI.h>
 // clang-format on
 #include <initguid.h>
@@ -19,8 +19,8 @@
 #include <osquery/tables.h>
 #include <osquery/logger.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/tables/system/intel_me.hpp"
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/tables/system/intel_me.hpp>
 
 namespace osquery {
 namespace {

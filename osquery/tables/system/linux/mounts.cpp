@@ -11,10 +11,10 @@
 #include <mntent.h>
 #include <sys/vfs.h>
 
-#include "osquery/core/utils.h"
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
+#include <osquery/utils/system/filepath.h>
 
 namespace osquery {
 namespace tables {

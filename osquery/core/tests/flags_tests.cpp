@@ -24,8 +24,9 @@
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/utils/info/platform_type.h>
 
-#include "osquery/core/flagalias.h"
+#include "osquery/flagalias.h"
 
 namespace osquery {
 

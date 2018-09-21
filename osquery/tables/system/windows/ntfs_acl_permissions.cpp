@@ -10,16 +10,18 @@
 
 #include <AccCtrl.h>
 #include <Aclapi.h>
-#include <map>
-#include <string>
-#include <unordered_map>
-#include <vector>
-#include <windows.h>
+
+#include <osquery/utils/system/system.h>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem.hpp>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include <map>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace alg = boost::algorithm;
 namespace fs = boost::filesystem;

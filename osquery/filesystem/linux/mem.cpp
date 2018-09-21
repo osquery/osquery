@@ -15,7 +15,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 

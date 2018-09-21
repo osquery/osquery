@@ -14,10 +14,10 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/utils/conversions/darwin/cfnumber.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
 
 namespace osquery {
 namespace tables {

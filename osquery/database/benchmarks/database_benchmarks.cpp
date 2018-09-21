@@ -11,10 +11,10 @@
 #include <benchmark/benchmark.h>
 
 #include <osquery/database.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/query.h>
 
-#include "osquery/core/json.h"
+#include <osquery/utils/json.h>
 #include "osquery/tests/test_util.h"
 
 namespace osquery {

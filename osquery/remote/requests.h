@@ -14,8 +14,11 @@
 #include <utility>
 #include <string>
 
+#include <gtest/gtest_prod.h>
+
 #include <osquery/logger.h>
-#include <osquery/status.h>
+#include <osquery/utils/json.h>
+#include <osquery/utils/status.h>
 
 namespace osquery {
 
@@ -267,7 +270,7 @@ class Request {
   /// options from request call (duplicated in transport)
   JSON options_;
 
- private:
+private:
   FRIEND_TEST(TLSTransportsTests, test_call);
   FRIEND_TEST(TLSTransportsTests, test_call_with_params);
   FRIEND_TEST(TLSTransportsTests, test_call_verify_peer);

@@ -8,10 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
+#include <osquery/config/parsers/feature_vectors.h>
 #include <osquery/registry_factory.h>
-
-#include "osquery/config/parsers/feature_vectors.h"
 
 namespace osquery {
 

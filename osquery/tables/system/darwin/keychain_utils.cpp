@@ -8,14 +8,15 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <string>
 #include <iomanip>
+#include <openssl/x509.h>
+#include <string>
 
-#include <osquery/filesystem.h>
 #include <osquery/core.h>
-
-#include "osquery/core/hashing.h"
-#include "osquery/tables/system/darwin/keychain.h"
+#include <osquery/hashing/hashing.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/tables/system/darwin/keychain.h>
+#include <osquery/utils/conversions/join.h>
 
 namespace osquery {
 namespace tables {

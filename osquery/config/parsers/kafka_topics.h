@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 
 namespace osquery {
 

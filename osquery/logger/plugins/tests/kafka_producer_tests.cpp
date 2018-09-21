@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <gflags/gflags.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -20,11 +21,16 @@
 #include <boost/chrono.hpp>
 
 #include <osquery/core.h>
-#include <osquery/status.h>
+#include <osquery/database.h>
+#include <osquery/registry_interface.h>
+#include <osquery/system.h>
+#include <osquery/utils/status.h>
 
 #include "osquery/logger/plugins/kafka_producer.h"
 
 namespace osquery {
+
+DECLARE_bool(disable_database);
 
 class MockKafkaProducerPlugin : public KafkaProducerPlugin {
  public:
@@ -69,7 +75,16 @@ class MockKafkaProducerPlugin : public KafkaProducerPlugin {
   std::atomic<int> timesPolled_;
 };
 
-class KafkaProducerPluginTest : public ::testing::Test {};
+class KafkaProducerPluginTest : public ::testing::Test {
+ protected:
+  void SetUp() {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+};
 
 TEST_F(KafkaProducerPluginTest, getMsgName_tests) {
   // Key is `input`, Value is `expected`

@@ -13,7 +13,7 @@
 #include <map>
 #include <functional>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/database.h>
 
 namespace osquery {

@@ -8,9 +8,8 @@
 *
 */
 
-#define _WIN32_DCOM
+#include <osquery/utils/system/system.h>
 
-#include <Windows.h>
 #include <Winternl.h>
 #pragma warning(push)
 // C:\Program Files (x86)\Windows Kits\8.1\Include\um\DbgHelp.h(3190):
@@ -25,14 +24,16 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/process.h"
-#include "osquery/core/windows/wmi.h"
+#include <osquery/process/process.h>
+
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace alg = boost::algorithm;
 namespace fs = boost::filesystem;

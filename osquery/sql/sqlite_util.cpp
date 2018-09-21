@@ -11,11 +11,15 @@
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/sql/virtual_table.h"
 
+#include <osquery/plugins/sql.h>
+
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
+
+#include <osquery/utils/conversions/split.h>
 
 #include <boost/lexical_cast.hpp>
 
@@ -486,7 +490,8 @@ Status queryInternal(const std::string& q,
                      const SQLiteDBInstanceRef& instance) {
   char* err = nullptr;
   auto lock = instance->attachLock();
-  sqlite3_exec(instance->db(), q.c_str(), queryDataCallback, &results, &err);
+  auto db_ptr = instance->db();
+  sqlite3_exec(db_ptr, q.c_str(), queryDataCallback, &results, &err);
   sqlite3_db_release_memory(instance->db());
   if (err != nullptr) {
     auto error_string = std::string(err);

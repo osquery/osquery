@@ -8,9 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#define _WIN32_DCOM
+#include <osquery/utils/system/system.h>
 
-#include <Windows.h>
 #include <Wtsapi32.h>
 #include <winsock2.h>
 
@@ -18,8 +17,9 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/filesystem/fileops.h"
+#include <osquery/utils/conversions/split.h>
+
+#include <osquery/filesystem/fileops.h>
 
 const std::map<int, std::string> kSessionStates = {
     {WTSActive, "active"},

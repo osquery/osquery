@@ -12,11 +12,10 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/utils/darwin/plist.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/base64.h"
-#include "osquery/core/conversions.h"
+#include <osquery/utils/base64.h>
 
 namespace pt = boost::property_tree;
 

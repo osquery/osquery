@@ -13,10 +13,7 @@
 #include <string>
 
 // clang-format off
-#define _WIN32_DCOM
-
-
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 #include <psapi.h>
 #include <stdlib.h>
 #include <tlhelp32.h>
@@ -25,14 +22,12 @@
 #include <iomanip>
 // clang-format on
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
-
-#include "osquery/core.h"
-#include "osquery/core/conversions.h"
-#include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
 template <typename T, typename DeleterType, DeleterType deleter>

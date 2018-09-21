@@ -10,9 +10,8 @@
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
+#include <osquery/main/main.h>
 #include <osquery/system.h>
-
-#include "osquery/main/main.h"
 
 namespace osquery {
 

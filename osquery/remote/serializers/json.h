@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "osquery/remote/requests.h"
+#include <osquery/remote/requests.h>
 
 namespace osquery {
 

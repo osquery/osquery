@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/config.h>
-#include <osquery/filesystem.h>
+#include <osquery/config/config.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>

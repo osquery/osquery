@@ -13,13 +13,12 @@
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/enroll.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/process/process.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
-#include <osquery/system.h>
-
-#include "osquery/core/process.h"
+#include <osquery/utils/system/time.h>
 
 namespace osquery {
 

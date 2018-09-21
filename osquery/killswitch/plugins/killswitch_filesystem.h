@@ -14,7 +14,8 @@
 
 #include <boost/filesystem/path.hpp>
 
-#include "osquery/killswitch/killswitch_refreshable_plugin.h"
+#include <osquery/killswitch/killswitch_refreshable_plugin.h>
+#include <osquery/utils/config/default_paths.h>
 
 namespace osquery {
 

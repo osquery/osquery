@@ -8,22 +8,23 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#define _WIN32_DCOM
+#include <osquery/utils/system/system.h>
 
-#include <Windows.h>
 #include <comdef.h>
 #include <taskschd.h>
 #include <winbase.h>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/process.h"
-#include "osquery/core/windows/wmi.h"
-#include "osquery/filesystem/fileops.h"
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/windows/strings.h>
+
+#include <osquery/filesystem/fileops.h>
+#include <osquery/process/process.h>
 
 namespace osquery {
 namespace tables {

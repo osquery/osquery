@@ -96,13 +96,6 @@ function in_ec2() {
   fi
 }
 
-function checkout_thirdparty() {
-  # Reset any work or artifacts from build tests in TP.
-  (cd third-party && git reset --hard HEAD)
-  git submodule init
-  git submodule update
-}
-
 function build_target() {
   threads THREADS
 
@@ -153,7 +146,6 @@ function check_deterministic() {
 
 function initialize() {
   DISTRO=$1
-  checkout_thirdparty
 
   # Remove any previously-cached variables
   rm build/$DISTRO/CMakeCache.txt >/dev/null 2>&1 || true

@@ -10,6 +10,7 @@
 
 #include <osquery/sql.h>
 #include <osquery/tables.h>
+#include <osquery/utils/info/platform_type.h>
 
 namespace {
 const std::string kAF_UNIX = "1";

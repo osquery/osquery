@@ -17,8 +17,7 @@
 #include <boost/variant.hpp>
 
 #include <osquery/events.h>
-
-#include "osquery/events/linux/auditdnetlink.h"
+#include <osquery/events/linux/auditdnetlink.h>
 
 namespace osquery {
 

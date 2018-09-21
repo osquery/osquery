@@ -16,13 +16,15 @@
 #include <Security/CodeSigning.h>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tables/system/darwin/keychain.h"
+#include <osquery/tables/system/darwin/keychain.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/expected.h>
 
 namespace osquery {
 namespace tables {

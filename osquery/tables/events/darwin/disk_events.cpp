@@ -8,15 +8,14 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include "osquery/events/darwin/diskarbitration.h"
+#include <boost/lexical_cast.hpp>
 
-#include <osquery/core.h>
 #include <osquery/events.h>
+#include <osquery/events/darwin/diskarbitration.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
-#include <boost/lexical_cast.hpp>
 
 namespace osquery {
 

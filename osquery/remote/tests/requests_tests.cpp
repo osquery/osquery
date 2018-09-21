@@ -10,10 +10,11 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/remote/requests.h"
-#include "osquery/remote/serializers/json.h"
-#include "osquery/remote/transports/tls.h"
-#include "osquery/remote/uri.h"
+#include <osquery/remote/requests.h>
+#include <osquery/remote/serializers/json.h>
+#include <osquery/remote/transports/tls.h>
+#include <osquery/remote/uri.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 

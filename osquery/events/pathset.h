@@ -19,7 +19,7 @@
 #include <boost/tokenizer.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 
 namespace osquery {
 

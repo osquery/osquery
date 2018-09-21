@@ -9,11 +9,10 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/tables.h>
-#include <osquery/sql.h>
+#include <osquery/utils/conversions/darwin/iokit.h>
 #include <osquery/logger.h>
-
-#include "osquery/core/darwin/iokit.hpp"
+#include <osquery/sql.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

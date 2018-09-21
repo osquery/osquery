@@ -15,7 +15,8 @@
 #include <boost/filesystem/path.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/utils/darwin/plist.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/sql.h>

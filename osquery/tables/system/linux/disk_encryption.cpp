@@ -16,12 +16,11 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
+#include <osquery/utils/conversions/join.h>
 
 extern "C" {
 #include <libcryptsetup.h>
 }
-
-#include "osquery/core/conversions.h"
 
 // FIXME: Add enum generation for tables and remove following code
 // Copy of values in disk_encryption.mm

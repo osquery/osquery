@@ -14,11 +14,9 @@
 #include <aws/ec2/EC2Client.h>
 #include <aws/ec2/model/DescribeTagsRequest.h>
 
-#include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/utils/aws_util.h"
+#include <osquery/utils/aws/aws_util.h>
 
 namespace osquery {
 namespace tables {

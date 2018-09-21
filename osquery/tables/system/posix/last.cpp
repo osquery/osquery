@@ -15,6 +15,7 @@
 
 #include <osquery/core.h>
 #include <osquery/tables.h>
+#include <osquery/utils/system/time.h>
 
 namespace osquery {
 namespace tables {

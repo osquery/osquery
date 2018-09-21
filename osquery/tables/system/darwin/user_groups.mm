@@ -11,7 +11,7 @@
 #import <OpenDirectory/OpenDirectory.h>
 #include <membership.h>
 
-#include "osquery/tables/system/user_groups.h"
+#include <osquery/tables/system/user_groups.h>
 
 namespace osquery {
 namespace tables {

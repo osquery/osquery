@@ -17,12 +17,11 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tables/networking/utils.h"
+#include <osquery/tables/networking/posix/utils.h>
+#include <osquery/utils/conversions/split.h>
 
 extern "C" {
 #include <osquery/tables/networking/linux/iptc_proxy.h>
@@ -36,6 +35,67 @@ static const std::string kHexMap = "0123456789ABCDEF";
 
 static const int kMaskHighBits = 4;
 static const int kMaskLowBits = 15;
+
+void parseIptcpRule(const iptcproxy_rule& rule, Row& r) {
+  if (rule.target != nullptr) {
+    r["target"] = TEXT(rule.target);
+  } else {
+    r["target"] = "";
+  }
+
+  if (rule.match) {
+    r["match"] = "yes";
+  } else {
+    r["match"] = "no";
+  }
+
+  if (rule.match && rule.match_data.valid) {
+    r["src_port"] = std::to_string(rule.match_data.spts[0]) + ':' +
+                    std::to_string(rule.match_data.spts[1]);
+    r["dst_port"] = std::to_string(rule.match_data.dpts[0]) + ':' +
+                    std::to_string(rule.match_data.dpts[1]);
+  } else {
+    r["src_port"] = "";
+    r["dst_port"] = "";
+  }
+
+  r["protocol"] = INTEGER(rule.ip_data.proto);
+  if (strlen(rule.ip_data.iniface)) {
+    r["iniface"] = TEXT(rule.ip_data.iniface);
+  } else {
+    r["iniface"] = "all";
+  }
+
+  if (strlen(rule.ip_data.outiface)) {
+    r["outiface"] = TEXT(rule.ip_data.outiface);
+  } else {
+    r["outiface"] = "all";
+  }
+
+  r["src_ip"] = ipAsString(&rule.ip_data.src);
+  r["dst_ip"] = ipAsString(&rule.ip_data.dst);
+  r["src_mask"] = ipAsString(&rule.ip_data.smsk);
+  r["dst_mask"] = ipAsString(&rule.ip_data.dmsk);
+
+  char aux_char[2] = {0};
+  std::string iniface_mask;
+  for (int i = 0; i < IFNAMSIZ && rule.ip_data.iniface_mask[i] != 0x00; i++) {
+    aux_char[0] = kHexMap[(int)rule.ip_data.iniface_mask[i] >> kMaskHighBits];
+    aux_char[1] = kHexMap[(int)rule.ip_data.iniface_mask[i] & kMaskLowBits];
+    iniface_mask += aux_char[0];
+    iniface_mask += aux_char[1];
+  }
+
+  r["iniface_mask"] = TEXT(iniface_mask);
+  std::string outiface_mask = "";
+  for (int i = 0; i < IFNAMSIZ && rule.ip_data.outiface_mask[i] != 0x00; i++) {
+    aux_char[0] = kHexMap[(int)rule.ip_data.outiface_mask[i] >> kMaskHighBits];
+    aux_char[1] = kHexMap[(int)rule.ip_data.outiface_mask[i] & kMaskLowBits];
+    outiface_mask += aux_char[0];
+    outiface_mask += aux_char[1];
+  }
+  r["outiface_mask"] = TEXT(outiface_mask);
+}
 
 void genIPTablesRules(const std::string &filter, QueryData &results) {
   Row r;
@@ -67,78 +127,7 @@ void genIPTablesRules(const std::string &filter, QueryData &results) {
     for (auto rule = iptcproxy_first_rule(chain->chain, handle);
          rule != nullptr;
          rule = iptcproxy_next_rule(handle)) {
-
-      if (rule->target != nullptr) {
-        r["target"] = TEXT(rule->target);
-      } else {
-        r["target"] = "";
-      }
-
-      if (rule->match) {
-        r["match"] = "yes";
-      } else {
-        r["match"] = "no";
-      }
-
-      if (rule->match && rule->match_data.valid) {
-        r["src_port"] =
-          std::to_string(rule->match_data.spts[0])
-          + ':'
-          + std::to_string(rule->match_data.spts[1]);
-        r["dst_port"] =
-          std::to_string(rule->match_data.dpts[0])
-          + ':'
-          + std::to_string(rule->match_data.dpts[1]);
-      } else {
-        r["src_port"] = "";
-        r["dst_port"] = "";
-      }
-
-      r["protocol"] = INTEGER(rule->ip_data.proto);
-      if (strlen(rule->ip_data.iniface)) {
-        r["iniface"] = TEXT(rule->ip_data.iniface);
-      } else {
-        r["iniface"] = "all";
-      }
-
-      if (strlen(rule->ip_data.outiface)) {
-        r["outiface"] = TEXT(rule->ip_data.outiface);
-      } else {
-        r["outiface"] = "all";
-      }
-
-      r["src_ip"] = ipAsString(&rule->ip_data.src);
-      r["dst_ip"] = ipAsString(&rule->ip_data.dst);
-      r["src_mask"] = ipAsString(&rule->ip_data.smsk);
-      r["dst_mask"] = ipAsString(&rule->ip_data.dmsk);
-
-      char aux_char[2] = {0};
-      std::string iniface_mask;
-      for (int i = 0;
-          i < IFNAMSIZ && rule->ip_data.iniface_mask[i] != 0x00;
-          i++) {
-        aux_char[0] = kHexMap[
-          (int)rule->ip_data.iniface_mask[i] >> kMaskHighBits];
-        aux_char[1] = kHexMap[
-          (int)rule->ip_data.iniface_mask[i] & kMaskLowBits];
-        iniface_mask += aux_char[0];
-        iniface_mask += aux_char[1];
-      }
-
-      r["iniface_mask"] = TEXT(iniface_mask);
-      std::string outiface_mask = "";
-      for (int i = 0;
-          i < IFNAMSIZ && rule->ip_data.outiface_mask[i] != 0x00;
-          i++) {
-        aux_char[0] = kHexMap[
-          (int)rule->ip_data.outiface_mask[i] >> kMaskHighBits];
-        aux_char[1] = kHexMap[
-          (int)rule->ip_data.outiface_mask[i] & kMaskLowBits];
-        outiface_mask += aux_char[0];
-        outiface_mask += aux_char[1];
-      }
-      r["outiface_mask"] = TEXT(outiface_mask);
-
+      parseIptcpRule(*rule, r);
       results.push_back(r);
     } // Rule iteration
     results.push_back(r);

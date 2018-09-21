@@ -14,12 +14,17 @@
 #include <vector>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/system.h>
+#include <osquery/sql.h>
 
 #include "osquery/extensions/interface.h"
+
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/info/version.h>
 
 using chrono_clock = std::chrono::high_resolution_clock;
 

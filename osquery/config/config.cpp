@@ -19,19 +19,21 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/iterator/filter_iterator.hpp>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
+#include <osquery/flagalias.h>
 #include <osquery/flags.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/flagalias.h"
-#include "osquery/core/hashing.h"
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/time.h>
 
 namespace rj = rapidjson;
 

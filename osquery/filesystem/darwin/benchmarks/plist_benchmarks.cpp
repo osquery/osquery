@@ -12,10 +12,9 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/filesystem.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/tests/test_util.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

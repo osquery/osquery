@@ -1,0 +1,836 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+load("//tools/build_defs/oss/osquery:codegen.bzl", "osquery_gentable_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_filegroup", "osquery_target")
+
+_SPECS_LOCATION = "$(location {})".format(osquery_target("specs:specs"))
+
+osquery_filegroup(
+    name = "specs",
+    srcs = glob(
+        [
+            "**/*.table",
+        ],
+    ),
+)
+
+osquery_gentable_cxx_library(
+    name = "tables",
+    link_whole = True,
+    platform_spec_files = [
+        (
+            _SPECS_LOCATION + "/arp_cache.table",
+            "linux,macos,windows",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/account_policy_data.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/ad_config.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/alf.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/alf_exceptions.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/alf_explicit_auths.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/alf_services.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/app_schemes.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/apps.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/asl.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/authorization_mechanisms.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/authorizations.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/battery.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/browser_plugins.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/crashes.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/cups_destinations.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/cups_jobs.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/device_firmware.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/disk_events.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/event_taps.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/extended_attributes.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/fan_speed_sensors.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/gatekeeper.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/gatekeeper_approved_apps.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/homebrew_packages.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/iokit_devicetree.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/iokit_registry.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/kernel_extensions.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/kernel_panics.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/keychain_acls.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/keychain_items.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/launchd.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/launchd_overrides.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/managed_policies.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/mdfind.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/nfs_shares.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/nvram.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/package_bom.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/package_install_history.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/package_receipts.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/plist.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/power_sensors.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/preferences.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/quicklook_cache.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/safari_extensions.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/sandboxes.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/shared_folders.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/sharing_preferences.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/signature.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/sip_config.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/smc_keys.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/temperature_sensors.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/time_machine_backups.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/time_machine_destinations.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/user_interaction_events.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/virtual_memory_info.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/wifi_networks.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/wifi_scan.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/wifi_status.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/xprotect_entries.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/xprotect_meta.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/darwin/xprotect_reports.table",
+            "macos",
+        ),
+        (
+            _SPECS_LOCATION + "/freebsd/fbsd_kmods.table",
+            "freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/freebsd/pkg_packages.table",
+            "freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/selinux_events.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/socket_events.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/elf_symbols.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/portage_use.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/rpm_package_files.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/shared_memory.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/iptables.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/portage_keywords.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/elf_segments.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/md_devices.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/process_namespaces.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/syslog_events.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/rpm_packages.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/portage_packages.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/process_file_events.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/md_drives.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/ec2_instance_tags.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/npm_packages.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/elf_info.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/md_personalities.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/kernel_modules.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/shadow.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/memory_info.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/msr.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/memory_map.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/deb_packages.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/elf_dynamic.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/ec2_instance_metadata.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/kernel_integrity.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linux/elf_sections.table",
+            "linux",
+        ),
+        (
+            _SPECS_LOCATION + "/linwin/intel_me_info.table",
+            "linux,windows",
+        ),
+        (
+            _SPECS_LOCATION + "/lldpd/lldp_neighbors.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/kernel_info.table",
+            "linux,macos,windows",
+        ),
+        (
+            _SPECS_LOCATION + "/macwin/certificates.table",
+            "macos,windows",
+        ),
+        (
+            _SPECS_LOCATION + "/macwin/startup_items.table",
+            "macos,windows",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/acpi_tables.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/apt_sources.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/augeas.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/authorized_keys.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/block_devices.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/cpu_time.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/crontab.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/disk_encryption.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/dns_resolvers.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_container_labels.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_container_mounts.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_container_networks.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_container_ports.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_container_processes.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_container_stats.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_containers.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_image_labels.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_images.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_info.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_network_labels.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_networks.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_version.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_volume_labels.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/docker_volumes.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/file_events.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/firefox_addons.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/hardware_events.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/interface_ipv6.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/known_hosts.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/last.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/load_average.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/magic.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/memory_array_mapped_addresses.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/memory_arrays.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/memory_device_mapped_addresses.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/memory_devices.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/memory_error_info.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/mounts.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/oem_strings.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/opera_extensions.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/pci_devices.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/process_envs.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/process_events.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/process_open_files.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/prometheus_metrics.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/shell_history.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/smbios_tables.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/ssh_configs.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/sudoers.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/suid_bin.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/system_controls.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/ulimit_info.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/usb_devices.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/user_events.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/user_ssh_keys.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/posix/yum_sources.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/sleuthkit/device_file.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/sleuthkit/device_hash.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/sleuthkit/device_partitions.table",
+            "linux,macos,freebsd",
+        ),
+        (
+            _SPECS_LOCATION + "/smart/smart_drive_info.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/user_groups.table",
+            "linux,macos,windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/ntfs_acl_permissions.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/scheduled_tasks.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/windows_crashes.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/services.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/kva_speculative_info.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/patches.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/ie_extensions.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/shared_resources.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/wmi_cli_event_consumers.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/video_info.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/registry.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/drivers.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/disk_info.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/chocolatey_packages.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/logical_drives.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/ntdomains.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/authenticode.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/pipes.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/wmi_filter_consumer_binding.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/wmi_event_filters.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/windows_events.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/appcompat_shims.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/powershell_events.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/winbaseobj.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/cpu_info.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/wmi_bios_info.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/programs.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/wmi_script_event_consumers.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/physical_disk_performance.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/windows/autoexec.table",
+            "windows",
+        ),
+        (
+            _SPECS_LOCATION + "/yara/yara_events.table",
+            "linux,macos",
+        ),
+        (
+            _SPECS_LOCATION + "/yara/yara.table",
+            "linux,macos,freebsd",
+        ),
+    ],
+    spec_files = [
+        _SPECS_LOCATION + "/carbon_black_info.table",
+        _SPECS_LOCATION + "/carves.table",
+        _SPECS_LOCATION + "/chrome_extensions.table",
+        _SPECS_LOCATION + "/cpuid.table",
+        _SPECS_LOCATION + "/curl.table",
+        _SPECS_LOCATION + "/curl_certificate.table",
+        _SPECS_LOCATION + "/etc_hosts.table",
+        _SPECS_LOCATION + "/etc_protocols.table",
+        _SPECS_LOCATION + "/etc_services.table",
+        _SPECS_LOCATION + "/groups.table",
+        _SPECS_LOCATION + "/hash.table",
+        _SPECS_LOCATION + "/interface_addresses.table",
+        _SPECS_LOCATION + "/interface_details.table",
+        _SPECS_LOCATION + "/listening_ports.table",
+        _SPECS_LOCATION + "/logged_in_users.table",
+        _SPECS_LOCATION + "/os_version.table",
+        _SPECS_LOCATION + "/platform_info.table",
+        _SPECS_LOCATION + "/process_memory_map.table",
+        _SPECS_LOCATION + "/process_open_sockets.table",
+        _SPECS_LOCATION + "/processes.table",
+        _SPECS_LOCATION + "/python_packages.table",
+        _SPECS_LOCATION + "/routes.table",
+        _SPECS_LOCATION + "/system_info.table",
+        _SPECS_LOCATION + "/uptime.table",
+        _SPECS_LOCATION + "/users.table",
+        _SPECS_LOCATION + "/utility/file.table",
+        _SPECS_LOCATION + "/utility/osquery_events.table",
+        _SPECS_LOCATION + "/utility/osquery_extensions.table",
+        _SPECS_LOCATION + "/utility/osquery_flags.table",
+        _SPECS_LOCATION + "/utility/osquery_info.table",
+        _SPECS_LOCATION + "/utility/osquery_packs.table",
+        _SPECS_LOCATION + "/utility/osquery_registry.table",
+        _SPECS_LOCATION + "/utility/osquery_schedule.table",
+        _SPECS_LOCATION + "/utility/time.table",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/tables:tables"),
+    ],
+)

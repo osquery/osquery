@@ -18,11 +18,11 @@
 #include <boost/regex.hpp>
 #include <boost/xpressive/xpressive.hpp>
 
-#include <osquery/core/conversions.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+#include <osquery/utils/conversions/split.h>
 
 namespace xp = boost::xpressive;
 

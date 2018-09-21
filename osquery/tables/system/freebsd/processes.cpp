@@ -26,7 +26,7 @@
 
 #include <osquery/core.h>
 #include <osquery/tables.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 
 #include "osquery/tables/system/freebsd/procstat.h"
 

@@ -25,11 +25,10 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/tables/networking/posix/utils.h>
 
 // Include belongs here to fix build on older fbsds.
 #include <net/route.h>
-
-#include "osquery/tables/networking/utils.h"
 
 namespace osquery {
 namespace tables {

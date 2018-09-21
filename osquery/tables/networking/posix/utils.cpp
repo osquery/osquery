@@ -30,7 +30,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include "osquery/tables/networking/utils.h"
+#include <osquery/tables/networking/posix/utils.h>
 
 namespace osquery {
 namespace tables {

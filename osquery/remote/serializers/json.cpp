@@ -8,8 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include "osquery/core/json.h"
-#include "osquery/remote/serializers/json.h"
+#include "json.h"
+
+#include <osquery/utils/json.h>
 
 namespace osquery {
 

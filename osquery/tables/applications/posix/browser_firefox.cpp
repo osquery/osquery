@@ -10,12 +10,11 @@
 
 #include <boost/property_tree/json_parser.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/tables/applications/browser_utils.h"
-#include "osquery/tables/system/system_utils.h"
+#include <osquery/tables/applications/browser_utils.h>
+#include <osquery/tables/system/system_utils.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

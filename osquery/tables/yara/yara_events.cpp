@@ -11,18 +11,17 @@
 #include <map>
 #include <string>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
+#include <osquery/tables/yara/yara_utils.h>
 
 /// The file change event publishers are slightly different in OS X and Linux.
 #ifdef __APPLE__
-#include "osquery/events/darwin/fsevents.h"
+#include <osquery/events/darwin/fsevents.h>
 #elif __linux__
-#include "osquery/events/linux/inotify.h"
+#include <osquery/events/linux/inotify.h>
 #endif
-
-#include "osquery/tables/yara/yara_utils.h"
 
 #ifdef CONCAT
 #undef CONCAT

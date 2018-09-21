@@ -9,17 +9,18 @@
  */
 
 #include <boost/filesystem.hpp>
+
 #include <stdlib.h>
 #include <string>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/info/platform_type.h>
 
 #ifdef WIN32
-#include "osquery/tables/system/windows/registry.h"
+#include "windows/registry.h"
 #endif
 
 namespace fs = boost::filesystem;

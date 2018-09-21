@@ -14,7 +14,9 @@
 
 #include <osquery/core.h>
 #include <osquery/database.h>
-#include <osquery/mutex.h>
+#include <osquery/utils/mutex.h>
+
+#include <gtest/gtest_prod.h>
 
 namespace osquery {
 

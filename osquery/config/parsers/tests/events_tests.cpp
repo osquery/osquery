@@ -9,16 +9,33 @@
  */
 #include <vector>
 
+#include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
+#include <osquery/config/tests/test_utils.h>
+#include <osquery/database.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/registry.h>
-
-#include "osquery/tests/test_util.h"
+#include <osquery/registry_interface.h>
+#include <osquery/system.h>
 
 namespace osquery {
 
-class EventsConfigParserPluginTests : public testing::Test {};
+DECLARE_bool(disable_database);
+
+class EventsConfigParserPluginTests : public testing::Test {
+ public:
+  void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+};
 
 TEST_F(EventsConfigParserPluginTests, test_get_event) {
   // Reset the schedule in case other tests were modifying.
@@ -27,7 +44,8 @@ TEST_F(EventsConfigParserPluginTests, test_get_event) {
 
   // Generate content to update/add to the config.
   std::string content;
-  auto s = readFile(kTestDataPath + "test_parse_items.conf", content);
+  auto s =
+      readFile(getTestConfigDirectory() / "test_parse_items.conf", content);
   EXPECT_TRUE(s.ok());
   std::map<std::string, std::string> config;
   config["awesome"] = content;

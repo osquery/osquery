@@ -8,28 +8,28 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#ifdef WIN32
-#define _WIN32_DCOM
-
-#include <Windows.h>
-#endif
+// clang-format off
+// Keep it on top of all other includes to fix double include WinSock.h header file
+// which is windows specific boost build problem
+#include <osquery/remote/utility.h>
+// clang-format on
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/carver/carver.h>
 #include <osquery/database.h>
 #include <osquery/distributed.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/flags.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/logger.h>
+#include <osquery/remote/serializers/json.h>
 #include <osquery/system.h>
+#include <osquery/utils/base64.h>
+#include <osquery/utils/json.h>
 
-#include "osquery/carver/carver.h"
-#include "osquery/core/base64.h"
-#include "osquery/core/conversions.h"
-#include "osquery/core/hashing.h"
-#include "osquery/core/json.h"
-#include "osquery/filesystem/fileops.h"
-#include "osquery/remote/serializers/json.h"
-#include "osquery/remote/utility.h"
+#include <osquery/utils/system/system.h>
+#include <osquery/utils/system/time.h>
 
 namespace fs = boost::filesystem;
 
@@ -170,7 +170,7 @@ void Carver::start() {
     carvedFiles.insert(fs::path(p));
   }
 
-  auto s = archive(carvedFiles, archivePath_);
+  auto s = archive(carvedFiles, archivePath_, FLAGS_carver_block_size);
   if (!s.ok()) {
     VLOG(1) << "Failed to create carve archive: " << s.getMessage();
     updateCarveValue(carveGuid_, "status", "ARCHIVE FAILED");

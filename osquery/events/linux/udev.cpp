@@ -11,7 +11,7 @@
 #include <poll.h>
 
 #include <osquery/events.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 

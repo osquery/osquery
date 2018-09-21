@@ -8,14 +8,14 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <IOKit/IOMessage.h>
+
+#include <osquery/utils/conversions/darwin/iokit.h>
+#include <osquery/events/darwin/iokit.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
-#include <IOKit/IOMessage.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/events/darwin/iokit.h"
 
 namespace osquery {
 

@@ -8,6 +8,11 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <osquery/filesystem/fileops.h>
+#include <osquery/logger.h>
+#include <osquery/process/process.h>
+#include <osquery/process/windows/process_ops.h>
+
 #include <AclAPI.h>
 #include <LM.h>
 #include <ShlObj.h>
@@ -18,16 +23,11 @@
 
 #include <memory>
 #include <regex>
+#include <set>
 #include <vector>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
-
-#include <osquery/logger.h>
-
-#include "osquery/core/process.h"
-#include "osquery/core/windows/process_ops.h"
-#include "osquery/filesystem/fileops.h"
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))

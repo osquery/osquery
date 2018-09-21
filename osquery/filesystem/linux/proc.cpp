@@ -13,11 +13,11 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/filesystem/linux/proc.h>
+#include <osquery/utils/conversions/split.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/filesystem/linux/proc.h"
 
 namespace osquery {
 const std::vector<std::string> kUserNamespaceList = {

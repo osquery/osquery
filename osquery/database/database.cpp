@@ -9,16 +9,17 @@
  */
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/io/detail/quoted_manip.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/database.h>
+#include <osquery/flagalias.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/flagalias.h"
-#include "osquery/core/json.h"
+#include <osquery/utils/json.h>
+#include <osquery/utils/config/default_paths.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace pt = boost::property_tree;
 namespace rj = rapidjson;
@@ -69,13 +70,20 @@ Mutex kDatabaseReset;
 Status DatabasePlugin::initPlugin() {
   // Initialize the database plugin using the flag.
   auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
-  auto status = RegistryFactory::get().setActive("database", plugin);
-  if (!status.ok()) {
-    // If the database did not setUp override the active plugin.
-    RegistryFactory::get().setActive("database", "ephemeral");
+  {
+    auto const status = RegistryFactory::get().setActive("database", plugin);
+    if (status.ok()) {
+      kDBInitialized = true;
+      return status;
+    }
+    LOG(WARNING) << "Failed to activate database plugin " << boost::io::quoted(plugin) << ": " << status.what();
   }
-
-  kDBInitialized = true;
+  // If the database did not setUp override the active plugin.
+  auto const status = RegistryFactory::get().setActive("database", "ephemeral");
+  if (!status.ok()) {
+    LOG(ERROR) << "Failed to activate database plugin \"ephemeral\": " << status.what();
+  }
+  kDBInitialized = status.ok();
   return status;
 }
 

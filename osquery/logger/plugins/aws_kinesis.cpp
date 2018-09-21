@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "aws_kinesis.h"
+
 #include <algorithm>
 #include <chrono>
 #include <iterator>
@@ -23,11 +25,9 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include <osquery/flags.h>
+#include <osquery/process/process.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
-
-#include "osquery/core/process.h"
-#include "osquery/logger/plugins/aws_kinesis.h"
 
 namespace osquery {
 

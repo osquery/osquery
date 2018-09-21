@@ -10,12 +10,12 @@
 
 // clang-format off
 
-#include <windows.h>
+#include <osquery/utils/system/system.h>
 #include <evntprov.h>
 // clang-format on
 
 #include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/plugins/logger.h>
 
 namespace osquery {
 

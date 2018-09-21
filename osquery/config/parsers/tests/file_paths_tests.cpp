@@ -8,20 +8,36 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/registry.h>
+#include <osquery/system.h>
 
-#include "osquery/tests/test_util.h"
+#include <osquery/config/tests/test_utils.h>
+#include <osquery/database.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/registry_interface.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
+
+DECLARE_bool(disable_database);
 
 class FilePathsConfigParserPluginTests : public testing::Test {
  public:
   void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+
     // Read config content manually.
-    readFile(kTestDataPath + "test_parse_items.conf", content_);
+    readFile(getTestConfigDirectory() / "test_parse_items.conf", content_);
 
     // Construct a config map, the typical output from `Config::genConfig`.
     config_data_["awesome"] = content_;

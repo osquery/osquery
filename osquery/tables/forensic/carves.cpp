@@ -15,16 +15,14 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include <osquery/core.h>
+#include <osquery/carver/carver.h>
 #include <osquery/database.h>
 #include <osquery/dispatcher.h>
 #include <osquery/distributed.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/carver/carver.h"
-#include "osquery/core/json.h"
+#include <osquery/utils/json.h>
 
 namespace pt = boost::property_tree;
 

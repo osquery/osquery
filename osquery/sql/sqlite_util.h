@@ -22,6 +22,10 @@
 
 #include <osquery/sql.h>
 
+#include <osquery/utils/mutex.h>
+
+#include <gtest/gtest_prod.h>
+
 #define SQLITE_SOFT_HEAP_LIMIT (5 * 1024 * 1024)
 
 namespace osquery {

@@ -11,10 +11,9 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
 
+#include <osquery/hashing/hashing.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/hashing.h"
+#include <osquery/utils/conversions/darwin/cfstring.h>
 
 namespace osquery {
 namespace tables {

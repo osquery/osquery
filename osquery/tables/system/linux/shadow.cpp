@@ -16,8 +16,7 @@
 
 #include <osquery/core.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
+#include <osquery/utils/mutex.h>
 
 namespace osquery {
 namespace tables {

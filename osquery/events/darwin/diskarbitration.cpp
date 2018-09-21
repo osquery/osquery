@@ -11,16 +11,18 @@
 #include <fstream>
 #include <iomanip>
 
-#include <osquery/filesystem.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/utils/conversions/darwin/cftime.h>
+#include <osquery/utils/conversions/darwin/cfdata.h>
+#include <osquery/utils/conversions/darwin/cfnumber.h>
+#include <osquery/events/darwin/diskarbitration.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
-
-#include "osquery/core/conversions.h"
-#include "osquery/events/darwin/diskarbitration.h"
 
 namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;

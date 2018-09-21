@@ -12,8 +12,8 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/config.h>
-#include <osquery/filesystem.h>
+#include <osquery/config/config.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>

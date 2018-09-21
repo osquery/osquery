@@ -12,8 +12,8 @@
 
 #include <unordered_map>
 
-#include <osquery/core/conversions.h>
 #include <osquery/core/database/rocksdb_migration.h>
+#include <osquery/utils/conversions/tryto.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/uuid/uuid.hpp>

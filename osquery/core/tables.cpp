@@ -8,14 +8,14 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
+#include <osquery/utils/json.h>
 
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace {
@@ -36,15 +36,6 @@ CREATE_LAZY_REGISTRY(TablePlugin, "table");
 size_t TablePlugin::kCacheInterval = 0;
 size_t TablePlugin::kCacheStep = 0;
 
-const std::map<ColumnType, std::string> kColumnTypeNames = {
-    {UNKNOWN_TYPE, "UNKNOWN"},
-    {TEXT_TYPE, "TEXT"},
-    {INTEGER_TYPE, "INTEGER"},
-    {BIGINT_TYPE, "BIGINT"},
-    {UNSIGNED_BIGINT_TYPE, "UNSIGNED BIGINT"},
-    {DOUBLE_TYPE, "DOUBLE"},
-    {BLOB_TYPE, "BLOB"},
-};
 
 Status TablePlugin::addExternal(const std::string& name,
                                 const PluginResponse& response) {

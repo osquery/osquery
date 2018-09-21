@@ -10,10 +10,10 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
+#include <osquery/utils/conversions/split.h>
+#include <osquery/expected.h>
 
 namespace fs = boost::filesystem;
 

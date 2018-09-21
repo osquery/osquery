@@ -12,7 +12,7 @@
 
 #include <string>
 
-#include <osquery/status.h>
+#include <osquery/utils/status.h>
 
 namespace osquery {
 

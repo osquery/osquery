@@ -16,6 +16,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/database.h>
+#include <osquery/sql.h>
 
 namespace pt = boost::property_tree;
 

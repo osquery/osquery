@@ -10,11 +10,14 @@
 
 #include <augeas.h>
 
+#include <mutex>
 #include <sstream>
+#include <string>
 #include <unordered_set>
 
 #include <boost/algorithm/string/join.hpp>
 
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 

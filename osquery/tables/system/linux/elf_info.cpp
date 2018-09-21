@@ -15,7 +15,7 @@
 
 #include <unordered_map>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 

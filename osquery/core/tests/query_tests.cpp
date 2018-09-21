@@ -17,12 +17,22 @@
 #include <gtest/gtest.h>
 
 #include <osquery/query.h>
-
-#include "osquery/tests/test_util.h"
+#include <osquery/sql/tests/sql_test_utils.h>
+#include <osquery/system.h>
+#include <osquery/tests/test_util.h>
 
 namespace osquery {
 
-class QueryTests : public testing::Test {};
+DECLARE_bool(disable_database);
+class QueryTests : public testing::Test {
+ public:
+  QueryTests() {
+    registryAndPluginInit();
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+};
 
 TEST_F(QueryTests, test_private_members) {
   auto query = getOsqueryScheduledQuery();

@@ -12,8 +12,8 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/events/linux/udev.h"
+#include <osquery/events/linux/udev.h>
+#include <osquery/utils/conversions/split.h>
 
 namespace osquery {
 namespace tables {

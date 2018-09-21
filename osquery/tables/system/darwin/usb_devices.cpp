@@ -11,8 +11,7 @@
 #include <IOKit/usb/IOUSBLib.h>
 
 #include <osquery/tables.h>
-
-#include "osquery/core/darwin/iokit.hpp"
+#include <osquery/utils/conversions/darwin/iokit.h>
 
 namespace osquery {
 namespace tables {

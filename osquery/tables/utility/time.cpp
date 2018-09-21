@@ -12,7 +12,8 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include <osquery/core.h>
+#include <osquery/utils/system/time.h>
+
 #include <osquery/flags.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>

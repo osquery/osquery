@@ -1,0 +1,46 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "sqlite",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "d4fe4e10c01f508210670bf1a67d0445491df8fe7322161e3322b912529e33f0",
+        "macos-x86_64": "995b47f65dc70f0ee76b0aa700e8ed3135e914ad3671c5ee43eab6d964b13a6a",
+        "windows-x86_64": "0f5ac78b7a9dafd2d5a900f33b36390390b3dca909e71fefb29379763fe1099e",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libsqlite3.a",
+        ],
+        "macos-x86_64": [
+            "lib/libsqlite3.a",
+        ],
+        "windows-x86_64": [
+            "lib/sqlite3.lib",
+        ],
+    },
+    linker_flags = [
+        "-ldl",
+    ],
+    deps = [
+        osquery_tp_target("pthread", "pthread"),
+    ],
+    version = "3.24.0",
+    build = "0",
+)

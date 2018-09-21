@@ -8,19 +8,24 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <iostream>
+#include <osquery/core.h>
+#include <osquery/registry_interface.h>
+#include <osquery/sql.h>
+#include <osquery/sql/sqlite_util.h>
+#include <osquery/sql/tests/sql_test_utils.h>
+#include <osquery/system.h>
+#include <osquery/utils/info/platform_type.h>
 
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
-#include <osquery/sql.h>
-
-#include "osquery/sql/sqlite_util.h"
-#include "osquery/tests/test_util.h"
-
 namespace osquery {
-
-class SQLiteUtilTests : public testing::Test {};
+class SQLiteUtilTests : public testing::Test {
+ public:
+  void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+  }
+};
 
 std::shared_ptr<SQLiteDBInstance> getTestDBC() {
   auto dbc = SQLiteDBManager::getUnique();
@@ -281,4 +286,4 @@ TEST_F(SQLiteUtilTests, test_query_planner) {
   getQueryColumnsInternal(query, columns, dbc);
   EXPECT_EQ(getTypes(columns), TypeList({BLOB_TYPE}));
 }
-}
+} // namespace osquery

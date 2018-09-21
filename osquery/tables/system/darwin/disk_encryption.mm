@@ -16,12 +16,11 @@
 #include <membership.h>
 
 #include <osquery/core.h>
+#include <osquery/utils/conversions/darwin/iokit.h>
+#include <osquery/events/darwin/diskarbitration.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/darwin/iokit.hpp"
-#include "osquery/events/darwin/diskarbitration.h"
 
 namespace osquery {
 namespace tables {

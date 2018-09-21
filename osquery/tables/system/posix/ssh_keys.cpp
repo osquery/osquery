@@ -12,12 +12,11 @@
 #include <vector>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/posix/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/tables/system/system_utils.h"
+#include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/system/system.h>
 
 namespace osquery {
 namespace tables {

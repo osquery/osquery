@@ -8,11 +8,11 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <cstring>
 #include <functional>
 #include <string>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/hashing.h"
+#include <osquery/hashing/hashing.h>
 
 #include <sqlite3.h>
 

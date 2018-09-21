@@ -12,8 +12,8 @@
 
 #include <sqlite3.h>
 
-#include "osquery/core/base64.h"
-#include "osquery/core/conversions.h"
+#include <osquery/utils/base64.h>
+#include <osquery/utils/chars.h>
 
 namespace osquery {
 

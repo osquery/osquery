@@ -10,6 +10,7 @@
 
 #include <boost/io/detail/quoted_manip.hpp>
 
+#include <osquery/logger.h>
 #include "osquery/numeric_monitoring/pre_aggregation_cache.h"
 
 namespace osquery {

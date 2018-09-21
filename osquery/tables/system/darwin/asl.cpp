@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include "osquery/tables/system/darwin/asl_utils.h"
+#include <osquery/tables/system/darwin/asl_utils.h>
 
 namespace osquery {
 namespace tables {

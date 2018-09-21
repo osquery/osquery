@@ -12,12 +12,14 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/events/linux/auditeventpublisher.h>
+#include <osquery/events/linux/socket_events.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/events/linux/auditeventpublisher.h"
-#include "osquery/tables/events/linux/socket_events.h"
+#include <osquery/tables/events/linux/socket_events.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/uptime.h>
 
 namespace osquery {
 
@@ -30,11 +32,6 @@ HIDDEN_FLAG(bool,
             audit_allow_unix,
             false,
             "Allow socket events to collect domain sockets");
-
-// Depend on the external getUptime table method.
-namespace tables {
-extern long getUptime();
-}
 
 std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
   long const result = tryTo<long>(saddr.substr(offset, 8), 16).takeOr(0l);
@@ -186,7 +183,7 @@ Status SocketEventSubscriber::ProcessEvents(
     row["fd"] = syscall_event_record->fields.at("a0");
     row["success"] =
         (syscall_event_record->fields.at("success") == "yes") ? "1" : "0";
-    row["uptime"] = std::to_string(tables::getUptime());
+    row["uptime"] = std::to_string(getUptime());
 
     // Set some sane defaults and then attempt to parse the sockaddr value
     row["protocol"] = '0';
@@ -212,7 +209,6 @@ Status SocketEventSubscriber::ProcessEvents(
 }
 
 const std::set<int>& SocketEventSubscriber::GetSyscallSet() noexcept {
-  static const std::set<int> syscall_set = {__NR_bind, __NR_connect};
-  return syscall_set;
+  return kSocketEventsSyscalls;
 }
 } // namespace osquery

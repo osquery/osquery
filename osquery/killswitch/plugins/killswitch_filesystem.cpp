@@ -12,8 +12,8 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <osquery/core/json.h>
-#include <osquery/filesystem.h>
+#include <osquery/utils/json.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/killswitch/plugins/killswitch_filesystem.h>
 #include <osquery/logger.h>

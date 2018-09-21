@@ -9,7 +9,7 @@
  */
 
 #include <Objbase.h>
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 
 #include <osquery/system.h>
 

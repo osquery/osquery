@@ -9,11 +9,9 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/filesystem/linux/proc.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/filesystem/linux/proc.h"
 
 namespace osquery {
 namespace tables {

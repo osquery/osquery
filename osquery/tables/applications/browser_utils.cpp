@@ -8,12 +8,13 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/logger.h>
-#include "osquery/tables/applications/browser_utils.h"
-#include "osquery/tables/system/system_utils.h"
+#include <osquery/tables/applications/browser_utils.h>
+#include <osquery/tables/system/system_utils.h>
 
 namespace pt = boost::property_tree;
 

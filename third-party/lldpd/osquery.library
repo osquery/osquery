@@ -1,0 +1,11 @@
+library(
+    name = "lldpd",
+    version = "0.9.6",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    deps = [
+    ],
+)

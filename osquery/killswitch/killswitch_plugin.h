@@ -13,11 +13,13 @@
 #include <string>
 #include <unordered_map>
 
+#include <gtest/gtest_prod.h>
+
 #include <osquery/core.h>
 #include <osquery/expected.h>
 #include <osquery/killswitch.h>
-#include <osquery/mutex.h>
-#include <osquery/plugin.h>
+#include <osquery/utils/mutex.h>
+#include <osquery/plugins/plugin.h>
 #include <osquery/query.h>
 
 namespace osquery {

@@ -8,10 +8,11 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <string>
-#include <windows.h>
+#include <osquery/utils/system/system.h>
 
-#include <osquery/status.h>
+#include <osquery/utils/status.h>
+
+#include <string>
 
 namespace osquery {
 

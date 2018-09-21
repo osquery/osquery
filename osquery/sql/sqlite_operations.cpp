@@ -11,11 +11,11 @@
 #include <set>
 #include <string>
 
+#include <osquery/carver/carver.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-
-#include "osquery/carver/carver.h"
-#include "osquery/core/conversions.h"
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/mutex.h>
 
 #include <sqlite3.h>
 

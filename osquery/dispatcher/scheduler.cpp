@@ -14,19 +14,19 @@
 #include <boost/format.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/core.h>
+#include <osquery/data_logger.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/killswitch.h>
-#include <osquery/logger.h>
 #include <osquery/numeric_monitoring.h>
+#include <osquery/process/process.h>
 #include <osquery/profiler/profiler.h>
 #include <osquery/query.h>
-#include <osquery/system.h>
+#include <osquery/utils/system/time.h>
 
 #include "osquery/config/parsers/decorators.h"
-#include "osquery/core/process.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/sql/sqlite_util.h"
 

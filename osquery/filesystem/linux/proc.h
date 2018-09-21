@@ -18,10 +18,9 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
-
-#include "osquery/core/conversions.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 const std::string kLinuxProcPath = "/proc";

@@ -27,11 +27,12 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/flags.h>
-#include <osquery/filesystem.h>
-#include <osquery/tables.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/logger.h>
-
-#include "osquery/core/hashing.h"
+#include <osquery/tables.h>
+#include <osquery/utils/mutex.h>
+#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
 

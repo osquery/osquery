@@ -10,13 +10,12 @@
 
 #include <array>
 
+#include <osquery/events/linux/auditeventpublisher.h>
+#include <osquery/events/linux/selinux_events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/events/linux/auditeventpublisher.h"
-#include "osquery/tables/events/linux/selinux_events.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 /// The audit subsystem may have a performance impact on the system.
@@ -106,7 +105,7 @@ void AuditEventPublisher::ProcessEvents(
     AuditEventContextRef event_context,
     const std::vector<AuditEventRecord>& record_list,
     AuditTraceContext& trace_context) noexcept {
-  static const auto& selinux_event_set = SELinuxEventSubscriber::GetEventSet();
+  static const auto& selinux_event_set = kSELinuxEventList;
 
   // Assemble each record into a AuditEvent object; multi-record events
   // are complete when we receive the terminator (AUDIT_EOE)

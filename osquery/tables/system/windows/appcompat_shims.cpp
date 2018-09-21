@@ -13,8 +13,9 @@
 #include <osquery/core.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/tables/system/windows/registry.h"
+#include <osquery/utils/conversions/split.h>
+
+#include <osquery/tables/system/windows/registry.h>
 
 namespace osquery {
 namespace tables {

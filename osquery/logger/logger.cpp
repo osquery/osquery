@@ -8,9 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#ifdef WIN32
-#include "osquery/logger/plugins/windows_event_log.h"
-#else
+#ifndef WIN32
 #include <syslog.h>
 #endif
 
@@ -21,20 +19,23 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/data_logger.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/extensions.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/killswitch.h>
-#include <osquery/logger.h>
 #include <osquery/numeric_monitoring.h>
+#include <osquery/plugins/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/system.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/flagalias.h"
-#include "osquery/core/json.h"
+#include <osquery/flagalias.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/json.h>
+#include <osquery/utils/system/time.h>
 
 namespace rj = rapidjson;
 
@@ -207,30 +208,6 @@ static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
   doc.toString(request["log"]);
 }
 
-static void deserializeIntermediateLog(const PluginRequest& request,
-                                       std::vector<StatusLogLine>& log) {
-  if (request.count("log") == 0) {
-    return;
-  }
-
-  rj::Document doc;
-  if (doc.Parse(request.at("log").c_str()).HasParseError()) {
-    return;
-  }
-
-  for (auto& line : doc.GetArray()) {
-    log.push_back({
-        static_cast<StatusLogSeverity>(line["s"].GetInt()),
-        line["f"].GetString(),
-        line["i"].GetUint64(),
-        line["m"].GetString(),
-        line["c"].GetString(),
-        line["u"].GetUint64(),
-        line["h"].GetString(),
-    });
-  }
-}
-
 void setVerboseLevel() {
   if (Flag::getValue("verbose") == "true") {
     // Turn verbosity up to 1.
@@ -389,34 +366,6 @@ const std::vector<std::string>& BufferedLogSink::enabledPlugins() const {
 
 BufferedLogSink::~BufferedLogSink() {
   enabled_ = false;
-}
-
-Status LoggerPlugin::call(const PluginRequest& request,
-                          PluginResponse& response) {
-  QueryLogItem item;
-  std::vector<StatusLogLine> intermediate_logs;
-  if (request.count("string") > 0) {
-    return this->logString(request.at("string"));
-  } else if (request.count("snapshot") > 0) {
-    return this->logSnapshot(request.at("snapshot"));
-  } else if (request.count("init") > 0) {
-    deserializeIntermediateLog(request, intermediate_logs);
-    this->setProcessName(request.at("init"));
-    this->init(this->name(), intermediate_logs);
-    return Status(0);
-  } else if (request.count("status") > 0) {
-    deserializeIntermediateLog(request, intermediate_logs);
-    return this->logStatus(intermediate_logs);
-  } else if (request.count("event") > 0) {
-    return this->logEvent(request.at("event"));
-  } else if (request.count("action") && request.at("action") == "features") {
-    size_t features = 0;
-    features |= (usesLogStatus()) ? LOGGER_FEATURE_LOGSTATUS : 0;
-    features |= (usesLogEvent()) ? LOGGER_FEATURE_LOGEVENT : 0;
-    return Status(static_cast<int>(features));
-  } else {
-    return Status(1, "Unsupported call to logger plugin");
-  }
 }
 
 Status logString(const std::string& message, const std::string& category) {

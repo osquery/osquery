@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 

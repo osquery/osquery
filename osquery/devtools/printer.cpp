@@ -12,12 +12,12 @@
 #include <sstream>
 
 #include <osquery/core.h>
+#include <osquery/devtools/devtools.h>
 #include <osquery/flags.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/map_take.h"
-#include "osquery/core/process.h"
-#include "osquery/devtools/devtools.h"
+#include <osquery/process/process.h>
+#include <osquery/utils/chars.h>
+#include <osquery/utils/map_take.h>
+#include <osquery/utils/system/env.h>
 
 namespace osquery {
 

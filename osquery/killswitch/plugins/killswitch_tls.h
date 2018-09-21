@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "osquery/killswitch/killswitch_refreshable_plugin.h"
+#include <osquery/killswitch/killswitch_refreshable_plugin.h>
 
 namespace osquery {
 

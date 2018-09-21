@@ -11,35 +11,11 @@
 #include <locale>
 #include <string>
 
+#include <osquery/core/windows/wmi.h>
 #include <osquery/logger.h>
-
-#include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
-
-std::wstring stringToWstring(const std::string& src) {
-  std::wstring utf16le_str;
-  try {
-    utf16le_str = converter.from_bytes(src);
-  } catch (std::exception /* e */) {
-    LOG(WARNING) << "Failed to convert string to wstring " << src;
-  }
-
-  return utf16le_str;
-}
-
-std::string wstringToString(const wchar_t* src) {
-  if (src == nullptr) {
-    return std::string("");
-  }
-
-  std::string utf8_str = converter.to_bytes(src);
-  return utf8_str;
-}
-
-std::string bstrToString(const BSTR src) {
-  return wstringToString(static_cast<const wchar_t*>(src));
-}
 
 WmiResultItem::WmiResultItem(WmiResultItem&& src) {
   result_ = nullptr;

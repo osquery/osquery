@@ -10,9 +10,9 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/status.h>
+#include <osquery/utils/status.h>
 #include <osquery/tables.h>
 
 #include "osquery/tables/yara/yara_utils.h"

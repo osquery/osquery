@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <windows.h>
+#include <osquery/utils/system/system.h>
 namespace osquery {
 
 #define NTSTATUS ULONG

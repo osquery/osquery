@@ -10,18 +10,31 @@
 
 #include <boost/filesystem/operations.hpp>
 
+#include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
+#include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
+#include <osquery/tables/yara/yara_utils.h>
+#include <osquery/utils/info/tool_type.h>
 
 namespace osquery {
+DECLARE_bool(disable_database);
 
 class EventsTests : public ::testing::Test {
- public:
+ protected:
   void SetUp() override {
+    kToolType = ToolType::TEST;
+    registryAndPluginInit();
+
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+
     RegistryFactory::get().registry("config_parser")->setUp();
   }
   void TearDown() override {
@@ -463,6 +476,7 @@ TEST_F(EventsTests, test_event_subscriber_configure) {
         "\"interval\": 10}, \"2\":{\"query\": \"select * from time, "
         "fake_events\", \"interval\": 19}, \"3\":{\"query\": \"select * "
         "from fake_events, fake_events\", \"interval\": 5}}}"}});
+
   // This will become 19 * 3, rounded up 60.
   EXPECT_EQ(sub->min_expiration_, 60U);
   EXPECT_EQ(sub->query_count_, 3U);

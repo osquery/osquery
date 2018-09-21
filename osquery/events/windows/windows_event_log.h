@@ -10,9 +10,7 @@
 
 #pragma once
 
-#define _WIN32_DCOM
-
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 #include <winevt.h>
 
 #include <osquery/events.h>

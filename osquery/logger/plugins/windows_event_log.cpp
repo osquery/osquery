@@ -8,15 +8,12 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <osquery/logger/plugins/windows_event_log.h>
+#include <osquery/logger/plugins/generated_wel.h>
+
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include "osquery/logger/plugins/windows_event_log.h"
-
-// clang-format off
-#include "osquery/logger/plugins/generated_wel.h"
-// clang-format on
 
 namespace osquery {
 

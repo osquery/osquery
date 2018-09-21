@@ -10,12 +10,12 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/utils/darwin/plist.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql/sqlite_util.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/sql/sqlite_util.h"
+#include <osquery/utils/conversions/split.h>
 
 namespace pt = boost::property_tree;
 

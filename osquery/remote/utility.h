@@ -10,14 +10,18 @@
 
 #pragma once
 
+// clang-format off
+// Keep it on top of all other includes to fix double include WinSock.h header file
+// which is windows specific boost build problem
+#include <osquery/remote/transports/tls.h>
+// clang-format on
+
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
 #include <osquery/system.h>
 
-#include "osquery/remote/requests.h"
-#include "osquery/remote/transports/tls.h"
-
-#include "osquery/core/process.h"
+#include <osquery/process/process.h>
+#include <osquery/remote/requests.h>
 
 namespace osquery {
 

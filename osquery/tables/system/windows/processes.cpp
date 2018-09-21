@@ -11,9 +11,8 @@
 #include <map>
 #include <string>
 
-#define _WIN32_DCOM
+#include <osquery/utils/system/system.h>
 
-#include <Windows.h>
 #include <iomanip>
 #include <psapi.h>
 #include <stdlib.h>
@@ -23,13 +22,15 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/windows/wmi.h"
-#include "osquery/filesystem/fileops.h"
+#include <osquery/core/windows/wmi.h>
+#include <osquery/filesystem/fileops.h>
+
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 int getUidFromSid(PSID sid);

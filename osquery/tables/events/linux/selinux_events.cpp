@@ -10,13 +10,13 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/events/linux/auditeventpublisher.h>
+#include <osquery/events/linux/selinux_events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/events/linux/auditeventpublisher.h"
-#include "osquery/tables/events/linux/selinux_events.h"
+#include <osquery/tables/events/linux/selinux_events.h>
+#include <osquery/utils/system/uptime.h>
 
 namespace osquery {
 FLAG(bool,
@@ -25,11 +25,6 @@ FLAG(bool,
      "Allow the audit publisher to process audit events");
 
 REGISTER(SELinuxEventSubscriber, "event_subscriber", "selinux_events");
-
-// Depend on the external getUptime table method.
-namespace tables {
-extern long getUptime();
-}
 
 Status SELinuxEventSubscriber::init() {
   if (!FLAGS_audit_allow_selinux_events) {
@@ -77,7 +72,7 @@ Status SELinuxEventSubscriber::ProcessEvents(
       }
 
       r["message"] = record.raw_data;
-      r["uptime"] = std::to_string(tables::getUptime());
+      r["uptime"] = std::to_string(getUptime());
       emitted_row_list.push_back(r);
     }
   }
@@ -88,4 +83,5 @@ Status SELinuxEventSubscriber::ProcessEvents(
 const std::set<int>& SELinuxEventSubscriber::GetEventSet() noexcept {
   return kSELinuxEventList;
 }
+
 } // namespace osquery

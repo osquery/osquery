@@ -12,7 +12,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include "asl_utils.h"
+#include <osquery/tables/system/darwin/asl_utils.h>
 
 namespace ba = boost::algorithm;
 namespace pt = boost::property_tree;

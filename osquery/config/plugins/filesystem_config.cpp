@@ -14,13 +14,14 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/config.h>
-#include <osquery/filesystem.h>
+#include <osquery/config/config.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
+#include <osquery/utils/config/default_paths.h>
 
-#include "osquery/core/json.h"
+#include <osquery/utils/json.h>
 
 namespace errc = boost::system::errc;
 namespace fs = boost::filesystem;

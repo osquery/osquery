@@ -10,12 +10,11 @@
 
 #include <set>
 
-#include <osquery/config.h>
+#include <osquery/data_logger.h>
+#include <osquery/config/config.h>
 #include <osquery/flags.h>
-#include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-namespace rj = rapidjson;
+#include <osquery/utils/json.h>
 
 namespace osquery {
 

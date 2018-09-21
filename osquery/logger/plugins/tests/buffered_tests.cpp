@@ -17,13 +17,17 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include <osquery/database.h>
 #include <osquery/dispatcher.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_interface.h>
 #include <osquery/system.h>
 
-#include "osquery/core/json.h"
 #include "osquery/logger/plugins/buffered.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/json.h>
+#include <osquery/utils/system/time.h>
 
 using namespace testing;
 namespace pt = boost::property_tree;
@@ -31,6 +35,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 DECLARE_uint64(buffered_log_max);
+DECLARE_bool(disable_database);
 
 // Check that the string matches the StatusLogLine
 MATCHER_P(MatchesStatus, expected, "") {
@@ -48,6 +53,15 @@ MATCHER_P(MatchesStatus, expected, "") {
 }
 
 class BufferedLogForwarderTests : public Test {
+ protected:
+  void SetUp() {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+
  public:
   const std::chrono::milliseconds kLogPeriod = std::chrono::milliseconds(100);
 

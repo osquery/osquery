@@ -8,9 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#define _WIN32_DCOM
-
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 
 #include <algorithm>
 
@@ -21,6 +19,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 #include "osquery/core/windows/wmi.h"
 #include "osquery/events/windows/windows_event_log.h"

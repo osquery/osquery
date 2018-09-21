@@ -8,9 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#define _WIN32_DCOM
-
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 
 #include <osquery/core.h>
 #include <osquery/logger.h>

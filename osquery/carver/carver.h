@@ -14,8 +14,8 @@
 #include <string>
 
 #include <osquery/dispatcher.h>
-#include <osquery/filesystem.h>
-#include <osquery/status.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/utils/status.h>
 
 namespace osquery {
 

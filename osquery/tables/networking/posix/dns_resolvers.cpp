@@ -15,8 +15,7 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/tables/networking/utils.h"
+#include <osquery/tables/networking/posix/utils.h>
 
 namespace osquery {
 namespace tables {

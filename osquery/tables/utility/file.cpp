@@ -12,11 +12,10 @@
 #include <sys/stat.h>
 #endif
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/filesystem/fileops.h"
+#include <osquery/filesystem/fileops.h>
 
 namespace fs = boost::filesystem;
 

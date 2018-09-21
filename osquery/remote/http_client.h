@@ -21,9 +21,15 @@
 #define OPENSSL_NO_MD5 1
 #define OPENSSL_NO_DEPRECATED 1
 
-#include <boost/asio.hpp>
+// clang-format off
+// Keep it on top of all other includes to fix double include WinSock.h header file
+// which is windows specific boost build problem
 #include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
+// clang-format on
+
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/optional/optional.hpp>
@@ -31,7 +37,9 @@
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
 
-#include "osquery/remote/uri.h"
+#include <osquery/remote/uri.h>
+
+#include <osquery/logger.h>
 
 namespace boost_system = boost::system;
 namespace boost_asio = boost::asio;

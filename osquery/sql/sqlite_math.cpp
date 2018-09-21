@@ -8,22 +8,22 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <assert.h>
-#include <errno.h>
-
 #ifdef WIN32
 #define _USE_MATH_DEFINES
 #endif
-
+// Include cmath here to ensure it is included after the define.
 #include <cmath>
+
+#include <osquery/utils/system/errno.h>
+
+#include <assert.h>
+#include <errno.h>
 
 #include <string.h>
 
 #include <functional>
 
 #include <sqlite3.h>
-
-#include "osquery/core/utils.h"
 
 namespace osquery {
 

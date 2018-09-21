@@ -201,7 +201,6 @@ Vagrant.configure("2") do |config|
           rsync__exclude: [
             "build",
             ".git/objects",
-            ".git/modules/third-party/objects"
           ]
       end
 
@@ -212,7 +211,6 @@ Vagrant.configure("2") do |config|
           rsync__exclude: [
             "build",
             ".git/objects",
-            ".git/modules/third-party/objects"
           ]
       end
 
@@ -229,7 +227,6 @@ Vagrant.configure("2") do |config|
           rsync__exclude: [
             "build",
             ".git/objects",
-            ".git/modules/third-party/objects"
           ]
         build.vm.provision 'shell',
           inline:

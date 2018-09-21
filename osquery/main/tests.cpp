@@ -11,7 +11,7 @@
 #ifdef WIN32
 
 #include <Shlwapi.h>
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 #endif
 
 #include <memory>
@@ -23,8 +23,8 @@
 #endif
 
 #include <osquery/logger.h>
+#include <osquery/process/process.h>
 
-#include "osquery/core/process.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {

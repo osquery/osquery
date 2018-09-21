@@ -10,8 +10,10 @@
 
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
+
+#include <osquery/core/windows/wmi.h>
 
 namespace osquery {
 namespace tables {

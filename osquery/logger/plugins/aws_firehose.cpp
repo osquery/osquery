@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "aws_firehose.h"
+
 #include <algorithm>
 
 #include <boost/algorithm/string/join.hpp>
@@ -20,7 +22,6 @@
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
-#include "osquery/logger/plugins/aws_firehose.h"
 
 namespace osquery {
 

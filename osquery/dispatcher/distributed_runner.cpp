@@ -15,8 +15,9 @@
 #include <osquery/flags.h>
 #include <osquery/system.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/dispatcher/distributed_runner.h"
+#include <osquery/utils/system/time.h>
+#include <osquery/dispatcher/distributed_runner.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 

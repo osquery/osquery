@@ -19,7 +19,6 @@ def get_files_to_compile(json_data):
         filename = element["file"]
         if not filename.endswith("tests.cpp") and \
                 not filename.endswith("benchmarks.cpp") and \
-                "third-party" not in filename and \
                 "example" not in filename and \
                 "generated/gen" not in filename and \
                 "test_util" not in filename:

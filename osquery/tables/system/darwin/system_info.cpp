@@ -15,13 +15,12 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/utils/conversions/darwin/iokit.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/darwin/iokit.hpp"
+#include <osquery/utils/conversions/darwin/cfstring.h>
 
 namespace osquery {
 namespace tables {

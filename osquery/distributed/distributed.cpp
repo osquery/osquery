@@ -14,12 +14,12 @@
 #include <osquery/database.h>
 #include <osquery/distributed.h>
 #include <osquery/logger.h>
+#include <osquery/plugins/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
+#include <osquery/utils/json.h>
+#include <osquery/utils/system/time.h>
 
 namespace rj = rapidjson;
 

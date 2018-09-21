@@ -8,8 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <iomanip>
-#include <string>
+// Include system.h before openssl, because windows.h should be included in
+// specific environment. See osquery/utils/system/windows/system.h
+#include <osquery/utils/system/system.h>
 
 #include <openssl/asn1.h>
 #include <openssl/bio.h>
@@ -19,6 +20,9 @@
 
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include <iomanip>
+#include <string>
 
 namespace osquery {
 namespace tables {

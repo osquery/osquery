@@ -17,17 +17,21 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/core/watcher.h>
+#include <osquery/extensions/interface.h>
+#include <osquery/filesystem/fileops.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/flagalias.h>
 #include <osquery/logger.h>
+#include <osquery/process/process.h>
 #include <osquery/registry.h>
+#include <osquery/sql.h>
 #include <osquery/system.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/flagalias.h"
-#include "osquery/core/process.h"
-#include "osquery/core/watcher.h"
-#include "osquery/extensions/interface.h"
-#include "osquery/filesystem/fileops.h"
+#include <osquery/utils/config/default_paths.h>
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/info/version.h>
 
 namespace fs = boost::filesystem;
 

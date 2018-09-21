@@ -17,7 +17,7 @@
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
-#include <osquery/logger.h>
+#include <osquery/plugins/logger.h>
 
 namespace osquery {
 

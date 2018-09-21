@@ -17,7 +17,7 @@
 #include <osquery/logger.h>
 #include <osquery/query.h>
 
-#include "osquery/core/json.h"
+#include <osquery/utils/json.h>
 
 namespace rj = rapidjson;
 
@@ -167,143 +167,6 @@ Status Query::addNewResults(QueryData current_qd,
   return Status(0, "OK");
 }
 
-Status serializeRow(const Row& r,
-                    const ColumnNames& cols,
-                    JSON& doc,
-                    rj::Value& obj) {
-  if (cols.empty()) {
-    for (const auto& i : r) {
-      doc.addRef(i.first, i.second, obj);
-    }
-  } else {
-    for (const auto& c : cols) {
-      auto i = r.find(c);
-      if (i != r.end()) {
-        doc.addRef(c, i->second, obj);
-      }
-    }
-  }
-
-  return Status();
-}
-
-Status serializeRowJSON(const Row& r, std::string& json) {
-  auto doc = JSON::newObject();
-
-  // An empty column list will traverse the row map.
-  ColumnNames cols;
-  auto status = serializeRow(r, cols, doc, doc.doc());
-  if (!status.ok()) {
-    return status;
-  }
-  return doc.toString(json);
-}
-
-Status deserializeRow(const rj::Value& doc, Row& r) {
-  if (!doc.IsObject()) {
-    return Status(1);
-  }
-
-  for (const auto& i : doc.GetObject()) {
-    std::string name(i.name.GetString());
-    if (!name.empty() && i.value.IsString()) {
-      r[name] = i.value.GetString();
-    }
-  }
-  return Status();
-}
-
-Status deserializeRowJSON(const std::string& json, Row& r) {
-  auto doc = JSON::newObject();
-  if (!doc.fromString(json) || !doc.doc().IsObject()) {
-    return Status(1, "Cannot deserializing JSON");
-  }
-  return deserializeRow(doc.doc(), r);
-}
-
-Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
-  auto doc = JSON::newArray();
-
-  ColumnNames cols;
-  auto status = serializeQueryData(q, cols, doc, doc.doc());
-  if (!status.ok()) {
-    return status;
-  }
-  return doc.toString(json);
-}
-
-Status deserializeQueryData(const rj::Value& arr, QueryData& qd) {
-  if (!arr.IsArray()) {
-    return Status(1);
-  }
-
-  for (const auto& i : arr.GetArray()) {
-    Row r;
-    auto status = deserializeRow(i, r);
-    if (!status.ok()) {
-      return status;
-    }
-    qd.push_back(r);
-  }
-  return Status();
-}
-
-Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
-  if (!v.IsArray()) {
-    return Status(1, "JSON object was not an array");
-  }
-
-  for (const auto& i : v.GetArray()) {
-    Row r;
-    auto status = deserializeRow(i, r);
-    if (!status.ok()) {
-      return status;
-    }
-    qd.insert(std::move(r));
-  }
-  return Status();
-}
-
-Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
-  auto doc = JSON::newArray();
-  if (!doc.fromString(json) || !doc.doc().IsArray()) {
-    return Status(1, "Cannot deserializing JSON");
-  }
-
-  return deserializeQueryData(doc.doc(), qd);
-}
-
-Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {
-  rj::Document doc;
-  if (doc.Parse(json.c_str()).HasParseError()) {
-    return Status(1, "Error serializing JSON");
-  }
-  return deserializeQueryData(doc, qd);
-}
-
-Status serializeDiffResults(const DiffResults& d,
-                            const ColumnNames& cols,
-                            JSON& doc,
-                            rj::Document& obj) {
-  // Serialize and add "removed" first.
-  // A property tree is somewhat ordered, this provides a loose contract to
-  // the logger plugins and their aggregations, allowing them to parse chunked
-  // lines. Note that the chunking is opaque to the database functions.
-  auto removed_arr = doc.getArray();
-  auto status = serializeQueryData(d.removed, cols, doc, removed_arr);
-  if (!status.ok()) {
-    return status;
-  }
-  doc.add("removed", removed_arr, obj);
-
-  auto added_arr = doc.getArray();
-  status = serializeQueryData(d.added, cols, doc, added_arr);
-  if (!status.ok()) {
-    return status;
-  }
-  doc.add("added", added_arr, obj);
-  return Status();
-}
 
 Status deserializeDiffResults(const rj::Value& doc, DiffResults& dr) {
   if (!doc.IsObject()) {
@@ -324,36 +187,6 @@ Status deserializeDiffResults(const rj::Value& doc, DiffResults& dr) {
     }
   }
   return Status();
-}
-
-Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
-  auto doc = JSON::newObject();
-
-  ColumnNames cols;
-  auto status = serializeDiffResults(d, cols, doc, doc.doc());
-  if (!status.ok()) {
-    return status;
-  }
-  return doc.toString(json);
-}
-
-DiffResults diff(QueryDataSet& old, QueryData& current) {
-  DiffResults r;
-
-  for (auto& i : current) {
-    auto item = old.find(i);
-    if (item != old.end()) {
-      old.erase(item);
-    } else {
-      r.added.push_back(i);
-    }
-  }
-
-  for (auto& i : old) {
-    r.removed.push_back(std::move(i));
-  }
-
-  return r;
 }
 
 inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
@@ -530,26 +363,4 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& item,
   return Status();
 }
 
-Status serializeQueryData(const QueryData& q,
-                          const ColumnNames& cols,
-                          JSON& doc,
-                          rj::Document& arr) {
-  for (const auto& r : q) {
-    auto row_obj = doc.getObject();
-    auto status = serializeRow(r, cols, doc, row_obj);
-    if (!status.ok()) {
-      return status;
-    }
-    doc.push(row_obj, arr);
-  }
-  return Status();
-}
-
-bool addUniqueRowToQueryData(QueryData& q, const Row& r) {
-  if (std::find(q.begin(), q.end(), r) != q.end()) {
-    return false;
-  }
-  q.push_back(r);
-  return true;
-}
 }

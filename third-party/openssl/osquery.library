@@ -1,0 +1,16 @@
+library(
+    name = "openssl",
+    version = "1.0.2o",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    deps = [
+    ],
+    alias = [
+      "ssl",
+      "crypto",
+    ],
+)

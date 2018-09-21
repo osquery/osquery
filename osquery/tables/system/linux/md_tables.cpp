@@ -25,12 +25,12 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include <osquery/core/conversions.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
-
-#include "osquery/events/linux/udev.h"
-#include "osquery/tables/system/linux/md_tables.h"
+#include <osquery/events/linux/udev.h>
+#include <osquery/tables/system/linux/md_tables.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -122,19 +122,15 @@ std::string MD::getPathByDevName(const std::string& name) {
   std::string devPath;
 
   walkUdevDevices("block", [&](udev_device* const& device) {
-    const char* devName = udev_device_get_property_value(device, "DEVNAME");
-    size_t devNameLen = strlen(devName);
-    if (name.length() > devNameLen) {
-      return false;
-    }
-
-    if (name.compare(devNameLen - name.length(), std::string::npos, devName) ==
-        0) {
-      devPath = devName;
+    auto const devName = std::string(
+      udev_device_get_property_value(device, "DEVNAME")
+    );
+    if (boost::ends_with(devName, name)) {
       if (!boost::starts_with(devPath, "/")) {
         devPath = "/dev/" + devPath;
+      } else {
+        devPath = devName;
       }
-
       return true;
     }
 

@@ -8,31 +8,17 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "stdout.h"
+
+#include <iostream>
+
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/registry_factory.h>
 
 namespace osquery {
 
-class StdoutLoggerPlugin : public LoggerPlugin {
- public:
-  bool usesLogStatus() override {
-    return true;
-  }
-
- protected:
-  Status logString(const std::string& s) override;
-
-  void init(const std::string& name,
-            const std::vector<StatusLogLine>& log) override;
-
-  Status logStatus(const std::vector<StatusLogLine>& log) override;
-};
-
-REGISTER(StdoutLoggerPlugin, "logger", "stdout");
-
 Status StdoutLoggerPlugin::logString(const std::string& s) {
-  printf("%s\n", s.c_str());
+  std::cout << s << std::endl;
   return Status();
 }
 
@@ -41,8 +27,7 @@ Status StdoutLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
     std::string line = "severity=" + std::to_string(item.severity) +
                        " location=" + item.filename + ":" +
                        std::to_string(item.line) + " message=" + item.message;
-
-    printf("%s\n", line.c_str());
+    std::cout << line << std::endl;
   }
   return Status();
 }

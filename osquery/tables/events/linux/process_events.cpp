@@ -10,11 +10,12 @@
 
 #include <asm/unistd_64.h>
 
+#include <osquery/events/linux/process_events.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
-
-#include "osquery/tables/events/linux/process_events.h"
+#include <osquery/tables/events/linux/process_events.h>
+#include <osquery/utils/system/uptime.h>
 
 namespace osquery {
 
@@ -22,11 +23,6 @@ FLAG(bool,
      audit_allow_process_events,
      true,
      "Allow the audit publisher to install process event monitoring rules");
-
-// Depend on the external getUptime table method.
-namespace tables {
-extern long getUptime();
-}
 
 REGISTER(AuditProcessEventSubscriber, "event_subscriber", "process_events");
 
@@ -138,7 +134,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     row["env_size"] = "0";
     row["env_count"] = "0";
     row["env"] = "";
-    row["uptime"] = std::to_string(tables::getUptime());
+    row["uptime"] = std::to_string(getUptime());
 
     // build the command line from the AUDIT_EXECVE record
     row["cmdline"] = "";
@@ -175,7 +171,6 @@ Status AuditProcessEventSubscriber::ProcessEvents(
 }
 
 const std::set<int>& AuditProcessEventSubscriber::GetSyscallSet() noexcept {
-  static const std::set<int> syscall_set = {__NR_execve};
-  return syscall_set;
+  return kProcessEventsSyscalls;
 }
 } // namespace osquery

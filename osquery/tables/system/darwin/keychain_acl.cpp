@@ -15,13 +15,13 @@
 #include <boost/format.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tables/system/darwin/keychain.h"
+#include <osquery/tables/system/darwin/keychain.h>
+#include <osquery/utils/conversions/join.h>
 
 namespace osquery {
 namespace tables {

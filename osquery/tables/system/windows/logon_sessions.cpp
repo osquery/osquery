@@ -10,7 +10,7 @@
 
 // clang-format is turned off to ensure windows.h is first
 // clang-format off
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 // clang-format on
 #include <NTSecAPI.h>
 #include <sddl.h>
@@ -20,8 +20,9 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/process/windows/process_ops.h>
 
-#include "osquery/core/windows/process_ops.h"
 #include "osquery/filesystem/fileops.h"
 
 namespace osquery {

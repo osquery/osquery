@@ -11,10 +11,9 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/hashing/hashing.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/hashing.h"
 
 namespace fs = boost::filesystem;
 

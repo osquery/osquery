@@ -13,11 +13,10 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/regex.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/tables/system/system_utils.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tables/system/system_utils.h"
+#include <osquery/utils/conversions/split.h>
 
 namespace fs = boost::filesystem;
 namespace alg = boost::algorithm;

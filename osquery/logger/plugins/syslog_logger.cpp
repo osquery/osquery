@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "syslog_logger.h"
+
 #include <syslog.h>
 
 #include <osquery/flags.h>
@@ -25,21 +27,6 @@ FLAG(bool,
      logger_syslog_prepend_cee,
      false,
      "Prepend @cee: tag to logged JSON messages");
-
-class SyslogLoggerPlugin : public LoggerPlugin {
- public:
-  bool usesLogStatus() override {
-    return true;
-  }
-
- protected:
-  Status logString(const std::string& s) override;
-  void init(const std::string& name,
-            const std::vector<StatusLogLine>& log) override;
-  Status logStatus(const std::vector<StatusLogLine>& log) override;
-};
-
-REGISTER(SyslogLoggerPlugin, "logger", "syslog");
 
 Status SyslogLoggerPlugin::logString(const std::string& s) {
   if (FLAGS_logger_syslog_prepend_cee) {

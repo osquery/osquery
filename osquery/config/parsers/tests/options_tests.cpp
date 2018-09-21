@@ -10,19 +10,33 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
+#include <osquery/config/tests/test_utils.h>
+#include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
-
-#include "osquery/tests/test_util.h"
+#include <osquery/system.h>
 
 namespace osquery {
 
-class OptionsConfigParserPluginTests : public testing::Test {};
+DECLARE_bool(disable_database);
+
+class OptionsConfigParserPluginTests : public testing::Test {
+ protected:
+  void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+};
 
 TEST_F(OptionsConfigParserPluginTests, test_get_option) {
   Config c;
-  auto s = c.update(getTestConfigMap());
+  auto s = c.update(getTestConfigMap("test_parse_items.conf"));
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 
@@ -67,7 +81,7 @@ TEST_F(OptionsConfigParserPluginTests, test_json_option) {
 
   update["awesome"] = R"raw({
     "options": {
-      "custom_nested_json": 
+      "custom_nested_json":
         {"foo":1,"bar":"baz"}
     }
   })raw";

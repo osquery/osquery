@@ -16,12 +16,11 @@
 
 #include <tsk/libtsk.h>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/hashing.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace fs = boost::filesystem;
 

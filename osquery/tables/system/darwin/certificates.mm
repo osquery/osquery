@@ -8,12 +8,13 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <openssl/x509.h>
+
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
-
-#include "osquery/tables/system/darwin/keychain.h"
+#include <osquery/tables/system/darwin/keychain.h>
 
 namespace osquery {
 namespace tables {

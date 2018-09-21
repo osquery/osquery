@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "buffered.h"
+
 #include <algorithm>
 #include <chrono>
 #include <thread>
@@ -15,14 +17,15 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include <osquery/config/parsers/decorators.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
-
-#include "osquery/config/parsers/decorators.h"
-#include "osquery/core/json.h"
-#include "osquery/logger/plugins/buffered.h"
+#include <osquery/utils/info/version.h>
+#include <osquery/utils/json.h>
+#include <osquery/utils/system/time.h>
 
 namespace pt = boost::property_tree;
 

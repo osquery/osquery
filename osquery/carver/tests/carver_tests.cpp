@@ -15,17 +15,21 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/carver/carver.h>
+#include <osquery/config/tests/test_utils.h>
+#include <osquery/database.h>
+#include <osquery/filesystem/fileops.h>
+#include <osquery/hashing/hashing.h>
+#include <osquery/registry.h>
 #include <osquery/sql.h>
-
-#include "osquery/carver/carver.h"
-#include "osquery/core/hashing.h"
-#include "osquery/core/json.h"
-#include "osquery/filesystem/fileops.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/system.h>
+#include <osquery/utils/json.h>
 
 namespace osquery {
 
 namespace fs = boost::filesystem;
+
+DECLARE_bool(disable_database);
 
 /// Prefix used for posix tar archive.
 const std::string kTestCarveNamePrefix = "carve_";
@@ -37,17 +41,18 @@ std::string genGuid() {
 class CarverTests : public testing::Test {
  public:
   CarverTests() {
-    fs::create_directories(kFakeDirectory + "/files_to_carve/");
-    writeTextFile(kFakeDirectory + "/files_to_carve/secrets.txt",
+    fs::create_directories(fs::temp_directory_path() / "files_to_carve/");
+    writeTextFile(fs::temp_directory_path() / "files_to_carve/secrets.txt",
                   "This is a message I'd rather no one saw.");
-    writeTextFile(kFakeDirectory + "/files_to_carve/evil.exe",
+    writeTextFile(fs::temp_directory_path() / "files_to_carve/evil.exe",
                   "MZP\x00\x02\x00\x00\x00\x04\x00\x0f\x00\xff\xff");
 
-    auto paths = platformGlob(kFakeDirectory + "/files_to_carve/*");
+    auto paths =
+        platformGlob((fs::temp_directory_path() / "files_to_carve/*").string());
     for (const auto& p : paths) {
       carvePaths.insert(p);
     }
-  };
+  }
 
   std::set<std::string>& getCarvePaths() {
     return carvePaths;
@@ -55,11 +60,16 @@ class CarverTests : public testing::Test {
 
  protected:
   void SetUp() override {
-    createMockFileStructure();
-  }
+    Initializer::platformSetup();
+    registryAndPluginInit();
 
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
   void TearDown() override {
-    tearDownMockFileStructure();
+    fs::remove_all(fs::temp_directory_path() / "/files_to_carve/");
   }
 
  private:
@@ -97,15 +107,14 @@ TEST_F(CarverTests, test_carve_files_locally) {
 }
 
 TEST_F(CarverTests, test_compression) {
-  auto s = osquery::compress(kTestDataPath + "test.config",
+  auto s = osquery::compress(getTestConfigDirectory() / "test.config",
                              fs::temp_directory_path() / fs::path("test.zst"));
   EXPECT_TRUE(s.ok());
 }
 
 TEST_F(CarverTests, test_decompression) {
   std::cout << fs::temp_directory_path() << "\n";
-  std::cout << kTestDataPath << "test.config"
-            << "\n";
+  std::cout << (getTestConfigDirectory() / "test.config") << "\n";
   auto s = osquery::decompress(
       fs::temp_directory_path() / fs::path("test.zst"),
       fs::temp_directory_path() / fs::path("test.config.extract"));
@@ -114,6 +123,8 @@ TEST_F(CarverTests, test_decompression) {
       hashFromFile(HashType::HASH_TYPE_SHA256,
                    (fs::temp_directory_path() / fs::path("test.config.extract"))
                        .string()),
-      hashFromFile(HashType::HASH_TYPE_SHA256, kTestDataPath + "test.config"));
+      hashFromFile(
+          HashType::HASH_TYPE_SHA256,
+          (getTestConfigDirectory() / fs::path("test.config")).string()));
 }
-}
+} // namespace osquery

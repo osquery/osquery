@@ -8,16 +8,16 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/core/windows/handle.h"
 #include "osquery/core/windows/ntapi.h"
-#include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
 namespace tables {

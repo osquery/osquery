@@ -14,7 +14,6 @@
 
 #include <boost/utility/string_view.hpp>
 
-#include "osquery/core/conversions.h"
 #include <osquery/tables.h>
 
 namespace osquery {

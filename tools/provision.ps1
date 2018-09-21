@@ -408,25 +408,6 @@ function Install-ThirdParty {
   }
 }
 
-function Update-GitSubmodule {
-  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Low")]
-  param()
-  if (-not $PSCmdlet.ShouldProcess('Git Submodules')) {
-    Exit -1
-  }
-  if ($null -eq (Get-Command 'git.exe' -ErrorAction SilentlyContinue)) {
-    Write-Host "[-] ERROR: Git was not found on the system. Install git." -foregroundcolor Red
-    Exit -1
-  }
-  $repoRoot = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..'))
-  $thirdPartyPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'third-party'))
-  Write-Host " => Updating git submodules in $thirdPartyPath ..." -foregroundcolor Yellow
-  Push-Location $repoRoot
-  git submodule --quiet update --init
-  Pop-Location
-  Write-Host "[+] Submodules updated!" -foregroundcolor Yellow
-}
-
 function Main {
   if ($PSVersionTable.PSVersion.Major -lt 3.0 ) {
     Write-Output "This installer currently requires Powershell 3.0 or greater."
@@ -477,7 +458,6 @@ function Main {
   # Convenience variable for accessing Python
   [Environment]::SetEnvironmentVariable("OSQUERY_PYTHON_PATH", $pythonInstall, "Machine")
   $out = Install-PipPackage
-  $out = Update-GitSubmodule
   if (Test-Path env:OSQUERY_BUILD_HOST) {
     $out = Install-ChocoPackage 'visualcppbuildtools'
   } else {

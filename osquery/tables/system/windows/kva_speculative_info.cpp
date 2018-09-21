@@ -12,7 +12,7 @@
 #include <ntstatus.h>
 #define WIN32_NO_STATUS
 
-#include <windows.h>
+#include <osquery/utils/system/system.h>
 #include <winternl.h>
 
 #include <osquery/core.h>

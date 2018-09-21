@@ -8,8 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include "osquery/tables/system/user_groups.h"
-#include "osquery/core/conversions.h"
+#include <osquery/expected.h>
+#include <osquery/tables/system/user_groups.h>
+#include <osquery/utils/mutex.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {

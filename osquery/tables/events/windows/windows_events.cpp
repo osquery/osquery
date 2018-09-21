@@ -8,22 +8,25 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <string>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/core.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
-#include "osquery/core/windows/wmi.h"
-#include "osquery/events/windows/windows_event_log.h"
-#include "osquery/filesystem/fileops.h"
+#include <osquery/events/windows/windows_event_log.h>
+#include <osquery/filesystem/fileops.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/json.h>
 
 namespace pt = boost::property_tree;
 

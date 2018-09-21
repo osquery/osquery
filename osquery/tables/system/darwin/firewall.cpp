@@ -8,12 +8,11 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tables/system/darwin/firewall.h"
+#include <osquery/tables/system/darwin/firewall.h>
+#include <osquery/utils/darwin/plist.h>
 
 namespace pt = boost::property_tree;
 

@@ -11,7 +11,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <osquery/config/config.h>
 #include <osquery/core.h>
+#include <osquery/registry.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/watcher.h"
@@ -22,8 +25,20 @@ using namespace testing;
 namespace osquery {
 
 DECLARE_uint64(watchdog_delay);
+DECLARE_bool(disable_database);
 
-class WatcherTests : public testing::Test {};
+class WatcherTests : public testing::Test {
+ protected:
+  WatcherTests() {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+
+    Config::get().reset();
+  }
+};
 
 /**
  * @brief Begin with a mock watcher runner.

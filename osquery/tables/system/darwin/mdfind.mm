@@ -11,11 +11,12 @@
 #include <CoreServices/CoreServices.h>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
+#include <osquery/utils/system/time.h>
 
 namespace osquery {
 namespace tables {

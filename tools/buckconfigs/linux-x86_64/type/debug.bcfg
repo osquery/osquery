@@ -1,0 +1,17 @@
+[project]
+  buck_out = "buck-out/debug"
+
+[cxx_type]
+  cppflags = \
+    -UNDEBUG
+
+  cflags = \
+    -O
+
+  cxxppflags = \
+    -UNDEBUG
+
+  cxxflags = \
+    -O
+
+  ldflags =

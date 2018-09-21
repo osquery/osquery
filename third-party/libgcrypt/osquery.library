@@ -1,0 +1,11 @@
+library(
+    name = "libgcrypt",
+    version = "1.8.1",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+    ],
+    deps = [
+        "libgpg-error:libgpg-error",
+    ],
+)

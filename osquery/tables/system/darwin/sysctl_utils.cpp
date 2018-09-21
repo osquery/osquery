@@ -11,14 +11,13 @@
 #include <sys/sysctl.h>
 #include <sys/time.h>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
+#include <osquery/tables/system/posix/sysctl_utils.h>
 
 #include <mach/mach_types.h>
 #include <mach/machine/vm_param.h>
 #include <mach/machine/vm_types.h>
-
-#include "osquery/tables/system/posix/sysctl_utils.h"
 
 namespace osquery {
 namespace tables {

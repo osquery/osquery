@@ -11,16 +11,17 @@
 #include <algorithm>
 #include <random>
 
-#include <osquery/core.h>
 #include <osquery/database.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/hashing.h"
-#include "osquery/core/json.h"
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/json.h>
+#include <osquery/utils/info/version.h>
+#include <osquery/utils/system/time.h>
 
 namespace rj = rapidjson;
 

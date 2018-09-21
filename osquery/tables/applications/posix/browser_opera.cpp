@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include "osquery/tables/applications/browser_utils.h"
+#include <osquery/tables/applications/browser_utils.h>
 
 namespace fs = boost::filesystem;
 

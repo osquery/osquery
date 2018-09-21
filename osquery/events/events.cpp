@@ -16,7 +16,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
@@ -24,8 +24,9 @@
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
-
-#include "osquery/core/conversions.h"
+#include <osquery/utils/system/time.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 

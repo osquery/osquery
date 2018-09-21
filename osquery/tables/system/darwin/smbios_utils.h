@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "osquery/tables/system/smbios_utils.h"
+#include <osquery/tables/system/smbios_utils.h>
 
 namespace osquery {
 namespace tables {

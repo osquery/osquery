@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/core/conversions.h>
 #include <osquery/core/database/database.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 

@@ -10,17 +10,27 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/logger.h>
 #include <osquery/database.h>
-
-#include "osquery/tests/test_additional_util.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/flags.h>
+#include <osquery/registry_interface.h>
+#include <osquery/remote/tests/test_utils.h>
+#include <osquery/system.h>
 
 #include "osquery/logger/plugins/tls_logger.h"
 
 namespace osquery {
+DECLARE_bool(disable_database);
 
 class TLSLoggerTests : public testing::Test {
+ protected:
+  void SetUp() {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+
  public:
   void runCheck(const std::shared_ptr<TLSLogForwarder>& runner) {
     runner->check();
@@ -76,4 +86,4 @@ TEST_F(TLSLoggerTests, test_send) {
   TLSServerRunner::unsetClientConfig();
   TLSServerRunner::stop();
 }
-}
+} // namespace osquery

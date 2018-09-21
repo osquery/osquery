@@ -16,8 +16,7 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/tables/system/intel_me.hpp"
+#include <osquery/tables/system/intel_me.hpp>
 
 namespace osquery {
 namespace tables {

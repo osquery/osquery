@@ -14,7 +14,7 @@
 
 #include <sys/sysctl.h>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
 
 #include "osquery/tables/system/posix/sysctl_utils.h"

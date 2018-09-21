@@ -8,14 +8,13 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "filesystem_logger.h"
+
 #include <exception>
 
-#include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-
-#include "osquery/core/flagalias.h"
+#include <osquery/utils/config/default_paths.h>
 
 namespace fs = boost::filesystem;
 
@@ -38,48 +37,6 @@ FLAG(int32, logger_mode, 0640, "Decimal mode for log files (default '0640')");
 
 const std::string kFilesystemLoggerFilename = "osqueryd.results.log";
 const std::string kFilesystemLoggerSnapshots = "osqueryd.snapshots.log";
-
-class FilesystemLoggerPlugin : public LoggerPlugin {
- public:
-  Status setUp() override;
-
-  /// Log results (differential) to a distinct path.
-  Status logString(const std::string& s) override;
-
-  /// Log snapshot data to a distinct path.
-  Status logSnapshot(const std::string& s) override;
-
-  /**
-   * @brief Initialize the logger plugin after osquery has begun.
-   *
-   * The filesystem logger plugin is somewhat unique, it is the only logger
-   * that will return an error during initialization. This allows Glog to
-   * write directly to files.
-   */
-  void init(const std::string& name,
-            const std::vector<StatusLogLine>& log) override;
-
-  /// Write a status to Glog.
-  Status logStatus(const std::vector<StatusLogLine>& log) override;
-
- private:
-  /// The plugin-internal filesystem writer method.
-  Status logStringToFile(const std::string& s,
-                         const std::string& filename,
-                         bool empty = false);
-
- private:
-  /// The folder where Glog and the result/snapshot files are written.
-  fs::path log_path_;
-
-  /// Filesystem writer mutex.
-  Mutex mutex_;
-
- private:
-  FRIEND_TEST(FilesystemLoggerTests, test_filesystem_init);
-};
-
-REGISTER(FilesystemLoggerPlugin, "logger", "filesystem");
 
 Status FilesystemLoggerPlugin::setUp() {
   log_path_ = fs::path(FLAGS_logger_path);

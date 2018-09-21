@@ -9,22 +9,18 @@
  */
 #include <arpa/inet.h>
 
+#include <unordered_map>
+
 #include <bsm/audit_kevents.h>
 #include <bsm/libbsm.h>
 
 #include <osquery/events.h>
+#include <osquery/events/darwin/openbsm.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include <unordered_map>
-
-#include "osquery/events/darwin/openbsm.h"
+#include <osquery/utils/system/uptime.h>
 
 namespace osquery {
-
-namespace tables {
-extern long getUptime();
-}
 
 static inline void OpenBSM_AUT_SUBJECT32_EX(Row& r, const tokenstr_t& tok) {
   if (tok.id != AUT_SUBJECT32_EX) {
@@ -196,7 +192,7 @@ Status OpenBSMProcEvSubscriber::handleExec(const OpenBSMEventContextRef& ec) {
       break;
     }
   }
-  r["uptime"] = INTEGER(tables::getUptime());
+  r["uptime"] = INTEGER(getUptime());
 
   auto ppid = ppid_map.find(pid);
   if (ppid != ppid_map.end()) {
@@ -330,7 +326,7 @@ Status OpenBSMSSHLoginSubscriber::Callback(
       break;
     }
   }
-  r["uptime"] = INTEGER(tables::getUptime());
+  r["uptime"] = INTEGER(getUptime());
   add(r);
   return Status(0);
 }

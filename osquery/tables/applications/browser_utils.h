@@ -18,9 +18,9 @@
 #pragma warning(pop)
 #endif
 
-#include <osquery/core/conversions.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace fs = boost::filesystem;
 

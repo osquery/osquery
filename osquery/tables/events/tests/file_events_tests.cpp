@@ -10,26 +10,35 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
+#include <osquery/config/tests/test_utils.h>
+#include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
-
-#include "osquery/core/json.h"
-#include "osquery/tables/events/event_utils.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/system.h>
+#include <osquery/tables/events/event_utils.h>
 
 namespace osquery {
 
 DECLARE_bool(registry_exceptions);
+DECLARE_bool(disable_database);
 
 class FileEventSubscriber;
 
 class FileEventsTableTests : public testing::Test {
  public:
   void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+
     Config::get().reset();
 
     // Promote registry access exceptions when testing tables and SQL.

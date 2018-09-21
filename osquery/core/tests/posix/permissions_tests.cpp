@@ -19,11 +19,11 @@
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/process/process.h>
 #include <osquery/system.h>
 
-#include "osquery/core/process.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tests/test_util.h"
 
@@ -33,7 +33,9 @@ namespace osquery {
 
 class PermissionsTests : public testing::Test {
  public:
-  PermissionsTests() : perm_path_(kTestWorkingDirectory + "lowperms/") {}
+  PermissionsTests()
+      : perm_path_(fs::temp_directory_path() /
+                   fs::unique_path("lowperms.%%%%.%%%%")) {}
 
   void SetUp() override {
     fs::create_directories(perm_path_);
@@ -44,7 +46,7 @@ class PermissionsTests : public testing::Test {
   }
 
  protected:
-  std::string perm_path_;
+  fs::path perm_path_;
 };
 
 TEST_F(PermissionsTests, test_explicit_drop) {
@@ -83,11 +85,12 @@ TEST_F(PermissionsTests, test_path_drop) {
   ASSERT_NE(nobody, nullptr);
 
   {
-    int status = chown(perm_path_.c_str(), nobody->pw_uid, nobody->pw_gid);
+    int status =
+        chown(perm_path_.string().c_str(), nobody->pw_uid, nobody->pw_gid);
     ASSERT_EQ(status, 0);
 
     auto dropper = DropPrivileges::get();
-    EXPECT_TRUE(dropper->dropToParent(perm_path_ + "ro"));
+    EXPECT_TRUE(dropper->dropToParent((perm_path_ / "ro").string()));
     EXPECT_TRUE(dropper->dropped_);
     EXPECT_EQ(dropper->to_user_, nobody->pw_uid);
 
@@ -227,7 +230,7 @@ TEST_F(PermissionsTests, test_multi_thread_permissions) {
   ASSERT_EQ(0U, geteuid());
 
   // Set the multi-thread path, which both threads will write into.
-  auto multi_thread_path = fs::path(kTestWorkingDirectory) / "threadperms.txt";
+  auto multi_thread_path = perm_path_ / "threadperms.txt";
   kMultiThreadPermissionPath = multi_thread_path.string();
 
   // This thread has super-user permissions.
@@ -267,7 +270,7 @@ TEST_F(PermissionsTests, test_multi_thread_poll) {
   ASSERT_EQ(0U, geteuid());
 
   // Set the multi-thread path, which both threads will write into.
-  auto multi_thread_path = fs::path(kTestWorkingDirectory) / "threadperms.txt";
+  auto multi_thread_path = perm_path_ / "threadperms.txt";
   kMultiThreadPermissionPath = multi_thread_path.string();
 
   // Start our permissions thread.

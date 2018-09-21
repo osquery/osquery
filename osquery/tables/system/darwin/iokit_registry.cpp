@@ -8,10 +8,11 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <osquery/utils/conversions/darwin/iokit.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/darwin/iokit.hpp"
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
 
 namespace osquery {
 namespace tables {

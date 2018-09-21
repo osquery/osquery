@@ -17,10 +17,10 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include <osquery/utils/conversions/darwin/iokit.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/darwin/iokit.hpp"
-#include "osquery/tables/system/smbios_utils.h"
+#include <osquery/tables/system/smbios_utils.h>
+#include <osquery/utils/conversions/join.h>
 
 namespace osquery {
 namespace tables {

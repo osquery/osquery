@@ -17,10 +17,7 @@
 #include <IOKit/IOKitLib.h>
 
 #include <osquery/events.h>
-#include <osquery/status.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/darwin/iokit.hpp"
+#include <osquery/utils/status.h>
 
 namespace osquery {
 

@@ -8,17 +8,16 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <chrono>
+#include "tls.h"
 
-// clang-format off
-// This must be here to prevent a WinSock.h exists error
-#include "osquery/remote/transports/tls.h"
-// clang-format on
+#include <chrono>
+#include <osquery/core.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/utils/info/version.h>
+#include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/config/default_paths.h>
 
 #include <boost/filesystem.hpp>
-
-#include <osquery/core.h>
-#include <osquery/filesystem.h>
 
 namespace fs = boost::filesystem;
 

@@ -10,14 +10,14 @@
 
 #include <DiskArbitration/DADisk.h>
 #include <DiskArbitration/DASession.h>
+
 #include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/utils/conversions/darwin/iokit.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/darwin/iokit.hpp"
 
 namespace osquery {
 namespace tables {

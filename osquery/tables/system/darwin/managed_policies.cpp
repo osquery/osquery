@@ -10,10 +10,9 @@
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/utils/darwin/plist.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
 
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;

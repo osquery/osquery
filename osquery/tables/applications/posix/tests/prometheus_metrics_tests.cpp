@@ -9,7 +9,7 @@
  */
 #include <gtest/gtest.h>
 
-#include "osquery/tables/applications/posix/prometheus_metrics.h"
+#include <osquery/tables/applications/posix/prometheus_metrics.h>
 
 namespace osquery {
 namespace tables {

@@ -11,9 +11,9 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include "osquery/core/conversions.h"
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
+#include <osquery/utils/conversions/split.h>
 
 namespace osquery {
 namespace tables {

@@ -12,8 +12,9 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/tables.h>
+#include <osquery/utils/config/default_paths.h>
 
 #ifdef CONCAT
 #undef CONCAT

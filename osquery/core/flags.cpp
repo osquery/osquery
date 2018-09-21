@@ -8,11 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <osquery/flagalias.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/flagalias.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace boost {
 template <>

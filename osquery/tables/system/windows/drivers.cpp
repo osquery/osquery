@@ -11,21 +11,23 @@
 #include <string>
 
 // clang-format off
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 #include <SetupAPI.h>
 #include <initguid.h>
 #include <Devpkey.h>
 #include <cfgmgr32.h>
 // clang-format on
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/regex.hpp>
 
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/windows/wmi.h"
-#include "osquery/filesystem/fileops.h"
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/core/windows/wmi.h>
+#include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/filesystem/fileops.h>
 
 namespace osquery {
 namespace tables {

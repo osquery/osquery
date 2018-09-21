@@ -19,7 +19,7 @@
 
 #include <boost/variant.hpp>
 
-#include "osquery/events/linux/auditeventpublisher.h"
+#include <osquery/events/linux/auditeventpublisher.h>
 
 namespace osquery {
 /// An inode descriptor, containing the file (or folder) path

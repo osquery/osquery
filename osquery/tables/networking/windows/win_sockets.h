@@ -10,11 +10,11 @@
 
 #pragma once
 
+// clang-format off
+#include <osquery/utils/system/system.h>
 #include <ws2tcpip.h>
-
 #include <Iphlpapi.h>
-#include <windows.h>
-#include <winsock2.h>
+// clang-format on
 
 #include <boost/noncopyable.hpp>
 

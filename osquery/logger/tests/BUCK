@@ -1,0 +1,24 @@
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+
+osquery_cxx_test(
+    name = "logger",
+    srcs = [
+        "logger.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/plugins:tls_config"),
+        osquery_target("osquery/core/plugins:plugins"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/database/plugins:ephemeral"),
+        osquery_target("osquery/distributed:distributed"),
+        osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/logger:data_logger"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("osquery/utils/info:info"),
+        osquery_target("osquery/utils/system:time"),
+        osquery_target("specs:tables"),
+    ],
+)

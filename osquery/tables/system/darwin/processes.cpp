@@ -22,7 +22,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -30,8 +30,6 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
-
-extern long getUptime();
 
 // The maximum number of expected memory regions per process.
 #define MAX_MEMORY_MAPS 512

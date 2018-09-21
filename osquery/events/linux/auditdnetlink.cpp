@@ -18,15 +18,16 @@
 
 #include <boost/utility/string_ref.hpp>
 
+#include <osquery/events/linux/auditdnetlink.h>
+#include <osquery/events/linux/selinux_events.h>
+#include <osquery/events/linux/socket_events.h>
+#include <osquery/events/linux/process_events.h>
+#include <osquery/events/linux/process_file_events.h>
+#include <osquery/expected.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/events/linux/auditdnetlink.h"
-#include "osquery/tables/events/linux/process_events.h"
-#include "osquery/tables/events/linux/process_file_events.h"
-#include "osquery/tables/events/linux/selinux_events.h"
-#include "osquery/tables/events/linux/socket_events.h"
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/time.h>
 
 namespace osquery {
 /// Control the audit subsystem by electing to be the single process sink.
@@ -65,7 +66,7 @@ DECLARE_bool(audit_allow_selinux_events);
 // also, we should handle the 2nd user message type
 namespace {
 bool IsSELinuxRecord(const audit_reply& reply) noexcept {
-  static const auto& selinux_event_set = SELinuxEventSubscriber::GetEventSet();
+  static const auto& selinux_event_set = kSELinuxEventList;
   return (selinux_event_set.find(reply.type) != selinux_event_set.end());
 }
 
@@ -319,7 +320,7 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
   if (FLAGS_audit_allow_sockets) {
     VLOG(1) << "Enabling audit rules for the socket_events table";
 
-    for (int syscall : SocketEventSubscriber::GetSyscallSet()) {
+    for (int syscall : kSocketEventsSyscalls) {
       monitored_syscall_list_.insert(syscall);
     }
   }
@@ -328,7 +329,7 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
   if (FLAGS_audit_allow_process_events) {
     VLOG(1) << "Enabling audit rules for the process_events table";
 
-    for (int syscall : AuditProcessEventSubscriber::GetSyscallSet()) {
+    for (int syscall : kProcessEventsSyscalls) {
       monitored_syscall_list_.insert(syscall);
     }
   }
@@ -337,7 +338,7 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
   if (FLAGS_audit_allow_fim_events) {
     VLOG(1) << "Enabling audit rules for the process_file_events table";
 
-    for (int syscall : ProcessFileEventSubscriber::GetSyscallSet()) {
+    for (int syscall : kProcessFileEventsSyscalls) {
       monitored_syscall_list_.insert(syscall);
     }
   }

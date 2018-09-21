@@ -11,6 +11,7 @@
 #include <string>
 
 // clang-format off
+#include <osquery/utils/system/system.h>
 #include <winsock2.h>
 #include <Ws2tcpip.h>
 #include <iphlpapi.h>
@@ -22,8 +23,11 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/tryto.h>
+
+#include <osquery/core/windows/wmi.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
 namespace tables {

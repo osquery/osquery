@@ -8,6 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/filesystem/fileops.h>
+
 #include <glob.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -18,12 +21,8 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
-
-#include <osquery/filesystem.h>
-
-#include "osquery/core/process.h"
-#include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;

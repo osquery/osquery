@@ -1,0 +1,56 @@
+[build]
+  depfiles = disabled
+
+[cxx]
+  preprocess_mode = combined
+  sandbox_sources = true
+  use_arg_file = true
+
+[cxx_base]
+  cppflags = \
+    /DBOOST_ALL_NO_LIB
+
+  cflags =
+    /std:c11 \
+    /MT \
+    /EHs \
+    /W3 \
+    /guard:cf \
+    /bigobj
+
+  cxxppflags = \
+    /DBOOST_ALL_NO_LIB
+
+  cxxflags = \
+    /std:c++14 \
+    /MT \
+    /EHs \
+    /W3 \
+    /guard:cf \
+    /bigobj
+
+  ldflags = \
+    /SUBSYSTEM:CONSOLE \
+    /LTCG \
+    ntdll.lib \
+    ws2_32.lib \
+    iphlpapi.lib \
+    netapi32.lib \
+    rpcrt4.lib \
+    shlwapi.lib \
+    version.lib \
+    wtsapi32.lib \
+    wbemuuid.lib \
+    secur32.lib \
+    taskschd.lib \
+    dbghelp.lib \
+    dbgeng.lib \
+    bcrypt.lib \
+    crypt32.lib \
+    wintrust.lib \
+    setupapi.lib \
+    advapi32.lib \
+    userenv.lib \
+    wevtapi.lib \
+    shell32.lib \
+    gdi32.lib
