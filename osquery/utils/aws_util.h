@@ -66,11 +66,28 @@ class OsqueryHttpClient : public Aws::Http::HttpClient {
  public:
   OsqueryHttpClient() : HttpClient() {}
 
-  std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
+  std::shared_ptr<Aws::Http::HttpResponse> InternalRequest(
       Aws::Http::HttpRequest& request,
       Aws::Utils::RateLimits::RateLimiterInterface* readLimiter = nullptr,
       Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter =
-          nullptr) const override;
+          nullptr) const;
+
+  std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
+      // This override method has been deprecated within AWS HttpClient.
+      Aws::Http::HttpRequest& request,
+      Aws::Utils::RateLimits::RateLimiterInterface* readLimiter = nullptr,
+      Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter =
+          nullptr) const override {
+    return InternalRequest(request, readLimiter, writeLimiter);
+  }
+
+  std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
+      const std::shared_ptr<Aws::Http::HttpRequest>& request,
+      Aws::Utils::RateLimits::RateLimiterInterface* readLimiter = nullptr,
+      Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter =
+          nullptr) const override {
+    return InternalRequest(*request, readLimiter, writeLimiter);
+  }
 };
 
 /**

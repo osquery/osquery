@@ -121,7 +121,7 @@ OsqueryHttpClientFactory::CreateHttpRequest(
   return request;
 }
 
-std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
+std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::InternalRequest(
     Aws::Http::HttpRequest& request,
     Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
     Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
