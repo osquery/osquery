@@ -60,4 +60,26 @@ TEST_F(OptionsConfigParserPluginTests, test_unknown_option) {
   EXPECT_EQ(1U, doc["custom_fake"].GetUint());
   EXPECT_FALSE(Flag::getValue("custom_fake").empty());
 }
+
+TEST_F(OptionsConfigParserPluginTests, test_json_option) {
+  Config c;
+  std::map<std::string, std::string> update;
+
+  update["awesome"] = R"raw({
+    "options": {
+      "custom_nested_json": 
+        {"foo":1,"bar":"baz"}
+    }
+  })raw";
+  auto s = c.update(update);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.toString(), "OK");
+
+  const auto& doc = c.getParser("options")->getData().doc()["options"];
+
+  EXPECT_TRUE(doc.HasMember("custom_nested_json"));
+  EXPECT_FALSE(Flag::getValue("custom_nested_json").empty());
+  EXPECT_EQ(R"raw({"foo":1,"bar":"baz"})raw",
+            Flag::getValue("custom_nested_json"));
+}
 }

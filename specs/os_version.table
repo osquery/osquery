@@ -11,6 +11,9 @@ schema([
     Column("platform_like", TEXT, "Closely related platforms"),
     Column("codename", TEXT, "OS version codename"),
 ])
+extended_schema(WINDOWS, [
+    Column("install_date", TEXT, "The install date of the OS."),
+])
 implementation("system/os_version@genOSVersion")
 fuzz_paths([
     "/System/Library/CoreServices/SystemVersion.plist",

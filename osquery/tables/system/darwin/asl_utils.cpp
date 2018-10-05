@@ -15,6 +15,7 @@
 #include "asl_utils.h"
 
 namespace ba = boost::algorithm;
+namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {

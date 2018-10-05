@@ -14,6 +14,7 @@
 
 #include <osquery/core.h>
 #include <osquery/database.h>
+#include <osquery/mutex.h>
 
 namespace osquery {
 
@@ -39,10 +40,23 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
              const std::string& key,
              std::string& value) const override;
 
+  Status get(const std::string& domain,
+             const std::string& key,
+             int& value) const override;
+
   /// Data storage method.
   Status put(const std::string& domain,
              const std::string& key,
              const std::string& value) override;
+
+  Status put(const std::string& domain,
+             const std::string& key,
+             int value) override;
+
+  Status putBatch(const std::string& domain,
+                  const DatabaseStringValueList& data) override;
+
+  void dumpDatabase() const override;
 
   /// Data removal method.
   Status remove(const std::string& domain, const std::string& k) override;

@@ -32,7 +32,7 @@ class ATCPlugin : public TablePlugin {
   ATCPlugin(const std::string& path,
             const TableColumns& tc_columns,
             const std::string& sqlite_query)
-      : path_(path), tc_columns_(tc_columns), sqlite_query_(sqlite_query) {}
+      : tc_columns_(tc_columns), sqlite_query_(sqlite_query), path_(path) {}
 
   QueryData generate(QueryContext& context) override;
 };

@@ -68,4 +68,4 @@ void registerOperationExtensions(sqlite3* db) {
                           addCarveFile,
                           executeCarve);
 }
-}
+} // namespace osquery

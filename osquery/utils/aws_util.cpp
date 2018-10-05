@@ -14,6 +14,7 @@
 #include <string>
 
 #include <boost/property_tree/ini_parser.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <aws/core/Aws.h>
@@ -56,6 +57,25 @@ FLAG(uint64,
      aws_sts_timeout,
      3600,
      "AWS STS assume role credential validity in seconds (default 3600)");
+FLAG(bool,
+     aws_enable_proxy,
+     false,
+     "Enable proxying of HTTP/HTTPS requests in AWS client config");
+FLAG(string,
+     aws_proxy_scheme,
+     "https",
+     "Proxy HTTP scheme for use in AWS client config (http or https, default "
+     "https)");
+FLAG(string, aws_proxy_host, "", "Proxy host for use in AWS client config");
+FLAG(uint32, aws_proxy_port, 0, "Proxy port for use in AWS client config");
+FLAG(string,
+     aws_proxy_username,
+     "",
+     "Proxy username for use in AWS client config");
+FLAG(string,
+     aws_proxy_password,
+     "",
+     "Proxy password for use in AWS client config");
 
 /// Map of AWS region name to AWS::Region enum.
 static const std::set<std::string> kAwsRegions = {"us-east-1",
@@ -71,7 +91,6 @@ static const std::set<std::string> kAwsRegions = {"us-east-1",
                                                   "ap-south-1",
                                                   "us-east-2",
                                                   "ca-central-1",
-                                                  "eu-west-1",
                                                   "eu-west-2"};
 
 // Default AWS region to use when no region set in flags or profile
@@ -173,7 +192,7 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
 
     response->GetResponseBody() << resp.body();
 
-  } catch (std::exception e) {
+  } catch (const std::exception& e) {
     /* NOTE: This exception must NOT be passed by reference. */
     LOG(ERROR) << "Exception making HTTP request to URL (" << url
                << "): " << e.what();
@@ -381,10 +400,7 @@ bool isEc2Instance() {
     checked = true;
 
     std::ifstream fd(kHypervisorUuid, std::ifstream::in);
-    if (!fd) {
-      return; // No hypervisor UUID file. Not EC2
-    }
-    if (!(fd.get() == 'e' && fd.get() == 'c' && fd.get() == '2')) {
+    if (fd && !(fd.get() == 'e' && fd.get() == 'c' && fd.get() == '2')) {
       return; // Not EC2 instance
     }
 
@@ -479,5 +495,16 @@ Status appendLogTypeToJson(const std::string& log_type, std::string& log) {
     log.pop_back();
   }
   return Status(0, "OK");
+}
+
+void setAWSProxy(Aws::Client::ClientConfiguration& config) {
+  if (FLAGS_aws_enable_proxy) {
+    config.proxyScheme =
+        Aws::Http::SchemeMapper::FromString(FLAGS_aws_proxy_scheme.c_str());
+    config.proxyHost = FLAGS_aws_proxy_host;
+    config.proxyPort = FLAGS_aws_proxy_port;
+    config.proxyUserName = FLAGS_aws_proxy_username;
+    config.proxyPassword = FLAGS_aws_proxy_password;
+  }
 }
 }

@@ -10,21 +10,18 @@
 
 #include <iostream>
 
-#include <boost/property_tree/ptree.hpp>
-
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
 #include <osquery/distributed.h>
 #include <osquery/enroll.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 
 #include "osquery/core/json.h"
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
-
-namespace pt = boost::property_tree;
 
 DECLARE_string(distributed_tls_read_endpoint);
 DECLARE_string(distributed_tls_write_endpoint);

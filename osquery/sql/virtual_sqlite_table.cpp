@@ -19,6 +19,18 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
+const char* getSystemVFS(bool respect_locking) {
+  if (respect_locking) {
+    return nullptr;
+  }
+  if (isPlatform(PlatformType::TYPE_POSIX)) {
+    return "unix-none";
+  } else if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    return "win32-none";
+  }
+  return nullptr;
+}
+
 Status genSqliteQueryRow(sqlite3_stmt* stmt,
                          QueryData& qd,
                          const fs::path& sqlite_db) {
@@ -57,7 +69,8 @@ Status genSqliteQueryRow(sqlite3_stmt* stmt,
 
 Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
                                   const std::string& sqlite_query,
-                                  QueryData& results) {
+                                  QueryData& results,
+                                  bool respect_locking) {
   sqlite3* db = nullptr;
   if (!pathExists(sqlite_db).ok()) {
     return Status(1, "Database path does not exist");
@@ -67,7 +80,7 @@ Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
       sqlite_db.string().c_str(),
       &db,
       (SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE | SQLITE_OPEN_NOMUTEX),
-      nullptr);
+      getSystemVFS(respect_locking));
   if (rc != SQLITE_OK || db == nullptr) {
     VLOG(1) << "Cannot open specified database: "
             << getStringForSQLiteReturnCode(rc);

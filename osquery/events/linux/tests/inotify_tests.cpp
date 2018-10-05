@@ -17,6 +17,7 @@
 
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
+#include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/inotify.h"

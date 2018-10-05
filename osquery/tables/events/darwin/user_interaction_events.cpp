@@ -9,6 +9,7 @@
  */
 
 #include "osquery/events/darwin/event_taps.h"
+#include <osquery/registry_factory.h>
 
 namespace osquery {
 

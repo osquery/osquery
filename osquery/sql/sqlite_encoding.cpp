@@ -12,6 +12,7 @@
 
 #include <sqlite3.h>
 
+#include "osquery/core/base64.h"
 #include "osquery/core/conversions.h"
 
 namespace osquery {
@@ -34,7 +35,11 @@ static void b64SqliteValue(sqlite3_context* ctx,
     sqlite3_result_null(ctx);
     return;
   }
-  std::string input((char*)sqlite3_value_text(argv[0]));
+
+  const auto* value = sqlite3_value_text(argv[0]);
+  auto size = static_cast<size_t>(sqlite3_value_bytes(argv[0]));
+
+  std::string input(reinterpret_cast<const char*>(value), size);
   std::string result;
   switch (encode) {
   case B64Type::B64_ENCODE_CONDITIONAL:
@@ -43,10 +48,10 @@ static void b64SqliteValue(sqlite3_context* ctx,
       break;
     }
   case B64Type::B64_ENCODE:
-    result = base64Encode(input);
+    result = base64::encode(input);
     break;
   case B64Type::B64_DECODE:
-    result = base64Decode(input);
+    result = base64::decode(input);
     break;
   }
   sqlite3_result_text(
@@ -75,7 +80,7 @@ void registerEncodingExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "conditional_to_base64",
                           1,
-                          SQLITE_UTF8,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           sqliteB64ConditionalEncFunc,
                           nullptr,
@@ -83,7 +88,7 @@ void registerEncodingExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "to_base64",
                           1,
-                          SQLITE_UTF8,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           sqliteB64EncFunc,
                           nullptr,
@@ -91,10 +96,10 @@ void registerEncodingExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "from_base64",
                           1,
-                          SQLITE_UTF8,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           sqliteB64DecFunc,
                           nullptr,
                           nullptr);
 }
-}
+} // namespace osquery

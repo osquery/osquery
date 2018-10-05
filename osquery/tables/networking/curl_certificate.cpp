@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <iomanip>
 #include <string>
 
 #include <openssl/asn1.h>

@@ -59,7 +59,7 @@ bool PlatformProcess::killGracefully() const {
     return false;
   }
 
-  int status = ::kill(nativeHandle(), SIGINT);
+  int status = ::kill(nativeHandle(), SIGTERM);
   return (status == 0);
 }
 

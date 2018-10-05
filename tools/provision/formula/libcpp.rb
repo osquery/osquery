@@ -4,7 +4,7 @@ class Libcpp < AbstractOsqueryFormula
   desc "Next-gen compiler infrastructure"
   homepage "http://llvm.org/"
   license "NCSA"
-  revision 200
+  revision 201
 
   stable do
     url "http://releases.llvm.org/#{llvm_version}/llvm-#{llvm_version}.src.tar.xz"
@@ -41,7 +41,7 @@ class Libcpp < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "c5e1320c7b565adf4ecedce603d0e3317e271c62eaf0fc94a6b7fa3718d9a681" => :x86_64_linux
+    sha256 "a33a4c4b63e2e6f8d0beda67fcd3470161034c2a488e96f300280e831a43264e" => :x86_64_linux
   end
 
   depends_on "binutils"

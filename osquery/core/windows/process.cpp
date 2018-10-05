@@ -137,9 +137,9 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
   try {
     handle = reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(
         std::stoull(*launcher_handle, nullptr, 16)));
-  } catch (std::invalid_argument e) {
+  } catch (const std::invalid_argument& /* e */) {
     return std::make_shared<PlatformProcess>();
-  } catch (std::out_of_range e) {
+  } catch (const std::out_of_range& /* e */) {
     return std::make_shared<PlatformProcess>();
   }
 
@@ -225,7 +225,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
                                  nullptr,
                                  nullptr,
                                  TRUE,
-                                 0,
+                                 IDLE_PRIORITY_CLASS,
                                  nullptr,
                                  nullptr,
                                  &si,
@@ -294,7 +294,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
                                    nullptr,
                                    nullptr,
                                    TRUE,
-                                   0,
+                                   IDLE_PRIORITY_CLASS,
                                    nullptr,
                                    nullptr,
                                    &si,
@@ -340,7 +340,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
                        nullptr,
                        nullptr,
                        FALSE,
-                       0,
+                       IDLE_PRIORITY_CLASS,
                        nullptr,
                        nullptr,
                        &si,

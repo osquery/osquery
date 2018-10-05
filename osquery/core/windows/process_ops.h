@@ -36,10 +36,17 @@ namespace osquery {
 std::string psidToString(PSID sid);
 
 /**
-* @brief Get the relative identifier (RID) from a security identifier (SID).
-*
-* @returns the RID represented as an unsigned long integer.
-*/
+ * @brief Windows helper function to lookup a SID from a username
+ *
+ * @returns a unique_ptr to a PSID
+ */
+std::unique_ptr<BYTE[]> getSidFromUsername(std::wstring accountName);
+
+/**
+ * @brief Get the relative identifier (RID) from a security identifier (SID).
+ *
+ * @returns the RID represented as an unsigned long integer.
+ */
 unsigned long getRidFromSid(PSID sidPtr);
 
 } // namespace osquery

@@ -67,7 +67,6 @@ const std::map<DWORD, std::string> kOsVersion = {
      "Windows Essential Business Server Messaging Server"},
     {PRODUCT_MEDIUMBUSINESS_SERVER_SECURITY,
      "Windows Essential Business Server Security Server"},
-    {PRODUCT_MOBILE_CORE, "Windows 10 Mobile"},
     {PRODUCT_MULTIPOINT_PREMIUM_SERVER,
      "Windows MultiPoint Server Premium (full installation)"},
     {PRODUCT_MULTIPOINT_STANDARD_SERVER,
@@ -133,15 +132,16 @@ QueryData genOSVersion(QueryContext& context) {
   std::string version_string;
 
   const std::string kWmiQuery =
-      "SELECT CAPTION,VERSION FROM Win32_OperatingSystem";
+      "SELECT CAPTION,VERSION,INSTALLDATE FROM Win32_OperatingSystem";
 
-  WmiRequest wmiRequest(kWmiQuery);
-  std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
+  const WmiRequest wmiRequest(kWmiQuery);
+  const std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
 
   if (wmiResults.empty()) {
     return {};
   }
 
+  wmiResults[0].GetString("InstallDate", r["install_date"]);
   wmiResults[0].GetString("Caption", r["name"]);
   wmiResults[0].GetString("Version", version_string);
   auto version = osquery::split(version_string, ".");
@@ -163,9 +163,8 @@ QueryData genOSVersion(QueryContext& context) {
   r["version"] = r["major"] + "." + r["minor"] + "." + r["build"];
   if (version.size() >= 2) {
     auto prodType = 0;
-    long majorVersion = 0, minorVersion = 0;
-    osquery::safeStrtol(version[0], 10, majorVersion);
-    osquery::safeStrtol(version[1], 10, minorVersion);
+    long const majorVersion = tryTo<long>(version[0], 10).takeOr(0l);
+    long const minorVersion = tryTo<long>(version[1], 10).takeOr(0l);
 
     GetProductInfo(
         majorVersion, minorVersion, 0, 0, reinterpret_cast<DWORD*>(&prodType));

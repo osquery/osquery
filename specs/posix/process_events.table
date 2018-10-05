@@ -30,11 +30,13 @@ schema([
     Column("btime", BIGINT, "File creation in UNIX time",
         aliases=["create_time"]),
     Column("overflows", TEXT, "List of structures that overflowed", hidden=True),
-    Column("parent", BIGINT, "Process parent's PID"),
+    Column("parent", BIGINT, "Process parent's PID, or -1 if cannot be determined."),
     Column("time", BIGINT, "Time of execution in UNIX time"),
     Column("uptime", BIGINT, "Time of execution in system uptime"),
-    Column("status", BIGINT, "OpenBSM Attribute: Status of the process"),
     Column("eid", TEXT, "Event ID", hidden=True),
+])
+extended_schema(DARWIN, [
+    Column("status", BIGINT, "OpenBSM Attribute: Status of the process"),
 ])
 attributes(event_subscriber=True)
 implementation("process_events@process_events::genTable")

@@ -2,7 +2,7 @@ table_name("shell_history")
 description("A line-delimited (command) table of per-user .*_history data.")
 schema([
     Column("uid", BIGINT, "Shell history owner", additional=True),
-    Column("time", INTEGER, "Entry timestamp"),
+    Column("time", INTEGER, "Entry timestamp. It could be absent, default value is 0."),
     Column("command", TEXT, "Unparsed date/line/command history line"),
     Column("history_file", TEXT, "Path to the .*_history for this user"),
     ForeignKey(column="uid", table="users"),

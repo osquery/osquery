@@ -24,14 +24,14 @@
 #include <osquery/extensions.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
 #include "osquery/core/utils.h"
 #include "osquery/core/watcher.h"
 #include "osquery/devtools/devtools.h"
-#include "osquery/dispatcher/distributed.h"
-#include "osquery/dispatcher/io_service.h"
+#include "osquery/dispatcher/distributed_runner.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/main/main.h"
@@ -138,11 +138,11 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
 
     // Virtual tables will be attached to the shell's in-memory SQLite DB.
     retcode = osquery::launchIntoShell(argc, argv);
-    // Finally shutdown.
-    runner.requestShutdown();
   } else {
     retcode = profile(argc, argv);
   }
+  // Finally shutdown.
+  runner.requestShutdown();
   return retcode;
 }
 
@@ -170,9 +170,6 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
   // When a watchdog is used, the current daemon will fork/exec into a worker.
   // In either case the watcher may start optionally loaded extensions.
   runner.initWorkerWatcher(kWatcherWorkerName);
-
-  // Begin adhoc io service thread.
-  startIOService();
 
   if (runner.isDaemon()) {
     return startDaemon(runner);

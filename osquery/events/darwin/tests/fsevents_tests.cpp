@@ -16,6 +16,7 @@
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
 #include "osquery/events/darwin/fsevents.h"

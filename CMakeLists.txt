@@ -6,7 +6,7 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.10)
 string(ASCII 27 ESC)
 macro(WARNING_LOG MESSAGE)
   message("-- ${ESC}[31m${MESSAGE}${ESC}[m")
@@ -29,6 +29,16 @@ if(WIN32)
   list(APPEND WINDOWS_DEP_LIST ${WINDOWS_DEP_DIR})
 
   list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/*/tools")
+endif()
+
+if(WIN32)
+  add_definitions(
+    -DOSQUERY_WINDOWS
+  )
+else()
+  add_definitions(
+    -DOSQUERY_POSIX
+  )
 endif()
 
 # If no explicit compiler override and clang++ exists, prefer clang.
@@ -203,7 +213,7 @@ if(POSIX)
   endif()
 elseif(WINDOWS)
   add_compile_options(
-    /EHsc
+    /EHs
     /W3
     /guard:cf
   )
@@ -228,33 +238,17 @@ endif()
 
 # make debug (environment variable from Makefile)
 if(DEFINED ENV{DEBUG})
-  set(DEBUG TRUE)
-  set(CMAKE_BUILD_TYPE "Debug")
-  if(WINDOWS)
-    # TODO(#1985): Is there a MSVC flag congruent to -fstandalone-debug?
-    add_compile_options(
-      /Zi
-      /Od
-    )
-  else()
-    add_compile_options(
-      -g
-      -O0
-      -fstandalone-debug
-    )
-  endif()
-  add_definitions(-DDEBUG)
+  set(CMAKE_BUILD_TYPE "DEBUG")
   WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
+  set(CMAKE_BUILD_TYPE "DEBUG")
+  add_definitions(-DDEBUG)
   # make sanitize (cannot make debug sanitize)
   set(SANITIZE_BLACKLIST "${CMAKE_SOURCE_DIR}/tools/analysis/sanitize_blacklist.txt")
   add_compile_options(
-    -g
-    -fstandalone-debug
     -fno-omit-frame-pointer
     -fno-optimize-sibling-calls
     -fsanitize-blacklist=${SANITIZE_BLACKLIST}
-    -O1
   )
   if (DEFINED ENV{SANITIZE_THREAD})
     add_compile_options(-fsanitize=thread)
@@ -288,33 +282,63 @@ elseif(DEFINED ENV{SANITIZE})
     set(TEST_ARGS "--gtest_filter=-${TEST_ARGS}")
   endif()
 else()
-  set(DEBUG FALSE)
-  if(WINDOWS)
-    add_compile_options(/Ot /WX)
-  elseif(CLANG)
-    add_compile_options(-Oz)
+  set(CMAKE_BUILD_TYPE "RELEASE")
+endif()
+
+if(CMAKE_GENERATOR STREQUAL Xcode)
+  #DNDEBUG is added automatically by cmake in non debug build
+  add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG=1>")
+else()
+  if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    add_definitions(-DDEBUG)
   else()
-    add_compile_options(-Os)
-  endif()
-  add_definitions(-DNDEBUG)
-  # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
-  # Visual Studio does not support generation of PIC code
-  if(POSIX)
-    # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
-    # To be safe, only include them when building 'release' outputs.
-    add_compile_options(
-      -g
-      -fPIE
-      -fpie
-      -fPIC
-      -fpic
-    )
-    if (CLANG AND DEPS AND NOT FREEBSD)
-      # Only enable LTO builds when using clang on Unix, for now
-      add_compile_options(-flto=thin)
-    endif()
+    add_definitions(-DNDEBUG)
   endif()
 endif()
+
+# osquery cmake is using CMake generator expressions to support multiconfig IDEs
+# https://cmake.org/cmake/help/v3.10/manual/cmake-generator-expressions.7.html
+
+if(WINDOWS)
+  # TODO(#1985): Is there a MSVC flag congruent to -fstandalone-debug?
+  add_compile_options(
+    "$<$<CONFIG:DEBUG>:/Zi>"
+    "$<$<CONFIG:DEBUG>:/Od>"
+    "$<$<CONFIG:RELEASE>:/Ot>"
+    "$<$<CONFIG:RELEASE>:/WX>"
+  )
+else()
+  add_compile_options(
+    "$<$<AND:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:RELEASE>>:-Oz>"
+    "$<$<AND:$<NOT:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>>,$<CONFIG:RELEASE>>:-Os>"
+  )
+endif()
+
+add_compile_options(
+  "$<$<CONFIG:DEBUG>:-g>"
+  "$<$<CONFIG:DEBUG>:-O0>"
+  "$<$<CONFIG:DEBUG>:-fstandalone-debug>"
+)
+
+# Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
+# Visual Studio does not support generation of PIC code
+if (POSIX)
+  # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
+  # To be safe, only include them when building 'release' outputs.
+  add_compile_options(
+    "$<$<CONFIG:RELEASE>:-g>"
+    "$<$<CONFIG:RELEASE>:-fno-limit-debug-info>"
+    "$<$<CONFIG:RELEASE>:-fPIE>"
+    "$<$<CONFIG:RELEASE>:-fpie>"
+    "$<$<CONFIG:RELEASE>:-fPIC>"
+    "$<$<CONFIG:RELEASE>:-fpic>"
+  )
+  if (CLANG AND DEPS AND NOT FREEBSD)
+    # Only enable LTO builds when using clang on Unix, for now
+    add_compile_options("$<$<CONFIG:RELEASE>:-flto=thin>")
+  endif()
+endif()
+
 # Generate a compile_commands.json for static analyzer input.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -366,6 +390,10 @@ if(DEFINED ENV{SKIP_LLDPD})
   set(SKIP_LLDPD TRUE)
   add_definitions(-DSKIP_LLDPD=1)
 endif()
+if(DEFINED ENV{SKIP_SMART})
+  set(SKIP_SMART TRUE)
+  add_definitions(-DSKIP_SMART=1)
+endif()
 if(DEFINED ENV{SKIP_YARA})
   set(SKIP_YARA TRUE)
   add_definitions(-DSKIP_YARA=1)
@@ -378,14 +406,6 @@ if(DEFINED ENV{SKIP_CARVER})
   set(SKIP_CARVER TRUE)
   add_definitions(-DSKIP_CARVER=1)
 endif()
-
-# The kernel builds are skipped by default.
-if(DEFINED ENV{SKIP_KERNEL} AND "$ENV{SKIP_KERNEL}" STREQUAL "False")
-  set(SKIP_KERNEL FALSE)
-else()
-  set(SKIP_KERNEL TRUE)
-endif()
-
 
 # Similar to the feature skips, there are default-build skips.
 if(DEFINED ENV{SKIP_TESTS})
@@ -493,8 +513,10 @@ if(OSQUERY_BUILD_VERSION STREQUAL "")
   WARNING_LOG("Setting the version to: 1.0.0-unknown (beware!)")
   set(OSQUERY_BUILD_VERSION "1.0.0-unknown")
 endif()
-if(DEFINED ENV{SDK_VERSION})
-  set(OSQUERY_BUILD_SDK_VERSION "${ENV{SDK_VERSION}}")
+
+# SDK_VERSION is defined by XCode as current macOS sdk version
+if(DEFINED ENV{SDK_VERSION} AND NOT (CMAKE_GENERATOR STREQUAL Xcode))
+  set(OSQUERY_BUILD_SDK_VERSION "$ENV{SDK_VERSION}")
 else()
   string(REPLACE "-" ";" OSQUERY_BUILD_SDK_VERSION ${OSQUERY_BUILD_VERSION})
   list(GET OSQUERY_BUILD_SDK_VERSION 0 OSQUERY_BUILD_SDK_VERSION)
@@ -510,6 +532,9 @@ add_definitions(
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
   -DNOMINMAX
+  -DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE
+  -DRAPIDJSON_HAS_STDSTRING=1
+  -DRAPIDJSON_NO_SIZETYPEDEFINE
 
   # See boost 1.65 breakage https://github.com/Homebrew/homebrew-core/pull/17150
   -D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=0
@@ -566,12 +591,12 @@ if(POSIX AND DEPS)
   )
 
   # The order here matters, please do not reorder.
-  if(CLANG)
+  if(LINUX AND CLANG)
     include_directories(SYSTEM "${BUILD_DEPS}/include/c++/v1")
+    include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   endif()
-  include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   include_directories(SYSTEM "${BUILD_DEPS}/include")
-  if(CLANG)
+  if(LINUX AND CLANG)
     include_directories(SYSTEM "${BUILD_DEPS}/lib/clang/4.0.0/include")
   endif()
 endif()
@@ -603,6 +628,9 @@ else()
 endif()
 
 if(WINDOWS)
+  if(NOT OS_LIB_DIRS)
+    set(OS_LIB_DIRS)
+  endif()
   foreach(DEP_DIR ${WINDOWS_DEP_LIST})
     file(GLOB_RECURSE WINDOWS_LOCAL_LIB_DIRS LIST_DIRECTORIES false "${DEP_DIR}/*.lib")
     foreach(LIB_FILE ${WINDOWS_LOCAL_LIB_DIRS})
@@ -686,11 +714,6 @@ if(NOT SKIP_TESTS)
   add_subdirectory(tools/tests)
 endif()
 
-# Include the kernel building targets/macros
-if(NOT SKIP_KERNEL AND NOT ${OSQUERY_BUILD_SDK_ONLY})
-  add_subdirectory(kernel)
-endif()
-
 # Packages must be included after all other CMake includes.
 if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   include(Packages)
@@ -748,7 +771,7 @@ add_custom_target(
 # make sync
 add_custom_target(
   sync
-  "${CMAKE_SOURCE_DIR}/tools/sync.sh" "${CMAKE_BINARY_DIR}"
+  "${CMAKE_SOURCE_DIR}/tools/sync.sh" "${CMAKE_BINARY_DIR}" "${BUILD_DEPS}/lib:${BUILD_DEPS}/legacy/lib"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Generating sdk sync: ${CMAKE_BINARY_DIR}/sync"
   DEPENDS osquery_extensions osquery_amalgamation

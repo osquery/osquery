@@ -63,15 +63,15 @@ def _platform():
                 if fileContents.find("DISTRIB_ID=Ubuntu") != -1:
                     return ("debian", "ubuntu")
 
-                if fileContents.find("DISTRIB_ID=Arch") != -1:
-                    return ("arch", "arch")
-
                 if fileContents.find("DISTRIB_ID=ManjaroLinux") != -1:
                     return ("arch", "manjaro")
 
         if os.path.exists(OS_RELEASE):
             with open(OS_RELEASE, "r") as fd:
                 fileContents = fd.read()
+
+                if fileContents.find("ID=arch") != -1:
+                    return ("arch", "arch")
 
                 if fileContents.find("ID=nixos") != -1:
                     return ("nixos", "nixos")

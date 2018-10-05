@@ -25,28 +25,8 @@
 #include "osquery/events/linux/auditdnetlink.h"
 #include "osquery/tables/events/linux/process_events.h"
 #include "osquery/tables/events/linux/process_file_events.h"
+#include "osquery/tables/events/linux/selinux_events.h"
 #include "osquery/tables/events/linux/socket_events.h"
-
-namespace {
-bool ShouldHandle(const audit_reply& reply) noexcept {
-  switch (reply.type) {
-  case NLMSG_NOOP:
-  case NLMSG_DONE:
-  case NLMSG_ERROR:
-  case AUDIT_LIST_RULES:
-  case AUDIT_SECCOMP:
-  case AUDIT_GET:
-  case (AUDIT_GET + 1)...(AUDIT_LIST_RULES - 1):
-  case (AUDIT_LIST_RULES + 1)...(AUDIT_FIRST_USER_MSG - 1):
-  case AUDIT_DAEMON_START ... AUDIT_DAEMON_CONFIG: // 1200 - 1203
-  case AUDIT_CONFIG_CHANGE:
-    return false;
-
-  default:
-    return true;
-  }
-}
-} // namespace
 
 namespace osquery {
 /// Control the audit subsystem by electing to be the single process sink.
@@ -79,6 +59,39 @@ DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
+DECLARE_bool(audit_allow_selinux_events);
+
+// user messages should be filtered
+// also, we should handle the 2nd user message type
+namespace {
+bool IsSELinuxRecord(const audit_reply& reply) noexcept {
+  static const auto& selinux_event_set = SELinuxEventSubscriber::GetEventSet();
+  return (selinux_event_set.find(reply.type) != selinux_event_set.end());
+}
+
+bool ShouldHandle(const audit_reply& reply) noexcept {
+  if (IsSELinuxRecord(reply)) {
+    return FLAGS_audit_allow_selinux_events;
+  }
+
+  switch (reply.type) {
+  case NLMSG_NOOP:
+  case NLMSG_DONE:
+  case NLMSG_ERROR:
+  case AUDIT_LIST_RULES:
+  case AUDIT_SECCOMP:
+  case AUDIT_GET:
+  case (AUDIT_GET + 1)...(AUDIT_LIST_RULES - 1):
+  case (AUDIT_LIST_RULES + 1)...(AUDIT_FIRST_USER_MSG - 1):
+  case AUDIT_DAEMON_START ... AUDIT_DAEMON_CONFIG: // 1200 - 1203
+  case AUDIT_CONFIG_CHANGE:
+    return false;
+
+  default:
+    return true;
+  }
+}
+} // namespace
 
 enum AuditStatus {
   AUDIT_DISABLED = 0,
@@ -123,15 +136,8 @@ std::vector<AuditEventRecord> AuditdNetlink::getEvents() noexcept {
 
 AuditdNetlinkReader::AuditdNetlinkReader(AuditdContextRef context)
     : InternalRunnable("AuditdNetlinkReader"),
-      auditd_context_(std::move(context)) {
-  const size_t read_buffer_size = 4096U;
-
-  read_buffer_.resize(read_buffer_size);
-  if (read_buffer_.size() != read_buffer_size) {
-    LOG(ERROR) << "Memory allocation error";
-    throw std::bad_alloc();
-  }
-}
+      auditd_context_(std::move(context)),
+      read_buffer_(4096U) {}
 
 void AuditdNetlinkReader::start() {
   int counter_to_next_status_request = 0;
@@ -180,6 +186,14 @@ void AuditdNetlinkReader::start() {
       auditd_context_->acquire_handle = true;
     }
   }
+}
+
+void AuditdNetlinkReader::stop() {
+  if (audit_netlink_handle_ == -1) {
+    return;
+  }
+
+  VLOG(1) << "Releasing the audit handle...";
 
   auditd_context_->unprocessed_records_cv.notify_all();
   restoreAuditServiceConfiguration();
@@ -209,8 +223,11 @@ bool AuditdNetlinkReader::acquireMessages() noexcept {
     }
 
     if (poll_status < 0) {
-      VLOG(1) << "poll() failed with error " << errno;
-      reset_handle = true;
+      if (errno != EINTR) {
+        reset_handle = true;
+        VLOG(1) << "poll() failed with error " << errno;
+      }
+
       break;
     }
 
@@ -446,14 +463,9 @@ bool AuditdNetlinkReader::clearAuditConfiguration() noexcept {
     }
 
     // Save the rule
-    auto reply_size = sizeof(reply) + reply.ruledata->buflen;
+    const auto reply_size = sizeof(reply) + reply.ruledata->buflen;
 
-    AuditRuleDataObject reply_object;
-    reply_object.resize(reply_size);
-    if (reply_object.size() != reply_size) {
-      VLOG(1) << "Failed to read the audit rule data";
-      return false;
-    }
+    AuditRuleDataObject reply_object(reply_size);
 
     std::memcpy(reply_object.data(), reply.ruledata, reply_size);
     rule_object_list.push_back(reply_object);
@@ -657,7 +669,8 @@ void AuditdNetlinkParser::start() {
           auditd_context_->unprocessed_records_mutex);
 
       while (auditd_context_->unprocessed_records.empty() && !interrupted()) {
-        auditd_context_->unprocessed_records_cv.wait(lock);
+        auditd_context_->unprocessed_records_cv.wait_for(
+            lock, std::chrono::seconds(1));
       }
 
       queue = std::move(auditd_context_->unprocessed_records);
@@ -665,6 +678,7 @@ void AuditdNetlinkParser::start() {
     }
 
     std::vector<AuditEventRecord> audit_event_record_queue;
+    audit_event_record_queue.reserve(queue.size());
 
     for (auto& reply : queue) {
       if (interrupted()) {
@@ -693,12 +707,11 @@ void AuditdNetlinkParser::start() {
       }
 
       // We are not interested in all messages; only get the ones related to
-      // user events and syscalls
+      // user events, syscalls and SELinux events
       if (!ShouldHandle(reply)) {
         continue;
       }
 
-      // Parse the audit record body and store it into our queue
       AuditEventRecord audit_event_record = {};
       if (!ParseAuditReply(reply, audit_event_record)) {
         VLOG(1) << "Malformed audit record received";
@@ -716,6 +729,7 @@ void AuditdNetlinkParser::start() {
       auditd_context_->processed_events.reserve(
           auditd_context_->processed_events.size() +
           audit_event_record_queue.size());
+
       auditd_context_->processed_events.insert(
           auditd_context_->processed_events.end(),
           audit_event_record_queue.begin(),
@@ -738,7 +752,7 @@ bool AuditdNetlinkParser::ParseAuditReply(
               << std::endl;
   }
 
-  // Tokenize the message.
+  // Parse the record header
   event_record.type = reply.type;
   boost::string_ref message_view(reply.message,
                                  static_cast<unsigned int>(reply.len));
@@ -748,8 +762,18 @@ bool AuditdNetlinkParser::ParseAuditReply(
     return false;
   }
 
-  safeStrtoul(message_view.substr(6, 10).to_string(), 10, event_record.time);
+  event_record.time =
+      tryTo<unsigned long int>(message_view.substr(6, 10).to_string(), 10)
+          .takeOr(event_record.time);
   event_record.audit_id = message_view.substr(6, preamble_end - 6).to_string();
+
+  // SELinux doesn't output valid audit records; just save them as they are
+  if (IsSELinuxRecord(reply)) {
+    event_record.raw_data = reply.message;
+    return true;
+  }
+
+  // Tokenize the message
   boost::string_ref field_view(message_view.substr(preamble_end + 3));
 
   // The linear search will construct series of key value pairs.

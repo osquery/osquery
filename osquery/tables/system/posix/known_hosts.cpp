@@ -20,10 +20,14 @@
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/system_utils.h"
 
+#include "osquery/tables/system/posix/known_hosts.h"
+
 namespace osquery {
 namespace tables {
 
 const std::vector<std::string> kSSHKnownHostskeys = {".ssh/known_hosts"};
+
+namespace impl {
 
 void genSSHkeysForHosts(const std::string& uid,
                         const std::string& gid,
@@ -54,6 +58,8 @@ void genSSHkeysForHosts(const std::string& uid,
   }
 }
 
+} // namespace impl
+
 QueryData getKnownHostsKeys(QueryContext& context) {
   QueryData results;
 
@@ -64,7 +70,8 @@ QueryData getKnownHostsKeys(QueryContext& context) {
     auto gid = row.find("gid");
     auto directory = row.find("directory");
     if (uid != row.end() && gid != row.end() && directory != row.end()) {
-      genSSHkeysForHosts(uid->second, gid->second, directory->second, results);
+      impl::genSSHkeysForHosts(
+          uid->second, gid->second, directory->second, results);
     }
   }
 

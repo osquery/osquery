@@ -13,6 +13,9 @@
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
+
+#include "osquery/core/flagalias.h"
 
 namespace fs = boost::filesystem;
 
@@ -101,8 +104,7 @@ Status FilesystemLoggerPlugin::logStringToFile(const std::string& s,
   try {
     status = writeTextFile((log_path_ / filename).string(),
                            (empty) ? "" : s + '\n',
-                           FLAGS_logger_mode,
-                           true);
+                           FLAGS_logger_mode);
   } catch (const std::exception& e) {
     return Status(1, e.what());
   }

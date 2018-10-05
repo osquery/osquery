@@ -8,10 +8,11 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <chrono>
+
 // clang-format off
 // This must be here to prevent a WinSock.h exists error
 #include "osquery/remote/transports/tls.h"
-#include "osquery/dispatcher/io_service.h"
 // clang-format on
 
 #include <boost/filesystem.hpp>
@@ -102,13 +103,6 @@ http::Client::Options TLSTransport::getOptions() {
     options.proxy_hostname(FLAGS_proxy_hostname);
   }
 
-#if defined(DEBUG)
-  // Configuration may allow unsafe TLS testing if compiled as a debug target.
-  if (FLAGS_tls_allow_unsafe) {
-    options.always_verify_peer(false);
-  }
-#endif
-
   options.openssl_ciphers(kTLSCiphers);
   options.openssl_options(SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2 | SSL_OP_ALL);
 
@@ -154,6 +148,13 @@ http::Client::Options TLSTransport::getOptions() {
     options.openssl_sni_hostname(it->value.GetString());
   }
 
+#if defined(DEBUG)
+  // Configuration may allow unsafe TLS testing if compiled as a debug target.
+  if (FLAGS_tls_allow_unsafe) {
+    options.always_verify_peer(false);
+  }
+#endif
+
   return options;
 }
 
@@ -168,21 +169,19 @@ static auto getClient() {
   std::shared_ptr<http::Client> client = nullptr;
   if (FLAGS_tls_session_reuse) {
     thread_local std::shared_ptr<http::Client> tl_client;
+    thread_local auto last_time_reseted = std::chrono::system_clock::now();
     client = tl_client;
 
     if (client.get() == nullptr) {
       tl_client = client = std::make_shared<http::Client>();
+    }
 
-      if (FLAGS_tls_session_timeout > 0) {
-        thread_local boost::asio::deadline_timer tl_timer(IOService::get());
-
-        tl_timer.expires_from_now(
-            boost::posix_time::seconds(FLAGS_tls_session_timeout));
-        auto this_client = &tl_client;
-        tl_timer.async_wait([this_client](boost_system::error_code const&) {
-          (*this_client).reset();
-        });
-      }
+    if (FLAGS_tls_session_timeout > 0 &&
+        std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now() - last_time_reseted)
+                .count() > FLAGS_tls_session_timeout) {
+      tl_client.reset();
+      last_time_reseted = std::chrono::system_clock::now();
     }
   } else {
     client = std::make_shared<http::Client>();

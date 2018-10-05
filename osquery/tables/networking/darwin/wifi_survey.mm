@@ -21,34 +21,39 @@ namespace tables {
 
 QueryData genWifiScan(QueryContext& context) {
   QueryData results;
-  NSArray<CWInterface*>* interfaces =
-      [[CWWiFiClient sharedWiFiClient] interfaces];
-  if (interfaces == nil || [interfaces count] == 0) {
-    return results;
-  }
-  for (CWInterface* interface in interfaces) {
-    NSSet<CWNetwork*>* networks =
-        [interface scanForNetworksWithName:nil error:nil];
+  @autoreleasepool {
+    NSArray<CWInterface*>* interfaces =
+        [[CWWiFiClient sharedWiFiClient] interfaces];
+    if (interfaces == nil || [interfaces count] == 0) {
+      return results;
+    }
+    for (CWInterface* interface in interfaces) {
+      NSSet<CWNetwork*>* networks =
+          [interface scanForNetworksWithName:nil error:nil];
 
-    for (CWNetwork* network in networks) {
-      Row r;
-      r["interface"] = std::string([[interface interfaceName] UTF8String]);
-      r["ssid"] = extractSsid((__bridge CFDataRef)[network ssidData]);
-      r["bssid"] = std::string([[network bssid] UTF8String]);
-      r["network_name"] = std::string([[network ssid] UTF8String]);
-      NSString* country_code = [network countryCode];
-      if (country_code != nil) {
-        r["country_code"] = std::string([country_code UTF8String]);
+      for (CWNetwork* network in networks) {
+        Row r;
+        r["interface"] = [[interface interfaceName] UTF8String];
+        r["ssid"] = extractSsid((__bridge CFDataRef)[network ssidData]);
+        auto bssid = [network bssid];
+        if (bssid != nullptr) {
+          r["bssid"] = [bssid UTF8String];
+        }
+        r["network_name"] = [[network ssid] UTF8String];
+        NSString* country_code = [network countryCode];
+        if (country_code != nil) {
+          r["country_code"] = [country_code UTF8String];
+        }
+        r["rssi"] = INTEGER([network rssiValue]);
+        r["noise"] = INTEGER([network noiseMeasurement]);
+        CWChannel* cwc = [network wlanChannel];
+        if (cwc != nil) {
+          r["channel"] = INTEGER(getChannelNumber(cwc));
+          r["channel_width"] = INTEGER(getChannelWidth(cwc));
+          r["channel_band"] = INTEGER(getChannelBand(cwc));
+        }
+        results.push_back(r);
       }
-      r["rssi"] = INTEGER([network rssiValue]);
-      r["noise"] = INTEGER([network noiseMeasurement]);
-      CWChannel* cwc = [network wlanChannel];
-      if (cwc != nil) {
-        r["channel"] = INTEGER(getChannelNumber(cwc));
-        r["channel_width"] = INTEGER(getChannelWidth(cwc));
-        r["channel_band"] = INTEGER(getChannelBand(cwc));
-      }
-      results.push_back(r);
     }
   }
   return results;

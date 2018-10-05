@@ -11,7 +11,6 @@
 #include "osquery/tables/applications/browser_utils.h"
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {

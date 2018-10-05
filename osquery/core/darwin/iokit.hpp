@@ -44,10 +44,11 @@ long long int getNumIOKitProperty(const CFMutableDictionaryRef& details,
                                   const std::string& key);
 
 inline void idToHex(std::string& id) {
-  long base = 0;
-  if (safeStrtol(id, 10, base)) {
+  auto const base_exp = tryTo<long>(id, 10);
+  if (base_exp.isValue()) {
     std::stringstream hex_id;
-    hex_id << std::hex << std::setw(4) << std::setfill('0') << (base & 0xFFFF);
+    hex_id << std::hex << std::setw(4) << std::setfill('0')
+           << (base_exp.get() & 0xFFFF);
     id = hex_id.str();
   }
 }

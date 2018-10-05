@@ -1,0 +1,15 @@
+table_name("memory_array_mapped_addresses")
+description("Data associated for address mapping of physical memory arrays.")
+schema([
+    Column("handle",  TEXT, "Handle, or instance number, associated with the structure"),
+    Column("memory_array_handle", TEXT,
+      "Handle of the memory array associated with this structure"),
+    Column("starting_address",  TEXT,
+      "Physical stating address, in kilobytes, of a range of memory mapped to physical memory array"),
+    Column("ending_address", TEXT,
+      "Physical ending address of last kilobyte of a range of memory mapped to physical memory array"),
+    Column("partition_width", INTEGER,
+      "Number of memory devices that form a single row of memory for the address partition of this structure"),
+])
+
+implementation("smbios_tables@genMemoryArrayMappedAddresses")

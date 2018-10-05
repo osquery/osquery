@@ -36,6 +36,7 @@ PLATFORM_DIRS = {
     "specs": ["darwin", "linux", "windows", "freebsd"],
     "utility": ["darwin", "linux", "freebsd", "windows"],
     "yara": ["darwin", "linux"],
+    "smart": ["darwin", "linux"],
     "darwin": ["darwin"],
     "freebsd": ["freebsd"],
     "kernel": ["darwin"],

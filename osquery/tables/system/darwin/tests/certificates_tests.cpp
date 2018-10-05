@@ -12,6 +12,7 @@
 
 #include <osquery/logger.h>
 
+#include "osquery/core/base64.h"
 #include "osquery/tables/system/darwin/keychain.h"
 #include "osquery/tests/test_util.h"
 
@@ -24,7 +25,7 @@ class CACertsTests : public ::testing::Test {
     std::string raw;
     CFDataRef data;
 
-    raw = base64Decode(getCACertificateContent());
+    raw = base64::decode(getCACertificateContent());
     data =
         CFDataCreate(nullptr, (const UInt8 *)raw.c_str(), (CFIndex)raw.size());
     cert = SecCertificateCreateWithData(nullptr, data);

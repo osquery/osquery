@@ -43,7 +43,7 @@ struct SyscallAuditEventData final {
 
 /// Audit event descriptor
 struct AuditEvent final {
-  enum class Type { UserEvent, Syscall };
+  enum class Type { UserEvent, Syscall, SELinux };
 
   Type type;
   boost::variant<UserAuditEventData, SyscallAuditEventData> data;

@@ -55,7 +55,17 @@ QueryData genTime(QueryContext& context) {
 
   char iso_8601[21] = {0};
   strftime(iso_8601, sizeof(iso_8601), "%FT%TZ", &gmt);
-
+#ifdef WIN32
+  if (context.isColumnUsed("win_timestamp")) {
+    FILETIME ft = {0};
+    GetSystemTimeAsFileTime(&ft);
+    LARGE_INTEGER li = {0};
+    li.LowPart = ft.dwLowDateTime;
+    li.HighPart = ft.dwHighDateTime;
+    long long int hns = li.QuadPart;
+    r["win_timestamp"] = BIGINT(hns);
+  }
+#endif
   r["weekday"] = SQL_TEXT(weekday);
   r["year"] = INTEGER(now.tm_year + 1900);
   r["month"] = INTEGER(now.tm_mon + 1);
@@ -84,5 +94,5 @@ QueryData genTime(QueryContext& context) {
   results.push_back(r);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

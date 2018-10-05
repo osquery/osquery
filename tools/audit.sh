@@ -20,15 +20,8 @@ function check_format() {
     git branch master FETCH_HEAD &> /dev/null || true
   fi
 
-  # Format and show the status
-  make format_master
-
-  if [[ `git diff --name-only | wc -l | awk '{print $1}'` = "0" ]]; then
-    return 0
-  else
-    git --no-pager diff || true
-    return 1
-  fi
+  # Check formatting
+  make format_check
 }
 
 function check_executable() {

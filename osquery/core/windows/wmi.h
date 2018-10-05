@@ -94,11 +94,21 @@ class WmiResultItem {
   Status GetBool(const std::string& name, bool& ret) const;
 
   /**
-  * @brief Windows WMI Helper function to retrieve an unsigned Char from WMI
-  * query
-  *
-  * @returns Status indiciating the success of the query
-  */
+   * @brief Windows WMI Helper function to retrieve a local/non-local FILETIME
+   * from WMI query.
+   *
+   * @returns Status indiciating the success of the query
+   */
+  Status GetDateTime(const std::string& name,
+                     bool is_local,
+                     FILETIME& ft) const;
+
+  /**
+   * @brief Windows WMI Helper function to retrieve an unsigned Char from WMI
+   * query
+   *
+   * @returns Status indiciating the success of the query
+   */
   Status GetUChar(const std::string& name, unsigned char& ret) const;
 
   /**
@@ -185,7 +195,7 @@ class WmiRequest {
   WmiRequest(WmiRequest&& src);
   ~WmiRequest();
 
-  std::vector<WmiResultItem>& results() {
+  const std::vector<WmiResultItem>& results() const {
     return results_;
   }
 
@@ -194,7 +204,7 @@ class WmiRequest {
   *
   * @returns the status of the WMI request.
   */
-  Status getStatus() {
+  Status getStatus() const {
     return status_;
   }
 

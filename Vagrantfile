@@ -5,6 +5,9 @@ targets = {
   "macos10.12" => {
     "box" => "jhcook/macos-sierra"
   },
+  "macos10.13" => {
+    "box" => "monsenso/macos-10.13"
+  },
   "debian7" => {
     "box" => "bento/debian-7"
   },
@@ -33,7 +36,10 @@ targets = {
     "box" => "bento/ubuntu-16.10"
   },
   "ubuntu17.04" => {
-    "box" => "bento/ubuntu17.04"
+    "box" => "bento/ubuntu-17.04"
+  },
+  "ubuntu18.04" => {
+    "box" => "ubuntu/bionic64"
   },
   "ubuntu12" => {
     "box" => "ubuntu/precise64"
@@ -122,9 +128,24 @@ Vagrant.configure("2") do |config|
     else
       v.cpus = 2
     end
-    v.memory = 4096
+    if ENV['OSQUERY_BUILD_MEMORY']
+      v.memory = ENV['OSQUERY_BUILD_MEMORY'].to_i
+    else
+      v.memory = 4096
+    end
   end
-
+  config.vm.provider "vmware_desktop" do |v|
+    if ENV['OSQUERY_BUILD_CPUS']
+      v.cpus = ENV['OSQUERY_BUILD_CPUS'].to_i
+    else
+      v.cpus = 2
+    end
+    if ENV['OSQUERY_BUILD_MEMORY']
+      v.memory = ENV['OSQUERY_BUILD_MEMORY'].to_i
+    else
+      v.memory = 4096
+    end
+  end
   config.vm.provider :aws do |aws, override|
     # Required. Credentials for AWS API.
     aws.access_key_id = ENV['AWS_ACCESS_KEY_ID']
@@ -184,7 +205,7 @@ Vagrant.configure("2") do |config|
           ]
       end
 
-      if name == 'macos10.12'
+      if name.start_with?('macos')
         config.vm.provision "shell",
           inline: "dseditgroup -o read vagrant || dseditgroup -o create vagrant"
         build.vm.synced_folder ".", "/vagrant", group: "staff", type: "rsync",

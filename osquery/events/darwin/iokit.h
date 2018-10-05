@@ -60,6 +60,11 @@ class IOKitEventPublisher
   DECLARE_PUBLISHER("iokit");
 
  public:
+  IOKitEventPublisher(const std::string& name = "IOKitEventPublisher")
+      : EventPublisher() {
+    runnable_name_ = name;
+  }
+
   void tearDown() override;
 
   Status run() override;

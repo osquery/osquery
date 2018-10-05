@@ -24,6 +24,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/tokenizer.hpp>
+#include <osquery/registry_factory.h>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -31,7 +32,6 @@
 #include "osquery/events/linux/syslog.h"
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 

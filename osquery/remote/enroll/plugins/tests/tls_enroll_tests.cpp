@@ -25,8 +25,6 @@
 
 #include "osquery/remote/enroll/plugins/tls_enroll.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 DECLARE_string(tls_hostname);

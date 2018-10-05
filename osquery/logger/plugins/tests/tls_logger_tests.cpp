@@ -18,8 +18,6 @@
 
 #include "osquery/logger/plugins/tls_logger.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 class TLSLoggerTests : public testing::Test {

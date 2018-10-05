@@ -4,7 +4,7 @@ class Llvm < AbstractOsqueryFormula
   desc "Next-gen compiler infrastructure"
   homepage "http://llvm.org/"
   license "NCSA"
-  revision 200
+  revision 201
 
   stable do
     url "http://releases.llvm.org/#{llvm_version}/llvm-#{llvm_version}.src.tar.xz"
@@ -44,7 +44,7 @@ class Llvm < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "54ff9c6b305defdc34408abe1c446f2fd7f3645e415833d80e16c4a1bab65564" => :x86_64_linux
+    sha256 "5b5e788ee9a9437fd49c1707ccccff73eae8812abd6b468ff9b4112d5d05347b" => :x86_64_linux
   end
 
   depends_on "cmake" => :build
@@ -77,6 +77,7 @@ class Llvm < AbstractOsqueryFormula
       -DLLVM_BUILD_LLVM_DYLIB=ON
       -DBUILD_SHARED_LIBS=OFF
       -DLLVM_LINK_LLVM_DYLIB=ON
+      -DC_INCLUDE_DIRS=/usr/local/osquery/legacy/include
     ]
 
     # osquery added a link for pthread

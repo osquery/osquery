@@ -36,6 +36,7 @@ function distro_main() {
 
   # Non-optional features.
   package augeas
+  package ssdeep
 
   # Optional features.
   package sleuthkit

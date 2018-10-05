@@ -1,0 +1,11 @@
+table_name("selinux_events")
+description("Track SELinux events.")
+schema([
+    Column("type", TEXT, "Event type"),
+    Column("message", TEXT, "Message"),
+    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("uptime", BIGINT, "Time of execution in system uptime"),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("selinux_events@selinux_events::genTable")

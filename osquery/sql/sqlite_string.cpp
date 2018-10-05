@@ -156,7 +156,7 @@ void registerStringExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "split",
                           3,
-                          SQLITE_UTF8,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           tokenStringSplitFunc,
                           nullptr,
@@ -164,7 +164,7 @@ void registerStringExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "regex_split",
                           3,
-                          SQLITE_UTF8,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           regexStringSplitFunc,
                           nullptr,
@@ -172,10 +172,10 @@ void registerStringExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "inet_aton",
                           1,
-                          SQLITE_UTF8,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           ip4StringToDecimalFunc,
                           nullptr,
                           nullptr);
 }
-}
+} // namespace osquery

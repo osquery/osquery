@@ -15,12 +15,11 @@
 #include <osquery/enroll.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
-
-namespace pt = boost::property_tree;
 
 namespace osquery {
 

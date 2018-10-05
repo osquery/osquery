@@ -39,36 +39,38 @@ const std::map<CGEventType, std::string> kEventMap = {
 QueryData genEventTaps(QueryContext& context) {
   QueryData results;
   uint32_t tapCount = 0;
-  CGError err;
-  err = CGGetEventTapList(0, nullptr, &tapCount);
-  if (err != kCGErrorSuccess) {
-    return results;
-  }
-  CGEventTapInformation* taps = static_cast<CGEventTapInformation*>(
-      malloc(sizeof(CGEventTapInformation) * tapCount));
-  if (taps == nullptr) {
-    return results;
-  }
-  err = CGGetEventTapList(tapCount, taps, &tapCount);
-  if (err != kCGErrorSuccess) {
-    free(taps);
-    return results;
-  }
-  for (size_t i = 0; i < tapCount; ++i) {
-    for (const auto& type : kEventMap) {
-      if ((taps[i].eventsOfInterest & CGEventMaskBit(type.first)) == 0) {
-        continue;
-      }
-      Row r;
-      r["enabled"] = INTEGER(taps[i].enabled);
-      r["event_tap_id"] = INTEGER(taps[i].eventTapID);
-      r["event_tapped"] = type.second;
-      r["process_being_tapped"] = INTEGER(taps[i].processBeingTapped);
-      r["tapping_process"] = INTEGER(taps[i].tappingProcess);
-      results.push_back(r);
+  @autoreleasepool {
+    CGError err;
+    err = CGGetEventTapList(0, nullptr, &tapCount);
+    if (err != kCGErrorSuccess) {
+      return results;
     }
+    CGEventTapInformation* taps = static_cast<CGEventTapInformation*>(
+        malloc(sizeof(CGEventTapInformation) * tapCount));
+    if (taps == nullptr) {
+      return results;
+    }
+    err = CGGetEventTapList(tapCount, taps, &tapCount);
+    if (err != kCGErrorSuccess) {
+      free(taps);
+      return results;
+    }
+    for (size_t i = 0; i < tapCount; ++i) {
+      for (const auto& type : kEventMap) {
+        if ((taps[i].eventsOfInterest & CGEventMaskBit(type.first)) == 0) {
+          continue;
+        }
+        Row r;
+        r["enabled"] = INTEGER(taps[i].enabled);
+        r["event_tap_id"] = INTEGER(taps[i].eventTapID);
+        r["event_tapped"] = type.second;
+        r["process_being_tapped"] = INTEGER(taps[i].processBeingTapped);
+        r["tapping_process"] = INTEGER(taps[i].tappingProcess);
+        results.push_back(r);
+      }
+    }
+    free(taps);
   }
-  free(taps);
   return results;
 }
 }

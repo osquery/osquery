@@ -14,6 +14,7 @@
 
 #include <osquery/events.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 #include <unordered_map>
 

@@ -30,7 +30,6 @@ class EventTappingEventPublisher
     : public EventPublisher<EventTappingSubscriptionContext,
                             EventTappingEventContext> {
   DECLARE_PUBLISHER("event_tapping");
-
  public:
   Status setUp() override;
 
@@ -42,7 +41,11 @@ class EventTappingEventPublisher
 
   Status restart();
 
-  EventTappingEventPublisher() : EventPublisher() {}
+  EventTappingEventPublisher(
+      const std::string& name = "EventTappingEventPublisher")
+      : EventPublisher() {
+    runnable_name_ = name;
+  }
 
   ~EventTappingEventPublisher() override final;
 

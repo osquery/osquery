@@ -2,7 +2,7 @@ table_name("routes")
 description("The active route table for the host system.")
 schema([
     Column("destination", TEXT, "Destination IP address"),
-    Column("netmask", TEXT, "Netmask length"),
+    Column("netmask", INTEGER, "Netmask length"),
     Column("gateway", TEXT, "Route gateway"),
     Column("source", TEXT, "Route source"),
     Column("flags", INTEGER, "Flags to describe route"),
@@ -10,6 +10,10 @@ schema([
     Column("mtu", INTEGER, "Maximum Transmission Unit for the route"),
     Column("metric", INTEGER, "Cost of route. Lowest is preferred"),
     Column("type", TEXT, "Type of route"),
+])
+
+extended_schema(POSIX, [
+    Column("hopcount", INTEGER, "Max hops expected"),
 ])
 attributes(cacheable=True)
 implementation("networking/routes@genRoutes")

@@ -1,0 +1,11 @@
+table_name("ulimit_info")
+description("System resource usage limits.")
+schema([
+    Column("type", TEXT, "System resource to be limited"),
+    Column("soft_limit", TEXT, "Current limit value"),
+    Column("hard_limit", TEXT, "Maximum limit value")
+])
+implementation("ulimit_info@genUlimitInfo")
+examples([
+  "select * from ulimit_info"
+])

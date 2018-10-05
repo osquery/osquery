@@ -53,3 +53,7 @@ foreach(external_project ${EXTERNAL_PROJECTS})
     endif()
   endif()
 endforeach()
+
+# If the user has generated extensions using the new generate_osquery_extension_group
+# function, then this call will generate the bundle
+generate_osquery_extension_group()

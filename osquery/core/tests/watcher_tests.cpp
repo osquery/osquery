@@ -242,8 +242,7 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
   EXPECT_EQ(100U, state.initial_footprint);
 
   // The measurement of latency applies an interval value normalization.
-  auto iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
-  EXPECT_EQ(100U / iv, state.user_time);
+  EXPECT_EQ(100U, state.user_time);
   EXPECT_EQ(0U, state.sustained_latency);
 
   // Now we can alter the performance.
@@ -277,9 +276,7 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
 
   // Set up a fake test process and place it into an healthy state.
   Row r;
-  r["parent"] = isPlatform(PlatformType::TYPE_WINDOWS)
-                    ? INTEGER(test_process->pid())
-                    : INTEGER(test_process->nativeHandle());
+  r["parent"] = INTEGER(test_process->pid());
   r["user_time"] = INTEGER(100);
   r["system_time"] = INTEGER(100);
   r["resident_size"] = INTEGER(100);

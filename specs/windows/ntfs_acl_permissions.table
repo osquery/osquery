@@ -1,0 +1,10 @@
+table_name("ntfs_acl_permissions")
+description("Retrieve NTFS ACL permission information for files and directories.")
+schema([
+  Column("path", TEXT, "Path to the file or directory."),
+  Column("type", TEXT, "Type of access mode for the access control entry."),
+  Column("principal", TEXT, "User or group to which the ACE applies."),
+  Column("access", TEXT, "Specific permissions that indicate the rights described by the ACE."),
+  Column("inherited_from", TEXT, "The inheritance policy of the ACE."),
+])
+implementation("system/windows/ntfs_acl_permissions@genNtfsAclPerms")

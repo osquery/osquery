@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/events/darwin/scnetwork.h"
 

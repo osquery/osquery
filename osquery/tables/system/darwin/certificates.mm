@@ -128,48 +128,50 @@ QueryData genCerts(QueryContext& context) {
         return status;
       }));
 
-  if (!paths.empty()) {
-    for (const auto& path : paths) {
-      SecKeychainRef keychain = nullptr;
-      SecKeychainStatus keychain_status;
-      auto status = SecKeychainOpen(path.c_str(), &keychain);
-      if (status != errSecSuccess || keychain == nullptr ||
-          SecKeychainGetStatus(keychain, &keychain_status) != errSecSuccess) {
-        if (keychain != nullptr) {
+  @autoreleasepool {
+    if (!paths.empty()) {
+      for (const auto& path : paths) {
+        SecKeychainRef keychain = nullptr;
+        SecKeychainStatus keychain_status;
+        auto status = SecKeychainOpen(path.c_str(), &keychain);
+        if (status != errSecSuccess || keychain == nullptr ||
+            SecKeychainGetStatus(keychain, &keychain_status) != errSecSuccess) {
+          if (keychain != nullptr) {
+            CFRelease(keychain);
+          }
+          genFileCertificate(path, results);
+        } else {
+          keychain_paths.insert(path);
           CFRelease(keychain);
         }
-        genFileCertificate(path, results);
-      } else {
+      }
+    } else {
+      for (const auto& path : kSystemKeychainPaths) {
         keychain_paths.insert(path);
-        CFRelease(keychain);
+      }
+      auto homes = osquery::getHomeDirectories();
+      for (const auto& dir : homes) {
+        for (const auto& keychains_dir : kUserKeychainPaths) {
+          keychain_paths.insert((dir / keychains_dir).string());
+        }
       }
     }
-  } else {
-    for (const auto& path : kSystemKeychainPaths) {
-      keychain_paths.insert(path);
-    }
-    auto homes = osquery::getHomeDirectories();
-    for (const auto& dir : homes) {
-      for (const auto& keychains_dir : kUserKeychainPaths) {
-        keychain_paths.insert((dir / keychains_dir).string());
+
+    // Keychains/certificate stores belonging to the OS.
+    CFArrayRef certs =
+        CreateKeychainItems(keychain_paths, kSecClassCertificate);
+    // Must have returned an array of matching certificates.
+    if (certs != nullptr) {
+      if (CFGetTypeID(certs) == CFArrayGetTypeID()) {
+        auto certificate_count = CFArrayGetCount(certs);
+        for (CFIndex i = 0; i < certificate_count; i++) {
+          auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
+          genKeychainCertificate(cert, results);
+        }
       }
+      CFRelease(certs);
     }
   }
-
-  // Keychains/certificate stores belonging to the OS.
-  CFArrayRef certs = CreateKeychainItems(keychain_paths, kSecClassCertificate);
-  // Must have returned an array of matching certificates.
-  if (certs != nullptr) {
-    if (CFGetTypeID(certs) == CFArrayGetTypeID()) {
-      auto certificate_count = CFArrayGetCount(certs);
-      for (CFIndex i = 0; i < certificate_count; i++) {
-        auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
-        genKeychainCertificate(cert, results);
-      }
-    }
-    CFRelease(certs);
-  }
-
   return results;
 }
 }

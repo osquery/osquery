@@ -294,6 +294,8 @@ class WatcherRunner : public InternalRunnable {
   /// Dispatcher (this service thread's) entry point.
   void start() override;
 
+  void stop() override;
+
   /// Boilerplate function to sleep for some configured latency
   bool ok() const;
 

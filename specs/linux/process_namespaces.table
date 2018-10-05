@@ -1,0 +1,16 @@
+table_name("process_namespaces")
+description("Linux namespaces for processes running on the host system.")
+schema([
+    Column("pid", INTEGER, "Process (or thread) ID", index=True),
+    Column("cgroup_namespace", TEXT, "cgroup namespace inode"),
+    Column("ipc_namespace", TEXT, "ipc namespace inode"),
+    Column("mnt_namespace", TEXT, "mnt namespace inode"),
+    Column("net_namespace", TEXT, "net namespace inode"),
+    Column("pid_namespace", TEXT, "pid namespace inode"),
+    Column("user_namespace", TEXT, "user namespace inode"),
+    Column("uts_namespace", TEXT, "uts namespace inode")
+])
+implementation("system/processes@genProcessNamespaces")
+examples([
+  "select * from process_namespaces where pid = 1",
+])

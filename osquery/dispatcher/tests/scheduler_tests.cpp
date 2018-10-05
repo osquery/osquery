@@ -173,6 +173,80 @@ TEST_F(SchedulerTests, test_scheduler) {
   TablePlugin::kCacheInterval = backup_interval;
 }
 
+TEST_F(SchedulerTests, test_scheduler_zero_drift) {
+  const auto backup_step = TablePlugin::kCacheStep;
+  const auto backup_interval = TablePlugin::kCacheInterval;
+
+  // Start the scheduler now.
+  const auto now = osquery::getUnixTime();
+  TablePlugin::kCacheStep = now;
+
+  // Update the config with a pack/schedule that contains several queries.
+  std::string config = R"config(
+  {
+    "packs": {
+      "scheduler": {
+        "queries": {
+          "1": {"query": "select 1 as number", "interval": 1},
+          "2": {"query": "select 2 as number", "interval": 1}
+        }
+      }
+    }
+  })config";
+  Config::get().update({{"data", config}});
+
+  // Run the scheduler for 1 second with a second interval.
+  SchedulerRunner runner(
+      static_cast<unsigned long int>(now), size_t{1}, std::chrono::seconds{10});
+  runner.start();
+
+  EXPECT_EQ(runner.getCurrentTimeDrift(), std::chrono::milliseconds::zero());
+
+  // Restore plugin settings.
+  TablePlugin::kCacheStep = backup_step;
+  TablePlugin::kCacheInterval = backup_interval;
+}
+
+TEST_F(SchedulerTests, test_scheduler_drift_accumulation) {
+  const auto backup_step = TablePlugin::kCacheStep;
+  const auto backup_interval = TablePlugin::kCacheInterval;
+
+  // Start the scheduler now.
+  const auto now = osquery::getUnixTime();
+  TablePlugin::kCacheStep = now;
+
+  // Update the config with a pack/schedule that contains several queries.
+  std::string config = R"config(
+  {
+    "packs": {
+      "scheduler": {
+        "queries": {
+          "3": {"query": "select 3 as number", "interval": 1},
+          "4": {"query": "select 4 as number", "interval": 1},
+          "5": {"query": "select 5 as number", "interval": 1},
+          "6": {"query": "select 6 as number", "interval": 1},
+          "7": {"query": "select 7 as number", "interval": 1},
+          "8": {"query": "select 1 as number", "interval": 1},
+          "9": {"query": "select 2 as number", "interval": 1}
+        }
+      }
+    }
+  })config";
+  Config::get().update({{"data", config}});
+
+  // Run the scheduler for 1 second with a second interval.
+  SchedulerRunner runner(static_cast<unsigned long int>(now + 3),
+                         size_t{0},
+                         std::chrono::seconds{10});
+  runner.start();
+
+  EXPECT_GE(runner.getCurrentTimeDrift(), std::chrono::milliseconds{1});
+
+  // Restore plugin settings.
+  TablePlugin::kCacheStep = backup_step;
+  TablePlugin::kCacheInterval = backup_interval;
+}
+
 TEST_F(SchedulerTests, test_scheduler_reload) {
   std::string config =
       "{\"schedule\":{\"1\":{"

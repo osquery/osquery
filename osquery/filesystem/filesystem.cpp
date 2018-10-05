@@ -22,6 +22,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -30,7 +31,6 @@
 #include <osquery/system.h>
 
 #include "osquery/core/json.h"
-#include "osquery/filesystem/fileops.h"
 
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
@@ -51,10 +51,9 @@ static const size_t kMaxRecursiveGlobs = 64;
 Status writeTextFile(const fs::path& path,
                      const std::string& content,
                      int permissions,
-                     bool force_permissions) {
+                     int mode) {
   // Open the file with the request permissions.
-  PlatformFile output_fd(
-      path, PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND, permissions);
+  PlatformFile output_fd(path, mode, permissions);
   if (!output_fd.isValid()) {
     return Status(1, "Could not create file: " + path.string());
   }
@@ -320,7 +319,7 @@ static void genGlobs(std::string path,
     size_t wild = path.rfind("**");
     // Allow a trailing slash after the double wild indicator.
     if (glob_results.size() == 0 || wild > path.size() ||
-        wild < path.size() - 3) {
+        wild + 3 < path.size()) {
       break;
     }
 
@@ -437,6 +436,32 @@ Status isDirectory(const fs::path& path) {
     return Status(1, "Path is not a directory: " + path.string());
   }
   return Status(ec.value(), ec.message());
+}
+
+Status createDirectory(const boost::filesystem::path& dir_path,
+                       bool const recursive,
+                       bool const ignore_existence) {
+  auto err = boost::system::error_code{};
+  bool is_created = false;
+  if (recursive) {
+    is_created = boost::filesystem::create_directories(dir_path, err);
+  } else {
+    is_created = boost::filesystem::create_directory(dir_path, err);
+  }
+  if (is_created) {
+    return Status::success();
+  }
+  if (ignore_existence && isDirectory(dir_path).ok()) {
+    return Status::success();
+  }
+  auto msg = std::string{"Could not create directory \""};
+  msg += dir_path.string();
+  msg += '"';
+  if (err) {
+    msg += ": ";
+    msg += err.message();
+  }
+  return Status::failure(msg);
 }
 
 std::set<fs::path> getHomeDirectories() {

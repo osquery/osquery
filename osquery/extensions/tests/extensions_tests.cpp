@@ -19,6 +19,7 @@
 
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/core/process.h"
 #include "osquery/extensions/interface.h"

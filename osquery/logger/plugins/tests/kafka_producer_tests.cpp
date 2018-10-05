@@ -14,9 +14,9 @@
 #include <atomic>
 #include <future>
 #include <iostream>
+#include <thread>
 
 #include "boost/date_time/posix_time/posix_time.hpp"
-#include <boost/asio.hpp>
 #include <boost/chrono.hpp>
 
 #include <osquery/core.h>
@@ -238,11 +238,7 @@ TEST_F(KafkaProducerPluginTest, flush_on_stop) {
 
   auto _ = std::async(std::launch::async, [&mkpp]() { mkpp.start(); });
 
-  // Timout for a bit to ensure bg loop starts.
-  boost::asio::io_service io_service;
-  boost::asio::deadline_timer timer(io_service);
-  timer.expires_from_now(boost::posix_time::milliseconds(200));
-  timer.wait();
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
   mkpp.stop();
 

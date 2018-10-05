@@ -13,8 +13,8 @@
 #include <string>
 #include <vector>
 
+#include <osquery/plugin.h>
 #include <osquery/query.h>
-#include <osquery/registry.h>
 #include <osquery/status.h>
 
 namespace osquery {

@@ -17,6 +17,7 @@
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
+#include <osquery/registry_factory.h>
 #include <osquery/system.h>
 
 #include "osquery/config/parsers/kafka_topics.h"
@@ -145,7 +146,7 @@ void KafkaProducerPlugin::pollKafka() {
 
 void KafkaProducerPlugin::start() {
   while (!interrupted() && running_.load()) {
-    pauseMilli(kKafkaPollDuration);
+    pause(std::chrono::milliseconds(kKafkaPollDuration));
     if (interrupted()) {
       return;
     }

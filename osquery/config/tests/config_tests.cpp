@@ -25,12 +25,11 @@
 #include "osquery/core/process.h"
 #include "osquery/tests/test_util.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 DECLARE_uint64(config_refresh);
 DECLARE_uint64(config_accelerated_refresh);
+DECLARE_bool(config_enable_backup);
 
 const std::string kConfigTestNonBlacklistQuery{
     "pack_unrestricted_pack_process_heartbeat"};
@@ -108,6 +107,31 @@ class TestConfigPlugin : public ConfigPlugin {
   std::atomic<size_t> gen_config_count_{0};
   std::atomic<size_t> gen_pack_count_{0};
   std::atomic<bool> fail_{false};
+};
+
+class TestDataConfigParserPlugin : public ConfigParserPlugin {
+ public:
+  std::vector<std::string> keys() const override {
+    return {"data"};
+  }
+
+  Status setUp() override {
+    return Status::success();
+  }
+
+  Status update(const std::string& source,
+                const ParserConfig& config) override {
+    source_ = source;
+    config_.clear();
+    for (const auto& entry : config) {
+      std::string content;
+      entry.second.toString(content);
+      config_[entry.first] = content;
+    }
+    return Status::success();
+  }
+  std::string source_{""};
+  std::map<std::string, std::string> config_;
 };
 
 TEST_F(ConfigTests, test_plugin) {
@@ -192,8 +216,7 @@ TEST_F(ConfigTests, test_pack_noninline) {
 
   int total_packs = 0;
   // Expect the config to have recorded a pack for the inline and non-inline.
-  get().packs(
-      [&total_packs](const std::shared_ptr<Pack>& pack) { total_packs++; });
+  get().packs([&total_packs](const Pack& pack) { total_packs++; });
   EXPECT_EQ(total_packs, 2);
   rf.registry("config")->remove("test");
 }
@@ -215,51 +238,61 @@ TEST_F(ConfigTests, test_pack_restrictions) {
       {"restricted_pack", false},
   };
 
-  get().packs(([&results](std::shared_ptr<Pack>& pack) {
-    if (results[pack->getName()]) {
-      EXPECT_TRUE(pack->shouldPackExecute())
-          << "Pack " << pack->getName() << " should have executed";
+  get().packs(([&results](const Pack& pack) {
+    if (results[pack.getName()]) {
+      EXPECT_TRUE(const_cast<Pack&>(pack).shouldPackExecute())
+          << "Pack " << pack.getName() << " should have executed";
     } else {
-      EXPECT_FALSE(pack->shouldPackExecute())
-          << "Pack " << pack->getName() << " should not have executed";
+      EXPECT_FALSE(const_cast<Pack&>(pack).shouldPackExecute())
+          << "Pack " << pack.getName() << " should not have executed";
     }
   }));
 }
 
 TEST_F(ConfigTests, test_pack_removal) {
   size_t pack_count = 0;
-  get().packs(([&pack_count](std::shared_ptr<Pack>& pack) { pack_count++; }));
+  get().packs(([&pack_count](const Pack& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 0U);
 
   pack_count = 0;
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
-  get().packs(([&pack_count](std::shared_ptr<Pack>& pack) { pack_count++; }));
+  get().packs(([&pack_count](const Pack& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 1U);
 
   pack_count = 0;
   get().removePack("unrestricted_pack");
-  get().packs(([&pack_count](std::shared_ptr<Pack>& pack) { pack_count++; }));
+  get().packs(([&pack_count](const Pack& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 0U);
 }
 
 TEST_F(ConfigTests, test_content_update) {
+  const std::string source{"awesome"};
+
   // Read config content manually.
   std::string content;
   readFile(kTestDataPath + "test_parse_items.conf", content);
 
   // Create the output of a `genConfig`.
   std::map<std::string, std::string> config_data;
-  config_data["awesome"] = content;
+  config_data[source] = content;
 
   // Update, then clear, packs should have been cleared.
   get().update(config_data);
+  auto source_hash = get().getHash(source);
+  // TODO(#5069/#5070) unsure why this value is different on Windows.
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    EXPECT_EQ("c755b2762de2ef45415972cc3c2af15109f16f1c", source_hash);
+  } else {
+    EXPECT_EQ("29d117ea900322c88e85e349db01ee386727a484", source_hash);
+  }
+
   size_t count = 0;
-  auto packCounter = [&count](std::shared_ptr<Pack>& pack) { count++; };
+  auto packCounter = [&count](const Pack& pack) { count++; };
   get().packs(packCounter);
   EXPECT_GT(count, 0U);
 
   // Now clear.
-  config_data["awesome"] = "";
+  config_data[source] = "";
   get().update(config_data);
   count = 0;
   get().packs(packCounter);
@@ -514,7 +547,7 @@ TEST_F(ConfigTests, test_config_refresh) {
   // Set a config_refresh value to convince the Config to start the thread.
   FLAGS_config_refresh = 2;
   FLAGS_config_accelerated_refresh = 1;
-  get().setRefresh(FLAGS_config_refresh, 10);
+  get().setRefresh(FLAGS_config_refresh);
 
   // Fail the first config load.
   plugin->fail_ = true;
@@ -557,5 +590,57 @@ TEST_F(ConfigTests, test_config_refresh) {
   FLAGS_config_refresh = refresh;
   FLAGS_config_accelerated_refresh = refresh_acceleratred;
   rf.registry("config")->remove("test");
+}
+
+TEST_F(ConfigTests, test_config_backup) {
+  get().reset();
+  const std::map<std::string, std::string> expected_config = {{"a", "b"},
+                                                              {"c", "d"}};
+  get().backupConfig(expected_config);
+  const auto config = get().restoreConfigBackup();
+  EXPECT_TRUE(config);
+  EXPECT_EQ(*config, expected_config);
+}
+
+TEST_F(ConfigTests, test_config_backup_integrate) {
+  const auto config_enable_backup_saved = FLAGS_config_enable_backup;
+  FLAGS_config_enable_backup = true;
+
+  get().reset();
+  auto& rf = RegistryFactory::get();
+  auto data_parser = std::make_shared<TestDataConfigParserPlugin>();
+  auto success_plugin = std::make_shared<TestConfigPlugin>();
+  auto fail_plugin = std::make_shared<TestConfigPlugin>();
+  fail_plugin->fail_ = true;
+  success_plugin->fail_ = false;
+
+  rf.registry("config")->add("test_success", success_plugin);
+  rf.registry("config")->add("test_fail", fail_plugin);
+  rf.registry("config_parser")->add("test", data_parser);
+  // Change the active config plugin.
+  EXPECT_TRUE(rf.setActive("config", "test_success").ok());
+
+  auto status = get().refresh();
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(success_plugin->gen_config_count_, 1);
+
+  auto source_backup = data_parser->source_;
+  auto config_backup = data_parser->config_;
+
+  EXPECT_TRUE(source_backup.length() > 0);
+
+  get().reset();
+  data_parser->source_.clear();
+  data_parser->config_.clear();
+  EXPECT_TRUE(rf.setActive("config", "test_fail").ok());
+
+  status = get().refresh();
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(fail_plugin->gen_config_count_, 1);
+
+  EXPECT_EQ(data_parser->source_, source_backup);
+  EXPECT_EQ(data_parser->config_, config_backup);
+
+  FLAGS_config_enable_backup = config_enable_backup_saved;
 }
 }

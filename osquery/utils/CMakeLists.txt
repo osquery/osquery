@@ -7,25 +7,19 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 if(NOT SKIP_AWS)
-  set(OSQUERY_AWS_UTIL
-    "aws_util.cpp"
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_aws_util
+    "${CMAKE_CURRENT_LIST_DIR}/aws_util.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/aws_util.h"
   )
 
   if(WINDOWS)
     # This is a fix for a conversion error in the uri.hpp file of cpp-netlib
-    set_source_files_properties("aws_util.cpp" PROPERTIES COMPILE_FLAGS "/wd4244")
+    set_source_files_properties("${CMAKE_CURRENT_LIST_DIR}/aws_util.cpp" PROPERTIES COMPILE_FLAGS "/wd4244")
   endif()
 
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(
-    osquery_aws_util
-    ${OSQUERY_AWS_UTIL}
+  ADD_OSQUERY_TEST_ADDITIONAL(
+    "${CMAKE_CURRENT_LIST_DIR}/tests/aws_util_tests.cpp"
   )
-
-  set(OSQUERY_AWS_UTIL_TESTS
-    "utils/tests/aws_util_tests.cpp"
-  )
-
-  ADD_OSQUERY_TEST_ADDITIONAL(${OSQUERY_AWS_UTIL_TESTS})
 
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-core")
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-sts")

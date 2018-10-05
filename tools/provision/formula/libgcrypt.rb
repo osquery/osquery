@@ -23,31 +23,22 @@ class Libgcrypt < AbstractOsqueryFormula
     sha256 "d02340651b18090f3df9eed47a4d84bed703103131378e1e493c26d7d0c7aab1"
   end
 
-  option :universal
-
   def install
-    ENV.universal_binary if build.universal?
-
     args = [
-      "--disable-dependency-tracking",
-      "--disable-silent-rules",
       "--disable-avx-support",
       "--disable-avx2-support",
       "--disable-drng-support",
       "--disable-pclmul-support",
-      "--disable-shared",
-      "--enable-static",
-      "--prefix=#{prefix}",
+      "--disable-sse41-support",
+      "--disable-optimization",
       "--disable-asm",
-      "--with-libgpg-error-prefix=#{Formula["libgpg-error"].opt_prefix}",
-      "--with-gpg-error-prefix=#{Formula["libgpg-error"].opt_prefix}",
+      "--with-libgpg-error-prefix=#{Formula["osquery/osquery-local/libgpg-error"].opt_prefix}",
+      "--with-gpg-error-prefix=#{Formula["osquery/osquery-local/libgpg-error"].opt_prefix}",
     ]
 
-    system "./configure", *args
-    if build.universal?
-      buildpath.install resource("config.h.ed")
-      system "ed -s - config.h <config.h.ed"
-    end
+    system "./configure", *osquery_autoconf_flags, *args
+    buildpath.install resource("config.h.ed")
+    system "ed -s - config.h <config.h.ed"
 
     cd "cipher" do
       system "make"

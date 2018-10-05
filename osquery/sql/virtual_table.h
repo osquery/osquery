@@ -81,7 +81,8 @@ struct VirtualTable : private boost::noncopyable {
 /// Attach a table plugin name to an in-memory SQLite database.
 Status attachTableInternal(const std::string& name,
                            const std::string& statement,
-                           const SQLiteDBInstanceRef& instance);
+                           const SQLiteDBInstanceRef& instance,
+                           bool is_extension);
 
 /// Detach (drop) a table.
 Status detachTableInternal(const std::string& name,
@@ -106,4 +107,4 @@ void attachVirtualTables(const SQLiteDBInstanceRef& instance);
  */
 void registerForeignTables();
 #endif
-}
+} // namespace osquery

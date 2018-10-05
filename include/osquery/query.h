@@ -17,12 +17,12 @@
 #include <vector>
 
 #include <osquery/core.h>
-#include <osquery/status.h>
 
 #include "osquery/core/json.h"
 
 namespace osquery {
 
+class Status;
 /**
  * @brief A variant type for the SQLite type affinities.
  */

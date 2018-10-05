@@ -11,6 +11,7 @@
 #include <asm/unistd_64.h>
 
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 
 #include "osquery/tables/events/linux/process_events.h"
@@ -47,10 +48,7 @@ Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return status;
   }
 
-  for (auto& row : emitted_row_list) {
-    add(row);
-  }
-
+  addBatch(emitted_row_list);
   return Status(0, "Ok");
 }
 
@@ -69,6 +67,8 @@ Status AuditProcessEventSubscriber::ProcessEvents(
   // clang-format on
 
   emitted_row_list.clear();
+
+  emitted_row_list.reserve(event_list.size());
 
   for (const auto& event : event_list) {
     if (event.type != AuditEvent::Type::Syscall) {
@@ -101,15 +101,26 @@ Status AuditProcessEventSubscriber::ProcessEvents(
       continue;
     }
 
+    const AuditEventRecord* cwd_event_record = GetEventRecord(event, AUDIT_CWD);
+    if (cwd_event_record == nullptr) {
+      VLOG(1) << "Malformed AUDIT_CWD event";
+      continue;
+    }
+
     Row row = {};
 
     CopyFieldFromMap(row, syscall_event_record->fields, "auid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "pid", "0");
-    CopyFieldFromMap(row, syscall_event_record->fields, "ppid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "uid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "euid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "gid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "egid", "0");
+    CopyFieldFromMap(row, cwd_event_record->fields, "cwd", "0");
+
+    std::uint64_t parent_process_id;
+    GetIntegerFieldFromMap(
+        parent_process_id, syscall_event_record->fields, "ppid");
+    row["parent"] = std::to_string(parent_process_id);
 
     std::string field_value;
     GetStringFieldFromMap(field_value, syscall_event_record->fields, "exe", "");
@@ -142,7 +153,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
         row["cmdline"] += " ";
       }
 
-      row["cmdline"] += arg.second;
+      row["cmdline"] += DecodeAuditPathValues(arg.second);
     }
 
     // There may be a better way to calculate actual size from audit.
@@ -167,4 +178,4 @@ const std::set<int>& AuditProcessEventSubscriber::GetSyscallSet() noexcept {
   static const std::set<int> syscall_set = {__NR_execve};
   return syscall_set;
 }
-}
+} // namespace osquery

@@ -23,8 +23,8 @@ QueryData genDiskInfo(QueryContext& context) {
   Row r;
   QueryData results;
 
-  WmiRequest wmiSystemReq("select * from Win32_DiskDrive");
-  std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
+  const WmiRequest wmiSystemReq("select * from Win32_DiskDrive");
+  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   if (wmiResults.empty()) {
     LOG(WARNING) << "Error retrieving information from WMI.";
     return results;

@@ -138,7 +138,7 @@ If you try to select from an events-based table in the shell you will see someth
 ```
 osquery> select * from file_events;
 virtual_table.cpp:542] Table file_events is event-based but events are disabled
-virtual_table.cpp:549] Please see the table documentation: https://osquery.io/schema/#file_events
+virtual_table.cpp:549] Please see the table documentation: https://osquery.io/schema/current/#file_events
 ```
 
 If you start the shell using `osqueryi --disable_events=0` you will no longer get this warning. BUT! It is most likely the case that the events you are trying to inspect require future configuration. `file_events` requires a [file integrity monitoring](file-integrity-monitoring.md) configurations, `process_events` requires either additional flags or OpenBSM configuration, these situations are described in [process auditing](process-auditing.md).

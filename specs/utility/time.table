@@ -19,5 +19,8 @@ schema([
         aliases=["date_time"]),
     Column("iso_8601", TEXT, "Current time (ISO format) in the system"),
 ])
+extended_schema(WINDOWS, [
+    Column("win_timestamp", BIGINT, "Timestamp value in 100 nanosecond units."),
+])
 attributes(utility=True)
 implementation("time@genTime")

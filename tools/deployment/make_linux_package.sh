@@ -140,7 +140,7 @@ function main() {
   mkdir -p $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_INSTALL_DIR
   ln -s osqueryd $BINARY_INSTALL_DIR/osqueryi
-  strip $BINARY_INSTALL_DIR/*
+  strip --strip-debug $BINARY_INSTALL_DIR/*
   cp "$CTL_SRC" $BINARY_INSTALL_DIR
 
   # Create the prefix log dir and copy source configs
@@ -188,6 +188,8 @@ function main() {
   if [[ $PACKAGE_TYPE = "deb" ]]; then
     #Change config path in service unit
     sed -i 's/sysconfig/default/g' $INSTALL_PREFIX$SYSTEMD_SERVICE_DST
+    #Change config path in initd script
+    sed -i 's/sysconfig/default/g' $INSTALL_PREFIX$INITD_DST
   fi
 
   log "creating $PACKAGE_TYPE package"
@@ -256,13 +258,11 @@ function main() {
 
     # Create Build-ID links for executables and Dwarfs.
     BUILD_ID=`readelf -n "$BUILD_DIR/osquery/osqueryd" | grep "Build ID" | awk '{print $3}'`
-    BUILDLINK_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/.build-id/64
     if [[ ! "$BUILD_ID" = "" ]]; then
+      BUILDLINK_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/.build-id/${BUILD_ID:0:2}
       mkdir -p $BUILDLINK_DEBUG_DIR
-      ln -sf ../../../../bin/osqueryi $BUILDLINK_DEBUG_DIR/$BUILD_ID
-      ln -sf ../../bin/osqueryi.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID.debug
-      ln -sf ../../../../bin/osqueryd $BUILDLINK_DEBUG_DIR/$BUILD_ID
-      ln -sf ../../bin/osqueryd.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID.debug
+      ln -sf ../../../../bin/osqueryd $BUILDLINK_DEBUG_DIR/${BUILD_ID:2}
+      ln -sf ../../bin/osqueryd.debug $BUILDLINK_DEBUG_DIR/${BUILD_ID:2}.debug
     fi
 
     # Install the non-stripped binaries.

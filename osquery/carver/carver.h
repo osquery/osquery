@@ -15,6 +15,7 @@
 
 #include <osquery/dispatcher.h>
 #include <osquery/filesystem.h>
+#include <osquery/status.h>
 
 namespace osquery {
 

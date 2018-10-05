@@ -60,9 +60,6 @@ void Client::closeSocket() {
   if (sock_.is_open()) {
     boost_system::error_code rc;
     sock_.shutdown(boost_asio::ip::tcp::socket::shutdown_both, rc);
-    if (rc) {
-      return;
-    }
     sock_.close(rc);
   }
 }

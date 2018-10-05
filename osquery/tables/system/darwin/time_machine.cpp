@@ -15,6 +15,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/base64.h"
 #include "osquery/core/conversions.h"
 
 namespace pt = boost::property_tree;
@@ -72,8 +73,7 @@ QueryData genTimeMachineDestinations(QueryContext& context) {
     r["bytes_available"] = dest.second.get("BytesAvailable", "");
     r["encryption"] = dest.second.get("LastKnownEncryptionState", "");
 
-    std::string alias_data =
-        osquery::base64Decode(dest.second.get("BackupAlias", ""));
+    std::string alias_data = base64::decode(dest.second.get("BackupAlias", ""));
     if (alias_data.size() < 11) {
       results.push_back(r);
       continue;

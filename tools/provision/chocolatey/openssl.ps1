@@ -11,8 +11,8 @@
 # $version - The version of the software package to build
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
-$version = '1_0_2k'
-$chocoVersion = '1.0.2-k'
+$version = '1_0_2o'
+$chocoVersion = '1.0.2-o'
 $packageName = 'openssl'
 $projectSource = 'https://github.com/apache/thrift'
 $packageSourceUrl = 'https://github.com/apache/thrift'
@@ -23,15 +23,22 @@ $license = 'https://github.com/openssl/openssl/blob/master/LICENSE'
 $url = "https://github.com/openssl/openssl/archive/OpenSSL_$version.zip"
 
 # Public Cert bundle we bring alonge with openssl libs
-$curlCerts = "https://curl.haxx.se/ca/cacert-2016-11-02.pem"
+$curlCerts = "https://curl.haxx.se/ca/cacert-2018-03-07.pem"
 $curlCertsShaSum =
-  "cc7c9e2d259e20b72634371b146faec98df150d18dd9da9ad6ef0b2deac2a9d3"
+  "79ea479e9f329de7075c40154c591b51eb056d458bc4dff76d9a4b9c6c4f6d0b"
 
 # Invoke our utilities file
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
 
+# Keep current loc to restore later
+$currentLoc = Get-Location
+
 # Invoke the MSVC developer tools/env
-Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
+$ret = Invoke-VcVarsAll
+if ($ret -ne $true) {
+  Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+  exit
+}
 
 if (-not
      (
@@ -46,7 +53,8 @@ if (-not
 }
 
 # Check that Perl is installed
-if (-not (Get-Command 'perl' -ErrorAction SilentlyContinue)) {
+$checkPerl = Get-Command 'perl' -ErrorAction SilentlyContinue
+if (-not ($checkPerl -and $checkPerl.Source.StartsWith('C:\Perl64\bin\'))) {
   $msg = "[-] This build requires perl which was not found. Please install " +
          "perl from http://www.activestate.com/activeperl/downloads and add " +
          "to the SYSTEM path before continuing"
@@ -88,18 +96,26 @@ if (-not (Test-Path $zipFile)) {
   Invoke-WebRequest $url -OutFile "$zipFile"
 }
 
+$7z = (Get-Command '7z' -ErrorAction SilentlyContinue).Source
+$7zargs = @(
+  'x',
+  $zipFile
+)
+$perl = (Get-Command 'perl' -ErrorAction SilentlyContinue).Source
+$nmake = (Get-Command 'nmake' -ErrorAction SilentlyContinue).Source
+
 # Extract the source
-7z x $zipFile
+Start-OsqueryProcess $7z $7zargs $false
 $sourceDir = "$packageName-OpenSSL_$version"
 Set-Location $sourceDir
 
 # Build the libraries
-perl Configure VC-WIN64A
-ms\do_win64a
-nmake -f ms\nt.mak
+Start-OsqueryProcess $perl 'Configure VC-WIN64A' $false
+Invoke-BatchFile 'ms\do_win64a.bat'
+Start-OsqueryProcess $nmake '-f ms\nt.mak' $false
 
-#$buildDir = New-Item -Force -ItemType Directory -Path 'osquery-win-build'
-#Set-Location $buildDir
+$buildDir = New-Item -Force -ItemType Directory -Path 'osquery-win-build'
+Set-Location $buildDir
 
 # Construct the Chocolatey Package
 $chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'
@@ -112,9 +128,9 @@ $certsDir = New-Item -ItemType Directory -Path 'local\certs'
 Write-NuSpec $packageName $chocoVersion $authors $owners $projectSource $packageSourceUrl $copyright $license
 
 # Copy the libs and headers to their correct location
-Copy-Item "..\out32\ssleay32.lib" $libDir
-Copy-Item "..\out32\libeay32.lib" $libDir
-Copy-Item -Recurse "..\inc32\openssl" $includeDir
+Copy-Item "..\..\out32\ssleay32.lib" $libDir
+Copy-Item "..\..\out32\libeay32.lib" $libDir
+Copy-Item -Recurse "..\..\inc32\openssl" $includeDir
 
 # Grab the OpenSSL Curl cert bundle
 Invoke-WebRequest $curlCerts -Outfile "$certsDir\certs.pem"
@@ -132,3 +148,4 @@ if (Test-Path "$packageName.$chocoVersion.nupkg") {
 else {
   Write-Host "[-] Failed to build $packageName v$chocoVersion." -foregroundcolor Red
 }
+Set-Location $currentLoc

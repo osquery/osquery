@@ -16,6 +16,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <boost/asio.hpp>
 #include <boost/foreach.hpp>
@@ -416,6 +417,10 @@ QueryData genContainers(QueryContext& context) {
                                 .get<bool>("Privileged", false)
                             ? INTEGER(1)
                             : INTEGER(0);
+      r["readonly_rootfs"] = container_details.get_child("HostConfig")
+                                     .get<bool>("ReadonlyRootfs", false)
+                                 ? INTEGER(1)
+                                 : INTEGER(0);
       r["path"] = container_details.get<std::string>("Path", "");
 
       std::vector<std::string> entry_pts;

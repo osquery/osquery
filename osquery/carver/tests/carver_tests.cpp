@@ -9,7 +9,6 @@
  */
 
 #include <boost/filesystem.hpp>
-#include <boost/property_tree/ptree.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -27,7 +26,6 @@
 namespace osquery {
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 /// Prefix used for posix tar archive.
 const std::string kTestCarveNamePrefix = "carve_";

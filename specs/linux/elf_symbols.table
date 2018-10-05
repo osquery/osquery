@@ -1,0 +1,20 @@
+table_name("elf_symbols")
+description("ELF symbol list.")
+schema([
+    Column("name", TEXT, "Symbol name"),
+    Column("addr", INTEGER, "Symbol address (value)"),
+    Column("size", INTEGER, "Size of object"),
+    Column("type", TEXT, "Symbol type"),
+    Column("binding", TEXT, "Binding type"),
+    Column("offset", INTEGER, "Section table index"),
+    Column("table", TEXT, "Table name containing symbol"),
+    Column("path", TEXT, "Path to ELF file", required=True, index=True),
+])
+
+implementation("elf_info@getELFSymbols")
+examples([
+    "select * from elf_symbols where path = '/usr/bin/grep'",
+])
+fuzz_paths([
+    "/usr/bin/grep",
+])

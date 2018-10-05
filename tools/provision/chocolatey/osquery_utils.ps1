@@ -6,6 +6,9 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
+# Force Powershell to use TLS 1.2
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+
 # Helper function to add an explicit Deny-Write ACE for the Everyone group
 function Set-DenyWriteAcl {
   [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
@@ -224,4 +227,62 @@ function Start-OsqueryProcess {
       exitcode = $exit
     }
   }
+}
+
+# A helper function to derive the latest VS install
+function Get-VSInfo {
+
+  # Attempt to make use of vswhere to derive the build tools scripts
+  $vswhere = (Get-Command 'vswhere').Source
+  $vswhereArgs = @('-latest', '-legacy')
+  $vswhereOut = (Start-OsqueryProcess $vswhere $vswhereArgs).stdout
+  $vsinfo = New-Object -TypeName psobject
+  $vsinfo | Add-Member -MemberType NoteProperty -Name version -Value ''
+  $vsinfo | Add-Member -MemberType NoteProperty -Name location -Value ''
+  foreach ($l in $vswhereOut.split([environment]::NewLine)) {
+    $toks = $l.split(":")
+    if ($toks.Length -lt 2) {
+      continue
+    }
+    if ($toks[0].trim() -like 'installationVersion') {
+      $vsinfo.version = $toks[1].Split(".")[0]
+    }
+    if ($toks[0].trim() -like 'installationPath') {
+      $vsinfo.location = [System.String]::Join(":", $toks[1..$toks.Length])
+    }
+  }
+  $vsinfo.location = $vsinfo.location.trim()
+  $vsinfo.version = $vsinfo.version.trim()
+  return $vsinfo
+}
+
+# A helper function to derive the latest VS install and call vcvarsall.bat
+function Invoke-VcVarsAll {
+  $vsinfo = Get-VSInfo
+  $vsLoc = $vsinfo.location
+  $vsVersion = $vsinfo.version
+
+  if ($vsLoc -ne '') {
+    $vcvarsall = Join-Path $vsLoc 'VC'
+    if ($vsVersion -eq '15') {
+      $vcvarsall = Join-Path $vcvarsall '\Auxiliary\Build\vcvarsall.bat'
+    } else {
+      $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
+    }
+  
+    # Lastly invoke the environment provisioning script
+    $null = Invoke-BatchFile "$vcvarsall" "amd64"
+    return $true
+  }
+
+  # As a last ditch effort, attempt to find the env variables set by VS2015
+  # in order to derive the location of vcvarsall
+  $vsComnTools = [environment]::GetEnvironmentVariable("VS140COMNTOOLS")
+  if ($vsComnTools -eq '') {
+    return $false
+  }
+  $vcvarsall = Resolve-Path $(Join-Path "$vsComnTools" "..\..\VC")
+  $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
+  $null = Invoke-BatchFile "$vcvarsall" "amd64"
+  return $true
 }

@@ -10,6 +10,7 @@
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
 #include "osquery/events/darwin/iokit.h"

@@ -18,8 +18,8 @@ namespace tables {
 QueryData genInstalledPatches(QueryContext& context) {
   QueryData results;
 
-  WmiRequest wmiSystemReq("select * from Win32_QuickFixEngineering");
-  auto& wmiResults = wmiSystemReq.results();
+  const WmiRequest wmiSystemReq("select * from Win32_QuickFixEngineering");
+  const auto& wmiResults = wmiSystemReq.results();
 
   if (wmiResults.size() != 0) {
     Row r;

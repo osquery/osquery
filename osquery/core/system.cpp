@@ -29,6 +29,10 @@
 #include <WinSock2.h>
 #endif
 
+#if defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
+
 #include <ctime>
 #include <sstream>
 
@@ -119,10 +123,8 @@ std::string getHostname() {
 
   std::vector<char> hostname(size, 0x0);
   std::string hostname_string;
-  if (hostname.data() != nullptr) {
-    gethostname(hostname.data(), size - 1);
-    hostname_string = std::string(hostname.data());
-  }
+  gethostname(hostname.data(), size - 1);
+  hostname_string = std::string(hostname.data());
   boost::algorithm::trim(hostname_string);
   return hostname_string;
 }
@@ -184,8 +186,8 @@ std::string generateHostUUID() {
     hardware_uuid = std::string(out);
   }
 #elif WIN32
-  WmiRequest wmiUUIDReq("Select UUID from Win32_ComputerSystemProduct");
-  std::vector<WmiResultItem>& wmiUUIDResults = wmiUUIDReq.results();
+  const WmiRequest wmiUUIDReq("Select UUID from Win32_ComputerSystemProduct");
+  const std::vector<WmiResultItem>& wmiUUIDResults = wmiUUIDReq.results();
   if (wmiUUIDResults.size() != 0) {
     wmiUUIDResults[0].GetString("UUID", hardware_uuid);
   }
@@ -426,11 +428,15 @@ bool PlatformProcess::cleanup() const {
 #ifndef WIN32
 
 static inline bool ownerFromResult(const Row& row, long& uid, long& gid) {
-  if (!safeStrtol(row.at("uid"), 10, uid) ||
-      !safeStrtol(row.at("gid"), 10, gid)) {
-    return false;
+  auto const uid_exp = tryTo<long>(row.at("uid"), 10);
+  auto const gid_exp = tryTo<long>(row.at("gid"), 10);
+  if (uid_exp.isValue()) {
+    uid = uid_exp.get();
   }
-  return true;
+  if (gid_exp.isValue()) {
+    gid = gid_exp.get();
+  }
+  return uid_exp.isValue() && gid_exp.isValue();
 }
 
 DropPrivilegesRef DropPrivileges::get() {
@@ -481,7 +487,10 @@ bool DropPrivileges::dropTo(const std::string& user) {
 
 bool setThreadEffective(uid_t uid, gid_t gid) {
 #if defined(__APPLE__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
   return (pthread_setugid_np(uid, gid) == 0);
+#pragma GCC diagnostic pop
 #elif defined(__linux__)
   return (syscall(SYS_setresgid, -1, gid, -1) == 0 &&
           syscall(SYS_setresuid, -1, uid, -1) == 0);
@@ -490,10 +499,10 @@ bool setThreadEffective(uid_t uid, gid_t gid) {
 }
 
 bool DropPrivileges::dropTo(const std::string& uid, const std::string& gid) {
-  unsigned long int _uid = 0;
-  unsigned long int _gid = 0;
-  if (!safeStrtoul(uid, 10, _uid).ok() || !safeStrtoul(gid, 10, _gid).ok() ||
-      !dropTo(static_cast<uid_t>(_uid), static_cast<gid_t>(_gid))) {
+  auto const uid_exp = tryTo<uid_t>(uid, 10);
+  auto const gid_exp = tryTo<gid_t>(gid, 10);
+  if (uid_exp.isError() || gid_exp.isError() ||
+      !dropTo(uid_exp.get(), gid_exp.get())) {
     return false;
   }
   return true;
@@ -560,6 +569,44 @@ DropPrivileges::~DropPrivileges() {
   }
 }
 #endif
+
+Status setThreadName(const std::string& name) {
+#if defined(__APPLE__)
+  int return_code = pthread_setname_np(name.c_str());
+  return return_code == 0
+             ? Status::success()
+             : Status::failure("pthread_setname_np failed with error " +
+                               std::to_string(return_code));
+#elif defined(__linux__)
+  int return_code = pthread_setname_np(pthread_self(), name.c_str());
+  return return_code == 0
+             ? Status::success()
+             : Status::failure("pthread_setname_np failed with error " +
+                               std::to_string(return_code));
+#elif defined(__FreeBSD__)
+  // FreeBSD silently ignores errors and does not return an error code
+  pthread_set_name_np(pthread_self(), name.c_str());
+  return Status::success();
+#elif defined(WIN32)
+  // SetThreadDescription is available in builds newer than 1607 of windows 10
+  // and works even if there is no debugger.
+  typedef HRESULT(WINAPI * PFNSetThreadDescription)(HANDLE hThread,
+                                                    PCWSTR lpThreadDescription);
+  auto pfnSetThreadDescription = reinterpret_cast<PFNSetThreadDescription>(
+      GetProcAddress(GetModuleHandleA("Kernel32.dll"), "SetThreadDescription"));
+  if (pfnSetThreadDescription != nullptr) {
+    std::wstring wideName{stringToWstring(name)};
+    HRESULT hr = pfnSetThreadDescription(GetCurrentThread(), wideName.c_str());
+    if (!FAILED(hr)) {
+      return Status::success();
+    }
+  }
+  return Status::failure(
+      "setThreadName failed due to GetProcAddress returning null");
+#else
+  return Status::failure("setThreadName not supported on this OS");
+#endif
+}
 
 bool checkPlatform(const std::string& platform) {
   if (platform.empty() || platform == "null") {

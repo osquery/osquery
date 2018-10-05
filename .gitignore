@@ -60,6 +60,7 @@ doxygen/latex
 \#*\#
 *.swp
 *.vscode
+.vs/
 
 # Tags
 tags

@@ -111,6 +111,11 @@ class FSEventsEventPublisher
                        const FSEventStreamEventFlags fsevent_flags[],
                        const FSEventStreamEventId fsevent_ids[]);
 
+  FSEventsEventPublisher(const std::string& name = "FSEventsEventPublisher")
+      : EventPublisher() {
+    runnable_name_ = name;
+  }
+
  public:
   bool shouldFire(const FSEventsSubscriptionContextRef& sc,
                   const FSEventsEventContextRef& ec) const override;

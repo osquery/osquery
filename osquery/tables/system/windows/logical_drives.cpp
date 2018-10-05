@@ -17,10 +17,10 @@ namespace tables {
 QueryData genLogicalDrives(QueryContext& context) {
   QueryData results;
 
-  WmiRequest wmiLogicalDiskReq(
+  const WmiRequest wmiLogicalDiskReq(
       "select DeviceID, DriveType, FreeSpace, Size, FileSystem from "
       "Win32_LogicalDisk");
-  std::vector<WmiResultItem>& wmiResults = wmiLogicalDiskReq.results();
+  const std::vector<WmiResultItem>& wmiResults = wmiLogicalDiskReq.results();
   for (unsigned int i = 0; i < wmiResults.size(); ++i) {
     Row r;
     unsigned int driveType = 0;
@@ -63,8 +63,8 @@ QueryData genLogicalDrives(QueryContext& context) {
         std::string("Associators of {Win32_LogicalDisk.DeviceID='") + deviceId +
         "'} where AssocClass=Win32_LogicalDiskToPartition";
 
-    WmiRequest wmiLogicalDiskToPartitionReq(assocQuery);
-    std::vector<WmiResultItem>& wmiLogicalDiskToPartitionResults =
+    const WmiRequest wmiLogicalDiskToPartitionReq(assocQuery);
+    const std::vector<WmiResultItem>& wmiLogicalDiskToPartitionResults =
         wmiLogicalDiskToPartitionReq.results();
 
     if (wmiLogicalDiskToPartitionResults.empty()) {
@@ -79,8 +79,9 @@ QueryData genLogicalDrives(QueryContext& context) {
         std::string(
             "SELECT BootPartition FROM Win32_DiskPartition WHERE DeviceID='") +
         partitionDeviceId + '\'';
-    WmiRequest wmiPartitionReq(partitionQuery);
-    std::vector<WmiResultItem>& wmiPartitionResults = wmiPartitionReq.results();
+    const WmiRequest wmiPartitionReq(partitionQuery);
+    const std::vector<WmiResultItem>& wmiPartitionResults =
+        wmiPartitionReq.results();
 
     if (wmiPartitionResults.empty()) {
       results.push_back(r);

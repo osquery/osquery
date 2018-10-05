@@ -10,13 +10,12 @@
 
 #pragma once
 
+#include <csignal>
 #include <mutex>
 #include <string>
-#include <vector>
-
-#include <boost/filesystem/path.hpp>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
 
 #ifdef WIN32
 #include <osquery/windows/system.h>
@@ -25,6 +24,8 @@
 #endif
 
 namespace osquery {
+
+class Status;
 
 /**
  * @brief The requested exit code.
@@ -337,6 +338,13 @@ Status createPidFile();
  * @return A bool indicating if the current process is running as admin
  */
 bool isUserAdmin();
+
+/**
+ * @brief Set the name of the thread
+ *
+ * @return If the name was set successfully
+ */
+Status setThreadName(const std::string& name);
 
 bool checkPlatform(const std::string& platform);
 } // namespace osquery

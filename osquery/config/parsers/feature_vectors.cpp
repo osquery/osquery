@@ -9,6 +9,7 @@
  */
 
 #include <osquery/config.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/config/parsers/feature_vectors.h"
 

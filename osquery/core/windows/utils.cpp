@@ -9,7 +9,6 @@
  */
 
 #include <string.h>
-#include <time.h>
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
@@ -46,12 +45,4 @@ std::string platformStrerr(int errnum) {
   return std::string(buffer.data());
 }
 
-Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count) {
-  auto status = ::strncpy_s(dst, nelms, src, count);
-  if (status != 0) {
-    return Status(1, "Failed to strncpy_s: " + status);
-  }
-
-  return Status(0, "OK");
-}
 }

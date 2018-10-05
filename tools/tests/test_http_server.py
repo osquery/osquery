@@ -406,7 +406,7 @@ if __name__ == '__main__':
         "--persist",
         default=HTTP_SERVER_PERSIST,
         action="store_true",
-        help="Wrap the HTTP server socket in TLS.")
+        help="Create a persistent HTTP connection.")
     parser.add_argument(
         "--timeout",
         default=HTTP_SERVER_TIMEOUT,

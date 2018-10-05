@@ -463,7 +463,7 @@ void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
     // Work off of first 2 character instead of just the first to be safe.
     std::string firstTwo = lines[n].substr(0, 2);
     if (firstTwo == "md") {
-      auto mdline(split(lines[n], ":", 1));
+      auto mdline(split(lines[n], ':', 1));
       if (mdline.size() < 2) {
         LOG(WARNING) << "Unexpected md device line structure: " << lines[n];
         n += 1;
@@ -501,9 +501,11 @@ void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
         trimStrs(configline);
 
         if (configline[1] == "blocks") {
-          Status status = safeStrtol(configline[0], 10, mdd.usableSize);
-          if (!status.ok()) {
+          auto const exp = tryTo<long>(configline[0], 10);
+          if (exp.isError()) {
             LOG(WARNING) << "Could not parse usable size of " << mdd.name;
+          } else {
+            mdd.usableSize = exp.get();
           }
 
         } else {

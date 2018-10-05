@@ -1,4 +1,4 @@
-File integrity monitoring (FIM) is available for Linux and Darwin using inotify and FSEvents. The daemon reads a list of files/directories from the osquery configuration. The actions (and hashes when appropriate) to those selected files populate the [`file_events`](https://osquery.io/schema/#file_events) table.
+File integrity monitoring (FIM) is available for Linux and Darwin using inotify and FSEvents. The daemon reads a list of files/directories from the osquery configuration. The actions (and hashes when appropriate) to those selected files populate the [`file_events`](https://osquery.io/schema/current/#file_events) table.
 
 To get started with FIM, you must first identify which files and directories you wish to monitor. Then use *fnmatch*-style, or filesystem globbing, patterns to represent the target paths. You may use standard wildcards "*\**" or SQL-style wildcards "*%*":
 
@@ -19,7 +19,7 @@ To get started with FIM, you must first identify which files and directories you
 
 For example, you may want to monitor `/etc` along with other files on a Linux system. After you identify your target files and directories you wish to monitor, add them to a new section in the config *file_paths*.
 
-**Note:** Many applications may replace a file instead of editing them in place. If you monitor the file directly, osquery will need to be restarted in order to monitor the replacement. This can be avoided by monitoring the containing directory instead. 
+**Note:** Many applications may replace a file instead of editing them in place. If you monitor the file directly, osquery will need to be restarted in order to monitor the replacement. This can be avoided by monitoring the containing directory instead.
 
 The three areas below that are relevant to FIM are the scheduled query against `file_events`, the added `file_paths` section and the `exclude_paths` sections. The `file_events` query is scheduled to collect all of the FIM events that have occurred on any files within the paths specified within `file_paths` but excluding the paths specified within `exclude_paths` on a five minute interval. At a high level this means events are buffered within osquery and sent to the configured _logger_ every five minutes.
 
@@ -68,11 +68,23 @@ One must not mention arbitrary category name under the exclude_paths node, only 
 * `valid category` - Categories which are mentioned under `file_paths` node. In the above example config `homes`, `etc` and `tmp` are termed as valid categories.
 * `invalid category` - Any other category name apart from `homes`, `etc` and `tmp` are considered as invalid categories.
 
+In addition to `file_paths` one can use `file_paths_query` to specify the file paths to monitor as `path` column of the results of the given query, for example:
+
+```json
+{
+    "file_paths_query": {
+        "category_name": [
+            "SELECT DISTINCT '/home/' || username || '/.gitconfig' as path FROM last WHERE username != '' AND username != 'root';"
+        ]
+    }
+}
+```
+
 **Note:** Invalid categories get dropped silently, i.e. they don't have any effect on the events generated.
 
 ## Sample Event Output
 
-As file changes happen, events will appear in the [**file_events**](https://osquery.io/schema/#file_events) table.  During a file change event, the md5, sha1, and sha256 for the file will be calculated if possible. A sample event looks like this:
+As file changes happen, events will appear in the [**file_events**](https://osquery.io/schema/current/#file_events) table.  During a file change event, the md5, sha1, and sha256 for the file will be calculated if possible. A sample event looks like this:
 
 ```json
 {

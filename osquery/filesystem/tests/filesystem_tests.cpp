@@ -16,7 +16,6 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -31,7 +30,6 @@
 #endif
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -99,12 +97,12 @@ TEST_F(FilesystemTests, test_remove_path) {
   fs::path test_file(kTestWorkingDirectory + "rmdir/rmfile");
   writeTextFile(test_file, "testcontent");
 
-  ASSERT_TRUE(pathExists(test_file));
+  ASSERT_TRUE(pathExists(test_file).ok());
 
   // Try to remove the directory.
   EXPECT_TRUE(removePath(test_dir));
-  EXPECT_FALSE(pathExists(test_file));
-  EXPECT_FALSE(pathExists(test_dir));
+  EXPECT_FALSE(pathExists(test_file).ok());
+  EXPECT_FALSE(pathExists(test_dir).ok());
 }
 
 TEST_F(FilesystemTests, test_write_file) {
@@ -116,7 +114,7 @@ TEST_F(FilesystemTests, test_write_file) {
   ASSERT_TRUE(isWritable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, 0400, true));
+  EXPECT_TRUE(writeTextFile(test_file, content, 0400));
   ASSERT_TRUE(pathExists(test_file).ok());
 
   // On POSIX systems, root can still read/write.
@@ -125,7 +123,7 @@ TEST_F(FilesystemTests, test_write_file) {
   EXPECT_TRUE(isReadable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, 0000, true));
+  EXPECT_TRUE(writeTextFile(test_file, content, 0000));
   ASSERT_TRUE(pathExists(test_file).ok());
 
   // On POSIX systems, root can still read/write.
@@ -494,4 +492,86 @@ TEST_F(FilesystemTests, test_read_urandom) {
     EXPECT_NE(first, second);
   }
 }
+
+TEST_F(FilesystemTests, create_directory) {
+  auto const recursive = false;
+  auto const ignore_existence = false;
+  const auto tmp_path =
+      fs::temp_directory_path() /
+      fs::unique_path("osquery.tests.create_directory.%%%%.%%%%");
+  ASSERT_FALSE(fs::exists(tmp_path));
+  ASSERT_TRUE(createDirectory(tmp_path, recursive, ignore_existence).ok());
+  ASSERT_TRUE(fs::exists(tmp_path));
+  ASSERT_TRUE(fs::is_directory(tmp_path));
+  ASSERT_FALSE(createDirectory(tmp_path).ok());
+  fs::remove(tmp_path);
+}
+
+TEST_F(FilesystemTests, create_directory_without_parent) {
+  auto const recursive = false;
+  auto const ignore_existence = false;
+  const auto tmp_root_path =
+      fs::temp_directory_path() /
+      fs::unique_path(
+          "osquery.tests.create_directory_without_parent.%%%%.%%%%");
+  ASSERT_FALSE(fs::exists(tmp_root_path));
+  auto const tmp_path = tmp_root_path / "one_more";
+  ASSERT_FALSE(fs::exists(tmp_path));
+  ASSERT_FALSE(createDirectory(tmp_path, recursive, ignore_existence).ok());
+  ASSERT_FALSE(fs::exists(tmp_path));
+  ASSERT_FALSE(fs::is_directory(tmp_path));
+  fs::remove_all(tmp_root_path);
+}
+
+TEST_F(FilesystemTests, create_directory_recursive) {
+  auto const recursive = true;
+  auto const ignore_existence = false;
+  const auto tmp_root_path =
+      fs::temp_directory_path() /
+      fs::unique_path("osquery.tests.create_directory_recursive.%%%%.%%%%");
+  ASSERT_FALSE(fs::exists(tmp_root_path));
+  auto const tmp_path = tmp_root_path / "one_more";
+  ASSERT_FALSE(fs::exists(tmp_path));
+  ASSERT_TRUE(createDirectory(tmp_path, recursive, ignore_existence).ok());
+  ASSERT_TRUE(fs::exists(tmp_path));
+  ASSERT_TRUE(fs::is_directory(tmp_path));
+  fs::remove_all(tmp_root_path);
+}
+
+TEST_F(FilesystemTests, create_directory_recursive_on_existing_dir) {
+  auto const recursive = true;
+  auto const ignore_existence = false;
+  const auto tmp_root_path =
+      fs::temp_directory_path() /
+      fs::unique_path(
+          "osquery.tests.create_directory_recursive_on_existing_dir.%%%%.%%%%");
+  auto const tmp_path = tmp_root_path / "one_more";
+  fs::create_directories(tmp_path);
+
+  ASSERT_TRUE(fs::exists(tmp_path));
+  ASSERT_TRUE(fs::is_directory(tmp_path));
+  ASSERT_FALSE(createDirectory(tmp_path, recursive, ignore_existence).ok());
+  ASSERT_TRUE(fs::exists(tmp_path));
+  ASSERT_TRUE(fs::is_directory(tmp_path));
+  fs::remove_all(tmp_root_path);
+}
+
+TEST_F(FilesystemTests, create_dir_recursive_ignore_existence) {
+  auto const recursive = true;
+  auto const ignore_existence = true;
+  const auto tmp_root_path =
+      fs::temp_directory_path() /
+      fs::unique_path(
+          "osquery.tests.create_dir_recursive_ignore_existence.%%%%.%%%%");
+  auto const tmp_path = tmp_root_path / "one_more";
+  fs::create_directories(tmp_path);
+
+  ASSERT_TRUE(fs::exists(tmp_path));
+  ASSERT_TRUE(fs::is_directory(tmp_path));
+  ASSERT_TRUE(createDirectory(tmp_path, recursive, ignore_existence).ok());
+  ASSERT_TRUE(fs::exists(tmp_path));
+  ASSERT_TRUE(fs::is_directory(tmp_path));
+  fs::remove_all(tmp_root_path);
+}
+
 } // namespace osquery

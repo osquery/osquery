@@ -24,8 +24,8 @@
 
 #include <osquery/core.h>
 #include <osquery/flags.h>
+#include <osquery/plugin.h>
 #include <osquery/query.h>
-#include <osquery/registry.h>
 
 namespace osquery {
 

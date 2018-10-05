@@ -4,24 +4,24 @@ class Openssl < AbstractOsqueryFormula
   desc "SSL/TLS cryptography library"
   homepage "https://openssl.org/"
   license "OpenSSL"
-  url "https://www.openssl.org/source/openssl-1.0.2m.tar.gz"
-  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2m.tar.gz"
-  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2m.tar.gz"
-  sha256 "8c6ff15ec6b319b50788f42c7abc2890c08ba5a1cdcd3810eb9092deada37b0f"
+  url "https://www.openssl.org/source/openssl-1.0.2o.tar.gz"
+  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2o.tar.gz"
+  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2o.tar.gz"
+  sha256 "ec3f5c9714ba0fd45cb4e087301eb1336c317e0d20b575a125050470e8089e4d"
   revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "06400b9c19b51c8c7d35a9f110c86331ef82b14ddf7270b5e68b6f9e7c0cfab6" => :sierra
-    sha256 "900d4718dec4ba09cc9ae304e3fb287b01089a86209f431e5993ff3a30858f92" => :x86_64_linux
+    sha256 "3539d1d207a40185d72ddf5c006813f0e97b29f4b88e7283366de5d366d190bc" => :sierra
+    sha256 "ab20de60c78614159b11b46affc91b5a1eae2be2df017473461bfddef6bd37bd" => :x86_64_linux
   end
 
   resource "cacert" do
     # Update post_install when you update this resource.
     # homepage "http://curl.haxx.se/docs/caextract.html"
-    url "https://curl.haxx.se/ca/cacert-2017-09-20.pem"
-    sha256 "435ac8e816f5c10eaaf228d618445811c16a5e842e461cb087642b6265a36856"
+    url "https://curl.haxx.se/ca/cacert-2018-03-07.pem"
+    sha256 "79ea479e9f329de7075c40154c591b51eb056d458bc4dff76d9a4b9c6c4f6d0b"
   end
 
   depends_on "zlib" unless OS.mac?
@@ -79,10 +79,10 @@ class Openssl < AbstractOsqueryFormula
 
   def post_install
     ENV.delete "LIBRARY_PATH"
-    (etc/"openssl").install resource("cacert").files("cacert-2017-09-20.pem" => "cert.pem")
+    (etc/"openssl").install resource("cacert").files("cacert-2018-03-07.pem" => "cert.pem")
   end
 
-  def caveats; <<-EOS.undent
+  def caveats; <<~EOS
     A CA file has been bootstrapped using certificates from the system
     keychain. To add additional certificates, place .pem files in
       #{openssldir}/certs

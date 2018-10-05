@@ -1,0 +1,21 @@
+table_name("memory_error_info")
+description("Data associated with errors of a physical memory array.")
+schema([
+    Column("handle",  TEXT, "Handle, or instance number, associated with the structure"),
+    Column("error_type",  TEXT,
+      "type of error associated with current error status for array or device"),
+    Column("error_granularity", TEXT,
+      "Granularity to which the error can be resolved"),
+    Column("error_operation", TEXT,
+      "Memory access operation that caused the error"),
+    Column("vendor_syndrome", TEXT,
+      "Vendor specific ECC syndrome or CRC data associated with the erroneous access"),
+    Column("memory_array_error_address", TEXT,
+      "32 bit physical address of the error based on the addressing of the bus to which the memory array is connected"),
+    Column("device_error_address", TEXT,
+        "32 bit physical address of the error relative to the start of the failing memory address, in bytes"),
+    Column("error_resolution", TEXT,
+      "Range, in bytes, within which this error can be determined, when an error address is given"),
+])
+
+implementation("smbios_tables@genMemoryErrorInfo")

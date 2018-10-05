@@ -19,6 +19,7 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
+#include <osquery/status.h>
 
 #include "osquery/core/hashing.h"
 

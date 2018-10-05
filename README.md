@@ -9,10 +9,10 @@ The tools make low-level operating system analytics and monitoring both performa
 
 | Platform | Build status  | | | |
 |----------|---------------|---|---|---|
-macOS 10.12    | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.12/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.12/) | | **Homepage:** | https://osquery.io
+MacOS 10.13    | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildMacOS/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildMacOS/) | | **Homepage:** | https://osquery.io
 CentOS 6.x | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Downloads:** | https://osquery.io/downloads
 CentOS 7.x   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Tables:** | https://osquery.io/schema
-Ubuntu 14.04   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | **Packs:** | https://osquery.io/packs
+Ubuntu 14.04   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | **Packs:** | [https://osquery.io/packs](https://github.com/facebook/osquery/tree/master/packs)
 Ubuntu 16.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/) | | **Guide:** | https://osquery.readthedocs.org
 Windows 2016 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildWindows2016/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildWindows2016/) | | [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com) | https://osquery-slack.herokuapp.com
 Windows 10 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/) | | |
@@ -26,12 +26,12 @@ osquery exposes an operating system as a high-performance relational database. T
 
 SQL tables are implemented via a simple plugin and extensions API. A variety of tables already exist and more are being written: [https://osquery.io/schema](https://osquery.io/schema/). To best understand the expressiveness that is afforded to you by osquery, consider the following SQL queries:
 
-List the [`users`](https://osquery.io/schema/#users):
+List the [`users`](https://osquery.io/schema/current#users):
 ```sql
 SELECT * FROM users;
 ```
 
-Check the [`processes`](https://osquery.io/schema/#processes) that have a deleted executable:
+Check the [`processes`](https://osquery.io/schema/current#processes) that have a deleted executable:
 ```sql
 SELECT * FROM processes WHERE on_disk = 0;
 ```
@@ -78,7 +78,7 @@ These queries can be:
 For latest stable builds for OS X (pkg) and Linux (deb/rpm), as well as yum and apt repository information visit [https://osquery.io/downloads](https://osquery.io/downloads/). Windows 10, 8, Server 2012 and 2016 packages are published to [Chocolatey](https://chocolatey.org/packages/osquery).
 
 The list of supported platforms for **running** osquery is massive:
-- Apple OS X 10.10, 10.11, and macOS 10.12
+- Apple OS X 10.10, 10.11, and macOS 10.12, 10.13
 - Any 64bit Linux OS with `glibc >= 2.13` and `zlib >= 1.2`
 - Windows 10, 8, Server 2012, and 2016
 
@@ -88,12 +88,12 @@ Building osquery from source is encouraged! [Check out the documentation](https:
 
 We *officially* support a subset of OS versions for **building** because it is rather intense.
 - Ubuntu 14.04 and 16.04, CentOS 6.5 and 7
-- Apple macOS 10.12
+- Apple macOS 10.13
 - Windows 10 and Server 2016
 
 ## File Integrity Monitoring (FIM)
 
-osquery provides several [FIM features](http://osquery.readthedocs.org/en/stable/deployment/file-integrity-monitoring/) too! Just as OS concepts are represented in tabular form, the daemon can track OS events and later expose them in a table. Tables like [`file_events`](https://osquery.io/schema/#file_events) or [`yara_events`](https://osquery.io/schema/#yara_events) can be selected to retrieve buffered events.
+osquery provides several [FIM features](http://osquery.readthedocs.org/en/stable/deployment/file-integrity-monitoring/) too! Just as OS concepts are represented in tabular form, the daemon can track OS events and later expose them in a table. Tables like [`file_events`](https://osquery.io/schema/current#file_events) or [`yara_events`](https://osquery.io/schema/current#yara_events) can be selected to retrieve buffered events.
 
 The configuration allows you to organize files and directories for monitoring. Those sets can be paired with lists of YARA signatures or configured for additional monitoring such as access events.
 
@@ -103,7 +103,7 @@ There are several forms of [eventing](http://osquery.readthedocs.org/en/stable/d
 
 ## License
 
-The osquery project is dual-licensed under Apache 2.0 and GPLv2. You may select, at your option, one of these licenses.
+By contributing to osquery you agree that your contributions will be licensed as defined on the LICENSE file.
 
 ## Vulnerabilities
 
@@ -113,7 +113,5 @@ Facebook has a [bug bounty](https://www.facebook.com/whitehat/) program that inc
 
 ## Learn more
 
-**Want to be a Security Engineer at Facebook?** The osquery development team is hiring! Our team's mission is detect external and internal threats to users' data. We do that by building, deploying, and using intrusion detection tools like osquery. Check out our [position description](https://www.facebook.com/careers/jobs/a0I1200000JXmWQEA1/) or reach out to [`@theopolis`](https://github.com/theopolis).
-
 Read the [launch blog post](https://code.facebook.com/posts/844436395567983/introducing-osquery/) for background on the project.
-If you're interested in learning more about osquery, visit the [users guide](https://osquery.readthedocs.org/) and browse our RFC-labeled Github issues. Development and usage discussion is happing in the osquery Slack, grab an invite automatically: [https://osquery-slack.herokuapp.com/](https://osquery-slack.herokuapp.com/)!
+If you're interested in learning more about osquery, visit the [users guide](https://osquery.readthedocs.org/). Development and usage discussion is happening in the osquery Slack, grab an invite automatically [here](https://slack.osquery.io)!

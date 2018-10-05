@@ -18,9 +18,11 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/status.h>
+#include "osquery/filesystem/fileops.h"
 
 namespace osquery {
+
+class Status;
 
 /// Globbing directory traversal function recursive limit.
 enum GlobLimits : size_t {
@@ -92,14 +94,14 @@ Status readFile(const boost::filesystem::path& path,
  * @param path the path of the file that you would like to write.
  * @param content the text that should be written exactly to disk.
  * @param permissions the filesystem permissions to request when opening.
- * @param force_permissions always `chmod` the path after opening.
+ * @param mode to open file with
  *
  * @return an instance of Status, indicating success or failure.
  */
 Status writeTextFile(const boost::filesystem::path& path,
                      const std::string& content,
                      int permissions = 0660,
-                     bool force_permissions = false);
+                     int mode = PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND);
 
 /**
  * @brief Check if a path is writable.
@@ -231,6 +233,19 @@ Status movePath(const boost::filesystem::path& from,
  * @return If the input path was a directory.
  */
 Status isDirectory(const boost::filesystem::path& path);
+
+/**
+ * @brief Create the directory
+ *
+ * @param path to the intended directory
+ * @param recursive - make parent directories as needed
+ * @param ignore_existence - no error if directory already exists
+ *
+ * @return Status of operation
+ */
+Status createDirectory(const boost::filesystem::path& path,
+                       bool recursive = false,
+                       bool ignore_existence = false);
 
 /**
  * @brief Return a vector of all home directories on the system.

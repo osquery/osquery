@@ -1,0 +1,24 @@
+{
+  "channelUri": "https://aka.ms/vs/15/release/channel",
+  "channelId": "VisualStudio.15.Release",
+  "productId": "Microsoft.VisualStudio.Product.Community",
+  "add": [
+    "Microsoft.VisualStudio.Workload.NativeDesktop",
+    "Microsoft.VisualStudio.Workload.Python",
+    "Microsoft.VisualStudio.Workload.Universal",
+    "Component.GitHub.VisualStudio",
+    "Component.Dotfuscator",
+    "Component.PowerShellTools.VS2017",
+    "Microsoft.VisualStudio.Component.JavaScript.TypeScript",
+    "Microsoft.VisualStudio.Component.VC.ATL",
+    "Microsoft.VisualStudio.Component.VC.CMake.Project",
+    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+    "Microsoft.VisualStudio.Component.VC.140",
+    "Microsoft.VisualStudio.Component.Windows10SDK.17134",
+    "Microsoft.VisualStudio.Component.Windows10SDK.10240",
+    "Microsoft.VisualStudio.Component.Windows10SDK.10586",
+    "Microsoft.VisualStudio.Component.Windows10SDK.14393",
+    "Microsoft.VisualStudio.Component.VC.CLI.Support",
+    "Microsoft.VisualStudio.Component.Wcf.Tooling"
+  ]
+}

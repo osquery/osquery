@@ -58,8 +58,7 @@ void LinuxSMBIOSParser::readFromSystab(const std::string& systab) {
     if (line.find("SMBIOS") == 0) {
       auto details = osquery::split(line, "=");
       if (details.size() == 2 && details[1].size() > 2) {
-        long long int address;
-        safeStrtoll(details[1], 16, address);
+        long long int address = tryTo<long long>(details[1], 16).takeOr(0ll);
 
         // Be sure not to read past the 0x000F0000 - 0x00100000 range.
         // Otherwise strict /dev/mem access will generate a log line.
@@ -118,10 +117,127 @@ QueryData genSMBIOSTables(QueryContext& context) {
   }
 
   QueryData results;
-  parser.tables(([&results](
-      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+  parser.tables(([&results](size_t index,
+                            const SMBStructHeader* hdr,
+                            uint8_t* address,
+                            uint8_t* textAddrs,
+                            size_t size) {
     genSMBIOSTable(index, hdr, address, size, results);
   }));
+
+  return results;
+}
+
+QueryData genMemoryDevices(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryDevices(index, hdr, address, textAddrs, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryArrays(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryArrays(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryArrayMappedAddresses(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryArrayMappedAddresses(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryErrorInfo(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryErrorInfo(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryDeviceMappedAddresses(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryDeviceMappedAddresses(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genOEMStrings(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSOEMStrings(hdr, address, textAddrs, size, results);
+  });
 
   return results;
 }
@@ -134,19 +250,22 @@ QueryData genPlatformInfo(QueryContext& context) {
   }
 
   QueryData results;
-  parser.tables(([&results](
-      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
-    if (hdr->type != kSMBIOSTypeBIOS || size < 0x12) {
+  parser.tables(([&results](size_t index,
+                            const SMBStructHeader* hdr,
+                            uint8_t* address,
+                            uint8_t* textAddrs,
+                            size_t size) {
+    const size_t maxOffset = 0x15;
+    if (hdr->type != kSMBIOSTypeBIOS || size < maxOffset) {
       return;
     }
 
     Row r;
-    // The DMI string data uses offsets (indexes) into a data section that
-    // trails the header and structure offsets.
-    uint8_t* data = address + hdr->length;
-    r["vendor"] = dmiString(data, address, 0x04);
-    r["version"] = dmiString(data, address, 0x05);
-    r["date"] = dmiString(data, address, 0x08);
+
+    const auto maxlen = size - hdr->length;
+    r["vendor"] = dmiString(textAddrs, address[0x04], maxlen);
+    r["version"] = dmiString(textAddrs, address[0x05], maxlen);
+    r["date"] = dmiString(textAddrs, address[0x08], maxlen);
 
     // Firmware load address as a WORD.
     size_t firmware_address = (address[0x07] << 8) + address[0x06];
@@ -159,8 +278,8 @@ QueryData genPlatformInfo(QueryContext& context) {
     r["size"] = std::to_string(firmware_size * 1024);
 
     // Minor and major BIOS revisions.
-    r["revision"] = std::to_string((size_t)address[0x14]) + "." +
-                    std::to_string((size_t)address[0x15]);
+    r["revision"] = std::to_string(static_cast<size_t>(address[0x14])) + "." +
+                    std::to_string(static_cast<size_t>(address[0x15]));
     r["volume_size"] = "0";
     r["extra"] = "";
     results.push_back(r);
@@ -168,5 +287,5 @@ QueryData genPlatformInfo(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

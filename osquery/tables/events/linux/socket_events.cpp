@@ -13,6 +13,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditeventpublisher.h"
@@ -36,8 +37,7 @@ extern long getUptime();
 }
 
 std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
-  long result{0};
-  safeStrtol(saddr.substr(offset, 8), 16, result);
+  long const result = tryTo<long>(saddr.substr(offset, 8), 16).takeOr(0l);
   return std::to_string((result & 0xff000000) >> 24) + '.' +
          std::to_string((result & 0x00ff0000) >> 16) + '.' +
          std::to_string((result & 0x0000ff00) >> 8) + '.' +
@@ -47,20 +47,34 @@ std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
 bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
   unix_socket = false;
 
+  std::string address_column;
+  std::string port_column;
+  if (row["action"] == "bind") {
+    address_column = "local_address";
+    port_column = "local_port";
+
+    row["remote_address"] = "0";
+    row["remote_port"] = "0";
+  } else {
+    address_column = "remote_address";
+    port_column = "remote_port";
+
+    row["local_address"] = "0";
+    row["local_port"] = "0";
+  }
+
   // The protocol is not included in the audit message.
   if (saddr[0] == '0' && saddr[1] == '2') {
     // IPv4
     row["family"] = '2';
-    long result{0};
-    safeStrtol(saddr.substr(4, 4), 16, result);
-    row["remote_port"] = INTEGER(result);
-    row["remote_address"] = ip4FromSaddr(saddr, 8);
+    long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0l);
+    row[port_column] = INTEGER(result);
+    row[address_column] = ip4FromSaddr(saddr, 8);
   } else if (saddr[0] == '0' && saddr[1] == 'A') {
     // IPv6
     row["family"] = "10";
-    long result{0};
-    safeStrtol(saddr.substr(4, 4), 16, result);
-    row["remote_port"] = INTEGER(result);
+    long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0l);
+    row[port_column] = INTEGER(result);
     std::string address;
     for (size_t i = 0; i < 8; ++i) {
       address += saddr.substr(16 + (i * 4), 4);
@@ -69,13 +83,11 @@ bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
       }
     }
     boost::algorithm::to_lower(address);
-    row["remote_address"] = std::move(address);
+    row[address_column] = std::move(address);
   } else if (saddr[0] == '0' && saddr[1] == '1' && saddr.size() > 6) {
     unix_socket = true;
 
     row["family"] = '1';
-    row["local_port"] = '0';
-    row["remote_port"] = '0';
     off_t begin = (saddr[4] == '0' && saddr[5] == '0') ? 6 : 4;
     auto end = saddr.substr(begin).find("00");
     end = (end == std::string::npos) ? saddr.size() : end + 4;
@@ -111,10 +123,7 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return status;
   }
 
-  for (auto& row : emitted_row_list) {
-    add(row);
-  }
-
+  addBatch(emitted_row_list);
   return Status(0, "Ok");
 }
 
@@ -122,6 +131,8 @@ Status SocketEventSubscriber::ProcessEvents(
     std::vector<Row>& emitted_row_list,
     const std::vector<AuditEvent>& event_list) noexcept {
   emitted_row_list.clear();
+
+  emitted_row_list.reserve(event_list.size());
 
   for (const auto& event : event_list) {
     if (event.type != AuditEvent::Type::Syscall) {

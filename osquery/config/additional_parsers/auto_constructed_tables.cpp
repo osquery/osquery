@@ -12,6 +12,7 @@
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
@@ -31,7 +32,7 @@ QueryData ATCPlugin::generate(QueryContext& context) {
     LOG(WARNING) << "Could not glob: " << path_;
   }
   for (const auto& path : paths) {
-    s = genQueryDataForSqliteTable(path, sqlite_query_, qd);
+    s = genQueryDataForSqliteTable(path, sqlite_query_, qd, false);
     if (!s.ok()) {
       LOG(WARNING) << "Error Code: " << s.getCode()
                    << " Could not generate data: " << s.getMessage();

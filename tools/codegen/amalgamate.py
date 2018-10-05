@@ -66,7 +66,8 @@ def main(argc, argv):
             if table_data is not None:
                 tables.append(table_data)
 
-    amalgamation = jinja2.Template(template_data).render(tables=tables,
+    env = jinja2.Environment(keep_trailing_newline=True)
+    amalgamation = env.from_string(template_data).render(tables=tables,
         foreign=args.foreign)
     output = os.path.join(args.generated, "%s_amalgamation.cpp" % args.category)
     try:

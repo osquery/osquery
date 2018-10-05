@@ -11,7 +11,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>

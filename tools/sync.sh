@@ -1,4 +1,4 @@
-  #!/usr/bin/env bash
+#!/usr/bin/env bash
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
@@ -10,8 +10,8 @@
 
 set -e
 
-if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 BUILD_DIR"
+if [ "$#" -ne 2 ]; then
+  echo "Usage: $0 BUILD_DIR LIBRARY_PATH"
   exit 1
 fi
 
@@ -29,6 +29,8 @@ fi
 mkdir -p "$SYNC_DIR"
 rm -rf "$SYNC_DIR/osquery*"
 mkdir -p "$SYNC_DIR/osquery/generated"
+
+export LIBRARY_PATH=$2:$LIBRARY_PATH
 
 # merge the headers with the implementation files
 cp -R include/osquery "$SYNC_DIR"

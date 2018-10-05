@@ -32,8 +32,6 @@
 #include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 DECLARE_string(tls_hostname);

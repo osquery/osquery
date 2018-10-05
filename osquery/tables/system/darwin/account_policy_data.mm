@@ -102,19 +102,21 @@ QueryData genAccountPolicyData(QueryContext& context) {
 
   // Iterate over each user
   auto users = SQL::selectAllFrom("users");
-  for (const auto& user : users) {
-    Row r;
-    auto uid = user.at("uid");
-    genAccountPolicyDataRow(uid, r);
+  @autoreleasepool {
+    for (const auto& user : users) {
+      Row r;
+      auto uid = user.at("uid");
 
-    // A blank UID implies no policy exists for the user, or the policy is
-    // corrupted. We should only return rows where we successfully read an
-    // account policy.
-    if (r["uid"] != "") {
-      results.push_back(r);
+      genAccountPolicyDataRow(uid, r);
+
+      // A blank UID implies no policy exists for the user, or the policy is
+      // corrupted. We should only return rows where we successfully read an
+      // account policy.
+      if (r["uid"] != "") {
+        results.push_back(r);
+      }
     }
   }
-
   return results;
 }
 } // namespace tables

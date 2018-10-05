@@ -85,7 +85,7 @@ start() {
   if [ -e $FLAGS_PATH ]; then ARGS="$ARGS --flagfile=$FLAGS_PATH"; fi
   if [ -e $REAL_CONFIG_PATH ]; then ARGS="$ARGS --config_path=$REAL_CONFIG_PATH"; fi
 
-  $PROG $ARGS \
+  $EXEC $ARGS \
         --pidfile=$PIDFILE \
         --daemonize=true
   RETVAL=$?

@@ -59,6 +59,12 @@ class DiskArbitrationEventPublisher
   DECLARE_PUBLISHER("diskarbitration");
 
  public:
+  DiskArbitrationEventPublisher(
+      const std::string& name = "DiskArbitrationEventPublisher")
+      : EventPublisher() {
+    runnable_name_ = name;
+  }
+
   void configure() override {}
 
   void tearDown() override;

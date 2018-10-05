@@ -20,8 +20,6 @@
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 /// The following codes are specifically for checking whether the child worker
@@ -132,11 +130,17 @@ std::string getCACertificateContent();
 // generate the content that would be found in an /etc/hosts file
 std::string getEtcHostsContent();
 
+// generate the content that would be found in an /etc/hosts.ics file
+std::string getEtcHostsIcsContent();
+
 // generate the content that would be found in an /etc/protocols file
 std::string getEtcProtocolsContent();
 
 // generate the expected data that getEtcHostsContent() should parse into
 QueryData getEtcHostsExpectedResults();
+
+// generate the expected data that getEtcHostsIcsContent() should parse into
+QueryData getEtcHostsIcsExpectedResults();
 
 // generate the expected data that getEtcProtocolsContent() should parse into
 QueryData getEtcProtocolsExpectedResults();
