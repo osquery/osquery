@@ -29,14 +29,6 @@ const std::vector<std::string> kLenovo = {"lenovo"};
 const std::vector<std::string> kDell = {"dell inc."};
 const std::map<std::string, std::pair<std::string, BSTR>> kQueryMap = {
     {"hp",
-<<<<<<< HEAD
-     {"select Name,Value from HP_BiosSetting", L"root\\hp\\instrumentedBIOS"}},
-    {"lenovo", {"select CurrentSetting from Lenovo_BiosSetting", L"root\\wmi"}},
-    {"dell",
-     {"select AttributeName,CurrentValue,PossibleValues, "
-      "PossibleValuesDescription from DCIM_BIOSEnumeration",
-      L"root\\dcim\\sysman"}}};
-=======
      {"select Name,Value from HP_BiosSetting",
       (BSTR) "root\\hp\\instrumentedBIOS"}},
     {"lenovo",
@@ -45,7 +37,6 @@ const std::map<std::string, std::pair<std::string, BSTR>> kQueryMap = {
      {"select AttributeName,CurrentValue,PossibleValues, "
       "PossibleValuesDescription from DCIM_BIOSEnumeration",
       (BSTR) "root\\dcim\\sysman"}}};
->>>>>>> upstream/master
 
 std::string getManufacturer(std::string manufacturer) {
   transform(manufacturer.begin(),
@@ -66,11 +57,7 @@ std::string getManufacturer(std::string manufacturer) {
   return manufacturer;
 }
 
-<<<<<<< HEAD
-Row getHPBiosInfo(WmiResultItem& item) {
-=======
 Row getHPBiosInfo(const WmiResultItem& item) {
->>>>>>> upstream/master
   Row r;
 
   std::string value;
@@ -87,11 +74,7 @@ Row getHPBiosInfo(const WmiResultItem& item) {
   return r;
 }
 
-<<<<<<< HEAD
-Row getLenovoBiosInfo(WmiResultItem& item) {
-=======
 Row getLenovoBiosInfo(const WmiResultItem& item) {
->>>>>>> upstream/master
   Row r;
 
   std::string currentSetting;
@@ -108,11 +91,7 @@ Row getLenovoBiosInfo(const WmiResultItem& item) {
   return r;
 }
 
-<<<<<<< HEAD
-Row getDellBiosInfo(WmiResultItem& item) {
-=======
 Row getDellBiosInfo(const WmiResultItem& item) {
->>>>>>> upstream/master
   Row r;
 
   std::vector<std::string> vCurrentValue;
@@ -153,15 +132,9 @@ QueryData genBiosInfo(QueryContext& context) {
   QueryData results;
   std::string manufacturer;
 
-<<<<<<< HEAD
-  WmiRequest wmiComputerSystemReq(
-      "select Manufacturer from Win32_ComputerSystem");
-  std::vector<WmiResultItem>& wmiComputerSystemResults =
-=======
   const WmiRequest wmiComputerSystemReq(
       "select Manufacturer from Win32_ComputerSystem");
   const std::vector<WmiResultItem>& wmiComputerSystemResults =
->>>>>>> upstream/master
       wmiComputerSystemReq.results();
 
   if (!wmiComputerSystemResults.empty()) {
@@ -172,15 +145,9 @@ QueryData genBiosInfo(QueryContext& context) {
   }
 
   if (kQueryMap.find(manufacturer) != kQueryMap.end()) {
-<<<<<<< HEAD
-    WmiRequest wmiBiosReq(std::get<0>(kQueryMap.at(manufacturer)),
-                          (std::get<1>(kQueryMap.at(manufacturer))));
-    std::vector<WmiResultItem>& wmiResults = wmiBiosReq.results();
-=======
     const WmiRequest wmiBiosReq(std::get<0>(kQueryMap.at(manufacturer)),
                                 (std::get<1>(kQueryMap.at(manufacturer))));
     const std::vector<WmiResultItem>& wmiResults = wmiBiosReq.results();
->>>>>>> upstream/master
 
     for (unsigned int i = 0; i < wmiResults.size(); ++i) {
       Row r;
