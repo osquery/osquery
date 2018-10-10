@@ -36,6 +36,13 @@ Status parseWhereFrom(ExtendedAttributes& output, const std::string& path) {
   CFStringRef CFPath = CFStringCreateWithCString(
       kCFAllocatorDefault, path.c_str(), kCFStringEncodingUTF8);
 
+  if (CFPath == nullptr) {
+    return Status(
+        1,
+        "Failed to create the CFString object from the following path: " +
+            path);
+  }
+
   MDItemRef metadata = MDItemCreate(kCFAllocatorDefault, CFPath);
   CFRelease(CFPath);
 
@@ -107,6 +114,12 @@ Status parseQuarantineFile(ExtendedAttributes& output,
 
   // This is the non-10.10-symbolic version of kCFURLQuarantinePropertiesKey.
   CFStringRef qp_key = CFSTR("NSURLQuarantinePropertiesKey");
+  if (qp_key == nullptr) {
+    return Status(1,
+                  "Failed to allocate the CFString object for "
+                  "kCFURLQuarantinePropertiesKey");
+  }
+
   CFURLCopyResourcePropertyForKey(url, qp_key, &quarantine_properties, nullptr);
   CFRelease(qp_key);
 
