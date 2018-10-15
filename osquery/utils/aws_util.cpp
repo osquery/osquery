@@ -17,6 +17,12 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#ifdef WIN32
+// AWS SDK provides deprecation warnings at compile-time, and osquery
+// build treats warnings as errors, so have to turn these off.
+#define AWS_DISABLE_DEPRECATION
+#endif
+
 #include <aws/core/Aws.h>
 #include <aws/core/Region.h>
 #include <aws/core/client/AWSClient.h>

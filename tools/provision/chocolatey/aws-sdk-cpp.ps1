@@ -7,8 +7,8 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 # Update-able metadata
-$version = '1.2.7'
-$chocoVersion = '1.2.7'
+$version = '1.4.55'
+$chocoVersion = '1.4.55'
 $packageName = 'aws-sdk-cpp'
 $projectSource = 'https://github.com/aws/aws-sdk-cpp'
 $packageSourceUrl = "https://github.com/aws/aws-sdk-cpp/archive/$version.zip"
