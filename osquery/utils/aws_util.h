@@ -84,7 +84,6 @@ class OsqueryHttpClient : public Aws::Http::HttpClient {
       const override {
     return MakeRequest(*request, readLimiter, writeLimiter);
   }
-
 };
 
 /**
