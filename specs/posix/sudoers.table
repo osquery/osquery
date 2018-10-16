@@ -1,6 +1,7 @@
 table_name("sudoers")
 description("Rules for running commands as other users via sudo.")
 schema([
+    Column("source", TEXT, "Source file containing the given rule"),
     Column("header", TEXT, "Symbol for given rule"),
     Column("rule_details", TEXT, "Rule definition")
 ])
