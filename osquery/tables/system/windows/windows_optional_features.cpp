@@ -36,26 +36,29 @@ QueryData genWinOptionalFeatures(QueryContext& context) {
   const std::vector<WmiResultItem>& wmiResults = wmiReq.results();
 
   if (wmiResults.empty()) {
-	return results;
+    return results;
   }
 
   for (unsigned int i = 0; i < wmiResults.size(); ++i) {
-	Row r;
-	wmiResults[i].GetString("Name", r["name"]);
-	wmiResults[i].GetString("Caption", r["caption"]);
-	uint32_t state = 99;
-	if (wmiResults[i].GetUnsignedInt32("InstallState", state).ok() == false) {
-		long i4;
-		if (wmiResults[i].GetLong("InstallState", i4).ok() == false) {
-			// no luck
-		}
-		else {
-			state = (uint32_t)i4;
-		}
-	}
-	r["state"] = INTEGER(state);
-	r["statename"] = getDismPackageFeatureStateName(atoi(r["state"].c_str()));
-	results.push_back(r);
+    Row r;
+    uint32_t state = 99;
+
+    wmiResults[i].GetString("Name", r["name"]);
+    wmiResults[i].GetString("Caption", r["caption"]);
+
+    // wbemtest.exe shows Column as UINT32, but comes in as I4.
+    // For whatever reason, I4 is accessed using GetLong().
+
+    if (wmiResults[i].GetUnsignedInt32("InstallState", state).ok() == false) {
+      long i4;
+      if (wmiResults[i].GetLong("InstallState", i4).ok()) {
+        state = (uint32_t)i4;
+      }
+    }
+    r["state"] = INTEGER(state);
+
+    r["statename"] = getDismPackageFeatureStateName(atoi(r["state"].c_str()));
+    results.push_back(r);
   }
   return results;
 }
@@ -67,17 +70,15 @@ Disabled (2)
 Absent (3)
 Unknown (4)
 */
-std::string getDismPackageFeatureStateName(uint32_t state)
-{
-	static std::vector<std::string> stateNames = {
-		"Unknown", "Enabled", "Disabled", "Absent"
-	};
+std::string getDismPackageFeatureStateName(uint32_t state) {
+  static std::vector<std::string> stateNames = {
+      "Unknown", "Enabled", "Disabled", "Absent"};
 
-	if (state >= stateNames.size()) {
-		return "Unknown";
-	}
+  if (state >= stateNames.size()) {
+    return "Unknown";
+  }
 
-	return stateNames[state];
+  return stateNames[state];
 }
 
 } // namespace tables
