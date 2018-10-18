@@ -43,7 +43,7 @@ namespace tables {
     http::Response response;
     pt::ptree tree;
 
-    // NOTE(ww): Unlike EC2, Azure isn't POSIX-only.
+    // NOTE(ww): Unlike EC2, Azure doesn't host only POSIX systems.
     // As such, we don't have a good platform independent way
     // to confirm whether the system we're on is, in fact,
     // an Azure instance.
@@ -70,27 +70,27 @@ namespace tables {
     }
 
     if (kCachedVmId.empty()) {
-      kCachedVmId = tree_get(tree, "compute.vmId");
+      kCachedVmId = tree_get(tree, "vmId");
     }
 
     r["vm_id"] = kCachedVmId;
-    r["location"] = tree_get(tree, "compute.location");
-    r["name"] = tree_get(tree, "compute.name");
-    r["offer"] = tree_get(tree, "compute.offer");
-    r["publisher"] = tree_get(tree, "compute.publisher");
-    r["sku"] = tree_get(tree, "compute.sku");
-    r["version"] = tree_get(tree, "compute.version");
-    r["os_type"] = tree_get(tree, "compute.osType");
-    r["platform_update_domain"] = tree_get(tree, "compute.platformUpdateDomain");
-    r["platform_fault_domain"] = tree_get(tree, "compute.platformFaultDomain");
-    r["vm_size"] = tree_get(tree, "compute.vmSize");
-    r["subscription_id"] = tree_get(tree, "compute.subscriptionId");
-    r["resource_group_name"] = tree_get(tree, "compute.resourceGroupName");
-    r["placement_group_id"] = tree_get(tree, "compute.placementGroupId");
-    r["plan"] = tree_get(tree, "compute.plan");
-    r["public_keys"] = tree_get(tree, "compute.publicKeys");
-    r["vm_scale_set_name"] = tree_get(tree, "compute.vmScaleSetName");
-    r["zone"] = tree_get(tree, "compute.zone");
+    r["location"] = tree_get(tree, "location");
+    r["name"] = tree_get(tree, "name");
+    r["offer"] = tree_get(tree, "offer");
+    r["publisher"] = tree_get(tree, "publisher");
+    r["sku"] = tree_get(tree, "sku");
+    r["version"] = tree_get(tree, "version");
+    r["os_type"] = tree_get(tree, "osType");
+    r["platform_update_domain"] = tree_get(tree, "platformUpdateDomain");
+    r["platform_fault_domain"] = tree_get(tree, "platformFaultDomain");
+    r["vm_size"] = tree_get(tree, "vmSize");
+    r["subscription_id"] = tree_get(tree, "subscriptionId");
+    r["resource_group_name"] = tree_get(tree, "resourceGroupName");
+    r["placement_group_id"] = tree_get(tree, "placementGroupId");
+    r["plan"] = tree_get(tree, "plan");
+    r["public_keys"] = tree_get(tree, "publicKeys");
+    r["vm_scale_set_name"] = tree_get(tree, "vmScaleSetName");
+    r["zone"] = tree_get(tree, "zone");
 
     results.push_back(r);
 
