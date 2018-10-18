@@ -121,7 +121,7 @@ OsqueryHttpClientFactory::CreateHttpRequest(
   return request;
 }
 
-std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::InternalRequest(
+std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
     Aws::Http::HttpRequest& request,
     Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
     Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
@@ -200,6 +200,13 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::InternalRequest(
   }
 
   return response;
+}
+
+std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
+    const std::shared_ptr<Aws::Http::HttpRequest>& request,
+    Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
+    Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
+  return MakeRequest(*request, readLimiter, writeLimiter);
 }
 
 Aws::Auth::AWSCredentials
