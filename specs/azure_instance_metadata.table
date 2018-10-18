@@ -15,7 +15,6 @@ schema([
     Column("subscription_id", TEXT, "Azure subscription for the VM"),
     Column("resource_group_name", TEXT, "Resource group for the VM"),
     Column("placement_group_id", TEXT, "Placement group for the VM scale set"),
-    Column("plan", TEXT, "Plan for the VM"),
     Column("public_keys", TEXT, "Public keys assigned to the VM and paths"),
     Column("vm_scale_set_name", TEXT, "VM scale set name"),
     Column("zone", TEXT, "Availability zone of the VM"),
