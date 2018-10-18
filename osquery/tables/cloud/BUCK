@@ -11,8 +11,9 @@ load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 osquery_cxx_library(
     name = "cloud",
     srcs = [
-        "ec2_instance_metadata.cpp",
-        "ec2_instance_tags.cpp",
+        "aws/ec2_instance_metadata.cpp",
+        "aws/ec2_instance_tags.cpp",
+        "azure/azure_instance_metadata.cpp",
     ],
     visibility = ["PUBLIC"],
     deps = [
