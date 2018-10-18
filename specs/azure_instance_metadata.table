@@ -19,14 +19,6 @@ schema([
     Column("public_keys", TEXT, "Public keys assigned to the VM and paths"),
     Column("vm_scale_set_name", TEXT, "VM scale set name"),
     Column("zone", TEXT, "Availability zone of the VM"),
-    Column("ipv4_private", TEXT, "Private IPv4 address of the VM"),
-    Column("ipv4_public", TEXT, "Public IPv4 address of the VM"),
-    Column("subnet_address", TEXT, "Subnet address of the VM"),
-    Column("subnet_prefix", TEXT, "Subnet prefix of the VM"),
-    Column("ipv6_address", TEXT, "Local IPv6 address of the VM"),
-    Column("mac_address", TEXT, "MAC address of the VM"),
-    Column("scheduled_events", TEXT, "Scheduled events for the VM"),
-    Column("identity", TEXT, "Managed identity for the VM")
 ])
 attributes(cacheable=True)
 implementation("cloud/azure_metadata@genAzureMetadata")
