@@ -87,7 +87,6 @@ namespace tables {
     r["subscription_id"] = tree_get(tree, "subscriptionId");
     r["resource_group_name"] = tree_get(tree, "resourceGroupName");
     r["placement_group_id"] = tree_get(tree, "placementGroupId");
-    r["public_keys"] = tree_get(tree, "publicKeys");
     r["vm_scale_set_name"] = tree_get(tree, "vmScaleSetName");
     r["zone"] = tree_get(tree, "zone");
 
