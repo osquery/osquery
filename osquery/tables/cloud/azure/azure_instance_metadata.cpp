@@ -26,21 +26,27 @@ namespace tables {
   static const std::string kMetadataEndpoint = \
     "http://169.254.169.254/metadata/instance/compute?api-version=2018-02-01";
 
+  // Azure VM IDs are unique and don't change on an instance,
+  // so we can safely cache them.
+  static std::string kCachedVmId;
+
   std::string tree_get(pt::ptree& tree, const std::string key) {
     return tree.get<std::string>(key, "");
   }
 
   QueryData genAzureMetadata(QueryContext& context) {
     QueryData results;
+    Row r;
+
+    http::Client client;
+    http::Request request(kMetadataEndpoint);
+    http::Response response;
+    pt::ptree tree;
 
     // NOTE(ww): Unlike EC2, Azure isn't POSIX-only.
     // As such, we don't have a good platform independent way
     // to confirm whether the system we're on is, in fact,
     // an Azure instance.
-
-    http::Client client;
-    http::Request request(kMetadataEndpoint);
-    http::Response response;
 
     request << http::Request::Header("Metadata", "true");
     response = client.get(request);
@@ -48,26 +54,26 @@ namespace tables {
     // Azure's metadata service is known to be spotty.
     if (response.result_int() == 404) {
       TLOG << "Azure metadata service 404'd";
-      return results;
     }
 
     // Non-200s can indicate a variety of conditions, so report them.
     if (response.result_int() != 200) {
       TLOG << "Azure metadata service responded with code " << response.result();
-      return results;
     }
 
     std::stringstream json_stream;
     json_stream << response.body();
-    pt::ptree tree;
     try {
       pt::read_json(json_stream, tree);
     } catch (const pt::json_parser::json_parser_error& e) {
       TLOG << "Couldn't parse metadata JSON from: " << kMetadataEndpoint << ": " << e.what();
-      return results;
     }
 
-    Row r;
+    if (kCachedVmId.empty()) {
+      kCachedVmId = tree_get(tree, "compute.vmId");
+    }
+
+    r["vm_id"] = kCachedVmId;
     r["location"] = tree_get(tree, "compute.location");
     r["name"] = tree_get(tree, "compute.name");
     r["offer"] = tree_get(tree, "compute.offer");
@@ -77,7 +83,6 @@ namespace tables {
     r["os_type"] = tree_get(tree, "compute.osType");
     r["platform_update_domain"] = tree_get(tree, "compute.platformUpdateDomain");
     r["platform_fault_domain"] = tree_get(tree, "compute.platformFaultDomain");
-    r["vm_id"] = tree_get(tree, "compute.vmId");
     r["vm_size"] = tree_get(tree, "compute.vmSize");
     r["subscription_id"] = tree_get(tree, "compute.subscriptionId");
     r["resource_group_name"] = tree_get(tree, "compute.resourceGroupName");
