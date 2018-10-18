@@ -80,6 +80,7 @@ elseif(LINUX)
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/inotify_tests.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/process_file_events_tests.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/syslog_tests.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/linux/tests/pipe_liner_tests.cpp"
   )
 elseif(WINDOWS)
   ADD_OSQUERY_TEST_ADDITIONAL(
