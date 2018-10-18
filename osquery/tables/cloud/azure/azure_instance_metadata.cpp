@@ -30,16 +30,13 @@ namespace tables {
     return tree.get<std::string>(key, "");
   }
 
-  bool isAzureInstance() {
-    return false;
-  }
-
   QueryData genAzureMetadata(QueryContext& context) {
     QueryData results;
 
-    if (!isAzureInstance()) {
-      return results;
-    }
+    // NOTE(ww): Unlike EC2, Azure isn't POSIX-only.
+    // As such, we don't have a good platform independent way
+    // to confirm whether the system we're on is, in fact,
+    // an Azure instance.
 
     http::Client client;
     http::Request request(kMetadataEndpoint);
