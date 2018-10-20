@@ -1,0 +1,18 @@
+table_name("ipsets")
+description("Linux ipsets for grouping addresses.")
+schema([
+    Column("name", TEXT, "Ipset name"),
+    Column("type", TEXT, "Ipset type"),
+    Column("revision", INTEGER, "Ipset revision number"),
+    Column("family", TEXT, "Ip protocol family"),
+    Column("hash_size", INTEGER, "Hash size of the set"),
+    Column("max_element", INTEGER, "max number of elements the set can hold"),
+    Column("mem_size", INTEGER, "Size in memory"),
+    Column("references", INTEGER, "Number of references"),
+    Column("num_entries", INTEGER, "Number of entries"),
+    Column("members", TEXT, "Members of the set")
+])
+implementation("ipsets@genIpsets")
+examples([
+  "select * from ipsets"
+])
