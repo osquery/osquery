@@ -84,6 +84,8 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libgpg-error
   brew_dependency osquery/osquery-local/libdevmapper
   brew_dependency osquery/osquery-local/libiptables
+  brew_dependency osquery/osquery-local/libmnl
+  brew_dependency osquery/osquery-local/libipset
   brew_dependency osquery/osquery-local/libgcrypt
   brew_dependency osquery/osquery-local/libcryptsetup
   brew_dependency osquery/osquery-local/libudev
