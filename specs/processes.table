@@ -28,6 +28,7 @@ schema([
         "Process start in seconds since boot (non-sleeping)"),
     Column("parent", BIGINT, "Process parent's PID"),
     Column("pgroup", BIGINT, "Process group"),
+    Column("session", BIGINT, "Process session ID"),
     Column("threads", INTEGER, "Number of threads used by process"),
     Column("nice", INTEGER, "Process nice level (-20 to 20, default 0)"),
 ])

@@ -216,6 +216,7 @@ struct SimpleProcStat : private boost::noncopyable {
   std::string state;
   std::string parent;
   std::string group;
+  std::string session;
   std::string nice;
   std::string threads;
   std::string user_time;
@@ -247,6 +248,7 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
     this->state = details.at(0);
     this->parent = details.at(1);
     this->group = details.at(2);
+    this->session = details.at(3);
     this->user_time = details.at(11);
     this->system_time = details.at(12);
     this->nice = details.at(16);
@@ -408,6 +410,7 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["path"] = readProcLink("exe", pid);
   r["name"] = proc_stat.name;
   r["pgroup"] = proc_stat.group;
+  r["session"] = proc_stat.session;
   r["state"] = proc_stat.state;
   r["nice"] = proc_stat.nice;
   r["threads"] = proc_stat.threads;
