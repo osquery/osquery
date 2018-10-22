@@ -31,6 +31,7 @@ namespace tables {
     }
 
     auto tags_str = tree_get(tree, "tags");
+    auto vm_id = tree_get(tree, "vmId");
     std::vector<std::string> tags;
 
     boost::split(tags, tags_str, boost::is_any_of(";"));
@@ -48,6 +49,7 @@ namespace tables {
       auto key = tag.substr(0, colon);
       auto value = tag.substr(colon + 1);
 
+      r["vm_id"] = vm_id;
       r["key"] = key;
       r["value"] = value;
       results.push_back(r);

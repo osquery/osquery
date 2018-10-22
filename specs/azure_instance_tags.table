@@ -1,6 +1,7 @@
 table_name("azure_instance_tags")
 description("Azure instance tags.")
 schema([
+    Column("vm_id", TEXT, "Unique identifier for the VM"),
     Column("key", TEXT, "The tag key"),
     Column("value", TEXT, "The tag value"),
 ])
