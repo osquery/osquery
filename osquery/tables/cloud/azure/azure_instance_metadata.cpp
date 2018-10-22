@@ -14,59 +14,26 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/remote/http_client.h"
-#include "osquery/core/json.h"
+#include "osquery/utils/azure_util.h"
 
 namespace osquery {
 namespace tables {
-  namespace http = osquery::http;
   namespace pt = boost::property_tree;
-
-  // 2018-02-01 is supported across all Azure regions, according to MS.
-  static const std::string kMetadataEndpoint = \
-    "http://169.254.169.254/metadata/instance/compute?api-version=2018-02-01";
 
   // Azure VM IDs are unique and don't change on an instance,
   // so we can safely cache them.
   static std::string kCachedVmId;
 
-  std::string tree_get(pt::ptree& tree, const std::string key) {
-    return tree.get<std::string>(key, "");
-  }
-
   QueryData genAzureMetadata(QueryContext& context) {
     QueryData results;
     Row r;
 
-    http::Client client;
-    http::Request request(kMetadataEndpoint);
-    http::Response response;
     pt::ptree tree;
 
-    // NOTE(ww): Unlike EC2, Azure doesn't host only POSIX systems.
-    // As such, we don't have a good platform independent way
-    // to confirm whether the system we're on is, in fact,
-    // an Azure instance.
+    Status s = fetchAzureMetadata(tree);
 
-    request << http::Request::Header("Metadata", "true");
-    response = client.get(request);
-
-    // Azure's metadata service is known to be spotty.
-    if (response.result_int() == 404) {
-      TLOG << "Azure metadata service 404'd";
-    }
-
-    // Non-200s can indicate a variety of conditions, so report them.
-    if (response.result_int() != 200) {
-      TLOG << "Azure metadata service responded with code " << response.result();
-    }
-
-    std::stringstream json_stream;
-    json_stream << response.body();
-    try {
-      pt::read_json(json_stream, tree);
-    } catch (const pt::json_parser::json_parser_error& e) {
-      TLOG << "Couldn't parse metadata JSON from: " << kMetadataEndpoint << ": " << e.what();
+    if (!s.ok()) {
+      TLOG << "Couldn't fetch metadata: " << s.what();
     }
 
     if (kCachedVmId.empty()) {
