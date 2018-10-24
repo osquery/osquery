@@ -9,6 +9,7 @@
  */
 
 #include <sstream>
+#include <thread>
 #include <utility>
 
 #include <osquery/database.h>
@@ -23,6 +24,8 @@
 
 namespace rj = rapidjson;
 
+#define MAX_ACCEL_DURATION_SEC 3600 // 1 hour
+
 namespace osquery {
 
 CREATE_REGISTRY(DistributedPlugin, "distributed");
@@ -34,7 +37,16 @@ FLAG(bool,
      true,
      "Disable distributed queries (default true)");
 
-const std::string kDistributedQueryPrefix{"distributed."};
+FLAG(bool,
+     distributed_write_individually,
+     false,
+     "Distributed results are written without waiting for all queries to be "
+     "finished (default false)");
+
+FLAG(uint64,
+     distributed_intra_sleep,
+     0,
+     "Seconds to sleep between queries (default 0)");
 
 std::string Distributed::currentRequestId_{""};
 
@@ -66,9 +78,17 @@ Status Distributed::pullUpdates() {
     return Status(1, "Missing distributed plugin: " + distributed_plugin);
   }
 
+  // should not have any work in progress when this is called.
+  assert(results_.size() == 0);
+
+  // if last read document is in DB, worker process was killed
+  reportInterruptedWork();
+
   PluginResponse response;
   auto status =
       Registry::call("distributed", {{"action", "getQueries"}}, response);
+  numDistReads_++;
+
   if (!status.ok()) {
     return status;
   }
@@ -80,28 +100,49 @@ Status Distributed::pullUpdates() {
   return Status(0, "OK");
 }
 
+/**
+ * getPendingQueryCount
+ * Return number of queries waiting to be executed.
+ */
 size_t Distributed::getPendingQueryCount() {
-  std::vector<std::string> queries;
-  scanDatabaseKeys(kQueries, queries, kDistributedQueryPrefix);
-  return queries.size();
+  int num = 0;
+  for (auto item : results_) {
+    if (item.isPending()) {
+      num += 1;
+    }
+  }
+  return num;
 }
 
-size_t Distributed::getCompletedCount() {
-  return results_.size();
+// Returns the number of time distributed_read endpoint was accessed
+size_t Distributed::numDistReads() {
+  return numDistReads_;
 }
 
-Status Distributed::serializeResults(std::string& json) {
+// Returns the number of time distributed_write endpoint was accessed
+size_t Distributed::numDistWrites() {
+  return numDistWrites_;
+}
+
+Status Distributed::serializeResults(std::string& json,
+                                     DistributedQueryResult* item) {
   auto doc = JSON::newObject();
   auto queries_obj = doc.getObject();
   auto statuses_obj = doc.getObject();
   for (const auto& result : results_) {
+    if (result.isPending() || result.hasReported) {
+      continue;
+    }
+    if (0L != item && &result != item) {
+      continue;
+    }
     auto arr = doc.getArray();
     auto s = serializeQueryData(result.results, result.columns, doc, arr);
     if (!s.ok()) {
       return s;
     }
-    doc.add(result.request.id, arr, queries_obj);
-    doc.add(result.request.id, result.status.getCode(), statuses_obj);
+    doc.add(result.id, arr, queries_obj);
+    doc.add(result.id, result.status.getCode(), statuses_obj);
   }
 
   doc.add("queries", queries_obj);
@@ -109,44 +150,123 @@ Status Distributed::serializeResults(std::string& json) {
   return doc.toString(json);
 }
 
-void Distributed::addResult(const DistributedQueryResult& result) {
-  results_.push_back(result);
-}
-
 Status Distributed::runQueries() {
-  while (getPendingQueryCount() > 0) {
-    auto request = popRequest();
-    LOG(INFO) << "Executing distributed query: " << request.id << ": "
-              << request.query;
+  // sanity check - make sure plugin available
+  // Shouldn't ever fail, since read endpoint worked, so plugin must be active
+  auto distributed_plugin = RegistryFactory::get().getActive("distributed");
+  if (!RegistryFactory::get().exists("distributed", distributed_plugin)) {
+    return Status(1, "Missing distributed plugin " + distributed_plugin);
+  }
 
-    // Keep track of the currently executing request
-    Distributed::setCurrentRequestId(request.id);
+  int i = -1;
+  for (auto& item : results_) {
+    i++;
+    if (false == item.isPending()) {
+      continue;
+    }
 
-    SQL sql(request.query);
+    // if a distributed query has a long list, may need a
+    // delay in between to avoid being killed by watcher.
+    if (i > 0 && FLAGS_distributed_intra_sleep > 0) {
+      if (FLAGS_distributed_intra_sleep > 30) {
+        FLAGS_distributed_intra_sleep = 30;
+      }
+      VLOG(1) << "FLAGS_distributed_intra_sleep "
+              << FLAGS_distributed_intra_sleep;
+      std::this_thread::sleep_for(
+          std::chrono::seconds(FLAGS_distributed_intra_sleep));
+    }
+
+    currentRequestId_ = item.id;
+    setDatabaseValue(kPersistentSettings, "distributed_query_id", item.id);
+    LOG(INFO) << "Executing distributed query: " << item.id << ": "
+              << item.query;
+    SQL sql(item.query);
     if (!sql.getStatus().ok()) {
-      LOG(ERROR) << "Error executing distributed query: " << request.id << ": "
+      LOG(ERROR) << "Error executing distributed query: " << item.id << ": "
                  << sql.getMessageString();
     }
 
-    DistributedQueryResult result(
-        request, sql.rows(), sql.columns(), sql.getStatus());
-    addResult(result);
+    item.results = sql.rows();
+    item.columns = sql.columns();
+    item.status = sql.getStatus();
+
+    currentRequestId_ = "";
+    deleteDatabaseValue(kPersistentSettings, "distributed_query_id");
+
+    // if flag set, report results when ready, else flush when all are done.
+    if (FLAGS_distributed_write_individually && results_.size() > 0) {
+      writeResult(item);
+    }
   }
+
+  // DistributedRunner::start does not currently check returned status
+
   return flushCompleted();
 }
 
 Status Distributed::flushCompleted() {
-  if (getCompletedCount() == 0) {
-    return Status(0, "OK");
+  Status status = Status(0, "OK");
+
+  if (results_.size() == 0) {
+    return status;
   }
 
+  if (numUnreported() > 0) {
+    std::string results;
+    status = serializeResults(results);
+    if (!status.ok()) {
+      return status;
+    }
+
+    PluginResponse response;
+    status = Registry::call("distributed",
+                            {{"action", "writeResults"}, {"results", results}},
+                            response);
+    numDistWrites_++;
+
+    // The TLS plugin will retry FLAGS_distributed_tls_max_attempts(3) times.
+    // If unsuccessful, we drop it on the floor.
+    if (!status.ok()) {
+      std::string str;
+      for (auto item : results_) {
+        str += "{ id:" + item.id;
+        str += " query:" + item.query + "}";
+      }
+      LOG(WARNING) << "writeResults failed. dropping results " << str;
+    }
+  }
+
+  // cleanup
+
+  results_.clear();
+  deleteDatabaseValue(kPersistentSettings, "distributed_work");
+
+  return status;
+}
+
+/**
+ * return number of unreported results,
+ * regardless of the status (could be pending)
+ */
+int Distributed::numUnreported() {
+  int n = 0;
+  for (auto& item : results_) {
+    if (false == item.hasReported) {
+      n++;
+    }
+  }
+  return n;
+}
+
+Status Distributed::writeResult(DistributedQueryResult& item) {
   auto distributed_plugin = RegistryFactory::get().getActive("distributed");
   if (!RegistryFactory::get().exists("distributed", distributed_plugin)) {
     return Status(1, "Missing distributed plugin " + distributed_plugin);
   }
 
   std::string results;
-  auto s = serializeResults(results);
+  auto s = serializeResults(results, &item);
   if (!s.ok()) {
     return s;
   }
@@ -155,10 +275,155 @@ Status Distributed::flushCompleted() {
   s = Registry::call("distributed",
                      {{"action", "writeResults"}, {"results", results}},
                      response);
-  if (s.ok()) {
-    results_.clear();
+  numDistWrites_++;
+
+  // The TLS plugin will retry FLAGS_distributed_tls_max_attempts(3) times.
+  // If unsuccessful, we drop it on the floor.
+  if (!s.ok()) {
+    LOG(WARNING) << "writeResult failed for id:" << item.id;
   }
+
+  item.hasReported = true;
+  item.results.clear();
+
   return s;
+}
+
+Status Distributed::passesDiscovery(const JSON& doc) {
+  if (!doc.doc().HasMember("discovery")) {
+    return Status();
+  }
+
+  int numDiscoveryQueries = 0;
+  int numDiscoveryPassed = 0;
+  const auto& queries = doc.doc()["discovery"];
+
+  if (!queries.IsObject()) {
+    return Status(1, "Bad document: Distributed 'discovery' is not an object");
+  }
+
+  for (const auto& query_entry : queries.GetObject()) {
+    if (!query_entry.name.IsString() || !query_entry.value.IsString()) {
+      return Status(1, "Distributed discovery query is not a string");
+    }
+
+    auto name = std::string(query_entry.name.GetString());
+    auto query = std::string(query_entry.value.GetString());
+    if (query.empty() || name.empty()) {
+      return Status(1, "Distributed discovery query is not a string");
+    }
+
+    numDiscoveryQueries++;
+    LOG(INFO) << "Executing distributed DISCOVERY query: " << name << ": "
+              << query;
+
+    SQL sql(query);
+    if (!sql.getStatus().ok()) {
+      return Status(1, "Distributed discovery query has an SQL error");
+    }
+    if (sql.rows().size() > 0) {
+      numDiscoveryPassed++;
+    }
+  }
+
+  // All discovery queries need to return rows to pass discovery
+
+  if (numDiscoveryPassed < numDiscoveryQueries) {
+    return Status(1);
+  }
+
+  return Status();
+}
+
+static inline std::string getStr(const rj::Value& node) {
+  if (node.IsString()) {
+    return std::string(node.GetString());
+  }
+  return "";
+}
+
+/**
+ * Parses the queries portion of distributed_read body and populates
+ * results_ vector.  Each result_ entry will have id, query set, and
+ * the status will be set to -1, indicating that the query has not been
+ * initiated yet.  With the exception being when discoveryStatus is not
+ * success, which indicates queries should not be run, so result_ statuses
+ * are set to 0, meaning success.  Discovery queries are used to check
+ * whether a set of queries are relevant to the target device.
+ */
+Status Distributed::populateResultState(const JSON& doc,
+                                        Status discoveryStatus) {
+  const auto& queries = doc.doc()["queries"];
+
+  for (const auto& query_entry : queries.GetObject()) {
+    auto name = getStr(query_entry.name);
+    auto query = getStr(query_entry.value);
+    if (name.empty() || query.empty()) {
+      return Status(1, "Distributed query is not a string");
+    }
+
+    // add result placeholder
+    DistributedQueryResult result(name, query);
+    if (!discoveryStatus.ok()) {
+      // queries are not relevant to this device, mark as done
+      result.status = Status(0);
+    }
+
+    results_.push_back(result);
+  }
+
+  return Status();
+}
+
+/**
+ * reportInterruptedWork()
+ * If one of the distributed queries uses too much CPU or memory,
+ * the worker process will be killed by Watcher process.  We need to
+ * report status on the lost queries.  At startup, pullUpdates() calls this
+ * function, and it will check database to see if a request was interrupted.
+ */
+void Distributed::reportInterruptedWork() {
+  std::string work;
+  std::string lastQueryId;
+  getDatabaseValue(kPersistentSettings, "distributed_work", work);
+  getDatabaseValue(kPersistentSettings, "distributed_query_id", lastQueryId);
+
+  // clear
+  deleteDatabaseValue(kPersistentSettings, "distributed_work");
+  deleteDatabaseValue(kPersistentSettings, "distributed_query_id");
+
+  if (work.empty() && lastQueryId.empty()) {
+    return;
+  }
+
+  if (work.empty()) {
+    LOG(WARNING) << "distributed_work not in DB, but distributed_query_id was";
+    return;
+  }
+  auto doc = JSON::newObject();
+  if (!doc.fromString(work) || !doc.doc().IsObject()) {
+    LOG(WARNING) << "ERROR distributed_work in DB was invalid";
+    return;
+  }
+
+  if (!lastQueryId.empty()) {
+    LOG(WARNING) << "distributed worker was interrupted running query id "
+                 << lastQueryId;
+  }
+
+  // load queries
+
+  populateResultState(doc, Status());
+
+  // mark with INTERRUPTED status
+
+  for (auto& item : results_) {
+    item.status = Status(DQ_INTERRUPTED_STATUS, "INTERRUPTED");
+  }
+
+  // send response
+
+  flushCompleted();
 }
 
 Status Distributed::acceptWork(const std::string& work) {
@@ -167,60 +432,28 @@ Status Distributed::acceptWork(const std::string& work) {
     return Status(1, "Error Parsing JSON");
   }
 
-  std::set<std::string> queries_to_run;
-  // Check for and run discovery queries first
-  if (doc.doc().HasMember("discovery")) {
-    const auto& queries = doc.doc()["discovery"];
-    assert(queries.IsObject());
-
-    if (queries.IsObject()) {
-      for (const auto& query_entry : queries.GetObject()) {
-        if (!query_entry.name.IsString() || !query_entry.value.IsString()) {
-          return Status(1, "Distributed discovery query is not a string");
-        }
-
-        auto name = std::string(query_entry.name.GetString());
-        auto query = std::string(query_entry.value.GetString());
-        if (query.empty() || name.empty()) {
-          return Status(1, "Distributed discovery query is not a string");
-        }
-
-        SQL sql(query);
-        if (!sql.getStatus().ok()) {
-          return Status(1, "Distributed discovery query has an SQL error");
-        }
-        if (sql.rows().size() > 0) {
-          queries_to_run.insert(name);
-        }
-      }
-    }
-  }
+  Status discoveryStatus = passesDiscovery(doc);
 
   if (doc.doc().HasMember("queries")) {
     const auto& queries = doc.doc()["queries"];
-    assert(queries.IsObject());
 
-    if (queries.IsObject()) {
-      for (const auto& query_entry : queries.GetObject()) {
-        if (!query_entry.name.IsString() || !query_entry.value.IsString()) {
-          return Status(1, "Distributed query is not a string");
-        }
+    if (!queries.IsObject()) {
+      return Status(1, "Format error: Distributed 'queries' is not object");
+    }
 
-        auto name = std::string(query_entry.name.GetString());
-        auto query = std::string(query_entry.value.GetString());
-        if (name.empty() || query.empty()) {
-          return Status(1, "Distributed query is not a string");
-        }
-
-        if (queries_to_run.empty() || queries_to_run.count(name)) {
-          setDatabaseValue(kQueries, kDistributedQueryPrefix + name, query);
-        }
-      }
+    Status status = populateResultState(doc, discoveryStatus);
+    if (status.ok()) {
+      // good to go. Save work to DB in case watchdog kills worker
+      setDatabaseValue(kPersistentSettings, "distributed_work", work);
+    } else {
+      return status; // parsing failed
     }
   }
+
   if (doc.doc().HasMember("accelerate")) {
     const auto& accelerate = doc.doc()["accelerate"];
-    if (accelerate.IsInt()) {
+    if (accelerate.IsInt() && accelerate.GetInt() > 0 &&
+        accelerate.GetInt() < MAX_ACCEL_DURATION_SEC) {
       auto duration = accelerate.GetInt();
       LOG(INFO) << "Accelerating distributed query checkins for " << duration
                 << " seconds";
@@ -228,132 +461,14 @@ Status Distributed::acceptWork(const std::string& work) {
                        "distributed_accelerate_checkins_expire",
                        std::to_string(getUnixTime() + duration));
     } else {
-      VLOG(1) << "Falied to Accelerate: Timeframe is not an integer";
+      VLOG(1) << "Invalid argument for accelerate. must be int > 0 < MAX";
     }
   }
   return Status();
 }
 
-DistributedQueryRequest Distributed::popRequest() {
-  // Read all pending queries.
-  std::vector<std::string> queries;
-  scanDatabaseKeys(kQueries, queries, kDistributedQueryPrefix);
-
-  // Set the last-most-recent query as the request, and delete it.
-  DistributedQueryRequest request;
-  const auto& next = queries.front();
-  request.id = next.substr(kDistributedQueryPrefix.size());
-  getDatabaseValue(kQueries, next, request.query);
-  deleteDatabaseValue(kQueries, next);
-  return request;
-}
-
+// static function used by Carver
 std::string Distributed::getCurrentRequestId() {
   return currentRequestId_;
 }
-
-void Distributed::setCurrentRequestId(const std::string& cReqId) {
-  currentRequestId_ = cReqId;
-}
-
-Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
-                                        JSON& doc,
-                                        rj::Value& obj) {
-  assert(obj.IsObject());
-  doc.addCopy("query", r.query, obj);
-  doc.addCopy("id", r.id, obj);
-  return Status();
-}
-
-Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
-                                            std::string& json) {
-  auto doc = JSON::newObject();
-  auto s = serializeDistributedQueryRequest(r, doc, doc.doc());
-  if (!s.ok()) {
-    return s;
-  }
-
-  return doc.toString(json);
-}
-
-Status deserializeDistributedQueryRequest(const rj::Value& obj,
-                                          DistributedQueryRequest& r) {
-  if (!obj.HasMember("query") || !obj.HasMember("id") ||
-      !obj["query"].IsString() || !obj["id"].IsString()) {
-    return Status(1, "Malformed distributed query request");
-  }
-
-  r.query = obj["query"].GetString();
-  r.id = obj["id"].GetString();
-  return Status();
-}
-
-Status deserializeDistributedQueryRequestJSON(const std::string& json,
-                                              DistributedQueryRequest& r) {
-  auto doc = JSON::newObject();
-  if (!doc.fromString(json) || !doc.doc().IsObject()) {
-    return Status(1, "Error Parsing JSON");
-  }
-  return deserializeDistributedQueryRequest(doc.doc(), r);
-}
-
-Status serializeDistributedQueryResult(const DistributedQueryResult& r,
-                                       JSON& doc,
-                                       rj::Value& obj) {
-  auto request_obj = doc.getObject();
-  auto s = serializeDistributedQueryRequest(r.request, doc, request_obj);
-  if (!s.ok()) {
-    return s;
-  }
-
-  auto results_arr = doc.getArray();
-  s = serializeQueryData(r.results, r.columns, doc, results_arr);
-  if (!s.ok()) {
-    return s;
-  }
-
-  doc.add("request", request_obj);
-  doc.add("results", results_arr);
-  return Status();
-}
-
-Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
-                                           std::string& json) {
-  auto doc = JSON::newObject();
-  auto s = serializeDistributedQueryResult(r, doc, doc.doc());
-  if (!s.ok()) {
-    return s;
-  }
-
-  return doc.toString(json);
-}
-
-Status deserializeDistributedQueryResult(const rj::Value& obj,
-                                         DistributedQueryResult& r) {
-  DistributedQueryRequest request;
-  auto s = deserializeDistributedQueryRequest(obj["request"], request);
-  if (!s.ok()) {
-    return s;
-  }
-
-  QueryData results;
-  s = deserializeQueryData(obj["results"], results);
-  if (!s.ok()) {
-    return s;
-  }
-
-  r.request = request;
-  r.results = results;
-
-  return Status();
-}
-
-Status deserializeDistributedQueryResultJSON(const std::string& json,
-                                             DistributedQueryResult& r) {
-  auto doc = JSON::newObject();
-  if (!doc.fromString(json) || !doc.doc().IsObject()) {
-    return Status(1, "Error Parsing JSON");
-  }
-  return deserializeDistributedQueryResult(doc.doc(), r);
-}
-}
+} // namespace osquery

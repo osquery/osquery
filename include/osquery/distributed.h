@@ -17,128 +17,39 @@
 #include <osquery/query.h>
 #include <osquery/status.h>
 
+// PENDING status is runtime only, never reported back to endpoint
+#define DQ_PENDING_STATUS -1
+
+// INTERRUPTED status is when watcher kills resource intensive dist query
+#define DQ_INTERRUPTED_STATUS 9
+
 namespace osquery {
 
 /**
- * @brief Small struct containing the query and ID information for a
- * distributed query
- */
-struct DistributedQueryRequest {
- public:
-  explicit DistributedQueryRequest() {}
-
-  std::string query;
-  std::string id;
-};
-
-/**
- * @brief Serialize a DistributedQueryRequest into a property tree
- *
- * @param r the DistributedQueryRequest to serialize
- * @param doc the input JSON managed document
- * @param obj the output rapidjson document [object]
- *
- * @return Status indicating the success or failure of the operation
- */
-Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
-                                        JSON& doc,
-                                        rapidjson::Value& obj);
-
-/**
- * @brief Serialize a DistributedQueryRequest object into a JSON string
- *
- * @param r the DistributedQueryRequest to serialize
- * @param json the output JSON string
- *
- * @return Status indicating the success or failure of the operation
- */
-Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
-                                            std::string& json);
-
-/**
- * @brief Deserialize a DistributedQueryRequest object from a property tree
- *
- * @param obj the input rapidjson value [object]
- * @param r the output DistributedQueryRequest structure
- *
- * @return Status indicating the success or failure of the operation
- */
-Status deserializeDistributedQueryRequest(const rapidjson::Value& obj,
-                                          DistributedQueryRequest& r);
-
-/**
- * @brief Deserialize a DistributedQueryRequest object from a JSON string
- *
- * @param json the input JSON string
- * @param r the output DistributedQueryRequest structure
- *
- * @return Status indicating the success or failure of the operation
- */
-Status deserializeDistributedQueryRequestJSON(const std::string& json,
-                                              DistributedQueryRequest& r);
-
-/**
- * @brief Small struct containing the results of a distributed query
+ * @brief Small struct containing the state of a distributed query
  */
 struct DistributedQueryResult {
  public:
   DistributedQueryResult() {}
-  DistributedQueryResult(const DistributedQueryRequest& req,
-                         const QueryData& res,
-                         const ColumnNames& cols,
-                         const Status& s)
-      : request(req), results(res), columns(cols), status(s) {}
+  DistributedQueryResult(std::string qid, std::string q)
+      : id(qid),
+        query(q),
+        results(),
+        columns(),
+        status(DQ_PENDING_STATUS),
+        hasReported(false) {}
 
-  DistributedQueryRequest request;
+  bool isPending() const {
+    return status.getCode() == DQ_PENDING_STATUS;
+  }
+
+  std::string id;
+  std::string query;
   QueryData results;
   ColumnNames columns;
   Status status;
+  bool hasReported;
 };
-
-/**
- * @brief Serialize a DistributedQueryResult into a property tree
- *
- * @param r the DistributedQueryResult to serialize
- * @param doc the input JSON managed document
- * @param obj the output rapidjson document [object]
- *
- * @return Status indicating the success or failure of the operation
- */
-Status serializeDistributedQueryResult(const DistributedQueryResult& r,
-                                       JSON& doc,
-                                       rapidjson::Value& obj);
-/**
- * @brief Serialize a DistributedQueryResult object into a JSON string
- *
- * @param r the DistributedQueryResult to serialize
- * @param json the output JSON string
- *
- * @return Status indicating the success or failure of the operation
- */
-Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
-                                           std::string& json);
-
-/**
- * @brief Deserialize a DistributedQueryResult object from a property tree
- *
- * @param obj the input rapidjson document [object]
- * @param r the output DistributedQueryResult structure
- *
- * @return Status indicating the success or failure of the operation
- */
-Status deserializeDistributedQueryResult(const rapidjson::Value& obj,
-                                         DistributedQueryResult& r);
-
-/**
- * @brief Deserialize a DistributedQueryResult object from a JSON string
- *
- * @param json the input JSON string
- * @param r the output DistributedQueryResult structure
- *
- * @return Status indicating the success or failure of the operation
- */
-Status deserializeDistributedQueryResultJSON(const std::string& json,
-                                             DistributedQueryResult& r);
 
 class DistributedPlugin : public Plugin {
  public:
@@ -227,14 +138,18 @@ class Distributed {
   /// Get the number of results which are waiting to be flushed
   size_t getCompletedCount();
 
-  /// Serialize result data into a JSON string and clear the results
-  Status serializeResults(std::string& json);
-
-  /// Process and execute queued queries
+  /// Process and execute queries obtained from pullUpdates().
   Status runQueries();
 
   // Getter for ID of currently executing request
+  // NOTE referenced externally by Carver
   static std::string getCurrentRequestId();
+
+  // Returns the number of time distributed_read endpoint was accessed
+  size_t numDistReads();
+
+  // Returns the number of time distributed_write endpoint was accessed
+  size_t numDistWrites();
 
  protected:
   /**
@@ -249,34 +164,59 @@ class Distributed {
   Status acceptWork(const std::string& work);
 
   /**
-   * @brief Pop a request object off of the queries_ member
-   *
-   * @return a DistributedQueryRequest object which needs to be executed
-   */
-  DistributedQueryRequest popRequest();
-
-  /**
-   * @brief Queue a result to be batch sent to the server
-   *
-   * @param result is a DistributedQueryResult object to be sent to the server
-   */
-  void addResult(const DistributedQueryResult& result);
-
-  /**
    * @brief Flush all of the collected results to the server
    */
   Status flushCompleted();
 
-  // Setter for ID of currently executing request
-  static void setCurrentRequestId(const std::string& cReqId);
+  /// Serialize result data into a JSON string
+  Status serializeResults(std::string& json,
+                          DistributedQueryResult* result = 0L);
+
+  /**
+   * @brief Used to write a single result when
+   * FLAGS_distributed_write_individually==true.
+   */
+  Status writeResult(DistributedQueryResult& result);
+
+  /**
+   * @brief Checks for 'discovery' queries in doc and executes them.
+   * @return true if no discovery, or all discovery queries return
+   *         more than one row.  false otherwise.
+   */
+  Status passesDiscovery(const JSON& doc);
+
+  /**
+   * @brief Populates results_ with id and query for all queries in doc.
+   * If discoveryStatus.ok()==false, will mark all results_ as
+   * completed with OK status and no rows.  This is because if discovery
+   * queries fail, these queries are not relevant to this device.
+   */
+  Status populateResultState(const JSON& doc, Status discoveryStatus);
+
+  /**
+   * @brief When a distributed read endpoint returns some work to be done,
+   * Distributed class will write the document to the DB, and when all work
+   * is done, remove it.  When the Distributed class starts up, it will check
+   * for the presence of the work doc in DB, and if present, it knows that
+   * distributed work was interrupted or restarted (presumably by watcher).
+   * This function is called from pullUpdates(), and will check for this
+   * scenario and report DQ_INTERRUPTED_STATUS(9) status for all queries.
+   */
+  void reportInterruptedWork();
+
+  // if any of results[].hasReported are false
+  int numUnreported();
 
   std::vector<DistributedQueryResult> results_;
 
   // ID of the currently executing query
   static std::string currentRequestId_;
 
+  size_t numDistReads_{0U};
+  size_t numDistWrites_{0U};
+
  private:
   friend class DistributedTests;
   FRIEND_TEST(DistributedTests, test_workflow);
 };
-}
+} // namespace osquery

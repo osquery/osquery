@@ -17,4 +17,5 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_distributed_plugins
 
 ADD_OSQUERY_TEST_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/tests/distributed_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/mock_distributed_plugin.cpp"
 )
