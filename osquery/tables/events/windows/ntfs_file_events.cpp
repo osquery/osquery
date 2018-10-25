@@ -139,10 +139,6 @@ bool NTFSEventSubscriber::shouldEmit(const NTFSEventRecord& event) {
       return true;
     }
 
-    if (event.old_path.empty()) {
-      return false;
-    }
-
     it = std::find(write_monitored_path_list.begin(),
                    write_monitored_path_list.end(),
                    event.old_path);
