@@ -15,4 +15,4 @@ schema ([
 ])
 
 attributes(event_subscriber=True)
-implementation("ntfs_file_events@FileEventSubscriber::genTable")
+implementation("ntfs_file_events@NTFSEventSubscriber::genTable")
