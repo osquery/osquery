@@ -707,9 +707,9 @@ bool GetEventType(USNJournalEventRecord::Type& type,
 
   const auto& event_type_pair = it->second;
   if (is_directory) {
-    type = event_type_pair.second;
-  } else {
     type = event_type_pair.first;
+  } else {
+    type = event_type_pair.second;
   }
 
   return true;
