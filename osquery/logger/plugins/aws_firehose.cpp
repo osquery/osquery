@@ -12,12 +12,6 @@
 
 #include <boost/algorithm/string/join.hpp>
 
-#ifdef WIN32
-// AWS SDK provides deprecation warnings at compile-time, and osquery
-// build treats warnings as errors, so have to turn these off.
-#define AWS_DISABLE_DEPRECATION
-#endif
-
 #include <aws/core/client/AWSError.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/firehose/model/PutRecordBatchRequest.h>
