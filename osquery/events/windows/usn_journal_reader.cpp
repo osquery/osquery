@@ -728,7 +728,7 @@ bool GetEventString(std::string& buffer, const USN_RECORD* record) {
 
   // NOTE(ww): I think this could be simplified: both V2 and V3 records
   // contain a direct pointer to the filename that's guaranteed to be valid
-  // until the FSCTL_* constants we're using, so we might not need to muck
+  // under the FSCTL_* constants we're using, so we might not need to muck
   // with the offset at all.
   switch (record->MajorVersion) {
   case 2U: {
