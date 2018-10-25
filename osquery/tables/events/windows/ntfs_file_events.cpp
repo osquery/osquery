@@ -51,6 +51,14 @@ void NTFSEventSubscriber::readConfiguration() {
   Config::get().files([&path_categories](
       const std::string& category, const std::vector<std::string>& files) {
     for (auto file : files) {
+      // TODO(ww): resolveFilePattern should call this for us.
+      // TODO(ww): Are globs the right tool here? I know file_events uses them too,
+      // but they don't clearly convey some of the common monitoring patterns:
+      //   If I want to monitor a directory, I need two separate patterns: one
+      //   for the directory itself, and another to match all children of the
+      //   directory. That's unintuitive, and it still doesn't catch the case
+      //   where a user creates a new entry under the directory *if* we precompute
+      //   the globs.
       replaceGlobWildcards(file);
 
       StringList solved_path_list = {};
@@ -75,6 +83,7 @@ void NTFSEventSubscriber::readConfiguration() {
       auto& array_object = json_document[category_name].GetArray();
       for (const auto& item : array_object) {
         // Be explicit about the type, we need a writable copy
+        // TODO(ww): resolveFilePattern should call this for us.
         std::string path = item.GetString();
         replaceGlobWildcards(path);
 
