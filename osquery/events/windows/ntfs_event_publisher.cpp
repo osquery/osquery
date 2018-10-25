@@ -543,6 +543,7 @@ Status NTFSEventPublisher::run() {
       if (it == rename_path_mapper.end()) {
         skip_record = true;
         VLOG(1) << "Failed to remap the rename records";
+        break;
       }
 
       old_name_record = it->second;
