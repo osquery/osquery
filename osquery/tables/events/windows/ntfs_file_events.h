@@ -55,12 +55,20 @@ using StringList = std::vector<std::string>;
 
 /// Configuration for the ntfs_file_events table
 struct NTFSFileEventsConfiguration final {
-  /// List of paths that should only included during write or
-  /// delete operations
+  /// Collection of paths that should only be included during write or
+  /// delete operations.
   std::unordered_set<std::string> write_monitored_path_list;
 
-  /// List of paths that must always be included (even for reads)
+  /// Collection of file reference numbers that should only be included
+  /// during write or delete operations.
+  std::unordered_set<USNFileReferenceNumber> write_monitored_frn_list;
+
+  /// Collection of paths that must always be included (even for reads).
   std::unordered_set<std::string> access_monitored_path_list;
+
+  /// Collection of file reference numbers that must always be included
+  /// (even for reads).
+  std::unordered_set<USNFileReferenceNumber> access_monitored_frn_list;
 };
 
 /// Processes the configuration

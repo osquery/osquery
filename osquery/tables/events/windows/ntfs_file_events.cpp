@@ -8,6 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <Windows.h>
+
+#include <boost/functional/hash.hpp>
+
 #include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -50,22 +54,11 @@ void NTFSEventSubscriber::readConfiguration() {
 
   Config::get().files([&path_categories](
       const std::string& category, const std::vector<std::string>& files) {
+    StringList solved_path_list = {};
     for (auto file : files) {
-      // TODO(ww): resolveFilePattern should call this for us.
-      // TODO(ww): Are globs the right tool here? I know file_events uses them too,
-      // but they don't clearly convey some of the common monitoring patterns:
-      //   If I want to monitor a directory, I need two separate patterns: one
-      //   for the directory itself, and another to match all children of the
-      //   directory. That's unintuitive, and it still doesn't catch the case
-      //   where a user creates a new entry under the directory *if* we precompute
-      //   the globs.
-      replaceGlobWildcards(file);
-
-      StringList solved_path_list = {};
       resolveFilePattern(file, solved_path_list);
-
-      path_categories[category] = solved_path_list;
     }
+    path_categories[category] = solved_path_list;
   });
 
   // List the excluded paths
@@ -131,38 +124,90 @@ bool NTFSEventSubscriber::isWriteOperation(
 bool NTFSEventSubscriber::shouldEmit(const NTFSEventRecord& event) {
   const auto& write_monitored_path_list =
       d->configuration.write_monitored_path_list;
+  auto& write_monitored_frn_list =
+      d->configuration.write_monitored_frn_list;
   const auto& access_monitored_path_list =
       d->configuration.access_monitored_path_list;
+  auto& access_monitored_frn_list =
+      d->configuration.access_monitored_frn_list;
 
+  // TODO(ww): Should we look for FileDeletion events and remove the FRN when
+  // we encounter them? Does NTFS recycle FRNs? Does it matter?
   if (isWriteOperation(event.type)) {
+    bool frn_found =
+        write_monitored_frn_list.find(event.node_ref_number) !=
+          write_monitored_frn_list.end() ||
+        access_monitored_frn_list.find(event.node_ref_number) !=
+          access_monitored_frn_list.end();
+
+    // If this event has an FRN we've marked for monitoring,
+    // we emit it.
+    if (frn_found) {
+      TLOG << "Found event's FRN in a monitoring list, emitting";
+      return true;
+    }
+
+    // If this event has a parent FRN we've marked for monitoring,
+    // we mark it for monitoring as well and emit it.
+    if (write_monitored_frn_list.find(event.parent_ref_number) !=
+        write_monitored_frn_list.end()) {
+      TLOG << "Found event's parent FRN in a monitoring list, saving FRN and emitting";
+      write_monitored_frn_list.insert(event.node_ref_number);
+      return true;
+    }
+    else if (access_monitored_frn_list.find(event.parent_ref_number) !=
+             access_monitored_frn_list.end()) {
+      TLOG << "Found event's parent FRN in a monitoring list, saving FRN and emitting";
+      access_monitored_frn_list.insert(event.node_ref_number);
+      return true;
+    }
+
+    // Otherwise, we haven't seen the FRN or parent FRN before, but
+    // the event might have a path that we've marked for monitoring.
+    // If so, mark the new FRN for monitoring.
     auto it = std::find(write_monitored_path_list.begin(),
                         write_monitored_path_list.end(),
                         event.path);
 
-    auto it2 = std::find(access_monitored_path_list.begin(),
-                         access_monitored_path_list.end(),
-                         event.path);
-
-    if (it != write_monitored_path_list.end() ||
-        it2 != access_monitored_path_list.end()) {
+    if (it != write_monitored_path_list.end()) {
+      TLOG << "Found event's path in a monitoring list, saving FRN and emitting";
+      write_monitored_frn_list.insert(event.node_ref_number);
       return true;
     }
 
+    it = std::find(access_monitored_path_list.begin(),
+                   access_monitored_path_list.end(),
+                   event.path);
+
+    if (it != access_monitored_path_list.end()) {
+      TLOG << "Found event's path in a monitoring list, saving FRN and emitting";
+      access_monitored_frn_list.insert(event.node_ref_number);
+      return true;
+    }
+
+    // Finally, the event might have an old path we're interested in.
+    // Likewise, mark the FRN for monitoring.
     it = std::find(write_monitored_path_list.begin(),
                    write_monitored_path_list.end(),
                    event.old_path);
 
-    it2 = std::find(access_monitored_path_list.begin(),
-                    access_monitored_path_list.end(),
-                    event.old_path);
+    if (it != write_monitored_path_list.end()) {
+      TLOG << "Found event's old path in a monitoring list, saving FRN and emitting";
+      write_monitored_frn_list.insert(event.node_ref_number);
+      return true;
+    }
 
-    if (it != write_monitored_path_list.end() ||
-        it2 != access_monitored_path_list.end()) {
+    it = std::find(access_monitored_path_list.begin(),
+                   access_monitored_path_list.end(),
+                   event.old_path);
+
+    if (it != access_monitored_path_list.end()) {
+      TLOG << "Found event's old path in a monitoring list, saving FRN and emitting";
+      access_monitored_frn_list.insert(event.node_ref_number);
       return true;
     }
 
     return false;
-
   } else {
     TLOG << "path: " << event.path << " old_path: " << event.old_path;
     assert(event.old_path.empty());
@@ -203,6 +248,9 @@ Row NTFSEventSubscriber::generateRowFromEvent(const NTFSEventRecord& event) {
            << event.update_sequence_number;
     row["record_usn"] = TEXT(buffer.str());
 
+    // NOTE(ww): Maybe comma-separate here? Pipes make it clear
+    // that these are flags, but CSV is easier to parse and is
+    // used by other tables.
     buffer.str("");
     bool add_separator = false;
     for (const auto& p : kWindowsFileAttributeMap) {
@@ -274,14 +322,56 @@ NTFSFileEventsConfiguration ProcessConfiguration(
   for (auto& path_category : path_categories) {
     auto& category = path_category.first;
     auto& path_list = path_category.second;
+    std::unordered_set<USNFileReferenceNumber> frn_set;
 
-    // Remove excluded paths
+    // Build FRN set for the path list
+    // NOTE(ww): path can be either a file or a directory,
+    // so we need to pass FILE_FLAG_BACKUP_SEMANTICS rather
+    // than FILE_ATTRIBUTE_NORMAL.
+    for (const auto& path : path_list) {
+      HANDLE file_hnd = ::CreateFile(path.c_str(), GENERIC_READ,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                     NULL, OPEN_EXISTING,
+                                     FILE_FLAG_BACKUP_SEMANTICS, NULL);
+
+      // This can fail because the user specifies a path that doesn't exist yet,
+      // which is a supported case. We'll grab that FRN later, when the file
+      // actually does come into existence.
+      if (file_hnd == INVALID_HANDLE_VALUE) {
+        TLOG << "Couldn't open " << path << " while buiding FRN set";
+        continue;
+      }
+
+      // NOTE(ww): This shouldn't fail once we have a valid handle, but there's
+      // a TOCTOU here: another process could delete the file before we get
+      // its information. We don't want to lock the file, though, since it could
+      // be something imporant used by another process.
+      FILE_ID_INFO file_id_info;
+      if (!::GetFileInformationByHandleEx(file_hnd, FileIdInfo, &file_id_info,
+                                          sizeof(file_id_info))) {
+        TLOG << "Couldn't get FRN for " << path << " while building FRN set";
+        ::CloseHandle(file_hnd);
+        continue;
+      }
+      ::CloseHandle(file_hnd);
+
+      const auto& byte_array = file_id_info.FileId.Identifier;
+      USNFileReferenceNumber frn;
+      boostmp::import_bits(frn,
+                           byte_array,
+                           byte_array + sizeof(FILE_ID_128::Identifier),
+                           0,
+                           false);
+      frn_set.insert(frn);
+    }
+
+    // Remove excluded paths and FRNs
     auto exclude_it = exclude_paths.find(category);
     if (exclude_it != exclude_paths.end()) {
       const auto& excluded_path_list = exclude_it->second;
 
       // clang-format off
-      auto erase_it = std::remove_if(
+      auto path_erase_it = std::remove_if(
         path_list.begin(),
         path_list.end(),
 
@@ -290,29 +380,47 @@ NTFSFileEventsConfiguration ProcessConfiguration(
           return it != excluded_path_list.end();
         }
       );
+
+      // auto frn_erase_it = std::remove_if(
+      //   frn_set.begin(),
+      //   frn_set.end(),
+
+      //   [excluded_path_list](const std::string &str) -> bool {
+
+      //   }
+      // );
+      // TODO(ww): Build frn_erase_it.
       // clang-format on
 
-      if (erase_it != path_list.end()) {
-        path_list.erase(erase_it, path_list.end());
+      if (path_erase_it != path_list.end()) {
+        path_list.erase(path_erase_it, path_list.end());
       }
     }
 
-    if (path_list.empty()) {
+    if (path_list.empty() || frn_set.empty()) {
       continue;
     }
 
-    // Save the path list
-    std::unordered_set<std::string>* destination = nullptr;
+    // Save the path and frn lists
+    std::unordered_set<std::string>* path_destination = nullptr;
+    std::unordered_set<USNFileReferenceNumber>* frn_destination = nullptr;
     if (std::find(file_access_categories.begin(),
                   file_access_categories.end(),
                   category) != file_access_categories.end()) {
-      destination = &configuration.access_monitored_path_list;
+      path_destination = &configuration.access_monitored_path_list;
+      frn_destination = &configuration.access_monitored_frn_list;
     } else {
-      destination = &configuration.write_monitored_path_list;
+      path_destination = &configuration.write_monitored_path_list;
+      frn_destination = &configuration.write_monitored_frn_list;
     }
 
     for (const auto& path : path_list) {
-      destination->insert(path);
+      path_destination->insert(path);
+    }
+
+    for (const auto& frn : frn_set) {
+      frn_destination->insert(frn);
+      TLOG << "FRN: " << frn.str();
     }
   }
 
