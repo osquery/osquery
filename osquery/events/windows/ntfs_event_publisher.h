@@ -52,6 +52,12 @@ struct NTFSEventRecord final {
   /// Update sequence number of the journal record
   USN update_sequence_number{0U};
 
+  /// Ordinal for the file or directory referenced by this record
+  USNFileReferenceNumber node_ref_number{0U};
+
+  /// Ordinal for the directory containing the file or directory referenced
+  USNFileReferenceNumber parent_ref_number{0U};
+
   /// Drive letter
   char drive_letter{0U};
 

@@ -164,6 +164,7 @@ bool NTFSEventSubscriber::shouldEmit(const NTFSEventRecord& event) {
     return false;
 
   } else {
+    TLOG << "path: " << event.path << " old_path: " << event.old_path;
     assert(event.old_path.empty());
 
     auto it = std::find(access_monitored_path_list.begin(),
@@ -184,6 +185,13 @@ Row NTFSEventSubscriber::generateRowFromEvent(const NTFSEventRecord& event) {
   row["old_path"] = TEXT(event.old_path);
   row["path"] = TEXT(event.path);
   row["partial"] = INTEGER(event.partial);
+
+  // NOTE(ww): These are emitted in decimal, not hex.
+  // There's no good reason for this, other than that
+  // boost's mp type doesn't handle std::hex and other
+  // ios formatting directives correctly.
+  row["node_ref_number"] = TEXT(event.node_ref_number.str());
+  row["parent_ref_number"] = TEXT(event.parent_ref_number.str());
 
   {
     std::stringstream buffer;

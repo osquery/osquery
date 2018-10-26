@@ -561,6 +561,8 @@ Status NTFSEventPublisher::run() {
     event.record_timestamp = journal_record.record_timestamp;
     event.attributes = journal_record.attributes;
     event.update_sequence_number = journal_record.update_sequence_number;
+    event.node_ref_number = journal_record.node_ref_number;
+    event.parent_ref_number = journal_record.parent_ref_number;
     event.drive_letter = journal_record.drive_letter;
 
     auto status =

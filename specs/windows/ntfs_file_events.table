@@ -7,6 +7,8 @@ schema ([
     Column("path", TEXT, "Path"),
     Column("record_timestamp", TEXT, "Journal record timestamp"),
     Column("record_usn", TEXT, "The update sequence number that identifies the journal record"),
+    Column("node_ref_number", TEXT, "The ordinal that associates a journal record with a filename"),
+    Column("parent_ref_number", TEXT, "The ordinal that associates a journal record with a filename's parent directory"),
     Column("drive_letter", TEXT, "The drive letter identifying the source journal"),
     Column("file_attributes", TEXT, "File attributes"),
     Column("partial", BIGINT, "Set to 1 if either path or old_path only contains the file or folder name"),
