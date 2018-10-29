@@ -189,43 +189,20 @@ Status NTFSEventPublisher::resolvePathFromComponentsCache(
     const USNFileReferenceNumber& ref) {
   path.clear();
 
-  // Get the root reference number
-  VolumeData volume_data = {};
-  auto status = getVolumeData(volume_data, drive_letter);
-  if (!status.ok()) {
-    return status;
+  auto it = path_components_cache.find(ref);
+
+  if (it == path_components_cache.end()) {
+    return Status(1, "Failed to build the path from the components cache");
   }
 
-  // Attempt to resolve the path one node at a time
-  std::vector<std::string> components = {};
-  size_t path_length = 3U;
+  auto& node_info = it->second;
+  getPathFromReferenceNumber(path,
+                             path_components_cache,
+                             drive_letter,
+                             node_info.parent);
 
-  auto current_ref = ref;
-  NodeReferenceInfo* current_node_info = nullptr;
-
-  while (current_ref != volume_data.root_ref) {
-    auto it = path_components_cache.find(current_ref);
-    if (it == path_components_cache.end()) {
-      return Status(1, "Failed to build the path from the components cache");
-    }
-
-    const auto& node_ref_info = it->second;
-
-    components.push_back(node_ref_info.name);
-    current_ref = node_ref_info.parent;
-
-    path_length += node_ref_info.name.size() + 1;
-  }
-
-  path.reserve(path_length);
-  path += drive_letter;
-  path.append(":\\");
-
-  for (auto it = components.rbegin(); it != components.rend(); it++) {
-    const auto& node_name = *it;
-    path.append(node_name);
-    path.append("\\");
-  }
+  path.append("\\");
+  path.append(node_info.name);
 
   return Status(0);
 }
@@ -513,16 +490,6 @@ Status NTFSEventPublisher::run() {
     auto& path_components_cache = service_instance.path_components_cache;
     auto& rename_path_mapper = service_instance.rename_path_mapper;
 
-    // Update the path components cache; right now we just want to collect
-    // the components name. After we generated the event, we will actually
-    // apply rename and delete operations
-    NodeReferenceInfo node_ref_info = {};
-    node_ref_info.parent = journal_record.parent_ref_number;
-    node_ref_info.name = journal_record.name;
-
-    path_components_cache.insert(
-        {journal_record.node_ref_number, node_ref_info});
-
     // Track rename records so that we can merge them into a single event
     bool skip_record = false;
     USNJournalEventRecord old_name_record = {};
@@ -532,6 +499,16 @@ Status NTFSEventPublisher::run() {
     case USNJournalEventRecord::Type::FileRename_OldName: {
       rename_path_mapper.insert(
           {journal_record.node_ref_number, journal_record});
+
+      // Update the path components cache; right now we just want to collect
+      // the components name. After we generated the event, we will actually
+      // apply rename and delete operations
+      NodeReferenceInfo node_ref_info = {};
+      node_ref_info.parent = journal_record.parent_ref_number;
+      node_ref_info.name = journal_record.name;
+
+      path_components_cache.insert(
+          {journal_record.node_ref_number, node_ref_info});
 
       skip_record = true;
       break;
@@ -565,16 +542,24 @@ Status NTFSEventPublisher::run() {
     event.parent_ref_number = journal_record.parent_ref_number;
     event.drive_letter = journal_record.drive_letter;
 
-    auto status =
-        resolvePathFromComponentsCache(event.path,
-                                       path_components_cache,
-                                       journal_record.drive_letter,
-                                       journal_record.node_ref_number);
+    // NOTE(ww): TOCTOU here -- we're assuming that non-rename/delete
+    // events correspond to a still-live path on disk. This may be
+    // safe enough, provided that we can keep up.
+    // TODO(ww): Apart from the TOCTOU, this is also failing
+    // occasionally for files that do exist on disk, but only
+    // on the first call to look them up. I'm not sure why yet,
+    // but falling back on the parent FRN and building the path
+    // from it works for now.
+    auto status = getPathFromReferenceNumber(event.path,
+                                             path_components_cache,
+                                             journal_record.drive_letter,
+                                             journal_record.node_ref_number);
     if (!status.ok()) {
       status = getPathFromReferenceNumber(event.path,
                                           path_components_cache,
                                           journal_record.drive_letter,
-                                          journal_record.node_ref_number);
+                                          journal_record.parent_ref_number);
+
       if (!status.ok()) {
         if (journal_record.type !=
                 USNJournalEventRecord::Type::DirectoryDeletion &&
@@ -584,6 +569,9 @@ Status NTFSEventPublisher::run() {
 
         event.path = journal_record.name;
         event.partial = true;
+      }
+      else {
+        event.path.append("\\" + journal_record.name);
       }
     }
 
@@ -605,8 +593,7 @@ Status NTFSEventPublisher::run() {
     event_context->event_list.push_back(std::move(event));
 
     // Update the path components cache by deleting/renaming files that are no
-    // longer
-    // available
+    // longer available
     if (journal_record.type == USNJournalEventRecord::Type::DirectoryDeletion ||
         journal_record.type == USNJournalEventRecord::Type::FileDeletion) {
       auto it = path_components_cache.find(journal_record.node_ref_number);
