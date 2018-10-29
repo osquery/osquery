@@ -57,6 +57,10 @@ void NTFSEventSubscriber::readConfiguration() {
                          const std::vector<std::string>& files) {
         StringList solved_path_list = {};
         for (auto file : files) {
+          // NOTE(ww): This will remove nonexistent paths, even if
+          // they aren't patterns. For example, C:\foo\bar won't
+          // be monitored if it doesn't already exist at table/event
+          // creation time. Is that what we want?
           resolveFilePattern(file, solved_path_list);
         }
 
