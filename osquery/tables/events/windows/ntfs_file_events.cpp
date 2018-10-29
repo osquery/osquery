@@ -58,6 +58,7 @@ void NTFSEventSubscriber::readConfiguration() {
     for (auto file : files) {
       resolveFilePattern(file, solved_path_list);
     }
+
     path_categories[category] = solved_path_list;
   });
 
@@ -141,6 +142,11 @@ bool NTFSEventSubscriber::shouldEmit(const NTFSEventRecord& event) {
 
     // If this event has a parent FRN we've marked for monitoring,
     // we mark it for monitoring as well and emit it.
+    // NOTE(ww): This might cause unintuitive behavior when the user specifies
+    // a directory to monitor and a file within that directory to exclude -- we'll
+    // end up monitoring that file anyways, since we're tracking its parent FRN.
+    // Maybe just track all excluded files by pathname (at the cost of more memory),
+    // and only check that set here?
     if (write_frns.find(event.parent_ref_number) != write_frns.end()) {
       TLOG << "Found event's parent FRN in a monitoring list, saving FRN and emitting";
       write_frns.insert(event.node_ref_number);
@@ -352,16 +358,15 @@ NTFSFileEventsConfiguration ProcessConfiguration(
                                      NULL, OPEN_EXISTING,
                                      FILE_FLAG_BACKUP_SEMANTICS, NULL);
 
-      // This can fail because the user specifies a path that doesn't exist yet,
-      // which is a supported case. We'll grab that FRN later, when the file
-      // actually does come into existence.
+      // resolveFilePattern should filter out any nonexistent files,
+      // so this should never be the case (except for TOCTOU).
       if (file_hnd == INVALID_HANDLE_VALUE) {
         TLOG << "Couldn't open " << path << " while buiding FRN set";
         continue;
       }
 
       // NOTE(ww): This shouldn't fail once we have a valid handle, but there's
-      // a TOCTOU here: another process could delete the file before we get
+      // another TOCTOU here: another process could delete the file before we get
       // its information. We don't want to lock the file, though, since it could
       // be something imporant used by another process.
       FILE_ID_INFO file_id_info;
