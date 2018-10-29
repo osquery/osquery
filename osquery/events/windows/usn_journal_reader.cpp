@@ -445,9 +445,7 @@ Status USNJournalReader::DecompressRecord(
 
     if (emit_record) {
       if (FLAGS_usn_journal_reader_debug) {
-        std::stringstream buffer;
-        buffer << new_record << "\n";
-        std::cout << buffer.str();
+        TLOG << new_record;
       }
 
       new_records.push_back(std::move(new_record));

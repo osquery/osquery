@@ -599,10 +599,7 @@ Status NTFSEventPublisher::run() {
     }
 
     if (FLAGS_ntfs_event_publisher_debug) {
-      std::stringstream buffer;
-      buffer << "NTFSEventPublisher event: " << event << "\n";
-
-      std::cout << buffer.str();
+      TLOG << "NTFSEventPublisher event: " << event;
     }
 
     event_context->event_list.push_back(std::move(event));

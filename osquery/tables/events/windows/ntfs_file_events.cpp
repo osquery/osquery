@@ -339,8 +339,6 @@ NTFSFileEventsConfiguration ProcessConfiguration(
     // so we need to pass FILE_FLAG_BACKUP_SEMANTICS rather
     // than FILE_ATTRIBUTE_NORMAL.
     for (const auto& path : path_list) {
-      TLOG << "Non-filtered path: " << path;
-
       HANDLE file_hnd = ::CreateFile(path.c_str(),
                                      GENERIC_READ,
                                      FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -395,10 +393,8 @@ NTFSFileEventsConfiguration ProcessConfiguration(
     for (const auto& path : path_list) {
       path_destination->insert(path);
     }
-
     for (const auto& frn : frn_set) {
       frn_destination->insert(frn);
-      TLOG << "FRN: " << frn.str();
     }
   }
 
