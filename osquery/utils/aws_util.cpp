@@ -202,6 +202,13 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
   return response;
 }
 
+std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
+    const std::shared_ptr<Aws::Http::HttpRequest>& request,
+    Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
+    Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
+  return MakeRequest(*request, readLimiter, writeLimiter);
+}
+
 Aws::Auth::AWSCredentials
 OsqueryFlagsAWSCredentialsProvider::GetAWSCredentials() {
   // Note that returning empty credentials means the provider chain will just

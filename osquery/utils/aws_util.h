@@ -71,6 +71,11 @@ class OsqueryHttpClient : public Aws::Http::HttpClient {
       Aws::Utils::RateLimits::RateLimiterInterface* readLimiter = nullptr,
       Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter =
           nullptr) const override;
+  std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
+      const std::shared_ptr<Aws::Http::HttpRequest>& request,
+      Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
+      Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter)
+      const override;
 };
 
 /**

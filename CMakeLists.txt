@@ -220,6 +220,7 @@ elseif(WINDOWS)
   add_definitions(
     -DWIN32_LEAN_AND_MEAN
     -DBOOST_ALL_NO_LIB
+    -DAWS_DISABLE_DEPRECATION
   )
 endif()
 
