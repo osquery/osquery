@@ -61,7 +61,7 @@ std::ostream& operator<<(std::ostream& stream, const NTFSEventRecord& event) {
   stream.flags(original_stream_settings);
   return stream;
 };
-}
+} // namespace
 
 /// Private class data
 struct NTFSEventPublisher::PrivateData final {
@@ -170,14 +170,14 @@ NTFSEventPublisherConfiguration NTFSEventPublisher::readConfiguration() {
 
   // We are not going to expand the paths, as we just need to get the
   // drive letter in order to restart the reader services
-  Config::get().files([&configuration](
-      const std::string& category, const std::vector<std::string>& path_list) {
-
-    for (const auto& path : path_list) {
-      const auto& drive_letter = static_cast<char>(::toupper(path.front()));
-      configuration.insert(drive_letter);
-    }
-  });
+  Config::get().files(
+      [&configuration](const std::string& category,
+                       const std::vector<std::string>& path_list) {
+        for (const auto& path : path_list) {
+          const auto& drive_letter = static_cast<char>(::toupper(path.front()));
+          configuration.insert(drive_letter);
+        }
+      });
 
   return configuration;
 }

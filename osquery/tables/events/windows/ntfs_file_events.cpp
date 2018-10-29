@@ -52,15 +52,16 @@ void NTFSEventSubscriber::readConfiguration() {
   // List the paths in file_paths
   std::unordered_map<std::string, StringList> path_categories;
 
-  Config::get().files([&path_categories](
-      const std::string& category, const std::vector<std::string>& files) {
-    StringList solved_path_list = {};
-    for (auto file : files) {
-      resolveFilePattern(file, solved_path_list);
-    }
+  Config::get().files(
+      [&path_categories](const std::string& category,
+                         const std::vector<std::string>& files) {
+        StringList solved_path_list = {};
+        for (auto file : files) {
+          resolveFilePattern(file, solved_path_list);
+        }
 
-    path_categories[category] = solved_path_list;
-  });
+        path_categories[category] = solved_path_list;
+      });
 
   // List the excluded paths
   std::unordered_map<std::string, StringList> exclude_paths;
@@ -68,7 +69,7 @@ void NTFSEventSubscriber::readConfiguration() {
   if (json_document.HasMember("exclude_paths")) {
     auto& json_exclude_paths = json_document["exclude_paths"].GetObject();
 
-    for (auto &it : json_exclude_paths) {
+    for (auto& it : json_exclude_paths) {
       auto category_name = it.name.GetString();
       StringList path_list = {};
 
@@ -116,18 +117,14 @@ bool NTFSEventSubscriber::isWriteOperation(
 }
 
 bool NTFSEventSubscriber::shouldEmit(const NTFSEventRecord& event) {
-  const auto& write_paths =
-      d->configuration.write_paths;
-  auto& write_frns =
-      d->configuration.write_frns;
-  const auto& access_paths =
-      d->configuration.access_paths;
-  auto& access_frns =
-      d->configuration.access_frns;
+  const auto& write_paths = d->configuration.write_paths;
+  const auto& access_paths = d->configuration.access_paths;
+  auto& write_frns = d->configuration.write_frns;
+  auto& access_frns = d->configuration.access_frns;
 
   // TODO(ww): Should we look for FileDeletion events and remove the FRN when
-  // we encounter them? Does NTFS recycle FRNs? Does it matter in terms of memory
-  // consumption?
+  // we encounter them? Does NTFS recycle FRNs? Does it matter in terms of
+  // memory consumption?
   if (isWriteOperation(event.type)) {
     bool frn_found =
         write_frns.find(event.node_ref_number) != write_frns.end() ||
@@ -136,24 +133,20 @@ bool NTFSEventSubscriber::shouldEmit(const NTFSEventRecord& event) {
     // If this event has an FRN we've marked for monitoring,
     // we emit it.
     if (frn_found) {
-      TLOG << "Found event's FRN in a monitoring list, emitting";
       return true;
     }
 
     // If this event has a parent FRN we've marked for monitoring,
     // we mark it for monitoring as well and emit it.
     // NOTE(ww): This might cause unintuitive behavior when the user specifies
-    // a directory to monitor and a file within that directory to exclude -- we'll
-    // end up monitoring that file anyways, since we're tracking its parent FRN.
-    // Maybe just track all excluded files by pathname (at the cost of more memory),
-    // and only check that set here?
+    // a directory to monitor and a file within that directory to exclude --
+    // we'll end up monitoring that file anyways, since we're tracking its
+    // parent FRN. Maybe just track all excluded files by pathname (at the cost
+    // of more memory), and only check that set here?
     if (write_frns.find(event.parent_ref_number) != write_frns.end()) {
-      TLOG << "Found event's parent FRN in a monitoring list, saving FRN and emitting";
       write_frns.insert(event.node_ref_number);
       return true;
-    }
-    else if (access_frns.find(event.parent_ref_number) != access_frns.end()) {
-      TLOG << "Found event's parent FRN in a monitoring list, saving FRN and emitting";
+    } else if (access_frns.find(event.parent_ref_number) != access_frns.end()) {
       access_frns.insert(event.node_ref_number);
       return true;
     }
@@ -162,13 +155,11 @@ bool NTFSEventSubscriber::shouldEmit(const NTFSEventRecord& event) {
     // the event might have a path that we've marked for monitoring.
     // If so, mark the new FRN for monitoring.
     if (write_paths.find(event.path) != write_paths.end()) {
-      TLOG << "Found event's path in a monitoring list, saving FRN and emitting";
       write_frns.insert(event.node_ref_number);
       return true;
     }
 
     if (access_paths.find(event.path) != access_paths.end()) {
-      TLOG << "Found event's path in a monitoring list, saving FRN and emitting";
       access_frns.insert(event.node_ref_number);
       return true;
     }
@@ -176,38 +167,31 @@ bool NTFSEventSubscriber::shouldEmit(const NTFSEventRecord& event) {
     // Finally, the event might have an old path we're interested in.
     // Likewise, mark the FRN for monitoring.
     if (write_paths.find(event.old_path) != write_paths.end()) {
-      TLOG << "Found event's old path in a monitoring list, saving FRN and emitting";
       write_frns.insert(event.node_ref_number);
       return true;
     }
 
     if (access_paths.find(event.old_path) != access_paths.end()) {
-      TLOG << "Found event's old path in a monitoring list, saving FRN and emitting";
       access_frns.insert(event.node_ref_number);
       return true;
     }
 
     return false;
   } else {
-    TLOG << "Non-write event: " << event.type << " on: " << event.path;
     // TODO(ww): Why assert here? Does NTFS guarantee that non-write events
     // will never contain an old path?
     assert(event.old_path.empty());
 
-    if (access_frns.find(event.node_ref_number) !=
-        access_frns.end()) {
+    if (access_frns.find(event.node_ref_number) != access_frns.end()) {
       return true;
     }
 
-    if (access_frns.find(event.parent_ref_number) !=
-        access_frns.end()) {
-      TLOG << "Found non-write event's parent FRN in a monitoring list";
+    if (access_frns.find(event.parent_ref_number) != access_frns.end()) {
       access_frns.insert(event.node_ref_number);
       return true;
     }
 
     if (access_paths.find(event.path) != access_paths.end()) {
-      TLOG << "Found non-write event's path in a monitoring list";
       access_frns.insert(event.node_ref_number);
       return true;
     }
@@ -353,10 +337,13 @@ NTFSFileEventsConfiguration ProcessConfiguration(
     for (const auto& path : path_list) {
       TLOG << "Non-filtered path: " << path;
 
-      HANDLE file_hnd = ::CreateFile(path.c_str(), GENERIC_READ,
+      HANDLE file_hnd = ::CreateFile(path.c_str(),
+                                     GENERIC_READ,
                                      FILE_SHARE_READ | FILE_SHARE_WRITE,
-                                     NULL, OPEN_EXISTING,
-                                     FILE_FLAG_BACKUP_SEMANTICS, NULL);
+                                     NULL,
+                                     OPEN_EXISTING,
+                                     FILE_FLAG_BACKUP_SEMANTICS,
+                                     NULL);
 
       // resolveFilePattern should filter out any nonexistent files,
       // so this should never be the case (except for TOCTOU).
@@ -366,12 +353,12 @@ NTFSFileEventsConfiguration ProcessConfiguration(
       }
 
       // NOTE(ww): This shouldn't fail once we have a valid handle, but there's
-      // another TOCTOU here: another process could delete the file before we get
-      // its information. We don't want to lock the file, though, since it could
-      // be something imporant used by another process.
+      // another TOCTOU here: another process could delete the file before we
+      // get its information. We don't want to lock the file, though, since it
+      // could be something imporant used by another process.
       FILE_ID_INFO file_id_info;
-      if (!::GetFileInformationByHandleEx(file_hnd, FileIdInfo, &file_id_info,
-                                          sizeof(file_id_info))) {
+      if (!::GetFileInformationByHandleEx(
+              file_hnd, FileIdInfo, &file_id_info, sizeof(file_id_info))) {
         TLOG << "Couldn't get FRN for " << path << " while building FRN set";
         ::CloseHandle(file_hnd);
         continue;

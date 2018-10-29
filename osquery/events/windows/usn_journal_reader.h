@@ -232,7 +232,7 @@ bool GetEventType(USNJournalEventRecord::Type& type,
 
 /// Acquires the string buffer from the record
 bool GetEventString(std::string& buffer, const USN_RECORD* record);
-}
+} // namespace USNParsers
 
 /// Prints the given record type
 std::ostream& operator<<(std::ostream& stream,

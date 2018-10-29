@@ -169,7 +169,7 @@ DWORD GetUSNChangeReasonFlagMask() {
 
   return result;
 }
-}
+} // namespace
 
 struct USNJournalReader::PrivateData final {
   /// Shared data between this service and the publisher
@@ -788,7 +788,7 @@ bool GetEventString(std::string& buffer, const USN_RECORD* record) {
 
   return true;
 }
-}
+} // namespace USNParsers
 
 std::ostream& operator<<(std::ostream& stream,
                          const USNJournalEventRecord::Type& type) {
