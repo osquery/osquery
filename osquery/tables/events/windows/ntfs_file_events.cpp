@@ -24,77 +24,6 @@
 namespace osquery {
 REGISTER(NTFSEventSubscriber, "event_subscriber", "ntfs_file_events");
 
-/// Private class data
-struct NTFSEventSubscriber::PrivateData final {
-  /// Shared data between the publisher and the subscriber
-  NTFSEventSubscriptionContextRef subscription_context;
-
-  /// List of paths that must be included or excluded from events
-  NTFSFileEventsConfiguration configuration;
-};
-
-void NTFSEventSubscriber::readConfiguration() {
-  d->configuration = {};
-
-  // List the categories in the file_accesses array
-  const auto& json = Config::getParser("file_paths")->getData();
-  const auto& json_document = json.doc();
-
-  StringList file_access_categories;
-  if (json_document.HasMember("file_accesses")) {
-    auto& json_file_accesses = json_document["file_acceses"].GetArray();
-
-    for (const auto& item : json_file_accesses) {
-      file_access_categories.push_back(item.GetString());
-    }
-  }
-
-  // List the paths in file_paths
-  std::unordered_map<std::string, StringList> path_categories;
-
-  Config::get().files(
-      [&path_categories](const std::string& category,
-                         const std::vector<std::string>& files) {
-        StringList solved_path_list = {};
-        for (auto file : files) {
-          // NOTE(ww): This will remove nonexistent paths, even if
-          // they aren't patterns. For example, C:\foo\bar won't
-          // be monitored if it doesn't already exist at table/event
-          // creation time. Is that what we want?
-          resolveFilePattern(file, solved_path_list);
-        }
-
-        path_categories[category] = solved_path_list;
-      });
-
-  // List the excluded paths
-  std::unordered_map<std::string, StringList> exclude_paths;
-
-  if (json_document.HasMember("exclude_paths")) {
-    auto& json_exclude_paths = json_document["exclude_paths"].GetObject();
-
-    for (auto& it : json_exclude_paths) {
-      auto category_name = it.name.GetString();
-      StringList path_list = {};
-
-      auto& array_object = json_exclude_paths[category_name].GetArray();
-      for (const auto& item : array_object) {
-        StringList solved_path_list = {};
-        resolveFilePattern(item.GetString(), solved_path_list);
-
-        path_list.insert(path_list.begin(),
-                         solved_path_list.begin(),
-                         solved_path_list.end());
-      }
-
-      exclude_paths.insert({category_name, path_list});
-    }
-  }
-
-  d->configuration = ProcessConfiguration(
-      file_access_categories, path_categories, exclude_paths);
-}
-
 bool NTFSEventSubscriber::isWriteOperation(
     const USNJournalEventRecord::Type& type) {
   switch (type) {
@@ -120,11 +49,11 @@ bool NTFSEventSubscriber::isWriteOperation(
   }
 }
 
-bool NTFSEventSubscriber::shouldEmit(const NTFSEventRecord& event) {
-  const auto& write_paths = d->configuration.write_paths;
-  const auto& access_paths = d->configuration.access_paths;
-  auto& write_frns = d->configuration.write_frns;
-  auto& access_frns = d->configuration.access_frns;
+bool NTFSEventSubscriber::shouldEmit(const SCRef& sc, const NTFSEventRecord& event) {
+  const auto& write_paths = sc->write_paths;
+  const auto& access_paths = sc->access_paths;
+  auto& write_frns = sc->write_frns;
+  auto& access_frns = sc->access_frns;
 
   // TODO(ww): Should we look for FileDeletion events and remove the FRN when
   // we encounter them? Does NTFS recycle FRNs? Does it matter in terms of
@@ -262,30 +191,73 @@ Row NTFSEventSubscriber::generateRowFromEvent(const NTFSEventRecord& event) {
   return row;
 }
 
-NTFSEventSubscriber::NTFSEventSubscriber() : d(new PrivateData) {}
+NTFSEventSubscriber::NTFSEventSubscriber() {}
 
 NTFSEventSubscriber::~NTFSEventSubscriber() {}
 
 Status NTFSEventSubscriber::init() {
-  d->subscription_context = createSubscriptionContext();
-  subscribe(&NTFSEventSubscriber::Callback, d->subscription_context);
-
   return Status(0);
 }
 
 void NTFSEventSubscriber::configure() {
-  readConfiguration();
+  // List the categories in the file_accesses array
+  const auto& json = Config::getParser("file_paths")->getData();
+  const auto& json_document = json.doc();
+
+  StringList access_categories;
+  if (json_document.HasMember("file_accesses")) {
+    auto& json_file_accesses = json_document["file_acceses"].GetArray();
+
+    for (const auto& item : json_file_accesses) {
+      access_categories.push_back(item.GetString());
+    }
+  }
+
+  Config::get().files(
+      [this, &json_document, &access_categories](
+          const std::string& category,
+          const std::vector<std::string>& files) {
+        StringList include_path_list = {};
+        for (auto file : files) {
+          // NOTE(ww): This will remove nonexistent paths, even if
+          // they aren't patterns. For example, C:\foo\bar won't
+          // be monitored if it doesn't already exist at table/event
+          // creation time. Is that what we want?
+          resolveFilePattern(file, include_path_list);
+        }
+
+        StringList exclude_path_list = {};
+
+        if (json_document.HasMember("exclude_paths") &&
+            json_document["exclude_paths"][category].IsArray()) {
+          const auto& excludes = json_document["exclude_paths"][category].GetArray();
+          for (const auto& exclude : excludes) {
+            resolveFilePattern(exclude.GetString(), exclude_path_list);
+          }
+        }
+
+        auto sc = createSubscriptionContext();
+
+        sc->category = category;
+        processConfiguration(sc,
+                             access_categories,
+                             include_path_list,
+                             exclude_path_list);
+
+        subscribe(&NTFSEventSubscriber::Callback, sc);
+      });
 }
 
 Status NTFSEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   std::vector<Row> emitted_row_list;
 
   for (const auto& event : ec->event_list) {
-    if (!shouldEmit(event)) {
+    if (!shouldEmit(sc, event)) {
       continue;
     }
 
     auto row = generateRowFromEvent(event);
+    row["category"] = TEXT(sc->category);
     emitted_row_list.push_back(row);
   }
 
@@ -297,107 +269,95 @@ Status NTFSEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 }
 
 // TODO(alessandro): Write a test for this
-NTFSFileEventsConfiguration ProcessConfiguration(
-    const StringList& file_access_categories,
-    std::unordered_map<std::string, StringList> path_categories,
-    const std::unordered_map<std::string, StringList>& exclude_paths) {
-  NTFSFileEventsConfiguration configuration = {};
+void processConfiguration(
+    NTFSEventSubscriptionContextRef context,
+    const StringList& access_categories,
+    StringList& include_paths,
+    StringList& exclude_paths) {
 
-  for (auto& path_category : path_categories) {
-    auto& category = path_category.first;
-    auto& path_list = path_category.second;
-    std::unordered_set<USNFileReferenceNumber> frn_set;
+  // clang-format off
+  auto path_erase_it = std::remove_if(
+    include_paths.begin(),
+    include_paths.end(),
 
-    // Remove excluded paths.
-    auto exclude_it = exclude_paths.find(category);
-    if (exclude_it != exclude_paths.end()) {
-      const auto& excluded_path_list = exclude_it->second;
-
-      // clang-format off
-      auto path_erase_it = std::remove_if(
-        path_list.begin(),
-        path_list.end(),
-
-        [excluded_path_list](const std::string &str) -> bool {
-          auto it = std::find(excluded_path_list.begin(), excluded_path_list.end(), str);
-          return it != excluded_path_list.end();
-        }
-      );
-      // clang-format on
-
-      if (path_erase_it != path_list.end()) {
-        path_list.erase(path_erase_it, path_list.end());
-      }
+    [exclude_paths](const std::string &str) -> bool {
+      auto it = std::find(exclude_paths.begin(), exclude_paths.end(), str);
+      return it != exclude_paths.end();
     }
+  );
+  // clang-format on
 
-    if (path_list.empty()) {
+  if (path_erase_it != include_paths.end()) {
+    include_paths.erase(path_erase_it, include_paths.end());
+  }
+
+  if (include_paths.empty()) {
+    return;
+  }
+
+  std::unordered_set<USNFileReferenceNumber> frn_set;
+
+  // Build the FRN set from the now-filtered paths.
+  // NOTE(ww): path can be either a file or a directory,
+  // so we need to pass FILE_FLAG_BACKUP_SEMANTICS rather
+  // than FILE_ATTRIBUTE_NORMAL.
+  for (const auto& path : include_paths) {
+    HANDLE file_hnd = ::CreateFile(path.c_str(),
+                                   GENERIC_READ,
+                                   FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                   NULL,
+                                   OPEN_EXISTING,
+                                   FILE_FLAG_BACKUP_SEMANTICS,
+                                   NULL);
+
+    // resolveFilePattern should filter out any nonexistent files,
+    // so this should never be the case (except for TOCTOU).
+    if (file_hnd == INVALID_HANDLE_VALUE) {
+      TLOG << "Couldn't open " << path << " while buiding FRN set";
       continue;
     }
 
-    // Build the FRN set from the now-filtered paths.
-    // NOTE(ww): path can be either a file or a directory,
-    // so we need to pass FILE_FLAG_BACKUP_SEMANTICS rather
-    // than FILE_ATTRIBUTE_NORMAL.
-    for (const auto& path : path_list) {
-      HANDLE file_hnd = ::CreateFile(path.c_str(),
-                                     GENERIC_READ,
-                                     FILE_SHARE_READ | FILE_SHARE_WRITE,
-                                     NULL,
-                                     OPEN_EXISTING,
-                                     FILE_FLAG_BACKUP_SEMANTICS,
-                                     NULL);
-
-      // resolveFilePattern should filter out any nonexistent files,
-      // so this should never be the case (except for TOCTOU).
-      if (file_hnd == INVALID_HANDLE_VALUE) {
-        TLOG << "Couldn't open " << path << " while buiding FRN set";
-        continue;
-      }
-
-      // NOTE(ww): This shouldn't fail once we have a valid handle, but there's
-      // another TOCTOU here: another process could delete the file before we
-      // get its information. We don't want to lock the file, though, since it
-      // could be something imporant used by another process.
-      FILE_ID_INFO file_id_info;
-      if (!::GetFileInformationByHandleEx(
-              file_hnd, FileIdInfo, &file_id_info, sizeof(file_id_info))) {
-        TLOG << "Couldn't get FRN for " << path << " while building FRN set";
-        ::CloseHandle(file_hnd);
-        continue;
-      }
+    // NOTE(ww): This shouldn't fail once we have a valid handle, but there's
+    // another TOCTOU here: another process could delete the file before we
+    // get its information. We don't want to lock the file, though, since it
+    // could be something imporant used by another process.
+    FILE_ID_INFO file_id_info;
+    if (!::GetFileInformationByHandleEx(
+            file_hnd, FileIdInfo, &file_id_info, sizeof(file_id_info))) {
+      TLOG << "Couldn't get FRN for " << path << " while building FRN set";
       ::CloseHandle(file_hnd);
+      continue;
+    }
+    ::CloseHandle(file_hnd);
 
-      const auto& byte_array = file_id_info.FileId.Identifier;
-      USNFileReferenceNumber frn;
-      boostmp::import_bits(frn,
-                           byte_array,
-                           byte_array + sizeof(FILE_ID_128::Identifier),
-                           0,
-                           false);
-      frn_set.insert(frn);
-    }
-
-    // Save the path and FRN sets.
-    std::unordered_set<std::string>* path_destination = nullptr;
-    std::unordered_set<USNFileReferenceNumber>* frn_destination = nullptr;
-    if (std::find(file_access_categories.begin(),
-                  file_access_categories.end(),
-                  category) != file_access_categories.end()) {
-      path_destination = &configuration.access_paths;
-      frn_destination = &configuration.access_frns;
-    } else {
-      path_destination = &configuration.write_paths;
-      frn_destination = &configuration.write_frns;
-    }
-
-    for (const auto& path : path_list) {
-      path_destination->insert(path);
-    }
-    for (const auto& frn : frn_set) {
-      frn_destination->insert(frn);
-    }
+    const auto& byte_array = file_id_info.FileId.Identifier;
+    USNFileReferenceNumber frn;
+    boostmp::import_bits(frn,
+                         byte_array,
+                         byte_array + sizeof(FILE_ID_128::Identifier),
+                         0,
+                         false);
+    frn_set.insert(frn);
   }
 
-  return configuration;
+  // Save the path and FRN sets.
+  std::unordered_set<std::string>* path_destination = nullptr;
+  std::unordered_set<USNFileReferenceNumber>* frn_destination = nullptr;
+  if (std::find(access_categories.begin(),
+                access_categories.end(),
+                context->category) != access_categories.end()) {
+    path_destination = &context->access_paths;
+    frn_destination = &context->access_frns;
+  } else {
+    path_destination = &context->write_paths;
+    frn_destination = &context->write_frns;
+  }
+
+  for (const auto& path : include_paths) {
+    path_destination->insert(path);
+  }
+  for (const auto& frn : frn_set) {
+    frn_destination->insert(frn);
+  }
 }
 } // namespace osquery

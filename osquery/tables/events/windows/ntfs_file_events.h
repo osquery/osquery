@@ -16,19 +16,11 @@
 namespace osquery {
 /// Subscriber for file change events
 class NTFSEventSubscriber final : public EventSubscriber<NTFSEventPublisher> {
-  struct PrivateData;
-
-  /// Private class data
-  std::unique_ptr<PrivateData> d;
-
-  /// Reads the configuration from the configuration file
-  void readConfiguration();
-
   /// Returns true if the specified event is a write operation
   bool isWriteOperation(const USNJournalEventRecord::Type& type);
 
   /// Returns true if the specified event should be emitted
-  bool shouldEmit(const NTFSEventRecord& event);
+  bool shouldEmit(const SCRef& sc, const NTFSEventRecord& event);
 
   /// Generates a row from the specified event
   Row generateRowFromEvent(const NTFSEventRecord& event);
@@ -53,27 +45,10 @@ class NTFSEventSubscriber final : public EventSubscriber<NTFSEventPublisher> {
 /// A simple vector of strings
 using StringList = std::vector<std::string>;
 
-/// Configuration for the ntfs_file_events table
-struct NTFSFileEventsConfiguration final {
-  /// Collection of paths that should only be included during write or
-  /// delete operations.
-  std::unordered_set<std::string> write_paths;
-
-  /// Collection of file reference numbers that should only be included
-  /// during write or delete operations.
-  std::unordered_set<USNFileReferenceNumber> write_frns;
-
-  /// Collection of paths that must always be included (even for reads).
-  std::unordered_set<std::string> access_paths;
-
-  /// Collection of file reference numbers that must always be included
-  /// (even for reads).
-  std::unordered_set<USNFileReferenceNumber> access_frns;
-};
-
 /// Processes the configuration
-NTFSFileEventsConfiguration ProcessConfiguration(
-    const StringList& file_access_categories,
-    std::unordered_map<std::string, StringList> path_categories,
-    const std::unordered_map<std::string, StringList>& exclude_paths);
+void processConfiguration(
+    NTFSEventSubscriptionContextRef context,
+    const StringList& access_categories,
+    StringList& include_paths,
+    StringList& exclude_paths);
 } // namespace osquery

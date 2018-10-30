@@ -24,7 +24,25 @@
 namespace osquery {
 /// The subscription context contains the list of paths the subscriber is
 /// interested in
-struct NTFSEventSubscriptionContext final : public SubscriptionContext {
+struct NTFSEventSubscriptionContext : public SubscriptionContext {
+  /// The category that this event originated from.
+  std::string category;
+
+  /// Collection of paths that should only be included during write or
+  /// delete operations.
+  std::unordered_set<std::string> write_paths;
+
+  /// Collection of file reference numbers that should only be included
+  /// during write or delete operations.
+  std::unordered_set<USNFileReferenceNumber> write_frns;
+
+  /// Collection of paths that must always be included (even for reads).
+  std::unordered_set<std::string> access_paths;
+
+  /// Collection of file reference numbers that must always be included
+  /// (even for reads).
+  std::unordered_set<USNFileReferenceNumber> access_frns;
+
  private:
   friend class FileEventPublisher;
 };

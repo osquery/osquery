@@ -2,7 +2,8 @@ table_name("ntfs_file_events")
 description("Track time/action changes to files specified in configuration data.")
 
 schema ([
-    Column("action", TEXT, "Change action (UPDATE, REMOVE, etc)"),
+    Column("action", TEXT, "Change action (Write, Delete, etc)"),
+    Column("category", TEXT, "The category that the event originated from"),
     Column("old_path", TEXT, "Old path (renames only)"),
     Column("path", TEXT, "Path"),
     Column("record_timestamp", TEXT, "Journal record timestamp"),
