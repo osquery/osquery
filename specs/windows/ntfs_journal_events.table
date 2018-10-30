@@ -1,4 +1,4 @@
-table_name("ntfs_file_events")
+table_name("ntfs_journal_events")
 description("Track time/action changes to files specified in configuration data.")
 
 schema ([
@@ -18,4 +18,4 @@ schema ([
 ])
 
 attributes(event_subscriber=True)
-implementation("ntfs_file_events@NTFSEventSubscriber::genTable")
+implementation("ntfs_journal_events@NTFSEventSubscriber::genTable")

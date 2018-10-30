@@ -19,10 +19,10 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/json.h"
-#include "osquery/tables/events/windows/ntfs_file_events.h"
+#include "osquery/tables/events/windows/ntfs_journal_events.h"
 
 namespace osquery {
-REGISTER(NTFSEventSubscriber, "event_subscriber", "ntfs_file_events");
+REGISTER(NTFSEventSubscriber, "event_subscriber", "ntfs_journal_events");
 
 bool NTFSEventSubscriber::isWriteOperation(
     const USNJournalEventRecord::Type& type) {
@@ -268,7 +268,7 @@ Status NTFSEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 }
 
 // TODO(alessandro): Write a test for this
-void processConfiguration(NTFSEventSubscriptionContextRef context,
+void processConfiguration(const NTFSEventSubscriptionContextRef context,
                           const StringList& access_categories,
                           StringList& include_paths,
                           StringList& exclude_paths) {
