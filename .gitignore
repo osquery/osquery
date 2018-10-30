@@ -75,5 +75,7 @@ cscope.out
 .buckd/
 buck-out/
 
-# Windows system specific toolchain paths
+# Windows system specific toolchain and python paths
 tools/buckconfigs/windows-x86_64/toolchain/vsToolchainFlags.bcfg
+tools/buckconfigs/windows-x86_64/toolchain/vs2017_15.5.bcfg
+tools/buckconfigs/windows-x86_64/python/default.bcfg
