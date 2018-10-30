@@ -46,9 +46,8 @@ class NTFSEventSubscriber final : public EventSubscriber<NTFSEventPublisher> {
 using StringList = std::vector<std::string>;
 
 /// Processes the configuration
-void processConfiguration(
-    NTFSEventSubscriptionContextRef context,
-    const StringList& access_categories,
-    StringList& include_paths,
-    StringList& exclude_paths);
+void processConfiguration(NTFSEventSubscriptionContextRef context,
+                          const StringList& access_categories,
+                          StringList& include_paths,
+                          StringList& exclude_paths);
 } // namespace osquery

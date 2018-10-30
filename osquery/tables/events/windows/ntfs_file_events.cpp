@@ -49,7 +49,8 @@ bool NTFSEventSubscriber::isWriteOperation(
   }
 }
 
-bool NTFSEventSubscriber::shouldEmit(const SCRef& sc, const NTFSEventRecord& event) {
+bool NTFSEventSubscriber::shouldEmit(const SCRef& sc,
+                                     const NTFSEventRecord& event) {
   const auto& write_paths = sc->write_paths;
   const auto& access_paths = sc->access_paths;
   auto& write_frns = sc->write_frns;
@@ -215,8 +216,7 @@ void NTFSEventSubscriber::configure() {
 
   Config::get().files(
       [this, &json_document, &access_categories](
-          const std::string& category,
-          const std::vector<std::string>& files) {
+          const std::string& category, const std::vector<std::string>& files) {
         StringList include_path_list = {};
         for (auto file : files) {
           // NOTE(ww): This will remove nonexistent paths, even if
@@ -230,7 +230,8 @@ void NTFSEventSubscriber::configure() {
 
         if (json_document.HasMember("exclude_paths") &&
             json_document["exclude_paths"][category].IsArray()) {
-          const auto& excludes = json_document["exclude_paths"][category].GetArray();
+          const auto& excludes =
+              json_document["exclude_paths"][category].GetArray();
           for (const auto& exclude : excludes) {
             resolveFilePattern(exclude.GetString(), exclude_path_list);
           }
@@ -239,10 +240,8 @@ void NTFSEventSubscriber::configure() {
         auto sc = createSubscriptionContext();
 
         sc->category = category;
-        processConfiguration(sc,
-                             access_categories,
-                             include_path_list,
-                             exclude_path_list);
+        processConfiguration(
+            sc, access_categories, include_path_list, exclude_path_list);
 
         subscribe(&NTFSEventSubscriber::Callback, sc);
       });
@@ -269,12 +268,10 @@ Status NTFSEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 }
 
 // TODO(alessandro): Write a test for this
-void processConfiguration(
-    NTFSEventSubscriptionContextRef context,
-    const StringList& access_categories,
-    StringList& include_paths,
-    StringList& exclude_paths) {
-
+void processConfiguration(NTFSEventSubscriptionContextRef context,
+                          const StringList& access_categories,
+                          StringList& include_paths,
+                          StringList& exclude_paths) {
   // clang-format off
   auto path_erase_it = std::remove_if(
     include_paths.begin(),
