@@ -91,18 +91,9 @@ struct NTFSEventContext final : public EventContext {
 
 using NTFSEventContextRef = std::shared_ptr<NTFSEventContext>;
 
-/// This structure is used for the path components cache
-struct NodeReferenceInfo final {
-  /// Parent file reference number
-  USNFileReferenceNumber parent;
-
-  /// File or folder name
-  std::string name;
-};
-
-/// The path components cache maps reference numbers to node names
-using PathComponentsCache =
-    std::unordered_map<USNFileReferenceNumber, NodeReferenceInfo>;
+/// The ParentFRNCache maps parent FRNs to directory names
+using ParentFRNCache =
+    std::unordered_map<USNFileReferenceNumber, std::string>;
 
 /// This structure describes a running USNJournalReader instance
 struct USNJournalReaderInstance final {
@@ -111,6 +102,9 @@ struct USNJournalReaderInstance final {
 
   /// The shared context
   USNJournalReaderContextRef context;
+
+  /// This cache contains a mapping from parent FRN to directory name.
+  ParentFRNCache parent_frn_cache;
 
   /// This map is used to merge the rename records (old name and new name) into
   /// a single event. It is ordered so that we can delete data starting from the
@@ -152,6 +146,7 @@ class NTFSEventPublisher final
 
   /// Attempts to get the full path for `basename` via its parent FRN.
   Status getPathFromParentFRN(std::string& path,
+                              ParentFRNCache& parent_frn_cache,
                               char drive_letter,
                               const std::string& basename,
                               const USNFileReferenceNumber& ref);

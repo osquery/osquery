@@ -291,14 +291,24 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
 
 Status NTFSEventPublisher::getPathFromParentFRN(
   std::string& path,
+  ParentFRNCache& parent_frn_cache,
   char drive_letter,
   const std::string& basename,
   const USNFileReferenceNumber& ref) {
 
-  Status status = getPathFromReferenceNumber(path, drive_letter, ref);
+  auto& it = parent_frn_cache.find(ref);
 
-  if (!status.ok()) {
-    return status;
+  if (it == parent_frn_cache.end()) {
+    Status status = getPathFromReferenceNumber(path, drive_letter, ref);
+
+    if (!status.ok()) {
+      return status;
+    }
+
+    parent_frn_cache[ref] = path;
+  }
+  else {
+    path = it->second;
   }
 
   path.append("\\" + basename);
@@ -478,6 +488,7 @@ Status NTFSEventPublisher::run() {
 
     auto& service_instance = service_it->second;
 
+    auto& parent_frn_cache = service_instance.parent_frn_cache;
     auto& rename_path_mapper = service_instance.rename_path_mapper;
 
     // Track rename records so that we can merge them into a single event
@@ -490,18 +501,25 @@ Status NTFSEventPublisher::run() {
       rename_path_mapper.insert(
           {journal_record.node_ref_number, journal_record});
 
-      // Update the path components cache; right now we just want to collect
-      // the components name. After we generated the event, we will actually
-      // apply rename and delete operations
-      NodeReferenceInfo node_ref_info = {};
-      node_ref_info.parent = journal_record.parent_ref_number;
-      node_ref_info.name = journal_record.name;
-
       skip_record = true;
       break;
     }
 
-    case USNJournalEventRecord::Type::DirectoryRename_NewName:
+    case USNJournalEventRecord::Type::DirectoryRename_NewName: {
+      // If we're renaming a directory, update the parent FRN cache.
+      std::string dir;
+      auto status = getPathFromReferenceNumber(dir,
+                                               journal_record.drive_letter,
+                                               journal_record.node_ref_number);
+
+      if (!status.ok()) {
+        TLOG << "Failed to get directory for parent FRN cache update";
+      }
+      else {
+        parent_frn_cache[journal_record.node_ref_number] = dir;
+      }
+      // Intentional fallthrough.
+    }
     case USNJournalEventRecord::Type::FileRename_NewName: {
       auto it = rename_path_mapper.find(journal_record.node_ref_number);
       if (it == rename_path_mapper.end()) {
@@ -529,14 +547,10 @@ Status NTFSEventPublisher::run() {
     event.parent_ref_number = journal_record.parent_ref_number;
     event.drive_letter = journal_record.drive_letter;
 
-    // NOTE(ww): TOCTOU here -- we're assuming that non-rename/delete
-    // events correspond to a still-live path on disk. This may be
-    // safe enough, provided that we can keep up.
-    // TODO(ww): Apart from the TOCTOU, this is also failing
-    // occasionally for files that do exist on disk, but only
-    // on the first call to look them up. I'm not sure why yet,
-    // but falling back on the parent FRN and building the path
-    // from it works for now.
+    // TODO(ww): This is failing occasionally for files that do exist
+    // on disk, but only on the first call to look them up. I'm not
+    // sure why yet, but falling back on the parent FRN cache and
+    // building the path from it works for now.
     auto status = getPathFromReferenceNumber(event.path,
                                              journal_record.drive_letter,
                                              journal_record.node_ref_number);
@@ -544,6 +558,7 @@ Status NTFSEventPublisher::run() {
       TLOG << "FRN pathname lookup failed, trying parent: " << status.getMessage();
 
       status = getPathFromParentFRN(event.path,
+                                    parent_frn_cache,
                                     journal_record.drive_letter,
                                     journal_record.name,
                                     journal_record.parent_ref_number);
@@ -562,9 +577,10 @@ Status NTFSEventPublisher::run() {
 
     if (old_name_record.node_ref_number != 0U) {
       status = getPathFromParentFRN(event.old_path,
+                                    parent_frn_cache,
                                     old_name_record.drive_letter,
                                     old_name_record.name,
-                                    old_name_record.node_ref_number);
+                                    old_name_record.parent_ref_number);
       if (!status.ok()) {
         VLOG(1) << status.getMessage();
         event.partial = true;
@@ -579,9 +595,12 @@ Status NTFSEventPublisher::run() {
   }
 
   // Put a limit on the size of the caches we are using
+  // NOTE(ww): We could also try to incrementally free up
+  // the parent FRN cache by tracking DirectoryDeletions.
   for (auto& p : d->reader_service_map) {
     auto& service_instance = p.second;
 
+    auto& parent_frn_cache = service_instance.parent_frn_cache;
     auto& rename_path_mapper = service_instance.rename_path_mapper;
 
     if (rename_path_mapper.size() >= 2000U) {
@@ -589,6 +608,13 @@ Status NTFSEventPublisher::run() {
       auto range_end = std::next(range_start, 1000U);
 
       rename_path_mapper.erase(range_start, range_end);
+    }
+
+    if (parent_frn_cache.size() >= 2000U) {
+      auto range_start = parent_frn_cache.begin();
+      auto range_end = std::next(range_start, 1000U);
+
+      parent_frn_cache.erase(range_start, range_end);
     }
   }
 
