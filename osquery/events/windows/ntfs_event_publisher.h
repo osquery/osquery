@@ -92,8 +92,7 @@ struct NTFSEventContext final : public EventContext {
 using NTFSEventContextRef = std::shared_ptr<NTFSEventContext>;
 
 /// The ParentFRNCache maps parent FRNs to directory names
-using ParentFRNCache =
-    std::unordered_map<USNFileReferenceNumber, std::string>;
+using ParentFRNCache = std::unordered_map<USNFileReferenceNumber, std::string>;
 
 /// This structure describes a running USNJournalReader instance
 struct USNJournalReaderInstance final {

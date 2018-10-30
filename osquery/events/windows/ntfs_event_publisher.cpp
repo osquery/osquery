@@ -183,9 +183,7 @@ NTFSEventPublisherConfiguration NTFSEventPublisher::readConfiguration() {
 }
 
 Status NTFSEventPublisher::getPathFromReferenceNumber(
-    std::string& path,
-    char drive_letter,
-    const USNFileReferenceNumber& ref) {
+    std::string& path, char drive_letter, const USNFileReferenceNumber& ref) {
   path.clear();
 
   // Get the root folder handle
@@ -290,12 +288,11 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
 }
 
 Status NTFSEventPublisher::getPathFromParentFRN(
-  std::string& path,
-  ParentFRNCache& parent_frn_cache,
-  char drive_letter,
-  const std::string& basename,
-  const USNFileReferenceNumber& ref) {
-
+    std::string& path,
+    ParentFRNCache& parent_frn_cache,
+    char drive_letter,
+    const std::string& basename,
+    const USNFileReferenceNumber& ref) {
   auto& it = parent_frn_cache.find(ref);
 
   if (it == parent_frn_cache.end()) {
@@ -306,8 +303,7 @@ Status NTFSEventPublisher::getPathFromParentFRN(
     }
 
     parent_frn_cache[ref] = path;
-  }
-  else {
+  } else {
     path = it->second;
   }
 
@@ -508,14 +504,12 @@ Status NTFSEventPublisher::run() {
     case USNJournalEventRecord::Type::DirectoryRename_NewName: {
       // If we're renaming a directory, update the parent FRN cache.
       std::string dir;
-      auto status = getPathFromReferenceNumber(dir,
-                                               journal_record.drive_letter,
-                                               journal_record.node_ref_number);
+      auto status = getPathFromReferenceNumber(
+          dir, journal_record.drive_letter, journal_record.node_ref_number);
 
       if (!status.ok()) {
         TLOG << "Failed to get directory for parent FRN cache update";
-      }
-      else {
+      } else {
         parent_frn_cache[journal_record.node_ref_number] = dir;
       }
       // Intentional fallthrough.
@@ -555,7 +549,8 @@ Status NTFSEventPublisher::run() {
                                              journal_record.drive_letter,
                                              journal_record.node_ref_number);
     if (!status.ok()) {
-      TLOG << "FRN pathname lookup failed, trying parent: " << status.getMessage();
+      TLOG << "FRN pathname lookup failed, trying parent: "
+           << status.getMessage();
 
       status = getPathFromParentFRN(event.path,
                                     parent_frn_cache,
