@@ -182,34 +182,8 @@ NTFSEventPublisherConfiguration NTFSEventPublisher::readConfiguration() {
   return configuration;
 }
 
-Status NTFSEventPublisher::resolvePathFromComponentsCache(
-    std::string& path,
-    PathComponentsCache& path_components_cache,
-    char drive_letter,
-    const USNFileReferenceNumber& ref) {
-  path.clear();
-
-  auto it = path_components_cache.find(ref);
-
-  if (it == path_components_cache.end()) {
-    return Status(1, "Failed to build the path from the components cache");
-  }
-
-  auto& node_info = it->second;
-  getPathFromReferenceNumber(path,
-                             path_components_cache,
-                             drive_letter,
-                             node_info.parent);
-
-  path.append("\\");
-  path.append(node_info.name);
-
-  return Status(0);
-}
-
 Status NTFSEventPublisher::getPathFromReferenceNumber(
     std::string& path,
-    PathComponentsCache& path_components_cache,
     char drive_letter,
     const USNFileReferenceNumber& ref) {
   path.clear();
@@ -311,6 +285,23 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
   // Paths follow this form: \\?\C:\\path\\to\\folder; skip the prefix
   path = buffer.c_str() + 4;
   buffer.clear();
+
+  return Status(0);
+}
+
+Status NTFSEventPublisher::getPathFromParentFRN(
+  std::string& path,
+  char drive_letter,
+  const std::string& basename,
+  const USNFileReferenceNumber& ref) {
+
+  Status status = getPathFromReferenceNumber(path, drive_letter, ref);
+
+  if (!status.ok()) {
+    return status;
+  }
+
+  path.append("\\" + basename);
 
   return Status(0);
 }
@@ -487,7 +478,6 @@ Status NTFSEventPublisher::run() {
 
     auto& service_instance = service_it->second;
 
-    auto& path_components_cache = service_instance.path_components_cache;
     auto& rename_path_mapper = service_instance.rename_path_mapper;
 
     // Track rename records so that we can merge them into a single event
@@ -506,9 +496,6 @@ Status NTFSEventPublisher::run() {
       NodeReferenceInfo node_ref_info = {};
       node_ref_info.parent = journal_record.parent_ref_number;
       node_ref_info.name = journal_record.name;
-
-      path_components_cache.insert(
-          {journal_record.node_ref_number, node_ref_info});
 
       skip_record = true;
       break;
@@ -551,14 +538,15 @@ Status NTFSEventPublisher::run() {
     // but falling back on the parent FRN and building the path
     // from it works for now.
     auto status = getPathFromReferenceNumber(event.path,
-                                             path_components_cache,
                                              journal_record.drive_letter,
                                              journal_record.node_ref_number);
     if (!status.ok()) {
-      status = getPathFromReferenceNumber(event.path,
-                                          path_components_cache,
-                                          journal_record.drive_letter,
-                                          journal_record.parent_ref_number);
+      TLOG << "FRN pathname lookup failed, trying parent: " << status.getMessage();
+
+      status = getPathFromParentFRN(event.path,
+                                    journal_record.drive_letter,
+                                    journal_record.name,
+                                    journal_record.parent_ref_number);
 
       if (!status.ok()) {
         if (journal_record.type !=
@@ -570,16 +558,13 @@ Status NTFSEventPublisher::run() {
         event.path = journal_record.name;
         event.partial = true;
       }
-      else {
-        event.path.append("\\" + journal_record.name);
-      }
     }
 
     if (old_name_record.node_ref_number != 0U) {
-      status = resolvePathFromComponentsCache(event.old_path,
-                                              path_components_cache,
-                                              old_name_record.drive_letter,
-                                              old_name_record.node_ref_number);
+      status = getPathFromParentFRN(event.old_path,
+                                    old_name_record.drive_letter,
+                                    old_name_record.name,
+                                    old_name_record.node_ref_number);
       if (!status.ok()) {
         VLOG(1) << status.getMessage();
         event.partial = true;
@@ -591,41 +576,13 @@ Status NTFSEventPublisher::run() {
     }
 
     event_context->event_list.push_back(std::move(event));
-
-    // Update the path components cache by deleting/renaming files that are no
-    // longer available
-    if (journal_record.type == USNJournalEventRecord::Type::DirectoryDeletion ||
-        journal_record.type == USNJournalEventRecord::Type::FileDeletion) {
-      auto it = path_components_cache.find(journal_record.node_ref_number);
-      if (it != path_components_cache.end()) {
-        path_components_cache.erase(it);
-      }
-
-    } else if (journal_record.type ==
-                   USNJournalEventRecord::Type::DirectoryRename_NewName ||
-               journal_record.type ==
-                   USNJournalEventRecord::Type::FileRename_NewName) {
-      auto it = path_components_cache.find(journal_record.node_ref_number);
-      if (it != path_components_cache.end()) {
-        auto& node_ref_info = it->second;
-        node_ref_info.name = journal_record.name;
-      }
-    }
   }
 
   // Put a limit on the size of the caches we are using
   for (auto& p : d->reader_service_map) {
     auto& service_instance = p.second;
 
-    auto& path_components_cache = service_instance.path_components_cache;
     auto& rename_path_mapper = service_instance.rename_path_mapper;
-
-    if (path_components_cache.size() >= 20000U) {
-      auto range_start = path_components_cache.begin();
-      auto range_end = std::next(range_start, 10000U);
-
-      path_components_cache.erase(range_start, range_end);
-    }
 
     if (rename_path_mapper.size() >= 2000U) {
       auto range_start = rename_path_mapper.begin();

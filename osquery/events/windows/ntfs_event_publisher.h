@@ -112,11 +112,6 @@ struct USNJournalReaderInstance final {
   /// The shared context
   USNJournalReaderContextRef context;
 
-  /// This cache contains a mapping from ref id to file name. We can gather this
-  /// data passively by just inspecting the journal records and also query the
-  /// volume in case of a cache miss
-  PathComponentsCache path_components_cache;
-
   /// This map is used to merge the rename records (old name and new name) into
   /// a single event. It is ordered so that we can delete data starting from the
   /// oldest entries
@@ -150,19 +145,16 @@ class NTFSEventPublisher final
   /// monitored
   NTFSEventPublisherConfiguration readConfiguration();
 
-  /// Attempts to resolve the reference number using the path components cache
-  Status resolvePathFromComponentsCache(
-      std::string& path,
-      PathComponentsCache& path_components_cache,
-      char drive_letter,
-      const USNFileReferenceNumber& ref);
-
-  /// Attempts to get the full path for the given file reference. If the path is
-  /// located, it also updates the path components cache
+  /// Attempts to get the full path for the given file reference.
   Status getPathFromReferenceNumber(std::string& path,
-                                    PathComponentsCache& path_components_cache,
                                     char drive_letter,
                                     const USNFileReferenceNumber& ref);
+
+  /// Attempts to get the full path for `basename` via its parent FRN.
+  Status getPathFromParentFRN(std::string& path,
+                              char drive_letter,
+                              const std::string& basename,
+                              const USNFileReferenceNumber& ref);
 
   /// Returns a VolumeData structure containing the volume handle and the
   /// root folder reference number
