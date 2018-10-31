@@ -720,7 +720,7 @@ bool GetEventType(USNJournalEventRecord::Type& type,
 bool GetEventString(std::string& buffer, const USN_RECORD* record) {
   assert(record->MajorVersion != 4U);
 
-  size_t name_offset = 0U;
+  const wchar_t *filename = nullptr;
   size_t name_length = 0U;
   size_t record_length = 0U;
 
@@ -730,27 +730,21 @@ bool GetEventString(std::string& buffer, const USN_RECORD* record) {
   // with the offset at all.
   switch (record->MajorVersion) {
   case 2U: {
-    auto temp = reinterpret_cast<const USN_RECORD_V2*>(record)->FileNameOffset;
-    name_offset = static_cast<size_t>(temp);
+    auto record_v2 = reinterpret_cast<const USN_RECORD_V2*>(record);
 
-    temp = reinterpret_cast<const USN_RECORD_V2*>(record)->FileNameLength;
-    name_length = static_cast<size_t>(temp) / 2U;
-
-    auto temp2 = reinterpret_cast<const USN_RECORD_V2*>(record)->RecordLength;
-    record_length = static_cast<size_t>(temp2);
+    filename = record_v2->FileName;
+    name_length = static_cast<size_t>(record_v2->FileNameLength);
+    record_length = static_cast<size_t>(record_v2->RecordLength);
 
     break;
   }
 
   case 3U: {
-    auto temp = reinterpret_cast<const USN_RECORD_V3*>(record)->FileNameOffset;
-    name_offset = static_cast<size_t>(temp);
+    auto record_v3 = reinterpret_cast<const USN_RECORD_V3*>(record);
 
-    temp = reinterpret_cast<const USN_RECORD_V3*>(record)->FileNameLength;
-    name_length = static_cast<size_t>(temp) / 2U;
-
-    auto temp2 = reinterpret_cast<const USN_RECORD_V3*>(record)->RecordLength;
-    record_length = static_cast<size_t>(temp2);
+    filename = record_v3->FileName;
+    name_length = static_cast<size_t>(record_v3->FileNameLength);
+    record_length = static_cast<size_t>(record_v3->RecordLength);
 
     break;
   }
@@ -765,23 +759,20 @@ bool GetEventString(std::string& buffer, const USN_RECORD* record) {
   }
 
   // Make sure we are not going outside of the record boundaries
-  auto record_start_ptr = reinterpret_cast<const std::uint8_t*>(record);
+  auto record_start_ptr = reinterpret_cast<const uint8_t*>(record);
   auto record_end_ptr = record_start_ptr + record_length;
 
-  auto string_start_ptr = record_start_ptr + name_offset;
-  auto string_end_ptr = string_start_ptr + (name_length * sizeof(WCHAR));
+  auto string_end_ptr = reinterpret_cast<const uint8_t*>(filename) + name_length;
 
   if (string_end_ptr > record_end_ptr) {
     LOG(ERROR) << "Invalid string length"
                << "record size:" << record_length
-               << " name offset:" << name_offset
                << " name length: " << name_length;
 
     return false;
   }
 
-  std::wstring wide_chars_file_name(
-      reinterpret_cast<const wchar_t*>(string_start_ptr), name_length);
+  std::wstring wide_chars_file_name(filename, (name_length / sizeof(wchar_t)));
   buffer = wstringToString(wide_chars_file_name.c_str());
 
   return true;
