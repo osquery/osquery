@@ -720,7 +720,7 @@ bool GetEventType(USNJournalEventRecord::Type& type,
 bool GetEventString(std::string& buffer, const USN_RECORD* record) {
   assert(record->MajorVersion != 4U);
 
-  const wchar_t *filename = nullptr;
+  const wchar_t* filename = nullptr;
   size_t name_length = 0U;
   size_t record_length = 0U;
 
@@ -762,7 +762,8 @@ bool GetEventString(std::string& buffer, const USN_RECORD* record) {
   auto record_start_ptr = reinterpret_cast<const uint8_t*>(record);
   auto record_end_ptr = record_start_ptr + record_length;
 
-  auto string_end_ptr = reinterpret_cast<const uint8_t*>(filename) + name_length;
+  auto string_end_ptr =
+      reinterpret_cast<const uint8_t*>(filename) + name_length;
 
   if (string_end_ptr > record_end_ptr) {
     LOG(ERROR) << "Invalid string length"
