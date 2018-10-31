@@ -159,11 +159,65 @@ TEST_F(UsnJournalReaderTests, test_get_reason) {
   EXPECT_FALSE(USNParsers::GetReason(reason, (USN_RECORD*)&usn_v3));
 }
 
-/*
-bool GetEventType(USNJournalEventRecord::Type& type,
-                  DWORD reason_bit,
-                  DWORD journal_file_attributes);
+TEST_F(UsnJournalReaderTests, test_get_event_type) {
+  USNJournalEventRecord::Type type;
 
-bool GetEventString(std::string& buffer, const USN_RECORD* record);
-*/
+  DWORD reason_bit = USN_REASON_FILE_CREATE;
+  DWORD journal_file_attributes = FILE_ATTRIBUTE_DIRECTORY;
+  EXPECT_TRUE(
+      USNParsers::GetEventType(type, reason_bit, journal_file_attributes));
+  EXPECT_EQ(type, USNJournalEventRecord::Type::DirectoryCreation);
+
+  journal_file_attributes = FILE_ATTRIBUTE_NORMAL;
+  EXPECT_TRUE(
+      USNParsers::GetEventType(type, reason_bit, journal_file_attributes));
+  EXPECT_EQ(type, USNJournalEventRecord::Type::FileCreation);
+
+  // NOTE(ww): All bits 0 is currently unused, but NTFS doesn't guarantee that
+  // it will remain unused.
+  reason_bit = 0;
+  EXPECT_FALSE(
+      USNParsers::GetEventType(type, reason_bit, journal_file_attributes));
+}
+
+TEST_F(UsnJournalReaderTests, test_get_event_string) {
+  std::string buffer;
+
+  uint8_t scratch[4096] = {};
+
+  USN_RECORD_V2* usn_v2 = (USN_RECORD_V2*)scratch;
+  wchar_t* event_string_v2 = L"foo foo foo";
+
+  usn_v2->MajorVersion = 2U;
+  usn_v2->FileNameOffset = sizeof(USN_RECORD_V2);
+  usn_v2->FileNameLength = (WORD)(wcslen(event_string_v2) * sizeof(wchar_t));
+  usn_v2->RecordLength =
+      (DWORD)(sizeof(USN_RECORD_V2) + usn_v2->FileNameLength);
+  memcpy(usn_v2->FileName, event_string_v2, usn_v2->FileNameLength);
+  EXPECT_TRUE(USNParsers::GetEventString(buffer, (USN_RECORD*)usn_v2))
+      << "GetEventString should parse V2 records";
+  EXPECT_EQ(buffer, "foo foo foo") << "event string should match input";
+
+  memset(scratch, 0, sizeof(scratch));
+  USN_RECORD_V3* usn_v3 = (USN_RECORD_V3*)scratch;
+  wchar_t* event_string_v3 = L"bar bar bar";
+
+  usn_v3->MajorVersion = 3U;
+  usn_v3->FileNameOffset = sizeof(USN_RECORD_V3);
+  usn_v3->FileNameLength = (WORD)(wcslen(event_string_v3) * sizeof(wchar_t));
+  usn_v3->RecordLength =
+      (DWORD)(sizeof(USN_RECORD_V3) + usn_v3->FileNameLength);
+  memcpy(usn_v3->FileName, event_string_v3, usn_v3->FileNameLength);
+  EXPECT_TRUE(USNParsers::GetEventString(buffer, (USN_RECORD*)usn_v3))
+      << "GetEventString should parse V3 records";
+  EXPECT_EQ(buffer, "bar bar bar") << "event string should match input";
+
+  usn_v3->FileNameLength = 0U;
+  EXPECT_TRUE(USNParsers::GetEventString(buffer, (USN_RECORD*)usn_v3));
+  EXPECT_EQ(buffer, "") << "zero-length filename should be empty";
+
+  usn_v3->MajorVersion = 4U;
+  EXPECT_FALSE(USNParsers::GetEventString(buffer, (USN_RECORD*)usn_v3))
+      << "GetEventString should refuse to parse V4 records";
+}
 } // namespace osquery
