@@ -18,48 +18,48 @@
 
 namespace osquery {
 namespace tables {
-  namespace pt = boost::property_tree;
+namespace pt = boost::property_tree;
 
-  // Azure VM IDs are unique and don't change on an instance,
-  // so we can safely cache them.
-  static std::string kCachedVmId;
+// Azure VM IDs are unique and don't change on an instance,
+// so we can safely cache them.
+static std::string kCachedVmId;
 
-  QueryData genAzureMetadata(QueryContext& context) {
-    QueryData results;
-    Row r;
+QueryData genAzureMetadata(QueryContext& context) {
+  QueryData results;
+  Row r;
 
-    pt::ptree tree;
+  pt::ptree tree;
 
-    Status s = fetchAzureMetadata(tree);
+  Status s = fetchAzureMetadata(tree);
 
-    if (!s.ok()) {
-      TLOG << "Couldn't fetch metadata: " << s.what();
-    }
-
-    if (kCachedVmId.empty()) {
-      kCachedVmId = tree_get(tree, "vmId");
-    }
-
-    r["vm_id"] = kCachedVmId;
-    r["location"] = tree_get(tree, "location");
-    r["name"] = tree_get(tree, "name");
-    r["offer"] = tree_get(tree, "offer");
-    r["publisher"] = tree_get(tree, "publisher");
-    r["sku"] = tree_get(tree, "sku");
-    r["version"] = tree_get(tree, "version");
-    r["os_type"] = tree_get(tree, "osType");
-    r["platform_update_domain"] = tree_get(tree, "platformUpdateDomain");
-    r["platform_fault_domain"] = tree_get(tree, "platformFaultDomain");
-    r["vm_size"] = tree_get(tree, "vmSize");
-    r["subscription_id"] = tree_get(tree, "subscriptionId");
-    r["resource_group_name"] = tree_get(tree, "resourceGroupName");
-    r["placement_group_id"] = tree_get(tree, "placementGroupId");
-    r["vm_scale_set_name"] = tree_get(tree, "vmScaleSetName");
-    r["zone"] = tree_get(tree, "zone");
-
-    results.push_back(r);
-
-    return results;
+  if (!s.ok()) {
+    TLOG << "Couldn't fetch metadata: " << s.what();
   }
+
+  if (kCachedVmId.empty()) {
+    kCachedVmId = tree_get(tree, "vmId");
+  }
+
+  r["vm_id"] = kCachedVmId;
+  r["location"] = tree_get(tree, "location");
+  r["name"] = tree_get(tree, "name");
+  r["offer"] = tree_get(tree, "offer");
+  r["publisher"] = tree_get(tree, "publisher");
+  r["sku"] = tree_get(tree, "sku");
+  r["version"] = tree_get(tree, "version");
+  r["os_type"] = tree_get(tree, "osType");
+  r["platform_update_domain"] = tree_get(tree, "platformUpdateDomain");
+  r["platform_fault_domain"] = tree_get(tree, "platformFaultDomain");
+  r["vm_size"] = tree_get(tree, "vmSize");
+  r["subscription_id"] = tree_get(tree, "subscriptionId");
+  r["resource_group_name"] = tree_get(tree, "resourceGroupName");
+  r["placement_group_id"] = tree_get(tree, "placementGroupId");
+  r["vm_scale_set_name"] = tree_get(tree, "vmScaleSetName");
+  r["zone"] = tree_get(tree, "zone");
+
+  results.push_back(r);
+
+  return results;
 }
-}
+} // namespace tables
+} // namespace osquery

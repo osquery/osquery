@@ -25,7 +25,6 @@ std::string tree_get(pt::ptree& tree, const std::string key) {
   return tree.get<std::string>(key, "");
 }
 
-
 Status fetchAzureMetadata(pt::ptree& tree) {
   http::Client client;
   http::Request request(kAzureMetadataEndpoint);
@@ -49,8 +48,9 @@ Status fetchAzureMetadata(pt::ptree& tree) {
 
   // Non-200s can indicate a variety of conditions, so report them.
   if (response.result_int() != 200) {
-    return Status(1, std::string("Azure metadata service responded with ")
-      + std::to_string(response.result_int()));
+    return Status(1,
+                  std::string("Azure metadata service responded with ") +
+                      std::to_string(response.result_int()));
   }
 
   std::stringstream json_stream;
@@ -58,11 +58,12 @@ Status fetchAzureMetadata(pt::ptree& tree) {
   try {
     pt::read_json(json_stream, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
-    return Status(1, "Couldn't parse JSON from: " + kAzureMetadataEndpoint + ": "
-    + e.what());
+    return Status(1,
+                  "Couldn't parse JSON from: " + kAzureMetadataEndpoint + ": " +
+                      e.what());
   }
 
   return Status(0);
 }
 
-}
+} // namespace osquery

@@ -18,45 +18,45 @@
 
 namespace osquery {
 namespace tables {
-  namespace pt = boost::property_tree;
+namespace pt = boost::property_tree;
 
-  QueryData genAzureTags(QueryContext& context) {
-    QueryData results;
-    pt::ptree tree;
+QueryData genAzureTags(QueryContext& context) {
+  QueryData results;
+  pt::ptree tree;
 
-    Status s = fetchAzureMetadata(tree);
+  Status s = fetchAzureMetadata(tree);
 
-    if (!s.ok()) {
-        TLOG << "Couldn't fetch metadata: " << s.what();
-    }
-
-    auto tags_str = tree_get(tree, "tags");
-    auto vm_id = tree_get(tree, "vmId");
-    std::vector<std::string> tags;
-
-    boost::split(tags, tags_str, boost::is_any_of(";"));
-
-    for (auto& tag : tags) {
-      Row r;
-
-      auto colon = tag.find_first_of(':');
-
-      // This shouldn't ever happen, but it doesn't hurt to be safe.
-      if (colon == std::string::npos) {
-        continue;
-      }
-
-      auto key = tag.substr(0, colon);
-      auto value = tag.substr(colon + 1);
-
-      r["vm_id"] = vm_id;
-      r["key"] = key;
-      r["value"] = value;
-      results.push_back(r);
-    }
-
-    return results;
+  if (!s.ok()) {
+    TLOG << "Couldn't fetch metadata: " << s.what();
   }
 
+  auto tags_str = tree_get(tree, "tags");
+  auto vm_id = tree_get(tree, "vmId");
+  std::vector<std::string> tags;
+
+  boost::split(tags, tags_str, boost::is_any_of(";"));
+
+  for (auto& tag : tags) {
+    Row r;
+
+    auto colon = tag.find_first_of(':');
+
+    // This shouldn't ever happen, but it doesn't hurt to be safe.
+    if (colon == std::string::npos) {
+      continue;
+    }
+
+    auto key = tag.substr(0, colon);
+    auto value = tag.substr(colon + 1);
+
+    r["vm_id"] = vm_id;
+    r["key"] = key;
+    r["value"] = value;
+    results.push_back(r);
+  }
+
+  return results;
 }
-}
+
+} // namespace tables
+} // namespace osquery
