@@ -28,6 +28,7 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/parsers/prometheus_targets.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/parsers/prometheus_targets.h"
     "${CMAKE_CURRENT_LIST_DIR}/parsers/views.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/parsers/schema_stubs.cpp"
 )
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
@@ -58,4 +59,5 @@ ADD_OSQUERY_TEST_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/decorators_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/events_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/tls_config_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/schema_stubs_tests.cpp"
 )

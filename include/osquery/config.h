@@ -365,6 +365,7 @@ class Config : private boost::noncopyable {
   friend class FileEventsTableTests;
   friend class DecoratorsConfigParserPluginTests;
   friend class SchedulerTests;
+  friend class SchemaStubsConfigParserPluginTests;
   FRIEND_TEST(ConfigTests, test_config_backup);
   FRIEND_TEST(ConfigTests, test_config_backup_integrate);
   FRIEND_TEST(ConfigTests, test_config_refresh);
