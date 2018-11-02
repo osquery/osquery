@@ -17,6 +17,17 @@
 
 #include "osquery/tables/yara/yara_utils.h"
 
+#ifdef WIN32
+inline FILE* FOPEN(const char *filename, const char *mode)
+{
+  FILE* rule_file = 0L;
+  fopen_s(&rule_file, filename, mode);
+  return rule_file;
+}
+#else
+#define FOPEN fopen
+#endif
+
 namespace osquery {
 
 /**
@@ -65,7 +76,7 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
   } else {
     compiled = true;
     // Try to compile the rules.
-    FILE* rule_file = fopen(file.c_str(), "r");
+    FILE* rule_file = FOPEN(file.c_str(), "r");
 
     if (rule_file == nullptr) {
       yr_compiler_destroy(compiler);
@@ -160,7 +171,7 @@ Status handleRuleFiles(const std::string& category,
     } else {
       compiled = true;
       // Try to compile the rules.
-      FILE* rule_file = fopen(rule.c_str(), "r");
+      FILE* rule_file = FOPEN(rule.c_str(), "r");
 
       if (rule_file == nullptr) {
         yr_compiler_destroy(compiler);

@@ -71,7 +71,7 @@ QueryData genYara(QueryContext& context) {
   std::shared_ptr<YARAConfigParserPlugin> yaraParser = nullptr;
   try {
     yaraParser = std::dynamic_pointer_cast<YARAConfigParserPlugin>(parser);
-  } catch (const std::bad_cast& e) {
+  } catch (const std::bad_cast& ) {
     LOG(ERROR) << "Error casting yara config parser plugin";
     return results;
   }

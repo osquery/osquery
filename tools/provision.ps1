@@ -359,6 +359,8 @@ function Install-ThirdParty {
     "zlib.1.2.8",
     "rapidjson.1.1.0"
     "zstd.1.2.0-r3"
+    "jansson.2.11"
+    "libyara.3.8.1"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'
   Remove-Item $tmpDir -Recurse -ErrorAction Ignore

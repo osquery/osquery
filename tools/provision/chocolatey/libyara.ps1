@@ -9,7 +9,7 @@
 # Update-able metadata
 $version = '3.8.1'
 $chocoVersion = '3.8.1'
-$packageName = 'yara'
+$packageName = 'libyara'
 $projectSource = 'https://github.com/VirusTotal/yara'
 $packageSourceUrl = "https://github.com/VirusTotal/yara/archive/v$version.zip"
 $authors = 'VirusTotal'
@@ -18,7 +18,6 @@ $copyright = 'https://github.com/VirusTotal/yara/blob/master/COPYING'
 $license = 'https://github.com/VirusTotal/yara/blob/master/COPYING'
 $url = "$packageSourceUrl"
 
-  'yara'
 
 # Keep current loc to restore later
 $currentLoc = Get-Location
@@ -48,16 +47,16 @@ if (-not (Test-Path "$chocoBuildPath")) {
 Set-Location $chocoBuildPath
 
 # Retrieve the source only if we don't already have it
-$zipFile = "$packageName-$version.zip"
+$zipFile = "yara-$version.zip"
 if(-Not (Test-Path $zipFile)) {
   Invoke-WebRequest $url -OutFile "$zipFile"
 }
 
 # Extract the source
-$sourceDir = "$packageName-$version"
+$sourceDir = "yara-$version"
 if (-not (Test-Path $sourceDir)) {
   $7z = (Get-Command '7z').Source
-  $7zargs = "x $packageName-$version.zip"
+  $7zargs = "x $zipFile"
   Start-OsqueryProcess $7z $7zargs
 }
 Set-Location $sourceDir
@@ -108,7 +107,7 @@ $msbuild = (Get-Command 'msbuild').Source
 #$sln = 'yara.sln'
   $msbuildArgs = @(
     "..\windows\vs2015\libyara\libyara.vcxproj", 
-    "/p:Configuration=Release"
+    "/p:Configuration=StaticRelease"
   )
   Start-OsqueryProcess $msbuild $msbuildArgs $false
 
