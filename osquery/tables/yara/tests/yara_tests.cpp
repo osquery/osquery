@@ -15,9 +15,13 @@
 #include "osquery/tables/yara/yara_utils.h"
 
 namespace osquery {
-
+#ifdef WIN32
+const std::string ruleFile = "osquery-test-yara.sig";
+const std::string ls = "C:\\Windows\\notepad.exe";
+#else
 const std::string ruleFile = "/tmp/osquery-yara.sig";
 const std::string ls = "/bin/ls";
+#endif
 const std::string alwaysTrue = "rule always_true { condition: true }";
 const std::string alwaysFalse = "rule always_false { condition: false }";
 
