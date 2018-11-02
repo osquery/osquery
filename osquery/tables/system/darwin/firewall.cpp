@@ -94,12 +94,16 @@ QueryData parseALFExceptionsTree(const pt::ptree& tree) {
     if (it.second.get("alias", "").length() > 0) {
       std::string path;
       auto alias_data = it.second.get<std::string>("alias", "");
+      auto status = pathFromNestedPlistAliasData(alias_data, path);
 
-      if (pathFromNestedPlistAliasData(alias_data, path).ok()) {
-        r["path"] = path;
-        r["state"] = INTEGER(it.second.get("state", -1));
-        results.push_back(r);
+      if (!status.ok()) {
+        TLOG << status.getMessage();
+        continue;
       }
+
+      r["path"] = path;
+      r["state"] = INTEGER(it.second.get("state", -1));
+      results.push_back(r);
     }
   }
 
