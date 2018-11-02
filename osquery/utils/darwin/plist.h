@@ -47,4 +47,15 @@ Status parsePlistContent(const std::string& content,
  */
 Status pathFromPlistAliasData(const std::string& data, std::string& result);
 
+/**
+ * @brief Parse nested property list alias data into a path string.
+ *
+ * @param data a string container with the base-64 encoded plist
+ * @param result a string containing the POSIX path.
+ *
+ * @return an instance of Status, indicating success or failure.
+ */
+Status pathFromNestedPlistAliasData(const std::string& data,
+                                    std::string& result);
+
 } // namespace osquery

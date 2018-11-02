@@ -11,6 +11,7 @@
 #include <osquery/tables.h>
 #include <osquery/tables/system/darwin/firewall.h>
 #include <osquery/utils/darwin/plist.h>
+#include <osquery/sql.h>
 
 namespace pt = boost::property_tree;
 
@@ -145,20 +146,7 @@ QueryData genALFExplicitAuths(QueryContext& context) {
 }
 
 QueryData parseALFServicesTree(const pt::ptree& tree) {
-  QueryData results;
-  if (tree.count("firewall") == 0) {
-    return {};
-  }
-
-  auto& firewall_tree = tree.get_child("firewall");
-  for (const auto& it : firewall_tree) {
-    Row r;
-    r["service"] = it.first;
-    r["process"] = it.second.get("proc", "");
-    r["state"] = INTEGER(it.second.get("state", -1));
-    results.push_back(r);
-  }
-  return results;
+  return osquery::SQL::selectAllFrom("sharing_preferences");
 }
 
 QueryData genALFServices(QueryContext& context) {
