@@ -35,8 +35,9 @@ const std::string kSudoFile = "/usr/local/etc/sudoers";
 // a new layer of nesting, but what does sudo do?
 static const int kMaxNest = 128;
 
-void genSudoersFile(const std::string& filename, int level, QueryData& results)
-{
+void genSudoersFile(const std::string& filename,
+                    int level,
+                    QueryData& results) {
   if (level > kMaxNest) {
     TLOG << "sudoers file recursion maximum reached";
     return;
@@ -66,8 +67,7 @@ void genSudoersFile(const std::string& filename, int level, QueryData& results)
       r["rule_details"] = join(cols, " ");
 
       results.push_back(r);
-    }
-    else if (line.find("#includedir") == 0) {
+    } else if (line.find("#includedir") == 0) {
       auto space = line.find_first_of(' ');
 
       // If #includedir doesn't look like it's followed by
@@ -107,10 +107,8 @@ void genSudoersFile(const std::string& filename, int level, QueryData& results)
         // Build and push the row before recursing.
         genSudoersFile(inc_file, ++level, results);
       }
-    }
-    else if (line.find("#include") == 0) {
+    } else if (line.find("#include") == 0) {
       auto space = line.find_first_of(' ');
-
 
       // If #include doesn't look like it's followed by
       // a path, treat it like a normal comment.
@@ -139,7 +137,6 @@ void genSudoersFile(const std::string& filename, int level, QueryData& results)
 
 QueryData genSudoers(QueryContext& context) {
   QueryData results;
-
 
   if (!isReadable(kSudoFile).ok()) {
     return results;
