@@ -14,20 +14,55 @@
 
 #include "osquery/tables/yara/yara_utils.h"
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 #ifdef WIN32
 const std::string ruleFile = "osquery-test-yara.sig";
-const std::string ls = "C:\\Windows\\notepad.exe";
 #else
 const std::string ruleFile = "/tmp/osquery-yara.sig";
-const std::string ls = "/bin/ls";
 #endif
 const std::string alwaysTrue = "rule always_true { condition: true }";
 const std::string alwaysFalse = "rule always_false { condition: false }";
 
+const std::string ruleShouldMatch = "rule myrule {\n"
+" meta:\n"
+"  description=\"Some details here\"\n"
+" strings:\n"
+"  $s1 = \"lorem ipsum\" fullword ascii\n"
+"  $s2 = \"some.example.org\" ascii\n"
+" condition:\n"
+"  ( uint16(0) == 0x0a0d and filesize < 600KB ) and all of ($s*)\n"
+"}";
+
+const std::string FILE_START = "\r\nx7 lorem ipsum";
+const std::string FILE_PART = "\n some stuff ou812 some.example.org\t ";
+
+static std::string testTargetFile = "";
+static void createTestTarget()
+{
+  std::string s = FILE_START;
+  int num = rand() % 20;
+  for (int i=0; i < num; i++) {
+    s += " -------------------------\n";
+  }
+ 
+  s += FILE_PART;
+ 
+  num = rand() % 30;
+  for (int i=0; i < num; i++) {
+    s += "<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+  }
+
+  writeTextFile(testTargetFile, s);
+}
+
 class YARATest : public testing::Test {
  protected:
   void SetUp() override {
+    testTargetFile = (fs::temp_directory_path() / "yara-test-target.bin").string();
+    removePath(testTargetFile);
+    createTestTarget();
     removePath(ruleFile);
     if (pathExists(ruleFile).ok()) {
       throw std::domain_error("Rule file exists.");
@@ -38,7 +73,7 @@ class YARATest : public testing::Test {
     removePath(ruleFile);
   }
 
-  Row scanFile(const std::string& ruleContent) {
+  Row scanFile(const std::string filename, const std::string& ruleContent) {
     YR_RULES* rules = nullptr;
     int result = yr_initialize();
     EXPECT_TRUE(result == ERROR_SUCCESS);
@@ -52,8 +87,9 @@ class YARATest : public testing::Test {
     r["count"] = "0";
     r["matches"] = "";
 
+ 
     result = yr_rules_scan_file(
-        rules, ls.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
+        rules, filename.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
     EXPECT_TRUE(result == ERROR_SUCCESS);
 
     yr_rules_destroy(rules);
@@ -63,14 +99,18 @@ class YARATest : public testing::Test {
 };
 
 TEST_F(YARATest, test_match_true) {
-  Row r = scanFile(alwaysTrue);
-  // Should have 1 count
-  EXPECT_TRUE(r["count"] == "1");
+  Row r = scanFile(testTargetFile, alwaysTrue);
+  EXPECT_EQ("1",r["count"]);
 }
 
 TEST_F(YARATest, test_match_false) {
-  Row r = scanFile(alwaysFalse);
-  // Should have 0 count
-  EXPECT_TRUE(r["count"] == "0");
+  Row r = scanFile(testTargetFile, alwaysFalse);
+  EXPECT_EQ("0",r["count"]);
 }
+
+TEST_F(YARATest, test_match) {
+  Row r = scanFile(testTargetFile, ruleShouldMatch);
+  EXPECT_EQ("1",r["count"]);
+}
+
 } // namespace osquery

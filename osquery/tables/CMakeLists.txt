@@ -166,11 +166,7 @@ if(NOT SKIP_YARA)
   ADD_OSQUERY_TABLE_TEST(
     "${CMAKE_CURRENT_LIST_DIR}/yara/tests/yara_tests.cpp"
   )
-  if(POSIX)
-    ADD_OSQUERY_LINK_ADDITIONAL("yara")
-  else(POSIX)
-    ADD_OSQUERY_LINK_ADDITIONAL("yara64")
-  endif(POSIX)
+  ADD_OSQUERY_LINK_ADDITIONAL("yara")
 endif()
 
 if(NOT SKIP_LLDPD AND POSIX)

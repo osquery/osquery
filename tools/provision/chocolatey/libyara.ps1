@@ -132,7 +132,7 @@ Write-NuSpec `
   $copyright `
   $license
 
-  Copy-Item "$buildDir\..\windows\vs2015\libyara\Release\*.lib" $libDir
+  Copy-Item "$buildDir\..\windows\vs2015\libyara\X64\StaticRelease\*.lib" $libDir
   Copy-Item -Recurse "$buildDir\..\libyara\include\*" $includeDir
 
 Copy-Item $buildScript $srcDir
