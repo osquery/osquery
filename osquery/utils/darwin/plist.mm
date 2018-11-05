@@ -137,7 +137,7 @@ static inline Status filterPlist(NSData* plist, pt::ptree& tree) {
   } else if ([plist isKindOfClass:[NSArray class]]) {
     return filterArray((NSMutableArray*)plist, "root", tree);
   } else if ([plist isKindOfClass:[NSData class]]) {
-    tree.put("data", getValue(plist));
+    tree.push_back(pt::ptree::value_type("data", getValue(plist)));
   } else {
     TLOG << "Unknown type during plist filtering: "
          << [[plist className] UTF8String];
