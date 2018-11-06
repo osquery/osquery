@@ -158,11 +158,7 @@ if(NOT SKIP_YARA)
     "${CMAKE_CURRENT_LIST_DIR}/yara/yara.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/yara/yara_utils.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/yara/yara_utils.h"
-  )
-  if(POSIX)
-    ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_yara_tables
-      "${CMAKE_CURRENT_LIST_DIR}/yara/yara_events.cpp")
-  endif(POSIX)
+    "${CMAKE_CURRENT_LIST_DIR}/yara/yara_events.cpp")
   ADD_OSQUERY_TABLE_TEST(
     "${CMAKE_CURRENT_LIST_DIR}/yara/tests/yara_tests.cpp"
   )
