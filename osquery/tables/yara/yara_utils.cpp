@@ -38,10 +38,11 @@ void YARACompilerCallback(int error_level,
                           int line_number,
                           const char* message,
                           void* user_data) {
+  std::string file = (file_name == nullptr ? "" : file_name);
   if (error_level == YARA_ERROR_LEVEL_ERROR) {
-    VLOG(1) << file_name << "(" << line_number << "): error: " << message;
+    VLOG(1) << "file:" << file << " line:" << line_number << " detail:" << message;
   } else {
-    VLOG(1) << file_name << "(" << line_number << "): warning: " << message;
+    VLOG(1) << "file:" << file << " line:" << line_number << " detail:" << message;
   }
 }
 
@@ -104,6 +105,43 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
       yr_compiler_destroy(compiler);
       return Status(1, "Insufficient memory to get YARA rules");
     }
+  }
+
+  if (compiler != nullptr) {
+    yr_compiler_destroy(compiler);
+    compiler = nullptr;
+  }
+
+  return Status(0, "OK");
+}
+
+/**
+ * Compile rules from a string and load it into rule pointer.
+ */
+Status compileRulesFromString(const std::string& rule_defs, YR_RULES** rules) {
+  YR_COMPILER* compiler = nullptr;
+  int result = yr_compiler_create(&compiler);
+  if (result != ERROR_SUCCESS) {
+    VLOG(1) << "Could not create compiler: " + std::to_string(result);
+    return Status(1, "Could not create compiler: " + std::to_string(result));
+  }
+
+  yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
+
+  int errors = yr_compiler_add_string(compiler, rule_defs.c_str(), nullptr);
+
+  if (errors > 0) {
+    yr_compiler_destroy(compiler);
+    // Errors printed via callback.
+    return Status(1, "Compilation errors");
+  }
+
+  // All the rules for this category have been compiled, save them in the map.
+  result = yr_compiler_get_rules(compiler, *(&rules));
+
+  if (result != ERROR_SUCCESS) {
+    yr_compiler_destroy(compiler);
+    return Status(1, "Insufficient memory to get YARA rules");
   }
 
   if (compiler != nullptr) {

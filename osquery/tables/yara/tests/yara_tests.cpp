@@ -11,6 +11,9 @@
 #include <gtest/gtest.h>
 
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/registry.h>
+#include <osquery/sql.h>
 
 #include "osquery/tables/yara/yara_utils.h"
 
@@ -46,9 +49,9 @@ static void createTestTarget()
   for (int i=0; i < num; i++) {
     s += " -------------------------\n";
   }
- 
+
   s += FILE_PART;
- 
+
   num = rand() % 30;
   for (int i=0; i < num; i++) {
     s += "<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
@@ -73,7 +76,7 @@ class YARATest : public testing::Test {
     removePath(ruleFile);
   }
 
-  Row scanFile(const std::string filename, const std::string& ruleContent) {
+  Row scanFileWithRulesFromFile(const std::string filename, const std::string& ruleContent) {
     YR_RULES* rules = nullptr;
     int result = yr_initialize();
     EXPECT_TRUE(result == ERROR_SUCCESS);
@@ -87,7 +90,7 @@ class YARATest : public testing::Test {
     r["count"] = "0";
     r["matches"] = "";
 
- 
+
     result = yr_rules_scan_file(
         rules, filename.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
     EXPECT_TRUE(result == ERROR_SUCCESS);
@@ -96,21 +99,100 @@ class YARATest : public testing::Test {
 
     return r;
   }
+
+  Row scanFileWithRulesFromString(const std::string filename, const std::string& ruleContent) {
+    YR_RULES* rules = nullptr;
+    int result = yr_initialize();
+    EXPECT_TRUE(result == ERROR_SUCCESS);
+
+    Row r = Row();
+    r["count"] = "0";
+    r["matches"] = "";
+
+    Status status = compileRulesFromString(ruleContent, &rules);
+    EXPECT_TRUE(status.ok());
+    if (!status.ok() || rules == nullptr) {
+      return r;
+    }
+
+    result = yr_rules_scan_file(
+        rules, filename.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
+    EXPECT_TRUE(result == ERROR_SUCCESS);
+
+    yr_rules_destroy(rules);
+
+    return r;
+  }
+
 };
 
 TEST_F(YARATest, test_match_true) {
-  Row r = scanFile(testTargetFile, alwaysTrue);
+  Row r = scanFileWithRulesFromFile(testTargetFile, alwaysTrue);
   EXPECT_EQ("1",r["count"]);
 }
 
 TEST_F(YARATest, test_match_false) {
-  Row r = scanFile(testTargetFile, alwaysFalse);
+  Row r = scanFileWithRulesFromFile(testTargetFile, alwaysFalse);
   EXPECT_EQ("0",r["count"]);
 }
 
 TEST_F(YARATest, test_match) {
-  Row r = scanFile(testTargetFile, ruleShouldMatch);
+  Row r = scanFileWithRulesFromFile(testTargetFile, ruleShouldMatch);
+  EXPECT_EQ("1",r["count"]);
+  r = scanFileWithRulesFromString(testTargetFile, ruleShouldMatch);
   EXPECT_EQ("1",r["count"]);
 }
+
+
+TEST_F(YARATest, test_sql_sigfile) {
+  writeTextFile(ruleFile, ruleShouldMatch);
+
+  std::string query = "SELECT * FROM yara WHERE path='" + testTargetFile;
+  query += "' AND sigfile='" + ruleFile + "'";
+  auto results = SQL(query);
+  if (!results.getStatus().ok()) {
+    VLOG(1) << "SQL failed:" << results.getStatus().getMessage();
+    return;
+  }
+  EXPECT_EQ(1, results.rows().size());
+}
+
+TEST_F(YARATest, test_sql_string) {
+  std::string query = "SELECT * FROM yara WHERE path='" + testTargetFile;
+  query += "' AND adhoc_rules='" + ruleShouldMatch + "'";
+  auto results = SQL(query);
+  if (!results.getStatus().ok()) {
+    VLOG(1) << "SQL failed:" << results.getStatus().getMessage();
+    return;
+  }
+  EXPECT_EQ(1, results.rows().size());
+}
+
+TEST_F(YARATest, test_sql_invalid_syntax) {
+  std::string query = "SELECT * FROM yara WHERE path='" + testTargetFile;
+  query += "' AND adhoc_rules='rule blah { strings: a=SOMETHING condition: a}'";
+  auto results = SQL(query);
+  if (!results.getStatus().ok()) {
+    VLOG(1) << "SQL failed:" << results.getStatus().getMessage();
+    return;
+  }
+  EXPECT_EQ(0, results.rows().size());
+}
+
+#ifndef WIN32
+TEST_F(YARATest, test_sql_string_ls) {
+  std::string rule="rule ls { strings : $a=\"LSCOLORS\" fullword ascii condition: $a }";
+
+  std::string query = "SELECT * FROM yara WHERE path='/bin/ls'";
+  query += " AND adhoc_rules='" + rule + "'";
+
+  auto results = SQL(query);
+  if (!results.getStatus().ok()) {
+    VLOG(1) << "SQL failed:" << results.getStatus().getMessage();
+    return;
+  }
+  EXPECT_EQ(1, results.rows().size());
+}
+#endif
 
 } // namespace osquery

@@ -34,6 +34,8 @@ void YARACompilerCallback(int error_level,
 
 Status compileSingleFile(const std::string& file, YR_RULES** rule);
 
+Status compileRulesFromString(const std::string& rule_defs, YR_RULES** rules);
+
 Status handleRuleFiles(const std::string& category,
                        const pt::ptree& rule_files,
                        std::map<std::string, YR_RULES*>& rules);

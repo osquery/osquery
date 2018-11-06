@@ -10,6 +10,8 @@ schema([
         index=True, additional=True),
     Column("sigfile", TEXT, "Signature file used",
         index=True, additional=True),
+    Column("adhoc_rules", TEXT, "YARA rules definition",
+        index=True, additional=True),
     Column("strings", TEXT, "Matching strings"),
     Column("tags", TEXT, "Matching tags"),
 ])
