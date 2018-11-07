@@ -42,7 +42,7 @@ const std::string FILE_START = "\r\nx7 lorem ipsum";
 const std::string FILE_PART = "\n some stuff ou812 some.example.org\t ";
 
 static std::string testTargetFile = "";
-static void createTestTarget()
+static void createTestTarget(std::string filepath)
 {
   std::string s = FILE_START;
   int num = rand() % 20;
@@ -57,15 +57,18 @@ static void createTestTarget()
     s += "<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
   }
 
-  writeTextFile(testTargetFile, s);
+  writeTextFile(filepath, s);
 }
 
 class YARATest : public testing::Test {
  protected:
   void SetUp() override {
-    testTargetFile = (fs::temp_directory_path() / "yara-test-target.bin").string();
+    auto mydir = fs::temp_directory_path() / "somedir";
+    createDirectory(mydir, true, true);
+    testTargetFile = (mydir / "yara-test-target.bin").string();
+
     removePath(testTargetFile);
-    createTestTarget();
+    createTestTarget(testTargetFile);
     removePath(ruleFile);
     if (pathExists(ruleFile).ok()) {
       throw std::domain_error("Rule file exists.");
@@ -144,6 +147,16 @@ TEST_F(YARATest, test_match) {
 }
 
 
+TEST_F(YARATest, test_sql_siggroup_nosuch) {
+  writeTextFile(ruleFile, ruleShouldMatch);
+
+  std::string query = "SELECT * FROM yara WHERE path='" + testTargetFile;
+  query += "' AND sig_group='no_such_group'";
+  auto results = SQL(query);
+  EXPECT_TRUE(results.getStatus().ok());
+  EXPECT_EQ(0, results.rows().size());
+}
+
 TEST_F(YARATest, test_sql_sigfile) {
   writeTextFile(ruleFile, ruleShouldMatch);
 
@@ -155,9 +168,19 @@ TEST_F(YARATest, test_sql_sigfile) {
     return;
   }
   EXPECT_EQ(1, results.rows().size());
+
+  // run again
+
+  results = SQL(query);
+  if (!results.getStatus().ok()) {
+    VLOG(1) << "SQL failed:" << results.getStatus().getMessage();
+    return;
+  }
+  EXPECT_EQ(1, results.rows().size());
+
 }
 
-TEST_F(YARATest, test_sql_string) {
+TEST_F(YARATest, test_sql_adhoc_string) {
   std::string query = "SELECT * FROM yara WHERE path='" + testTargetFile;
   query += "' AND adhoc_rules='" + ruleShouldMatch + "'";
   auto results = SQL(query);
@@ -166,9 +189,18 @@ TEST_F(YARATest, test_sql_string) {
     return;
   }
   EXPECT_EQ(1, results.rows().size());
+
+  // again!
+
+  results = SQL(query);
+  if (!results.getStatus().ok()) {
+    VLOG(1) << "SQL failed:" << results.getStatus().getMessage();
+    return;
+  }
+  EXPECT_EQ(1, results.rows().size());
 }
 
-TEST_F(YARATest, test_sql_invalid_syntax) {
+TEST_F(YARATest, test_sql_adhoc_invalid_syntax) {
   std::string query = "SELECT * FROM yara WHERE path='" + testTargetFile;
   query += "' AND adhoc_rules='rule blah { strings: a=SOMETHING condition: a}'";
   auto results = SQL(query);
@@ -179,12 +211,13 @@ TEST_F(YARATest, test_sql_invalid_syntax) {
   EXPECT_EQ(0, results.rows().size());
 }
 
-#ifndef WIN32
-TEST_F(YARATest, test_sql_string_ls) {
-  std::string rule="rule ls { strings : $a=\"LSCOLORS\" fullword ascii condition: $a }";
+TEST_F(YARATest, test_path_pattern) {
 
-  std::string query = "SELECT * FROM yara WHERE path='/bin/ls'";
-  query += " AND adhoc_rules='" + rule + "'";
+  auto pathPattern = (fs::temp_directory_path() / "%" / "%.bin").string();
+  writeTextFile(ruleFile, ruleShouldMatch);
+
+  std::string query = "SELECT * FROM yara WHERE path LIKE '" + pathPattern;
+    query += "' AND sigfile='" + ruleFile + "'";
 
   auto results = SQL(query);
   if (!results.getStatus().ok()) {
@@ -193,6 +226,61 @@ TEST_F(YARATest, test_sql_string_ls) {
   }
   EXPECT_EQ(1, results.rows().size());
 }
-#endif
+
+class YaraConfigParserPluginTests : public testing::Test {
+ public:
+  void SetUp() override {
+
+    // config with valid syntax
+
+    config_string_ = "{"
+    "  \"yara\": {"
+    "    \"signatures\": {"
+    "      \"group1\": [ \"" + ruleFile + "\" ],"
+    "      \"group2\": [ \"/tmp/some/non-existent/file.sig\" ]"
+    "    }"
+    "  }"
+    "}";
+
+    Config::get().reset();
+  }
+
+  void TearDown() override {
+    Config::get().reset();
+  }
+
+ protected:
+  std::string config_string_;
+};
+
+TEST_F(YaraConfigParserPluginTests, test_table_query) {
+  writeTextFile(ruleFile, ruleShouldMatch);
+
+  std::string query = "SELECT * FROM yara WHERE path='" + testTargetFile;
+  query += "' AND sig_group='group1'";
+  auto results = SQL(query);
+  EXPECT_EQ(0, results.rows().size()); // no such group configured
+
+  // load config
+
+  std::map<std::string, std::string> tmp_config;
+  tmp_config["yara_test_config"] = config_string_;
+  Config::get().update(tmp_config);
+
+  results = SQL(query);
+
+  EXPECT_TRUE(results.getStatus().ok());
+  EXPECT_EQ(1, results.rows().size());      // group now exists, expect match
+
+  // try with group2, where sig file does not exist
+
+  query = "SELECT * FROM yara WHERE path='" + testTargetFile;
+  query += "' AND sig_group='group2'";
+
+  results = SQL(query);
+
+  EXPECT_TRUE(results.getStatus().ok());
+  EXPECT_EQ(0, results.rows().size());
+}
 
 } // namespace osquery
