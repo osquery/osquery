@@ -80,60 +80,73 @@ As you can see, even though no matches were found a row is still created and sto
 
 The [**yara**](https://osquery.io/schema/current/#yara) table is used for on-demand scanning. With this table you can arbitrarily YARA scan any available file on the filesystem with any available signature files or signature group from the configuration. In order to scan, the table must be given a constraint which says where to scan and what to scan with.
 
-In order to determine where to scan, the table accepts either a *path* or a *pattern* constraint. The *path* constraint must be a full path to a single file. There is no expansion or recursion with this constraint. The *pattern* constraint follows the same wildcard rules mentioned before.
+In order to determine where to scan, the table accepts either a *path* constraint. When specifying the equals operator the path is literal (*path='/some/path/to/file'*).  To specify expansion or recursion in the path, use the *LIKE* operator.
 
 Once the "where" is out of the way, you must specify the "what" part. This is done through either the *sigfile* or *sig_group* constraints. The *sigfile* constraint can be either an absolute path to a signature file on disk or a path relative to */var/osquery/*. The signature file will be compiled only for the execution of this one query and removed afterwards. The *sig_group* constraint must consist of a named signature grouping from your configuration file.
 
 Here are some examples of the **yara** table in action:
 
+### Single file using sig_group
 ```sql
-osquery> SELECT * FROM yara WHERE path="/bin/ls" AND sig_group="sig_group_1";
-+---------+-------------+-------+-------------+---------+---------+
-| path    | matches     | count | sig_group   | sigfile | pattern |
-+---------+-------------+-------+-------------+---------+---------+
-| /bin/ls | always_true | 1     | sig_group_1 |         |         |
-+---------+-------------+-------+-------------+---------+---------+
-osquery> SELECT * FROM yara WHERE path="/bin/ls" AND sig_group="sig_group_2";
-+---------+---------+-------+-------------+---------+---------+
-| path    | matches | count | sig_group   | sigfile | pattern |
-+---------+---------+-------+-------------+---------+---------+
-| /bin/ls |         | 0     | sig_group_2 |         |         |
-+---------+---------+-------+-------------+---------+---------+
-osquery>
+osquery> SELECT * FROM yara WHERE path LIKE '/bin/ls' AND sig_group='test1_group';
++---------+---------+-------+-------------+---------+-------------+---------+------+
+| path    | matches | count | sig_group   | sigfile | adhoc_rules | strings | tags |
++---------+---------+-------+-------------+---------+-------------+---------+------+
+| /bin/ls |         | 0     | test1_group |         |             |         |      |
++---------+---------+-------+-------------+---------+-------------+---------+------+
+```
+### Single file using sigfile relative path
+Non-absolute sigfile paths are relative to ${OSQUERYHOME}/yara.  If the file is not present, the warning log will show an error.
+```
+osquery> SELECT * FROM yara WHERE path='/bin/ls' AND sigfile='test1.yara';
+W1107 12:01:50.339418 2595595136 yara.cpp:188] specified sigfile not present:/var/osquery/yara/test1.yara
 ```
 
-As you can see in these examples, I'm scanning the same file with two different signature groups and getting different results.
-
+### Single file using sigfile absolute path
+In this example, the absolute path is specified.  This approach is not cross-platform compatible, since paths are different in posix and Windows devices.
 ```sql
-osquery> SELECT * FROM yara WHERE pattern="/bin/%sh" AND sig_group="sig_group_1";
-+-----------+-------------+-------+-------------+---------+----------+
-| path      | matches     | count | sig_group   | sigfile | pattern  |
-+-----------+-------------+-------+-------------+---------+----------+
-| /bin/bash | always_true | 1     | sig_group_1 |         | /bin/%sh |
-| /bin/csh  | always_true | 1     | sig_group_1 |         | /bin/%sh |
-| /bin/ksh  | always_true | 1     | sig_group_1 |         | /bin/%sh |
-| /bin/sh   | always_true | 1     | sig_group_1 |         | /bin/%sh |
-| /bin/tcsh | always_true | 1     | sig_group_1 |         | /bin/%sh |
-| /bin/zsh  | always_true | 1     | sig_group_1 |         | /bin/%sh |
-+-----------+-------------+-------+-------------+---------+----------+
-osquery>
+osquery> SELECT * FROM yara WHERE path='/bin/ls' AND sigfile='/tmp/always.yara';
++---------+-------------+-------+-----------+------------------+-------------+---------+------+
+| path    | matches     | count | sig_group | sigfile          | adhoc_rules | strings | tags |
++---------+-------------+-------+-----------+------------------+-------------+---------+------+
+| /bin/ls | always_true | 1     |           | /tmp/always.yara |             |         |      |
++---------+-------------+-------+-----------+------------------+-------------+---------+------+
 ```
 
-The above illustrates using the *pattern* constraint to scan */bin/%sh* with a signature group.
-
+### Wildcard path using group
+Note that all files scanned are returned.  The count column indicates a match.
 ```sql
-osquery> SELECT * FROM yara WHERE pattern="/bin/%sh" AND sigfile="/Users/wxs/sigs/baz.sig";
-+-----------+---------+-------+-----------+-------------------------+----------+
-| path      | matches | count | sig_group | sigfile                 | pattern  |
-+-----------+---------+-------+-----------+-------------------------+----------+
-| /bin/bash |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-| /bin/csh  |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-| /bin/ksh  |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-| /bin/sh   |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-| /bin/tcsh |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-| /bin/zsh  |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-+-----------+---------+-------+-----------+-------------------------+----------+
-osquery>
+osquery> SELECT * FROM yara WHERE path LIKE '/bin/%sh' AND sig_group='test1_group';
++-----------+-------------+-------+-------------+---------+-------------+----------+------+
+| path      | matches     | count | sig_group   | sigfile | adhoc_rules | strings  | tags |
++-----------+-------------+-------+-------------+---------+-------------+----------+------+
+| /bin/bash |             | 0     | test1_group |         |             |          |      |
+| /bin/csh  |             | 0     | test1_group |         |             |          |      |
+| /bin/ksh  |             | 0     | test1_group |         |             |          |      |
+| /bin/sh   |             | 0     | test1_group |         |             |          |      |
+| /bin/tcsh |             | 0     | test1_group |         |             |          |      |
+| /bin/zsh  | zsh_strings | 1     | test1_group |         |             | $a:76280 |      |
++-----------+-------------+-------+-------------+---------+-------------+----------+------+
 ```
 
-The above is an example of using an absolute path for *sigfile* combined with *pattern*.
+### Wildcard path using group, ONLY matches
+By specifying **count > 0** in the SQL, only the matches are returned.
+```sql
+osquery> SELECT * FROM yara WHERE path LIKE '/bin/%sh' AND sig_group='test1_group' AND count > 0;
++----------+-------------+-------+-------------+---------+-------------+----------+------+
+| path     | matches     | count | sig_group   | sigfile | adhoc_rules | strings  | tags |
++----------+-------------+-------+-------------+---------+-------------+----------+------+
+| /bin/zsh | zsh_strings | 1     | test1_group |         |             | $a:76280 |      |
++----------+-------------+-------+-------------+---------+-------------+----------+------+
+```
+
+### Query with inline yara rule
+It's possible to include the YARA syntax in the query.  Be careful with quotes and double-quotes that can make the SQL invalid.  Also note that the entire query will be added to each row.
+```sql
+osquery> SELECT * FROM yara WHERE path LIKE '/tmp/%.py' AND adhoc_rules='rule theworld { strings: $a="hello" condition: $a }' AND count > 0;
++---------------------+----------+-------+-----------+---------+-----------------------------------------------------+---------+------+
+| path                | matches  | count | sig_group | sigfile | adhoc_rules                                         | strings | tags |
++---------------------+----------+-------+-----------+---------+-----------------------------------------------------+---------+------+
+| /tmp/hello_world.py | theworld | 1     |           |         | rule theworld { strings: $a="hello" condition: $a } | $a:0    |      |
++---------------------+----------+-------+-----------+---------+-----------------------------------------------------+---------+------+
+```
