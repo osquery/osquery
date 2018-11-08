@@ -12,10 +12,13 @@
 #include <string>
 
 #include <osquery/config.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 
 #include "osquery/tables/yara/yara_utils.h"
+
+namespace fs = boost::filesystem;
 
 #ifdef WIN32
 inline FILE* FOPEN(const char *filename, const char *mode)
@@ -176,8 +179,8 @@ Status handleRuleFiles(const std::string& category,
 
     YR_RULES* tmp_rules = nullptr;
     std::string rule = item.GetString();
-    if (rule[0] != '/') {
-      rule = kYARAHome + rule;
+    if (fs::path(rule).is_absolute() == false) {
+      rule = (fs::path(kYARAHome) / fs::path(rule)).string();
     }
 
     // First attempt to load the file, in case it is saved (pre-compiled)
@@ -223,6 +226,7 @@ Status handleRuleFiles(const std::string& category,
       rule_file = nullptr;
 
       if (errors > 0) {
+        VLOG(1) << "Compilation errors in file:" << rule;
         yr_compiler_destroy(compiler);
         // Errors printed via callback.
         return Status(1, "Compilation errors");
@@ -334,7 +338,6 @@ Status YARAConfigParserPlugin::update(const std::string& source,
         if (!element.value.IsArray()) {
           VLOG(1) << "YARA signature group " << category << " must be an array";
         } else {
-          VLOG(1) << "Compiling YARA signature group: " << category;
           auto status = handleRuleFiles(category, element.value, rules_);
           if (!status.ok()) {
             VLOG(1) << "YARA rule compile error: " << status.getMessage();

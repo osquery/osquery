@@ -9,6 +9,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <boost/algorithm/string/replace.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -20,11 +21,6 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
-#ifdef WIN32
-const std::string ruleFile = "osquery-test-yara.sig";
-#else
-const std::string ruleFile = "/tmp/osquery-yara.sig";
-#endif
 const std::string alwaysTrue = "rule always_true { condition: true }";
 const std::string alwaysFalse = "rule always_false { condition: false }";
 
@@ -41,6 +37,7 @@ const std::string ruleShouldMatch = "rule myrule {\n"
 const std::string FILE_START = "\r\nx7 lorem ipsum";
 const std::string FILE_PART = "\n some stuff ou812 some.example.org\t ";
 
+static std::string ruleFile = "";
 static std::string testTargetFile = "";
 static void createTestTarget(std::string filepath)
 {
@@ -60,13 +57,19 @@ static void createTestTarget(std::string filepath)
   writeTextFile(filepath, s);
 }
 
-class YARATest : public testing::Test {
- protected:
-  void SetUp() override {
+static void setTestPaths()
+{
     auto mydir = fs::temp_directory_path() / "somedir";
     createDirectory(mydir, true, true);
     testTargetFile = (mydir / "yara-test-target.bin").string();
+    ruleFile = (mydir / "osquery-test-yara.sig").string();
+}
 
+class YARATest : public testing::Test {
+ protected:
+  void SetUp() override {
+
+    setTestPaths();
     removePath(testTargetFile);
     createTestTarget(testTargetFile);
     removePath(ruleFile);
@@ -227,17 +230,28 @@ TEST_F(YARATest, test_path_pattern) {
   EXPECT_EQ(1, results.rows().size());
 }
 
+std::string jsonFriendlyPath(std::string path)
+{
+#ifdef WIN32
+    return boost::replace_all_copy(path,"\\","\\\\");
+#endif
+    return path;
+}
+
 class YaraConfigParserPluginTests : public testing::Test {
  public:
   void SetUp() override {
 
-    // config with valid syntax
+    setTestPaths();
+    writeTextFile(ruleFile, ruleShouldMatch);
 
+    // config with valid syntax
+ 
     config_string_ = "{"
     "  \"yara\": {"
     "    \"signatures\": {"
-    "      \"group1\": [ \"" + ruleFile + "\" ],"
-    "      \"group2\": [ \"/tmp/some/non-existent/file.sig\" ]"
+    "      \"group1\": [ \"" + jsonFriendlyPath(ruleFile) + "\" ]"
+    "      ,\"group2\": [ \"/tmp/some/non-existent/file.sig\" ]"
     "    }"
     "  }"
     "}";
@@ -247,6 +261,7 @@ class YaraConfigParserPluginTests : public testing::Test {
 
   void TearDown() override {
     Config::get().reset();
+    removePath(ruleFile);
   }
 
  protected:
@@ -254,7 +269,6 @@ class YaraConfigParserPluginTests : public testing::Test {
 };
 
 TEST_F(YaraConfigParserPluginTests, test_table_query) {
-  writeTextFile(ruleFile, ruleShouldMatch);
 
   std::string query = "SELECT * FROM yara WHERE path='" + testTargetFile;
   query += "' AND sig_group='group1'";

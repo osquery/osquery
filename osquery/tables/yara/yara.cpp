@@ -180,9 +180,11 @@ static void make_sigfile_rules(std::vector<SPYaraRuleContext> &dest, const std::
 
     YR_RULES* tmp_rules = nullptr;
 
-    // If this is a relative path append the default yara search path.
-    auto path = (file[0] != '/') ? kYARAHome : "";
-    path += file;
+    fs::path fsp = fs::path(file);
+    if (!fsp.is_absolute()) {
+	fsp = fs::path(kYARAHome) / fsp;
+    }
+    std::string path = fsp.string();
 
     if (!pathExists(fs::path(path))) {
       LOG(WARNING) << "specified sigfile not present:" << path;
