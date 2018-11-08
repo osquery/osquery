@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <gtest/gtest.h>
 #include <boost/algorithm/string/replace.hpp>
+#include <gtest/gtest.h>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -24,51 +24,49 @@ namespace osquery {
 const std::string alwaysTrue = "rule always_true { condition: true }";
 const std::string alwaysFalse = "rule always_false { condition: false }";
 
-const std::string ruleShouldMatch = "rule myrule {\n"
-" meta:\n"
-"  description=\"Some details here\"\n"
-" strings:\n"
-"  $s1 = \"lorem ipsum\" fullword ascii\n"
-"  $s2 = \"some.example.org\" ascii\n"
-" condition:\n"
-"  ( uint16(0) == 0x0a0d and filesize < 600KB ) and all of ($s*)\n"
-"}";
+const std::string ruleShouldMatch =
+    "rule myrule {\n"
+    " meta:\n"
+    "  description=\"Some details here\"\n"
+    " strings:\n"
+    "  $s1 = \"lorem ipsum\" fullword ascii\n"
+    "  $s2 = \"some.example.org\" ascii\n"
+    " condition:\n"
+    "  ( uint16(0) == 0x0a0d and filesize < 600KB ) and all of ($s*)\n"
+    "}";
 
 const std::string FILE_START = "\r\nx7 lorem ipsum";
 const std::string FILE_PART = "\n some stuff ou812 some.example.org\t ";
 
 static std::string ruleFile = "";
 static std::string testTargetFile = "";
-static void createTestTarget(std::string filepath)
-{
+static void createTestTarget(std::string filepath) {
   std::string s = FILE_START;
   int num = rand() % 20;
-  for (int i=0; i < num; i++) {
+  for (int i = 0; i < num; i++) {
     s += " -------------------------\n";
   }
 
   s += FILE_PART;
 
   num = rand() % 30;
-  for (int i=0; i < num; i++) {
+  for (int i = 0; i < num; i++) {
     s += "<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
   }
 
   writeTextFile(filepath, s);
 }
 
-static void setTestPaths()
-{
-    auto mydir = fs::temp_directory_path() / "somedir";
-    createDirectory(mydir, true, true);
-    testTargetFile = (mydir / "yara-test-target.bin").string();
-    ruleFile = (mydir / "osquery-test-yara.sig").string();
+static void setTestPaths() {
+  auto mydir = fs::temp_directory_path() / "somedir";
+  createDirectory(mydir, true, true);
+  testTargetFile = (mydir / "yara-test-target.bin").string();
+  ruleFile = (mydir / "osquery-test-yara.sig").string();
 }
 
 class YARATest : public testing::Test {
  protected:
   void SetUp() override {
-
     setTestPaths();
     removePath(testTargetFile);
     createTestTarget(testTargetFile);
@@ -82,7 +80,8 @@ class YARATest : public testing::Test {
     removePath(ruleFile);
   }
 
-  Row scanFileWithRulesFromFile(const std::string filename, const std::string& ruleContent) {
+  Row scanFileWithRulesFromFile(const std::string filename,
+                                const std::string& ruleContent) {
     YR_RULES* rules = nullptr;
     int result = yr_initialize();
     EXPECT_TRUE(result == ERROR_SUCCESS);
@@ -96,9 +95,12 @@ class YARATest : public testing::Test {
     r["count"] = "0";
     r["matches"] = "";
 
-
-    result = yr_rules_scan_file(
-        rules, filename.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
+    result = yr_rules_scan_file(rules,
+                                filename.c_str(),
+                                SCAN_FLAGS_FAST_MODE,
+                                YARACallback,
+                                (void*)&r,
+                                0);
     EXPECT_TRUE(result == ERROR_SUCCESS);
 
     yr_rules_destroy(rules);
@@ -106,7 +108,8 @@ class YARATest : public testing::Test {
     return r;
   }
 
-  Row scanFileWithRulesFromString(const std::string filename, const std::string& ruleContent) {
+  Row scanFileWithRulesFromString(const std::string filename,
+                                  const std::string& ruleContent) {
     YR_RULES* rules = nullptr;
     int result = yr_initialize();
     EXPECT_TRUE(result == ERROR_SUCCESS);
@@ -121,34 +124,36 @@ class YARATest : public testing::Test {
       return r;
     }
 
-    result = yr_rules_scan_file(
-        rules, filename.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
+    result = yr_rules_scan_file(rules,
+                                filename.c_str(),
+                                SCAN_FLAGS_FAST_MODE,
+                                YARACallback,
+                                (void*)&r,
+                                0);
     EXPECT_TRUE(result == ERROR_SUCCESS);
 
     yr_rules_destroy(rules);
 
     return r;
   }
-
 };
 
 TEST_F(YARATest, test_match_true) {
   Row r = scanFileWithRulesFromFile(testTargetFile, alwaysTrue);
-  EXPECT_EQ("1",r["count"]);
+  EXPECT_EQ("1", r["count"]);
 }
 
 TEST_F(YARATest, test_match_false) {
   Row r = scanFileWithRulesFromFile(testTargetFile, alwaysFalse);
-  EXPECT_EQ("0",r["count"]);
+  EXPECT_EQ("0", r["count"]);
 }
 
 TEST_F(YARATest, test_match) {
   Row r = scanFileWithRulesFromFile(testTargetFile, ruleShouldMatch);
-  EXPECT_EQ("1",r["count"]);
+  EXPECT_EQ("1", r["count"]);
   r = scanFileWithRulesFromString(testTargetFile, ruleShouldMatch);
-  EXPECT_EQ("1",r["count"]);
+  EXPECT_EQ("1", r["count"]);
 }
-
 
 TEST_F(YARATest, test_sql_siggroup_nosuch) {
   writeTextFile(ruleFile, ruleShouldMatch);
@@ -180,7 +185,6 @@ TEST_F(YARATest, test_sql_sigfile) {
     return;
   }
   EXPECT_EQ(1, results.rows().size());
-
 }
 
 TEST_F(YARATest, test_sql_adhoc_string) {
@@ -215,12 +219,11 @@ TEST_F(YARATest, test_sql_adhoc_invalid_syntax) {
 }
 
 TEST_F(YARATest, test_path_pattern) {
-
   auto pathPattern = (fs::temp_directory_path() / "%" / "%.bin").string();
   writeTextFile(ruleFile, ruleShouldMatch);
 
   std::string query = "SELECT * FROM yara WHERE path LIKE '" + pathPattern;
-    query += "' AND sigfile='" + ruleFile + "'";
+  query += "' AND sigfile='" + ruleFile + "'";
 
   auto results = SQL(query);
   if (!results.getStatus().ok()) {
@@ -230,31 +233,32 @@ TEST_F(YARATest, test_path_pattern) {
   EXPECT_EQ(1, results.rows().size());
 }
 
-std::string jsonFriendlyPath(std::string path)
-{
+std::string jsonFriendlyPath(std::string path) {
 #ifdef WIN32
-    return boost::replace_all_copy(path,"\\","\\\\");
+  return boost::replace_all_copy(path, "\\", "\\\\");
 #endif
-    return path;
+  return path;
 }
 
 class YaraConfigParserPluginTests : public testing::Test {
  public:
   void SetUp() override {
-
     setTestPaths();
     writeTextFile(ruleFile, ruleShouldMatch);
 
     // config with valid syntax
- 
-    config_string_ = "{"
-    "  \"yara\": {"
-    "    \"signatures\": {"
-    "      \"group1\": [ \"" + jsonFriendlyPath(ruleFile) + "\" ]"
-    "      ,\"group2\": [ \"/tmp/some/non-existent/file.sig\" ]"
-    "    }"
-    "  }"
-    "}";
+
+    config_string_ =
+        "{"
+        "  \"yara\": {"
+        "    \"signatures\": {"
+        "      \"group1\": [ \"" +
+        jsonFriendlyPath(ruleFile) +
+        "\" ]"
+        "      ,\"group2\": [ \"/tmp/some/non-existent/file.sig\" ]"
+        "    }"
+        "  }"
+        "}";
 
     Config::get().reset();
   }
@@ -269,7 +273,6 @@ class YaraConfigParserPluginTests : public testing::Test {
 };
 
 TEST_F(YaraConfigParserPluginTests, test_table_query) {
-
   std::string query = "SELECT * FROM yara WHERE path='" + testTargetFile;
   query += "' AND sig_group='group1'";
   auto results = SQL(query);
@@ -284,7 +287,7 @@ TEST_F(YaraConfigParserPluginTests, test_table_query) {
   results = SQL(query);
 
   EXPECT_TRUE(results.getStatus().ok());
-  EXPECT_EQ(1, results.rows().size());      // group now exists, expect match
+  EXPECT_EQ(1, results.rows().size()); // group now exists, expect match
 
   // try with group2, where sig file does not exist
 

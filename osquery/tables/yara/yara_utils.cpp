@@ -21,8 +21,7 @@
 namespace fs = boost::filesystem;
 
 #ifdef WIN32
-inline FILE* FOPEN(const char *filename, const char *mode)
-{
+inline FILE* FOPEN(const char* filename, const char* mode) {
   FILE* rule_file = 0L;
   fopen_s(&rule_file, filename, mode);
   return rule_file;
@@ -43,9 +42,11 @@ void YARACompilerCallback(int error_level,
                           void* user_data) {
   std::string file = (file_name == nullptr ? "" : file_name);
   if (error_level == YARA_ERROR_LEVEL_ERROR) {
-    VLOG(1) << "file:" << file << " line:" << line_number << " detail:" << message;
+    VLOG(1) << "file:" << file << " line:" << line_number
+            << " detail:" << message;
   } else {
-    VLOG(1) << "file:" << file << " line:" << line_number << " detail:" << message;
+    VLOG(1) << "file:" << file << " line:" << line_number
+            << " detail:" << message;
   }
 }
 
@@ -365,4 +366,4 @@ Status YARAConfigParserPlugin::update(const std::string& source,
 
 /// Call the simple YARA ConfigParserPlugin "yara".
 REGISTER(YARAConfigParserPlugin, "config_parser", "yara");
-}
+} // namespace osquery

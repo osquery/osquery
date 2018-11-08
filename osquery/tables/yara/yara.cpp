@@ -24,22 +24,19 @@ namespace fs = boost::filesystem;
 #endif
 #include <yara.h>
 
-typedef enum {
-  YC_NONE=0,
-  YC_GROUP,
-  YC_FILE,
-  YC_ADHOC
-} YaraContextType;
+typedef enum { YC_NONE = 0, YC_GROUP, YC_FILE, YC_ADHOC } YaraContextType;
 
 struct YaraRuleContext {
-  std::string     value_; // group name, file_name, or rules string
+  std::string value_; // group name, file_name, or rules string
   YaraContextType type_;
-  YR_RULES*       compiled_rules_;
+  YR_RULES* compiled_rules_;
 
-  YaraRuleContext(std::string group_file_or_content, YaraContextType ct,
-    YR_RULES* compiled_rules) : value_(group_file_or_content),
-      type_(ct), compiled_rules_(compiled_rules) {
-  }
+  YaraRuleContext(std::string group_file_or_content,
+                  YaraContextType ct,
+                  YR_RULES* compiled_rules)
+      : value_(group_file_or_content),
+        type_(ct),
+        compiled_rules_(compiled_rules) {}
 
   ~YaraRuleContext() {
     // do not free up rules owned by config parser (YC_GROUP)
@@ -70,10 +67,14 @@ bool doYARAScan(SPYaraRuleContext yrc,
   r["tags"] = "";
 
   // Perform the scan, using the static YARA subscriber callback.
-  int result = yr_rules_scan_file(yrc->compiled_rules_, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
+  int result = yr_rules_scan_file(yrc->compiled_rules_,
+                                  path.c_str(),
+                                  SCAN_FLAGS_FAST_MODE,
+                                  YARACallback,
+                                  (void*)&r,
+                                  0);
 
   if (result == ERROR_SUCCESS) {
-
     // This could use target_path instead to be consistent with yara_events.
     r["path"] = path;
     r["adhoc_rules"] = (YC_ADHOC == yrc->type_ ? yrc->value_ : "");
@@ -91,8 +92,8 @@ bool doYARAScan(SPYaraRuleContext yrc,
 }
 
 static void expandFSPathConstraints(QueryContext& context,
-                             const std::string& path_column_name,
-                             std::set<std::string>& paths) {
+                                    const std::string& path_column_name,
+                                    std::set<std::string>& paths) {
   context.expandConstraints(
       path_column_name,
       LIKE,
@@ -110,7 +111,8 @@ static void expandFSPathConstraints(QueryContext& context,
       }));
 }
 
-static inline bool contains(const std::map<std::string, std::string> &m, std::string val) {
+static inline bool contains(const std::map<std::string, std::string>& m,
+                            std::string val) {
   return (m.count(val) > 0);
 }
 
@@ -122,7 +124,9 @@ static inline bool contains(const std::map<std::string, std::string> &m, std::st
  *
  * On return, 'dest' will contain a
  */
-static void get_group_rules_from_config(std::vector<SPYaraRuleContext> &dest, const std::set<std::string> group_names ) {
+static void get_group_rules_from_config(
+    std::vector<SPYaraRuleContext>& dest,
+    const std::set<std::string> group_names) {
   if (group_names.empty()) {
     return;
   }
@@ -136,7 +140,7 @@ static void get_group_rules_from_config(std::vector<SPYaraRuleContext> &dest, co
   std::shared_ptr<YARAConfigParserPlugin> yaraParser = nullptr;
   try {
     yaraParser = std::dynamic_pointer_cast<YARAConfigParserPlugin>(parser);
-  } catch (const std::bad_cast& ) {
+  } catch (const std::bad_cast&) {
     LOG(ERROR) << "Error casting yara config parser plugin";
     return;
   }
@@ -155,7 +159,8 @@ static void get_group_rules_from_config(std::vector<SPYaraRuleContext> &dest, co
       // no such group defined
       LOG(WARNING) << "Specified group not in config:" << group_name;
     } else {
-      dest.push_back(std::make_shared<YaraRuleContext>(group_name, YC_GROUP, fit->second));
+      dest.push_back(
+          std::make_shared<YaraRuleContext>(group_name, YC_GROUP, fit->second));
     }
   }
 }
@@ -163,7 +168,8 @@ static void get_group_rules_from_config(std::vector<SPYaraRuleContext> &dest, co
 /*
  * Compiles YARA rules file(s) and adds entry for each to dest.
  */
-static void make_sigfile_rules(std::vector<SPYaraRuleContext> &dest, const std::set<std::string> sigfiles ) {
+static void make_sigfile_rules(std::vector<SPYaraRuleContext>& dest,
+                               const std::set<std::string> sigfiles) {
   auto encountered = std::map<std::string, std::string>();
 
   if (sigfiles.empty()) {
@@ -171,7 +177,6 @@ static void make_sigfile_rules(std::vector<SPYaraRuleContext> &dest, const std::
   }
 
   for (const auto& file : sigfiles) {
-
     if (contains(encountered, file)) {
       LOG(WARNING) << "YARA sigfile already specified in query:" << file;
       continue;
@@ -182,7 +187,7 @@ static void make_sigfile_rules(std::vector<SPYaraRuleContext> &dest, const std::
 
     fs::path fsp = fs::path(file);
     if (!fsp.is_absolute()) {
-	fsp = fs::path(kYARAHome) / fsp;
+      fsp = fs::path(kYARAHome) / fsp;
     }
     std::string path = fsp.string();
 
@@ -214,13 +219,14 @@ static void make_sigfile_rules(std::vector<SPYaraRuleContext> &dest, const std::
 /*
  * Compiles YARA rules string(s) and adds entry for each to dest.
  */
-static void make_adhoc_rules(std::vector<SPYaraRuleContext> &dest, const std::set<std::string> rules_strings ) {
+static void make_adhoc_rules(std::vector<SPYaraRuleContext>& dest,
+                             const std::set<std::string> rules_strings) {
   auto encountered = std::map<std::string, std::string>();
 
   for (const auto& yara_string : rules_strings) {
-
     if (contains(encountered, yara_string)) {
-      LOG(WARNING) << "YARA adhoc_rules already specified in query:" << yara_string;
+      LOG(WARNING) << "YARA adhoc_rules already specified in query:"
+                   << yara_string;
       continue;
     }
     encountered[yara_string] = "";
@@ -238,7 +244,8 @@ static void make_adhoc_rules(std::vector<SPYaraRuleContext> &dest, const std::se
       continue;
     }
 
-    dest.push_back(std::make_shared<YaraRuleContext>(yara_string, YC_ADHOC, tmp_rules));
+    dest.push_back(
+        std::make_shared<YaraRuleContext>(yara_string, YC_ADHOC, tmp_rules));
   }
 }
 
@@ -250,8 +257,10 @@ QueryData genYara(QueryContext& context) {
   auto adhoc_rules_strings = context.constraints["adhoc_rules"].getAll(EQUALS);
   auto sigfiles = context.constraints["sigfile"].getAll(EQUALS);
 
-  if (groups.size() == 0 && sigfiles.size() == 0 && adhoc_rules_strings.size() == 0) {
-    LOG(WARNING) << "Need to supply a sig_group, sigfile, or adhoc_rules string";
+  if (groups.size() == 0 && sigfiles.size() == 0 &&
+      adhoc_rules_strings.size() == 0) {
+    LOG(WARNING)
+        << "Need to supply a sig_group, sigfile, or adhoc_rules string";
     return results;
   }
 
