@@ -8,10 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <sys/socket.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <net/if.h>
+#include <sys/socket.h>
 
 #include <boost/algorithm/string/trim.hpp>
 
@@ -53,61 +53,6 @@ std::string getDefaultRouteIP(int family) {
     LOG(ERROR) << "Unsupported address family: " << family;
     return "";
   }
-}
-
-Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
-  struct nlmsghdr* nl_hdr = nullptr;
-
-  size_t message_size = 0;
-  do {
-    size_t latency = 0;
-    size_t total_bytes = 0;
-    ssize_t bytes = 0;
-    while (bytes == 0) {
-      bytes = recv(socket_fd, output, MAX_NETLINK_SIZE - message_size, 0);
-      if (bytes < 0) {
-        // Unrecoverable NETLINK error, bail.
-        return Status(1, "Could not read from NETLINK");
-      }
-
-      // Bytes were returned by we might need to read more.
-      total_bytes += bytes;
-      if (latency >= MAX_NETLINK_ATTEMPTS) {
-        // Too many attempts to read bytes have occurred.
-        // Prevent the NETLINK socket from handing and bail.
-        return Status(1, "Netlink timeout");
-      } else if (bytes == 0) {
-        if (total_bytes > 0) {
-          // Bytes were read, but now no more are available, attempt to parse
-          // the received NETLINK message.
-          break;
-        }
-        ::usleep(20);
-        latency += 1;
-      }
-    }
-
-    // Assure valid header response, and not an error type.
-    nl_hdr = (struct nlmsghdr*)output;
-    if (NLMSG_OK(nl_hdr, bytes) == 0 || nl_hdr->nlmsg_type == NLMSG_ERROR) {
-      return Status(1, "Read invalid NETLINK message");
-    }
-
-    if (nl_hdr->nlmsg_type == NLMSG_DONE) {
-      break;
-    }
-
-    // Move the buffer pointer
-    output += bytes;
-    message_size += bytes;
-    if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) {
-      break;
-    }
-  } while (static_cast<pid_t>(nl_hdr->nlmsg_seq) != seq ||
-           static_cast<pid_t>(nl_hdr->nlmsg_pid) != getpid());
-
-  *size = message_size;
-  return Status(0, "OK");
 }
 
 void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
@@ -198,6 +143,38 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
   results.push_back(r);
 }
 
+/*
+ * Reads from socket until buffer is full or recv() returns -1.
+ * Uses non-blocking recv with usleep.
+ */
+static size_t readNetlinkAll(int socket_fd,
+                             int seq,
+                             char* dest,
+                             size_t destsize) {
+  size_t remaining = destsize;
+  char* p = dest;
+
+  while (1) {
+    auto bytes_read = recv(socket_fd, p, remaining, MSG_DONTWAIT);
+
+    if (bytes_read < 0) {
+      break;
+    }
+
+    p += bytes_read;
+    remaining -= bytes_read;
+
+    if (remaining <= 0) {
+      LOG(WARNING) << "buffer full - exiting";
+      break;
+    }
+
+    ::usleep(20);
+  }
+
+  return (size_t)(p - dest);
+}
+
 QueryData genRoutes(QueryContext& context) {
   QueryData results;
 
@@ -230,17 +207,12 @@ QueryData genRoutes(QueryContext& context) {
     return {};
   }
 
-  // Wrap the read socket to support multi-netlink messages
-  size_t size = 0;
-  if (!readNetlink(socket_fd, 1, (char*)netlink_msg, &size).ok()) {
-    TLOG << "Cannot read NETLINK response from socket";
-    close(socket_fd);
-    free(netlink_buffer);
-    return {};
-  }
+  size_t size =
+      readNetlinkAll(socket_fd, 1, (char*)netlink_msg, MAX_NETLINK_SIZE);
 
   // Treat the netlink response as route information
-  while (NLMSG_OK(netlink_msg, size)) {
+  while (NLMSG_OK(netlink_msg, size) &&
+         (netlink_msg->nlmsg_type != NLMSG_DONE)) {
     genNetlinkRoutes(netlink_msg, results);
     netlink_msg = NLMSG_NEXT(netlink_msg, size);
   }
@@ -249,5 +221,5 @@ QueryData genRoutes(QueryContext& context) {
   free(netlink_buffer);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
