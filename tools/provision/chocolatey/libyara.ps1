@@ -11,7 +11,11 @@ $version = '3.8.1'
 $chocoVersion = '3.8.1'
 $packageName = 'libyara'
 $projectSource = 'https://github.com/VirusTotal/yara'
-$packageSourceUrl = "https://github.com/VirusTotal/yara/archive/v$version.zip"
+$packageSourceUrl = "https://github.com/VirusTotal/yara/zipball/master"
+# --------------------
+# TODO: when 3.8.2 comes out, change back to using archive zip url
+# --------------------
+##$packageSourceUrl = "https://github.com/VirusTotal/yara/archive/v$version.zip"
 $authors = 'VirusTotal'
 $owners = 'VirusTotal'
 $copyright = 'https://github.com/VirusTotal/yara/blob/master/COPYING'
@@ -52,12 +56,16 @@ if(-Not (Test-Path $zipFile)) {
   Invoke-WebRequest $url -OutFile "$zipFile"
 }
 
+
 # Extract the source
 $sourceDir = "yara-$version"
 if (-not (Test-Path $sourceDir)) {
   $7z = (Get-Command '7z').Source
   $7zargs = "x $zipFile"
   Start-OsqueryProcess $7z $7zargs
+
+  # This is for the case where we are pulling master branch zip
+  move VirusT~1 "yara-$version"
 }
 Set-Location $sourceDir
 
