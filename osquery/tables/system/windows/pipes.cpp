@@ -19,6 +19,46 @@
 namespace osquery {
 namespace tables {
 
+// map to get access mode string
+static const std::unordered_map<ACCESS_MODE, std::string> kAccessModeToStr = {
+    {NOT_USED_ACCESS, "Not Used"},
+    {GRANT_ACCESS, "Grant"},
+    {SET_ACCESS, "Set"},
+    {DENY_ACCESS, "Deny"},
+    {REVOKE_ACCESS, "Revoke"},
+    {SET_AUDIT_SUCCESS, "Set Audit Success"},
+    {SET_AUDIT_FAILURE, "Set Audit Failure"}};
+
+// map to build access string
+static const std::map<unsigned long, std::string> kPermVals = {
+    {DELETE, "Delete"},
+    {READ_CONTROL, "Read Control"},
+    {WRITE_DAC, "Write DAC"},
+    {WRITE_OWNER, "Write Owner"},
+    {SYNCHRONIZE, "Synchronize"},
+    {STANDARD_RIGHTS_REQUIRED, "Std Rights Required"},
+    {STANDARD_RIGHTS_ALL, "Std Rights All"},
+    {SPECIFIC_RIGHTS_ALL, "Specific Rights All"},
+    {ACCESS_SYSTEM_SECURITY, "Access System Security"},
+    {MAXIMUM_ALLOWED, "Maximum Allowed"},
+    {GENERIC_READ, "Generic Read"},
+    {GENERIC_WRITE, "Generic Write"},
+    {GENERIC_EXECUTE, "Generic Execute"},
+    {GENERIC_ALL, "Generic All"}};
+
+// helper function to build access string from permission bit mask
+std::string accessPermsToStr(const unsigned long pmask) {
+  std::vector<std::string> permList;
+
+  for (auto const& perm : kPermVals) {
+    if ((pmask & perm.first) != 0) {
+      permList.push_back(perm.second);
+    }
+  }
+
+  return alg::join(permList, ",");
+}
+
 QueryData genPipes(QueryContext& context) {
   QueryData results;
   WIN32_FIND_DATA findFileData;
@@ -70,6 +110,43 @@ QueryData genPipes(QueryContext& context) {
                            ? "PIPE_TYPE_MESSAGE"
                            : "PIPE_TYPE_BYTE";
     r["flags"] = end + ',' + type;
+
+    // Get a pointer to the existing DACL.
+    PACL dacl = nullptr;
+    auto result = GetNamedSecurityInfo(pipeHandle,
+                                       SE_FILE_OBJECT,
+                                       DACL_SECURITY_INFORMATION,
+                                       nullptr,
+                                       nullptr,
+                                       &dacl,
+                                       nullptr,
+                                       nullptr);
+    if (ERROR_SUCCESS != result) {
+      VLOG(1) << "GetExplicitEnteriesFromAcl Error " << result;
+      continue;
+    }
+
+    // get list of ACEs from DACL pointer
+    unsigned long aceCount = 0;
+    PEXPLICIT_ACCESS aceList = nullptr;
+    result = GetExplicitEntriesFromAcl(dacl, &aceCount, &aceList);
+    if (ERROR_SUCCESS != result) {
+      VLOG(1) << "GetExplicitEnteriesFromAcl Error " << result;
+      continue;
+    }
+
+    // Loop through list of entries
+    auto aceItem = aceList;
+    for (unsigned long aceIndex = 0; aceIndex < aceCount;
+         aceItem++, aceIndex++) {
+
+      auto perms = accessPermsToStr(aceItem->grfAccessPermissions);
+      auto accessMode = kAccessModeToStr.find(aceItem->grfAccessMode)->second;
+
+      r["type"] = TEXT(accessMode);
+      r["access"] = TEXT(perms);
+      results.push_back(std::move(r));
+    }
 
     results.push_back(r);
     CloseHandle(pipeHandle);
