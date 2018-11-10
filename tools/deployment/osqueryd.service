@@ -13,6 +13,12 @@ ExecStart=/usr/bin/osqueryd \
 Restart=on-failure
 KillMode=process
 KillSignal=SIGTERM
+NoNewPrivileges=yes
+PrivateTmp=true
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectSystem=full
+RestrictRealtime=true
 
 [Install]
 WantedBy=multi-user.target
