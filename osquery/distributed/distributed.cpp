@@ -24,7 +24,7 @@
 
 namespace rj = rapidjson;
 
-#define MAX_ACCEL_DURATION_SEC 3600 // 1 hour
+const int MAX_ACCEL_DURATION_SEC = 3600; // 1 hour
 
 namespace osquery {
 
@@ -78,9 +78,6 @@ Status Distributed::pullUpdates() {
     return Status(1, "Missing distributed plugin: " + distributed_plugin);
   }
 
-  // should not have any work in progress when this is called.
-  assert(results_.size() == 0);
-
   // if last read document is in DB, worker process was killed
   reportInterruptedWork();
 
@@ -125,7 +122,7 @@ size_t Distributed::numDistWrites() {
 }
 
 Status Distributed::serializeResults(std::string& json,
-                                     DistributedQueryResult* item) {
+                                     const DistributedQueryResult* item) {
   auto doc = JSON::newObject();
   auto queries_obj = doc.getObject();
   auto statuses_obj = doc.getObject();
@@ -169,6 +166,8 @@ Status Distributed::runQueries() {
     // delay in between to avoid being killed by watcher.
     if (i > 0 && FLAGS_distributed_intra_sleep > 0) {
       if (FLAGS_distributed_intra_sleep > 30) {
+        VLOG(1) << "FLAGS_distributed_intra_sleep invalid:"
+                << FLAGS_distributed_intra_sleep;
         FLAGS_distributed_intra_sleep = 30;
       }
       VLOG(1) << "FLAGS_distributed_intra_sleep "
@@ -229,7 +228,7 @@ Status Distributed::flushCompleted() {
     // If unsuccessful, we drop it on the floor.
     if (!status.ok()) {
       std::string str;
-      for (auto item : results_) {
+      for (const auto& item : results_) {
         str += "{ id:" + item.id;
         str += " query:" + item.query + "}";
       }
@@ -251,7 +250,7 @@ Status Distributed::flushCompleted() {
  */
 int Distributed::numUnreported() {
   int n = 0;
-  for (auto& item : results_) {
+  for (const auto& item : results_) {
     if (false == item.hasReported) {
       n++;
     }
@@ -329,7 +328,7 @@ Status Distributed::passesDiscovery(const JSON& doc) {
   // All discovery queries need to return rows to pass discovery
 
   if (numDiscoveryPassed < numDiscoveryQueries) {
-    return Status(1);
+    return Status(1, "A discovery query failed");
   }
 
   return Status();
@@ -346,13 +345,13 @@ static inline std::string getStr(const rj::Value& node) {
  * Parses the queries portion of distributed_read body and populates
  * results_ vector.  Each result_ entry will have id, query set, and
  * the status will be set to -1, indicating that the query has not been
- * initiated yet.  With the exception being when discoveryStatus is not
+ * initiated yet.  With the exception being when discovery_status is not
  * success, which indicates queries should not be run, so result_ statuses
  * are set to 0, meaning success.  Discovery queries are used to check
  * whether a set of queries are relevant to the target device.
  */
 Status Distributed::populateResultState(const JSON& doc,
-                                        Status discoveryStatus) {
+                                        Status discovery_status) {
   const auto& queries = doc.doc()["queries"];
 
   for (const auto& query_entry : queries.GetObject()) {
@@ -364,7 +363,7 @@ Status Distributed::populateResultState(const JSON& doc,
 
     // add result placeholder
     DistributedQueryResult result(name, query);
-    if (!discoveryStatus.ok()) {
+    if (!discovery_status.ok()) {
       // queries are not relevant to this device, mark as done
       result.status = Status(0);
     }

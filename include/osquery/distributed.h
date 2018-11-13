@@ -170,7 +170,7 @@ class Distributed {
 
   /// Serialize result data into a JSON string
   Status serializeResults(std::string& json,
-                          DistributedQueryResult* result = 0L);
+                          const DistributedQueryResult* result = 0L);
 
   /**
    * @brief Used to write a single result when
