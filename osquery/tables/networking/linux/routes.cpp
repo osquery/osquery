@@ -155,7 +155,7 @@ static size_t readNetlinkAll(int socket_fd,
   char* p = dest;
 
   while (1) {
-    auto bytes_read = recv(socket_fd, p, remaining, MSG_DONTWAIT);
+    ssize_t bytes_read = recv(socket_fd, p, remaining, MSG_DONTWAIT);
 
     if (bytes_read < 0) {
       break;
@@ -172,7 +172,7 @@ static size_t readNetlinkAll(int socket_fd,
     ::usleep(20);
   }
 
-  return (size_t)(p - dest);
+  return static_cast<size_t>(p - dest);
 }
 
 QueryData genRoutes(QueryContext& context) {
@@ -192,7 +192,7 @@ QueryData genRoutes(QueryContext& context) {
   }
 
   memset(netlink_buffer, 0, MAX_NETLINK_SIZE);
-  auto netlink_msg = (struct nlmsghdr*)netlink_buffer;
+  struct nlmsghdr* netlink_msg = (struct nlmsghdr*)netlink_buffer;
   netlink_msg->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
   netlink_msg->nlmsg_type = RTM_GETROUTE; // routes from kernel routing table
   netlink_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST | NLM_F_ATOMIC;
@@ -207,8 +207,8 @@ QueryData genRoutes(QueryContext& context) {
     return {};
   }
 
-  size_t size =
-      readNetlinkAll(socket_fd, 1, (char*)netlink_msg, MAX_NETLINK_SIZE);
+  size_t size = readNetlinkAll(
+      socket_fd, 1, reinterpret_cast<char*>(netlink_msg), MAX_NETLINK_SIZE);
 
   // Treat the netlink response as route information
   while (NLMSG_OK(netlink_msg, size) &&
