@@ -18,10 +18,10 @@
 #include <osquery/status.h>
 
 // PENDING status is runtime only, never reported back to endpoint
-#define DQ_PENDING_STATUS -1
+const int DQ_PENDING_STATUS = -1;
 
 // INTERRUPTED status is when watcher kills resource intensive dist query
-#define DQ_INTERRUPTED_STATUS 9
+const int DQ_INTERRUPTED_STATUS = 9;
 
 namespace osquery {
 
