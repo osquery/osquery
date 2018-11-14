@@ -6,8 +6,8 @@ schema([
     Column("instances", INTEGER, "Number of instances of the named pipe"),
     Column("max_instances", INTEGER, "The maximum number of instances creatable for this pipe"),
     Column("flags", TEXT, "The flags indicating whether this pipe connection is a server or client end, and if the pipe for sending messages or bytes"),
-  Column("type", TEXT, "Type of access mode for the access control entry."),
-  Column("access", TEXT, "Specific permissions that indicate the rights described by the ACE."),
+    Column("type", TEXT, "Type of access mode for the access control entry."),
+    Column("access", TEXT, "Specific permissions that indicate the rights described by the ACE."),
 ])
 implementation("pipes@genPipes")
 examples([
