@@ -53,6 +53,8 @@ FLAG(string, aws_region, "", "AWS region");
 FLAG(string, aws_sts_arn_role, "", "AWS STS ARN role");
 FLAG(string, aws_sts_region, "", "AWS STS region");
 FLAG(string, aws_sts_session_name, "default", "AWS STS session name");
+FLAG(string, aws_session_token, "", "AWS STS session token");
+FLAG(string, aws_endpoint_override, "", "AWS Endpoint override");
 FLAG(uint64,
      aws_sts_timeout,
      3600,
@@ -226,6 +228,18 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
   // Grab system time in seconds-since-epoch for token expiration checks.
   size_t current_time = osquery::getUnixTime();
 
+  // config provides STS creds that includes the token
+  if (FLAGS_aws_session_token.size() > 0) {
+    if (access_key_id_.empty()) {
+      initAwsSdk();
+      access_key_id_ = FLAGS_aws_access_key_id;
+      secret_access_key_ = FLAGS_aws_secret_access_key;
+      session_token_ = FLAGS_aws_session_token;
+    }
+    return Aws::Auth::AWSCredentials(
+        access_key_id_, secret_access_key_, session_token_);
+  }
+
   // Pull new STS credentials if not cached from a previous run.
   if (token_expire_time_ <= current_time) {
     // Create and setup a STS client to pull our temporary credentials.
@@ -270,7 +284,8 @@ OsqueryAWSCredentialsProviderChain::OsqueryAWSCredentialsProviderChain(bool sts)
     : AWSCredentialsProviderChain() {
   // The order of the AddProvider calls determines the order in which the
   // provider chain attempts to retrieve credentials.
-  if (sts && !FLAGS_aws_sts_arn_role.empty()) {
+  if (!FLAGS_aws_session_token.empty() ||
+      (sts && !FLAGS_aws_sts_arn_role.empty())) {
     AddProvider(std::make_shared<OsquerySTSAWSCredentialsProvider>());
   }
 
@@ -514,4 +529,9 @@ void setAWSProxy(Aws::Client::ClientConfiguration& config) {
     config.proxyPassword = FLAGS_aws_proxy_password;
   }
 }
+
+std::string getAWSEndpointOverride() {
+  return FLAGS_aws_endpoint_override;
 }
+
+} // namespace osquery

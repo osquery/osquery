@@ -190,6 +190,11 @@ Status getAWSRegion(std::string& region, bool sts = false);
 void setAWSProxy(Aws::Client::ClientConfiguration& config);
 
 /**
+ * @return aws_endpoint_override FLAG value or empty string.
+ */
+std::string getAWSEndpointOverride();
+
+/**
  * @brief Instantiate an AWS client with the appropriate osquery configs,
  *
  * This will pull the region and authentication configs from the appropriate
@@ -218,6 +223,8 @@ Status makeAWSClient(std::shared_ptr<Client>& client,
     client_config.region = region;
   }
 
+  client_config.endpointOverride = getAWSEndpointOverride();
+
   // Setup any proxy options on the config if desired
   setAWSProxy(client_config);
 
@@ -237,4 +244,4 @@ Status makeAWSClient(std::shared_ptr<Client>& client,
  * @return 0 if successful, 1 if there were issues
  */
 Status appendLogTypeToJson(const std::string& log_type, std::string& log);
-}
+} // namespace osquery
