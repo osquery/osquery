@@ -205,9 +205,9 @@ Status Distributed::runQueries() {
 }
 
 Status Distributed::flushCompleted() {
-  Status status = Status(0, "OK");
+  Status status = Status(0);
 
-  if (results_.size() == 0) {
+  if (results_.empty()) {
     return status;
   }
 
