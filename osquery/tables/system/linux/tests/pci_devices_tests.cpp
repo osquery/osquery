@@ -48,7 +48,8 @@ class PciDevicesTest : public ::testing::Test {
 
 PciDB* PciDevicesTest::pcidb_ = nullptr;
 
-TEST_F(PciDevicesTest, extract_pci_device_info_all_fields_exists) {
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_all_fields_exists) {
   Row expected = {
       {"vendor_id", "0x8002"},
       {"model_id", "0x131b"},
@@ -61,13 +62,14 @@ TEST_F(PciDevicesTest, extract_pci_device_info_all_fields_exists) {
   };
 
   Row got;
-  auto status = extractPCIVendorModelInfoByPciDB(
+  auto status = extractVendorModelFromPciDBIfPresent(
       got, "8002:131B", "174B:1001", *PciDevicesTest::pcidb_);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(expected, got);
 }
 
-TEST_F(PciDevicesTest, extract_pci_device_info_missing_subsystem_info) {
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_missing_subsystem_info) {
   Row expected = {
       {"vendor_id", "0x8002"},
       {"model_id", "0x131b"},
@@ -78,13 +80,14 @@ TEST_F(PciDevicesTest, extract_pci_device_info_missing_subsystem_info) {
   };
 
   Row got;
-  auto status = extractPCIVendorModelInfoByPciDB(
+  auto status = extractVendorModelFromPciDBIfPresent(
       got, "8002:131B", "174C:1003", *PciDevicesTest::pcidb_);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(expected, got);
 }
 
-TEST_F(PciDevicesTest, extract_pci_device_info_missing_all_info) {
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_missing_all_info) {
   Row expected = {
       {"vendor_id", "0x8005"},
       {"model_id", "0x1311"},
@@ -93,22 +96,24 @@ TEST_F(PciDevicesTest, extract_pci_device_info_missing_all_info) {
   };
 
   Row got;
-  auto status = extractPCIVendorModelInfoByPciDB(
+  auto status = extractVendorModelFromPciDBIfPresent(
       got, "8005:1311", "174C:1003", *PciDevicesTest::pcidb_);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(expected, got);
 }
 
-TEST_F(PciDevicesTest, extract_pci_device_info_negative_bad_pci_id) {
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_bad_pci_id) {
   Row got;
-  auto status = extractPCIVendorModelInfoByPciDB(
+  auto status = extractVendorModelFromPciDBIfPresent(
       got, "blahblah", "174C:1003", *PciDevicesTest::pcidb_);
   EXPECT_FALSE(status.ok());
 }
 
-TEST_F(PciDevicesTest, extract_pci_device_info_negative_bad_subsys_id) {
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_bad_subsys_id) {
   Row got;
-  auto status = extractPCIVendorModelInfoByPciDB(
+  auto status = extractVendorModelFromPciDBIfPresent(
       got, "8005:1311", "blahblah", *PciDevicesTest::pcidb_);
   EXPECT_FALSE(status.ok());
 }

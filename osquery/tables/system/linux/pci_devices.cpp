@@ -241,25 +241,50 @@ Status PciDB::getSubsystemInfo(const std::string& vendor_id,
   return Status::success();
 }
 
-Status enrichPCISubsysInfo(Row& row,
-                           std::string subsystem_attr,
-                           const std::string& vendor_id,
-                           const std::string& model_id,
-                           const PciDB& pcidb) {
-  boost::algorithm::to_lower(subsystem_attr);
-  std::vector<std::string> subsystem_ids;
-  boost::split(subsystem_ids, subsystem_attr, boost::is_any_of(":"));
+Status splitVendorModelAttrs(std::string pci_id_attr,
+                             std::string& vendor,
+                             std::string& model) {
+  // pci.ids lower cases everything, so we follow suit.
+  boost::algorithm::to_lower(pci_id_attr);
+  std::vector<std::string> ids;
+  boost::split(ids, pci_id_attr, boost::is_any_of(":"));
 
-  if (subsystem_ids.size() != 2) {
+  if (ids.size() != 2) {
     return Status::failure(
-        "Expected 2 identifiers from sysFs device subsystem attribute, but "
+        "Expected 2 identifiers from sysFs PCI device attribute, but "
         "got " +
-        std::to_string(subsystem_ids.size()));
+        std::to_string(ids.size()));
   }
 
-  auto subsys_vendor_id = subsystem_ids[0];
-  auto subsys_model_id = subsystem_ids[1];
+  vendor = std::move(ids[0]);
+  model = std::move(ids[1]);
+  return Status::success();
+}
 
+void extractOEMVendorModelFromPciDB(Row& row,
+                                    const std::string& vendor_id,
+                                    const std::string& model_id,
+                                    const PciDB& pcidb) {
+  row.emplace("vendor_id", "0x" + vendor_id);
+  row.emplace("model_id", "0x" + model_id);
+
+  std::string content;
+  if (pcidb.getVendorName(vendor_id, content).ok()) {
+    row["vendor"] = content;
+  }
+
+  content.clear();
+  if (pcidb.getModel(vendor_id, model_id, content).ok()) {
+    row["model"] = content;
+  }
+}
+
+void extractSubsysVendorModelFromPciDB(Row& row,
+                                       const std::string& vendor_id,
+                                       const std::string& model_id,
+                                       const std::string& subsys_vendor_id,
+                                       const std::string& subsys_model_id,
+                                       const PciDB& pcidb) {
   row.emplace("subsystem_vendor_id", "0x" + subsys_vendor_id);
   row.emplace("subsystem_model_id", "0x" + subsys_model_id);
 
@@ -275,6 +300,39 @@ Status enrichPCISubsysInfo(Row& row,
           .ok()) {
     row.emplace("subsystem_model", std::move(content));
   }
+}
+
+Status extractVendorModelFromPciDBIfPresent(Row& row,
+                                            std::string device_ids_attr,
+                                            std::string subsystem_ids_attr,
+                                            const PciDB& pcidb) {
+  std::string vendor_id;
+  std::string model_id;
+  auto status = splitVendorModelAttrs(device_ids_attr, vendor_id, model_id);
+  if (!status.ok()) {
+    // Legacy behavior of using value "0" being supported for backward
+    // compatability.
+    row.emplace("vendor_id", "0");
+    row.emplace("model_id", "0");
+
+    return Status::failure("Failed to parse PCI device ID attributes: " +
+                           status.getMessage());
+  }
+
+  extractOEMVendorModelFromPciDB(row, vendor_id, model_id, pcidb);
+
+  std::string subsystem_vendor_id;
+  std::string subsystem_model_id;
+  status = splitVendorModelAttrs(
+      subsystem_ids_attr, subsystem_vendor_id, subsystem_model_id);
+  if (!status.ok()) {
+    return Status::failure(
+        "Failed to parse PCI device subsystem ID attributes: " +
+        status.getMessage());
+  }
+
+  extractSubsysVendorModelFromPciDB(
+      row, vendor_id, model_id, subsystem_vendor_id, subsystem_model_id, pcidb);
 
   return Status::success();
 }
@@ -283,56 +341,16 @@ Status extractPCIVendorModelInfo(
     Row& row,
     std::unique_ptr<udev_device, decltype(&udev_device_unref)>& device,
     const PciDB& pcidb) {
+  // Fallback data comes from UdevEventPublisher.
   row["vendor"] = UdevEventPublisher::getValue(device.get(), kPCIKeyVendor);
   row["model"] = UdevEventPublisher::getValue(device.get(), kPCIKeyModel);
 
-  return extractPCIVendorModelInfoByPciDB(
+  // Now try PciDB for more up to date info.
+  return extractVendorModelFromPciDBIfPresent(
       row,
       UdevEventPublisher::getValue(device.get(), kPCIKeyID),
       UdevEventPublisher::getValue(device.get(), kPCISubsysID),
       pcidb);
-}
-
-Status extractPCIVendorModelInfoByPciDB(Row& row,
-                                        std::string device_attr,
-                                        std::string subsystem_attr,
-                                        const PciDB& pcidb) {
-  // pci.ids lower cases everything, so we follow suit.
-  boost::algorithm::to_lower(device_attr);
-  std::vector<std::string> ids;
-  boost::split(ids, device_attr, boost::is_any_of(":"));
-
-  if (ids.size() != 2) {
-    row.emplace("vendor_id", "0");
-    row.emplace("model_id", "0");
-
-    return Status::failure(
-        "Expected 2 identifiers from sysFs device attribute, but got " +
-        std::to_string(ids.size()));
-  }
-
-  auto vendor_id = ids[0];
-  auto model_id = ids[1];
-
-  row.emplace("vendor_id", "0x" + vendor_id);
-  row.emplace("model_id", "0x" + model_id);
-
-  // Now that we know we have VENDOR and MODEL ID's, let's actually check
-  // on the system PCI DB for descriptive information.  This implies that the
-  // system's local PCI DB would contain more update to date information than
-  // the one packaged with hwdb.
-  std::string content;
-  if (pcidb.getVendorName(vendor_id, content).ok()) {
-    row["vendor"] = content;
-  }
-
-  content.clear();
-  if (pcidb.getModel(vendor_id, model_id, content).ok()) {
-    row["model"] = content;
-  }
-
-  // Try to enrich model with subsystem info.
-  return enrichPCISubsysInfo(row, subsystem_attr, vendor_id, model_id, pcidb);
 }
 
 Status extractPCIClassIDAttrs(Row& row, std::string pci_class_attr) {
