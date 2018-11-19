@@ -45,16 +45,32 @@ FLAG(bool,
      false,
      "Enable random kinesis partition keys");
 
+FLAG(uint64,
+     aws_kinesis_max_retry,
+     100,
+     "Number of attempts to write to Kinesis (default 100)");
+
+static bool gHaveSetup = false;
+
 Status KinesisLoggerPlugin::setUp() {
-  initAwsSdk();
-  forwarder_ = std::make_shared<KinesisLogForwarder>(
-      "aws_kinesis", FLAGS_aws_kinesis_period, 500);
-  Status s = forwarder_->setUp();
-  if (!s.ok()) {
-    LOG(ERROR) << "Error initializing Kinesis logger: " << s.getMessage();
-    return s;
+  if (!gHaveSetup) {
+    gHaveSetup = true;
+    initAwsSdk();
+    forwarder_ = std::make_shared<KinesisLogForwarder>(
+        "aws_kinesis", FLAGS_aws_kinesis_period, 500);
+    Status s = forwarder_->setUp();
+    if (!s.ok()) {
+      LOG(ERROR) << "Error initializing Kinesis logger: " << s.getMessage();
+      return s;
+    }
+    Dispatcher::addService(forwarder_);
+  } else {
+    Status s = forwarder_->setUp();
+    if (!s.ok()) {
+      LOG(ERROR) << "Error initializing Kinesis logger: " << s.getMessage();
+      return s;
+    }
   }
-  Dispatcher::addService(forwarder_);
   return Status(0, "OK");
 }
 
@@ -64,6 +80,10 @@ Status KinesisLoggerPlugin::logString(const std::string& s) {
 
 Status KinesisLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
   return forwarder_->logStatus(log);
+}
+
+void KinesisLoggerPlugin::tearDown() {
+  forwarder_->interrupt();
 }
 
 void KinesisLoggerPlugin::init(const std::string& name,
@@ -120,7 +140,7 @@ size_t KinesisLogForwarder::getMaxBytesPerBatch() const {
 }
 
 size_t KinesisLogForwarder::getMaxRetryCount() const {
-  return 100U;
+  return FLAGS_aws_kinesis_max_retry;
 }
 
 size_t KinesisLogForwarder::getInitialRetryDelay() const {
@@ -139,4 +159,4 @@ KinesisLogForwarder::Result KinesisLogForwarder::getResult(
     Outcome& outcome) const {
   return outcome.GetResult().GetRecords();
 }
-}
+} // namespace osquery

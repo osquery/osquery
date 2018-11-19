@@ -235,6 +235,8 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       access_key_id_ = FLAGS_aws_access_key_id;
       secret_access_key_ = FLAGS_aws_secret_access_key;
       session_token_ = FLAGS_aws_session_token;
+      VLOG(1) << "Using provided aws_session_token for id:"
+              << FLAGS_aws_access_key_id;
     }
     return Aws::Auth::AWSCredentials(
         access_key_id_, secret_access_key_, session_token_);
@@ -272,8 +274,12 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       // Calculate when our credentials will expire.
       token_expire_time_ = current_time + FLAGS_aws_sts_timeout;
     } else {
-      LOG(ERROR) << "Failed to create STS temporary credentials: "
-                    "No STS policy exists for the AWS user/role";
+      std::string errmsg = sts_outcome.GetError().GetMessage();
+      if (errmsg.empty()) {
+        errmsg = "No STS policy exists for the AWS user/role";
+      }
+      LOG(ERROR) << "Failed to create STS temporary credentials for role:"
+                 << sts_r.GetRoleArn() << " message:" << errmsg;
     }
   }
   return Aws::Auth::AWSCredentials(

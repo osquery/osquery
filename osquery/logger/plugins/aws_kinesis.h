@@ -68,6 +68,8 @@ class KinesisLoggerPlugin : public LoggerPlugin {
 
   Status setUp() override;
 
+  void tearDown() override;
+
   bool usesLogStatus() override {
     return true;
   }
@@ -84,4 +86,4 @@ class KinesisLoggerPlugin : public LoggerPlugin {
  private:
   std::shared_ptr<KinesisLogForwarder> forwarder_{nullptr};
 };
-}
+} // namespace osquery
