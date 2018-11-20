@@ -484,6 +484,22 @@ if(NOT SKIP_TESTS)
               osquery_integration_tests
             COMMAND
               osquery_tables_tests ${TEST_ARGS})
+
+    # integration tests : aws_logger
+    if(POSIX AND NOT SKIP_AWS)
+      add_library(aws_logger_integration_tests_objs OBJECT)
+      SET_OSQUERY_COMPILE(aws_logger_integration_tests_objs "${GTEST_FLAGS}")
+
+      target_sources(aws_logger_integration_tests_objs
+        PRIVATE ""
+          "${CMAKE_CURRENT_LIST_DIR}/logger/plugins/tests/aws_logger_integration_tests.cpp"
+        )
+
+      add_executable(aws_logger_integration_tests main/tests.cpp $<TARGET_OBJECTS:aws_logger_integration_tests_objs>)
+      ADD_DEFAULT_LINKS(aws_logger_integration_tests TRUE)
+      target_link_libraries(aws_logger_integration_tests gtest gmock libosquery_testing)
+      SET_OSQUERY_COMPILE(aws_logger_integration_tests "${GTEST_FLAGS}")
+    endif()
   endif()
 
   # Build the example extension with the SDK.
