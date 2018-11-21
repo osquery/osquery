@@ -116,6 +116,50 @@ TEST_F(PciDevicesTest,
   EXPECT_FALSE(status.ok());
 }
 
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_3_pci_ids) {
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "8005:1311:1533", "174C:1003", *PciDevicesTest::pcidb_);
+  EXPECT_FALSE(status.ok());
+}
+
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_empty_pci_id) {
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "", "174C:1003", *PciDevicesTest::pcidb_);
+  EXPECT_FALSE(status.ok());
+}
+
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_3_subsys_ids) {
+  Row expected = {
+      {"vendor_id", "0x8005"},
+      {"model_id", "0x1311"},
+  };
+
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "8005:1311", "174C:1003:1B33", *PciDevicesTest::pcidb_);
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(expected, got);
+}
+
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_empty_subsys_ids) {
+  Row expected = {
+      {"vendor_id", "0x8005"},
+      {"model_id", "0x1311"},
+  };
+
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "8005:1311", "", *PciDevicesTest::pcidb_);
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(expected, got);
+}
+
 TEST_F(PciDevicesTest, extract_pci_class_ids_single_digit_class_id) {
   Row expected = {
       {"pci_class_id", "0x08"},
