@@ -270,12 +270,12 @@ void extractOEMVendorModelFromPciDB(Row& row,
 
   std::string content;
   if (pcidb.getVendorName(vendor_id, content).ok()) {
-    row["vendor"] = content;
+    row["vendor"] = std::move(content);
   }
 
   content.clear();
   if (pcidb.getModel(vendor_id, model_id, content).ok()) {
-    row["model"] = content;
+    row["model"] = std::move(content);
   }
 }
 
