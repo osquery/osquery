@@ -44,38 +44,38 @@ static bool haveCheckedDir = false;
 
 class AwsLoggerIntegrationTests : public testing::Test {
  public:
-   void SetUp() override {
-     Config::get().reset();
+  void SetUp() override {
+    Config::get().reset();
 
-     if (!haveCheckedDir) {
-       haveCheckedDir = true;
-       const char *env_var_name = "AWS_KINESIS_TEST_CFG";
-       const char *tmp = getenv(env_var_name);
-       if (nullptr == tmp) {
-         LOG(ERROR) << "ENV variable " << std::string(env_var_name) << " not set";
-         return;
-       }
-       aws_test_cfg_path = tmp;
-       if (!fs::exists(aws_test_cfg_path)) {
-         LOG(ERROR) << "aws_test_cfg_path does not exist:" << aws_test_cfg_path;
-         aws_test_cfg_path = "";
-       }
-     }
-   }
-   void TearDown() override {
-     Config::get().reset();
+    if (!haveCheckedDir) {
+      haveCheckedDir = true;
+      const char* env_var_name = "AWS_KINESIS_TEST_CFG";
+      const char* tmp = getenv(env_var_name);
+      if (nullptr == tmp) {
+        LOG(ERROR) << "ENV variable " << std::string(env_var_name)
+                   << " not set";
+        return;
+      }
+      aws_test_cfg_path = tmp;
+      if (!fs::exists(aws_test_cfg_path)) {
+        LOG(ERROR) << "aws_test_cfg_path does not exist:" << aws_test_cfg_path;
+        aws_test_cfg_path = "";
+      }
+    }
+  }
+  void TearDown() override {
+    Config::get().reset();
 
-     // if we don't do this cleanup, Dispatcher will segfault
-     PluginRef plugin = Registry::get().plugin("logger", "aws_kinesis");
-     if (plugin && (Registry::get().getActive("logger") == "aws_kinesis")) {
-       plugin->tearDown();
-       Dispatcher::joinServices();
-     }
-   }
+    // if we don't do this cleanup, Dispatcher will segfault
+    PluginRef plugin = Registry::get().plugin("logger", "aws_kinesis");
+    if (plugin && (Registry::get().getActive("logger") == "aws_kinesis")) {
+      plugin->tearDown();
+      Dispatcher::joinServices();
+    }
+  }
 };
 
-bool _loadConfig()
-{
+bool _loadConfig() {
   EXPECT_FALSE(aws_test_cfg_path.empty());
 
   if (aws_test_cfg_path.empty()) {
@@ -107,7 +107,8 @@ TEST_F(AwsLoggerIntegrationTests, log_one) {
 
   EXPECT_TRUE(Registry::get().setActive("logger", "aws_kinesis"));
 
-  auto status = logString("{ \"some\" : \"value\", \"zero\" : 0, \"vrai\" : true }", "added");
+  auto status = logString(
+      "{ \"some\" : \"value\", \"zero\" : 0, \"vrai\" : true }", "added");
 
   EXPECT_TRUE(status.ok());
   std::this_thread::sleep_for(std::chrono::seconds(2));
