@@ -14,5 +14,6 @@ schema([
   Column("current_clock_speed", INTEGER, "The current frequency of the CPU."),
   Column("max_clock_speed", INTEGER, "The maximum possible frequency of the CPU."),
   Column("socket_designation", TEXT, "The assigned socket on the board for the given CPU."),
+  Column("percentage_of_cpu_utilization", INTEGER, "The current percentage of utilization of the CPU."),
 ])
 implementation("cpu_info@genCpuInfo")
