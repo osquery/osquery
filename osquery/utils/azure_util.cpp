@@ -39,7 +39,13 @@ Status fetchAzureMetadata(pt::ptree& tree) {
   // * Check for DHCP option 245 (Universal, but tedious)
 
   request << http::Request::Header("Metadata", "true");
-  response = client.get(request);
+
+  try {
+    response = client.get(request);
+  } catch (const std::system_error& e) {
+    return Status(
+        1, "Couldn't request " + kAzureMetadataEndpoint + ": " + e.what());
+  }
 
   // Azure's metadata service is known to be spotty.
   if (response.result_int() == 404) {
