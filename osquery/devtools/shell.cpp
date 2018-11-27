@@ -82,7 +82,7 @@ DECLARE_string(database_path);
 } // namespace osquery
 
 static char zHelp[] =
-    "Welcome to the osquery shell. Team Query was Here! Please explore your OS!\n"
+    "Welcome to the osquery shell. Please explore your OS!\n"
     "You are connected to a transient 'in-memory' virtual database.\n"
     "\n"
     ".all [TABLE]     Select all from a table\n"
