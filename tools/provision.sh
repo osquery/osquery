@@ -56,6 +56,9 @@ function platform_linux_main() {
 
   brew_tool osquery/osquery-local/gcc
   brew_tool osquery/osquery-local/llvm
+  brew_tool flex
+  brew_tool bison
+  brew_tool m4
   brew_dependency osquery/osquery-local/libcpp
 
   if [ ! -d "$DEPS_DIR/Cellar/xz" ]; then
