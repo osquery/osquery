@@ -150,6 +150,7 @@ QueryData genRpmPackages(QueryContext& context) {
     r["size"] = getRpmAttribute(header, RPMTAG_SIZE, td);
     r["sha1"] = getRpmAttribute(header, RPMTAG_SHA1HEADER, td);
     r["arch"] = getRpmAttribute(header, RPMTAG_ARCH, td);
+    r["epoch"] = getRpmAttribute(header, RPM_EPOCH, td);
 
     rpmtdFree(td);
     results.push_back(r);
