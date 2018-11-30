@@ -40,7 +40,7 @@ void TLSServerRunner::start() {
   }
 
   // Pick a port in an ephemeral range at random.
-  self.port_ = std::to_string(rand() % 10000 + 20000);
+  self.port_ = std::to_string(getUnixTime() % 10000 + 20000);
 
   // Fork then exec a shell.
   auto python_server = (fs::path(kTestDataPath) / "test_http_server.py")
