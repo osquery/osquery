@@ -8,6 +8,7 @@ We include a `make deps` command to make it easier for developers to get started
 - `ruby`
 - `git`
 - `bash`
+- `curl`
 
 > NOTICE: This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
 
