@@ -48,22 +48,29 @@ class ExtensionsTest : public testing::Test {
     DatabasePlugin::setAllowOpen(true);
     DatabasePlugin::initPlugin();
 
-    socket_path = (fs::temp_directory_path() /
-      fs::unique_path(
-          "osquery.extensions_test.testextmgr.%%%%.%%%%")).string();
-
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+      socket_path =
+          (fs::temp_directory_path() /
+           fs::unique_path("osquery.extensions_test.testextmgr.%%%%.%%%%"))
+              .string();
       removePath(socket_path);
       if (pathExists(socket_path).ok()) {
         throw std::domain_error("Cannot test sockets: " + socket_path);
       }
+    } else {
+      socket_path =
+          "\\\\.\\pipe\\" +
+          fs::unique_path("osquery.extensions_test.testextmgr.%%%%.%%%%")
+              .string();
     }
   }
 
   void TearDown() override {
     Dispatcher::stopServices();
     Dispatcher::joinServices();
-    fs::remove(fs::path(socket_path));
+    if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+      fs::remove(fs::path(socket_path));
+    }
   }
 
   bool ping(int attempts = 3) {
@@ -129,14 +136,14 @@ class ExtensionsTest : public testing::Test {
 TEST_F(ExtensionsTest, test_manager_runnable) {
   // Start a testing extension manager.
   auto status = startExtensionManager(socket_path);
-  EXPECT_TRUE(status.ok());
+  EXPECT_TRUE(status.ok()) << " error " << status.what();
   // Call success if the Unix socket was created.
   EXPECT_TRUE(socketExistsLocal(socket_path));
 }
 
 TEST_F(ExtensionsTest, test_extension_runnable) {
   auto status = startExtensionManager(socket_path);
-  EXPECT_TRUE(status.ok());
+  EXPECT_TRUE(status.ok()) << " error " << status.what();
   // Wait for the extension manager to start.
   EXPECT_TRUE(socketExistsLocal(socket_path));
 
