@@ -35,6 +35,7 @@ class ViewsConfigParserPlugin : public ConfigParserPlugin {
 
  private:
   const std::string kConfigViews = "config_views.";
+  std::atomic<bool> first_time_{ true };
 };
 
 Status ViewsConfigParserPlugin::update(const std::string& source,
@@ -78,6 +79,14 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
       getDatabaseValue(kQueries, kConfigViews + name, old_query);
       erase_views.erase(name);
       if (old_query == query) {
+        // Query already exists in the store, if its the first time, make sure we
+        // create the view.
+        if (first_time_) {
+          auto s = osquery::query("CREATE VIEW " + name + " AS " + query, r);
+          if (!s.ok()) {
+            LOG(INFO) << "Error creating view (" << name << "): " << s.getMessage();
+          }
+        }
         continue;
       }
 
@@ -98,6 +107,7 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
     osquery::query("DROP VIEW " + old_view, r);
     deleteDatabaseValue(kQueries, kConfigViews + old_view);
   }
+  first_time_ = false;
   return Status(0, "OK");
 }
 
