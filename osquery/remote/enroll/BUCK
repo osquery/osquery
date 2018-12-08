@@ -8,7 +8,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
-load("//tools/build_defs/oss/osquery:platforms.bzl", "MACOSX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "MACOSX")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
@@ -49,10 +49,6 @@ osquery_cxx_test(
     platform_srcs = [
         (
             MACOSX,
-            ["tests/plugins/tls_enroll_tests.cpp"],
-        ),
-        (
-            WINDOWS,
             ["tests/plugins/tls_enroll_tests.cpp"],
         ),
     ],
