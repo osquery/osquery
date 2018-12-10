@@ -33,13 +33,13 @@ TEST_F(OsVersion, test_sanity) {
       {"version", NonEmptyString},
       {"major", NonNegativeInt},
       {"minor", NonNegativeInt},
-      {"patch", NonNegativeInt},
+      {"patch", NormalType},
       {"build", NormalType},
       {"platform", NonEmptyString},
       {"platform_like", NonEmptyString},
       {"codename", NormalType},
 #ifdef OSQUERY_WINDOWS
-      {"installdate", NonEmptyString},
+      {"install_date", NonEmptyString},
 #endif
   };
   validate_rows(data, row_map);
