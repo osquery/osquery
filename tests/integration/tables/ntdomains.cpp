@@ -16,26 +16,26 @@
 namespace osquery {
 namespace table_tests {
 
-class nt_info : public testing::Test {
+class NtDomains : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(NTdomains, test_sanity) {
-  QueryData data = execute_query("select * from nt_info");
+TEST_F(NtDomains, test_sanity) {
+  QueryData data = execute_query("select * from ntdomains");
 
-  ASSERT_EQ(data.size(), 1ul);
+  ASSERT_GE(data.size(), 1ul);
 
   ValidatatioMap row_map = {
       {"name", NonEmptyString},
-      {"client_site_name", NonEmptyString},
-      {"dc_site_name", NonEmptyString},
-      {"dns_forest_name", NonEmptyString},
-      {"domain_controller_address", NonEmptyString},
-      {"domain_controller_name", NonEmptyString},
-      {"domain_name", NonEmptyString},
+      {"client_site_name", NormalType},
+      {"dc_site_name", NormalType},
+      {"dns_forest_name", NormalType},
+      {"domain_controller_address", NormalType},
+      {"domain_controller_name", NormalType},
+      {"domain_name", NormalType},
       {"status", NonEmptyString},
   };
   validate_rows(data, row_map);
