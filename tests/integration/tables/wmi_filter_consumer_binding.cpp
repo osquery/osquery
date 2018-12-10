@@ -26,8 +26,7 @@ class wmiFilterConsumerBinding : public testing::Test {
 
 TEST_F(wmiFilterConsumerBinding, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from
-  // wmi_filter_consumer_binding");
+  auto const data = execute_query("select * from wmi_filter_consumer_binding");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);
