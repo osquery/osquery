@@ -13,6 +13,8 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
+#include <osquery/utils/info/platform_type.h>
+
 namespace osquery {
 namespace table_tests {
 
@@ -37,8 +39,8 @@ class Hash : public testing::Test {
 };
 
 TEST_F(Hash, test_sanity) {
-  const std::string query =
-      "select * from hash where path = '" + path.native() + "'";
+  const std::string query = std::string{"select * from hash where path = '"} +
+                            path.string() + std::string{"'"};
 
   QueryData data = execute_query(query);
 
@@ -50,16 +52,21 @@ TEST_F(Hash, test_sanity) {
       {"md5", NonEmptyString},
       {"sha1", NonEmptyString},
       {"sha256", NonEmptyString},
-      {"ssdeep", NonEmptyString},
   };
 
-  ASSERT_EQ(data[0]["path"], path.native());
-  ASSERT_EQ(data[0]["directory"], path.parent_path().native());
+  if (isPlatform(PlatformType::TYPE_POSIX)) {
+    row_map.emplace("ssdeep", NonEmptyString);
+  }
+
+  ASSERT_EQ(data[0]["path"], path.string());
+  ASSERT_EQ(data[0]["directory"], path.parent_path().string());
   ASSERT_EQ(data[0]["md5"], "35899082e51edf667f14477ac000cbba");
   ASSERT_EQ(data[0]["sha1"], "e7505beb754bed863e3885f73e3bb6866bdd7f8c");
   ASSERT_EQ(data[0]["sha256"],
             "a58dd8680234c1f8cc2ef2b325a43733605a7f16f288e072de8eae81fd8d6433");
-  ASSERT_EQ(data[0]["ssdeep"], "3:f4oo8MRwRJFGW1gC64:f4kPvtHF");
+  if (isPlatform(PlatformType::TYPE_POSIX)) {
+    ASSERT_EQ(data[0]["ssdeep"], "3:f4oo8MRwRJFGW1gC64:f4kPvtHF");
+  }
 
   validate_rows(data, row_map);
 }
