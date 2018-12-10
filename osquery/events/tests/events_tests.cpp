@@ -18,7 +18,6 @@
 #include <osquery/events.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
-#include <osquery/tables/yara/yara_utils.h>
 #include <osquery/utils/info/tool_type.h>
 
 namespace osquery {
