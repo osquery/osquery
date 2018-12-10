@@ -111,10 +111,14 @@ bool verifyEmptyStringOrIpAddress(std::string const& value) {
 }
 
 bool verifyMacAddress(std::string const& value) {
-  boost::smatch match;
-  // IEEE 802: six groups of two hexadecimal digits, separated by '-' or ':'
-  boost::regex rxMacAddress("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$");
-  return boost::regex_match(value, match, rxMacAddress);
+  if (value == "incomplete") {
+    return true;
+  } else {
+    boost::smatch match;
+    // IEEE 802: six groups of two hexadecimal digits, separated by '-' or ':'
+    boost::regex rxMacAddress("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$");
+    return boost::regex_match(value, match, rxMacAddress);
+  }
 }
 
 bool verifyUidGid(std::string const& value) {
