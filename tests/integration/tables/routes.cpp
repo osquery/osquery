@@ -33,22 +33,21 @@ TEST_F(RoutesTest, test_sanity) {
       {"gateway", NormalType},
       {"source", verifyEmptyStringOrIpAddress},
       {"flags", IntType},
-      {"interface", NonEmptyString},
+      {"interface", NormalType},
       {"mtu", IntType},
       {"metric", IntType},
-      {
-        "type",
-        SpecificValuesCheck{
-          "anycast",
-          "broadcast",
-          "dynamic",
-          "gateway",
-          "local",
-          "other",
-          "router",
-          "static",
-        }
-      },
+      {"type",
+       SpecificValuesCheck{
+           "anycast",
+           "broadcast",
+           "dynamic",
+           "gateway",
+           "local",
+           "other",
+           "remote",
+           "router",
+           "static",
+       }},
 #ifdef OSQUERY_POSIX
       {"hopcount", IntMinMaxCheck(0, 255)},
 #endif
