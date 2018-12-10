@@ -481,6 +481,8 @@ struct QueryContext {
     std::swap(enable_cache_, other.enable_cache_);
     std::swap(use_cache_, other.use_cache_);
     std::swap(table_, other.table_);
+
+    return *this;
   }
 
   /**
