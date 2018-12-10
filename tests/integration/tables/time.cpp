@@ -13,6 +13,8 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
+#include <osquery/utils/info/platform_type.h>
+
 namespace osquery {
 namespace table_tests {
 
@@ -44,6 +46,9 @@ TEST_F(Time, test_sanity) {
       {"datetime", NonEmptyString},
       {"iso_8601", NonEmptyString},
   };
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    row_map.emplace("win_timestamp", NonNegativeInt);
+  }
   validate_rows(data, row_map);
 }
 
