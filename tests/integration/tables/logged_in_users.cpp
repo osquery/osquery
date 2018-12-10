@@ -32,7 +32,7 @@ TEST_F(LoggedInUsersTest, sanity) {
       {"tty", NormalType},
       {"host", NormalType},
       {"time", NonNegativeInt},
-      {"pid", NonNegativeInt},
+      {"pid", NonNegativeOrErrorInt},
   };
   validate_rows(rows, row_map);
 }
