@@ -15,6 +15,7 @@
 
 #include <osquery/config/config.h>
 #include <osquery/core.h>
+#include <osquery/core/sql/row.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
@@ -22,10 +23,32 @@
 #include <osquery/registry_factory.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/tests/test_util.h"
+#include <osquery/utils/system/time.h>
 
 namespace osquery {
+DECLARE_bool(disable_database);
+
+static QueryData genRows(EventSubscriberPlugin* sub) {
+  auto vtc = new VirtualTableContent();
+  QueryContext context(vtc);
+  RowGenerator::pull_type generator(std::bind(&EventSubscriberPlugin::genTable,
+                                              sub,
+                                              std::placeholders::_1,
+                                              std::move(context)));
+
+  QueryData results;
+  if (!generator) {
+    delete vtc;
+    return results;
+  }
+
+  while (generator) {
+    results.push_back(generator.get());
+    generator();
+  }
+  delete vtc;
+  return results;
+}
 
 DECLARE_uint64(events_expiry);
 DECLARE_uint64(events_max);
@@ -33,6 +56,12 @@ DECLARE_bool(events_optimize);
 
 class EventsDatabaseTests : public ::testing::Test {
   void SetUp() override {
+    registryAndPluginInit();
+
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+
     RegistryFactory::get().registry("config_parser")->setUp();
     optimize_ = FLAGS_events_optimize;
     FLAGS_events_optimize = false;
