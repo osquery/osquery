@@ -289,7 +289,7 @@ class INotifyEventPublisher
   friend class INotifyTests;
   FRIEND_TEST(INotifyTests, test_inotify_init);
   FRIEND_TEST(INotifyTests, test_inotify_optimization);
-  FRIEND_TEST(INotifyTests, test_inotify_recursion);
+  FRIEND_TEST(INotifyTests, DISABLED_test_inotify_recursion);
   FRIEND_TEST(INotifyTests, test_inotify_match_subscription);
   FRIEND_TEST(INotifyTests, test_inotify_embedded_wildcards);
 };
