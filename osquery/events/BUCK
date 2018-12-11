@@ -98,6 +98,7 @@ osquery_cxx_library(
         osquery_target("osquery/events/tests:syslog_tests"),
         osquery_target("osquery/events/tests:audit_tests"),
         osquery_target("osquery/events/tests:events_database_tests"),
+        osquery_target("osquery/events/tests:fsevents_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [

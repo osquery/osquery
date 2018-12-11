@@ -13,39 +13,56 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/database.h>
 #include <osquery/events.h>
+#include <osquery/events/darwin/fsevents.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
-
-#include "osquery/events/darwin/fsevents.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/utils/info/tool_type.h>
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
+DECLARE_bool(disable_database);
 
 int kMaxEventLatency = 3000;
 
 DECLARE_bool(verbose);
 
 class FSEventsTests : public testing::Test {
+ public:
+  FSEventsTests()
+      : real_test_path(
+            fs::weakly_canonical(fs::temp_directory_path() /
+                                 fs::unique_path("fsevents-triggers.%%%%.%%%%"))
+                .string()),
+        real_test_dir(
+            fs::weakly_canonical(fs::temp_directory_path() /
+                                 fs::unique_path("fsevents-triggers.%%%%.%%%%"))
+                .string()) {}
+
  protected:
   void SetUp() override {
+    fs::create_directories(real_test_dir);
+
+    kToolType = ToolType::TEST;
+    registryAndPluginInit();
+
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+
     // FSEvents will use data from the config and config parsers.
     Registry::get().registry("config_parser")->setUp();
 
     FLAGS_verbose = true;
-    real_test_path = kTestWorkingDirectory + "fsevents-triggers" +
-                     std::to_string(rand() % 10000 + 10000);
-    // Create a similar directory for embedded paths and directories.
-    real_test_dir = kTestWorkingDirectory + "fsevents-triggers" +
-                    std::to_string(rand() % 10000 + 10000);
   }
 
   void TearDown() override {
-    removePath(real_test_dir);
+    fs::remove_all(real_test_path);
+    fs::remove_all(real_test_dir);
   }
 
   void StartEventLoop() {
@@ -53,7 +70,7 @@ class FSEventsTests : public testing::Test {
     event_pub_->no_defer_ = true;
     event_pub_->no_self_ = false;
     EventFactory::registerEventPublisher(event_pub_);
-    FILE* fd = fopen(real_test_path.c_str(), "w");
+    FILE* fd = fopen(real_test_path.c_str(), "w+");
     fclose(fd);
 
     temp_thread_ = std::thread(EventFactory::run, "fsevents");
@@ -96,7 +113,7 @@ class FSEventsTests : public testing::Test {
   void CreateEvents(int num = 1) {
     WaitForStream(kMaxEventLatency);
     for (int i = 0; i < num; ++i) {
-      FILE* fd = fopen(real_test_path.c_str(), "a");
+      FILE* fd = fopen(real_test_path.c_str(), "a+");
       fputs("fsevents", fd);
       fclose(fd);
     }
