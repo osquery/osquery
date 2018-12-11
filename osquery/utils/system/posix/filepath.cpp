@@ -11,7 +11,9 @@
 #include <osquery/utils/system/filepath.h>
 
 #include <climits>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
+#include <string>
 
 namespace osquery {
 
