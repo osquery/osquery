@@ -135,12 +135,6 @@ inline bool operator==(const ErrorBase& lhs, const T rhs) {
   }
 }
 
-template <class T>
-inline bool operator==(const ErrorBase* lhs, const T rhs) {
-  auto casted_lhs = dynamic_cast<const Error<T>*>(lhs);
-  return casted_lhs != nullptr && casted_lhs == rhs;
-}
-
 inline std::ostream& operator<<(std::ostream& out, const ErrorBase& error) {
   out << error.getFullMessageRecursive();
   return out;
