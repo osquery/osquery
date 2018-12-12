@@ -28,6 +28,10 @@ TEST_F(ConversionsTests, test_json_array) {
     doc.add("key", value, obj);
     int value2 = -10;
     doc.add("key2", value2, obj);
+    int64_t value3 = (uint64_t(1)) << 48;
+    doc.add("key3", value3, obj);
+    double value4 = 3.14159265359;
+    doc.add("key4", value4, obj);
     doc.push(obj);
   }
 
@@ -37,7 +41,9 @@ TEST_F(ConversionsTests, test_json_array) {
   std::string result;
   EXPECT_TRUE(doc.toString(result));
 
-  std::string expected = "[{\"key\":10,\"key2\":-10},11]";
+  std::string expected =
+      "[{\"key\":10,\"key2\":-10,\"key3\":281474976710656,\"key4\":3."
+      "14159265359},11]";
   EXPECT_EQ(expected, result);
 }
 
