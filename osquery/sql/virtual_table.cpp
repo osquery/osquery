@@ -848,19 +848,24 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   }
 
   UsedColumns colsUsed;
-  if (pIdxInfo->colUsed > 0) {
+  UsedColumnsBitset colsUsedBitset(pIdxInfo->colUsed);
+  if (colsUsedBitset.any()) {
     for (size_t i = 0; i < columns.size(); i++) {
       // Check whether the column is used. colUsed has one bit for each of the
       // first 63 columns, and the 64th bit indicates that at least one other
       // column is used.
-      uint64_t flag;
-      if (i < 63) {
-        flag = 1LL << i;
-      } else {
-        flag = 1LL << 63;
-      }
-      if ((pIdxInfo->colUsed & flag) != 0) {
-        colsUsed.insert(std::get<0>(columns[i]));
+      auto bit = i < 63 ? i : 63U;
+      if (colsUsedBitset[bit]) {
+        auto column_name = std::get<0>(columns[i]);
+
+        if (pVtab->content->aliases.count(column_name)) {
+          colsUsedBitset.reset(bit);
+          auto real_column_index = pVtab->content->aliases[column_name];
+          bit = real_column_index < 63 ? real_column_index : 63U;
+          colsUsedBitset.set(bit);
+          column_name = std::get<0>(columns[real_column_index]);
+        }
+        colsUsed.insert(column_name);
       }
     }
   }
@@ -875,6 +880,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   // Add the constraint set to the table's tracked constraints.
   pVtab->content->constraints[pIdxInfo->idxNum] = std::move(constraints);
   pVtab->content->colsUsed[pIdxInfo->idxNum] = std::move(colsUsed);
+  pVtab->content->colsUsedBitsets[pIdxInfo->idxNum] = colsUsedBitset;
   pIdxInfo->estimatedCost = cost;
   return SQLITE_OK;
 }
@@ -979,6 +985,12 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     }
   }
 
+  if (!content->colsUsedBitsets.empty()) {
+    context.colsUsedBitset = content->colsUsedBitsets[idxNum];
+  } else {
+    // Unspecified; have to assume all columns are used
+    context.colsUsedBitset->set();
+  }
   if (content->colsUsed.size() > 0) {
     context.colsUsed = content->colsUsed[idxNum];
   }

@@ -73,6 +73,18 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
 {% endfor %}\
     };
   }
+
+  AliasColumnMap aliasedColumns() const override {
+    return {
+{% for column in schema %}\
+{% if column.aliases|length > 0 %}\
+{% for alias in column.aliases %}\
+      { "{{alias}}", "{{column.name}}" },
+{% endfor %}\
+{% endif %}\
+{% endfor %}\
+    };
+  }
 {% endif %}\
 
   TableAttributes attributes() const override {

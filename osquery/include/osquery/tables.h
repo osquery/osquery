@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <bitset>
 #include <map>
 #include <set>
 #include <unordered_map>
@@ -20,6 +21,7 @@
 #include <boost/core/ignore_unused.hpp>
 #include <boost/coroutine2/coroutine.hpp>
 #include <boost/optional.hpp>
+#include <sqlite3.h>
 
 #include <osquery/core/sql/column.h>
 #include <osquery/core.h>
@@ -217,6 +219,9 @@ using TableColumns =
 /// Alias for map of column alias sets.
 using ColumnAliasSet = std::map<std::string, std::set<std::string>>;
 
+/// Alias for a map of alias to canonical column names
+using AliasColumnMap = std::unordered_map<std::string, std::string>;
+
 /// Forward declaration of QueryContext for ConstraintList relationships.
 struct QueryContext;
 
@@ -376,6 +381,10 @@ using ConstraintSet = std::vector<std::pair<std::string, struct Constraint>>;
 /// Keep track of which columns are used
 using UsedColumns = std::unordered_set<std::string>;
 
+/// Keep track of which columns are used, as a bitset
+using UsedColumnsBitset = std::bitset<
+    std::numeric_limits<decltype(sqlite3_index_info().colUsed)>::digits>;
+
 /**
  * @brief osquery table content descriptor.
  *
@@ -415,6 +424,9 @@ struct VirtualTableContent {
 
   /// Transient set of virtual table used columns
   std::unordered_map<size_t, UsedColumns> colsUsed;
+
+  /// Transient set of virtual table used columns (as bitmasks)
+  std::unordered_map<size_t, UsedColumnsBitset> colsUsedBitsets;
 
   /*
    * @brief A table implementation specific query result cache.
@@ -573,6 +585,10 @@ struct QueryContext {
   /// Check if any of the given columns is used by the query
   bool isAnyColumnUsed(std::initializer_list<std::string> colNames) const;
 
+  inline bool isAnyColumnUsed(UsedColumnsBitset desiredBitset) const {
+    return !colsUsedBitset || (*colsUsedBitset & desiredBitset).any();
+  }
+
   template <typename Type>
   inline void setTextColumnIfUsed(Row& r,
                                   const std::string& colName,
@@ -635,6 +651,7 @@ struct QueryContext {
   ConstraintMap constraints;
 
   boost::optional<UsedColumns> colsUsed;
+  boost::optional<UsedColumnsBitset> colsUsedBitset;
 
  private:
   /// If false then the context is maintaining an ephemeral cache.
@@ -685,6 +702,20 @@ class TablePlugin : public Plugin {
   /// Define a map of target columns to optional aliases.
   virtual ColumnAliasSet columnAliases() const {
     return ColumnAliasSet();
+  }
+
+  /// Define a map of aliases to canoical columns
+  virtual AliasColumnMap aliasedColumns() const {
+    AliasColumnMap result;
+
+    for (const auto& columnAliases : columnAliases()) {
+      const auto& columnName = columnAliases.first;
+      for (const auto& alias : columnAliases.second) {
+        result[alias] = columnName;
+      }
+    }
+
+    return AliasColumnMap();
   }
 
   /// Return a set of attribute flags.
@@ -867,10 +898,6 @@ class TablePlugin : public Plugin {
   static void setRequestFromContext(const QueryContext& context,
                                     PluginRequest& request);
 
-  /// Helper data structure transformation methods.
-  static void setContextFromRequest(const PluginRequest& request,
-                                    QueryContext& context);
-
  public:
   /**
    * @brief Add a virtual table that exists in an extension.
@@ -888,6 +915,10 @@ class TablePlugin : public Plugin {
   static void removeExternal(const std::string& name);
 
  private:
+  /// Helper data structure transformation methods.
+  QueryContext getContextFromRequest(const PluginRequest& request) const;
+
+  UsedColumnsBitset usedColumnsToBitset(const UsedColumns usedColumns) const;
   friend class RegistryFactory;
   FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
   FRIEND_TEST(VirtualTableTests, test_extension_tableplugin_columndefinition);

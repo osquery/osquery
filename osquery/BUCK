@@ -36,6 +36,7 @@ osquery_cxx_library(
         osquery_target("osquery/utils/system:system"),
         osquery_tp_target("gflags"),
         osquery_tp_target("googletest", "gtest"),
+        osquery_tp_target("sqlite"),
     ],
 )
 
