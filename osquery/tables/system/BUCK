@@ -199,6 +199,7 @@ osquery_cxx_library(
                 "darwin/process_open_descriptors.cpp",
                 "darwin/processes.cpp",
                 "darwin/quicklook_cache.cpp",
+                "darwin/running_apps.mm",
                 "darwin/sandboxes.cpp",
                 "darwin/shared_folders.mm",
                 "darwin/sharing_preferences.cpp",

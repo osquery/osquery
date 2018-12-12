@@ -201,6 +201,10 @@ osquery_gentable_cxx_library(
             "macos",
         ),
         (
+            _SPECS_LOCATION + "/darwin/running_apps.table",
+            "macos",
+        ),
+        (
             _SPECS_LOCATION + "/darwin/safari_extensions.table",
             "macos",
         ),

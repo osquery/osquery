@@ -224,6 +224,7 @@ osquery_cxx_test(
                 "power_sensors.cpp",
                 "preferences.cpp",
                 "quicklook_cache.cpp",
+                "running_apps.cpp",
                 "safari_extensions.cpp",
                 "sandboxes.cpp",
                 "shared_folders.cpp",

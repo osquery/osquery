@@ -96,6 +96,7 @@
     -lbsm \
     -lxar \
     -lresolv \
+    -framework AppKit \
     -framework Foundation \
     -framework CoreServices \
     -framework CoreFoundation \
