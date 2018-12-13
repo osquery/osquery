@@ -15,6 +15,7 @@ osquery_cxx_library(
     exported_headers = [
         "debug_only.h",
     ],
+    tests = [":debug_tests"],
     visibility = ["PUBLIC"],
     deps = [
         osquery_tp_target("boost"),
@@ -22,7 +23,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_test(
-    name = "tests",
+    name = "debug_tests",
     srcs = [
         "tests/debug_only.cpp",
     ],

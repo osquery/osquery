@@ -51,6 +51,7 @@ osquery_cxx_library(
             ],
         ),
     ],
+    tests = [":utils_tests"],
     visibility = ["PUBLIC"],
     deps = [
         osquery_tp_target("glog"),
@@ -66,7 +67,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_test(
-    name = "tests",
+    name = "utils_tests",
     srcs = [
         "tests/base64.cpp",
         "tests/chars.cpp",

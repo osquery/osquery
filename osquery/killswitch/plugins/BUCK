@@ -19,6 +19,7 @@ osquery_cxx_library(
         "killswitch_filesystem.h",
     ],
     link_whole = True,
+    tests = [":killswitch_filesystem_plugin_tests"],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/killswitch:killswitch"),
@@ -45,7 +46,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_test(
-    name = "tests",
+    name = "killswitch_filesystem_plugin_tests",
     srcs = [
         "tests/killswitch_filesystem_tests.cpp",
     ],
