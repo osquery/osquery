@@ -93,7 +93,10 @@ def _osquery_set_preprocessor_kwargs(kwargs, external):
 def osquery_cxx_library(external = False, **kwargs):
     _osquery_set_generic_kwargs(kwargs)
     _osquery_set_preprocessor_kwargs(kwargs, external)
-    native.cxx_library(**kwargs)
+    if host_info().os.is_macos:
+        native.apple_library(**kwargs)
+    else:
+        native.cxx_library(**kwargs)
 
 def osquery_prebuilt_cxx_library(**kwargs):
     _osquery_set_generic_kwargs(kwargs)
@@ -108,7 +111,10 @@ def osquery_cxx_binary(external = False, **kwargs):
     _ignore = [external]
     _osquery_set_generic_kwargs(kwargs)
     _osquery_set_preprocessor_kwargs(kwargs, external)
-    native.cxx_binary(**kwargs)
+    if host_info().os.is_macos:
+        native.apple_binary(**kwargs)
+    else:
+        native.cxx_binary(**kwargs)
 
 def osquery_cxx_test(external = False, **kwargs):
     _ignore = [external]
