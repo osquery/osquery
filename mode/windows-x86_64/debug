@@ -1,2 +1,10 @@
 --config-file
-tools/buckconfigs/windows-x86_64/debug.bcfg
+tools/buckconfigs/windows-x86_64/toolchain/vs2017_15.5.bcfg
+--config-file
+tools/buckconfigs/windows-x86_64/type/debug.bcfg
+--config-file
+tools/buckconfigs/windows-x86_64/python/default.bcfg
+--config-file
+tools/buckconfigs/windows-x86_64/base.bcfg
+--config-file
+tools/buckconfigs/base.bcfg
