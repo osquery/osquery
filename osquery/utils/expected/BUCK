@@ -16,6 +16,7 @@ osquery_cxx_library(
     exported_headers = [
         "expected.h",
     ],
+    tests = [":expected_tests"],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/utils/debug:debug"),
@@ -25,7 +26,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_test(
-    name = "tests",
+    name = "expected_tests",
     srcs = [
         "tests/expected.cpp",
     ],

@@ -37,7 +37,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_test(
-    name = "tests",
+    name = "remote_enroll_tests",
     srcs = [
         "tests/enroll_tests.cpp",
     ],

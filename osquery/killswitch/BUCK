@@ -23,6 +23,7 @@ osquery_cxx_library(
         "killswitch_refreshable_plugin.h",
     ],
     link_whole = True,
+    tests = [":killswitch_tests"],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/core:core"),
@@ -31,7 +32,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_test(
-    name = "tests",
+    name = "killswitch_tests",
     srcs = [
         "tests/killswitch_tests.cpp",
     ],

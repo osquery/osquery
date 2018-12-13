@@ -61,7 +61,7 @@ osquery_cxx_library(
         ),
     ],
     tests = [
-        ":tests",
+        ":filesystem_tests",
     ],
     visibility = ["PUBLIC"],
     deps = [
@@ -93,7 +93,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_test(
-    name = "tests",
+    name = "filesystem_tests",
     srcs = [
         "tests/fileops.cpp",
         "tests/filesystem.cpp",

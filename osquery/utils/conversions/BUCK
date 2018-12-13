@@ -59,6 +59,7 @@ osquery_cxx_library(
             ],
         ),
     ],
+    tests = [":conversions_tests"],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/utils/expected:expected"),
@@ -68,7 +69,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_test(
-    name = "tests",
+    name = "conversions_tests",
     srcs = [
         "tests/join.cpp",
         "tests/split.cpp",

@@ -16,6 +16,7 @@ osquery_cxx_library(
     srcs = ["tls.cpp"],
     header_namespace = "osquery/remote/transports",
     exported_headers = ["tls.h"],
+    tests = [":remote_transports_tls_tests"],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery:headers"),
@@ -28,7 +29,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_test(
-    name = "tests",
+    name = "remote_transports_tls_tests",
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
             osquery_target("tools/tests:test_files"),
