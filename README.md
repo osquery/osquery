@@ -40,7 +40,7 @@ SELECT DISTINCT processes.name, listening_ports.port, processes.pid
   WHERE listening_ports.address = '0.0.0.0';
 ```
 
-Find every OS X LaunchDaemon that launches an executable and keeps it running:
+Find every macOS LaunchDaemon that launches an executable and keeps it running:
 ```sql
 SELECT name, program || program_arguments AS executable
   FROM launchd
@@ -80,7 +80,7 @@ visit [https://osquery.io/downloads](https://osquery.io/downloads/).
 ## Build from source
 
 Building osquery from source is encouraged! Check out our [contributing guide](CONTRIBUTING.md) and
-joing the community on [Slack](https://slack.osquery.io).
+join the community on [Slack](https://slack.osquery.io).
 
 ## License
 
