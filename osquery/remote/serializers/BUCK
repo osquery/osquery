@@ -15,6 +15,7 @@ osquery_cxx_library(
     srcs = ["json.cpp"],
     header_namespace = "osquery/remote/serializers",
     exported_headers = ["json.h"],
+    tests = [":remote_json_serializers_tests"],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/remote:requests"),
@@ -24,7 +25,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_test(
-    name = "tests",
+    name = "remote_json_serializers_tests",
     srcs = [
         "tests/json_serializers_tests.cpp",
     ],
