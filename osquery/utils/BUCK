@@ -20,6 +20,7 @@ osquery_cxx_library(
     ],
     header_namespace = "osquery/utils",
     exported_headers = [
+        "attribute.h",
         "base64.h",
         "chars.h",
         "map_take.h",
@@ -78,4 +79,13 @@ osquery_cxx_test(
     deps = [
         ":utils",
     ],
+)
+
+osquery_cxx_library(
+    name = "attribute",
+    header_namespace = "osquery/utils",
+    exported_headers = [
+        "attribute.h",
+    ],
+    visibility = ["PUBLIC"],
 )
