@@ -256,7 +256,7 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::putRawBytesInternal(
     Handle* handle, const std::string& key, const std::string& value) {
   auto status = db_->Put(default_write_options_, handle, key, value);
   if (!status.ok()) {
-    createError(DatabaseError::FailToWriteData, status.ToString());
+    return createError(DatabaseError::FailToWriteData, status.ToString());
   }
   return Success();
 }
