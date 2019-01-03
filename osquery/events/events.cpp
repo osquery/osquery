@@ -587,6 +587,8 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
   auto event_time = custom_event_time != 0 ? custom_event_time : getUnixTime();
   auto event_time_str = std::to_string(event_time);
 
+  const int last_event_checkpoint_marker = last_eid_ / EVENTS_CHECKPOINT;
+
   for (auto& row : row_list) {
     row["time"] = event_time_str;
     row["eid"] = getEventID();
@@ -622,7 +624,7 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
 
   // Use the last EventID and a checkpoint bucket size to periodically apply
   // buffer eviction. Eviction occurs if the total count exceeds events_max.
-  if (last_eid_ % EVENTS_CHECKPOINT == 0) {
+  if (last_event_checkpoint_marker < last_eid_ / EVENTS_CHECKPOINT) {
     expireCheck();
   }
 
