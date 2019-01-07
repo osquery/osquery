@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
+#include <Windows.h>
 
 #define MAX_BUFFER_SIZE 256
 
