@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/utils/status/status.h>
+#include <osquery/utils/status.h>
 #include <osquery/utils/system/time.h>
 
 #include <string.h>

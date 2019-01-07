@@ -765,6 +765,10 @@ osquery_gentable_cxx_library(
             "windows",
         ),
         (
+            "windows/ntfs_journal_events.table",
+            "windows",
+        ),
+        (
             "windows/powershell_events.table",
             "windows",
         ),

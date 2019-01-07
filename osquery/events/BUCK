@@ -60,6 +60,12 @@ osquery_cxx_library(
                 osquery_tp_target("util-linux"),
             ],
         ),
+        (
+            WINDOWS,
+            [
+                osquery_target("osquery/utils/system:filepath"),
+            ],
+        ),
     ],
     platform_srcs = [
         (

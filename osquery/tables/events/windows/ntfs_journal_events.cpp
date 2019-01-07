@@ -12,14 +12,14 @@
 
 #include <boost/functional/hash.hpp>
 
-#include <osquery/config.h>
-#include <osquery/filesystem.h>
+#include <osquery/config/config.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
+#include <osquery/utils/json.h>
 
-#include "osquery/core/json.h"
-#include "osquery/tables/events/windows/ntfs_journal_events.h"
+#include <osquery/tables/events/windows/ntfs_journal_events.h>
 
 namespace osquery {
 REGISTER(NTFSEventSubscriber, "event_subscriber", "ntfs_journal_events");
@@ -318,22 +318,18 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
     // another TOCTOU here: another process could delete the file before we
     // get its information. We don't want to lock the file, though, since it
     // could be something imporant used by another process.
-    FILE_ID_INFO file_id_info;
-    if (!::GetFileInformationByHandleEx(
-            file_hnd, FileIdInfo, &file_id_info, sizeof(file_id_info))) {
+    // TODO(ww): Use GetFileInformationByHandleEx here once osquery allows us
+    // to feature test for Windows 8+.
+    BY_HANDLE_FILE_INFORMATION file_id_info;
+    if (!::GetFileInformationByHandle(file_hnd, &file_id_info)) {
       TLOG << "Couldn't get FRN for " << path << " while building FRN set";
       ::CloseHandle(file_hnd);
       continue;
     }
     ::CloseHandle(file_hnd);
 
-    const auto& byte_array = file_id_info.FileId.Identifier;
-    USNFileReferenceNumber frn;
-    boostmp::import_bits(frn,
-                         byte_array,
-                         byte_array + sizeof(FILE_ID_128::Identifier),
-                         0,
-                         false);
+    USNFileReferenceNumber frn = 0;
+    frn = (long long) (file_id_info.nFileIndexHigh << 32) | file_id_info.nFileIndexLow;
     frn_set.insert(frn);
   }
 

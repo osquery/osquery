@@ -137,7 +137,7 @@ using NTFSEventPublisherConfiguration = std::unordered_set<char>;
 /// and processes them to emit file change events
 class NTFSEventPublisher final
     : public EventPublisher<NTFSEventSubscriptionContext, NTFSEventContext> {
-  DECLARE_PUBLISHER("ntfseventpublisher");
+  DECLARE_PUBLISHER("ntfs_event_publisher");
 
   struct PrivateData;
 

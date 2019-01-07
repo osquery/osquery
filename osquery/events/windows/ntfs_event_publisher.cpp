@@ -15,14 +15,13 @@
 
 #include <boost/functional/hash.hpp>
 
-#include <osquery/config.h>
-#include <osquery/filesystem.h>
+#include <osquery/utils/system/filepath.h>
+#include <osquery/config/config.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/utils.h"
 #include "osquery/events/windows/ntfs_event_publisher.h"
 
 namespace osquery {
@@ -33,7 +32,7 @@ HIDDEN_FLAG(bool,
             false,
             "Debug the NTFS event publisher");
 
-REGISTER(NTFSEventPublisher, "event_publisher", "ntfseventspublisher");
+REGISTER(NTFSEventPublisher, "event_publisher", "ntfs_event_publisher");
 
 namespace {
 namespace boostfs = boost::filesystem;

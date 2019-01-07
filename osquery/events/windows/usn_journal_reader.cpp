@@ -18,8 +18,8 @@
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
-#include "osquery/core/utils.h"
 #include "osquery/core/windows/wmi.h"
 #include "osquery/events/windows/usn_journal_reader.h"
 
@@ -536,7 +536,7 @@ void GetNativeFileIdFromUSNReference(FILE_ID_DESCRIPTOR& file_id,
   file_id = {};
   file_id.dwSize = sizeof(FILE_ID_DESCRIPTOR);
 
-  // export_bits will only push as many unsinged chars as are needed to
+  // export_bits will only push as many unsigned chars as are needed to
   // represent
   // a value, so we've no guarantee to sizes, but if bits are set above the 64th
   // bit, it's an extended file id
@@ -548,12 +548,16 @@ void GetNativeFileIdFromUSNReference(FILE_ID_DESCRIPTOR& file_id,
     file_id.FileId.QuadPart = *id_ptr;
 
   } else {
-    file_id.Type = ExtendedFileIdType;
-    buffer.resize(sizeof(FILE_ID_128::Identifier));
+    /* NOTE(ww): osquery retains Windows 7 compatibility,
+       which means that we don't have access to the FILE_ID_128
+       member of FILE_ID_DESCRIPTOR's id union. We use GUID instead,
+       since it's the same width and the actual typing probably won't
+       matter for our purposes.
+     */
+    file_id.Type = ObjectIdType;
+    buffer.resize(sizeof(GUID));
 
-    for (auto i = 0U; i < buffer.size(); i++) {
-      file_id.ExtendedFileId.Identifier[i] = buffer[i];
-    }
+    memcpy(&file_id.ObjectId, buffer.data(), sizeof(GUID));
   }
 }
 
@@ -801,20 +805,23 @@ std::ostream& operator<<(std::ostream& stream,
   FILE_ID_DESCRIPTOR native_file_id = {};
   GetNativeFileIdFromUSNReference(native_file_id, ref);
 
-  auto source_ptr = native_file_id.ExtendedFileId.Identifier +
-                    sizeof(FILE_ID_128::Identifier) - 1;
-  bool skip = true;
-
   stream << "0x";
 
-  for (auto i = 0U; i < sizeof(FILE_ID_128::Identifier); i++, source_ptr--) {
-    auto value = static_cast<int>(*source_ptr);
-    if (value == 0 && skip) {
-      continue;
-
-    } else {
-      stream << std::hex << std::setfill('0') << std::setw(2) << value;
-      skip = false;
+  switch (native_file_id.Type) {
+    case FileIdType: {
+      stream << std::hex << std::setfill('0') << std::setw(16) << native_file_id.FileId.QuadPart;
+      break;
+    }
+    default: {
+      const auto& object_id = native_file_id.ObjectId;
+      stream << std::hex << std::setfill('0');
+      stream << std::setw(8) << object_id.Data1;
+      stream << std::setw(4) << object_id.Data2;
+      stream << std::setw(4) << object_id.Data3;
+      for (int i = 0; i < 8; ++i) {
+        stream << std::setw(2) << object_id.Data4[i];
+      }
+      break;
     }
   }
 
