@@ -46,19 +46,19 @@ If you use Splunk, you're probably already familiar with the [Splunk Universal F
 ```
 [monitor:///var/log/osquery/osqueryd.results.log]
 index = main
-sourcetype = osquery_results
+sourcetype = osquery:results
 
 [monitor:///var/log/osquery/osqueryd.*INFO*]
 index = main
-sourcetype = osquery_info
+sourcetype = osquery:info
 
 [monitor:///var/log/osquery/osqueryd.*ERROR*]
 index = main
-sourcetype = osquery_error
+sourcetype = osquery:error
 
 [monitor:///var/log/osquery/osqueryd.*WARNING*]
 index = main
-sourcetype = osquery_warning
+sourcetype = osquery:warning
 ```
 
 ### Fluentd
