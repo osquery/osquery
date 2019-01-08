@@ -79,8 +79,12 @@ void LinuxSMBIOSParser::readFromSysfs(const std::string& sysfs_dmi) {
   std::string content;
   readFile(sysfs_dmi, content);
   table_data_ = (uint8_t*)malloc(content.size());
-  memcpy(table_data_, content.data(), content.size());
-  table_size_ = content.size();
+  if (table_data_ != nullptr) {
+    memcpy(table_data_, content.data(), content.size());
+    table_size_ = content.size();
+  } else {
+    table_size_ = 0;
+  }
 }
 
 bool LinuxSMBIOSParser::discoverTables(size_t address, size_t length) {
