@@ -12,29 +12,54 @@
 
 #include "row.h"
 
+#include <sqlite3.h>
+
 namespace osquery {
 
-using DynamicTableRow = Row;
+class TableRow;
 
-// Right now this is an alias for Row; it is going to become an interface
-// with multiple implementations
-using TableRow = Row;
+using TableRowHolder = std::unique_ptr<TableRow>;
 
-// Right now this is a unique_ptr with a clone function added. clone will be
-// moving to the TableRow interface, and this will become a unique_ptr<TableRow>
-class TableRowHolder : public std::unique_ptr<DynamicTableRow> {
+/**
+ * Interface for accessing a table row. Implementations may be backed by
+ * a map<string, string> or code generated with type-safe fields.
+ */
+class TableRow {
  public:
-  TableRowHolder();
-  TableRowHolder(DynamicTableRow* row);
-  ~TableRowHolder();
+  TableRow() = default;
+  virtual ~TableRow() {}
 
-  TableRowHolder(const TableRowHolder& other) = delete;
-  TableRowHolder& operator=(const TableRowHolder& other) = delete;
+  // Non-copyable
+  TableRow(const TableRow&) = delete;
+  TableRow& operator=(const TableRow&) = delete;
 
-  TableRowHolder(TableRowHolder&& other);
-  TableRowHolder& operator=(TableRowHolder&& other);
+  /**
+   * Output the rowid of the current row into pRowid, returning SQLITE_OK if
+   * successful or SQLITE_ERROR if not.
+   */
+  virtual int get_rowid(sqlite_int64 default_value,
+                        sqlite_int64* pRowid) const = 0;
+  /**
+   * Invoke the appropriate sqlite3_result_xxx method for the given column, or
+   * null if the value does not fit the column type.
+   */
+  virtual int get_column(sqlite3_context* ctx,
+                         sqlite3_vtab* pVtab,
+                         int col) = 0;
+  /**
+   * Serialize this row as key,value pairs into the given JSON object.
+   */
+  virtual Status serialize(JSON& doc, rapidjson::Value& obj) const = 0;
 
-  TableRowHolder clone() const;
+  /**
+   * Clone this row.
+   */
+  virtual TableRowHolder clone() const = 0;
+
+  /**
+   * Convert this row to a string map.
+   */
+  virtual operator Row() const = 0;
 };
 
 } // namespace osquery

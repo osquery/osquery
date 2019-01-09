@@ -9,13 +9,13 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/core/sql/dynamic_table_row.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
 #include <osquery/utils/info/platform_type.h>
 
+#include "osquery/sql/dynamic_table_row.h"
 #include "osquery/sql/sqlite_util.h"
 
 namespace fs = boost::filesystem;

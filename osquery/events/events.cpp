@@ -23,10 +23,11 @@
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/system.h>
-#include <osquery/utils/system/time.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/time.h>
 
 namespace osquery {
 

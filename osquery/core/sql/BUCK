@@ -8,6 +8,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
     name = "sql",
@@ -19,5 +20,6 @@ osquery_cxx_library(
     deps = [
         osquery_target("osquery/utils/json:json"),
         osquery_target("osquery/utils/status:status"),
+        osquery_tp_target("sqlite"),
     ],
 )

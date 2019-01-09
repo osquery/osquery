@@ -26,7 +26,6 @@ CREATE_LAZY_REGISTRY(TablePlugin, "table");
 size_t TablePlugin::kCacheInterval = 0;
 size_t TablePlugin::kCacheStep = 0;
 
-
 Status TablePlugin::addExternal(const std::string& name,
                                 const PluginResponse& response) {
   // Attach the table.
@@ -533,7 +532,7 @@ bool QueryContext::useCache() const {
 
 void QueryContext::setCache(const std::string& index,
                             const TableRowHolder& cache) {
-  table_->cache[index] = cache.clone();
+  table_->cache[index] = cache->clone();
 }
 
 bool QueryContext::isCached(const std::string& index) const {
@@ -541,7 +540,7 @@ bool QueryContext::isCached(const std::string& index) const {
 }
 
 TableRowHolder QueryContext::getCache(const std::string& index) {
-  return table_->cache[index].clone();
+  return table_->cache[index]->clone();
 }
 
 bool QueryContext::hasConstraint(const std::string& column,

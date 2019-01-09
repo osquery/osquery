@@ -14,6 +14,7 @@ load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 osquery_cxx_library(
     name = "sql",
     srcs = [
+        "dynamic_table_row.cpp",
         "sql.cpp",
         "sqlite_encoding.cpp",
         "sqlite_filesystem.cpp",
@@ -26,6 +27,7 @@ osquery_cxx_library(
     ],
     header_namespace = "osquery/sql",
     exported_headers = [
+        "dynamic_table_row.h",
         "sqlite_util.h",
         "virtual_table.h",
     ],

@@ -25,7 +25,6 @@
 
 #include <osquery/core.h>
 #include <osquery/core/sql/column.h>
-#include <osquery/core/sql/table_rows.h>
 #include <osquery/plugins/plugin.h>
 #include <osquery/query.h>
 

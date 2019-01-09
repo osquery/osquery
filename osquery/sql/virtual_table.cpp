@@ -16,6 +16,7 @@
 #include <osquery/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/registry_factory.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/sql/virtual_table.h>
 #include <osquery/system.h>
 #include <osquery/utils/conversions/tryto.h>
@@ -351,23 +352,7 @@ int xRowid(sqlite3_vtab_cursor* cur, sqlite_int64* pRowid) {
   // Use the rowid returned by the extension, if available; most likely, this
   // will only be used by extensions providing read/write tables
   const auto& current_row = *data_it;
-
-  auto rowid_it = current_row->find("rowid");
-  if (rowid_it != current_row->end()) {
-    const auto& rowid_text_field = rowid_it->second;
-
-    auto exp = tryTo<long long>(rowid_text_field, 10);
-    if (exp.isError()) {
-      VLOG(1) << "Invalid rowid value returned " << exp.getError();
-      return SQLITE_ERROR;
-    }
-    *pRowid = exp.take();
-
-  } else {
-    *pRowid = pCur->row;
-  }
-
-  return SQLITE_OK;
+  return current_row->get_rowid(pCur->row, pRowid);
 }
 
 int xUpdate(sqlite3_vtab* p,
@@ -688,65 +673,9 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
     return SQLITE_ERROR;
   }
 
-  auto& column_name = std::get<0>(pVtab->content->columns[col]);
-  auto& type = std::get<1>(pVtab->content->columns[col]);
-  if (pVtab->content->aliases.count(column_name)) {
-    // Overwrite the aliased column with the type and name of the new column.
-    type = std::get<1>(
-        pVtab->content->columns[pVtab->content->aliases.at(column_name)]);
-    column_name = std::get<0>(
-        pVtab->content->columns[pVtab->content->aliases.at(column_name)]);
-  }
-
-  Row* row = nullptr;
-  if (pCur->uses_generator) {
-    row = pCur->current.get();
-  } else {
-    row = pCur->rows[pCur->row].get();
-  }
-
-  // Attempt to cast each xFilter-populated row/column to the SQLite type.
-  const auto& value = (*row)[column_name];
-  if (row->count(column_name) == 0) {
-    // Missing content.
-    VLOG(1) << "Error " << column_name << " is empty";
-    sqlite3_result_null(ctx);
-  } else if (type == TEXT_TYPE || type == BLOB_TYPE) {
-    sqlite3_result_text(
-        ctx, value.c_str(), static_cast<int>(value.size()), SQLITE_STATIC);
-  } else if (type == INTEGER_TYPE) {
-    auto afinite = tryTo<long>(value, 0);
-    if (afinite.isError()) {
-      VLOG(1) << "Error casting " << column_name << " (" << value
-              << ") to INTEGER";
-      sqlite3_result_null(ctx);
-    } else {
-      sqlite3_result_int(ctx, afinite.take());
-    }
-  } else if (type == BIGINT_TYPE || type == UNSIGNED_BIGINT_TYPE) {
-    auto afinite = tryTo<long long>(value, 0);
-    if (afinite.isError()) {
-      VLOG(1) << "Error casting " << column_name << " (" << value
-              << ") to BIGINT";
-      sqlite3_result_null(ctx);
-    } else {
-      sqlite3_result_int64(ctx, afinite.take());
-    }
-  } else if (type == DOUBLE_TYPE) {
-    char* end = nullptr;
-    double afinite = strtod(value.c_str(), &end);
-    if (end == nullptr || end == value.c_str() || *end != '\0') {
-      VLOG(1) << "Error casting " << column_name << " (" << value
-              << ") to DOUBLE";
-      sqlite3_result_null(ctx);
-    } else {
-      sqlite3_result_double(ctx, afinite);
-    }
-  } else {
-    LOG(ERROR) << "Error unknown column type " << column_name;
-  }
-
-  return SQLITE_OK;
+  TableRowHolder& row =
+      pCur->uses_generator ? pCur->current : pCur->rows[pCur->row];
+  return row->get_column(ctx, cur->pVtab, col);
 }
 
 static inline bool sensibleComparison(ColumnType type, unsigned char op) {

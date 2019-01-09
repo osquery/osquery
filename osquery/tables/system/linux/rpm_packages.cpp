@@ -18,9 +18,9 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <osquery/core/sql/dynamic_table_row.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
 

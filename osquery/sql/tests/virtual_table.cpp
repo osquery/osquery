@@ -11,11 +11,11 @@
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
-#include <osquery/core/sql/dynamic_table_row.h>
 #include <osquery/database.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/system.h>
 
 #include <osquery/sql/virtual_table.h>

@@ -19,10 +19,6 @@ namespace osquery {
 
 using TableRows = std::vector<TableRowHolder>;
 
-/// Converts a QueryData struct to TableRows. Intended for use only in
-/// generated code.
-TableRows tableRowsFromQueryData(QueryData&& rows);
-
 /**
  * @brief Serialize a TableRows object into a JSON array.
  *
