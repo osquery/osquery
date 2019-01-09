@@ -24,6 +24,8 @@ namespace tables {
 {% if class_name == "" %}\
 {% if generator %}\
 void {{function}}(RowYield& yield, QueryContext& context);
+{% elif strongly_typed_rows %}\
+osquery::TableRows {{function}}(QueryContext& context);
 {% else %}\
 osquery::QueryData {{function}}(QueryContext& context);
 {% endif %}\
@@ -117,7 +119,11 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
       return getCache();
     }
 {% endif %}\
+{% if attributes.strongly_typed_rows %}\
+    TableRows results = tables::{{function}}(context);
+{% else %}\
     TableRows results = osquery::tableRowsFromQueryData(tables::{{function}}(context));
+{% endif %}
 {% if attributes.cacheable %}\
     setCache(kCacheStep, kCacheInterval, context, results);
 {% endif %}

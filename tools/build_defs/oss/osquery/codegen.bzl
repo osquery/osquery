@@ -11,26 +11,57 @@ load(
 )
 
 def _impl_gen_cxx_from_spec(name, spec_file, is_foreign = False):
-    target_name = "{}_{}".format(
-        name,
-        spec_file.rsplit("/", 1)[-1],
-    )
+    table_root_name = spec_file.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+    table_target_name = "{}_{}.table".format(name, table_root_name)
+    row_genrule_name = "{}_{}.row_genrule".format(name, table_root_name)
+    row_target_name = "{}_{}_row".format(name, table_root_name)
+    row_header_name = "{}.h".format(table_root_name)
+
+    cmd = "$(exe {})".format(osquery_target("tools/codegen:gentable"))
+    foreign = "--foreign" if is_foreign else ""
+    templates = "$(location {})/templates".format(osquery_target("tools/codegen:templates"))
+    spec_file = spec_file
+    output = "$OUT"
 
     osquery_genrule(
-        name = target_name,
-        out = "{}.cpp".format(target_name),
+        name = table_target_name,
+        out = "{}.cpp".format(table_root_name),
         cmd = (
             "{cmd} {foreign} --templates {templates} {spec_file} {output}"
         ).format(
-            cmd = "$(exe {})".format(osquery_target("tools/codegen:gentable")),
-            foreign = "--foreign" if is_foreign else "",
-            templates = "$(location {})/templates".format(osquery_target("tools/codegen:templates")),
+            cmd = cmd,
+            foreign = foreign,
+            templates = templates,
             spec_file = spec_file,
-            output = "$OUT",
+            output = output,
         ),
     )
 
-    return target_name
+    osquery_genrule(
+        name = row_genrule_name,
+        out = "{}.h".format(table_root_name),
+        cmd = (
+            "{cmd} --header --templates {templates} {spec_file} {output}"
+        ).format(
+            cmd = cmd,
+            templates = templates,
+            spec_file = spec_file,
+            output = output,
+        ),
+    )
+
+    osquery_cxx_library(
+        name = row_target_name,
+        exported_headers = {
+            row_header_name: ":" + row_genrule_name,
+        },
+        header_namespace = "osquery/rows",
+        visibility = [
+            osquery_target("osquery/tables/..."),
+        ],
+    )
+
+    return [table_target_name, row_genrule_name]
 
 def _impl_gen_amalgamation(name, cxx_targets, is_foreign = False):
     category = "foreign" if is_foreign else "native"
@@ -100,7 +131,7 @@ def osquery_gentable_cxx_library(name, spec_files = None, platform_spec_files = 
     native_cxx_targets = []
     if spec_files:
         for spec_file in spec_files:
-            native_cxx_targets.append(
+            native_cxx_targets.extend(
                 _impl_gen_cxx_from_spec(
                     name,
                     spec_file,
@@ -112,7 +143,7 @@ def osquery_gentable_cxx_library(name, spec_files = None, platform_spec_files = 
     if platform_spec_files:
         for spec_file, platform_def in platform_spec_files:
             if _impl_is_foreign(platform_def):
-                foreign_cxx_targets.append(
+                foreign_cxx_targets.extend(
                     _impl_gen_cxx_from_spec(
                         name,
                         spec_file,
@@ -120,7 +151,7 @@ def osquery_gentable_cxx_library(name, spec_files = None, platform_spec_files = 
                     ),
                 )
             else:
-                native_cxx_targets.append(
+                native_cxx_targets.extend(
                     _impl_gen_cxx_from_spec(
                         name,
                         spec_file,

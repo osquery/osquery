@@ -29,10 +29,6 @@ class TableRow {
   TableRow() = default;
   virtual ~TableRow() {}
 
-  // Non-copyable
-  TableRow(const TableRow&) = delete;
-  TableRow& operator=(const TableRow&) = delete;
-
   /**
    * Output the rowid of the current row into pRowid, returning SQLITE_OK if
    * successful or SQLITE_ERROR if not.
@@ -60,6 +56,10 @@ class TableRow {
    * Convert this row to a string map.
    */
   virtual operator Row() const = 0;
+
+ protected:
+  TableRow(const TableRow&) = default;
+  TableRow& operator=(const TableRow&) = default;
 };
 
 } // namespace osquery
