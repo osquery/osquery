@@ -319,6 +319,7 @@ osquery_cxx_library(
         osquery_target("osquery/utils/system:system"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("osquery/utils/system:uptime"),
+        osquery_target("specs:tables_processes_row"),
         osquery_tp_target("augeas"),
         osquery_tp_target("boost"),
         osquery_tp_target("libmagic"),

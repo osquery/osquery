@@ -24,6 +24,7 @@
 #include <osquery/core.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/rows/processes.h>
 #include <osquery/tables.h>
 
 namespace fs = boost::filesystem;
@@ -110,7 +111,7 @@ struct proc_cred {
 inline bool genProcCred(QueryContext& context,
                         int pid,
                         proc_cred& cred,
-                        Row& r) {
+                        ProcessesRow& r) {
   struct proc_bsdinfo bsdinfo;
   struct proc_bsdshortinfo bsdinfo_short;
 
@@ -145,20 +146,18 @@ inline bool genProcCred(QueryContext& context,
     return false;
   }
 
-  context.setBigIntColumnIfUsed(r, "parent", cred.parent);
-  context.setBigIntColumnIfUsed(r, "pgroup", cred.group);
-  context.setTextColumnIfUsed(r,
-                              "state",
-                              (1 <= cred.status && cred.status <= 5)
-                                  ? kProcessStateMapping[cred.status]
-                                  : '?');
-  context.setIntegerColumnIfUsed(r, "nice", cred.nice);
-  context.setBigIntColumnIfUsed(r, "uid", cred.real.uid);
-  context.setBigIntColumnIfUsed(r, "gid", cred.real.gid);
-  context.setBigIntColumnIfUsed(r, "euid", cred.effective.uid);
-  context.setBigIntColumnIfUsed(r, "egid", cred.effective.gid);
-  context.setBigIntColumnIfUsed(r, "suid", cred.saved.uid);
-  context.setBigIntColumnIfUsed(r, "sgid", cred.saved.gid);
+  r.parent_col = cred.parent;
+  r.pgroup_col = cred.group;
+  r.state_col = (1 <= cred.status && cred.status <= 5)
+                    ? kProcessStateMapping[cred.status]
+                    : '?';
+  r.nice_col = cred.nice;
+  r.uid_col = cred.real.uid;
+  r.gid_col = cred.real.gid;
+  r.euid_col = cred.effective.uid;
+  r.egid_col = cred.effective.gid;
+  r.suid_col = cred.saved.uid;
+  r.sgid_col = cred.saved.gid;
 
   return true;
 }
@@ -178,8 +177,8 @@ static inline int genMaxArgs() {
   return argmax;
 }
 
-void genProcRootAndCWD(const QueryContext& context, int pid, Row& r) {
-  if (!context.isAnyColumnUsed({"cwd", "root"})) {
+void genProcRootAndCWD(const QueryContext& context, int pid, ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::CWD | ProcessesRow::ROOT)) {
     return;
   }
 
@@ -187,14 +186,14 @@ void genProcRootAndCWD(const QueryContext& context, int pid, Row& r) {
   if (proc_pidinfo(
           pid, PROC_PIDVNODEPATHINFO, 0, &pathinfo, sizeof(pathinfo)) ==
       sizeof(pathinfo)) {
-    if (context.isColumnUsed("cwd") &&
+    if (context.isAnyColumnUsed(ProcessesRow::CWD) &&
         pathinfo.pvi_cdir.vip_vi.vi_stat.vst_dev != 0) {
-      r["cwd"] = std::string(pathinfo.pvi_cdir.vip_path);
+      r.cwd_col = std::string(pathinfo.pvi_cdir.vip_path);
     }
 
-    if (context.isColumnUsed("root") &&
+    if (context.isAnyColumnUsed(ProcessesRow::ROOT) &&
         pathinfo.pvi_rdir.vip_vi.vi_stat.vst_dev != 0) {
-      r["root"] = std::string(pathinfo.pvi_rdir.vip_path);
+      r.root_col = std::string(pathinfo.pvi_rdir.vip_path);
     }
   }
 }
@@ -202,36 +201,37 @@ void genProcRootAndCWD(const QueryContext& context, int pid, Row& r) {
 void genProcNamePathAndOnDisk(const QueryContext& context,
                               int pid,
                               const struct proc_cred& cred,
-                              Row& r) {
-  if (!context.isAnyColumnUsed({"name", "path", "on_disk"})) {
+                              ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::NAME | ProcessesRow::PATH |
+                               ProcessesRow::ON_DISK)) {
     return;
   }
 
   std::string path;
   if (pid == 0) {
     path = "";
-    if (context.isColumnUsed("name")) {
+    if (context.isAnyColumnUsed(ProcessesRow::NAME)) {
       // For some reason not even proc_name gives back a name for kernel_task
-      r["name"] = "kernel_task";
+      r.name_col = "kernel_task";
     }
   } else if (cred.status != 5) { // If the process is not a Zombie, try to
                                  // find the path and name.
     path = getProcPath(pid);
-    if (context.isColumnUsed("name")) {
+    if (context.isAnyColumnUsed(ProcessesRow::NAME)) {
       // OS X proc_name only returns 16 bytes, use the basename of the path.
-      r["name"] = fs::path(path).filename().string();
+      r.name_col = fs::path(path).filename().string();
     }
   } else {
     path = "";
-    if (context.isColumnUsed("name")) {
+    if (context.isAnyColumnUsed(ProcessesRow::NAME)) {
       std::vector<char> name(17);
       proc_name(pid, name.data(), 16);
-      r["name"] = std::string(name.data());
+      r.name_col = std::string(name.data());
     }
   }
-  context.setTextColumnIfUsed(r, "path", path);
+  r.path_col = path;
 
-  if (!context.isColumnUsed("on_disk")) {
+  if (!context.isAnyColumnUsed(ProcessesRow::ON_DISK)) {
     return;
   }
 
@@ -241,16 +241,16 @@ void genProcNamePathAndOnDisk(const QueryContext& context,
   // executable is available and the file does NOT exist on disk, set on_disk
   // to 0.
   if (path.empty()) {
-    r["on_disk"] = INTEGER(-1);
+    r.on_disk_col = -1;
   } else if (pathExists(path)) {
-    r["on_disk"] = INTEGER(1);
+    r.on_disk_col = 1;
   } else {
-    r["on_disk"] = INTEGER(0);
+    r.on_disk_col = 0;
   }
 }
 
-void genProcNumThreads(QueryContext& context, int pid, Row& r) {
-  if (!context.isColumnUsed("threads")) {
+void genProcNumThreads(QueryContext& context, int pid, ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::THREADS)) {
     return;
   }
 
@@ -258,14 +258,14 @@ void genProcNumThreads(QueryContext& context, int pid, Row& r) {
   int status =
       proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &task_info, sizeof(task_info));
   if (status == sizeof(task_info)) {
-    r["threads"] = INTEGER(task_info.pti_threadnum);
+    r.threads_col = task_info.pti_threadnum;
   } else {
-    r["threads"] = "-1";
+    r.threads_col = -1;
   }
 }
 
-void genProcUniquePid(QueryContext& context, int pid, Row& r) {
-  if (!context.isColumnUsed("upid") && !context.isColumnUsed("uppid")) {
+void genProcUniquePid(QueryContext& context, int pid, ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::UPID | ProcessesRow::UPPID)) {
     return;
   }
 
@@ -281,17 +281,17 @@ void genProcUniquePid(QueryContext& context, int pid, Row& r) {
   struct proc_uniqidentifierinfo uniqidinfo;
   int status = proc_pidinfo(pid, 17, 0, &uniqidinfo, sizeof(uniqidinfo));
   if (status == sizeof(uniqidinfo)) {
-    r["upid"] = BIGINT(uniqidinfo.p_uniqueid);
-    r["uppid"] = BIGINT(uniqidinfo.p_puniqueid);
+    r.upid_col = uniqidinfo.p_uniqueid;
+    r.uppid_col = uniqidinfo.p_puniqueid;
   } else {
-    r["upid"] = "-1";
-    r["uppid"] = "-1";
+    r.upid_col = -1;
+    r.uppid_col = -1;
   }
 }
 
-void genProcArch(QueryContext& context, int pid, Row& r) {
-  if (!context.isColumnUsed("cpu_type") &&
-      !context.isColumnUsed("cpu_subtype")) {
+void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::CPU_TYPE |
+                               ProcessesRow::CPU_SUBTYPE)) {
     return;
   }
 
@@ -307,11 +307,11 @@ void genProcArch(QueryContext& context, int pid, Row& r) {
   // under the constant PROC_PIDARCHINFO but is unexported
   size_t status = proc_pidinfo(pid, 19, 0, &archinfo, sizeof(archinfo));
   if (status == sizeof(archinfo)) {
-    r["cpu_type"] = INTEGER(archinfo.p_cputype);
-    r["cpu_subtype"] = INTEGER(archinfo.p_cpusubtype);
+    r.cpu_type_col = archinfo.p_cputype;
+    r.cpu_subtype_col = archinfo.p_cpusubtype;
   } else {
-    r["cpu_type"] = "-1";
-    r["cpu_subtype"] = "-1";
+    r.cpu_type_col = -1;
+    r.cpu_subtype_col = -1;
   }
 }
 
@@ -363,8 +363,8 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
   return args;
 }
 
-void genProcCmdline(const QueryContext& context, int pid, Row& r) {
-  if (!context.isColumnUsed("cmdline")) {
+void genProcCmdline(const QueryContext& context, int pid, ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::CMDLINE)) {
     return;
   }
 
@@ -372,7 +372,7 @@ void genProcCmdline(const QueryContext& context, int pid, Row& r) {
   // The command line invocation including arguments.
   auto args = getProcRawArgs(pid, argmax);
   std::string cmdline = boost::algorithm::join(args.args, " ");
-  r["cmdline"] = cmdline;
+  r.cmdline_col = std::move(cmdline);
 }
 
 static inline long getUptimeInUSec() {
@@ -394,15 +394,14 @@ static inline long getUptimeInUSec() {
               tv.tv_usec);
 }
 
-void genProcResourceUsage(const QueryContext& context, int pid, Row& r) {
-  if (!context.isAnyColumnUsed({"wired_size",
-                                "resident_size",
-                                "total_size",
-                                "user_time",
-                                "system_time",
-                                "disk_bytes_read",
-                                "disk_bytes_written",
-                                "start_time"})) {
+void genProcResourceUsage(const QueryContext& context,
+                          int pid,
+                          ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(
+          ProcessesRow::WIRED_SIZE | ProcessesRow::RESIDENT_SIZE |
+          ProcessesRow::TOTAL_SIZE | ProcessesRow::USER_TIME |
+          ProcessesRow::SYSTEM_TIME | ProcessesRow::DISK_BYTES_READ |
+          ProcessesRow::DISK_BYTES_WRITTEN | ProcessesRow::START_TIME)) {
     return;
   }
 
@@ -412,26 +411,19 @@ void genProcResourceUsage(const QueryContext& context, int pid, Row& r) {
   // proc_pid_rusage returns -1 if it was unable to gather information
   if (status == 0) {
     // size/memory information
-    context.setTextColumnIfUsed(
-        r, "wired_size", rusage_info_data.ri_wired_size);
-    context.setTextColumnIfUsed(
-        r, "resident_size", rusage_info_data.ri_resident_size);
-    context.setTextColumnIfUsed(
-        r, "total_size", rusage_info_data.ri_phys_footprint);
+    r.wired_size_col = rusage_info_data.ri_wired_size;
+    r.resident_size_col = rusage_info_data.ri_resident_size;
+    r.total_size_col = rusage_info_data.ri_phys_footprint;
 
     // time information
-    context.setTextColumnIfUsed(
-        r, "user_time", rusage_info_data.ri_user_time / CPU_TIME_RATIO);
-    context.setTextColumnIfUsed(
-        r, "system_time", rusage_info_data.ri_system_time / CPU_TIME_RATIO);
+    r.user_time_col = rusage_info_data.ri_user_time / CPU_TIME_RATIO;
+    r.system_time_col = rusage_info_data.ri_system_time / CPU_TIME_RATIO;
 
     // disk i/o information
-    context.setTextColumnIfUsed(
-        r, "disk_bytes_read", rusage_info_data.ri_diskio_bytesread);
-    context.setTextColumnIfUsed(
-        r, "disk_bytes_written", rusage_info_data.ri_diskio_byteswritten);
+    r.disk_bytes_read_col = rusage_info_data.ri_diskio_bytesread;
+    r.disk_bytes_written_col = rusage_info_data.ri_diskio_byteswritten;
 
-    if (context.isColumnUsed("start_time")) {
+    if (context.isAnyColumnUsed(ProcessesRow::START_TIME)) {
       // Initialize time conversions.
       static mach_timebase_info_data_t time_base;
       if (time_base.denom == 0) {
@@ -453,48 +445,49 @@ void genProcResourceUsage(const QueryContext& context, int pid, Row& r) {
           static_cast<long>(diff * multiply) / NSECS_IN_USEC;
 
       // Get the start_time of process since the computer started
-      r["start_time"] = TEXT((uptime + seconds_since_launch) / CPU_TIME_RATIO);
+      r.start_time_col = ((uptime + seconds_since_launch) / CPU_TIME_RATIO);
     }
   } else {
-    context.setTextColumnIfUsed(r, "wired_size", "-1");
-    context.setTextColumnIfUsed(r, "resident_size", "-1");
-    context.setTextColumnIfUsed(r, "total_size", "-1");
-    context.setTextColumnIfUsed(r, "user_time", "-1");
-    context.setTextColumnIfUsed(r, "system_time", "-1");
-    context.setTextColumnIfUsed(r, "start_time", "-1");
+    r.wired_size_col = -1;
+    r.resident_size_col = -1;
+    r.total_size_col = -1;
+    r.user_time_col = -1;
+    r.system_time_col = -1;
+    r.start_time_col = -1;
   }
 }
 
-QueryData genProcesses(QueryContext& context) {
-  QueryData results;
+TableRows genProcesses(QueryContext& context) {
+  TableRows results;
 
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
-    Row r;
-    context.setIntegerColumnIfUsed(r, "pid", pid);
+    ProcessesRow* r = new ProcessesRow();
+    r->pid_col = pid;
 
-    genProcCmdline(context, pid, r);
+    genProcCmdline(context, pid, *r);
 
     // The process relative root and current working directory.
-    genProcRootAndCWD(context, pid, r);
+    genProcRootAndCWD(context, pid, *r);
 
     proc_cred cred;
-    if (!genProcCred(context, pid, cred, r)) {
+    if (!genProcCred(context, pid, cred, *r)) {
       continue;
     }
 
-    genProcNamePathAndOnDisk(context, pid, cred, r);
+    genProcNamePathAndOnDisk(context, pid, cred, *r);
 
     // systems usage and time information
-    genProcResourceUsage(context, pid, r);
+    genProcResourceUsage(context, pid, *r);
 
-    genProcNumThreads(context, pid, r);
+    genProcNumThreads(context, pid, *r);
 
-    genProcUniquePid(context, pid, r);
+    genProcUniquePid(context, pid, *r);
 
-    genProcArch(context, pid, r);
+    genProcArch(context, pid, *r);
 
-    results.push_back(r);
+    std::unique_ptr<TableRow> tr(r);
+    results.push_back(std::move(tr));
   }
 
   return results;

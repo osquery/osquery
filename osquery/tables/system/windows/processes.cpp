@@ -28,7 +28,7 @@
 
 #include <osquery/core/windows/wmi.h>
 #include <osquery/filesystem/fileops.h>
-
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 
@@ -150,7 +150,7 @@ Status getProcList(std::set<long>& pids) {
 
 void genProcess(const long pid,
                 const WmiResultItem& result,
-                Row& r,
+                DynamicTableRowHolder& r,
                 QueryContext& context) {
   Status s;
   long lPlaceHolder;
@@ -318,8 +318,8 @@ void genPerfPerProcess(
   }
 }
 
-QueryData genProcesses(QueryContext& context) {
-  QueryData results;
+TableRows genProcesses(QueryContext& context) {
+  TableRows results;
 
   std::string query = "SELECT * FROM Win32_Process";
 
@@ -358,7 +358,7 @@ QueryData genProcesses(QueryContext& context) {
   if (request.getStatus().ok()) {
     for (const auto& item : request.results()) {
       long pid = 0;
-      Row r;
+      auto r = make_table_row();
       if (item.GetLong("ProcessId", pid).ok()) {
         r["pid"] = BIGINT(pid);
         // add per process perf data

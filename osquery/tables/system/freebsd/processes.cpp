@@ -24,11 +24,11 @@
 
 #include <libprocstat.h>
 
-#include <osquery/core.h>
-#include <osquery/tables.h>
-#include <osquery/filesystem/filesystem.h>
-
 #include "osquery/tables/system/freebsd/procstat.h"
+#include <osquery/core.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/sql/dynamic_table_row.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
@@ -105,8 +105,8 @@ void genProcessMap(struct procstat* pstat,
 
 void genProcess(struct procstat* pstat,
                 struct kinfo_proc* proc,
-                QueryData& results) {
-  Row r;
+                TableRows& results) {
+  auto r = make_table_row();
   r["pid"] = INTEGER(proc->ki_pid);
   r["parent"] = INTEGER(proc->ki_ppid);
   r["name"] = proc->ki_comm;
@@ -183,8 +183,8 @@ void genProcess(struct procstat* pstat,
   results.push_back(r);
 }
 
-QueryData genProcesses(QueryContext& context) {
-  QueryData results;
+TableRows genProcesses(QueryContext& context) {
+  TableRows results;
   struct kinfo_proc* procs = nullptr;
   struct procstat* pstat = nullptr;
 

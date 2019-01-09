@@ -24,6 +24,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/filesystem/linux/proc.h>
 #include <osquery/logger.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/split.h>
 
@@ -389,7 +390,7 @@ int getOnDisk(const std::string& pid, std::string& path) {
   }
 }
 
-void genProcess(const std::string& pid, QueryData& results) {
+void genProcess(const std::string& pid, TableRows& results) {
   // Parse the process stat and status.
   SimpleProcStat proc_stat(pid);
   // Parse the process io
@@ -400,7 +401,7 @@ void genProcess(const std::string& pid, QueryData& results) {
     return;
   }
 
-  Row r;
+  auto r = make_table_row();
   r["pid"] = pid;
   r["parent"] = proc_stat.parent;
   r["path"] = readProcLink("exe", pid);
@@ -468,8 +469,8 @@ void genNamespaces(const std::string& pid, QueryData& results) {
   results.push_back(r);
 }
 
-QueryData genProcesses(QueryContext& context) {
-  QueryData results;
+TableRows genProcesses(QueryContext& context) {
+  TableRows results;
 
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
