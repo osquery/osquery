@@ -9,6 +9,7 @@
  */
 
 #include <osquery/core.h>
+#include <osquery/core/sql/dynamic_table_row.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
@@ -36,7 +37,7 @@ const char* getSystemVFS(bool respect_locking) {
 Status genSqliteTableRow(sqlite3_stmt* stmt,
                          TableRows& qd,
                          const fs::path& sqlite_db) {
-  Row r;
+  auto r = make_table_row();
   for (int i = 0; i < sqlite3_column_count(stmt); ++i) {
     auto column_name = std::string(sqlite3_column_name(stmt, i));
     auto column_type = sqlite3_column_type(stmt, i);
@@ -65,7 +66,7 @@ Status genSqliteTableRow(sqlite3_stmt* stmt,
   } else {
     r["path"] = sqlite_db.string();
   }
-  qd.push_back(r);
+  qd.push_back(std::move(r));
   return Status();
 }
 

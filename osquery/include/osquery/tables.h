@@ -443,10 +443,10 @@ struct VirtualTableContent {
    * The in-memory, non-backing store, cache is expired after each query run.
    * This caching does not affect or use the schedule results cache.
    */
-  std::map<std::string, Row> cache;
+  std::map<std::string, TableRowHolder> cache;
 };
 
-using RowGenerator = boost::coroutines2::coroutine<Row&>;
+using RowGenerator = boost::coroutines2::coroutine<TableRowHolder>;
 using RowYield = RowGenerator::push_type;
 
 /**
@@ -628,10 +628,7 @@ struct QueryContext {
   bool isCached(const std::string& index) const;
 
   /// Retrieve an index within the query cache.
-  const Row& getCache(const std::string& index);
-
-  /// Helper to retrieve a keyed element within the query cache.
-  const std::string& getCache(const std::string& index, const std::string& key);
+  TableRowHolder getCache(const std::string& index);
 
   /// Request the context use the warm query cache.
   void useCache(bool use_cache);
@@ -640,12 +637,7 @@ struct QueryContext {
   bool useCache() const;
 
   /// Set the entire cache for an index.
-  void setCache(const std::string& index, Row _cache);
-
-  /// Helper to set a keyed element within the query cache.
-  void setCache(const std::string& index,
-                const std::string& key,
-                std::string _item);
+  void setCache(const std::string& index, const TableRowHolder& _cache);
 
   /// The map of column name to constraint list.
   ConstraintMap constraints;

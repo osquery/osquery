@@ -544,7 +544,7 @@ void EventSubscriberPlugin::get(RowYield& yield,
     status = deserializeRowJSON(data_value, r);
     data_value.clear();
     if (status.ok()) {
-      yield(r);
+      yield(TableRowHolder(new DynamicTableRow(std::move(r))));
     }
   }
 

@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
+#include <osquery/core/sql/dynamic_table_row.h>
 #include <osquery/database.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
@@ -238,10 +239,10 @@ class pTablePlugin : public TablePlugin {
 
  public:
   TableRows generate(QueryContext&) override {
-    return {
-        {{"x", "1"}, {"y", "2"}},
-        {{"x", "2"}, {"y", "1"}},
-    };
+    TableRows tr;
+    tr.push_back(make_table_row({{"x", "1"}, {"y", "2"}}));
+    tr.push_back(make_table_row({{"x", "2"}, {"y", "1"}}));
+    return tr;
   }
 
  private:
@@ -259,10 +260,10 @@ class kTablePlugin : public TablePlugin {
 
  public:
   TableRows generate(QueryContext&) override {
-    return {
-        {{"x", "1"}, {"z", "2"}},
-        {{"x", "2"}, {"z", "1"}},
-    };
+    TableRows tr;
+    tr.push_back(make_table_row({{"x", "1"}, {"z", "2"}}));
+    tr.push_back(make_table_row({{"x", "2"}, {"z", "1"}}));
+    return tr;
   }
 
  private:
@@ -360,9 +361,9 @@ class jsonTablePlugin : public TablePlugin {
 
  public:
   TableRows generate(QueryContext&) override {
-    return {
-        {{"data", "{\"test\": 1}"}},
-    };
+    TableRows results;
+    results.push_back(make_table_row({{"data", "{\"test\": 1}"}}));
+    return results;
   }
 
  private:
@@ -434,14 +435,16 @@ class cacheTablePlugin : public TablePlugin {
 
  public:
   TableRows generate(QueryContext& context) override {
+    TableRows results;
     if (context.isCached("awesome_data")) {
       // There is cache entry for awesome data.
-      return {{{"data", "more_awesome_data"}}};
+      results.push_back(make_table_row({{"data", "more_awesome_data"}}));
     } else {
-      Row r = {{"data", "awesome_data"}};
-      context.setCache("awesome_data", r);
-      return {r};
+      auto tr = make_table_row({{"data", "awesome_data"}});
+      context.setCache("awesome_data", static_cast<TableRowHolder&&>(tr));
+      results.push_back(std::move(tr));
     }
+    return results;
   }
 
  private:
@@ -492,10 +495,12 @@ class tableCacheTablePlugin : public TablePlugin {
     }
 
     generates_++;
-    Row r;
+    auto r = make_table_row();
     r["i"] = "1";
-    setCache(60, 1, ctx, {r});
-    return {r};
+    TableRows result;
+    result.push_back(std::move(r));
+    setCache(60, 1, ctx, result);
+    return result;
   }
 
   size_t generates_{0};
@@ -570,9 +575,9 @@ class yieldTablePlugin : public TablePlugin {
 
   void generator(RowYield& yield, QueryContext& qc) override {
     for (size_t i = 0; i < 10; i++) {
-      Row r;
+      auto r = make_table_row();
       r["index"] = std::to_string(index_++);
-      yield(r);
+      yield(std::move(r));
     }
   }
 
@@ -617,18 +622,18 @@ class likeTablePlugin : public TablePlugin {
     // First we'll move constrains for the column `i` using operands =, LIKE.
     auto i = context.constraints["i"].getAll(EQUALS);
     for (const auto& constraint : i) {
-      Row r;
+      auto r = make_table_row();
       r["i"] = constraint;
       r["op"] = "EQUALS";
-      results.push_back(r);
+      results.push_back(std::move(r));
     }
 
     i = context.constraints["i"].getAll(LIKE);
     for (const auto& constraint : i) {
-      Row r;
+      auto r = make_table_row();
       r["i"] = constraint;
       r["op"] = "LIKE";
-      results.push_back(r);
+      results.push_back(std::move(r));
     }
 
     return results;
@@ -724,13 +729,13 @@ class indexIOptimizedTablePlugin : public TablePlugin {
     TableRows results;
     auto indexes = context.constraints["i"].getAll<int>(EQUALS);
     for (const auto& i : indexes) {
-      results.push_back(
-          {{"i", INTEGER(i)}, {"j", INTEGER(i * 10)}, {"text", "none"}});
+      results.push_back(make_table_row(
+          {{"i", INTEGER(i)}, {"j", INTEGER(i * 10)}, {"text", "none"}}));
     }
     if (indexes.empty()) {
       for (size_t i = 0; i < 100; i++) {
-        results.push_back(
-            {{"i", INTEGER(i)}, {"j", INTEGER(i * 10)}, {"text", "some"}});
+        results.push_back(make_table_row(
+            {{"i", INTEGER(i)}, {"j", INTEGER(i * 10)}, {"text", "some"}}));
       }
     }
     return results;
@@ -756,11 +761,12 @@ class indexJOptimizedTablePlugin : public TablePlugin {
     TableRows results;
     auto indexes = context.constraints["j"].getAll<int>(EQUALS);
     for (const auto& j : indexes) {
-      results.push_back({{"j", INTEGER(j)}, {"text", "none"}});
+      results.push_back(make_table_row({{"j", INTEGER(j)}, {"text", "none"}}));
     }
     if (indexes.empty()) {
       for (size_t j = 0; j < 100; j++) {
-        results.push_back({{"j", INTEGER(j)}, {"text", "some"}});
+        results.push_back(
+            make_table_row({{"j", INTEGER(j)}, {"text", "some"}}));
       }
     }
     return results;
@@ -785,7 +791,7 @@ class defaultScanTablePlugin : public TablePlugin {
 
     TableRows results;
     for (size_t i = 0; i < 10; i++) {
-      results.push_back({{"i", INTEGER(i)}, {"text", "some"}});
+      results.push_back(make_table_row({{"i", INTEGER(i)}, {"text", "some"}}));
     }
     return results;
   }
@@ -866,7 +872,7 @@ class colsUsedTablePlugin : public TablePlugin {
 
  public:
   TableRows generate(QueryContext& context) override {
-    Row r;
+    auto r = make_table_row();
     if (context.isColumnUsed("col1")) {
       r["col1"] = "value1";
     }
@@ -876,7 +882,9 @@ class colsUsedTablePlugin : public TablePlugin {
     if (context.isColumnUsed("col3")) {
       r["col3"] = "value3";
     }
-    return {r};
+    TableRows result;
+    result.push_back(std::move(r));
+    return result;
   }
 
  private:
@@ -941,7 +949,8 @@ class colsUsedBitsetTablePlugin : public TablePlugin {
 
  public:
   TableRows generate(QueryContext& context) override {
-    Row r;
+    TableRows results;
+    auto r = make_table_row();
     if (context.isAnyColumnUsed(UsedColumnsBitset(0x1))) {
       r["col1"] = "value1";
     }
@@ -951,7 +960,8 @@ class colsUsedBitsetTablePlugin : public TablePlugin {
     if (context.isAnyColumnUsed(UsedColumnsBitset(0x4))) {
       r["col3"] = "value3";
     }
-    return {r};
+    results.push_back(std::move(r));
+    return results;
   }
 
  private:

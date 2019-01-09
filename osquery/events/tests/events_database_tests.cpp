@@ -28,7 +28,7 @@
 namespace osquery {
 DECLARE_bool(disable_database);
 
-static QueryData genRows(EventSubscriberPlugin* sub) {
+static TableRows genRows(EventSubscriberPlugin* sub) {
   auto vtc = new VirtualTableContent();
   QueryContext context(vtc);
   RowGenerator::pull_type generator(std::bind(&EventSubscriberPlugin::genTable,
@@ -36,7 +36,7 @@ static QueryData genRows(EventSubscriberPlugin* sub) {
                                               std::placeholders::_1,
                                               std::move(context)));
 
-  QueryData results;
+  TableRows results;
   if (!generator) {
     delete vtc;
     return results;

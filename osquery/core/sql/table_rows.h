@@ -10,17 +10,46 @@
 
 #pragma once
 
+#include <osquery/utils/json.h>
+
 #include "query_data.h"
+#include "table_row.h"
 
 namespace osquery {
 
-// For now TableRows is just an alias for QueryData, but as we introduce
-// type-safe generated table row classes for tables it will change to be its own
-// thing.
-using TableRows = QueryData;
+using TableRows = std::vector<TableRowHolder>;
 
 /// Converts a QueryData struct to TableRows. Intended for use only in
 /// generated code.
 TableRows tableRowsFromQueryData(QueryData&& rows);
+
+/**
+ * @brief Serialize a TableRows object into a JSON array.
+ *
+ * @param rows the TableRows to serialize.
+ * @param doc the managed JSON document.
+ * @param arr [output] the output JSON array.
+ *
+ * @return Status indicating the success or failure of the operation.
+ */
+Status serializeTableRows(const TableRows& rows,
+                          JSON& doc,
+                          rapidjson::Document& arr);
+
+/**
+ * @brief Serialize a TableRows object into a JSON string.
+ *
+ * @param rows the TableRows to serialize.
+ * @param json [output] the output JSON string.
+ *
+ * @return Status indicating the success or failure of the operation.
+ */
+Status serializeTableRowsJSON(const TableRows& rows, std::string& json);
+
+/// Inverse of serializeTableRows, convert JSON to TableRows.
+Status deserializeTableRows(const rapidjson::Value& arr, TableRows& rows);
+
+/// Inverse of serializeTableRowsJSON, convert a JSON string to TableRows.
+Status deserializeTableRowsJSON(const std::string& json, TableRows& rows);
 
 } // namespace osquery

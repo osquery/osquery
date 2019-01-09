@@ -21,4 +21,12 @@ void Plugin::setName(const std::string& name) {
   name_ = name;
 }
 
+PluginResponse tableRowsToPluginResponse(const TableRows& rows) {
+  PluginResponse result;
+  for (const auto& row : rows) {
+    result.push_back(static_cast<Row>(*row));
+  }
+  return result;
+}
+
 } // namespace osquery

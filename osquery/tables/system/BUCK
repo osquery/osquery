@@ -81,6 +81,7 @@ osquery_cxx_library(
         (
             LINUX,
             [
+                osquery_target("osquery/core/sql:sql"),
                 osquery_tp_target("libdevmapper"),
                 osquery_tp_target("libdpkg"),
                 osquery_tp_target("libelfin", "elf"),

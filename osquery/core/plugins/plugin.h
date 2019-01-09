@@ -15,6 +15,7 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/core/sql/table_rows.h>
 #include <osquery/utils/status.h>
 
 namespace osquery {
@@ -111,5 +112,8 @@ class Plugin : private boost::noncopyable {
 
 /// Helper definition for a shared pointer to a Plugin.
 using PluginRef = std::shared_ptr<Plugin>;
+
+/// Converts a TableRows object to a PluginResponse.
+PluginResponse tableRowsToPluginResponse(const TableRows& rows);
 
 } // namespace osquery

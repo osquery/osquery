@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
+#include <osquery/core/sql/dynamic_table_row.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/sql/tests/sql_test_utils.h>
@@ -50,14 +51,16 @@ class TestTablePlugin : public TablePlugin {
   TableRows generate(QueryContext& ctx) {
     TableRows results;
     if (ctx.constraints["test_int"].existsAndMatches("1")) {
-      results.push_back({{"test_int", "1"}, {"test_text", "0"}});
+      results.push_back(
+          make_table_row({{"test_int", "1"}, {"test_text", "0"}}));
     } else {
-      results.push_back({{"test_int", "0"}, {"test_text", "1"}});
+      results.push_back(
+          make_table_row({{"test_int", "0"}, {"test_text", "1"}}));
     }
 
     auto ints = ctx.constraints["test_int"].getAll<int>(EQUALS);
     for (const auto& int_match : ints) {
-      results.push_back({{"test_int", INTEGER(int_match)}});
+      results.push_back(make_table_row({{"test_int", INTEGER(int_match)}}));
     }
 
     return results;

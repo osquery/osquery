@@ -26,6 +26,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/core/sql/dynamic_table_row.h>
 #include <osquery/flags.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/hashing/hashing.h>
@@ -209,8 +210,7 @@ void genHashForFile(const std::string& path,
                     QueryData& results) {
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
-  Row r;
-
+  auto tr = TableRowHolder(new DynamicTableRow());
   MultiHashes hashes;
   if (!FLAGS_disable_hash_cache) {
     FileHashCache::load(path, hashes);
@@ -218,7 +218,7 @@ void genHashForFile(const std::string& path,
     if (context.isCached(path)) {
       // Use the inner-query cache if the global hash cache is disabled.
       // This protects against hashing the same content twice in the same query.
-      r = context.getCache(path);
+      tr = context.getCache(path);
     } else {
       hashes = hashMultiFromFile(
           HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
@@ -226,6 +226,7 @@ void genHashForFile(const std::string& path,
     }
   }
 
+  DynamicTableRow& r = *dynamic_cast<DynamicTableRow*>(tr.get());
   r["path"] = path;
   r["directory"] = dir;
   r["md5"] = std::move(hashes.md5);
@@ -237,10 +238,10 @@ void genHashForFile(const std::string& path,
   }
 
   if (FLAGS_disable_hash_cache) {
-    context.setCache(path, r);
+    context.setCache(path, tr);
   }
 
-  results.push_back(std::move(r));
+  results.push_back(static_cast<Row>(r));
 }
 
 void expandFSPathConstraints(QueryContext& context,

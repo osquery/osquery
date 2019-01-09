@@ -352,8 +352,8 @@ int xRowid(sqlite3_vtab_cursor* cur, sqlite_int64* pRowid) {
   // will only be used by extensions providing read/write tables
   const auto& current_row = *data_it;
 
-  auto rowid_it = current_row.find("rowid");
-  if (rowid_it != current_row.end()) {
+  auto rowid_it = current_row->find("rowid");
+  if (rowid_it != current_row->end()) {
     const auto& rowid_text_field = rowid_it->second;
 
     auto exp = tryTo<long long>(rowid_text_field, 10);
@@ -700,9 +700,9 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
 
   Row* row = nullptr;
   if (pCur->uses_generator) {
-    row = &pCur->current;
+    row = pCur->current.get();
   } else {
-    row = &pCur->rows[pCur->row];
+    row = pCur->rows[pCur->row].get();
   }
 
   // Attempt to cast each xFilter-populated row/column to the SQLite type.

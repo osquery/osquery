@@ -147,7 +147,8 @@ Status TablePlugin::call(const PluginRequest& request,
 
   if (action == "generate") {
     auto context = getContextFromRequest(request);
-    response = generate(context);
+    TableRows result = generate(context);
+    response = tableRowsToPluginResponse(result);
   } else if (action == "delete") {
     auto context = getContextFromRequest(request);
     response = delete_(context, request);
@@ -227,27 +228,27 @@ bool TablePlugin::isCached(size_t step, const QueryContext& ctx) const {
   return (step < last_cached_ + last_interval_ && cacheAllowed(columns(), ctx));
 }
 
-QueryData TablePlugin::getCache() const {
+TableRows TablePlugin::getCache() const {
   VLOG(1) << "Retrieving results from cache for table: " << getName();
   // Lookup results from database and deserialize.
   std::string content;
   getDatabaseValue(kQueries, "cache." + getName(), content);
-  QueryData results;
-  deserializeQueryDataJSON(content, results);
+  TableRows results;
+  deserializeTableRowsJSON(content, results);
   return results;
 }
 
 void TablePlugin::setCache(size_t step,
                            size_t interval,
                            const QueryContext& ctx,
-                           const QueryData& results) {
+                           const TableRows& results) {
   if (FLAGS_disable_caching || !cacheAllowed(columns(), ctx)) {
     return;
   }
 
   // Serialize QueryData and save to database.
   std::string content;
-  if (serializeQueryDataJSON(results, content)) {
+  if (serializeTableRowsJSON(results, content)) {
     last_cached_ = step;
     last_interval_ = interval;
     setDatabaseValue(kQueries, "cache." + getName(), content);
@@ -530,27 +531,17 @@ bool QueryContext::useCache() const {
   return use_cache_;
 }
 
-void QueryContext::setCache(const std::string& index, Row _cache) {
-  table_->cache[index] = std::move(_cache);
-}
-
 void QueryContext::setCache(const std::string& index,
-                            const std::string& key,
-                            std::string _item) {
-  table_->cache[index][key] = std::move(_item);
+                            const TableRowHolder& cache) {
+  table_->cache[index] = cache.clone();
 }
 
 bool QueryContext::isCached(const std::string& index) const {
   return (table_->cache.count(index) != 0);
 }
 
-const Row& QueryContext::getCache(const std::string& index) {
-  return table_->cache[index];
-}
-
-const std::string& QueryContext::getCache(const std::string& index,
-                                          const std::string& key) {
-  return table_->cache[index][key];
+TableRowHolder QueryContext::getCache(const std::string& index) {
+  return table_->cache[index].clone();
 }
 
 bool QueryContext::hasConstraint(const std::string& column,

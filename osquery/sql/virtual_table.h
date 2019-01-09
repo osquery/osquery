@@ -47,7 +47,7 @@ struct BaseCursor : private boost::noncopyable {
   std::unique_ptr<RowGenerator::pull_type> generator{nullptr};
 
   /// Results of current call.
-  Row current;
+  TableRowHolder current;
 
   /// Does the backing local table use a generator type.
   bool uses_generator{false};
