@@ -33,8 +33,8 @@ const char* getSystemVFS(bool respect_locking) {
   return nullptr;
 }
 
-Status genSqliteQueryRow(sqlite3_stmt* stmt,
-                         QueryData& qd,
+Status genSqliteTableRow(sqlite3_stmt* stmt,
+                         TableRows& qd,
                          const fs::path& sqlite_db) {
   Row r;
   for (int i = 0; i < sqlite3_column_count(stmt); ++i) {
@@ -69,9 +69,9 @@ Status genSqliteQueryRow(sqlite3_stmt* stmt,
   return Status();
 }
 
-Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
+Status genTableRowsForSqliteTable(const fs::path& sqlite_db,
                                   const std::string& sqlite_query,
-                                  QueryData& results,
+                                  TableRows& results,
                                   bool respect_locking) {
   sqlite3* db = nullptr;
   if (!pathExists(sqlite_db).ok()) {
@@ -101,7 +101,7 @@ Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
   }
 
   while ((sqlite3_step(stmt)) == SQLITE_ROW) {
-    auto s = genSqliteQueryRow(stmt, results, sqlite_db);
+    auto s = genSqliteTableRow(stmt, results, sqlite_db);
     if (!s.ok()) {
       break;
     }

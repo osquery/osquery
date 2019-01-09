@@ -28,8 +28,8 @@ class BenchmarkTablePlugin : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& ctx) {
-    QueryData results;
+  TableRows generate(QueryContext& ctx) {
+    TableRows results;
     results.push_back({{"test_int", "0"}});
     results.push_back({{"test_int", "0"}, {"test_text", "hello"}});
     return results;
@@ -164,8 +164,8 @@ class BenchmarkLongTablePlugin : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& ctx) {
-    QueryData results;
+  TableRows generate(QueryContext& ctx) {
+    TableRows results;
     for (size_t i = 0; i < 1000; i++) {
       results.push_back({{"test_int", "0"}, {"test_text", "hello"}});
     }
@@ -207,8 +207,8 @@ class BenchmarkWideTablePlugin : public TablePlugin {
     return cols;
   }
 
-  QueryData generate(QueryContext& ctx) override {
-    QueryData results;
+  TableRows generate(QueryContext& ctx) override {
+    TableRows results;
     for (size_t k = 0; k < kWideCount; k++) {
       Row r;
       for (size_t i = 0; i < 20; i++) {

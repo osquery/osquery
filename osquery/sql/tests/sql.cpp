@@ -47,8 +47,8 @@ class TestTablePlugin : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& ctx) {
-    QueryData results;
+  TableRows generate(QueryContext& ctx) {
+    TableRows results;
     if (ctx.constraints["test_int"].existsAndMatches("1")) {
       results.push_back({{"test_int", "1"}, {"test_text", "0"}});
     } else {

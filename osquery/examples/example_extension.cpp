@@ -36,8 +36,8 @@ class ExampleTable : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& request) {
-    QueryData results;
+  TableRows generate(QueryContext& request) {
+    TableRows results;
 
     Row r;
     r["example_text"] = "example";
@@ -70,9 +70,8 @@ class ComplexExampleTable : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& request) {
+  TableRows generate(QueryContext& request) {
     Row r;
-
     // Use the basic 'force' flag to check implicit SQL usage.
     auto flags =
         SQL("select default_value from osquery_flags where name = 'force'");

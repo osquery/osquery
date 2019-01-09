@@ -237,7 +237,7 @@ class pTablePlugin : public TablePlugin {
   }
 
  public:
-  QueryData generate(QueryContext&) override {
+  TableRows generate(QueryContext&) override {
     return {
         {{"x", "1"}, {"y", "2"}},
         {{"x", "2"}, {"y", "1"}},
@@ -258,7 +258,7 @@ class kTablePlugin : public TablePlugin {
   }
 
  public:
-  QueryData generate(QueryContext&) override {
+  TableRows generate(QueryContext&) override {
     return {
         {{"x", "1"}, {"z", "2"}},
         {{"x", "2"}, {"z", "1"}},
@@ -359,7 +359,7 @@ class jsonTablePlugin : public TablePlugin {
   }
 
  public:
-  QueryData generate(QueryContext&) override {
+  TableRows generate(QueryContext&) override {
     return {
         {{"data", "{\"test\": 1}"}},
     };
@@ -433,7 +433,7 @@ class cacheTablePlugin : public TablePlugin {
   }
 
  public:
-  QueryData generate(QueryContext& context) override {
+  TableRows generate(QueryContext& context) override {
     if (context.isCached("awesome_data")) {
       // There is cache entry for awesome data.
       return {{{"data", "more_awesome_data"}}};
@@ -486,7 +486,7 @@ class tableCacheTablePlugin : public TablePlugin {
     return TableAttributes::CACHEABLE;
   }
 
-  QueryData generate(QueryContext& ctx) override {
+  TableRows generate(QueryContext& ctx) override {
     if (isCached(60, ctx)) {
       return getCache();
     }
@@ -610,8 +610,8 @@ class likeTablePlugin : public TablePlugin {
   }
 
  public:
-  QueryData generate(QueryContext& context) override {
-    QueryData results;
+  TableRows generate(QueryContext& context) override {
+    TableRows results;
 
     // To test, we'll move all predicate constraints into the result set.
     // First we'll move constrains for the column `i` using operands =, LIKE.
@@ -718,10 +718,10 @@ class indexIOptimizedTablePlugin : public TablePlugin {
   }
 
  public:
-  QueryData generate(QueryContext& context) override {
+  TableRows generate(QueryContext& context) override {
     scans++;
 
-    QueryData results;
+    TableRows results;
     auto indexes = context.constraints["i"].getAll<int>(EQUALS);
     for (const auto& i : indexes) {
       results.push_back(
@@ -750,10 +750,10 @@ class indexJOptimizedTablePlugin : public TablePlugin {
   }
 
  public:
-  QueryData generate(QueryContext& context) override {
+  TableRows generate(QueryContext& context) override {
     scans++;
 
-    QueryData results;
+    TableRows results;
     auto indexes = context.constraints["j"].getAll<int>(EQUALS);
     for (const auto& j : indexes) {
       results.push_back({{"j", INTEGER(j)}, {"text", "none"}});
@@ -780,10 +780,10 @@ class defaultScanTablePlugin : public TablePlugin {
   }
 
  public:
-  QueryData generate(QueryContext& context) override {
+  TableRows generate(QueryContext& context) override {
     scans++;
 
-    QueryData results;
+    TableRows results;
     for (size_t i = 0; i < 10; i++) {
       results.push_back({{"i", INTEGER(i)}, {"text", "some"}});
     }
@@ -865,7 +865,7 @@ class colsUsedTablePlugin : public TablePlugin {
   }
 
  public:
-  QueryData generate(QueryContext& context) override {
+  TableRows generate(QueryContext& context) override {
     Row r;
     if (context.isColumnUsed("col1")) {
       r["col1"] = "value1";
@@ -940,7 +940,7 @@ class colsUsedBitsetTablePlugin : public TablePlugin {
   }
 
  public:
-  QueryData generate(QueryContext& context) override {
+  TableRows generate(QueryContext& context) override {
     Row r;
     if (context.isAnyColumnUsed(UsedColumnsBitset(0x1))) {
       r["col1"] = "value1";

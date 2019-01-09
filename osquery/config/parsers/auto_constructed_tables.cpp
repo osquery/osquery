@@ -24,21 +24,21 @@ namespace rj = rapidjson;
 
 namespace osquery {
 
-QueryData ATCPlugin::generate(QueryContext& context) {
-  QueryData qd;
+TableRows ATCPlugin::generate(QueryContext& context) {
+  TableRows result;
   std::vector<std::string> paths;
   auto s = resolveFilePattern(path_, paths);
   if (!s.ok()) {
     LOG(WARNING) << "Could not glob: " << path_;
   }
   for (const auto& path : paths) {
-    s = genQueryDataForSqliteTable(path, sqlite_query_, qd, false);
+    s = genTableRowsForSqliteTable(path, sqlite_query_, result, false);
     if (!s.ok()) {
       LOG(WARNING) << "Error Code: " << s.getCode()
                    << " Could not generate data: " << s.getMessage();
     }
   }
-  return qd;
+  return result;
 }
 
 /// Remove these ATC tables from the registry and database

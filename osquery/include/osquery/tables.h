@@ -23,8 +23,9 @@
 #include <boost/optional.hpp>
 #include <sqlite3.h>
 
-#include <osquery/core/sql/column.h>
 #include <osquery/core.h>
+#include <osquery/core/sql/column.h>
+#include <osquery/core/sql/table_rows.h>
 #include <osquery/plugins/plugin.h>
 #include <osquery/query.h>
 
@@ -129,7 +130,6 @@ inline std::string __sqliteField(const std::string& source) noexcept {
 #define UNSIGNED_BIGINT_LITERAL uint64_t
 /// See the literal type documentation for TEXT_LITERAL.
 #define DOUBLE_LITERAL double
-
 
 /**
  * @brief A ConstraintOperator is applied in an query predicate.
@@ -740,9 +740,9 @@ class TablePlugin : public Plugin {
    * @param context A query context filled in by SQLite's virtual table API.
    * @return The result rows for this table, given the query context.
    */
-  virtual QueryData generate(QueryContext& context) {
+  virtual TableRows generate(QueryContext& context) {
     (void)context;
-    return QueryData();
+    return TableRows();
   }
 
   /// Callback for DELETE statements
@@ -843,7 +843,7 @@ class TablePlugin : public Plugin {
    *
    * @return The deserialized row data of cached results.
    */
-  QueryData getCache() const;
+  TableRows getCache() const;
 
   /**
    * @brief Similar to getCache, stores the results from generate.
@@ -855,7 +855,7 @@ class TablePlugin : public Plugin {
   void setCache(size_t step,
                 size_t interval,
                 const QueryContext& ctx,
-                const QueryData& results);
+                const TableRows& results);
 
  private:
   /// The last time in seconds the table data results were saved to cache.

@@ -71,6 +71,6 @@ extern const size_t kExpectedExtensionArgsCount;
 ScheduledQuery getOsqueryScheduledQuery();
 
 // Helper function to generate all rows from a generator-based table.
-QueryData genRows(EventSubscriberPlugin* sub);
+TableRows genRows(EventSubscriberPlugin* sub);
 
 } // namespace osquery

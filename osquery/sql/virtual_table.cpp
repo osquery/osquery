@@ -343,8 +343,8 @@ int xRowid(sqlite3_vtab_cursor* cur, sqlite_int64* pRowid) {
   *pRowid = 0;
 
   const BaseCursor* pCur = (BaseCursor*)cur;
-  auto data_it = std::next(pCur->data.begin(), pCur->row);
-  if (data_it >= pCur->data.end()) {
+  auto data_it = std::next(pCur->rows.begin(), pCur->row);
+  if (data_it >= pCur->rows.end()) {
     return SQLITE_ERROR;
   }
 
@@ -683,7 +683,7 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
     // Requested column index greater than column set size.
     return SQLITE_ERROR;
   }
-  if (!pCur->uses_generator && pCur->row >= pCur->data.size()) {
+  if (!pCur->uses_generator && pCur->row >= pCur->rows.size()) {
     // Request row index greater than row set size.
     return SQLITE_ERROR;
   }
@@ -702,7 +702,7 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
   if (pCur->uses_generator) {
     row = &pCur->current;
   } else {
-    row = &pCur->data[pCur->row];
+    row = &pCur->rows[pCur->row];
   }
 
   // Attempt to cast each xFilter-populated row/column to the SQLite type.
@@ -1016,7 +1016,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   }
 
   // Reset the virtual table contents.
-  pCur->data.clear();
+  pCur->rows.clear();
   options.clear();
 
   // Generate the row data set.
@@ -1036,15 +1036,17 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
       }
       return SQLITE_OK;
     }
-    pCur->data = table->generate(context);
+    pCur->rows = table->generate(context);
   } else {
     PluginRequest request = {{"action", "generate"}};
     TablePlugin::setRequestFromContext(context, request);
-    Registry::call("table", pVtab->content->name, request, pCur->data);
+    QueryData qd;
+    Registry::call("table", pVtab->content->name, request, qd);
+    pCur->rows = tableRowsFromQueryData(std::move(qd));
   }
 
   // Set the number of rows.
-  pCur->n = pCur->data.size();
+  pCur->n = pCur->rows.size();
   return SQLITE_OK;
 }
 
