@@ -14,15 +14,22 @@
 #include <string>
 #include <vector>
 
+#include <boost/variant.hpp>
+
 #include <osquery/utils/status.h>
 #include <osquery/utils/json.h>
 
 namespace osquery {
 
 /**
- * @brief A variant type for the SQLite type affinities.
+ * @brief Alias for string.
  */
 using RowData = std::string;
+
+/**
+ * @brief A variant type for the SQLite type affinities.
+ */
+using RowDataTyped = boost::variant<int64_t, double, std::string>;
 
 /**
  * @brief A single row from a database query
@@ -31,6 +38,14 @@ using RowData = std::string;
  * the Row's respective value
  */
 using Row = std::map<std::string, RowData>;
+
+/**
+ * @brief A single typed row from a database query
+ *
+ * RowTyped is a simple map where individual column names are keys, which map to
+ * the Row's respective type-variant value
+ */
+using RowTyped = std::map<std::string, RowDataTyped>;
 
 /**
  * @brief A vector of column names associated with a query

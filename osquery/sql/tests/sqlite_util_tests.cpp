@@ -97,22 +97,22 @@ TEST_F(SQLiteUtilTests, test_direct_query_execution) {
   EXPECT_EQ(results, getTestDBExpectedResults());
 }
 
-TEST_F(SQLiteUtilTests, test_passing_callback_no_data_param) {
-  char* err = nullptr;
-  auto dbc = getTestDBC();
-  sqlite3_exec(dbc->db(), kTestQuery.c_str(), queryDataCallback, nullptr, &err);
-  EXPECT_TRUE(err != nullptr);
-  if (err != nullptr) {
-    sqlite3_free(err);
-  }
-}
-
 TEST_F(SQLiteUtilTests, test_aggregate_query) {
   auto dbc = getTestDBC();
   QueryData results;
   auto status = queryInternal(kTestQuery, results, dbc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results, getTestDBExpectedResults());
+}
+
+TEST_F(SQLiteUtilTests, test_no_results_query) {
+  auto dbc = getTestDBC();
+  QueryData results;
+  auto status = queryInternal(
+      "select * from test_table where username=\"A_NON_EXISTENT_NAME\"",
+      results,
+      dbc);
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
@@ -148,14 +148,14 @@ TEST_F(SQLiteUtilTests, test_table_attributes_event_based) {
   {
     SQLInternal sql_internal("select * from process_events");
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-      EXPECT_TRUE(sql_internal.ok());
+      EXPECT_TRUE(sql_internal.getStatus().ok());
       EXPECT_TRUE(sql_internal.eventBased());
     }
   }
 
   {
     SQLInternal sql_internal("select * from time");
-    EXPECT_TRUE(sql_internal.ok());
+    EXPECT_TRUE(sql_internal.getStatus().ok());
     EXPECT_FALSE(sql_internal.eventBased());
   }
 }
@@ -285,5 +285,66 @@ TEST_F(SQLiteUtilTests, test_query_planner) {
   query = "select CAST(seconds AS BLOB) FROM time";
   getQueryColumnsInternal(query, columns, dbc);
   EXPECT_EQ(getTypes(columns), TypeList({BLOB_TYPE}));
+}
+
+using TypeMap = std::map<std::string, ColumnType>;
+
+// Using ColumnType enum just labeling in test_column_type_determination)
+class type_picker_visitor : public boost::static_visitor<ColumnType> {
+ public:
+  ColumnType operator()(const int64_t& i) const {
+    return INTEGER_TYPE;
+  }
+
+  ColumnType operator()(const std::string& str) const {
+    return TEXT_TYPE;
+  }
+
+  ColumnType operator()(const double& d) const {
+    return DOUBLE_TYPE;
+  }
+};
+
+void testTypesExpected(std::string query, TypeMap expectedTypes) {
+  auto dbc = getTestDBC();
+  QueryDataTyped typedResults;
+  queryInternal(query, typedResults, dbc);
+  for (const auto& row : typedResults) {
+    for (const auto& col : row) {
+      if (expectedTypes.count(col.first)) {
+        EXPECT_EQ(boost::apply_visitor(type_picker_visitor(), col.second),
+                  expectedTypes[col.first])
+            << " These are the integer values of actual/expected ColumnType "
+               "(resp) of "
+            << col.first << " for query: " << query;
+      } else {
+        FAIL() << "Found no expected type for " << col.first
+               << " in test of column types for query " << query;
+      }
+    }
+  }
+}
+
+TEST_F(SQLiteUtilTests, test_column_type_determination) {
+  // Correct identification of text and ints
+  testTypesExpected("select path, inode from file where path like '%'",
+                    TypeMap({{"path", TEXT_TYPE}, {"inode", INTEGER_TYPE}}));
+  // Correctly treating BLOBs as text
+  testTypesExpected("select CAST(seconds AS BLOB) as seconds FROM time",
+                    TypeMap({{"seconds", TEXT_TYPE}}));
+  // Correctly treating ints cast as double as doubles
+  testTypesExpected("select CAST(seconds AS DOUBLE) as seconds FROM time",
+                    TypeMap({{"seconds", DOUBLE_TYPE}}));
+  // Correctly treating bools as ints
+  testTypesExpected("select CAST(seconds AS BOOLEAN) as seconds FROM time",
+                    TypeMap({{"seconds", INTEGER_TYPE}}));
+  // Correctly recognizing values from columns declared double as double, even
+  // if they happen to have integer value.  And also test multi-statement
+  // queries.
+  testTypesExpected(
+      "CREATE TABLE test_types_table (username varchar(30) primary key, age "
+      "double);INSERT INTO test_types_table VALUES (\"mike\", 23); SELECT age "
+      "from test_types_table",
+      TypeMap({{"age", DOUBLE_TYPE}}));
 }
 } // namespace osquery

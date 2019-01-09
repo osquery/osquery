@@ -26,6 +26,14 @@ namespace osquery {
 using QueryData = std::vector<Row>;
 
 /**
+ * @brief The typed result set returned from a osquery SQL query
+ *
+ * QueryDataTyped is the canonical way to represent the typed results of SQL
+ * queries in osquery. It's just a vector of RowTypeds.
+ */
+using QueryDataTyped = std::vector<RowTyped>;
+
+/**
  * @brief Set representation result returned from a osquery SQL query
  *
  * QueryDataSet -  It's set of Rows for fast search of a specific row.
