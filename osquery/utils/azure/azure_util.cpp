@@ -13,22 +13,61 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 
-#include "osquery/remote/http_client.h"
-#include "osquery/utils/azure_util.h"
+#include <osquery/remote/http_client.h>
+#include <osquery/utils/azure/azure_util.h>
+#include <osquery/filesystem/filesystem.h>
 
 namespace pt = boost::property_tree;
 namespace http = osquery::http;
+namespace fs = boost::filesystem;
 
 namespace osquery {
+
+static bool isAzureInstance() {
+  static std::atomic<bool> checked(false);
+  static std::atomic<bool> is_azure_instance(false);
+
+  if (checked) {
+    return is_azure_instance;
+  }
+
+  static std::once_flag once_flag;
+  std::call_once(once_flag, []() {
+    if (checked) {
+      return;
+    }
+
+    checked = true;
+
+#ifdef WINDOWS
+    TLOG << "isAzureInstance(): NYI for Windows";
+    is_azure_instance = false;
+#elif POSIX
+    is_azure_instance = pathExists(fs::path("/var/log/waagent.log")).ok();
+#else
+    TLOG << "isAzureInstance(): unsupported platform: " << OSQUERY_BUILD_PLATFORM;
+    is_azure_instance = false;
+#endif
+  });
+
+  return is_azure_instance;
+}
 
 std::string tree_get(pt::ptree& tree, const std::string key) {
   return tree.get<std::string>(key, "");
 }
 
 Status fetchAzureMetadata(pt::ptree& tree) {
-  http::Client client;
+  if (!isAzureInstance()) {
+    return Status(1, "Not an Azure instance");
+  }
+
   http::Request request(kAzureMetadataEndpoint);
+  http::Client::Options opts;
   http::Response response;
+
+  opts.timeout(kAzureMetadataTimeout);
+  http::Client client(opts);
 
   // NOTE(ww): Unlike EC2, Azure doesn't host only POSIX systems.
   // As such, we don't have a good platform independent way
