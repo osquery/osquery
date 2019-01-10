@@ -13,9 +13,9 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/remote/http_client.h>
 #include <osquery/utils/azure/azure_util.h>
-#include <osquery/filesystem/filesystem.h>
 
 namespace pt = boost::property_tree;
 namespace http = osquery::http;
