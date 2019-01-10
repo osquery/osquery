@@ -8,10 +8,10 @@
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/tables.h>
 #include <osquery/tables/system/darwin/firewall.h>
 #include <osquery/utils/darwin/plist.h>
-#include <osquery/sql.h>
 
 namespace pt = boost::property_tree;
 
@@ -157,5 +157,5 @@ QueryData genALFServices(QueryContext& context) {
   }
   return parseALFServicesTree(tree);
 }
-}
-}
+} // namespace tables
+} // namespace osquery
