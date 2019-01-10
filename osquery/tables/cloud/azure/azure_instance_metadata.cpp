@@ -14,7 +14,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/utils/azure_util.h"
+#include "osquery/utils/azure/azure_util.h"
 
 namespace osquery {
 namespace tables {
