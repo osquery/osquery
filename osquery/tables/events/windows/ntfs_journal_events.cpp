@@ -329,7 +329,8 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
     ::CloseHandle(file_hnd);
 
     USNFileReferenceNumber frn = 0;
-    frn = (long long) (file_id_info.nFileIndexHigh << 32) | file_id_info.nFileIndexLow;
+    frn = (long long)(file_id_info.nFileIndexHigh << 32) |
+          file_id_info.nFileIndexLow;
     frn_set.insert(frn);
   }
 

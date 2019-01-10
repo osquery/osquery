@@ -808,21 +808,22 @@ std::ostream& operator<<(std::ostream& stream,
   stream << "0x";
 
   switch (native_file_id.Type) {
-    case FileIdType: {
-      stream << std::hex << std::setfill('0') << std::setw(16) << native_file_id.FileId.QuadPart;
-      break;
+  case FileIdType: {
+    stream << std::hex << std::setfill('0') << std::setw(16)
+           << native_file_id.FileId.QuadPart;
+    break;
+  }
+  default: {
+    const auto& object_id = native_file_id.ObjectId;
+    stream << std::hex << std::setfill('0');
+    stream << std::setw(8) << object_id.Data1;
+    stream << std::setw(4) << object_id.Data2;
+    stream << std::setw(4) << object_id.Data3;
+    for (int i = 0; i < 8; ++i) {
+      stream << std::setw(2) << object_id.Data4[i];
     }
-    default: {
-      const auto& object_id = native_file_id.ObjectId;
-      stream << std::hex << std::setfill('0');
-      stream << std::setw(8) << object_id.Data1;
-      stream << std::setw(4) << object_id.Data2;
-      stream << std::setw(4) << object_id.Data3;
-      for (int i = 0; i < 8; ++i) {
-        stream << std::setw(2) << object_id.Data4[i];
-      }
-      break;
-    }
+    break;
+  }
   }
 
   stream.flags(original_stream_settings);

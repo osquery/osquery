@@ -15,12 +15,12 @@
 
 #include <boost/functional/hash.hpp>
 
-#include <osquery/utils/system/filepath.h>
 #include <osquery/config/config.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
+#include <osquery/utils/system/filepath.h>
 
 #include "osquery/events/windows/ntfs_event_publisher.h"
 
