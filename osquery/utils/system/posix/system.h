@@ -15,6 +15,7 @@
 #include <string>
 
 #include <boost/filesystem/path.hpp>
+#include <boost/core/noncopyable.hpp>
 #include <gtest/gtest_prod.h>
 #include <osquery/utils/info/tool_type.h>
 
