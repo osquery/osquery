@@ -21,16 +21,16 @@
 namespace osquery {
 namespace tables {
 
-void genProcUniquePid(QueryContext& context, int pid, processesRow& r);
-void genProcArch(QueryContext& context, int pid, processesRow& r);
+void genProcUniquePid(QueryContext& context, int pid, ProcessesRow& r);
+void genProcArch(QueryContext& context, int pid, ProcessesRow& r);
 
 class DarwinProcessesTests : public testing::Test {};
 
 TEST_F(DarwinProcessesTests, test_unique_pid) {
-  processesRow r;
+  ProcessesRow r;
   QueryContext ctx;
   ctx.colsUsed = UsedColumns({"upid"});
-  ctx.colsUsedBitset = processesRow::UPID;
+  ctx.colsUsedBitset = ProcessesRow::UPID;
   genProcUniquePid(ctx, 1, r);
   EXPECT_NE(r.upid_col, -1);
   EXPECT_NE(r.uppid_col, -1);
@@ -40,10 +40,10 @@ TEST_F(DarwinProcessesTests, test_process_arch) {
   if (getuid() != 0 || getgid() != 0) {
     return;
   }
-  processesRow r;
+  ProcessesRow r;
   QueryContext ctx;
   ctx.colsUsed = UsedColumns({"cpu_type"});
-  ctx.colsUsedBitset = processesRow::CPU_TYPE;
+  ctx.colsUsedBitset = ProcessesRow::CPU_TYPE;
   genProcArch(ctx, 1, r);
   EXPECT_NE(r.cpu_type_col, -1);
   EXPECT_NE(r.cpu_subtype_col, -1);
