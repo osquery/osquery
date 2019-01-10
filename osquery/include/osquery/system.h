@@ -14,7 +14,7 @@
 #include <mutex>
 #include <string>
 
-#include <boost/noncopyable.hpp>
+#include <boost/core/noncopyable.hpp>
 
 #include <osquery/core.h>
 #include <osquery/utils/mutex.h>
