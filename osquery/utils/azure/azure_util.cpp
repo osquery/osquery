@@ -40,8 +40,7 @@ static bool isAzureInstance() {
     checked = true;
 
 #ifdef WINDOWS
-    TLOG << "isAzureInstance(): NYI for Windows";
-    is_azure_instance = false;
+    is_azure_instance = pathExists(fs::path("C:\\WindowsAzure")).ok();
 #elif POSIX
     is_azure_instance = pathExists(fs::path("/var/log/waagent.log")).ok();
 #else
