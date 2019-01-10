@@ -9,7 +9,7 @@ static std::string kEnvironmentKey =
     "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session "
     "Manager\\Environment";
 
-QueryData genEnvironment(QueryContext& context) {
+QueryData genDefaultEnvironment(QueryContext& context) {
   QueryData results;
   auto environment =
       SQL::selectAllFrom("registry", "key", EQUALS, kEnvironmentKey);

@@ -5,4 +5,4 @@ schema([
     Column("value", TEXT, "Value of the environment variable"),
     Column("expand", INTEGER, "1 if the variable needs expanding, 0 otherwise"),
 ])
-implementation("system/windows/environment@genEnvironment")
+implementation("system/windows/default_environment@genDefaultEnvironment")
