@@ -68,14 +68,6 @@ Status fetchAzureMetadata(pt::ptree& tree) {
   opts.timeout(kAzureMetadataTimeout);
   http::Client client(opts);
 
-  // NOTE(ww): Unlike EC2, Azure doesn't host only POSIX systems.
-  // As such, we don't have a good platform independent way
-  // to confirm whether the system we're on is, in fact,
-  // an Azure instance.
-  // Some ideas:
-  // * Test for waagent and/or /var/log/waagent.log (Linux)
-  // * Check for DHCP option 245 (Universal, but tedious)
-
   request << http::Request::Header("Metadata", "true");
 
   try {
