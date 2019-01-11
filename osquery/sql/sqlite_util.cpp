@@ -486,6 +486,11 @@ Status queryInternal(const std::string& query,
 Status readRows(sqlite3_stmt* prepared_statement,
                 QueryDataTyped& results,
                 const SQLiteDBInstanceRef& instance) {
+  // Do nothing with a null prepared_statement (eg, if the sql was just
+  // whitespace)
+  if (prepared_statement == nullptr) {
+    return Status::success();
+  }
   int rc = sqlite3_step(prepared_statement);
   /* if we have a result set row... */
   if (SQLITE_ROW == rc) {

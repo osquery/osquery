@@ -115,6 +115,20 @@ TEST_F(SQLiteUtilTests, test_no_results_query) {
   EXPECT_TRUE(status.ok());
 }
 
+TEST_F(SQLiteUtilTests, test_whitespace_query) {
+  auto dbc = getTestDBC();
+  QueryData results;
+  auto status = queryInternal("     ", results, dbc);
+  EXPECT_TRUE(status.ok());
+}
+
+TEST_F(SQLiteUtilTests, test_whitespace_then_nonwhitespace_query) {
+  auto dbc = getTestDBC();
+  QueryData results;
+  auto status = queryInternal("     ; select * from time  ", results, dbc);
+  EXPECT_TRUE(status.ok());
+}
+
 TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
   auto dbc = getTestDBC();
   auto results = getTestDBResultStream();
