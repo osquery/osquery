@@ -39,7 +39,7 @@ void genAccountPolicyDataRow(const std::string& uid, Row& r) {
                    attribute:kODAttributeTypeUniqueID
                    matchType:kODMatchEqualTo
                  queryValues:[NSString stringWithFormat:@"%s", uid.c_str()]
-            returnAttributes:@"dsAttrTypeNative:accountPolicyData"
+            returnAttributes:@[@"dsAttrTypeNative:accountPolicyData",@"dsAttrTypeNative:IsHidden"]
               maximumResults:0
                        error:&err];
   if (err != nullptr) {
@@ -57,6 +57,7 @@ void genAccountPolicyDataRow(const std::string& uid, Row& r) {
   }
 
   pt::ptree tree;
+  std::string isHidden = "0";
 
   for (ODRecord* re in od_results) {
     NSError* attrErr = nullptr;
@@ -87,13 +88,20 @@ void genAccountPolicyDataRow(const std::string& uid, Row& r) {
       TLOG << "Error parsing Account Policy data plist";
       return;
     }
-  }
+      auto isHiddenValue = [re valuesForAttribute:@"dsAttrTypeNative:IsHidden" error:&attrErr];
+      if(isHiddenValue.count >= 1){
+       isHidden = std::string([isHiddenValue[0] UTF8String]);
+      } else {
+       isHidden = "0";
+}
+}
 
   r["uid"] = BIGINT(uid);
   r["creation_time"] = DOUBLE(tree.get("creationTime", ""));
   r["failed_login_count"] = BIGINT(tree.get("failedLoginCount", ""));
   r["failed_login_timestamp"] = DOUBLE(tree.get("failedLoginTimestamp", ""));
   r["password_last_set_time"] = DOUBLE(tree.get("passwordLastSetTime", ""));
+  r["is_hidden"] = INTEGER(isHidden);
 }
 
 QueryData genAccountPolicyData(QueryContext& context) {

@@ -6,6 +6,7 @@ schema([
     Column("failed_login_count", BIGINT, "The number of times the user failed to login with the correct password. Resets after a correct password is entered"),
     Column("failed_login_timestamp", DOUBLE, "The time of the last failed login attempt. Resets after a correct password is entered"),
     Column("password_last_set_time", DOUBLE, "The time the password was last changed"),
+    Column("is_hidden", INTEGER, "IsHidden attribute set "),
     ForeignKey(column="uid", table="users"),
 ])
 implementation("account_policy_data@genAccountPolicyData")
