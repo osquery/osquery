@@ -25,31 +25,21 @@ class cpuInfo : public testing::Test {
 };
 
 TEST_F(cpuInfo, test_sanity) {
-  // 1. Query data
-  auto const data = execute_query("select * from cpu_info");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"device_id", NormalType}
-  //      {"model", NormalType}
-  //      {"manufacturer", NormalType}
-  //      {"processor_type", NormalType}
-  //      {"availability", NormalType}
-  //      {"cpu_status", IntType}
-  //      {"number_of_cores", NormalType}
-  //      {"logical_processors", IntType}
-  //      {"address_width", NormalType}
-  //      {"current_clock_speed", IntType}
-  //      {"max_clock_speed", IntType}
-  //      {"socket_designation", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  const QueryData data = execute_query("select * from cpu_info");
+  ASSERT_EQ(data.size(), 1ul);
+  ValidatatioMap row_map = {{"device_id", NormalType},
+                            {"model", NormalType},
+                            {"manufacturer", NormalType},
+                            {"processor_type", NonNegativeOrErrorInt},
+                            {"availability", NonNegativeOrErrorInt},
+                            {"cpu_status", NonNegativeOrErrorInt},
+                            {"number_of_cores", NonNegativeOrErrorInt},
+                            {"logical_processors", NonNegativeOrErrorInt},
+                            {"address_width", NonNegativeOrErrorInt},
+                            {"current_clock_speed", NonNegativeOrErrorInt},
+                            {"max_clock_speed", NonNegativeOrErrorInt},
+                            {"socket_designation", NormalType}};
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
