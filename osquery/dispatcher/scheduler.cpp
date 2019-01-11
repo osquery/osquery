@@ -80,17 +80,8 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
                             EQUALS,
                             pid);
   if (r0.size() > 0 && r1.size() > 0) {
-    // Calculate a size as the expected byte output of results.
-    // This does not dedup result differentials and is not aware of snapshots.
-    size_t size = 0;
-    for (const auto& row : sql.rows()) {
-      for (const auto& column : row) {
-        size += column.first.size();
-        size += column.second.size();
-      }
-    }
     // Always called while processes table is working.
-    Config::get().recordQueryPerformance(name, t1 - t0, size, r0[0], r1[0]);
+    Config::get().recordQueryPerformance(name, t1 - t0, r0[0], r1[0]);
   }
   return sql;
 }

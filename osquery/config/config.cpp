@@ -912,7 +912,6 @@ void ConfigParserPlugin::reset() {
 
 void Config::recordQueryPerformance(const std::string& name,
                                     size_t delay,
-                                    size_t size,
                                     const Row& r0,
                                     const Row& r1) {
   RecursiveLock lock(config_performance_mutex_);
@@ -952,7 +951,6 @@ void Config::recordQueryPerformance(const std::string& name,
   }
 
   query.wall_time += delay;
-  query.output_size += size;
   query.executions += 1;
   query.last_executed = getUnixTime();
 

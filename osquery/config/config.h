@@ -93,7 +93,6 @@ class Config : private boost::noncopyable {
    */
   void recordQueryPerformance(const std::string& name,
                               size_t delay,
-                              size_t size,
                               const Row& r0,
                               const Row& r1);
 
