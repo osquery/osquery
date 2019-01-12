@@ -9,12 +9,12 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/utils/darwin/plist.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/tables.h>
 #include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/darwin/plist.h>
 
 #import <OpenDirectory/OpenDirectory.h>
 
@@ -39,7 +39,10 @@ void genAccountPolicyDataRow(const std::string& uid, Row& r) {
                    attribute:kODAttributeTypeUniqueID
                    matchType:kODMatchEqualTo
                  queryValues:[NSString stringWithFormat:@"%s", uid.c_str()]
-            returnAttributes:@[@"dsAttrTypeNative:accountPolicyData",@"dsAttrTypeNative:IsHidden"]
+            returnAttributes:@[
+              @"dsAttrTypeNative:accountPolicyData",
+              @"dsAttrTypeNative:IsHidden"
+            ]
               maximumResults:0
                        error:&err];
   if (err != nullptr) {
@@ -88,13 +91,14 @@ void genAccountPolicyDataRow(const std::string& uid, Row& r) {
       TLOG << "Error parsing Account Policy data plist";
       return;
     }
-      auto isHiddenValue = [re valuesForAttribute:@"dsAttrTypeNative:IsHidden" error:&attrErr];
-      if(isHiddenValue.count >= 1){
-       isHidden = std::string([isHiddenValue[0] UTF8String]);
-      } else {
-       isHidden = "0";
-}
-}
+    auto isHiddenValue = [re valuesForAttribute:@"dsAttrTypeNative:IsHidden"
+                                          error:&attrErr];
+    if (isHiddenValue.count >= 1) {
+      isHidden = std::string([isHiddenValue[0] UTF8String]);
+    } else {
+      isHidden = "0";
+    }
+  }
 
   r["uid"] = BIGINT(uid);
   r["creation_time"] = DOUBLE(tree.get("creationTime", ""));
