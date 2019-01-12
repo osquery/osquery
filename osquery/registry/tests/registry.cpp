@@ -141,7 +141,7 @@ TEST_F(RegistryTests, test_auto_registries) {
   EXPECT_EQ(TestCoreRegistry::get().count("dog"), 1U);
 }
 
-TEST_F(RegistryTests, test_persistant_registries) {
+TEST_F(RegistryTests, test_persistent_registries) {
   EXPECT_EQ(TestCoreRegistry::get().count("cat"), 1U);
 }
 

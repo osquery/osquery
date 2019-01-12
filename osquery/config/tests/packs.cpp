@@ -162,21 +162,21 @@ TEST_F(PacksTests, test_discovery_cache) {
   // This pack and discovery query are valid, expect the SQL to execute.
   c.addPack("valid_discovery_pack", "", getPackWithValidDiscovery().doc());
   size_t query_count = 0U;
-  size_t query_attemts = 5U;
-  for (size_t i = 0; i < query_attemts; i++) {
+  size_t query_attempts = 5U;
+  for (size_t i = 0; i < query_attempts; i++) {
     c.scheduledQueries(
         ([&query_count](std::string name, const ScheduledQuery& query) {
           query_count++;
         }));
   }
-  EXPECT_EQ(query_count, query_attemts);
+  EXPECT_EQ(query_count, query_attempts);
 
   size_t pack_count = 0U;
-  c.packs(([&pack_count, query_attemts](const Pack& p) {
+  c.packs(([&pack_count, query_attempts](const Pack& p) {
     pack_count++;
     // There is one pack without a discovery query.
-    EXPECT_EQ(p.getStats().total, query_attemts + 1);
-    EXPECT_EQ(p.getStats().hits, query_attemts);
+    EXPECT_EQ(p.getStats().total, query_attempts + 1);
+    EXPECT_EQ(p.getStats().hits, query_attempts);
     EXPECT_EQ(p.getStats().misses, 1U);
   }));
 

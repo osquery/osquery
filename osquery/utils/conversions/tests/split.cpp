@@ -46,7 +46,7 @@ TEST_F(ConversionsTests, test_split) {
   }
 }
 
-TEST_F(ConversionsTests, test_split_occurences) {
+TEST_F(ConversionsTests, test_split_occurrences) {
   std::string content = "T: 'S:S'";
   std::vector<std::string> expected = {
       "T", "'S:S'",
