@@ -79,7 +79,7 @@ Status SyslogEventPublisher::setUp() {
   }
 
   // Try to acquire a lock on the pipe, to make sure we're the only osquery
-  // related proccess reading from it.
+  // related process reading from it.
   s = lockPipe(FLAGS_syslog_pipe_path);
   if (!s.ok()) {
     return s;

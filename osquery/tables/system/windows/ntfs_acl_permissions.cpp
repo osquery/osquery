@@ -63,7 +63,7 @@ static const std::unordered_map<unsigned long, std::string> kInheritanceToStr =
      {INHERIT_ONLY, "Inherit Only"},
      {OBJECT_INHERIT_ACE, "Object Inherit Ace"},
      {SUB_CONTAINERS_AND_OBJECTS_INHERIT, "Sub containers and Objects Inherit"},
-     {NO_INHERITANCE, "No Inheritence"}};
+     {NO_INHERITANCE, "No Inheritance"}};
 
 // helper function to build access string from permission bit mask
 std::string accessPermsToStr(const unsigned long pmask) {

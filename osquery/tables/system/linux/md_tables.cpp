@@ -447,7 +447,7 @@ void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
     n = 1;
 
   } else {
-    LOG(WARNING) << "mdstat Personalites not found at line 0: " << lines[0];
+    LOG(WARNING) << "mdstat Personalities not found at line 0: " << lines[0];
   }
 
   while (n < lines.size()) {

@@ -81,7 +81,7 @@ Status KillswitchPlugin::call(const PluginRequest& request,
       return Status::failure(result.getError().getFullMessageRecursive());
     }
   }
-  return Status(1, "Could not find appropirate action mapping");
+  return Status(1, "Could not find appropriate action mapping");
 }
 
 void KillswitchPlugin::setCache(

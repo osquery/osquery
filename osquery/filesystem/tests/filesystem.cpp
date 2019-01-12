@@ -381,7 +381,7 @@ TEST_F(FilesystemTests, test_wildcard_all_types) {
 
 TEST_F(FilesystemTests, test_wildcard_invalid_path) {
   std::vector<std::string> results;
-  auto status = resolveFilePattern("/not_ther_abcdefz/%%", results);
+  auto status = resolveFilePattern("/not_there_abcdefz/%%", results);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 0U);
 }

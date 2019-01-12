@@ -10,7 +10,7 @@ schema([
     Column("platform_info", BIGINT, "Platform information."),
     Column("perf_ctl", BIGINT, "Performance setting for the processor."),
     Column("perf_status", BIGINT, "Performance status for the processor."),
-    Column("feature_control", BIGINT, "Bitfield controling enabled features."),
+    Column("feature_control", BIGINT, "Bitfield controlling enabled features."),
     Column("rapl_power_limit", BIGINT,
       "Run Time Average Power Limiting power limit."),
     Column("rapl_energy_status", BIGINT,

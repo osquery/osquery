@@ -90,7 +90,7 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retreive the source
+# Retrieve the source
 $zipFile = Join-Path $(Get-Location) "$packageName-$version.zip"
 if (-not (Test-Path $zipFile)) {
   Invoke-WebRequest $url -OutFile "$zipFile"

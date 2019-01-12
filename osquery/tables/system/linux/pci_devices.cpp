@@ -353,7 +353,7 @@ QueryData genPCIDevices(QueryContext& context) {
       r["model_id"] = "0";
     }
 
-    // TODO: extract to seperate function
+    // TODO: extract to separate function
     auto pci_class_id = UdevEventPublisher::getValue(device.get(), kPCIClassID);
     auto id_len = pci_class_id.length();
     switch (id_len) {

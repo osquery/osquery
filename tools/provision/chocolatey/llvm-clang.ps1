@@ -50,7 +50,7 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retreive the source
+# Retrieve the source
 if (-not (Test-Path "$packageName-$version.exe")) {
   Invoke-WebRequest $url -OutFile "$packageName-$version.exe"
   if ($(Get-FileHash -Algorithm sha256 "$packageName-$version.exe").Hash -ne `

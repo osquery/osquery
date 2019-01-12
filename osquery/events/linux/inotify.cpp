@@ -252,7 +252,7 @@ Status INotifyEventPublisher::run() {
     // Cast the inotify struct, make shared pointer, and append to contexts.
     auto event = reinterpret_cast<struct inotify_event*>(p);
     if (event->mask & IN_Q_OVERFLOW) {
-      // The inotify queue was overflown (try to recieve more events from OS).
+      // The inotify queue was overflown (try to receive more events from OS).
       handleOverflow();
     } else if (event->mask & IN_IGNORED) {
       // This inotify watch was removed.

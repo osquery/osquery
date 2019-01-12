@@ -396,7 +396,7 @@ class RecursiveLoggerPlugin : public LoggerPlugin {
   Status logStatus(const std::vector<StatusLogLine>& log) override {
     for (const auto& item : log) {
       if (item.message == "recurse") {
-        LOG(WARNING) << "Logging a status withing a status logger";
+        LOG(WARNING) << "Logging a status within a status logger";
       }
       statuses++;
     }

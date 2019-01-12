@@ -59,7 +59,7 @@ class PortagePackage : boost::noncopyable {
  * @brief split a package string with version into package name and package
  * version.
  *
- * we need to split a package stiring which includes the version it affects into
+ * we need to split a package stirring which includes the version it affects into
  * a pair of package name (first) and package version (second).
  */
 std::pair<std::string, std::string> portageSplitPackageVersion(
@@ -280,7 +280,7 @@ QueryData parsePortageUseContent(const std::vector<std::string>& pkg_paths) {
   return results;
 }
 
-/* Functions refered from tables */
+/* Functions referred from tables */
 QueryData portagePackages(QueryContext& context) {
   std::string content_use;
   std::vector<std::string> pkg_paths;

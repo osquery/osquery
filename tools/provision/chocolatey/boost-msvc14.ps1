@@ -57,7 +57,7 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retreive the source only if it doesn't already exist
+# Retrieve the source only if it doesn't already exist
 if (-not (Test-Path "boost-$version.7z")) {
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
   Invoke-WebRequest `

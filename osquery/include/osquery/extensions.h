@@ -26,7 +26,7 @@ DECLARE_bool(disable_extensions);
 extern const size_t kExtensionInitializeLatency;
 
 /**
- * @brief Helper struct for managing extenion metadata.
+ * @brief Helper struct for managing extension metadata.
  *
  * This structure should match the members of Thrift's InternalExtensionInfo.
  */
@@ -113,13 +113,13 @@ Status loadExtensions(const std::string& loadfile);
 void loadModules();
 
 /**
- * @brief Load extenion modules from a delimited search path string.
+ * @brief Load extension modules from a delimited search path string.
  *
  * @param loadfile Path to file containing newline delimited file paths
  */
 Status loadModules(const std::string& loadfile);
 
-/// Load all modules in a direcotry.
+/// Load all modules in a directory.
 Status loadModuleFile(const std::string& path);
 
 /**

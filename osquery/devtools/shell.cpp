@@ -243,7 +243,7 @@ static char continuePrompt[26]; // Continuation prompt. default: "   ...> "
 
 // A global char* and an SQL function to access its current value
 // from within an SQL statement. This program used to use the
-// sqlite_exec_printf() API to substitue a string into an SQL statement.
+// sqlite_exec_printf() API to substitute a string into an SQL statement.
 // The correct way to do this with sqlite3 is to use the bind API, but
 // since the shell is built around the callback paradigm it would be a lot
 // of work. Instead just use this hack, which is quite harmless.
@@ -839,7 +839,7 @@ static int shell_exec(
         continue;
       }
 
-      /* save off the prepared statment handle and reset row count */
+      /* save off the prepared statement handle and reset row count */
       if (pArg != nullptr) {
         pArg->pStmt = pStmt;
         pArg->cnt = 0;

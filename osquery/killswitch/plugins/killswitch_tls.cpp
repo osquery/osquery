@@ -69,7 +69,7 @@ TLSKillswitchPlugin::refresh() {
   if (!s.ok()) {
     return createError(
         KillswitchRefreshablePlugin::RefreshError::NoContentReached,
-        "Could not retreive config file from network");
+        "Could not retrieve config file from network");
   }
 
   JSON tree;

@@ -70,7 +70,7 @@ class AuditdFimFdMap final {
  public:
   AuditdFimFdMap(pid_t process_id);
 
-  /// Sets the new proces id that owns this fd map
+  /// Sets the new process id that owns this fd map
   void setProcessId(pid_t process_id);
 
   /// Returns a reference to the specified fd object

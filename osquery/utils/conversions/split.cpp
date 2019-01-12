@@ -30,7 +30,7 @@ std::vector<std::string> split(const std::string& s, const std::string& delim) {
 
 std::vector<std::string> split(const std::string& s,
                                char delim,
-                               size_t occurences) {
+                               size_t occurrences) {
   auto delims = std::string(1, delim);
   // Split the string normally with the required delimiter.
   auto content = split(s, delims);
@@ -38,7 +38,7 @@ std::vector<std::string> split(const std::string& s,
   std::vector<std::string> accumulator;
   std::vector<std::string> elems;
   for (size_t i = 0; i < content.size(); i++) {
-    if (i < occurences) {
+    if (i < occurrences) {
       elems.push_back(content.at(i));
     } else {
       accumulator.push_back(content.at(i));

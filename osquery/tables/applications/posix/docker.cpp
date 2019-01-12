@@ -266,7 +266,7 @@ void getQuery(QueryContext& context,
  * @brief Utility method to get value for specified key.
  *
  * Docker supports querying primary columns by prefix. This is preserved when
- * querying throught OSQuery.
+ * querying thought OSQuery.
  *
  * For example the following should return same result as long as there is only
  * one container with "id" that starts with "12345678":
