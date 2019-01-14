@@ -17,10 +17,10 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
-#include <osquery/hashing/hashing.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/utils/status.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
 

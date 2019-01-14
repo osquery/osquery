@@ -13,9 +13,9 @@
 #include <set>
 #include <string>
 
-#include <osquery/utils/json.h>
 #include <osquery/flags.h>
 #include <osquery/plugins/plugin.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 

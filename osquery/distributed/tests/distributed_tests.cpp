@@ -22,7 +22,7 @@
 #include "osquery/remote/tests/test_utils.h"
 #include "osquery/sql/sqlite_util.h"
 #include <osquery/utils/conversions/tryto.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 DECLARE_bool(disable_database);

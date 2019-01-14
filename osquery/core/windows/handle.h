@@ -10,7 +10,7 @@
 
 #include <osquery/utils/system/system.h>
 
-#include <osquery/utils/status.h>
+#include <osquery/utils/status/status.h>
 
 #include <string>
 

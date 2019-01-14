@@ -16,7 +16,7 @@
 #include <osquery/registry_factory.h>
 #include <osquery/system.h>
 
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 #include <osquery/database/plugins/tests/utils.h>
 

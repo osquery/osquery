@@ -31,7 +31,7 @@
 #include <osquery/system.h>
 #include <osquery/utils/system/system.h>
 
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;

@@ -36,7 +36,7 @@
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
 #include <osquery/utils/aws/aws_util.h>
 

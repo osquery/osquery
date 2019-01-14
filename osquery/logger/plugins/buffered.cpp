@@ -24,7 +24,7 @@
 #include <osquery/registry.h>
 #include <osquery/system.h>
 #include <osquery/utils/info/version.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
 
 namespace pt = boost::property_tree;

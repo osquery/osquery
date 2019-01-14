@@ -21,7 +21,7 @@
 #include <gflags/gflags.h>
 
 #include <osquery/core.h>
-#include <osquery/utils/status.h>
+#include <osquery/utils/status/status.h>
 
 #ifdef FREEBSD
 #define GFLAGS_NAMESPACE gflags

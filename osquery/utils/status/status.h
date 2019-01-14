@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <osquery/error.h>
-#include <osquery/expected.h>
+#include <osquery/utils/error/error.h>
+#include <osquery/utils/expected/expected.h>
 #include <sstream>
 #include <string>
 

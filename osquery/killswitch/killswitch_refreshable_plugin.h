@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <osquery/expected.h>
+#include <osquery/utils/expected/expected.h>
 
 #include "osquery/killswitch/killswitch_plugin.h"
 

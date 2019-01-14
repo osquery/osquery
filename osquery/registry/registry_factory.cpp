@@ -19,7 +19,7 @@
 #include <osquery/process/process.h>
 #include <osquery/registry.h>
 #include <osquery/utils/conversions/split.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 

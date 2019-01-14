@@ -13,7 +13,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/split.h>
-#include <osquery/expected.h>
+#include <osquery/utils/expected/expected.h>
 
 namespace fs = boost::filesystem;
 

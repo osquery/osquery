@@ -15,11 +15,11 @@
 #include <memory>
 #include <vector>
 
-#include <osquery/utils/json.h>
-#include <osquery/expected.h>
+#include <osquery/core/sql/query_performance.h>
 #include <osquery/plugins/plugin.h>
 #include <osquery/query.h>
-#include <osquery/core/sql/query_performance.h>
+#include <osquery/utils/expected/expected.h>
+#include <osquery/utils/json/json.h>
 
 #include <gtest/gtest_prod.h>
 

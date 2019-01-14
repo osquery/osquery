@@ -22,7 +22,7 @@
 #include <osquery/registry.h>
 #include <osquery/remote/requests.h>
 #include <osquery/remote/serializers/json.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/chars.h>
 
 #include <sstream>

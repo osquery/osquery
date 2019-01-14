@@ -13,7 +13,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
 
-#include <osquery/error.h>
+#include <osquery/utils/error/error.h>
 
 enum class TestError {
   SomeError = 1,

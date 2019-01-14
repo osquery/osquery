@@ -14,8 +14,8 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/query.h>
 
-#include <osquery/utils/json.h>
 #include "osquery/tests/test_util.h"
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 

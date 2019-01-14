@@ -17,9 +17,9 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
-#include <osquery/utils/json.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/json/json.h>
 
 namespace pt = boost::property_tree;
 namespace rj = rapidjson;

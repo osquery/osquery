@@ -16,11 +16,11 @@
 #include <gtest/gtest_prod.h>
 
 #include <osquery/core.h>
-#include <osquery/expected.h>
 #include <osquery/killswitch.h>
-#include <osquery/utils/mutex.h>
 #include <osquery/plugins/plugin.h>
 #include <osquery/query.h>
+#include <osquery/utils/expected/expected.h>
+#include <osquery/utils/mutex.h>
 
 namespace osquery {
 

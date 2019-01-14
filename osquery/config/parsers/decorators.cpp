@@ -8,13 +8,13 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/config/config.h>
 #include <osquery/config/parsers/decorators.h>
+#include <osquery/config/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 

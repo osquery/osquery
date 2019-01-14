@@ -19,7 +19,7 @@
 #include <CoreServices/CoreServices.h>
 
 #include <osquery/events.h>
-#include <osquery/utils/status.h>
+#include <osquery/utils/status/status.h>
 
 #include "osquery/events/pathset.h"
 

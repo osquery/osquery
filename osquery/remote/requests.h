@@ -17,8 +17,8 @@
 #include <gtest/gtest_prod.h>
 
 #include <osquery/logger.h>
-#include <osquery/utils/json.h>
-#include <osquery/utils/status.h>
+#include <osquery/utils/json/json.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
 

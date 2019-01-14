@@ -13,9 +13,9 @@
 #include <cstdint>
 
 #include <osquery/debug/debug_only.h>
-#include <osquery/error.h>
-#include <osquery/expected.h>
 #include <osquery/logger.h>
+#include <osquery/utils/error/error.h>
+#include <osquery/utils/expected/expected.h>
 
 namespace osquery {
 

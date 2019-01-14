@@ -23,8 +23,8 @@
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
-#include <osquery/utils/status.h>
 #include <osquery/tables.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
 

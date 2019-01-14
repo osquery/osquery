@@ -16,8 +16,8 @@
 #include <gtest/gtest_prod.h>
 
 #include <osquery/core.h>
-#include <osquery/expected.h>
-#include <osquery/utils/status.h>
+#include <osquery/utils/expected/expected.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
 

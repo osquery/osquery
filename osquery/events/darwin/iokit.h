@@ -17,7 +17,7 @@
 #include <IOKit/IOKitLib.h>
 
 #include <osquery/events.h>
-#include <osquery/utils/status.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
 

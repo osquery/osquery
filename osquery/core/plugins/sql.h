@@ -17,10 +17,10 @@
 
 #pragma once
 
-#include <osquery/plugins/plugin.h>
-#include <osquery/utils/status.h>
-#include <osquery/core/sql/query_data.h>
 #include <osquery/core/sql/column.h>
+#include <osquery/core/sql/query_data.h>
+#include <osquery/plugins/plugin.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
 

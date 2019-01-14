@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 #include <boost/filesystem/path.hpp>
 

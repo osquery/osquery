@@ -15,7 +15,7 @@ osquery_cxx_library(
     srcs = [
         "json.cpp",
     ],
-    header_namespace = "osquery/utils",
+    header_namespace = "osquery/utils/json",
     exported_headers = [
         "json.h",
     ],

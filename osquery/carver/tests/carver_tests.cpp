@@ -23,7 +23,7 @@
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 

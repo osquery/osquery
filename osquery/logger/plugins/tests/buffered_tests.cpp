@@ -26,7 +26,7 @@
 
 #include "osquery/logger/plugins/buffered.h"
 #include <osquery/utils/info/platform_type.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
 
 using namespace testing;

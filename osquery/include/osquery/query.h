@@ -20,7 +20,7 @@
 
 #include <osquery/core.h>
 #include <osquery/core/sql/diff_results.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 

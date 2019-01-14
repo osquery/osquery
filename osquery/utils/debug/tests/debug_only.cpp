@@ -14,7 +14,7 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/debug/debug_only.h"
+#include "osquery/utils/debug/debug_only.h"
 
 namespace osquery {
 

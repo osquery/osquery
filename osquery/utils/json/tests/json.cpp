@@ -13,7 +13,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 

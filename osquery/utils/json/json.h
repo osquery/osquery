@@ -13,7 +13,7 @@
 #include <cstddef>
 
 #include <osquery/utils/only_movable.h>
-#include <osquery/utils/status.h>
+#include <osquery/utils/status/status.h>
 #include <osquery/utils/system/system.h>
 
 #ifdef WIN32

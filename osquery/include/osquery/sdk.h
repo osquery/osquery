@@ -23,8 +23,8 @@
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
-#include <osquery/utils/status.h>
 #include <osquery/tables.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
 /**

@@ -14,7 +14,7 @@ osquery_cxx_library(
     srcs = [
         "status.cpp",
     ],
-    header_namespace = "osquery/utils",
+    header_namespace = "osquery/utils/status",
     exported_headers = [
         "status.h",
     ],

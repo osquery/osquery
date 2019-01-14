@@ -26,7 +26,7 @@
 #include <osquery/filesystem/fileops.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace pt = boost::property_tree;
 

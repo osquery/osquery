@@ -28,9 +28,9 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-#include <osquery/utils/json.h>
-#include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/conversions/join.h>
+#include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/json/json.h>
 
 // When building on linux, the extended schema of docker_containers will
 // add some additional columns to support user namespaces

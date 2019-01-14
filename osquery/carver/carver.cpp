@@ -26,7 +26,7 @@
 #include <osquery/remote/serializers/json.h>
 #include <osquery/system.h>
 #include <osquery/utils/base64.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 #include <osquery/utils/system/system.h>
 #include <osquery/utils/system/time.h>

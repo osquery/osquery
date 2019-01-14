@@ -12,7 +12,7 @@ load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
     name = "expected",
-    header_namespace = "osquery",
+    header_namespace = "osquery/utils/expected",
     exported_headers = [
         "expected.h",
     ],

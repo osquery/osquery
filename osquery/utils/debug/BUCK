@@ -11,7 +11,7 @@ load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
     name = "debug",
-    header_namespace = "osquery/debug",
+    header_namespace = "osquery/utils/debug",
     exported_headers = [
         "debug_only.h",
     ],

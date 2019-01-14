@@ -24,7 +24,7 @@
 #include <osquery/system.h>
 
 #include <osquery/utils/info/platform_type.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
 
 #include <boost/filesystem/path.hpp>

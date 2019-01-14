@@ -25,7 +25,7 @@
 #include <osquery/events/windows/windows_event_log.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/utils/conversions/tryto.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace pt = boost::property_tree;
 

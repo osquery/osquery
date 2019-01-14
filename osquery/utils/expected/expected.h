@@ -15,12 +15,12 @@
 #include <string>
 #include <type_traits>
 
-#include <osquery/error.h>
+#include <osquery/utils/error/error.h>
 
 #include <boost/blank.hpp>
 #include <boost/variant.hpp>
 
-#include <osquery/debug/debug_only.h>
+#include <osquery/utils/debug/debug_only.h>
 
 /**
  * Utility class that should be used in function that return

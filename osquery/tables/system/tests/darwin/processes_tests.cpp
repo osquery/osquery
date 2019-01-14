@@ -16,7 +16,7 @@
 #include <osquery/core/sql/query_data.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-#include <osquery/utils/status.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
 namespace tables {

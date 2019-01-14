@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 #include <osquery/database.h>
 #include <osquery/flags.h>

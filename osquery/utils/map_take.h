@@ -11,7 +11,7 @@
 #include <map>
 #include <unordered_map>
 
-#include <osquery/expected.h>
+#include <osquery/utils/expected/expected.h>
 
 namespace osquery {
 

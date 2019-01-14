@@ -21,7 +21,7 @@
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/remote/serializers/json.h>
 #include <osquery/remote/utility.h>
 

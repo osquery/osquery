@@ -19,8 +19,8 @@
 #include <osquery/system.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
-#include <osquery/utils/json.h>
 #include <osquery/utils/info/version.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
 
 namespace rj = rapidjson;

@@ -10,7 +10,7 @@
 
 #include "logger.h"
 
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace rj = rapidjson;
 

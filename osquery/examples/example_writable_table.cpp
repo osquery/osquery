@@ -10,8 +10,8 @@
 
 #include <osquery/sdk.h>
 #include <osquery/system.h>
-#include <osquery/utils/json.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/json/json.h>
 
 #include <mutex>
 #include <sstream>

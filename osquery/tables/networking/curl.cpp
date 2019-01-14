@@ -19,7 +19,7 @@
 #include <boost/numeric/conversion/cast.hpp>
 
 #include <osquery/logger.h>
-#include <osquery/utils/status.h>
+#include <osquery/utils/status/status.h>
 #include <osquery/tables.h>
 
 namespace osquery {

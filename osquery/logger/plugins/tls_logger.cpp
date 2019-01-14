@@ -25,7 +25,7 @@
 #include <osquery/remote/serializers/json.h>
 
 #include <osquery/config/parsers/decorators.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 

@@ -21,7 +21,7 @@
 #include <osquery/registry_factory.h>
 #include <osquery/utils/config/default_paths.h>
 
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace errc = boost::system::errc;
 namespace fs = boost::filesystem;

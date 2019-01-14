@@ -12,7 +12,7 @@
 
 #include <type_traits>
 
-#include <osquery/expected.h>
+#include <osquery/utils/expected/expected.h>
 
 namespace osquery {
 

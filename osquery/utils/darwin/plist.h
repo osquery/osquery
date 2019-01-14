@@ -13,7 +13,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/utils/status.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
 

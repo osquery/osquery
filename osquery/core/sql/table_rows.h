@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 #include "query_data.h"
 #include "table_row.h"

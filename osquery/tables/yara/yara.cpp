@@ -12,8 +12,8 @@
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/utils/status.h>
 #include <osquery/tables.h>
+#include <osquery/utils/status/status.h>
 
 #include "osquery/tables/yara/yara_utils.h"
 

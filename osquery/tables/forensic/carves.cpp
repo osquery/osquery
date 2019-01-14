@@ -22,7 +22,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 namespace pt = boost::property_tree;
 
