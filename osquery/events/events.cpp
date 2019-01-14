@@ -615,16 +615,16 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
 
     event_id_list.push_back(std::move(row["eid"]));
     event_count_++;
+
+    // Use the last EventID and a checkpoint bucket size to periodically apply
+    // buffer eviction. Eviction occurs if the total count exceeds events_max.
+    if (last_eid_ % EVENTS_CHECKPOINT == 0) {
+      expireCheck();
+    }
   }
 
   if (database_data.empty()) {
     return Status(1, "Failed to process the rows");
-  }
-
-  // Use the last EventID and a checkpoint bucket size to periodically apply
-  // buffer eviction. Eviction occurs if the total count exceeds events_max.
-  if (last_eid_ % EVENTS_CHECKPOINT == 0) {
-    expireCheck();
   }
 
   // Save the batched data inside the database
