@@ -15,6 +15,7 @@
 #include <boost/filesystem/path.hpp>
 
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
@@ -50,8 +51,6 @@ void genSudoersFile(const std::string& filename,
   }
 
   auto lines = split(contents, "\n");
-  std::vector<std::string> valid_lines;
-
   for (auto& line : lines) {
     Row r;
     boost::trim(line);
@@ -91,6 +90,7 @@ void genSudoersFile(const std::string& filename,
       // like relative include files, we need to support them.
       if (!listFilesInDirectory(inc_dir, inc_files).ok()) {
         TLOG << "couldn't list includedir: " << inc_dir;
+        continue;
       }
 
       for (const auto& inc_file : inc_files) {
@@ -104,7 +104,6 @@ void genSudoersFile(const std::string& filename,
           continue;
         }
 
-        // Build and push the row before recursing.
         genSudoersFile(inc_file, ++level, results);
       }
     } else if (line.find("#include") == 0) {
@@ -146,5 +145,5 @@ QueryData genSudoers(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
