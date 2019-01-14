@@ -71,7 +71,8 @@ _GLOBAL_PLATFORM_PREPROCESSOR_FLAGS = [
     (
         _WINDOWS,
         [
-            "/D_WIN32_WINNT=0x0601",  # win7, see osquery/utils/system/windows/system.h
+            "/D_WIN32_WINNT=_WIN32_WINNT_WIN7",
+            "/DNTDDI_VERSION=NTDDI_WIN7",
         ],
     ),
 ]

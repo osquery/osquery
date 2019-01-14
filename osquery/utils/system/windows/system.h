@@ -19,19 +19,11 @@
 #include <SdkDdkVer.h>
 
 #ifndef NTDDI_VERSION
-#define NTDDI_VERSION NTDDI_WIN7
-#else
-#if NTDDI_VERSION != NTDDI_WIN7
-#error "NTDDI_VERSION is already defined and the value differs"
-#endif
+#error "NTDDI_VERSION must be defined, see tools/build_defs/oss/osquery/cxx.bzl"
 #endif
 
 #ifndef _WIN32_WINNT
-#define _WIN32_WINNT _WIN32_WINNT_WIN7
-#else
-#if _WIN32_WINNT != _WIN32_WINNT_WIN7
-#error "_WIN32_WINNT is already defined and the value differs"
-#endif
+#error "_WIN32_WINNT must be defined, see tools/build_defs/oss/osquery/cxx.bzl"
 #endif
 
 #ifndef WIN32_LEAN_AND_MEAN
