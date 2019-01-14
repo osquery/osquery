@@ -20,7 +20,9 @@ namespace osquery {
 template <typename StorageType>
 std::vector<std::string> InMemoryStorage<StorageType>::getKeys(
     const std::string& prefix) const {
+    
   std::vector<std::string> result;
+  result.reserve(storage_.size());
   for (const auto& iter : storage_) {
     if (boost::starts_with(iter.first, prefix)) {
       result.push_back(iter.first);
