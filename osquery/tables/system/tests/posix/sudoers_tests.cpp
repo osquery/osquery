@@ -51,7 +51,7 @@ TEST_F(SudoersTests, basic_sudoers) {
   }
 
   auto results = QueryData{};
-  genSudoersFile(sudoers_file.string(), 0, results);
+  genSudoersFile(sudoers_file.string(), 1, results);
 
   ASSERT_EQ(results.size(), 1);
 
@@ -82,7 +82,7 @@ TEST_F(SudoersTests, include_file) {
   }
 
   auto results = QueryData{};
-  genSudoersFile(sudoers_top.string(), 0, results);
+  genSudoersFile(sudoers_top.string(), 1, results);
 
   ASSERT_EQ(results.size(), 2);
 
@@ -121,7 +121,7 @@ TEST_F(SudoersTests, include_dir) {
   }
 
   auto results = QueryData{};
-  genSudoersFile(sudoers_top.string(), 0, results);
+  genSudoersFile(sudoers_top.string(), 1, results);
 
   ASSERT_EQ(results.size(), 2);
 
