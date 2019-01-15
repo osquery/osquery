@@ -60,6 +60,14 @@ osquery_cxx_library(
     exported_headers = [
         "errno.h",
     ],
+    exported_platform_headers = [
+        (
+            POSIX,
+            [
+                "posix/errno.h",
+            ],
+        ),
+    ],
     platform_srcs = [
         (
             POSIX,
@@ -74,7 +82,29 @@ osquery_cxx_library(
             ],
         ),
     ],
+    tests = [
+        ":errno_tests",
+    ],
     visibility = ["PUBLIC"],
+)
+
+osquery_cxx_test(
+    name = "errno_tests",
+    srcs = [
+        "tests/errno.cpp",
+    ],
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/tests/errno.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":errno",
+    ],
 )
 
 osquery_cxx_library(
