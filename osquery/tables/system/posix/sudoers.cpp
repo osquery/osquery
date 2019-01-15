@@ -77,6 +77,13 @@ void genSudoersFile(const std::string& filename,
 
       auto inc_dir = line.substr(space + 1);
 
+      // NOTE(ww): See sudo NEWS for 1.8.4:
+      // Both #include and #includedir support relative paths.
+      if (inc_dir.at(0) != '/') {
+        auto path = fs::path(filename).parent_path() / inc_dir;
+        inc_dir = path.string();
+      }
+
       // Build and push the row before recursing.
       r["source"] = filename;
       r["header"] = "includedir";
@@ -84,10 +91,6 @@ void genSudoersFile(const std::string& filename,
       results.push_back(r);
 
       std::vector<std::string> inc_files;
-
-      // TODO(ww): sudoers(5) doesn't say anything about relative
-      // include directories. Need to test them -- if they work
-      // like relative include files, we need to support them.
       if (!listFilesInDirectory(inc_dir, inc_files).ok()) {
         TLOG << "couldn't list includedir: " << inc_dir;
         continue;
@@ -120,8 +123,8 @@ void genSudoersFile(const std::string& filename,
       // Per sudoers(5): If the included file doesn't
       // start with /, read it relative to the current file.
       if (inc_file.at(0) != '/') {
-        fs::path inc_path = fs::path(filename).parent_path() / inc_file;
-        inc_file = inc_path.string();
+        auto path = fs::path(filename).parent_path() / inc_file;
+        inc_file = path.string();
       }
 
       r["source"] = filename;
