@@ -173,6 +173,33 @@ osquery_cxx_test(
 )
 
 osquery_cxx_test(
+    name = "sudoers_tests",
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/sudoers_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/tables/system:system"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/tables/system:system"),
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/database/plugins:ephemeral"),
+        osquery_target("osquery/core/sql:sql"),
+    ],
+)
+
+osquery_cxx_test(
     name = "yum_sources_tests",
     platform_srcs = [
         (

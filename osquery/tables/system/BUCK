@@ -34,6 +34,7 @@ osquery_cxx_library(
             [
                 "posix/known_hosts.h",
                 "posix/shell_history.h",
+                "posix/sudoers.h",
                 "posix/sysctl_utils.h",
             ],
         ),
