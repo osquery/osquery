@@ -21,7 +21,7 @@ osquery_cxx_library(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/utils:utils"),
         osquery_target("osquery/utils/info:info"),
         osquery_tp_target("openssl", "ssl"),

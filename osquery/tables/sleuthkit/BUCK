@@ -12,7 +12,7 @@ load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
-    name = "sleuthkit",
+    name = "sleuthkit_table",
     srcs = [
         "sleuthkit.cpp",
     ],

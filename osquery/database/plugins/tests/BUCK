@@ -11,7 +11,7 @@ load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_test(
-    name = "sqlite",
+    name = "sqlite_plugin_tests",
     srcs = [
         "sqlite.cpp",
     ],
@@ -20,7 +20,7 @@ osquery_cxx_test(
         osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/core:core"),
         osquery_target("osquery/database/plugins:ephemeral"),
-        osquery_target("osquery/database/plugins:sqlite"),
+        osquery_target("osquery/database/plugins:sqlite_plugin"),
         osquery_target("osquery/database:database"),
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/events:events"),
@@ -29,12 +29,12 @@ osquery_cxx_test(
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/json:json"),
         osquery_target("specs:tables"),
-        ":utils",
+        ":database_test_utils",
     ],
 )
 
 osquery_cxx_test(
-    name = "rocksdb",
+    name = "rocksdb_tests",
     srcs = [
         # "rocksdb.cpp", # TODO: it is failing :(
     ],
@@ -43,7 +43,7 @@ osquery_cxx_test(
         osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/core:core"),
         osquery_target("osquery/database/plugins:ephemeral"),
-        osquery_target("osquery/database/plugins:rocksdb"),
+        osquery_target("osquery/database/plugins:rocksdb_plugin"),
         osquery_target("osquery/database:database"),
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/events:events"),
@@ -52,12 +52,12 @@ osquery_cxx_test(
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/json:json"),
         osquery_target("specs:tables"),
-        ":utils",
+        ":database_test_utils",
     ],
 )
 
 osquery_cxx_library(
-    name = "utils",
+    name = "database_test_utils",
     srcs = [
         "utils.cpp",
     ],
@@ -66,7 +66,7 @@ osquery_cxx_library(
         "utils.h",
     ],
     deps = [
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/utils/json:json"),
         osquery_tp_target("googletest", "gtest"),
     ],

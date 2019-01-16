@@ -18,7 +18,7 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/config:config"),
-        osquery_target("osquery/utils/config:config"),
+        osquery_target("osquery/utils/config:utils_config"),
     ],
 )
 
@@ -37,6 +37,6 @@ osquery_cxx_library(
         osquery_target("osquery/config:config"),
         osquery_target("osquery/remote:requests"),
         osquery_target("osquery/remote:utility"),
-        osquery_target("osquery/remote/serializers:json"),
+        osquery_target("osquery/remote/serializers:serializer_json"),
     ],
 )

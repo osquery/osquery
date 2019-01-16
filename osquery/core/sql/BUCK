@@ -11,7 +11,7 @@ load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
-    name = "sql",
+    name = "core_sql",
     srcs = glob(["*.cpp"]),
     headers = glob(["*.h"]),
     header_namespace = "osquery/core/sql",

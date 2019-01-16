@@ -10,9 +10,9 @@ load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_c
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 
 osquery_cxx_test(
-    name = "config",
+    name = "config_tests",
     srcs = [
-        "config.cpp",
+        "config_tests.cpp",
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
@@ -31,7 +31,6 @@ osquery_cxx_test(
         osquery_target("osquery/killswitch:killswitch"),
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
-        osquery_target("osquery/tables:tables"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("specs:tables"),
         ":test_utils",
@@ -60,7 +59,6 @@ osquery_cxx_test(
         osquery_target("osquery/killswitch:killswitch"),
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
-        osquery_target("osquery/tables:tables"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("specs:tables"),
         ":test_utils",
@@ -78,7 +76,7 @@ osquery_cxx_library(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/utils/json:json"),
     ],
 )

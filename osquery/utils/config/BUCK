@@ -9,7 +9,7 @@
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
 
 osquery_cxx_library(
-    name = "config",
+    name = "utils_config",
     srcs = [
         "default_paths.cpp",
     ],

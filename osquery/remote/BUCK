@@ -74,7 +74,7 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/process:process"),
-        osquery_target("osquery/remote/transports:tls"),
+        osquery_target("osquery/remote/transports:transports_tls"),
         ":http_client",
         ":requests",
     ],

@@ -12,7 +12,7 @@ load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD", "LINUX", "MACOSX
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
-    name = "yara",
+    name = "yara_table",
     srcs = [
         "yara.cpp",
         "yara_utils.cpp",
@@ -55,7 +55,7 @@ osquery_cxx_library(
         osquery_target("osquery/events:events"),
         osquery_target("osquery/logger:logger"),
         osquery_target("osquery/registry:registry"),
-        osquery_target("osquery/utils/config:config"),
+        osquery_target("osquery/utils/config:utils_config"),
         osquery_tp_target("boost"),
         osquery_tp_target("yara"),
     ],

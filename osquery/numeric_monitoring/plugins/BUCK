@@ -10,7 +10,7 @@ load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 
 osquery_cxx_library(
-    name = "filesystem",
+    name = "numeric_monitoring_filesystem",
     srcs = [
         "filesystem.cpp",
     ],
@@ -19,11 +19,11 @@ osquery_cxx_library(
         "filesystem.h",
     ],
     tests = [
-        osquery_target("osquery/numeric_monitoring/plugins/tests:filesystem"),
+        osquery_target("osquery/numeric_monitoring/plugins/tests:numeric_monitoring_filesystem_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/numeric_monitoring:numeric_monitoring"),
     ],
 )

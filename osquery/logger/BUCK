@@ -22,7 +22,7 @@ osquery_cxx_library(
         osquery_target("osquery/core:core"),
         osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/database:database"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/killswitch:killswitch"),
         osquery_target("osquery/numeric_monitoring:numeric_monitoring"),
         osquery_target("osquery/registry:registry"),

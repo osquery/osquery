@@ -23,7 +23,7 @@ osquery_cxx_test(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/core:core"),
-        osquery_target("osquery/tables/events:events"),
+        osquery_target("osquery/tables/events:events_table"),
         osquery_target("osquery/config/parsers:parsers"),
         osquery_target("osquery/config:config"),
         osquery_target("osquery/logger:logger"),
@@ -53,7 +53,7 @@ osquery_cxx_test(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/core:core"),
-        osquery_target("osquery/tables/events:events"),
+        osquery_target("osquery/tables/events:events_table"),
         osquery_target("osquery/config/parsers:parsers"),
         osquery_target("osquery/config:config"),
         osquery_target("osquery/logger:logger"),

@@ -52,7 +52,7 @@ osquery_cxx_test(
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/info:info"),
-        osquery_target("osquery/killswitch/plugins:filesystem"),
+        osquery_target("osquery/killswitch/plugins:killswitch_filesystem"),
         osquery_target("tests:helper"),
     ],
 )

@@ -134,7 +134,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_library(
-    name = "filesystem",
+    name = "filesystem_logger",
     srcs = [
         "filesystem_logger.cpp",
     ],
@@ -157,8 +157,8 @@ osquery_cxx_library(
     ],
     visibility = ["PUBLIC"],
     deps = common_deps + [
-        osquery_target("osquery/utils/config:config"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/utils/config:utils_config"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
     ],
 )
 
@@ -200,7 +200,7 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = common_deps + [
         osquery_target("osquery/dispatcher:dispatcher"),
-        osquery_target("osquery/utils/config:config"),
+        osquery_target("osquery/utils/config:utils_config"),
         osquery_tp_target("librdkafka"),
     ],
 )
@@ -289,7 +289,7 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = common_deps + [
         ":buffered",
-        osquery_target("osquery/remote/serializers:json"),
+        osquery_target("osquery/remote/serializers:serializer_json"),
         osquery_target("osquery/remote:utility"),
         osquery_target("osquery/config/parsers:parsers"),
         osquery_target("osquery/dispatcher:dispatcher"),

@@ -22,7 +22,7 @@ osquery_cxx_test(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/config/parsers:parsers"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/config/tests:test_utils"),
         osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/database/plugins:ephemeral"),
@@ -39,9 +39,9 @@ osquery_cxx_test(
 )
 
 osquery_cxx_test(
-    name = "events_tests",
+    name = "events_parser_tests",
     srcs = [
-        "events_tests.cpp",
+        "events_parser_tests.cpp",
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
@@ -51,7 +51,7 @@ osquery_cxx_test(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/config/parsers:parsers"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/config/tests:test_utils"),
         osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/database/plugins:ephemeral"),
@@ -81,7 +81,7 @@ osquery_cxx_test(
     deps = [
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/config/parsers:parsers"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/config/tests:test_utils"),
         osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/database/plugins:ephemeral"),
@@ -111,7 +111,7 @@ osquery_cxx_test(
     deps = [
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/config/parsers:parsers"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/config/tests:test_utils"),
         osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/database/plugins:ephemeral"),
@@ -141,7 +141,7 @@ osquery_cxx_test(
     deps = [
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/config/parsers:parsers"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/config/tests:test_utils"),
         osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/database/plugins:ephemeral"),

@@ -11,14 +11,14 @@ load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX", "WINDOWS")
 
 osquery_cxx_library(
-    name = "tables",
+    name = "table_implementations",
     platform_deps = [
         (
             POSIX,
             [
-                osquery_target("osquery/tables/sleuthkit:sleuthkit"),
-                osquery_target("osquery/tables/yara:yara"),
-                osquery_target("osquery/tables/lldpd:lldpd"),
+                osquery_target("osquery/tables/sleuthkit:sleuthkit_table"),
+                osquery_target("osquery/tables/yara:yara_table"),
+                osquery_target("osquery/tables/lldpd:lldpd_table"),
             ],
         ),
         (
@@ -45,10 +45,10 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/tables/applications:applications"),
-        osquery_target("osquery/tables/events:events"),
+        osquery_target("osquery/tables/events:events_table"),
         osquery_target("osquery/tables/forensic:forensic"),
         osquery_target("osquery/tables/networking:networking"),
-        osquery_target("osquery/tables/system:system"),
-        osquery_target("osquery/tables/utility:utility"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/tables/utility:utility_table"),
     ],
 )
