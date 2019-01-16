@@ -75,7 +75,7 @@ struct NTFSEventPublisher::PrivateData final {
 };
 
 void NTFSEventPublisher::restartJournalReaderServices(
-    std::unordered_set<char>& active_drives) {
+    NTFSEventPublisherConfiguration& active_drives) {
   WriteLock lock(d->reader_service_map_mutex);
 
   // Spawn new services
