@@ -135,7 +135,7 @@ Status WindowsEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
   auto s = ss.str();
   if (s.at(s.size() - 1) == '\n') {
-    s.erase(s.end());
+    s.erase(s.end() - 1);
   }
   r["data"] = s;
 
