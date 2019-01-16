@@ -26,18 +26,14 @@ QueryData genLogicalDrives(QueryContext& context) {
 
   for (const auto& logicalDisk : logicalDisks) {
     Row r;
-    std::string driveType;
     std::string deviceId;
-    logicalDisk.GetString("Description", driveType);
+    int bootPartition = 0;
+
+    logicalDisk.GetString("Description", r["type"]);
     logicalDisk.GetString("DeviceID", deviceId);
     logicalDisk.GetString("FreeSpace", r["free_space"]);
     logicalDisk.GetString("Size", r["size"]);
     logicalDisk.GetString("FileSystem", r["file_system"]);
-
-    r["type"] = driveType;
-    r["device_id"] = deviceId;
-
-    int bootPartition = 0;
 
     for (const auto& bootConfiguration : bootConfigurations) {
       std::string bootDirectory;
@@ -49,6 +45,7 @@ QueryData genLogicalDrives(QueryContext& context) {
       }
     }
 
+    r["device_id"] = deviceId;
     r["boot_partition"] = INTEGER(bootPartition);
     results.push_back(r);
   }
