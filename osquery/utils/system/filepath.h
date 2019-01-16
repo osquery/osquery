@@ -18,7 +18,7 @@
 #include <Windows.h>
 #endif
 
-#include <osquery/utils/status.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
 
