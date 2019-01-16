@@ -255,7 +255,6 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
 </p>
 </details>
 
-
 **String functions**
 
 String parsing functions are always helpful, some help within subqueries so they make sense as local-additions:
@@ -266,17 +265,15 @@ String parsing functions are always helpful, some help within subqueries so they
     <summary>Split function example:</summary>
     <p>
 
-        osquery> select uid from users;
+      osquery> select uid from users;
+      uid = 500
 
-        uid = 500
+      uid = 1001
 
-        uid = 1001
+      osquery> select split(uid, 1, 0) from users;
+      split(uid, 1, 0) = 500
 
-        osquery> select split(uid, 1, 0) from users;
-
-        split(uid, 1, 0) = 500
-
-        split(uid, 1, 0) = 00
+      split(uid, 1, 0) = 00
 
     </p>
     </details>
@@ -287,17 +284,15 @@ String parsing functions are always helpful, some help within subqueries so they
     <summary>Regex Split function example:</summary>
     <p>
 
-        osquery> select uid from users;
+      osquery> select uid from users;
+      uid = 500
 
-        uid = 500
+      uid = 1001
 
-        uid = 1001
+      osquery> select split(uid, ("[1-5]"), 0) from users;
+      split(uid, 1, 0) = 00
 
-        osquery> select split(uid, ("[1-5]"), 0) from users;
-
-        split(uid, 1, 0) = 00
-
-        split(uid, 1, 0) = 00
+      split(uid, 1, 0) = 00
 
     </p>
     </details>
@@ -309,9 +304,9 @@ String parsing functions are always helpful, some help within subqueries so they
     <summary>IPv4 Int representation example:</summary>
     <p>
 
-        osquery> select inet_aton("1.0.1.5") as ipInt
+      osquery> select inet_aton("1.0.1.5") as ipInt
 
-        ipInt = 16777477
+      ipInt = 16777477
 
     </p>
     </details>
@@ -351,7 +346,6 @@ We have added `sha1`, `sha256`, and `md5` functions that take a single argument 
 </p>
 </details>
 
-
 **Encoding functions**
 
 There are also encoding functions available to you to process query results.
@@ -360,13 +354,11 @@ There are also encoding functions available to you to process query results.
     <summary>Base64 encode example:</summary>
     <p>
 
-        osquery> select device_id from cpu_info;
+      osquery> select device_id from cpu_info;
+      device_id = CPU0
 
-        device_id = CPU0
-
-        osquery> select to_base64(device_id) as device_id from cpu_info;
-
-        device_id = Q1BVMA==
+      osquery> select to_base64(device_id) as device_id from cpu_info;
+      device_id = Q1BVMA==
 
     </p>
     </details>
@@ -374,17 +366,14 @@ There are also encoding functions available to you to process query results.
     <details>
     <summary>Base64 decode example:</summary>
     <p>
-        osquery> select device_id from cpu_info;
+      osquery> select device_id from cpu_info;
+      device_id = CPU0
 
-        device_id = CPU0
+      osquery> select to_base64(device_id) as device_id from cpu_info;
+      device_id = Q1BVMA==
 
-        osquery> select to_base64(device_id) as device_id from cpu_info;
-
-        device_id = Q1BVMA==
-
-        select from_base64(to_base64(device_id)) as device_id from cpu_info;
-
-        device_id = CPU0
+      select from_base64(to_base64(device_id)) as device_id from cpu_info;
+      device_id = CPU0
 
     </p>
     </details>
@@ -393,17 +382,14 @@ There are also encoding functions available to you to process query results.
     <summary>Conditional Base64 encode example:</summary>
     <p>
 
-        osquery> select device_id from cpu_info;
+      osquery> select device_id from cpu_info;
+      device_id = CPU0
 
-        device_id = CPU0
+      osquery> select conditional_to_base64(device_id) as device_id from cpu_info;
+      device_id = CPU0
 
-        osquery> select conditional_to_base64(device_id) as device_id from cpu_info;
-
-        device_id = CPU0
-
-        osquery> select conditional_to_base64(device_id + char(183)) as device_id from cpu_info;
-
-        device_id = 0
+      osquery> select conditional_to_base64(device_id + char(183)) as device_id from cpu_info;
+      device_id = 0
 
     </p>
     </details>
