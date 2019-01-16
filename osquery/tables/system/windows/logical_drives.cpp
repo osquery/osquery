@@ -15,11 +15,11 @@ namespace tables {
 QueryData genLogicalDrives(QueryContext& context) {
   QueryData results;
 
-  const auto& wmiLogicalDiskReq(
+  const WmiRequest wmiLogicalDiskReq(
       "select DeviceID, Description, FreeSpace, Size, FileSystem from "
       "Win32_LogicalDisk");
   const std::vector<WmiResultItem>& logicalDisks = wmiLogicalDiskReq.results();
-  const auto& wmiBootConfigurationReq("select * from Win32_BootConfiguration;");
+  const WmiRequest wmiBootConfigurationReq("select * from Win32_BootConfiguration;");
   const std::vector<WmiResultItem>& bootConfigurations =
       wmiBootConfigurationReq.results();
 
