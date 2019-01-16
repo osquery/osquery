@@ -158,6 +158,7 @@ The documentation for [`file`](https://osquery.io/schema/current/#file) says bot
 
 Let's get semi-fancy:
 ```
+osquery> .mode line
 osquery> SELECT path, inode, size, type
     ...>   FROM file
     ...>   WHERE path IN (SELECT '/dev/zero');
@@ -169,6 +170,7 @@ inode = 304
 
 Now let's introduce the [`hash`](https://osquery.io/schema/current/#hash) table and hopefully show something useful, like the hash of the last file modified in `/etc`:
 ```
+osquery> .mode line
 osquery> SELECT path, mtime, sha256
     ...>   FROM file
     ...>   JOIN hash USING (path)
@@ -191,6 +193,7 @@ osquery includes the following C-math functions: `sqrt`, `log`, `log10`, `ceil`,
 <p>
 
     osquery> .mode line
+
     osquery> select disk_size as disk_size from disk_info;
     disk_size = 107372805120
 
@@ -225,6 +228,7 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
 <p>
 
     osquery .mode line
+
     osquery> select sin(30);
     sin(30) = -0.988031624092862
 
@@ -265,6 +269,8 @@ String parsing functions are always helpful, some help within subqueries so they
     <summary>Split function example:</summary>
     <p>
 
+      osquery> .mode line
+
       osquery> select uid from users;
       uid = 500
 
@@ -283,6 +289,8 @@ String parsing functions are always helpful, some help within subqueries so they
     <details>
     <summary>Regex Split function example:</summary>
     <p>
+
+      osquery> .mode line
 
       osquery> select uid from users;
       uid = 500
@@ -304,8 +312,9 @@ String parsing functions are always helpful, some help within subqueries so they
     <summary>IPv4 Int representation example:</summary>
     <p>
 
-      osquery> select inet_aton("1.0.1.5") as ipInt
+      osquery> .mode line
 
+      osquery> select inet_aton("1.0.1.5") as ipInt
       ipInt = 16777477
 
     </p>
@@ -319,26 +328,23 @@ We have added `sha1`, `sha256`, and `md5` functions that take a single argument 
 <p>
 
     osquery> .mode line
-    osquery> select username from users;
 
+    osquery> select username from users;
     username = Guest
 
     username = System
 
     osquery> select sha1(username) as usernameHash from users;
-
     usernameHash = face83ee3014bdc8f98203cc94e2e89222452e90
 
     usernameHash = 29d43743c43bda9873fc7a79c99f2ec4b6b442b1
 
     osquery> select sha256(username) as usernameHash from users;
-
     usernameHash = a835887ac13e6558ea6cb404aae6a35b7cbff6796af813d72f7b8d08f3fa0ec9
 
     usernameHash = 4d2c882abd33183be08ec6f4b47a1f09d3dd211de7556d9b587f7e34eec5ed0b
 
     osquery> select md5(username) as usernameHash from users;
-
     usernameHash = 7d4ef62de50874a4db33e6da3ff79f75
 
     usernameHash = 2a44946d16fe86e63a7e078744c58d56
@@ -354,6 +360,8 @@ There are also encoding functions available to you to process query results.
     <summary>Base64 encode example:</summary>
     <p>
 
+      osquery> .mode line
+
       osquery> select device_id from cpu_info;
       device_id = CPU0
 
@@ -366,6 +374,9 @@ There are also encoding functions available to you to process query results.
     <details>
     <summary>Base64 decode example:</summary>
     <p>
+
+      osquery> .mode line
+
       osquery> select device_id from cpu_info;
       device_id = CPU0
 
@@ -381,6 +392,8 @@ There are also encoding functions available to you to process query results.
     <details>
     <summary>Conditional Base64 encode example:</summary>
     <p>
+
+      osquery> .mode line
 
       osquery> select device_id from cpu_info;
       device_id = CPU0
