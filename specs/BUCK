@@ -29,6 +29,10 @@ osquery_gentable_cxx_library(
             "linux,macos,windows",
         ),
         (
+            _SPECS_LOCATION + "/atom_packages.table",
+            "linux,macos",
+        ),
+        (
             _SPECS_LOCATION + "/darwin/account_policy_data.table",
             "macos",
         ),

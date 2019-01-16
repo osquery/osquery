@@ -8,7 +8,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
-load("//tools/build_defs/oss/osquery:platforms.bzl", "MACOSX", "POSIX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX", "WINDOWS")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
@@ -43,7 +43,14 @@ osquery_cxx_library(
         (
             MACOSX,
             [
+                "atom_packages.cpp",
                 "darwin/browser_plugins.cpp",
+            ],
+        ),
+        (
+            LINUX,
+            [
+                "atom_packages.cpp",
             ],
         ),
         (
@@ -64,6 +71,7 @@ osquery_cxx_library(
         osquery_target("osquery/tables/system:system"),
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/info:info"),
+        osquery_target("osquery/utils/json:json"),
         osquery_tp_target("boost"),
     ],
 )

@@ -73,6 +73,7 @@ osquery_cxx_test(
             LINUX,
             [
                 "arp_cache.cpp",
+                "atom_packages.cpp",
                 "deb_packages.cpp",
                 "ec2_instance_metadata.cpp",
                 "ec2_instance_tags.cpp",
@@ -188,6 +189,7 @@ osquery_cxx_test(
                 "apps.cpp",
                 "arp_cache.cpp",
                 "asl.cpp",
+                "atom_packages.cpp",
                 "authorization_mechanisms.cpp",
                 "authorizations.cpp",
                 "battery.cpp",
