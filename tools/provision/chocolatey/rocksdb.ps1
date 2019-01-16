@@ -46,7 +46,7 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retreive the source
+# Retrieve the source
 $zipfile = "rocksdb-$version.zip"
 if (-not (Test-Path $zipfile)) {
   Invoke-WebRequest $url -OutFile $zipfile

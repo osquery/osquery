@@ -81,7 +81,7 @@ void jsonPrint(const QueryData& q);
  *
  * @param r A row to analyze
  * @param lengths A mutable set of column lengths
- * @param use_columns Calulate lengths of column names or values
+ * @param use_columns Calculate lengths of column names or values
  *
  * @return A map of string to int such that the key represents the "column" in
  * the supplied QueryData and the int represents the length of the longest key

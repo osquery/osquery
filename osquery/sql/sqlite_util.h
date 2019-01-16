@@ -435,7 +435,7 @@ void registerFilesystemExtensions(sqlite3* db);
 /**
  * @brief Generate the data for auto-constructed sqlite tables
  *
- * When auto-consturcted sqlite tables are queried, this function
+ * When auto-constructed sqlite tables are queried, this function
  * generated the resulting QueryData
  *
  * @param sqlite_db Path to the sqlite_db

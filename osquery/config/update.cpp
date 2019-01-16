@@ -19,7 +19,7 @@ namespace osquery {
  * Config plugins may asynchronously change config data for the core osquery
  * process. This is a rare instance where a plugin acts to change core state.
  * Plugins normally act on behalf of a registry or extension call.
- * To acheive plugin-initiated calls, Config plugins chain calls to plugins
+ * To achieve plugin-initiated calls, Config plugins chain calls to plugins
  * using the UpdateConfigPlugin named 'update'.
  *
  * Plugins do not need to implement call-chaining explicitly. If an extension

@@ -229,7 +229,7 @@ static DWORD getNewAclSize(PACL dacl,
   DWORD acl_size = info.AclBytesInUse;
 
   /*
-   * By default, we assume that the ACL as pointed to by the dacl arugment does
+   * By default, we assume that the ACL as pointed to by the dacl argument does
    * not contain any access control entries (further known as ACE) associated
    * with sid. If we require an access allowed and/or access denied ACE, we will
    * increment acl_size by the size of the new ACE.
@@ -771,7 +771,7 @@ static Status lowPrivWriteDenied(PACL acl) {
   for (unsigned long i = 0; i < acl->AceCount; i++) {
     if (!GetAce(acl, i, &void_ent)) {
       return Status(-1,
-                    "Failed to retreive ACE when checking safe permissions");
+                    "Failed to retrieve ACE when checking safe permissions");
     }
     auto entry = static_cast<PACE_HEADER>(void_ent);
 

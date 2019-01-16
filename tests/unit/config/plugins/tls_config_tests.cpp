@@ -160,7 +160,7 @@ TEST_F(TLSConfigTests, test_setup) {
   ASSERT_TRUE(status.ok());
   EXPECT_STREQ(db_value.c_str(), "CachedKey");
 
-  // TLSConfigPlugin::setUp wih enroll_always set to true
+  // TLSConfigPlugin::setUp with enroll_always set to true
   //
   // Set the enroll_always flag to true. This should force the
   // tls_config_plugin->setUp to go through TLS enrollment

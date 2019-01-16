@@ -26,7 +26,7 @@ enum class RocksdbError {
   BatchWriteFail = 3,
 };
 
-// This implementaion is not 100% thread safe and does not
+// This implementation is not 100% thread safe and does not
 // support close/open commands during regular db usage.
 // It's safe as long as DB is open in single threaded manner,
 // and only then used from multiple threads.
@@ -44,7 +44,7 @@ class RocksdbDatabase final : public Database {
   ExpectedSuccess<DatabaseError> open() override;
 
   // Open and close are not thread safe commands,
-  // Before closing db you need to ensure that no other theads are currenly
+  // Before closing db you need to ensure that no other theads are currently
   // using db connection.
   // Please see comment above about reopening db.
   void close() override;

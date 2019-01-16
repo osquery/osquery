@@ -111,7 +111,7 @@ static auto kShutdownCallable = ([]() {
     // Wait forever, until the service handler signals us
     ::WaitForSingleObject(stopEvent, INFINITE);
 
-    // Interupt the worker service threads before joining
+    // Interrupt the worker service threads before joining
     Dispatcher::stopServices();
 
     auto ret = ::CloseHandle(stopEvent);

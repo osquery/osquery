@@ -57,7 +57,7 @@ class Uri {
   }
   /**
    * Get host part of URI. If host is an IPv6 address, square brackets will not
-   * be returned, for exmaple "::1"; otherwise it returns the same thing as
+   * be returned, for example "::1"; otherwise it returns the same thing as
    * host().
    *
    * hostname() is what one needs to call if passing the host to any other tool

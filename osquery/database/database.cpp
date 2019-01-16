@@ -88,9 +88,9 @@ Status DatabasePlugin::initPlugin() {
 }
 
 void DatabasePlugin::shutdown() {
-  auto datbase_registry = RegistryFactory::get().registry("database");
+  auto database_registry = RegistryFactory::get().registry("database");
   for (auto& plugin : RegistryFactory::get().names("database")) {
-    datbase_registry->remove(plugin);
+    database_registry->remove(plugin);
   }
 }
 

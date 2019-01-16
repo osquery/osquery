@@ -100,7 +100,7 @@ Status ExtensionManagerInterface::registerExtension(
     }
   }
 
-  // srand must be called in the active thread on Windows due to thread saftey
+  // srand must be called in the active thread on Windows due to thread safety
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     std::srand(static_cast<unsigned int>(
         chrono_clock::now().time_since_epoch().count()));

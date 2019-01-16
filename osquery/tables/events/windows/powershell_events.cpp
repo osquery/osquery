@@ -47,7 +47,7 @@ class PowershellEventSubscriber
  public:
   Status init() override {
     // Before starting our subscription, purge any residual db entries as it's
-    // unlikely we'll finish re-assmebling them
+    // unlikely we'll finish re-assembling them
     std::vector<std::string> keys;
     scanDatabaseKeys(kEvents, keys, kScriptBlockPrefix);
     for (const auto& k : keys) {

@@ -69,7 +69,7 @@ class MockLibsmartctlClient : public libsmartctl::ClientInterface {
 
     } else {
       // type is the full type of the device, which is always "<controller
-      // name>, <N>".  We can gaurantee uniqueness by pinning the the number N
+      // name>, <N>".  We can guarantee uniqueness by pinning the the number N
       // to the nth element of the STL.
       auto n = type.at(type.find(",") + 1);
       auto nIt = std::next(data_.begin(), n - '0');

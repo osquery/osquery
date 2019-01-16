@@ -458,7 +458,7 @@ void genNamespaces(const std::string& pid, QueryData& results) {
   Status status = procGetProcessNamespaces(pid, proc_ns);
   if (!status.ok()) {
     VLOG(1) << "Namespaces for pid " << pid
-            << " are imcomplete: " << status.what();
+            << " are incomplete: " << status.what();
   }
 
   r["pid"] = pid;

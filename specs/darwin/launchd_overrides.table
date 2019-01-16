@@ -3,7 +3,7 @@ description("Override keys, per user, for LaunchDaemons and Agents.")
 schema([
     Column("label", TEXT, "Daemon or agent service name"),
     Column("key", TEXT, "Name of the override key"),
-    Column("value", TEXT, "Overriden value"),
+    Column("value", TEXT, "Overridden value"),
     Column("uid", BIGINT, "User ID applied to the override, 0 applies to all"),
     Column("path", TEXT, "Path to daemon or agent plist"),
 ])

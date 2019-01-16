@@ -194,7 +194,7 @@ class DistributedPlugin : public Plugin {
    */
   virtual Status writeResults(const std::string& json) = 0;
 
-  /// Main entrypoint for distirbuted plugin requests
+  /// Main entrypoint for distributed plugin requests
   Status call(const PluginRequest& request, PluginResponse& response) override;
 };
 

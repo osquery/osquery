@@ -141,7 +141,7 @@ TEST_F(RegistryTests, test_auto_registries) {
   EXPECT_EQ(TestCoreRegistry::get().count("dog"), 1U);
 }
 
-TEST_F(RegistryTests, test_persistant_registries) {
+TEST_F(RegistryTests, test_persistent_registries) {
   EXPECT_EQ(TestCoreRegistry::get().count("cat"), 1U);
 }
 
@@ -210,7 +210,7 @@ TEST_F(RegistryTests, test_registry_api) {
   auto widgets = TestCoreRegistry::get().registry("widgets");
   widgets->add("special", std::make_shared<SpecialWidget>());
 
-  // Test route info propogation, from item to registry, to broadcast.
+  // Test route info propagation, from item to registry, to broadcast.
   auto ri = TestCoreRegistry::get().plugin("widgets", "special")->routeInfo();
   EXPECT_EQ(ri[0].at("name"), "special");
 

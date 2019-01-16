@@ -170,7 +170,7 @@ QueryData genDebPackages(QueryContext &context) {
 
   for (int i = 0; i < packages.n_pkgs; i++) {
     struct pkginfo *pkg = packages.pkgs[i];
-    // Casted to int to allow the older enums that were embeded in the packages
+    // Casted to int to allow the older enums that were embedded in the packages
     // struct to be compared
     if (static_cast<int>(pkg->status) ==
         static_cast<int>(PKG_STAT_NOTINSTALLED)) {

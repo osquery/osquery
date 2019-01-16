@@ -16,7 +16,7 @@
 
 namespace osquery {
 
-/// Set the enviroment variable name with value value.
+/// Set the environment variable name with value value.
 bool setEnvVar(const std::string& name, const std::string& value);
 
 /// Unsets the environment variable specified by name.

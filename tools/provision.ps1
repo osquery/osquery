@@ -16,7 +16,7 @@
     Target = "*")]
 param()
 
-# URL of where our pre-compiled third-party dependenices are archived
+# URL of where our pre-compiled third-party dependencies are archived
 $THIRD_PARTY_ARCHIVE_URL = 'https://osquery-packages.s3.amazonaws.com/choco'
 
 # Make a best effort to dot-source our utils script
@@ -86,7 +86,7 @@ function Add-ToPath {
   $env:Path += $appendPath
 }
 
-# Searchs the system path for a specified directory, and if exists, deletes
+# Searches the system path for a specified directory, and if exists, deletes
 # the value from the system path.
 function Remove-FromPath {
   [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]

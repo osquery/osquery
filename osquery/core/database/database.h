@@ -52,7 +52,7 @@ class Database {
 
   // This funcion should completely destroy db, so after next open
   // db should be fresh new
-  // Implementaion can expect that db is closed before
+  // Implementation can expect that db is closed before
   // calling destroyDB and should crash/fail in case when db is still open
   virtual ExpectedSuccess<DatabaseError> destroyDB() = 0;
 
@@ -84,7 +84,7 @@ class Database {
   // This function designed to write batch of data as one operation and get
   // as much performance as possbile. Because of this, db may not guarantee
   // data consistency or atomic nature of operation
-  // Please see actual function implementaion for details and limitations
+  // Please see actual function implementation for details and limitations
   virtual ExpectedSuccess<DatabaseError> putStringsUnsafe(
       const std::string& domain,
       const std::vector<std::pair<std::string, std::string>>& data) = 0;

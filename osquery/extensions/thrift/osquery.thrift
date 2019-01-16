@@ -66,7 +66,7 @@ service Extension {
     1:string registry,
     /// The registry item name (plugin name).
     2:string item,
-    /// The thrift-equivilent of an osquery::PluginRequest.
+    /// The thrift-equivalent of an osquery::PluginRequest.
     3:ExtensionPluginRequest request),
   /// Request that an extension shutdown (does not apply to managers).
   void shutdown(),
