@@ -11,7 +11,7 @@ load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
-    name = "json",
+    name = "serializer_json",
     srcs = ["json.cpp"],
     header_namespace = "osquery/remote/serializers",
     exported_headers = ["json.h"],
@@ -31,6 +31,6 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/remote/serializers:json"),
+        osquery_target("osquery/remote/serializers:serializer_json"),
     ],
 )

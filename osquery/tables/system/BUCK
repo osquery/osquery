@@ -12,7 +12,7 @@ load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD", "LINUX", "MACOSX
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
-    name = "system",
+    name = "system_table",
     srcs = [
         "cpuid.cpp",
         "hash.cpp",
@@ -307,7 +307,7 @@ osquery_cxx_library(
         osquery_target("osquery:headers"),
         osquery_target("osquery/core:core"),
         osquery_target("osquery/events:events"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/hashing:hashing"),
         osquery_target("osquery/logger:logger"),
         osquery_target("osquery/process:process"),

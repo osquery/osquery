@@ -17,7 +17,7 @@ osquery_cxx_library(
     exported_headers = glob(["*.h"]),
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/core/sql:sql"),
+        osquery_target("osquery/core/sql:core_sql"),
         osquery_target("osquery/utils/json:json"),
         osquery_target("osquery/utils/status:status"),
     ],

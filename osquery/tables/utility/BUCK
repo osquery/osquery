@@ -11,7 +11,7 @@ load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
-    name = "utility",
+    name = "utility_table",
     srcs = [
         "file.cpp",
         "osquery.cpp",
@@ -22,7 +22,7 @@ osquery_cxx_library(
     deps = [
         osquery_target("osquery/config:config"),
         osquery_target("osquery/core:core"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/process:process"),
         osquery_target("osquery/utils/macros:macros"),
         osquery_target("osquery/utils/system:system"),

@@ -31,7 +31,7 @@ osquery_cxx_library(
     deps = [
         osquery_target("osquery/config:config"),
         osquery_target("osquery/core:core"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/process:process"),
         osquery_target("osquery/sql:sql"),
         osquery_target("osquery/utils:utils"),

@@ -42,7 +42,7 @@ osquery_python_library(
     ],
     base_module = "osquery.tools.codegen",
     deps = [
-        osquery_target("tools/tests:utils"),
+        osquery_target("tools/tests:tools_test_utils"),
         osquery_tp_target("jinja2"),
     ],
 )
@@ -53,7 +53,7 @@ osquery_python_binary(
     platform = "py3",
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("tools/tests:utils"),
+        osquery_target("tools/tests:tools_test_utils"),
         ":lib_gentable",
     ],
 )
@@ -65,7 +65,7 @@ osquery_python_library(
     ],
     base_module = "osquery.tools.codegen",
     deps = [
-        osquery_target("tools/tests:utils"),
+        osquery_target("tools/tests:tools_test_utils"),
         osquery_tp_target("jinja2"),
     ],
 )
@@ -76,7 +76,7 @@ osquery_python_binary(
     platform = "py3",
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("tools/tests:utils"),
+        osquery_target("tools/tests:tools_test_utils"),
         ":lib_amalgamate",
     ],
 )

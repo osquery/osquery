@@ -23,13 +23,13 @@ osquery_cxx_library(
     ],
     link_whole = True,
     tests = [
-        osquery_target("osquery/config/tests:config"),
+        osquery_target("osquery/config/tests:config_tests"),
         osquery_target("osquery/config/tests:packs"),
     ],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery:headers"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/hashing:hashing"),
         osquery_target("osquery/utils:utils"),
         osquery_target("osquery/utils/system:time"),

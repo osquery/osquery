@@ -839,6 +839,6 @@ osquery_gentable_cxx_library(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/tables:tables"),
+        osquery_target("osquery/tables:table_implementations"),
     ],
 )

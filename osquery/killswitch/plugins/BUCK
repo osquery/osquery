@@ -10,7 +10,7 @@ load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_c
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 
 osquery_cxx_library(
-    name = "filesystem",
+    name = "killswitch_filesystem",
     srcs = [
         "killswitch_filesystem.cpp",
     ],
@@ -23,12 +23,12 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/killswitch:killswitch"),
-        osquery_target("osquery/utils/config:config"),
+        osquery_target("osquery/utils/config:utils_config"),
     ],
 )
 
 osquery_cxx_library(
-    name = "tls",
+    name = "killswitch_tls",
     srcs = [
         "killswitch_tls.cpp",
     ],
@@ -41,7 +41,7 @@ osquery_cxx_library(
     deps = [
         osquery_target("osquery/killswitch:killswitch"),
         osquery_target("osquery/remote:utility"),
-        osquery_target("osquery/remote/serializers:json"),
+        osquery_target("osquery/remote/serializers:serializer_json"),
     ],
 )
 
@@ -66,7 +66,7 @@ osquery_cxx_test(
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/info:info"),
-        osquery_target("osquery/killswitch/plugins:filesystem"),
+        osquery_target("osquery/killswitch/plugins:killswitch_filesystem"),
         osquery_target("tests:helper"),
     ],
 )

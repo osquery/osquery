@@ -12,7 +12,7 @@ load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX",
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
-    name = "helper",
+    name = "integration_tests_helper",
     srcs = [
         "helper.cpp",
     ],
@@ -302,6 +302,6 @@ osquery_cxx_test(
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/info:info"),
         osquery_target("specs:tables"),
-        ":helper",
+        ":integration_tests_helper",
     ],
 )

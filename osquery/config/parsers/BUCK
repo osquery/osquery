@@ -35,7 +35,7 @@ osquery_cxx_library(
     link_whole = True,
     tests = [
         osquery_target("osquery/config/parsers/tests:decorators_tests"),
-        osquery_target("osquery/config/parsers/tests:events_tests"),
+        osquery_target("osquery/config/parsers/tests:events_parser_tests"),
         osquery_target("osquery/config/parsers/tests:file_paths_tests"),
         osquery_target("osquery/config/parsers/tests:options_tests"),
         osquery_target("osquery/config/parsers/tests:views_tests"),
@@ -46,7 +46,7 @@ osquery_cxx_library(
         osquery_target("osquery/config:config"),
         osquery_target("osquery/core:core"),
         osquery_target("osquery/database:database"),
-        osquery_target("osquery/filesystem:filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/logger:data_logger"),
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/sql:sql"),

@@ -12,7 +12,7 @@ load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
-    name = "lldpd",
+    name = "lldpd_table",
     srcs = [
         "lldp_neighbors.cpp",
     ],

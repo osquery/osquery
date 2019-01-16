@@ -12,7 +12,7 @@ load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD", "LINUX", "MACOSX
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
-    name = "filesystem",
+    name = "osquery_filesystem",
     srcs = [
         "file_compression.cpp",
         "filesystem.cpp",
@@ -88,7 +88,7 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = [
         osquery_tp_target("boost"),
-        ":filesystem",
+        ":osquery_filesystem",
     ],
 )
 
@@ -114,7 +114,7 @@ osquery_cxx_test(
         osquery_target("osquery/config/tests:test_utils"),
         osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/core:core"),
-        osquery_target("osquery/core/sql:sql"),
+        osquery_target("osquery/core/sql:core_sql"),
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/distributed:distributed"),
         osquery_target("osquery/events:events"),
@@ -123,7 +123,7 @@ osquery_cxx_test(
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("specs:tables"),
-        ":filesystem",
         ":mock_file_structure",
+        ":osquery_filesystem",
     ],
 )

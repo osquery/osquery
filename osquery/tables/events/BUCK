@@ -12,7 +12,7 @@ load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "WINDOWS
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
-    name = "events",
+    name = "events_table",
     srcs = [
         "event_utils.cpp",
     ],
