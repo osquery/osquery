@@ -535,11 +535,7 @@ Status NTFSEventPublisher::run() {
                                     journal_record.parent_ref_number);
 
       if (!status.ok()) {
-        if (journal_record.type !=
-                USNJournalEventRecord::Type::DirectoryDeletion &&
-            journal_record.type != USNJournalEventRecord::Type::FileDeletion) {
-          VLOG(1) << status.getMessage();
-        }
+        VLOG(1) << "Parent FRN lookup failed: " << status.getMessage();
 
         event.path = journal_record.name;
         event.partial = true;
@@ -553,7 +549,7 @@ Status NTFSEventPublisher::run() {
                                     old_name_record.name,
                                     old_name_record.parent_ref_number);
       if (!status.ok()) {
-        VLOG(1) << status.getMessage();
+        VLOG(1) << "Parent FRN lookup failed: " << status.getMessage();
         event.partial = true;
       }
     }
