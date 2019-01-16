@@ -83,7 +83,15 @@ struct NTFSEventRecord final {
   /// the file or folder name inside path or old_path
   bool partial{false};
 
-  NTFSEventRecord(const USNJournalEventRecord& rec);
+  NTFSEventRecord(const USNJournalEventRecord& rec)
+    : type(rec.type)
+    , record_timestamp(rec.record_timestamp)
+    , attributes(rec.attributes)
+    , update_sequence_number(rec.update_sequence_number)
+    , node_ref_number(rec.node_ref_number)
+    , parent_ref_number(rec.parent_ref_number)
+    , drive_letter(rec.drive_letter)
+    {}
 };
 
 /// This structure is used to save volume handles and reference ids
