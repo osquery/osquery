@@ -37,6 +37,16 @@ REGISTER(NTFSEventPublisher, "event_publisher", "ntfs_event_publisher");
 namespace {
 namespace boostfs = boost::filesystem;
 
+NTFSEventRecord(const USNJournalEventRecord& rec) {
+  type = rec.type;
+  record_timestamp = rec.record_timestamp;
+  attributes = rec.attributes;
+  update_sequence_number = rec.update_sequence_number;
+  node_ref_number = rec.node_ref_number;
+  parent_ref_number = rec.parent_ref_number;
+  drive_letter = rec.drive_letter;
+}
+
 std::ostream& operator<<(std::ostream& stream, const NTFSEventRecord& event) {
   std::ios_base::fmtflags original_stream_settings(stream.flags());
 
@@ -515,14 +525,7 @@ Status NTFSEventPublisher::run() {
     }
 
     // Generate the new event
-    NTFSEventRecord event = {};
-    event.type = journal_record.type;
-    event.record_timestamp = journal_record.record_timestamp;
-    event.attributes = journal_record.attributes;
-    event.update_sequence_number = journal_record.update_sequence_number;
-    event.node_ref_number = journal_record.node_ref_number;
-    event.parent_ref_number = journal_record.parent_ref_number;
-    event.drive_letter = journal_record.drive_letter;
+    NTFSEventRecord event(journal_record);
 
     // TODO(ww): This is failing occasionally for files that do exist
     // on disk, but only on the first call to look them up. I'm not

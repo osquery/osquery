@@ -82,6 +82,8 @@ struct NTFSEventRecord final {
   /// If true, this event is partial; it means that we could only get
   /// the file or folder name inside path or old_path
   bool partial{false};
+
+  NTFSEventRecord(const USNJournalEventRecord& rec);
 };
 
 /// This structure is used to save volume handles and reference ids
