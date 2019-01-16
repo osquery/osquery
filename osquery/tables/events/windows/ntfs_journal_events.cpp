@@ -24,7 +24,7 @@
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
-#include <osquery/utils/json.h>
+#include <osquery/utils/json/json.h>
 
 #include <osquery/tables/events/windows/ntfs_journal_events.h>
 
