@@ -5,22 +5,25 @@ explain the basics of the osquery development process and how you can contribute
 these guidelines before submitting your code as they are designed to save you time later on when
 your code is under review and give you the basics of how to get started.
 
-## Our Development Process
+## Contributing 101
 
-### Open Development
+All contributions from the community are submitted via pull requests open against the osquery's
+[master](https://github.com/facebook/osquery/tree/master) branch on GitHub. After reviewed by the
+core team and tested by TravisCI the code will be imported to Phabricator, Facebook's code
+management system, will go through additional testing, and if all is well finally be pushed to
+master and the corresponding PR closed. The core team submits contributions directly through
+Phabricator, but a corresponding PR will be opened on GitHub providing transparency onto our
+development and an opportunity for the community to comment on the PR before it is merged.
 
-All osquery development happens on [GitHub](https://github.com/facebook/osquery) which is our source
-of truth. All contributions, both from core team members and external contributors, happen via pull
-requests and go through the same review process. We use GitHub issues to track bugs and feature
-requests including the ones from the core team.
-
-Both our core team and community members are on the osquery [Slack](https://osquery.slack.com).
-Feel free to register using the following [link](https://slack.osquery.io/) if you haven't done so
-yet.
+If you need help, both the core team and community members are on the osquery
+[Slack](https://osquery.slack.com). Feel free to register using the following
+[link](https://slack.osquery.io/) if you haven't done so yet and get in touch with us.
 
 The osquery team also hosts regular office hours where the community is invited to discuss osquery
 development with the core team. You are welcome to join. Office hours are announced on our Slack on
 the `officehours` channel.
+
+## Development Process Guidelines
 
 ### Blueprints
 
@@ -56,11 +59,6 @@ the issue. Feel free to advertise your blueprint and ask for feedback on Slack.
 
 ### Pull requests
 
-All contributions are submitted via pull requests open against the
-[master](https://github.com/facebook/osquery/tree/master) branch. We **do not** push code directly
-to the master branch and pull requests are all reviewed before being merged including the ones from
-the core team.
-
 **Do not submit multiple unrelated changes on the same PR.** A pull request must represent a single
 body of work. If your work requires a bug-fix, submit that first on a separate PR, the same goes for
 refactors. If you can split your work into multiple smaller PRs please also do so. This is of utmost
@@ -77,22 +75,18 @@ Don't forget to tag the issues you're addressing on the body of your PR descript
 is intended to close an issue keywords (like `fixes` or `closes`) as defined on [GitHub
 Help](https://help.github.com/articles/closing-issues-using-keywords/).
 
-Once you submit your PR the core team will review it and trigger CI tests on our Jenkins instance. A
-common source of test failures is wrong code formatting. All the code you submit should be formatted
-with `clang-format`, but you shouldn't format more than the code you touch, just run `make
-format_master` and amend your commit with any resulting changes before submitting.
+Once you submit your PR the core team will review it and CI tests will be triggered on TravisCI for
+the multiple platforms we support. If the tests fail or the reviewer requests changes, please submit
+those changes by **appending new commits** to your feature branch. **Avoid amending old commits** as
+that makes it harder for the reviewer to track your updates. If you need to keep your PR up-to-date
+with master the preferred way is to rebase your branch on master and force-push. Finally, the core
+team might help you with getting your PR accepted by pushing directly to your branch when that makes
+sense.
 
-If the tests fail or the reviewer requests changes, please submit those changes by **appending new
-commits** to your feature branch. **Avoid amending old commits** as that makes it harder for the
-reviewer to track your updates. If you need to keep your PR up-to-date with master the preferred way
-is to rebase your branch on master and force-push. Finally the core team might help you with getting
-your PR accepted by pushing directly to your branch when that makes sense.
-
-Once at least one core team member approves your pull request and Jenkins is happy (remember tests
-need to pass for all supported platforms) the PR is ready to merge. The core team will merge your PR
-by squashing all your commits into one. The commit body message will be removed but the PR number
-will be kept in the title so that you can link back a commit to a PR and check the full discussion
-and reviews on GitHub.
+Once both the core team and TravisCI are happy with the PR (remember tests need to pass for all of
+the supported platforms) the PR will be imported to Phabricator where additional tests will run. If
+all is well the PR will be squashed into a single commit and pushed to the master branch from
+Phabricator which will finally close the PR.
 
 Only the core team can merge pull requests and therefore at least one core team member will always
 review your PR, however reviews from the community are highly encouraged and desirable.
