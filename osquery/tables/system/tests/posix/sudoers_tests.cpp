@@ -88,7 +88,7 @@ TEST_F(SudoersTests, include_file) {
 
   const auto& first_row = results[0];
   ASSERT_EQ(first_row.at("source"), sudoers_top.string());
-  ASSERT_EQ(first_row.at("header"), "include");
+  ASSERT_EQ(first_row.at("header"), "#include");
   ASSERT_EQ(first_row.at("rule_details"), sudoers_inc.string());
 
   const auto& second_row = results[1];
@@ -127,7 +127,7 @@ TEST_F(SudoersTests, include_dir) {
 
   const auto& first_row = results[0];
   ASSERT_EQ(first_row.at("source"), sudoers_top.string());
-  ASSERT_EQ(first_row.at("header"), "includedir");
+  ASSERT_EQ(first_row.at("header"), "#includedir");
   ASSERT_EQ(first_row.at("rule_details"), sudoers_dir.string());
 
   const auto& second_row = results[1];

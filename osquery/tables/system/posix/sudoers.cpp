@@ -34,10 +34,10 @@ const std::string kSudoFile = "/usr/local/etc/sudoers";
 // sudoers(5): No more than 128 files are allowed to be nested.
 // NOTE(ww): We count each individual file in an included dir as
 // a new layer of nesting, but what does sudo do?
-static const int kMaxNest = 128;
+static const unsigned int kMaxNest = 128;
 
 void genSudoersFile(const std::string& filename,
-                    int level,
+                    unsigned int level,
                     QueryData& results) {
   if (level > kMaxNest) {
     TLOG << "sudoers file recursion maximum reached";
@@ -59,13 +59,16 @@ void genSudoersFile(const std::string& filename,
     if (line.size() > 0 && line.at(0) != '#') {
       r["source"] = filename;
 
-      auto cols = split(line);
-      r["header"] = cols.at(0);
+      auto header_pos = line.find_first_of("\t\v ");
+      r["header"] = line.substr(0, header_pos);
 
-      cols.erase(cols.begin());
-      r["rule_details"] = join(cols, " ");
+      if (header_pos == std::string::npos) {
+        header_pos = line.size() - 1;
+      }
 
-      results.push_back(r);
+      r["rule_details"] = line.substr(header_pos + 1);
+
+      results.push_back(std::move(r));
     } else if (line.find("#includedir") == 0) {
       auto space = line.find_first_of(' ');
 
@@ -86,9 +89,9 @@ void genSudoersFile(const std::string& filename,
 
       // Build and push the row before recursing.
       r["source"] = filename;
-      r["header"] = "includedir";
+      r["header"] = "#includedir";
       r["rule_details"] = inc_dir;
-      results.push_back(r);
+      results.push_back(std::move(r));
 
       std::vector<std::string> inc_files;
       if (!listFilesInDirectory(inc_dir, inc_files).ok()) {
@@ -123,14 +126,14 @@ void genSudoersFile(const std::string& filename,
       // Per sudoers(5): If the included file doesn't
       // start with /, read it relative to the current file.
       if (inc_file.at(0) != '/') {
-        auto path = fs::path(filename).parent_path() / inc_file;
+        const auto path = fs::path(filename).parent_path() / inc_file;
         inc_file = path.string();
       }
 
       r["source"] = filename;
-      r["header"] = "include";
+      r["header"] = "#include";
       r["rule_details"] = inc_file;
-      results.push_back(r);
+      results.push_back(std::move(r));
 
       genSudoersFile(inc_file, ++level, results);
     }
