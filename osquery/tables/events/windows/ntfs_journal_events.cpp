@@ -330,7 +330,7 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
 #if _WIN32_WINNT > _WIN32_WINNT_WIN7
     FILE_ID_INFO file_id_info;
     if (!::GetFileInformationByHandleEx(
-            file_hnd, &file_id_info, sizeof(file_id_info))) {
+            file_hnd, FileIdInfo, &file_id_info, sizeof(file_id_info))) {
       TLOG << "Couldn't get FRN for " << path << " while building FRN set";
       ::CloseHandle(file_hnd);
       continue;
