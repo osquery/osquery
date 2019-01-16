@@ -317,7 +317,7 @@ void genFDEStatusForAPFS(Row& r) {
         for (const auto& row : rows) {
           if (row.count("uuid") > 0 && row.at("uuid") == uuidStr) {
             r["user_uuid"] = row.at("uuid");
-            r["uid"] = row.count("uuid") > 0 ? row.at("uid") : "";
+            r["uid"] = row.count("uid") > 0 ? row.at("uid") : "";
           }
         }
       }

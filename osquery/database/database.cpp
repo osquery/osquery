@@ -197,7 +197,8 @@ Status DatabasePlugin::call(const PluginRequest& request,
   } else if (request.at("action") == "remove") {
     return this->remove(domain, key);
   } else if (request.at("action") == "remove_range") {
-    auto key_high = (request.count("high") > 0) ? request.at("key_high") : "";
+    auto key_high =
+        (request.count("key_high") > 0) ? request.at("key_high") : "";
     if (!key_high.empty() && !key.empty()) {
       return this->removeRange(domain, key, key_high);
     }
