@@ -598,7 +598,7 @@ Status NTFSEventPublisher::run() {
 
   fire(event_context);
 
-  return Status(0, "OK");
+  return Status(0);
 }
 
 void NTFSEventPublisher::tearDown() {
