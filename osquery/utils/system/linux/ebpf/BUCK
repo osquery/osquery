@@ -19,6 +19,7 @@ osquery_cxx_library(
             LINUX,
             [
                 "ebpf.h",
+                "map.h",
             ],
         ),
     ],
@@ -27,6 +28,7 @@ osquery_cxx_library(
             LINUX,
             [
                 "ebpf.cpp",
+                "map.cpp",
             ],
         ),
     ],

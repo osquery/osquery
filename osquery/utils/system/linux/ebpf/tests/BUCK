@@ -20,6 +20,7 @@ osquery_cxx_test(
             LINUX,
             [
                 "ebpf.cpp",
+                "map.cpp",
             ],
         ),
     ],
