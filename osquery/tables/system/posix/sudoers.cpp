@@ -32,8 +32,6 @@ const std::string kSudoFile = "/usr/local/etc/sudoers";
 #endif
 
 // sudoers(5): No more than 128 files are allowed to be nested.
-// NOTE(ww): We count each individual file in an included dir as
-// a new layer of nesting, but what does sudo do?
 static const unsigned int kMaxNest = 128;
 
 void genSudoersFile(const std::string& filename,
