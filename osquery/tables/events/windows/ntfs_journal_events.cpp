@@ -8,6 +8,13 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+/* NOTE(ww): osquery targets Windows 7, but we do feature-testing below
+ * to support journal events on later versions of Windows.
+ */
+#undef _WIN32_WINNT
+#undef NTDDI_VERSION
+
+#include <SdkDdkVer.h>
 #include <Windows.h>
 
 #include <boost/functional/hash.hpp>
@@ -318,19 +325,36 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
     // another TOCTOU here: another process could delete the file before we
     // get its information. We don't want to lock the file, though, since it
     // could be something imporant used by another process.
-    // TODO(ww): Use GetFileInformationByHandleEx here once osquery allows us
-    // to feature test for Windows 8+.
+    USNFileReferenceNumber frn = 0;
+
+#if _WIN32_WINNT > _WIN32_WINNT_WIN7
+    FILE_ID_INFO file_id_info;
+    if (!::GetFileInformationByHandleEx(
+            file_hnd, &file_id_info, sizeof(file_id_info))) {
+      TLOG << "Couldn't get FRN for " << path << " while building FRN set";
+      ::CloseHandle(file_hnd);
+      continue;
+    }
+
+    const auto& byte_array = file_id_info.FileId.Identifier;
+    boostmp::import_bits(frn,
+                         byte_array,
+                         byte_array + sizeof(FILE_ID_128::Identifier),
+                         0,
+                         false);
+#else
     BY_HANDLE_FILE_INFORMATION file_id_info;
     if (!::GetFileInformationByHandle(file_hnd, &file_id_info)) {
       TLOG << "Couldn't get FRN for " << path << " while building FRN set";
       ::CloseHandle(file_hnd);
       continue;
     }
-    ::CloseHandle(file_hnd);
 
-    USNFileReferenceNumber frn = 0;
     frn = (long long)(file_id_info.nFileIndexHigh << 32) |
           file_id_info.nFileIndexLow;
+#endif
+
+    ::CloseHandle(file_hnd);
     frn_set.insert(frn);
   }
 
