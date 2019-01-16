@@ -267,9 +267,7 @@ Status NTFSEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     emitted_row_list.push_back(row);
   }
 
-  if (!emitted_row_list.empty()) {
-    addBatch(emitted_row_list);
-  }
+  addBatch(emitted_row_list);
 
   return Status(0);
 }
