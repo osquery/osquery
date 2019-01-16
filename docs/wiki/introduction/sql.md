@@ -388,7 +388,6 @@ There are also encoding functions available to you to process query results.
 
     </p>
     </details>
-    
 - `conditional_to_base64`: Encode a string if and only if the string contains non-ASCII characters.
     <details>
     <summary>Conditional Base64 encode example:</summary>
