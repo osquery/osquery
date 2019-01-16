@@ -158,9 +158,6 @@ std::vector<USNJournalEventRecord> NTFSEventPublisher::acquireJournalRecords() {
 }
 
 NTFSEventPublisherConfiguration NTFSEventPublisher::readConfiguration() {
-  auto config_parser = Config::getParser("file_paths");
-  const auto& json = config_parser->getData().doc();
-
   NTFSEventPublisherConfiguration configuration = {};
 
   // We are not going to expand the paths, as we just need to get the
