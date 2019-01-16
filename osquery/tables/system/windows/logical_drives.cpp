@@ -16,7 +16,7 @@ QueryData genLogicalDrives(QueryContext& context) {
   QueryData results;
 
   const WmiRequest wmiLogicalDiskReq(
-      "select DeviceID, DriveType, FreeSpace, Size, FileSystem from "
+      "select DeviceID, Description, FreeSpace, Size, FileSystem from "
       "Win32_LogicalDisk");
   const std::vector<WmiResultItem>& wmiResults = wmiLogicalDiskReq.results();
   for (unsigned int i = 0; i < wmiResults.size(); ++i) {
