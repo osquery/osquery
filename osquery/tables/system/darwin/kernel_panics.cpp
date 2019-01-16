@@ -38,7 +38,8 @@ const std::set<std::string> kKernelRegisters = {
 };
 
 /// List of the days of the Week, used to grab our timestamp.
-const std::set<std::string> kDays = {"Mon", "Tue", "Wed", "Thu", "Fri"};
+const std::set<std::string> kDays = {
+    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
 /// Map of the values we currently parse out of the log file
 const std::map<std::string, std::string> kKernelPanicKeys = {
