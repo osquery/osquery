@@ -81,16 +81,24 @@ create a new `bcfg` file there and update the mode files under
 `mode/windows-x86_64/`. Finding the toolchain path will soon be automated.
 
 
-## Build
+## Build & Test
 
 To build simply run the following command replacing `<platform>` and `<mode>`
 appropriately:
 
 ```
-buck build @mode/<platform>/release osquery:osqueryd
+buck build @mode/<platform>/<mode> //osquery:osqueryd
 ```
 
 When buck finishes find the binary at `buck-out/<mode>/gen/osquery/osqueryd`.
+
+Similarly to run tests just run:
+
+```
+buck test @mode/<platform>/<mode> //...
+```
+
+This will run all tests, you can replace `//...` with a specific target to run specific tests only.
 
 Supported platforms:
 
