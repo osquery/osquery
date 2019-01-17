@@ -272,7 +272,6 @@ Status NTFSEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   return Status(0);
 }
 
-// TODO(alessandro): Write a test for this
 void processConfiguration(const NTFSEventSubscriptionContextRef context,
                           const StringList& access_categories,
                           StringList& include_paths,
