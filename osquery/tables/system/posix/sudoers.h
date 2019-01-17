@@ -16,7 +16,9 @@
 namespace osquery {
 namespace tables {
 
-void genSudoersFile(const std::string& filename, int level, QueryData& results);
+void genSudoersFile(const std::string& filename,
+                    unsigned int level,
+                    QueryData& results);
 
 QueryData genSudoers(QueryContext& context);
 
