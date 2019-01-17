@@ -1,3 +1,5 @@
+osquery_native = native
+
 def osquery_get_os():
     if native.host_info().os.is_linux:
         return "linux"
@@ -23,10 +25,10 @@ def osquery_target(target):
     )
 
 def osquery_genrule(**kwargs):
-    native.genrule(**kwargs)
+    osquery_native.genrule(**kwargs)
 
 def osquery_filegroup(**kwargs):
-    native.filegroup(**kwargs)
+    osquery_native.filegroup(**kwargs)
 
 def osquery_http_archive(**kwargs):
-    native.http_archive(**kwargs)
+    osquery_native.http_archive(**kwargs)
