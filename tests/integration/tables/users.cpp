@@ -53,6 +53,7 @@ TEST_F(UsersTest, test_sanity) {
   }
   if (isPlatform(PlatformType::TYPE_OSX)) {
     row_map.emplace("uuid", ValidUUID);
+    row_map.emplace("is_hidden", IntType);
   } else {
     row_map.emplace("uuid", NormalType);
   }
