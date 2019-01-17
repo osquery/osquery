@@ -1,4 +1,8 @@
-osquery_native = native
+load(
+    "//tools/build_defs/oss/osquery:defaults.bzl",
+    _OSQUERY_ROOT_TARGET_PATH = "OSQUERY_ROOT_TARGET_PATH",
+)
+load("//tools/build_defs/oss/osquery:native_functions.bzl", "osquery_native")
 
 def osquery_get_os():
     if native.host_info().os.is_linux:
@@ -20,9 +24,7 @@ def osquery_get_current_platform():
     return "{}-{}".format(osquery_get_os(), osquery_get_arch())
 
 def osquery_target(target):
-    return "//{}".format(
-        target,
-    )
+    return "{}{}".format(_OSQUERY_ROOT_TARGET_PATH, target)
 
 def osquery_genrule(**kwargs):
     osquery_native.genrule(**kwargs)

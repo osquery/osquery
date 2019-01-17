@@ -1,4 +1,4 @@
-load("//tools/build_defs/oss/osquery:native.bzl", "osquery_native")
+load("//tools/build_defs/oss/osquery:native_functions.bzl", "osquery_native")
 
 def osquery_python_library(**kwargs):
     osquery_native.python_library(**kwargs)
