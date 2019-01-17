@@ -39,6 +39,7 @@ QueryData genLogicalDrives(QueryContext& context) {
       std::string bootDirectory;
       bootConfiguration.GetString("BootDirectory", bootDirectory);
 
+      // e.g., "C:\\Windows".find("D:")
       if (bootDirectory.find(deviceId) == 0) {
         bootPartition = 1;
         break;
