@@ -66,7 +66,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
               << ")";
       continue;
     }
-    auto wtsSession = (PWTSINFO)sessionInfo;
+    auto wtsSession = reinterpret_cast<WTSINFOA*>(sessionInfo);
     r["user"] = SQL_TEXT(wtsSession->UserName);
     r["type"] = SQL_TEXT(kSessionStates.at(pSessionInfo[i].State));
     r["tty"] = pSessionInfo[i].pSessionName == nullptr
@@ -95,7 +95,8 @@ QueryData genLoggedInUsers(QueryContext& context) {
       results.push_back(r);
       continue;
     }
-    auto wtsClient = (PWTSCLIENT)clientInfo;
+
+    auto wtsClient = reinterpret_cast<WTSCLIENTA*>(clientInfo);
     if (wtsClient->ClientAddressFamily == AF_INET) {
       r["host"] = std::to_string(wtsClient->ClientAddress[0]) + "." +
                   std::to_string(wtsClient->ClientAddress[1]) + "." +
@@ -149,7 +150,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
       continue;
     }
 
-    r["sid"] = TEXT(sidStr);
+    r["sid"] = SQL_TEXT(sidStr);
     results.push_back(r);
 
     if (sidStr != nullptr) {
