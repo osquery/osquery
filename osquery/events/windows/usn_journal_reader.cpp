@@ -313,7 +313,6 @@ Status USNJournalReader::processAcquiredRecords(
     std::vector<USNJournalEventRecord>& record_list) {
   record_list.clear();
 
-  const auto buffer_start_ptr = d->read_buffer.data() + sizeof(USN);
   const auto buffer_end_ptr = d->read_buffer.data() + d->bytes_received;
 
   auto current_buffer_ptr = d->read_buffer.data() + sizeof(USN);
@@ -323,10 +322,11 @@ Status USNJournalReader::processAcquiredRecords(
   // are 64 bits aligned from the buffer start. Experimentally that hasn't
   // been a problem yet, but we're not doing that check + correction below.
   while (current_buffer_ptr < buffer_end_ptr) {
-    auto current_record =
+    const auto current_record =
         reinterpret_cast<const USN_RECORD*>(current_buffer_ptr);
 
-    auto next_buffer_ptr = current_buffer_ptr + current_record->RecordLength;
+    const auto next_buffer_ptr =
+        current_buffer_ptr + current_record->RecordLength;
     if (next_buffer_ptr > buffer_end_ptr) {
       return Status(1, "Received a malformed USN_RECORD. Terminating...");
     }
