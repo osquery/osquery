@@ -7,6 +7,7 @@ load(
 load(
     "//tools/build_defs/oss/osquery:defaults.bzl",
     _OSQUERY_THIRD_PARTY_PATH = "OSQUERY_THIRD_PARTY_PATH",
+    _OSQUERY_CELL_NAME = "OSQUERY_CELL_NAME",
 )
 load(
     "//tools/build_defs/oss/osquery:native.bzl",
@@ -351,7 +352,8 @@ def osquery_tp_prebuilt_python_library(
         )
 
 def osquery_tp_target(name, lib = None):
-    return "//{}/{}:{}".format(
+    return "{}{}/{}:{}".format(
+        _OSQUERY_CELL_NAME,
         _OSQUERY_THIRD_PARTY_PATH,
         name,
         lib or name,
