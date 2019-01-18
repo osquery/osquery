@@ -118,6 +118,38 @@ QueryData genLoggedInUsers(QueryContext& context) {
       WTSFreeMemoryEx(WTSTypeSessionInfoLevel1, sessionInfo, count);
       sessionInfo = nullptr;
     }
+
+    HANDLE hToken;
+    res = WTSQueryUserToken(pSessionInfo[i].SessionId, &hToken);
+    if (res == 0) {
+      VLOG(1) << "Error querying user token (" << GetLastError() << ")";
+      results.push_back(r);
+      continue;
+    }
+
+    TOKEN_USER userToken = {};
+    bytesRet = 0;
+    res = GetTokenInformation(
+        hToken, TokenUser, &userToken, sizeof(userToken), &bytesRet);
+    if (res == 0) {
+      VLOG(1) << "Error querying token information (" << GetLastError() << ")";
+      results.push_back(r);
+      continue;
+    }
+
+    CloseHandle(hToken);
+
+    char* sidStr;
+    res = ConvertSidToStringSidA(userToken.User.Sid, &sidStr);
+    if (res == 0) {
+      VLOG(1) << "Error stringifying user SID (" << GetLastError() << ")";
+      results.push_back(r);
+      continue;
+    }
+
+    r["sid"] = TEXT(sidStr);
+
+    LocalFree(sidStr);
   }
 
   if (pSessionInfo != nullptr) {
@@ -127,5 +159,5 @@ QueryData genLoggedInUsers(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
