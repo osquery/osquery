@@ -118,7 +118,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
       sessionInfo = nullptr;
     }
 
-    HANDLE hToken;
+    HANDLE hToken = nullptr;
     res = WTSQueryUserToken(pSessionInfo[i].SessionId, &hToken);
     if (res == 0) {
       VLOG(1) << "Error querying user token (" << GetLastError() << ")";
@@ -136,9 +136,12 @@ QueryData genLoggedInUsers(QueryContext& context) {
       continue;
     }
 
-    CloseHandle(hToken);
+    if (hToken != nullptr) {
+      CloseHandle(hToken);
+      hToken = nullptr;
+    }
 
-    char* sidStr;
+    char* sidStr = nullptr;
     res = ConvertSidToStringSidA(userToken.User.Sid, &sidStr);
     if (res == 0) {
       VLOG(1) << "Error stringifying user SID (" << GetLastError() << ")";
@@ -149,7 +152,10 @@ QueryData genLoggedInUsers(QueryContext& context) {
     r["sid"] = TEXT(sidStr);
     results.push_back(r);
 
-    LocalFree(sidStr);
+    if (sidStr != nullptr) {
+      LocalFree(sidStr);
+      sidStr = nullptr;
+    }
   }
 
   if (pSessionInfo != nullptr) {
