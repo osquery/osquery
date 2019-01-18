@@ -1,4 +1,13 @@
 load(
+    "//tools/build_defs/oss/osquery:native_functions.bzl",
+    _osquery_custom_set_generic_kwargs = "osquery_custom_set_generic_kwargs",
+    _osquery_cxx_binary = "osquery_cxx_binary",
+    _osquery_cxx_library = "osquery_cxx_library",
+    _osquery_cxx_test = "osquery_cxx_test",
+    _osquery_prebuilt_cxx_library = "osquery_prebuilt_cxx_library",
+    _osquery_prebuilt_cxx_library_group = "osquery_prebuilt_cxx_library_group",
+)
+load(
     "//tools/build_defs/oss/osquery:platforms.bzl",
     _FREEBSD = "FREEBSD",
     _LINUX = "LINUX",
@@ -78,6 +87,7 @@ _GLOBAL_PLATFORM_PREPROCESSOR_FLAGS = [
 ]
 
 def _osquery_set_generic_kwargs(kwargs):
+    _osquery_custom_set_generic_kwargs(kwargs)
     kwargs.setdefault("labels", [])
     kwargs["labels"] += _LABELS
 
@@ -94,25 +104,25 @@ def _osquery_set_preprocessor_kwargs(kwargs, external):
 def osquery_cxx_library(external = False, **kwargs):
     _osquery_set_generic_kwargs(kwargs)
     _osquery_set_preprocessor_kwargs(kwargs, external)
-    native.cxx_library(**kwargs)
+    _osquery_cxx_library(**kwargs)
 
 def osquery_prebuilt_cxx_library(**kwargs):
     _osquery_set_generic_kwargs(kwargs)
-    native.prebuilt_cxx_library(**kwargs)
+    _osquery_prebuilt_cxx_library(**kwargs)
 
 def osquery_prebuilt_cxx_library_group(**kwargs):
     kwargs.setdefault("labels", [])
     kwargs["labels"] += _LABELS
-    native.prebuilt_cxx_library_group(**kwargs)
+    _osquery_prebuilt_cxx_library_group(**kwargs)
 
 def osquery_cxx_binary(external = False, **kwargs):
     _ignore = [external]
     _osquery_set_generic_kwargs(kwargs)
     _osquery_set_preprocessor_kwargs(kwargs, external)
-    native.cxx_binary(**kwargs)
+    _osquery_cxx_binary(**kwargs)
 
 def osquery_cxx_test(external = False, **kwargs):
     _ignore = [external]
     _osquery_set_generic_kwargs(kwargs)
     _osquery_set_preprocessor_kwargs(kwargs, external)
-    native.cxx_test(**kwargs)
+    _osquery_cxx_test(**kwargs)
