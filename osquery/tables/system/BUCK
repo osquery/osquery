@@ -34,6 +34,7 @@ osquery_cxx_library(
             [
                 "posix/known_hosts.h",
                 "posix/shell_history.h",
+                "posix/sudoers.h",
                 "posix/sysctl_utils.h",
             ],
         ),
@@ -288,6 +289,7 @@ osquery_cxx_library(
         osquery_target("osquery/tables/system/tests:users_tests"),
         osquery_target("osquery/tables/system/tests:known_hosts_tests"),
         osquery_target("osquery/tables/system/tests:shell_history_tests"),
+        osquery_target("osquery/tables/system/tests:sudoers_tests"),
         osquery_target("osquery/tables/system/tests:yum_sources_tests"),
         osquery_target("osquery/tables/system/tests:system_tables_tests"),
         osquery_target("osquery/tables/system/tests:apps_tests"),
