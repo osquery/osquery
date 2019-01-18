@@ -15,9 +15,10 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include <osquery/utils/conversions/split.h>
-
 #include <osquery/filesystem/fileops.h>
+#include <osquery/process/windows/process_ops.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 const std::map<int, std::string> kSessionStates = {
     {WTSActive, "active"},
@@ -113,50 +114,27 @@ QueryData genLoggedInUsers(QueryContext& context) {
     if (clientInfo != nullptr) {
       WTSFreeMemoryEx(WTSTypeSessionInfoLevel1, clientInfo, count);
       clientInfo = nullptr;
+      wtsClient = nullptr;
     }
+
+    const auto sidBuf =
+        getSidFromUsername(stringToWstring(wtsSession->UserName));
+
     if (sessionInfo != nullptr) {
       WTSFreeMemoryEx(WTSTypeSessionInfoLevel1, sessionInfo, count);
       sessionInfo = nullptr;
+      wtsSession = nullptr;
     }
 
-    HANDLE hToken = nullptr;
-    res = WTSQueryUserToken(pSessionInfo[i].SessionId, &hToken);
-    if (res == 0) {
-      VLOG(1) << "Error querying user token (" << GetLastError() << ")";
+    if (sidBuf == nullptr) {
+      VLOG(1) << "Error converting username to SID";
       results.push_back(r);
       continue;
     }
 
-    TOKEN_USER userToken = {};
-    bytesRet = 0;
-    res = GetTokenInformation(
-        hToken, TokenUser, &userToken, sizeof(userToken), &bytesRet);
-    if (res == 0) {
-      VLOG(1) << "Error querying token information (" << GetLastError() << ")";
-      results.push_back(r);
-      continue;
-    }
-
-    if (hToken != nullptr) {
-      CloseHandle(hToken);
-      hToken = nullptr;
-    }
-
-    char* sidStr = nullptr;
-    res = ConvertSidToStringSidA(userToken.User.Sid, &sidStr);
-    if (res == 0) {
-      VLOG(1) << "Error stringifying user SID (" << GetLastError() << ")";
-      results.push_back(r);
-      continue;
-    }
-
+    const auto sidStr = psidToString(reinterpret_cast<SID*>(sidBuf.get()));
     r["sid"] = SQL_TEXT(sidStr);
     results.push_back(r);
-
-    if (sidStr != nullptr) {
-      LocalFree(sidStr);
-      sidStr = nullptr;
-    }
   }
 
   if (pSessionInfo != nullptr) {
