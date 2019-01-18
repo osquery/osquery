@@ -108,7 +108,6 @@ QueryData genLoggedInUsers(QueryContext& context) {
     }
 
     r["pid"] = INTEGER(-1);
-    results.push_back(r);
 
     if (clientInfo != nullptr) {
       WTSFreeMemoryEx(WTSTypeSessionInfoLevel1, clientInfo, count);
@@ -148,6 +147,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
     }
 
     r["sid"] = TEXT(sidStr);
+    results.push_back(r);
 
     LocalFree(sidStr);
   }
