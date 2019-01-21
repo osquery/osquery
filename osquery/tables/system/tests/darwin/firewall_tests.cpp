@@ -79,51 +79,6 @@ TEST_F(FirewallTests, test_parse_alf_explicit_auths_tree) {
   EXPECT_EQ(results, expected);
 }
 
-TEST_F(FirewallTests, test_parse_alf_services_tree) {
-  pt::ptree tree = getALFTree();
-  auto results = parseALFServicesTree(tree);
-  osquery::QueryData expected = {
-      {
-          {"service", "Personal Web Sharing"},
-          {"process", "httpd"},
-          {"state", "0"},
-      },
-      {
-          {"service", "Printer Sharing"}, {"process", "cupsd"}, {"state", "0"},
-      },
-      {
-          {"service", "Remote Apple Events"},
-          {"process", "AEServer"},
-          {"state", "0"},
-      },
-      {
-          {"service", "FTP Access"}, {"process", "ftpd"}, {"state", "0"},
-      },
-      {
-          {"service", "Personal File Sharing"},
-          {"process", "AppleFileServer"},
-          {"state", "0"},
-      },
-      {
-          {"service", "Remote Login - SSH"},
-          {"process", "sshd-keygen-wrapper"},
-          {"state", "0"},
-      },
-      {
-          {"service", "Samba Sharing"}, {"process", "smbd"}, {"state", "0"},
-      },
-      {
-          {"service", "Apple Remote Desktop"},
-          {"process", "AppleVNCServer"},
-          {"state", "0"},
-      },
-      {
-          {"service", "ODSAgent"}, {"process", "ODSAgent"}, {"state", "0"},
-      },
-  };
-  EXPECT_EQ(results, expected);
-}
-
 TEST_F(FirewallTests, test_errors) {
   pt::ptree tree = getALFTree();
   auto results = parseALFTree(tree);
@@ -147,5 +102,5 @@ TEST_F(FirewallTests, test_on_disk_format) {
   }
   EXPECT_NO_THROW(tree.get_child("firewall"));
 }
-}
-}
+} // namespace tables
+} // namespace osquery
