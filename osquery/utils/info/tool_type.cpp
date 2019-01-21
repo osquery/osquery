@@ -6,4 +6,4 @@
  *  root directory of this source tree.
  */
 
- #include <osquery/utils/info/tool_type.h>
+#include <osquery/utils/info/tool_type.h>
