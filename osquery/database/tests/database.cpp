@@ -6,7 +6,6 @@
  *  root directory of this source tree.
  */
 
-
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
