@@ -29,10 +29,8 @@ osquery::QueryData parseALFExceptionsTree(const pt::ptree& tree);
 // parseALFExplicitAuthsTree parses out the "explicitauth" key
 osquery::QueryData parseALFExplicitAuthsTree(const pt::ptree& tree);
 
-// Given a property tree of the parsed content of com.apple.alf.plist,
-// parseALFServicesTree parses out the services which exist under the
-// "firewall" key
-osquery::QueryData parseALFServicesTree(const pt::ptree& tree);
+// An alias for the sharing_preferences table
+osquery::QueryData parseALFServicesTree();
 
 // Given a property tree of the parsed content of com.apple.alf.plist,
 // parseALFTree parses out the top level string and int keys

@@ -145,17 +145,12 @@ QueryData genALFExplicitAuths(QueryContext& context) {
   return parseALFExplicitAuthsTree(tree);
 }
 
-QueryData parseALFServicesTree(const pt::ptree& tree) {
+QueryData parseALFServicesTree() {
   return osquery::SQL::selectAllFrom("sharing_preferences");
 }
 
 QueryData genALFServices(QueryContext& context) {
-  pt::ptree tree;
-  auto s = genALFTreeFromFilesystem(tree);
-  if (!s.ok()) {
-    return {};
-  }
-  return parseALFServicesTree(tree);
+  return parseALFServicesTree();
 }
 } // namespace tables
 } // namespace osquery
