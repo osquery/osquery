@@ -21,6 +21,7 @@ osquery_cxx_test(
             [
                 "ebpf.cpp",
                 "map.cpp",
+                "perf_output.cpp",
                 "program.cpp",
             ],
         ),

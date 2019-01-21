@@ -11,8 +11,6 @@
 #include <osquery/utils/system/linux/ebpf/ebpf.h>
 #include <osquery/utils/versioning/semantic.h>
 
-#include <osquery/logger.h>
-
 #include <boost/io/detail/quoted_manip.hpp>
 
 #include <linux/version.h>
