@@ -316,7 +316,7 @@ osquery_cxx_library(
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/expected:expected"),
         osquery_target("osquery/utils/system:filepath"),
-        osquery_target("osquery/utils/system:system"),
+        osquery_target("osquery/utils/system:system_utils"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("osquery/utils/system:uptime"),
         osquery_target("specs:tables_processes_row"),
