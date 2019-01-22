@@ -46,5 +46,25 @@ TEST_F(DarwinProcessesTests, test_process_arch) {
   EXPECT_NE(r.cpu_type_col, -1);
   EXPECT_NE(r.cpu_subtype_col, -1);
 }
+
+TEST_F(DarwinProcessesTests, test_column_overflow) {
+  ProcessesRow r;
+  QueryContext ctx;
+  ctx.colsUsed = UsedColumns({"cpu_subtype"});
+  ctx.colsUsedBitset = ProcessesRow::CPU_SUBTYPE;
+  for (unsigned i = 0; i < 64; i++) {
+    const unsigned long long current_mask = 1ULL << i;
+    if (current_mask !=
+        static_cast<decltype(current_mask)>(ProcessesRow::CPU_SUBTYPE)) {
+      EXPECT_FALSE(ctx.isAnyColumnUsed(current_mask))
+          << "Processes table is not queried for the " + std::to_string(i) +
+                 "th column.";
+    } else {
+      EXPECT_TRUE(ctx.isAnyColumnUsed(current_mask))
+          << "Processes table is queried for the " + std::to_string(i) +
+                 "th column, but does not say so.";
+    }
+  }
+}
 } // namespace tables
 } // namespace osquery

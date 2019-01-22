@@ -27,9 +27,9 @@ public:
   enum Column {
 {% for column in schema %}\
 {%   if loop.index0 < 63 %}\
-    {{column.name.upper()}} = 1 << {{loop.index0}},
+    {{column.name.upper()}} = 1ULL << {{loop.index0}},
 {%   else %}\
-    {{column.name.upper()}} = 1 << 63,
+    {{column.name.upper()}} = 1ULL << 63,
 {%   endif %}\
 {% endfor %}\
   };
