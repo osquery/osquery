@@ -19,7 +19,7 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
 
 #include <sys/socket.h>

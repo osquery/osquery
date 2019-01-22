@@ -683,8 +683,8 @@ osquery_gentable_cxx_library(
             "windows",
         ),
         (
-            _SPECS_LOCATION + "/windows/services.table",
-            "windows",
+            _SPECS_LOCATION + "/linwin/services.table",
+            "linux,windows",
         ),
         (
             _SPECS_LOCATION + "/windows/kva_speculative_info.table",
