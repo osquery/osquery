@@ -181,7 +181,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_library(
-    name = "system",
+    name = "system_utils",
     header_namespace = "osquery/utils/system",
     exported_platform_headers = [
         (
@@ -241,6 +241,6 @@ osquery_cxx_library(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        ":system",
+        ":system_utils",
     ],
 )

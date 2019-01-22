@@ -27,7 +27,7 @@ osquery_cxx_library(
         osquery_target("osquery/utils:utils"),
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/status:status"),
-        osquery_target("osquery/utils/system:system"),
+        osquery_target("osquery/utils/system:system_utils"),
         osquery_tp_target("rapidjson"),
     ],
 )
