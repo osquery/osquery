@@ -23,37 +23,29 @@ class iptables : public testing::Test {
 };
 
 TEST_F(iptables, test_sanity) {
-  // 1. Query data
   auto const data = execute_query("select * from iptables");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"filter_name", NormalType}
-  //      {"chain", NormalType}
-  //      {"policy", NormalType}
-  //      {"target", NormalType}
-  //      {"protocol", IntType}
-  //      {"src_port", NormalType}
-  //      {"dst_port", NormalType}
-  //      {"src_ip", NormalType}
-  //      {"src_mask", NormalType}
-  //      {"iniface", NormalType}
-  //      {"iniface_mask", NormalType}
-  //      {"dst_ip", NormalType}
-  //      {"dst_mask", NormalType}
-  //      {"outiface", NormalType}
-  //      {"outiface_mask", NormalType}
-  //      {"match", NormalType}
-  //      {"packets", IntType}
-  //      {"bytes", IntType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+
+  ASSERT_GE(data.size(), 0ul);
+
+  ValidatatioMap row_map = {{"filter_name", NonEmptyString},
+                            {"chain", NormalType},
+                            {"policy", NormalType},
+                            {"target", NormalType},
+                            {"protocol", IntType},
+                            {"src_port", IntMinMaxCheck(0, 65535)},
+                            {"dst_port", IntMinMaxCheck(0, 65535)},
+                            {"src_ip", verifyEmptyStringOrIpAddress},
+                            {"src_mask", verifyEmptyStringOrIpAddress},
+                            {"iniface", NormalType},
+                            {"iniface_mask", verifyEmptyStringOrIpAddress},
+                            {"dst_ip", verifyEmptyStringOrIpAddress},
+                            {"dst_mask", verifyEmptyStringOrIpAddress},
+                            {"outiface", NormalType},
+                            {"outiface_mask", verifyEmptyStringOrIpAddress},
+                            {"match", SpecificValuesCheck{"yes", "no"}},
+                            {"packets", NonNegativeInt},
+                            {"bytes", NonNegativeInt}};
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
