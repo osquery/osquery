@@ -4,6 +4,7 @@ load(
     _osquery_cxx_binary = "osquery_cxx_binary",
     _osquery_cxx_library = "osquery_cxx_library",
     _osquery_cxx_test = "osquery_cxx_test",
+    _osquery_native = "osquery_native",
     _osquery_prebuilt_cxx_library = "osquery_prebuilt_cxx_library",
     _osquery_prebuilt_cxx_library_group = "osquery_prebuilt_cxx_library_group",
 )
@@ -119,7 +120,13 @@ def osquery_cxx_binary(external = False, **kwargs):
     _ignore = [external]
     _osquery_set_generic_kwargs(kwargs)
     _osquery_set_preprocessor_kwargs(kwargs, external)
-    _osquery_cxx_binary(**kwargs)
+    if host_info().os.is_macos:
+        not_supported_key = "platforms"
+        if not_supported_key in kwargs:
+            kwargs.pop(not_supported_key)
+        _osquery_native.apple_binary(**kwargs)
+    else:
+        _osquery_cxx_binary(**kwargs)
 
 def osquery_cxx_test(external = False, **kwargs):
     _ignore = [external]
