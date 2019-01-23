@@ -28,6 +28,8 @@
 
 #include "osquery/extensions/interface.h"
 
+#include <limits>
+
 namespace osquery {
 
 using namespace apache::thrift::protocol;
@@ -311,6 +313,9 @@ void ExtensionClientCore::init(const std::string& path, bool manager) {
 
   client_ = std::make_unique<ImplExtensionClient>();
   client_->socket = std::make_shared<TPlatformSocket>(path);
+#ifndef WIN32
+  client_->socket->setMaxRecvRetries(std::numeric_limits<int>::max());
+#endif
   client_->transport = std::make_shared<TBufferedTransport>(client_->socket);
   auto protocol = std::make_shared<TBinaryProtocol>(client_->transport);
 
