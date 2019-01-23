@@ -22,6 +22,7 @@
 #include <boost/regex.hpp>
 
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
 
 #include <sqlite3.h>
 
