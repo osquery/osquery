@@ -28,7 +28,7 @@ osquery_cxx_library(
         ),
     ],
     tests = [
-        osquery_target("osquery/extensions/tests:extensions"),
+        osquery_target("osquery/extensions/tests:extensions_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [

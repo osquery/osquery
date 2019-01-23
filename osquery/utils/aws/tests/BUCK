@@ -2,7 +2,7 @@ load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 
 osquery_cxx_test(
-    name = "aws",
+    name = "aws_tests",
     srcs = [
         "aws_util_tests.cpp",
     ],
