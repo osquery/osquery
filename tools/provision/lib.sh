@@ -65,7 +65,7 @@ function setup_brew() {
   export HOMEBREW_BOTTLE_ARCH=core2
   export BREW="$DEPS/bin/brew"
 
-  log "dissabling brew analytics"
+  log "disabling brew analytics"
   $DEPS/bin/brew analytics off
 
   # Grab full clone to perform a pin
