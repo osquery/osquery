@@ -505,8 +505,8 @@ Status readRows(sqlite3_stmt* prepared_statement,
       for (int i = 0; i < num_columns; i++) {
         switch (sqlite3_column_type(prepared_statement, i)) {
         case SQLITE_INTEGER:
-          row[colNames[i]] =
-              static_cast<int64_t>(sqlite3_column_int64(prepared_statement, i));
+          row[colNames[i]] = static_cast<long long>(
+              sqlite3_column_int64(prepared_statement, i));
           break;
         case SQLITE_FLOAT:
           row[colNames[i]] = sqlite3_column_double(prepared_statement, i);

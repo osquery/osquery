@@ -304,7 +304,7 @@ using TypeMap = std::map<std::string, ColumnType>;
 // Using ColumnType enum just labeling in test_column_type_determination)
 class type_picker_visitor : public boost::static_visitor<ColumnType> {
  public:
-  ColumnType operator()(const int64_t& i) const {
+  ColumnType operator()(const long long& i) const {
     return INTEGER_TYPE;
   }
 

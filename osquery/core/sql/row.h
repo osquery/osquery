@@ -27,7 +27,7 @@ using RowData = std::string;
 /**
  * @brief A variant type for the SQLite type affinities.
  */
-using RowDataTyped = boost::variant<int64_t, double, std::string>;
+using RowDataTyped = boost::variant<long long, double, std::string>;
 
 /**
  * @brief A single row from a database query
