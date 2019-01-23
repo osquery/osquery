@@ -284,7 +284,6 @@ osquery_cxx_library(
         osquery_target("osquery/tables/system/tests:md_tables_tests"),
         osquery_target("osquery/tables/system/tests:pci_devices_tests"),
         osquery_target("osquery/tables/system/tests:portage_tests"),
-        osquery_target("osquery/tables/system/tests:users_tests"),
         osquery_target("osquery/tables/system/tests:known_hosts_tests"),
         osquery_target("osquery/tables/system/tests:shell_history_tests"),
         osquery_target("osquery/tables/system/tests:sudoers_tests"),

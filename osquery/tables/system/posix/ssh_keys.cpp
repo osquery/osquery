@@ -25,12 +25,6 @@ void genSSHkeyForHosts(const std::string& uid,
                        const std::string& gid,
                        const std::string& directory,
                        QueryData& results) {
-  auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo(uid, gid)) {
-    VLOG(1) << "Cannot drop privileges to UID " << uid;
-    return;
-  }
-
   // Get list of files in directory
   boost::filesystem::path keys_dir = directory;
   keys_dir /= kSSHUserKeysDir;

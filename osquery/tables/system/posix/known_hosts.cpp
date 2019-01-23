@@ -29,12 +29,6 @@ void genSSHkeysForHosts(const std::string& uid,
                         const std::string& gid,
                         const std::string& directory,
                         QueryData& results) {
-  auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo(uid, gid)) {
-    VLOG(1) << "Cannot drop privileges to UID " << uid;
-    return;
-  }
-
   for (const auto& kfile : kSSHKnownHostskeys) {
     boost::filesystem::path keys_file = directory;
     keys_file /= kfile;

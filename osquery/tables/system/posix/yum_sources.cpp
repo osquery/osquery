@@ -69,11 +69,6 @@ void parseYumConf(const std::string& source,
 
 QueryData genYumSrcs(QueryContext& context) {
   QueryData results;
-
-  // We are going to read a few files.
-  auto dropper = DropPrivileges::get();
-  dropper->dropTo("nobody");
-
   // Expect the YUM home to be /etc/yum.conf
   std::string repos_dir;
   parseYumConf(kYumConf, results, repos_dir);
