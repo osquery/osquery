@@ -6,41 +6,87 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-# @generated
-
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
-load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
-load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_genrule", "osquery_http_archive")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "POSIX", "WINDOWS")
 
-osquery_tp_prebuilt_cxx_library(
+osquery_http_archive(
+    name = "archive",
+    sha256 = "de5dcab133aa339a4cf9e97c40aa6062570086d6085d8f9ad7bc6ddf8a52096e",
+    type = "zip",
+    urls = [
+        "https://s3.amazonaws.com/osquery-packages/third-party/src/sqlite-amalgamation-3260000.zip",
+    ],
+)
+
+osquery_genrule(
+    name = "sqlite_dir",
+    out = "sqlite",
+    cmd = (
+        "mkdir ${OUT} " +
+        "&& ln -sf $(location :archive)/sqlite-amalgamation-3260000 ${OUT}/src"
+    ),
+    cmd_exe = (
+        "mkdir %OUT% " +
+        "&& mklink /D %OUT%\src $(location :archive)\sqlite-amalgamation-3260000"
+    ),
+)
+
+osquery_genrule(
+    name = "sqlite3",
+    out = "sqlite3.c",
+    cmd = "ln -s $(location :archive)/sqlite-amalgamation-3260000/sqlite3.c ${OUT}",
+    cmd_exe = "mklink %OUT% $(location :archive)\sqlite-amalgamation-3260000\sqlite3.c",
+)
+
+osquery_cxx_library(
     name = "sqlite",
-    platforms = [
-        "linux-x86_64",
-        "macos-x86_64",
-        "windows-x86_64",
+    srcs = [
+        ":sqlite3",
     ],
-    sha256sums = {
-        "linux-x86_64": "d4fe4e10c01f508210670bf1a67d0445491df8fe7322161e3322b912529e33f0",
-        "macos-x86_64": "995b47f65dc70f0ee76b0aa700e8ed3135e914ad3671c5ee43eab6d964b13a6a",
-        "windows-x86_64": "0f5ac78b7a9dafd2d5a900f33b36390390b3dca909e71fefb29379763fe1099e",
-    },
-    platform_static_libs = {
-        "linux-x86_64": [
-            "lib/libsqlite3.a",
-        ],
-        "macos-x86_64": [
-            "lib/libsqlite3.a",
-        ],
-        "windows-x86_64": [
-            "lib/sqlite3.lib",
-        ],
-    },
-    linker_flags = [
-        "-ldl",
+    exported_platform_linker_flags = [
+        (
+            POSIX,
+            [
+                "-ldl",
+            ],
+        ),
     ],
-    deps = [
-        osquery_tp_target("pthread", "pthread"),
+    external = True,
+    platform_compiler_flags = [
+        (
+            POSIX,
+            [
+                "-Wno-array-bounds",
+                "-Wno-error",
+                "-Wno-missing-braces",
+                "-Wno-overlength-strings",
+                "-Wno-parentheses-equality",
+                "-Wno-unused-value",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "/EHsc",
+            ],
+        ),
     ],
-    version = "3.24.0",
-    build = "0",
+    preprocessor_flags = [
+        "-DSQLITE_ENABLE_COLUMN_METADATA=1",
+        "-DSQLITE_MAX_VARIABLE_NUMBER=250000",
+        "-DSQLITE_ENABLE_RTREE=1",
+        "-DSQLITE_ENABLE_FTS3=1",
+        "-DSQLITE_ENABLE_FTS3_PARENTHESIS=1",
+        "-DSQLITE_ENABLE_FTS5=1",
+        "-DSQLITE_SECURE_DELETE=1",
+        "-DSQLITE_ENABLE_UNLOCK_NOTIFY=1",
+        "-DSQLITE_ENABLE_DBSTAT_VTAB=1",
+        "-DSQLITE_ENABLE_JSON1=1",
+        "-DSQLITE_ENABLE_PREUPDATE_HOOK=1",
+        "-DSQLITE_ENABLE_SESSION=1",
+        "-DSQLITE_SOUNDEX",
+        '-DSQLITE_VERSION="3.26.0"',
+    ],
+    visibility = ["PUBLIC"],
 )
