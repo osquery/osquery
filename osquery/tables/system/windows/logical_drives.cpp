@@ -18,15 +18,15 @@ QueryData genLogicalDrives(QueryContext& context) {
   const WmiRequest wmiLogicalDiskReq(
       "select DeviceID, Description, FreeSpace, Size, FileSystem from "
       "Win32_LogicalDisk");
-  auto const& wmiResults = wmiLogicalDiskReq.results();
-  for (unsigned int i = 0; i < wmiResults.size(); ++i) {
+  auto const& logicalDisks = wmiLogicalDiskReq.results();
+  for (const auto& logicalDisk : logicalDisks) {
     Row r;
     std::string deviceId;
-    wmiResults[i].GetString("DeviceID", deviceId);
-    wmiResults[i].GetString("Description", r["type"]);
-    wmiResults[i].GetString("FreeSpace", r["free_space"]);
-    wmiResults[i].GetString("Size", r["size"]);
-    wmiResults[i].GetString("FileSystem", r["file_system"]);
+    logicalDisk.GetString("DeviceID", deviceId);
+    logicalDisk.GetString("Description", r["type"]);
+    logicalDisk.GetString("FreeSpace", r["free_space"]);
+    logicalDisk.GetString("Size", r["size"]);
+    logicalDisk.GetString("FileSystem", r["file_system"]);
 
     r["device_id"] = deviceId;
     r["boot_partition"] = INTEGER(0);
