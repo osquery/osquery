@@ -9,15 +9,14 @@
  */
 
 #import <OpenDirectory/OpenDirectory.h>
-#include <boost/algorithm/string.hpp>
 #include <membership.h>
 #include <osquery/tables/system/user_groups.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
 
-void genODEntries(ODRecordType type,
-                  std::map<std::string, std::string>& names) {
+void genODEntries(ODRecordType type, std::map<std::string, bool>& names) {
   ODSession* s = [ODSession defaultSession];
   NSError* err = nullptr;
   ODNode* root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
@@ -52,21 +51,17 @@ void genODEntries(ODRecordType type,
   NSError* attrErr = nullptr;
   // if IsHidden does not exist or has an invalid value it's equivalent
   // to IsHidden: 0
-  std::string isHidden;
+  bool isHidden;
 
   for (ODRecord* re in od_results) {
     auto isHiddenValue = [re valuesForAttribute:@"dsAttrTypeNative:IsHidden"
                                           error:&attrErr];
 
     // set isHidden back to 0 before processing atrribute
-    isHidden = "0";
+    isHidden = false;
     if (isHiddenValue.count >= 1) {
-      isHidden = std::string([isHiddenValue[0] UTF8String]);
-      boost::algorithm::to_lower(isHidden);
-      // isHiddenValue can be 1 || True || YES to hide the user or group
-      if (isHidden == "yes" || isHidden == "1" || isHidden == "true") {
-        isHidden = "1";
-      }
+      isHidden =
+          tryTo<bool>(std::string([isHiddenValue[0] UTF8String])).takeOr(false);
     }
     names[[[re recordName] UTF8String]] = isHidden;
   }
@@ -74,7 +69,7 @@ void genODEntries(ODRecordType type,
 
 QueryData genGroups(QueryContext& context) {
   QueryData results;
-  std::map<std::string, std::string> groupnames;
+  std::map<std::string, bool> groupnames;
   genODEntries(kODRecordTypeGroups, groupnames);
   for (const auto& groupname : groupnames) {
     Row r;
@@ -85,7 +80,7 @@ QueryData genGroups(QueryContext& context) {
       r["gid"] = BIGINT(grp->gr_gid);
       r["gid_signed"] = BIGINT((int32_t)grp->gr_gid);
     }
-    results.push_back(r);
+    results.push_back(std::move(r));
   }
   return results;
 }
@@ -112,7 +107,7 @@ void setRow(Row& r, passwd* pwd) {
 
 QueryData genUsers(QueryContext& context) {
   QueryData results;
-  std::map<std::string, std::string> usernames;
+  std::map<std::string, bool> usernames;
   @autoreleasepool {
     genODEntries(kODRecordTypeUsers, usernames);
   }
@@ -127,7 +122,7 @@ QueryData genUsers(QueryContext& context) {
     r["uid"] = BIGINT(pwd->pw_uid);
     r["username"] = username.first;
     setRow(r, pwd);
-    results.push_back(r);
+    results.push_back(std::move(r));
   }
   return results;
 }
@@ -149,7 +144,7 @@ QueryData genUserGroups(QueryContext& context) {
         }
       }
     } else {
-      std::map<std::string, std::string> usernames;
+      std::map<std::string, bool> usernames;
       genODEntries(kODRecordTypeUsers, usernames);
       for (const auto& username : usernames) {
         struct passwd* pwd = getpwnam(username.first.c_str());
