@@ -2,7 +2,7 @@ table_name("logical_drives")
 description("Details for logical drives on the system. A logical drive generally represents a single partition.")
 schema([
     Column("device_id", TEXT, "The drive id, usually the drive name, e.g., 'C:'."),
-    Column("type", TEXT, "The type of disk drive this logical drive represents."),
+    Column("type", TEXT, "The type of disk drive this logical drive represents, e.g. 'Logical Fixed Disk', 'CD-ROM Disk'."),
     Column("free_space", BIGINT, "The amount of free space, in bytes, of the drive."),
     Column("size", BIGINT, "The total amount of space, in bytes, of the drive."),
     Column("file_system", TEXT, "The file system of the drive."),
