@@ -27,13 +27,13 @@ TEST_F(logicalDrives, test_sanity) {
   ASSERT_GE(data.size(), 1ul);
 
   ValidatatioMap row_map = {
-       {"device_id", NormalType}
-       {"type", NormalType}
-       {"free_space", IntType}
-       {"size", IntType}
-       {"file_system", NormalType}
-       {"boot_partition", IntType}
-  }
+      {"device_id", NormalType},
+      {"type", NormalType},
+      {"free_space", IntType},
+      {"size", IntType},
+      {"file_system", NormalType},
+      {"boot_partition", IntType},
+  };
 
   validate_rows(data, row_map);
 }
