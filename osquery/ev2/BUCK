@@ -1,0 +1,50 @@
+#  Copyright (c) 2018-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+
+osquery_cxx_library(
+    name = "ev2",
+    srcs = [
+        "manager.cpp",
+        "publisher.cpp",
+        "subscription.cpp",
+    ],
+    header_namespace = "osquery/ev2",
+    exported_headers = [
+        "buffered_subscription.h",
+        "manager.h",
+        "publisher.h",
+        "simple_publisher.h",
+        "subscription.h",
+    ],
+    tests = [
+        ":ev2_tests",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/utils/expected:expected"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "ev2_tests",
+    srcs = [
+        "tests/buffered_subscription.cpp",
+        "tests/manager.cpp",
+        "tests/simple_publisher.cpp",
+        "tests/utils.cpp",
+    ],
+    headers = [
+        "tests/utils.h",
+    ],
+    header_namespace = "osquery/ev2",
+    visibility = ["PUBLIC"],
+    deps = [
+        ":ev2",
+    ],
+)
