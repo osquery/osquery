@@ -18,11 +18,10 @@ QueryData genLogicalDrives(QueryContext& context) {
   const WmiRequest wmiLogicalDiskReq(
       "select DeviceID, Description, FreeSpace, Size, FileSystem from "
       "Win32_LogicalDisk");
-  const std::vector<WmiResultItem>& logicalDisks = wmiLogicalDiskReq.results();
+  auto const& logicalDisks = wmiLogicalDiskReq.results();
   const WmiRequest wmiBootConfigurationReq(
       "select BootDirectory from Win32_BootConfiguration");
-  const std::vector<WmiResultItem>& bootConfigurations =
-      wmiBootConfigurationReq.results();
+  auto const& bootConfigurations = wmiBootConfigurationReq.results();
 
   for (const auto& logicalDisk : logicalDisks) {
     Row r;
