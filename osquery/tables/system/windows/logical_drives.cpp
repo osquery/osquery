@@ -52,8 +52,7 @@ QueryData genLogicalDrives(QueryContext& context) {
             "SELECT BootPartition FROM Win32_DiskPartition WHERE DeviceID='") +
         partitionDeviceId + '\'';
     const WmiRequest wmiPartitionReq(partitionQuery);
-    auto const& wmiPartitionResults =
-        wmiPartitionReq.results();
+    auto const& wmiPartitionResults = wmiPartitionReq.results();
 
     if (wmiPartitionResults.empty()) {
       results.push_back(r);
