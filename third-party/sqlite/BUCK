@@ -6,30 +6,24 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_prebuilt_cxx_library")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_genrule", "osquery_http_archive")
 load("//tools/build_defs/oss/osquery:platforms.bzl", "POSIX", "WINDOWS")
 
 osquery_http_archive(
     name = "archive",
-    sha256 = "de5dcab133aa339a4cf9e97c40aa6062570086d6085d8f9ad7bc6ddf8a52096e",
-    type = "zip",
+    sha256 = "a1ecb747d33d9ffae110c3e836f0094f0b172190807cb1d76568bb167b84b641",
+    type = "tar.gz",
     urls = [
-        "https://s3.amazonaws.com/osquery-packages/third-party/src/sqlite-amalgamation-3260000.zip",
+        "https://s3.amazonaws.com/osquery-packages/third-party/src/sqlite-amalgamation-3260000.tar.gz",
     ],
 )
 
 osquery_genrule(
-    name = "sqlite_dir",
-    out = "sqlite",
-    cmd = (
-        "mkdir ${OUT} " +
-        "&& ln -sf $(location :archive)/sqlite-amalgamation-3260000 ${OUT}/src"
-    ),
-    cmd_exe = (
-        "mkdir %OUT% " +
-        "&& mklink /D %OUT%\src $(location :archive)\sqlite-amalgamation-3260000"
-    ),
+    name = "sqlite_include_dir",
+    out = "include",
+    cmd = "ln -sf $(location :archive)/sqlite-amalgamation-3260000/include ${OUT}",
+    cmd_exe = "mklink /D %OUT% $(location :archive)\sqlite-amalgamation-3260000\include",
 )
 
 osquery_genrule(
@@ -37,6 +31,15 @@ osquery_genrule(
     out = "sqlite3.c",
     cmd = "ln -s $(location :archive)/sqlite-amalgamation-3260000/sqlite3.c ${OUT}",
     cmd_exe = "mklink %OUT% $(location :archive)\sqlite-amalgamation-3260000\sqlite3.c",
+)
+
+osquery_prebuilt_cxx_library(
+    name = "sqlite_exported_headers",
+    header_namespace = "",
+    header_dirs = [
+        ":sqlite_include_dir",
+    ],
+    header_only = True,
 )
 
 osquery_cxx_library(
@@ -89,4 +92,7 @@ osquery_cxx_library(
         '-DSQLITE_VERSION="3.26.0"',
     ],
     visibility = ["PUBLIC"],
+    exported_deps = [
+        ":sqlite_exported_headers",
+    ],
 )
