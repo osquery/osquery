@@ -37,13 +37,13 @@ void DistributedRunner::start() {
       dist.runQueries();
     }
 
-    std::string str_acu = "0";
-    Status database = getDatabaseValue(
-        kPersistentSettings, "distributed_accelerate_checkins_expire", str_acu);
-    auto const accelerate_checkins_expire_exp =
-        tryTo<unsigned long int>(str_acu, 10);
-    if (!database.ok() || accelerate_checkins_expire_exp.isError() ||
-        getUnixTime() > accelerate_checkins_expire_exp.get()) {
+    std::string accelerate_checkins_expire_str = "-1";
+    Status status = getDatabaseValue(kPersistentSettings,
+                                     "distributed_accelerate_checkins_expire",
+                                     accelerate_checkins_expire_str);
+    if (!status.ok() || getUnixTime() > tryTo<unsigned long int>(
+                                            accelerate_checkins_expire_str, 10)
+                                            .takeOr(0ul)) {
       pause(std::chrono::seconds(FLAGS_distributed_interval));
     } else {
       pause(std::chrono::seconds(kDistributedAccelerationInterval));
