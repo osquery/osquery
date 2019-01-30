@@ -127,9 +127,13 @@ void shutdownTesting() {
 }
 
 ScheduledQuery getOsqueryScheduledQuery() {
-  ScheduledQuery sq;
-  sq.query = "SELECT filename FROM fs WHERE path = '/bin' ORDER BY filename";
+  ScheduledQuery sq(
+      "path_pack",
+      "bin",
+      "SELECT filename FROM fs WHERE path = '/bin' ORDER BY filename");
+
   sq.interval = 5;
+
   return sq;
 }
 

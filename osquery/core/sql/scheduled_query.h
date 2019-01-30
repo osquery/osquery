@@ -22,7 +22,12 @@ namespace osquery {
  * attributes. Those attributes are represented in this data structure.
  */
 struct ScheduledQuery : private only_movable {
- public:
+  /// Name of the pack containing query
+  std::string pack_name;
+
+  /// Name of the query
+  std::string name;
+
   /// The SQL query.
   std::string query;
 
@@ -44,6 +49,10 @@ struct ScheduledQuery : private only_movable {
   /// Set of query options.
   std::map<std::string, bool> options;
 
+  ScheduledQuery(const std::string& pack_name,
+                 const std::string& name,
+                 const std::string& query)
+      : pack_name(pack_name), name(name), query(query) {}
   ScheduledQuery() = default;
   ScheduledQuery(ScheduledQuery&&) = default;
   ScheduledQuery& operator=(ScheduledQuery&&) = default;
