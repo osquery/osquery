@@ -19,6 +19,8 @@ osquery_cxx_library(
             LINUX,
             [
                 "ebpf_tracepoint.h",
+                "syscall_event.h",
+                "syscalls_programs.h",
             ],
         ),
     ],
@@ -27,6 +29,8 @@ osquery_cxx_library(
             LINUX,
             [
                 "ebpf_tracepoint.cpp",
+                "syscall_event.cpp",
+                "syscalls_programs.cpp",
             ],
         ),
     ],
