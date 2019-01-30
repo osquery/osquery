@@ -12,7 +12,7 @@
 
 #include <osquery/killswitch.h>
 #include <osquery/numeric_monitoring.h>
-#include <osquery/profiler/profiler.h>
+#include <osquery/profiler/code_profiler.h>
 
 namespace osquery {
 namespace {
