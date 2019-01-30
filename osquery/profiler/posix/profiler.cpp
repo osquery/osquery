@@ -31,6 +31,16 @@
 namespace osquery {
 namespace {
 
+void record(const std::vector<std::string>& names,
+            const std::string& metricName,
+            monitoring::ValueType measurement) {
+  for (const std::string& name : names) {
+    monitoring::record(name + "." + metricName,
+                       measurement,
+                       monitoring::PreAggregationType::None);
+  }
+}
+
 int getRusageWho() {
   return
 #ifdef __linux__
@@ -55,25 +65,28 @@ static Expected<struct rusage, RusageError> callRusage() {
   }
 }
 
-void recordRusageStatDifference(int64_t start_stat,
-                                int64_t end_stat,
-                                const std::string& stat_name) {
+void recordRusageStatDifference(const std::vector<std::string>& names,
+                                const std::string& stat_name,
+                                int64_t start_stat,
+                                int64_t end_stat) {
   if (end_stat == 0) {
     TLOG << "rusage field " << boost::io::quoted(stat_name)
          << " is not supported";
   } else if (start_stat <= end_stat) {
-    monitoring::record(
-        stat_name, end_stat - start_stat, monitoring::PreAggregationType::None);
+    record(names, stat_name, end_stat - start_stat);
   } else {
     LOG(WARNING) << "Possible overflow detected in rusage field: "
                  << boost::io::quoted(stat_name);
   }
 }
 
-void recordRusageStatDifference(const struct timeval& start_stat,
-                                const struct timeval& end_stat,
-                                const std::string& stat_name) {
+void recordRusageStatDifference(const std::vector<std::string>& names,
+                                const std::string& stat_name,
+                                const struct timeval& start_stat,
+                                const struct timeval& end_stat) {
   recordRusageStatDifference(
+      names,
+      stat_name + ".millis",
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::seconds(start_stat.tv_sec) +
           std::chrono::microseconds(start_stat.tv_usec))
@@ -81,35 +94,28 @@ void recordRusageStatDifference(const struct timeval& start_stat,
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::seconds(end_stat.tv_sec) +
           std::chrono::microseconds(end_stat.tv_usec))
-          .count(),
-      stat_name + ".millis");
+          .count());
 }
 
-void recordRusageStatDifference(const struct rusage& start_stats,
-                                const struct rusage& end_stats,
-                                const std::string& monitoring_path_prefix) {
+void recordRusageStatDifference(const std::vector<std::string>& names,
+                                const struct rusage& start_stats,
+                                const struct rusage& end_stats) {
+  recordRusageStatDifference(names, "rss.max.kb", 0, end_stats.ru_maxrss);
+
   recordRusageStatDifference(
-      0, end_stats.ru_maxrss, monitoring_path_prefix + ".rss.max.kb");
+      names, "rss.increase.kb", start_stats.ru_maxrss, end_stats.ru_maxrss);
 
-  recordRusageStatDifference(start_stats.ru_maxrss,
-                             end_stats.ru_maxrss,
-                             monitoring_path_prefix + ".rss.increase.kb");
+  recordRusageStatDifference(
+      names, "input.load", start_stats.ru_inblock, end_stats.ru_inblock);
 
-  recordRusageStatDifference(start_stats.ru_inblock,
-                             end_stats.ru_inblock,
-                             monitoring_path_prefix + ".input.load");
+  recordRusageStatDifference(
+      names, "output.load", start_stats.ru_oublock, end_stats.ru_oublock);
 
-  recordRusageStatDifference(start_stats.ru_oublock,
-                             end_stats.ru_oublock,
-                             monitoring_path_prefix + ".output.load");
+  recordRusageStatDifference(
+      names, "time.user", start_stats.ru_utime, end_stats.ru_utime);
 
-  recordRusageStatDifference(start_stats.ru_utime,
-                             end_stats.ru_utime,
-                             monitoring_path_prefix + ".time.user");
-
-  recordRusageStatDifference(start_stats.ru_stime,
-                             end_stats.ru_stime,
-                             monitoring_path_prefix + ".time.system");
+  recordRusageStatDifference(
+      names, "time.system", start_stats.ru_stime, end_stats.ru_stime);
 }
 
 } // namespace
@@ -132,8 +138,8 @@ class CodeProfiler::CodeProfilerData {
   std::chrono::time_point<std::chrono::steady_clock> wall_time_;
 };
 
-CodeProfiler::CodeProfiler(std::string name)
-    : name_(name), code_profiler_data_(new CodeProfilerData()) {}
+CodeProfiler::CodeProfiler(const std::initializer_list<std::string>& names)
+    : names_(names), code_profiler_data_(new CodeProfilerData()) {}
 
 CodeProfiler::~CodeProfiler() {
   if (Killswitch::get().isPosixProfilingEnabled()) {
@@ -149,7 +155,7 @@ CodeProfiler::~CodeProfiler() {
         LOG(ERROR) << "rusage_end error: "
                    << rusage_end.getError().getFullMessageRecursive();
       } else {
-        recordRusageStatDifference(*rusage_start, *rusage_end, name_);
+        recordRusageStatDifference(names_, *rusage_start, *rusage_end);
       }
     }
 
@@ -157,9 +163,7 @@ CodeProfiler::~CodeProfiler() {
         std::chrono::duration_cast<std::chrono::milliseconds>(
             code_profiler_data_end.getWallTime() -
             code_profiler_data_->getWallTime());
-    monitoring::record(name_ + ".time.wall.millis",
-                       query_duration.count(),
-                       monitoring::PreAggregationType::Min);
+    record(names_, "time.wall.millis", query_duration.count());
   }
 }
 

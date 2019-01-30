@@ -176,9 +176,9 @@ void SchedulerRunner::start() {
             TablePlugin::kCacheStep = i;
             {
               CodeProfiler codeProfiler(
-                  (boost::format("scheduler.executing_query.%s") % name).str());
+                  {(boost::format("scheduler.executing_query.%s") % name)
+                       .str()});
               const auto status = launchQuery(name, query);
-              codeProfiler.appendName(status.ok() ? ".success" : ".failure");
             };
           }
         }));

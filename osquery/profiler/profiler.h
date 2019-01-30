@@ -8,26 +8,26 @@
 
 #pragma once
 
+#include <initializer_list>
 #include <memory>
 #include <string>
+#include <vector>
+
+#include <osquery/numeric_monitoring.h>
 
 namespace osquery {
 
 class CodeProfiler final {
  public:
-  CodeProfiler(std::string name);
+  CodeProfiler(const std::initializer_list<std::string>& names);
 
   ~CodeProfiler();
-
-  void appendName(const std::string& appendName) {
-    name_ += appendName;
-  }
 
  private:
   class CodeProfilerData;
 
-  std::string name_;
-  std::unique_ptr<CodeProfilerData> code_profiler_data_;
+  const std::vector<std::string> names_;
+  const std::unique_ptr<CodeProfilerData> code_profiler_data_;
 };
 
 } // namespace osquery
