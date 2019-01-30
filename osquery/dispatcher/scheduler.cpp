@@ -184,6 +184,14 @@ void SchedulerRunner::start() {
             TablePlugin::kCacheInterval = query.splayed_interval;
             TablePlugin::kCacheStep = i;
             const auto status = launchQuery(name, query);
+            monitoring::record(
+                (boost::format("scheduler.query.%s.%s.status.%s") %
+                 query.pack_name % query.name %
+                 (status.ok() ? "success" : "failure"))
+                    .str(),
+                1,
+                monitoring::PreAggregationType::Sum,
+                true);
           }
         }));
     // Configuration decorators run on 60 second intervals only.
