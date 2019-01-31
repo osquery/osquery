@@ -20,8 +20,8 @@ PLATFORM_CXX_FLAGS = {
         'debug': ['//tools/buckconfigs/macos-x86_64/type/debug.bcfg', '//tools/buckconfigs/macos-x86_64/base.bcfg', '//tools/buckconfigs/base.bcfg'],
     },
     'windows': {
-        'release': ['//tools/buckconfigs/windows-x86_64/toolchain/vs2017_15.5.bcfg', '//tools/buckconfigs/windows-x86_64/type/release.bcfg', '//tools/buckconfigs/windows-x86_64/python/default.bcfg', '//tools/buckconfigs/windows-x86_64/base.bcfg', '//tools/buckconfigs/base.bcfg'],
-        'debug': ['//tools/buckconfigs/windows-x86_64/toolchain/vs2017_15.5.bcfg', '//tools/buckconfigs/windows-x86_64/type/debug.bcfg', '//tools/buckconfigs/windows-x86_64/python/default.bcfg', '//tools/buckconfigs/windows-x86_64/base.bcfg', '//tools/buckconfigs/base.bcfg'],
+        'release': ['//tools/buckconfigs/windows-x86_64/toolchain/vsToolchainFlags.bcfg', '//tools/buckconfigs/windows-x86_64/type/release.bcfg', '//tools/buckconfigs/windows-x86_64/python/default.bcfg', '//tools/buckconfigs/windows-x86_64/base.bcfg', '//tools/buckconfigs/base.bcfg'],
+        'debug': ['//tools/buckconfigs/windows-x86_64/toolchain/vsToolchainFlags.bcfg', '//tools/buckconfigs/windows-x86_64/type/debug.bcfg', '//tools/buckconfigs/windows-x86_64/python/default.bcfg', '//tools/buckconfigs/windows-x86_64/base.bcfg', '//tools/buckconfigs/base.bcfg'],
     },
 }
 
