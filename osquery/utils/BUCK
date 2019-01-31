@@ -21,6 +21,7 @@ osquery_cxx_library(
         "attribute.h",
         "base64.h",
         "chars.h",
+        "enum_class_hash.h",
         "map_take.h",
         "mutex.h",
         "only_movable.h",
