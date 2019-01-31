@@ -475,7 +475,7 @@ Status Config::refresh() {
       if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
         const auto result = restoreConfigBackup();
         if (!result) {
-          return Status::failure(result.getError().getFullMessageRecursive());
+          return Status::failure(result.getError().getMessage());
         } else {
           update(*result);
         }

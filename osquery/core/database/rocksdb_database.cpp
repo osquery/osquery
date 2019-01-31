@@ -292,7 +292,7 @@ Expected<std::string, DatabaseError> RocksdbDatabase::getString(
     if (BOOST_UNLIKELY(validateInt32StorageBuffer(result_str))) {
       auto type_error = createError(RocksdbError::UnexpectedValueType,
                                     "Fetching string as integer");
-      LOG(ERROR) << type_error.getFullMessageRecursive().c_str();
+      LOG(ERROR) << type_error.getMessage().c_str();
       assert(false);
       return createError(DatabaseError::KeyNotFound, "", std::move(type_error));
     }
@@ -325,9 +325,9 @@ Expected<int32_t, DatabaseError> RocksdbDatabase::getInt32(
                                     "Fetching string as integer");
       auto error =
           createError(DatabaseError::KeyNotFound, "", std::move(type_error));
-      assert(false && error.getFullMessageRecursive().c_str());
-      LOG(ERROR) << error.getFullMessageRecursive();
-      debug_only::fail(error.getFullMessageRecursive().c_str());
+      assert(false && error.getMessage().c_str());
+      LOG(ERROR) << error.getMessage();
+      debug_only::fail(error.getMessage().c_str());
       return std::move(error);
     }
   }

@@ -148,12 +148,12 @@ CodeProfiler::~CodeProfiler() {
     auto rusage_start = code_profiler_data_->takeRusageData();
     if (!rusage_start) {
       LOG(ERROR) << "rusage_start error: "
-                 << rusage_start.getError().getFullMessageRecursive();
+                 << rusage_start.getError().getMessage();
     } else {
       auto rusage_end = code_profiler_data_end.takeRusageData();
       if (!rusage_end) {
         LOG(ERROR) << "rusage_end error: "
-                   << rusage_end.getError().getFullMessageRecursive();
+                   << rusage_end.getError().getMessage();
       } else {
         recordRusageStatDifference(names_, *rusage_start, *rusage_end);
       }

@@ -97,7 +97,7 @@ TLSKillswitchPlugin::refresh() {
     return Success();
   } else {
     return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
-                       result.getError().getFullMessageRecursive());
+                       result.getError().getMessage());
   }
 }
 } // namespace osquery

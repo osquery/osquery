@@ -27,8 +27,7 @@ bool const kDebug =
 
 TEST_F(EbpfProgramTests, empty_debug) {
   auto const ebpf_exp = ebpf::isSupportedBySystem();
-  EXPECT_TRUE(ebpf_exp.isValue())
-      << ebpf_exp.getError().getFullMessageRecursive();
+  EXPECT_TRUE(ebpf_exp.isValue()) << ebpf_exp.getError().getMessage();
   if (!ebpf_exp.get()) {
     LOG(WARNING) << "This system does not support eBPF of required vesion, "
                     "test will be skipped";

@@ -43,8 +43,7 @@ int getUidFromSid(PSID sid) {
 
   if (uid_exp.isError()) {
     LocalFree(sidString);
-    VLOG(1) << "failed to parse PSID "
-            << uid_exp.getError().getFullMessageRecursive();
+    VLOG(1) << "failed to parse PSID " << uid_exp.getError().getMessage();
     return uid_default;
   }
 

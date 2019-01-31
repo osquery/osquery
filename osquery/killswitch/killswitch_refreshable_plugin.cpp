@@ -59,7 +59,7 @@ Status KillswitchRefreshablePlugin::call(const PluginRequest& request,
     if (result) {
       return Status::success();
     } else {
-      return Status::failure(result.getError().getFullMessageRecursive());
+      return Status::failure(result.getError().getMessage());
     }
   } else {
     return KillswitchPlugin::call(request, response);
