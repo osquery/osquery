@@ -34,7 +34,7 @@ osquery_genrule(
 )
 
 osquery_prebuilt_cxx_library(
-    name = "gtest_headers",
+    name = "gtest_private_headers",
     header_namespace = "",
     header_dirs = [
         ":gtest_src_dir",
@@ -50,12 +50,13 @@ osquery_genrule(
 )
 
 osquery_prebuilt_cxx_library(
-    name = "gtest_exported_headers",
+    name = "gtest_headers",
     header_namespace = "gtest",
     header_dirs = [
         ":gtest_include_dir",
     ],
     header_only = True,
+    visibility = ["PUBLIC"],
 )
 
 osquery_genrule(
@@ -85,11 +86,11 @@ osquery_cxx_library(
     external = True,
     visibility = ["PUBLIC"],
     deps = [
-        ":gtest_headers",
+        ":gtest_private_headers",
         osquery_tp_target("pthread"),
     ],
     exported_deps = [
-        ":gtest_exported_headers",
+        ":gtest_headers",
     ],
 )
 

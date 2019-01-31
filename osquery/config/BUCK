@@ -31,6 +31,6 @@ osquery_cxx_library(
         osquery_target("osquery/hashing:hashing"),
         osquery_target("osquery/utils:utils"),
         osquery_target("osquery/utils/system:time"),
-        osquery_tp_target("googletest", "gtest"),
+        osquery_tp_target("googletest", "gtest_headers"),
     ],
 )

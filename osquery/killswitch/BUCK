@@ -25,7 +25,7 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/core:core"),
-        osquery_tp_target("googletest", "gtest"),
+        osquery_tp_target("googletest", "gtest_headers"),
     ],
 )
 

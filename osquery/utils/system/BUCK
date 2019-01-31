@@ -215,7 +215,7 @@ osquery_cxx_library(
     deps = [
         osquery_target("osquery/utils/info:info"),
         osquery_tp_target("boost"),
-        osquery_tp_target("googletest", "gtest"),
+        osquery_tp_target("googletest", "gtest_headers"),
     ],
 )
 

@@ -91,7 +91,7 @@ osquery_cxx_library(
         osquery_target("osquery/logger:logger"),
         osquery_tp_target("gflags"),
         osquery_tp_target("glog"),
-        osquery_tp_target("googletest", "gtest"),
+        osquery_tp_target("googletest", "gtest_headers"),
         osquery_tp_target("googletest", "gmock"),
         osquery_tp_target("openssl", "crypto"),
     ],
