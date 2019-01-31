@@ -21,15 +21,19 @@ namespace syscall {
 enum class Type : __s32 {
   Unknown = 0,
   KillEnter = 1,
+  KillExit = -KillEnter,
 };
 
 static constexpr std::size_t kCommSize = 16u;
 
 struct Event {
-  Type type; // ebpf offset depends on the struct type in the unit
+  // Common part for all events whether Enter or Exit
+  Type type;
   __s32 pid;
   __s32 tgid;
 
+  // Body means different things for each Enter type.
+  // For all Exit types Body is always the same - just return value.
   union Body {
     struct KillEnter {
       /* -44 type */
@@ -41,7 +45,17 @@ struct Event {
       /*  -8 */ __u32 uid;
       /*  -4 */ __u32 gid;
     } kill_enter;
+
+    struct Exit {
+      /* -16 type */
+      /* -12 pid */
+      /* -8 tgid */
+      /* -4 */ __s32 ret;
+    } exit;
   } body;
+
+  // final return value of the syscall is palced here by EnterExitJoiner
+  __s32 return_value;
 };
 
 } // namespace syscall
