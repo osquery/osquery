@@ -25,10 +25,10 @@ GTEST_TEST(ErrorTest, initialization) {
   EXPECT_TRUE(error == TestError::SomeError);
 
   auto shortMsg = error.getShortMessageRecursive();
-  EXPECT_NE(std::string::npos, shortMsg.find("TestError 1"));
+  EXPECT_NE(std::string::npos, shortMsg.find("TestError[1]"));
 
   auto fullMsg = error.getFullMessageRecursive();
-  EXPECT_NE(std::string::npos, fullMsg.find("TestError 1"));
+  EXPECT_NE(std::string::npos, fullMsg.find("TestError[1]"));
   EXPECT_NE(std::string::npos, fullMsg.find("TestMessage"));
 }
 
@@ -40,13 +40,13 @@ GTEST_TEST(ErrorTest, recursive) {
   EXPECT_TRUE(error.hasUnderlyingError());
 
   auto shortMsg = error.getShortMessageRecursive();
-  EXPECT_NE(std::string::npos, shortMsg.find("TestError 1"));
-  EXPECT_NE(std::string::npos, shortMsg.find("TestError 2"));
+  EXPECT_NE(std::string::npos, shortMsg.find("TestError[1]"));
+  EXPECT_NE(std::string::npos, shortMsg.find("TestError[2]"));
 
   auto fullMsg = error.getFullMessageRecursive();
-  EXPECT_NE(std::string::npos, fullMsg.find("TestError 1"));
+  EXPECT_NE(std::string::npos, fullMsg.find("TestError[1]"));
   EXPECT_NE(std::string::npos, fullMsg.find("SuperTestMessage"));
-  EXPECT_NE(std::string::npos, fullMsg.find("TestError 2"));
+  EXPECT_NE(std::string::npos, fullMsg.find("TestError[2]"));
   EXPECT_NE(std::string::npos, fullMsg.find("TestMessage"));
 }
 
