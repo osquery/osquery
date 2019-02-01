@@ -143,7 +143,7 @@ void PerfOutput<MessageType>::forceUnload() {
   auto const exp = unload();
   if (exp.isError()) {
     LOG(ERROR) << "Could not unload perf event output point "
-               << boost::io::quoted(exp.getError().getFullMessage());
+               << boost::io::quoted(exp.getError().getMessage());
   }
 }
 

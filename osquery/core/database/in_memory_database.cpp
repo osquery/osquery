@@ -96,8 +96,8 @@ Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain,
           createError(DatabaseError::KeyNotFound, "Requested wrong type for: ")
           << domain << ":" << key << " stored type: " << value.type().name()
           << " requested type " << boost::core::demangle(typeid(T).name());
-      LOG(ERROR) << error.getFullMessageRecursive();
-      debug_only::fail(error.getFullMessageRecursive().c_str());
+      LOG(ERROR) << error.getMessage();
+      debug_only::fail(error.getMessage().c_str());
       return std::move(error);
     }
   }

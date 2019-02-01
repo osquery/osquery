@@ -52,7 +52,7 @@ GTEST_TEST(ExpectedTest, failure_error_str_contructor_initialization) {
   EXPECT_FALSE(expected);
   EXPECT_TRUE(expected.isError());
   EXPECT_EQ(expected.getErrorCode(), TestError::Some);
-  auto fullMsg = expected.getError().getFullMessage();
+  auto fullMsg = expected.getError().getMessage();
   EXPECT_PRED2(stringContains, fullMsg, msg);
 }
 
@@ -147,7 +147,7 @@ GTEST_TEST(ExpectedTest, nested_errors_example) {
   ASSERT_TRUE(ret.isError());
   EXPECT_EQ(ret.getErrorCode(), TestError::Runtime);
   ASSERT_TRUE(ret.getError().hasUnderlyingError());
-  EXPECT_PRED2(stringContains, ret.getError().getFullMessage(), msg);
+  EXPECT_PRED2(stringContains, ret.getError().getMessage(), msg);
 }
 
 GTEST_TEST(ExpectedTest, error_handling_example) {

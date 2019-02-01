@@ -107,7 +107,7 @@ void EbpfTracepoint::forceUnload() {
   auto const exp = unload();
   if (exp.isError()) {
     LOG(ERROR) << "Could not unload perf tracepoint "
-               << boost::io::quoted(exp.getError().getFullMessage());
+               << boost::io::quoted(exp.getError().getMessage());
   }
 }
 

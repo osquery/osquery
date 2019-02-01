@@ -30,7 +30,7 @@ NativeEvent::~NativeEvent() {
   auto const exp = enable(false);
   if (exp.isError()) {
     LOG(WARNING) << "Disabling system event " << event_path_
-                 << " failed: " << exp.getError().getFullMessage();
+                 << " failed: " << exp.getError().getMessage();
   }
 }
 
