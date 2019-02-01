@@ -9,8 +9,8 @@
 #pragma once
 
 #include <osquery/utils/attribute.h>
+#include <osquery/utils/conversions/to.h>
 
-#include <boost/core/demangle.hpp>
 #include <memory>
 #include <new>
 #include <sstream>
@@ -32,11 +32,6 @@ class ErrorBase {
 
 template <typename ErrorCodeEnumType>
 class Error final : public ErrorBase {
- private:
-  static std::string getErrorTypeName() {
-    return boost::core::demangle(typeid(ErrorCodeEnumType).name());
-  }
-
  public:
   using SelfType = Error<ErrorCodeEnumType>;
 
@@ -72,8 +67,7 @@ class Error final : public ErrorBase {
   }
 
   std::string getShortMessage() const override {
-    return getErrorTypeName() + " " +
-           std::to_string(static_cast<int>(errorCode_));
+    return to<std::string>(errorCode_);
   }
 
   std::string getFullMessage() const override {
