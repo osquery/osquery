@@ -29,6 +29,7 @@ TEST_F(logicalDrives, test_sanity) {
   ValidatatioMap row_map = {
       {"device_id", NormalType},
       {"type", NormalType},
+      {"description", NormalType},
       {"free_space", IntType},
       {"size", IntType},
       {"file_system", NormalType},

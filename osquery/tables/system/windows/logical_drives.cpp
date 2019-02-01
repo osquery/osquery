@@ -23,11 +23,16 @@ QueryData genLogicalDrives(QueryContext& context) {
     Row r;
     std::string deviceId;
     logicalDisk.GetString("DeviceID", deviceId);
-    logicalDisk.GetString("Description", r["type"]);
+    logicalDisk.GetString("Description", r["description"]);
     logicalDisk.GetString("FreeSpace", r["free_space"]);
     logicalDisk.GetString("Size", r["size"]);
     logicalDisk.GetString("FileSystem", r["file_system"]);
 
+    // NOTE(ww): Previous versions of this table used the type
+    // column to provide a non-canonical description of the drive.
+    // However, a bug in WMI marshalling caused the type to always
+    // return "Unknown". That behavior is preserved here.
+    r["type"] = "Unknown";
     r["device_id"] = deviceId;
     r["boot_partition"] = INTEGER(0);
 
