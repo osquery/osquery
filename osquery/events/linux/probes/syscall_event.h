@@ -28,6 +28,19 @@ enum class Type : __s32 {
 
 static constexpr std::size_t kCommSize = 16u;
 
+constexpr Type flipType(Type const type) noexcept {
+  return static_cast<Type>(
+      -static_cast<std::underlying_type<Type>::type>(type));
+}
+
+constexpr bool isTypeExit(Type const type) noexcept {
+  return static_cast<std::underlying_type<Type>::type>(type) < 0;
+}
+
+constexpr bool isTypeEnter(Type const type) noexcept {
+  return 0 < static_cast<std::underlying_type<Type>::type>(type);
+}
+
 struct Event {
   // Common part for all events whether Enter or Exit
   Type type;
