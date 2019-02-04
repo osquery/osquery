@@ -24,6 +24,9 @@ using PerfEventCpuMap = ebpf::Map<int, int, BPF_MAP_TYPE_PERF_EVENT_ARRAY>;
 Expected<ebpf::Program, ebpf::Program::Error> genLinuxKillEnterProgram(
     enum bpf_prog_type prog_type, PerfEventCpuMap const& cpu_map);
 
+Expected<ebpf::Program, ebpf::Program::Error> genLinuxSetuidEnterProgram(
+    enum bpf_prog_type prog_type, PerfEventCpuMap const& cpu_map);
+
 Expected<ebpf::Program, ebpf::Program::Error> genLinuxExitProgram(
     enum bpf_prog_type prog_type,
     PerfEventCpuMap const& cpu_map,
