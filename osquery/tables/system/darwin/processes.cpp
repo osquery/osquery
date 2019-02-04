@@ -25,6 +25,8 @@
 #include <osquery/rows/processes.h>
 #include <osquery/tables.h>
 
+#include <chrono>
+
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -407,25 +409,6 @@ void genProcCmdline(const QueryContext& context, int pid, ProcessesRow& r) {
   r.cmdline_col = std::move(cmdline);
 }
 
-static inline long getUptimeInUSec() {
-  struct timeval boot_time;
-  size_t len = sizeof(boot_time);
-  int mib[2] = {CTL_KERN, KERN_BOOTTIME};
-
-  if (sysctl(mib, 2, &boot_time, &len, nullptr, 0) < 0) {
-    return -1;
-  }
-
-  time_t seconds_since_boot = boot_time.tv_sec;
-
-  struct timeval tv;
-  gettimeofday(&tv, nullptr);
-
-  // Ignoring boot_time.tv_usec
-  return long(difftime(tv.tv_sec, seconds_since_boot) * CPU_TIME_RATIO +
-              tv.tv_usec);
-}
-
 void genProcResourceUsage(const QueryContext& context,
                           int pid,
                           ProcessesRow& r) {
@@ -462,22 +445,14 @@ void genProcResourceUsage(const QueryContext& context,
         mach_timebase_info(&time_base);
       }
 
-      // Below is the logic to caculate the start_time since boot time
-      // with higher precision
-      auto uptime = getUptimeInUSec();
-      uint64_t absoluteTime = mach_absolute_time();
+      uint64_t const absoluteTime = mach_absolute_time();
+      auto const process_age = std::chrono::nanoseconds{
+          (absoluteTime - rusage_info_data.ri_proc_start_abstime) *
+          time_base.numer / time_base.denom};
 
-      auto multiply = static_cast<double>(time_base.numer) /
-                      static_cast<double>(time_base.denom);
-      auto diff = static_cast<long>(
-          (rusage_info_data.ri_proc_start_abstime - absoluteTime));
-
-      // This is a negative value
-      auto seconds_since_launch =
-          static_cast<long>(diff * multiply) / NSECS_IN_USEC;
-
-      // Get the start_time of process since the computer started
-      r.start_time_col = ((uptime + seconds_since_launch) / CPU_TIME_RATIO);
+      r.start_time_col =
+          std::time(nullptr) -
+          std::chrono::duration_cast<std::chrono::seconds>(process_age).count();
     }
   } else {
     r.wired_size_col = -1;
