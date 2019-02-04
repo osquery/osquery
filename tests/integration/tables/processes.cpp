@@ -12,61 +12,64 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
+#include <osquery/utils/info/platform_type.h>
+
 namespace osquery {
 namespace table_tests {
 
-class processes : public testing::Test {
-  protected:
-    void SetUp() override {
-      setUpEnvironment();
-    }
+class ProcessesTest : public testing::Test {
+ protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
 };
 
-TEST_F(processes, test_sanity) {
+TEST_F(ProcessesTest, test_sanity) {
   // 1. Query data
   auto const data = execute_query("select * from processes");
   // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"pid", IntType}
-  //      {"name", NormalType}
-  //      {"path", NormalType}
-  //      {"cmdline", NormalType}
-  //      {"state", NormalType}
-  //      {"cwd", NormalType}
-  //      {"root", NormalType}
-  //      {"uid", IntType}
-  //      {"gid", IntType}
-  //      {"euid", IntType}
-  //      {"egid", IntType}
-  //      {"suid", IntType}
-  //      {"sgid", IntType}
-  //      {"on_disk", IntType}
-  //      {"wired_size", IntType}
-  //      {"resident_size", IntType}
-  //      {"total_size", IntType}
-  //      {"user_time", IntType}
-  //      {"system_time", IntType}
-  //      {"disk_bytes_read", IntType}
-  //      {"disk_bytes_written", IntType}
-  //      {"start_time", IntType}
-  //      {"parent", IntType}
-  //      {"pgroup", IntType}
-  //      {"threads", IntType}
-  //      {"nice", IntType}
-  //      {"is_elevated_token", IntType}
-  //      {"upid", IntType}
-  //      {"uppid", IntType}
-  //      {"cpu_type", IntType}
-  //      {"cpu_subtype", IntType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_GE(data.size(), 2ul);
+  ValidatatioMap row_map = {
+      {"pid", IntType},
+      {"name", NormalType},
+      {"path", NormalType},
+      {"cmdline", NormalType},
+      {"state", NormalType},
+      {"cwd", NormalType},
+      {"root", NormalType},
+      {"uid", IntType},
+      {"gid", IntType},
+      {"euid", IntType},
+      {"egid", IntType},
+      {"suid", IntType},
+      {"sgid", IntType},
+      {"on_disk", IntType},
+      {"wired_size", IntType},
+      {"resident_size", NormalType},
+      {"total_size", NormalType},
+      {"user_time", IntType},
+      {"system_time", IntType},
+      {"disk_bytes_read", NormalType},
+      {"disk_bytes_written", NormalType},
+      {"start_time", NormalType},
+      {"parent", IntType},
+      {"pgroup", IntType},
+      {"threads", IntType},
+      {"nice", IntType},
+  };
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    row_map.emplace("is_elevated_token", NormalType);
+    row_map.emplace("elapsed_time", IntType);
+    row_map.emplace("handle_count", IntType);
+    row_map.emplace("percent_processor_time", IntType);
+  }
+  if (isPlatform(PlatformType::TYPE_OSX)) {
+    row_map.emplace("upid", IntType);
+    row_map.emplace("uppid", IntType);
+    row_map.emplace("cpu_type", IntType);
+    row_map.emplace("cpu_subtype", IntType);
+  }
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
