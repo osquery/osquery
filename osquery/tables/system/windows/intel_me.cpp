@@ -6,12 +6,14 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <array>
 #include <memory>
 #include <unordered_set>
 
 // clang-format off
 #include <osquery/utils/system/system.h>
 #include <SetupAPI.h>
+
 // clang-format on
 #include <initguid.h>
 #include <tchar.h>
@@ -25,8 +27,6 @@
 
 namespace osquery {
 namespace {
-const std::unordered_set<size_t> kExpectedMaxLenValues = {512U, 4096U};
-
 DEFINE_GUID(HECI_INTERFACE_GUID,
             0xE2D1FF34,
             0x3458,
@@ -40,7 +40,182 @@ DEFINE_GUID(HECI_INTERFACE_GUID,
             0x9B,
             0xE5);
 
-const unsigned char kGetFirmwareVersionCommand[4] = {0};
+// clang-format off
+const std::vector<std::vector<std::uint8_t>> kConnectDeviceCommandData = {
+  // Interface type 0
+  { 0x15, 0x67, 0x6A, 0x8E, 0xBC, 0x9A, 0x43, 0x40, 0x88, 0xEF, 0x9E, 0x39, 0xC6, 0xF6, 0x3E, 0x0F },
+
+  // Interface type 1
+  { 0x84, 0x35, 0x21, 0x55, 0x29, 0x9A, 0x16, 0x49, 0xBA, 0xDF, 0x0F, 0xB7, 0xED, 0x68, 0x2A, 0xEB },
+
+  // Interface type 2
+  { 0xE8, 0xCD, 0x9D, 0x30, 0xB1, 0xCC, 0x62, 0x40, 0x8F, 0x78, 0x60, 0x01, 0x15, 0xA3, 0x43, 0x27 }
+};
+// clang-format on
+
+const std::uint32_t kGetHECIVersionCommand = 0x8000E000U;
+const std::uint32_t kConnectDeviceCommand = 0x8000E004U;
+
+const std::uint32_t kGetFirmareVersionCommandForInterfaceTypes0And1 =
+    0x000002FFU;
+
+const std::uint32_t kGetFirmareVersionCommandForInterfaceType2 = 0x00000000U;
+const std::uint32_t kGetFirmareVersionCommandForInterfaceType2Reply =
+    0x00000001U;
+
+struct IntelMEInformation final {
+  struct HECIVersion final {
+    std::uint8_t major{0U};
+    std::uint8_t minor{0U};
+    std::uint8_t hotfix{0U};
+    std::uint16_t build{0U};
+  };
+
+  struct ProtocolInformation final {
+    std::size_t max_message_length{0U};
+    std::uint8_t version{0U};
+  };
+
+  struct FirmwareVersionTypes0And1 final {
+    struct VersionData final {
+      std::uint16_t minor{0U};
+      std::uint16_t major{0U};
+      std::uint16_t build_number{0U};
+      std::uint16_t hotfix{0U};
+    };
+
+    VersionData code;
+    VersionData nftp;
+    boost::optional<VersionData> fitc;
+  };
+
+  struct FirmwareVersionType2 final {
+    std::uint32_t sku{0U};
+    std::uint32_t pch_ver{0U};
+    std::uint32_t vendor{0U};
+    std::uint32_t last_fw_update_status{0U};
+    std::uint32_t hw_sku{0U};
+
+    std::uint16_t major{0U};
+    std::uint16_t minor{0U};
+    std::uint16_t build{0U};
+    std::uint16_t revision{0U};
+  };
+
+  enum class InterfaceType { Type0, Type1, Type2 };
+
+  HECIVersion heci_version;
+  ProtocolInformation protocol_information;
+  InterfaceType interface_type;
+  boost::variant<FirmwareVersionTypes0And1, FirmwareVersionType2> fw_version;
+};
+
+std::ostream& operator<<(
+    std::ostream& stream,
+    const IntelMEInformation::FirmwareVersionTypes0And1::VersionData&
+        version_data) {
+  stream << "Major: " << version_data.major << " ";
+  stream << "Minor: " << version_data.minor << " ";
+  stream << "Build number: " << version_data.build_number << " ";
+  stream << "Hotfix: " << version_data.hotfix;
+
+  return stream;
+}
+
+std::ostream& operator<<(
+    std::ostream& stream,
+    const IntelMEInformation::FirmwareVersionTypes0And1& fw_version) {
+  stream << "VersionTypes0And1 { ";
+  stream << "CODE { " << fw_version.code << " } ";
+  stream << "NFTP { " << fw_version.nftp << " } ";
+
+  if (fw_version.fitc) {
+    const auto& fitc_version = fw_version.fitc.get();
+    stream << "FITC { " << fitc_version << " } ";
+  }
+
+  stream << "} ";
+  return stream;
+}
+
+std::ostream& operator<<(
+    std::ostream& stream,
+    const IntelMEInformation::FirmwareVersionType2& fw_version) {
+  stream << "VersionType2 { ";
+  stream << "sku: " << fw_version.sku << " ";
+  stream << "pch_ver: " << fw_version.pch_ver << " ";
+  stream << "vendor: " << fw_version.vendor << " ";
+
+  stream << "last_fw_update_status: " << fw_version.last_fw_update_status
+         << " ";
+
+  stream << "hw_sku: " << fw_version.hw_sku << " ";
+  stream << "major: " << fw_version.major << " ";
+  stream << "minor: " << fw_version.minor << " ";
+  stream << "build: " << fw_version.build << " ";
+  stream << "revision: " << fw_version.revision << " ";
+  stream << " } ";
+
+  return stream;
+}
+
+std::ostream& operator<<(std::ostream& stream,
+                         const IntelMEInformation& intel_me_info) {
+  stream << "HECI Version: "
+         << static_cast<int>(intel_me_info.heci_version.major) << "."
+         << static_cast<int>(intel_me_info.heci_version.minor) << "."
+         << static_cast<int>(intel_me_info.heci_version.hotfix) << "."
+         << static_cast<int>(intel_me_info.heci_version.build) << " ";
+
+  stream << "Protocol Version: "
+         << static_cast<int>(intel_me_info.protocol_information.version) << " ";
+
+  stream << "Max Message Length: "
+         << static_cast<int>(
+                intel_me_info.protocol_information.max_message_length)
+         << " ";
+
+  stream << "Interface type: ";
+
+  switch (intel_me_info.interface_type) {
+  case IntelMEInformation::InterfaceType::Type0:
+    stream << "Type0 ";
+    break;
+
+  case IntelMEInformation::InterfaceType::Type1:
+    stream << "Type1 ";
+    break;
+
+  case IntelMEInformation::InterfaceType::Type2:
+    stream << "Type2 ";
+    break;
+  }
+
+  if (intel_me_info.interface_type ==
+          IntelMEInformation::InterfaceType::Type0 ||
+      intel_me_info.interface_type ==
+          IntelMEInformation::InterfaceType::Type1) {
+    const auto& fw_version =
+        boost::get<IntelMEInformation::FirmwareVersionTypes0And1>(
+            intel_me_info.fw_version);
+
+    stream << fw_version;
+
+  } else {
+    const auto& fw_version =
+        boost::get<IntelMEInformation::FirmwareVersionType2>(
+            intel_me_info.fw_version);
+
+    stream << fw_version;
+  }
+
+  return stream;
+}
+
+const std::vector<IntelMEInformation::InterfaceType> kInterfaceTypesToTry = {
+    IntelMEInformation::InterfaceType::Type0,
+    IntelMEInformation::InterfaceType::Type1,
+    IntelMEInformation::InterfaceType::Type2};
 
 struct HdevInfoDeleter final {
   using pointer = HDEVINFO;
@@ -78,6 +253,9 @@ using DeviceInformationSet =
 
 using DeviceHandle = std::unique_ptr<HandleDeleter::pointer,
                                      GenericHandleDeleter<HandleDeleter>>;
+
+using EventHandle = std::unique_ptr<HandleDeleter::pointer,
+                                    GenericHandleDeleter<HandleDeleter>>;
 
 osquery::Status getDeviceInformationSet(DeviceInformationSet& dev_info_set,
                                         const GUID* guid_filter) {
@@ -226,41 +404,92 @@ osquery::Status openDeviceInterface(DeviceHandle& device_handle,
                            FILE_SHARE_READ | FILE_SHARE_WRITE,
                            nullptr,
                            OPEN_EXISTING,
-                           0,
+                           FILE_FLAG_OVERLAPPED,
                            nullptr);
 
   if (device == INVALID_HANDLE_VALUE) {
     return osquery::Status::failure(
-        "Failed to open handle to the following device: " + dev_interface_path +
-        "Error: " + std::to_string(GetLastError()));
+        "Failed to open a handle to the following device interface: " +
+        dev_interface_path + "Error: " + std::to_string(GetLastError()));
   }
 
   device_handle.reset(device);
   return osquery::Status(0);
 }
 
-osquery::Status queryDeviceVersion(std::string& version,
-                                   const std::string& dev_interface_path) {
-  version = {};
+osquery::Status queryHECIVersion(IntelMEInformation& intel_me_info,
+                                 HANDLE device) {
+  DWORD bytes_read = 0U;
+  std::array<std::uint8_t, 5U> response;
 
-  DeviceHandle device;
-  auto status = openDeviceInterface(device, dev_interface_path);
-  if (!status.ok()) {
-    return status;
+  if (!DeviceIoControl(device,
+                       kGetHECIVersionCommand,
+                       nullptr,
+                       0U,
+                       response.data(),
+                       static_cast<DWORD>(response.size()),
+                       &bytes_read,
+                       nullptr)) {
+    auto err = GetLastError();
+    return osquery::Status::failure(
+        "Failed to determine the HECI version. Error: " + std::to_string(err));
   }
 
-  // Attempt to open the device
-  auto open_command_copy = tables::kMEIUpdateGUID;
-  auto open_command_size = static_cast<DWORD>(open_command_copy.size());
+  if (bytes_read != response.size()) {
+    return osquery::Status::failure(
+        "The driver has returned an invalid number of bytes");
+  }
 
-  tables::mei_response response = {};
-  if (!DeviceIoControl(device.get(),
-                       INTEL_ME_WINDOWS_IOCTL,
-                       open_command_copy.data(),
-                       open_command_size,
-                       &response,
-                       sizeof(response),
-                       nullptr,
+  intel_me_info.heci_version.major = response.at(0);
+  intel_me_info.heci_version.minor = response.at(1);
+  intel_me_info.heci_version.hotfix = response.at(2);
+
+  auto build_ptr = reinterpret_cast<const std::uint16_t*>(response.data() + 3U);
+  intel_me_info.heci_version.build = *build_ptr;
+
+  return Status(0);
+}
+
+osquery::Status sendConnectDeviceCommand(
+    IntelMEInformation::ProtocolInformation& protocol_information,
+    HANDLE device,
+    IntelMEInformation::InterfaceType interface_type) {
+  protocol_information = {};
+
+  // Determine what kind of request we have to send
+  const std::vector<std::uint8_t>* connect_command_data = nullptr;
+
+  switch (interface_type) {
+  case IntelMEInformation::InterfaceType::Type0:
+    connect_command_data = &kConnectDeviceCommandData.at(0);
+    break;
+
+  case IntelMEInformation::InterfaceType::Type1:
+    connect_command_data = &kConnectDeviceCommandData.at(1);
+    break;
+
+  case IntelMEInformation::InterfaceType::Type2:
+    connect_command_data = &kConnectDeviceCommandData.at(2);
+    break;
+  }
+
+  if (connect_command_data == nullptr) {
+    return osquery::Status::failure("Invalid open mode specified");
+  }
+
+  // Make a copy of the data, as DeviceIoControl expects it to be writable
+  auto connect_command_data_copy = *connect_command_data;
+
+  std::array<std::uint8_t, 5U> response;
+  DWORD bytes_read = 0U;
+
+  if (!DeviceIoControl(device,
+                       kConnectDeviceCommand,
+                       connect_command_data_copy.data(),
+                       static_cast<DWORD>(connect_command_data_copy.size()),
+                       response.data(),
+                       static_cast<DWORD>(response.size()),
+                       &bytes_read,
                        nullptr)) {
     auto err = GetLastError();
     if (err == ERROR_GEN_FAILURE) {
@@ -273,68 +502,319 @@ osquery::Status queryDeviceVersion(std::string& version,
                                     std::to_string(err));
   }
 
-  // Validate the response
-  bool invalid_response = false;
-  if (response.maxlen < sizeof(tables::mei_version)) {
-    LOG(WARNING) << "Invalid maxlen size returned: " +
-                        std::to_string(response.maxlen);
-
-    invalid_response = true;
-  }
-
-  if (kExpectedMaxLenValues.count(response.maxlen) == 0U) {
-    LOG(WARNING) << "The returned maxlen field value is unexpected: "
-                 << response.maxlen;
-
-    invalid_response = true;
-  }
-
-  if (response.version != 0x01) {
-    LOG(WARNING) << "Unexpected response version: "
-                 << std::to_string(response.version)
-                 << ". Continuing anyway...";
-  }
-
-  if (invalid_response) {
+  if (bytes_read != 5U) {
     return osquery::Status::failure(
-        "Invalid response received from the device");
+        "The driver has returned an invalid amount of bytes");
   }
 
-  // Request the firmware version
-  if (!WriteFile(device.get(),
-                 kGetFirmwareVersionCommand,
-                 sizeof(kGetFirmwareVersionCommand),
-                 nullptr,
-                 nullptr)) {
+  auto max_response_length_ptr =
+      reinterpret_cast<const std::uint32_t*>(response.data());
+
+  protocol_information.max_message_length =
+      static_cast<std::size_t>(*max_response_length_ptr);
+
+  auto protocol_version_ptr = reinterpret_cast<const std::uint8_t*>(
+      response.data() + sizeof(std::uint32_t));
+
+  protocol_information.version = *protocol_version_ptr;
+
+  return osquery::Status(0);
+}
+
+osquery::Status connectToHECIInterface(IntelMEInformation& intel_me_info,
+                                       HANDLE device) {
+  osquery::Status status;
+
+  for (const auto& interface_type : kInterfaceTypesToTry) {
+    status = sendConnectDeviceCommand(
+        intel_me_info.protocol_information, device, interface_type);
+
+    if (status.ok()) {
+      intel_me_info.interface_type = interface_type;
+      break;
+    }
+  }
+
+  return status;
+}
+
+osquery::Status createEvent(EventHandle& event) {
+  event.reset();
+
+  {
+    auto h = CreateEvent(nullptr, false, false, nullptr);
+    if (h == INVALID_HANDLE_VALUE) {
+      return osquery::Status::failure("Failed to create the event");
+    }
+
+    event.reset(h);
+  }
+
+  return osquery::Status(0);
+}
+
+osquery::Status sendHECIMessage(HANDLE device,
+                                const std::uint8_t* buffer,
+                                std::size_t buffer_size,
+                                std::chrono::milliseconds timeout) {
+  EventHandle event;
+  auto status = createEvent(event);
+  if (!status.ok()) {
+    return status;
+  }
+
+  OVERLAPPED overlapped = {};
+  overlapped.hEvent = event.get();
+
+  DWORD bytes_written = 0U;
+  if (!WriteFile(device,
+                 buffer,
+                 static_cast<DWORD>(buffer_size),
+                 &bytes_written,
+                 &overlapped) &&
+      GetLastError() != ERROR_IO_PENDING) {
+    return osquery::Status::failure("Failed to send the HECI message");
+  }
+
+  auto wait_status =
+      WaitForSingleObject(event.get(), static_cast<DWORD>(timeout.count()));
+
+  if (wait_status == WAIT_TIMEOUT) {
+    return osquery::Status::failure("The operation has timed out");
+  } else if (wait_status != WAIT_OBJECT_0) {
+    return osquery::Status::failure("The operation has failed");
+  }
+
+  DWORD bytes_transferred = 0U;
+  if (!GetOverlappedResult(device, &overlapped, &bytes_transferred, false) ||
+      static_cast<std::size_t>(bytes_transferred) != buffer_size) {
     return osquery::Status::failure(
-        "Failed to send the firmware version query to the device");
+        "Not all the bytes in the message could be correctly transferred");
   }
 
-  std::vector<std::uint8_t> read_buffer(response.maxlen);
+  return osquery::Status(0);
+}
+
+osquery::Status receiveHECIMessage(std::vector<std::uint8_t>& buffer,
+                                   HANDLE device,
+                                   std::size_t max_message_length,
+                                   std::chrono::milliseconds timeout) {
+  EventHandle event;
+  auto status = createEvent(event);
+  if (!status.ok()) {
+    return status;
+  }
+
+  OVERLAPPED overlapped = {};
+  overlapped.hEvent = event.get();
+
+  std::vector<std::uint8_t> temp_buffer(max_message_length);
   DWORD bytes_read = 0U;
 
-  if (!ReadFile(device.get(),
-                read_buffer.data(),
-                static_cast<DWORD>(read_buffer.size()),
+  if (!ReadFile(device,
+                temp_buffer.data(),
+                static_cast<DWORD>(max_message_length),
                 &bytes_read,
-                nullptr)) {
-    return osquery::Status::failure("Failed to acquire the device response");
+                &overlapped) &&
+      GetLastError() != ERROR_IO_PENDING) {
+    return osquery::Status::failure("Failed to receive the HECI message");
   }
 
-  if (static_cast<size_t>(bytes_read) < sizeof(tables::mei_version)) {
-    return osquery::Status::failure(
-        "Invalid device response when attempting to acquire the firmware "
-        "version");
+  auto wait_status =
+      WaitForSingleObject(event.get(), static_cast<DWORD>(timeout.count()));
+
+  if (wait_status == WAIT_TIMEOUT) {
+    return osquery::Status::failure("The operation has timed out");
+  } else if (wait_status != WAIT_OBJECT_0) {
+    return osquery::Status::failure("The operation has failed");
   }
 
-  // Convert the numeric version fields to string
-  auto raw_version =
-      reinterpret_cast<const tables::mei_version*>(read_buffer.data());
+  DWORD bytes_transferred = 0U;
+  if (!GetOverlappedResult(device, &overlapped, &bytes_transferred, false) ||
+      bytes_transferred == 0U) {
+    return osquery::Status::failure("Failed to read the HECI message");
+  }
 
-  version = std::to_string(raw_version->major) + '.' +
-            std::to_string(raw_version->minor) + '.' +
-            std::to_string(raw_version->hotfix) + '.' +
-            std::to_string(raw_version->build);
+  temp_buffer.resize(static_cast<std::size_t>(bytes_transferred));
+  buffer = std::move(temp_buffer);
+
+  return osquery::Status(0);
+}
+
+osquery::Status queryFirmwareVersionForInterfaceTypes0And1(
+    IntelMEInformation& intel_me_info, HANDLE device) {
+  auto message_ptr = reinterpret_cast<const std::uint8_t*>(
+      &kGetFirmareVersionCommandForInterfaceTypes0And1);
+
+  auto message_size = sizeof(kGetFirmareVersionCommandForInterfaceTypes0And1);
+
+  auto status = sendHECIMessage(
+      device, message_ptr, message_size, std::chrono::milliseconds(4000U));
+
+  if (!status.ok()) {
+    return status;
+  }
+
+  std::vector<std::uint8_t> response;
+  status =
+      receiveHECIMessage(response,
+                         device,
+                         intel_me_info.protocol_information.max_message_length,
+                         std::chrono::milliseconds(4000U));
+
+  if (!status.ok()) {
+    return status;
+  }
+
+  if (response.size() != 20U && response.size() != 28U) {
+    return osquery::Status::failure("Invalid response size");
+  }
+
+  //  We always have 4 padding bytes
+  auto version_fields =
+      reinterpret_cast<const std::uint16_t*>(response.data() + 4U);
+
+  IntelMEInformation::FirmwareVersionTypes0And1 fw_version;
+
+  // The answer type depends on the amount of bytes we received
+  if (response.size() >= 20U) {
+    fw_version.code.minor = version_fields[0];
+    fw_version.code.major = version_fields[1];
+    fw_version.code.build_number = version_fields[2];
+    fw_version.code.hotfix = version_fields[3];
+
+    fw_version.nftp.minor = version_fields[4];
+    fw_version.nftp.major = version_fields[5];
+    fw_version.nftp.build_number = version_fields[6];
+    fw_version.nftp.hotfix = version_fields[7];
+  }
+
+  if (response.size() == 28U) {
+    IntelMEInformation::FirmwareVersionTypes0And1::VersionData fitc_version;
+
+    fitc_version.minor = version_fields[8];
+    fitc_version.major = version_fields[9];
+    fitc_version.build_number = version_fields[10];
+    fitc_version.hotfix = version_fields[11];
+
+    fw_version.fitc = fitc_version;
+  }
+
+  intel_me_info.fw_version = fw_version;
+
+  return osquery::Status(0);
+}
+
+osquery::Status queryFirmwareVersionForInterfaceType2(
+    IntelMEInformation& intel_me_info, HANDLE device) {
+  auto message_ptr = reinterpret_cast<const std::uint8_t*>(
+      &kGetFirmareVersionCommandForInterfaceType2);
+
+  auto message_size = sizeof(kGetFirmareVersionCommandForInterfaceType2);
+
+  auto status = sendHECIMessage(
+      device, message_ptr, message_size, std::chrono::milliseconds(4000U));
+
+  if (!status.ok()) {
+    return status;
+  }
+
+  std::vector<std::uint8_t> response;
+  status =
+      receiveHECIMessage(response,
+                         device,
+                         intel_me_info.protocol_information.max_message_length,
+                         std::chrono::milliseconds(4000U));
+
+  if (!status.ok()) {
+    return status;
+  }
+
+  if (response.size() < 8U + 28U) {
+    return osquery::Status::failure("Invalid response size: " +
+                                    std::to_string(response.size()));
+  }
+
+  auto error = *reinterpret_cast<const std::uint32_t*>(response.data() +
+                                                       sizeof(std::uint32_t));
+
+  if (error != 0U) {
+    return osquery::Status::failure("Invalid response received");
+  }
+
+  auto reply = *reinterpret_cast<const std::uint32_t*>(response.data());
+  if (reply != kGetFirmareVersionCommandForInterfaceType2Reply) {
+    return osquery::Status::failure("Invalid reply");
+  }
+
+  auto version_list_part1 =
+      reinterpret_cast<const std::uint32_t*>(response.data() + 8U);
+
+  IntelMEInformation::FirmwareVersionType2 fw_version;
+  fw_version.sku = version_list_part1[0];
+  fw_version.pch_ver = version_list_part1[1];
+  fw_version.vendor = version_list_part1[2];
+  fw_version.last_fw_update_status = version_list_part1[3];
+  fw_version.hw_sku = version_list_part1[4];
+
+  auto version_list_part2 =
+      reinterpret_cast<const std::uint16_t*>(response.data() + 28U);
+
+  fw_version.major = version_list_part2[0];
+  fw_version.minor = version_list_part2[1];
+  fw_version.build = version_list_part2[2];
+  fw_version.revision = version_list_part2[3];
+
+  intel_me_info.fw_version = fw_version;
+  return osquery::Status(0);
+}
+
+osquery::Status queryFirmwareVersion(IntelMEInformation& intel_me_info,
+                                     HANDLE device) {
+  using QueryFirmwareFunction =
+      osquery::Status (*)(IntelMEInformation&, HANDLE);
+
+  // clang-format off
+  const std::unordered_map<IntelMEInformation::InterfaceType, QueryFirmwareFunction> kQueryFunctions = {
+    { IntelMEInformation::InterfaceType::Type0, queryFirmwareVersionForInterfaceTypes0And1 },
+    { IntelMEInformation::InterfaceType::Type1, queryFirmwareVersionForInterfaceTypes0And1 },
+    { IntelMEInformation::InterfaceType::Type2, queryFirmwareVersionForInterfaceType2 }
+  };
+  // clang-format on
+
+  auto it = kQueryFunctions.find(intel_me_info.interface_type);
+  if (it == kQueryFunctions.end()) {
+    return osquery::Status::failure("Invalid or unknown interface type");
+  }
+
+  const auto& query_function = it->second;
+  return query_function(intel_me_info, device);
+}
+
+osquery::Status queryIntelMEDeviceInterface(
+    IntelMEInformation& intel_me_info, const std::string& dev_interface_path) {
+  intel_me_info = {};
+
+  DeviceHandle device;
+  auto status = openDeviceInterface(device, dev_interface_path);
+  if (!status.ok()) {
+    return status;
+  }
+
+  status = queryHECIVersion(intel_me_info, device.get());
+  if (!status.ok()) {
+    return status;
+  }
+
+  status = connectToHECIInterface(intel_me_info, device.get());
+  if (!status.ok()) {
+    return status;
+  }
+
+  status = queryFirmwareVersion(intel_me_info, device.get());
+  if (!status.ok()) {
+    return status;
+  }
 
   return osquery::Status(0);
 }
@@ -357,15 +837,58 @@ void getHECIDriverVersion(QueryData& results) {
   }
 
   for (const auto& dev_path : dev_path_list) {
-    std::string version = {};
-    status = queryDeviceVersion(version, dev_path);
+    IntelMEInformation intel_me_info;
+    status = queryIntelMEDeviceInterface(intel_me_info, dev_path);
     if (!status.ok()) {
       LOG(WARNING) << status.getMessage();
       continue;
     }
 
+    VLOG(1) << intel_me_info;
+
+    std::string version = {};
+
+    switch (intel_me_info.interface_type) {
+    case IntelMEInformation::InterfaceType::Type0:
+    case IntelMEInformation::InterfaceType::Type1: {
+      const auto& fw_version =
+          boost::get<IntelMEInformation::FirmwareVersionTypes0And1>(
+              intel_me_info.fw_version);
+
+      version += std::to_string(fw_version.code.major) + "." +
+                 std::to_string(fw_version.code.minor) + "." +
+                 std::to_string(fw_version.code.hotfix) + "." +
+                 std::to_string(fw_version.code.build_number);
+
+      break;
+    }
+
+    case IntelMEInformation::InterfaceType::Type2: {
+      const auto& fw_version =
+          boost::get<IntelMEInformation::FirmwareVersionType2>(
+              intel_me_info.fw_version);
+
+      version += std::to_string(fw_version.major) + "." +
+                 std::to_string(fw_version.minor) + "." +
+                 std::to_string(fw_version.revision) + "." +
+                 std::to_string(fw_version.build);
+
+      break;
+    }
+
+    default: {
+      LOG(ERROR) << "Invalid interface type";
+      break;
+    }
+    }
+
+    if (version.empty()) {
+      continue;
+    }
+
     Row r = {};
     r["version"] = std::move(version);
+
     results.push_back(std::move(r));
   }
 }
