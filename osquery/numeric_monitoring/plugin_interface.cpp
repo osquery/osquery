@@ -34,10 +34,22 @@ RecordKeys createRecordKeys() {
   return keys;
 };
 
+HostIdentifierKeys createHostIdentifierKeys() {
+  auto keys = HostIdentifierKeys{};
+  keys.name = "<DEVICE_NAME>";
+  keys.scheme = "<DEVICE_HOSTNAME_SCHEME>";
+  return keys;
+};
+
 } // namespace
 
 const RecordKeys& recordKeys() {
   static const auto keys = createRecordKeys();
+  return keys;
+}
+
+const HostIdentifierKeys& hostIdentifierKeys() {
+  static const auto keys = createHostIdentifierKeys();
   return keys;
 }
 

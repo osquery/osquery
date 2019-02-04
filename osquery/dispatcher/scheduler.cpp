@@ -64,7 +64,9 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   if (FLAGS_enable_numeric_monitoring) {
     CodeProfiler profiler(
         {(boost::format("scheduler.pack.%s") % query.pack_name).str(),
-         (boost::format("scheduler.query.%s.%s") % query.pack_name % query.name)
+         (boost::format("scheduler.query.%s.%s.%s") %
+          monitoring::hostIdentifierKeys().scheme % query.pack_name %
+          query.name)
              .str()});
     return SQLInternal(query.query, true);
   } else {
