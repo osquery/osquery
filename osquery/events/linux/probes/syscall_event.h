@@ -13,9 +13,14 @@
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/system/linux/ebpf/program.h>
 
+#include <boost/optional.hpp>
+
+#include <bitset>
+#include <type_traits>
+#include <unordered_map>
+
 namespace osquery {
 namespace events {
-
 namespace syscall {
 
 enum class Type : __s32 {
@@ -79,8 +84,29 @@ struct Event {
     } exit;
   } body;
 
-  // final return value of the syscall is palced here by EnterExitJoiner
+  // This value is used by EnterExitJoiner, final return value of the syscall
+  // is placed here as a result of join().
+  // Also this member is used by EnterExitJoiner to preserve the age of the
+  // event.
   __s32 return_value;
+};
+
+class EnterExitJoiner {
+ public:
+  boost::optional<Event> join(Event event);
+
+  bool isEmpty() const;
+
+  using CounterType = int;
+  static constexpr std::size_t KeyBitSize = 32u * 3u;
+  using KeyType = std::bitset<KeyBitSize>;
+
+ private:
+  void drop_stuck_events();
+
+ private:
+  CounterType counter_ = 0;
+  std::unordered_multimap<KeyType, Event> table_;
 };
 
 } // namespace syscall
