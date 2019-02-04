@@ -22,6 +22,8 @@ enum class Type : __s32 {
   Unknown = 0,
   KillEnter = 1,
   KillExit = -KillEnter,
+  SetuidEnter = 2,
+  SetuidExit = -SetuidEnter,
 };
 
 static constexpr std::size_t kCommSize = 16u;
@@ -45,6 +47,16 @@ struct Event {
       /*  -8 */ __u32 uid;
       /*  -4 */ __u32 gid;
     } kill_enter;
+
+    struct SetuidEnter {
+      /* -40 type */
+      /* -36 pid */
+      /* -32 tgid */
+      /* -28 */ char comm[kCommSize];
+      /* -12 */ __s32 arg_uid;
+      /*  -8 */ __u32 uid;
+      /*  -4 */ __u32 gid;
+    } setuid_enter;
 
     struct Exit {
       /* -16 type */
