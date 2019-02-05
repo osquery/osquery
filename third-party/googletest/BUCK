@@ -34,7 +34,7 @@ osquery_genrule(
 )
 
 osquery_prebuilt_cxx_library(
-    name = "gtest_private_headers",
+    name = "gtest_src",
     header_namespace = "",
     header_dirs = [
         ":gtest_src_dir",
@@ -73,27 +73,6 @@ osquery_genrule(
     cmd_exe = "mklink %OUT% $(location :archive)\googletest-release-1.8.1\googletest\src\gtest_main.cc",
 )
 
-osquery_cxx_library(
-    name = "gtest",
-    srcs = [
-        ":gtest-all",
-        ":gtest_main",
-    ],
-    exported_preprocessor_flags = [
-        "-DGTEST_USE_OWN_TR1_TUPLE=0",
-        "-DGTEST_HAS_TR1_TUPLE=0",
-    ],
-    external = True,
-    visibility = ["PUBLIC"],
-    deps = [
-        ":gtest_private_headers",
-        osquery_tp_target("pthread"),
-    ],
-    exported_deps = [
-        ":gtest_headers",
-    ],
-)
-
 osquery_genrule(
     name = "gmock_src_dir",
     out = "src",
@@ -108,7 +87,7 @@ osquery_genrule(
 )
 
 osquery_prebuilt_cxx_library(
-    name = "gmock_headers",
+    name = "gmock_src",
     header_namespace = "",
     header_dirs = [
         ":gmock_src_dir",
@@ -124,12 +103,13 @@ osquery_genrule(
 )
 
 osquery_prebuilt_cxx_library(
-    name = "gmock_exported_headers",
+    name = "gmock_headers",
     header_namespace = "gmock",
     header_dirs = [
         ":gmock_include_dir",
     ],
     header_only = True,
+    visibility = ["PUBLIC"],
 )
 
 osquery_genrule(
@@ -140,9 +120,15 @@ osquery_genrule(
 )
 
 osquery_cxx_library(
-    name = "gmock",
+    name = "gtest",
     srcs = [
         ":gmock-all",
+        ":gtest-all",
+        ":gtest_main",
+    ],
+    exported_preprocessor_flags = [
+        "-DGTEST_USE_OWN_TR1_TUPLE=0",
+        "-DGTEST_HAS_TR1_TUPLE=0",
     ],
     external = True,
     platform_compiler_flags = [
@@ -155,11 +141,12 @@ osquery_cxx_library(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        ":gmock_headers",
-        ":gtest",
+        ":gmock_src",
+        ":gtest_src",
         osquery_tp_target("pthread"),
     ],
     exported_deps = [
-        ":gmock_exported_headers",
+        ":gmock_headers",
+        ":gtest_headers",
     ],
 )
