@@ -10,8 +10,10 @@
 
 #pragma once
 
+#include <osquery/utils/system/linux/ebpf/program.h>
+#include <osquery/utils/system/linux/tracing/native_event.h>
+
 #include <osquery/utils/expected/expected.h>
-#include <osquery/utils/system/linux/tracing/types.h>
 
 namespace osquery {
 namespace events {
@@ -31,11 +33,12 @@ class EbpfTracepoint final {
 
   ~EbpfTracepoint();
 
-  static Expected<EbpfTracepoint, Error> load(
-      tracing::SystemEventId system_event_id, int ebpf_prog_fd);
+  static Expected<EbpfTracepoint, Error> load(tracing::NativeEvent system_event,
+                                              ebpf::Program program);
 
  private:
-  explicit EbpfTracepoint() = default;
+  explicit EbpfTracepoint(tracing::NativeEvent system_event,
+                          ebpf::Program program);
 
   ExpectedSuccess<Error> unload();
 
@@ -43,6 +46,9 @@ class EbpfTracepoint final {
 
  private:
   int fd_ = -1;
+
+  tracing::NativeEvent system_event_;
+  ebpf::Program program_;
 };
 
 } // namespace events
