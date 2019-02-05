@@ -19,6 +19,7 @@ osquery_cxx_library(
             LINUX,
             [
                 "ebpf_tracepoint.h",
+                "probes.h",
                 "syscall_event.h",
                 "syscalls_programs.h",
             ],
@@ -29,6 +30,7 @@ osquery_cxx_library(
             LINUX,
             [
                 "ebpf_tracepoint.cpp",
+                "probes.cpp",
                 "syscall_event.cpp",
                 "syscalls_programs.cpp",
             ],
@@ -44,6 +46,7 @@ osquery_cxx_library(
         osquery_target("osquery/utils/expected:expected"),
         osquery_target("osquery/utils/system/linux/ebpf:ebpf"),
         osquery_target("osquery/utils/system/linux/tracing:tracing"),
+        osquery_target("osquery/utils:utils"),
         osquery_tp_target("boost"),
     ],
 )
