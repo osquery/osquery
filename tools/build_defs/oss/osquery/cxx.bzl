@@ -115,6 +115,13 @@ def osquery_cxx_library(external = False, **kwargs):
     else:
         _osquery_set_generic_kwargs(kwargs)
         _osquery_set_preprocessor_kwargs(kwargs, external)
+        if _osquery_read_config("osquery", "xcode", False):
+            platform_deps = kwargs.get("platform_deps", [])
+            deps = kwargs.get("deps", [])
+            for (platform, new_deps) in platform_deps:
+                if "macos" in platform:
+                    deps += new_deps
+            kwargs["deps"] = deps
         _osquery_cxx_library(**kwargs)
 
 def osquery_prebuilt_cxx_library(**kwargs):

@@ -15,6 +15,10 @@ load(
     _osquery_get_current_platform = "osquery_get_current_platform",
 )
 load(
+    "//tools/build_defs/oss/osquery:native_functions.bzl",
+    _osquery_read_config = "osquery_read_config",
+)
+load(
     "//tools/build_defs/oss/osquery:platforms.bzl",
     _LINUX = "LINUX",
     _MACOSX = "MACOSX",
@@ -45,13 +49,25 @@ _PLATFORM_MAP = {
 
 _CXX_ARCHIVE_TYPE = "tar.gz"
 
+def _static_lib_file_target_name(
+        name,
+        version,
+        platform,
+        static_lib):
+    return "{}_{}_{}_{}_static_lib_file".format(
+        name,
+        version,
+        platform,
+        static_lib,
+    )
+
 def _static_lib_file(
         name,
         version,
         platform,
         archive_target,
         static_lib):
-    target_name = "{}_{}_{}_{}_static_lib_file".format(
+    target_name = _static_lib_file_target_name(
         name,
         version,
         platform,
@@ -233,7 +249,8 @@ def osquery_tp_prebuilt_cxx_library(
         linker_flags = None,
         deps = None):
     platform_prebuilt_library_targets = []
-
+    exported_platform_preprocessor_flags = []
+    exported_platform_linker_flags = []
     for platform in platforms:
         archive_target = _osquery_tp_prebuilt_cxx_archive(
             name = name,
@@ -302,11 +319,32 @@ def osquery_tp_prebuilt_cxx_library(
                 [":{}".format(prebuilt_library_target)],
             ))
 
+        if _osquery_read_config("osquery", "xcode", False):
+            for effective_platform in _PLATFORM_MAP[platform]:
+                target_name = header_dir_targets[0]
+                xcode_headers_search_path = (effective_platform, ["-I$(location :{})".format(target_name)])
+                xcode_linker_flags = linker_flags or []
+                exported_platform_preprocessor_flags.append(xcode_headers_search_path)
+                for static_lib in effective_static_libs:
+                    xcode_linker_flags.append(
+                        "$(location :{})".format(
+                            _static_lib_file_target_name(
+                                name,
+                                version,
+                                platform,
+                                static_lib,
+                            ),
+                        ),
+                    )
+                exported_platform_linker_flags.append((effective_platform, xcode_linker_flags))
+
     _osquery_cxx_library(
         name = name,
         external = True,
         platform_deps = platform_prebuilt_library_targets,
         visibility = ["PUBLIC"],
+        exported_platform_preprocessor_flags = exported_platform_preprocessor_flags,
+        exported_platform_linker_flags = exported_platform_linker_flags,
     )
 
 def osquery_tp_prebuilt_python_library(

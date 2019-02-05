@@ -39,6 +39,8 @@ osquery_cxx_library(
 
 osquery_cxx_binary(
     name = "osqueryd",
+    # Xcode ignore targets without source files :(
+    srcs = ["empty.cpp"],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/main:main"),
