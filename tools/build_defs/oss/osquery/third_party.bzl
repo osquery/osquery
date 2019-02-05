@@ -319,6 +319,8 @@ def osquery_tp_prebuilt_cxx_library(
                 [":{}".format(prebuilt_library_target)],
             ))
 
+        # Prebuilt libs are ignored in xcode project
+        # Following code adds support via linker flags and pp flags
         if _osquery_read_config("osquery", "xcode", False):
             for effective_platform in _PLATFORM_MAP[platform]:
                 target_name = header_dir_targets[0]

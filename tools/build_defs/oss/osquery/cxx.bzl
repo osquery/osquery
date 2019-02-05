@@ -115,6 +115,10 @@ def osquery_cxx_library(external = False, **kwargs):
     else:
         _osquery_set_generic_kwargs(kwargs)
         _osquery_set_preprocessor_kwargs(kwargs, external)
+
+        #TODO remove after T39415423 is done
+        # platform_deps is ignored in xcode project generation
+        # so we need to move osx platform_deps to regular deps
         if _osquery_read_config("osquery", "xcode", False):
             platform_deps = kwargs.get("platform_deps", [])
             deps = kwargs.get("deps", [])
