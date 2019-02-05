@@ -104,7 +104,7 @@ def _osquery_set_preprocessor_kwargs(kwargs, external):
         kwargs["platform_preprocessor_flags"] += _OSQUERY_PLATFORM_PREPROCESSOR_FLAGS
 
 def _is_target_ignored(target):
-    if _osquery_read_config("osquery", "force_build_all", False):
+    if _osquery_read_config("osquery", "disable_ignore_lists", False):
         return False
     ignore_list = _osquery_read_config("osquery", "target_ignore_list", [])
     return target in ignore_list
