@@ -22,11 +22,20 @@
 namespace osquery {
 namespace events {
 
-EbpfTracepoint::EbpfTracepoint(EbpfTracepoint&& other) : fd_(other.fd_) {
+EbpfTracepoint::EbpfTracepoint(tracing::NativeEvent system_event,
+                               ebpf::Program program)
+    : system_event_{std::move(system_event)}, program_{std::move(program)} {}
+
+EbpfTracepoint::EbpfTracepoint(EbpfTracepoint&& other)
+    : fd_{other.fd_},
+      system_event_{std::move(other.system_event_)},
+      program_{std::move(other.program_)} {
   other.fd_ = -1;
 }
 
 EbpfTracepoint& EbpfTracepoint::operator=(EbpfTracepoint&& other) {
+  std::swap(system_event_, other.system_event_);
+  std::swap(program_, other.program_);
   std::swap(fd_, other.fd_);
   return *this;
 }
@@ -36,14 +45,14 @@ EbpfTracepoint::~EbpfTracepoint() {
 }
 
 Expected<EbpfTracepoint, EbpfTracepoint::Error> EbpfTracepoint::load(
-    tracing::SystemEventId system_event_id, int prog_fd) {
-  auto instance = EbpfTracepoint{};
+    tracing::NativeEvent system_event, ebpf::Program program) {
+  auto instance = EbpfTracepoint(std::move(system_event), std::move(program));
 
   struct perf_event_attr trace_attr;
   memset(&trace_attr, 0, sizeof(struct perf_event_attr));
   trace_attr.type = PERF_TYPE_TRACEPOINT;
   trace_attr.size = sizeof(struct perf_event_attr);
-  trace_attr.config = system_event_id;
+  trace_attr.config = instance.system_event_.id();
   trace_attr.sample_period = 1;
   trace_attr.sample_type = PERF_SAMPLE_RAW;
   trace_attr.wakeup_events = 1;
@@ -62,7 +71,7 @@ Expected<EbpfTracepoint, EbpfTracepoint::Error> EbpfTracepoint::load(
   }
   instance.fd_ = fd_exp.take();
 
-  if (ioctl(instance.fd_, PERF_EVENT_IOC_SET_BPF, prog_fd) < 0) {
+  if (ioctl(instance.fd_, PERF_EVENT_IOC_SET_BPF, instance.program_.fd()) < 0) {
     return createError(Error::SystemError,
                        "Fail to attach perf event of EbpfTracepoint ")
            << boost::io::quoted(strerror(errno));
