@@ -7,6 +7,7 @@ load(
     _osquery_native = "osquery_native",
     _osquery_prebuilt_cxx_library = "osquery_prebuilt_cxx_library",
     _osquery_prebuilt_cxx_library_group = "osquery_prebuilt_cxx_library_group",
+    _osquery_read_config = "osquery_read_config",
 )
 load(
     "//tools/build_defs/oss/osquery:platforms.bzl",
@@ -102,10 +103,19 @@ def _osquery_set_preprocessor_kwargs(kwargs, external):
     if not external:
         kwargs["platform_preprocessor_flags"] += _OSQUERY_PLATFORM_PREPROCESSOR_FLAGS
 
+def _is_target_ignored(target):
+    if _osquery_read_config("osquery", "force_build_all", False):
+        return False
+    ignore_list = _osquery_read_config("osquery", "target_ignore_list", [])
+    return target in ignore_list
+
 def osquery_cxx_library(external = False, **kwargs):
-    _osquery_set_generic_kwargs(kwargs)
-    _osquery_set_preprocessor_kwargs(kwargs, external)
-    _osquery_cxx_library(**kwargs)
+    if _is_target_ignored(kwargs["name"]):
+        _osquery_cxx_library(name = kwargs["name"], visibility = kwargs.get("visibility", []))
+    else:
+        _osquery_set_generic_kwargs(kwargs)
+        _osquery_set_preprocessor_kwargs(kwargs, external)
+        _osquery_cxx_library(**kwargs)
 
 def osquery_prebuilt_cxx_library(**kwargs):
     _osquery_set_generic_kwargs(kwargs)

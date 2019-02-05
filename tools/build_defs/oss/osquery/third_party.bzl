@@ -6,8 +6,8 @@ load(
 )
 load(
     "//tools/build_defs/oss/osquery:defaults.bzl",
-    _OSQUERY_THIRD_PARTY_PATH = "OSQUERY_THIRD_PARTY_PATH",
     _OSQUERY_CELL_NAME = "OSQUERY_CELL_NAME",
+    _OSQUERY_THIRD_PARTY_PATH = "OSQUERY_THIRD_PARTY_PATH",
 )
 load(
     "//tools/build_defs/oss/osquery:native.bzl",

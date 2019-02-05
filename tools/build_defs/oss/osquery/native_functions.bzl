@@ -10,5 +10,7 @@ osquery_cxx_binary = osquery_native.cxx_binary
 
 osquery_cxx_test = osquery_native.cxx_test
 
+osquery_read_config = osquery_native.read_config
+
 def osquery_custom_set_generic_kwargs(_):
     pass
