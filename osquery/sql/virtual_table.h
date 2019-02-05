@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <boost/noncopyable.hpp>
 
 #include <osquery/tables.h>
@@ -68,7 +70,7 @@ struct VirtualTable : private boost::noncopyable {
   sqlite3_vtab base;
 
   /// Added structure: A content structure with metadata about the table.
-  VirtualTableContent* content{nullptr};
+  std::shared_ptr<VirtualTableContent> content;
 
   /// Added structure: The thread-local DB instance associated with the query.
   SQLiteDBInstance* instance{nullptr};

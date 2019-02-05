@@ -138,7 +138,7 @@ ScheduledQuery getOsqueryScheduledQuery() {
 }
 
 TableRows genRows(EventSubscriberPlugin* sub) {
-  auto vtc = new VirtualTableContent();
+  auto vtc = std::make_shared<VirtualTableContent>();
   QueryContext context(vtc);
   RowGenerator::pull_type generator(std::bind(&EventSubscriberPlugin::genTable,
                                               sub,
@@ -147,7 +147,6 @@ TableRows genRows(EventSubscriberPlugin* sub) {
 
   TableRows results;
   if (!generator) {
-    delete vtc;
     return results;
   }
 
@@ -155,7 +154,6 @@ TableRows genRows(EventSubscriberPlugin* sub) {
     results.push_back(generator.get());
     generator();
   }
-  delete vtc;
   return results;
 }
 

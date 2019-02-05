@@ -269,13 +269,14 @@ RecursiveLock SQLiteDBInstance::attachLock() const {
   return RecursiveLock(attach_mutex_);
 }
 
-void SQLiteDBInstance::addAffectedTable(VirtualTableContent* table) {
+void SQLiteDBInstance::addAffectedTable(
+    std::shared_ptr<VirtualTableContent> table) {
   // An xFilter/scan was requested for this virtual table.
-  affected_tables_.insert(std::make_pair(table->name, table));
+  affected_tables_.insert(std::make_pair(table->name, std::move(table)));
 }
 
-bool SQLiteDBInstance::tableCalled(VirtualTableContent* table) {
-  return (affected_tables_.count(table->name) > 0);
+bool SQLiteDBInstance::tableCalled(VirtualTableContent const& table) {
+  return (affected_tables_.count(table.name) > 0);
 }
 
 TableAttributes SQLiteDBInstance::getAttributes() const {
