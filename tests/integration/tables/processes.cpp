@@ -12,7 +12,9 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/system/uptime.h>
 
 namespace osquery {
 namespace table_tests {
@@ -29,6 +31,12 @@ TEST_F(ProcessesTest, test_sanity) {
   auto const data = execute_query("select * from processes");
   // 2. Check size before validation
   ASSERT_GE(data.size(), 2ul);
+
+  auto const now = std::time(nullptr);
+  auto const boot_time = now - getUptime() - 1;
+
+  EXPECT_GE(now, boot_time);
+
   ValidatatioMap row_map = {
       {"pid", IntType},
       {"name", NormalType},
@@ -51,7 +59,19 @@ TEST_F(ProcessesTest, test_sanity) {
       {"system_time", IntType},
       {"disk_bytes_read", NormalType},
       {"disk_bytes_written", NormalType},
-      {"start_time", NormalType},
+      {"start_time",
+       [&now, &boot_time](auto value) {
+         auto start_time_exp = tryTo<std::time_t>(value);
+         if (start_time_exp.isError()) {
+           return false;
+         }
+         auto const start_time = start_time_exp.take();
+         if (start_time == -1) {
+           return true;
+         }
+         return start_time <= now && boot_time <= start_time;
+       }},
+
       {"parent", IntType},
       {"pgroup", IntType},
       {"threads", IntType},
