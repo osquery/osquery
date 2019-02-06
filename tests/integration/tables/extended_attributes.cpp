@@ -24,7 +24,8 @@ class extendedAttributes : public testing::Test {
 
 TEST_F(extendedAttributes, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from extended_attributes");
+  auto const data =
+      execute_query("select * from extended_attributes where path = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);

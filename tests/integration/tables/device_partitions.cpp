@@ -24,7 +24,8 @@ class devicePartitions : public testing::Test {
 
 TEST_F(devicePartitions, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from device_partitions");
+  auto const data =
+      execute_query("select * from device_partitions where device = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);

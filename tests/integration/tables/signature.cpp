@@ -24,7 +24,7 @@ class signature : public testing::Test {
 
 TEST_F(signature, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from signature");
+  auto const data = execute_query("select * from signature where path = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);
