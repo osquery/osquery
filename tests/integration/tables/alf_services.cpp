@@ -27,16 +27,16 @@ TEST_F(alfServices, test_sanity) {
   ASSERT_EQ(data.size(), 1ul);
 
   ValidatatioMap row_map = {
-       {"screen_sharing", IntType},
-       {"file_sharing", IntType},
-       {"printer_sharing", IntType},
-       {"remote_login", IntType},
-       {"remote_management", IntType},
-       {"remote_apple_events", IntType},
-       {"internet_sharing", IntType},
-       {"bluetooth_sharing", IntType},
-       {"disc_sharing", IntType},
-       {"content_caching", IntType},
+      {"screen_sharing", IntType},
+      {"file_sharing", IntType},
+      {"printer_sharing", IntType},
+      {"remote_login", IntType},
+      {"remote_management", IntType},
+      {"remote_apple_events", IntType},
+      {"internet_sharing", IntType},
+      {"bluetooth_sharing", IntType},
+      {"disc_sharing", IntType},
+      {"content_caching", IntType},
   };
 
   validate_rows(data, row_map);
