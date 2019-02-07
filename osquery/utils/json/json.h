@@ -19,10 +19,6 @@
 #pragma warning(disable : 4715)
 #endif
 
-namespace rapidjson {
-using SizeType = ::std::size_t;
-} // namespace rapidjson
-
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/stringbuffer.h>
