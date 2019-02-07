@@ -759,10 +759,9 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   // Check the table for a required column.
   for (const auto& column : columns) {
     auto& options = std::get<2>(column);
-    if (options & ColumnOptions::REQUIRED && !required_satisfied) {
+    if ((options & ColumnOptions::REQUIRED) && !required_satisfied) {
       // A column is marked required, but no constraint satisfies.
-      cost += 1e10;
-      break;
+      return SQLITE_CONSTRAINT;
     }
   }
 

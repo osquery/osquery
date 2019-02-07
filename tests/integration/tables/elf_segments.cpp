@@ -24,7 +24,7 @@ class elfSegments : public testing::Test {
 
 TEST_F(elfSegments, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from elf_segments");
+  auto const data = execute_query("select * from elf_segments where path = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);
