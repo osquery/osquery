@@ -39,8 +39,7 @@ TEST_F(OptionsConfigParserPluginTests, test_get_option) {
   EXPECT_EQ(s.toString(), "OK");
 
   const auto& parser = c.getParser("options")->getData();
-  ASSERT_TRUE(parser.doc().HasMember("options"));
-  EXPECT_TRUE(JSON::valueToBool(parser.doc()["options"]["enable_monitor"]));
+  ASSERT_FALSE(parser.doc().HasMember("options"));
 
   c.reset();
 }

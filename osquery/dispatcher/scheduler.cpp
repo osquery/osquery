@@ -49,8 +49,6 @@ FLAG(uint64,
 
 FLAG(uint64, schedule_epoch, 0, "Epoch for scheduled queries");
 
-HIDDEN_FLAG(bool, enable_monitor, true, "Enable the schedule monitor");
-
 HIDDEN_FLAG(bool,
             schedule_reload_sql,
             false,
