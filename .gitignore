@@ -74,3 +74,6 @@ cscope.out
 # Buck
 .buckd/
 buck-out/
+
+# Windows system specific toolchain paths
+tools/buckconfigs/windows-x86_64/toolchain/vsToolchainFlags.bcfg
