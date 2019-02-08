@@ -31,8 +31,6 @@ QueryData genHVCIStatus(QueryContext& context) {
                  codepolicystatusmethod);
     data.GetLong("UsermodeCodeIntegrityPolicyEnforcementStatus",
                  umcipolicymethod);
-    data.GetVectorOfStrings("AvailableSecurityProperties",
-                            r["available_security_properties"]);
 
     std::string vbsmethod_str;
     std::map<long, std::string> vbsmethods;
@@ -52,8 +50,8 @@ QueryData genHVCIStatus(QueryContext& context) {
     codepolicystatusmethods[2] = "ENFORCED_MODE";
 
     umcipolicymethods[0] = "OFF";
-    umcipolicymethods[0] = "AUDIT_MODE";
-    umcipolicymethods[0] = "ENFORCED_MODE";
+    umcipolicymethods[1] = "AUDIT_MODE";
+    umcipolicymethods[2] = "ENFORCED_MODE";
 
     if (vbsmethods.find(vbsmethod) != vbsmethods.end()) {
       vbsmethod_str = vbsmethods.find(vbsmethod)->second;
