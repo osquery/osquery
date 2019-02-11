@@ -12,11 +12,15 @@
 
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/map_take.h>
+#include <osquery/utils/system/linux/cpu.h>
 #include <osquery/utils/system/linux/perf_event/perf_event.h>
+#include <osquery/utils/system/posix/errno.h>
 
 #include <osquery/logger.h>
 
 #include <sys/ioctl.h>
+#include <sys/resource.h>
+#include <sys/time.h>
 
 namespace osquery {
 namespace events {
@@ -41,6 +45,88 @@ Expected<std::string, LinuxProbesControl::Error> toTracingPath(
   }
   return exp.take();
 }
+
+size_t constexpr kMemoryLockSize = 266240u;
+
+ExpectedSuccess<PosixError> setMemoryLockSystemLimit() {
+  struct rlimit limits = {RLIM_INFINITY, RLIM_INFINITY};
+  auto ret = setrlimit(RLIMIT_MEMLOCK, &limits);
+  if (ret < 0) {
+    return createError(to<PosixError>(errno), "setrlimit() syscall failed: ")
+           << boost::io::quoted(strerror(errno));
+  }
+  return Success{};
+}
+
+} // namespace
+
+LinuxProbesControl::LinuxProbesControl(
+    PerfEventCpuMap cpu_to_perf_output_map,
+    ebpf::PerfOutputsPoll<events::syscall::Event> output_poll)
+    : cpu_to_perf_output_map_(std::move(cpu_to_perf_output_map)),
+      output_poll_(std::move(output_poll)) {}
+
+Expected<LinuxProbesControl, LinuxProbesControl::Error>
+LinuxProbesControl::spawn() {
+  auto exp = setMemoryLockSystemLimit();
+  if (exp.isError()) {
+    return createError(Error::SystemUnknown,
+                       "failed to set appropriate memory lock limits",
+                       exp.takeError());
+  }
+
+  auto cpu_map_exp =
+      ebpf::createMap<int, int, BPF_MAP_TYPE_PERF_EVENT_ARRAY>(cpu::kMaskSize);
+  if (cpu_map_exp.isError()) {
+    return createError(Error::SystemEbpf,
+                       "failed to create eBPF map for {cpu -> perf} table",
+                       cpu_map_exp.takeError());
+  }
+  auto cpu_map = cpu_map_exp.take();
+
+  auto output_poll = ebpf::PerfOutputsPoll<events::syscall::Event>{};
+  auto online_cpu_exp = cpu::getOnline();
+  if (online_cpu_exp.isError()) {
+    return createError(Error::SystemUnknown,
+                       "failed to load cpu configuration",
+                       online_cpu_exp.takeError());
+  }
+  auto const online_cpu = online_cpu_exp.take();
+  for (auto cpu_i = std::size_t{0}; cpu_i < online_cpu.size(); ++cpu_i) {
+    if (online_cpu.test(cpu_i)) {
+      auto output_exp = ebpf::PerfOutput<events::syscall::Event>::load(
+          cpu_i, kMemoryLockSize);
+      if (output_exp.isError()) {
+        return createError(Error::SystemPerfEvent,
+                           "perf events output initialisation failed",
+                           output_exp.takeError());
+      }
+      {
+        auto status = cpu_map.updateElement(cpu_i, output_exp->fd());
+        if (status.isError()) {
+          return createError(Error::SystemEbpf,
+                             "loading perf events output to map failed",
+                             status.takeError());
+        }
+      }
+      {
+        auto status = output_poll.add(output_exp.take());
+        if (status.isError()) {
+          return createError(Error::SystemUnknown,
+                             "adding new output to PerfOutputsPoll failed",
+                             status.takeError());
+        }
+      }
+    }
+  }
+  return LinuxProbesControl(std::move(cpu_map), std::move(output_poll));
+}
+
+ebpf::PerfOutputsPoll<events::syscall::Event>& LinuxProbesControl::getReader() {
+  return output_poll_;
+}
+
+namespace {
 
 Expected<EbpfTracepoint, LinuxProbesControl::Error> createTracepointForSyscall(
     syscall::Type type, PerfEventCpuMap const& cpu_map) {
@@ -79,12 +165,16 @@ Expected<EbpfTracepoint, LinuxProbesControl::Error> createTracepointForSyscall(
 } // namespace
 
 ExpectedSuccess<LinuxProbesControl::Error>
-LinuxProbesControl::traceEnterAndExit(syscall::Type type,
-                                      PerfEventCpuMap const& cpu_map) {
-  auto tracepoint_exp = createTracepointForSyscall(type, cpu_map);
+LinuxProbesControl::traceEnterAndExit(syscall::Type type) {
+  if (type == syscall::Type::Unknown) {
+    return createError(Error::InvalidArgument, "Wrong syscall type: 'Unknown'");
+  }
+  auto tracepoint_exp =
+      createTracepointForSyscall(type, cpu_to_perf_output_map_);
   if (tracepoint_exp.isValue()) {
     auto const inv_type = syscall::flipType(type);
-    auto inv_tracepoint_exp = createTracepointForSyscall(inv_type, cpu_map);
+    auto inv_tracepoint_exp =
+        createTracepointForSyscall(inv_type, cpu_to_perf_output_map_);
     if (inv_tracepoint_exp.isValue()) {
       probes_.emplace(type, tracepoint_exp.take());
       probes_.emplace(inv_type, inv_tracepoint_exp.take());
@@ -96,14 +186,12 @@ LinuxProbesControl::traceEnterAndExit(syscall::Type type,
   return tracepoint_exp.takeError();
 }
 
-ExpectedSuccess<LinuxProbesControl::Error> LinuxProbesControl::traceKill(
-    PerfEventCpuMap const& cpu_map) {
-  return traceEnterAndExit(syscall::Type::KillEnter, cpu_map);
+ExpectedSuccess<LinuxProbesControl::Error> LinuxProbesControl::traceKill() {
+  return traceEnterAndExit(syscall::Type::KillEnter);
 }
 
-ExpectedSuccess<LinuxProbesControl::Error> LinuxProbesControl::traceSetuid(
-    PerfEventCpuMap const& cpu_map) {
-  return traceEnterAndExit(syscall::Type::SetuidEnter, cpu_map);
+ExpectedSuccess<LinuxProbesControl::Error> LinuxProbesControl::traceSetuid() {
+  return traceEnterAndExit(syscall::Type::SetuidEnter);
 }
 
 } // namespace events
