@@ -28,13 +28,13 @@ namespace events {
 namespace {
 
 Expected<std::string, LinuxProbesControl::Error> toTracingPath(
-    syscall::Type type) {
+    syscall::EventType type) {
   static const auto table =
-      std::unordered_map<syscall::Type, std::string, EnumClassHash>{
-          {syscall::Type::KillEnter, "syscalls/sys_enter_kill"},
-          {syscall::Type::KillExit, "syscalls/sys_exit_kill"},
-          {syscall::Type::SetuidEnter, "syscalls/sys_enter_setuid"},
-          {syscall::Type::SetuidExit, "syscalls/sys_exit_setuid"},
+      std::unordered_map<syscall::EventType, std::string, EnumClassHash>{
+          {syscall::EventType::KillEnter, "syscalls/sys_enter_kill"},
+          {syscall::EventType::KillExit, "syscalls/sys_exit_kill"},
+          {syscall::EventType::SetuidEnter, "syscalls/sys_enter_setuid"},
+          {syscall::EventType::SetuidExit, "syscalls/sys_exit_setuid"},
       };
   auto exp = tryTakeCopy(table, type);
   if (exp.isError()) {
@@ -129,7 +129,7 @@ ebpf::PerfOutputsPoll<events::syscall::Event>& LinuxProbesControl::getReader() {
 namespace {
 
 Expected<EbpfTracepoint, LinuxProbesControl::Error> createTracepointForSyscall(
-    syscall::Type type, PerfEventCpuMap const& cpu_map) {
+    syscall::EventType type, PerfEventCpuMap const& cpu_map) {
   auto program_exp = genLinuxProgram(BPF_PROG_TYPE_TRACEPOINT, cpu_map, type);
   if (program_exp.isError()) {
     return createError(LinuxProbesControl::Error::SystemEbpf,
@@ -165,14 +165,14 @@ Expected<EbpfTracepoint, LinuxProbesControl::Error> createTracepointForSyscall(
 } // namespace
 
 ExpectedSuccess<LinuxProbesControl::Error>
-LinuxProbesControl::traceEnterAndExit(syscall::Type type) {
-  if (type == syscall::Type::Unknown) {
+LinuxProbesControl::traceEnterAndExit(syscall::EventType type) {
+  if (type == syscall::EventType::Unknown) {
     return createError(Error::InvalidArgument, "Wrong syscall type: 'Unknown'");
   }
   auto tracepoint_exp =
       createTracepointForSyscall(type, cpu_to_perf_output_map_);
   if (tracepoint_exp.isValue()) {
-    auto const inv_type = syscall::flipType(type);
+    auto const inv_type = syscall::flipEventType(type);
     auto inv_tracepoint_exp =
         createTracepointForSyscall(inv_type, cpu_to_perf_output_map_);
     if (inv_tracepoint_exp.isValue()) {
@@ -187,11 +187,11 @@ LinuxProbesControl::traceEnterAndExit(syscall::Type type) {
 }
 
 ExpectedSuccess<LinuxProbesControl::Error> LinuxProbesControl::traceKill() {
-  return traceEnterAndExit(syscall::Type::KillEnter);
+  return traceEnterAndExit(syscall::EventType::KillEnter);
 }
 
 ExpectedSuccess<LinuxProbesControl::Error> LinuxProbesControl::traceSetuid() {
-  return traceEnterAndExit(syscall::Type::SetuidEnter);
+  return traceEnterAndExit(syscall::EventType::SetuidEnter);
 }
 
 } // namespace events

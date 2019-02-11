@@ -24,7 +24,7 @@ using PerfEventCpuMap = ebpf::Map<int, int, BPF_MAP_TYPE_PERF_EVENT_ARRAY>;
 Expected<ebpf::Program, ebpf::Program::Error> genLinuxProgram(
     enum bpf_prog_type prog_type,
     PerfEventCpuMap const& cpu_map,
-    syscall::Type type);
+    syscall::EventType type);
 
 } // namespace events
 } // namespace osquery
