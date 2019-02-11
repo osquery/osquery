@@ -10,6 +10,8 @@
 
 #include <osquery/events/linux/probes/syscalls_programs.h>
 
+#include <boost/core/demangle.hpp>
+
 namespace osquery {
 namespace events {
 
@@ -206,6 +208,25 @@ Expected<ebpf::Program, ebpf::Program::Error> genLinuxExitProgram(
 
   }, BPF_PROG_TYPE_TRACEPOINT, kIsDebug);
   // clang-format on
+}
+
+Expected<ebpf::Program, ebpf::Program::Error> genLinuxProgram(
+    enum bpf_prog_type prog_type,
+    PerfEventCpuMap const& cpu_map,
+    syscall::Type type) {
+  if (syscall::isTypeExit(type)) {
+    return genLinuxExitProgram(prog_type, cpu_map, type);
+  } else if (syscall::Type::KillEnter == type) {
+    return genLinuxKillEnterProgram(prog_type, cpu_map);
+  } else if (syscall::Type::SetuidEnter == type) {
+    return genLinuxSetuidEnterProgram(prog_type, cpu_map);
+  } else {
+    return createError(ebpf::Program::Error::Unknown,
+                       "There is no program for type(")
+           << static_cast<int>(type) << ") system call "
+           << boost::core::demangle(typeid(type).name()) << "("
+           << static_cast<int>(type) << ")";
+  }
 }
 
 } // namespace events
