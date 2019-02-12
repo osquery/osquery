@@ -80,6 +80,7 @@ Status RocksDBDatabasePlugin::setUp() {
 
   if (!initialized_) {
     initialized_ = true;
+    options_.OptimizeForSmallDb();
 
     // Set meta-data (mostly) handling options.
     options_.create_if_missing = true;
