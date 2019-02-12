@@ -16,10 +16,10 @@ QueryData genDefaultEnvironment(QueryContext& context) {
 
   for (const auto& env : environment) {
     Row r;
-    r["variable"] = env.at("name");
-    r["value"] = env.at("data");
+    r["variable"] = std::move(env.at("name"));
+    r["value"] = std::move(env.at("data"));
     r["expand"] = INTEGER(env.at("type") == "REG_EXPAND_SZ");
-    results.push_back(r);
+    results.push_back(std::move(r));
   }
 
   return results;
