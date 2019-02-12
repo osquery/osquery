@@ -55,6 +55,7 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = [
         osquery_tp_target("glog"),
+        osquery_tp_target("boost"),
     ],
     exported_deps = [
         osquery_target("osquery/logger:logger"),
