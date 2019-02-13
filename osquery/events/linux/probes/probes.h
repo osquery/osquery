@@ -14,6 +14,7 @@
 
 #include <osquery/utils/enum_class_hash.h>
 #include <osquery/utils/expected/expected.h>
+#include <osquery/utils/system/linux/ebpf/perf_output.h>
 
 namespace osquery {
 namespace events {
@@ -29,17 +30,27 @@ class LinuxProbesControl final {
     InvalidArgument = 6,
   };
 
-  using PerfEventCpuMap = ebpf::Map<int, int, BPF_MAP_TYPE_PERF_EVENT_ARRAY>;
+  static Expected<LinuxProbesControl, LinuxProbesControl::Error> spawn();
 
-  ExpectedSuccess<Error> traceKill(PerfEventCpuMap const& cpu_map);
-  ExpectedSuccess<Error> traceSetuid(PerfEventCpuMap const& cpu_map);
+  ebpf::PerfOutputsPoll<events::syscall::Event>& getReader();
+
+  ExpectedSuccess<Error> traceKill();
+  ExpectedSuccess<Error> traceSetuid();
 
  private:
-  ExpectedSuccess<Error> traceEnterAndExit(syscall::Type type,
-                                           PerfEventCpuMap const& cpu_map);
+  using PerfEventCpuMap = ebpf::Map<int, int, BPF_MAP_TYPE_PERF_EVENT_ARRAY>;
+
+  explicit LinuxProbesControl(
+      PerfEventCpuMap cpu_to_perf_output_map,
+      ebpf::PerfOutputsPoll<events::syscall::Event> output_poll);
+
+  ExpectedSuccess<Error> traceEnterAndExit(syscall::Type type);
 
  private:
   std::unordered_map<syscall::Type, EbpfTracepoint, EnumClassHash> probes_;
+
+  PerfEventCpuMap cpu_to_perf_output_map_;
+  ebpf::PerfOutputsPoll<events::syscall::Event> output_poll_;
 };
 
 } // namespace events
