@@ -12,11 +12,6 @@ osquery_cxx_test(
     srcs = [
         "carver_tests.cpp",
     ],
-    env = {
-        "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:config_files"),
-        ),
-    },
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/config/tests:test_utils"),
