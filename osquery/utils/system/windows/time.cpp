@@ -18,8 +18,6 @@
 #define MAX_BUFFER_SIZE 256
 
 namespace osquery {
-const auto kWindowsLanguageId = MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT);
-
 std::string platformAsctime(const struct tm* timeptr) {
   std::vector<char> buffer;
   buffer.assign(MAX_BUFFER_SIZE, '\0');
