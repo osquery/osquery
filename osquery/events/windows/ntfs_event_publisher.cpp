@@ -20,7 +20,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-#include <osquery/utils/system/filepath.h>
+#include <osquery/utils/system/errno.h>
 
 #include "osquery/events/windows/ntfs_event_publisher.h"
 

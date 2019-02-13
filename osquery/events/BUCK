@@ -63,7 +63,7 @@ osquery_cxx_library(
         (
             WINDOWS,
             [
-                osquery_target("osquery/utils/system:filepath"),
+                osquery_target("osquery/utils/system:errno"),
             ],
         ),
     ],

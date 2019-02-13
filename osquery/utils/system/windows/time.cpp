@@ -45,31 +45,4 @@ std::string platformStrerr(int errnum) {
 
   return std::string(buffer.data());
 }
-
-Status getWindowsErrorDescription(std::string& error_message, DWORD error_id) {
-  error_message.clear();
-  LPSTR buffer = nullptr;
-
-  auto message_size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                                         FORMAT_MESSAGE_FROM_SYSTEM |
-                                         FORMAT_MESSAGE_IGNORE_INSERTS,
-                                     nullptr,
-                                     error_id,
-                                     kWindowsLanguageId,
-                                     reinterpret_cast<LPSTR>(&buffer),
-                                     0,
-                                     nullptr);
-
-  if (message_size == 0U) {
-    return Status(1,
-                  "Failed to fetch the Windows error message for the following "
-                  "error code: " +
-                      std::to_string(error_id));
-  }
-
-  error_message.assign(buffer, static_cast<size_t>(message_size));
-  LocalFree(buffer);
-
-  return Status(0);
-}
 }

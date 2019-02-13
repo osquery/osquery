@@ -25,8 +25,4 @@ namespace osquery {
 /// Safer way to do realpath
 const std::string canonicalize_file_name(const char* name);
 
-#ifdef WIN32
-/// Converts a Windows error (winerror.h/GetLastError()) to a string
-Status getWindowsErrorDescription(std::string& error_message, DWORD error_id);
-#endif
 }

@@ -80,6 +80,9 @@ osquery_cxx_library(
             ],
         ),
     ],
+    deps = [
+        osquery_target("osquery/utils/status:status"),
+    ],
     tests = [
         ":errno_tests",
     ],
