@@ -76,5 +76,6 @@ osquery_cxx_library(
     deps = [
         osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/utils/json:json"),
+        osquery_target("osquery/utils/system:env"),
     ],
 )
