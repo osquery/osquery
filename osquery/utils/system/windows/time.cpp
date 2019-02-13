@@ -31,16 +31,4 @@ std::string platformAsctime(const struct tm* timeptr) {
   boost::replace_all(time_str, "\n", "");
   return time_str;
 }
-
-std::string platformStrerr(int errnum) {
-  std::vector<char> buffer;
-  buffer.assign(MAX_BUFFER_SIZE, '\0');
-
-  auto status = ::strerror_s(buffer.data(), buffer.size(), errnum);
-  if (status != 0) {
-    return "";
-  }
-
-  return std::string(buffer.data());
-}
 }
