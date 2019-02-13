@@ -10,16 +10,6 @@
 
 #include <string>
 
-#ifdef WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#include <Windows.h>
-#endif
-
-#include <osquery/utils/status/status.h>
-
 namespace osquery {
 
 /// Safer way to do realpath
