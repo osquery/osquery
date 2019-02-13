@@ -44,11 +44,10 @@ class LinuxProbesControl final {
       PerfEventCpuMap cpu_to_perf_output_map,
       ebpf::PerfOutputsPoll<events::syscall::Event> output_poll);
 
-  ExpectedSuccess<Error> traceEnterAndExit(syscall::Type type);
+  ExpectedSuccess<Error> traceEnterAndExit(syscall::EventType type);
 
  private:
-  std::unordered_map<syscall::Type, EbpfTracepoint, EnumClassHash> probes_;
-
+  std::unordered_map<syscall::EventType, EbpfTracepoint, EnumClassHash> probes_;
   PerfEventCpuMap cpu_to_perf_output_map_;
   ebpf::PerfOutputsPoll<events::syscall::Event> output_poll_;
 };

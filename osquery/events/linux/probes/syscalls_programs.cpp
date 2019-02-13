@@ -29,7 +29,7 @@ bool constexpr kIsDebug =
 Expected<ebpf::Program, ebpf::Program::Error> genLinuxKillEnterProgram(
     enum bpf_prog_type prog_type, PerfEventCpuMap const& cpu_map) {
   constexpr int kKillEnterSize = 44;
-  static_assert(sizeof(syscall::Type) + sizeof(syscall::Event::pid) +
+  static_assert(sizeof(syscall::EventType) + sizeof(syscall::Event::pid) +
                         sizeof(syscall::Event::tgid) +
                         sizeof(syscall::Event::Body::KillEnter) ==
                     kKillEnterSize,
@@ -45,7 +45,7 @@ Expected<ebpf::Program, ebpf::Program::Error> genLinuxKillEnterProgram(
     {BPF_STX | BPF_DW | BPF_MEM  , BPF_REG_10, BPF_REG_1,  -24,  0},
 
     // put syscall code into final event struct, @see syscall::Event::type
-    {BPF_ST  | BPF_W | BPF_MEM   , BPF_REG_10,         0,  -kKillEnterSize,  static_cast<__s32>(syscall::Type::KillEnter)}, // Event.type
+    {BPF_ST  | BPF_W | BPF_MEM   , BPF_REG_10,         0,  -kKillEnterSize,  static_cast<__s32>(syscall::EventType::KillEnter)}, // Event.type
 
     // call fanction get_current_uid_gid()
     {BPF_JMP | BPF_K | BPF_CALL  ,          0,         0,    0,  BPF_FUNC_get_current_uid_gid},
@@ -112,13 +112,13 @@ Expected<ebpf::Program, ebpf::Program::Error> genLinuxKillEnterProgram(
 Expected<ebpf::Program, ebpf::Program::Error> genLinuxSetuidEnterProgram(
     enum bpf_prog_type prog_type, PerfEventCpuMap const& cpu_map) {
   constexpr int kSetuidEnterSize = 40;
-  static_assert(sizeof(syscall::Type) + sizeof(syscall::Event::pid) +
+  static_assert(sizeof(syscall::EventType) + sizeof(syscall::Event::pid) +
                         sizeof(syscall::Event::tgid) +
                         sizeof(syscall::Event::Body::SetuidEnter) ==
                     kSetuidEnterSize,
                 "A program below relies on certain size of output struct");
-  static_assert(static_cast<__s32>(syscall::Type::SetuidEnter) ==
-                    -static_cast<__s32>(syscall::Type::SetuidExit),
+  static_assert(static_cast<__s32>(syscall::EventType::SetuidEnter) ==
+                    -static_cast<__s32>(syscall::EventType::SetuidExit),
                 "Enter and Exit codes must be convertible to each other by "
                 "multiplying to -1");
   // clang-format off
@@ -131,8 +131,8 @@ Expected<ebpf::Program, ebpf::Program::Error> genLinuxSetuidEnterProgram(
     {BPF_STX | BPF_DW | BPF_MEM  , BPF_REG_10, BPF_REG_1,  -24,  0},
     {BPF_STX | BPF_W | BPF_MEM   , BPF_REG_10, BPF_REG_1,  -16,  0},
 
-    // Event.type = SyscallEvent::Type::SetuidEnter
-    {BPF_ST  | BPF_W | BPF_MEM   , BPF_REG_10,         0,  -kSetuidEnterSize,  static_cast<__s32>(syscall::Type::SetuidEnter)},
+    // Event.type = SyscallEvent::EventType::SetuidEnter
+    {BPF_ST  | BPF_W | BPF_MEM   , BPF_REG_10,         0,  -kSetuidEnterSize,  static_cast<__s32>(syscall::EventType::SetuidEnter)},
 
     {BPF_JMP | BPF_K | BPF_CALL  ,          0,         0,    0,  BPF_FUNC_get_current_uid_gid},
     {BPF_STX | BPF_W | BPF_MEM   , BPF_REG_10, BPF_REG_0,   -8,  0}, // Event.uid
@@ -171,9 +171,9 @@ Expected<ebpf::Program, ebpf::Program::Error> genLinuxSetuidEnterProgram(
 Expected<ebpf::Program, ebpf::Program::Error> genLinuxExitProgram(
     enum bpf_prog_type prog_type,
     PerfEventCpuMap const& cpu_map,
-    syscall::Type type) {
+    syscall::EventType type) {
   constexpr int kExitSize = 16;
-  static_assert(sizeof(syscall::Type) + sizeof(syscall::Event::pid) +
+  static_assert(sizeof(syscall::EventType) + sizeof(syscall::Event::pid) +
                         sizeof(syscall::Event::tgid) +
                         sizeof(syscall::Event::Body::Exit) ==
                     kExitSize,
@@ -184,7 +184,7 @@ Expected<ebpf::Program, ebpf::Program::Error> genLinuxExitProgram(
     {BPF_ALU64 | BPF_X | BPF_MOV , BPF_REG_6,  BPF_REG_1,    0, 0}, // r6 = r1
     {BPF_ALU64 | BPF_K | BPF_MOV , BPF_REG_1,          0,    0, 0}, // r1 = 0
 
-    {BPF_ST  | BPF_W | BPF_MEM   , BPF_REG_10,         0,  -kExitSize,  static_cast<__s32>(type)}, // type = syscall::Type::Exit*
+    {BPF_ST  | BPF_W | BPF_MEM   , BPF_REG_10,         0,  -kExitSize,  static_cast<__s32>(type)}, // type = syscall::EventType::Exit*
 
     {BPF_JMP | BPF_K | BPF_CALL  ,          0,         0,    0,  BPF_FUNC_get_current_pid_tgid},
     {BPF_STX | BPF_W | BPF_MEM   , BPF_REG_10, BPF_REG_0,  -12,  0}, // Event.pid
@@ -213,12 +213,12 @@ Expected<ebpf::Program, ebpf::Program::Error> genLinuxExitProgram(
 Expected<ebpf::Program, ebpf::Program::Error> genLinuxProgram(
     enum bpf_prog_type prog_type,
     PerfEventCpuMap const& cpu_map,
-    syscall::Type type) {
-  if (syscall::isTypeExit(type)) {
+    syscall::EventType type) {
+  if (syscall::isEventTypeExit(type)) {
     return genLinuxExitProgram(prog_type, cpu_map, type);
-  } else if (syscall::Type::KillEnter == type) {
+  } else if (syscall::EventType::KillEnter == type) {
     return genLinuxKillEnterProgram(prog_type, cpu_map);
-  } else if (syscall::Type::SetuidEnter == type) {
+  } else if (syscall::EventType::SetuidEnter == type) {
     return genLinuxSetuidEnterProgram(prog_type, cpu_map);
   } else {
     return createError(ebpf::Program::Error::Unknown,

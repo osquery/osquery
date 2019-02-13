@@ -18,7 +18,7 @@ namespace {
 
 static constexpr EnterExitJoiner::CounterType kCounterLimit = 256;
 
-EnterExitJoiner::KeyType createKey(Type const type,
+EnterExitJoiner::KeyType createKey(EventType const type,
                                    __s32 const pid,
                                    __s32 const tgid) {
   auto key = EnterExitJoiner::KeyType(static_cast<std::uint32_t>(pid));
@@ -38,7 +38,7 @@ boost::optional<Event> EnterExitJoiner::join(Event in_event) {
     counter_ = 0;
   }
   auto const inv_key =
-      createKey(flipType(in_event.type), in_event.pid, in_event.tgid);
+      createKey(flipEventType(in_event.type), in_event.pid, in_event.tgid);
 
   auto it = table_.find(inv_key);
   if (it == table_.end()) {
@@ -50,7 +50,7 @@ boost::optional<Event> EnterExitJoiner::join(Event in_event) {
     return boost::none;
   }
 
-  if (isTypeExit(in_event.type)) {
+  if (isEventTypeExit(in_event.type)) {
     auto enter = std::move(it->second);
     enter.return_value = in_event.body.exit.ret;
     table_.erase(it);

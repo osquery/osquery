@@ -23,7 +23,7 @@ namespace osquery {
 namespace events {
 namespace syscall {
 
-enum class Type : __s32 {
+enum class EventType : __s32 {
   Unknown = 0,
   KillEnter = 1,
   KillExit = -KillEnter,
@@ -33,22 +33,22 @@ enum class Type : __s32 {
 
 static constexpr std::size_t kCommSize = 16u;
 
-constexpr Type flipType(Type const type) noexcept {
-  return static_cast<Type>(
-      -static_cast<std::underlying_type<Type>::type>(type));
+constexpr EventType flipEventType(EventType const type) noexcept {
+  return static_cast<EventType>(
+      -static_cast<std::underlying_type<EventType>::type>(type));
 }
 
-constexpr bool isTypeExit(Type const type) noexcept {
-  return static_cast<std::underlying_type<Type>::type>(type) < 0;
+constexpr bool isEventTypeExit(EventType const type) noexcept {
+  return static_cast<std::underlying_type<EventType>::type>(type) < 0;
 }
 
-constexpr bool isTypeEnter(Type const type) noexcept {
-  return 0 < static_cast<std::underlying_type<Type>::type>(type);
+constexpr bool isEventTypeEnter(EventType const type) noexcept {
+  return 0 < static_cast<std::underlying_type<EventType>::type>(type);
 }
 
 struct Event {
   // Common part for all events whether Enter or Exit
-  Type type;
+  EventType type;
   __s32 pid;
   __s32 tgid;
 
