@@ -10,6 +10,7 @@ schema([
 ])
 extended_schema(WINDOWS, [
     Column("sid", TEXT, "User security identifier"),
+    Column("hive", TEXT, "HKEY_USERS registry hive"),
 ])
 attributes(cacheable=True)
 implementation("logged_in_users@genLoggedInUsers")

@@ -134,6 +134,10 @@ QueryData genLoggedInUsers(QueryContext& context) {
 
     const auto sidStr = psidToString(reinterpret_cast<SID*>(sidBuf.get()));
     r["sid"] = SQL_TEXT(sidStr);
+
+    const auto hivePath = "HKEY_USERS\\" + sidStr;
+    r["hive"] = SQL_TEXT(hivePath);
+
     results.push_back(r);
   }
 
