@@ -11,6 +11,7 @@
 #include <osquery/filesystem/mock_file_structure.h>
 
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/scope_guard.h>
 
 #include <gtest/gtest.h>
 
@@ -537,7 +538,11 @@ TEST_F(FileOpsTests, test_access) {
 }
 
 TEST_F(FileOpsTests, test_safe_permissions) {
-  const auto root_path = fs::temp_directory_path() / "safe-perms-test";
+  const auto root_path = fs::temp_directory_path() /
+                         fs::unique_path("osquery.safe-perms-test.%%%%.%%%%");
+  auto const root_path_manager =
+      scope_guard::create([&root_path]() { fs::remove_all(root_path); });
+
   const auto temp_file = (root_path / "test").string();
   const auto root_dir = root_path.string();
 
@@ -616,12 +621,15 @@ TEST_F(FileOpsTests, test_safe_permissions) {
 
   EXPECT_TRUE(platformChmod(root_dir, all_access));
   EXPECT_TRUE(platformChmod(temp_file, all_access));
-
-  fs::remove_all(root_dir);
 }
 
 TEST_F(FileOpsTests, test_safe_db_permissions) {
-  const auto db_path = fs::temp_directory_path() / "safe-db-perms-test.db";
+  const auto db_path =
+      fs::temp_directory_path() /
+      fs::unique_path("osquery.safe-db-perms-test.%%%%.%%%%.db");
+  auto const db_path_manager =
+      scope_guard::create([&db_path]() { fs::remove_all(db_path); });
+
   const auto sst_file = (db_path / "1234.sst").string();
   const auto db = db_path.string();
 
@@ -652,7 +660,6 @@ TEST_F(FileOpsTests, test_safe_db_permissions) {
                          S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;
   EXPECT_TRUE(platformChmod(db, all_access));
   EXPECT_TRUE(platformChmod(sst_file, all_access));
-  fs::remove_all(db);
 }
 
 TEST_F(FileOpsTests, test_glob) {
