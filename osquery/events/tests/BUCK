@@ -6,7 +6,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
-load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "WINDOWS")
 
 osquery_cxx_test(
     name = "events_tests",
