@@ -35,9 +35,12 @@ void record(const std::vector<std::string>& names,
             const std::string& metricName,
             monitoring::ValueType measurement) {
   for (const std::string& name : names) {
-    monitoring::record(name + "." + metricName,
-                       measurement,
-                       monitoring::PreAggregationType::None);
+    const std::string entity = name + "." + metricName;
+    monitoring::record(
+        entity, measurement, monitoring::PreAggregationType::Min, true);
+
+    monitoring::record(
+        entity, measurement, monitoring::PreAggregationType::Sum, true);
   }
 }
 
