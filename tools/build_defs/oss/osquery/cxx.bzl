@@ -23,9 +23,9 @@ load(
 
 # for osquery targets only
 _OSQUERY_PREPROCESSOR_FLAGS = [
-    "-DOSQUERY_VERSION=3.3.0",
-    "-DOSQUERY_BUILD_VERSION=3.3.0",
-    "-DOSQUERY_BUILD_SDK_VERSION=3.3.0",
+    "-DOSQUERY_VERSION=3.3.2",
+    "-DOSQUERY_BUILD_VERSION=3.3.2",
+    "-DOSQUERY_BUILD_SDK_VERSION=3.3.2",
 ]
 
 # for osquery targets only
