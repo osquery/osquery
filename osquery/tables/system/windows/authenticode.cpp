@@ -309,7 +309,7 @@ Status getCertificateInformation(SignatureInformation& signature_info,
 
   if (!L_GetCertificateDetail(
           signature_info.subject_name, certificate_context, 0)) {
-    return Status(1, "Failed to retrieve the subkect name");
+    return Status::failure("Failed to retrieve the subject name");
   }
 
   return Status(0, "Ok");
