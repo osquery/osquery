@@ -65,12 +65,6 @@ void genSshConfigForUser(const std::string& uid,
                          const std::string& gid,
                          const std::string& directory,
                          QueryData& results) {
-  auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo(uid, gid)) {
-    VLOG(1) << "Cannot drop privileges to UID " << uid;
-    return;
-  }
-
   boost::filesystem::path ssh_config_file = directory;
   ssh_config_file /= kUserSshConfig;
 

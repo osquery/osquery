@@ -9,8 +9,8 @@
 #pragma once
 
 #include <osquery/utils/attribute.h>
+#include <osquery/utils/conversions/to.h>
 
-#include <boost/core/demangle.hpp>
 #include <memory>
 #include <new>
 #include <sstream>
@@ -21,10 +21,8 @@ namespace osquery {
 
 class ErrorBase {
  public:
-  virtual std::string getShortMessage() const = 0;
-  virtual std::string getFullMessage() const = 0;
-  virtual std::string getShortMessageRecursive() const = 0;
-  virtual std::string getFullMessageRecursive() const = 0;
+  virtual std::string getNonRecursiveMessage() const = 0;
+  virtual std::string getMessage() const = 0;
   virtual ~ErrorBase() = default;
   ErrorBase() = default;
   ErrorBase(const ErrorBase& other) = default;
@@ -32,11 +30,6 @@ class ErrorBase {
 
 template <typename ErrorCodeEnumType>
 class Error final : public ErrorBase {
- private:
-  static std::string getErrorTypeName() {
-    return boost::core::demangle(typeid(ErrorCodeEnumType).name());
-  }
-
  public:
   using SelfType = Error<ErrorCodeEnumType>;
 
@@ -71,31 +64,18 @@ class Error final : public ErrorBase {
     return std::move(underlyingError_);
   }
 
-  std::string getShortMessage() const override {
-    return getErrorTypeName() + " " +
-           std::to_string(static_cast<int>(errorCode_));
-  }
-
-  std::string getFullMessage() const override {
-    std::string full_message = getShortMessage();
+  std::string getNonRecursiveMessage() const override {
+    std::string full_message = to<std::string>(errorCode_);
     if (message_.size() > 0) {
       full_message += " (" + message_ + ")";
     }
     return full_message;
   }
 
-  std::string getShortMessageRecursive() const override {
-    std::string full_message = getShortMessage();
+  std::string getMessage() const override {
+    std::string full_message = getNonRecursiveMessage();
     if (underlyingError_) {
-      full_message += " <- " + underlyingError_->getShortMessageRecursive();
-    }
-    return full_message;
-  }
-
-  std::string getFullMessageRecursive() const override {
-    std::string full_message = getFullMessage();
-    if (underlyingError_) {
-      full_message += " <- " + underlyingError_->getFullMessageRecursive();
+      full_message += " <- " + underlyingError_->getMessage();
     }
     return full_message;
   }
@@ -136,7 +116,7 @@ inline bool operator==(const ErrorBase& lhs, const T rhs) {
 }
 
 inline std::ostream& operator<<(std::ostream& out, const ErrorBase& error) {
-  out << error.getFullMessageRecursive();
+  out << error.getMessage();
   return out;
 }
 

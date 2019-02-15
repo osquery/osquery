@@ -21,7 +21,7 @@ osquery_cxx_library(
         "scheduler.h",
     ],
     tests = [
-        osquery_target("osquery/dispatcher/tests:dispatcher"),
+        osquery_target("osquery/dispatcher/tests:dispatcher_tests"),
         osquery_target("osquery/dispatcher/tests:scheduler"),
     ],
     visibility = ["PUBLIC"],
@@ -34,6 +34,6 @@ osquery_cxx_library(
         osquery_target("osquery/logger:data_logger"),
         osquery_target("osquery/utils:utils"),
         osquery_target("osquery/utils/conversions:conversions"),
-        osquery_tp_target("googletest", "gtest"),
+        osquery_tp_target("googletest", "gtest_headers"),
     ],
 )

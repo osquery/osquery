@@ -6,12 +6,12 @@
     -UNDEBUG
 
   cflags = \
-    -O
+    -O0
 
   cxxppflags = \
     -UNDEBUG
 
   cxxflags = \
-    -O
+    -O0
 
   ldflags =

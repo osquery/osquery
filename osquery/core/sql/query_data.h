@@ -54,6 +54,21 @@ Status serializeQueryData(const QueryData& q,
                           rapidjson::Document& arr);
 
 /**
+ * @brief Serialize a QueryDataTyped object into a JSON array.
+ *
+ * @param q the QueryDataTyped to serialize.
+ * @param cols the TableColumn vector indicating column order.
+ * @param doc the managed JSON document.
+ * @param arr [output] the output JSON array.
+ *
+ * @return Status indicating the success or failure of the operation.
+ */
+Status serializeQueryData(const QueryDataTyped& q,
+                          const ColumnNames& cols,
+                          JSON& doc,
+                          rapidjson::Document& arr);
+
+/**
  * @brief Serialize a QueryData object into a JSON string.
  *
  * @param q the QueryData to serialize.
@@ -63,8 +78,21 @@ Status serializeQueryData(const QueryData& q,
  */
 Status serializeQueryDataJSON(const QueryData& q, std::string& json);
 
+/**
+ * @brief Serialize a QueryDataTyped object into a JSON string.
+ *
+ * @param q the QueryDataTyped to serialize.
+ * @param json [output] the output JSON string.
+ *
+ * @return Status indicating the success or failure of the operation.
+ */
+Status serializeQueryDataJSON(const QueryDataTyped& q, std::string& json);
+
 /// Inverse of serializeQueryData, convert JSON to QueryData.
 Status deserializeQueryData(const rapidjson::Value& arr, QueryData& qd);
+
+/// Inverse of serializeQueryData, convert JSON to QueryDataTyped.
+Status deserializeQueryData(const rapidjson::Value& arr, QueryDataTyped& qd);
 
 /// Inverse of serializeQueryData, convert JSON to QueryDataSet.
 Status deserializeQueryData(const rapidjson::Value& arr, QueryDataSet& qd);

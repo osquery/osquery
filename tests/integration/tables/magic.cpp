@@ -24,7 +24,7 @@ class magic : public testing::Test {
 
 TEST_F(magic, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from magic");
+  auto const data = execute_query("select * from magic where path = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);

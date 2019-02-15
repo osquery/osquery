@@ -26,6 +26,13 @@ struct RecordKeys {
   std::string sync;
 };
 
+struct HostIdentifierKeys {
+  std::string name;
+  std::string scheme;
+};
+
+const HostIdentifierKeys& hostIdentifierKeys();
+
 const RecordKeys& recordKeys();
 
 const char* registryName();

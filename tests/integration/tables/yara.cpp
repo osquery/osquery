@@ -24,7 +24,7 @@ class yara : public testing::Test {
 
 TEST_F(yara, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from yara");
+  auto const data = execute_query("select * from yara where path = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);

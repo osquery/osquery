@@ -16,11 +16,11 @@ osquery_cxx_library(
     platform_srcs = [
         (
             POSIX,
-            ["posix/profiler.cpp"],
+            ["posix/code_profiler.cpp"],
         ),
         (
             WINDOWS,
-            ["windows/profiler.cpp"],
+            ["windows/code_profiler.cpp"],
         ),
     ],
     visibility = ["PUBLIC"],

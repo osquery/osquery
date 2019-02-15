@@ -215,9 +215,6 @@ Consider the following example:
 
 ```json
 {
-  "options": {
-    "enable_monitor": "true"
-  },
   "packs": {
     "foo": {
       "queries": {}
@@ -234,9 +231,6 @@ string. Consider the following example:
 
 ```json
 {
-  "options": {
-    "enable_monitor": "true"
-  },
   "packs": {
     "foo": "/tmp/foo.json",
     "bar": "/tmp/bar.json"
@@ -272,7 +266,6 @@ Example:
   "options": {
     "read_max": 100000,
     "events_max": 100000,
-    "enable_monitor": true,
     "host_identifier": "uuid"
   }
 }

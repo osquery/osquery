@@ -196,8 +196,8 @@ void Pack::initialize(const std::string& name,
       continue;
     }
 
-    ScheduledQuery query;
-    query.query = q.value["query"].GetString();
+    ScheduledQuery query(
+        name_, q.name.GetString(), q.value["query"].GetString());
     if (!q.value.HasMember("interval")) {
       query.interval = FLAGS_schedule_default_interval;
     } else {

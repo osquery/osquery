@@ -24,11 +24,11 @@ GTEST_TEST(ErrorTest, initialization) {
   EXPECT_FALSE(error.hasUnderlyingError());
   EXPECT_TRUE(error == TestError::SomeError);
 
-  auto shortMsg = error.getShortMessageRecursive();
-  EXPECT_NE(std::string::npos, shortMsg.find("TestError 1"));
+  auto shortMsg = error.getNonRecursiveMessage();
+  EXPECT_NE(std::string::npos, shortMsg.find("TestError[1]"));
 
-  auto fullMsg = error.getFullMessageRecursive();
-  EXPECT_NE(std::string::npos, fullMsg.find("TestError 1"));
+  auto fullMsg = error.getMessage();
+  EXPECT_NE(std::string::npos, fullMsg.find("TestError[1]"));
   EXPECT_NE(std::string::npos, fullMsg.find("TestMessage"));
 }
 
@@ -39,14 +39,14 @@ GTEST_TEST(ErrorTest, recursive) {
       TestError::AnotherError, "TestMessage", std::move(orignalError));
   EXPECT_TRUE(error.hasUnderlyingError());
 
-  auto shortMsg = error.getShortMessageRecursive();
-  EXPECT_NE(std::string::npos, shortMsg.find("TestError 1"));
-  EXPECT_NE(std::string::npos, shortMsg.find("TestError 2"));
+  auto shortMsg = error.getNonRecursiveMessage();
+  EXPECT_EQ(std::string::npos, shortMsg.find("TestError[1]"));
+  EXPECT_NE(std::string::npos, shortMsg.find("TestError[2]"));
 
-  auto fullMsg = error.getFullMessageRecursive();
-  EXPECT_NE(std::string::npos, fullMsg.find("TestError 1"));
+  auto fullMsg = error.getMessage();
+  EXPECT_NE(std::string::npos, fullMsg.find("TestError[1]"));
   EXPECT_NE(std::string::npos, fullMsg.find("SuperTestMessage"));
-  EXPECT_NE(std::string::npos, fullMsg.find("TestError 2"));
+  EXPECT_NE(std::string::npos, fullMsg.find("TestError[2]"));
   EXPECT_NE(std::string::npos, fullMsg.find("TestMessage"));
 }
 
@@ -61,7 +61,7 @@ GTEST_TEST(ErrorTest, createErrorSimple) {
   EXPECT_EQ(TestError::AnotherError, err.getErrorCode());
   EXPECT_FALSE(err.hasUnderlyingError());
 
-  auto shortMsg = err.getFullMessageRecursive();
+  auto shortMsg = err.getMessage();
   EXPECT_PRED2(stringContains, shortMsg, "TestError");
   EXPECT_PRED2(stringContains, shortMsg, msg);
 }
@@ -73,14 +73,14 @@ GTEST_TEST(ErrorTest, createErrorFromOtherError) {
   EXPECT_EQ(TestError::SomeError, firstErr.getErrorCode());
   EXPECT_FALSE(firstErr.hasUnderlyingError());
 
-  EXPECT_PRED2(stringContains, firstErr.getFullMessageRecursive(), firstMsg);
+  EXPECT_PRED2(stringContains, firstErr.getMessage(), firstMsg);
 
   const auto secondMsg = std::string{"what's wrong with the first message?!"};
   auto secondErr = osquery::createError(
       TestError::AnotherError, secondMsg, std::move(firstErr));
   EXPECT_EQ(TestError::AnotherError, secondErr.getErrorCode());
   EXPECT_TRUE(secondErr.hasUnderlyingError());
-  auto secondShortMsg = secondErr.getFullMessageRecursive();
+  auto secondShortMsg = secondErr.getMessage();
   EXPECT_PRED2(stringContains, secondShortMsg, "TestError");
   EXPECT_PRED2(stringContains, secondShortMsg, firstMsg);
   EXPECT_PRED2(stringContains, secondShortMsg, secondMsg);
@@ -96,7 +96,7 @@ GTEST_TEST(ErrorTest, createErrorAndStreamToIt) {
                    << "-La"
                    << "-Si La" << boost::io::quoted(a4) << ' ' << 440 << " Hz";
   EXPECT_EQ(TestError::MusicError, err.getErrorCode());
-  auto fullMsg = err.getFullMessageRecursive();
+  auto fullMsg = err.getMessage();
   EXPECT_PRED2(
       stringContains, fullMsg, "Do-Re-Mi-Fa-Sol-La-Si La\"A4\" 440 Hz");
 }

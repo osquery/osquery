@@ -31,15 +31,16 @@ osquery_cxx_library(
         osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/utils/info:info"),
         osquery_target("osquery/utils/macros:macros"),
-        osquery_target("osquery/utils/system:system"),
+        osquery_target("osquery/utils/system:system_utils"),
         osquery_tp_target("gflags"),
-        osquery_tp_target("googletest", "gtest"),
         osquery_tp_target("sqlite"),
     ],
 )
 
 osquery_cxx_binary(
     name = "osqueryd",
+    # Xcode ignore targets without source files :(
+    srcs = ["empty.cpp"],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/main:main"),

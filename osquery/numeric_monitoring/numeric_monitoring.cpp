@@ -18,6 +18,8 @@
 #include <osquery/numeric_monitoring/pre_aggregation_cache.h>
 #include <osquery/registry_factory.h>
 
+#include <osquery/utils/enum_class_hash.h>
+
 namespace osquery {
 
 FLAG(bool,
@@ -45,18 +47,6 @@ inline auto reverseMap(
   }
   return reversed;
 }
-
-/**
- * This is just a ad-hoc fix up to handle libc++ and libstdc++ bug:
- * http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-defects.html#2148
- * Eventually it will be removed.
- */
-struct EnumClassHash {
-  template <typename EnumClassType>
-  std::size_t operator()(EnumClassType t) const {
-    return static_cast<std::size_t>(t);
-  }
-};
 
 const auto& getAggregationTypeToStringTable() {
   const auto static table =

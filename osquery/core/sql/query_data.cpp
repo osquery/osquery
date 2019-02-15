@@ -27,7 +27,33 @@ Status serializeQueryData(const QueryData& q,
   return Status();
 }
 
+Status serializeQueryData(const QueryDataTyped& q,
+                          const ColumnNames& cols,
+                          JSON& doc,
+                          rj::Document& arr) {
+  for (const auto& r : q) {
+    auto row_obj = doc.getObject();
+    auto status = serializeRow(r, cols, doc, row_obj);
+    if (!status.ok()) {
+      return status;
+    }
+    doc.push(row_obj, arr);
+  }
+  return Status();
+}
+
 Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
+  auto doc = JSON::newArray();
+
+  ColumnNames cols;
+  auto status = serializeQueryData(q, cols, doc, doc.doc());
+  if (!status.ok()) {
+    return status;
+  }
+  return doc.toString(json);
+}
+
+Status serializeQueryDataJSON(const QueryDataTyped& q, std::string& json) {
   auto doc = JSON::newArray();
 
   ColumnNames cols;
@@ -45,6 +71,22 @@ Status deserializeQueryData(const rj::Value& arr, QueryData& qd) {
 
   for (const auto& i : arr.GetArray()) {
     Row r;
+    auto status = deserializeRow(i, r);
+    if (!status.ok()) {
+      return status;
+    }
+    qd.push_back(r);
+  }
+  return Status();
+}
+
+Status deserializeQueryData(const rj::Value& arr, QueryDataTyped& qd) {
+  if (!arr.IsArray()) {
+    return Status(1);
+  }
+
+  for (const auto& i : arr.GetArray()) {
+    RowTyped r;
     auto status = deserializeRow(i, r);
     if (!status.ok()) {
       return status;

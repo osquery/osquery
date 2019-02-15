@@ -299,7 +299,7 @@ TEST_F(ConfigTests, test_content_update) {
   // Update, then clear, packs should have been cleared.
   get().update(config_data);
   auto source_hash = get().getHash(source);
-  EXPECT_EQ("29d117ea900322c88e85e349db01ee386727a484", source_hash);
+  EXPECT_EQ("fb0973b39c70db16655effbca532d4aa93381e59", source_hash);
 
   size_t count = 0;
   auto packCounter = [&count](const Pack& pack) { count++; };

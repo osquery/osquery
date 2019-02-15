@@ -201,7 +201,13 @@ class Client {
 
  public:
   Client(Options const& opts = Options())
-      : client_options_(opts), r_(ios_), sock_(ios_), timer_(ios_) {}
+      : client_options_(opts), r_(ios_), sock_(ios_), timer_(ios_) {
+// Fix #4235, #5341: Boost on Windows requires notification that it should
+// let windows manage thread cleanup. *Do not remove this on Windows*
+#ifdef WIN32
+    boost::asio::detail::win_thread::set_terminate_threads(true);
+#endif
+  }
 
   void setOptions(Options const& opts) {
     new_client_options_ = !(client_options_ == opts);

@@ -55,10 +55,10 @@ TEST_F(SchedulerTests, test_monitor) {
   ASSERT_TRUE(timestamp.empty());
 
   // Fill in a scheduled query and execute it via the query monitor wrapper.
-  ScheduledQuery query;
+  ScheduledQuery query("time_pack", "time", "select * from time");
   query.interval = 10;
   query.splayed_interval = 11;
-  query.query = "select * from time";
+
   auto results = monitor(name, query);
   EXPECT_EQ(results.rows().size(), 1U);
 

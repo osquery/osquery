@@ -14,7 +14,6 @@
 #include <thread>
 
 #include <boost/noncopyable.hpp>
-#include <boost/optional.hpp>
 
 #include <osquery/utils/system/system.h>
 

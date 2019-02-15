@@ -23,7 +23,7 @@ osquery_cxx_library(
         osquery_target("osquery/sql:sql"),
         osquery_target("osquery/utils:utils"),
         osquery_tp_target("boost"),
-        osquery_tp_target("googletest", "gtest"),
+        osquery_tp_target("googletest", "gtest_headers"),
     ],
 )
 

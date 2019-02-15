@@ -17,7 +17,7 @@ osquery_cxx_library(
     exported_headers = [
     ],
     tests = [
-        osquery_target("osquery/database/tests:database"),
+        osquery_target("osquery/database/tests:database_tests"),
         osquery_target("osquery/database/tests:results"),
     ],
     visibility = ["PUBLIC"],

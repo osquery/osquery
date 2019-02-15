@@ -17,7 +17,7 @@ class EbpfTests : public testing::Test {};
 
 TEST_F(EbpfTests, isSupportedBySystem) {
   auto const exp = ebpf::isSupportedBySystem();
-  ASSERT_TRUE(exp.isValue()) << exp.getError().getFullMessageRecursive();
+  ASSERT_TRUE(exp.isValue()) << exp.getError().getMessage();
 }
 
 TEST_F(EbpfTests, sysEbpf_null_attr) {
@@ -29,7 +29,7 @@ TEST_F(EbpfTests, sysEbpf_null_attr) {
 TEST_F(EbpfTests, sysEbpf_create_map) {
   auto const is_supported_exp = ebpf::isSupportedBySystem();
   EXPECT_TRUE(is_supported_exp.isValue())
-      << is_supported_exp.getError().getFullMessageRecursive();
+      << is_supported_exp.getError().getMessage();
   if (is_supported_exp.get()) {
     union bpf_attr attr;
     memset(&attr, 0, sizeof(union bpf_attr));

@@ -9,6 +9,10 @@ load(
     "osquery_genrule",
     "osquery_target",
 )
+load(
+    "//tools/build_defs/oss/osquery:native_functions.bzl",
+    _osquery_read_config = "osquery_read_config",
+)
 
 def _impl_gen_cxx_from_spec(name, spec_file, is_foreign = False):
     table_root_name = spec_file.rsplit("/", 1)[-1].rsplit(".", 1)[0]
@@ -109,6 +113,12 @@ def _impl_gen_library(name, targets, deps, **kwargs):
         **kwargs
     )
 
+def _is_spec_ignored(spec):
+    if _osquery_read_config("osquery", "disable_ignore_lists", False):
+        return False
+    ignore_list = _osquery_read_config("osquery", "spec_ignore_list", [])
+    return spec in ignore_list
+
 def _impl_is_foreign(platform_def):
     return not (
         host_info().os.is_linux and "linux" in platform_def or
@@ -118,7 +128,7 @@ def _impl_is_foreign(platform_def):
         host_info().os.is_unknown
     )
 
-def osquery_gentable_cxx_library(name, spec_files = None, platform_spec_files = None, deps = None, **kwargs):
+def osquery_gentable_cxx_library(name, spec_location, spec_files = None, platform_spec_files = None, deps = None, **kwargs):
     """
     Code generation target for osquery tables
 
@@ -129,35 +139,43 @@ def osquery_gentable_cxx_library(name, spec_files = None, platform_spec_files = 
         deps (list): List of dependencies.
     """
     native_cxx_targets = []
+    if not spec_location.endswith("/"):
+        spec_location += "/"
+    native_specs = []
+    foreign_specs = []
+
     if spec_files:
         for spec_file in spec_files:
-            native_cxx_targets.extend(
-                _impl_gen_cxx_from_spec(
-                    name,
-                    spec_file,
-                    is_foreign = False,
-                ),
-            )
+            if _is_spec_ignored(spec_file):
+                foreign_specs.append(spec_file)
+            else:
+                native_specs.append(spec_file)
 
     foreign_cxx_targets = []
     if platform_spec_files:
         for spec_file, platform_def in platform_spec_files:
-            if _impl_is_foreign(platform_def):
-                foreign_cxx_targets.extend(
-                    _impl_gen_cxx_from_spec(
-                        name,
-                        spec_file,
-                        is_foreign = True,
-                    ),
-                )
+            if _impl_is_foreign(platform_def) or _is_spec_ignored(spec_file):
+                foreign_specs.append(spec_file)
             else:
-                native_cxx_targets.extend(
-                    _impl_gen_cxx_from_spec(
-                        name,
-                        spec_file,
-                        is_foreign = False,
-                    ),
-                )
+                native_specs.append(spec_file)
+
+    for spec_file in native_specs:
+        native_cxx_targets.extend(
+            _impl_gen_cxx_from_spec(
+                name,
+                spec_location + spec_file,
+                is_foreign = False,
+            ),
+        )
+
+    for spec_file in foreign_specs:
+        foreign_cxx_targets.extend(
+            _impl_gen_cxx_from_spec(
+                name,
+                spec_location + spec_file,
+                is_foreign = True,
+            ),
+        )
 
     native_amalgamation_target = _impl_gen_amalgamation(
         name,

@@ -66,13 +66,13 @@ class SQLiteDBInstance : private boost::noncopyable {
   }
 
   /// Allow a virtual table implementation to record use/access of a table.
-  void addAffectedTable(VirtualTableContent* table);
+  void addAffectedTable(std::shared_ptr<VirtualTableContent> table);
 
   /// Clear per-query state of a table affected by the use of this instance.
   void clearAffectedTables();
 
   /// Check if a virtual table had been called already.
-  bool tableCalled(VirtualTableContent* table);
+  bool tableCalled(VirtualTableContent const& table);
 
   /// Request that virtual tables use a warm cache for their results.
   void useCache(bool use_cache);
@@ -126,7 +126,7 @@ class SQLiteDBInstance : private boost::noncopyable {
   static RecursiveMutex kPrimaryAttachMutex;
 
   /// Vector of tables that need their constraints cleared after execution.
-  std::map<std::string, VirtualTableContent*> affected_tables_;
+  std::map<std::string, std::shared_ptr<VirtualTableContent>> affected_tables_;
 
  private:
   friend class SQLiteDBManager;

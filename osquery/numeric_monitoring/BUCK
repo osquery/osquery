@@ -21,7 +21,7 @@ osquery_cxx_library(
         "pre_aggregation_cache.h",
     ],
     tests = [
-        osquery_target("osquery/numeric_monitoring/tests:numeric_monitoring"),
+        osquery_target("osquery/numeric_monitoring/tests:numeric_monitoring_tests"),
         osquery_target("osquery/numeric_monitoring/tests:pre_aggregation_cache"),
     ],
     visibility = ["PUBLIC"],

@@ -6,7 +6,6 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
-load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
     name = "config",
@@ -31,6 +30,5 @@ osquery_cxx_library(
         osquery_target("osquery/hashing:hashing"),
         osquery_target("osquery/utils:utils"),
         osquery_target("osquery/utils/system:time"),
-        osquery_tp_target("googletest", "gtest"),
     ],
 )

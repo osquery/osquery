@@ -24,7 +24,8 @@ class curlCertificate : public testing::Test {
 
 TEST_F(curlCertificate, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from curl_certificate");
+  auto const data =
+      execute_query("select * from curl_certificate where hostname = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);

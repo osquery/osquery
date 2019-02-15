@@ -55,7 +55,7 @@ bool Killswitch::isNewCodeEnabled(const std::string& key) {
   if (result) {
     return *result;
   } else {
-    VLOG(1) << result.getError().getFullMessageRecursive();
+    VLOG(1) << result.getError().getMessage();
     return true;
   }
 }

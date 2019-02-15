@@ -192,14 +192,37 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   ASSERT_FALSE(status.ok());
 }
 
-TEST_F(SQLiteUtilTests, test_get_query_tables) {
+TEST_F(SQLiteUtilTests, test_get_query_tables_failed) {
   std::string query =
       "SELECT * FROM time, osquery_info, (SELECT * FROM file) ff GROUP BY pid";
   std::vector<std::string> tables;
   auto status = getQueryTables(query, tables);
   EXPECT_TRUE(status.ok());
 
-  std::vector<std::string> expected = {"file", "time", "osquery_info"};
+  std::vector<std::string> expected = {};
+  EXPECT_EQ(expected, tables);
+}
+
+TEST_F(SQLiteUtilTests, test_get_query_tables) {
+  std::string query =
+      "SELECT * FROM time, osquery_info, (SELECT * FROM users) ff GROUP BY pid";
+  std::vector<std::string> tables;
+  auto status = getQueryTables(query, tables);
+  EXPECT_TRUE(status.ok());
+
+  std::vector<std::string> expected = {"time", "osquery_info", "users"};
+  EXPECT_EQ(expected, tables);
+}
+
+TEST_F(SQLiteUtilTests, test_get_query_tables_required) {
+  std::string query =
+      "SELECT * FROM time, osquery_info, (SELECT * FROM file where path = "
+      "'osquery') ff GROUP BY pid";
+  std::vector<std::string> tables;
+  auto status = getQueryTables(query, tables);
+  EXPECT_TRUE(status.ok());
+
+  std::vector<std::string> expected = {"time", "osquery_info", "file"};
   EXPECT_EQ(expected, tables);
 }
 
@@ -218,85 +241,119 @@ TEST_F(SQLiteUtilTests, test_query_planner) {
   TableColumns columns;
 
   std::string query = "select path, path from file";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query = "select path, path from file where path in ('osquery', 'noquery')";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE, TEXT_TYPE}));
 
-  query = "select path, seconds from file, time";
-  getQueryColumnsInternal(query, columns, dbc);
+  query = "select path, seconds from file, time where path LIKE 'osquery'";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE, INTEGER_TYPE}));
 
   query = "select path || path from file";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query = "select path || path from file where path = 'osquery'";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE}));
 
-  query = "select seconds, path || path from file, time";
-  getQueryColumnsInternal(query, columns, dbc);
+  query = "select seconds, path || path from file, time ";
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query =
+      "select seconds, path || path from file, time where path in ('osquery')";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({INTEGER_TYPE, TEXT_TYPE}));
 
   query = "select seconds, seconds from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({INTEGER_TYPE, INTEGER_TYPE}));
 
   query = "select count(*) from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({BIGINT_TYPE}));
 
   query = "select count(*), count(seconds), seconds from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns),
             TypeList({BIGINT_TYPE, BIGINT_TYPE, INTEGER_TYPE}));
 
   query = "select 1, 'path', path from file";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query = "select 1, 'path', path from file where path = 'os'";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({INTEGER_TYPE, TEXT_TYPE, TEXT_TYPE}));
 
   query = "select weekday, day, count(*), seconds from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns),
             TypeList({TEXT_TYPE, INTEGER_TYPE, BIGINT_TYPE, INTEGER_TYPE}));
 
   query = "select seconds + 1 from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({BIGINT_TYPE}));
 
   query = "select seconds * seconds from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({BIGINT_TYPE}));
 
   query = "select seconds > 1, seconds, count(seconds) from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns),
             TypeList({INTEGER_TYPE, INTEGER_TYPE, BIGINT_TYPE}));
 
   query =
       "select f1.*, seconds, f2.directory from (select path || path from file) "
       "f1, file as f2, time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query =
+      "select f1.*, seconds, f2.directory from (select path || path from file) "
+      "f1, file as f2, time where path in ('query', 'query')";
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query =
+      "select f1.*, seconds, f2.directory from (select path || path from file "
+      "where path = 'query') "
+      "f1, file as f2, time where path in ('query', 'query')";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE, INTEGER_TYPE, TEXT_TYPE}));
 
   query = "select CAST(seconds AS INTEGER) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({BIGINT_TYPE}));
 
   query = "select CAST(seconds AS TEXT) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE}));
 
   query = "select CAST(seconds AS REAL) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({DOUBLE_TYPE}));
 
   query = "select CAST(seconds AS BOOLEAN) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({UNKNOWN_TYPE}));
 
   query = "select CAST(seconds AS DATETIME) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({UNKNOWN_TYPE}));
 
   query = "select CAST(seconds AS BLOB) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({BLOB_TYPE}));
+
+  query = "select url, round_trip_time, response_code from curl";
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query =
+      "select url, round_trip_time, response_code from curl where url = "
+      "'https://github.com/facebook/osquery'";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
+  EXPECT_EQ(getTypes(columns),
+            TypeList({TEXT_TYPE, BIGINT_TYPE, INTEGER_TYPE}));
 }
 
 using TypeMap = std::map<std::string, ColumnType>;
@@ -304,7 +361,7 @@ using TypeMap = std::map<std::string, ColumnType>;
 // Using ColumnType enum just labeling in test_column_type_determination)
 class type_picker_visitor : public boost::static_visitor<ColumnType> {
  public:
-  ColumnType operator()(const int64_t& i) const {
+  ColumnType operator()(const long long& i) const {
     return INTEGER_TYPE;
   }
 

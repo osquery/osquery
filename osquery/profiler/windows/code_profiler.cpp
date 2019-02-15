@@ -12,10 +12,22 @@
 
 #include <osquery/killswitch.h>
 #include <osquery/numeric_monitoring.h>
-#include <osquery/profiler/profiler.h>
+#include <osquery/profiler/code_profiler.h>
 
 namespace osquery {
+namespace {
 
+void record(const std::vector<std::string>& names,
+            const std::string& metricName,
+            monitoring::ValueType measurement) {
+  for (const auto& name : names) {
+    monitoring::record(name + "." + metricName,
+                       measurement,
+                       monitoring::PreAggregationType::None);
+  }
+}
+
+} // namespace
 class CodeProfiler::CodeProfilerData {
  public:
   CodeProfilerData() : wall_time_(std::chrono::steady_clock::now()) {}
@@ -28,8 +40,8 @@ class CodeProfiler::CodeProfilerData {
   std::chrono::time_point<std::chrono::steady_clock> wall_time_;
 };
 
-CodeProfiler::CodeProfiler(std::string name)
-    : name_(name), code_profiler_data_(new CodeProfilerData()) {}
+CodeProfiler::CodeProfiler(const std::initializer_list<std::string>& names)
+    : names_(names), code_profiler_data_(new CodeProfilerData()) {}
 
 CodeProfiler::~CodeProfiler() {
   if (Killswitch::get().isWindowsProfilingEnabled()) {
@@ -40,10 +52,7 @@ CodeProfiler::~CodeProfiler() {
             code_profiler_data_end.getWallTime() -
             code_profiler_data_->getWallTime());
 
-    monitoring::record(name_ + ".time.wall.millis",
-                       query_duration.count(),
-                       monitoring::PreAggregationType::Min);
+    record(names_, ".time.wall.millis", query_duration.count());
   }
 }
-
 } // namespace osquery

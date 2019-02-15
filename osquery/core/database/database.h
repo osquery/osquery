@@ -88,7 +88,7 @@ class Database {
       const std::vector<std::pair<std::string, std::string>>& data) = 0;
 
   void panic(const Error<DatabaseError>& error) {
-    LOG(ERROR) << "Database did panic: " << error.getFullMessageRecursive();
+    LOG(ERROR) << "Database did panic: " << error.getMessage();
     debug_only::fail("Database did panic");
   }
 

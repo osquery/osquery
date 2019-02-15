@@ -76,7 +76,7 @@ Status KillswitchPlugin::call(const PluginRequest& request,
       response.push_back({{Killswitch::isEnabled_, std::to_string(*result)}});
       return Status::success();
     } else {
-      return Status::failure(result.getError().getFullMessageRecursive());
+      return Status::failure(result.getError().getMessage());
     }
   }
   return Status(1, "Could not find appropriate action mapping");

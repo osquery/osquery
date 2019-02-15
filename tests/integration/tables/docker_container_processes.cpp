@@ -24,7 +24,8 @@ class dockerContainerProcesses : public testing::Test {
 
 TEST_F(dockerContainerProcesses, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from docker_container_processes");
+  auto const data =
+      execute_query("select * from docker_container_processes where id = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);

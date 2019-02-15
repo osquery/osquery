@@ -24,7 +24,7 @@ class plist : public testing::Test {
 
 TEST_F(plist, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from plist");
+  auto const data = execute_query("select * from plist where path = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);

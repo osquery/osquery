@@ -50,12 +50,7 @@ bool checkProcessOpenFilePath(std::string const& value){
       return true;
     }
     auto const path = boost::filesystem::path(value);
-    // On macosx unlinked pathnames is not marked
-    if (isPlatform(PlatformType::TYPE_OSX)) {
-      return !path.empty() && path.is_absolute();
-    }
-    auto const status = boost::filesystem::status(path);
-    return boost::filesystem::exists(status);
+    return !path.empty() && path.is_absolute();
 }
 
 }

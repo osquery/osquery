@@ -452,19 +452,16 @@ using RowYield = RowGenerator::push_type;
  */
 struct QueryContext {
   /// Construct a context without cache support.
-  QueryContext() : table_(new VirtualTableContent()) {}
-
-  /// If the context was created without content, it is ephemeral.
-  ~QueryContext() {
-    if (!enable_cache_ && table_ != nullptr) {
-      delete table_;
-      table_ = nullptr;
-    }
+  QueryContext() {
+    table_ = std::make_shared<VirtualTableContent>();
   }
 
+  /// If the context was created without content, it is ephemeral.
+  ~QueryContext() = default;
+
   /// Construct a context and set the table content for caching.
-  explicit QueryContext(VirtualTableContent* content)
-      : enable_cache_(true), table_(content) {}
+  explicit QueryContext(std::shared_ptr<VirtualTableContent> content)
+      : enable_cache_(true), table_(std::move(content)) {}
 
   /// Disallow copying
   QueryContext(const QueryContext&) = delete;
@@ -650,7 +647,7 @@ struct QueryContext {
   bool use_cache_{false};
 
   /// Persistent table content for table caching.
-  VirtualTableContent* table_{nullptr};
+  std::shared_ptr<VirtualTableContent> table_;
 
  private:
   friend class TablePlugin;
