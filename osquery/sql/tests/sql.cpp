@@ -166,6 +166,41 @@ TEST_F(SQLTests, test_sql_sha256) {
             "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 }
 
+TEST_F(SQLTests, test_regex_match) {
+  QueryData d;
+  query("select regex_match('hello world', '(l)(o).*', 0) as t0, \
+                regex_match('hello world', '(l)(o).*', 1) as t1, \
+                regex_match('hello world', '(l)(o).*', 2) as t2, \
+                regex_match('hello world', '(l)(o).*', 3) as t3;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "lo world");
+  EXPECT_EQ(d[0]["t1"], "l");
+  EXPECT_EQ(d[0]["t2"], "o");
+  EXPECT_EQ(d[0]["t3"], "");
+
+  query("select regex_match('hello world', 'no match', 0) as t0 \
+                regex_match('hello world', 'no match', 1) as t1;", d);
+  EXPECT_EQ(d.size(), 0U);
+
+
+  query("select regex_match('hello world', '(\\w+) .*(or|ld)', 0) as t0, \
+                regex_match('hello world', '(\\w+) .*(or|ld)', 1) as t1, \
+                regex_match('hello world', '(\\w+) .*(or|ld)', 2) as t2, \
+                regex_match('hello world', '(\\w+) .*(or|ld)', 3) as t3", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "hello world");
+  EXPECT_EQ(d[0]["t1"], "hello");
+  EXPECT_EQ(d[0]["t2"], "ld");
+  EXPECT_EQ(d[0]["t3"], "");
+
+  query("select regex_match('/filesystem/path/download.extension.zip', '.+/([^./]+)', 1) as basename", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["basename"], "download");
+}
+
+  
+
+
 #ifdef OSQUERY_POSIX
 TEST_F(SQLTests, test_sql_ssdeep_compare) {
   QueryData d;

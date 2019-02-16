@@ -123,6 +123,51 @@ static void regexStringSplitFunc(sqlite3_context* context,
 }
 
 /**
+ * @brief Regex match a string
+ */
+static void regexStringMatchFunc(sqlite3_context* context,
+                                 int argc,
+                                 sqlite3_value** argv) {
+
+  // Ensure we have not-null values
+  assert(argc == 3);
+  if (SQLITE_NULL == sqlite3_value_type(argv[0]) ||
+      SQLITE_NULL == sqlite3_value_type(argv[1]) ||
+      SQLITE_NULL == sqlite3_value_type(argv[2])) {
+    sqlite3_result_null(context);
+    return;
+  }
+
+  // parse and verify input parameters
+  std::string input((char*)sqlite3_value_text(argv[0]));
+  boost::regex pattern((char*)sqlite3_value_text(argv[1]), boost::regex::extended);
+  auto index = static_cast<size_t>(sqlite3_value_int(argv[2]));
+
+  boost::smatch results;
+ 
+  bool isMatchFound = boost::regex_search(input, results, pattern);
+
+  if(!isMatchFound) {
+    sqlite3_result_null(context);
+    return;
+  }
+
+  if( index > results.size() ) {
+    sqlite3_result_null(context);
+    return;
+  }
+
+  auto result  = results[index].str();
+  
+  // const char * result =  results[index].str().c_str();
+
+  sqlite3_result_text(context,
+		      result.c_str(),
+		      static_cast<int>(result.size()),
+		      SQLITE_TRANSIENT);
+}
+
+/**
  * @brief Convert an IPv4 string address to decimal.
  */
 static void ip4StringToDecimalFunc(sqlite3_context* context,
@@ -175,5 +220,14 @@ void registerStringExtensions(sqlite3* db) {
                           ip4StringToDecimalFunc,
                           nullptr,
                           nullptr);
+  sqlite3_create_function(db,
+                          "regex_match",
+                          3,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          regexStringMatchFunc,
+                          nullptr,
+                          nullptr);
+
 }
 } // namespace osquery
