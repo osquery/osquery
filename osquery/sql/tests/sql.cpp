@@ -168,6 +168,7 @@ TEST_F(SQLTests, test_sql_sha256) {
 
 TEST_F(SQLTests, test_regex_match) {
   QueryData d;
+  
   query("select regex_match('hello world', '(l)(o).*', 0) as t0, \
                 regex_match('hello world', '(l)(o).*', 1) as t1, \
                 regex_match('hello world', '(l)(o).*', 2) as t2, \
@@ -197,9 +198,63 @@ TEST_F(SQLTests, test_regex_match) {
   EXPECT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["basename"], "download");
 }
-
   
+TEST_F(SQLTests, test_split) {
+  QueryData d;
+  
+  query("select split('/foo/bar', '/', 0) as t0, \
+                split('/foo/bar', '/', 1) as t1, \
+                split('/foo/bar', '/', 2) as t2", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "foo");
+  EXPECT_EQ(d[0]["t1"], "bar");
+  EXPECT_EQ(d[0]["t2"], "");
 
+  query("select split('foo;;bar', ';;', 0) as t0, \
+                split('foo;;bar', ';;', 1) as t1, \
+                split('foo;;bar', ';;', 2) as t2", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "foo");
+  EXPECT_EQ(d[0]["t1"], "bar");
+  EXPECT_EQ(d[0]["t2"], "");
+}
+
+TEST_F(SQLTests, test_regex_split) {
+  QueryData d;
+  
+  query("select regex_split('/foo/bar', '/', 0) as t0, \
+                regex_split('/foo/bar', '/', 1) as t1, \
+                regex_split('/foo/bar', '/', 2) as t2, \
+                regex_split('/foo/bar', '/', 3) as t3", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "");
+  EXPECT_EQ(d[0]["t1"], "foo");
+  EXPECT_EQ(d[0]["t2"], "bar");
+  EXPECT_EQ(d[0]["t3"], "");
+
+  query("select regex_split('foo;;bar', ';;', 0) as t0, \
+                regex_split('foo;;bar', ';;', 1) as t1, \
+                regex_split('foo;;bar', ';;', 2) as t2", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "foo");
+  EXPECT_EQ(d[0]["t1"], "bar");
+  EXPECT_EQ(d[0]["t2"], "");
+
+  query("select regex_split('foo;bar//qux', '(;|/)+', 0) as t0, \
+                regex_split('foo;bar//qux', '(;|/)+', 1) as t1, \
+                regex_split('foo;bar//qux', '(;|/)+', 2) as t2, \
+                regex_split('foo;bar//qux', '(;|/)+', 3) as t3", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "foo");
+  EXPECT_EQ(d[0]["t1"], "bar");
+  EXPECT_EQ(d[0]["t2"], "qux");
+  EXPECT_EQ(d[0]["t3"], "");
+
+  // A more complex example.
+  query("select regex_split('/filesystem/path/download.extension.zip', '(.*/)|(.extension.zip)', 1) as test", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "download");
+}
 
 #ifdef OSQUERY_POSIX
 TEST_F(SQLTests, test_sql_ssdeep_compare) {
