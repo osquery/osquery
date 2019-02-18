@@ -62,6 +62,9 @@ const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 static inline void parseStartupPath(const std::string& path, Row& r) {
   std::string expandedPath = path;
 
+  // NOTE(ww): This is a pretty dumb expansion test, but the query that feeds
+  // us these paths doesn't pass us REG_EXPAND_SZ or any other hint
+  // that we could use instead.
   if (path.find('%') != std::string::npos) {
     if (const auto expanded = expandEnvString(path)) {
       expandedPath = *expanded;
