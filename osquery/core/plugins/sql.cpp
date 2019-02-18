@@ -1,4 +1,5 @@
 /**
+ * Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
  * @brief The osquery SQL implementation is managed as a plugin.
  *
  * The osquery RegistryFactory creates a Registry type called "sql", then

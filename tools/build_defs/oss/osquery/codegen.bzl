@@ -1,4 +1,5 @@
 """Implementation of osquery code generation targets"""
+"""Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved"""
 
 load(
     "//tools/build_defs/oss/osquery:cxx.bzl",

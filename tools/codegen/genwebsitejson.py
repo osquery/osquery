@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""Generate a complete table specification for the website
+"""
+Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+
+Generate a complete table specification for the website
 
 This script will generate JSON output as expected by the osquery website given
 a directory of osquery schema specifications. Results will be printer to stdout.

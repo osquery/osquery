@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""Generate a new website version metadata file based on a new release version
+"""
+Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+
+Generate a new website version metadata file based on a new release version
 
 Usage:
     python tools/codegen/genwebsitemetadata.py --file=~/osquery-site/src/data/osquery_metadata.json

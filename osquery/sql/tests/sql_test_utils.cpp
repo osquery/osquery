@@ -1,3 +1,4 @@
+// Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 #include <osquery/sql/tests/sql_test_utils.h>
 
 namespace osquery {
