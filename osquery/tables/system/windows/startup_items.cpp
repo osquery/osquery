@@ -61,27 +61,22 @@ static inline void parseStartupPath(const std::string& path, Row& r) {
   std::string expandedPath = path;
 
   if (path.find('%') != std::string::npos) {
-    if (auto expanded = expandEnvString(path)) {
+    if (const auto expanded = expandEnvString(path)) {
       expandedPath = *expanded;
     }
   }
 
-  if (path.find('\"') == std::string::npos) {
-    r["path"] = expandedPath;
-  } else {
-    boost::tokenizer<boost::escaped_list_separator<TCHAR>> tokens(
-        expandedPath,
-        boost::escaped_list_separator<TCHAR>(
-            std::string(""), std::string(" "), std::string("\"\'")));
-    for (auto&& tok = tokens.begin(); tok != tokens.end(); ++tok) {
-      if (tok == tokens.begin()) {
-        r["path"] = *tok;
-      } else if (r.count("args") == 0) {
-        r["args"] = *tok;
-      } else {
-        r["args"].append(" " + *tok);
-      }
+  if (const auto argsp = splitArgs(expandedPath)) {
+    const auto args = *argsp;
+
+    r["path"] = args[0];
+
+    if (args.size() > 1) {
+      args.erase(args.begin());
+      r["args"] = boost::join(args, " ");
     }
+  } else {
+    r["path"] = expandedPath;
   }
 }
 
