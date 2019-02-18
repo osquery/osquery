@@ -7,6 +7,7 @@
  */
 
 #include <osquery/utils/system/system.h>
+#include <osquery/utils/system/env.h>
 
 #include <Winsvc.h>
 
@@ -128,7 +129,12 @@ static inline Status getService(const SC_HANDLE& scmHandle,
            regResults);
   for (const auto& aKey : regResults) {
     if (aKey.at("name") == "ServiceDll") {
-      r["module_path"] = SQL_TEXT(aKey.at("data"));
+      auto module_path = aKey.at("data");
+      if (const auto expanded_path = expandEnvString(module_path)) {
+        module_path = *expanded_path;
+      }
+
+      r["module_path"] = SQL_TEXT(module_path);
     }
   }
 
