@@ -24,6 +24,7 @@
 #include <osquery/process/process.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/env.h>
 
 namespace osquery {
 namespace tables {
@@ -57,6 +58,12 @@ const std::set<std::string> kStartupStatusRegKeys = {
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
 static inline void parseStartupPath(const std::string& path, Row& r) {
+  if (path.find('%') != std::string::npos) {
+    if (auto expanded = expandEnvString(path)) {
+      path = *expanded;
+    }
+  }
+
   if (path.find('\"') == std::string::npos) {
     r["path"] = path;
   } else {

@@ -315,6 +315,7 @@ osquery_cxx_library(
         osquery_target("osquery/utils:utils"),
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/expected:expected"),
+        osquery_target("osquery/utils/system:env"),
         osquery_target("osquery/utils/system:filepath"),
         osquery_target("osquery/utils/system:system_utils"),
         osquery_target("osquery/utils/system:time"),
