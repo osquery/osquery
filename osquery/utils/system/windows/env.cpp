@@ -92,7 +92,7 @@ boost::optional<std::vector<std::string>> splitArgs(const std::string& args) {
 
   std::vector<std::string> argvec;
   for (int i = 0; i < argc; ++i) {
-    argvec.push_back(wstringToString(std::wstring(argv[i])));
+    argvec.push_back(wstringToString(argv[i]));
   }
 
   LocalFree(argv);
