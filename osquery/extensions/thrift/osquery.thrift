@@ -1,3 +1,5 @@
+// Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+
 namespace cpp osquery.extensions
 
 /// Registry operations use a registry name, plugin name, request/response.
