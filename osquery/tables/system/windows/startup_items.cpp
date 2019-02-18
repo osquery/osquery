@@ -26,6 +26,8 @@
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/env.h>
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 namespace tables {
 
@@ -66,17 +68,21 @@ static inline void parseStartupPath(const std::string& path, Row& r) {
     }
   }
 
-  if (const auto argsp = splitArgs(expandedPath)) {
-    const auto args = *argsp;
-
-    r["path"] = args[0];
-
-    if (args.size() > 1) {
-      args.erase(args.begin());
-      r["args"] = boost::join(args, " ");
-    }
-  } else {
+  if (pathExists(fs::path(expandedPath)).ok()) {
     r["path"] = expandedPath;
+  } else {
+    if (const auto argsp = splitArgs(expandedPath)) {
+      auto args = *argsp;
+
+      r["path"] = args[0];
+
+      if (args.size() > 1) {
+        args.erase(args.begin());
+        r["args"] = boost::join(args, " ");
+      }
+    } else {
+      r["path"] = expandedPath;
+    }
   }
 }
 
