@@ -58,17 +58,19 @@ const std::set<std::string> kStartupStatusRegKeys = {
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
 static inline void parseStartupPath(const std::string& path, Row& r) {
+  std::string expandedPath = path;
+
   if (path.find('%') != std::string::npos) {
     if (auto expanded = expandEnvString(path)) {
-      path = *expanded;
+      expandedPath = *expanded;
     }
   }
 
   if (path.find('\"') == std::string::npos) {
-    r["path"] = path;
+    r["path"] = expandedPath;
   } else {
     boost::tokenizer<boost::escaped_list_separator<TCHAR>> tokens(
-        path,
+        expandedPath,
         boost::escaped_list_separator<TCHAR>(
             std::string(""), std::string(" "), std::string("\"\'")));
     for (auto&& tok = tokens.begin(); tok != tokens.end(); ++tok) {
