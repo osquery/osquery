@@ -17,6 +17,8 @@
 
 namespace osquery {
 
+const auto kInitialBufferSize = 1024;
+
 bool setEnvVar(const std::string& name, const std::string& value) {
   return (::SetEnvironmentVariableA(name.c_str(), value.c_str()) == TRUE);
 }
@@ -26,7 +28,6 @@ bool unsetEnvVar(const std::string& name) {
 }
 
 boost::optional<std::string> getEnvVar(const std::string& name) {
-  const auto kInitialBufferSize = 1024;
   std::vector<char> buf;
   buf.assign(kInitialBufferSize, '\0');
 
@@ -49,6 +50,32 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
       // occurred.
       return boost::none;
     }
+  }
+
+  return std::string(buf.data(), value_len);
+}
+
+boost::optional<std::string> expandEnvString(const std::string& input) {
+  std::vector<char> buf;
+  buf.assign(kInitialBufferSize, '\0');
+
+  // ExpandEnvironmentStrings doesn't support inputs larger than 32k.
+  if (input.size > 32768) {
+    return boost::none;
+  }
+
+  auto len = ::ExpandEnvironmentStrings(input.c_str(), buf.data(), kInitialBufferSize);
+  if (len == 0) {
+    return boost::none;
+  }
+
+  if (len > kInitialBufferSize) {
+    buf.assign(len, '\0');
+    len = ::ExpandEnvironmentStrings(input.c_str(), buf.data(), len);
+  }
+
+  if (len == 0) {
+    return boost::none;
   }
 
   return std::string(buf.data(), value_len);
