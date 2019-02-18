@@ -7,6 +7,7 @@
  */
 
 #include <osquery/utils/system/env.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 #include <string>
 #include <vector>
@@ -79,6 +80,24 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
   }
 
   return std::string(buf.data(), len);
+}
+
+boost::optional<std::vector<std::string>> splitArgs(const std::string& args) {
+  int argc;
+
+  auto argv = CommandLineToArgvW(stringToWstring(args), &argc);
+  if (argv == nullptr) {
+    return boost::none;
+  }
+
+  std::vector<std::string> argvec;
+  for (int i = 0; i < argc; ++i) {
+    argvec.push_back(wstringToString(std::wstring(argv[i])));
+  }
+
+  LocalFree(argv);
+
+  return argvec;
 }
 
 } // namespace osquery

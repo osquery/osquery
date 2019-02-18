@@ -34,6 +34,13 @@ boost::optional<std::string> getEnvVar(const std::string& name);
  * Returns boost::none on failure.
  */
 boost::optional<std::string> expandEnvString(const std::string& input);
+
+/**
+ * Splits the input into command line arguments, according to the system's rules.
+ *
+ * Returns boost::none on failure.
+ */
+boost::optional<std::vector<std::string>> splitArgs(const std::string& args);
 #endif
 
 } // namespace osquery
