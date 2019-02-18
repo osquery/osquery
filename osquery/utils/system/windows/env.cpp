@@ -60,7 +60,7 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
   buf.assign(kInitialBufferSize, '\0');
 
   // ExpandEnvironmentStrings doesn't support inputs larger than 32k.
-  if (input.size > 32768) {
+  if (input.size() > 32768) {
     return boost::none;
   }
 
@@ -78,7 +78,7 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
     return boost::none;
   }
 
-  return std::string(buf.data(), value_len);
+  return std::string(buf.data(), len);
 }
 
 } // namespace osquery
