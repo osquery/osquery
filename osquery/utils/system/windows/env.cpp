@@ -83,7 +83,7 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
 }
 
 boost::optional<std::vector<std::string>> splitArgs(const std::string& args) {
-  int argc;
+  int argc = 0;
 
   auto argv = CommandLineToArgvW(stringToWstring(args).c_str(), &argc);
   if (argv == nullptr) {
