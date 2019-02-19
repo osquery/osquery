@@ -1,8 +1,8 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed as defined on the LICENSE file found in the
-#  root directory of this source tree.
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\\osquery_utils.ps1"
 
 $serviceName = 'osqueryd'
