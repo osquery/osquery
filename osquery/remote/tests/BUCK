@@ -23,11 +23,11 @@ osquery_cxx_library(
         osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/events:events"),
         osquery_target("osquery/extensions:extensions"),
-        osquery_target("osquery/killswitch/plugins:killswitch_filesystem"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/info:info"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/killswitch:killswitch_filesystem"),
         osquery_target("tests:helper"),
     ],
 )
@@ -48,8 +48,8 @@ osquery_cxx_test(
         osquery_target("osquery/remote/tests:remote_test_utils"),
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/info:info"),
-        osquery_target("osquery/killswitch/plugins:killswitch_filesystem"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/killswitch:killswitch_filesystem"),
         osquery_target("tests:helper"),
     ],
 )
