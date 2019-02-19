@@ -1,3 +1,9 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX")
@@ -10,12 +16,11 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/distributed:distributed"),
         osquery_target("osquery/extensions:extensions"),
-        osquery_target("osquery/logger/plugins:filesystem_logger"),
         osquery_target("osquery/logger:data_logger"),
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
@@ -23,6 +28,7 @@ osquery_cxx_test(
         osquery_target("osquery/utils/info:info"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/logger:filesystem_logger"),
         osquery_target("specs:tables"),
     ],
 )
@@ -34,12 +40,11 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/distributed:distributed"),
         osquery_target("osquery/extensions:extensions"),
-        osquery_target("osquery/logger/plugins:buffered"),
         osquery_target("osquery/logger:data_logger"),
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
@@ -47,6 +52,7 @@ osquery_cxx_test(
         osquery_target("osquery/utils/info:info"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/logger:buffered"),
         osquery_target("specs:tables"),
     ],
 )
@@ -69,12 +75,11 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/distributed:distributed"),
         osquery_target("osquery/extensions:extensions"),
-        osquery_target("osquery/logger/plugins:kafka_producer"),
         osquery_target("osquery/logger:data_logger"),
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
@@ -82,6 +87,7 @@ osquery_cxx_test(
         osquery_target("osquery/utils/info:info"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/logger:kafka_producer"),
         osquery_target("specs:tables"),
         osquery_tp_target("gflags"),
     ],
@@ -94,13 +100,11 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/distributed:distributed"),
         osquery_target("osquery/extensions:extensions"),
-        osquery_target("osquery/logger/plugins:aws_kinesis"),
-        osquery_target("osquery/logger/plugins:buffered"),
         osquery_target("osquery/logger:data_logger"),
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
@@ -108,6 +112,8 @@ osquery_cxx_test(
         osquery_target("osquery/utils/info:info"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/logger:aws_kinesis"),
+        osquery_target("plugins/logger:buffered"),
         osquery_target("specs:tables"),
         osquery_tp_target("gflags"),
     ],
@@ -125,12 +131,11 @@ osquery_cxx_test(
     },
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/distributed:distributed"),
         osquery_target("osquery/extensions:extensions"),
-        osquery_target("osquery/logger/plugins:tls_logger"),
         osquery_target("osquery/logger:data_logger"),
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
@@ -138,6 +143,7 @@ osquery_cxx_test(
         osquery_target("osquery/utils/info:info"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/logger:tls_logger"),
         osquery_target("specs:tables"),
         osquery_tp_target("gflags"),
         osquery_target("osquery/remote/tests:remote_test_utils"),
@@ -161,21 +167,21 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/distributed:distributed"),
         osquery_target("osquery/extensions:extensions"),
-        osquery_target("osquery/logger/plugins:syslog"),
         osquery_target("osquery/logger:data_logger"),
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/info:info"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/logger:syslog"),
         osquery_target("specs:tables"),
         osquery_tp_target("gflags"),
-        osquery_target("osquery/remote/tests:remote_test_utils"),
     ],
 )

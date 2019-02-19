@@ -24,7 +24,7 @@ osquery_cxx_library(
     srcs = [
         "aws_firehose.cpp",
     ],
-    header_namespace = "osquery/logger/plugins",
+    header_namespace = "plugins/logger",
     exported_headers = [
         "aws_firehose.h",
     ],
@@ -50,7 +50,7 @@ osquery_cxx_library(
     srcs = [
         "aws_kinesis.cpp",
     ],
-    header_namespace = "osquery/logger/plugins",
+    header_namespace = "plugins/logger",
     exported_headers = [
         "aws_kinesis.h",
     ],
@@ -65,7 +65,7 @@ osquery_cxx_library(
     ],
     link_whole = True,
     tests = [
-        osquery_target("osquery/logger/plugins/tests:aws_kinesis_logger_tests"),
+        osquery_target("plugins/logger/tests:aws_kinesis_logger_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [
@@ -79,7 +79,7 @@ osquery_cxx_library(
 
 osquery_cxx_library(
     name = "aws_log_forwarder",
-    header_namespace = "osquery/logger/plugins",
+    header_namespace = "plugins/logger",
     exported_headers = [
         "aws_log_forwarder.h",
     ],
@@ -105,7 +105,7 @@ osquery_cxx_library(
     srcs = [
         "buffered.cpp",
     ],
-    header_namespace = "osquery/logger/plugins",
+    header_namespace = "plugins/logger",
     exported_headers = [
         "buffered.h",
     ],
@@ -120,7 +120,7 @@ osquery_cxx_library(
     ],
     link_whole = True,
     tests = [
-        osquery_target("osquery/logger/plugins/tests:buffered_logger_tests"),
+        osquery_target("plugins/logger/tests:buffered_logger_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = common_deps + [
@@ -136,7 +136,7 @@ osquery_cxx_library(
     srcs = [
         "filesystem_logger.cpp",
     ],
-    header_namespace = "osquery/logger/plugins",
+    header_namespace = "plugins/logger",
     exported_headers = [
         "filesystem_logger.h",
     ],
@@ -151,7 +151,7 @@ osquery_cxx_library(
     ],
     link_whole = True,
     tests = [
-        osquery_target("osquery/logger/plugins/tests:filesystem_logger_tests"),
+        osquery_target("plugins/logger/tests:filesystem_logger_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = common_deps + [
@@ -162,7 +162,7 @@ osquery_cxx_library(
 
 osquery_cxx_library(
     name = "kafka_producer",
-    header_namespace = "osquery/logger/plugins",
+    header_namespace = "plugins/logger",
     exported_platform_headers = [
         (
             LINUX,
@@ -193,7 +193,7 @@ osquery_cxx_library(
         ),
     ],
     tests = [
-        osquery_target("osquery/logger/plugins/tests:kafka_producer_logger_tests"),
+        osquery_target("plugins/logger/tests:kafka_producer_logger_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = common_deps + [
@@ -208,7 +208,7 @@ osquery_cxx_library(
     srcs = [
         "stdout.cpp",
     ],
-    header_namespace = "osquery/logger/plugins",
+    header_namespace = "plugins/logger",
     exported_headers = [
         "stdout.h",
     ],
@@ -228,7 +228,7 @@ osquery_cxx_library(
 
 osquery_cxx_library(
     name = "syslog",
-    header_namespace = "osquery/logger/plugins",
+    header_namespace = "plugins/logger",
     exported_platform_headers = [
         (
             POSIX,
@@ -256,7 +256,7 @@ osquery_cxx_library(
         ),
     ],
     tests = [
-        osquery_target("osquery/logger/plugins/tests:syslog_logger_tests"),
+        osquery_target("plugins/logger/tests:syslog_logger_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = common_deps,
@@ -267,7 +267,7 @@ osquery_cxx_library(
     srcs = [
         "tls_logger.cpp",
     ],
-    header_namespace = "osquery/logger/plugins",
+    header_namespace = "plugins/logger",
     exported_headers = [
         "tls_logger.h",
     ],
@@ -282,7 +282,7 @@ osquery_cxx_library(
     ],
     link_whole = True,
     tests = [
-        osquery_target("osquery/logger/plugins/tests:tls_logger_tests"),
+        osquery_target("plugins/logger/tests:tls_logger_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = common_deps + [
@@ -296,7 +296,7 @@ osquery_cxx_library(
 
 osquery_cxx_library(
     name = "windows_event_log",
-    header_namespace = "osquery/logger/plugins",
+    header_namespace = "plugins/logger",
     exported_platform_headers = [
         (
             WINDOWS,

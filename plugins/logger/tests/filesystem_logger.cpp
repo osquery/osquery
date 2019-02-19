@@ -6,7 +6,7 @@
  *  root directory of this source tree.
  */
 
-#include <osquery/logger/plugins/filesystem_logger.h>
+#include <plugins/logger/filesystem_logger.h>
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/utils/conversions/split.h>

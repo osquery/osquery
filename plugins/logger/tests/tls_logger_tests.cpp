@@ -14,7 +14,7 @@
 #include <osquery/remote/tests/test_utils.h>
 #include <osquery/system.h>
 
-#include "osquery/logger/plugins/tls_logger.h"
+#include "plugins/logger/tls_logger.h"
 
 namespace osquery {
 DECLARE_bool(disable_database);

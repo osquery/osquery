@@ -22,7 +22,7 @@
 #include <osquery/registry_interface.h>
 #include <osquery/system.h>
 
-#include "osquery/logger/plugins/buffered.h"
+#include "plugins/logger/buffered.h"
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>

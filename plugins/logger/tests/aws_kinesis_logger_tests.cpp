@@ -22,8 +22,8 @@
 #include <osquery/registry_interface.h>
 #include <osquery/system.h>
 
-#include "osquery/logger/plugins/aws_log_forwarder.h"
-#include "osquery/logger/plugins/buffered.h"
+#include "plugins/logger/aws_log_forwarder.h"
+#include "plugins/logger/buffered.h"
 
 using namespace testing;
 
