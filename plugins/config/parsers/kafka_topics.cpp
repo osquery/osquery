@@ -9,8 +9,8 @@
 #include <iostream>
 
 #include <osquery/config/config.h>
-#include <osquery/config/parsers/kafka_topics.h>
 #include <osquery/registry_factory.h>
+#include <plugins/config/parsers/kafka_topics.h>
 
 namespace osquery {
 

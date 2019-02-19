@@ -6,7 +6,7 @@
  *  root directory of this source tree.
  */
 
-#include <osquery/config/parsers/logger.h>
+#include <plugins/config/parsers/logger.h>
 #include <osquery/registry_factory.h>
 
 namespace rj = rapidjson;

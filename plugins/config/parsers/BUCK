@@ -21,7 +21,7 @@ osquery_cxx_library(
         "prometheus_targets.cpp",
         "views.cpp",
     ],
-    header_namespace = "osquery/config/parsers",
+    header_namespace = "plugins/config/parsers",
     exported_headers = [
         "auto_constructed_tables.h",
         "decorators.h",
@@ -32,11 +32,11 @@ osquery_cxx_library(
     ],
     link_whole = True,
     tests = [
-        osquery_target("osquery/config/parsers/tests:decorators_tests"),
-        osquery_target("osquery/config/parsers/tests:events_parser_tests"),
-        osquery_target("osquery/config/parsers/tests:file_paths_tests"),
-        osquery_target("osquery/config/parsers/tests:options_tests"),
-        osquery_target("osquery/config/parsers/tests:views_tests"),
+        osquery_target("plugins/config/parsers/tests:decorators_tests"),
+        osquery_target("plugins/config/parsers/tests:events_parser_tests"),
+        osquery_target("plugins/config/parsers/tests:file_paths_tests"),
+        osquery_target("plugins/config/parsers/tests:options_tests"),
+        osquery_target("plugins/config/parsers/tests:views_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [

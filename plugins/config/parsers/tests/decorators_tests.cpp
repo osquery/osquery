@@ -9,12 +9,12 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
-#include <osquery/config/parsers/decorators.h>
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
+#include <plugins/config/parsers/decorators.h>
 
 namespace osquery {
 

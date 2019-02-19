@@ -24,7 +24,7 @@
 #include <osquery/registry_factory.h>
 #include <osquery/system.h>
 
-#include <osquery/config/parsers/kafka_topics.h>
+#include <plugins/config/parsers/kafka_topics.h>
 #include <osquery/logger/plugins/kafka_producer.h>
 
 namespace osquery {

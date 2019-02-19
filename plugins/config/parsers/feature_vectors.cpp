@@ -6,8 +6,8 @@
  *  root directory of this source tree.
  */
 
+#include <plugins/config/parsers/feature_vectors.h>
 #include <osquery/config/config.h>
-#include <osquery/config/parsers/feature_vectors.h>
 #include <osquery/registry_factory.h>
 
 namespace osquery {

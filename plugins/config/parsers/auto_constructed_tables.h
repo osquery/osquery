@@ -6,6 +6,7 @@
  *  root directory of this source tree.
  */
 
+#include <osquery/config/config.h>
 #include <osquery/tables.h>
 
 namespace osquery {

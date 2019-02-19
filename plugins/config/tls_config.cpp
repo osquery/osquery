@@ -13,7 +13,6 @@
 // clang-format on
 
 #include <osquery/config/config.h>
-#include <osquery/config/plugins/tls_config.h>
 #include <osquery/dispatcher.h>
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
@@ -22,6 +21,7 @@
 #include <osquery/remote/serializers/json.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/chars.h>
+#include <plugins/config/tls_config.h>
 
 #include <sstream>
 #include <vector>
@@ -92,4 +92,4 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
 
   return s;
 }
-}
+} // namespace osquery

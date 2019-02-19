@@ -6,7 +6,7 @@
  *  root directory of this source tree.
  */
 
-#include <osquery/config/parsers/decorators.h>
+#include <plugins/config/parsers/decorators.h>
 #include <osquery/config/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>

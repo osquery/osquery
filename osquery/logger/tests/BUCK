@@ -8,7 +8,6 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/core/plugins:plugins"),
         osquery_target("osquery/core:core"),
         osquery_target("osquery/database/plugins:ephemeral"),
@@ -19,6 +18,7 @@ osquery_cxx_test(
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/info:info"),
         osquery_target("osquery/utils/system:time"),
+        osquery_target("plugins/config:tls_config"),
         osquery_target("specs:tables"),
     ],
 )

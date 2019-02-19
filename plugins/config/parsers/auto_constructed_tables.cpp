@@ -6,8 +6,8 @@
  *  root directory of this source tree.
  */
 
+#include <plugins/config/parsers/auto_constructed_tables.h>
 #include <osquery/config/config.h>
-#include <osquery/config/parsers/auto_constructed_tables.h>
 #include <osquery/database.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>

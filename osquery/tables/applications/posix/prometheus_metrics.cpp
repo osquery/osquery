@@ -15,7 +15,7 @@
 #include <sstream>
 
 #include <osquery/config/config.h>
-#include <osquery/config/parsers/prometheus_targets.h>
+#include <plugins/config/parsers/prometheus_targets.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/tables/applications/posix/prometheus_metrics.h>

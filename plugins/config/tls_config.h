@@ -28,4 +28,4 @@ class TLSConfigPlugin : public ConfigPlugin,
  private:
   friend class TLSConfigTests;
 };
-}
+} // namespace osquery

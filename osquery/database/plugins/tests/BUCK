@@ -15,7 +15,6 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/core:core"),
         osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/database/plugins:sqlite_plugin"),
@@ -26,6 +25,7 @@ osquery_cxx_test(
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/json:json"),
+        osquery_target("plugins/config:tls_config"),
         osquery_target("specs:tables"),
         ":database_test_utils",
     ],
@@ -38,7 +38,6 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/core:core"),
         osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/database/plugins:rocksdb_plugin"),
@@ -49,6 +48,7 @@ osquery_cxx_test(
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/json:json"),
+        osquery_target("plugins/config:tls_config"),
         osquery_target("specs:tables"),
         ":database_test_utils",
     ],

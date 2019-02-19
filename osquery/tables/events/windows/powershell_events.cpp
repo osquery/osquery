@@ -18,12 +18,12 @@
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
-#include <osquery/config/parsers/feature_vectors.h>
 #include <osquery/core/windows/wmi.h>
 #include <osquery/events/windows/windows_event_log.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/json/json.h>
+#include <plugins/config/parsers/feature_vectors.h>
 
 namespace pt = boost::property_tree;
 

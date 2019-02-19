@@ -12,6 +12,7 @@ osquery_cxx_library(
     srcs = [
         "filesystem_config.cpp",
     ],
+    header_namespace = "plugins/config",
     link_whole = True,
     visibility = ["PUBLIC"],
     deps = [
@@ -25,7 +26,7 @@ osquery_cxx_library(
     srcs = [
         "tls_config.cpp",
     ],
-    header_namespace = "osquery/config/plugins",
+    header_namespace = "plugins/config",
     exported_headers = [
         "tls_config.h",
     ],

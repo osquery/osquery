@@ -24,9 +24,9 @@
 #include <osquery/query.h>
 #include <osquery/utils/system/time.h>
 
-#include "osquery/config/parsers/decorators.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/sql/sqlite_util.h"
+#include "plugins/config/parsers/decorators.h"
 
 namespace osquery {
 

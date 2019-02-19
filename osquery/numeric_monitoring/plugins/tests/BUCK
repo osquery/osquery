@@ -14,13 +14,13 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/config/plugins:tls_config"),
         osquery_target("osquery/database:database"),
-        osquery_target("osquery/numeric_monitoring/plugins:numeric_monitoring_filesystem"),
         osquery_target("osquery/database/plugins:ephemeral"),
-        osquery_target("osquery/numeric_monitoring:numeric_monitoring"),
         osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/numeric_monitoring:numeric_monitoring"),
+        osquery_target("osquery/numeric_monitoring/plugins:numeric_monitoring_filesystem"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("plugins/config:tls_config"),
         osquery_target("specs:tables"),
     ],
 )

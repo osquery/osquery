@@ -115,4 +115,4 @@ Status FilesystemConfigPlugin::genPack(const std::string& name,
 
   return readFile(value, pack);
 }
-}
+} // namespace osquery
