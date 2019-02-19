@@ -1,3 +1,8 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+#
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
+
 def _paths_join(path, *others):
     """Joins one or more path components intelligently.
 
