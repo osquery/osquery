@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "osquery/logger/plugins/buffered.h"
+#include "plugins/logger/buffered.h"
 
 #include <osquery/dispatcher.h>
 #include <osquery/plugins/logger.h>

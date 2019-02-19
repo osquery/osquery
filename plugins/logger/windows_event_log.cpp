@@ -6,8 +6,8 @@
  *  root directory of this source tree.
  */
 
-#include <osquery/logger/plugins/windows_event_log.h>
-#include <osquery/logger/plugins/generated_wel.h>
+#include <plugins/logger/windows_event_log.h>
+#include <plugins/logger/generated_wel.h>
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>

@@ -24,7 +24,7 @@
 #include <osquery/system.h>
 #include <osquery/utils/status/status.h>
 
-#include "osquery/logger/plugins/kafka_producer.h"
+#include "plugins/logger/kafka_producer.h"
 
 namespace osquery {
 
