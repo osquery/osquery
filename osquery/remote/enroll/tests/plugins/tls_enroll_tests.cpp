@@ -85,32 +85,31 @@ TEST_F(TLSEnrollTests, test_tls_enroll) {
   std::string value;
 
   auto status = testReadRequests(response);
-  EXPECT_TRUE(status.ok());
-  EXPECT_EQ(response.doc().Size(), 1U);
+  ASSERT_TRUE(status.ok());
+  ASSERT_TRUE(response.doc().IsArray());
+  ASSERT_EQ(response.doc().Size(), 1U);
 
   auto const& obj = response.doc()[0];
-  EXPECT_TRUE(obj.IsObject());
-  EXPECT_TRUE(obj.HasMember("command"));
-  EXPECT_TRUE(obj["command"].IsString());
+  ASSERT_TRUE(obj.IsObject());
+
+  ASSERT_TRUE(obj.HasMember("command"));
+  ASSERT_TRUE(obj["command"].IsString());
   value = obj["command"].GetString();
   EXPECT_EQ(value, "enroll");
 
-  EXPECT_TRUE(obj.HasMember("host_identifier"));
-  EXPECT_TRUE(obj["host_identifier"].IsString());
+  ASSERT_TRUE(obj.HasMember("host_identifier"));
+  ASSERT_TRUE(obj["host_identifier"].IsString());
   value = obj["host_identifier"].GetString();
   EXPECT_EQ(value, getHostIdentifier());
 
-  // Check that osquery_info exists in the host_details.
   ASSERT_EQ(kEnrollHostDetails.count("osquery_info"), 1U);
   auto osquery_info = SQL::selectAllFrom("osquery_info");
   ASSERT_EQ(osquery_info.size(), 1U);
   ASSERT_EQ(osquery_info[0].count("uuid"), 1U);
-
-  EXPECT_TRUE(obj.HasMember("host_details"));
-  EXPECT_TRUE(obj["host_details"].HasMember("osquery_info"));
-  EXPECT_TRUE(obj["host_details"]["osquery_info"].HasMember("uuid"));
-
-  EXPECT_TRUE(obj["host_details"]["osquery_info"]["uuid"].IsString());
+  ASSERT_TRUE(obj.HasMember("host_details"));
+  ASSERT_TRUE(obj["host_details"].HasMember("osquery_info"));
+  ASSERT_TRUE(obj["host_details"]["osquery_info"].HasMember("uuid"));
+  ASSERT_TRUE(obj["host_details"]["osquery_info"]["uuid"].IsString());
   value = obj["host_details"]["osquery_info"]["uuid"].GetString();
   EXPECT_EQ(osquery_info[0]["uuid"], value);
 }
