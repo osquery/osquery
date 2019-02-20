@@ -78,7 +78,7 @@ Status TLSEnrollTests::testReadRequests(JSON& response_tree) {
   return status;
 }
 
-TEST_F(TLSEnrollTests, test_tls_enroll) {
+TEST_F(TLSEnrollTests, DISABLED_test_tls_enroll) {
   auto node_key = getNodeKey("tls");
 
   JSON response;
