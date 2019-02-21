@@ -90,6 +90,7 @@ typedef struct win_stat {
   std::string type;
   std::string attributes;
   std::string volume_serial;
+  std::string product_version;
 
 } WINDOWS_STAT;
 

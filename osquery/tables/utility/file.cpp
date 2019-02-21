@@ -124,6 +124,7 @@ void genFileInfo(const fs::path& path,
   r["attributes"] = TEXT(file_stat.attributes);
   r["file_id"] = TEXT(file_stat.file_id);
   r["volume_serial"] = TEXT(file_stat.volume_serial);
+  r["product_version"] = TEXT(file_stat.product_version);
 
 #endif
 
