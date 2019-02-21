@@ -35,7 +35,6 @@ osquery_cxx_test(
         osquery_target("plugins/config:tls_config"),
         osquery_target("plugins/config/parsers:parsers"),
         osquery_target("specs:tables"),
-        osquery_tp_target("googletest", "gmock_headers"),
         osquery_tp_target("smartmontools", "libsmartctl"),
     ],
 )
