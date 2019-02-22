@@ -16,6 +16,9 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/lexical_cast.hpp>
+#include <boost/variant.hpp>
+
 namespace osquery {
 class SQLiteUtilTests : public testing::Test {
  public:
@@ -42,6 +45,25 @@ std::shared_ptr<SQLiteDBInstance> getTestDBC() {
   }
 
   return dbc;
+}
+
+TEST_F(SQLiteUtilTests, test_zero_as_float_doesnt_convert_to_int) {
+  auto sql = SQL("SELECT 0.0 as zero");
+  EXPECT_TRUE(sql.ok());
+  EXPECT_EQ(sql.rows().size(), 1U);
+  Row r;
+  r["zero"] = "0.0";
+  EXPECT_EQ(sql.rows()[0], r);
+}
+
+TEST_F(SQLiteUtilTests, test_precision_is_maintained) {
+  auto sql = SQL("SELECT 0.123456789 as high_precision, 0.12 as low_precision");
+  EXPECT_TRUE(sql.ok());
+  EXPECT_EQ(sql.rows().size(), 1U);
+  Row r;
+  r["high_precision"] = "0.123456789";
+  r["low_precision"] = "0.12";
+  EXPECT_EQ(sql.rows()[0], r);
 }
 
 TEST_F(SQLiteUtilTests, test_simple_query_execution) {

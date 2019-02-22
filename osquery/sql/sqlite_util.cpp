@@ -11,6 +11,8 @@
 
 #include <osquery/plugins/sql.h>
 
+#include <osquery/utils/conversions/castvariant.h>
+
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -474,7 +476,7 @@ Status queryInternal(const std::string& query,
     for (const auto& row : typedResults) {
       Row r;
       for (const auto& col : row) {
-        r[col.first] = boost::lexical_cast<std::string>(col.second);
+        r[col.first] = castVariant(col.second);
       }
       results.push_back(std::move(r));
     }

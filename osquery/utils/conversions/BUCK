@@ -17,6 +17,7 @@ osquery_cxx_library(
     ],
     header_namespace = "osquery/utils/conversions",
     exported_headers = [
+        "castvariant.h",
         "join.h",
         "split.h",
         "tryto.h",
