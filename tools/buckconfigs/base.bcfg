@@ -1,3 +1,6 @@
+[build]
+  osquery = oss
+
 [cxx]
   should_remap_host_platform = true
   gtest_dep = //third-party/googletest:gtest
