@@ -10,7 +10,6 @@ load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 osquery_cxx_library(
     name = "plugins",
     srcs = glob(["*.cpp"]),
-    headers = glob(["*.h"]),
     header_namespace = "osquery/plugins",
     exported_headers = glob(["*.h"]),
     visibility = ["PUBLIC"],
