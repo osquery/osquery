@@ -22,6 +22,7 @@ QueryData genLogicalDrives(QueryContext& context) {
   for (const auto& logicalDisk : logicalDisks) {
     Row r;
     std::string deviceId;
+    r["free_space"] = r["size"] = "-1";
     logicalDisk.GetString("DeviceID", deviceId);
     logicalDisk.GetString("Description", r["description"]);
     logicalDisk.GetString("FreeSpace", r["free_space"]);
