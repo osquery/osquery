@@ -72,6 +72,7 @@ static inline void genHardwareInfo(Row& r) {
   boost::trim(r["hardware_version"]);
   boost::trim(r["hardware_vendor"]);
   boost::trim(r["hardware_model"]);
+  boost::trim(r["hardware_serial"]);
 
   CFRelease(properties);
 }
