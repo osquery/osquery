@@ -67,7 +67,7 @@ Status RegistryInterface::setActive(const std::string& item_name) {
   // Default support multiple active plugins.
   for (const auto& item : osquery::split(item_name, ",")) {
     if (items_.count(item) == 0 && external_.count(item) == 0) {
-      return Status(1, "Unknown registry plugin: " + item);
+      return Status::failure("Unknown registry plugin: " + item);
     }
   }
 
@@ -126,6 +126,9 @@ RegistryRoutes RegistryInterface::getRoutes() const {
 Status RegistryInterface::call(const std::string& item_name,
                                const PluginRequest& request,
                                PluginResponse& response) {
+  if (item_name.empty()) {
+    return Status::failure("No registry item name specified");
+  }
   PluginRef plugin;
   {
     ReadLock lock(mutex_);
@@ -150,12 +153,12 @@ Status RegistryInterface::call(const std::string& item_name,
     } else if (routes_.count(item_name) > 0) {
       // The item has a route, but no extension, pass in the route info.
       response = routes_.at(item_name);
-      return Status(0, "Route only");
+      return Status::success();
     } else if (RegistryFactory::get().external()) {
       // If this is an extension's registry forward unknown calls to the core.
       uuid = 0;
     } else {
-      return Status(1, "Cannot call registry item: " + item_name);
+      return Status::failure("Cannot call registry item: " + item_name);
     }
   }
 
@@ -167,10 +170,10 @@ Status RegistryInterface::addAlias(const std::string& item_name,
   WriteLock lock(mutex_);
 
   if (aliases_.count(alias) > 0) {
-    return Status(1, "Duplicate alias: " + alias);
+    return Status::failure("Duplicate alias: " + alias);
   }
   aliases_[alias] = item_name;
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string RegistryInterface::getAlias(const std::string& alias) const {
@@ -188,7 +191,7 @@ Status RegistryInterface::addPlugin(const std::string& plugin_name,
   WriteLock lock(mutex_);
 
   if (items_.count(plugin_name) > 0) {
-    return Status(1, "Duplicate registry item exists: " + plugin_name);
+    return Status::failure("Duplicate registry item exists: " + plugin_name);
   }
 
   plugin_item->setName(plugin_name);
@@ -199,7 +202,7 @@ Status RegistryInterface::addPlugin(const std::string& plugin_name,
     internal_.push_back(plugin_name);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void RegistryInterface::setUp() {
