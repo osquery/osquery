@@ -9,7 +9,7 @@ schema([
     Column("pid", INTEGER, "Process (or thread) ID"),
 ])
 extended_schema(WINDOWS, [
-    Column("sid", TEXT, "User security identifier"),
+    Column("sid", TEXT, "The user's unique security identifier"),
     Column("registry_hive", TEXT, "HKEY_USERS registry hive"),
 ])
 attributes(cacheable=True)
