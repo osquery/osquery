@@ -29,6 +29,14 @@ QueryData genLogicalDrives(QueryContext& context) {
     logicalDisk.GetString("Size", r["size"]);
     logicalDisk.GetString("FileSystem", r["file_system"]);
 
+    if (r["free_space"].empty()) {
+      r["free_space"] = "-1";
+    }
+
+    if (r["size"].empty()) {
+      r["size"] = "-1";
+    }
+
     // NOTE(ww): Previous versions of this table used the type
     // column to provide a non-canonical description of the drive.
     // However, a bug in WMI marshalling caused the type to always
