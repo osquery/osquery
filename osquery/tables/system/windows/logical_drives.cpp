@@ -19,6 +19,11 @@ QueryData genLogicalDrives(QueryContext& context) {
       "select DeviceID, Description, FreeSpace, Size, FileSystem from "
       "Win32_LogicalDisk");
   auto const& logicalDisks = wmiLogicalDiskReq.results();
+
+  const WmiRequest wmiBootConfigurationReq(
+      "select BootDirectory from Win32_BootConfiguration");
+  auto const& bootConfigurations = wmiBootConfigurationReq.results();
+
   for (const auto& logicalDisk : logicalDisks) {
     Row r;
     std::string deviceId;
@@ -36,45 +41,27 @@ QueryData genLogicalDrives(QueryContext& context) {
       r["size"] = "-1";
     }
 
+    int bootPartition = 0;
+    for (const auto& bootConfiguration : bootConfigurations) {
+      std::string bootDirectory;
+      bootConfiguration.GetString("BootDirectory", bootDirectory);
+
+      // e.g., "C:\\Windows".find("D:")
+      if (bootDirectory.find(deviceId) == 0) {
+        bootPartition = 1;
+        break;
+      }
+    }
+
     // NOTE(ww): Previous versions of this table used the type
     // column to provide a non-canonical description of the drive.
     // However, a bug in WMI marshalling caused the type to always
     // return "Unknown". That behavior is preserved here.
     r["type"] = "Unknown";
     r["device_id"] = deviceId;
-    r["boot_partition"] = INTEGER(0);
+    r["boot_partition"] = INTEGER(bootPartition);
 
-    std::string assocQuery =
-        std::string("Associators of {Win32_LogicalDisk.DeviceID='") + deviceId +
-        "'} where AssocClass=Win32_LogicalDiskToPartition";
-
-    const WmiRequest wmiLogicalDiskToPartitionReq(assocQuery);
-    auto const& wmiLogicalDiskToPartitionResults =
-        wmiLogicalDiskToPartitionReq.results();
-
-    if (wmiLogicalDiskToPartitionResults.empty()) {
-      results.push_back(r);
-      continue;
-    }
-    std::string partitionDeviceId;
-    wmiLogicalDiskToPartitionResults[0].GetString("DeviceID",
-                                                  partitionDeviceId);
-
-    std::string partitionQuery =
-        std::string(
-            "SELECT BootPartition FROM Win32_DiskPartition WHERE DeviceID='") +
-        partitionDeviceId + '\'';
-    const WmiRequest wmiPartitionReq(partitionQuery);
-    auto const& wmiPartitionResults = wmiPartitionReq.results();
-
-    if (wmiPartitionResults.empty()) {
-      results.push_back(r);
-      continue;
-    }
-    bool bootPartition = false;
-    wmiPartitionResults[0].GetBool("BootPartition", bootPartition);
-    r["boot_partition"] = bootPartition ? INTEGER(1) : INTEGER(0);
-    results.push_back(r);
+    results.push_back(std::move(r));
   }
   return results;
 }
