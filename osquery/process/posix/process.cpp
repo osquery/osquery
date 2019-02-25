@@ -114,7 +114,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
 
     // Code should never reach this point
     LOG(ERROR) << "osqueryd could not start worker process";
-    Initializer::shutdown(EXIT_CATASTROPHIC);
+    ::exit(EXIT_CATASTROPHIC);
     return std::shared_ptr<PlatformProcess>();
   }
   return std::make_shared<PlatformProcess>(worker_pid);
@@ -167,8 +167,8 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     ::execve(arguments[0], argv, ::environ);
 
     // Code should never reach this point
-    VLOG(1) << "Could not start extension process: " << exec_path;
-    Initializer::shutdown(EXIT_FAILURE);
+    LOG(ERROR) << "Could not start extension process: " << exec_path;
+    ::exit(EXIT_FAILURE);
     return std::shared_ptr<PlatformProcess>();
   }
 
