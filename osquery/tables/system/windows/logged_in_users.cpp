@@ -67,7 +67,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
               << ")";
       continue;
     }
-    auto wtsSession = reinterpret_cast<WTSINFOA*>(sessionInfo);
+    const auto wtsSession = reinterpret_cast<WTSINFOA*>(sessionInfo);
     r["user"] = SQL_TEXT(wtsSession->UserName);
     r["type"] = SQL_TEXT(kSessionStates.at(pSessionInfo[i].State));
     r["tty"] = pSessionInfo[i].pSessionName == nullptr
@@ -123,7 +123,6 @@ QueryData genLoggedInUsers(QueryContext& context) {
     if (sessionInfo != nullptr) {
       WTSFreeMemoryEx(WTSTypeSessionInfoLevel1, sessionInfo, count);
       sessionInfo = nullptr;
-      wtsSession = nullptr;
     }
 
     if (sidBuf == nullptr) {
