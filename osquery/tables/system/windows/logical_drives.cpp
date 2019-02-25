@@ -22,11 +22,11 @@ QueryData genLogicalDrives(QueryContext& context) {
   for (const auto& logicalDisk : logicalDisks) {
     Row r;
     std::string deviceId;
-    uint64_t freeSpace = -1;
+    uint64_t freeSpace = -1, driveSize = -1;
     logicalDisk.GetString("DeviceID", deviceId);
     logicalDisk.GetString("Description", r["description"]);
     logicalDisk.GetUnsignedLongLong("FreeSpace", freeSpace);
-    logicalDisk.GetString("Size", r["size"]);
+    logicalDisk.GetUnsignedLongLong("Size", driveSize);
     logicalDisk.GetString("FileSystem", r["file_system"]);
 
     // NOTE(ww): Previous versions of this table used the type
@@ -35,7 +35,8 @@ QueryData genLogicalDrives(QueryContext& context) {
     // return "Unknown". That behavior is preserved here.
     r["type"] = "Unknown";
     r["device_id"] = deviceId;
-    r["free_space"] = BIGINT(freeSpace);
+    r["free_space"] = UNSIGNED_BIGINT(freeSpace);
+    r["size"] = UNSIGNED_BIGINT(driveSize);
     r["boot_partition"] = INTEGER(0);
 
     std::string assocQuery =

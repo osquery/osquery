@@ -4,8 +4,8 @@ schema([
     Column("device_id", TEXT, "The drive id, usually the drive name, e.g., 'C:'."),
     Column("type", TEXT, "Deprecated."),
     Column("description", TEXT, "The canonical description of the drive, e.g. 'Logical Fixed Disk', 'CD-ROM Disk'."),
-    Column("free_space", BIGINT, "The amount of free space, in bytes, on the drive (-1 on failure)."),
-    Column("size", BIGINT, "The total amount of space, in bytes, of the drive."),
+    Column("free_space", UNSIGNED_BIGINT, "The amount of free space, in bytes, on the drive."),
+    Column("size", UNSIGNED_BIGINT, "The total amount of space, in bytes, of the drive."),
     Column("file_system", TEXT, "The file system of the drive."),
     Column("boot_partition", INTEGER, "True if Windows booted from this drive."),
 ])
