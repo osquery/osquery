@@ -136,7 +136,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
     r["sid"] = SQL_TEXT(sidStr);
 
     const auto hivePath = "HKEY_USERS\\" + sidStr;
-    r["hive"] = SQL_TEXT(hivePath);
+    r["registry_hive"] = SQL_TEXT(hivePath);
 
     results.push_back(r);
   }
