@@ -143,7 +143,7 @@ osquery_cxx_library(
     deps = [
         ":gmock_src",
         ":gtest_src",
-        osquery_tp_target("pthread"),
+        osquery_tp_target("glibc", "pthread"),
     ],
     exported_deps = [
         ":gmock_headers",

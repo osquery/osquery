@@ -7,7 +7,7 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
-load("//tools/build_defs/oss/osquery:platforms.bzl", "POSIX")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX")
 
 osquery_cxx_library(
     name = "dl",
@@ -19,5 +19,32 @@ osquery_cxx_library(
             ],
         ),
     ],
+    visibility = ["PUBLIC"],
+)
+
+osquery_cxx_library(
+    name = "pthread",
+    exported_platform_linker_flags = [
+        (
+            LINUX,
+            ["-pthread"],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+)
+
+osquery_cxx_library(
+    name = "resolv",
+    exported_platform_linker_flags = [
+        (
+            LINUX,
+            ["-lresolv"],
+        ),
+        (
+            MACOSX,
+            ["-lresolv"],
+        ),
+    ],
+    external = True,
     visibility = ["PUBLIC"],
 )
