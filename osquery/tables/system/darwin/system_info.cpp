@@ -67,6 +67,12 @@ static inline void genHardwareInfo(Row& r) {
   r["hardware_vendor"] = getIOKitProperty(properties, "manufacturer");
   r["hardware_model"] = getIOKitProperty(properties, "product-name");
   r["hardware_serial"] = getIOKitProperty(properties, "IOPlatformSerialNumber");
+
+  // version, manufacturer, and product-name have a trailing space
+  boost::trim(r["hardware_version"]);
+  boost::trim(r["hardware_vendor"]);
+  boost::trim(r["hardware_model"]);
+
   CFRelease(properties);
 }
 
