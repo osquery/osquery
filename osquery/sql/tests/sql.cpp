@@ -217,8 +217,10 @@ TEST_F(SQLTests, test_regex_match_fileextract) {
 TEST_F(SQLTests, test_regex_match_empty) {
   QueryData d;
 
-  query("select regex_match('hello world', '', 0)", d);
-  ASSERT_EQ(d.size(), 0U);
+  // Empty regex gets you a null result
+  query("select regex_match('hello world', '', 0) as test", d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "");
 }
 
 
@@ -236,8 +238,12 @@ TEST_F(SQLTests, test_regex_match_invalid2) {
 
 TEST_F(SQLTests, test_regex_match_invalid3) {
   QueryData d;
-  query("select regex_match('foo/bar', '|', 0)", d);
-  ASSERT_EQ(d.size(), 0U);
+  // `|` is an invalid regexp, but boost doesn't complain, and treats
+  // it much as an empty string. Encode that expection here in
+  // tests.
+  query("select regex_match('foo/bar', '|', 0) as test", d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "");
 }
 
 

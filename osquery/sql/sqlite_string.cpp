@@ -22,6 +22,8 @@
 #include <boost/regex.hpp>
 
 #include <osquery/utils/conversions/split.h>
+#include <osquery/logger.h>
+
 
 #include <sqlite3.h>
 
@@ -68,8 +70,10 @@ static SplitResult tokenSplit(const std::string& input,
 static SplitResult regexSplit(const std::string& input,
                               const std::string& token) {
   // Split using the token as a regex to support multi-character tokens.
+  // Exceptions are caught by the caller, as that's where the sql context is
   std::vector<std::string> result;
-  boost::algorithm::split_regex(result, input, boost::regex(token));
+  boost::regex pattern(token, boost::regbase::normal);
+  boost::algorithm::split_regex(result, input, pattern);
   return result;
 }
 
@@ -89,8 +93,9 @@ static void callStringSplitFunc(sqlite3_context* context,
   std::string input((char*)sqlite3_value_text(argv[0]));
   std::string token((char*)sqlite3_value_text(argv[1]));
   auto index = static_cast<size_t>(sqlite3_value_int(argv[2]));
+  
   if (token.empty()) {
-    // Allow the input string to be empty.
+    // Empty input string is an error
     sqlite3_result_error(context, "Invalid input to split function", -1);
     return;
   }
@@ -119,7 +124,12 @@ static void tokenStringSplitFunc(sqlite3_context* context,
 static void regexStringSplitFunc(sqlite3_context* context,
                                  int argc,
                                  sqlite3_value** argv) {
-  callStringSplitFunc(context, argc, argv, regexSplit);
+  try{
+    callStringSplitFunc(context, argc, argv, regexSplit);
+  } catch (const boost::regex_error& e) {
+    LOG(INFO) << "Invalid regex: " << e.what();
+    sqlite3_result_error(context, "Invalid regex", -1);
+  }
 }
 
 /**
@@ -140,30 +150,32 @@ static void regexStringMatchFunc(sqlite3_context* context,
 
   // parse and verify input parameters
   std::string input((char*)sqlite3_value_text(argv[0]));
-  boost::regex pattern((char*)sqlite3_value_text(argv[1]), boost::regex::extended);
-  auto index = static_cast<size_t>(sqlite3_value_int(argv[2]));
-
   boost::smatch results;
- 
-  bool isMatchFound = boost::regex_search(input, results, pattern);
+  auto index = static_cast<size_t>(sqlite3_value_int(argv[2]));
+  bool isMatchFound = false;
+
+  try{
+    boost::regex pattern((char*)sqlite3_value_text(argv[1]), boost::regex::extended);
+    isMatchFound = boost::regex_search(input, results, pattern);
+  } catch (const boost::regex_error& e) {
+    LOG(INFO) << "Invalid regex: " << e.what();
+    sqlite3_result_error(context, "Invalid regex", -1);
+    return;
+  }
 
   if(!isMatchFound) {
     sqlite3_result_null(context);
     return;
   }
 
-  if( index > results.size() ) {
+  if( index >= results.size() ) {
     sqlite3_result_null(context);
     return;
   }
 
-  auto result  = results[index].str();
-  
-  // const char * result =  results[index].str().c_str();
-
   sqlite3_result_text(context,
-		      result.c_str(),
-		      static_cast<int>(result.size()),
+		      results[index].str().c_str(),
+		      static_cast<int>(results[index].str().size()),
 		      SQLITE_TRANSIENT);
 }
 
