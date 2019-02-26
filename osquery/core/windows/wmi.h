@@ -51,7 +51,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve a bool result from a WMI
   * query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetBool(const std::string& name, bool& ret) const;
 
@@ -85,7 +85,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve an unsigned 32 bit integer
   * from a WMI query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetUnsignedInt32(const std::string& name, unsigned int& ret) const;
 
@@ -93,7 +93,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve a Long result from a WMI
   * query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetLong(const std::string& name, long& ret) const;
 
@@ -101,7 +101,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve an unsigned Long result from
   * a WMI query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetUnsignedLong(const std::string& name, unsigned long& ret) const;
 
@@ -109,7 +109,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve a Long Long result from a WMI
   * query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetLongLong(const std::string& name, long long& ret) const;
 
@@ -117,7 +117,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve an Unsigned Long Long result
   * from a WMI query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetUnsignedLongLong(const std::string& name,
                              unsigned long long& ret) const;
@@ -126,7 +126,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve a String result from a WMI
   * query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetString(const std::string& name, std::string& ret) const;
 
@@ -135,7 +135,7 @@ class WmiResultItem {
   * from
   * a WMI query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetVectorOfStrings(const std::string& name,
                             std::vector<std::string>& ret) const;
