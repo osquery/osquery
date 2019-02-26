@@ -15,16 +15,24 @@
 
 namespace osquery {
 
-WmiResultItem::WmiResultItem(WmiResultItem&& src) {
-  result_ = nullptr;
-  std::swap(result_, src.result_);
+void free_IWbemClassObjectRef(IWbemClassObject *ptr) {
+  ptr->Release();
 }
 
-WmiResultItem::~WmiResultItem() {
-  if (result_ != nullptr) {
-    result_->Release();
-    result_ = nullptr;
-  }
+void free_IWbemLocatorRef(IWbemLocator *ptr) {
+  ptr->Release();
+}
+
+void free_IEnumWbemClassObjectRef(IEnumWbemClassObject *ptr) {
+  ptr->Release();
+}
+
+void free_IWbemServicesRef(IWbemServices *ptr) {
+  ptr->Release();
+}
+
+WmiResultItem::WmiResultItem(WmiResultItem&& src) {
+  result_ = std::move(src.result_);
 }
 
 void WmiResultItem::PrintType(const std::string& name) const {
@@ -284,6 +292,7 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
   HRESULT hr = E_FAIL;
 
+  IWbemLocator *locator = nullptr;
   hr = ::CoInitializeSecurity(nullptr,
                               -1,
                               nullptr,
@@ -297,25 +306,31 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
                           0,
                           CLSCTX_INPROC_SERVER,
                           IID_IWbemLocator,
-                          (LPVOID*)&locator_);
+                          (LPVOID*)&locator);
   if (hr != S_OK) {
-    locator_ = nullptr;
     return;
   }
 
+  locator_.reset(locator);
+
+  IWbemServices *services = nullptr;
   hr = locator_->ConnectServer(
-      nspace, nullptr, nullptr, nullptr, 0, nullptr, nullptr, &services_);
+      nspace, nullptr, nullptr, nullptr, 0, nullptr, nullptr, &services);
   if (hr != S_OK) {
-    services_ = nullptr;
     return;
   }
+
+  services_.reset(services);
+
+  IEnumWbemClassObject *wbem_enum = nullptr;
 
   hr = services_->ExecQuery(
-      (BSTR)L"WQL", (BSTR)wql.c_str(), WBEM_FLAG_FORWARD_ONLY, nullptr, &enum_);
+      (BSTR)L"WQL", (BSTR)wql.c_str(), WBEM_FLAG_FORWARD_ONLY, nullptr, &wbem_enum);
   if (hr != S_OK) {
-    enum_ = nullptr;
     return;
   }
+
+  enum_.reset(wbem_enum);
 
   hr = WBEM_S_NO_ERROR;
   while (hr == WBEM_S_NO_ERROR) {
@@ -332,32 +347,12 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 }
 
 WmiRequest::WmiRequest(WmiRequest&& src) {
-  locator_ = nullptr;
-  std::swap(locator_, src.locator_);
-
-  services_ = nullptr;
-  std::swap(services_, src.services_);
-
-  enum_ = nullptr;
-  std::swap(enum_, src.enum_);
+  locator_ = std::move(src.locator_);
+  services_ = std::move(src.services_);
+  enum_ = std::move(src.enum_);
 }
 
 WmiRequest::~WmiRequest() {
   results_.clear();
-
-  if (enum_ != nullptr) {
-    enum_->Release();
-    enum_ = nullptr;
-  }
-
-  if (services_ != nullptr) {
-    services_->Release();
-    services_ = nullptr;
-  }
-
-  if (locator_ != nullptr) {
-    locator_->Release();
-    locator_ = nullptr;
-  }
 }
 }

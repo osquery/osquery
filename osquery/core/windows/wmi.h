@@ -9,6 +9,7 @@
 #pragma once
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,18 @@
 
 namespace osquery {
 
+using unique_IWbemClassObjectRef = std::unique_ptr<IWbemClassObject, void (*)(IWbemClassObject*)>;
+using unique_IWbemLocatorRef = std::unique_ptr<IWbemLocator, void (*)(IWbemLocator*)>;
+using unique_IEnumWbemClassObjectRef = std::unique_ptr<IEnumWbemClassObject, void (*)(IEnumWbemClassObject*)>;
+
+using shared_IWbemServicesRef = std::shared_ptr<IWbemServices>;
+
+void free_IWbemClassObjectRef(IWbemClassObject *);
+void free_IWbemLocatorRef(IWbemLocator *);
+void free_IEnumWbemClassObjectRef(IEnumWbemClassObject *);
+void free_IWbemServicesRef(IWbemServices *);
+
+
 /**
 * @brief Helper class to hold 1 result object from a WMI request
 *
@@ -29,16 +42,13 @@ namespace osquery {
 */
 class WmiResultItem {
  public:
-  explicit WmiResultItem(IWbemClassObject* result) : result_(result){};
-  WmiResultItem(WmiResultItem&& src);
+  explicit WmiResultItem() {}
 
-  /**
-  * @brief Destructor for our WMI Wrapper
-  *
-  * This destructor ensures to free the various pointers used
-  * to keep track of IWbem Objects needed for WMI queries.
-  */
-  ~WmiResultItem();
+  explicit WmiResultItem(IWbemClassObject* result) {
+    result_.reset(result);
+  }
+
+  WmiResultItem(WmiResultItem&& src);
 
   /**
   * @brief Windows WMI Helper function to print the type associated with results
@@ -141,7 +151,7 @@ class WmiResultItem {
                             std::vector<std::string>& ret) const;
 
  private:
-  IWbemClassObject* result_{nullptr};
+  unique_IWbemClassObjectRef result_{nullptr, free_IWbemClassObjectRef};
 };
 
 /**
@@ -173,8 +183,9 @@ class WmiRequest {
  private:
   Status status_;
   std::vector<WmiResultItem> results_;
-  IWbemLocator* locator_{nullptr};
-  IWbemServices* services_{nullptr};
-  IEnumWbemClassObject* enum_{nullptr};
+
+  unique_IWbemLocatorRef locator_{nullptr, free_IWbemLocatorRef};
+  unique_IEnumWbemClassObjectRef enum_{nullptr, free_IEnumWbemClassObjectRef};
+  shared_IWbemServicesRef services_{nullptr, free_IWbemServicesRef};
 };
 }
