@@ -117,12 +117,14 @@ osquery_cxx_library(
         "events.cpp",
     ],
     header_namespace = "osquery/events",
+    link_whole = True,
     tests = [
         osquery_target("osquery/events/tests:events_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/core:core"),
+        osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/sql:sql"),
         osquery_target("osquery:headers"),
     ],
