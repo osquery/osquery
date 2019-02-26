@@ -308,7 +308,7 @@ String parsing functions are always helpful, some help within subqueries so they
 - `regex_match(COLUMN, PATTERN, INDEX)`: Runs regex match across the column, and returns matched subgroups. (The 0 index is the full match, subsequent numbers are the groups).
 
     <details>
-    <summary>Regex Split function example:</summary>
+    <summary>Regex Match function example:</summary>
     <p>
 
       osquery> .mode line
