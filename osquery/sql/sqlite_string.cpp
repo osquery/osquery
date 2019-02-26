@@ -72,8 +72,7 @@ static SplitResult regexSplit(const std::string& input,
   // Split using the token as a regex to support multi-character tokens.
   // Exceptions are caught by the caller, as that's where the sql context is
   std::vector<std::string> result;
-  boost::regex pattern(token, boost::regbase::normal);
-  boost::algorithm::split_regex(result, input, pattern);
+  boost::algorithm::split_regex(result, input, boost::regex(token));
   return result;
 }
 
@@ -93,7 +92,7 @@ static void callStringSplitFunc(sqlite3_context* context,
   std::string input((char*)sqlite3_value_text(argv[0]));
   std::string token((char*)sqlite3_value_text(argv[1]));
   auto index = static_cast<size_t>(sqlite3_value_int(argv[2]));
-  
+
   if (token.empty()) {
     // Empty input string is an error
     sqlite3_result_error(context, "Invalid input to split function", -1);
@@ -155,8 +154,10 @@ static void regexStringMatchFunc(sqlite3_context* context,
   bool isMatchFound = false;
 
   try{
-    boost::regex pattern((char*)sqlite3_value_text(argv[1]), boost::regex::extended);
-    isMatchFound = boost::regex_search(input, results, pattern);
+    isMatchFound = boost::regex_search(input,
+				       results,
+				       boost::regex((char*)sqlite3_value_text(argv[1]),
+						    boost::regex::extended));
   } catch (const boost::regex_error& e) {
     LOG(INFO) << "Invalid regex: " << e.what();
     sqlite3_result_error(context, "Invalid regex", -1);
