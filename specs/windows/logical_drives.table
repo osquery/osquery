@@ -2,7 +2,7 @@ table_name("logical_drives")
 description("Details for logical drives on the system. A logical drive generally represents a single partition.")
 schema([
     Column("device_id", TEXT, "The drive id, usually the drive name, e.g., 'C:'."),
-    Column("type", TEXT, "Deprecated."),
+    Column("type", TEXT, "Deprecated (always 'Unknown')."),
     Column("description", TEXT, "The canonical description of the drive, e.g. 'Logical Fixed Disk', 'CD-ROM Disk'."),
     Column("free_space", BIGINT, "The amount of free space, in bytes, of the drive (-1 on failure)."),
     Column("size", BIGINT, "The total amount of space, in bytes, of the drive (-1 on failure)."),
