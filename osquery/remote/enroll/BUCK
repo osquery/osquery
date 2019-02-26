@@ -57,6 +57,7 @@ osquery_cxx_test(
         osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/events:events"),
         osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
         osquery_target("osquery/process:process"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/remote/tests:remote_test_utils"),

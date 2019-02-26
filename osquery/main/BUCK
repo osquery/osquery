@@ -74,6 +74,7 @@ osquery_cxx_library(
         osquery_target("osquery/devtools:devtools"),
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
         osquery_target("osquery/killswitch:killswitch"),
         osquery_target("osquery/logger:data_logger"),
         osquery_target("osquery/process:process"),

@@ -187,6 +187,8 @@ osquery_cxx_test(
         osquery_target("osquery/tables/system:system_table"),
         osquery_target("osquery/core:core"),
         osquery_target("osquery/events:events"),
+        osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
         osquery_target("osquery/filesystem:osquery_filesystem"),
         osquery_target("osquery/utils:utils"),
         osquery_target("osquery/utils/conversions:conversions"),

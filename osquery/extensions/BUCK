@@ -21,7 +21,6 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = [
         ":extensions_interface",
-        ":impl_thrift",
         osquery_target("osquery/core:core"),
         osquery_target("osquery/process:process"),
         osquery_target("osquery/utils:utils"),
@@ -42,6 +41,7 @@ osquery_cxx_library(
             ],
         ),
     ],
+    link_whole = True,
     visibility = ["PUBLIC"],
     deps = [
         ":extensions_interface",
@@ -62,6 +62,7 @@ osquery_cxx_library(
     exported_headers = [
         "interface.h",
     ],
+    link_whole = True,
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery:headers"),
