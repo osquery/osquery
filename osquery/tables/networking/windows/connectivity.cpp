@@ -49,6 +49,7 @@ QueryData genConnectivity(QueryContext& context) {
   r["ipv6_local_network"] = INTEGER(connectivity & NLM_CONNECTIVITY_IPV6_LOCAL_NETWORK);
   r["ipv6_internet"] = INTEGER(connectivity & NLM_CONNECTIVITY_IPV6_INTERNET);
 
+  mgr->Release();
   results.push_back(std::move(r));
 }
 
