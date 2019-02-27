@@ -58,6 +58,7 @@ QueryData genConnectivity(QueryContext& context) {
 
   mgr->Release();
   results.push_back(std::move(r));
+  return results;
 }
 
 } // namespace tables
