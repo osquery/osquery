@@ -23,25 +23,20 @@ class logicalDrives : public testing::Test {
 };
 
 TEST_F(logicalDrives, test_sanity) {
-  // 1. Query data
   auto const data = execute_query("select * from logical_drives");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"device_id", NormalType}
-  //      {"type", NormalType}
-  //      {"free_space", IntType}
-  //      {"size", IntType}
-  //      {"file_system", NormalType}
-  //      {"boot_partition", IntType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_GE(data.size(), 1ul);
+
+  ValidatatioMap row_map = {
+      {"device_id", NormalType},
+      {"type", NormalType},
+      {"description", NormalType},
+      {"free_space", IntType},
+      {"size", IntType},
+      {"file_system", NormalType},
+      {"boot_partition", IntType},
+  };
+
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
