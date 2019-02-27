@@ -30,7 +30,12 @@ namespace osquery {
 
 DECLARE_string(enroll_secret_path);
 DECLARE_bool(disable_enrollment);
-DECLARE_uint64(config_tls_max_attempts);
+
+CLI_FLAG(uint64,
+         tls_enroll_max_attempts,
+         3,
+         "Number of attempts to retry a TLS enroll request, it used to be the "
+         "same as [config_tls_max_attempts]");
 
 /// Enrollment TLS endpoint (path) using TLS hostname.
 CLI_FLAG(string,
@@ -62,9 +67,9 @@ std::string TLSEnrollPlugin::enroll() {
 
   std::string node_key;
   VLOG(1) << "TLSEnrollPlugin requesting a node enroll key from: " << uri;
-  for (size_t i = 1; i <= FLAGS_config_tls_max_attempts; i++) {
+  for (size_t i = 1; i <= FLAGS_tls_enroll_max_attempts; i++) {
     auto status = requestKey(uri, node_key);
-    if (status.ok() || i == FLAGS_config_tls_max_attempts) {
+    if (status.ok() || i == FLAGS_tls_enroll_max_attempts) {
       break;
     }
 
