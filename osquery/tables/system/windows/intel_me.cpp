@@ -7,6 +7,7 @@
  */
 
 #include <array>
+#include <cstring>
 #include <memory>
 #include <unordered_set>
 
@@ -56,10 +57,12 @@ const std::vector<std::vector<std::uint8_t>> kConnectDeviceCommandData = {
 const std::uint32_t kGetHECIVersionCommand = 0x8000E000U;
 const std::uint32_t kConnectDeviceCommand = 0x8000E004U;
 
-const std::uint32_t kGetFirmareVersionCommandForInterfaceTypes0And1 =
-    0x000002FFU;
+const std::vector<std::uint8_t>
+    kGetFirmareVersionCommandForInterfaceTypes0And1 = {0xFF, 0x02, 0x00, 0x00};
 
-const std::uint32_t kGetFirmareVersionCommandForInterfaceType2 = 0x00000000U;
+const std::vector<std::uint8_t> kGetFirmareVersionCommandForInterfaceType2 = {
+    0x00, 0x00, 0x00, 0x00};
+
 const std::uint32_t kGetFirmareVersionCommandForInterfaceType2Reply =
     0x00000001U;
 
@@ -444,9 +447,7 @@ osquery::Status queryHECIVersion(IntelMEInformation& intel_me_info,
   intel_me_info.heci_version.minor = response.at(1);
   intel_me_info.heci_version.hotfix = response.at(2);
 
-  auto build_ptr = reinterpret_cast<const std::uint16_t*>(response.data() + 3U);
-  intel_me_info.heci_version.build = *build_ptr;
-
+  std::memcpy(&intel_me_info.heci_version.build, response.data() + 3U, 2U);
   return Status(0);
 }
 
@@ -507,16 +508,11 @@ osquery::Status sendConnectDeviceCommand(
         "The driver has returned an invalid amount of bytes");
   }
 
-  auto max_response_length_ptr =
-      reinterpret_cast<const std::uint32_t*>(response.data());
+  const std::uint8_t* base_ptr = response.data();
+  std::memcpy(&protocol_information.max_message_length, base_ptr, 4U);
+  base_ptr += 4U;
 
-  protocol_information.max_message_length =
-      static_cast<std::size_t>(*max_response_length_ptr);
-
-  auto protocol_version_ptr = reinterpret_cast<const std::uint8_t*>(
-      response.data() + sizeof(std::uint32_t));
-
-  protocol_information.version = *protocol_version_ptr;
+  std::memcpy(&protocol_information.version, base_ptr, 1U);
 
   return osquery::Status(0);
 }
@@ -643,13 +639,11 @@ osquery::Status receiveHECIMessage(std::vector<std::uint8_t>& buffer,
 
 osquery::Status queryFirmwareVersionForInterfaceTypes0And1(
     IntelMEInformation& intel_me_info, HANDLE device) {
-  auto message_ptr = reinterpret_cast<const std::uint8_t*>(
-      &kGetFirmareVersionCommandForInterfaceTypes0And1);
-
-  auto message_size = sizeof(kGetFirmareVersionCommandForInterfaceTypes0And1);
-
-  auto status = sendHECIMessage(
-      device, message_ptr, message_size, std::chrono::milliseconds(4000U));
+  auto status =
+      sendHECIMessage(device,
+                      kGetFirmareVersionCommandForInterfaceTypes0And1.data(),
+                      kGetFirmareVersionCommandForInterfaceTypes0And1.size(),
+                      std::chrono::milliseconds(4000U));
 
   if (!status.ok()) {
     return status;
@@ -670,32 +664,52 @@ osquery::Status queryFirmwareVersionForInterfaceTypes0And1(
     return osquery::Status::failure("Invalid response size");
   }
 
-  //  We always have 4 padding bytes
-  auto version_fields =
-      reinterpret_cast<const std::uint16_t*>(response.data() + 4U);
+  //  We always have 4 leading padding bytes
+  const std::uint8_t* base_ptr = response.data() + 4U;
 
   IntelMEInformation::FirmwareVersionTypes0And1 fw_version;
 
   // The answer type depends on the amount of bytes we received
   if (response.size() >= 20U) {
-    fw_version.code.minor = version_fields[0];
-    fw_version.code.major = version_fields[1];
-    fw_version.code.build_number = version_fields[2];
-    fw_version.code.hotfix = version_fields[3];
+    std::memcpy(&fw_version.code.minor, base_ptr, 2U);
+    base_ptr += 2U;
 
-    fw_version.nftp.minor = version_fields[4];
-    fw_version.nftp.major = version_fields[5];
-    fw_version.nftp.build_number = version_fields[6];
-    fw_version.nftp.hotfix = version_fields[7];
+    std::memcpy(&fw_version.code.major, base_ptr, 2U);
+    base_ptr += 2U;
+
+    std::memcpy(&fw_version.code.build_number, base_ptr, 2U);
+    base_ptr += 2U;
+
+    std::memcpy(&fw_version.code.hotfix, base_ptr, 2U);
+    base_ptr += 2U;
+
+    std::memcpy(&fw_version.nftp.minor, base_ptr, 2U);
+    base_ptr += 2U;
+
+    std::memcpy(&fw_version.nftp.major, base_ptr, 2U);
+    base_ptr += 2U;
+
+    std::memcpy(&fw_version.nftp.build_number, base_ptr, 2U);
+    base_ptr += 2U;
+
+    std::memcpy(&fw_version.nftp.hotfix, base_ptr, 2U);
+    base_ptr += 2U;
   }
 
   if (response.size() == 28U) {
     IntelMEInformation::FirmwareVersionTypes0And1::VersionData fitc_version;
 
-    fitc_version.minor = version_fields[8];
-    fitc_version.major = version_fields[9];
-    fitc_version.build_number = version_fields[10];
-    fitc_version.hotfix = version_fields[11];
+    std::memcpy(&fitc_version.minor, base_ptr, 2U);
+    base_ptr += 2U;
+
+    std::memcpy(&fitc_version.major, base_ptr, 2U);
+    base_ptr += 2U;
+
+    std::memcpy(&fitc_version.build_number, base_ptr, 2U);
+    base_ptr += 2U;
+
+    std::memcpy(&fitc_version.hotfix, base_ptr, 2U);
+    base_ptr += 2U;
 
     fw_version.fitc = fitc_version;
   }
@@ -707,13 +721,11 @@ osquery::Status queryFirmwareVersionForInterfaceTypes0And1(
 
 osquery::Status queryFirmwareVersionForInterfaceType2(
     IntelMEInformation& intel_me_info, HANDLE device) {
-  auto message_ptr = reinterpret_cast<const std::uint8_t*>(
-      &kGetFirmareVersionCommandForInterfaceType2);
-
-  auto message_size = sizeof(kGetFirmareVersionCommandForInterfaceType2);
-
-  auto status = sendHECIMessage(
-      device, message_ptr, message_size, std::chrono::milliseconds(4000U));
+  auto status =
+      sendHECIMessage(device,
+                      kGetFirmareVersionCommandForInterfaceType2.data(),
+                      kGetFirmareVersionCommandForInterfaceType2.size(),
+                      std::chrono::milliseconds(4000U));
 
   if (!status.ok()) {
     return status;
@@ -735,35 +747,49 @@ osquery::Status queryFirmwareVersionForInterfaceType2(
                                     std::to_string(response.size()));
   }
 
-  auto error = *reinterpret_cast<const std::uint32_t*>(response.data() +
-                                                       sizeof(std::uint32_t));
+  std::uint32_t error_code = 0U;
+  std::memcpy(&error_code, response.data() + 4U, 4U);
 
-  if (error != 0U) {
+  if (error_code != 0U) {
     return osquery::Status::failure("Invalid response received");
   }
 
-  auto reply = *reinterpret_cast<const std::uint32_t*>(response.data());
+  std::uint32_t reply = 0U;
+  std::memcpy(&reply, response.data(), 4U);
+
   if (reply != kGetFirmareVersionCommandForInterfaceType2Reply) {
     return osquery::Status::failure("Invalid reply");
   }
 
-  auto version_list_part1 =
-      reinterpret_cast<const std::uint32_t*>(response.data() + 8U);
-
   IntelMEInformation::FirmwareVersionType2 fw_version;
-  fw_version.sku = version_list_part1[0];
-  fw_version.pch_ver = version_list_part1[1];
-  fw_version.vendor = version_list_part1[2];
-  fw_version.last_fw_update_status = version_list_part1[3];
-  fw_version.hw_sku = version_list_part1[4];
 
-  auto version_list_part2 =
-      reinterpret_cast<const std::uint16_t*>(response.data() + 28U);
+  const std::uint8_t* base_ptr = response.data() + 8U;
+  std::memcpy(&fw_version.sku, base_ptr, 4U);
+  base_ptr += 4U;
 
-  fw_version.major = version_list_part2[0];
-  fw_version.minor = version_list_part2[1];
-  fw_version.build = version_list_part2[2];
-  fw_version.revision = version_list_part2[3];
+  std::memcpy(&fw_version.pch_ver, base_ptr, 4U);
+  base_ptr += 4U;
+
+  std::memcpy(&fw_version.vendor, base_ptr, 4U);
+  base_ptr += 4U;
+
+  std::memcpy(&fw_version.last_fw_update_status, base_ptr, 4U);
+  base_ptr += 4U;
+
+  std::memcpy(&fw_version.hw_sku, base_ptr, 4U);
+  base_ptr += 4U;
+
+  std::memcpy(&fw_version.major, base_ptr, 2U);
+  base_ptr += 2U;
+
+  std::memcpy(&fw_version.minor, base_ptr, 2U);
+  base_ptr += 2U;
+
+  std::memcpy(&fw_version.build, base_ptr, 2U);
+  base_ptr += 2U;
+
+  std::memcpy(&fw_version.revision, base_ptr, 2U);
+  base_ptr += 2U;
 
   intel_me_info.fw_version = fw_version;
   return osquery::Status(0);
