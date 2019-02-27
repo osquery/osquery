@@ -39,3 +39,16 @@ osquery_cxx_library(
         osquery_target("osquery/remote/serializers:serializer_json"),
     ],
 )
+
+osquery_cxx_library(
+    name = "update_config_plugin",
+    srcs = [
+        "update.cpp",
+    ],
+    header_namespace = "plugins/config",
+    link_whole = True,
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config:config"),
+    ],
+)
