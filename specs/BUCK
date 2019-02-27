@@ -737,6 +737,10 @@ osquery_gentable_cxx_library(
             "windows",
         ),
         (
+            "windows/connectivity.table",
+            "windows",
+        ),
+        (
             "windows/logical_drives.table",
             "windows",
         ),

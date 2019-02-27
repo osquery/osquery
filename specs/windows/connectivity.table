@@ -1,0 +1,18 @@
+table_name("connectivity")
+description("Provides the overall system's network state.")
+schema([
+    Column("disconnected", INTEGER, "True if the all interfaces are not connected to any network"),
+    Column("ipv4_no_traffic", INTEGER, "True if any interface is connected via IPv4, but has seen no traffic"),
+    Column("ipv6_no_traffic", INTEGER, "True if any interface is connected via IPv6, but has seen no traffic"),
+    Column("ipv4_subnet", INTEGER, "True if any interface is connected to the local subnet via IPv4"),
+    Column("ipv4_local_network", INTEGER, "True if any interface is connected to a routed network via IPv4"),
+    Column("ipv4_internet", INTEGER, "True if any interface is connected to the Internet via IPv4"),
+    Column("ipv6_subnet", INTEGER, "True if any interface is connected to the local subnet via IPv6"),
+    Column("ipv6_local_network", INTEGER, "True if any interface is connected to a routed network via IPv6"),
+    Column("ipv6_internet", INTEGER, "True if any interface is connected to the Internet via IPv6"),
+])
+implementation("connectivity@genConnectivity")
+examples([
+    "select * from connectivity",
+    "select ipv4_internet from connectivity",
+])
