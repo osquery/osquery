@@ -31,6 +31,10 @@ TEST_F(LoggedInUsersTest, sanity) {
       {"host", NormalType},
       {"time", NonNegativeInt},
       {"pid", NonNegativeOrErrorInt},
+#ifdef OSQUERY_WINDOWS
+      {"sid", NormalType},
+      {"registry_hive", NormalType},
+#endif
   };
   validate_rows(rows, row_map);
 }

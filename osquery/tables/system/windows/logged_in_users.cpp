@@ -15,9 +15,10 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include <osquery/utils/conversions/split.h>
-
 #include <osquery/filesystem/fileops.h>
+#include <osquery/process/windows/process_ops.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 const std::map<int, std::string> kSessionStates = {
     {WTSActive, "active"},
@@ -66,7 +67,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
               << ")";
       continue;
     }
-    auto wtsSession = (PWTSINFO)sessionInfo;
+    const auto wtsSession = reinterpret_cast<WTSINFOA*>(sessionInfo);
     r["user"] = SQL_TEXT(wtsSession->UserName);
     r["type"] = SQL_TEXT(kSessionStates.at(pSessionInfo[i].State));
     r["tty"] = pSessionInfo[i].pSessionName == nullptr
@@ -95,7 +96,8 @@ QueryData genLoggedInUsers(QueryContext& context) {
       results.push_back(r);
       continue;
     }
-    auto wtsClient = (PWTSCLIENT)clientInfo;
+
+    auto wtsClient = reinterpret_cast<WTSCLIENTA*>(clientInfo);
     if (wtsClient->ClientAddressFamily == AF_INET) {
       r["host"] = std::to_string(wtsClient->ClientAddress[0]) + "." +
                   std::to_string(wtsClient->ClientAddress[1]) + "." +
@@ -108,16 +110,34 @@ QueryData genLoggedInUsers(QueryContext& context) {
     }
 
     r["pid"] = INTEGER(-1);
-    results.push_back(r);
 
     if (clientInfo != nullptr) {
       WTSFreeMemoryEx(WTSTypeSessionInfoLevel1, clientInfo, count);
       clientInfo = nullptr;
+      wtsClient = nullptr;
     }
+
+    const auto sidBuf =
+        getSidFromUsername(stringToWstring(wtsSession->UserName));
+
     if (sessionInfo != nullptr) {
       WTSFreeMemoryEx(WTSTypeSessionInfoLevel1, sessionInfo, count);
       sessionInfo = nullptr;
     }
+
+    if (sidBuf == nullptr) {
+      VLOG(1) << "Error converting username to SID";
+      results.push_back(r);
+      continue;
+    }
+
+    const auto sidStr = psidToString(reinterpret_cast<SID*>(sidBuf.get()));
+    r["sid"] = SQL_TEXT(sidStr);
+
+    const auto hivePath = "HKEY_USERS\\" + sidStr;
+    r["registry_hive"] = SQL_TEXT(hivePath);
+
+    results.push_back(r);
   }
 
   if (pSessionInfo != nullptr) {
@@ -127,5 +147,5 @@ QueryData genLoggedInUsers(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

@@ -8,5 +8,9 @@ schema([
     Column("time", INTEGER, "Time entry was made"),
     Column("pid", INTEGER, "Process (or thread) ID"),
 ])
+extended_schema(WINDOWS, [
+    Column("sid", TEXT, "The user's unique security identifier"),
+    Column("registry_hive", TEXT, "HKEY_USERS registry hive"),
+])
 attributes(cacheable=True)
 implementation("logged_in_users@genLoggedInUsers")
