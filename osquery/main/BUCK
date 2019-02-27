@@ -86,6 +86,7 @@ osquery_cxx_library(
         osquery_target("plugins/config:filesystem_config"),
         osquery_target("plugins/config:tls_config"),
         osquery_target("plugins/config/parsers:parsers"),
+        osquery_target("plugins/config:update_config_plugin"),
         osquery_target("plugins/distributed:tls_distributed"),
         osquery_target("plugins/logger:buffered"),
         osquery_target("plugins/logger:filesystem_logger"),

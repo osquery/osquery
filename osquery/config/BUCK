@@ -12,7 +12,6 @@ osquery_cxx_library(
     srcs = [
         "config.cpp",
         "packs.cpp",
-        "update.cpp",
     ],
     header_namespace = "osquery/config",
     exported_headers = [
