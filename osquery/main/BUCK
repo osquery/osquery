@@ -94,6 +94,7 @@ osquery_cxx_library(
         osquery_target("plugins/logger:tls_logger"),
         osquery_target("plugins/killswitch:killswitch_filesystem"),
         osquery_target("plugins/killswitch:killswitch_tls"),
+        osquery_target("plugins/remote/enroll:tls_enroll_plugin"),
         osquery_target("specs:tables"),
         osquery_tp_target("boost"),
     ],
