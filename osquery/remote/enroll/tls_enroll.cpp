@@ -55,8 +55,6 @@ HIDDEN_FLAG(string,
             "enroll_secret",
             "Override the TLS enroll secret key name");
 
-REGISTER(TLSEnrollPlugin, "enroll", "tls");
-
 std::string TLSEnrollPlugin::enroll() {
   // If no node secret has been negotiated, try a TLS request.
   auto uri = "https://" + FLAGS_tls_hostname + FLAGS_enroll_tls_endpoint;
