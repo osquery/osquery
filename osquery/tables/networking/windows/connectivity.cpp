@@ -27,14 +27,14 @@ QueryData genConnectivity(QueryContext& context) {
                                  NULL,
                                  CLSCTX_ALL,
                                  IID_INetworkListManager,
-                                 reinterpret_cast<void*>(&mgr));
+                                 reinterpret_cast<void**>(&mgr));
 
   if (res != S_OK) {
     TLOG << "Failed to instantiate INetworkListManager";
     return results;
   }
 
-  NLM_CONNECTIVITY connectivity = 0;
+  NLM_CONNECTIVITY connectivity;
   res = mgr->GetConnectivity(&connectivity);
 
   if (res != S_OK) {
