@@ -39,6 +39,5 @@ osquery_cxx_library(
         osquery_target("osquery/utils:attribute"),
         osquery_target("osquery/utils:utils"),
         osquery_target("osquery:headers"),
-        osquery_target("plugins/config:tls_config"),
     ],
 )

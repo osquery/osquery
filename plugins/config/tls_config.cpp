@@ -31,7 +31,7 @@ namespace osquery {
 CLI_FLAG(uint64,
          config_tls_max_attempts,
          3,
-         "Number of attempts to retry a TLS config/enroll request");
+         "Number of attempts to retry a TLS config request");
 
 /// Config retrieval TLS endpoint (path) using TLS hostname.
 CLI_FLAG(string,
