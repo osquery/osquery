@@ -27,13 +27,6 @@ load(
 )
 
 # for osquery targets only
-_OSQUERY_PREPROCESSOR_FLAGS = [
-    "-DOSQUERY_VERSION=3.3.2",
-    "-DOSQUERY_BUILD_VERSION=3.3.2",
-    "-DOSQUERY_BUILD_SDK_VERSION=3.3.2",
-]
-
-# for osquery targets only
 _OSQUERY_PLATFORM_PREPROCESSOR_FLAGS = [
     (
         _LINUX,
@@ -100,9 +93,6 @@ def _osquery_set_generic_kwargs(kwargs):
 
 def _osquery_set_preprocessor_kwargs(kwargs, external):
     kwargs.setdefault("preprocessor_flags", [])
-    if not external:
-        kwargs["preprocessor_flags"] += _OSQUERY_PREPROCESSOR_FLAGS
-
     kwargs.setdefault("platform_preprocessor_flags", [])
     kwargs["platform_preprocessor_flags"] += _GLOBAL_PLATFORM_PREPROCESSOR_FLAGS
     if not external:
