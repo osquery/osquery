@@ -9,10 +9,14 @@ load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 
 osquery_cxx_library(
     name = "plugin_sdk",
+    srcs = [
+        "empty_register_foreign_tables.cpp",
+    ],
     header_namespace = "osquery/sdk",
     exported_headers = [
         "plugin_sdk.h",
     ],
+    link_whole = True,
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/config:config"),
