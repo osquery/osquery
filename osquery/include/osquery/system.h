@@ -47,8 +47,13 @@ class Initializer : private boost::noncopyable {
    * @param argc the number of elements in argv
    * @param argv the command-line arguments passed to `main()`
    * @param tool the type of osquery main (daemon, shell, test, extension).
+   * @param init_glog whether to start google logging module (it can be
+   * initialized at most once)
    */
-  Initializer(int& argc, char**& argv, ToolType tool = ToolType::TEST);
+  Initializer(int& argc,
+              char**& argv,
+              ToolType tool = ToolType::TEST,
+              bool init_glog = true);
 
   /**
    * @brief Sets up the process as an osquery daemon.
