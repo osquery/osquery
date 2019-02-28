@@ -17,6 +17,9 @@ osquery_cxx_library(
         "plugin_sdk.h",
     ],
     link_whole = True,
+    tests = [
+        osquery_target("sdk/tests:plugin_sdk_tests"),
+    ],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/config:config"),
