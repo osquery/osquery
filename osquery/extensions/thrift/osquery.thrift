@@ -1,7 +1,7 @@
 // Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
 namespace cpp osquery.extensions
-namespace py osquery.osquery
+namespace py osquery.extensions
 
 /// Registry operations use a registry name, plugin name, request/response.
 typedef map<string, string> ExtensionPluginRequest
