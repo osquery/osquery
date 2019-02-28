@@ -29,10 +29,6 @@
 #include <sys/resource.h>
 #endif
 
-#ifdef FBTHRIFT
-#include <folly/init/Init.h>
-#endif
-
 #include <boost/filesystem.hpp>
 
 #include "osquery/utils/config/default_paths.h"
@@ -266,7 +262,10 @@ static inline void printUsage(const std::string& binary, ToolType tool) {
   fprintf(stdout, EPILOG);
 }
 
-Initializer::Initializer(int& argc, char**& argv, ToolType tool)
+Initializer::Initializer(int& argc,
+                         char**& argv,
+                         ToolType tool,
+                         bool const init_glog)
     : argc_(&argc), argv_(&argv) {
   // Initialize random number generated based on time.
   std::srand(static_cast<unsigned int>(
@@ -358,12 +357,6 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   // Let gflags parse the non-help options/flags.
   GFLAGS_NAMESPACE::ParseCommandLineFlags(argc_, argv_, isShell());
-
-  bool init_glog = true;
-#ifdef FBTHRIFT
-  init_glog = false;
-  ::folly::init(&argc, &argv, false);
-#endif
 
   // Initialize registries and plugins
   registryAndPluginInit();
