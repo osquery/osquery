@@ -14,8 +14,7 @@
 #include <osquery/registry_factory.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
-
-#include <osquery/numeric_monitoring/plugins/filesystem.h>
+#include <plugins/numeric_monitoring/filesystem.h>
 
 namespace fs = boost::filesystem;
 
