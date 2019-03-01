@@ -25,7 +25,6 @@ osquery_cxx_test(
         osquery_target("osquery/config/tests:test_utils"),
         osquery_target("osquery/core:core"),
         osquery_target("osquery/database:database"),
-        osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/extensions:extensions"),
         osquery_target("osquery/extensions:impl_thrift"),
         osquery_target("osquery/logger:logger"),
@@ -34,6 +33,7 @@ osquery_cxx_test(
         osquery_target("osquery/tables/events:events_table"),
         osquery_target("plugins/config:tls_config"),
         osquery_target("plugins/config/parsers:parsers"),
+        osquery_target("plugins/database:ephemeral"),
         osquery_target("specs:tables"),
     ],
 )
@@ -55,7 +55,6 @@ osquery_cxx_test(
         osquery_target("osquery/config:config"),
         osquery_target("osquery/config/tests:test_utils"),
         osquery_target("osquery/database:database"),
-        osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/extensions:extensions"),
         osquery_target("osquery/extensions:impl_thrift"),
         osquery_target("osquery/logger:logger"),
@@ -64,6 +63,7 @@ osquery_cxx_test(
         osquery_target("osquery/tables/events:events_table"),
         osquery_target("plugins/config:tls_config"),
         osquery_target("plugins/config/parsers:parsers"),
+        osquery_target("plugins/database:ephemeral"),
         osquery_target("specs:tables"),
     ],
 )
