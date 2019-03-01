@@ -121,6 +121,6 @@ Status FileEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   // A callback is somewhat useless unless it changes the EventSubscriber
   // state or calls `add` to store a marked up event.
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

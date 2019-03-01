@@ -42,11 +42,11 @@ class MockSerializer : public Serializer {
   }
 
   Status serialize(const JSON& params, std::string& serialized) {
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status deserialize(const std::string& serialized, JSON& params) {
-    return Status(0, "OK");
+    return Status::success();
   }
 };
 
@@ -125,11 +125,11 @@ class CopySerializer : public Serializer {
                       ? it->value.GetString()
                       : "");
 
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status deserialize(const std::string& serialized, JSON& params) {
-    return Status(0, "OK");
+    return Status::success();
   }
 };
 

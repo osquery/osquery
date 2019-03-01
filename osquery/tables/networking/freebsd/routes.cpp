@@ -104,7 +104,7 @@ Status genRoute(const struct rt_msghdr* route,
   // Fields not supported by OSX routes:
   r["source"] = "";
   r["metric"] = "0";
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status genArp(const struct rt_msghdr* route,
@@ -131,7 +131,7 @@ Status genArp(const struct rt_msghdr* route,
     r["permanent"] = "0";
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData& results) {

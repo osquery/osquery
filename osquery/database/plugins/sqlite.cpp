@@ -187,7 +187,7 @@ Status SQLiteDatabasePlugin::put(const std::string& domain,
 Status SQLiteDatabasePlugin::putBatch(const std::string& domain,
                                       const DatabaseStringValueList& data) {
   if (read_only_) {
-    return Status(0, "Database in readonly mode");
+    return Status::success();
   }
 
   // Prepare the query, adding placeholders for all the rows we have in `data`
@@ -235,13 +235,13 @@ Status SQLiteDatabasePlugin::putBatch(const std::string& domain,
     tryVacuum(db_);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status SQLiteDatabasePlugin::remove(const std::string& domain,
                                     const std::string& key) {
   if (read_only_) {
-    return Status(0, "Database in readonly mode");
+    return Status::success();
   }
 
   sqlite3_stmt* stmt = nullptr;
@@ -267,7 +267,7 @@ Status SQLiteDatabasePlugin::removeRange(const std::string& domain,
                                          const std::string& low,
                                          const std::string& high) {
   if (read_only_) {
-    return Status(0, "Database in readonly mode");
+    return Status::success();
   }
 
   sqlite3_stmt* stmt = nullptr;
@@ -310,6 +310,6 @@ Status SQLiteDatabasePlugin::scan(const std::string& domain,
     results.push_back(std::move(r["key"]));
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 } // namespace osquery

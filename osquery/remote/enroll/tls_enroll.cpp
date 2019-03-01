@@ -120,6 +120,6 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
   if (node_key.empty()) {
     return Status(1, "No node key returned from TLS enroll plugin");
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 }

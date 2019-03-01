@@ -230,7 +230,7 @@ class TestEventPublisher
  public:
   Status setUp() override {
     smallest_ever_ += 1;
-    return Status(0, "OK");
+    return Status::success();
   }
 
   void configure() override {
@@ -344,7 +344,7 @@ static int kBellHathTolled = 0;
 Status TestTheeCallback(const EventContextRef& ec,
                         const SubscriptionContextRef& sc) {
   kBellHathTolled += 1;
-  return Status(0, "OK");
+  return Status::success();
 }
 
 class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
@@ -371,7 +371,7 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
   Status Callback(const ECRef& ec, const SCRef& sc) {
     // We don't care about the subscription or the event contexts.
     bellHathTolled = true;
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status SpecialCallback(const ECRef& ec, const SCRef& sc) {
@@ -379,7 +379,7 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
     if (ec->required_value == 42) {
       contextBellHathTolled = true;
     }
-    return Status(0, "OK");
+    return Status::success();
   }
 
   void lateInit() {

@@ -41,7 +41,7 @@ Status UdevEventPublisher::setUp() {
   }
 
   udev_monitor_enable_receiving(monitor_);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void UdevEventPublisher::tearDown() {
@@ -81,7 +81,7 @@ Status UdevEventPublisher::run() {
 
     if (selector == 0 || !(fds[0].revents & POLLIN)) {
       // Read timeout.
-      return Status(0, "Finished");
+      return Status::success();
     }
 
     struct udev_device* device = udev_monitor_receive_device(monitor_);
@@ -97,7 +97,7 @@ Status UdevEventPublisher::run() {
   }
 
   pause(std::chrono::milliseconds(kUdevMLatency));
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string UdevEventPublisher::getValue(struct udev_device* device,

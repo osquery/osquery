@@ -97,7 +97,7 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
     compiler = nullptr;
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 /**
@@ -193,7 +193,7 @@ Status handleRuleFiles(const std::string& category,
     compiler = nullptr;
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 /**
@@ -259,7 +259,7 @@ Status YARAConfigParserPlugin::update(const std::string& source,
                                       const ParserConfig& config) {
   // The YARA config parser requested the "yara" top-level key in the config.
   if (config.count("yara") == 0) {
-    return Status(0, "No Yara Configuration");
+    return Status::success();
   }
   const auto& yara_config = config.at("yara").doc();
 

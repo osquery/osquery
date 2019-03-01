@@ -50,7 +50,7 @@ Status readMem(int fd, size_t base, size_t length, uint8_t* buffer) {
     return Status(1, "Read incorrect number of bytes");
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status readRawMem(size_t base, size_t length, void** buffer) {
@@ -106,6 +106,6 @@ Status readRawMem(size_t base, size_t length, void** buffer) {
   }
 
   close(fd);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

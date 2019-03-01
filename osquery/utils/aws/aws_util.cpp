@@ -505,7 +505,7 @@ Status appendLogTypeToJson(const std::string& log_type, std::string& log) {
   if (!log.empty()) {
     log.pop_back();
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void setAWSProxy(Aws::Client::ClientConfiguration& config) {

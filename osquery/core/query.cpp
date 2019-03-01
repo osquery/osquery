@@ -58,7 +58,7 @@ Status Query::getPreviousQueryResults(QueryDataSet& results) const {
   if (!status.ok()) {
     return status;
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::vector<std::string> Query::getStoredQueryNames() {
@@ -162,7 +162,7 @@ Status Query::addNewResults(QueryData current_qd,
       return status;
     }
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 
@@ -267,7 +267,7 @@ Status serializeEvent(const QueryLogItem& item,
   }
 
   doc.add("columns", columns_obj, obj);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {

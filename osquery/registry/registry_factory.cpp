@@ -136,7 +136,7 @@ Status RegistryFactory::removeBroadcast(const RouteUUID& uuid) {
 
   WriteLock lock(mutex_);
   extensions_.erase(uuid);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 /// Adds an alias for an internal registry item. This registry will only

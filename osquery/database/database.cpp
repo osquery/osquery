@@ -120,7 +120,7 @@ Status DatabasePlugin::scan(const std::string& domain,
                             std::vector<std::string>& results,
                             const std::string& prefix,
                             size_t max) const {
-  return Status(0, "Not used");
+  return Status::success();
 }
 
 Status DatabasePlugin::call(const PluginRequest& request,

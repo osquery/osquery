@@ -188,6 +188,6 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
     add(r);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 }

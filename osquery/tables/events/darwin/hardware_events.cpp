@@ -30,7 +30,7 @@ Status HardwareEventSubscriber::init() {
   auto subscription = createSubscriptionContext();
   subscribe(&HardwareEventSubscriber::Callback, subscription);
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status HardwareEventSubscriber::Callback(
@@ -53,6 +53,6 @@ Status HardwareEventSubscriber::Callback(
   r["serial"] = ec->serial;
   r["revision"] = ec->version;
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

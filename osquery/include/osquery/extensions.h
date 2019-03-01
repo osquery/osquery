@@ -53,7 +53,7 @@ class ExternalSQLPlugin : public SQLPlugin {
                         std::vector<std::string>& tables) const override {
     static_cast<void>(query);
     static_cast<void>(tables);
-    return Status(0, "Not used");
+    return Status::success();
   }
 
   Status getQueryColumns(const std::string& query,

@@ -266,7 +266,7 @@ Status RegistryInterface::addExternal(const RouteUUID& uuid,
     }
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 /// Remove all the routes for a given uuid.

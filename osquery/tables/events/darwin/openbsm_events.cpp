@@ -199,7 +199,7 @@ Status OpenBSMProcEvSubscriber::handleExec(const OpenBSMEventContextRef& ec) {
   /* If mapping doesn't exist no fork was captured. Not fatal. Ignoring. */
 
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status OpenBSMProcEvSubscriber::handleFork(const OpenBSMEventContextRef& ec) {

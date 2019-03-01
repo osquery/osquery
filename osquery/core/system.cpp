@@ -241,7 +241,7 @@ Status getEphemeralUUID(std::string& ident) {
   if (ident.size() == 0) {
     ident = osquery::generateNewUUID();
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status getHostUUID(std::string& ident) {
@@ -260,7 +260,7 @@ Status getSpecifiedUUID(std::string& ident) {
     return Status(1, "No specified identifier for host");
   }
   ident = FLAGS_specified_identifier;
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string getHostIdentifier() {
@@ -297,7 +297,7 @@ Status checkStalePid(const std::string& content) {
   try {
     pid = boost::lexical_cast<int>(content);
   } catch (const boost::bad_lexical_cast& /* e */) {
-    return Status(0, "Could not parse pid from existing pidfile");
+    return Status::success();
   }
 
   PlatformProcess target(pid);
@@ -330,7 +330,7 @@ Status checkStalePid(const std::string& content) {
     VLOG(1) << "Found stale process for osqueryd (" << content << ")";
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status createPidFile() {

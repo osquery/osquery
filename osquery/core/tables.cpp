@@ -161,7 +161,7 @@ Status TablePlugin::call(const PluginRequest& request,
     return Status(1, "Unknown table plugin action: " + action);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string TablePlugin::columnDefinition(bool is_extension) const {

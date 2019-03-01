@@ -83,7 +83,7 @@ Status Dispatcher::addService(InternalRunnableRef service) {
     self.service_threads_.push_back(std::move(thread));
     self.services_.push_back(std::move(service));
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void Dispatcher::removeService(const InternalRunnable* service) {

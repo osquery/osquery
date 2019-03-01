@@ -114,7 +114,7 @@ Status deletedMatchesInode(const std::string& path, const std::string& pid) {
 
   // If the inodes match, the binary name actually ends with " (deleted)"
   if (std::to_string(st.st_ino) == inode) {
-    return Status(0, "Inodes match");
+    return Status::success();
   } else {
     return Status(1, "Inodes do not match");
   }

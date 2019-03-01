@@ -883,7 +883,7 @@ Status PlatformFile::hasSafePermissions() const {
   if (!s.ok()) {
     return Status(1, "Write ACE was found on the parent directory");
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 bool PlatformFile::getFileTimes(PlatformTime& times) {
@@ -1547,7 +1547,7 @@ Status socketExists(const fs::path& path, bool remove_socket) {
       return Status(1, "Named pipe does not exist");
     }
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 LONGLONG filetimeToUnixtime(const FILETIME& ft) {

@@ -56,7 +56,7 @@ Status AuditEventPublisher::setUp() {
     executable_path_ = buffer;
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void AuditEventPublisher::configure() {
@@ -96,7 +96,7 @@ Status AuditEventPublisher::run() {
     fire(event_context);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void AuditEventPublisher::ProcessEvents(

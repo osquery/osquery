@@ -32,7 +32,7 @@ Status SELinuxEventSubscriber::init() {
   auto sc = createSubscriptionContext();
   subscribe(&SELinuxEventSubscriber::Callback, sc);
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status SELinuxEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
@@ -46,7 +46,7 @@ Status SELinuxEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     add(row);
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 Status SELinuxEventSubscriber::ProcessEvents(
@@ -75,7 +75,7 @@ Status SELinuxEventSubscriber::ProcessEvents(
     }
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 const std::set<int>& SELinuxEventSubscriber::GetEventSet() noexcept {

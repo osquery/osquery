@@ -54,7 +54,7 @@ Status procGetNamespaceInode(ino_t& inode,
     return Status(1, "Invalid inode value in descriptor for namespace " + path);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status procGetProcessNamespaces(const std::string& process_id,
@@ -79,7 +79,7 @@ Status procGetProcessNamespaces(const std::string& process_id,
     namespace_list[namespace_name] = namespace_inode;
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string procDecodeAddressFromHex(const std::string& encoded_address,

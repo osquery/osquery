@@ -760,7 +760,7 @@ void EventFactory::configUpdate() {
 
 Status EventFactory::run(const std::string& type_id) {
   if (FLAGS_disable_events) {
-    return Status(0, "Events disabled");
+    return Status::success();
   }
 
   // An interesting take on an event dispatched entrypoint.
@@ -810,7 +810,7 @@ Status EventFactory::run(const std::string& type_id) {
   // If the event factory's `end` method was called these publishers will be
   // cleaned up after their thread context is removed; otherwise, a removed
   // thread context and failed publisher will remain available for stats.
-  return Status(0, "OK");
+  return Status::success();
 }
 
 // There's no reason for the event factory to keep multiple instances.
@@ -830,7 +830,7 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
   }
 
   if (specialized_pub == nullptr || specialized_pub.get() == nullptr) {
-    return Status(0, "Invalid publisher");
+    return Status::success();
   }
 
   auto type_id = specialized_pub->type();
@@ -867,7 +867,7 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
     }
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
@@ -947,7 +947,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
     specialized_sub->state(EventState::EVENT_FAILED);
     return Status(1, status.getMessage());
   } else {
-    return Status(0, "OK");
+    return Status::success();
   }
 }
 
@@ -1031,7 +1031,7 @@ Status EventFactory::deregisterEventPublisher(const std::string& type_id) {
       publisher->stop();
     }
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status EventFactory::deregisterEventSubscriber(const std::string& sub) {

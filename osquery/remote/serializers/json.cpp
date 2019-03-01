@@ -22,7 +22,7 @@ Status JSONSerializer::deserialize(const std::string& serialized, JSON& json) {
     // payload, but doesn't respond with anything. This has been seen in the
     // wild, for example with Sumo Logic.
     json = JSON();
-    return Status(0, "OK");
+    return Status::success();
   }
 
   return json.fromString(serialized);

@@ -232,7 +232,7 @@ Status Carver::carve(const boost::filesystem::path& path) {
     }
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 };
 
 Status Carver::postCarve(const boost::filesystem::path& path) {
@@ -305,7 +305,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   }
 
   updateCarveValue(carveGuid_, "status", "SUCCESS");
-  return Status(0, "Ok");
+  return Status::success();
 };
 
 Status carvePaths(const std::set<std::string>& paths) {

@@ -33,7 +33,7 @@ Status DiskEventSubscriber::init() {
   subscription->physical_disks = false;
 
   subscribe(&DiskEventSubscriber::Callback, subscription);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status DiskEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
@@ -60,6 +60,6 @@ Status DiskEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   }
 
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 }
