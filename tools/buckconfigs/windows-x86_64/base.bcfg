@@ -33,6 +33,8 @@
     /SUBSYSTEM:CONSOLE \
     /LTCG \
     ntdll.lib \
+    ole32.lib \
+    oleaut32.lib \
     ws2_32.lib \
     iphlpapi.lib \
     netapi32.lib \
