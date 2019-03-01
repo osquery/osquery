@@ -14,7 +14,7 @@ osquery_cxx_library(
     srcs = [
         "ephemeral.cpp",
     ],
-    header_namespace = "osquery/database/plugins",
+    header_namespace = "plugins/database",
     exported_headers = [
         "ephemeral.h",
     ],
@@ -33,7 +33,7 @@ osquery_cxx_library(
     srcs = [
         "rocksdb.cpp",
     ],
-    header_namespace = "osquery/database/plugins",
+    header_namespace = "plugins/database",
     exported_headers = [
         "rocksdb.h",
     ],
@@ -47,7 +47,7 @@ osquery_cxx_library(
     ],
     link_whole = True,
     tests = [
-        osquery_target("osquery/database/plugins/tests:rocksdb_tests"),
+        osquery_target("plugins/database/tests:rocksdb_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [
@@ -65,7 +65,7 @@ osquery_cxx_library(
     srcs = [
         "sqlite.cpp",
     ],
-    header_namespace = "osquery/database/plugins",
+    header_namespace = "plugins/database",
     exported_headers = [
         "sqlite.h",
     ],
@@ -79,7 +79,7 @@ osquery_cxx_library(
     ],
     link_whole = True,
     tests = [
-        osquery_target("osquery/database/plugins/tests:sqlite_plugin_tests"),
+        osquery_target("plugins/database/tests:sqlite_plugin_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [

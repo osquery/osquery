@@ -11,13 +11,12 @@
 #include <sqlite3.h>
 #include <sys/stat.h>
 
+#include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/query.h>
-
-#include <osquery/database/plugins/sqlite.h>
-#include <osquery/filesystem/fileops.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <plugins/database/sqlite.h>
 
 namespace osquery {
 
