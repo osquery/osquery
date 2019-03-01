@@ -83,7 +83,7 @@ Status EphemeralDatabasePlugin::putBatch(const std::string& domain,
     setValue(domain, key, value);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void EphemeralDatabasePlugin::dumpDatabase() const {

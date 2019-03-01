@@ -177,7 +177,7 @@ inline Status genStrings(QueryData& results) {
   r["input_eax"] = "1,3";
   results.push_back(r);
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 inline void genFamily(QueryData& results) {

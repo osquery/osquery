@@ -49,7 +49,7 @@ class SQLPlugin : public Plugin {
    * managed, tables are enumerated and attached during initialization.
    */
   virtual Status attach(const std::string& /*name*/) {
-    return Status(0, "Not used");
+    return Status::success();
   }
 
   /// Tables may be detached by name.

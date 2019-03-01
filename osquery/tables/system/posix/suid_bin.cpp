@@ -67,7 +67,7 @@ Status genBin(const fs::path& path, int perms, QueryData& results) {
   }
 
   results.push_back(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 bool isSuidBin(const fs::path& path, int perms) {

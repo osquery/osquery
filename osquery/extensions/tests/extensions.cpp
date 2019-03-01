@@ -186,7 +186,7 @@ class ExtensionPlugin : public Plugin {
     for (const auto& request_item : request) {
       response.push_back({{request_item.first, request_item.second}});
     }
-    return Status(0, "Test success");
+    return Status::success();
   }
 };
 

@@ -33,7 +33,7 @@ class SyslogEventSubscriber : public EventSubscriber<SyslogEventPublisher> {
   Status init() override {
     SyslogSubscriptionContextRef sc = createSubscriptionContext();
     subscribe(&SyslogEventSubscriber::Callback, sc);
-    return Status(0, "OK");
+    return Status::success();
   }
 
   size_t getEventsExpiry() override {
@@ -52,6 +52,6 @@ REGISTER(SyslogEventSubscriber, "event_subscriber", "syslog_events");
 Status SyslogEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r(ec->fields);
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

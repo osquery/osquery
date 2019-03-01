@@ -82,7 +82,7 @@ Status genCsrConfigFromNvram(uint32_t& config) {
   } else {
     CFRelease(properties);
     // The case where csr-active-config is cleared or not set is not an error
-    return Status(0, "csr-active-config key not found");
+    return Status::success();
   }
 }
 

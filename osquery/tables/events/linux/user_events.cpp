@@ -43,7 +43,7 @@ Status UserEventSubscriber::init() {
   auto sc = createSubscriptionContext();
   subscribe(&UserEventSubscriber::Callback, sc);
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status UserEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
@@ -54,7 +54,7 @@ Status UserEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   }
 
   addBatch(emitted_row_list);
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 Status UserEventSubscriber::ProcessEvents(
@@ -98,6 +98,6 @@ Status UserEventSubscriber::ProcessEvents(
     }
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 } // namespace osquery

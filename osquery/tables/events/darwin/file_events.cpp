@@ -104,6 +104,6 @@ Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec,
       ec->path, (ec->action == "CREATED" || ec->action == "UPDATED"), r);
 
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

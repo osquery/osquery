@@ -1139,7 +1139,7 @@ Status ProcessFileEventSubscriber::init() {
   auto sc = createSubscriptionContext();
   subscribe(&ProcessFileEventSubscriber::Callback, sc);
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void ProcessFileEventSubscriber::configure() {
@@ -1286,7 +1286,7 @@ Status ProcessFileEventSubscriber::ProcessEvents(
     }
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 const std::set<int>& ProcessFileEventSubscriber::GetSyscallSet() noexcept {

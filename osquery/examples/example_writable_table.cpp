@@ -80,7 +80,7 @@ class WritableTable : public TablePlugin {
     const auto& rowid = row.at("rowid");
     rowid_to_primary_key.insert({rowid, primary_key});
 
-    return Status(0, "OK");
+    return Status::success();
   }
 
   /// Expands a value list returned by osquery into a Row (without the rowid
@@ -102,7 +102,7 @@ class WritableTable : public TablePlugin {
     row["integer"] =
         std::to_string(document[1].IsNull() ? 0 : document[1].GetInt());
 
-    return Status(0, "OK");
+    return Status::success();
   }
 
  public:

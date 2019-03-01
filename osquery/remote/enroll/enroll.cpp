@@ -123,7 +123,7 @@ void EnrollPlugin::genHostDetails(JSON& host_details) {
 Status EnrollPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
   if (FLAGS_disable_enrollment) {
-    return Status(0, "Enrollment disabled");
+    return Status::success();
   }
 
   // Only support the 'enroll' action.
@@ -137,7 +137,7 @@ Status EnrollPlugin::call(const PluginRequest& request,
   if (node_key.size() == 0) {
     return Status(1, "No enrollment key found/retrieved");
   } else {
-    return Status(0, "OK");
+    return Status::success();
   }
 }
 }

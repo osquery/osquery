@@ -54,7 +54,7 @@ Status Flag::getDefaultValue(const std::string& name, std::string& value) {
   }
 
   value = info.default_value;
-  return Status(0, "OK");
+  return Status::success();
 }
 
 bool Flag::isDefault(const std::string& name) {
@@ -117,12 +117,12 @@ std::string Flag::getDescription(const std::string& name) {
 Status Flag::updateValue(const std::string& name, const std::string& value) {
   if (instance().flags_.count(name) > 0) {
     flags::SetCommandLineOption(name.c_str(), value.c_str());
-    return Status(0, "OK");
+    return Status::success();
   } else if (instance().aliases_.count(name) > 0) {
     // Updating a flag by an alias name.
     auto& real_name = instance().aliases_.at(name).description;
     flags::SetCommandLineOption(real_name.c_str(), value.c_str());
-    return Status(0, "OK");
+    return Status::success();
   } else if (name.find("custom_") == 0) {
     instance().custom_[name] = value;
   }

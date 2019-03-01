@@ -196,6 +196,6 @@ Status archive(const std::set<boost::filesystem::path>& paths,
     archive_entry_free(entry);
   }
   archive_write_free(arch);
-  return Status(0, "Ok");
+  return Status::success();
 };
 } // namespace osquery

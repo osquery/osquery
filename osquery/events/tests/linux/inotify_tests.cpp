@@ -284,12 +284,12 @@ class TestINotifyEventSubscriber
 
   Status init() override {
     callback_count_ = 0;
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status SimpleCallback(const ECRef& ec, const SCRef& sc) {
     callback_count_ += 1;
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status Callback(const ECRef& ec, const SCRef& sc) {
@@ -303,7 +303,7 @@ class TestINotifyEventSubscriber
 
     WriteLock lock(actions_lock_);
     actions_.push_back(ec->action);
-    return Status(0, "OK");
+    return Status::success();
   }
 
   SCRef GetSubscription(const std::string& path,

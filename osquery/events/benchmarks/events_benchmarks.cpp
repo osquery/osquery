@@ -50,7 +50,7 @@ class BenchmarkEventSubscriber
   }
 
   Status Callback(const ECRef& ec, const SCRef& sc) {
-    return Status(0, "OK");
+    return Status::success();
   }
 
   void benchmarkInit() {

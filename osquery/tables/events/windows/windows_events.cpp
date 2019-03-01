@@ -57,7 +57,7 @@ class WindowsEventSubscriber
       wc->sources.insert(stringToWstring(chan));
     }
     subscribe(&WindowsEventSubscriber::Callback, wc);
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status Callback(const ECRef& ec, const SCRef& sc);
@@ -138,6 +138,6 @@ Status WindowsEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   r["data"] = s;
 
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

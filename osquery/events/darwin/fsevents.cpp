@@ -248,7 +248,7 @@ Status FSEventsEventPublisher::run() {
 
   // Start the run loop, it may be removed with a tearDown.
   CFRunLoopRun();
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void FSEventsEventPublisher::Callback(

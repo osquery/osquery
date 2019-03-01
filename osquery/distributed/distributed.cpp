@@ -47,7 +47,7 @@ Status DistributedPlugin::call(const PluginRequest& request,
     std::string queries;
     getQueries(queries);
     response.push_back({{"results", queries}});
-    return Status(0, "OK");
+    return Status::success();
   } else if (action == "writeResults") {
     if (request.count("results") == 0) {
       return Status(1, "Missing results field");
@@ -75,7 +75,7 @@ Status Distributed::pullUpdates() {
     return acceptWork(response[0]["results"]);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 size_t Distributed::getPendingQueryCount() {
@@ -135,7 +135,7 @@ Status Distributed::runQueries() {
 
 Status Distributed::flushCompleted() {
   if (getCompletedCount() == 0) {
-    return Status(0, "OK");
+    return Status::success();
   }
 
   auto distributed_plugin = RegistryFactory::get().getActive("distributed");

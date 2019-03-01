@@ -274,7 +274,7 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
 Status RocksDBDatabasePlugin::putBatch(const std::string& domain,
                                        const DatabaseStringValueList& data) {
   if (read_only_) {
-    return Status(0, "Database in readonly mode");
+    return Status::success();
   }
 
   auto cfh = getHandleForColumnFamily(domain);
@@ -323,7 +323,7 @@ void RocksDBDatabasePlugin::dumpDatabase() const {}
 Status RocksDBDatabasePlugin::remove(const std::string& domain,
                                      const std::string& key) {
   if (read_only_) {
-    return Status(0, "Database in readonly mode");
+    return Status::success();
   }
 
   auto cfh = getHandleForColumnFamily(domain);
@@ -345,7 +345,7 @@ Status RocksDBDatabasePlugin::removeRange(const std::string& domain,
                                           const std::string& low,
                                           const std::string& high) {
   if (read_only_) {
-    return Status(0, "Database in readonly mode");
+    return Status::success();
   }
 
   auto cfh = getHandleForColumnFamily(domain);
@@ -397,6 +397,6 @@ Status RocksDBDatabasePlugin::scan(const std::string& domain,
     }
   }
   delete it;
-  return Status(0, "OK");
+  return Status::success();
 }
 } // namespace osquery

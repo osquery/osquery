@@ -174,7 +174,7 @@ class TLSRequestHelper : private boost::noncopyable {
       return Status(1, message);
     }
 
-    return Status(0, "OK");
+    return Status::success();
   }
 
   /**

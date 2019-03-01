@@ -54,7 +54,7 @@ void DistributedRunner::start() {
 Status startDistributed() {
   if (!FLAGS_disable_distributed) {
     Dispatcher::addService(std::make_shared<DistributedRunner>());
-    return Status(0, "OK");
+    return Status::success();
   } else {
     return Status(1, "Distributed query service not enabled.");
   }

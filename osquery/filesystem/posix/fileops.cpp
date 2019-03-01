@@ -119,7 +119,7 @@ Status PlatformFile::isOwnerRoot() const {
   }
 
   if (owner_id == 0) {
-    return Status(0, "OK");
+    return Status::success();
   }
   return Status(1, "Owner is not root");
 }
@@ -135,7 +135,7 @@ Status PlatformFile::isOwnerCurrentUser() const {
   }
 
   if (owner_id == ::getuid()) {
-    return Status(0, "OK");
+    return Status::success();
   }
 
   return Status(1, "Owner is not current user");
@@ -148,7 +148,7 @@ Status PlatformFile::isExecutable() const {
   }
 
   if ((file_stat.st_mode & S_IXUSR) == S_IXUSR) {
-    return Status(0, "OK");
+    return Status::success();
   }
 
   return Status(1, "Not executable");
@@ -163,7 +163,7 @@ Status PlatformFile::hasSafePermissions() const {
   // We allow user write for now, since our main threat is external
   // modification by other users
   if ((file.st_mode & S_IWOTH) == 0) {
-    return Status(0, "OK");
+    return Status::success();
   }
 
   return Status(1, "Writable");
@@ -313,7 +313,7 @@ Status platformIsTmpDir(const fs::path& dir) {
   }
 
   if (dir_stat.st_mode & (1 << 9)) {
-    return Status(0, "OK");
+    return Status::success();
   }
 
   return Status(1, "");
@@ -325,7 +325,7 @@ Status platformIsFileAccessible(const fs::path& path) {
   if (::lstat(path.c_str(), &link_stat) < 0) {
     return Status(1, "File is not acccessible");
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 bool platformIsatty(FILE* f) {

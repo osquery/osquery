@@ -371,7 +371,7 @@ Status logString(const std::string& message,
                  const std::string& category,
                  const std::string& receiver) {
   if (FLAGS_disable_logging) {
-    return Status(0, "Logging disabled");
+    return Status::success();
   }
 
   Status status;
@@ -399,7 +399,7 @@ Status logQueryLogItem(const QueryLogItem& results) {
 Status logQueryLogItem(const QueryLogItem& results,
                        const std::string& receiver) {
   if (FLAGS_disable_logging) {
-    return Status(0, "Logging disabled");
+    return Status::success();
   }
 
   if (Killswitch::get().isTotalQueryCounterMonitorEnabled()) {
@@ -428,7 +428,7 @@ Status logQueryLogItem(const QueryLogItem& results,
 
 Status logSnapshotQuery(const QueryLogItem& item) {
   if (FLAGS_disable_logging) {
-    return Status(0, "Logging disabled");
+    return Status::success();
   }
 
   if (Killswitch::get().isTotalQueryCounterMonitorEnabled()) {

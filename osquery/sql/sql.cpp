@@ -168,7 +168,7 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
     return this->attach(request.at("table"));
   } else if (request.at("action") == "detach") {
     this->detach(request.at("table"));
-    return Status(0, "OK");
+    return Status::success();
   } else if (request.at("action") == "tables") {
     std::vector<std::string> tables;
     auto status = this->getQueryTables(request.at("query"), tables);

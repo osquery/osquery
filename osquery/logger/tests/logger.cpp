@@ -99,7 +99,7 @@ class TestLoggerPlugin : public LoggerPlugin {
 
   Status logEvent(const std::string& e) override {
     LoggerTests::events_logged++;
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status logString(const std::string& s) override {
@@ -114,13 +114,13 @@ class TestLoggerPlugin : public LoggerPlugin {
 
   Status logStatus(const std::vector<StatusLogLine>& log) override {
     placeStatuses(log);
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status logSnapshot(const std::string& s) override {
     LoggerTests::snapshot_rows_added += 1;
     LoggerTests::snapshot_rows_removed += 0;
-    return Status(0, "OK");
+    return Status::success();
   }
 
  public:
@@ -299,7 +299,7 @@ class SecondTestLoggerPlugin : public LoggerPlugin {
 
   Status logStatus(const std::vector<StatusLogLine>& log) override {
     placeStatuses(log);
-    return Status(0, "OK");
+    return Status::success();
   }
 
   bool usesLogStatus() override {
@@ -398,11 +398,11 @@ class RecursiveLoggerPlugin : public LoggerPlugin {
       }
       statuses++;
     }
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status logSnapshot(const std::string& s) override {
-    return Status(0, "OK");
+    return Status::success();
   }
 
  public:

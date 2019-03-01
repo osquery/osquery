@@ -405,7 +405,7 @@ class Config : private boost::noncopyable {
  *    public:
  *     virtual Status genConfig(std::map<std::string, std::string>& config) {
  *       config["my_source"] = "{}";
- *       return Status(0, "OK");
+ *       return Status::success();
  *     }
  *   };
  *

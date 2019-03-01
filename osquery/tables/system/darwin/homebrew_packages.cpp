@@ -87,7 +87,7 @@ Status getHomebrewCellar(fs::path& cellarPath) {
   }
 
   cellarPath = path;
-  return Status(0, "OK");
+  return Status::success();
 }
 
 QueryData genHomebrewPackages(QueryContext& context) {

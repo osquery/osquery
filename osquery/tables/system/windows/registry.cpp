@@ -220,7 +220,7 @@ Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
       rUsername = std::move(wstringToString(accntName));
     }
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 inline void explodeRegistryPath(const std::string& path,

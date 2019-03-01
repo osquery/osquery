@@ -15,12 +15,12 @@ class ExampleConfigPlugin : public ConfigPlugin {
  public:
   Status setUp() {
     LOG(WARNING) << "ExampleConfigPlugin setting up";
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status genConfig(std::map<std::string, std::string>& config) {
     config["data"] = "{\"queries\":{}}";
-    return Status(0, "OK");
+    return Status::success();
   }
 };
 

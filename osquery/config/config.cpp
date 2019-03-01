@@ -813,7 +813,7 @@ Status Config::update(const ConfigMap& config) {
     backupConfig(config);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void Config::purge() {
@@ -1010,7 +1010,7 @@ Status Config::genHash(std::string& hash) const {
   new_hash.update(buffer.data(), buffer.size());
   hash = new_hash.digest();
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string Config::getHash(const std::string& source) const {

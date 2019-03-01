@@ -239,7 +239,7 @@ class EventPublisherPlugin : public Plugin,
    * started, immediately following registration.
    */
   Status setUp() override {
-    return Status(0, "Not used");
+    return Status::success();
   }
 
   /**
@@ -641,7 +641,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
 
  private:
   Status setUp() override {
-    return Status(0, "Setup never used");
+    return Status::success();
   }
 
  private:

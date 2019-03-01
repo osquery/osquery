@@ -104,7 +104,7 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
            static_cast<pid_t>(nl_hdr->nlmsg_pid) != getpid());
 
   *size = message_size;
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
