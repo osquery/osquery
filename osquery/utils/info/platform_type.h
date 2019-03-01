@@ -20,6 +20,9 @@ namespace osquery {
  *
  * CMake, or the build tooling, will generate a OSQUERY_PLATFORM_MASK and pass
  * it to the library compile only.
+ *
+ * This infomation can be queried through the osquery_platform
+ * table. Please update than when new PlatformTypes are added.
  */
 enum class PlatformType {
   TYPE_POSIX = 0x01,

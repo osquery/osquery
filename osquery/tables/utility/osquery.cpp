@@ -20,6 +20,7 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 #include <osquery/utils/info/version.h>
+#include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/macros/macros.h>
 
 namespace osquery {
@@ -221,6 +222,24 @@ QueryData genOsqueryInfo(QueryContext& context) {
 
   std::string instance;
   r["instance_id"] = (getInstanceUUID(instance)) ? instance : "";
+
+  results.push_back(r);
+  return results;
+}
+
+QueryData genOsqueryPlatform(QueryContext& context) {
+  QueryData results;
+
+  Row r;
+
+  r["platform_bitmask"] = INTEGER(static_cast<uint64_t>(kPlatformType));
+
+  r["posix"] = INTEGER(isPlatform(PlatformType::TYPE_POSIX));
+  r["windows"] = INTEGER(isPlatform(PlatformType::TYPE_WINDOWS));
+  r["bsd"] = INTEGER(isPlatform(PlatformType::TYPE_BSD));
+  r["linux"] = INTEGER(isPlatform(PlatformType::TYPE_LINUX));
+  r["osx"] = INTEGER(isPlatform(PlatformType::TYPE_OSX));
+  r["freebsd"] = INTEGER(isPlatform(PlatformType::TYPE_FREEBSD));
 
   results.push_back(r);
   return results;

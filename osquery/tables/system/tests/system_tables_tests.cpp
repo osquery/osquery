@@ -353,5 +353,12 @@ TEST_F(HashTableTest, test_cache_updates) {
   EXPECT_NE(rows[0].at("md5"), contentMd5);
   EXPECT_EQ(rows[0].at("md5"), badContentMd5);
 }
+
+class PlatformTableTest : public testing::Test {};
+
+TEST_F(PlatformTableTest, test_platform_table) {
+  SQL results("select * from osquery_platform");
+  ASSERT_EQ(results.rows().size(), 1U);
+}
 } // namespace tables
 } // namespace osquery

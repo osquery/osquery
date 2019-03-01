@@ -1,0 +1,13 @@
+table_name("osquery_platform")
+description("Platform information about osquery. See platform_type.h for definitions.")
+schema([
+    Column("platform_bitmask", INTEGER, "The osquery platform bitmask"),
+    Column("posix", INTEGER, "Is this posix compatible"),
+    Column("windows", INTEGER, "Is this windows compatible"),
+    Column("bsd", INTEGER, "Is this BSD compatible"),
+    Column("linux", INTEGER, "Is this linux compatible"),
+    Column("osx", INTEGER, "Is this osx compatible"),
+    Column("freebsd", INTEGER, "Is this freebsd compatible")
+])
+attributes(utility=True)
+implementation("osquery@genOsqueryPlatform")
