@@ -39,8 +39,7 @@ class BufferedSubscription : public Subscription {
   explicit BufferedSubscription(std::string subscriber,
                                 std::type_index pub_type)
       : Subscription(std::move(subscriber), std::move(pub_type)),
-        abort_(false),
-        waiting_(0) {}
+        abort_(false) {}
   virtual ~BufferedSubscription() = default;
 
   /**
@@ -59,23 +58,17 @@ class BufferedSubscription : public Subscription {
   /**
    * @brief See ev2::Subscription::wait().
    *
-   * @details This method is thread-safe as producer and consumer will probably
-   * run on different threads, however it is not designed to handle
-   * multiple simultaneous consumers. In case multiple threads call wait
-   * simultaneously the implementation can only guarantee that
-   * one of the pending threads will be released once the batch size is reached
-   * however other threads might as well be released. The wait timeout will
-   * always be respected. If you still want to use multiple consumer threads it
-   * is up to you to decide how to handle the consumption of events. Remember
-   * that take() shouldn't be called without guaranteeing first that there are
-   * pending events by either calling wait() or avail().
+   * @details Block until at least batch events are available or timeout is
+   * reached (for timeout != 0). Basically a blocking version of avail(). This
+   * method is thread-safe but does not support concurrent calls. When called
+   * concurrently the behaviour is undefined.
    */
   std::size_t wait(std::size_t batch = 1,
                    std::chrono::milliseconds timeout =
                        std::chrono::milliseconds::zero()) override {
-    waiting_++;
-
     std::unique_lock<std::mutex> lock(buffer_mutex_);
+
+    waiting_ = true;
 
     if (timeout == std::chrono::milliseconds::zero()) {
       buffer_cv_.wait(
@@ -86,7 +79,8 @@ class BufferedSubscription : public Subscription {
       });
     }
 
-    waiting_--;
+    abort_ = false;
+    waiting_ = false;
 
     return buffer_.size();
   }
@@ -94,20 +88,19 @@ class BufferedSubscription : public Subscription {
   /**
    * @brief See ev2::Subscription::abort()
    *
-   * @details Calling abort() will block until all threads blocked on wait()
-   * exit. Calling abort() will leave the object in a working state and it is
-   * safe to call to call any method on the object as soon as abort() exits. No
-   * events will be lost in by calling abort().
+   * @details Notify thread blocked on wait() to exit. It is safe to call this
+   * method when even when no thread is blocked on wait(), in which case this
+   * will be a no-op. Calling abort() will leave the object in a working state
+   * and it is safe to keep using the object. This will also not discard any
+   * events.
    */
   void abort() override {
-    abort_ = true;
-    buffer_cv_.notify_all();
+    std::unique_lock<std::mutex> lock(buffer_mutex_);
 
-    while (waiting_ != 0) {
-      /* spinlock */
+    if (waiting_) {
+      abort_ = true;
+      buffer_cv_.notify_one();
     }
-
-    abort_ = false;
   }
 
   /**
@@ -144,9 +137,8 @@ class BufferedSubscription : public Subscription {
   mutable std::mutex buffer_mutex_;
   mutable std::condition_variable buffer_cv_;
 
-  std::atomic<std::size_t> waiting_;
-
   bool abort_;
+  bool waiting_;
 };
 
 } // namespace ev2
