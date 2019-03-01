@@ -20,7 +20,6 @@ osquery_cxx_test(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/config:config"),
-        osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/events:events"),
         osquery_target("osquery/extensions:extensions"),
@@ -31,6 +30,7 @@ osquery_cxx_test(
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/database:ephemeral"),
         osquery_target("specs:tables"),
         ":test_utils",
     ],
@@ -49,7 +49,6 @@ osquery_cxx_test(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/config:config"),
-        osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/events:events"),
         osquery_target("osquery/extensions:extensions"),
@@ -60,6 +59,7 @@ osquery_cxx_test(
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/database:ephemeral"),
         osquery_target("specs:tables"),
         ":test_utils",
     ],

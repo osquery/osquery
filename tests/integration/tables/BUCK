@@ -19,9 +19,9 @@ osquery_cxx_library(
         "helper.h",
     ],
     deps = [
-        osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/sql:sql"),
         osquery_target("osquery/utils:utils"),
+        osquery_target("plugins/database:ephemeral"),
         osquery_tp_target("boost"),
         osquery_tp_target("googletest", "gtest_headers"),
     ],
@@ -292,7 +292,6 @@ osquery_cxx_test(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/database:database"),
-        osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/events:events"),
         osquery_target("osquery/extensions:extensions"),
         osquery_target("osquery/extensions:impl_thrift"),
@@ -300,6 +299,7 @@ osquery_cxx_test(
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/info:info"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/database:ephemeral"),
         osquery_target("specs:tables"),
         ":integration_tests_helper",
     ],

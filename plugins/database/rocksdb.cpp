@@ -12,14 +12,13 @@
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
 
+#include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include <osquery/database/plugins/rocksdb.h>
 #include <osquery/utils/conversions/tryto.h>
-#include <osquery/filesystem/fileops.h>
+#include <plugins/database/rocksdb.h>
 
 namespace fs = boost::filesystem;
 
