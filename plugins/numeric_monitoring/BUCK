@@ -12,13 +12,13 @@ osquery_cxx_library(
     srcs = [
         "filesystem.cpp",
     ],
-    header_namespace = "osquery/numeric_monitoring/plugins",
+    header_namespace = "plugins/numeric_monitoring",
     exported_headers = [
         "filesystem.h",
     ],
     link_whole = True,
     tests = [
-        osquery_target("osquery/numeric_monitoring/plugins/tests:numeric_monitoring_filesystem_tests"),
+        osquery_target("plugins/numeric_monitoring/tests:numeric_monitoring_filesystem_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [
