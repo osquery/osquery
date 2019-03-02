@@ -16,6 +16,7 @@ osquery_cxx_library(
     exported_headers = [
         "filesystem.h",
     ],
+    link_whole = True,
     tests = [
         osquery_target("osquery/numeric_monitoring/plugins/tests:numeric_monitoring_filesystem_tests"),
     ],
