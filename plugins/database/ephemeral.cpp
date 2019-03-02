@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-#include "osquery/database/plugins/ephemeral.h"
+#include "plugins/database/ephemeral.h"
 
 namespace osquery {
 

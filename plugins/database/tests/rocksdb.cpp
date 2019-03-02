@@ -6,11 +6,10 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <plugins/database/rocksdb.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/sql.h>
-
-#include <osquery/database/plugins/rocksdb.h>
-#include <osquery/database/plugins/tests/utils.h>
+#include <plugins/database/tests/utils.h>
 
 namespace osquery {
 

@@ -13,10 +13,8 @@
 #include <osquery/registry.h>
 #include <osquery/registry_factory.h>
 #include <osquery/system.h>
-
 #include <osquery/utils/json/json.h>
-
-#include <osquery/database/plugins/tests/utils.h>
+#include <plugins/database/tests/utils.h>
 
 #include <boost/filesystem.hpp>
 

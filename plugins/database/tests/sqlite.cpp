@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/database/plugins/tests/utils.h>
+#include <plugins/database/tests/utils.h>
 
 namespace osquery {
 

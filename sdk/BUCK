@@ -22,8 +22,8 @@ osquery_cxx_library(
     ],
     visibility = ["PUBLIC"],
     deps = [
+        osquery_target("osquery:headers"),
         osquery_target("osquery/config:config"),
-        osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/events:events_registry"),
         osquery_target("osquery/extensions:extensions"),
@@ -45,6 +45,6 @@ osquery_cxx_library(
         osquery_target("osquery/utils/system:uptime"),
         osquery_target("osquery/utils:attribute"),
         osquery_target("osquery/utils:utils"),
-        osquery_target("osquery:headers"),
+        osquery_target("plugins/database:ephemeral"),
     ],
 )

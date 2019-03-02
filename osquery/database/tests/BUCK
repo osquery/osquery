@@ -16,7 +16,6 @@ osquery_cxx_test(
     deps = [
         osquery_target("osquery/core:core"),
         osquery_target("osquery/database:database"),
-        osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/events:events"),
         osquery_target("osquery/extensions:extensions"),
@@ -25,6 +24,7 @@ osquery_cxx_test(
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/json:json"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/database:ephemeral"),
         osquery_target("specs:tables"),
     ],
 )
@@ -39,7 +39,6 @@ osquery_cxx_test(
         osquery_target("osquery/core/sql:core_sql"),
         osquery_target("osquery/core:core"),
         osquery_target("osquery/database:database"),
-        osquery_target("osquery/database/plugins:ephemeral"),
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/events:events"),
         osquery_target("osquery/extensions:extensions"),
@@ -49,6 +48,7 @@ osquery_cxx_test(
         osquery_target("osquery/utils/json:json"),
         osquery_target("osquery/sql/tests:sql_test_utils"),
         osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/database:ephemeral"),
         osquery_target("specs:tables"),
     ],
 )
