@@ -31,10 +31,6 @@ void free_IWbemServicesRef(IWbemServices *ptr) {
   ptr->Release();
 }
 
-WmiResultItem::WmiResultItem(WmiResultItem&& src) {
-  result_ = std::move(src.result_);
-}
-
 void WmiResultItem::PrintType(const std::string& name) const {
   std::wstring property_name = stringToWstring(name);
   VARIANT value;
@@ -344,12 +340,6 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
   }
 
   status_ = Status(0);
-}
-
-WmiRequest::WmiRequest(WmiRequest&& src) {
-  locator_ = std::move(src.locator_);
-  services_ = std::move(src.services_);
-  enum_ = std::move(src.enum_);
 }
 
 WmiRequest::~WmiRequest() {

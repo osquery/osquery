@@ -48,7 +48,7 @@ class WmiResultItem {
     result_.reset(result);
   }
 
-  WmiResultItem(WmiResultItem&& src);
+  WmiResultItem(WmiResultItem&& src) = default;
 
   /**
   * @brief Windows WMI Helper function to print the type associated with results
@@ -164,7 +164,7 @@ class WmiRequest {
  public:
   explicit WmiRequest(const std::string& query,
                       BSTR nspace = (BSTR)L"ROOT\\CIMV2");
-  WmiRequest(WmiRequest&& src);
+  WmiRequest(WmiRequest&& src) = default;
   ~WmiRequest();
 
   const std::vector<WmiResultItem>& results() const {
