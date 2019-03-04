@@ -21,16 +21,13 @@
 
 namespace osquery {
 
-using unique_IWbemClassObjectRef = std::unique_ptr<IWbemClassObject, void (*)(IWbemClassObject*)>;
-using unique_IWbemLocatorRef = std::unique_ptr<IWbemLocator, void (*)(IWbemLocator*)>;
-using unique_IEnumWbemClassObjectRef = std::unique_ptr<IEnumWbemClassObject, void (*)(IEnumWbemClassObject*)>;
+namespace impl{
 
-using shared_IWbemServicesRef = std::shared_ptr<IWbemServices>;
+const auto wmiObjectDeleter = [](auto *ptr) {
+  ptr->Release();
+};
 
-void free_IWbemClassObjectRef(IWbemClassObject *);
-void free_IWbemLocatorRef(IWbemLocator *);
-void free_IEnumWbemClassObjectRef(IEnumWbemClassObject *);
-void free_IWbemServicesRef(IWbemServices *);
+} // namespace impl
 
 
 /**
@@ -151,7 +148,8 @@ class WmiResultItem {
                             std::vector<std::string>& ret) const;
 
  private:
-  unique_IWbemClassObjectRef result_{nullptr, free_IWbemClassObjectRef};
+
+  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> result_{nullptr, impl::wmiObjectDeleter};
 };
 
 /**
@@ -184,8 +182,8 @@ class WmiRequest {
   Status status_;
   std::vector<WmiResultItem> results_;
 
-  unique_IWbemLocatorRef locator_{nullptr, free_IWbemLocatorRef};
-  unique_IEnumWbemClassObjectRef enum_{nullptr, free_IEnumWbemClassObjectRef};
-  shared_IWbemServicesRef services_{nullptr, free_IWbemServicesRef};
+  std::unique_ptr<IWbemLocator, decltype(impl::wmiObjectDeleter)> locator_{nullptr, impl::wmiObjectDeleter};
+  std::unique_ptr<IEnumWbemClassObject, decltype(impl::wmiObjectDeleter)> enum_{nullptr, impl::wmiObjectDeleter};
+  std::shared_ptr<IWbemServices> services_{static_cast<IWbemServices*>(nullptr), impl::wmiObjectDeleter};
 };
 }

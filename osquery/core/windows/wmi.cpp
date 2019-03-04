@@ -15,22 +15,6 @@
 
 namespace osquery {
 
-void free_IWbemClassObjectRef(IWbemClassObject *ptr) {
-  ptr->Release();
-}
-
-void free_IWbemLocatorRef(IWbemLocator *ptr) {
-  ptr->Release();
-}
-
-void free_IEnumWbemClassObjectRef(IEnumWbemClassObject *ptr) {
-  ptr->Release();
-}
-
-void free_IWbemServicesRef(IWbemServices *ptr) {
-  ptr->Release();
-}
-
 void WmiResultItem::PrintType(const std::string& name) const {
   std::wstring property_name = stringToWstring(name);
   VARIANT value;
