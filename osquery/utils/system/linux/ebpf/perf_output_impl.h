@@ -186,7 +186,7 @@ consumeWrappedMessagesFromCircularBuffer(ByteType const* data_ptr,
   __u64 offset = data_tail % buffer_size;
   while (data_tail < data_head) {
     if (offset + sizeof(WrappedMessage) > buffer_size) {
-      // wrapped_message is probably splited, let's do continious copy
+      // wrapped_message is probably splited, let's do continuous copy
       auto wrapped_message = WrappedMessage{};
       __u64 record_offset = buffer_size - offset;
       std::copy(data_ptr + offset,
