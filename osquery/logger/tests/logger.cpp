@@ -29,6 +29,7 @@ DECLARE_bool(logger_status_sync);
 DECLARE_bool(logger_event_type);
 DECLARE_bool(logger_snapshot_event_type);
 DECLARE_bool(disable_logging);
+DECLARE_bool(log_numerics_as_numbers);
 
 class LoggerTests : public testing::Test {
  public:
@@ -50,8 +51,7 @@ class LoggerTests : public testing::Test {
     last_status = {O_INFO, "", 10, "", "cal_time", 0, "host"};
   }
 
-  void TearDown() override {
-  }
+  void TearDown() override {}
 
   // Track lines emitted to logString
   static std::vector<std::string> log_lines;
@@ -371,8 +371,46 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
   std::string expected =
       "{\"name\":\"test_query\",\"hostIdentifier\":\"unknown_test_host\","
       "\"calendarTime\":\"no_time\",\"unixTime\":0,\"epoch\":0,"
-      "\"counter\":0,\"columns\":{\"test_column\":\"test_value\"},"
-      "\"action\":\"added\"}";
+      "\"counter\":0,\"logNumericsAsNumbers\":" +
+      std::string(FLAGS_log_numerics_as_numbers ? "true" : "false") +
+      ",\"columns\":{\"test_column\":\"test_value\"},\"action\":\"added\"}";
+  EXPECT_EQ(LoggerTests::log_lines.back(), expected);
+}
+
+TEST_F(LoggerTests, test_logger_numeric_flag) {
+  RegistryFactory::get().setActive("logger", "test");
+  initLogger("scheduled_query");
+
+  QueryLogItem item;
+  item.name = "test_query";
+  item.identifier = "unknown_test_host";
+  item.time = 0;
+  item.calendar_time = "no_time";
+  item.epoch = 0L;
+  item.counter = 0L;
+  item.results.added.push_back({{"test_double_column", 2.000}});
+  FLAGS_log_numerics_as_numbers = true;
+  logQueryLogItem(item);
+  EXPECT_EQ(1U, LoggerTests::log_lines.size());
+
+  // Make sure the JSON output serializes the double as a double when the flag
+  // FLAGS_log_numerics_as_numbers is true (as we set it, above)
+  std::string expected =
+      "{\"name\":\"test_query\",\"hostIdentifier\":\"unknown_test_host\","
+      "\"calendarTime\":\"no_time\",\"unixTime\":0,\"epoch\":0,"
+      "\"counter\":0,\"logNumericsAsNumbers\":true,\"columns\":{\"test_double_"
+      "column\":2.0},\"action\":\"added\"}";
+  EXPECT_EQ(LoggerTests::log_lines.back(), expected);
+
+  FLAGS_log_numerics_as_numbers = false;
+  logQueryLogItem(item);
+  // Make sure the JSON output serializes the double as a double within a string
+  // when FLAGS_log_numerics_as_numbers is false (as we set it, above)
+  expected =
+      "{\"name\":\"test_query\",\"hostIdentifier\":\"unknown_test_host\","
+      "\"calendarTime\":\"no_time\",\"unixTime\":0,\"epoch\":0,"
+      "\"counter\":0,\"logNumericsAsNumbers\":false,\"columns\":{\"test_double_"
+      "column\":\"2.0\"},\"action\":\"added\"}";
   EXPECT_EQ(LoggerTests::log_lines.back(), expected);
 }
 
@@ -461,4 +499,4 @@ TEST_F(LoggerTests, test_recursion) {
 
   FLAGS_logtostderr = false;
 }
-}
+} // namespace osquery

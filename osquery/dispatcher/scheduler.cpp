@@ -102,9 +102,9 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   runDecorators(DECORATE_ALWAYS);
 
   auto sql = monitor(name, query);
-  if (!sql.ok()) {
+  if (!sql.getStatus().ok()) {
     LOG(ERROR) << "Error executing scheduled query " << name << ": "
-               << sql.getMessageString();
+               << sql.getStatus().toString();
     return Status::failure("Error executing scheduled query");
   }
 
@@ -116,7 +116,6 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   QueryLogItem item;
   item.name = name;
   item.identifier = ident;
-  item.columns = sql.columns();
   item.time = osquery::getUnixTime();
   item.epoch = FLAGS_schedule_epoch;
   item.calendar_time = osquery::getAsciiTime();
@@ -124,7 +123,7 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
 
   if (query.options.count("snapshot") && query.options.at("snapshot")) {
     // This is a snapshot query, emit results with a differential or state.
-    item.snapshot_results = std::move(sql.rows());
+    item.snapshot_results = std::move(sql.rowsTyped());
     logSnapshotQuery(item);
     return Status::success();
   }
@@ -133,7 +132,6 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   auto dbQuery = Query(name, query);
   // Comparisons and stores must include escaped data.
   sql.escapeResults();
-
   Status status;
   DiffResults& diff_results = item.results;
   // Add this execution's set of results to the database-tracked named query.
@@ -141,7 +139,7 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   // was executed by exact matching each row.
   if (!FLAGS_events_optimize || !sql.eventBased()) {
     status = dbQuery.addNewResults(
-        std::move(sql.rows()), item.epoch, item.counter, diff_results);
+        std::move(sql.rowsTyped()), item.epoch, item.counter, diff_results);
     if (!status.ok()) {
       std::string line = "Error adding new results to database for query " +
                          name + ": " + status.what();
@@ -151,7 +149,7 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
       Initializer::requestShutdown(EXIT_CATASTROPHIC, line);
     }
   } else {
-    diff_results.added = std::move(sql.rows());
+    diff_results.added = std::move(sql.rowsTyped());
   }
 
   if (query.options.count("removed") && !query.options.at("removed")) {

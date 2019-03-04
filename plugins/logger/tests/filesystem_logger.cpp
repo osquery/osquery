@@ -32,6 +32,7 @@ namespace osquery {
 DECLARE_bool(disable_database);
 DECLARE_string(logger_path);
 DECLARE_bool(disable_logging);
+DECLARE_bool(log_numerics_as_numbers);
 
 class FilesystemLoggerTests : public testing::Test {
  public:
@@ -170,10 +171,12 @@ TEST_F(FilesystemLoggerTests, test_log_snapshot) {
   std::string expected =
       "{\"snapshot\":[],\"action\":\"snapshot\",\"name\":\"test\","
       "\"hostIdentifier\":\"test\",\"calendarTime\":\"test\","
-      "\"unixTime\":0,\"epoch\":0,\"counter\":0}\n"
-      "{\"snapshot\":[],\"action\":\"snapshot\","
+      "\"unixTime\":0,\"epoch\":0,\"counter\":0,\"logNumericsAsNumbers\":" +
+      std::string(FLAGS_log_numerics_as_numbers ? "true" : "false") +
+      "}\n{\"snapshot\":[],\"action\":\"snapshot\","
       "\"name\":\"test\",\"hostIdentifier\":\"test\",\"calendarTime\":\"test\","
-      "\"unixTime\":0,\"epoch\":0,\"counter\":0}\n";
+      "\"unixTime\":0,\"epoch\":0,\"counter\":0,\"logNumericsAsNumbers\":" +
+      std::string(FLAGS_log_numerics_as_numbers ? "true" : "false") + "}\n";
   EXPECT_EQ(content, expected);
 }
-}
+} // namespace osquery

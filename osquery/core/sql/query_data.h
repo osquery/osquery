@@ -36,7 +36,7 @@ using QueryDataTyped = std::vector<RowTyped>;
  *
  * QueryDataSet -  It's set of Rows for fast search of a specific row.
  */
-using QueryDataSet = std::multiset<Row>;
+using QueryDataSet = std::multiset<RowTyped>;
 
 /**
  * @brief Serialize a QueryData object into a JSON array.
@@ -60,13 +60,14 @@ Status serializeQueryData(const QueryData& q,
  * @param cols the TableColumn vector indicating column order.
  * @param doc the managed JSON document.
  * @param arr [output] the output JSON array.
+ * @param asNumeric true iff numeric values are serialized as such
  *
  * @return Status indicating the success or failure of the operation.
  */
 Status serializeQueryData(const QueryDataTyped& q,
-                          const ColumnNames& cols,
                           JSON& doc,
-                          rapidjson::Document& arr);
+                          rapidjson::Document& arr,
+                          bool asNumeric);
 
 /**
  * @brief Serialize a QueryData object into a JSON string.
@@ -83,10 +84,13 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json);
  *
  * @param q the QueryDataTyped to serialize.
  * @param json [output] the output JSON string.
+ * @param asNumeric true iff numeric values are serialized as such
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeQueryDataJSON(const QueryDataTyped& q, std::string& json);
+Status serializeQueryDataJSON(const QueryDataTyped& q,
+                              std::string& json,
+                              bool asNumeric);
 
 /// Inverse of serializeQueryData, convert JSON to QueryData.
 Status deserializeQueryData(const rapidjson::Value& arr, QueryData& qd);
@@ -112,11 +116,11 @@ Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd);
  * overhead for most use-cases, but it's worth keeping in mind before you use
  * this in it's current state.
  *
- * @param q the QueryData list to append to
- * @param r the Row to add to q
+ * @param q the QueryDataTyped list to append to
+ * @param r the RowTyped to add to q
  *
  * @return true if the Row was added to the QueryData, false if it was not
  */
-bool addUniqueRowToQueryData(QueryData& q, const Row& r);
+bool addUniqueRowToQueryData(QueryDataTyped& q, const RowTyped& r);
 
 } // namespace osquery

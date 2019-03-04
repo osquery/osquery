@@ -72,16 +72,16 @@ Status serializeRow(const Row& r,
  * @brief Serialize a RowTyped into a JSON document.
  *
  * @param r the RowTyped to serialize.
- * @param cols the TableColumn vector indicating column order
  * @param doc the managed JSON document.
  * @param obj [output] the JSON object to assign values.
+ * @param asNumeric true iff numeric values are serialized as such
  *
  * @return Status indicating the success or failure of the operation.
  */
 Status serializeRow(const RowTyped& r,
-                    const ColumnNames& cols,
                     JSON& doc,
-                    rapidjson::Value& obj);
+                    rapidjson::Value& obj,
+                    bool asNumeric);
 
 /**
  * @brief Serialize a Row object into a JSON string.
@@ -98,10 +98,11 @@ Status serializeRowJSON(const Row& r, std::string& json);
  *
  * @param r the Row to serialize.
  * @param json [output] the output JSON string.
+ * @param asNumeric true iff numeric values are serialized as such
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeRowJSON(const RowTyped& r, std::string& json);
+Status serializeRowJSON(const RowTyped& r, std::string& json, bool asNumeric);
 
 /**
  * @brief Deserialize a Row object from JSON object.

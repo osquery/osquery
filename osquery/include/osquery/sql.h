@@ -97,8 +97,6 @@ class SQL : private only_movable {
    */
   std::string getMessageString() const;
 
-  /// ASCII escape the results of the query.
-  void escapeResults();
 
  public:
   /**

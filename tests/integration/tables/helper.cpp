@@ -128,14 +128,15 @@ bool verifyUidGid(std::string const& value) {
 }
 
 QueryData execute_query(std::string query) {
-  auto const use_cache = false;
-  SQLInternal sql(query, use_cache);
-  EXPECT_TRUE(sql.ok()) << "Query execution failed with error: " << boost::io::quoted(sql.getStatus().what());
-  return sql.rows();
+  auto instance = SQLiteDBManager::get();
+  QueryData rows;
+  Status status = queryInternal(query, rows, instance);
+  EXPECT_TRUE(status.ok()) << "Query execution failed with error: "
+                           << boost::io::quoted(status.what());
+  return rows;
 }
 
-void validate_row(const Row& row,
-                                        const ValidatatioMap& validation_map) {
+void validate_row(const Row& row, const ValidatatioMap& validation_map) {
   for (auto const& rec : row) {
     EXPECT_NE(validation_map.count(rec.first), std::size_t{0})
         << "Unexpected column " << boost::io::quoted(rec.first) << " in a row";
@@ -161,7 +162,7 @@ void validate_row(const Row& row,
   }
 }
 void validate_rows(const std::vector<Row>& rows,
-                                         const ValidatatioMap& validation_map) {
+                   const ValidatatioMap& validation_map) {
   for (auto row : rows) {
     validate_row(row, validation_map);
   }

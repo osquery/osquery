@@ -356,9 +356,10 @@ Status getQueryColumnsInternal(const std::string& q,
                                const SQLiteDBInstanceRef& instance);
 
 /**
- * @brief SQLInternal: SQL, but backed by internal calls.
+ * @brief SQLInternal: like SQL, but backed by internal calls, and deals
+ * with QueryDataTyped results.
  */
-class SQLInternal : public SQL {
+class SQLInternal : private only_movable {
  public:
   /**
    * @brief Instantiate an instance of the class with an internal query.
@@ -369,6 +370,15 @@ class SQLInternal : public SQL {
   explicit SQLInternal(const std::string& query, bool use_cache = false);
 
  public:
+  /**
+   * @brief Const accessor for the rows returned by the query.
+   *
+   * @return A QueryDataTyped object of the query results.
+   */
+  QueryDataTyped& rowsTyped();
+
+  const Status& getStatus() const;
+
   /**
    * @brief Check if the SQL query's results use event-based tables.
    *
@@ -382,7 +392,15 @@ class SQLInternal : public SQL {
    */
   bool eventBased() const;
 
+  /// ASCII escape the results of the query.
+  void escapeResults();
+
  private:
+  /// The internal member which holds the typed results of the query.
+  QueryDataTyped resultsTyped_;
+
+  /// The internal member which holds the status of the query.
+  Status status_;
   /// Before completing the execution, store a check for EVENT_BASED.
   bool event_based_{false};
 };

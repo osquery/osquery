@@ -28,12 +28,12 @@ Status serializeQueryData(const QueryData& q,
 }
 
 Status serializeQueryData(const QueryDataTyped& q,
-                          const ColumnNames& cols,
                           JSON& doc,
-                          rj::Document& arr) {
+                          rj::Document& arr,
+                          bool asNumeric) {
   for (const auto& r : q) {
     auto row_obj = doc.getObject();
-    auto status = serializeRow(r, cols, doc, row_obj);
+    auto status = serializeRow(r, doc, row_obj, asNumeric);
     if (!status.ok()) {
       return status;
     }
@@ -53,11 +53,12 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
   return doc.toString(json);
 }
 
-Status serializeQueryDataJSON(const QueryDataTyped& q, std::string& json) {
+Status serializeQueryDataJSON(const QueryDataTyped& q,
+                              std::string& json,
+                              bool asNumeric) {
   auto doc = JSON::newArray();
 
-  ColumnNames cols;
-  auto status = serializeQueryData(q, cols, doc, doc.doc());
+  auto status = serializeQueryData(q, doc, doc.doc(), asNumeric);
   if (!status.ok()) {
     return status;
   }
@@ -102,7 +103,7 @@ Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
   }
 
   for (const auto& i : v.GetArray()) {
-    Row r;
+    RowTyped r;
     auto status = deserializeRow(i, r);
     if (!status.ok()) {
       return status;
@@ -129,7 +130,7 @@ Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {
   return deserializeQueryData(doc, qd);
 }
 
-bool addUniqueRowToQueryData(QueryData& q, const Row& r) {
+bool addUniqueRowToQueryData(QueryDataTyped& q, const RowTyped& r) {
   if (std::find(q.begin(), q.end(), r) != q.end()) {
     return false;
   }

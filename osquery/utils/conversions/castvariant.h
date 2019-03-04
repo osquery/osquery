@@ -34,7 +34,8 @@ class CastVisitor : public boost::static_visitor<std::string> {
   }
 };
 
-std::string castVariant(const boost::variant<long long, double, std::string>& var) {
+inline std::string castVariant(
+    const boost::variant<long long, double, std::string>& var) {
   static const CastVisitor visitor;
   return boost::apply_visitor(visitor, var);
 }

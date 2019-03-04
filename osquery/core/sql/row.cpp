@@ -7,6 +7,7 @@
  */
 
 #include "row.h"
+#include <osquery/utils/conversions/castvariant.h>
 
 namespace rj = rapidjson;
 
@@ -53,37 +54,25 @@ class DocAppenderVisitor : public boost::static_visitor<> {
 };
 
 Status serializeRow(const RowTyped& r,
-                    const ColumnNames& cols,
                     JSON& doc,
-                    rj::Value& obj) {
+                    rj::Value& obj,
+                    bool asNumeric) {
   DocAppenderVisitor visitor(doc, obj);
-
-  if (cols.empty()) {
-    for (const auto& i : r) {
+  for (const auto& i : r) {
+    if (asNumeric) {
       boost::apply_visitor([&doc, &obj, &key = i.first](
                                auto value) { doc.add(key, value, obj); },
                            i.second);
-    }
-  } else {
-    for (const auto& c : cols) {
-      auto i = r.find(c);
-      if (i != r.end()) {
-        boost::apply_visitor(
-            [&doc, &obj, &c](auto value) { doc.add(c, value, obj); },
-            i->second);
-      }
+    } else {
+      doc.addRef(i.first, castVariant(i.second), obj);
     }
   }
-
   return Status();
 }
 
-Status serializeRowJSON(const RowTyped& r, std::string& json) {
+Status serializeRowJSON(const RowTyped& r, std::string& json, bool asNumeric) {
   auto doc = JSON::newObject();
-
-  // An empty column list will traverse the row map.
-  ColumnNames cols;
-  auto status = serializeRow(r, cols, doc, doc.doc());
+  auto status = serializeRow(r, doc, doc.doc(), asNumeric);
   if (!status.ok()) {
     return status;
   }

@@ -13,22 +13,22 @@ namespace rj = rapidjson;
 namespace osquery {
 
 Status serializeDiffResults(const DiffResults& d,
-                            const ColumnNames& cols,
                             JSON& doc,
-                            rj::Document& obj) {
+                            rj::Document& obj,
+                            bool asNumeric) {
   // Serialize and add "removed" first.
   // A property tree is somewhat ordered, this provides a loose contract to
   // the logger plugins and their aggregations, allowing them to parse chunked
   // lines. Note that the chunking is opaque to the database functions.
   auto removed_arr = doc.getArray();
-  auto status = serializeQueryData(d.removed, cols, doc, removed_arr);
+  auto status = serializeQueryData(d.removed, doc, removed_arr, asNumeric);
   if (!status.ok()) {
     return status;
   }
   doc.add("removed", removed_arr, obj);
 
   auto added_arr = doc.getArray();
-  status = serializeQueryData(d.added, cols, doc, added_arr);
+  status = serializeQueryData(d.added, doc, added_arr, asNumeric);
   if (!status.ok()) {
     return status;
   }
@@ -36,18 +36,20 @@ Status serializeDiffResults(const DiffResults& d,
   return Status();
 }
 
-Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
+Status serializeDiffResultsJSON(const DiffResults& d,
+                                std::string& json,
+                                bool asNumeric) {
   auto doc = JSON::newObject();
 
   ColumnNames cols;
-  auto status = serializeDiffResults(d, cols, doc, doc.doc());
+  auto status = serializeDiffResults(d, doc, doc.doc(), asNumeric);
   if (!status.ok()) {
     return status;
   }
   return doc.toString(json);
 }
 
-DiffResults diff(QueryDataSet& old, QueryData& current) {
+DiffResults diff(QueryDataSet& old, QueryDataTyped& current) {
   DiffResults r;
 
   for (auto& i : current) {

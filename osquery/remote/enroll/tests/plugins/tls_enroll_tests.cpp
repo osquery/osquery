@@ -74,6 +74,8 @@ Status TLSEnrollTests::testReadRequests(JSON& response_tree) {
   auto status = request_.call(JSON());
   if (status.ok()) {
     status = request_.getResponse(response_tree);
+  } else {
+    LOG(ERROR) << status.getMessage();
   }
   return status;
 }

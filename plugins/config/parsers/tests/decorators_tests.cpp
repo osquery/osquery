@@ -21,6 +21,7 @@ namespace osquery {
 DECLARE_bool(disable_decorators);
 DECLARE_bool(decorations_top_level);
 DECLARE_bool(disable_database);
+DECLARE_bool(log_numerics_as_numbers);
 
 class DecoratorsConfigParserPluginTests : public testing::Test {
  public:
@@ -102,8 +103,9 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_interval) {
   std::string expected =
       "{\"snapshot\":[],\"action\":\"snapshot\",\"name\":\"\","
       "\"hostIdentifier\":\"\",\"calendarTime\":\"\",\"unixTime\":0,"
-      "\"epoch\":0,\"counter\":0,"
-      "\"decorations\":{\"internal_60_test\":\"test\",\"one\":\"1\"}}";
+      "\"epoch\":0,\"counter\":0,\"logNumericsAsNumbers\":" +
+      std::string(FLAGS_log_numerics_as_numbers ? "true" : "false") +
+      ",\"decorations\":{\"internal_60_test\":\"test\",\"one\":\"1\"}}";
   EXPECT_EQ(log_line, expected);
 
   // Now clear and run again.
@@ -139,4 +141,4 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load_top_level) {
   // disable top level decorations
   FLAGS_decorations_top_level = false;
 }
-}
+} // namespace osquery

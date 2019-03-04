@@ -177,7 +177,7 @@ Status SQLiteSQLPlugin::getQueryTables(const std::string& query,
 SQLInternal::SQLInternal(const std::string& query, bool use_cache) {
   auto dbc = SQLiteDBManager::get();
   dbc->useCache(use_cache);
-  status_ = queryInternal(query, results_, dbc);
+  status_ = queryInternal(query, resultsTyped_, dbc);
 
   // One of the advantages of using SQLInternal (aside from the Registry-bypass)
   // is the ability to "deep-inspect" the table attributes and actions.
@@ -186,8 +186,43 @@ SQLInternal::SQLInternal(const std::string& query, bool use_cache) {
   dbc->clearAffectedTables();
 }
 
+QueryDataTyped& SQLInternal::rowsTyped() {
+  return resultsTyped_;
+}
+
+const Status& SQLInternal::getStatus() const {
+  return status_;
+}
+
 bool SQLInternal::eventBased() const {
   return event_based_;
+}
+
+// Temporary:  I'm going to move this from sql.cpp to here in change immediately
+// following since this is the only place we actually use it (breaking up to
+// make CRs smaller)
+extern void escapeNonPrintableBytesEx(std::string& str);
+
+class StringEscaperVisitor : public boost::static_visitor<> {
+ public:
+  void operator()(long long& i) const { // NO-OP
+  }
+
+  void operator()(double& d) const { // NO-OP
+  }
+
+  void operator()(std::string& str) const {
+    escapeNonPrintableBytesEx(str);
+  }
+};
+
+void SQLInternal::escapeResults() {
+  StringEscaperVisitor visitor;
+  for (auto& rowTyped : resultsTyped_) {
+    for (auto& column : rowTyped) {
+      boost::apply_visitor(visitor, column.second);
+    }
+  }
 }
 
 Status SQLiteSQLPlugin::attach(const std::string& name) {

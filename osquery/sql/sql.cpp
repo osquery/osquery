@@ -91,14 +91,6 @@ void escapeNonPrintableBytesEx(std::string& data) {
   return escapeNonPrintableBytes(data);
 }
 
-void SQL::escapeResults() {
-  for (auto& row : results_) {
-    for (auto& column : row) {
-      escapeNonPrintableBytes(column.second);
-    }
-  }
-}
-
 QueryData SQL::selectAllFrom(const std::string& table) {
   PluginResponse response;
   Registry::call("table", table, {{"action", "generate"}}, response);

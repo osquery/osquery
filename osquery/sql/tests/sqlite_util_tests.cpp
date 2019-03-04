@@ -102,7 +102,7 @@ TEST_F(SQLiteUtilTests, test_reset) {
   SQLiteDBManager::resetPrimary();
   auto instance = SQLiteDBManager::get();
 
-  QueryData results;
+  QueryDataTyped results;
   queryInternal("select * from test_view", results, instance);
 
   // Assume the internal (primary) database we reset and recreated.
@@ -111,7 +111,7 @@ TEST_F(SQLiteUtilTests, test_reset) {
 
 TEST_F(SQLiteUtilTests, test_direct_query_execution) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal(kTestQuery, results, dbc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results, getTestDBExpectedResults());
@@ -119,7 +119,7 @@ TEST_F(SQLiteUtilTests, test_direct_query_execution) {
 
 TEST_F(SQLiteUtilTests, test_aggregate_query) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal(kTestQuery, results, dbc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results, getTestDBExpectedResults());
@@ -127,7 +127,7 @@ TEST_F(SQLiteUtilTests, test_aggregate_query) {
 
 TEST_F(SQLiteUtilTests, test_no_results_query) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal(
       "select * from test_table where username=\"A_NON_EXISTENT_NAME\"",
       results,
@@ -137,14 +137,14 @@ TEST_F(SQLiteUtilTests, test_no_results_query) {
 
 TEST_F(SQLiteUtilTests, test_whitespace_query) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal("     ", results, dbc);
   EXPECT_TRUE(status.ok());
 }
 
 TEST_F(SQLiteUtilTests, test_whitespace_then_nonwhitespace_query) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal("     ; select * from time  ", results, dbc);
   EXPECT_TRUE(status.ok());
 }
@@ -161,7 +161,7 @@ TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
       ASSERT_TRUE(false);
     }
 
-    QueryData expected;
+    QueryDataTyped expected;
     auto status = queryInternal(kTestQuery, expected, dbc);
     EXPECT_EQ(expected, r.second);
   }
@@ -169,7 +169,7 @@ TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
 
 TEST_F(SQLiteUtilTests, test_affected_tables) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal("SELECT * FROM time", results, dbc);
 
   // Since the table scanned from "time", it should be recorded as affected.

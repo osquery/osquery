@@ -38,7 +38,7 @@ struct QueryLogItem {
   DiffResults results;
 
   /// Optional snapshot results, no differential applied.
-  QueryData snapshot_results;
+  QueryDataTyped snapshot_results;
 
   /// The name of the scheduled query.
   std::string name;
@@ -60,9 +60,6 @@ struct QueryLogItem {
 
   /// A set of additional fields to emit with the log line.
   std::map<std::string, std::string> decorations;
-
-  /// The ordered map of columns from the query.
-  ColumnNames columns;
 
   /// equals operator
   bool operator==(const QueryLogItem& comp) const {
@@ -196,13 +193,15 @@ class Query {
    * Given the results of the execution of a scheduled query, add the results
    * to the database using addNewResults.
    *
-   * @param qd the QueryData object, which has the results of the query.
+   * @param qd the QueryDataTyped object, which has the results of the query.
    * @param epoch the epoch associated with QueryData
    * @param counter [output] the output that holds the query execution counter.
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(QueryData qd, uint64_t epoch, uint64_t& counter) const;
+  Status addNewResults(QueryDataTyped qd,
+                       uint64_t epoch,
+                       uint64_t& counter) const;
 
   /**
    * @brief Add a new set of results to the persistent storage and get back
@@ -212,7 +211,7 @@ class Query {
    * to the database using addNewResults and get back a data structure
    * indicating what rows in the query's results have changed.
    *
-   * @param qd the QueryData object containing query results to store.
+   * @param qd the QueryDataTyped object containing query results to store.
    * @param epoch the epoch associated with QueryData
    * @param counter the output that holds the query execution counter.
    * @param dr an output to a DiffResults object populated based on last run.
@@ -220,7 +219,7 @@ class Query {
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(QueryData qd,
+  Status addNewResults(QueryDataTyped qd,
                        uint64_t epoch,
                        uint64_t& counter,
                        DiffResults& dr,
