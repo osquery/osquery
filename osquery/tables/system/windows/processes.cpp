@@ -25,6 +25,7 @@
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem/path.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem/filesystem.h>
@@ -313,8 +314,11 @@ void getProcessPathInfo(HANDLE& proc,
     r["path"] = TEXT(path.data());
   }
 
-  auto s = osquery::pathExists(path.data());
-  r["on_disk"] = INTEGER(s.getMessage());
+  {
+    auto const boost_path = boost::filesystem::path{path.data()};
+    r["on_disk"] = INTEGER(
+        boost_path.empty() ? -1 : osquery::pathExists(path.data()).ok());
+  }
 
   path.clear();
   path.resize(kMaxPathSize, 0x0);
