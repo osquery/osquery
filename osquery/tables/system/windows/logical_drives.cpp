@@ -52,7 +52,9 @@ QueryData genLogicalDrives(QueryContext& context) {
     }
 
     std::string bootPath = deviceId + "\\Windows";
-    int bootPartition = bootDirectories.count(bootPath);
+    // NOTE(ww): std::set::count is specified to only return {0, 1},
+    // so this narrowing operation is safe.
+    int bootPartition = static_cast<int>(bootDirectories.count(bootPath));
 
     // NOTE(ww): Previous versions of this table used the type
     // column to provide a non-canonical description of the drive.
