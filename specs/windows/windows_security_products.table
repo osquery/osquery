@@ -6,7 +6,7 @@ schema([
     Column("state", TEXT, "State of protection"),
     Column("state_timestamp", TEXT, "Timestamp for the product state"),
     Column("remediation_path", TEXT, "Remediation path"),
-    Column("signatures_up_to_date", TEXT, "1 if product signatures are up to date, else 0"),
+    Column("signatures_up_to_date", INTEGER, "1 if product signatures are up to date, else 0"),
 ])
 implementation("system/windows/windows_security_products@gen_wsp")
 examples([

@@ -8,18 +8,36 @@
 #include <osquery/core/windows/wmi.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/utils/map_take.h>
+#include <osquery/utils/scope_guard.h>
 
-typedef struct wsc_entry {
+namespace osquery {
+namespace tables {
+
+const auto kSecurityProviders = std::unordered_map<int, std::string>{
+    {WSC_SECURITY_PROVIDER_FIREWALL, "Firewall"},
+    {WSC_SECURITY_PROVIDER_ANTIVIRUS, "Antivirus"},
+    {WSC_SECURITY_PROVIDER_ANTISPYWARE, "Antispyware"},
+};
+
+const auto kSecurityProviderStates = std::unordered_map<int, std::string>{
+    {WSC_SECURITY_PRODUCT_STATE_ON, "On"},
+    {WSC_SECURITY_PRODUCT_STATE_OFF, "Off"},
+    {WSC_SECURITY_PRODUCT_STATE_SNOOZED, "Snoozed"},
+    {WSC_SECURITY_PRODUCT_STATE_EXPIRED, "Expired"},
+};
+
+struct wsc_entry {
   WSC_SECURITY_PROVIDER provider;
   std::wstring product_name;
   WSC_SECURITY_PRODUCT_STATE product_state;
   std::wstring product_state_timestamp;
   std::wstring remediation_path;
   WSC_SECURITY_SIGNATURE_STATUS signature_status;
-} wsc_entry;
+};
 
-HRESULT GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
-                            std::list<wsc_entry>& out_list) {
+Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
+                           std::vector<wsc_entry>& out_list) {
   // Much of the following is adapted from the MS example at
   // https://github.com/Microsoft/Windows-classic-samples/blob/master/Samples/WebSecurityCenter/cpp/WscApiSample.cpp
 
@@ -31,12 +49,26 @@ HRESULT GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
   WSC_SECURITY_PRODUCT_STATE ProductState;
   WSC_SECURITY_SIGNATURE_STATUS SignatureStatus;
 
+  const auto guard =
+      scope_guard::create([&PtrProduct, &PtrProductList, &PtrVal]() {
+        // Be sure to clean up any lingering pointers before return
+        if (nullptr != PtrVal) {
+          SysFreeString(PtrVal);
+        }
+        if (nullptr != PtrProductList) {
+          PtrProductList->Release();
+        }
+        if (nullptr != PtrProduct) {
+          PtrProduct->Release();
+        }
+      });
+
   if (provider != WSC_SECURITY_PROVIDER_FIREWALL &&
       provider != WSC_SECURITY_PROVIDER_ANTIVIRUS &&
       provider != WSC_SECURITY_PROVIDER_ANTISPYWARE) {
     VLOG(1) << "Invalid security provider code: " << provider;
-    hr = E_INVALIDARG;
-    goto exit;
+
+    return Status(E_INVALIDARG);
   }
 
   // Initialize can only be called once per instance, so you need to
@@ -48,7 +80,7 @@ HRESULT GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
                         reinterpret_cast<LPVOID*>(&PtrProductList));
   if (FAILED(hr)) {
     VLOG(1) << "Failed to create provider instances: " << hr;
-    goto exit;
+    return Status(hr);
   }
 
   // Initialize the product list with the type of security product you're
@@ -56,14 +88,14 @@ HRESULT GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
   hr = PtrProductList->Initialize(provider);
   if (FAILED(hr)) {
     VLOG(1) << "Failed to initialize provider: " << hr;
-    goto exit;
+    return Status(hr);
   }
 
   // Get the number of security products of that type.
   hr = PtrProductList->get_Count(&ProductCount);
   if (FAILED(hr)) {
     VLOG(1) << "Failed to get products count: " << hr;
-    goto exit;
+    return Status(hr);
   }
 
   // Loop over each product, querying the specific attributes.
@@ -72,7 +104,7 @@ HRESULT GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     hr = PtrProductList->get_Item(i, &PtrProduct);
     if (FAILED(hr)) {
       VLOG(1) << "Failed to get product item: " << hr;
-      goto exit;
+      return Status(hr);
     }
     wsc_entry tmp;
     tmp.provider = provider;
@@ -81,7 +113,7 @@ HRESULT GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     hr = PtrProduct->get_ProductName(&PtrVal);
     if (FAILED(hr)) {
       VLOG(1) << "Failed to get product name: " << hr;
-      goto exit;
+      return Status(hr);
     }
     tmp.product_name = PtrVal;
     SysFreeString(PtrVal);
@@ -91,7 +123,7 @@ HRESULT GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     hr = PtrProduct->get_ProductState(&ProductState);
     if (FAILED(hr)) {
       VLOG(1) << "Failed to get product state: " << hr;
-      goto exit;
+      return Status(hr);
     }
     tmp.product_state = ProductState;
 
@@ -99,7 +131,7 @@ HRESULT GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     hr = PtrProduct->get_RemediationPath(&PtrVal);
     if (FAILED(hr)) {
       VLOG(1) << "Failed to get remediation path: " << hr;
-      goto exit;
+      return Status(hr);
     }
     tmp.remediation_path = PtrVal;
     SysFreeString(PtrVal);
@@ -109,7 +141,7 @@ HRESULT GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     hr = PtrProduct->get_SignatureStatus(&SignatureStatus);
     if (FAILED(hr)) {
       VLOG(1) << "Failed to get signature status: " << hr;
-      goto exit;
+      return Status(hr);
     }
     tmp.signature_status = SignatureStatus;
 
@@ -117,7 +149,7 @@ HRESULT GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     hr = PtrProduct->get_ProductStateTimestamp(&PtrVal);
     if (FAILED(hr)) {
       VLOG(1) << "Failed to get product state timestamp: " << hr;
-      goto exit;
+      return Status(hr);
     }
     tmp.product_state_timestamp = PtrVal;
     SysFreeString(PtrVal);
@@ -129,88 +161,39 @@ HRESULT GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     out_list.push_back(tmp);
   }
 
-exit:
-  if (nullptr != PtrVal) {
-    SysFreeString(PtrVal);
-  }
-  if (nullptr != PtrProductList) {
-    PtrProductList->Release();
-  }
-  if (nullptr != PtrProduct) {
-    PtrProduct->Release();
-  }
-  return hr;
+  return Status(0);
 }
 
-void GetAllSecurityProducts(std::list<wsc_entry>& out_list) {
-  if (FAILED(GetSecurityProducts(WSC_SECURITY_PROVIDER_FIREWALL, out_list))) {
+void GetAllSecurityProducts(std::vector<wsc_entry>& out_list) {
+  if (!GetSecurityProducts(WSC_SECURITY_PROVIDER_FIREWALL, out_list).ok()) {
     VLOG(1) << "Failed to get firewall products";
   }
-  if (FAILED(GetSecurityProducts(WSC_SECURITY_PROVIDER_ANTIVIRUS, out_list))) {
+  if (!GetSecurityProducts(WSC_SECURITY_PROVIDER_ANTIVIRUS, out_list).ok()) {
     VLOG(1) << "Failed to get antivirus products";
   }
-  if (FAILED(
-          GetSecurityProducts(WSC_SECURITY_PROVIDER_ANTISPYWARE, out_list))) {
+  if (!GetSecurityProducts(WSC_SECURITY_PROVIDER_ANTISPYWARE, out_list).ok()) {
     VLOG(1) << "Failed to get antispyware products";
   }
 }
 
-namespace osquery {
-namespace tables {
-
 QueryData gen_wsp(QueryContext& context) {
   QueryData results;
-  std::list<wsc_entry> products;
+  std::vector<wsc_entry> products;
   GetAllSecurityProducts(products);
   // Use this to convert std::wstring into std::string
   auto& str_converter = std::wstring_convert<std::codecvt_utf8<wchar_t>>();
   for (const auto& product : products) {
     Row r;
-
-    switch (product.provider) {
-    case WSC_SECURITY_PROVIDER_FIREWALL:
-      r["type"] = "Firewall";
-      break;
-    case WSC_SECURITY_PROVIDER_ANTIVIRUS:
-      r["type"] = "Antivirus";
-      break;
-    case WSC_SECURITY_PROVIDER_ANTISPYWARE:
-      r["type"] = "Antispyware";
-      break;
-    default:
-      r["type"] = "Unknown";
-      break;
-    }
-
+    r["type"] =
+      tryTakeCopy(kSecurityProviders, product.provider).takeOr(std::string("Unknown"));
     r["name"] = str_converter.to_bytes(product.product_name);
     r["state_timestamp"] =
         str_converter.to_bytes(product.product_state_timestamp);
     r["remediation_path"] = str_converter.to_bytes(product.remediation_path);
-
-    switch (product.product_state) {
-    case WSC_SECURITY_PRODUCT_STATE_ON:
-      r["state"] = "On";
-      break;
-    case WSC_SECURITY_PRODUCT_STATE_OFF:
-      r["state"] = "Off";
-      break;
-    case WSC_SECURITY_PRODUCT_STATE_SNOOZED:
-      r["state"] = "Snoozed";
-      break;
-    case WSC_SECURITY_PRODUCT_STATE_EXPIRED:
-      r["state"] = "Expired";
-      break;
-    default:
-      r["state"] = "Unknown";
-      break;
-    }
-
-    if (product.signature_status == WSC_SECURITY_PRODUCT_UP_TO_DATE) {
-      r["signatures_up_to_date"] = INTEGER(1);
-    } else {
-      r["signatures_up_to_date"] = INTEGER(0);
-    }
-
+    r["state"] = tryTakeCopy(kSecurityProviderStates, product.product_state)
+      .takeOr(std::string("Unknown"));
+    r["signatures_up_to_date"] =
+        INTEGER(product.signature_status == WSC_SECURITY_PRODUCT_UP_TO_DATE);
     results.push_back(r);
   }
   return results;
