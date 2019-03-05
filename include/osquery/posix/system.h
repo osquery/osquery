@@ -15,6 +15,7 @@
 #include <string>
 
 #include <boost/filesystem/path.hpp>
+#include <boost/core/noncopyable.hpp>
 
 #include <osquery/core.h>
 
