@@ -669,6 +669,14 @@ osquery_gentable_cxx_library(
             "linux,macos,windows",
         ),
         (
+            "windows/bitlocker_info.table",
+            "windows",
+        ),
+        (
+            "windows/logon_sessions.table",
+            "windows",
+        ),
+        (
             "windows/ntfs_acl_permissions.table",
             "windows",
         ),
