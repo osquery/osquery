@@ -46,7 +46,7 @@ const std::map<std::string, std::string> kFirefoxAddonKeys = {
     {"applyBackgroundUpdates", "autoupdate"},
     {"hasBinaryComponents", "native"},
     {"location", "location"},
-    {"descriptor", "path"},
+    {"path", "path"},
 };
 
 void genFirefoxAddonsFromExtensions(const std::string& uid,
