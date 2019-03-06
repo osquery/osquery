@@ -42,17 +42,17 @@ QueryData genConnectivity(QueryContext& context) {
     return results;
   }
 
-  r["disconnected"] = bool(connectivity & NLM_CONNECTIVITY_DISCONNECTED);
-  r["ipv4_no_traffic"] = bool(connectivity & NLM_CONNECTIVITY_IPV4_NOTRAFFIC);
-  r["ipv6_no_traffic"] = bool(connectivity & NLM_CONNECTIVITY_IPV6_NOTRAFFIC);
-  r["ipv4_subnet"] = bool(connectivity & NLM_CONNECTIVITY_IPV4_SUBNET);
+  r["disconnected"] = INTEGER(bool(connectivity & NLM_CONNECTIVITY_DISCONNECTED));
+  r["ipv4_no_traffic"] = INTEGER(bool(connectivity & NLM_CONNECTIVITY_IPV4_NOTRAFFIC));
+  r["ipv6_no_traffic"] = INTEGER(bool(connectivity & NLM_CONNECTIVITY_IPV6_NOTRAFFIC));
+  r["ipv4_subnet"] = INTEGER(bool(connectivity & NLM_CONNECTIVITY_IPV4_SUBNET));
   r["ipv4_local_network"] =
-      bool(connectivity & NLM_CONNECTIVITY_IPV4_LOCALNETWORK);
-  r["ipv4_internet"] = bool(connectivity & NLM_CONNECTIVITY_IPV4_INTERNET);
-  r["ipv6_subnet"] = bool(connectivity & NLM_CONNECTIVITY_IPV6_SUBNET);
+      INTEGER(bool(connectivity & NLM_CONNECTIVITY_IPV4_LOCALNETWORK));
+  r["ipv4_internet"] = INTEGER(bool(connectivity & NLM_CONNECTIVITY_IPV4_INTERNET));
+  r["ipv6_subnet"] = INTEGER(bool(connectivity & NLM_CONNECTIVITY_IPV6_SUBNET));
   r["ipv6_local_network"] =
-      bool(connectivity & NLM_CONNECTIVITY_IPV6_LOCALNETWORK);
-  r["ipv6_internet"] = bool(connectivity & NLM_CONNECTIVITY_IPV6_INTERNET);
+      INTEGER(bool(connectivity & NLM_CONNECTIVITY_IPV6_LOCALNETWORK));
+  r["ipv6_internet"] = INTEGER(bool(connectivity & NLM_CONNECTIVITY_IPV6_INTERNET));
 
   mgr->Release();
   results.push_back(std::move(r));
