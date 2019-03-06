@@ -15,6 +15,6 @@ osquery_cxx_test(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/extensions:impl_thrift"),
-        osquery_target("sdk:plugin_sdk"),
+        osquery_target("osquery/sdk:plugin_sdk"),
     ],
 )
