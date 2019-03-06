@@ -18,7 +18,7 @@ osquery_cxx_library(
     ],
     link_whole = True,
     tests = [
-        osquery_target("sdk/tests:plugin_sdk_tests"),
+        osquery_target("osquery/sdk/tests:plugin_sdk_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [
