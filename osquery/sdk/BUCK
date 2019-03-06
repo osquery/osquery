@@ -15,6 +15,7 @@ osquery_cxx_library(
     header_namespace = "osquery/sdk",
     exported_headers = [
         "plugin_sdk.h",
+        "sdk.h",
     ],
     link_whole = True,
     tests = [
