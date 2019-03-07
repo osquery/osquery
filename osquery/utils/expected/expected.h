@@ -157,6 +157,10 @@ class Expected final {
     return object_.which() == kErrorType_;
   }
 
+  void ignoreResult() const noexcept {
+    errorChecked_.set(true);
+  }
+
   bool isValue() const noexcept {
     return !isError();
   }
