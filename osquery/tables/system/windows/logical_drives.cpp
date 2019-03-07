@@ -50,17 +50,13 @@ QueryData genLogicalDrives(QueryContext& context) {
       r["size"] = "-1";
     }
 
-    // NOTE(ww): std::set::count is specified to only return {0, 1},
-    // so this narrowing operation is safe.
-    int bootPartition = static_cast<int>(bootDeviceIds.count(deviceId.at(0)));
-
     // NOTE(ww): Previous versions of this table used the type
     // column to provide a non-canonical description of the drive.
     // However, a bug in WMI marshalling caused the type to always
     // return "Unknown". That behavior is preserved here.
     r["type"] = "Unknown";
     r["device_id"] = deviceId;
-    r["boot_partition"] = INTEGER(bootPartition);
+    r["boot_partition"] = INTEGER(bootDeviceIds.count(deviceId.at(0)));
 
     results.push_back(std::move(r));
   }
