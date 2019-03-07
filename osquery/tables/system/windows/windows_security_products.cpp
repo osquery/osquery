@@ -181,7 +181,7 @@ QueryData gen_wsp(QueryContext& context) {
   std::vector<wsc_entry> products;
   GetAllSecurityProducts(products);
   // Use this to convert std::wstring into std::string
-  auto& str_converter = std::wstring_convert<std::codecvt_utf8<wchar_t>>();
+  auto str_converter = std::wstring_convert<std::codecvt_utf8<wchar_t>>();
   for (const auto& product : products) {
     Row r;
     r["type"] =
