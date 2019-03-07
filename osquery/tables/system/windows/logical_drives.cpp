@@ -6,8 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <Windows.h>
-#include <set>
+#include <unordered_set>
 
 #include "osquery/core/windows/wmi.h"
 #include <osquery/tables.h>
@@ -26,7 +25,7 @@ QueryData genLogicalDrives(QueryContext& context) {
   const WmiRequest wmiBootConfigurationReq(
       "select BootDirectory from Win32_BootConfiguration");
   auto const& bootConfigurations = wmiBootConfigurationReq.results();
-  std::set<char> bootDeviceIds;
+  std::unordered_set<char> bootDeviceIds;
 
   for (const auto& bootConfiguration : bootConfigurations) {
     std::string bootDirectory;
