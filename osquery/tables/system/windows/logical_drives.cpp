@@ -9,8 +9,8 @@
 #include <Windows.h>
 #include <set>
 
-#include <osquery/tables.h>
 #include "osquery/core/windows/wmi.h"
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
@@ -26,12 +26,12 @@ QueryData genLogicalDrives(QueryContext& context) {
   const WmiRequest wmiBootConfigurationReq(
       "select BootDirectory from Win32_BootConfiguration");
   auto const& bootConfigurations = wmiBootConfigurationReq.results();
-  std::set<std::string> bootDirectories;
+  std::set<char> bootDeviceIds;
 
   for (const auto& bootConfiguration : bootConfigurations) {
     std::string bootDirectory;
     bootConfiguration.GetString("BootDirectory", bootDirectory);
-    bootDirectories.insert(std::move(bootDirectory));
+    bootDeviceIds.insert(bootDirectory.at(0));
   }
 
   for (const auto& logicalDisk : logicalDisks) {
@@ -51,10 +51,9 @@ QueryData genLogicalDrives(QueryContext& context) {
       r["size"] = "-1";
     }
 
-    std::string bootPath = deviceId + "\\Windows";
     // NOTE(ww): std::set::count is specified to only return {0, 1},
     // so this narrowing operation is safe.
-    int bootPartition = static_cast<int>(bootDirectories.count(bootPath));
+    int bootPartition = static_cast<int>(bootDeviceIds.count(deviceId.at(0)));
 
     // NOTE(ww): Previous versions of this table used the type
     // column to provide a non-canonical description of the drive.
