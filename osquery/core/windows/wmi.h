@@ -11,6 +11,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <osquery/utils/system/system.h>
@@ -21,6 +22,8 @@
 
 namespace osquery {
 
+using WmiMethodArgsMap = std::unordered_map<std::string, VARIANT>;
+
 namespace impl{
 
 const auto wmiObjectDeleter = [](auto *ptr) {
@@ -29,6 +32,42 @@ const auto wmiObjectDeleter = [](auto *ptr) {
 
 } // namespace impl
 
+
+/**
+* @brief Helper class to construct and hold the arguments of a WMI method call
+*
+* This class is used somewhat exclusively with WmiResultItem::ExecMethod. It
+* simplifies the construction of a WMI method argument
+*/
+class WmiMethodArgs {
+ public:
+  WmiMethodArgs() {}
+
+  WmiMethodArgs(WmiMethodArgs&& src);
+  WmiMethodArgs(WmiMethodArgs&) = delete;
+
+  ~WmiMethodArgs();
+
+  /**
+  * @brief Helper function to add items to the arguments of a WMI method call
+  * 
+  * @returns Status indicating the success of the query
+  */ 
+  template <typename T> Status Put(const std::string& name, const T& value);
+
+  /**
+  * @brief Getter method for argument dictionary
+  *
+  * @returns Map containing name, value pairs of the arguments
+  */
+  const WmiMethodArgsMap &GetArguments() const
+  {
+    return arguments;
+  }
+
+ private:
+  WmiMethodArgsMap arguments{};
+};
 
 /**
 * @brief Helper class to hold 1 result object from a WMI request
@@ -41,7 +80,9 @@ class WmiResultItem {
  public:
   explicit WmiResultItem() {}
 
-  explicit WmiResultItem(IWbemClassObject* result) {
+  explicit WmiResultItem(IWbemClassObject* result,
+                         std::shared_ptr<IWbemServices> services)
+      : services_(services) {
     result_.reset(result);
   }
 
@@ -147,9 +188,20 @@ class WmiResultItem {
   Status GetVectorOfStrings(const std::string& name,
                             std::vector<std::string>& ret) const;
 
+  /**
+  * @brief Windows WMI Helper function to execute a WMI method call from the
+  * resultant object
+  *
+  * @returns Status indicating the success of the query
+  */
+  Status ExecMethod(const std::string& method,
+                    const WmiMethodArgs& args,
+                    WmiResultItem& out_result) const;
+
  private:
 
   std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> result_{nullptr, impl::wmiObjectDeleter};
+  std::shared_ptr<IWbemServices> services_{static_cast<IWbemServices*>(nullptr), impl::wmiObjectDeleter};
 };
 
 /**
@@ -184,6 +236,6 @@ class WmiRequest {
 
   std::unique_ptr<IWbemLocator, decltype(impl::wmiObjectDeleter)> locator_{nullptr, impl::wmiObjectDeleter};
   std::unique_ptr<IEnumWbemClassObject, decltype(impl::wmiObjectDeleter)> enum_{nullptr, impl::wmiObjectDeleter};
-  std::unique_ptr<IWbemServices, decltype(impl::wmiObjectDeleter)> services_{nullptr, impl::wmiObjectDeleter};
+  std::shared_ptr<IWbemServices> services_{static_cast<IWbemServices*>(nullptr), impl::wmiObjectDeleter};
 };
 }
