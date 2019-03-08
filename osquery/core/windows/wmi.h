@@ -9,6 +9,7 @@
 #pragma once
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,15 @@
 
 namespace osquery {
 
+namespace impl{
+
+const auto wmiObjectDeleter = [](auto *ptr) {
+  ptr->Release();
+};
+
+} // namespace impl
+
+
 /**
 * @brief Helper class to hold 1 result object from a WMI request
 *
@@ -29,16 +39,13 @@ namespace osquery {
 */
 class WmiResultItem {
  public:
-  explicit WmiResultItem(IWbemClassObject* result) : result_(result){};
-  WmiResultItem(WmiResultItem&& src);
+  explicit WmiResultItem() {}
 
-  /**
-  * @brief Destructor for our WMI Wrapper
-  *
-  * This destructor ensures to free the various pointers used
-  * to keep track of IWbem Objects needed for WMI queries.
-  */
-  ~WmiResultItem();
+  explicit WmiResultItem(IWbemClassObject* result) {
+    result_.reset(result);
+  }
+
+  WmiResultItem(WmiResultItem&& src) = default;
 
   /**
   * @brief Windows WMI Helper function to print the type associated with results
@@ -141,7 +148,8 @@ class WmiResultItem {
                             std::vector<std::string>& ret) const;
 
  private:
-  IWbemClassObject* result_{nullptr};
+
+  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> result_{nullptr, impl::wmiObjectDeleter};
 };
 
 /**
@@ -154,7 +162,7 @@ class WmiRequest {
  public:
   explicit WmiRequest(const std::string& query,
                       BSTR nspace = (BSTR)L"ROOT\\CIMV2");
-  WmiRequest(WmiRequest&& src);
+  WmiRequest(WmiRequest&& src) = default;
   ~WmiRequest();
 
   const std::vector<WmiResultItem>& results() const {
@@ -173,8 +181,9 @@ class WmiRequest {
  private:
   Status status_;
   std::vector<WmiResultItem> results_;
-  IWbemLocator* locator_{nullptr};
-  IWbemServices* services_{nullptr};
-  IEnumWbemClassObject* enum_{nullptr};
+
+  std::unique_ptr<IWbemLocator, decltype(impl::wmiObjectDeleter)> locator_{nullptr, impl::wmiObjectDeleter};
+  std::unique_ptr<IEnumWbemClassObject, decltype(impl::wmiObjectDeleter)> enum_{nullptr, impl::wmiObjectDeleter};
+  std::unique_ptr<IWbemServices, decltype(impl::wmiObjectDeleter)> services_{nullptr, impl::wmiObjectDeleter};
 };
 }
