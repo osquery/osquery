@@ -31,6 +31,9 @@ struct ScheduledQuery : private only_movable {
   /// The SQL query.
   std::string query;
 
+  /// Owner of the query
+  std::string oncall;
+
   /// How often the query should be executed, in second.
   size_t interval{0};
 

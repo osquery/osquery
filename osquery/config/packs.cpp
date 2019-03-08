@@ -134,6 +134,13 @@ void Pack::initialize(const std::string& name,
     version_ = obj["version"].GetString();
   }
 
+  std::string oncall;
+  if (obj.HasMember("oncall") && obj["oncall"].IsString()) {
+    oncall = obj["oncall"].GetString();
+  } else {
+    oncall = "unknown";
+  }
+
   // Apply the shard, platform, and version checking.
   // It is important to set each value such that the packs meta-table can report
   // each of the restrictions.
@@ -198,11 +205,15 @@ void Pack::initialize(const std::string& name,
 
     ScheduledQuery query(
         name_, q.name.GetString(), q.value["query"].GetString());
+
+    query.oncall = oncall;
+
     if (!q.value.HasMember("interval")) {
       query.interval = FLAGS_schedule_default_interval;
     } else {
       query.interval = JSON::valueToSize(q.value["interval"]);
     }
+
     if (query.interval <= 0 || query.query.empty() ||
         query.interval > kMaxQueryInterval) {
       // Invalid pack query.
