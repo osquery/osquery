@@ -86,7 +86,7 @@ class PerfOutput final {
 template <typename MessageType>
 class PerfOutputsPoll final {
  public:
-  explicit PerfOutputsPoll() noexcept = default;
+  explicit PerfOutputsPoll() = default;
 
   PerfOutputsPoll(PerfOutputsPoll&&);
   PerfOutputsPoll& operator=(PerfOutputsPoll&&);
@@ -109,12 +109,9 @@ class PerfOutputsPoll final {
   ExpectedSuccess<PerfOutputError> read(MessageBatchType& batch);
 
  private:
-  static constexpr std::chrono::milliseconds kPollTimeout =
-      std::chrono::seconds{2};
-
- private:
   std::vector<PerfOutput<MessageType>> outputs_;
   std::vector<struct pollfd> fds_;
+  const std::chrono::milliseconds poll_timeout_ = std::chrono::seconds{2};
 };
 
 } // namespace ebpf
