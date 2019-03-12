@@ -290,7 +290,7 @@ template <typename MessageType>
 ExpectedSuccess<PerfOutputError> PerfOutputsPoll<MessageType>::read(
     PerfOutputsPoll<MessageType>::MessageBatchType& batch) {
   while (true) {
-    int ret = ::poll(fds_.data(), fds_.size(), kPollTimeout.count());
+    int ret = ::poll(fds_.data(), fds_.size(), poll_timeout_.count());
     if (ret < 0) {
       return createError(PerfOutputError::SystemError,
                          "perf output polling failed")
