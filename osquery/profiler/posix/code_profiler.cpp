@@ -62,7 +62,7 @@ static Expected<struct rusage, RusageError> callRusage() {
   if (rusage_status != -1) {
     return stats;
   } else {
-    return createError(RusageError::FatalError, "")
+    return createError(RusageError::FatalError)
            << "Linux query profiling failed. error code: " << rusage_status
            << " message: " << boost::io::quoted(strerror(errno));
   }

@@ -22,17 +22,15 @@ ExpectedSuccess<EventManager::Error> EventManager::bind(
   if (it != publishers_.end()) {
     auto ret = it->second->subscribe(std::move(sub));
     if (ret.isError()) {
-      return createError(Error::PublisherError,
-                         "Calling subscribe() on publisher '" +
-                             it->second->name() +
-                             "' for subscription from request from '" +
-                             sub->subscriber() + "' returned an error.",
-                         ret.takeError());
+      return createError(Error::PublisherError, ret.takeError())
+             << "Calling subscribe() on publisher '" << it->second->name()
+             << "' for subscription from request from '" << sub->subscriber()
+             << "' returned an error.";
     }
   } else {
-    return createError(Error::UnknownPublisher,
-                       "No registered publisher for bind request from '" +
-                           sub->subscriber() + "'");
+    return createError(Error::UnknownPublisher)
+           << "No registered publisher for bind request from '"
+           << sub->subscriber() << "'";
   }
 
   return Success();

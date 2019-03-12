@@ -239,8 +239,7 @@ Expected<std::string, DatabaseError> RocksdbDatabase::getRawBytesInternal(
     in_panic_ = true;
     auto corruption_error =
         createError(RocksdbError::DatabaseIsCorrupted, status.ToString());
-    auto error =
-        createError(DatabaseError::Panic, "", std::move(corruption_error));
+    auto error = createError(DatabaseError::Panic, std::move(corruption_error));
     panic(error);
     return std::move(error);
   }
@@ -294,7 +293,7 @@ Expected<std::string, DatabaseError> RocksdbDatabase::getString(
                                     "Fetching string as integer");
       LOG(ERROR) << type_error.getMessage().c_str();
       assert(false);
-      return createError(DatabaseError::KeyNotFound, "", std::move(type_error));
+      return createError(DatabaseError::KeyNotFound, std::move(type_error));
     }
     return result_str;
   }
@@ -324,7 +323,7 @@ Expected<int32_t, DatabaseError> RocksdbDatabase::getInt32(
       auto type_error = createError(RocksdbError::UnexpectedValueType,
                                     "Fetching string as integer");
       auto error =
-          createError(DatabaseError::KeyNotFound, "", std::move(type_error));
+          createError(DatabaseError::KeyNotFound, std::move(type_error));
       assert(false && error.getMessage().c_str());
       LOG(ERROR) << error.getMessage();
       debug_only::fail(error.getMessage().c_str());

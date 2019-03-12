@@ -32,7 +32,7 @@ Expected<std::string, Error> readSysCpuFile(char const* path) {
 Expected<std::size_t, Error> decodeCpuNumber(const std::string& str) {
   auto exp = tryTo<std::size_t>(str);
   if (exp.isError()) {
-    return createError(Error::IncorrectRange, "", exp.takeError())
+    return createError(Error::IncorrectRange, exp.takeError())
            << "Incorrect CPU number representation " << boost::io::quoted(str);
   }
   return exp.take();
@@ -60,7 +60,7 @@ Expected<Mask, Error> decodeMaskFromString(const std::string& encoded_str) {
       if (num_exp.get() < mask.size()) {
         mask.set(num_exp.get());
       } else {
-        return createError(Error::IncorrectRange, "")
+        return createError(Error::IncorrectRange)
                << "CPU number " << num_exp.get() << " out of bound [0,"
                << mask.size() << ")";
       }
@@ -79,7 +79,7 @@ Expected<Mask, Error> decodeMaskFromString(const std::string& encoded_str) {
                << boost::io::quoted(interval);
       }
       if (to_exp.get() >= mask.size()) {
-        return createError(Error::IncorrectRange, "")
+        return createError(Error::IncorrectRange)
                << "CPU number " << to_exp.get() << " out of bound [0,"
                << mask.size() << ")";
       }
