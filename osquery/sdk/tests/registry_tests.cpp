@@ -42,6 +42,9 @@ auto const mandatory_registries_ = std::vector<std::string>{
     "numeric_monitoring",
     "sql",
     "table",
+
+    // experimental
+    "osquery_events_stream",
 };
 
 TEST_F(PluginSdkRegistryTests, whether_all_mandatory_registries_are_in_sdk) {
