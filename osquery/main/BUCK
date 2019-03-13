@@ -71,6 +71,7 @@ osquery_cxx_library(
         osquery_target("osquery/devtools:devtools"),
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/experimental/events_stream:events_stream_registry"),
+        osquery_target("osquery/experimental/tracing:syscalls_tracing"),
         osquery_target("osquery/extensions:extensions"),
         osquery_target("osquery/extensions:impl_thrift"),
         osquery_target("osquery/killswitch:killswitch"),
