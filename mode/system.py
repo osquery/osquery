@@ -66,21 +66,32 @@ PLATFORM_CXX_FLAGS = {
     },
 }
 
-SUPPORTED_FLAVORS = {e for entry in PLATFORM_CXX_FLAGS.values() for e in entry}
+SUPPORTED_FLAVORS = ["debug", "release"]
 
 
-def generate(flavors):
+def generate(flavor):
     osType, _, _, _, _, _ = platform.uname()
     osType = osType.lower()
     if osType not in PLATFORM_CXX_FLAGS:
         raise Exception("Platform {} not supported!".format(osType))
-    return itertools.chain.from_iterable(
-        [PLATFORM_CXX_FLAGS[osType][flavor] for flavor in flavors]
-    )
+    return PLATFORM_CXX_FLAGS[osType][flavor]
+
+
+# Buck does not allow this script to fail, so lets pass an invalid flag ---- to
+# make buck fail and print a message inside --- || || ----. This is bad but at
+# least we're printing something to the user.
+def fail(message):
+    print("---- || {} || ----".format(message))
+    sys.exit(1)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
+
+    class ThrowingArgumentParser(argparse.ArgumentParser):
+        def error(self, message):
+            fail(message)
+
+    parser = ThrowingArgumentParser(
         description="Automatically set the proper config files for buck. This is selected based on the platform"
     )
     parser.add_argument(
@@ -89,21 +100,10 @@ if __name__ == "__main__":
         action="store",
         type=str,
         help="comma seperated list of flavors. Currently supported: release and debug",
+        choices=SUPPORTED_FLAVORS,
+        default="release",
     )
 
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
-
     args = parser.parse_args()
-    flavors = {flavor.lower() for flavor in args.flavors.split(",")}
-    if len(flavors - SUPPORTED_FLAVORS) > 0:
-        print(
-            "Invalid flavors were given: {}\n".format(
-                ",".join(flavors - SUPPORTED_FLAVORS)
-            )
-        )
-        parser.print_help(sys.stderr)
-    else:
-        configs = ["--config-file\n{}".format(config) for config in generate(flavors)]
-        print("\n".join(configs))
+    configs = ["--config-file\n{}".format(config) for config in generate(args.flavors)]
+    print("\n".join(configs))
