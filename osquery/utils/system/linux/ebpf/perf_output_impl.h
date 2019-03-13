@@ -73,9 +73,8 @@ PerfOutput<MessageType>::load(std::size_t const cpu, std::size_t const size) {
   auto exp_fd = perf_event_open::syscall(
       &attr, pid, static_cast<int>(cpu), group_fd, flags);
   if (exp_fd.isError()) {
-    return createError(PerfOutputError::SystemError,
-                       "Fail to create perf_event output point",
-                       exp_fd.takeError());
+    return createError(PerfOutputError::SystemError, exp_fd.takeError())
+           << "Fail to create perf_event output point";
   }
   instance.fd_ = exp_fd.take();
 
@@ -87,13 +86,13 @@ PerfOutput<MessageType>::load(std::size_t const cpu, std::size_t const size) {
                             0);
   if (instance.data_ptr_ == MAP_FAILED) {
     instance.data_ptr_ = nullptr;
-    return createError(PerfOutputError::SystemError,
-                       "Fail to mmap memory for perf event of PerfOutput ")
+    return createError(PerfOutputError::SystemError)
+           << "Fail to mmap memory for perf event of PerfOutput "
            << boost::io::quoted(strerror(errno));
   }
   if (ioctl(instance.fd_, PERF_EVENT_IOC_ENABLE, 0) < 0) {
-    return createError(PerfOutputError::SystemError,
-                       "Fail to enable perf event of PerfOutput ")
+    return createError(PerfOutputError::SystemError)
+           << "Fail to enable perf event of PerfOutput "
            << boost::io::quoted(strerror(errno));
   }
   return Expected<PerfOutput<MessageType>, PerfOutputError>(
@@ -133,7 +132,7 @@ ExpectedSuccess<PerfOutputError> PerfOutput<MessageType>::unload() {
   }
   fd_ = -1;
   if (failed) {
-    return createError(PerfOutputError::SystemError, err_msg);
+    return createError(PerfOutputError::SystemError) << err_msg;
   }
   return Success{};
 }
@@ -233,8 +232,8 @@ ExpectedSuccess<PerfOutputError> PerfOutput<MessageType>::read(
                 "message type must be trivial, because it comes from ASM code "
                 "at the end");
   if (fd_ < 0) {
-    return createError(PerfOutputError::LogicError,
-                       "Attept to read from not loaded perf output");
+    return createError(PerfOutputError::LogicError)
+           << "Attept to read from not loaded perf output";
   }
   auto header = static_cast<struct perf_event_mmap_page*>(data_ptr_);
   if (header->data_head == header->data_tail) {
@@ -274,9 +273,9 @@ template <typename MessageType>
 ExpectedSuccess<PerfOutputError> PerfOutputsPoll<MessageType>::add(
     PerfOutput<MessageType> output) {
   if (outputs_.size() == cpu::kMaskSize) {
-    return createError(PerfOutputError::LogicError,
-                       "osquery support no more than ")
-           << cpu::kMaskSize << " cpu, change cpu::kMaskSize and recompile";
+    return createError(PerfOutputError::LogicError)
+           << "osquery support no more than " << cpu::kMaskSize
+           << " cpu, change cpu::kMaskSize and recompile";
   }
   struct pollfd pfd;
   pfd.fd = output.fd();
@@ -292,9 +291,8 @@ ExpectedSuccess<PerfOutputError> PerfOutputsPoll<MessageType>::read(
   while (true) {
     int ret = ::poll(fds_.data(), fds_.size(), kPollTimeout.count());
     if (ret < 0) {
-      return createError(PerfOutputError::SystemError,
-                         "perf output polling failed")
-             << strerror(errno);
+      return createError(PerfOutputError::SystemError)
+             << "perf output polling failed" << strerror(errno);
     } else if (ret == 0) {
       // timeout; no event detected
     } else {
@@ -304,9 +302,8 @@ ExpectedSuccess<PerfOutputError> PerfOutputsPoll<MessageType>::read(
           fds_[index].revents = 0;
           auto status = outputs_[index].read(batch);
           if (status.isError()) {
-            return createError(PerfOutputError::LogicError,
-                               "read in perf output poll failed",
-                               status.takeError());
+            return createError(PerfOutputError::LogicError, status.takeError())
+                   << "read in perf output poll failed";
           }
         }
       }

@@ -57,7 +57,7 @@ bool stringContains(const std::string& where, const std::string& what) {
 GTEST_TEST(ErrorTest, createErrorSimple) {
   const auto msg = std::string{
       "\"!ab#c$d%e&f'g(h)i*j+k,l-m.n/o\" this is not a human readable text"};
-  auto err = osquery::createError(TestError::AnotherError, msg);
+  auto err = osquery::createError(TestError::AnotherError) << msg;
   EXPECT_EQ(TestError::AnotherError, err.getErrorCode());
   EXPECT_FALSE(err.hasUnderlyingError());
 
@@ -69,15 +69,16 @@ GTEST_TEST(ErrorTest, createErrorSimple) {
 GTEST_TEST(ErrorTest, createErrorFromOtherError) {
   const auto firstMsg = std::string{"2018-06-28 08:13 451014"};
 
-  auto firstErr = osquery::createError(TestError::SomeError, firstMsg);
+  auto firstErr = osquery::createError(TestError::SomeError) << firstMsg;
   EXPECT_EQ(TestError::SomeError, firstErr.getErrorCode());
   EXPECT_FALSE(firstErr.hasUnderlyingError());
 
   EXPECT_PRED2(stringContains, firstErr.getMessage(), firstMsg);
 
   const auto secondMsg = std::string{"what's wrong with the first message?!"};
-  auto secondErr = osquery::createError(
-      TestError::AnotherError, secondMsg, std::move(firstErr));
+  auto secondErr =
+      osquery::createError(TestError::AnotherError, std::move(firstErr))
+      << secondMsg;
   EXPECT_EQ(TestError::AnotherError, secondErr.getErrorCode());
   EXPECT_TRUE(secondErr.hasUnderlyingError());
   auto secondShortMsg = secondErr.getMessage();
@@ -88,8 +89,8 @@ GTEST_TEST(ErrorTest, createErrorFromOtherError) {
 
 GTEST_TEST(ErrorTest, createErrorAndStreamToIt) {
   const auto a4 = std::string{"A4"};
-  const auto err = osquery::createError(TestError::MusicError, "Do")
-                   << '-' << "Re"
+  const auto err = osquery::createError(TestError::MusicError)
+                   << "Do" << '-' << "Re"
                    << "-Mi"
                    << "-Fa"
                    << "-Sol"

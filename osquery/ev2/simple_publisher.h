@@ -54,9 +54,9 @@ class SimplePublisher : public Publisher {
       std::shared_ptr<Subscription> base_sub) final override {
     auto sub = std::dynamic_pointer_cast<SubscriptionT>(base_sub);
     if (!sub) {
-      return createError(Publisher::Error::InvalidSubscription,
-                         "SimplePublisher::subscribe() called with invalid "
-                         "subscription type.");
+      return createError(Publisher::Error::InvalidSubscription)
+             << "SimplePublisher::subscribe() called with invalid subscription "
+                "type.";
     }
 
     auto ret = reconfigure(sub);

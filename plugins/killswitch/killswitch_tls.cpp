@@ -66,27 +66,27 @@ TLSKillswitchPlugin::refresh() {
       uri_, params, content, FLAGS_killswitch_tls_max_attempts);
   if (!s.ok()) {
     return createError(
-        KillswitchRefreshablePlugin::RefreshError::NoContentReached,
-        "Could not retrieve config file from network");
+               KillswitchRefreshablePlugin::RefreshError::NoContentReached)
+           << "Could not retrieve config file from network";
   }
 
   JSON tree;
   Status parse_status = tree.fromString(content);
   if (!parse_status.ok()) {
-    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
-                       "Could not parse JSON from TLS killswitch node API");
+    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError)
+           << "Could not parse JSON from TLS killswitch node API";
   }
 
   // Extract config map from json
   auto it = tree.doc().FindMember("config");
   if (it == tree.doc().MemberEnd()) {
-    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
-                       "Killswitch member config is missing");
+    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError)
+           << "Killswitch member config is missing";
   }
 
   if (!it->value.IsString()) {
-    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
-                       "Killswitch member config is not a string");
+    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError)
+           << "Killswitch member config is not a string";
   }
 
   content = it->value.GetString();
@@ -96,8 +96,8 @@ TLSKillswitchPlugin::refresh() {
     setCache(*result);
     return Success();
   } else {
-    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
-                       result.getError().getMessage());
+    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError)
+           << result.getError().getMessage();
   }
 }
 } // namespace osquery

@@ -59,10 +59,9 @@ Expected<Program, Program::Error> Program::load(
   auto instance = Program{};
   auto fd_exp = syscall(BPF_PROG_LOAD, &attr);
   if (fd_exp.isError()) {
-    return createError(Program::Error::Unknown,
-                       "eBPF program load failed ",
-                       fd_exp.takeError())
-           << " bpf log: " << boost::io::quoted(bpf_log_buf.data());
+    return createError(Program::Error::Unknown, fd_exp.takeError())
+           << "eBPF program load failed, bpf log: "
+           << boost::io::quoted(bpf_log_buf.data());
   }
   instance.fd_ = fd_exp.take();
   return Expected<Program, Program::Error>(std::move(instance));
