@@ -39,7 +39,8 @@ Expected<int, PosixError> syscall(struct perf_event_attr* attr,
                                   unsigned long const flags) {
   auto ret = ::syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
   if (ret < 0) {
-    return createError(to<PosixError>(errno), "syscall perf_event_open failed ")
+    return createError(to<PosixError>(errno))
+           << "syscall perf_event_open failed "
            << boost::io::quoted(strerror(errno));
   }
   return ret;

@@ -8,7 +8,7 @@
 
 #include <unordered_map>
 
-#include <boost/format.hpp>
+#include <boost/io/detail/quoted_manip.hpp>
 
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
@@ -89,12 +89,9 @@ Expected<monitoring::PreAggregationType, ConversionError>
 tryTo<monitoring::PreAggregationType>(const std::string& from) {
   auto it = getStringToAggregationTypeTable().find(from);
   if (it == getStringToAggregationTypeTable().end()) {
-    return createError(
-        ConversionError::InvalidArgument,
-        boost::str(
-            boost::format(
-                "Wrong string representation of `PreAggregationType`: \"%s\"") %
-            from));
+    return createError(ConversionError::InvalidArgument)
+           << "Wrong string representation of `PreAggregationType`: "
+           << boost::io::quoted(from);
   }
   return it->second;
 }

@@ -33,7 +33,7 @@
  *    if (first_error) {
  *      return Error<TestError>(TestError::SomeError, "some error message");
  *    } else {
- *      return createError(TestError::SomeError, "one more error message");
+ *      return createError(TestError::SomeError) << "one more error message";
  *    }
  *   }
  * }
@@ -43,7 +43,7 @@
  *   if (test) {
  *    return std::make_unique<PlatformProcess>(pid);
  *   } else {
- *    return createError(TestError::AnotherError, "something wrong");
+ *    return createError(TestError::AnotherError) << "something wrong";
  *   }
  * }
  *
