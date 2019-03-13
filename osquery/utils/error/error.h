@@ -40,6 +40,10 @@ class Error final : public ErrorBase {
         message_(std::move(message)),
         underlyingError_(std::move(underlying_error)) {}
 
+  explicit Error(ErrorCodeEnumType error_code,
+                 std::unique_ptr<ErrorBase> underlying_error = nullptr)
+      : errorCode_(error_code), underlyingError_(std::move(underlying_error)) {}
+
   virtual ~Error() = default;
 
   Error(Error&& other) = default;
@@ -139,6 +143,22 @@ OSQUERY_NODISCARD Error<ErrorCodeEnumType> createError(
       std::move(message),
       std::make_unique<Error<OtherErrorCodeEnumType>>(
           std::move(underlying_error)));
+}
+
+template <typename ErrorCodeEnumType, typename OtherErrorCodeEnumType>
+OSQUERY_NODISCARD Error<ErrorCodeEnumType> createError(
+    ErrorCodeEnumType error_code,
+    Error<OtherErrorCodeEnumType> underlying_error) {
+  return Error<ErrorCodeEnumType>(
+      error_code,
+      std::make_unique<Error<OtherErrorCodeEnumType>>(
+          std::move(underlying_error)));
+}
+
+template <typename ErrorCodeEnumType>
+OSQUERY_NODISCARD Error<ErrorCodeEnumType> createError(
+    ErrorCodeEnumType error_code) {
+  return Error<ErrorCodeEnumType>(error_code);
 }
 
 template <typename ErrorType,

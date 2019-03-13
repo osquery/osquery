@@ -221,11 +221,10 @@ Expected<ebpf::Program, ebpf::Program::Error> genLinuxProgram(
   } else if (syscall::EventType::SetuidEnter == type) {
     return genLinuxSetuidEnterProgram(prog_type, cpu_map);
   } else {
-    return createError(ebpf::Program::Error::Unknown,
-                       "There is no program for type(")
-           << static_cast<int>(type) << ") system call "
-           << boost::core::demangle(typeid(type).name()) << "("
-           << static_cast<int>(type) << ")";
+    return createError(ebpf::Program::Error::Unknown)
+           << "There is no program for type(" << static_cast<int>(type)
+           << ") system call " << boost::core::demangle(typeid(type).name())
+           << "(" << static_cast<int>(type) << ")";
   }
 }
 
