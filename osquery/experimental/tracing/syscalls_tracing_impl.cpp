@@ -28,14 +28,20 @@ namespace {
 
 class ProcCmdlineRetriever {
  public:
-  static constexpr auto kCmdLineCacheCapacity = std::size_t{255};
+  // This is experimentally obtained number for the command line strings
+  // preserved in cache. If you need to decrease number of cache misses or to
+  // decrease memory consumption don't be shy to change it.
+  static constexpr auto kCacheCapacity = std::size_t{256};
 
-  explicit ProcCmdlineRetriever() : cache_(kCmdLineCacheCapacity) {}
+  explicit ProcCmdlineRetriever() : cache_(kCacheCapacity) {}
 
   std::string const& get(pid_t proc_pid) {
     if (auto cmd_ptr = cache_.get(proc_pid)) {
       return *cmd_ptr;
     } else {
+      LOG(ERROR)
+          << "Experimental tracing: command line string cache miss for pid: "
+          << proc_pid;
       return *cache_.insert(proc_pid, proc::cmdline(proc_pid));
     }
   }
