@@ -95,6 +95,9 @@ function New-VsToolchainBuckConfig {
     /LIBPATH:"VS_INSTALL_LOCATION/VC/Tools/MSVC/VS_TOOLS_VERSION/lib/OS_TYPE" \
     /LIBPATH:"WIN_SDK_INSTALL_LOCATION/Lib/WIN_SDK_VERSION/ucrt/OS_TYPE" \
     /LIBPATH:"WIN_SDK_INSTALL_LOCATION/Lib/WIN_SDK_VERSION/um/OS_TYPE"
+
+[python#py3]
+  interpreter = C:/Python36/python.exe
 '@
 
   $vsLocation = $vsLocation  -Replace '\\', '/'

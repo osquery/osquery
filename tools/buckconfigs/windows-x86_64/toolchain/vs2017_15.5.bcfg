@@ -53,3 +53,6 @@
     /LIBPATH:C:/tools/toolchains/vs2017_15.5/WindowsSdk/10.0.16299.91/Lib/10.0.16299.0/km/x64 \
     /LIBPATH:C:/tools/toolchains/vs2017_15.5/WindowsSdk/10.0.16299.91/Lib/10.0.16299.0/ucrt/x64 \
     /LIBPATH:C:/tools/toolchains/vs2017_15.5/WindowsSdk/10.0.16299.91/Lib/10.0.16299.0/um/x64
+
+[python#py3]
+  interpreter = C:/Python36/python.exe
