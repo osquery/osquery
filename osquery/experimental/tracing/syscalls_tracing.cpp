@@ -7,7 +7,7 @@
  */
 
 #include <osquery/experimental/tracing/syscalls_tracing.h>
-#ifdef POSIX
+#ifdef LINUX
 #include <osquery/experimental/tracing/syscalls_tracing_impl.h>
 #endif
 
@@ -24,7 +24,7 @@ namespace experimental {
 namespace tracing {
 
 void init() {
-#ifdef POSIX
+#ifdef LINUX
   if (FLAGS_enable_experimental_tracing) {
     LOG(INFO) << "Experimental syscall tracing is enabled";
     impl::runService();
