@@ -40,15 +40,14 @@ constexpr int kMinimalLinuxVersionCode = KERNEL_VERSION(4, 9, 0);
 Expected<bool, PosixError> isSupportedBySystem() {
   struct utsname utsbuf;
   if (uname(&utsbuf) == -1) {
-    return createError(to<PosixError>(errno), "syscall uname() failed: ")
-           << boost::io::quoted(strerror(errno));
+    return createError(to<PosixError>(errno))
+           << "syscall uname() failed: " << boost::io::quoted(strerror(errno));
   }
   auto release_version_exp =
       tryTo<SemanticVersion>(std::string(utsbuf.release));
   if (release_version_exp.isError()) {
-    return createError(PosixError::Unknown,
-                       "uname() release field is malformed",
-                       release_version_exp.takeError())
+    return createError(PosixError::Unknown, release_version_exp.takeError())
+           << "uname() release field is malformed"
            << boost::io::quoted(utsbuf.release);
   }
   auto const version = release_version_exp.take();
@@ -59,8 +58,8 @@ Expected<bool, PosixError> isSupportedBySystem() {
 Expected<int, PosixError> syscall(int cmd, union bpf_attr* attr) {
   int const ret = ::syscall(__NR_bpf, cmd, attr, sizeof(union bpf_attr));
   if (ret < 0) {
-    return createError(to<PosixError>(errno), "bpf() syscall failed: ")
-           << boost::io::quoted(strerror(errno));
+    return createError(to<PosixError>(errno))
+           << "bpf() syscall failed: " << boost::io::quoted(strerror(errno));
   }
   return ret;
 }

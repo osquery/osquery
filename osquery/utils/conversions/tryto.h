@@ -124,17 +124,16 @@ tryTo(const FromType& from, const int base = 10) noexcept {
   try {
     return impl::throwingStringToInt<ToType>(from, base);
   } catch (const std::invalid_argument& ia) {
-    return createError(ConversionError::InvalidArgument,
-                       "If no conversion could be performed. ")
-           << ia.what();
+    return createError(ConversionError::InvalidArgument)
+           << "If no conversion could be performed. " << ia.what();
   } catch (const std::out_of_range& oor) {
-    return createError(ConversionError::OutOfRange,
-                       "Value read is out of the range of representable values "
-                       "by an int. ")
+    return createError(ConversionError::OutOfRange)
+           << "Value read is out of the range of representable values by an "
+              "int. "
            << oor.what();
   } catch (...) {
-    return createError(ConversionError::Unknown,
-                       "Unknown error during conversion ")
+    return createError(ConversionError::Unknown)
+           << "Unknown error during conversion "
            << boost::core::demangle(typeid(FromType).name()) << " to "
            << boost::core::demangle(typeid(ToType).name()) << " base " << base;
   }
