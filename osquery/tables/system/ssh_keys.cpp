@@ -17,10 +17,31 @@
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/system/system.h>
 
+#include <boost/algorithm/string.hpp>
+
 namespace osquery {
 namespace tables {
 
 const std::string kSSHUserKeysDir = ".ssh/";
+const std::string kEd25519Header = "-----BEGIN OPENSSH PRIVATE KEY-----";
+
+// The first bytes of an OpenSSH key are |key type|length of cipher name|cipher
+// name| so all unencrypted ed25519 keys should start with the value below
+// (encoded in base64) This magic string is
+//  6f 70 65 6e 73 73 68 2d 6b 65 79 2d 76 31 00 00 00 00 04 6e 6f 6e 65
+// |--------------------------------------------|-----------|----------|
+// | o  p  e  n  s  s  h  -  k  e  y  -  v  1 \0|          4| n  o  n e|
+//
+const std::string kEd25519UnencryptedPrefix = "b3BlbnNzaC1rZXktdjEAAAAABG5vbmU";
+
+bool isEncrypted(std::string keys_content) {
+  if (boost::starts_with(keys_content, kEd25519Header)) {
+    const std::string prefix = keys_content.substr(
+        kEd25519Header.size() + 1, kEd25519UnencryptedPrefix.size());
+    return prefix != kEd25519UnencryptedPrefix;
+  }
+  return (keys_content.find("ENCRYPTED") != std::string::npos) ? true : false;
+}
 
 void genSSHkeyForHosts(const std::string& uid,
                        const std::string& gid,
@@ -48,8 +69,7 @@ void genSSHkeyForHosts(const std::string& uid,
       Row r;
       r["uid"] = uid;
       r["path"] = kfile;
-      r["encrypted"] =
-          (keys_content.find("ENCRYPTED") != std::string::npos) ? "1" : "0";
+      r["encrypted"] = isEncrypted(keys_content) ? "1" : "0";
       results.push_back(r);
     }
   }
