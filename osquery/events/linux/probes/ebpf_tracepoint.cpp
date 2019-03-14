@@ -65,20 +65,19 @@ Expected<EbpfTracepoint, EbpfTracepoint::Error> EbpfTracepoint::load(
   auto fd_exp =
       perf_event_open::syscall(&trace_attr, pid, cpu, group_fd, flags);
   if (fd_exp.isError()) {
-    return createError(Error::SystemError,
-                       "Fail to create perf_event tracepoint",
-                       fd_exp.takeError());
+    return createError(Error::SystemError, fd_exp.takeError())
+           << "Fail to create perf_event tracepoint";
   }
   instance.fd_ = fd_exp.take();
 
   if (ioctl(instance.fd_, PERF_EVENT_IOC_SET_BPF, instance.program_.fd()) < 0) {
-    return createError(Error::SystemError,
-                       "Fail to attach perf event of EbpfTracepoint ")
+    return createError(Error::SystemError)
+           << "Fail to attach perf event of EbpfTracepoint "
            << boost::io::quoted(strerror(errno));
   }
   if (ioctl(instance.fd_, PERF_EVENT_IOC_ENABLE, 0) < 0) {
-    return createError(Error::SystemError,
-                       "Fail to enable perf event of EbpfTracepoint ")
+    return createError(Error::SystemError)
+           << "Fail to enable perf event of EbpfTracepoint "
            << boost::io::quoted(strerror(errno));
   }
   return std::move(instance);
@@ -106,8 +105,8 @@ ExpectedSuccess<EbpfTracepoint::Error> EbpfTracepoint::unload() {
   }
   fd_ = -1;
   if (failed) {
-    return createError(Error::SystemError, "EbpfTracepoint unload failed ")
-           << err_msg;
+    return createError(Error::SystemError)
+           << "EbpfTracepoint unload failed " << err_msg;
   }
   return Success{};
 }

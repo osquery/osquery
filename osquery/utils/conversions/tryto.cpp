@@ -42,8 +42,8 @@ Expected<bool, ConversionError> stringToBool(std::string from) {
  }
  const auto it = table.find(from);
  if (it == table.end()) {
-   return createError(ConversionError::InvalidArgument,
-                      "Wrong string representation of boolean ")
+   return createError(ConversionError::InvalidArgument)
+          << "Wrong string representation of boolean "
           << boost::io::quoted(from);
  }
  return it->second;

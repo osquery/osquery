@@ -22,7 +22,8 @@ namespace {
 Expected<std::string, Error> readSysCpuFile(char const* path) {
   std::ifstream fin(path, std::ios_base::in | std::ios_base::binary);
   if (fin.fail() || fin.bad()) {
-    return createError(Error::IOError, "No access to the system file ") << path;
+    return createError(Error::IOError)
+           << "No access to the system file " << path;
   }
   auto data = std::string{};
   fin >> data;
@@ -74,8 +75,8 @@ Expected<Mask, Error> decodeMaskFromString(const std::string& encoded_str) {
         return to_exp.takeError();
       }
       if (to_exp.get() < from_exp.get()) {
-        return createError(Error::IncorrectRange,
-                           "Incorrect CPU number interval ")
+        return createError(Error::IncorrectRange)
+               << "Incorrect CPU number interval "
                << boost::io::quoted(interval);
       }
       if (to_exp.get() >= mask.size()) {

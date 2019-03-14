@@ -576,8 +576,8 @@ Expected<ConfigMap, Config::RestoreConfigError> Config::restoreConfigBackup() {
       LOG(ERROR)
           << "restoreConfigBackup database failed to retrieve config for key "
           << key;
-      return createError(Config::RestoreConfigError::DatabaseError,
-                         "Could not retrieve value for the key: " + key);
+      return createError(Config::RestoreConfigError::DatabaseError)
+             << "Could not retrieve value for the key: " << key;
     }
     config[key.substr(kConfigPersistencePrefix.length())] = std::move(value);
   }

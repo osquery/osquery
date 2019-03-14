@@ -25,31 +25,30 @@ KillswitchPlugin::parseMapJSON(const std::string& content) {
   auto doc = JSON::newObject();
   if (!doc.fromString(content) || !doc.doc().IsObject()) {
     return createError(
-        KillswitchPlugin::ParseMapJSONError::UnknownParsingProblem,
-        "Error parsing the killswitch JSON. Content : " + content);
+               KillswitchPlugin::ParseMapJSONError::UnknownParsingProblem)
+           << "Error parsing the killswitch JSON. Content : " << content;
   }
 
   const auto table = doc.doc().FindMember("table");
   if (table == doc.doc().MemberEnd()) {
-    return createError(KillswitchPlugin::ParseMapJSONError::MissingKey,
-                       "Killswitch key table containing map was not found");
+    return createError(KillswitchPlugin::ParseMapJSONError::MissingKey)
+           << "Killswitch key table containing map was not found";
   }
   if (!table->value.IsObject()) {
-    return createError(KillswitchPlugin::ParseMapJSONError::IncorrectValueType,
-                       "Killswitch table value is not an object");
+    return createError(KillswitchPlugin::ParseMapJSONError::IncorrectValueType)
+           << "Killswitch table value is not an object";
   }
 
   for (const auto& keyValue : table->value.GetObject()) {
     if (!keyValue.name.IsString()) {
-      return createError(KillswitchPlugin::ParseMapJSONError::IncorrectKeyType,
-                         "Killswitch config key was not string");
+      return createError(KillswitchPlugin::ParseMapJSONError::IncorrectKeyType)
+             << "Killswitch config key was not string";
     }
     auto key = keyValue.name.GetString();
     if (!keyValue.value.IsBool()) {
       return createError(
-          KillswitchPlugin::ParseMapJSONError::IncorrectValueType,
-          std::string("At Killswitch config key: ") + key +
-              " value was not bool");
+                 KillswitchPlugin::ParseMapJSONError::IncorrectValueType)
+             << "At Killswitch config key: " << key << " value was not bool";
     }
     bool value = keyValue.value.GetBool();
     result[key] = value;
@@ -99,8 +98,8 @@ Expected<bool, KillswitchPlugin::IsEnabledError> KillswitchPlugin::isEnabled(
   if (killswitchMap_.find(key) != killswitchMap_.end()) {
     return killswitchMap_[key];
   } else {
-    return createError(KillswitchPlugin::IsEnabledError::NoKeyFound,
-                       "Could not find key " + key);
+    return createError(KillswitchPlugin::IsEnabledError::NoKeyFound)
+           << "Could not find key " << key;
   }
 }
 
