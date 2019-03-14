@@ -19,9 +19,8 @@ Expected<int32_t, DatabaseError> Database::getInt32(const std::string& domain,
     if (value) {
       return *value;
     } else {
-      return createError(DatabaseError::FailToReadData,
-                         "Failed to convert string to int",
-                         value.takeError());
+      return createError(DatabaseError::FailToReadData, value.takeError())
+             << "Failed to convert string to int";
     }
   } else {
     return string_value.takeError();

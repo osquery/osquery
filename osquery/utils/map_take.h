@@ -78,7 +78,7 @@ inline typename std::enable_if<impl::IsMap<MapType>::value,
 tryTake(MapType& table, const KeyType& key) {
   auto it = table.find(key);
   if (it == table.end()) {
-    return createError(MapTakeError::NoSuchKey, "no such key in the table");
+    return createError(MapTakeError::NoSuchKey) << "no such key in the table";
   }
   auto item = std::move(it->second);
   table.erase(it);
@@ -102,7 +102,7 @@ inline typename std::enable_if<impl::IsMap<MapType>::value,
 tryTakeCopy(MapType const& from, KeyType const& key) {
   auto const it = from.find(key);
   if (it == from.end()) {
-    return createError(MapTakeError::NoSuchKey, "no such key in the table");
+    return createError(MapTakeError::NoSuchKey) << "no such key in the table";
   }
   return it->second;
 }
