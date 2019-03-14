@@ -41,8 +41,8 @@ KillswitchFilesystem::refresh() {
   if (!fs::is_regular_file(conf_path_, ec) || ec.value() != errc::success ||
       !readFile(conf_path_, content).ok()) {
     return createError(
-        KillswitchRefreshablePlugin::RefreshError::NoContentReached,
-        "Config file does not exist: " + conf_path_.string());
+               KillswitchRefreshablePlugin::RefreshError::NoContentReached)
+           << "Config file does not exist: " << conf_path_.string();
   }
 
   auto result = KillswitchPlugin::parseMapJSON(content);
@@ -50,8 +50,8 @@ KillswitchFilesystem::refresh() {
     setCache(*result);
     return Success();
   } else {
-    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
-                       result.getError().getMessage());
+    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError)
+           << result.getError().getMessage();
   }
 }
 

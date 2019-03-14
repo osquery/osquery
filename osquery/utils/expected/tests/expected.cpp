@@ -101,8 +101,8 @@ GTEST_TEST(ExpectedTest, createError_example) {
     if (valid) {
       return 50011971;
     }
-    return createError(TestError::Logical,
-                       "an error message is supposed to be here");
+    return createError(TestError::Logical)
+           << "an error message is supposed to be here";
   };
   auto v = giveMeDozen(true);
   EXPECT_TRUE(v);
@@ -135,12 +135,12 @@ GTEST_TEST(ExpectedTest, ExpectedSuccess_example) {
 GTEST_TEST(ExpectedTest, nested_errors_example) {
   const auto msg = std::string{"Write a good error message"};
   auto firstFailureSource = [&msg]() -> Expected<std::vector<int>, TestError> {
-    return createError(TestError::Semantic, msg);
+    return createError(TestError::Semantic) << msg;
   };
   auto giveMeNestedError = [&]() -> Expected<std::vector<int>, TestError> {
     auto ret = firstFailureSource();
     ret.isError();
-    return createError(TestError::Runtime, msg, ret.takeError());
+    return createError(TestError::Runtime, ret.takeError()) << msg;
   };
   auto ret = giveMeNestedError();
   EXPECT_FALSE(ret);
@@ -152,7 +152,7 @@ GTEST_TEST(ExpectedTest, nested_errors_example) {
 
 GTEST_TEST(ExpectedTest, error_handling_example) {
   auto failureSource = []() -> Expected<std::vector<int>, TestError> {
-    return createError(TestError::Runtime, "Test error message ()*+,-.");
+    return createError(TestError::Runtime) << "Test error message ()*+,-.";
   };
   auto ret = failureSource();
   if (ret.isError()) {
@@ -292,7 +292,7 @@ GTEST_TEST(ExpectedTest, error__takeOr_with_user_defined_class) {
     std::string text;
   };
   auto callable = []() -> Expected<SomeTestClass, TestError> {
-    return createError(TestError::Semantic, "error message");
+    return createError(TestError::Semantic) << "error message";
   };
   EXPECT_EQ(callable().takeOr(SomeTestClass("427 BC", "347 BC")).text,
             "427 BC - 347 BC");
@@ -308,7 +308,7 @@ GTEST_TEST(ExpectedTest, value_takeOr_with_rvalue_as_an_argument) {
 GTEST_TEST(ExpectedTest, error_takeOr_with_rvalue_as_an_argument) {
   auto value = int{312};
   auto callable = []() -> Expected<int, TestError> {
-    return createError(TestError::Logical, "error message");
+    return createError(TestError::Logical) << "error message";
   };
   value = callable().takeOr(value);
   EXPECT_EQ(value, 312);

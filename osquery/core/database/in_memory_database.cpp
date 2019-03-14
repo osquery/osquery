@@ -40,8 +40,8 @@ Expected<StorageType, DatabaseError> InMemoryStorage<StorageType>::get(
   if (iter != storage_.end()) {
     return iter->second;
   }
-  return createError(DatabaseError::KeyNotFound, "Can't find value for key ")
-         << key;
+  return createError(DatabaseError::KeyNotFound)
+         << "Can't find value for key " << key;
 }
 
 void InMemoryDatabase::close() {
@@ -70,8 +70,8 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::open() {
 
 Error<DatabaseError> InMemoryDatabase::domainNotFoundError(
     const std::string& domain) const {
-  return createError(DatabaseError::DomainNotFound, "Can't find domain: ")
-         << domain;
+  return createError(DatabaseError::DomainNotFound)
+         << "Can't find domain: " << domain;
 }
 
 template <typename T>
@@ -79,7 +79,7 @@ Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain,
                                                       const std::string& key) {
   debug_only::verifyTrue(is_open_, "database is not open");
   if (!is_open_) {
-    return createError(DatabaseError::DbIsNotOpen, "Database is closed");
+    return createError(DatabaseError::DbIsNotOpen) << "Database is closed";
   }
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {
@@ -92,10 +92,11 @@ Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain,
     if (value.type() == typeid(T)) {
       return boost::get<T>(value);
     } else {
-      auto error =
-          createError(DatabaseError::KeyNotFound, "Requested wrong type for: ")
-          << domain << ":" << key << " stored type: " << value.type().name()
-          << " requested type " << boost::core::demangle(typeid(T).name());
+      auto error = createError(DatabaseError::KeyNotFound)
+                   << "Requested wrong type for: " << domain << ":" << key
+                   << " stored type: " << value.type().name()
+                   << " requested type "
+                   << boost::core::demangle(typeid(T).name());
       LOG(ERROR) << error.getMessage();
       debug_only::fail(error.getMessage().c_str());
       return std::move(error);
@@ -109,7 +110,7 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::putValue(
     const std::string& domain, const std::string& key, const T& value) {
   debug_only::verifyTrue(is_open_, "database is not open");
   if (!is_open_) {
-    return createError(DatabaseError::DbIsNotOpen, "Database is closed");
+    return createError(DatabaseError::DbIsNotOpen) << "Database is closed";
   }
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {

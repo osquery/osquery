@@ -68,21 +68,20 @@ Expected<bool, Killswitch::IsEnabledError> Killswitch::isEnabled(
       {{Killswitch::action_, Killswitch::isEnabled_}, {Killswitch::key_, key}},
       response);
   if (!status.ok()) {
-    return createError(Killswitch::IsEnabledError::CallFailed,
-                       status.getMessage());
+    return createError(Killswitch::IsEnabledError::CallFailed)
+           << status.getMessage();
   }
 
   if (response.size() != 1) {
-    return createError(Killswitch::IsEnabledError::IncorrectResponseFormat,
-                       "Response size should be 1 but is ")
+    return createError(Killswitch::IsEnabledError::IncorrectResponseFormat)
+           << "Response size should be 1 but is "
            << std::to_string(response.size());
   }
   const auto& response_map = response[0];
   const auto& is_enabled_item = response_map.find(Killswitch::isEnabled_);
   if (is_enabled_item == response_map.end()) {
-    return createError(
-        Killswitch::IsEnabledError::IncorrectResponseFormat,
-        "isEnabled key missing in response of the action: isEnabled");
+    return createError(Killswitch::IsEnabledError::IncorrectResponseFormat)
+           << "isEnabled key missing in response of the action: isEnabled";
   }
 
   const auto& is_enabled_value = is_enabled_item->second;
@@ -91,8 +90,8 @@ Expected<bool, Killswitch::IsEnabledError> Killswitch::isEnabled(
   } else if (is_enabled_value == "0") {
     return false;
   } else {
-    return createError(Killswitch::IsEnabledError::IncorrectValue,
-                       "Unknown isEnabled value " + is_enabled_value);
+    return createError(Killswitch::IsEnabledError::IncorrectValue)
+           << "Unknown isEnabled value " << is_enabled_value;
   }
 }
 
