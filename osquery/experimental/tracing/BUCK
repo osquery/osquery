@@ -39,8 +39,10 @@ osquery_cxx_library(
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/events/linux/probes:probes_events"),
         osquery_target("osquery/experimental/events_stream:events_stream"),
+        osquery_target("osquery/utils/caches:lru"),
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/json:json"),
+        osquery_target("osquery/utils/system/linux/proc:proc"),
         osquery_target("osquery/utils/system:time"),
     ],
 )

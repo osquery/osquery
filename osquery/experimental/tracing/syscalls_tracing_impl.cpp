@@ -14,8 +14,10 @@
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
 
+#include <osquery/utils/caches/lru.h>
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/json/json.h>
+#include <osquery/utils/system/linux/proc/proc.h>
 #include <osquery/utils/system/time.h>
 
 namespace osquery {
@@ -23,6 +25,30 @@ namespace experimental {
 namespace tracing {
 
 namespace {
+
+class ProcCmdlineRetriever {
+ public:
+  // This is experimentally obtained number for the command line strings
+  // preserved in cache. If you need to decrease number of cache misses or to
+  // decrease memory consumption don't be shy to change it.
+  static constexpr auto kCacheCapacity = std::size_t{256};
+
+  explicit ProcCmdlineRetriever() : cache_(kCacheCapacity) {}
+
+  std::string const& get(pid_t proc_pid) {
+    if (auto cmd_ptr = cache_.get(proc_pid)) {
+      return *cmd_ptr;
+    } else {
+      LOG(ERROR)
+          << "Experimental tracing: command line string cache miss for pid: "
+          << proc_pid;
+      return *cache_.insert(proc_pid, proc::cmdline(proc_pid));
+    }
+  }
+
+ private:
+  caches::LRU<pid_t, std::string> cache_;
+};
 
 enum class Error {
   InitialisationProblem = 1,
@@ -53,6 +79,7 @@ ExpectedSuccess<Error> runSyscallTracing() {
   auto output_batch = ebpf::PerfOutputsPoll<
       ::osquery::events::syscall::Event>::MessageBatchType{};
   auto event_joiner = ::osquery::events::syscall::EnterExitJoiner{};
+  auto cmdline_getter = ProcCmdlineRetriever{};
   while (true) {
     auto status = probes.getReader().read(output_batch);
     if (status.isError()) {
@@ -67,6 +94,7 @@ ExpectedSuccess<Error> runSyscallTracing() {
         event_json.add("time", getUnixTime());
         event_json.add("pid", final_event->pid);
         event_json.add("tgid", final_event->tgid);
+        event_json.add("cmdline", cmdline_getter.get(final_event->pid));
         event_json.add("return", final_event->return_value);
         if (final_event->type ==
             ::osquery::events::syscall::EventType::KillEnter) {
@@ -75,6 +103,9 @@ ExpectedSuccess<Error> runSyscallTracing() {
           event_json.add("gid", final_event->body.kill_enter.gid);
           event_json.add("comm", final_event->body.kill_enter.comm);
           event_json.add("arg_pid", final_event->body.kill_enter.arg_pid);
+          event_json.add(
+              "arg_cmdline",
+              cmdline_getter.get(final_event->body.kill_enter.arg_pid));
           event_json.add("arg_sig", final_event->body.kill_enter.arg_sig);
         } else if (final_event->type ==
                    ::osquery::events::syscall::EventType::SetuidEnter) {
