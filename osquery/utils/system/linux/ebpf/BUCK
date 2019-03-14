@@ -41,7 +41,7 @@ osquery_cxx_library(
     deps = [
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/system/linux/perf_event:perf_event"),
-        osquery_target("osquery/utils/system:cpu"),
+        osquery_target("osquery/utils/system:cpu_topology"),
         osquery_target("osquery/utils/expected:expected"),
         osquery_target("osquery/utils/versioning:semantic"),
         osquery_target("osquery/utils/system:errno"),

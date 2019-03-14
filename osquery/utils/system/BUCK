@@ -106,7 +106,7 @@ osquery_cxx_test(
 )
 
 osquery_cxx_library(
-    name = "cpu",
+    name = "cpu_topology",
     header_namespace = "osquery/utils/system",
     exported_platform_headers = [
         (
@@ -133,7 +133,7 @@ osquery_cxx_library(
 )
 
 osquery_cxx_test(
-    name = "cpu_tests",
+    name = "cpu_topology_tests",
     srcs = [
         "tests/cpu.cpp",
     ],
@@ -147,7 +147,7 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        ":cpu",
+        ":cpu_topology",
     ],
 )
 
