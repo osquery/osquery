@@ -59,22 +59,21 @@ enum class Error {
 ExpectedSuccess<Error> runSyscallTracing() {
   auto probes_exp = ::osquery::events::LinuxProbesControl::spawn();
   if (probes_exp.isError()) {
-    return createError(Error::InitialisationProblem,
-                       "linux probes control spawn failed",
-                       probes_exp.takeError());
+    return createError(Error::InitialisationProblem, probes_exp.takeError())
+           << "linux probes control spawn failed";
   }
   auto probes = probes_exp.take();
   auto kill_trace_on_exp = probes.traceKill();
   if (kill_trace_on_exp.isError()) {
     return createError(Error::InitialisationProblem,
-                       "kill tracing initialisation failed",
-                       kill_trace_on_exp.takeError());
+                       kill_trace_on_exp.takeError())
+           << "kill tracing initialisation failed";
   }
   auto setuid_trace_on_exp = probes.traceSetuid();
   if (setuid_trace_on_exp.isError()) {
     return createError(Error::InitialisationProblem,
-                       "setuid tracing initialisation failed",
-                       setuid_trace_on_exp.takeError());
+                       setuid_trace_on_exp.takeError())
+           << "setuid tracing initialisation failed";
   }
   auto output_batch = ebpf::PerfOutputsPoll<
       ::osquery::events::syscall::Event>::MessageBatchType{};
@@ -83,8 +82,8 @@ ExpectedSuccess<Error> runSyscallTracing() {
   while (true) {
     auto status = probes.getReader().read(output_batch);
     if (status.isError()) {
-      return createError(
-          Error::RuntimeProblem, "event read failed", status.takeError());
+      return createError(Error::RuntimeProblem, status.takeError())
+             << "event read failed";
     }
     for (const auto& event : output_batch) {
       auto final_event = event_joiner.join(event);
