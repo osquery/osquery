@@ -124,27 +124,6 @@ inline std::ostream& operator<<(std::ostream& out, const ErrorBase& error) {
   return out;
 }
 
-template <typename ErrorCodeEnumType>
-OSQUERY_NODISCARD Error<ErrorCodeEnumType> createError(
-    ErrorCodeEnumType error_code,
-    std::string message,
-    std::unique_ptr<ErrorBase> underlying_error = nullptr) {
-  return Error<ErrorCodeEnumType>(
-      error_code, std::move(message), std::move(underlying_error));
-}
-
-template <typename ErrorCodeEnumType, typename OtherErrorCodeEnumType>
-OSQUERY_NODISCARD Error<ErrorCodeEnumType> createError(
-    ErrorCodeEnumType error_code,
-    std::string message,
-    Error<OtherErrorCodeEnumType> underlying_error) {
-  return Error<ErrorCodeEnumType>(
-      error_code,
-      std::move(message),
-      std::make_unique<Error<OtherErrorCodeEnumType>>(
-          std::move(underlying_error)));
-}
-
 template <typename ErrorCodeEnumType, typename OtherErrorCodeEnumType>
 OSQUERY_NODISCARD Error<ErrorCodeEnumType> createError(
     ErrorCodeEnumType error_code,
