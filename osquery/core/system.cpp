@@ -578,6 +578,9 @@ bool checkPlatform(const std::string& platform) {
     return true;
   }
 
+  // Technically "centos" and "ubuntu" are no longer supported. We have never
+  // differentiated between Linux distributions, but rather execute all Linux
+  // based queries on any Linux system.
   auto linux_type = (platform.find("linux") != std::string::npos ||
                      platform.find("ubuntu") != std::string::npos ||
                      platform.find("centos") != std::string::npos);
