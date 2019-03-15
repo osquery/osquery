@@ -97,15 +97,10 @@ TEST_F(PacksTests, test_sharding) {
 }
 
 TEST_F(PacksTests, test_check_platform) {
+  // First we exercise some basic functionality which should behave the same
+  // regardless of the current build platform.
   Pack fpack("discovery_pack", getPackWithDiscovery().doc());
   EXPECT_TRUE(fpack.checkPlatform());
-
-  // Depending on the current build platform, this check will be true or false.
-  fpack.platform_ = kSDKPlatform;
-  EXPECT_TRUE(fpack.checkPlatform());
-
-  fpack.platform_ = (kSDKPlatform == "darwin") ? "linux" : "darwin";
-  EXPECT_FALSE(fpack.checkPlatform());
 
   fpack.platform_ = "null";
   EXPECT_TRUE(fpack.checkPlatform());
@@ -116,15 +111,55 @@ TEST_F(PacksTests, test_check_platform) {
   fpack.platform_ = "bad_value";
   EXPECT_FALSE(fpack.checkPlatform());
 
+  // We should execute the query if the SDK platform is specifed.
+  fpack.platform_ = kSDKPlatform;
+  EXPECT_TRUE(fpack.checkPlatform());
+  // But not if something other than the SDK platform is speciifed.
+  fpack.platform_ = (kSDKPlatform == "darwin") ? "linux" : "darwin";
+  EXPECT_FALSE(fpack.checkPlatform());
+
+  // For the remaining tests, we exercise all of the valid platform values.
+  fpack.platform_ = "darwin";
+  if (isPlatform(PlatformType::TYPE_OSX)) {
+    EXPECT_TRUE(fpack.checkPlatform());
+  } else {
+    EXPECT_FALSE(fpack.checkPlatform());
+  }
+
+  fpack.platform_ = "freebsd";
+  if (isPlatform(PlatformType::TYPE_FREEBSD)) {
+    EXPECT_TRUE(fpack.checkPlatform());
+  } else {
+    EXPECT_FALSE(fpack.checkPlatform());
+  }
+
+  // Although officially no longer supported, we still treat the platform
+  // values of "centos" and "ubuntu" just like "linux". We execute any query
+  // with any of these platform values on any Linux system. For what it's
+  // worth, we never actually differentiated between Linux distributions.
+  for (auto p : std::set<std::string>{"centos", "linux", "ubuntu"}) {
+    fpack.platform_ = p;
+    if (isPlatform(PlatformType::TYPE_LINUX)) {
+      EXPECT_TRUE(fpack.checkPlatform());
+    } else {
+      EXPECT_FALSE(fpack.checkPlatform());
+    }
+  }
+
   fpack.platform_ = "posix";
   if (isPlatform(PlatformType::TYPE_POSIX) ||
       isPlatform(PlatformType::TYPE_LINUX) ||
       isPlatform(PlatformType::TYPE_OSX) ||
       isPlatform(PlatformType::TYPE_FREEBSD)) {
     EXPECT_TRUE(fpack.checkPlatform());
+  } else {
+    EXPECT_FALSE(fpack.checkPlatform());
   }
 
+  fpack.platform_ = "windows";
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    EXPECT_TRUE(fpack.checkPlatform());
+  } else {
     EXPECT_FALSE(fpack.checkPlatform());
   }
 }
