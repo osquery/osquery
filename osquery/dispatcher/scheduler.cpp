@@ -68,6 +68,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
          (boost::format("scheduler.assigned.query.%s.%s.%s") % query.oncall %
           query.pack_name % query.name)
              .str(),
+         (boost::format("scheduler.owners.%s") % query.oncall).str(),
          (boost::format("scheduler.query.%s.%s.%s") %
           monitoring::hostIdentifierKeys().scheme % query.pack_name %
           query.name)
