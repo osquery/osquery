@@ -215,7 +215,14 @@ void setVerboseLevel() {
     FLAGS_alsologtostderr = true;
     FLAGS_v = 1;
   } else {
-    FLAGS_minloglevel = Flag::getInt32Value("logger_min_status");
+    /* We use a different default for the log level if running as a daemon or if
+     * running as a shell. If the flag was set we just use that in both cases.
+     */
+    if (Flag::isDefault("logger_min_status") && Initializer::isShell()) {
+      FLAGS_minloglevel = google::GLOG_WARNING;
+    } else {
+      FLAGS_minloglevel = Flag::getInt32Value("logger_min_status");
+    }
     FLAGS_stderrthreshold = Flag::getInt32Value("logger_min_stderr");
   }
 
