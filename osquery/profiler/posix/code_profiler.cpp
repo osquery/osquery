@@ -83,21 +83,21 @@ void recordRusageStatDifference(const std::vector<std::string>& names,
   }
 }
 
+int64_t covertToMilliseconds(const struct timeval& timepoint) {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::seconds(timepoint.tv_sec) +
+             std::chrono::microseconds(timepoint.tv_usec))
+      .count();
+}
+
 void recordRusageStatDifference(const std::vector<std::string>& names,
                                 const std::string& stat_name,
                                 const struct timeval& start_stat,
                                 const struct timeval& end_stat) {
-  recordRusageStatDifference(
-      names,
-      stat_name + ".millis",
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::seconds(start_stat.tv_sec) +
-          std::chrono::microseconds(start_stat.tv_usec))
-          .count(),
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::seconds(end_stat.tv_sec) +
-          std::chrono::microseconds(end_stat.tv_usec))
-          .count());
+  recordRusageStatDifference(names,
+                             stat_name + ".millis",
+                             covertToMilliseconds(start_stat),
+                             covertToMilliseconds(end_stat));
 }
 
 void recordRusageStatDifference(const std::vector<std::string>& names,
@@ -119,6 +119,13 @@ void recordRusageStatDifference(const std::vector<std::string>& names,
 
   recordRusageStatDifference(
       names, "time.system", start_stats.ru_stime, end_stats.ru_stime);
+
+  recordRusageStatDifference(names,
+                             "time.total.millis",
+                             covertToMilliseconds(start_stats.ru_utime) +
+                                 covertToMilliseconds(start_stats.ru_stime),
+                             covertToMilliseconds(end_stats.ru_utime) +
+                                 covertToMilliseconds(end_stats.ru_stime));
 }
 
 } // namespace
