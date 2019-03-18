@@ -18,43 +18,15 @@ class BuildType:
     DEBUG = "debug"
 
 
-BCFG_TOOLCHAIN = {
-    Platform.LINUX_X86_64: "//tools/buckconfigs/linux-x86_64/toolchain/ubuntu-18.04-clang.bcfg",
+BCFG_BASE_PATH = "//tools"
+
+
+PLATFORM_TOOLCHAIN = {
+    Platform.LINUX_X86_64: "ubuntu-18.04-clang",
     Platform.MACOS_X86_64: None,
-    Platform.FREEBSD_X86_64: "//tools/buckconfigs/freebsd-x86_64/toolchain/freebsd-11.2-clang.bcfg",
-    Platform.WINDOWS_X86_64: "//tools/buckconfigs/windows-x86_64/toolchain/vsToolchainFlags.bcfg",
+    Platform.FREEBSD_X86_64: "freebsd-11.2-clang",
+    Platform.WINDOWS_X86_64: "vsToolchainFlags",
 }
-
-
-BCFG_TYPE = {
-    Platform.LINUX_X86_64: {
-        BuildType.RELEASE: "//tools/buckconfigs/linux-x86_64/type/release.bcfg",
-        BuildType.DEBUG: "//tools/buckconfigs/linux-x86_64/type/debug.bcfg",
-    },
-    Platform.MACOS_X86_64: {
-        BuildType.RELEASE: "//tools/buckconfigs/macos-x86_64/type/release.bcfg",
-        BuildType.DEBUG: "//tools/buckconfigs/macos-x86_64/type/debug.bcfg",
-    },
-    Platform.FREEBSD_X86_64: {
-        BuildType.RELEASE: "//tools/buckconfigs/freebsd-x86_64/type/release.bcfg",
-        BuildType.DEBUG: "//tools/buckconfigs/freebsd-x86_64/type/debug.bcfg",
-    },
-    Platform.WINDOWS_X86_64: {
-        BuildType.RELEASE: "//tools/buckconfigs/windows-x86_64/type/release.bcfg",
-        BuildType.DEBUG: "//tools/buckconfigs/windows-x86_64/type/debug.bcfg",
-    },
-}
-
-
-BCFG_PLATFORM_BASE = {
-    Platform.LINUX_X86_64: "//tools/buckconfigs/linux-x86_64/base.bcfg",
-    Platform.MACOS_X86_64: "//tools/buckconfigs/macos-x86_64/base.bcfg",
-    Platform.FREEBSD_X86_64: "//tools/buckconfigs/freebsd-x86_64/base.bcfg",
-    Platform.WINDOWS_X86_64: "//tools/buckconfigs/windows-x86_64/base.bcfg",
-}
-
-
-BCFG_PLATFORM = "//tools/buckconfigs/base.bcfg"
 
 
 def generate_config_file_flag(bcfg):
@@ -62,19 +34,36 @@ def generate_config_file_flag(bcfg):
 
 
 def generate_toolchain(build_platform, build_type):
-    return generate_config_file_flag(BCFG_TOOLCHAIN[build_platform])
+    toolchain = PLATFORM_TOOLCHAIN[build_platform]
+
+    if toolchain is not None:
+        bcfg = "{}/buckconfigs/{}/toolchain/{}.bcfg".format(
+            BCFG_BASE_PATH, build_platform, toolchain
+        )
+    else:
+        bcfg = None
+
+    return generate_config_file_flag(bcfg)
 
 
 def generate_type(build_platform, build_type):
-    return generate_config_file_flag(BCFG_TYPE[build_platform][build_type])
+    bcfg = "{}/buckconfigs/{}/type/{}.bcfg".format(
+        BCFG_BASE_PATH, build_platform, build_type
+    )
+
+    return generate_config_file_flag(bcfg)
 
 
 def generate_platform_base(build_platform):
-    return generate_config_file_flag(BCFG_PLATFORM_BASE[build_platform])
+    bcfg = "{}/buckconfigs/{}/base.bcfg".format(BCFG_BASE_PATH, build_platform)
+
+    return generate_config_file_flag(bcfg)
 
 
 def generate_base():
-    return generate_config_file_flag(BCFG_PLATFORM)
+    bcfg = "{}/buckconfigs/base.bcfg".format(BCFG_BASE_PATH)
+
+    return generate_config_file_flag(bcfg)
 
 
 # Buck does not allow this script to fail, so lets pass an invalid flag ---- to
