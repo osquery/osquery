@@ -89,6 +89,10 @@ enum {
 
 namespace osquery {
 CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
+CLI_FLAG(bool,
+         enable_signal_handler,
+         false,
+         "Enable custom osquery signals handler instead of default one");
 }
 
 namespace {
@@ -378,17 +382,19 @@ Initializer::Initializer(int& argc,
     initWorkDirectories();
   }
 
-  std::signal(SIGABRT, signalHandler);
-  std::signal(SIGUSR1, signalHandler);
+  if (FLAGS_enable_signal_handler) {
+    std::signal(SIGABRT, signalHandler);
+    std::signal(SIGUSR1, signalHandler);
 
-  // All tools handle the same set of signals.
-  // If a daemon process is a watchdog the signal is passed to the worker,
-  // unless the worker has not yet started.
-  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-    std::signal(SIGTERM, signalHandler);
-    std::signal(SIGINT, signalHandler);
-    std::signal(SIGHUP, signalHandler);
-    std::signal(SIGALRM, signalHandler);
+    // All tools handle the same set of signals.
+    // If a daemon process is a watchdog the signal is passed to the worker,
+    // unless the worker has not yet started.
+    if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+      std::signal(SIGTERM, signalHandler);
+      std::signal(SIGINT, signalHandler);
+      std::signal(SIGHUP, signalHandler);
+      std::signal(SIGALRM, signalHandler);
+    }
   }
 
   // If the caller is checking configuration, disable the watchdog/worker.
@@ -747,7 +753,8 @@ void Initializer::requestShutdown(int retcode) {
   }
 
   // Stop thrift services/clients/and their thread pools.
-  if (std::this_thread::get_id() != kMainThreadId) {
+  if (std::this_thread::get_id() != kMainThreadId &&
+      FLAGS_enable_signal_handler) {
     raise(SIGUSR1);
   } else {
     // The main thread is requesting a shutdown, meaning in almost every case
