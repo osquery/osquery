@@ -511,7 +511,7 @@ void Initializer::initWatcher() const {
 
   // Add a watcher service thread to start/watch an optional worker and list
   // of optional extensions from the autoload paths.
-  if (Watcher::get().hasManagedExtensions() || !FLAGS_disable_watchdog) {
+  if (!FLAGS_disable_watchdog) {
     Dispatcher::addService(
         std::make_shared<WatcherRunner>(*argc_, *argv_, isWatcher()));
   }
