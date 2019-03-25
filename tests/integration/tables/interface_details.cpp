@@ -43,6 +43,7 @@ TEST_F(InterfaceDetailsTest, sanity) {
     }
     return true;
   };
+#ifdef OSQUERY_WINDOWS
   auto verify_int_or_empty_on_win = [](std::string const& value) {
     if (value.empty()) {
       return isPlatform(PlatformType::TYPE_WINDOWS);
@@ -62,6 +63,7 @@ TEST_F(InterfaceDetailsTest, sanity) {
     }
     return true;
   };
+#endif
   auto const row_map = ValidatatioMap{
       {"interface", NonEmptyString},
       {"mac", verify_non_empty_string_or_empty_on_win},
