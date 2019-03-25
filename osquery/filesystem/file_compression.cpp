@@ -187,9 +187,9 @@ Status archive(const std::set<boost::filesystem::path>& paths,
     for (size_t i = 0; i < blkCount; i++) {
       std::vector<char> block(block_size, 0);
       auto r = pFile.read(block.data(), block_size);
-      if (r != block_size && r > 0) {
+      if (r > 0 && static_cast<std::size_t>(r) != block_size) {
         // resize the buffer to size we read as last block is likely smaller
-        block.resize(r);
+        block.resize(static_cast<std::size_t>(r));
       }
       archive_write_data(arch, block.data(), block.size());
     }
