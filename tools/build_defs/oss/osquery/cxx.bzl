@@ -148,4 +148,18 @@ def osquery_cxx_test(external = False, **kwargs):
     _ignore = [external]
     _osquery_set_generic_kwargs(kwargs)
     _osquery_set_preprocessor_kwargs(kwargs, external)
+
+    kwargs.setdefault("platform_preprocessor_flags", [])
+    kwargs["platform_preprocessor_flags"].append(
+        (
+            _MACOSX,
+            [
+                # osquery tests have lots of ASSERT_/EXPECT_ to compare signed
+                # const with unsigned value. It requires some effort to fix it
+                # with small value, because it is just tests.
+                "-Wno-sign-compare",
+            ],
+        ),
+    )
+
     _osquery_cxx_test(**kwargs)
