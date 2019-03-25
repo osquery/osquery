@@ -19,12 +19,13 @@ namespace tables {
 
 namespace {
 
-constexpr std::array<const char*, 3> kMagicFiles = {
+constexpr std::array<const char*, 3> kMagicFiles = {{
     "/usr/share/misc/magic",
     "/usr/share/misc/magic.mgc",
-    "/usr/share/file/magic/magic"};
+    "/usr/share/file/magic/magic",
+}};
 
-constexpr char* kMagicFileDBSep = ":";
+constexpr char const* kMagicFileDBSep = ":";
 } // namespace
 
 QueryData genMagicData(QueryContext& context) {
