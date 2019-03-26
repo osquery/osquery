@@ -147,6 +147,12 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
   osquery::Initializer runner(argc, argv, osquery::ToolType::SHELL_DAEMON);
 
   // Options for installing or uninstalling the osqueryd as a service
+  if (FLAGS_install && FLAGS_uninstall) {
+    LOG(ERROR) << "osqueryd service install and uninstall can not be "
+                  "requested together";
+    return 1;
+  }
+
   if (FLAGS_install) {
     auto binPath = fs::system_complete(fs::path(argv[0]));
     if (!installService(binPath.string())) {
