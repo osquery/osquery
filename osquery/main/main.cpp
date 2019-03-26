@@ -6,9 +6,6 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <cstdio>
-#include <cstring>
-
 #ifdef WIN32
 #include <io.h>
 #endif
@@ -63,7 +60,8 @@ int profile(int argc, char* argv[]) {
     std::getline(std::cin, query);
   } else if (argc < 2) {
     // No query input provided via stdin or as a positional argument.
-    fprintf(stderr, "No query provided via stdin or args to profile...\n");
+    std::cerr << "No query provided via stdin or args to profile..."
+              << std::endl;
     return 2;
   } else {
     query = std::string(argv[1]);
@@ -83,10 +81,8 @@ int profile(int argc, char* argv[]) {
     auto status = osquery::queryInternal(query, results, dbc);
     dbc->clearAffectedTables();
     if (!status) {
-      fprintf(stderr,
-              "Query failed (%d): %s\n",
-              status.getCode(),
-              status.what().c_str());
+      std::cerr << "Query failed (" << status.getCode()
+                << "): " << status.what() << std::endl;
       return status.getCode();
     }
   }
