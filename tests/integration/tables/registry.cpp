@@ -23,7 +23,7 @@ class RegistryTest : public testing::Test {
   }
 };
 
-TEST_F(RegistryTest, sanity) {
+TEST_F(RegistryTest, test_sanity) {
   QueryData const rows = execute_query("select * from registry");
   ASSERT_GT(rows.size(), 0ul);
   auto const row_map = ValidatatioMap{

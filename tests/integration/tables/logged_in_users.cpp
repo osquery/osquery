@@ -22,7 +22,7 @@ class LoggedInUsersTest : public testing::Test {
     }
 };
 
-TEST_F(LoggedInUsersTest, sanity) {
+TEST_F(LoggedInUsersTest, test_sanity) {
   auto const rows = execute_query("select * from logged_in_users");
   auto const row_map = ValidatatioMap{
       {"type", NonEmptyString},

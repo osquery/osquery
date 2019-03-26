@@ -25,7 +25,7 @@ class InterfaceDetailsTest : public testing::Test {
     }
 };
 
-TEST_F(InterfaceDetailsTest, sanity) {
+TEST_F(InterfaceDetailsTest, test_sanity) {
   QueryData const rows = execute_query("select * from interface_details");
   auto verify_non_negative_or_empty = [](std::string const& value) {
     if (value.empty()) {

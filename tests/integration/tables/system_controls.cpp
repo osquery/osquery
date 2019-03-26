@@ -22,7 +22,7 @@ class SystemControlsTest : public testing::Test {
   }
 };
 
-TEST_F(SystemControlsTest, sanity) {
+TEST_F(SystemControlsTest, test_sanity) {
   auto const rows = execute_query("select * from system_controls");
   auto const row_map = ValidatatioMap{
       {"name", NonEmptyString},

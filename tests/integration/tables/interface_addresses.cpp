@@ -24,7 +24,7 @@ class InterfaceAddressesTest : public testing::Test {
     }
 };
 
-TEST_F(InterfaceAddressesTest, sanity) {
+TEST_F(InterfaceAddressesTest, test_sanity) {
   QueryData const rows = execute_query("select * from interface_addresses");
 
   auto const row_map = ValidatatioMap{

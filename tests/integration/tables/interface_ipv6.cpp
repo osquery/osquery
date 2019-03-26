@@ -21,7 +21,7 @@ class InterfaceIpv6Test : public testing::Test {
   }
 };
 
-TEST_F(InterfaceIpv6Test, sanity) {
+TEST_F(InterfaceIpv6Test, test_sanity) {
   QueryData const rows = execute_query("select * from interface_ipv6");
   auto const row_map = ValidatatioMap{
       {"interface", NonEmptyString},

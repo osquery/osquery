@@ -24,7 +24,7 @@ class KnownHostsTest : public testing::Test {
   }
 };
 
-TEST_F(KnownHostsTest, sanity) {
+TEST_F(KnownHostsTest, test_sanity) {
   QueryData const rows = execute_query("select * from known_hosts");
   if (rows.empty()) {
     LOG(WARNING) << "select from \"known_hosts\" table returned no results and "

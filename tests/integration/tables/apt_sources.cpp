@@ -24,7 +24,7 @@ class AptSourcesTest : public testing::Test {
   }
 };
 
-TEST_F(AptSourcesTest, sanity) {
+TEST_F(AptSourcesTest, test_sanity) {
   QueryData data = execute_query("select * from apt_sources");
   if (data.empty()) {
     LOG(WARNING) << "select from \"apt_sources\" table returned no results and "
