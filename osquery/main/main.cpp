@@ -155,15 +155,21 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
 
   if (FLAGS_install) {
     auto binPath = fs::system_complete(fs::path(argv[0]));
-    if (!installService(binPath.string())) {
+    if (installService(binPath.string())) {
+      LOG(INFO) << "osqueryd service was installed successfully.";
+      return 0;
+    } else {
       LOG(ERROR) << "Unable to install the osqueryd service";
+      return 1;
     }
-    return 1;
   } else if (FLAGS_uninstall) {
-    if (!uninstallService()) {
+    if (uninstallService()) {
+      LOG(INFO) << "osqueryd service was uninstalled successfully.";
+      return 0;
+    } else {
       LOG(ERROR) << "Unable to uninstall the osqueryd service";
+      return 1;
     }
-    return 1;
   }
 
   runner.installShutdown(shutdown);
