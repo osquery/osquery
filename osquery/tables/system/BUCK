@@ -76,15 +76,6 @@ osquery_cxx_library(
             ],
         ),
     ],
-    platform_compiler_flags = [
-        (
-            MACOSX,
-            [
-                "-Wno-c99-extensions",
-                "-Wno-undeclared-selector",
-            ],
-        ),
-    ],
     platform_deps = [
         (
             LINUX,
@@ -279,6 +270,7 @@ osquery_cxx_library(
                 "windows/system_info.cpp",
                 "windows/user_groups.cpp",
                 "windows/users.cpp",
+		"windows/userassist.cpp",
                 "windows/video_info.cpp",
                 "windows/windows_crashes.cpp",
                 "windows/wmi_bios_info.cpp",
