@@ -669,14 +669,6 @@ osquery_gentable_cxx_library(
             "linux,macos,windows",
         ),
         (
-            "windows/bitlocker_info.table",
-            "windows",
-        ),
-        (
-            "windows/logon_sessions.table",
-            "windows",
-        ),
-        (
             "windows/ntfs_acl_permissions.table",
             "windows",
         ),
@@ -763,7 +755,7 @@ osquery_gentable_cxx_library(
         (
             "windows/appcompat_shims.table",
             "windows",
-        ),
+        ),        
         (
             "windows/powershell_events.table",
             "windows",
@@ -796,6 +788,9 @@ osquery_gentable_cxx_library(
             "windows/autoexec.table",
             "windows",
         ),
+	("windows/userassist.table",
+            "windows",
+	),
         (
             "yara/yara_events.table",
             "linux,macos",
