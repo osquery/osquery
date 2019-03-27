@@ -23,7 +23,7 @@ namespace osquery {
 namespace tables {
 
 const std::string kSSHUserKeysDir = ".ssh/";
-const std::string kEd25519Header = "-----BEGIN OPENSSH PRIVATE KEY-----";
+const std::string kEd25519Header = "-----BEGIN OPENSSH PRIVATE KEY-----\n";
 
 // The first bytes of an OpenSSH key are |key type|length of cipher name|cipher
 // name| so all unencrypted ed25519 keys should start with the value below
@@ -34,10 +34,10 @@ const std::string kEd25519Header = "-----BEGIN OPENSSH PRIVATE KEY-----";
 //
 const std::string kEd25519UnencryptedPrefix = "b3BlbnNzaC1rZXktdjEAAAAABG5vbmU";
 
-bool isEncrypted(std::string keys_content) {
+bool isEncrypted(std::string& keys_content) {
   if (boost::starts_with(keys_content, kEd25519Header)) {
     const std::string prefix = keys_content.substr(
-        kEd25519Header.size() + 1, kEd25519UnencryptedPrefix.size());
+        kEd25519Header.size(), kEd25519UnencryptedPrefix.size());
     return prefix != kEd25519UnencryptedPrefix;
   }
   return (keys_content.find("ENCRYPTED") != std::string::npos) ? true : false;
