@@ -32,10 +32,47 @@ const std::map<std::string, std::string> kExtensionKeys = {
     {"background.persistent", "persistent"}};
 
 const std::string kExtensionPermissionKey = "permissions";
+const std::string kProfilePreferencesFile = "Preferences";
+const std::string kProfilePreferenceKey = "profile";
+
+Status getChromeProfileName(std::string& name, const fs::path& path) {
+  name.clear();
+
+  std::string json_data;
+  if (!forensicReadFile(path / kProfilePreferencesFile, json_data).ok()) {
+    return Status::failure("Failed to read the Preferences file for profile " +
+                           path.string());
+  }
+
+  pt::ptree tree;
+  try {
+    std::stringstream json_stream;
+    json_stream << json_data;
+    pt::read_json(json_stream, tree);
+  } catch (const pt::json_parser::json_parser_error&) {
+    return Status::failure("Failed to parse the Preferences file for profile " +
+                           path.string());
+  }
+
+  const auto& profile_obj = tree.get_child_optional(kProfilePreferenceKey);
+  if (!profile_obj) {
+    return Status::failure("The following profile is malformed: " +
+                           path.string());
+  }
+
+  name = profile_obj.get().get<std::string>("name", "");
+  if (name.empty()) {
+    return Status::failure("The following profile has no name: " +
+                           path.string());
+  }
+
+  return Status::success();
+}
 } // namespace
 
 void genExtension(const std::string& uid,
                   const std::string& path,
+                  const std::string& profile_name,
                   QueryData& results) {
   std::string json_data;
   if (!forensicReadFile(path + kManifestFile, json_data).ok()) {
@@ -104,6 +141,7 @@ void genExtension(const std::string& uid,
   Row r;
   r["uid"] = uid;
   r[kExtensionPermissionKey] = permission_list;
+  r["profile"] = profile_name;
   // Most of the keys are in the top-level JSON dictionary.
   for (const auto& it : kExtensionKeys) {
     std::string key = tree.get<std::string>(it.first, "");
@@ -148,20 +186,33 @@ QueryData genChromeBasedExtensions(QueryContext& context,
       }
 
       // For each profile list each extension in the Extensions directory.
-      std::vector<std::string> extensions;
       for (const auto& profile : profiles) {
+        std::vector<std::string> extensions = {};
         listDirectoriesInDirectory(profile, extensions);
-      }
 
-      // Generate an addons list from their extensions JSON.
-      std::vector<std::string> versions;
-      for (const auto& extension : extensions) {
-        listDirectoriesInDirectory(extension, versions);
-      }
+        if (extensions.empty()) {
+          continue;
+        }
 
-      // Extensions use /<EXTENSION>/<VERSION>/manifest.json.
-      for (const auto& version : versions) {
-        genExtension(row.at("uid"), version, results);
+        auto profile_path = fs::path(profile).parent_path().parent_path();
+
+        std::string profile_name;
+        auto status = getChromeProfileName(profile_name, profile_path);
+        if (!status.ok()) {
+          LOG(WARNING) << "Getting Chrome profile name failed: "
+                       << status.getMessage();
+        }
+
+        // Generate an addons list from their extensions JSON.
+        std::vector<std::string> versions;
+        for (const auto& extension : extensions) {
+          listDirectoriesInDirectory(extension, versions);
+        }
+
+        // Extensions use /<EXTENSION>/<VERSION>/manifest.json.
+        for (const auto& version : versions) {
+          genExtension(row.at("uid"), version, profile_name, results);
+        }
       }
     }
   }
