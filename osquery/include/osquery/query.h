@@ -92,12 +92,6 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc);
  */
 Status serializeQueryLogItemJSON(const QueryLogItem& item, std::string& json);
 
-/// Inverse of serializeQueryLogItem, convert JSON to QueryLogItem.
-Status deserializeQueryLogItem(const JSON& doc, QueryLogItem& item);
-
-/// Inverse of serializeQueryLogItem, convert a JSON string to QueryLogItem.
-Status deserializeQueryLogItemJSON(const std::string& json, QueryLogItem& item);
-
 /**
  * @brief Serialize a QueryLogItem object into a JSON document containing
  * events, a list of actions.

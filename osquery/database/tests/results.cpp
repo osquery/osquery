@@ -125,17 +125,6 @@ TEST_F(ResultsTests, test_serialize_query_log_item_json) {
   EXPECT_EQ(results.first, json);
 }
 
-TEST_F(ResultsTests, test_deserialize_query_log_item_json) {
-  auto results = getSerializedQueryLogItemJSON();
-
-  // Pull the serialized JSON back into a QueryLogItem output container.
-  QueryLogItem output;
-  auto s = deserializeQueryLogItemJSON(results.first, output);
-  EXPECT_TRUE(s.ok());
-  // The output container should match the input query data.
-  EXPECT_EQ(output, results.second);
-}
-
 TEST_F(ResultsTests, test_adding_duplicate_rows_to_query_data) {
   RowTyped r1, r2, r3;
   r1["foo"] = "bar";

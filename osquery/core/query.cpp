@@ -320,38 +320,6 @@ Status serializeQueryLogItemJSON(const QueryLogItem& item, std::string& json) {
   return doc.toString(json);
 }
 
-Status deserializeQueryLogItem(const JSON& doc, QueryLogItem& item) {
-  if (!doc.doc().IsObject()) {
-    return Status(1);
-  }
-
-  if (doc.doc().HasMember("diffResults")) {
-    auto status =
-        deserializeDiffResults(doc.doc()["diffResults"], item.results);
-    if (!status.ok()) {
-      return status;
-    }
-  } else if (doc.doc().HasMember("snapshot")) {
-    auto status =
-        deserializeQueryData(doc.doc()["snapshot"], item.snapshot_results);
-    if (!status.ok()) {
-      return status;
-    }
-  }
-
-  getLegacyFieldsAndDecorations(doc, item);
-  return Status();
-}
-
-Status deserializeQueryLogItemJSON(const std::string& json,
-                                   QueryLogItem& item) {
-  auto doc = JSON::newObject();
-  if (!doc.fromString(json) || !doc.doc().IsObject()) {
-    return Status(1, "Cannot deserialize JSON");
-  }
-  return deserializeQueryLogItem(doc, item);
-}
-
 Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& item,
                                          std::vector<std::string>& items) {
   auto doc = JSON::newArray();
