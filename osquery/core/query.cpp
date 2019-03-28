@@ -152,8 +152,7 @@ Status Query::addNewResults(QueryDataTyped current_qd,
   if (update_db) {
     // Replace the "previous" query data with the current.
     std::string json;
-    status =
-        serializeQueryDataJSON(*target_gd, json, FLAGS_log_numerics_as_numbers);
+    status = serializeQueryDataJSON(*target_gd, json, true);
     if (!status.ok()) {
       return status;
     }
