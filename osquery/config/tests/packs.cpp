@@ -79,12 +79,6 @@ TEST_F(PacksTests, test_version) {
   EXPECT_EQ(fpack.getVersion(), "1.5.0");
 }
 
-TEST_F(PacksTests, test_name) {
-  Pack fpack("discovery_pack", getPackWithDiscovery().doc());
-  fpack.setName("also_discovery_pack");
-  EXPECT_EQ(fpack.getName(), "also_discovery_pack");
-}
-
 TEST_F(PacksTests, test_sharding) {
   auto shard1 = getMachineShard("localhost.localdomain");
   auto shard2 = getMachineShard("not.localhost.localdomain");
