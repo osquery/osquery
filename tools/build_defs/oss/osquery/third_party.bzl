@@ -158,7 +158,7 @@ def _static_lib_group(
             "-Wl,--start-group",
         ] + [
             "$(lib {})".format(i)
-            for i in range(0, len(static_lib_targets))
+            for i in range(len(static_lib_targets))
         ] + [
             "-Wl,--end-group",
         ] + linker_flags,
