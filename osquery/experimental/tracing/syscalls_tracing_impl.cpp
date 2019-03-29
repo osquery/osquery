@@ -8,8 +8,8 @@
 
 #include <osquery/experimental/tracing/syscalls_tracing_impl.h>
 
-#include <osquery/events/linux/probes/probes.h>
 #include <osquery/experimental/events_stream/events_stream.h>
+#include <osquery/experimental/tracing/linux/probes.h>
 
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>

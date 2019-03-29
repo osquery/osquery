@@ -25,6 +25,6 @@ osquery_cxx_test(
     ],
     visibility = ["PUBLIC"],
     deps = [
-        osquery_target("osquery/events/linux/probes:probes_events"),
+        osquery_target("osquery/experimental/tracing/linux:probes_events"),
     ],
 )

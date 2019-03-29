@@ -37,7 +37,7 @@ osquery_cxx_library(
     deps = [
         osquery_target("osquery/core:core"),
         osquery_target("osquery/dispatcher:dispatcher"),
-        osquery_target("osquery/events/linux/probes:probes_events"),
+        osquery_target("osquery/experimental/tracing/linux:probes_events"),
         osquery_target("osquery/experimental/events_stream:events_stream"),
         osquery_target("osquery/utils/caches:lru"),
         osquery_target("osquery/utils/conversions:conversions"),

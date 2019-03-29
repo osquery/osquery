@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <osquery/events/linux/probes/syscall_event.h>
+#include <osquery/experimental/tracing/linux/syscall_event.h>
 
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/system/linux/ebpf/map.h>

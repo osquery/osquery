@@ -13,7 +13,7 @@ load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
     name = "probes_events",
-    header_namespace = "osquery/events/linux/probes",
+    header_namespace = "osquery/experimental/tracing/linux",
     exported_platform_headers = [
         (
             LINUX,
@@ -37,7 +37,7 @@ osquery_cxx_library(
         ),
     ],
     tests = [
-        osquery_target("osquery/events/linux/probes/tests:ebpf_tracepoint_tests"),
+        osquery_target("osquery/experimental/tracing/linux/tests:ebpf_tracepoint_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [

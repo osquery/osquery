@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/events/linux/probes/syscall_event.h>
+#include <osquery/experimental/tracing/linux/syscall_event.h>
 
 namespace osquery {
 namespace {

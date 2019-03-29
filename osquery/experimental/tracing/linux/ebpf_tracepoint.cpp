@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/events/linux/probes/ebpf_tracepoint.h>
+#include <osquery/experimental/tracing/linux/ebpf_tracepoint.h>
 
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/system/linux/perf_event/perf_event.h>
