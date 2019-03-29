@@ -252,7 +252,7 @@ Status YARAConfigParserPlugin::setUp() {
     return Status(1, "Unable to initialize YARA");
   }
 
-  return Status();
+  return Status::success();
 }
 
 Status YARAConfigParserPlugin::update(const std::string& source,
@@ -305,7 +305,7 @@ Status YARAConfigParserPlugin::update(const std::string& source,
       VLOG(1) << "YARA file_paths key is invalid";
     }
   }
-  return Status();
+  return Status::success();
 }
 
 /// Call the simple YARA ConfigParserPlugin "yara".

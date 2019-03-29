@@ -119,7 +119,7 @@ Status ExtensionManagerInterface::registerExtension(
 
   WriteLock lock(extensions_mutex_);
   extensions_[uuid] = info;
-  return Status();
+  return Status::success();
 }
 
 Status ExtensionManagerInterface::query(const std::string& sql, QueryData& qd) {
@@ -139,7 +139,7 @@ Status ExtensionManagerInterface::deregisterExtension(RouteUUID uuid) {
 
   WriteLock lock(extensions_mutex_);
   extensions_.erase(uuid);
-  return Status();
+  return Status::success();
 }
 
 Status ExtensionManagerInterface::getQueryColumns(const std::string& sql,

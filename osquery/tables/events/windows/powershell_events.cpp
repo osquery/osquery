@@ -60,7 +60,7 @@ class PowershellEventSubscriber
     wc->sources.insert(kPowershellEventsChannel);
 
     subscribe(&PowershellEventSubscriber::Callback, wc);
-    return Status();
+    return Status::success();
   }
 
   Status Callback(const ECRef& ec, const SCRef& sc);
@@ -134,7 +134,7 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   // For script block logging we only care about events with script blocks
   auto eid = ec->eventRecord.get("Event.System.EventID", -1);
   if (eid != kScriptBlockLoggingEid) {
-    return Status();
+    return Status::success();
   }
 
   Row results;
@@ -155,7 +155,7 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   // If there's only one script block no reassembly is needed
   if (results["MessageTotal"] == "1") {
     addScriptResult(results);
-    return Status();
+    return Status::success();
   }
 
   // Add the script content to the DB for later reassembly
@@ -170,7 +170,7 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
   // If we expect more blocks bail out early
   if (results["MessageNumber"] != results["MessageTotal"]) {
-    return Status();
+    return Status::success();
   }
 
   // Otherwise all script blocks should be accounted for so reconstruct
@@ -203,6 +203,6 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   results["ScriptBlockText"] = powershell_script;
   addScriptResult(results);
 
-  return Status();
+  return Status::success();
 }
 } // namespace osquery

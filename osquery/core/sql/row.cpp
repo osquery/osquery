@@ -30,7 +30,7 @@ Status serializeRow(const Row& r,
     }
   }
 
-  return Status();
+  return Status::success();
 }
 
 class DocAppenderVisitor : public boost::static_visitor<> {
@@ -67,7 +67,7 @@ Status serializeRow(const RowTyped& r,
       doc.addRef(i.first, castVariant(i.second), obj);
     }
   }
-  return Status();
+  return Status::success();
 }
 
 Status serializeRowJSON(const RowTyped& r, std::string& json, bool asNumeric) {
@@ -102,7 +102,7 @@ Status deserializeRow(const rj::Value& doc, Row& r) {
       r[name] = i.value.GetString();
     }
   }
-  return Status();
+  return Status::success();
 }
 
 Status deserializeRow(const rj::Value& doc, RowTyped& r) {
@@ -123,7 +123,7 @@ Status deserializeRow(const rj::Value& doc, RowTyped& r) {
       }
     }
   }
-  return Status();
+  return Status::success();
 }
 
 Status deserializeRowJSON(const std::string& json, Row& r) {

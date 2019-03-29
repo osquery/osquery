@@ -112,7 +112,7 @@ Status windowsShortPathToLongPath(const std::string& shortPath,
     return Status(GetLastError(), "Failed to convert short path to long path");
   }
   rLongPath = std::string(longPath);
-  return Status();
+  return Status::success();
 }
 
 Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
@@ -138,7 +138,7 @@ Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
       std::to_string((pFileInfo->dwProductVersionMS >> 0 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionLS >> 16 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionLS >> 0 & 0xffff));
-  return Status();
+  return Status::success();
 }
 
 static bool hasGlobBraces(const std::string& glob) {
@@ -340,7 +340,7 @@ static Status checkAccessWithSD(PSECURITY_DESCRIPTOR sd, mode_t mode) {
   }
 
   if (access_status) {
-    return Status();
+    return Status::success();
   }
 
   return Status(1, "Bad mode for file");
@@ -659,7 +659,7 @@ static Status isUserCurrentUser(PSID user) {
   /// Determine if the current user SID matches that of the specified user
   PTOKEN_USER ptu = reinterpret_cast<PTOKEN_USER>(tuBuff.data());
   if (EqualSid(user, ptu->User.Sid)) {
-    return Status();
+    return Status::success();
   }
 
   return Status(1, "User not current user");
@@ -701,7 +701,7 @@ Status PlatformFile::isOwnerRoot() const {
   }
 
   if (EqualSid(owner, admins_sid) || EqualSid(owner, system_sid)) {
-    return Status();
+    return Status::success();
   }
 
   return Status(1, "Owner is not in Administrators group or Local System");
@@ -786,7 +786,7 @@ static Status lowPrivWriteDenied(PACL acl) {
 
       // A Deny-Write on Everyone supersedes other allow writes
       if (EqualSid(&denied_ace->SidStart, world_sid)) {
-        return Status();
+        return Status::success();
       }
 
       // Stash the Deny-Write ACE to check against future user Allow ACEs
@@ -827,7 +827,7 @@ static Status lowPrivWriteDenied(PACL acl) {
       }
     }
   }
-  return Status();
+  return Status::success();
 }
 
 Status PlatformFile::hasSafePermissions() const {
@@ -1493,13 +1493,13 @@ Status platformIsTmpDir(const fs::path& dir) {
   if (!dirPathsAreEqual(dir, fs::temp_directory_path(ec))) {
     return Status(1, "Not temp directory");
   }
-  return Status();
+  return Status::success();
 }
 
 Status platformIsFileAccessible(const fs::path& path) {
   boost::system::error_code ec;
   if (fs::is_regular_file(path, ec) && ec.value() == errc::success) {
-    return Status();
+    return Status::success();
   }
   return Status(1, "Not accessible file");
 }
@@ -1824,7 +1824,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   CloseHandle(file_handle);
 
-  return Status();
+  return Status::success();
 }
 
 fs::path getSystemRoot() {

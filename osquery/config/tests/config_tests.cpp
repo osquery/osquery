@@ -123,7 +123,7 @@ class TestConfigPlugin : public ConfigPlugin {
                  std::string& pack) override {
     gen_pack_count_++;
     getUnrestrictedPack().toString(pack);
-    return Status();
+    return Status::success();
   }
 
  public:
@@ -411,7 +411,7 @@ class TestConfigParserPlugin : public ConfigParserPlugin {
     auto obj2 = data_.getObject();
     data_.addRef("key2", "value2", obj2);
     data_.add("dictionary3", obj2, data_.doc());
-    return Status();
+    return Status::success();
   }
 
   // Flag tracking that the update method was called.
@@ -452,7 +452,7 @@ class PlaceboConfigParserPlugin : public ConfigParserPlugin {
     return {};
   }
   Status update(const std::string&, const ParserConfig&) override {
-    return Status();
+    return Status::success();
   }
 
   /// Make sure configure is called.

@@ -33,7 +33,7 @@ Status serializeDiffResults(const DiffResults& d,
     return status;
   }
   doc.add("added", added_arr, obj);
-  return Status();
+  return Status::success();
 }
 
 Status serializeDiffResultsJSON(const DiffResults& d,

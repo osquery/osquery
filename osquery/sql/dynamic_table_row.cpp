@@ -39,7 +39,7 @@ Status deserializeTableRows(const rj::Value& arr, TableRows& rows) {
     }
     rows.push_back(std::move(r));
   }
-  return Status();
+  return Status::success();
 }
 
 Status deserializeTableRowsJSON(const std::string& json, TableRows& rows) {
@@ -62,7 +62,7 @@ Status deserializeRow(const rj::Value& doc, DynamicTableRowHolder& r) {
       r[name] = i.value.GetString();
     }
   }
-  return Status();
+  return Status::success();
 }
 
 int DynamicTableRow::get_rowid(sqlite_int64 default_value,
@@ -148,7 +148,7 @@ Status DynamicTableRow::serialize(JSON& doc, rj::Value& obj) const {
     doc.addRef(i.first, i.second, obj);
   }
 
-  return Status();
+  return Status::success();
 }
 
 TableRowHolder DynamicTableRow::clone() const {

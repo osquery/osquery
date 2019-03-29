@@ -133,7 +133,7 @@ static inline Status getService(const SC_HANDLE& scmHandle,
   }
 
   results.push_back(r);
-  return Status();
+  return Status::success();
 }
 
 static inline Status getServices(QueryData& results) {
@@ -188,7 +188,7 @@ static inline Status getServices(QueryData& results) {
     }
   }
 
-  return Status();
+  return Status::success();
 }
 
 QueryData genServices(QueryContext& context) {
