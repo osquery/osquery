@@ -47,7 +47,7 @@ Status genPackage(const fs::path& nuspec, Row& r) {
   r["author"] = propTree.get("package.metadata.authors", "");
   r["license"] = propTree.get("package.metadata.licenseUrl", "");
 
-  return Status();
+  return Status::success();
 }
 
 QueryData genChocolateyPackages(QueryContext& context) {

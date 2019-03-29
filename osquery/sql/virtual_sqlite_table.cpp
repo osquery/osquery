@@ -65,7 +65,7 @@ Status genSqliteTableRow(sqlite3_stmt* stmt,
     r["path"] = sqlite_db.string();
   }
   qd.push_back(std::move(r));
-  return Status();
+  return Status::success();
 }
 
 Status genTableRowsForSqliteTable(const fs::path& sqlite_db,

@@ -283,7 +283,7 @@ Status JSON::toString(std::string& str) const {
   rj::Writer<rj::StringBuffer> writer(sb);
   doc_.Accept(writer);
   str = sb.GetString();
-  return Status();
+  return Status::success();
 }
 
 Status JSON::fromString(const std::string& str) {
@@ -295,7 +295,7 @@ Status JSON::fromString(const std::string& str) {
     message += std::to_string(pr.Offset());
     return Status(1, message);
   }
-  return Status();
+  return Status::success();
 }
 
 void JSON::mergeObject(rj::Value& target_obj, rj::Value& source_obj) {

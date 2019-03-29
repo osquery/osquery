@@ -503,7 +503,7 @@ Status Config::refresh() {
       }
       // Don't force because the config plugin may have started services.
       Initializer::requestShutdown();
-      return Status();
+      return Status::success();
     }
     status = update(response[0]);
   }
@@ -661,7 +661,7 @@ Status Config::updateSource(const std::string& source,
   }
 
   applyParsers(source, doc.doc(), false);
-  return Status();
+  return Status::success();
 }
 
 Status Config::genPack(const std::string& name,
@@ -681,7 +681,7 @@ Status Config::genPack(const std::string& name,
   auto clone = response[0][name];
   if (clone.empty()) {
     LOG(WARNING) << "Error reading the query pack named: " << name;
-    return Status();
+    return Status::success();
   }
 
   stripConfigComments(clone);
@@ -692,7 +692,7 @@ Status Config::genPack(const std::string& name,
     addPack(name, source, doc.doc());
   }
 
-  return Status();
+  return Status::success();
 }
 
 void Config::applyParsers(const std::string& source,
@@ -1090,7 +1090,7 @@ Status ConfigPlugin::call(const PluginRequest& request,
 
     response.push_back(
         {{"name", name->second}, {"value", Flag::getValue(name->second)}});
-    return Status();
+    return Status::success();
   }
   return Status(1, "Config plugin action unknown: " + action->second);
 }
@@ -1100,7 +1100,7 @@ Status ConfigParserPlugin::setUp() {
     auto obj = data_.getObject();
     data_.add(key, obj);
   }
-  return Status();
+  return Status::success();
 }
 
 void ConfigRefreshRunner::start() {

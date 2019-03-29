@@ -67,7 +67,7 @@ Status Handle::openSymLinkObj(const std::wstring& strName) {
     return Status(ntStatus, "NtOpenSymbolicLinkObject returned failure");
   }
 
-  return Status();
+  return Status::success();
 }
 
 Status Handle::openDirObj(const std::wstring& strName) {
@@ -107,6 +107,6 @@ Status Handle::openDirObj(const std::wstring& strName) {
     return Status(ntStatus, "NtOpenDirecotryObject returned failure");
   }
 
-  return Status();
+  return Status::success();
 }
 } // namespace osquery

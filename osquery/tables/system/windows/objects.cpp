@@ -113,7 +113,7 @@ Status enumerateObjectNamespace(const std::wstring& directory,
     objects.push_back(object);
   }
 
-  return Status();
+  return Status::success();
 }
 
 // enumerate all objects in a given windows terminal services session

@@ -24,7 +24,7 @@ Status serializeQueryData(const QueryData& q,
     }
     doc.push(row_obj, arr);
   }
-  return Status();
+  return Status::success();
 }
 
 Status serializeQueryData(const QueryDataTyped& q,
@@ -39,7 +39,7 @@ Status serializeQueryData(const QueryDataTyped& q,
     }
     doc.push(row_obj, arr);
   }
-  return Status();
+  return Status::success();
 }
 
 Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
@@ -78,7 +78,7 @@ Status deserializeQueryData(const rj::Value& arr, QueryData& qd) {
     }
     qd.push_back(r);
   }
-  return Status();
+  return Status::success();
 }
 
 Status deserializeQueryData(const rj::Value& arr, QueryDataTyped& qd) {
@@ -94,7 +94,7 @@ Status deserializeQueryData(const rj::Value& arr, QueryDataTyped& qd) {
     }
     qd.push_back(r);
   }
-  return Status();
+  return Status::success();
 }
 
 Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
@@ -110,7 +110,7 @@ Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
     }
     qd.insert(std::move(r));
   }
-  return Status();
+  return Status::success();
 }
 
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {

@@ -436,7 +436,7 @@ Status ExtensionManagerClient::query(const std::string& sql, QueryData& qd) {
     qd.push_back(row);
   }
 
-  return Status();
+  return Status::success();
 }
 
 Status ExtensionManagerClient::getQueryColumns(const std::string& sql,

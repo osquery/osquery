@@ -51,7 +51,7 @@ Status processRequest(Row& r) {
     return Status(1, e.what());
   }
 
-  return Status();
+  return Status::success();
 }
 
 QueryData genCurl(QueryContext& context) {

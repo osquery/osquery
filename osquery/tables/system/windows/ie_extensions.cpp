@@ -86,7 +86,7 @@ static inline Status getBHOs(QueryData& results) {
       results.push_back(r);
     }
   }
-  return Status();
+  return Status::success();
 }
 QueryData genIEExtensions(QueryContext& context) {
   QueryData results;

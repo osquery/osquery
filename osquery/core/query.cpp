@@ -189,7 +189,7 @@ Status deserializeDiffResults(const rj::Value& doc, DiffResults& dr) {
       return status;
     }
   }
-  return Status();
+  return Status::success();
 }
 
 inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
@@ -260,7 +260,7 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
   }
 
   addLegacyFieldsAndDecorations(item, doc, doc.doc());
-  return Status();
+  return Status::success();
 }
 
 Status serializeEvent(const QueryLogItem& item,
@@ -306,7 +306,7 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
       doc.push(obj);
     }
   }
-  return Status();
+  return Status::success();
 }
 
 Status serializeQueryLogItemJSON(const QueryLogItem& item, std::string& json) {
@@ -334,7 +334,7 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& item,
     event.Accept(writer);
     items.push_back(sb.GetString());
   }
-  return Status();
+  return Status::success();
 }
 
 }
