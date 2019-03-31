@@ -1,5 +1,5 @@
 table_name("userassist")
-description("UserAssist Registry Key tracks when a user executes an application from Windows Explorer. Brief summary at <FireEye blog post>. <-- Seems like a cheap way to advertise...")
+description("UserAssist Registry Key tracks when a user executes an application from Windows Explorer.")
 schema([
     Column("path", TEXT, "Application file path."),
     Column("last_execution_time", TEXT, "Most recent time application was executed,"),
