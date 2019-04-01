@@ -12,6 +12,7 @@
 
 #include <gtest/gtest.h>
 
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -54,6 +55,145 @@ TEST_F(SchemerJsonTests, writer_to_string) {
   EXPECT_EQ(
       exp.get(),
       R"json({"Bravo":true,"India":-92374,"Uniform":64774,"Sierra":"What is Architecture?"})json");
+}
+
+class SecondTestClass {
+ public:
+  template <typename Archive, typename ValueType>
+  static void discloseSchema(Archive& a, ValueType& value) {
+    schemer::record(a, "first", value.first_);
+    schemer::record(a, "second", value.second_);
+    schemer::record(a, "third", value.third_);
+    schemer::record(a, "fourth", value.fourth_);
+  }
+
+  std::string const& getFirst() const {
+    return first_;
+  }
+
+  int const& getSecond() const {
+    return second_;
+  }
+
+  float const& getThird() const {
+    return third_;
+  }
+
+  bool const& getFourth() const {
+    return fourth_;
+  }
+
+ private:
+  std::string first_ = __FILE__;
+  int second_ = __LINE__;
+  float third_ = -1;
+  bool fourth_ = false;
+};
+
+TEST_F(SchemerJsonTests, read_from_stream) {
+  auto v = SecondTestClass{};
+  auto buf = rapidjson::StringStream{
+      R"json({
+      "first":"main page",
+      "second":-22,
+      "third":3.14,
+      "fourth":true
+    })json"};
+  auto const retcode = schemer::fromJson(v, buf);
+  ASSERT_TRUE(retcode.isValue()) << retcode.getError().getMessage();
+  EXPECT_EQ("main page", v.getFirst());
+  EXPECT_EQ(-22, v.getSecond());
+  EXPECT_NEAR(3.14, v.getThird(), 0.001);
+  EXPECT_EQ(true, v.getFourth());
+}
+
+TEST_F(SchemerJsonTests, read_from_stream_syntax_error) {
+  auto v = SecondTestClass{};
+  auto buf = rapidjson::StringStream{R"json({{)json"};
+  auto const retcode = schemer::fromJson(v, buf);
+  ASSERT_TRUE(retcode.isError());
+  ASSERT_EQ(retcode.getErrorCode(), schemer::JsonError::Syntax);
+}
+
+TEST_F(SchemerJsonTests, read_from_stream_object_type_error) {
+  auto v = SecondTestClass{};
+  auto buf = rapidjson::StringStream{
+      R"json([
+      {
+        "first":"main page",
+        "second":-22,
+        "third":3.14,
+        "fourth":true
+      }
+    ])json"};
+  auto const retcode = schemer::fromJson(v, buf);
+  ASSERT_TRUE(retcode.isError());
+  ASSERT_EQ(retcode.getErrorCode(), schemer::JsonError::TypeMismatch);
+}
+
+TEST_F(SchemerJsonTests, read_from_stream_member_type_error) {
+  auto v = SecondTestClass{};
+  auto buf = rapidjson::StringStream{
+      R"json({
+      "first":"main page",
+      "second":"here must be number instead of string",
+      "third":3.14,
+      "fourth":true
+    })json"};
+  auto const retcode = schemer::fromJson(v, buf);
+  ASSERT_TRUE(retcode.isError());
+  ASSERT_EQ(retcode.getErrorCode(), schemer::JsonError::IncorrectFormat)
+      << retcode.getError().getMessage();
+}
+
+TEST_F(SchemerJsonTests, read_from_stream_missed_key) {
+  auto v = SecondTestClass{};
+  auto buf = rapidjson::StringStream{R"json({"first":"main page"})json"};
+  auto const retcode = schemer::fromJson(v, buf);
+  ASSERT_TRUE(retcode.isError());
+  ASSERT_EQ(retcode.getErrorCode(), schemer::JsonError::IncorrectFormat)
+      << retcode.getError().getMessage();
+}
+
+struct ThirdTestClass {
+ public:
+  template <typename Archive, typename ValueType>
+  static void discloseSchema(Archive& a, ValueType& value) {
+    schemer::record(a, "first", value.first);
+    schemer::record(a, "second", value.second);
+    schemer::record(a, "third", value.third);
+    schemer::record(a, "fourth", value.fourth);
+  }
+
+  std::string first = "";
+  unsigned second = 0u;
+  float third = 0.;
+  std::int64_t fourth = 0;
+};
+
+TEST_F(SchemerJsonTests, read_write) {
+  auto fromValue = ThirdTestClass{};
+  fromValue.first = "\a\b\t\n\v\f\r ";
+  fromValue.first.push_back('\0');
+  fromValue.first += R"ascii(
+0@P`p!1AQaq"2BRbr#3CScs$4DTdt%5EUeu&6FVfv'7GWgw
+(8HXhx)9IYiy*:JZjz+;K[k{,<L\l|-=M]m}.>N^n~/?O_o
+)ascii";
+  fromValue.second = std::numeric_limits<unsigned>::max();
+  fromValue.third = std::numeric_limits<float>::max();
+  fromValue.fourth = std::numeric_limits<std::int64_t>::min();
+
+  auto const exp_str = schemer::toJson(fromValue);
+  EXPECT_TRUE(exp_str.isValue()) << exp_str.getError().getMessage();
+
+  auto toValue = ThirdTestClass{};
+  auto const retcode = schemer::fromJson(toValue, exp_str.get().c_str());
+  ASSERT_TRUE(retcode.isValue()) << retcode.getError().getMessage();
+
+  EXPECT_EQ(fromValue.first, toValue.first);
+  EXPECT_EQ(fromValue.second, toValue.second);
+  EXPECT_NEAR(fromValue.third, toValue.third, 0.00001);
+  EXPECT_EQ(fromValue.fourth, toValue.fourth);
 }
 
 } // namespace
