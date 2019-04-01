@@ -14,6 +14,7 @@
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/schemer/schemer.h>
 
+#include <algorithm>
 #include <string>
 
 namespace osquery {
@@ -83,6 +84,17 @@ void writeValue(WriterType& writer, ValueType const& value) {
 }
 
 template <typename WriterType>
+class JsonWriter;
+
+template <typename WriterType,
+          typename ValueType,
+          typename std::enable_if<has_schema<ValueType>::value, int>::type = 0>
+void writeValue(WriterType& writer, ValueType const& value) {
+  auto next_writer = impl::JsonWriter<WriterType>(writer);
+  ValueType::discloseSchema(next_writer, value);
+}
+
+template <typename WriterType>
 class JsonWriter final {
  public:
   explicit JsonWriter(WriterType& writer) : writer_(writer) {
@@ -107,6 +119,12 @@ class JsonReader final {
  public:
   explicit JsonReader(rapidjson::Value const& jObject) : jObject_(jObject) {
     status.ignoreResult();
+    if (!jObject_.IsObject()) {
+      status =
+          createError(JsonError::TypeMismatch)
+          << "Wrong type of value: " << jValueToStringForErrorMessage(jObject_)
+          << ", expected object";
+    }
   }
 
   template <typename KeyType, typename ValueType>
@@ -186,6 +204,24 @@ class JsonReader final {
                << "\":" << jValueToStringForErrorMessage(jValue)
                << "}, expected "
                << boost::core::demangle(typeid(ValueType).name());
+    }
+  }
+
+  template <
+      typename KeyType,
+      typename ValueType,
+      typename std::enable_if<has_schema<ValueType>::value, int>::type = 0>
+  void copyValueFromJValue(const KeyType& key,
+                           ValueType& value,
+                           rapidjson::Value const& jValue) {
+    auto next_reader = impl::JsonReader{jValue};
+    if (next_reader.status.isError()) {
+      status = std::move(next_reader.status);
+    } else {
+      ValueType::discloseSchema(next_reader, value);
+      if (next_reader.status.isError()) {
+        status = std::move(next_reader.status);
+      }
     }
   }
 

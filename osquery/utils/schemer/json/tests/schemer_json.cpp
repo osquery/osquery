@@ -31,7 +31,7 @@ class TestClass {
     schemer::record(a, "Sierra", value.str_v_);
   }
 
- private:
+ public:
   bool b_v_ = true;
   int i_v_ = -92374;
   int ui_v_ = 64774;
@@ -55,6 +55,28 @@ TEST_F(SchemerJsonTests, writer_to_string) {
   EXPECT_EQ(
       exp.get(),
       R"json({"Bravo":true,"India":-92374,"Uniform":64774,"Sierra":"What is Architecture?"})json");
+}
+
+class NestedTestClass {
+ public:
+  template <typename Archive, typename ValueType>
+  static void discloseSchema(Archive& a, ValueType& value) {
+    schemer::record(a, "First", value.first_);
+    schemer::record(a, "test_class", value.second_);
+  }
+
+ public:
+  int first_ = -273;
+  TestClass second_;
+};
+
+TEST_F(SchemerJsonTests, writer_nested_to_string) {
+  auto const v = NestedTestClass{};
+  auto const exp = schemer::toJson(v);
+  EXPECT_TRUE(exp) << exp.getError().getMessage();
+  EXPECT_EQ(
+      exp.get(),
+      R"json({"First":-273,"test_class":{"Bravo":true,"India":-92374,"Uniform":64774,"Sierra":"What is Architecture?"}})json");
 }
 
 class SecondTestClass {
@@ -128,7 +150,7 @@ TEST_F(SchemerJsonTests, read_from_stream_object_type_error) {
     ])json"};
   auto const retcode = schemer::fromJson(v, buf);
   ASSERT_TRUE(retcode.isError());
-  ASSERT_EQ(retcode.getErrorCode(), schemer::JsonError::TypeMismatch);
+  ASSERT_EQ(retcode.getErrorCode(), schemer::JsonError::IncorrectFormat);
 }
 
 TEST_F(SchemerJsonTests, read_from_stream_member_type_error) {
@@ -194,6 +216,47 @@ TEST_F(SchemerJsonTests, read_write) {
   EXPECT_EQ(fromValue.second, toValue.second);
   EXPECT_NEAR(fromValue.third, toValue.third, 0.00001);
   EXPECT_EQ(fromValue.fourth, toValue.fourth);
+}
+
+TEST_F(SchemerJsonTests, read_nested_from_string) {
+  auto const str =
+      R"json({"First":-459,"test_class":{"Bravo":false,"India":31,"Uniform":145,"Sierra":"I have no clue"}})json";
+  auto value = NestedTestClass{};
+  auto const retcode = schemer::fromJson(value, str);
+  ASSERT_TRUE(retcode.isValue()) << retcode.getError().getMessage();
+
+  EXPECT_EQ(value.first_, -459);
+  EXPECT_EQ(value.second_.b_v_, false);
+  EXPECT_EQ(value.second_.i_v_, 31);
+  EXPECT_EQ(value.second_.ui_v_, 145);
+  EXPECT_EQ(value.second_.str_v_, "I have no clue");
+}
+
+TEST_F(SchemerJsonTests,
+       read_nested_from_string_fails_because_value_is_not_an_object) {
+  auto const str = R"json({"First":-459,"test_class":false})json";
+  auto value = NestedTestClass{};
+  auto const retcode = schemer::fromJson(value, str);
+  ASSERT_TRUE(retcode.isError());
+  EXPECT_EQ(retcode.getErrorCode(), schemer::JsonError::IncorrectFormat);
+}
+
+TEST_F(SchemerJsonTests,
+       read_nested_from_string_fails_because_of_incomplete_json) {
+  // here is JSON with missed last '}'
+  auto const str = R"json({
+      "First":-459,
+      "test_class":{
+        "Bravo":false,
+        "India":31,
+        "Uniform":145,
+        "Sierra":"I have no clue"
+      }
+  )json";
+  auto value = NestedTestClass{};
+  auto const retcode = schemer::fromJson(value, str);
+  ASSERT_TRUE(retcode.isError());
+  EXPECT_EQ(retcode.getErrorCode(), schemer::JsonError::Syntax);
 }
 
 } // namespace
