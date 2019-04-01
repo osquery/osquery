@@ -39,9 +39,6 @@ class ProcCmdlineRetriever {
     if (auto cmd_ptr = cache_.get(proc_pid)) {
       return *cmd_ptr;
     } else {
-      LOG(ERROR)
-          << "Experimental tracing: command line string cache miss for pid: "
-          << proc_pid;
       return *cache_.insert(proc_pid, proc::cmdline(proc_pid));
     }
   }
