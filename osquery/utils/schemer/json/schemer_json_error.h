@@ -13,6 +13,9 @@ namespace schemer {
 
 enum class JsonError {
   Syntax = 1,
+  TypeMismatch = 2,
+  MissedKey = 3,
+  IncorrectFormat = 4,
 };
 
 } // namespace schemer
