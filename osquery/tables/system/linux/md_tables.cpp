@@ -279,15 +279,14 @@ std::string getSuperBlkStateStr(int state) {
   return s;
 }
 
-// For use with unique_ptr of file close as a hacky way of preventing fd leaks
-auto const kFClose = [](int* fd) { close(*fd); };
-
 bool MD::getDiskInfo(const std::string& arrayName, mdu_disk_info_t& diskInfo) {
-  int fd = 0;
+  int fd = open(arrayName.c_str(), O_RDONLY);
+  if (fd == -1) {
+    return false;
+  }
 
-  std::unique_ptr<int, decltype(kFClose)> _(
-      &(fd = open(arrayName.c_str(), O_RDONLY)), kFClose);
   auto status = ioctl(fd, GET_DISK_INFO, &diskInfo);
+  close(fd);
 
   if (status == -1) {
     LOG(WARNING) << "Call to ioctl 'GET_DISK_INFO' " << arrayName
@@ -299,11 +298,13 @@ bool MD::getDiskInfo(const std::string& arrayName, mdu_disk_info_t& diskInfo) {
 }
 
 bool MD::getArrayInfo(const std::string& name, mdu_array_info_t& array) {
-  int fd = 0;
+  int fd = open(name.c_str(), O_RDONLY);
+  if (fd == -1) {
+    return false;
+  }
 
-  std::unique_ptr<int, decltype(kFClose)> _(
-      &(fd = open(name.c_str(), O_RDONLY)), kFClose);
   auto status = ioctl(fd, GET_ARRAY_INFO, &array);
+  close(fd);
 
   if (status == -1) {
     LOG(ERROR) << "Call to ioctl 'GET_ARRAY_INFO' for " << name
