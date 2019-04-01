@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <type_traits>
+
 namespace osquery {
 namespace schemer {
 
@@ -62,6 +64,36 @@ namespace schemer {
 template <typename Archive, typename KeyType, typename ValueType>
 inline void record(Archive& a, KeyType const& key, ValueType& value) {
   a.template record<KeyType, ValueType>(key, value);
+};
+
+namespace impl {
+
+class DummyArchive {
+ public:
+  template <typename KeyType, typename ValueType>
+  void record(KeyType const& key, ValueType& value);
+};
+
+} // namespace impl
+
+/**
+ * @brief Type trait to check if a type has a defined schema
+ */
+template <typename Type>
+class has_schema {
+ private:
+  template <typename T>
+  static constexpr bool test(
+      decltype(&T::template discloseSchema<impl::DummyArchive, Type>)) {
+    return true;
+  }
+  template <typename T>
+  static constexpr bool test(...) {
+    return false;
+  }
+
+ public:
+  static constexpr bool value = test<Type>(nullptr);
 };
 
 } // namespace schemer
