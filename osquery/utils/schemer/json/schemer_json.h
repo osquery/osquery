@@ -32,10 +32,10 @@ namespace schemer {
  *  - integral types (int, short, long, long long, unsigned etc);
  *  - floating point nubmers (float, double);
  *  - std::string;
- *  - C-string - only for serialisation.
+ *  - C-string - only for serialisation;
+ *  - types with defined schema, @see schemer::has_schema type trait.
  *
  * Not implemented yet, but comming soon:
- *  - Nested types support
  *  - Standard sontainers support
  */
 
@@ -72,8 +72,6 @@ Expected<std::string, JsonError> toJson(Type const& value) {
  */
 template <typename Type, typename RapidJsonInStream>
 ExpectedSuccess<JsonError> fromJson(Type& value, RapidJsonInStream& is) {
-  static_assert(!std::is_const<Type>::value,
-                "schemer can read only to non-const ref");
   auto dom = rapidjson::Document{};
   dom.ParseStream(is);
   if (dom.HasParseError()) {
@@ -83,14 +81,10 @@ ExpectedSuccess<JsonError> fromJson(Type& value, RapidJsonInStream& is) {
            << GetParseError_En(dom.GetParseError())
            << " Offset: " << dom.GetErrorOffset();
   }
-  if (!dom.IsObject()) {
-    return createError(JsonError::TypeMismatch)
-           << "Can not parse value of type "
-           << boost::core::demangle(typeid(Type).name())
-           << " from JSON. Incorrect type, expected object";
-  }
   auto reader = impl::JsonReader{dom};
-  Type::discloseSchema(reader, value);
+  if (reader.status.isValue()) {
+    Type::discloseSchema(reader, value);
+  }
   if (reader.status.isError()) {
     return createError(JsonError::IncorrectFormat, reader.status.takeError())
            << "Can not parse value of type "
