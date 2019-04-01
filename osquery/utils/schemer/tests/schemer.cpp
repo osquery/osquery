@@ -106,5 +106,36 @@ TEST_F(SchemerTests, deserializing) {
   EXPECT_EQ(alpha.getCharlie(), 1234 + 1234);
 }
 
+class Beta {
+ public:
+  template <typename Archive, typename ValueType>
+  static void discloseSchema(Archive&, ValueType&) {}
+};
+
+class Gama {};
+
+TEST_F(SchemerTests, has_schema_static_go) {
+  static_assert(schemer::has_schema<Alpha>::value,
+                "expected true, class Alpha has defined schema");
+  static_assert(schemer::has_schema<Beta>::value,
+                "expected true, class Beta has defined schema");
+}
+
+TEST_F(SchemerTests, has_schema_static_no_go) {
+  static_assert(!schemer::has_schema<Gama>::value,
+                "expected false, there is no schema");
+  static_assert(!schemer::has_schema<int>::value,
+                "expected false, there is no schema for int as a basic type");
+  static_assert(
+      !schemer::has_schema<unsigned>::value,
+      "expected false, there is no schema for unsigned as a basic type");
+  static_assert(!schemer::has_schema<float>::value,
+                "expected false, there is no schema for float as a basic type");
+  static_assert(!schemer::has_schema<char const*>::value,
+                "expected false, there is no schema for c string");
+  static_assert(!schemer::has_schema<std::string>::value,
+                "expected false, there is no schema for std::string");
+}
+
 } // namespace
 } // namespace osquery
