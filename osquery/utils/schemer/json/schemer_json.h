@@ -15,6 +15,8 @@
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/schemer/schemer.h>
 
+#include <boost/core/demangle.hpp>
+
 #include <string>
 
 namespace osquery {
@@ -62,6 +64,52 @@ Expected<std::string, JsonError> toJson(Type const& value) {
     return exp.takeError();
   }
   return std::string{buf.GetString(), buf.GetSize()};
+}
+
+/**
+ * @brief Deserialize object of class with defined schema from JSON object in
+ * rapidjson input stream
+ */
+template <typename Type, typename RapidJsonInStream>
+ExpectedSuccess<JsonError> fromJson(Type& value, RapidJsonInStream& is) {
+  static_assert(!std::is_const<Type>::value,
+                "schemer can read only to non-const ref");
+  auto dom = rapidjson::Document{};
+  dom.ParseStream(is);
+  if (dom.HasParseError()) {
+    return createError(JsonError::Syntax)
+           << "Can not parse value of type "
+           << boost::core::demangle(typeid(Type).name()) << " from JSON. "
+           << GetParseError_En(dom.GetParseError())
+           << " Offset: " << dom.GetErrorOffset();
+  }
+  if (!dom.IsObject()) {
+    return createError(JsonError::TypeMismatch)
+           << "Can not parse value of type "
+           << boost::core::demangle(typeid(Type).name())
+           << " from JSON. Incorrect type, expected object";
+  }
+  auto reader = impl::JsonReader{dom};
+  Type::discloseSchema(reader, value);
+  if (reader.status.isError()) {
+    return createError(JsonError::IncorrectFormat, reader.status.takeError())
+           << "Can not parse value of type "
+           << boost::core::demangle(typeid(Type).name()) << " from JSON";
+  }
+  return Success{};
+}
+
+/**
+ * @brief Deserialize object of class with defined schema from JSON object in
+ * C-string
+ */
+template <
+    typename Type,
+    typename CharType,
+    typename std::enable_if<std::is_same<CharType, char>::value, int>::type = 0>
+ExpectedSuccess<JsonError> fromJson(Type& value, CharType const* c_str) {
+  auto buf = rapidjson::StringStream{c_str};
+  return fromJson(value, buf);
 }
 
 } // namespace schemer
