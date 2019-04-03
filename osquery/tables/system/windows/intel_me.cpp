@@ -27,6 +27,9 @@
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/tables/system/intel_me.hpp>
 
+// The AMT documentation can be found at the following address:
+// https://software.intel.com/sites/manageability/AMT_Implementation_and_Reference_Guide/default.htm
+
 namespace osquery {
 namespace {
 DEFINE_GUID(HECI_INTERFACE_GUID,
