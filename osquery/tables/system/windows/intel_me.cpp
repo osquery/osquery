@@ -15,8 +15,8 @@
 // clang-format off
 #include <osquery/utils/system/system.h>
 #include <SetupAPI.h>
-
 // clang-format on
+
 #include <initguid.h>
 #include <tchar.h>
 
@@ -67,6 +67,10 @@ const std::vector<std::uint8_t> kGetFirmareVersionCommandForInterfaceType2 = {
 const std::uint32_t kGetFirmareVersionCommandForInterfaceType2Reply =
     0x00000001U;
 
+// It is best to generate a report of your own system using the Intel
+// detection tool and then match the versions with the returned data.
+// The tool can be found here:
+// https://downloadcenter.intel.com/download/27150/INTEL-SA-00086-Detection-Tool
 struct IntelMEInformation final {
   struct HECIVersion final {
     std::uint8_t major{0U};
