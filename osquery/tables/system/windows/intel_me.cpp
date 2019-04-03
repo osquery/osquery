@@ -279,7 +279,7 @@ osquery::Status getDeviceInformationSet(DeviceInformationSet& dev_info_set,
   }
 
   dev_info_set.reset(handle);
-  return osquery::Status(0);
+  return osquery::Status::success();
 }
 
 osquery::Status getDeviceInterfacePath(
@@ -341,7 +341,7 @@ osquery::Status getDeviceInterfacePath(
   dev_interface_path = std::move(path);
   path.clear();
 
-  return osquery::Status(0);
+  return osquery::Status::success();
 }
 
 osquery::Status enumerateHECIDeviceInterfacePaths(
@@ -398,7 +398,7 @@ osquery::Status enumerateHECIDeviceInterfacePaths(
   dev_path_list = std::move(path_list);
   path_list.clear();
 
-  return osquery::Status(0);
+  return osquery::Status::success();
 }
 
 osquery::Status openDeviceInterface(DeviceHandle& device_handle,
@@ -420,7 +420,7 @@ osquery::Status openDeviceInterface(DeviceHandle& device_handle,
   }
 
   device_handle.reset(device);
-  return osquery::Status(0);
+  return osquery::Status::success();
 }
 
 osquery::Status queryHECIVersion(IntelMEInformation& intel_me_info,
@@ -451,7 +451,7 @@ osquery::Status queryHECIVersion(IntelMEInformation& intel_me_info,
   intel_me_info.heci_version.hotfix = response.at(2);
 
   std::memcpy(&intel_me_info.heci_version.build, response.data() + 3U, 2U);
-  return Status(0);
+  return osquery::Status::success();
 }
 
 osquery::Status sendConnectDeviceCommand(
@@ -517,7 +517,7 @@ osquery::Status sendConnectDeviceCommand(
 
   std::memcpy(&protocol_information.version, base_ptr, 1U);
 
-  return osquery::Status(0);
+  return osquery::Status::success();
 }
 
 osquery::Status connectToHECIInterface(IntelMEInformation& intel_me_info,
@@ -553,7 +553,7 @@ osquery::Status createEvent(EventHandle& event) {
     event.reset(h);
   }
 
-  return osquery::Status(0);
+  return osquery::Status::success();
 }
 
 osquery::Status sendHECIMessage(HANDLE device,
@@ -595,7 +595,7 @@ osquery::Status sendHECIMessage(HANDLE device,
         "Not all the bytes in the message could be correctly transferred");
   }
 
-  return osquery::Status(0);
+  return osquery::Status::success();
 }
 
 osquery::Status receiveHECIMessage(std::vector<std::uint8_t>& buffer,
@@ -641,7 +641,7 @@ osquery::Status receiveHECIMessage(std::vector<std::uint8_t>& buffer,
   temp_buffer.resize(static_cast<std::size_t>(bytes_transferred));
   buffer = std::move(temp_buffer);
 
-  return osquery::Status(0);
+  return osquery::Status::success();
 }
 
 osquery::Status queryFirmwareVersionForInterfaceTypes0And1(
@@ -723,7 +723,7 @@ osquery::Status queryFirmwareVersionForInterfaceTypes0And1(
 
   intel_me_info.fw_version = fw_version;
 
-  return osquery::Status(0);
+  return osquery::Status::success();
 }
 
 osquery::Status queryFirmwareVersionForInterfaceType2(
@@ -799,7 +799,7 @@ osquery::Status queryFirmwareVersionForInterfaceType2(
   base_ptr += 2U;
 
   intel_me_info.fw_version = fw_version;
-  return osquery::Status(0);
+  return osquery::Status::success();
 }
 
 osquery::Status queryFirmwareVersion(IntelMEInformation& intel_me_info,
@@ -849,7 +849,7 @@ osquery::Status queryIntelMEDeviceInterface(
     return status;
   }
 
-  return osquery::Status(0);
+  return osquery::Status::success();
 }
 } // namespace
 
