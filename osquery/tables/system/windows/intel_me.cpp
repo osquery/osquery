@@ -363,7 +363,7 @@ osquery::Status enumerateHECIDeviceInterfacePaths(
   // for each device interface
   std::unordered_set<std::string> path_list;
 
-  for (DWORD member_index = 0U; true; member_index++) {
+  for (DWORD member_index = 0U;; member_index++) {
     SP_DEVICE_INTERFACE_DATA dev_interface = {};
     dev_interface.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
 
