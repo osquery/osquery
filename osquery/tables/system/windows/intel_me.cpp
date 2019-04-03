@@ -17,6 +17,8 @@
 #include <SetupAPI.h>
 // clang-format on
 
+#include <boost/format.hpp>
+
 #include <initguid.h>
 #include <tchar.h>
 
@@ -126,104 +128,101 @@ struct IntelMEInformation final {
   boost::variant<FirmwareVersionTypes0And1, FirmwareVersionType2> fw_version;
 };
 
-std::ostream& operator<<(
-    std::ostream& stream,
+std::string printFirmareVersionData(
     const IntelMEInformation::FirmwareVersionTypes0And1::VersionData&
         version_data) {
-  stream << "Major: " << version_data.major << " ";
-  stream << "Minor: " << version_data.minor << " ";
-  stream << "Build number: " << version_data.build_number << " ";
-  stream << "Hotfix: " << version_data.hotfix;
-
-  return stream;
+  return (boost::format("Major: %d Minor: %d Build number: %d Hotfix: %d") %
+          static_cast<int>(version_data.major) %
+          static_cast<int>(version_data.minor) %
+          static_cast<int>(version_data.build_number) %
+          static_cast<int>(version_data.hotfix))
+      .str();
 }
 
-std::ostream& operator<<(
-    std::ostream& stream,
-    const IntelMEInformation::FirmwareVersionTypes0And1& fw_version) {
-  stream << "VersionTypes0And1 { ";
-  stream << "CODE { " << fw_version.code << " } ";
-  stream << "NFTP { " << fw_version.nftp << " } ";
+std::string printHeciVersionData(
+    const IntelMEInformation::HECIVersion& version_data) {
+  return (boost::format("Major: %d Minor: %d Hotfix: %d Build number: %d") %
+          static_cast<int>(version_data.major) %
+          static_cast<int>(version_data.minor) %
+          static_cast<int>(version_data.hotfix) %
+          static_cast<int>(version_data.build))
+      .str();
+}
 
+std::string printFirmwareVersion(
+    const IntelMEInformation::FirmwareVersionTypes0And1& fw_version) {
+  std::string fitc_version;
   if (fw_version.fitc) {
-    const auto& fitc_version = fw_version.fitc.get();
-    stream << "FITC { " << fitc_version << " } ";
+    fitc_version = printFirmareVersionData(fw_version.fitc.get());
+  } else {
+    fitc_version = "N/A";
   }
 
-  stream << "} ";
-  return stream;
+  return (boost::format(
+              "VersionTypes0And1 { CODE { %s } NFTP { %s } FITC { %s } } ") %
+          printFirmareVersionData(fw_version.code) %
+          printFirmareVersionData(fw_version.nftp) % fitc_version)
+      .str();
 }
 
-std::ostream& operator<<(
-    std::ostream& stream,
+std::string printFirmwareVersion(
     const IntelMEInformation::FirmwareVersionType2& fw_version) {
-  stream << "VersionType2 { ";
-  stream << "sku: " << fw_version.sku << " ";
-  stream << "pch_ver: " << fw_version.pch_ver << " ";
-  stream << "vendor: " << fw_version.vendor << " ";
-
-  stream << "last_fw_update_status: " << fw_version.last_fw_update_status
-         << " ";
-
-  stream << "hw_sku: " << fw_version.hw_sku << " ";
-  stream << "major: " << fw_version.major << " ";
-  stream << "minor: " << fw_version.minor << " ";
-  stream << "build: " << fw_version.build << " ";
-  stream << "revision: " << fw_version.revision << " ";
-  stream << " } ";
-
-  return stream;
+  return (boost::format("VersionType2 { sku: %u pch_ver: %u vendor: %u "
+                        "last_fw_update_status: %u hw_sku: %u major: %u minor: "
+                        "%u build: %u revision: %u }") %
+          fw_version.sku % fw_version.pch_ver % fw_version.vendor %
+          fw_version.last_fw_update_status % fw_version.hw_sku %
+          fw_version.major % fw_version.minor % fw_version.build %
+          fw_version.revision)
+      .str();
 }
 
-std::ostream& operator<<(std::ostream& stream,
-                         const IntelMEInformation& intel_me_info) {
-  stream << "HECI Version: "
-         << static_cast<int>(intel_me_info.heci_version.major) << "."
-         << static_cast<int>(intel_me_info.heci_version.minor) << "."
-         << static_cast<int>(intel_me_info.heci_version.hotfix) << "."
-         << static_cast<int>(intel_me_info.heci_version.build) << " ";
-
-  stream << "Protocol Version: "
-         << static_cast<int>(intel_me_info.protocol_information.version) << " ";
-
-  stream << "Max Message Length: "
-         << static_cast<int>(
-                intel_me_info.protocol_information.max_message_length)
-         << " ";
-
-  stream << "Interface type: ";
-
-  switch (intel_me_info.interface_type) {
+std::string printInterfaceType(
+    const IntelMEInformation::InterfaceType& interface_type) {
+  switch (interface_type) {
   case IntelMEInformation::InterfaceType_0:
-    stream << "Type0 ";
-    break;
+    return "Type0 ";
 
   case IntelMEInformation::InterfaceType_1:
-    stream << "Type1 ";
-    break;
+    return "Type1 ";
 
   case IntelMEInformation::InterfaceType_2:
-    stream << "Type2 ";
-    break;
-  }
+    return "Type2 ";
 
+  case IntelMEInformation::InterfaceType_Max:
+  default:
+    return "<INVALID>";
+  }
+}
+
+std::string printIntelMEVersion(const IntelMEInformation& intel_me_info) {
+  std::string general_information =
+      (boost::format("HECI Version: %s Protocol Version: %d Max Message "
+                     "Length: %u Interface Type: %s ") %
+       printHeciVersionData(intel_me_info.heci_version) %
+       static_cast<int>(intel_me_info.protocol_information.version) %
+       intel_me_info.protocol_information.max_message_length %
+       printInterfaceType(intel_me_info.interface_type))
+          .str();
+
+  std::string firmware_information;
   if (intel_me_info.interface_type == IntelMEInformation::InterfaceType_0 ||
       intel_me_info.interface_type == IntelMEInformation::InterfaceType_1) {
     const auto& fw_version =
         boost::get<IntelMEInformation::FirmwareVersionTypes0And1>(
             intel_me_info.fw_version);
 
-    stream << fw_version;
+    firmware_information = printFirmwareVersion(fw_version);
 
   } else {
     const auto& fw_version =
         boost::get<IntelMEInformation::FirmwareVersionType2>(
             intel_me_info.fw_version);
 
-    stream << fw_version;
+    firmware_information = printFirmwareVersion(fw_version);
   }
 
-  return stream;
+  return general_information + firmware_information;
 }
 
 struct HdevInfoDeleter final {
@@ -880,8 +879,11 @@ void getHECIDriverVersion(QueryData& results) {
       continue;
     }
 
-    VLOG(1) << intel_me_info;
+    VLOG(1) << printIntelMEVersion(intel_me_info);
 
+    // Do not dump the whole structures; just get the essential version
+    // information
+    // and ignore the rest
     std::string version = {};
 
     switch (intel_me_info.interface_type) {
