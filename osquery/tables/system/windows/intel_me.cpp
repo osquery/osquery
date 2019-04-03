@@ -110,7 +110,12 @@ struct IntelMEInformation final {
     std::uint16_t revision{0U};
   };
 
-  enum class InterfaceType { Type0, Type1, Type2 };
+  enum InterfaceType : int {
+    InterfaceType_0,
+    InterfaceType_1,
+    InterfaceType_2,
+    InterfaceType_Max
+  };
 
   HECIVersion heci_version;
   ProtocolInformation protocol_information;
@@ -186,23 +191,21 @@ std::ostream& operator<<(std::ostream& stream,
   stream << "Interface type: ";
 
   switch (intel_me_info.interface_type) {
-  case IntelMEInformation::InterfaceType::Type0:
+  case IntelMEInformation::InterfaceType_0:
     stream << "Type0 ";
     break;
 
-  case IntelMEInformation::InterfaceType::Type1:
+  case IntelMEInformation::InterfaceType_1:
     stream << "Type1 ";
     break;
 
-  case IntelMEInformation::InterfaceType::Type2:
+  case IntelMEInformation::InterfaceType_2:
     stream << "Type2 ";
     break;
   }
 
-  if (intel_me_info.interface_type ==
-          IntelMEInformation::InterfaceType::Type0 ||
-      intel_me_info.interface_type ==
-          IntelMEInformation::InterfaceType::Type1) {
+  if (intel_me_info.interface_type == IntelMEInformation::InterfaceType_0 ||
+      intel_me_info.interface_type == IntelMEInformation::InterfaceType_1) {
     const auto& fw_version =
         boost::get<IntelMEInformation::FirmwareVersionTypes0And1>(
             intel_me_info.fw_version);
@@ -219,11 +222,6 @@ std::ostream& operator<<(std::ostream& stream,
 
   return stream;
 }
-
-const std::vector<IntelMEInformation::InterfaceType> kInterfaceTypesToTry = {
-    IntelMEInformation::InterfaceType::Type0,
-    IntelMEInformation::InterfaceType::Type1,
-    IntelMEInformation::InterfaceType::Type2};
 
 struct HdevInfoDeleter final {
   using pointer = HDEVINFO;
@@ -466,15 +464,15 @@ osquery::Status sendConnectDeviceCommand(
   const std::vector<std::uint8_t>* connect_command_data = nullptr;
 
   switch (interface_type) {
-  case IntelMEInformation::InterfaceType::Type0:
+  case IntelMEInformation::InterfaceType_0:
     connect_command_data = &kConnectDeviceCommandData.at(0);
     break;
 
-  case IntelMEInformation::InterfaceType::Type1:
+  case IntelMEInformation::InterfaceType_1:
     connect_command_data = &kConnectDeviceCommandData.at(1);
     break;
 
-  case IntelMEInformation::InterfaceType::Type2:
+  case IntelMEInformation::InterfaceType_2:
     connect_command_data = &kConnectDeviceCommandData.at(2);
     break;
   }
@@ -526,7 +524,11 @@ osquery::Status connectToHECIInterface(IntelMEInformation& intel_me_info,
                                        HANDLE device) {
   osquery::Status status;
 
-  for (const auto& interface_type : kInterfaceTypesToTry) {
+  for (int i = IntelMEInformation::InterfaceType_0;
+       i != IntelMEInformation::InterfaceType_Max;
+       i++) {
+    auto interface_type = static_cast<IntelMEInformation::InterfaceType>(i);
+
     status = sendConnectDeviceCommand(
         intel_me_info.protocol_information, device, interface_type);
 
@@ -807,9 +809,9 @@ osquery::Status queryFirmwareVersion(IntelMEInformation& intel_me_info,
 
   // clang-format off
   const std::unordered_map<IntelMEInformation::InterfaceType, QueryFirmwareFunction> kQueryFunctions = {
-    { IntelMEInformation::InterfaceType::Type0, queryFirmwareVersionForInterfaceTypes0And1 },
-    { IntelMEInformation::InterfaceType::Type1, queryFirmwareVersionForInterfaceTypes0And1 },
-    { IntelMEInformation::InterfaceType::Type2, queryFirmwareVersionForInterfaceType2 }
+    { IntelMEInformation::InterfaceType_0, queryFirmwareVersionForInterfaceTypes0And1 },
+    { IntelMEInformation::InterfaceType_1, queryFirmwareVersionForInterfaceTypes0And1 },
+    { IntelMEInformation::InterfaceType_2, queryFirmwareVersionForInterfaceType2 }
   };
   // clang-format on
 
@@ -880,8 +882,8 @@ void getHECIDriverVersion(QueryData& results) {
     std::string version = {};
 
     switch (intel_me_info.interface_type) {
-    case IntelMEInformation::InterfaceType::Type0:
-    case IntelMEInformation::InterfaceType::Type1: {
+    case IntelMEInformation::InterfaceType_0:
+    case IntelMEInformation::InterfaceType_1: {
       const auto& fw_version =
           boost::get<IntelMEInformation::FirmwareVersionTypes0And1>(
               intel_me_info.fw_version);
@@ -894,7 +896,7 @@ void getHECIDriverVersion(QueryData& results) {
       break;
     }
 
-    case IntelMEInformation::InterfaceType::Type2: {
+    case IntelMEInformation::InterfaceType_2: {
       const auto& fw_version =
           boost::get<IntelMEInformation::FirmwareVersionType2>(
               intel_me_info.fw_version);
