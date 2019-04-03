@@ -132,6 +132,7 @@ Status SyslogEventPublisher::lockPipe(const std::string& path) {
         1, "Error in open for locking pipe: " + std::string(strerror(errno)));
   }
   if (flock(lockFd_, LOCK_EX | LOCK_NB) != 0) {
+    close(lockFd_);
     lockFd_ = -1;
     return Status(
         1, "Unable to acquire pipe lock: " + std::string(strerror(errno)));
@@ -144,6 +145,8 @@ void SyslogEventPublisher::unlockPipe() {
     if (flock(lockFd_, LOCK_UN) != 0) {
       LOG(WARNING) << "Error unlocking pipe: " << std::string(strerror(errno));
     }
+    close(lockFd_);
+    lockFd_ = -1;
   }
 }
 
