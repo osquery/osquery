@@ -341,8 +341,6 @@ osquery::Status getDeviceInterfacePath(
   }
 
   dev_interface_path = std::move(path);
-  path.clear();
-
   return osquery::Status::success();
 }
 
