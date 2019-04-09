@@ -106,7 +106,7 @@ int startDaemon(Initializer& runner) {
   // Begin the schedule runloop.
   startScheduler();
 
-  osquery::experimental::tracing::init();
+  osquery::events::init_syscall_tracing();
 
   // Finally wait for a signal / interrupt to shutdown.
   runner.waitForShutdown();

@@ -21,7 +21,6 @@ DEFINE_string(events_streaming_plugin,
               "",
               "Experimental events streaming plugin");
 
-namespace experimental {
 namespace events {
 
 void dispatchSerializedEvent(const std::string& serialized_event) {
@@ -41,5 +40,4 @@ void dispatchSerializedEvent(const std::string& serialized_event) {
 }
 
 } // namespace events
-} // namespace experimental
 } // namespace osquery

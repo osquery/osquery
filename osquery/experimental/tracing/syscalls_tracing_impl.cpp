@@ -21,8 +21,7 @@
 #include <osquery/utils/system/time.h>
 
 namespace osquery {
-namespace experimental {
-namespace tracing {
+namespace events {
 
 namespace {
 
@@ -115,7 +114,7 @@ ExpectedSuccess<Error> runSyscallTracing() {
         }
         auto status_json_to_string = event_json.toString(event_str);
         if (status_json_to_string.ok()) {
-          osquery::experimental::events::dispatchSerializedEvent(event_str);
+          osquery::events::dispatchSerializedEvent(event_str);
         } else {
           LOG(ERROR) << "Event serialisation failed: "
                      << status_json_to_string.what();
@@ -146,11 +145,10 @@ class SyscallTracingRannable : public ::osquery::InternalRunnable {
 
 namespace impl {
 
-void runService() {
+void runSyscallTracingService() {
   Dispatcher::addService(std::make_shared<SyscallTracingRannable>());
 }
 
 } // namespace impl
-} // namespace tracing
-} // namespace experimental
+} // namespace events
 } // namespace osquery

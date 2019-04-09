@@ -20,18 +20,16 @@ DEFINE_bool(enable_experimental_tracing,
             false,
             "Experimental syscalls tracing");
 
-namespace experimental {
-namespace tracing {
+namespace events {
 
-void init() {
+void init_syscall_tracing() {
 #ifdef LINUX
   if (FLAGS_enable_experimental_tracing) {
     LOG(INFO) << "Experimental syscall tracing is enabled";
-    impl::runService();
+    impl::runSyscallTracingService();
   }
 #endif
 }
 
-} // namespace tracing
-} // namespace experimental
+} // namespace events
 } // namespace osquery

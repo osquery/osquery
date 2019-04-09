@@ -11,11 +11,9 @@
 #include <string>
 
 namespace osquery {
-namespace experimental {
 namespace events {
 
 void dispatchSerializedEvent(const std::string& event);
 
 } // namespace events
-} // namespace experimental
 } // namespace osquery

@@ -9,11 +9,9 @@
 #pragma once
 
 namespace osquery {
-namespace experimental {
-namespace tracing {
+namespace events {
 
-void init();
+void init_syscall_tracing();
 
-} // namespace tracing
-} // namespace experimental
+} // namespace events
 } // namespace osquery

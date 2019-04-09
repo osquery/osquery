@@ -14,7 +14,7 @@
 
 namespace osquery {
 
-CREATE_REGISTRY(EventsStreamPlugin, experimental::events::streamRegistryName());
+CREATE_REGISTRY(EventsStreamPlugin, events::streamRegistryName());
 
 Status EventsStreamPlugin::call(const PluginRequest& request,
                                 PluginResponse& response) {
@@ -22,7 +22,6 @@ Status EventsStreamPlugin::call(const PluginRequest& request,
   return Status::success();
 }
 
-namespace experimental {
 namespace events {
 
 char const* streamRegistryName() {
@@ -30,5 +29,4 @@ char const* streamRegistryName() {
 }
 
 } // namespace events
-} // namespace experimental
 } // namespace osquery
