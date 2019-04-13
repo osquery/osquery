@@ -88,7 +88,7 @@ void Client::createConnection() {
 
   boost_system::error_code rc;
   connect(sock_,
-          r_.resolve(boost_asio::ip::tcp::resolver::query{connect_host, port}),
+          r_.resolve(connect_host, port, boost::asio::ip::resolver_query_base::flags()),
           rc);
 
   if (rc) {
