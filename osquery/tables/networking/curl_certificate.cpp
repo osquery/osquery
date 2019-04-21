@@ -201,7 +201,7 @@ Status getTLSCertificate(std::string hostname, QueryData& results) {
   r["hostname"] = hostname;
   fillRow(r, cert.get());
   results.push_back(r);
-  return Status();
+  return Status::success();
 }
 
 QueryData genTLSCertificate(QueryContext& context) {

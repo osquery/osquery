@@ -9,13 +9,12 @@
 #pragma once
 
 namespace osquery {
-namespace experimental {
-namespace tracing {
+namespace events {
 
 namespace impl {
-void runService();
+
+void runSyscallTracingService();
 }
 
-} // namespace tracing
-} // namespace experimental
+} // namespace events
 } // namespace osquery

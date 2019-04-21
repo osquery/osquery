@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/events/linux/probes/syscalls_programs.h>
+#include <osquery/experimental/tracing/linux/syscalls_programs.h>
 
 #include <boost/core/demangle.hpp>
 

@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/events/linux/probes/probes.h>
+#include <osquery/experimental/tracing/linux/probes.h>
 
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/map_take.h>

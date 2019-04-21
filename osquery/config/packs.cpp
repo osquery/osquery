@@ -283,10 +283,6 @@ const std::string& Pack::getSource() const {
   return source_;
 }
 
-void Pack::setName(const std::string& name) {
-  name_ = name;
-}
-
 bool Pack::checkPlatform() const {
   return checkPlatform(platform_);
 }

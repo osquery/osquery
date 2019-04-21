@@ -152,8 +152,7 @@ Status Query::addNewResults(QueryDataTyped current_qd,
   if (update_db) {
     // Replace the "previous" query data with the current.
     std::string json;
-    status =
-        serializeQueryDataJSON(*target_gd, json, FLAGS_log_numerics_as_numbers);
+    status = serializeQueryDataJSON(*target_gd, json, true);
     if (!status.ok()) {
       return status;
     }
@@ -190,7 +189,7 @@ Status deserializeDiffResults(const rj::Value& doc, DiffResults& dr) {
       return status;
     }
   }
-  return Status();
+  return Status::success();
 }
 
 inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
@@ -261,7 +260,7 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
   }
 
   addLegacyFieldsAndDecorations(item, doc, doc.doc());
-  return Status();
+  return Status::success();
 }
 
 Status serializeEvent(const QueryLogItem& item,
@@ -307,7 +306,7 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
       doc.push(obj);
     }
   }
-  return Status();
+  return Status::success();
 }
 
 Status serializeQueryLogItemJSON(const QueryLogItem& item, std::string& json) {
@@ -318,38 +317,6 @@ Status serializeQueryLogItemJSON(const QueryLogItem& item, std::string& json) {
   }
 
   return doc.toString(json);
-}
-
-Status deserializeQueryLogItem(const JSON& doc, QueryLogItem& item) {
-  if (!doc.doc().IsObject()) {
-    return Status(1);
-  }
-
-  if (doc.doc().HasMember("diffResults")) {
-    auto status =
-        deserializeDiffResults(doc.doc()["diffResults"], item.results);
-    if (!status.ok()) {
-      return status;
-    }
-  } else if (doc.doc().HasMember("snapshot")) {
-    auto status =
-        deserializeQueryData(doc.doc()["snapshot"], item.snapshot_results);
-    if (!status.ok()) {
-      return status;
-    }
-  }
-
-  getLegacyFieldsAndDecorations(doc, item);
-  return Status();
-}
-
-Status deserializeQueryLogItemJSON(const std::string& json,
-                                   QueryLogItem& item) {
-  auto doc = JSON::newObject();
-  if (!doc.fromString(json) || !doc.doc().IsObject()) {
-    return Status(1, "Cannot deserialize JSON");
-  }
-  return deserializeQueryLogItem(doc, item);
 }
 
 Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& item,
@@ -367,7 +334,7 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& item,
     event.Accept(writer);
     items.push_back(sb.GetString());
   }
-  return Status();
+  return Status::success();
 }
 
 }

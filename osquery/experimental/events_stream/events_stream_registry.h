@@ -21,11 +21,9 @@ class EventsStreamPlugin : public Plugin {
   Status call(const PluginRequest& request, PluginResponse& response) override;
 };
 
-namespace experimental {
 namespace events {
 
 char const* streamRegistryName();
 
 } // namespace events
-} // namespace experimental
 } // namespace osquery

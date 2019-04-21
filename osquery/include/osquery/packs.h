@@ -61,9 +61,6 @@ class Pack : private boost::noncopyable {
   /// Utility for identifying whether or not the pack should be scheduled
   bool shouldPackExecute();
 
-  /// Sets the name of the pack
-  void setName(const std::string& name);
-
   /// Returns the name of the pack
   const std::string& getName() const;
 

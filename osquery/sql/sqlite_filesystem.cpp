@@ -152,6 +152,11 @@ static void getParentDirectory(sqlite3_context* context,
     return;
   }
   const char* path = reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
+  if (path == nullptr) {
+    sqlite3_result_null(context);
+    return;
+  }
+
   int pos = 0;
   int last_slash_pos = -1;
 #if defined(OSQUERY_WINDOWS)

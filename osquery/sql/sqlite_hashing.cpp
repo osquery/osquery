@@ -36,6 +36,10 @@ static void hashSqliteValue(sqlite3_context* ctx,
   // Parse and verify the split input parameters.
   const char* input =
       reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
+  if (input == nullptr) {
+    sqlite3_result_null(ctx);
+    return;
+  }
 
   auto result = hashFromBuffer(ht, input, strlen(input));
   sqlite3_result_text(

@@ -80,6 +80,7 @@ std::vector<std::string> parseExtendedAttributeList(const std::string& path) {
 
   ssize_t ret = listxattr(path.c_str(), content, value, 0);
   if (ret == 0) {
+    free(content);
     return attributes;
   }
 

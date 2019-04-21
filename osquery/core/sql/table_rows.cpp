@@ -21,7 +21,7 @@ Status serializeTableRows(const TableRows& rows, JSON& doc, rj::Document& arr) {
     }
     doc.push(row_obj, arr);
   }
-  return Status();
+  return Status::success();
 }
 
 Status serializeTableRowsJSON(const TableRows& rows, std::string& json) {

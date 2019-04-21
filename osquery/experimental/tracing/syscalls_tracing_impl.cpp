@@ -8,8 +8,8 @@
 
 #include <osquery/experimental/tracing/syscalls_tracing_impl.h>
 
-#include <osquery/events/linux/probes/probes.h>
 #include <osquery/experimental/events_stream/events_stream.h>
+#include <osquery/experimental/tracing/linux/probes.h>
 
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
@@ -21,8 +21,7 @@
 #include <osquery/utils/system/time.h>
 
 namespace osquery {
-namespace experimental {
-namespace tracing {
+namespace events {
 
 namespace {
 
@@ -39,9 +38,6 @@ class ProcCmdlineRetriever {
     if (auto cmd_ptr = cache_.get(proc_pid)) {
       return *cmd_ptr;
     } else {
-      LOG(ERROR)
-          << "Experimental tracing: command line string cache miss for pid: "
-          << proc_pid;
       return *cache_.insert(proc_pid, proc::cmdline(proc_pid));
     }
   }
@@ -118,7 +114,7 @@ ExpectedSuccess<Error> runSyscallTracing() {
         }
         auto status_json_to_string = event_json.toString(event_str);
         if (status_json_to_string.ok()) {
-          osquery::experimental::events::dispatchSerializedEvent(event_str);
+          osquery::events::dispatchSerializedEvent(event_str);
         } else {
           LOG(ERROR) << "Event serialisation failed: "
                      << status_json_to_string.what();
@@ -149,11 +145,10 @@ class SyscallTracingRannable : public ::osquery::InternalRunnable {
 
 namespace impl {
 
-void runService() {
+void runSyscallTracingService() {
   Dispatcher::addService(std::make_shared<SyscallTracingRannable>());
 }
 
 } // namespace impl
-} // namespace tracing
-} // namespace experimental
+} // namespace events
 } // namespace osquery

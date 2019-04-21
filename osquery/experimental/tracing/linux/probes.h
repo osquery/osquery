@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <osquery/events/linux/probes/ebpf_tracepoint.h>
-#include <osquery/events/linux/probes/syscall_event.h>
-#include <osquery/events/linux/probes/syscalls_programs.h>
+#include <osquery/experimental/tracing/linux/ebpf_tracepoint.h>
+#include <osquery/experimental/tracing/linux/syscall_event.h>
+#include <osquery/experimental/tracing/linux/syscalls_programs.h>
 
 #include <osquery/utils/enum_class_hash.h>
 #include <osquery/utils/expected/expected.h>

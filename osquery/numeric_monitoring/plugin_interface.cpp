@@ -58,7 +58,7 @@ const HostIdentifierKeys& hostIdentifierKeys() {
 Status NumericMonitoringPlugin::call(const PluginRequest& request,
                                      PluginResponse& response) {
   // should be implemented in plugins
-  return Status();
+  return Status::success();
 }
 
 } // namespace osquery

@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/events/linux/probes/syscall_event.h>
+#include <osquery/experimental/tracing/linux/syscall_event.h>
 
 namespace osquery {
 namespace events {

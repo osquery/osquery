@@ -299,12 +299,12 @@ CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
   auto status = SecItemCopyMatching(query, (CFTypeRef*)&keychain_certs);
   CFRelease(query);
 
+  // Release each keychain search path.
+  CFRelease(keychains);
+
   if (status != errSecSuccess) {
     return nullptr;
   }
-
-  // Release each keychain search path.
-  CFRelease(keychains);
 
   return keychain_certs;
 }
