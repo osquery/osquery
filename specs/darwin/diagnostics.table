@@ -17,10 +17,7 @@ schema([
     Column("activity_periods", TEXT, "Number of times application brought to foreground"),
     Column("idle_timeouts", INTEGER, "Unknown purpose"),
     Column("count", INTEGER, "Unknown purpose"),
-    Column("version", TEXT, "Unknown purpose"),
-    
-
-    
+    Column("version", TEXT, "Unknown purpose"),    
 ])
 implementation("diagnostics@genDiagnostics")
 examples([
