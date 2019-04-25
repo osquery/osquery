@@ -11,12 +11,14 @@ load("//tools/build_defs/oss/osquery:native.bzl", "osquery_genrule", "osquery_ht
 load("//tools/build_defs/oss/osquery:platforms.bzl", "WINDOWS")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
+_S3_BASE_URL = read_config("download", "third_party_base_url", "https://s3.amazonaws.com/osquery-packages") 
+
 osquery_http_archive(
     name = "archive",
     sha256 = "9bf1fe5182a604b4135edc1a425ae356c9ad15e9b23f9f12a02e80184c3a249c",
     type = "tar.gz",
     urls = [
-        "https://s3.amazonaws.com/osquery-packages/third-party/src/gtest-1.8.1.tar.gz",
+        _S3_BASE_URL + "/third-party/src/gtest-1.8.1.tar.gz",
     ],
 )
 

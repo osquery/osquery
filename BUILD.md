@@ -236,3 +236,17 @@ Supported modes:
 
 * `release`
 * `debug`
+
+
+## Build Options
+
+Several build options can be set in .buckconfig. If a .buckconfig.local file is present the settings will override those present in .buckconfig
+
+**download.third_party_base_url**
+
+This option will configure the URL that is used to download the third party dependencies. If it is not present it defaults to `https://s3.amazonaws.com/osquery-packages`
+
+```
+[download]
+    third_party_base_url = <SOME_URL>
+```

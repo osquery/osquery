@@ -10,12 +10,14 @@ load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_p
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_genrule", "osquery_http_archive")
 load("//tools/build_defs/oss/osquery:platforms.bzl", "POSIX", "WINDOWS")
 
+_S3_BASE_URL = read_config("download", "third_party_base_url", "https://s3.amazonaws.com/osquery-packages") 
+
 osquery_http_archive(
     name = "archive",
     sha256 = "a1ecb747d33d9ffae110c3e836f0094f0b172190807cb1d76568bb167b84b641",
     type = "tar.gz",
     urls = [
-        "https://s3.amazonaws.com/osquery-packages/third-party/src/sqlite-amalgamation-3260000.tar.gz",
+        _S3_BASE_URL + "/third-party/src/sqlite-amalgamation-3260000.tar.gz",
     ],
 )
 
