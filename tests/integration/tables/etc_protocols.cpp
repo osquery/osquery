@@ -15,31 +15,22 @@
 namespace osquery {
 namespace table_tests {
 
-class etcProtocols : public testing::Test {
-  protected:
-    void SetUp() override {
-      setUpEnvironment();
-    }
+class EtcProtocolsTest : public testing::Test {
+ protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
 };
 
-TEST_F(etcProtocols, test_sanity) {
-  // 1. Query data
-  auto const data = execute_query("select * from etc_protocols");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"name", NormalType}
-  //      {"number", IntType}
-  //      {"alias", NormalType}
-  //      {"comment", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(EtcProtocolsTest, test_sanity) {
+  auto const rows = execute_query("select * from etc_protocols");
+  auto const row_map = ValidatatioMap{
+      {"name", NonEmptyString},
+      {"number", NonNegativeInt},
+      {"alias", NonEmptyString},
+      {"comment", NormalType},
+  };
+  validate_rows(rows, row_map);
 }
 
 } // namespace table_tests
