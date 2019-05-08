@@ -3,13 +3,11 @@
 #
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
-. "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\\osquery_utils.ps1"
+# This library file contains constant definitions and helper functions
 
-$serviceName = 'osqueryd'
-$progData = [System.Environment]::GetEnvironmentVariable('ProgramData')
-$targetFolder = Join-Path $progData "osquery"
-$daemonFolder = Join-Path $targetFolder $serviceName
-$extensionsFolder = Join-Path $targetFolder 'extensions'
+#Requires -Version 3.0
+
+. "$PSScriptRoot\\osquery_utils.ps1"
 
 # Ensure the service is stopped and processes are not running if exists.
 if ((Get-Service $serviceName -ErrorAction SilentlyContinue) -and `
@@ -17,7 +15,7 @@ if ((Get-Service $serviceName -ErrorAction SilentlyContinue) -and `
   Stop-Service $serviceName
   # If we find zombie processes, ensure they're termintated
   $proc = Get-Process | Where-Object { $_.ProcessName -eq 'osqueryd' }
-  if ($proc -ne $null) {
+  if ($null -ne $proc) {
     Stop-Process -Force $proc -ErrorAction SilentlyContinue
   }
 }

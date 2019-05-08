@@ -7,6 +7,27 @@
 # Force Powershell to use TLS 1.2
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 
+# The osquery installation happens in Program Files
+$progFiles =  [System.Environment]::GetEnvironmentVariable('ProgramFiles')
+$targetFolder = Join-Path $progFiles 'osquery'
+
+# Maintain the daemon and extension folders for "safe" permissions management
+$daemonFolder = Join-Path $targetFolder 'osqueryd'
+$extensionsFolder = Join-Path $targetFolder 'extensions'
+$logFolder = Join-Path $targetFolder 'log'
+
+# Maintain the binary paths for creating the system service and extraction
+$targetDaemonBin = Join-Path $targetFolder "osqueryd.exe"
+$destDaemonBin = Join-Path $daemonFolder "osqueryd.exe"
+
+# Meta data for the system service installation
+$serviceName = 'osqueryd'
+$serviceDescription = 'osquery daemon service'
+
+# Track the old installation paths for removal
+$progData = [System.Environment]::GetEnvironmentVariable('ProgramData')
+$legacyInstall = Join-Path $progData "osquery"
+
 # Helper function to add an explicit Deny-Write ACE for the Everyone group
 function Set-DenyWriteAcl {
   [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
@@ -267,7 +288,7 @@ function Invoke-VcVarsAll {
     } else {
       $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
     }
-  
+
     # Lastly invoke the environment provisioning script
     $null = Invoke-BatchFile "$vcvarsall" "amd64"
     return $true
