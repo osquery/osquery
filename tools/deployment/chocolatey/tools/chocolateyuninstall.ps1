@@ -3,9 +3,12 @@
 #
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
-$progData = [System.Environment]::GetEnvironmentVariable('ProgramData')
-$targetFolder = Join-Path $progData "osquery"
-$serviceName = 'osqueryd'
+
+# This library file contains constant definitions and helper functions
+
+#Requires -Version 3.0
+
+. "$PSScriptRoot\\osquery_utils.ps1"
 
 # Remove the osquery path from the System PATH variable. Note: Here
 # we don't make use of our local vars, as Regex requires escaping the '\'
@@ -17,10 +20,10 @@ if ($oldPath -imatch [regex]::escape($targetFolder)) {
 
 if ((Get-Service $serviceName -ErrorAction SilentlyContinue)) {
   Stop-Service $serviceName
-  
+
   # If we find zombie processes, ensure they're termintated
   $proc = Get-Process | Where-Object { $_.ProcessName -eq 'osqueryd' }
-  if ($proc -ne $null) {
+  if ($null -ne $proc) {
     Stop-Process -Force $proc -ErrorAction SilentlyContinue
   }
 
