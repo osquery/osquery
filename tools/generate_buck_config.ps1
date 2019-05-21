@@ -6,44 +6,177 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
+
+<#
+.SYNOPSIS
+This script generates the buck config used to build osquery
+
+.DESCRIPTION
+This script generates a buck configuration file for building osquery.
+On sandcastle hosts, the VS and SDK install locations are in C:\tools
+so we default the configuration with these values for automation, however
+on developer windows virtual machines, we expect that this script is invoked
+by provision.ps1, which will already be aware of the SDK and VC install
+locations.
+
+.PARAMETER VsInstall
+Location of Visual Studio on the host, defaults to 'C:\tools\toolchains\vs2017_15.5\BuildTools'
+
+.PARAMETER VcToolsVersion
+The version of Visual Studio installed you'd like to use for builds, defaults to `14.12.25827`
+
+.PARAMETER SdkInstall
+The install location of the Windows SDK you'd like to build against, defaults to 'C:\tools\toolchains\vs2017_15.5\WindowsSdk\10.0.16299.91'
+
+.PARAMETER SdkVersion
+The version of the Windows SDK you'd like to build against, defaults to '10.0.16299.0'
+
+.PARAMETER Python3Path
+The path to ones Python3 interpreter
+
+.PARAMETER BuckConfigRoot
+The root directory where you're buck configs are kept
+
+.EXAMPLE
+.\provision\windows\New-VsToolChainBuckConfig.ps1
+
+.EXAMPLE
+.\provision\windows\New-VsToolChainBuckConfig.ps1 -help
+
+.EXAMPLE
+.\provision\windows\New-VsToolChainBuckConfig.ps1 -VcInstall "C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\VC\Tools\MSVC\"
+
+.NOTES
+Last Updated: 05/17/2019
+
+.LINK
+https://osquery.io
+
+#>
+
+
+#Requires -Version 3.0
+
+# These parameters are global, as we wish to be able to invoke this script directly
+param(
+  [string] $VsInstall = 'C:\tools\toolchains\vs2017_15.5\BuildTools\',
+  [string] $VcToolsVersion = '14.12.25827',
+  [string] $SdkInstall = 'C:\tools\toolchains\vs2017_15.5\WindowsSdk\10.0.16299.91',
+  [string] $SdkVersion = '10.0.16299.0',
+  [string] $Python3Path = 'C:\Python36\python.exe',
+  [string] $BuckConfigRoot = (Join-Path $PSScriptRoot "..\..\buckconfigs")
+)
+
 function New-VsToolchainBuckConfig {
-  if (-not (Test-Path env:VS_INSTALL_LOCATION)) {
-    $vswhere = (Get-Command 'vswhere').Source
-    $vsLocation = Invoke-Expression "$vswhere -latest -legacy -property installationPath" 
-    $vsLocation = $vsLocation  -Replace '\\', '/'
-    $vsVersion = Invoke-Expression "$vswhere -latest -legacy -property installationVersion"
-  } else {
+  
+  Write-Host "[+] Generating buck configs. . . " -ForegroundColor Green
+  Write-Host " => Checking Visual Studio install" -ForegroundColor Cyan
+  $vsLocation = ''
+
+  # If the VS Path is an argument or environment var, get it
+  if ($VsInstall -and (Test-Path $VsInstall)) {
+    $vsLocation = $VsInstall
+  } elseif (Test-Path env:VS_INSTALL_LOCATION) {
     $vsLocation = $env:VS_INSTALL_LOCATION
-    $vsVersion = $env:VS_VERSION
-  }
-
-  if (-not (Test-Path env:VC_TOOLS_VERSION)) {
-    $vcToolsVersion = Invoke-Expression "cat '$vsLocation/VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt'"
   } else {
-    $vcToolsVersion = $env:VC_TOOLS_VERSION
+    # Otherwise we need to attempt a derivation of it's location with vswhere
+    $vswhere = (Get-Command 'vswhere').Source
+    $vsVerArgs = @{
+      Command = "$vswhere -latest -legacy -property installationPath"
+    }
+    $vsLocation = Invoke-Expression @vsVerArgs
   }
 
-  $osType = 'x86'
+  if (-not $vsLocation) {
+    $msg = '[-] Failed to find Visual Studio, check your install and pass via -VsInstall'
+    Write-Host $msg -ForegroundColor Red
+    exit 1
+  }
+
+  # It's a bit easier to unify our paths with forward slashes as Windows doesn't mind
+  $vsLocation = $vsLocation  -Replace '\\', '/'
+
+  # We require the specific VS version as it's a part of the path
+  $vcToolsVer = ''
+  if ($VcToolsVersion) {
+    $vcToolsVer = $VcToolsVersion
+  } elseif (Test-Path env:VC_TOOLS_VERSION) {
+    $vcToolsVer = $env:VC_TOOLS_VERSION
+  } else {
+    $loc = Join-Path $vsLocation "VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt"
+    $vcToolsVer = Get-Content $loc
+  }
+
+  $binPath = Join-Path $vsLocation "VC\Tools\MSVC\$vcToolsVer"
+  if (-not (Test-Path $binPath)) {
+    $msg = "[-] Failed to find VC tools at $binPath, check Visual Studio install and pass in with -VcToolsVersion"
+    Write-Host $msg -ForegroundColor Red
+    exit 1
+  }
+
+  Write-Host " => Checking Win10 SDK install" -ForegroundColor Cyan
+
+  $osType = ''
   $regPrefix = 'Microsoft'
-  if ((Get-WmiObject -Class Win32_ComputerSystem).SystemType -match 'x64'-eq "True") {
-     $regPrefix = 'Wow6432Node'
-     $osType = 'x64'
+  $arch = (Get-WmiObject -Class Win32_ComputerSystem).SystemType
+  if ($arch -Match 'x64') {
+    $regPrefix = 'Wow6432Node'
+    $osType = 'x64'
+  } else {
+    $msg = 'x86 Windows systems are not supported for osquery builds'
+    Write-Host $msg -ForegroundColor Red
+    exit 1
   }
 
-  if (-not (Test-Path env:WINDOWS_SDK_VERSION)) {
-    $regEntry = "HKLM:\SOFTWARE\$regPrefix\Microsoft\Microsoft SDKs\Windows\"
-    $oneSdkVersion =  (Get-ChildItem -Path $regEntry -Recurse -Name) | Sort | Select-Object -first 1
-    $regEntry = "HKLM:\SOFTWARE\$regPrefix\Microsoft\Microsoft SDKs\Windows\$oneSdkVersion"
-    $windsdk_ver = (Get-ItemProperty -Path $regEntry -Name 'ProductVersion').ProductVersion
-    $windsdk_ver = "$windsdk_ver.0"
-    $windsdk = (Get-ItemProperty -Path $regEntry -Name "InstallationFolder").InstallationFolder
+  $winSdkPath = ''
+  if ($SdkInstall -and (Test-Path $SdkInstall) -and $SdkVersion) {
+    $winSdkPath = $SdkInstall
+    $winSdkVer = $SdkVersion
+  } elseif ((Test-Path env:WINDOWS_SDK_INSTALL) -and (env:WINDOWS_SDK_VERSION-ne '')) {
+    $winSdkPath = env:WINDOWS_SDK_INSTALL
+    $winSdkVer = env:WINDOWS_SDK_VERSION
   } else {
-    $windsdk_ver = $env:WINDOWS_SDK_VERSION
-    $windsdk = $env:WINDOWS_SDK_LOCATION
+    # If both SDK install location and version are not in env or provided, attempt to derive
+    $regEntry = "HKLM:\SOFTWARE\$regPrefix\Microsoft\Microsoft SDKs\Windows\"
+    $sdkRegPath =  Get-ChildItem -Path $regEntry -Recurse -Name | 
+                   Sort-Object | 
+                   Select-Object -first 1
+    $regEntry = "HKLM:\SOFTWARE\$regPrefix\Microsoft\Microsoft SDKs\Windows\$sdkRegPath"
+    $winSdkVer = (Get-ItemProperty -Path $regEntry -Name 'ProductVersion').ProductVersion
+    $winSdkVer += ".0"
+    $winSdkPath = (Get-ItemProperty -Path $regEntry -Name "InstallationFolder").InstallationFolder
+  }
+
+  $sdkSPath = Join-Path $winSdkPath "Include\$winSdkVer"
+  if (-not (Test-Path $sdkSPath)) {
+    $msg = '[-] Failed to find WinSDK, check install and pass in with -SdkInstall and -SdkVersion'
+    Write-Host $msg -ForegroundColor Red
+    exit 1
+  }
+
+  # If the Python3 path doesn't exist, or isn't accurate, attempt to resolve it
+  $python3 = ''
+  if (-not $Python3Path -or (-not (Test-Path $Python3Path))) {
+    # First check to see if the python in the path is version 3+
+    $pathPython = (Get-Command 'python').Source
+    $ver = Invoke-Expression "$pathPython --version"
+    if ('3' -Match $ver) {
+      $python3 = $pathPython
+    } else {
+      # If both SDK install location and version are not in env or provided, attempt to derive
+      $regEntry = "HKCU:\Software\Python\PythonCore\"
+      $pyVer = Get-ChildItem -Path $regEntry -Recurse -Name | Sort-Object | Select-Object -first 1
+      $regEntry = "HKCU:\Software\Python\PythonCore\$pyVer\InstallPath"
+      $python3 = (Get-ItemProperty -Path $regEntry -Name 'ExecutablePath').ExecutablePath
+    }
+  }
+  if (-not $python3 -or (-not (Test-Path $python3))) {
+    Write-Host 'Failed to find python3, check install' -ForegroundColor Red
+    exit 1
   }
 
   $toolchain_template = @'
-[cxx]
+[cxx#windows-x86_64]
   cpp = "VS_INSTALL_LOCATION/VC/Tools/MSVC/VS_TOOLS_VERSION/bin/HostOS_TYPE/OS_TYPE/cl.exe"
   cpp_type = windows
 
@@ -97,34 +230,55 @@ function New-VsToolchainBuckConfig {
     /LIBPATH:"WIN_SDK_INSTALL_LOCATION/Lib/WIN_SDK_VERSION/um/OS_TYPE"
 
 [python#py3]
-  interpreter = C:/Python36/python.exe
+  interpreter = PYTHON3_PATH
 '@
 
+  Write-Host " => Generating Buck Config for Win10 builds" -ForegroundColor Cyan
+
   $vsLocation = $vsLocation  -Replace '\\', '/'
-  $windsdk = $windsdk -Replace '\\', '/'
+  $winSdkPath = $winSdkPath -Replace '\\', '/'
+  $python3 = $python3 -Replace '\\', '/'
 
   $toolchain_template = $toolchain_template -Replace 'VS_INSTALL_LOCATION', $vsLocation
-  $toolchain_template = $toolchain_template -Replace 'VS_TOOLS_VERSION', $vcToolsVersion
+  $toolchain_template = $toolchain_template -Replace 'VS_TOOLS_VERSION', $vcToolsVer
 
   $toolchain_template = $toolchain_template -Replace 'OS_TYPE', $osType
-  $toolchain_template = $toolchain_template -Replace 'WIN_SDK_INSTALL_LOCATION', $windsdk
-  $toolchain_template = $toolchain_template -Replace 'WIN_SDK_VERSION', $windsdk_ver
+  $toolchain_template = $toolchain_template -Replace 'WIN_SDK_INSTALL_LOCATION', $winSdkPath
+  $toolchain_template = $toolchain_template -Replace 'WIN_SDK_VERSION', $winSdkVer
+
+  $toolchain_template = $toolchain_template -Replace 'PYTHON3_PATH', $python3
+
   $toolchain_template = $toolchain_template -Replace '//',  '/'
 
-  Out-File -FilePath "buckconfigs/windows-x86_64/toolchain/vsToolchainFlags.bcfg" -Encoding utf8 -InputObject $toolchain_template
+  $cxx_cpp = "$vsLocation/VC/Tools/MSVC/$vcToolsVer/bin/Host$osType/$osType/"
+  $winSdkIncludePath = "$winSdkPath/Include/$winSdkVer/"
+  $winSdkLibPath = "$winSdkPath/Lib/$winSdkVer/um/$osType"
 
-  $cxx_cpp = "$vsLocation/VC/Tools/MSVC/$vcToolsVersion/bin/Host$osType/$osType/"
-  $wind_shared = "$windsdk/Include/$windsdk_ver/"
-  $lib_path = "$windsdk/Lib/$windsdk_ver/um/$osType"
-  if (!(Test-Path $vsLocation) -Or !(Test-Path -Path $cxx_cpp) -Or !(Test-Path -Path $windsdk) -Or !(Test-Path $wind_shared) -Or !(Test-Path $lib_path)) {
-    Write-Host "Some of the paths that were generate are invalid :((. Please check the file and make sure everything is ok!"
-    Exit 1
+  if (-not (Test-Path $cxx_cpp)) {
+    $msg = "[-] Failed to find VC bin toolchain, check VS installation."
+    Write-Host $msg -ForegroundColor Red
+    exit 1
   }
+  if (-not (Test-Path $winSdkIncludePath)) {
+    $msg = "[-] Failed to find Win10 SDK Includes directory, check provisioning output."
+    Write-Host $msg -ForegroundColor Red
+    exit 1
+  }
+  if (-not (Test-Path $winSdkLibPath)) {
+    $msg = "[-] Failed to find Win10 SDK Lib directory, check provisioning output."
+    Write-Host $msg -ForegroundColor Red
+    exit 1
+  }
+
+  # Only write out the file if all paths were able to be derived
+  $bcfg = Join-Path $BuckConfigRoot "windows-x86_64/toolchain/vs2017_15.5.bcfg"
+  $outArgs = @{
+    FilePath = $bcfg
+    Encoding = "utf8"
+    InputObject = $toolchain_template
+  }
+  Out-File @outArgs
+  Write-Host "Buck config written to $bcfg" -ForegroundColor Green
 }
 
-if (!(Test-Path "buckconfigs/windows-x86_64/toolchain")) {
-  Write-Host "Couldn't find path buckconfigs/windows-x86_64/toolchain. Please make sure you run the script from osquery/oss/tools !"
-  Exit 1
-}
-
-New-VsToolchainBuckConfig
+$null = New-VsToolchainBuckConfig

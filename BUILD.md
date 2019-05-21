@@ -70,16 +70,14 @@ sudo pkg install glog thrift thrift-cpp boost-libs magic rocksdb-lite rapidjson 
 
 ### Windows 10
 
-Install Visual Studio 2017. It might work with previous versions but was not
-tested yet.
+You'll need to have the following software installed before you can build osquery on Windows:
 
-Currently, the toolchain paths are hard-coded for Visual Studio 2017 `15.5` with
-MSVC `14.12.25827` and Windows SDK `10.0.12299.91`. If your setup doesn't match
-these exact versions you need to update the paths under
-`tools/buckconfigs/windows-x86_64/toolchain/vs2017_15.5.bcfg`. You can also
-create a new `bcfg` file there and update the mode files under
-`mode/windows-x86_64/`. Finding the toolchain path will soon be automated.
+* Buck, this also requires the JRE 8 version
+* Visual Studio 2017 or greater
+* The Windows 10 SDK
+* Python3
 
+Once you've installed the above requirements, run `.\tools\generate_buck_config.ps1 -VsInstall '' -VcToolsVersion '' -SdkInstall '' -SdkVersion '' -Python3Path '' -BuckConfigRoot .\tools\buckconfigs\` to generate the buckconfig for building.
 
 ## Build & Test
 
