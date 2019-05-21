@@ -1,7 +1,7 @@
 [build]
   depfiles = disabled
 
-[cxx]
+[cxx#windows-x86_64]
   preprocess_mode = combined
   sandbox_sources = true
   use_arg_file = true
@@ -9,9 +9,10 @@
 
 [cxx_base]
   cppflags = \
-    /DBOOST_ALL_NO_LIB
+    /DBOOST_ALL_NO_LIB \
+    /DBOOST_ALL_STATIC_LINK
 
-  cflags =
+  cflags = \
     /std:c11 \
     /MT \
     /EHs \
@@ -20,7 +21,8 @@
     /bigobj
 
   cxxppflags = \
-    /DBOOST_ALL_NO_LIB
+    /DBOOST_ALL_NO_LIB \
+    /DBOOST_ALL_STATIC_LINK
 
   cxxflags = \
     /std:c++14 \
