@@ -228,7 +228,7 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
     // Later, when posting/putting, the data will be optionally compressed.
     r << http::Request::Header("Content-Encoding", "gzip");
   }
-  
+ 
   // Allow request calls to override the default HTTP POST verb.
   HTTPVerb verb;
   auto it = options_.doc().FindMember("_verb");
