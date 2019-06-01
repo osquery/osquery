@@ -98,7 +98,7 @@ void Client::createConnection() {
 
   boost_system::error_code rc;
   boost::asio::async_connect(sock_,
-                             r_.resolve(boost_asio::ip::tcp::resolver::query{connect_host, port}),
+          r_.resolve(boost_asio::ip::tcp::resolver::query{connect_host, port}),
           std::bind(&Client::timeoutHandler, this, std::placeholders::_1));
 
   if (rc) {
