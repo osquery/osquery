@@ -29,7 +29,7 @@ The default config plugin, **filesystem**, reads from a file and optional
 directory ".d" based on the filename. The included initscripts set the default
 config path as follows:
 
-* Windows: **C:\ProgramData\osquery\osquery.conf**
+* Windows: **C:\Program Files\osquery\osquery.conf**
 * Linux: **/etc/osquery/osquery.conf** and **/etc/osquery/osquery.conf.d/**
 * MacOS: **/var/osquery/osquery.conf** and **/var/osquery/osquery.conf.d/**
 

@@ -69,7 +69,7 @@ if ($installService) {
   if (-not (Get-Service $serviceName -ErrorAction SilentlyContinue)) {
     Write-Debug 'Installing osquery daemon service.'
     # If the 'install' parameter is passed, we create a Windows service with
-    # the flag file in the default location in \ProgramData\osquery\
+    # the flag file in the default location in \Program Files\osquery\
     # the flag file in the default location in Program Files
     $cmd = '"{0}" --flagfile="C:\Program Files\osquery\osquery.flags"' -f $destDaemonBin
 
