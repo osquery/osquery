@@ -27,7 +27,7 @@
 #define OSQUERY_LOG_HOME "/var/log/osquery/"
 #define OSQUERY_CERTS_HOME "/usr/share/osquery/certs/"
 #elif defined(WIN32)
-#define OSQUERY_HOME "\\ProgramData\\osquery\\"
+#define OSQUERY_HOME "\\Program Files\\osquery\\"
 #define OSQUERY_DB_HOME OSQUERY_HOME
 #define OSQUERY_SOCKET "\\\\.\\pipe\\"
 #define OSQUERY_PIDFILE OSQUERY_DB_HOME
