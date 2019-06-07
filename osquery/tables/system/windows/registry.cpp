@@ -248,7 +248,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
   reg_handle_t hRegistryHandle(hkey, closeRegHandle);
 
   if (ret != ERROR_SUCCESS) {
-    return Status(GetLastError(), "Failed to open registry handle");
+    return Status(ret, "Failed to open registry handle");
   }
 
   const DWORD maxKeyLength = 255;
@@ -272,7 +272,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
                             nullptr,
                             &ftLastWriteTime);
   if (retCode != ERROR_SUCCESS) {
-    return Status(GetLastError(), "Failed to query registry info for key");
+    return Status(retCode, "Failed to query registry info for key");
   }
   auto achKey = std::make_unique<TCHAR[]>(maxKeyLength);
   DWORD cbName;
@@ -290,7 +290,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
                              nullptr,
                              &ftLastWriteTime);
       if (retCode != ERROR_SUCCESS) {
-        return Status(GetLastError(), "Failed to enumerate registry key");
+        return Status(retCode, "Failed to enumerate registry key");
       }
 
       Row r;
@@ -325,7 +325,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
                            nullptr,
                            nullptr);
     if (retCode != ERROR_SUCCESS) {
-      return Status(GetLastError(), "Failed to enumerate registry values");
+      return Status(retCode, "Failed to enumerate registry values");
     }
 
     DWORD lpData = cbMaxValueData;
@@ -338,7 +338,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
                               bpDataBuff.get(),
                               &lpData);
     if (retCode != ERROR_SUCCESS) {
-      return Status(GetLastError(), "Failed to query registry value");
+      return Status(retCode, "Failed to query registry value");
     }
 
     // It's possible for registry entries to have been inserted incorrectly

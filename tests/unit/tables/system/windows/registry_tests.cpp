@@ -35,7 +35,7 @@ TEST_F(RegistryTablesTest, test_registry_existing_key) {
 TEST_F(RegistryTablesTest, test_registry_non_existing_key) {
   QueryData results;
   auto ret = queryKey(kInvalidTestKey, results);
-  EXPECT_TRUE(ret.ok());
+  EXPECT_FALSE(ret.ok());
   EXPECT_TRUE(results.size() == 0);
 }
 
