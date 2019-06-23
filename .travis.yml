@@ -34,5 +34,5 @@ matrix:
       <<: *os-common-macos
 
 script:
-  - buck build @mode/${OSQUERY_PLATFORM}/${OSQUERY_BUILD_MODE} -c color.ui=never osquery:osqueryd
+  - travis_wait 30 buck build @mode/${OSQUERY_PLATFORM}/${OSQUERY_BUILD_MODE} -c color.ui=never osquery:osqueryd
   - buck test @mode/${OSQUERY_PLATFORM}/${OSQUERY_BUILD_MODE} -c color.ui=never osquery/...
