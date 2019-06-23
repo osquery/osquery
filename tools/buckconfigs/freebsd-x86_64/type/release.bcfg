@@ -1,5 +1,5 @@
 [project]
-  buck_out = "buck-out/release"
+  buck_out = buck-out/release
 
 [cxx_type]
   cppflags = \
