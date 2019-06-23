@@ -19,6 +19,12 @@
 #define OPENSSL_NO_MD5 1
 #define OPENSSL_NO_DEPRECATED 1
 
+// TODO(5591) Remove this when addressed by Boost's ASIO config.
+// https://www.boost.org/doc/libs/1_67_0/boost/asio/detail/config.hpp
+// Standard library support for std::string_view.
+#define BOOST_ASIO_HAS_STD_STRING_VIEW 1
+#define BOOST_ASIO_DISABLE_STD_STRING_VIEW 1
+
 // clang-format off
 // Keep it on top of all other includes to fix double include WinSock.h header file
 // which is windows specific boost build problem
