@@ -4,11 +4,12 @@ os-common:
   macos: &os-common-macos
     addons:
       homebrew:
+        update: true
         taps:
           - facebook/fb
           - homebrew/cask-versions
         casks:
-          - java8
+          - adoptopenjdk8
         packages:
           - buck
           - watchman
