@@ -1,5 +1,5 @@
 [project]
-  buck_out = "buck-out/debug"
+  buck_out = buck-out/debug
 
 [cxx_type]
   cppflags = \
