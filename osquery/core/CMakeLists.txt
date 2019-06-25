@@ -1,22 +1,16 @@
-# Copyright (c) 2018-present, Trail of Bits, Inc.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-cmake_minimum_required(VERSION 3.13.1)
-
-function(osquery_core_main)
+function(osqueryCoreMain)
   add_subdirectory("plugins")
   add_subdirectory("sql")
+
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
 
   generateOsqueryCore()
 endfunction()
@@ -44,7 +38,7 @@ function(generateOsqueryCore)
     )
   endif()
 
-  add_library(osquery_core EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_core EXCLUDE_FROM_ALL
     ${source_files}
   )
 
@@ -59,10 +53,15 @@ function(generateOsqueryCore)
     osquery_utils_conversions
     osquery_utils_info
     osquery_utils_system_env
-    osquery_utils_system
+    osquery_utils_system_systemutils
     osquery_utils_system_time
     osquery_logger
-    thirdparty_googletest
+    osquery_extensions
+    thirdparty_gflags
+    thirdparty_glog
+    thirdparty_openssl
+    thirdparty_sqlite
+    thirdparty_glibc_pthread
   )
 
   if(DEFINED PLATFORM_LINUX)
@@ -73,10 +72,6 @@ function(generateOsqueryCore)
     global_cxx_settings
 
     ${dependencies}
-
-    thirdparty_gflags
-    thirdparty_glog
-    thirdparty_openssl
   )
 
   set(public_header_files
@@ -84,14 +79,23 @@ function(generateOsqueryCore)
   )
 
   if(DEFINED PLATFORM_WINDOWS)
-    list(APPEND public_header_files
+    list(APPEND windows_public_header_files
       windows/handle.h
       windows/ntapi.h
       windows/wmi.h
     )
+
+    generateIncludeNamespace(osquery_core "osquery/core" "FULL_PATH" ${windows_public_header_files})
   endif()
 
   generateIncludeNamespace(osquery_core "osquery/core" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME osquery_core_tests_flagstests-test COMMAND osquery_core_tests_flagstests-test)
+  add_test(NAME osquery_core_tests_systemtests-test COMMAND osquery_core_tests_systemtests-test)
+  add_test(NAME osquery_core_tests_tablestests-test COMMAND osquery_core_tests_tablestests-test)
+  add_test(NAME osquery_core_tests_watcherpermissionstests-test COMMAND osquery_core_tests_watcherpermissionstests-test)
+  add_test(NAME osquery_core_tests_querytests-test COMMAND osquery_core_tests_querytests-test)
+
 endfunction()
 
-osquery_core_main()
+osqueryCoreMain()

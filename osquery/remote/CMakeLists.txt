@@ -1,23 +1,17 @@
-# Copyright (c) 2018-present, Trail of Bits, Inc.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-cmake_minimum_required(VERSION 3.13.1)
-
-function(osquery_remote_main)
+function(osqueryRemoteMain)
   add_subdirectory("serializers")
   add_subdirectory("transports")
   add_subdirectory("enroll")
+
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
 
   generateOsqueryRemoteRequests()
   generateOsqueryRemoteHttpclient()
@@ -25,7 +19,7 @@ function(osquery_remote_main)
 endfunction()
 
 function(generateOsqueryRemoteRequests)
-  add_library(osquery_remote_requests EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_remote_requests EXCLUDE_FROM_ALL
     requests.cpp
   )
 
@@ -46,7 +40,7 @@ function(generateOsqueryRemoteRequests)
 endfunction()
 
 function(generateOsqueryRemoteHttpclient)
-  add_library(osquery_remote_httpclient EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_remote_httpclient EXCLUDE_FROM_ALL
     http_client.cpp
     uri.cpp
   )
@@ -68,12 +62,12 @@ function(generateOsqueryRemoteHttpclient)
 endfunction()
 
 function(generateOsqueryRemoteUtility)
-  add_library(osquery_remote_utility INTERFACE)
+  add_osquery_library(osquery_remote_utility INTERFACE)
 
   target_link_libraries(osquery_remote_utility INTERFACE
     global_cxx_settings
     osquery_process
-    osquery_remote_transports_tls
+    osquery_remote_transports_transportstls
     osquery_remote_httpclient
     osquery_remote_requests
   )
@@ -83,6 +77,8 @@ function(generateOsqueryRemoteUtility)
   )
 
   generateIncludeNamespace(osquery_remote_utility "osquery/remote" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME osquery_remote_tests_requeststests-test COMMAND osquery_remote_tests_requeststests-test)
 endfunction()
 
-osquery_remote_main()
+osqueryRemoteMain()

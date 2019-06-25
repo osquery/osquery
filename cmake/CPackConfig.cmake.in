@@ -1,0 +1,20 @@
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
+#
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
+
+if("${CPACK_GENERATOR}" STREQUAL "")
+	message(FATAL_ERROR "No packaging system selected, cannot create a package. Please configure it through the PACKAGING_SYSTEM variable")
+endif()
+
+if("${CPACK_GENERATOR}" STREQUAL "DEB")
+
+  file(WRITE "@CMAKE_BINARY_DIR@/package/deb/conffiles"
+       "/etc/init.d/osqueryd\n"
+       "/etc/default/osqueryd\n")
+
+  set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "@CMAKE_BINARY_DIR@/package/deb/conffiles;@CMAKE_BINARY_DIR@/package/deb/postinst")
+elseif("${CPACK_GENERATOR}" STREQUAL "productbuild")
+	set(CPACK_SET_DESTDIR ON)
+endif()

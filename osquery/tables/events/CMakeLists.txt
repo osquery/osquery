@@ -1,24 +1,19 @@
-# Copyright (c) 2018-present, Trail of Bits, Inc.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-cmake_minimum_required(VERSION 3.13.1)
+function(osqueryTablesEventsMain)
 
-function(osquery_tables_events_main)
-  generateOsqueryTablesEvents()
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
+
+  generateOsqueryTablesEventsEventstable()
 endfunction()
 
-function(generateOsqueryTablesEvents)
+function(generateOsqueryTablesEventsEventstable)
   set(source_files
     event_utils.cpp
   )
@@ -51,33 +46,33 @@ function(generateOsqueryTablesEvents)
     )
   endif()
 
-  add_library(osquery_tables_events EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_tables_events_eventstable EXCLUDE_FROM_ALL
     ${source_files}
   )
 
-  enableLinkWholeArchive(osquery_tables_events)
+  enableLinkWholeArchive(osquery_tables_events_eventstable)
 
-  target_link_libraries(osquery_tables_events PUBLIC
-    osquery_config_parsers
+  target_link_libraries(osquery_tables_events_eventstable PUBLIC
+    osquery_headers
     osquery_config
     osquery_core
     osquery_events
     osquery_logger
     osquery_registry
     osquery_utils_system_uptime
-    osquery_headers
+    plugins_config_parsers
     thirdparty_boost
   )
 
   if(DEFINED PLATFORM_MACOS)
-    target_link_libraries(osquery_tables_events PUBLIC bsm)
+    target_link_libraries(osquery_tables_events_eventstable PUBLIC bsm)
   endif()
 
   set(public_header_files
     event_utils.h
   )
 
-  generateIncludeNamespace(osquery_tables_events "osquery/tables/events" "FILE_ONLY" ${public_header_files})
+  generateIncludeNamespace(osquery_tables_events_eventstable "osquery/tables/events" "FILE_ONLY" ${public_header_files})
 
   if(DEFINED PLATFORM_LINUX)
     set(platform_public_header_files
@@ -87,8 +82,17 @@ function(generateOsqueryTablesEvents)
       linux/socket_events.h
     )
 
-    generateIncludeNamespace(osquery_tables_events "osquery/tables/events" "FULL_PATH" ${platform_public_header_files})
+    generateIncludeNamespace(osquery_tables_events_eventstable "osquery/tables/events" "FULL_PATH" ${platform_public_header_files})
+
+    add_test(NAME osquery_tables_events_tests_selinuxeventstests-test COMMAND osquery_tables_events_tests_selinuxeventstests-test)
   endif()
+
+  add_test(NAME osquery_tables_events_tests_fileeventstests-test COMMAND osquery_tables_events_tests_fileeventstests-test)
+
+  set_tests_properties(
+    osquery_tables_events_tests_fileeventstests-test
+    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+  )
 endfunction()
 
-osquery_tables_events_main()
+osqueryTablesEventsMain()

@@ -1,20 +1,15 @@
-# Copyright (c) 2018-present, Trail of Bits, Inc.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-cmake_minimum_required(VERSION 3.13.1)
+function(osqueryFilesystemMain)
 
-function(osquery_filesystem_main)
+  if(BUILD_TESTING)
+    generateOsqueryFilesystemTest()
+  endif()
+
   generateOsqueryFilesystem()
   generateOsqueryFilesystemMockfilestructure()
 endfunction()
@@ -43,7 +38,7 @@ function(generateOsqueryFilesystem)
     )
   endif()
 
-  add_library(osquery_filesystem EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_filesystem EXCLUDE_FROM_ALL
     ${source_files}
   )
 
@@ -71,10 +66,17 @@ function(generateOsqueryFilesystem)
   endif()
 
   generateIncludeNamespace(osquery_filesystem "osquery/filesystem" "FULL_PATH" ${public_header_files})
+
+  add_test(NAME osquery_filesystem_filesystemtests-test COMMAND osquery_filesystem_filesystemtests-test)
+
+  set_tests_properties(
+    osquery_filesystem_filesystemtests-test
+    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+  )
 endfunction()
 
 function(generateOsqueryFilesystemMockfilestructure)
-  add_library(osquery_filesystem_mockfilestructure EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_filesystem_mockfilestructure EXCLUDE_FROM_ALL
     mock_file_structure.cpp
   )
 
@@ -91,4 +93,39 @@ function(generateOsqueryFilesystemMockfilestructure)
   generateIncludeNamespace(osquery_filesystem_mockfilestructure "osquery/filesystem" "FILE_ONLY" ${public_header_files})
 endfunction()
 
-osquery_filesystem_main()
+function(generateOsqueryFilesystemTest)
+
+  set(source_files
+    tests/fileops.cpp
+    tests/filesystem.cpp
+  )
+
+  if(DEFINED PLATFORM_MACOS)
+    list(APPEND source_files tests/darwin/plist_tests.cpp)
+  endif()
+
+  add_osquery_executable(osquery_filesystem_filesystemtests-test ${source_files})
+
+  target_link_libraries(osquery_filesystem_filesystemtests-test PRIVATE
+    global_cxx_settings
+    osquery_config_tests_testutils
+    osquery_core
+    osquery_core_sql
+    osquery_dispatcher
+    osquery_distributed
+    osquery_events
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_process
+    osquery_registry
+    osquery_remote_enroll_tlsenroll
+    plugins_config_tlsconfig
+    specs_tables
+    osquery_filesystem_mockfilestructure
+    osquery_filesystem
+    osquery_tools_tests_plistfiles
+    thirdparty_googletest
+  )
+endfunction()
+
+osqueryFilesystemMain()

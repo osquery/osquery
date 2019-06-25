@@ -17,7 +17,7 @@ def check(base_commit):
         p = subprocess.Popen(
                 [
                     "python",
-                    os.path.join("tools", "formatting", "git-clang-format.py"),
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)), "git-clang-format.py"),
                     "--style=file",
                     "--diff",
                     "--commit",

@@ -1,26 +1,19 @@
-# Copyright (c) 2018-present, Trail of Bits, Inc.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-cmake_minimum_required(VERSION 3.13.1)
+function(osqueryNumericmonitoringMain)
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
 
-function(osquery_numericmonitoring_main)
-  add_subdirectory("plugins")
   generateOsqueryNumericmonitoring()
 endfunction()
 
 function(generateOsqueryNumericmonitoring)
-  add_library(osquery_numericmonitoring EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_numericmonitoring EXCLUDE_FROM_ALL
     numeric_monitoring.cpp
     plugin_interface.cpp
     pre_aggregation_cache.cpp
@@ -39,6 +32,9 @@ function(generateOsqueryNumericmonitoring)
   )
 
   generateIncludeNamespace(osquery_numericmonitoring "osquery/numeric_monitoring" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME osquery_numericmonitoring_tests-test COMMAND osquery_numericmonitoring_tests-test)
+  add_test(NAME osquery_numericmonitoring_tests_preaggregationcache-test COMMAND osquery_numericmonitoring_tests_preaggregationcache-test)
 endfunction()
 
-osquery_numericmonitoring_main()
+osqueryNumericmonitoringMain()

@@ -1,24 +1,23 @@
-# Copyright (c) 2018-present, Trail of Bits, Inc.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-cmake_minimum_required(VERSION 3.13.1)
+function(osqueryUtilsSystemMain)
 
-function(osquery_utils_system_main)
+  add_subdirectory("linux")
+
+  if(BUILD_TESTING)
+    generateOsqueryUtilsSystemErrnoErrnotestsTest()
+    generateOsqueryUtilsSystemCpuCputopologytestsTest()
+    generateOsqueryUtilsSystemTimeTimetestsTest()
+  endif()
+
   generateOsqueryUtilsSystemEnv()
   generateOsqueryUtilsSystemFilepath()
   generateOsqueryUtilsSystemErrno()
-  generateOsqueryUtilsSystemCpu()
+  generateOsqueryUtilsSystemCputopology()
   generateOsqueryUtilsSystemTime()
   generateOsqueryUtilsSystem()
   generateOsqueryUtilsSystemUptime()
@@ -37,7 +36,7 @@ function(generateOsqueryUtilsSystemEnv)
     return()
   endif()
 
-  add_library(osquery_utils_system_env EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_utils_system_env EXCLUDE_FROM_ALL
     ${source_files}
   )
 
@@ -54,27 +53,25 @@ function(generateOsqueryUtilsSystemEnv)
 endfunction()
 
 function(generateOsqueryUtilsSystemFilepath)
-  if(DEFINED PLATFORM_POSIX)
-    set(source_files
+
+  if(DEFINED PLATFORM_WINDOWS)
+    add_osquery_library(osquery_utils_system_filepath INTERFACE)
+  else()
+    add_osquery_library(osquery_utils_system_filepath EXCLUDE_FROM_ALL
       posix/filepath.cpp
     )
-  else()
-    return()
+
+    set(public_header_files
+        filepath.h
+    )
+
+    generateIncludeNamespace(osquery_utils_system_filepath "osquery/utils/system" "FILE_ONLY" ${public_header_files})
+
+    target_link_libraries(osquery_utils_system_filepath PUBLIC
+      global_cxx_settings
+    )
   endif()
 
-  add_library(osquery_utils_system_filepath EXCLUDE_FROM_ALL
-    ${source_files}
-  ) 
-
-  target_link_libraries(osquery_utils_system_filepath PUBLIC
-    global_cxx_settings
-  )
-
-  set(public_header_files
-    filepath.h
-  )
-
-  generateIncludeNamespace(osquery_utils_system_filepath "osquery/utils/system" "FILE_ONLY" ${public_header_files})
 endfunction()
 
 function(generateOsqueryUtilsSystemErrno)
@@ -90,7 +87,7 @@ function(generateOsqueryUtilsSystemErrno)
     return()
   endif()
 
-  add_library(osquery_utils_system_errno EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_utils_system_errno EXCLUDE_FROM_ALL
     ${source_files}
   ) 
 
@@ -102,30 +99,43 @@ function(generateOsqueryUtilsSystemErrno)
     errno.h
   )
 
-  generateIncludeNamespace(osquery_utils_system_errno "osquery/utils/system" "FILE_ONLY" ${public_header_files})
-endfunction()
-
-function(generateOsqueryUtilsSystemCpu)
-  if(NOT DEFINED PLATFORM_LINUX)
-    return()
+  if(DEFINED PLATFORM_POSIX)
+      list(APPEND public_header_files
+        posix/errno.h
+      )
   endif()
 
-  add_library(osquery_utils_system_cpu EXCLUDE_FROM_ALL
-    linux/cpu.cpp
-  ) 
+  generateIncludeNamespace(osquery_utils_system_errno "osquery/utils/system" "FULL_PATH" ${public_header_files})
 
-  target_link_libraries(osquery_utils_system_cpu PUBLIC
-    global_cxx_settings
-    osquery_utils_conversions
-    osquery_utils_expected
-    thirdparty_boost
-  )
+  add_test(NAME osquery_utils_system_errno_errnotests-test COMMAND osquery_utils_system_errno_errnotests-test)
 
-  set(public_header_files
-    linux/cpu.h
-  )
+endfunction()
 
-  generateIncludeNamespace(osquery_utils_system_cpu "osquery/utils/system" "FULL_PATH" ${public_header_files})
+function(generateOsqueryUtilsSystemCputopology)
+  if(DEFINED PLATFORM_LINUX)
+    add_osquery_library(osquery_utils_system_cputopology EXCLUDE_FROM_ALL
+      linux/cpu.cpp
+    )
+
+    target_link_libraries(osquery_utils_system_cputopology PUBLIC
+      global_cxx_settings
+      osquery_utils_conversions
+      osquery_utils_expected
+      thirdparty_boost
+    )
+
+    set(public_header_files
+      linux/cpu.h
+    )
+
+    generateIncludeNamespace(osquery_utils_system_cputopology "osquery/utils/system" "FULL_PATH" ${public_header_files})
+
+    add_test(NAME osquery_utils_system_cputopologytests-test COMMAND osquery_utils_system_cputopologytests-test)
+
+  else()
+    add_osquery_library(osquery_utils_system_cputopology INTERFACE)
+  endif()
+
 endfunction()
 
 function(generateOsqueryUtilsSystemTime)
@@ -147,7 +157,7 @@ function(generateOsqueryUtilsSystemTime)
     return()
   endif()
 
-  add_library(osquery_utils_system_time EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_utils_system_time EXCLUDE_FROM_ALL
     ${source_files}
   )
 
@@ -161,6 +171,9 @@ function(generateOsqueryUtilsSystemTime)
   )
 
   generateIncludeNamespace(osquery_utils_system_time "osquery/utils/system" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME osquery_utils_system_time_timetest-test COMMAND osquery_utils_system_time_timetest-test)
+
 endfunction()
 
 function(generateOsqueryUtilsSystem)
@@ -178,15 +191,15 @@ function(generateOsqueryUtilsSystem)
     return()
   endif()
 
-  add_library(osquery_utils_system EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_utils_system_systemutils EXCLUDE_FROM_ALL
     ${source_files}
   ) 
 
-  target_link_libraries(osquery_utils_system PUBLIC
+  target_link_libraries(osquery_utils_system_systemutils PUBLIC
     global_cxx_settings
     osquery_utils_info
     thirdparty_boost
-    thirdparty_googletest
+    thirdparty_googletest_headers
   )
 
   if(DEFINED PLATFORM_POSIX)
@@ -200,17 +213,17 @@ function(generateOsqueryUtilsSystem)
     )
   endif()
 
-  generateIncludeNamespace(osquery_utils_system "osquery/utils/system" "FILE_ONLY" ${public_header_files})
+  generateIncludeNamespace(osquery_utils_system_systemutils "osquery/utils/system" "FILE_ONLY" ${public_header_files})
 endfunction()
 
 function(generateOsqueryUtilsSystemUptime)
-  add_library(osquery_utils_system_uptime EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_utils_system_uptime EXCLUDE_FROM_ALL
     uptime.cpp
   ) 
 
   target_link_libraries(osquery_utils_system_uptime PUBLIC
     global_cxx_settings
-    osquery_utils_system
+    osquery_utils_system_systemutils
   )
 
   set(public_header_files
@@ -220,4 +233,52 @@ function(generateOsqueryUtilsSystemUptime)
   generateIncludeNamespace(osquery_utils_system_uptime "osquery/utils/system" "FILE_ONLY" ${public_header_files})
 endfunction()
 
-osquery_utils_system_main()
+function(generateOsqueryUtilsSystemErrnoErrnotestsTest)
+
+  set(source_files
+    tests/errno.cpp
+  )
+
+  if(DEFINED PLATFORM_POSIX)
+    list(APPEND source_files posix/tests/errno.cpp)
+  endif()
+
+  add_osquery_executable(osquery_utils_system_errno_errnotests-test ${source_files})
+
+  target_link_libraries(osquery_utils_system_errno_errnotests-test PRIVATE
+    global_cxx_settings
+    osquery_utils_system_errno
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryUtilsSystemCpuCputopologytestsTest)
+
+  set(source_files
+    tests/cpu.cpp
+  )
+
+  if(DEFINED PLATFORM_LINUX)
+    list(APPEND source_files linux/tests/cpu.cpp)
+  endif()
+
+  add_osquery_executable(osquery_utils_system_cputopologytests-test ${source_files})
+
+  target_link_libraries(osquery_utils_system_cputopologytests-test PRIVATE
+    global_cxx_settings
+    osquery_utils_system_cputopology
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryUtilsSystemTimeTimetestsTest)
+  add_osquery_executable(osquery_utils_system_time_timetest-test tests/time.cpp)
+
+  target_link_libraries(osquery_utils_system_time_timetest-test PRIVATE
+    global_cxx_settings
+    osquery_utils_system_time
+    thirdparty_googletest
+  )
+endfunction()
+
+osqueryUtilsSystemMain()
