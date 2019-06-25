@@ -1,0 +1,31 @@
+<CPackWiXPatch>
+    <CPackWiXFragment Id="CM_CP_osqueryd.osqueryd.exe">
+        <CreateFolder>
+            <Permission User="[WIX_ACCOUNT_USERS]" Read="yes"
+              ReadExtendedAttributes="yes" Traverse="yes"
+              ReadAttributes="yes" ReadPermission="yes" Synchronize="yes"
+              GenericWrite="no" WriteAttributes="no"/>
+            <Permission User="[WIX_ACCOUNT_ADMINISTRATORS]" GenericAll="yes"/>
+            <Permission User="[WIX_ACCOUNT_LOCALSYSTEM]" GenericAll="yes"/>
+        </CreateFolder>
+        <ServiceInstall Id='osqueryd'
+            Name='osqueryd'
+            Account='NT AUTHORITY\SYSTEM'
+            Arguments='--flagfile=[INSTALL_ROOT]osquery.flags'
+            Start='auto'
+            Type='ownProcess'
+            Vital='yes'
+            ErrorControl='critical'/>
+        <ServiceControl Id='osqueryd'
+            Name='osqueryd'
+            Stop='both'
+            Start='install'
+            Remove='uninstall'
+            Wait='no'/>
+    </CPackWiXFragment>
+    <CPackWiXFragment Id="#PRODUCT">
+        <PropertyRef Id="WIX_ACCOUNT_LOCALSYSTEM" />
+        <PropertyRef Id="WIX_ACCOUNT_USERS" />
+        <PropertyRef Id="WIX_ACCOUNT_ADMINISTRATORS" />
+    </CPackWiXFragment>
+</CPackWiXPatch>

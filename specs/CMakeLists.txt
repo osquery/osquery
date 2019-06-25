@@ -1,38 +1,33 @@
-# Copyright (c) 2018-present, Trail of Bits, Inc.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-cmake_minimum_required(VERSION 3.13.1)
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
 function(specsMain)
-  add_library(specs_tables INTERFACE)
+  add_osquery_library(specs_tables INTERFACE)
 
-  generateBaseTables()
-  list(APPEND table_target_list "${generateBaseTables_output}")
+  generateNativeTables()
+  list(APPEND table_target_list "${generateNativeTables_output}")
 
-  generateForeignTables()
+  generateForeignTables(${foreign_spec_file_list_output})
   list(APPEND table_target_list "${generateForeignTables_output}")
 
   foreach(table_target ${table_target_list})
-    target_link_libraries("${table_target}" PUBLIC osquery_tables)
+    target_link_libraries("${table_target}" PUBLIC osquery_tables_tableimplementations)
     enableLinkWholeArchive("${table_target}")
   endforeach()
 
   target_link_libraries(specs_tables INTERFACE ${table_target_list})
 endfunction()
 
-function(generateForeignTables)
-  set(spec_file_list
+function(generateForeignTables spec_file_list)
+  generateTableCategoryAmalgamation("foreign" ${spec_file_list})
+  set(generateForeignTables_output "${generateTableCategoryAmalgamation_output}" PARENT_SCOPE)
+endfunction()
+
+function(generateNativeTables)
+  set(platform_independent_spec_files
     carbon_black_info.table
     carves.table
     chrome_extensions.table
@@ -69,13 +64,9 @@ function(generateForeignTables)
     utility/time.table
   )
 
-  generateTableCategoryAmalgamation("foreign" ${spec_file_list})
-  set(generateForeignTables_output "${generateTableCategoryAmalgamation_output}" PARENT_SCOPE)
-endfunction()
-
-function(generateBaseTables)
-  set(spec_descriptor_list
+  set(platform_dependent_spec_files
     "arp_cache.table:linux,macos,windows"
+    "atom_packages.table:linux,macos"
     "darwin/account_policy_data.table:macos"
     "darwin/ad_config.table:macos"
     "darwin/alf.table:macos"
@@ -236,6 +227,8 @@ function(generateBaseTables)
     "sleuthkit/device_partitions.table:linux,macos,freebsd"
     "smart/smart_drive_info.table:linux,macos"
     "user_groups.table:linux,macos,windows"
+    "windows/bitlocker_info.table:windows"
+    "windows/logon_sessions.table:windows"
     "windows/ntfs_acl_permissions.table:windows"
     "windows/scheduled_tasks.table:windows"
     "windows/windows_crashes.table:windows"
@@ -270,7 +263,7 @@ function(generateBaseTables)
     "yara/yara.table:linux,macos,freebsd"  
   )
 
-  foreach(spec_descriptor ${spec_descriptor_list})
+  foreach(spec_descriptor ${platform_dependent_spec_files})
     string(REPLACE ":" ";" spec_descriptor "${spec_descriptor}")
     list(GET spec_descriptor 0 spec_file)
 
@@ -298,11 +291,18 @@ function(generateBaseTables)
       list(APPEND spec_file_list
         "${spec_file}"
       )
+    else()
+      list(APPEND foreign_spec_file_list
+        "${spec_file}"
+      )
     endif()
   endforeach()
 
-  generateTableCategoryAmalgamation("base" ${spec_file_list})
-  set(generateBaseTables_output "${generateTableCategoryAmalgamation_output}" PARENT_SCOPE)
+  list(APPEND spec_file_list ${platform_independent_spec_files})
+
+  generateTableCategoryAmalgamation("native" ${spec_file_list})
+  set(generateNativeTables_output "${generateTableCategoryAmalgamation_output}" PARENT_SCOPE)
+  set(foreign_spec_file_list_output "${foreign_spec_file_list}" PARENT_SCOPE)
 endfunction()
 
 specsMain()

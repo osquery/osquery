@@ -1,24 +1,19 @@
-# Copyright (c) 2018-present, Trail of Bits, Inc.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-cmake_minimum_required(VERSION 3.13.1)
+function(osqueryTablesSystemMain)
 
-function(osquery_tables_system_main)
-  generateOsqueryTablesSystem()
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
+
+  generateOsqueryTablesSystemSystemtable()
 endfunction()
 
-function(generateOsqueryTablesSystem)
+function(generateOsqueryTablesSystemSystemtable)
   set(source_files
     cpuid.cpp
     hash.cpp
@@ -207,11 +202,11 @@ function(generateOsqueryTablesSystem)
     )
   endif()
 
-  add_library(osquery_tables_system EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_tables_system_systemtable EXCLUDE_FROM_ALL
     ${source_files}
   )
 
-  target_link_libraries(osquery_tables_system PUBLIC
+  target_link_libraries(osquery_tables_system_systemtable PUBLIC
     global_cxx_settings
     osquery_headers
     osquery_core
@@ -220,22 +215,22 @@ function(generateOsqueryTablesSystem)
     osquery_hashing
     osquery_logger
     osquery_process
-    osquery_sql
     osquery_utils
     osquery_utils_conversions
     osquery_utils_expected
     osquery_utils_system_filepath
-    osquery_utils_system
+    osquery_utils_system_systemutils
     osquery_utils_system_time
     osquery_utils_system_uptime
     thirdparty_augeas
     thirdparty_boost
     thirdparty_libmagic
     thirdparty_libxml2
+    osquery_rows_processes_header
   )
 
   if(DEFINED PLATFORM_LINUX)
-    target_link_libraries(osquery_tables_system PUBLIC
+    target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_libdevmapper
       thirdparty_libdpkg
       thirdparty_libelfin
@@ -245,8 +240,13 @@ function(generateOsqueryTablesSystem)
     )
 
   elseif(DEFINED PLATFORM_MACOS)
-    target_link_libraries(osquery_tables_system PUBLIC
+    target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_openssl
+    )
+
+    target_link_options(osquery_tables_system_systemtable PRIVATE
+      -Wno-c99-extensions
+      -Wno-undeclared-selector
     )
   endif()
 
@@ -258,12 +258,13 @@ function(generateOsqueryTablesSystem)
     user_groups.h
   )
 
-  generateIncludeNamespace(osquery_tables_system "osquery/tables/system" "FILE_ONLY" ${public_header_files})
+  generateIncludeNamespace(osquery_tables_system_systemtable "osquery/tables/system" "FILE_ONLY" ${public_header_files})
 
   if(DEFINED PLATFORM_POSIX)
     set(platform_public_header_files
       posix/known_hosts.h
       posix/shell_history.h
+      posix/sudoers.h
       posix/sysctl_utils.h
     )
   endif()
@@ -295,7 +296,44 @@ function(generateOsqueryTablesSystem)
     )
   endif()
 
-  generateIncludeNamespace(osquery_tables_system "osquery/tables/system" "FULL_PATH" ${platform_public_header_files})
+  generateIncludeNamespace(osquery_tables_system_systemtable "osquery/tables/system" "FULL_PATH" ${platform_public_header_files})
+
+  if(DEFINED PLATFORM_POSIX)
+    add_test(NAME osquery_tables_system_tests_knownhoststests-test COMMAND osquery_tables_system_tests_knownhoststests-test)
+    add_test(NAME osquery_tables_system_tests_shellhistorytests-test COMMAND osquery_tables_system_tests_shellhistorytests-test)
+    add_test(NAME osquery_tables_system_tests_sudoerstests-test COMMAND osquery_tables_system_tests_sudoerstests-test)
+    add_test(NAME osquery_tables_system_tests_yumsourcestests-test COMMAND osquery_tables_system_tests_yumsourcestests-test)
+  endif()
+
+  if(DEFINED PLATFORM_LINUX)
+    add_test(NAME osquery_tables_system_tests_mdtablestests-test COMMAND osquery_tables_system_tests_mdtablestests-test)
+    add_test(NAME osquery_tables_system_tests_pcidevicestests-test COMMAND osquery_tables_system_tests_pcidevicestests-test)
+    add_test(NAME osquery_tables_system_tests_portagetests-test COMMAND osquery_tables_system_tests_portagetests-test)
+  elseif(DEFINED PLATFORM_MACOS)
+    add_test(NAME osquery_tables_system_tests_appstests-test COMMAND osquery_tables_system_tests_appstests-test)
+    add_test(NAME osquery_tables_system_tests_asltests-test COMMAND osquery_tables_system_tests_asltests-test)
+    add_test(NAME osquery_tables_system_tests_certificatestests-test COMMAND osquery_tables_system_tests_certificatestests-test)
+    add_test(NAME osquery_tables_system_tests_extendedattributestests-test COMMAND osquery_tables_system_tests_extendedattributestests-test)
+    add_test(NAME osquery_tables_system_tests_firewalltests-test COMMAND osquery_tables_system_tests_firewalltests-test)
+    add_test(NAME osquery_tables_system_tests_launchdtests-test COMMAND osquery_tables_system_tests_launchdtests-test)
+    add_test(NAME osquery_tables_system_tests_mdfindtests-test COMMAND osquery_tables_system_tests_mdfindtests-test)
+    add_test(NAME osquery_tables_system_tests_processestests-test COMMAND osquery_tables_system_tests_processestests-test)
+    add_test(NAME osquery_tables_system_tests_smctests-test COMMAND osquery_tables_system_tests_smctests-test)
+    add_test(NAME osquery_tables_system_tests_startupitemstests-test COMMAND osquery_tables_system_tests_startupitemstests-test)
+    add_test(NAME osquery_tables_system_tests_signaturetests-test COMMAND osquery_tables_system_tests_signaturetests-test)
+
+    set_tests_properties(
+      osquery_tables_system_tests_appstests-test
+      osquery_tables_system_tests_certificatestests-test
+      osquery_tables_system_tests_extendedattributestests-test
+      osquery_tables_system_tests_firewalltests-test
+      osquery_tables_system_tests_launchdtests-test
+      osquery_tables_system_tests_startupitemstests-test
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
+  endif()
+
+  add_test(NAME osquery_tables_system_tests_systemtablestests-test COMMAND osquery_tables_system_tests_systemtablestests-test)
 endfunction()
 
-osquery_tables_system_main()
+osqueryTablesSystemMain()

@@ -1,20 +1,15 @@
-# Copyright (c) 2018-present, Trail of Bits, Inc.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-cmake_minimum_required(VERSION 3.13.1)
+function(osqueryTablesNetworkingMain)
 
-function(osquery_tables_networking_main)
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
+
   generateOsqueryTablesNetworking()
 endfunction()
 
@@ -72,7 +67,7 @@ function(generateOsqueryTablesNetworking)
     )
   endif()
 
-  add_library(osquery_tables_networking EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_tables_networking EXCLUDE_FROM_ALL
     ${source_files}
   )
 
@@ -83,19 +78,14 @@ function(generateOsqueryTablesNetworking)
     osquery_remote_httpclient
     osquery_utils
     osquery_utils_conversions
-    osquery_tables_system
+    osquery_tables_system_systemtable
     thirdparty_boost
+    thirdparty_glibc_resolv
   )
 
   if(DEFINED PLATFORM_LINUX)
     list(APPEND platform_deps
       thirdparty_libiptables
-      thirdparty_libresolv
-    )
-
-  elseif(DEFINED PLATFORM_MACOS)
-    list(APPEND platform_deps
-      thirdparty_libresolv
     )
   endif()
 
@@ -128,6 +118,25 @@ function(generateOsqueryTablesNetworking)
   endif()
 
   generateIncludeNamespace(osquery_tables_networking "osquery/tables/networking" "FULL_PATH" ${public_header_files})
+
+  add_test(NAME osquery_tables_networking_tests_networkingtablestests-test COMMAND osquery_tables_networking_tests_networkingtablestests-test)
+
+  set_tests_properties(
+    osquery_tables_networking_tests_networkingtablestests-test
+    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+  )
+
+  if(DEFINED PLATFORM_MACOS)
+    add_test(NAME osquery_tables_networking_tests_wifitests-test COMMAND osquery_tables_networking_tests_wifitests-test)
+
+    set_tests_properties(
+      osquery_tables_networking_tests_wifitests-test
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
+  elseif(DEFINED PLATFORM_LINUX)
+    add_test(NAME osquery_tables_networking_tests_iptablestests-test COMMAND osquery_tables_networking_tests_iptablestests-test)
+  endif()
+
 endfunction()
 
-osquery_tables_networking_main()
+osqueryTablesNetworkingMain()

@@ -1,25 +1,20 @@
-# Copyright (c) 2018-present, Trail of Bits, Inc.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-cmake_minimum_required(VERSION 3.13.1)
+function(osqueryCarverMain)
 
-function(osquery_carver_main)
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
+
   generateOsqueryCarver()
 endfunction()
 
 function(generateOsqueryCarver)
-  add_library(osquery_carver EXCLUDE_FROM_ALL
+  add_osquery_library(osquery_carver EXCLUDE_FROM_ALL
     carver.cpp
   )
 
@@ -32,7 +27,7 @@ function(generateOsqueryCarver)
     osquery_filesystem
     osquery_hashing
     osquery_remote_utility
-    osquery_remote_serializers_json
+    osquery_remote_serializers_serializerjson
     osquery_utils
     thirdparty_boost
     thirdparty_gflags
@@ -43,6 +38,8 @@ function(generateOsqueryCarver)
   )
 
   generateIncludeNamespace(osquery_carver "osquery/carver" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME osquery_carver_tests-test COMMAND osquery_carver_tests-test)
 endfunction()
 
-osquery_carver_main()
+osqueryCarverMain()
