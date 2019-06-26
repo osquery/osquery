@@ -79,8 +79,9 @@ visit [https://osquery.io/downloads](https://osquery.io/downloads/).
 
 ## Build from source
 
-Building osquery from source is encouraged! Check out our [contributing guide](CONTRIBUTING.md) and
-join the community on [Slack](https://slack.osquery.io).
+Building osquery from source is encouraged! Check out our [build guide](BUILD.md).
+
+Also check out our [contributing guide](CONTRIBUTING.md) and join the community on [Slack](https://slack.osquery.io).
 
 ## License
 
