@@ -50,7 +50,7 @@ TEST_F(Crontab, test_sanity) {
                             {"hour", CronValuesCheck(0, 23)},
                             {"day_of_month", CronValuesCheck(1, 31)},
                             {"month", CronValuesCheck(1, 31, month_list)},
-                            {"day_of_week", CronValuesCheck(0, 6, days_list)},
+                            {"day_of_week", CronValuesCheck(1, 7, days_list)},
                             {"command", NonEmptyString},
                             {"path", FileOnDisk}};
   validate_rows(data, row_map);
