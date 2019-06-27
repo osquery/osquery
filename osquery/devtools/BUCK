@@ -1,0 +1,41 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "devtools",
+    srcs = glob(["*.cpp"]),
+    header_namespace = "osquery/devtools",
+    exported_headers = glob(["*.h"]),
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-llinenoise",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("osquery/devtools/tests:printer_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config:config"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/process:process"),
+        osquery_target("osquery/sql:sql"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/utils/system:env"),
+        osquery_tp_target("googletest", "gtest_headers"),
+        osquery_tp_target("linenoise-ng"),
+    ],
+)

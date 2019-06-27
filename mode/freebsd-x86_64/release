@@ -1,0 +1,8 @@
+--config-file
+//tools/buckconfigs/freebsd-x86_64/toolchain/freebsd-11.2-clang.bcfg
+--config-file
+//tools/buckconfigs/freebsd-x86_64/type/release.bcfg
+--config-file
+//tools/buckconfigs/freebsd-x86_64/base.bcfg
+--config-file
+//tools/buckconfigs/base.bcfg

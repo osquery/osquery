@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""Generate a complete table specification for the website
+"""
+Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+
+Generate a complete table specification for the website
 
 This script will generate JSON output as expected by the osquery website given
 a directory of osquery schema specifications. Results will be printer to stdout.
@@ -11,10 +14,8 @@ Usage:
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
 
 from __future__ import absolute_import
 from __future__ import division

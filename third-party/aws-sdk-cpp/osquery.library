@@ -1,0 +1,12 @@
+library(
+    name = "aws-sdk-cpp",
+    version = "1.4.55",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    deps = [
+    ],
+)

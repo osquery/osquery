@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <atomic>
@@ -14,11 +12,12 @@
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/process/process.h>
 #include <osquery/registry_factory.h>
+#include <osquery/sql/dynamic_table_row.h>
+#include <osquery/sql/virtual_table.h>
 #include <osquery/system.h>
-
-#include "osquery/core/process.h"
-#include "osquery/sql/virtual_table.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 
@@ -322,7 +321,6 @@ int xEof(sqlite3_vtab_cursor* cur) {
 
 int xDestroy(sqlite3_vtab* p) {
   auto* pVtab = (VirtualTable*)p;
-  delete pVtab->content;
   delete pVtab;
   return SQLITE_OK;
 }
@@ -343,31 +341,15 @@ int xRowid(sqlite3_vtab_cursor* cur, sqlite_int64* pRowid) {
   *pRowid = 0;
 
   const BaseCursor* pCur = (BaseCursor*)cur;
-  auto data_it = std::next(pCur->data.begin(), pCur->row);
-  if (data_it >= pCur->data.end()) {
+  auto data_it = std::next(pCur->rows.begin(), pCur->row);
+  if (data_it >= pCur->rows.end()) {
     return SQLITE_ERROR;
   }
 
   // Use the rowid returned by the extension, if available; most likely, this
   // will only be used by extensions providing read/write tables
   const auto& current_row = *data_it;
-
-  auto rowid_it = current_row.find("rowid");
-  if (rowid_it != current_row.end()) {
-    const auto& rowid_text_field = rowid_it->second;
-
-    auto exp = tryTo<long long>(rowid_text_field, 10);
-    if (exp.isError()) {
-      VLOG(1) << "Invalid rowid value returned " << exp.getError();
-      return SQLITE_ERROR;
-    }
-    *pRowid = exp.take();
-
-  } else {
-    *pRowid = pCur->row;
-  }
-
-  return SQLITE_OK;
+  return current_row->get_rowid(pCur->row, pRowid);
 }
 
 int xUpdate(sqlite3_vtab* p,
@@ -377,7 +359,7 @@ int xUpdate(sqlite3_vtab* p,
   auto argument_count = static_cast<size_t>(argc);
   auto* pVtab = (VirtualTable*)p;
 
-  auto* content = pVtab->content;
+  auto content = pVtab->content;
   const auto& columnDescriptors = content->columns;
 
   std::string table_name = pVtab->content->name;
@@ -560,7 +542,7 @@ int xCreate(sqlite3* db,
   }
 
   memset(pVtab, 0, sizeof(VirtualTable));
-  pVtab->content = new VirtualTableContent;
+  pVtab->content = std::make_shared<VirtualTableContent>();
   pVtab->instance = (SQLiteDBInstance*)pAux;
 
   // Create a TablePlugin Registry call, expect column details as the response.
@@ -572,7 +554,6 @@ int xCreate(sqlite3* db,
   auto status =
       Registry::call("table", name, {{"action", "columns"}}, response);
   if (!status.ok() || response.size() == 0) {
-    delete pVtab->content;
     delete pVtab;
     return SQLITE_ERROR;
   }
@@ -592,7 +573,6 @@ int xCreate(sqlite3* db,
                << "): " << getStringForSQLiteReturnCode(rc);
 
     VLOG(1) << "Cannot create virtual table using: " << statement;
-    delete pVtab->content;
     delete pVtab;
     return (rc != SQLITE_OK) ? rc : SQLITE_ERROR;
   }
@@ -683,70 +663,14 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
     // Requested column index greater than column set size.
     return SQLITE_ERROR;
   }
-  if (!pCur->uses_generator && pCur->row >= pCur->data.size()) {
+  if (!pCur->uses_generator && pCur->row >= pCur->rows.size()) {
     // Request row index greater than row set size.
     return SQLITE_ERROR;
   }
 
-  auto& column_name = std::get<0>(pVtab->content->columns[col]);
-  auto& type = std::get<1>(pVtab->content->columns[col]);
-  if (pVtab->content->aliases.count(column_name)) {
-    // Overwrite the aliased column with the type and name of the new column.
-    type = std::get<1>(
-        pVtab->content->columns[pVtab->content->aliases.at(column_name)]);
-    column_name = std::get<0>(
-        pVtab->content->columns[pVtab->content->aliases.at(column_name)]);
-  }
-
-  Row* row = nullptr;
-  if (pCur->uses_generator) {
-    row = &pCur->current;
-  } else {
-    row = &pCur->data[pCur->row];
-  }
-
-  // Attempt to cast each xFilter-populated row/column to the SQLite type.
-  const auto& value = (*row)[column_name];
-  if (row->count(column_name) == 0) {
-    // Missing content.
-    VLOG(1) << "Error " << column_name << " is empty";
-    sqlite3_result_null(ctx);
-  } else if (type == TEXT_TYPE || type == BLOB_TYPE) {
-    sqlite3_result_text(
-        ctx, value.c_str(), static_cast<int>(value.size()), SQLITE_STATIC);
-  } else if (type == INTEGER_TYPE) {
-    auto afinite = tryTo<long>(value, 0);
-    if (afinite.isError()) {
-      VLOG(1) << "Error casting " << column_name << " (" << value
-              << ") to INTEGER";
-      sqlite3_result_null(ctx);
-    } else {
-      sqlite3_result_int(ctx, afinite.take());
-    }
-  } else if (type == BIGINT_TYPE || type == UNSIGNED_BIGINT_TYPE) {
-    auto afinite = tryTo<long long>(value, 0);
-    if (afinite.isError()) {
-      VLOG(1) << "Error casting " << column_name << " (" << value
-              << ") to BIGINT";
-      sqlite3_result_null(ctx);
-    } else {
-      sqlite3_result_int64(ctx, afinite.take());
-    }
-  } else if (type == DOUBLE_TYPE) {
-    char* end = nullptr;
-    double afinite = strtod(value.c_str(), &end);
-    if (end == nullptr || end == value.c_str() || *end != '\0') {
-      VLOG(1) << "Error casting " << column_name << " (" << value
-              << ") to DOUBLE";
-      sqlite3_result_null(ctx);
-    } else {
-      sqlite3_result_double(ctx, afinite);
-    }
-  } else {
-    LOG(ERROR) << "Error unknown column type " << column_name;
-  }
-
-  return SQLITE_OK;
+  TableRowHolder& row =
+      pCur->uses_generator ? pCur->current : pCur->rows[pCur->row];
+  return row->get_column(ctx, cur->pVtab, col);
 }
 
 static inline bool sensibleComparison(ColumnType type, unsigned char op) {
@@ -835,10 +759,9 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   // Check the table for a required column.
   for (const auto& column : columns) {
     auto& options = std::get<2>(column);
-    if (options & ColumnOptions::REQUIRED && !required_satisfied) {
+    if ((options & ColumnOptions::REQUIRED) && !required_satisfied) {
       // A column is marked required, but no constraint satisfies.
-      cost += 1e10;
-      break;
+      return SQLITE_CONSTRAINT;
     }
   }
 
@@ -848,19 +771,24 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   }
 
   UsedColumns colsUsed;
-  if (pIdxInfo->colUsed > 0) {
+  UsedColumnsBitset colsUsedBitset(pIdxInfo->colUsed);
+  if (colsUsedBitset.any()) {
     for (size_t i = 0; i < columns.size(); i++) {
       // Check whether the column is used. colUsed has one bit for each of the
       // first 63 columns, and the 64th bit indicates that at least one other
       // column is used.
-      uint64_t flag;
-      if (i < 63) {
-        flag = 1LL << i;
-      } else {
-        flag = 1LL << 63;
-      }
-      if ((pIdxInfo->colUsed & flag) != 0) {
-        colsUsed.insert(std::get<0>(columns[i]));
+      auto bit = i < 63 ? i : 63U;
+      if (colsUsedBitset[bit]) {
+        auto column_name = std::get<0>(columns[i]);
+
+        if (pVtab->content->aliases.count(column_name)) {
+          colsUsedBitset.reset(bit);
+          auto real_column_index = pVtab->content->aliases[column_name];
+          bit = real_column_index < 63 ? real_column_index : 63U;
+          colsUsedBitset.set(bit);
+          column_name = std::get<0>(columns[real_column_index]);
+        }
+        colsUsed.insert(column_name);
       }
     }
   }
@@ -875,6 +803,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   // Add the constraint set to the table's tracked constraints.
   pVtab->content->constraints[pIdxInfo->idxNum] = std::move(constraints);
   pVtab->content->colsUsed[pIdxInfo->idxNum] = std::move(colsUsed);
+  pVtab->content->colsUsedBitsets[pIdxInfo->idxNum] = colsUsedBitset;
   pIdxInfo->estimatedCost = cost;
   return SQLITE_OK;
 }
@@ -886,8 +815,8 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
                    sqlite3_value** argv) {
   BaseCursor* pCur = (BaseCursor*)pVtabCursor;
   auto* pVtab = (VirtualTable*)pVtabCursor->pVtab;
-  auto* content = pVtab->content;
-  if (FLAGS_table_delay > 0 && pVtab->instance->tableCalled(content)) {
+  auto content = pVtab->content;
+  if (FLAGS_table_delay > 0 && pVtab->instance->tableCalled(*content)) {
     // Apply an optional sleep between table calls.
     sleepFor(FLAGS_table_delay);
   }
@@ -979,6 +908,12 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     }
   }
 
+  if (!content->colsUsedBitsets.empty()) {
+    context.colsUsedBitset = content->colsUsedBitsets[idxNum];
+  } else {
+    // Unspecified; have to assume all columns are used
+    context.colsUsedBitset->set();
+  }
   if (content->colsUsed.size() > 0) {
     context.colsUsed = content->colsUsed[idxNum];
   }
@@ -1004,7 +939,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   }
 
   // Reset the virtual table contents.
-  pCur->data.clear();
+  pCur->rows.clear();
   options.clear();
 
   // Generate the row data set.
@@ -1024,15 +959,17 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
       }
       return SQLITE_OK;
     }
-    pCur->data = table->generate(context);
+    pCur->rows = table->generate(context);
   } else {
     PluginRequest request = {{"action", "generate"}};
     TablePlugin::setRequestFromContext(context, request);
-    Registry::call("table", pVtab->content->name, request, pCur->data);
+    QueryData qd;
+    Registry::call("table", pVtab->content->name, request, qd);
+    pCur->rows = tableRowsFromQueryData(std::move(qd));
   }
 
   // Set the number of rows.
-  pCur->n = pCur->data.size();
+  pCur->n = pCur->rows.size();
   return SQLITE_OK;
 }
 

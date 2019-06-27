@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <chrono>
@@ -16,16 +14,18 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/system.h>
-
-#include "osquery/core/conversions.h"
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/time.h>
 
 namespace osquery {
 
@@ -543,7 +543,7 @@ void EventSubscriberPlugin::get(RowYield& yield,
     status = deserializeRowJSON(data_value, r);
     data_value.clear();
     if (status.ok()) {
-      yield(r);
+      yield(TableRowHolder(new DynamicTableRow(std::move(r))));
     }
   }
 
@@ -613,16 +613,16 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
 
     event_id_list.push_back(std::move(row["eid"]));
     event_count_++;
+
+    // Use the last EventID and a checkpoint bucket size to periodically apply
+    // buffer eviction. Eviction occurs if the total count exceeds events_max.
+    if (last_eid_ % EVENTS_CHECKPOINT == 0) {
+      expireCheck();
+    }
   }
 
   if (database_data.empty()) {
     return Status(1, "Failed to process the rows");
-  }
-
-  // Use the last EventID and a checkpoint bucket size to periodically apply
-  // buffer eviction. Eviction occurs if the total count exceeds events_max.
-  if (last_eid_ % EVENTS_CHECKPOINT == 0) {
-    expireCheck();
   }
 
   // Save the batched data inside the database
@@ -760,7 +760,7 @@ void EventFactory::configUpdate() {
 
 Status EventFactory::run(const std::string& type_id) {
   if (FLAGS_disable_events) {
-    return Status(0, "Events disabled");
+    return Status::success();
   }
 
   // An interesting take on an event dispatched entrypoint.
@@ -810,7 +810,7 @@ Status EventFactory::run(const std::string& type_id) {
   // If the event factory's `end` method was called these publishers will be
   // cleaned up after their thread context is removed; otherwise, a removed
   // thread context and failed publisher will remain available for stats.
-  return Status(0, "OK");
+  return Status::success();
 }
 
 // There's no reason for the event factory to keep multiple instances.
@@ -830,7 +830,7 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
   }
 
   if (specialized_pub == nullptr || specialized_pub.get() == nullptr) {
-    return Status(0, "Invalid publisher");
+    return Status::success();
   }
 
   auto type_id = specialized_pub->type();
@@ -867,7 +867,7 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
     }
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
@@ -947,7 +947,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
     specialized_sub->state(EventState::EVENT_FAILED);
     return Status(1, status.getMessage());
   } else {
-    return Status(0, "OK");
+    return Status::success();
   }
 }
 
@@ -1031,7 +1031,7 @@ Status EventFactory::deregisterEventPublisher(const std::string& type_id) {
       publisher->stop();
     }
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status EventFactory::deregisterEventSubscriber(const std::string& sub) {

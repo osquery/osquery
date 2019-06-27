@@ -1,0 +1,246 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "POSIX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "env",
+    header_namespace = "osquery/utils/system",
+    exported_headers = [
+        "env.h",
+    ],
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/env.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/env.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_tp_target("boost"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "filepath",
+    header_namespace = "osquery/utils/system",
+    exported_headers = [
+        "filepath.h",
+    ],
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/filepath.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+)
+
+osquery_cxx_library(
+    name = "errno",
+    header_namespace = "osquery/utils/system",
+    exported_headers = [
+        "errno.h",
+    ],
+    exported_platform_headers = [
+        (
+            POSIX,
+            [
+                "posix/errno.h",
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/errno.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/errno.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        ":errno_tests",
+    ],
+    visibility = ["PUBLIC"],
+)
+
+osquery_cxx_test(
+    name = "errno_tests",
+    srcs = [
+        "tests/errno.cpp",
+    ],
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/tests/errno.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":errno",
+    ],
+)
+
+osquery_cxx_library(
+    name = "cpu_topology",
+    header_namespace = "osquery/utils/system",
+    exported_platform_headers = [
+        (
+            LINUX,
+            [
+                "linux/cpu.h",
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/cpu.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/utils/expected:expected"),
+        osquery_tp_target("boost"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "cpu_topology_tests",
+    srcs = [
+        "tests/cpu.cpp",
+    ],
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/tests/cpu.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":cpu_topology",
+    ],
+)
+
+osquery_cxx_library(
+    name = "time",
+    srcs = [
+        "time.cpp",
+    ],
+    header_namespace = "osquery/utils/system",
+    exported_headers = [
+        "time.h",
+    ],
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/time.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/time.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_tp_target("boost"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "system_utils",
+    header_namespace = "osquery/utils/system",
+    exported_platform_headers = [
+        (
+            POSIX,
+            {
+                "system.h": "posix/system.h",
+            },
+        ),
+        (
+            WINDOWS,
+            {
+                "system.h": "windows/system.h",
+            },
+        ),
+    ],
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/system.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/system.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/utils/info:info"),
+        osquery_tp_target("boost"),
+        osquery_tp_target("googletest", "gtest_headers"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "time_tests",
+    srcs = [
+        "tests/time.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":time",
+    ],
+)
+
+osquery_cxx_library(
+    name = "uptime",
+    srcs = [
+        "uptime.cpp",
+    ],
+    header_namespace = "osquery/utils/system",
+    exported_headers = [
+        "uptime.h",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":system_utils",
+    ],
+)

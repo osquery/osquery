@@ -2,10 +2,8 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #ifdef OSQUERY_WINDOWS
@@ -235,19 +233,18 @@ Expected<std::string, DatabaseError> RocksdbDatabase::getRawBytesInternal(
   std::string value = "";
   auto status = db_->Get(default_read_options_, handle, key, &value);
   if (status.IsNotFound()) {
-    return createError(DatabaseError::KeyNotFound, "Value not found");
+    return createError(DatabaseError::KeyNotFound) << "Value not found";
   }
   if (status.IsCorruption()) {
     in_panic_ = true;
-    auto corruption_error =
-        createError(RocksdbError::DatabaseIsCorrupted, status.ToString());
-    auto error =
-        createError(DatabaseError::Panic, "", std::move(corruption_error));
+    auto corruption_error = createError(RocksdbError::DatabaseIsCorrupted)
+                            << status.ToString();
+    auto error = createError(DatabaseError::Panic, std::move(corruption_error));
     panic(error);
     return std::move(error);
   }
   if (!status.ok()) {
-    return createError(DatabaseError::FailToReadData, status.ToString());
+    return createError(DatabaseError::FailToReadData) << status.ToString();
   }
   return value;
 }
@@ -256,7 +253,7 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::putRawBytesInternal(
     Handle* handle, const std::string& key, const std::string& value) {
   auto status = db_->Put(default_write_options_, handle, key, value);
   if (!status.ok()) {
-    createError(DatabaseError::FailToWriteData, status.ToString());
+    return createError(DatabaseError::FailToWriteData) << status.ToString();
   }
   return Success();
 }
@@ -264,15 +261,15 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::putRawBytesInternal(
 Expected<RocksdbDatabase::HandleRef, DatabaseError> RocksdbDatabase::getHandle(
     const std::string& domain) {
   if (BOOST_UNLIKELY(in_panic_)) {
-    return createError(DatabaseError::Panic, "Database is in panic mode :(");
+    return createError(DatabaseError::Panic) << "Database is in panic mode :(";
   }
   if (BOOST_UNLIKELY(db_ == nullptr)) {
-    return createError(DatabaseError::DbIsNotOpen, "Database is closed");
+    return createError(DatabaseError::DbIsNotOpen) << "Database is closed";
   }
   auto handle = handles_map_.find(domain);
   if (BOOST_UNLIKELY(handle == handles_map_.end())) {
-    return createError(DatabaseError::DomainNotFound,
-                       "Unknown database domain");
+    return createError(DatabaseError::DomainNotFound)
+           << "Unknown database domain";
   }
   return handle->second;
 }
@@ -292,11 +289,11 @@ Expected<std::string, DatabaseError> RocksdbDatabase::getString(
   if (result) {
     std::string result_str = result.take();
     if (BOOST_UNLIKELY(validateInt32StorageBuffer(result_str))) {
-      auto type_error = createError(RocksdbError::UnexpectedValueType,
-                                    "Fetching string as integer");
-      LOG(ERROR) << type_error.getFullMessageRecursive().c_str();
+      auto type_error = createError(RocksdbError::UnexpectedValueType)
+                        << "Fetching string as integer";
+      LOG(ERROR) << type_error.getMessage().c_str();
       assert(false);
-      return createError(DatabaseError::KeyNotFound, "", std::move(type_error));
+      return createError(DatabaseError::KeyNotFound, std::move(type_error));
     }
     return result_str;
   }
@@ -323,13 +320,13 @@ Expected<int32_t, DatabaseError> RocksdbDatabase::getInt32(
       int32_t result = *(reinterpret_cast<const int32_t*>(value.data()));
       return ntohl(result);
     } else {
-      auto type_error = createError(RocksdbError::UnexpectedValueType,
-                                    "Fetching string as integer");
+      auto type_error = createError(RocksdbError::UnexpectedValueType)
+                        << "Fetching string as integer";
       auto error =
-          createError(DatabaseError::KeyNotFound, "", std::move(type_error));
-      assert(false && error.getFullMessageRecursive().c_str());
-      LOG(ERROR) << error.getFullMessageRecursive();
-      debug_only::fail(error.getFullMessageRecursive().c_str());
+          createError(DatabaseError::KeyNotFound, std::move(type_error));
+      assert(false && error.getMessage().c_str());
+      LOG(ERROR) << error.getMessage();
+      debug_only::fail(error.getMessage().c_str());
       return std::move(error);
     }
   }
@@ -358,16 +355,16 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::putStringsUnsafe(
     for (const auto& pair : data) {
       auto status = batch.Put(handle_ptr.get(), pair.first, pair.second);
       if (!status.ok()) {
-        auto batch_write_error =
-            createError(RocksdbError::BatchWriteFail, status.ToString());
+        auto batch_write_error = createError(RocksdbError::BatchWriteFail)
+                                 << status.ToString();
         return createError(DatabaseError::FailToWriteData,
-                           "Failed to write data",
-                           std::move(batch_write_error));
+                           std::move(batch_write_error))
+               << "Failed to write data";
       }
     }
     auto status = db_->Write(batch_write_options_, &batch);
     if (!status.ok()) {
-      return createError(DatabaseError::FailToWriteData, status.ToString());
+      return createError(DatabaseError::FailToWriteData) << status.ToString();
     }
   }
   return handle.takeError();

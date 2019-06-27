@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <cmath>
@@ -13,19 +11,19 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
-#include "osquery/config/parsers/feature_vectors.h"
-#include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
-#include "osquery/core/windows/wmi.h"
-#include "osquery/events/windows/windows_event_log.h"
-#include "osquery/filesystem/fileops.h"
+#include <osquery/core/windows/wmi.h>
+#include <osquery/events/windows/windows_event_log.h>
+#include <osquery/filesystem/fileops.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/json/json.h>
+#include <plugins/config/parsers/feature_vectors.h>
 
 namespace pt = boost::property_tree;
 
@@ -47,7 +45,7 @@ class PowershellEventSubscriber
  public:
   Status init() override {
     // Before starting our subscription, purge any residual db entries as it's
-    // unlikely we'll finish re-assmebling them
+    // unlikely we'll finish re-assembling them
     std::vector<std::string> keys;
     scanDatabaseKeys(kEvents, keys, kScriptBlockPrefix);
     for (const auto& k : keys) {
@@ -62,7 +60,7 @@ class PowershellEventSubscriber
     wc->sources.insert(kPowershellEventsChannel);
 
     subscribe(&PowershellEventSubscriber::Callback, wc);
-    return Status();
+    return Status::success();
   }
 
   Status Callback(const ECRef& ec, const SCRef& sc);
@@ -136,7 +134,7 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   // For script block logging we only care about events with script blocks
   auto eid = ec->eventRecord.get("Event.System.EventID", -1);
   if (eid != kScriptBlockLoggingEid) {
-    return Status();
+    return Status::success();
   }
 
   Row results;
@@ -157,7 +155,7 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   // If there's only one script block no reassembly is needed
   if (results["MessageTotal"] == "1") {
     addScriptResult(results);
-    return Status();
+    return Status::success();
   }
 
   // Add the script content to the DB for later reassembly
@@ -172,7 +170,7 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
   // If we expect more blocks bail out early
   if (results["MessageNumber"] != results["MessageTotal"]) {
-    return Status();
+    return Status::success();
   }
 
   // Otherwise all script blocks should be accounted for so reconstruct
@@ -205,6 +203,6 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   results["ScriptBlockText"] = powershell_script;
   addScriptResult(results);
 
-  return Status();
+  return Status::success();
 }
 } // namespace osquery

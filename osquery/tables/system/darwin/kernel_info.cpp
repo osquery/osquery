@@ -2,21 +2,20 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/algorithm/string.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <osquery/utils/conversions/darwin/iokit.h>
+#include <osquery/utils/conversions/darwin/cfdata.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/darwin/iokit.hpp"
-#include "osquery/tables/system/efi_misc.h"
+#include <osquery/tables/system/efi_misc.h>
 
 namespace osquery {
 namespace tables {

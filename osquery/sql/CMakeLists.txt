@@ -1,49 +1,71 @@
-#  Copyright (c) 2014-present, Facebook, Inc.
-#  All rights reserved.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-target_sources(libosquery
-  PRIVATE
-    "${CMAKE_CURRENT_LIST_DIR}/sql.cpp"
-)
+function(osquerySqlMain)
 
-if(NOT OSQUERY_BUILD_SDK_ONLY)
-ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_sql_internal
-  "${CMAKE_CURRENT_LIST_DIR}/sqlite_encoding.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/sqlite_filesystem.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/sqlite_hashing.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/sqlite_math.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/sqlite_util.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/sqlite_util.h"
-  "${CMAKE_CURRENT_LIST_DIR}/virtual_table.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/virtual_table.h"
-  "${CMAKE_CURRENT_LIST_DIR}/virtual_sqlite_table.cpp"
-)
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
 
-if(NOT FREEBSD)
-  target_sources(osquery_sql_internal 
-    PRIVATE
-       "${CMAKE_CURRENT_LIST_DIR}/sqlite_string.cpp"
+  generateOsquerySql()
+endfunction()
+
+function(generateOsquerySql)
+  set(source_files
+    dynamic_table_row.cpp
+    sql.cpp
+    sqlite_encoding.cpp
+    sqlite_filesystem.cpp
+    sqlite_hashing.cpp
+    sqlite_math.cpp
+    sqlite_operations.cpp
+    sqlite_util.cpp
+    virtual_sqlite_table.cpp
+    virtual_table.cpp
   )
-endif()
-if(NOT SKIP_CARVER)
-  target_sources(osquery_sql_internal 
-    PRIVATE
-       "${CMAKE_CURRENT_LIST_DIR}/sqlite_operations.cpp"
+
+  if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_MACOS OR DEFINED PLATFORM_WINDOWS)
+    list(APPEND source_files
+      sqlite_string.cpp
+    )
+  endif()
+
+  add_osquery_library(osquery_sql EXCLUDE_FROM_ALL
+    ${source_files}
   )
-endif()
-endif()
 
-ADD_OSQUERY_TEST_ADDITIONAL(
-  "${CMAKE_CURRENT_LIST_DIR}/tests/sql_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/sqlite_util_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/virtual_table_tests.cpp"
-)
+  enableLinkWholeArchive(osquery_sql)
 
-ADD_OSQUERY_BENCHMARK(
-  "${CMAKE_CURRENT_LIST_DIR}/benchmarks/sql_benchmarks.cpp"
-)
+  target_link_libraries(osquery_sql PUBLIC
+    global_cxx_settings
+    osquery_carver
+    osquery_core
+    osquery_core_plugins
+    osquery_hashing
+    osquery_process
+    osquery_utils
+    osquery_utils_system_errno
+    thirdparty_boost
+    thirdparty_googletest_headers
+    thirdparty_sqlite
+    thirdparty_gflags
+    thirdparty_ssdeep-cpp
+  )
+
+  set(public_header_files
+    dynamic_table_row.h
+    sqlite_util.h
+    virtual_table.h
+  )
+
+  generateIncludeNamespace(osquery_sql "osquery/sql" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME osquery_sql_tests-test COMMAND osquery_sql_tests-test)
+  add_test(NAME osquery_sql_tests_virtualtabletests-test COMMAND osquery_sql_tests_virtualtabletests-test)
+  add_test(NAME osquery_sql_tests_sqliteutilstests-test COMMAND osquery_sql_tests_sqliteutilstests-test)
+endfunction()
+
+osquerySqlMain()

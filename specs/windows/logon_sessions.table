@@ -1,4 +1,4 @@
-﻿table_name("logon_sessions")
+table_name("logon_sessions")
 description("Windows Logon Session.")
 schema([
     Column("logon_id", INTEGER, "A locally unique identifier (LUID) that identifies a logon session.", index=True),

@@ -2,11 +2,14 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
+
+#include <osquery/filesystem/fileops.h>
+#include <osquery/logger.h>
+#include <osquery/process/process.h>
+#include <osquery/process/windows/process_ops.h>
 
 #include <AclAPI.h>
 #include <LM.h>
@@ -18,16 +21,11 @@
 
 #include <memory>
 #include <regex>
+#include <set>
 #include <vector>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
-
-#include <osquery/logger.h>
-
-#include "osquery/core/process.h"
-#include "osquery/core/windows/process_ops.h"
-#include "osquery/filesystem/fileops.h"
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
@@ -114,7 +112,7 @@ Status windowsShortPathToLongPath(const std::string& shortPath,
     return Status(GetLastError(), "Failed to convert short path to long path");
   }
   rLongPath = std::string(longPath);
-  return Status();
+  return Status::success();
 }
 
 Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
@@ -140,7 +138,7 @@ Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
       std::to_string((pFileInfo->dwProductVersionMS >> 0 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionLS >> 16 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionLS >> 0 & 0xffff));
-  return Status();
+  return Status::success();
 }
 
 static bool hasGlobBraces(const std::string& glob) {
@@ -229,7 +227,7 @@ static DWORD getNewAclSize(PACL dacl,
   DWORD acl_size = info.AclBytesInUse;
 
   /*
-   * By default, we assume that the ACL as pointed to by the dacl arugment does
+   * By default, we assume that the ACL as pointed to by the dacl argument does
    * not contain any access control entries (further known as ACE) associated
    * with sid. If we require an access allowed and/or access denied ACE, we will
    * increment acl_size by the size of the new ACE.
@@ -342,7 +340,7 @@ static Status checkAccessWithSD(PSECURITY_DESCRIPTOR sd, mode_t mode) {
   }
 
   if (access_status) {
-    return Status();
+    return Status::success();
   }
 
   return Status(1, "Bad mode for file");
@@ -661,7 +659,7 @@ static Status isUserCurrentUser(PSID user) {
   /// Determine if the current user SID matches that of the specified user
   PTOKEN_USER ptu = reinterpret_cast<PTOKEN_USER>(tuBuff.data());
   if (EqualSid(user, ptu->User.Sid)) {
-    return Status();
+    return Status::success();
   }
 
   return Status(1, "User not current user");
@@ -703,7 +701,7 @@ Status PlatformFile::isOwnerRoot() const {
   }
 
   if (EqualSid(owner, admins_sid) || EqualSid(owner, system_sid)) {
-    return Status();
+    return Status::success();
   }
 
   return Status(1, "Owner is not in Administrators group or Local System");
@@ -771,7 +769,7 @@ static Status lowPrivWriteDenied(PACL acl) {
   for (unsigned long i = 0; i < acl->AceCount; i++) {
     if (!GetAce(acl, i, &void_ent)) {
       return Status(-1,
-                    "Failed to retreive ACE when checking safe permissions");
+                    "Failed to retrieve ACE when checking safe permissions");
     }
     auto entry = static_cast<PACE_HEADER>(void_ent);
 
@@ -788,7 +786,7 @@ static Status lowPrivWriteDenied(PACL acl) {
 
       // A Deny-Write on Everyone supersedes other allow writes
       if (EqualSid(&denied_ace->SidStart, world_sid)) {
-        return Status();
+        return Status::success();
       }
 
       // Stash the Deny-Write ACE to check against future user Allow ACEs
@@ -829,7 +827,7 @@ static Status lowPrivWriteDenied(PACL acl) {
       }
     }
   }
-  return Status();
+  return Status::success();
 }
 
 Status PlatformFile::hasSafePermissions() const {
@@ -885,7 +883,7 @@ Status PlatformFile::hasSafePermissions() const {
   if (!s.ok()) {
     return Status(1, "Write ACE was found on the parent directory");
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 bool PlatformFile::getFileTimes(PlatformTime& times) {
@@ -1495,13 +1493,13 @@ Status platformIsTmpDir(const fs::path& dir) {
   if (!dirPathsAreEqual(dir, fs::temp_directory_path(ec))) {
     return Status(1, "Not temp directory");
   }
-  return Status();
+  return Status::success();
 }
 
 Status platformIsFileAccessible(const fs::path& path) {
   boost::system::error_code ec;
   if (fs::is_regular_file(path, ec) && ec.value() == errc::success) {
-    return Status();
+    return Status::success();
   }
   return Status(1, "Not accessible file");
 }
@@ -1549,7 +1547,7 @@ Status socketExists(const fs::path& path, bool remove_socket) {
       return Status(1, "Named pipe does not exist");
     }
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 LONGLONG filetimeToUnixtime(const FILETIME& ft) {
@@ -1822,9 +1820,11 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   (!ret) ? wfile_stat->ctime = -1
          : wfile_stat->ctime = longIntToUnixtime(basic_info.ChangeTime);
 
+  windowsGetFileVersion(path.string(), wfile_stat->product_version);
+
   CloseHandle(file_handle);
 
-  return Status();
+  return Status::success();
 }
 
 fs::path getSystemRoot() {

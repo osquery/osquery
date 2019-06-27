@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <string>
@@ -14,11 +12,9 @@
 #include <aws/ec2/EC2Client.h>
 #include <aws/ec2/model/DescribeTagsRequest.h>
 
-#include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/utils/aws_util.h"
+#include <osquery/utils/aws/aws_util.h>
 
 namespace osquery {
 namespace tables {

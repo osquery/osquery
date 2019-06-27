@@ -2,19 +2,18 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <asm/unistd_64.h>
 
+#include <osquery/events/linux/process_events.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
-
-#include "osquery/tables/events/linux/process_events.h"
+#include <osquery/tables/events/linux/process_events.h>
+#include <osquery/utils/system/uptime.h>
 
 namespace osquery {
 
@@ -22,11 +21,6 @@ FLAG(bool,
      audit_allow_process_events,
      true,
      "Allow the audit publisher to install process event monitoring rules");
-
-// Depend on the external getUptime table method.
-namespace tables {
-extern long getUptime();
-}
 
 REGISTER(AuditProcessEventSubscriber, "event_subscriber", "process_events");
 
@@ -38,7 +32,7 @@ Status AuditProcessEventSubscriber::init() {
   auto sc = createSubscriptionContext();
   subscribe(&AuditProcessEventSubscriber::Callback, sc);
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
@@ -49,7 +43,7 @@ Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   }
 
   addBatch(emitted_row_list);
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 Status AuditProcessEventSubscriber::ProcessEvents(
@@ -138,7 +132,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     row["env_size"] = "0";
     row["env_count"] = "0";
     row["env"] = "";
-    row["uptime"] = std::to_string(tables::getUptime());
+    row["uptime"] = std::to_string(getUptime());
 
     // build the command line from the AUDIT_EXECVE record
     row["cmdline"] = "";
@@ -171,11 +165,10 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     emitted_row_list.push_back(row);
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 const std::set<int>& AuditProcessEventSubscriber::GetSyscallSet() noexcept {
-  static const std::set<int> syscall_set = {__NR_execve};
-  return syscall_set;
+  return kProcessEventsSyscalls;
 }
 } // namespace osquery

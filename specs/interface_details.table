@@ -29,7 +29,7 @@ extended_schema(LINUX, [
 
 extended_schema(WINDOWS, [
     Column("friendly_name", TEXT, "The friendly display name of the interface."),
-    Column("description", TEXT, "Short description of the object—a one-line string."),
+    Column("description", TEXT, "Short description of the object a one-line string."),
     Column("manufacturer", TEXT, "Name of the network adapter's manufacturer."),
     Column("connection_id", TEXT, "Name of the network connection as it appears in the Network Connections Control Panel program."),
     Column("connection_status", TEXT, "State of the network adapter connection to the network."),

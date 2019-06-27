@@ -1,0 +1,124 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD", "LINUX", "MACOSX", "POSIX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "networking",
+    srcs = [
+        "curl.cpp",
+        "curl_certificate.cpp",
+        "etc_hosts.cpp",
+        "etc_protocols.cpp",
+        "etc_services.cpp",
+        "listening_ports.cpp",
+    ],
+    header_namespace = "osquery/tables/networking",
+    exported_platform_headers = [
+        (
+            POSIX,
+            [
+                "posix/interfaces.h",
+                "posix/utils.h",
+            ],
+        ),
+        (
+            LINUX,
+            [
+                "linux/inet_diag.h",
+                "linux/iptc_proxy.h",
+            ],
+        ),
+        (
+            MACOSX,
+            [
+                "darwin/wifi_utils.h",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/interfaces.h",
+            ],
+        ),
+    ],
+    platform_deps = [
+        (
+            LINUX,
+            [
+                osquery_tp_target("libiptables"),
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/dns_resolvers.cpp",
+                "posix/interfaces.cpp",
+                "posix/utils.cpp",
+            ],
+        ),
+        (
+            LINUX,
+            [
+                "linux/arp_cache.cpp",
+                "linux/interface_ip.cpp",
+                "linux/iptables.cpp",
+                "linux/iptc_proxy.c",
+                "linux/process_open_sockets.cpp",
+                "linux/routes.cpp",
+            ],
+        ),
+        (
+            MACOSX,
+            [
+                "darwin/interface_ip.cpp",
+                "darwin/routes.cpp",
+                "darwin/wifi.mm",
+                "darwin/wifi_status.mm",
+                "darwin/wifi_survey.mm",
+                "darwin/wifi_utils.mm",
+            ],
+        ),
+        (
+            FREEBSD,
+            [
+                "freebsd/interface_ip.cpp",
+                "freebsd/process_open_sockets.cpp",
+                "freebsd/routes.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/arp_cache.cpp",
+                "windows/interfaces.cpp",
+                "windows/process_open_sockets.cpp",
+                "windows/routes.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("osquery/tables/networking/tests:networking_tables_tests"),
+        osquery_target("osquery/tables/networking/tests:wifi_tests"),
+        osquery_target("osquery/tables/networking/tests:iptables_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote:http_client"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_tp_target("boost"),
+        osquery_tp_target("glibc", "resolv"),
+    ],
+)

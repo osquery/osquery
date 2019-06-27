@@ -1,73 +1,131 @@
-#  Copyright (c) 2014-present, Facebook, Inc.
-#  All rights reserved.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-if(NOT WINDOWS)
-  ADD_OSQUERY_LINK_ADDITIONAL("archive")
-  ADD_OSQUERY_LINK_CORE("zstd")
-  ADD_OSQUERY_LINK_ADDITIONAL("zstd")
-else()
-  ADD_OSQUERY_LINK_CORE("zstd_static")
-  ADD_OSQUERY_LINK_ADDITIONAL("archive_static")
-  ADD_OSQUERY_LINK_ADDITIONAL("zstd_static")
-endif()
+function(osqueryFilesystemMain)
 
-if(APPLE)
-  target_sources(libosquery
-    PRIVATE
-      "${CMAKE_CURRENT_LIST_DIR}/darwin/plist.mm"
+  if(BUILD_TESTING)
+    generateOsqueryFilesystemTest()
+  endif()
+
+  generateOsqueryFilesystem()
+  generateOsqueryFilesystemMockfilestructure()
+endfunction()
+
+function(generateOsqueryFilesystem)
+  set(source_files
+    file_compression.cpp
+    filesystem.cpp
   )
 
-  ADD_OSQUERY_LINK(TRUE "-framework Foundation")
-elseif(FREEBSD)
-elseif(LINUX)
-  target_sources(libosquery
-    PRIVATE
-      "${CMAKE_CURRENT_LIST_DIR}/linux/mem.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/linux/proc.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/linux/proc.h"
-  )
-endif()
+  if(DEFINED PLATFORM_POSIX)
+    list(APPEND source_files
+      posix/fileops.cpp
+    )
+  endif()
 
-target_sources(libosquery
-    PRIVATE
-      "${CMAKE_CURRENT_LIST_DIR}/fileops.h"
-      "${CMAKE_CURRENT_LIST_DIR}/filesystem.cpp"
-)
+  if(DEFINED PLATFORM_LINUX)
+    list(APPEND source_files
+      linux/mem.cpp
+      linux/proc.cpp
+    )
 
-if(WINDOWS)
-  target_sources(libosquery
-    PRIVATE
-      "${CMAKE_CURRENT_LIST_DIR}/windows/fileops.cpp"
-  )
-endif()
+  elseif(DEFINED PLATFORM_WINDOWS)
+    list(APPEND source_files
+      windows/fileops.cpp
+    )
+  endif()
 
-if(POSIX)
-  target_sources(libosquery
-    PRIVATE
-      "${CMAKE_CURRENT_LIST_DIR}/posix/fileops.cpp"
-  )
-endif()
-
-ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_filesystem_compression
-  "${CMAKE_CURRENT_LIST_DIR}/file_compression.cpp"
-)
-
-ADD_OSQUERY_TEST_CORE(
-  "${CMAKE_CURRENT_LIST_DIR}/tests/fileops_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/filesystem_tests.cpp"
-)
-
-if(APPLE)
-  ADD_OSQUERY_TEST_CORE(
-    "${CMAKE_CURRENT_LIST_DIR}/darwin/tests/plist_tests.cpp"
+  add_osquery_library(osquery_filesystem EXCLUDE_FROM_ALL
+    ${source_files}
   )
 
-  ADD_OSQUERY_BENCHMARK(
-    "${CMAKE_CURRENT_LIST_DIR}/darwin/benchmarks/plist_benchmarks.cpp"
+  target_link_libraries(osquery_filesystem PUBLIC
+    global_cxx_settings
+    osquery_headers
+    osquery_process
+    osquery_utils_conversions
+    osquery_utils_status
+    osquery_utils_system_env
+    thirdparty_boost
+    thirdparty_libarchive
+    thirdparty_zstd
   )
-endif()
+
+  set(public_header_files
+    fileops.h
+    filesystem.h
+  )
+
+  if(DEFINED PLATFORM_LINUX)
+    list(APPEND public_header_files
+      linux/proc.h
+    )
+  endif()
+
+  generateIncludeNamespace(osquery_filesystem "osquery/filesystem" "FULL_PATH" ${public_header_files})
+
+  add_test(NAME osquery_filesystem_filesystemtests-test COMMAND osquery_filesystem_filesystemtests-test)
+
+  set_tests_properties(
+    osquery_filesystem_filesystemtests-test
+    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+  )
+endfunction()
+
+function(generateOsqueryFilesystemMockfilestructure)
+  add_osquery_library(osquery_filesystem_mockfilestructure EXCLUDE_FROM_ALL
+    mock_file_structure.cpp
+  )
+
+  target_link_libraries(osquery_filesystem_mockfilestructure PUBLIC
+    global_cxx_settings
+    thirdparty_boost
+    osquery_filesystem
+  )
+
+  set(public_header_files
+    mock_file_structure.h
+  )
+
+  generateIncludeNamespace(osquery_filesystem_mockfilestructure "osquery/filesystem" "FILE_ONLY" ${public_header_files})
+endfunction()
+
+function(generateOsqueryFilesystemTest)
+
+  set(source_files
+    tests/fileops.cpp
+    tests/filesystem.cpp
+  )
+
+  if(DEFINED PLATFORM_MACOS)
+    list(APPEND source_files tests/darwin/plist_tests.cpp)
+  endif()
+
+  add_osquery_executable(osquery_filesystem_filesystemtests-test ${source_files})
+
+  target_link_libraries(osquery_filesystem_filesystemtests-test PRIVATE
+    global_cxx_settings
+    osquery_config_tests_testutils
+    osquery_core
+    osquery_core_sql
+    osquery_dispatcher
+    osquery_distributed
+    osquery_events
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_process
+    osquery_registry
+    osquery_remote_enroll_tlsenroll
+    plugins_config_tlsconfig
+    specs_tables
+    osquery_filesystem_mockfilestructure
+    osquery_filesystem
+    osquery_tools_tests_plistfiles
+    thirdparty_googletest
+  )
+endfunction()
+
+osqueryFilesystemMain()

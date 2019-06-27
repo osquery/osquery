@@ -2,16 +2,14 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <poll.h>
 
 #include <osquery/events.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 
@@ -43,7 +41,7 @@ Status UdevEventPublisher::setUp() {
   }
 
   udev_monitor_enable_receiving(monitor_);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void UdevEventPublisher::tearDown() {
@@ -83,7 +81,7 @@ Status UdevEventPublisher::run() {
 
     if (selector == 0 || !(fds[0].revents & POLLIN)) {
       // Read timeout.
-      return Status(0, "Finished");
+      return Status::success();
     }
 
     struct udev_device* device = udev_monitor_receive_device(monitor_);
@@ -99,7 +97,7 @@ Status UdevEventPublisher::run() {
   }
 
   pause(std::chrono::milliseconds(kUdevMLatency));
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string UdevEventPublisher::getValue(struct udev_device* device,

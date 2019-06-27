@@ -1,0 +1,38 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "proc",
+    header_namespace = "osquery/utils/system/linux/proc",
+    exported_platform_headers = [
+        (
+            LINUX,
+            [
+                "proc.h",
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "proc.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("osquery/utils/system/linux/proc/tests:proc_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_tp_target("boost"),
+    ],
+)

@@ -1,0 +1,61 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "aws-sdk-cpp",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "38d8ab7feccc25ba89adb49ffbcbe8c9b274191f2eb9172371c94f2ceb5a1159",
+        "macos-x86_64": "1d1974a6bb22dbe40ebd98547e775364357e65e81cda52b6fb2485250fdd15ba",
+        "windows-x86_64": "71b575fc0ade0ae22239c4bdb2ba2f09a90d67c44425196aaffc96a14cb9a4fc",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libaws-cpp-sdk-core.a",
+            "lib/libaws-cpp-sdk-ec2.a",
+            "lib/libaws-cpp-sdk-firehose.a",
+            "lib/libaws-cpp-sdk-kinesis.a",
+            "lib/libaws-cpp-sdk-sts.a",
+            "lib/libtesting-resources.a",
+        ],
+        "macos-x86_64": [
+            "lib/libaws-cpp-sdk-core.a",
+            "lib/libaws-cpp-sdk-ec2.a",
+            "lib/libaws-cpp-sdk-firehose.a",
+            "lib/libaws-cpp-sdk-kinesis.a",
+            "lib/libaws-cpp-sdk-sts.a",
+            "lib/libtesting-resources.a",
+        ],
+        "windows-x86_64": [
+            "lib/aws-cpp-sdk-core.lib",
+            "lib/aws-cpp-sdk-ec2.lib",
+            "lib/aws-cpp-sdk-firehose.lib",
+            "lib/aws-cpp-sdk-kinesis.lib",
+            "lib/aws-cpp-sdk-sts.lib",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+
+    ],
+    version = "1.4.55",
+    build = "0",
+    visibility = ["PUBLIC"],
+)

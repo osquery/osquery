@@ -1,0 +1,42 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "ssdeep-cpp",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "d8248655050987524dc383d55d7b148803b18331cdbcb8bfd2a8198ca210298b",
+        "macos-x86_64": "93f11f81eab1cc06bf11fd28bc42d7b9d02972e3705f864a9f8ef0f5ca90abcc",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libfuzzy.a",
+        ],
+        "macos-x86_64": [
+            "lib/libfuzzy.a",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+
+    ],
+    version = "2.14.1",
+    build = "0",
+    visibility = ["PUBLIC"],
+)

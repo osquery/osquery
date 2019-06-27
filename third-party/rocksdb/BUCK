@@ -1,0 +1,50 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "rocksdb",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "12c8abadd96ae8ac38327e8b30c195c18f30001025f400efcac82053057d9834",
+        "macos-x86_64": "95b161e7d3def2d4f9241c57061ea1cab4f64e51f0015db490ef99eff890354d",
+        "windows-x86_64": "2c6d47cbc32063e420965c4949832d1c5f253da282949f81d9de4d1faeb00fa8",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/librocksdb_lite.a",
+        ],
+        "macos-x86_64": [
+            "lib/librocksdb_lite.a",
+        ],
+        "windows-x86_64": [
+            "lib/rocksdb.lib",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+        osquery_tp_target("bzip2", "bzip2"),
+    ],
+    version = "5.7.2",
+    build = "0",
+    visibility = ["PUBLIC"],
+    exported_preprocessor_flags = [
+        "-DROCKSDB_LITE=1",
+    ],
+)

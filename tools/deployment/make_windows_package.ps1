@@ -1,10 +1,8 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
 
 # We make heavy use of Write-Host, because colors are awesome. #dealwithit.
 
@@ -134,7 +132,7 @@ function New-MsiPackage() {
   # if no flags file specified, create a stub to run the service
   if ($flagsPath -eq '') {
     $flagspath = Join-Path $buildPath 'osquery.flags'
-    New-Item -ItemType file $flagspath
+    New-Item -Force -ItemType file $flagspath
   }
 
   # We take advantage of a trick with WiX to copy folders
@@ -168,7 +166,8 @@ $wix +=
       Description='osquery standalone installer'
       Comments='Facebooks opensource host intrusion detection agent'
       Manufacturer='Facebook'
-      InstallerVersion='100'
+      InstallerVersion='200'
+      Platform='x64'
       Languages='1033'
       Compressed='yes'
       SummaryCodepage='1252' />
@@ -193,7 +192,7 @@ $wix +=
     <PropertyRef Id="WIX_ACCOUNT_ADMINISTRATORS" />
 
     <Directory Id='TARGETDIR' Name='SourceDir'>
-      <Directory Id='CommonAppDataFolder'>
+      <Directory Id='ProgramFiles64Folder'>
         <Directory Id='INSTALLFOLDER' Name='osquery'>
           <Directory Id='DaemonFolder' Name='osqueryd'>
             <Component Id='osqueryd'
@@ -213,7 +212,7 @@ $wix +=
               <ServiceInstall Id='osqueryd'
                 Name='osqueryd'
                 Account='NT AUTHORITY\SYSTEM'
-                Arguments='--flagfile=C:\ProgramData\osquery\osquery.flags'
+                Arguments='--flagfile="C:\Program Files\osquery\osquery.flags"'
                 Start='auto'
                 Type='ownProcess'
                 Vital='yes'

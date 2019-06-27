@@ -1,0 +1,19 @@
+[cxx]
+  cpp = /usr/bin/clang
+  cc = /usr/bin/clang
+  cxxpp = /usr/bin/clang++
+  cxx = /usr/bin/clang++
+  as = /usr/bin/as
+  ld = /usr/bin/clang++
+  ar = /usr/bin/ar
+
+[cxx_toolchain]
+  cppflags =
+
+  cflags =
+
+  cxxppflags =
+
+  cxxflags =
+
+  ldflags =

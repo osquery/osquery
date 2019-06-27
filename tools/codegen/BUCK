@@ -1,0 +1,98 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_filegroup", "osquery_target")
+load("//tools/build_defs/oss/osquery:python.bzl", "osquery_python_binary", "osquery_python_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_filegroup(
+    name = "templates",
+    srcs = [
+        "templates",
+    ],
+    visibility = ["PUBLIC"],
+)
+
+osquery_python_library(
+    name = "lib_genapi",
+    srcs = [
+        "genapi.py",
+    ],
+    base_module = "osquery.tools.codegen",
+)
+
+osquery_python_binary(
+    name = "genapi",
+    main_module = "osquery.tools.codegen.genapi",
+    visibility = ["PUBLIC"],
+    deps = [
+        ":lib_genapi",
+    ],
+)
+
+osquery_python_library(
+    name = "lib_gentable",
+    srcs = [
+        "gentable.py",
+    ],
+    base_module = "osquery.tools.codegen",
+    deps = [
+        osquery_target("tools/tests:tools_test_utils"),
+        osquery_tp_target("jinja2"),
+    ],
+)
+
+osquery_python_binary(
+    name = "gentable",
+    main_module = "osquery.tools.codegen.gentable",
+    platform = "py3",
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("tools/tests:tools_test_utils"),
+        ":lib_gentable",
+    ],
+)
+
+osquery_python_library(
+    name = "lib_amalgamate",
+    srcs = [
+        "amalgamate.py",
+    ],
+    base_module = "osquery.tools.codegen",
+    deps = [
+        osquery_target("tools/tests:tools_test_utils"),
+        osquery_tp_target("jinja2"),
+    ],
+)
+
+osquery_python_binary(
+    name = "amalgamate",
+    main_module = "osquery.tools.codegen.amalgamate",
+    platform = "py3",
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("tools/tests:tools_test_utils"),
+        ":lib_amalgamate",
+    ],
+)
+
+osquery_python_library(
+    name = "lib_substitute",
+    srcs = [
+        "substitute.py",
+    ],
+    base_module = "osquery.tools.codegen",
+)
+
+osquery_python_binary(
+    name = "substitute",
+    main_module = "osquery.tools.codegen.substitute",
+    platform = "py3",
+    visibility = ["PUBLIC"],
+    deps = [
+        ":lib_substitute",
+    ],
+)

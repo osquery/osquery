@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
 import argparse
 import json
@@ -19,7 +20,6 @@ def get_files_to_compile(json_data):
         filename = element["file"]
         if not filename.endswith("tests.cpp") and \
                 not filename.endswith("benchmarks.cpp") and \
-                "third-party" not in filename and \
                 "example" not in filename and \
                 "generated/gen" not in filename and \
                 "test_util" not in filename:
@@ -74,7 +74,6 @@ TARGETS_POSTSCRIPT = """    ],
         "-DOSQUERY_PLATFORM_MASK=9",
         "-DFBTHRIFT",
         "-DRAPIDJSON_HAS_STDSTRING=1",
-        "-DRAPIDJSON_NO_SIZETYPEDEFINE",
     ],
     deps = [
         ":if-cpp2",

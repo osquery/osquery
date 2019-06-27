@@ -1,0 +1,52 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "ebpf",
+    header_namespace = "osquery/utils/system/linux/ebpf",
+    exported_platform_headers = [
+        (
+            LINUX,
+            [
+                "ebpf.h",
+                "map.h",
+                "perf_output.h",
+                "perf_output_impl.h",
+                "program.h",
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "ebpf.cpp",
+                "map.cpp",
+                "program.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("osquery/utils/system/linux/ebpf/tests:ebpf_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/utils/system/linux/perf_event:perf_event"),
+        osquery_target("osquery/utils/system:cpu_topology"),
+        osquery_target("osquery/utils/expected:expected"),
+        osquery_target("osquery/utils/versioning:semantic"),
+        osquery_target("osquery/utils/system:errno"),
+        osquery_target("osquery/logger:logger"),
+        osquery_tp_target("boost"),
+        osquery_tp_target("googletest", "gtest_headers"),
+    ],
+)

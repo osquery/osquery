@@ -12,7 +12,7 @@ schema([
     Column("path", TEXT, "Path to Service Executable"),
     Column("module_path", TEXT, "Path to ServiceDll"),
     Column("description", TEXT, "Service Description"),
-    Column("user_account", TEXT, "The name of the account that the service process will be logged on as when it runs. This name can be of the form Domain\UserName. If the account belongs to the built-in domain, the name can be of the form .\UserName."),
+    Column("user_account", TEXT, "The name of the account that the service process will be logged on as when it runs. This name can be of the form Domain\\UserName. If the account belongs to the built-in domain, the name can be of the form .\\UserName."),
 ])
 implementation("system/windows/services@genServices")
 examples([

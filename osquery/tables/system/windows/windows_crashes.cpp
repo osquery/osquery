@@ -8,9 +8,8 @@
 *
 */
 
-#define _WIN32_DCOM
+#include <osquery/utils/system/system.h>
 
-#include <Windows.h>
 #include <Winternl.h>
 #pragma warning(push)
 // C:\Program Files (x86)\Windows Kits\8.1\Include\um\DbgHelp.h(3190):
@@ -25,14 +24,16 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/process.h"
-#include "osquery/core/windows/wmi.h"
+#include <osquery/process/process.h>
+
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace alg = boost::algorithm;
 namespace fs = boost::filesystem;
@@ -200,7 +201,7 @@ Status logExceptionInfo(IDebugControl5* control, Row& r) {
     r["exception_message"] = errorMsg.str();
   }
 
-  return Status();
+  return Status::success();
 }
 
 Status logPIDAndTID(IDebugSystemObjects2* system, Row& r) {
@@ -215,14 +216,14 @@ Status logPIDAndTID(IDebugSystemObjects2* system, Row& r) {
 
   r["pid"] = BIGINT(procID);
   r["tid"] = BIGINT(threadID);
-  return Status();
+  return Status::success();
 }
 
 Status logProcessUptime(IDebugSystemObjects2* system, Row& r) {
   unsigned long uptime = 0;
   if (system->GetCurrentProcessUpTime(&uptime) == S_OK) {
     r["process_uptime"] = BIGINT(uptime);
-    return Status();
+    return Status::success();
   }
   return Status(1);
 }
@@ -239,7 +240,7 @@ Status logDumpTime(IDebugControl5* control, Row& r) {
   std::stringstream dumpTimestamp;
   dumpTimestamp << std::put_time(&gmt, "%Y-%m-%d %H:%M:%S UTC");
   r["datetime"] = dumpTimestamp.str();
-  return Status();
+  return Status::success();
 }
 
 Status logOSVersion(IDebugControl5* control, Row& r) {
@@ -254,7 +255,7 @@ Status logOSVersion(IDebugControl5* control, Row& r) {
     r["major_version"] = INTEGER(majorVersion);
     r["minor_version"] = INTEGER(minorVersion);
     r["build_number"] = INTEGER(buildNumber);
-    return Status();
+    return Status::success();
   }
   return Status(1);
 }
@@ -273,7 +274,7 @@ Status logDumpType(IDebugControl5* control, Row& r) {
     }
   }
   r["type"] = osquery::join(activeFlags, ",");
-  return Status();
+  return Status::success();
 }
 
 // Note: appears to only detect unmanaged stack frames.
@@ -313,7 +314,7 @@ Status logStackTrace(IDebugControl5* control, IDebugSymbols3* symbols, Row& r) {
     stackTrace.str("");
   }
   r["stack_trace"] = osquery::join(stackTraces, ",");
-  return Status();
+  return Status::success();
 }
 
 Status logRegisters(IDebugClient5* client,
@@ -365,7 +366,7 @@ Status logPEPathAndVersion(IDebugSymbols3* symbols, Row& r) {
                << ((version.dwFileVersionLS >> 16) & 0xffff) << "."
                << ((version.dwFileVersionLS >> 0) & 0xffff);
     r["version"] = versionStr.str();
-    return Status();
+    return Status::success();
   }
   return Status(1);
 }
@@ -385,7 +386,7 @@ Status logModulePath(IDebugSymbols3* symbols, Row& r) {
            DEBUG_MODNAME_IMAGE, modIndex, 0, modPath, MAX_PATH + 1, nullptr) ==
        S_OK)) {
     r["module"] = modPath;
-    return Status();
+    return Status::success();
   }
   return Status(1);
 }
@@ -509,7 +510,7 @@ Status logPEBInfo(IDebugClient5* client,
         envBufferAddr, sizeof(env), env, UNICODE_STRING_MAX_BYTES, &bytesRead);
   }
 
-  return Status();
+  return Status::success();
 }
 
 void debugEngineCleanup(IDebugClient5* client,

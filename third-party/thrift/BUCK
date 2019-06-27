@@ -1,0 +1,51 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "thrift",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "32d0a6c2220114272fe6819a30b5ddfe000d9bed03f0d1fc3b6b68d438b5cc1e",
+        "macos-x86_64": "11a4f8565728e73a54808bf55517014cc69597ef965c3b2b7ebeb52f6dd43c26",
+        "windows-x86_64": "8b115b46d7fbae38eafbd50c4fabca1dd7e14a86ad52bda601ec374b44dc5373",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libthrift.a",
+            "lib/libthriftz.a",
+        ],
+        "macos-x86_64": [
+            "lib/libthrift.a",
+            "lib/libthriftz.a",
+        ],
+        "windows-x86_64": [
+            "lib/parse.lib",
+            "lib/thriftmt.lib",
+            "lib/thriftzmt.lib",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+        osquery_tp_target("boost", "boost"),
+    ],
+    version = "0.11.0",
+    build = "0",
+    visibility = ["PUBLIC"],
+)

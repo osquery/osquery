@@ -2,14 +2,12 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/core/conversions.h>
 #include <osquery/core/database/database.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 
@@ -21,9 +19,8 @@ Expected<int32_t, DatabaseError> Database::getInt32(const std::string& domain,
     if (value) {
       return *value;
     } else {
-      return createError(DatabaseError::FailToReadData,
-                         "Failed to convert string to int",
-                         value.takeError());
+      return createError(DatabaseError::FailToReadData, value.takeError())
+             << "Failed to convert string to int";
     }
   } else {
     return string_value.takeError();

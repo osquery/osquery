@@ -2,27 +2,114 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <gtest/gtest.h>
 
+#include <osquery/config/tests/test_utils.h>
+#include <osquery/database.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
+#include <osquery/remote/tests/test_utils.h>
 #include <osquery/sql.h>
-
-#include "osquery/tests/test_additional_util.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/system.h>
 
 namespace osquery {
+DECLARE_bool(disable_database);
 namespace tables {
+
+// generate the content that would be found in an /etc/hosts file
+std::string getEtcHostsContent() {
+  std::string content;
+  readFile(getTestConfigDirectory() / "test_hosts.txt", content);
+  return content;
+}
+
+// generate the content that would be found in an /etc/hosts.ics file
+std::string getEtcHostsIcsContent() {
+  std::string content;
+  readFile(getTestConfigDirectory() / "test_hosts_ics.txt", content);
+  return content;
+}
+
+// generate the content that would be found in an /etc/protocols file
+std::string getEtcProtocolsContent() {
+  std::string content;
+  readFile(getTestConfigDirectory() / "test_protocols.txt", content);
+  return content;
+}
+
+// generate the expected data that getEtcHostsIcsContent() should parse into
+QueryData getEtcHostsIcsExpectedResults() {
+  Row row1;
+
+  row1["address"] = "192.168.11.81";
+  row1["hostnames"] = "VM-q27rkc8son.mshome.net";
+  return {row1};
+}
+
+// generate the expected data that getEtcHostsContent() should parse into
+QueryData getEtcHostsExpectedResults() {
+  Row row1;
+  Row row2;
+  Row row3;
+  Row row4;
+  Row row5;
+  Row row6;
+
+  row1["address"] = "127.0.0.1";
+  row1["hostnames"] = "localhost";
+  row2["address"] = "255.255.255.255";
+  row2["hostnames"] = "broadcasthost";
+  row3["address"] = "::1";
+  row3["hostnames"] = "localhost";
+  row4["address"] = "fe80::1%lo0";
+  row4["hostnames"] = "localhost";
+  row5["address"] = "127.0.0.1";
+  row5["hostnames"] = "example.com example";
+  row6["address"] = "127.0.0.1";
+  row6["hostnames"] = "example.net";
+  return {row1, row2, row3, row4, row5, row6};
+}
+
+// generate the expected data that getEtcProtocolsContent() should parse into
+QueryData getEtcProtocolsExpectedResults() {
+  Row row1;
+  Row row2;
+  Row row3;
+
+  row1["name"] = "ip";
+  row1["number"] = "0";
+  row1["alias"] = "IP";
+  row1["comment"] = "internet protocol, pseudo protocol number";
+  row2["name"] = "icmp";
+  row2["number"] = "1";
+  row2["alias"] = "ICMP";
+  row2["comment"] = "internet control message protocol";
+  row3["name"] = "tcp";
+  row3["number"] = "6";
+  row3["alias"] = "TCP";
+  row3["comment"] = "transmission control protocol";
+
+  return {row1, row2, row3};
+}
 
 QueryData parseEtcHostsContent(const std::string& content);
 QueryData parseEtcProtocolsContent(const std::string& content);
 
-class NetworkingTablesTests : public testing::Test {};
+class NetworkingTablesTests : public testing::Test {
+ protected:
+  void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+};
 
 TEST_F(NetworkingTablesTests, test_parse_etc_hosts_content) {
   EXPECT_EQ(parseEtcHostsContent(getEtcHostsContent()),
@@ -39,7 +126,7 @@ TEST_F(NetworkingTablesTests, test_parse_etc_protocols_content) {
             getEtcProtocolsExpectedResults());
 }
 
-TEST_F(NetworkingTablesTests, test_listening_ports) {
+TEST_F(NetworkingTablesTests, DISABLED_test_listening_ports) {
   auto& server = TLSServerRunner::instance();
   server.start();
   auto results = SQL::selectAllFrom("listening_ports");

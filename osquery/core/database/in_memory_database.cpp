@@ -2,10 +2,8 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/core/database/in_memory_database.h>
@@ -42,8 +40,8 @@ Expected<StorageType, DatabaseError> InMemoryStorage<StorageType>::get(
   if (iter != storage_.end()) {
     return iter->second;
   }
-  return createError(DatabaseError::KeyNotFound, "Can't find value for key ")
-         << key;
+  return createError(DatabaseError::KeyNotFound)
+         << "Can't find value for key " << key;
 }
 
 void InMemoryDatabase::close() {
@@ -72,8 +70,8 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::open() {
 
 Error<DatabaseError> InMemoryDatabase::domainNotFoundError(
     const std::string& domain) const {
-  return createError(DatabaseError::DomainNotFound, "Can't find domain: ")
-         << domain;
+  return createError(DatabaseError::DomainNotFound)
+         << "Can't find domain: " << domain;
 }
 
 template <typename T>
@@ -81,7 +79,7 @@ Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain,
                                                       const std::string& key) {
   debug_only::verifyTrue(is_open_, "database is not open");
   if (!is_open_) {
-    return createError(DatabaseError::DbIsNotOpen, "Database is closed");
+    return createError(DatabaseError::DbIsNotOpen) << "Database is closed";
   }
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {
@@ -94,12 +92,13 @@ Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain,
     if (value.type() == typeid(T)) {
       return boost::get<T>(value);
     } else {
-      auto error =
-          createError(DatabaseError::KeyNotFound, "Requested wrong type for: ")
-          << domain << ":" << key << " stored type: " << value.type().name()
-          << " requested type " << boost::core::demangle(typeid(T).name());
-      LOG(ERROR) << error.getFullMessageRecursive();
-      debug_only::fail(error.getFullMessageRecursive().c_str());
+      auto error = createError(DatabaseError::KeyNotFound)
+                   << "Requested wrong type for: " << domain << ":" << key
+                   << " stored type: " << value.type().name()
+                   << " requested type "
+                   << boost::core::demangle(typeid(T).name());
+      LOG(ERROR) << error.getMessage();
+      debug_only::fail(error.getMessage().c_str());
       return std::move(error);
     }
   }
@@ -111,7 +110,7 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::putValue(
     const std::string& domain, const std::string& key, const T& value) {
   debug_only::verifyTrue(is_open_, "database is not open");
   if (!is_open_) {
-    return createError(DatabaseError::DbIsNotOpen, "Database is closed");
+    return createError(DatabaseError::DbIsNotOpen) << "Database is closed";
   }
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {

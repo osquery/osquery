@@ -1,0 +1,52 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "probes_events",
+    header_namespace = "osquery/experimental/tracing/linux",
+    exported_platform_headers = [
+        (
+            LINUX,
+            [
+                "ebpf_tracepoint.h",
+                "probes.h",
+                "syscall_event.h",
+                "syscalls_programs.h",
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "ebpf_tracepoint.cpp",
+                "probes.cpp",
+                "syscall_event.cpp",
+                "syscalls_programs.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("osquery/experimental/tracing/linux/tests:ebpf_tracepoint_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/logger:logger"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/utils/expected:expected"),
+        osquery_target("osquery/utils/system/linux/ebpf:ebpf"),
+        osquery_target("osquery/utils/system/linux/tracing:tracing"),
+        osquery_target("osquery/utils:utils"),
+        osquery_tp_target("boost"),
+    ],
+)

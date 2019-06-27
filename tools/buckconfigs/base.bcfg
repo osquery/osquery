@@ -1,0 +1,37 @@
+[osquery]
+  version = 3.4.0
+
+[build]
+  osquery = oss
+
+[alias]
+  osqueryd = //osquery:osqueryd
+
+[cxx]
+  should_remap_host_platform = true
+  gtest_dep = //third-party/googletest:gtest
+
+  cppflags = \
+    $(config cxx_toolchain.cppflags) \
+    $(config cxx_base.cppflags) \
+    $(config cxx_type.cppflags)
+
+  cflags = \
+    $(config cxx_toolchain.cflags) \
+    $(config cxx_base.cflags) \
+    $(config cxx_type.cflags)
+
+  cxxppflags = \
+    $(config cxx_toolchain.cxxppflags) \
+    $(config cxx_base.cxxppflags) \
+    $(config cxx_type.cxxppflags)
+
+  cxxflags = \
+    $(config cxx_toolchain.cxxflags) \
+    $(config cxx_base.cxxflags) \
+    $(config cxx_type.cxxflags)
+
+  ldflags = \
+    $(config cxx_toolchain.ldflags) \
+    $(config cxx_base.ldflags) \
+    $(config cxx_type.ldflags)

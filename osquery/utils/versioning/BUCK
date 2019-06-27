@@ -1,0 +1,28 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "semantic",
+    srcs = [
+        "semantic.cpp",
+    ],
+    header_namespace = "osquery/utils/versioning",
+    exported_headers = [
+        "semantic.h",
+    ],
+    tests = [
+        osquery_target("osquery/utils/versioning/tests:semantic_version_test"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_tp_target("boost"),
+        osquery_target("osquery/utils/conversions:conversions"),
+    ],
+)

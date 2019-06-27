@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -21,9 +19,20 @@
 #define OPENSSL_NO_MD5 1
 #define OPENSSL_NO_DEPRECATED 1
 
-#include <boost/asio.hpp>
+// TODO(5591) Remove this when addressed by Boost's ASIO config.
+// https://www.boost.org/doc/libs/1_67_0/boost/asio/detail/config.hpp
+// Standard library support for std::string_view.
+#define BOOST_ASIO_DISABLE_STD_STRING_VIEW 1
+
+// clang-format off
+// Keep it on top of all other includes to fix double include WinSock.h header file
+// which is windows specific boost build problem
 #include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
+// clang-format on
+
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/optional/optional.hpp>
@@ -31,7 +40,9 @@
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
 
-#include "osquery/remote/uri.h"
+#include <osquery/remote/uri.h>
+
+#include <osquery/logger.h>
 
 namespace boost_system = boost::system;
 namespace boost_asio = boost::asio;
@@ -195,7 +206,13 @@ class Client {
 
  public:
   Client(Options const& opts = Options())
-      : client_options_(opts), r_(ios_), sock_(ios_), timer_(ios_) {}
+      : client_options_(opts), r_(ios_), sock_(ios_), timer_(ios_) {
+// Fix #4235, #5341: Boost on Windows requires notification that it should
+// let windows manage thread cleanup. *Do not remove this on Windows*
+#ifdef WIN32
+    boost::asio::detail::win_thread::set_terminate_threads(true);
+#endif
+  }
 
   void setOptions(Options const& opts) {
     new_client_options_ = !(client_options_ == opts);

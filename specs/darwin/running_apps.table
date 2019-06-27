@@ -1,0 +1,11 @@
+table_name("running_apps")
+
+description("OSX applications currently running on the host system.")
+
+schema([
+    Column("pid", INTEGER, "The pid of the application"),
+    Column("bundle_identifier", TEXT, "The bundle identifier of the application"),
+    Column("is_active", INTEGER, "1 if the application is in focus, 0 otherwise")
+])
+
+implementation("running_apps@genRunningApps")

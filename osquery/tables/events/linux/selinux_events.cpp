@@ -2,21 +2,19 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/events/linux/auditeventpublisher.h>
+#include <osquery/events/linux/selinux_events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/events/linux/auditeventpublisher.h"
-#include "osquery/tables/events/linux/selinux_events.h"
+#include <osquery/tables/events/linux/selinux_events.h>
+#include <osquery/utils/system/uptime.h>
 
 namespace osquery {
 FLAG(bool,
@@ -26,11 +24,6 @@ FLAG(bool,
 
 REGISTER(SELinuxEventSubscriber, "event_subscriber", "selinux_events");
 
-// Depend on the external getUptime table method.
-namespace tables {
-extern long getUptime();
-}
-
 Status SELinuxEventSubscriber::init() {
   if (!FLAGS_audit_allow_selinux_events) {
     return Status(1, "Subscriber disabled via configuration");
@@ -39,7 +32,7 @@ Status SELinuxEventSubscriber::init() {
   auto sc = createSubscriptionContext();
   subscribe(&SELinuxEventSubscriber::Callback, sc);
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status SELinuxEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
@@ -53,7 +46,7 @@ Status SELinuxEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     add(row);
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 Status SELinuxEventSubscriber::ProcessEvents(
@@ -77,15 +70,16 @@ Status SELinuxEventSubscriber::ProcessEvents(
       }
 
       r["message"] = record.raw_data;
-      r["uptime"] = std::to_string(tables::getUptime());
+      r["uptime"] = std::to_string(getUptime());
       emitted_row_list.push_back(r);
     }
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 const std::set<int>& SELinuxEventSubscriber::GetEventSet() noexcept {
   return kSELinuxEventList;
 }
+
 } // namespace osquery

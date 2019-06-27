@@ -2,18 +2,14 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/process.h"
+#include <osquery/process/process.h>
 
 namespace osquery {
 
@@ -87,7 +83,7 @@ Status Dispatcher::addService(InternalRunnableRef service) {
     self.service_threads_.push_back(std::move(thread));
     self.services_.push_back(std::move(service));
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void Dispatcher::removeService(const InternalRunnable* service) {

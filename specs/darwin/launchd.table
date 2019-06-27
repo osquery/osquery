@@ -13,7 +13,7 @@ schema([
     Column("groupname", TEXT, "Run this daemon or agent as this group"),
     Column("stdout_path", TEXT, "Pipe stdout to a target path"),
     Column("stderr_path", TEXT, "Pipe stderr to a target path"),
-    Column("start_interval", TEXT, "Frecuency of running in seconds"),
+    Column("start_interval", TEXT, "Frequency to run in seconds"),
     Column("program_arguments", TEXT,
         "Command line arguments passed to program"),
     Column("watch_paths", TEXT,

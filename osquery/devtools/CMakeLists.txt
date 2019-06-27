@@ -1,16 +1,45 @@
-#  Copyright (c) 2014-present, Facebook, Inc.
-#  All rights reserved.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-ADD_OSQUERY_LIBRARY(FALSE osquery_devtools
-  "${CMAKE_CURRENT_LIST_DIR}/printer.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/devtools.h"
-)
+function(osqueryDevtoolsMain)
 
-ADD_OSQUERY_TEST(FALSE 
-  "${CMAKE_CURRENT_LIST_DIR}/tests/printer_tests.cpp"
-)
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
+
+  generateOsqueryDevtools()
+endfunction()
+
+function(generateOsqueryDevtools)
+  add_osquery_library(osquery_devtools EXCLUDE_FROM_ALL
+    printer.cpp
+    shell.cpp
+  )
+
+  target_link_libraries(osquery_devtools PUBLIC
+    global_cxx_settings
+    osquery_config
+    osquery_core
+    osquery_filesystem
+    osquery_process
+    osquery_sql
+    osquery_utils
+    osquery_utils_conversions
+    osquery_utils_system_env
+    thirdparty_googletest_headers
+    thirdparty_linenoise-ng
+  )
+
+  set(public_header_files
+    devtools.h
+  )
+
+  generateIncludeNamespace(osquery_devtools "osquery/devtools" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME osquery_devtools_tests_printertests-test COMMAND osquery_devtools_tests_printertests-test)
+endfunction()
+
+osqueryDevtoolsMain()

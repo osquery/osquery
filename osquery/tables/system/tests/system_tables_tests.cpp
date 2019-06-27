@@ -2,32 +2,43 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
-#include <gflags/gflags.h>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/database.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
+DECLARE_bool(disable_database);
 namespace tables {
 
-class SystemsTablesTests : public testing::Test {};
+class SystemsTablesTests : public testing::Test {
+ protected:
+  void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+};
 
 TEST_F(SystemsTablesTests, test_os_version) {
   SQL results("select * from os_version");

@@ -1,0 +1,6 @@
+--config-file
+//tools/buckconfigs/macos-x86_64/type/debug.bcfg
+--config-file
+//tools/buckconfigs/macos-x86_64/base.bcfg
+--config-file
+//tools/buckconfigs/base.bcfg

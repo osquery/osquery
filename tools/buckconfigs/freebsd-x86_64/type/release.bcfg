@@ -1,0 +1,17 @@
+[project]
+  buck_out = buck-out/release
+
+[cxx_type]
+  cppflags = \
+    -DNDEBUG
+
+  cflags = \
+    -Os
+
+  cxxppflags = \
+    -DNDEBUG
+
+  cxxflags = \
+    -Os
+
+  ldflags =

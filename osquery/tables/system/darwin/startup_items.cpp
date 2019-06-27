@@ -2,18 +2,17 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/filesystem.hpp>
 
 #include <osquery/core.h>
-#include <osquery/tables.h>
-#include <osquery/filesystem.h>
+#include <osquery/utils/darwin/plist.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

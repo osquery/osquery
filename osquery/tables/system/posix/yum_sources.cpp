@@ -2,21 +2,18 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/property_tree/ini_parser.hpp>
 #include <fstream>
 #include <iostream>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
+#include <osquery/utils/system/system.h>
 
 namespace osquery {
 namespace tables {
@@ -72,11 +69,6 @@ void parseYumConf(const std::string& source,
 
 QueryData genYumSrcs(QueryContext& context) {
   QueryData results;
-
-  // We are going to read a few files.
-  auto dropper = DropPrivileges::get();
-  dropper->dropTo("nobody");
-
   // Expect the YUM home to be /etc/yum.conf
   std::string repos_dir;
   parseYumConf(kYumConf, results, repos_dir);

@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 /*
@@ -24,6 +22,8 @@ namespace tables {
 {% if class_name == "" %}\
 {% if generator %}\
 void {{function}}(RowYield& yield, QueryContext& context);
+{% elif strongly_typed_rows %}\
+osquery::TableRows {{function}}(QueryContext& context);
 {% else %}\
 osquery::QueryData {{function}}(QueryContext& context);
 {% endif %}\
@@ -73,6 +73,18 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
 {% endfor %}\
     };
   }
+
+  AliasColumnMap aliasedColumns() const override {
+    return {
+{% for column in schema %}\
+{% if column.aliases|length > 0 %}\
+{% for alias in column.aliases %}\
+      { "{{alias}}", "{{column.name}}" },
+{% endfor %}\
+{% endif %}\
+{% endfor %}\
+    };
+  }
 {% endif %}\
 
   TableAttributes attributes() const override {
@@ -99,13 +111,17 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
 {% endif %}\
   }
 {% else %}\
-  QueryData generate(QueryContext& context) override {
+  TableRows generate(QueryContext& context) override {
 {% if attributes.cacheable %}\
     if (isCached(kCacheStep, context)) {
       return getCache();
     }
 {% endif %}\
-    auto results = tables::{{function}}(context);
+{% if attributes.strongly_typed_rows %}\
+    TableRows results = tables::{{function}}(context);
+{% else %}\
+    TableRows results = osquery::tableRowsFromQueryData(tables::{{function}}(context));
+{% endif %}
 {% if attributes.cacheable %}\
     setCache(kCacheStep, kCacheInterval, context, results);
 {% endif %}

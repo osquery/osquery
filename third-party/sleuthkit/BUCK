@@ -1,0 +1,42 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "sleuthkit",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "e9d63528b0b0e868453e1d9a26e29137b222e6b682e53415fccaa41783ea2e24",
+        "macos-x86_64": "a841486e4972f262baf195d1e5ec91e9800d6f3934689407b270efc8ba465e51",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libtsk.a",
+        ],
+        "macos-x86_64": [
+            "lib/libtsk.a",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+
+    ],
+    version = "4.6.1",
+    build = "0",
+    visibility = ["PUBLIC"],
+)

@@ -1,0 +1,25 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_python_library", "osquery_tp_target")
+
+osquery_tp_prebuilt_python_library(
+    name = "jinja2",
+    filenames = {
+        "none": "Jinja2-2.10-py2.py3-none-any.whl",
+    },
+    platforms = [
+        "none",
+    ],
+    sha1sums = {
+        "none": "f14bb3e5021b2b0605dcd4865ac539cde04fe856",
+    },
+    deps = [
+        osquery_tp_target("markupsafe"),
+    ],
+)

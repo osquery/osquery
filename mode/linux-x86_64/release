@@ -1,0 +1,8 @@
+--config-file
+//tools/buckconfigs/linux-x86_64/toolchain/ubuntu-18.04-clang.bcfg
+--config-file
+//tools/buckconfigs/linux-x86_64/type/release.bcfg
+--config-file
+//tools/buckconfigs/linux-x86_64/base.bcfg
+--config-file
+//tools/buckconfigs/base.bcfg

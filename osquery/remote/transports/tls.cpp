@@ -2,23 +2,20 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <chrono>
+#include "tls.h"
 
-// clang-format off
-// This must be here to prevent a WinSock.h exists error
-#include "osquery/remote/transports/tls.h"
-// clang-format on
+#include <chrono>
+#include <osquery/core.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/utils/info/version.h>
+#include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/config/default_paths.h>
 
 #include <boost/filesystem.hpp>
-
-#include <osquery/core.h>
-#include <osquery/filesystem.h>
 
 namespace fs = boost::filesystem;
 
@@ -62,7 +59,7 @@ CLI_FLAG(uint32,
          3600,
          "TLS session keep alive timeout in seconds");
 
-#if defined(DEBUG)
+#ifndef NDEBUG
 HIDDEN_FLAG(bool,
             tls_allow_unsafe,
             false,
@@ -115,7 +112,16 @@ http::Client::Options TLSTransport::getOptions() {
       boost_system::error_code ec;
 
       auto status = fs::status(server_certificate_file_, ec);
-      options.openssl_verify_path(server_certificate_file_);
+
+#ifndef NDEBUG
+      if (!FLAGS_tls_allow_unsafe) {
+        // In unsafe mode we skip verification of the server's TLS details
+        // to allow people to connect to devservers
+#else
+      if (true) {
+#endif
+        options.openssl_verify_path(server_certificate_file_);
+      }
 
       // On Windows, we cannot set openssl_certificate to a directory
       if (isPlatform(PlatformType::TYPE_WINDOWS) &&
@@ -123,7 +129,13 @@ http::Client::Options TLSTransport::getOptions() {
         LOG(WARNING) << "Cannot set a non-regular file as a certificate: "
                      << server_certificate_file_;
       } else {
-        options.openssl_certificate(server_certificate_file_);
+#ifndef NDEBUG
+        if (!FLAGS_tls_allow_unsafe) {
+#else
+        if (true) {
+#endif
+          options.openssl_certificate(server_certificate_file_);
+        }
       }
     }
   }
@@ -148,7 +160,7 @@ http::Client::Options TLSTransport::getOptions() {
     options.openssl_sni_hostname(it->value.GetString());
   }
 
-#if defined(DEBUG)
+#ifndef NDEBUG
   // Configuration may allow unsafe TLS testing if compiled as a debug target.
   if (FLAGS_tls_allow_unsafe) {
     options.always_verify_peer(false);
@@ -191,7 +203,8 @@ static auto getClient() {
 
 Status TLSTransport::sendRequest() {
   if (destination_.find("https://") == std::string::npos) {
-    return Status(1, "Cannot create TLS request for non-HTTPS protocol URI");
+    return Status::failure(
+        "Cannot create TLS request for non-HTTPS protocol URI");
   }
 
   http::Request r(destination_);
@@ -211,15 +224,15 @@ Status TLSTransport::sendRequest() {
     response_status_ =
         serializer_->deserialize(response_body, response_params_);
   } catch (const std::exception& e) {
-    return Status((tlsFailure(e.what())) ? 2 : 1,
-                  std::string("Request error: ") + e.what());
+    return Status::failure(std::string("Request error: ") + e.what());
   }
   return response_status_;
 }
 
 Status TLSTransport::sendRequest(const std::string& params, bool compress) {
   if (destination_.find("https://") == std::string::npos) {
-    return Status(1, "Cannot create TLS request for non-HTTPS protocol URI");
+    return Status::failure(
+        "Cannot create TLS request for non-HTTPS protocol URI");
   }
 
   http::Request r(destination_);
@@ -260,8 +273,7 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
     response_status_ =
         serializer_->deserialize(response_body, response_params_);
   } catch (const std::exception& e) {
-    return Status((tlsFailure(e.what())) ? 2 : 1,
-                  std::string("Request error: ") + e.what());
+    return Status::failure(std::string("Request error: ") + e.what());
   }
   return response_status_;
 }

@@ -1,0 +1,52 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX", "WINDOWS")
+
+osquery_cxx_library(
+    name = "table_implementations",
+    platform_deps = [
+        (
+            POSIX,
+            [
+                osquery_target("osquery/tables/sleuthkit:sleuthkit_table"),
+                osquery_target("osquery/tables/yara:yara_table"),
+                osquery_target("osquery/tables/lldpd:lldpd_table"),
+            ],
+        ),
+        (
+            LINUX,
+            [
+                osquery_target("osquery/tables/cloud:cloud"),
+                osquery_target("osquery/tables/smart:smart"),
+            ],
+        ),
+        (
+            MACOSX,
+            [
+                osquery_target("osquery/tables/cloud:cloud"),
+                osquery_target("osquery/tables/smart:smart"),
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                osquery_target("osquery/tables/cloud:cloud"),
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/tables/applications:applications"),
+        osquery_target("osquery/tables/events:events_table"),
+        osquery_target("osquery/tables/forensic:forensic"),
+        osquery_target("osquery/tables/networking:networking"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/tables/utility:utility_table"),
+    ],
+)

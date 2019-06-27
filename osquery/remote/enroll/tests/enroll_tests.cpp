@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <gtest/gtest.h>
@@ -13,9 +11,11 @@
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/enroll.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/fileops.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/registry_factory.h>
+#include <osquery/system.h>
 
 #include "osquery/tests/test_util.h"
 
@@ -24,10 +24,17 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 DECLARE_string(enroll_secret_path);
+DECLARE_bool(disable_database);
 
 class EnrollTests : public testing::Test {
  public:
   void SetUp() {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+
     deleteDatabaseValue(kPersistentSettings, "nodeKey");
     deleteDatabaseValue(kPersistentSettings, "nodeKeyTime");
   }
@@ -35,7 +42,9 @@ class EnrollTests : public testing::Test {
 
 class SimpleEnrollPlugin : public EnrollPlugin {
  protected:
-  std::string enroll() { return "fetched_a_node_key"; }
+  std::string enroll() {
+    return "fetched_a_node_key";
+  }
 };
 
 // Register our simple enroll plugin.
@@ -44,9 +53,11 @@ REGISTER(SimpleEnrollPlugin, "enroll", "test_simple");
 TEST_F(EnrollTests, test_enroll_secret_retrieval) {
   // Write an example secret (deploy key).
   FLAGS_enroll_secret_path =
-    (fs::path(kTestWorkingDirectory) / "secret.txt").
-    make_preferred().string();
-  writeTextFile(FLAGS_enroll_secret_path, "test_secret\n", 0600);
+      (fs::temp_directory_path() / "secret.txt").make_preferred().string();
+  writeTextFile(FLAGS_enroll_secret_path,
+                "test_secret\n",
+                0600,
+                PF_CREATE_ALWAYS | PF_WRITE);
   // Make sure the file content was read and trimmed.
   auto secret = getEnrollSecret();
   EXPECT_EQ(secret, "test_secret");

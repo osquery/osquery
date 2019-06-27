@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
 # Could be called by DPKG or RPM.
 # Handle the cases we want to hook or silently claim success.

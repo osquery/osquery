@@ -2,18 +2,16 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <rocksdb/db.h>
 
 #include <unordered_map>
 
-#include <osquery/core/conversions.h>
 #include <osquery/core/database/rocksdb_migration.h>
+#include <osquery/utils/conversions/tryto.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -128,9 +126,8 @@ ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateFromVersion(
        version < kDatabaseSchemaVersionCurrent;) {
     auto iter = migration_map_.find(version);
     if (iter == migration_map_.end()) {
-      return createError(RocksdbMigrationError::NoMigrationFromCurrentVersion,
-                         "No migration logic from version: ")
-             << version;
+      return createError(RocksdbMigrationError::NoMigrationFromCurrentVersion)
+             << "No migration logic from version: " << version;
     }
     VLOG(1) << "Migrating from version: " << version
             << ". Src path: " << src_path << ". Dst path: " << dst_path;
@@ -139,9 +136,9 @@ ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateFromVersion(
     if (migration_result) {
       int new_version = migration_result.take();
       if (new_version <= version) {
-        return createError(RocksdbMigrationError::MigrationLogicError,
-                           "New version(")
-               << version << ") is lower or same as old(" << new_version << ")";
+        return createError(RocksdbMigrationError::MigrationLogicError)
+               << "New version(" << version << ") is lower or same as old("
+               << new_version << ")";
       }
       version = new_version;
     } else {
@@ -176,16 +173,16 @@ ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::moveDb(
     const std::string& src_path, const std::string& dst_path) {
   boost::system::error_code ec;
   if (fs::exists(fs::path(dst_path), ec)) {
-    return createError(RocksdbMigrationError::FailMoveDatabase,
-                       "Database at dst path already exists or path is not "
-                       "accessible. Path: ")
+    return createError(RocksdbMigrationError::FailMoveDatabase)
+           << "Database at dst path already exists or path is not accessible. "
+              "Path: "
            << dst_path << "Error: " << ec.value() << " " << ec.message();
   }
 
   fs::rename(src_path, dst_path, ec);
   if (!ec) {
-    return createError(RocksdbMigrationError::FailMoveDatabase, "Move failed: ")
-           << ec.value() << " " << ec.message();
+    return createError(RocksdbMigrationError::FailMoveDatabase)
+           << "Move failed: " << ec.value() << " " << ec.message();
   }
   return Success();
 }
@@ -212,11 +209,11 @@ RocksdbMigration::openDatabase(const std::string& path,
   auto status = rocksdb::DB::Open(
       handle.options, path, descriptors, &column_family_handles, &db);
   if (status.IsInvalidArgument()) {
-    return createError(RocksdbMigrationError::InvalidArgument,
-                       status.ToString());
+    return createError(RocksdbMigrationError::InvalidArgument)
+           << status.ToString();
   }
   if (!status.ok()) {
-    return createError(RocksdbMigrationError::FailToOpen, status.ToString());
+    return createError(RocksdbMigrationError::FailToOpen) << status.ToString();
   }
   handle.db_handle = std::unique_ptr<rocksdb::DB>(db);
   for (const auto& ptr : column_family_handles) {
@@ -253,18 +250,18 @@ Expected<int, RocksdbMigrationError> RocksdbMigration::getVersion(
       }
     }
     if (!status.ok()) {
-      return createError(RocksdbMigrationError::FailToGetVersion,
-                         status.ToString());
+      return createError(RocksdbMigrationError::FailToGetVersion)
+             << status.ToString();
     }
     auto result = tryTo<int>(version_str);
     if (result) {
       return *result;
     }
-    return createError(
-        RocksdbMigrationError::FailToGetVersion, "", result.takeError());
+    return createError(RocksdbMigrationError::FailToGetVersion,
+                       result.takeError());
   }
-  return createError(RocksdbMigrationError::FailToGetVersion,
-                     "Verion data is not found");
+  return createError(RocksdbMigrationError::FailToGetVersion)
+         << "Verion data is not found";
 }
 
 std::string RocksdbMigration::randomOutputPath() {

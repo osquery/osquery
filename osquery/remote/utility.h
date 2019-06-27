@@ -2,22 +2,24 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
+
+// clang-format off
+// Keep it on top of all other includes to fix double include WinSock.h header file
+// which is windows specific boost build problem
+#include <osquery/remote/transports/tls.h>
+// clang-format on
 
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
 #include <osquery/system.h>
 
-#include "osquery/remote/requests.h"
-#include "osquery/remote/transports/tls.h"
-
-#include "osquery/core/process.h"
+#include <osquery/process/process.h>
+#include <osquery/remote/requests.h>
 
 namespace osquery {
 
@@ -172,7 +174,7 @@ class TLSRequestHelper : private boost::noncopyable {
       return Status(1, message);
     }
 
-    return Status(0, "OK");
+    return Status::success();
   }
 
   /**

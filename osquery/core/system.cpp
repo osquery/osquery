@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <fcntl.h>
@@ -33,7 +31,10 @@
 #include <pthread_np.h>
 #endif
 
-#include <ctime>
+#if defined(__APPLE__)
+#include <sys/kauth.h>
+#endif
+
 #include <sstream>
 
 #include <boost/algorithm/string/case_conv.hpp>
@@ -46,18 +47,23 @@
 
 #include <osquery/core.h>
 #include <osquery/database.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/process/process.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
 #ifdef WIN32
 #include "osquery/core/windows/wmi.h"
 #endif
-#include "osquery/core/conversions.h"
-#include "osquery/core/process.h"
-#include "osquery/core/utils.h"
+#include "osquery/utils/info/tool_type.h"
+#include "osquery/utils/info/platform_type.h"
+#include "osquery/utils/conversions/tryto.h"
+#include "osquery/utils/config/default_paths.h"
+#ifdef WIN32
+#include <osquery/utils/conversions/windows/strings.h>
+#endif
 
 namespace fs = boost::filesystem;
 
@@ -235,7 +241,7 @@ Status getEphemeralUUID(std::string& ident) {
   if (ident.size() == 0) {
     ident = osquery::generateNewUUID();
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status getHostUUID(std::string& ident) {
@@ -254,7 +260,7 @@ Status getSpecifiedUUID(std::string& ident) {
     return Status(1, "No specified identifier for host");
   }
   ident = FLAGS_specified_identifier;
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string getHostIdentifier() {
@@ -286,58 +292,12 @@ std::string getHostIdentifier() {
   return ident;
 }
 
-std::string toAsciiTime(const struct tm* tm_time) {
-  if (tm_time == nullptr) {
-    return "";
-  }
-
-  auto time_str = platformAsctime(tm_time);
-  boost::algorithm::trim(time_str);
-  return time_str + " UTC";
-}
-
-std::string toAsciiTimeUTC(const struct tm* tm_time) {
-  size_t epoch = toUnixTime(tm_time);
-  struct tm tptr;
-
-  memset(&tptr, 0, sizeof(tptr));
-
-  if (epoch == (size_t)-1) {
-    return "";
-  }
-
-  gmtime_r((time_t*)&epoch, &tptr);
-  return toAsciiTime(&tptr);
-}
-
-std::string getAsciiTime() {
-  auto result = std::time(nullptr);
-
-  struct tm now;
-  gmtime_r(&result, &now);
-
-  return toAsciiTime(&now);
-}
-
-size_t toUnixTime(const struct tm* tm_time) {
-  struct tm result;
-  memset(&result, 0, sizeof(result));
-
-  memcpy(&result, tm_time, sizeof(result));
-  return mktime(&result);
-}
-
-size_t getUnixTime() {
-  std::time_t ut = std::time(nullptr);
-  return ut < 0 ? 0 : ut;
-}
-
 Status checkStalePid(const std::string& content) {
   int pid;
   try {
     pid = boost::lexical_cast<int>(content);
   } catch (const boost::bad_lexical_cast& /* e */) {
-    return Status(0, "Could not parse pid from existing pidfile");
+    return Status::success();
   }
 
   PlatformProcess target(pid);
@@ -370,7 +330,7 @@ Status checkStalePid(const std::string& content) {
     VLOG(1) << "Found stale process for osqueryd (" << content << ")";
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status createPidFile() {
@@ -618,6 +578,9 @@ bool checkPlatform(const std::string& platform) {
     return true;
   }
 
+  // Technically "centos" and "ubuntu" are no longer supported. We have never
+  // differentiated between Linux distributions, but rather execute all Linux
+  // based queries on any Linux system.
   auto linux_type = (platform.find("linux") != std::string::npos ||
                      platform.find("ubuntu") != std::string::npos ||
                      platform.find("centos") != std::string::npos);

@@ -2,17 +2,14 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include "osquery/core/json.h"
-
-#include <osquery/core/conversions.h>
 #include <osquery/sdk.h>
 #include <osquery/system.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/json/json.h>
 
 #include <mutex>
 #include <sstream>
@@ -83,7 +80,7 @@ class WritableTable : public TablePlugin {
     const auto& rowid = row.at("rowid");
     rowid_to_primary_key.insert({rowid, primary_key});
 
-    return Status(0, "OK");
+    return Status::success();
   }
 
   /// Expands a value list returned by osquery into a Row (without the rowid
@@ -105,7 +102,7 @@ class WritableTable : public TablePlugin {
     row["integer"] =
         std::to_string(document[1].IsNull() ? 0 : document[1].GetInt());
 
-    return Status(0, "OK");
+    return Status::success();
   }
 
  public:

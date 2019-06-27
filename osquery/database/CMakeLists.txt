@@ -1,46 +1,33 @@
-#  Copyright (c) 2014-present, Facebook, Inc.
-#  All rights reserved.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-target_sources(libosquery
-  PRIVATE
-    "${CMAKE_CURRENT_LIST_DIR}/database.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/plugins/ephemeral.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/plugins/ephemeral.h"
-)
+function(osqueryDatabaseMain)
 
-ADD_OSQUERY_TEST_CORE(
-  "${CMAKE_CURRENT_LIST_DIR}/tests/database_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/plugin_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/plugin_tests.h"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/results_tests.cpp"
-)
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
 
-if(NOT OSQUERY_BUILD_SDK_ONLY)
-ADD_OSQUERY_LIBRARY(FALSE osquery_database_plugins
-  "${CMAKE_CURRENT_LIST_DIR}/plugins/rocksdb.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/plugins/rocksdb.h"
-  "${CMAKE_CURRENT_LIST_DIR}/plugins/sqlite.h"
-  "${CMAKE_CURRENT_LIST_DIR}/plugins/sqlite.cpp"
-)
+  generateOsqueryDatabase()
+endfunction()
 
-target_compile_definitions(osquery_database_plugins
-  PRIVATE
-    "-DROCKSDB_LITE=1"
-)
-endif()
+function(generateOsqueryDatabase)
+  add_osquery_library(osquery_database EXCLUDE_FROM_ALL
+    database.cpp
+  )
 
-ADD_OSQUERY_TEST_ADDITIONAL(
-  "${CMAKE_CURRENT_LIST_DIR}/tests/plugin_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/plugin_tests.h"
-  "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/rocksdb_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/sqlite_tests.cpp"
-)
+  target_link_libraries(osquery_database PUBLIC
+    global_cxx_settings
+    osquery_core
+    osquery_utils
+    osquery_utils_conversions
+    thirdparty_boost
+  )
 
-ADD_OSQUERY_BENCHMARK(
-  "${CMAKE_CURRENT_LIST_DIR}/benchmarks/database_benchmarks.cpp"
-)
+  add_test(NAME osquery_database_tests-test COMMAND osquery_database_tests-test)
+  add_test(NAME osquery_database_tests_results-test COMMAND osquery_database_tests_results-test)
+endfunction()
+
+osqueryDatabaseMain()

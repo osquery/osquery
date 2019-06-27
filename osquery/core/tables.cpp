@@ -2,32 +2,20 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
+#include <osquery/utils/json/json.h>
 
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
-namespace {
-QueryContext queryContextFromRequest(const PluginRequest& request) {
-  QueryContext context;
-  if (request.count("context") > 0) {
-    TablePlugin::setContextFromRequest(request, context);
-  }
-
-  return context;
-};
-} // namespace
 
 FLAG(bool, disable_caching, false, "Disable scheduled query caching");
 
@@ -35,16 +23,6 @@ CREATE_LAZY_REGISTRY(TablePlugin, "table");
 
 size_t TablePlugin::kCacheInterval = 0;
 size_t TablePlugin::kCacheStep = 0;
-
-const std::map<ColumnType, std::string> kColumnTypeNames = {
-    {UNKNOWN_TYPE, "UNKNOWN"},
-    {TEXT_TYPE, "TEXT"},
-    {INTEGER_TYPE, "INTEGER"},
-    {BIGINT_TYPE, "BIGINT"},
-    {UNSIGNED_BIGINT_TYPE, "UNSIGNED BIGINT"},
-    {DOUBLE_TYPE, "DOUBLE"},
-    {BLOB_TYPE, "BLOB"},
-};
 
 Status TablePlugin::addExternal(const std::string& name,
                                 const PluginResponse& response) {
@@ -90,11 +68,20 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
     doc.add("colsUsed", colsUsed);
   }
 
+  if (context.colsUsedBitset) {
+    doc.add("colsUsedBitset", context.colsUsedBitset->to_ullong());
+  }
+
   doc.toString(request["context"]);
 }
 
-void TablePlugin::setContextFromRequest(const PluginRequest& request,
-                                        QueryContext& context) {
+QueryContext TablePlugin::getContextFromRequest(
+    const PluginRequest& request) const {
+  QueryContext context;
+  if (request.count("context") == 0) {
+    return context;
+  }
+
   auto doc = JSON::newObject();
   doc.fromString(request.at("context"));
   if (doc.doc().HasMember("colsUsed")) {
@@ -104,9 +91,15 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
     }
     context.colsUsed = colsUsed;
   }
+  if (doc.doc().HasMember("colsUsedBitset")) {
+    context.colsUsedBitset = doc.doc()["colsUsedBitset"].GetUint64();
+  } else if (context.colsUsed) {
+    context.colsUsedBitset = usedColumnsToBitset(*context.colsUsed);
+  }
+
   if (!doc.doc().HasMember("constraints") ||
       !doc.doc()["constraints"].IsArray()) {
-    return;
+    return context;
   }
 
   // Set the context limit and deserialize each column constraint list.
@@ -114,6 +107,28 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
     auto column_name = constraint["name"].GetString();
     context.constraints[column_name].deserialize(constraint);
   }
+
+  return context;
+}
+
+UsedColumnsBitset TablePlugin::usedColumnsToBitset(
+    const UsedColumns usedColumns) const {
+  UsedColumnsBitset result;
+
+  const auto columns = this->columns();
+  const auto aliases = this->aliasedColumns();
+  for (size_t i = 0; i < columns.size(); i++) {
+    auto column_name = std::get<0>(columns[i]);
+    const auto& aliased_name = aliases.find(column_name);
+    if (aliased_name != aliases.end()) {
+      column_name = aliased_name->second;
+    }
+    if (usedColumns.find(column_name) != usedColumns.end()) {
+      result.set(i);
+    }
+  }
+
+  return result;
 }
 
 Status TablePlugin::call(const PluginRequest& request,
@@ -128,16 +143,17 @@ Status TablePlugin::call(const PluginRequest& request,
   const auto& action = request.at("action");
 
   if (action == "generate") {
-    auto context = queryContextFromRequest(request);
-    response = generate(context);
+    auto context = getContextFromRequest(request);
+    TableRows result = generate(context);
+    response = tableRowsToPluginResponse(result);
   } else if (action == "delete") {
-    auto context = queryContextFromRequest(request);
+    auto context = getContextFromRequest(request);
     response = delete_(context, request);
   } else if (action == "insert") {
-    auto context = queryContextFromRequest(request);
+    auto context = getContextFromRequest(request);
     response = insert(context, request);
   } else if (action == "update") {
-    auto context = queryContextFromRequest(request);
+    auto context = getContextFromRequest(request);
     response = update(context, request);
   } else if (action == "columns") {
     response = routeInfo();
@@ -145,7 +161,7 @@ Status TablePlugin::call(const PluginRequest& request,
     return Status(1, "Unknown table plugin action: " + action);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string TablePlugin::columnDefinition(bool is_extension) const {
@@ -209,27 +225,27 @@ bool TablePlugin::isCached(size_t step, const QueryContext& ctx) const {
   return (step < last_cached_ + last_interval_ && cacheAllowed(columns(), ctx));
 }
 
-QueryData TablePlugin::getCache() const {
+TableRows TablePlugin::getCache() const {
   VLOG(1) << "Retrieving results from cache for table: " << getName();
   // Lookup results from database and deserialize.
   std::string content;
   getDatabaseValue(kQueries, "cache." + getName(), content);
-  QueryData results;
-  deserializeQueryDataJSON(content, results);
+  TableRows results;
+  deserializeTableRowsJSON(content, results);
   return results;
 }
 
 void TablePlugin::setCache(size_t step,
                            size_t interval,
                            const QueryContext& ctx,
-                           const QueryData& results) {
+                           const TableRows& results) {
   if (FLAGS_disable_caching || !cacheAllowed(columns(), ctx)) {
     return;
   }
 
   // Serialize QueryData and save to database.
   std::string content;
-  if (serializeQueryDataJSON(results, content)) {
+  if (serializeTableRowsJSON(results, content)) {
     last_cached_ = step;
     last_interval_ = interval;
     setDatabaseValue(kQueries, "cache." + getName(), content);
@@ -512,27 +528,17 @@ bool QueryContext::useCache() const {
   return use_cache_;
 }
 
-void QueryContext::setCache(const std::string& index, Row _cache) {
-  table_->cache[index] = std::move(_cache);
-}
-
 void QueryContext::setCache(const std::string& index,
-                            const std::string& key,
-                            std::string _item) {
-  table_->cache[index][key] = std::move(_item);
+                            const TableRowHolder& cache) {
+  table_->cache[index] = cache->clone();
 }
 
 bool QueryContext::isCached(const std::string& index) const {
   return (table_->cache.count(index) != 0);
 }
 
-const Row& QueryContext::getCache(const std::string& index) {
-  return table_->cache[index];
-}
-
-const std::string& QueryContext::getCache(const std::string& index,
-                                          const std::string& key) {
-  return table_->cache[index][key];
+TableRowHolder QueryContext::getCache(const std::string& index) {
+  return table_->cache[index]->clone();
 }
 
 bool QueryContext::hasConstraint(const std::string& column,

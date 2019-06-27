@@ -2,10 +2,8 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/core.h>
@@ -16,11 +14,10 @@
 
 #include <osquery/extensions.h>
 #include <osquery/logger.h>
+#include <osquery/process/process.h>
 #include <osquery/registry.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
-#include "osquery/core/process.h"
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 
@@ -139,7 +136,7 @@ Status RegistryFactory::removeBroadcast(const RouteUUID& uuid) {
 
   WriteLock lock(mutex_);
   extensions_.erase(uuid);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 /// Adds an alias for an internal registry item. This registry will only

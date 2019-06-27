@@ -1,0 +1,83 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD", "LINUX", "MACOSX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "sql",
+    srcs = [
+        "dynamic_table_row.cpp",
+        "sql.cpp",
+        "sqlite_encoding.cpp",
+        "sqlite_filesystem.cpp",
+        "sqlite_hashing.cpp",
+        "sqlite_math.cpp",
+        "sqlite_operations.cpp",
+        "sqlite_util.cpp",
+        "virtual_sqlite_table.cpp",
+        "virtual_table.cpp",
+    ],
+    header_namespace = "osquery/sql",
+    exported_headers = [
+        "dynamic_table_row.h",
+        "sqlite_util.h",
+        "virtual_table.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lfuzzy",
+                "-lgflags",
+                "-lsqlite3",
+            ],
+        ),
+    ],
+    link_whole = True,
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "sqlite_string.cpp",
+            ],
+        ),
+        (
+            MACOSX,
+            [
+                "sqlite_string.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "sqlite_string.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("osquery/sql/tests:sql_tests"),
+        osquery_target("osquery/sql/tests:virtual_table_tests"),
+        osquery_target("osquery/sql/tests:sqlite_util_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/carver:carver"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/plugins:plugins"),
+        osquery_target("osquery/hashing:hashing"),
+        osquery_target("osquery/process:process"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/system:errno"),
+        osquery_tp_target("boost"),
+        osquery_tp_target("gflags"),
+        osquery_tp_target("googletest", "gtest_headers"),
+        osquery_tp_target("sqlite"),
+        osquery_tp_target("ssdeep-cpp"),
+    ],
+)

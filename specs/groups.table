@@ -9,6 +9,10 @@ extended_schema(WINDOWS, [
     Column("group_sid", TEXT, "Unique group ID", index=True),
     Column("comment", TEXT, "Remarks or comments associated with the group"),
 ])
+
+extended_schema(DARWIN, [
+    Column("is_hidden", INTEGER, "IsHidden attribute set in OpenDirectory"),
+])
 implementation("groups@genGroups")
 examples([
   "select * from groups where gid = 0",

@@ -2,20 +2,18 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <IOKit/IOMessage.h>
+
+#include <osquery/utils/conversions/darwin/iokit.h>
+#include <osquery/events/darwin/iokit.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
-#include <IOKit/IOMessage.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/events/darwin/iokit.h"
 
 namespace osquery {
 
@@ -207,7 +205,7 @@ Status IOKitEventPublisher::run() {
 
   // Start the run loop, it may be removed with a tearDown.
   CFRunLoopRun();
-  return Status(0, "OK");
+  return Status::success();
 }
 
 bool IOKitEventPublisher::shouldFire(const IOKitSubscriptionContextRef& sc,

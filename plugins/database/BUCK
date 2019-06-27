@@ -1,0 +1,93 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "ephemeral",
+    srcs = [
+        "ephemeral.cpp",
+    ],
+    header_namespace = "plugins/database",
+    exported_headers = [
+        "ephemeral.h",
+    ],
+    link_whole = True,
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/utils:utils"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "rocksdb_plugin",
+    srcs = [
+        "rocksdb.cpp",
+    ],
+    header_namespace = "plugins/database",
+    exported_headers = [
+        "rocksdb.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lrocksdb-lite",
+            ],
+        ),
+    ],
+    link_whole = True,
+    tests = [
+        osquery_target("plugins/database/tests:rocksdb_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/utils:utils"),
+        osquery_tp_target("googletest", "gtest_headers"),
+        osquery_tp_target("rocksdb"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "sqlite_plugin",
+    srcs = [
+        "sqlite.cpp",
+    ],
+    header_namespace = "plugins/database",
+    exported_headers = [
+        "sqlite.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lsqlite3",
+            ],
+        ),
+    ],
+    link_whole = True,
+    tests = [
+        osquery_target("plugins/database/tests:sqlite_plugin_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/utils:utils"),
+        osquery_tp_target("sqlite"),
+    ],
+)

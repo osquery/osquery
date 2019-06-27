@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <sys/mman.h>
@@ -15,7 +13,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
@@ -52,7 +50,7 @@ Status readMem(int fd, size_t base, size_t length, uint8_t* buffer) {
     return Status(1, "Read incorrect number of bytes");
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status readRawMem(size_t base, size_t length, void** buffer) {
@@ -108,6 +106,6 @@ Status readRawMem(size_t base, size_t length, void** buffer) {
   }
 
   close(fd);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

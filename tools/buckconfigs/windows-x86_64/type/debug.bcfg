@@ -1,0 +1,25 @@
+[project]
+  buck_out = buck-out/debug
+
+[cxx_type]
+  cppflags = \
+    /UNDEBUG
+
+  cflags = \
+    /Z7 \
+    /Od \
+    /Gs \
+    /GS \
+    /guard:cf
+
+  cxxppflags = \
+    /UNDEBUG
+
+  cxxflags = \
+    /Z7 \
+    /Od \
+    /Gs \
+    /GS \
+    /guard:cf
+
+  ldflags =

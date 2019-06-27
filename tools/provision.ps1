@@ -1,10 +1,8 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
 
 # Turn on support for Powershell Cmdlet Bindings
 [CmdletBinding(SupportsShouldProcess = $true)]
@@ -16,7 +14,7 @@
     Target = "*")]
 param()
 
-# URL of where our pre-compiled third-party dependenices are archived
+# URL of where our pre-compiled third-party dependencies are archived
 $THIRD_PARTY_ARCHIVE_URL = 'https://osquery-packages.s3.amazonaws.com/choco'
 
 # Make a best effort to dot-source our utils script
@@ -86,7 +84,7 @@ function Add-ToPath {
   $env:Path += $appendPath
 }
 
-# Searchs the system path for a specified directory, and if exists, deletes
+# Searches the system path for a specified directory, and if exists, deletes
 # the value from the system path.
 function Remove-FromPath {
   [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
@@ -408,25 +406,6 @@ function Install-ThirdParty {
   }
 }
 
-function Update-GitSubmodule {
-  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Low")]
-  param()
-  if (-not $PSCmdlet.ShouldProcess('Git Submodules')) {
-    Exit -1
-  }
-  if ($null -eq (Get-Command 'git.exe' -ErrorAction SilentlyContinue)) {
-    Write-Host "[-] ERROR: Git was not found on the system. Install git." -foregroundcolor Red
-    Exit -1
-  }
-  $repoRoot = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..'))
-  $thirdPartyPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'third-party'))
-  Write-Host " => Updating git submodules in $thirdPartyPath ..." -foregroundcolor Yellow
-  Push-Location $repoRoot
-  git submodule --quiet update --init
-  Pop-Location
-  Write-Host "[+] Submodules updated!" -foregroundcolor Yellow
-}
-
 function Main {
   if ($PSVersionTable.PSVersion.Major -lt 3.0 ) {
     Write-Output "This installer currently requires Powershell 3.0 or greater."
@@ -477,7 +456,6 @@ function Main {
   # Convenience variable for accessing Python
   [Environment]::SetEnvironmentVariable("OSQUERY_PYTHON_PATH", $pythonInstall, "Machine")
   $out = Install-PipPackage
-  $out = Update-GitSubmodule
   if (Test-Path env:OSQUERY_BUILD_HOST) {
     $out = Install-ChocoPackage 'visualcppbuildtools'
   } else {

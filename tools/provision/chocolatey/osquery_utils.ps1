@@ -1,13 +1,32 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
 
 # Force Powershell to use TLS 1.2
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+
+# The osquery installation happens in Program Files
+$progFiles =  [System.Environment]::GetEnvironmentVariable('ProgramFiles')
+$targetFolder = Join-Path $progFiles 'osquery'
+
+# Maintain the daemon and extension folders for "safe" permissions management
+$daemonFolder = Join-Path $targetFolder 'osqueryd'
+$extensionsFolder = Join-Path $targetFolder 'extensions'
+$logFolder = Join-Path $targetFolder 'log'
+
+# Maintain the binary paths for creating the system service and extraction
+$targetDaemonBin = Join-Path $targetFolder "osqueryd.exe"
+$destDaemonBin = Join-Path $daemonFolder "osqueryd.exe"
+
+# Meta data for the system service installation
+$serviceName = 'osqueryd'
+$serviceDescription = 'osquery daemon service'
+
+# Track the old installation paths for removal
+$progData = [System.Environment]::GetEnvironmentVariable('ProgramData')
+$legacyInstall = Join-Path $progData "osquery"
 
 # Helper function to add an explicit Deny-Write ACE for the Everyone group
 function Set-DenyWriteAcl {
@@ -269,7 +288,7 @@ function Invoke-VcVarsAll {
     } else {
       $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
     }
-  
+
     # Lastly invoke the environment provisioning script
     $null = Invoke-BatchFile "$vcvarsall" "amd64"
     return $true

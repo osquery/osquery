@@ -1,0 +1,49 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "gflags",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "5e0813ea29d5ba739c089ae21dccf5b7d4ec6f7a7d9550da0834476fade2b60c",
+        "macos-x86_64": "217fd2573443981bc8e521fcf4d8201ba4d3c29cace1b9a537f94be08df7ebb6",
+        "windows-x86_64": "a7bb0676d7ac0338cfa71f48f5e0d83332470e1fcd0223aa697f1a0fd2e0789a",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libgflags.a",
+            "lib/libgflags_nothreads.a",
+        ],
+        "macos-x86_64": [
+            "lib/libgflags.a",
+            "lib/libgflags_nothreads.a",
+        ],
+        "windows-x86_64": [
+            "lib/gflags_static.lib",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+
+    ],
+    version = "2.2.1",
+    build = "0",
+    visibility = ["PUBLIC"],
+)

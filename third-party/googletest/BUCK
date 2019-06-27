@@ -1,0 +1,152 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_genrule", "osquery_http_archive")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "WINDOWS")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_http_archive(
+    name = "archive",
+    sha256 = "9bf1fe5182a604b4135edc1a425ae356c9ad15e9b23f9f12a02e80184c3a249c",
+    type = "tar.gz",
+    urls = [
+        "https://s3.amazonaws.com/osquery-packages/third-party/src/gtest-1.8.1.tar.gz",
+    ],
+)
+
+osquery_genrule(
+    name = "gtest_src_dir",
+    out = "gtest",
+    cmd = (
+        "mkdir ${OUT} " +
+        "&& ln -sf $(location :archive)/googletest-release-1.8.1/googletest/src ${OUT}/src"
+    ),
+    cmd_exe = (
+        "mkdir %OUT% " +
+        "&& mklink /D %OUT%\src $(location :archive)\googletest-release-1.8.1\googletest\src"
+    ),
+)
+
+osquery_prebuilt_cxx_library(
+    name = "gtest_src",
+    header_namespace = "",
+    header_dirs = [
+        ":gtest_src_dir",
+    ],
+    header_only = True,
+)
+
+osquery_genrule(
+    name = "gtest_include_dir",
+    out = "include",
+    cmd = "ln -sf $(location :archive)/googletest-release-1.8.1/googletest/include $OUT",
+    cmd_exe = "mklink /D %OUT% $(location :archive)\googletest-release-1.8.1\googletest\include",
+)
+
+osquery_prebuilt_cxx_library(
+    name = "gtest_headers",
+    header_namespace = "gtest",
+    header_dirs = [
+        ":gtest_include_dir",
+    ],
+    header_only = True,
+    visibility = ["PUBLIC"],
+)
+
+osquery_genrule(
+    name = "gtest-all",
+    out = "gtest-all.cc",
+    cmd = "ln -s $(location :archive)/googletest-release-1.8.1/googletest/src/gtest-all.cc ${OUT}",
+    cmd_exe = "mklink %OUT% $(location :archive)\googletest-release-1.8.1\googletest\src\gtest-all.cc",
+)
+
+osquery_genrule(
+    name = "gtest_main",
+    out = "gtest_main.cc",
+    cmd = "ln -s $(location :archive)/googletest-release-1.8.1/googletest/src/gtest_main.cc ${OUT}",
+    cmd_exe = "mklink %OUT% $(location :archive)\googletest-release-1.8.1\googletest\src\gtest_main.cc",
+)
+
+osquery_genrule(
+    name = "gmock_src_dir",
+    out = "src",
+    cmd = (
+        "mkdir ${OUT} " +
+        "&& ln -sf $(location :archive)/googletest-release-1.8.1/googlemock/src ${OUT}/src"
+    ),
+    cmd_exe = (
+        "mkdir %OUT% " +
+        "&& mklink /D %OUT%\src $(location :archive)\googletest-release-1.8.1\googlemock\src"
+    ),
+)
+
+osquery_prebuilt_cxx_library(
+    name = "gmock_src",
+    header_namespace = "",
+    header_dirs = [
+        ":gmock_src_dir",
+    ],
+    header_only = True,
+)
+
+osquery_genrule(
+    name = "gmock_include_dir",
+    out = "include",
+    cmd = "ln -sf $(location :archive)/googletest-release-1.8.1/googlemock/include $OUT",
+    cmd_exe = "mklink /D %OUT% $(location :archive)\googletest-release-1.8.1\googlemock\include",
+)
+
+osquery_prebuilt_cxx_library(
+    name = "gmock_headers",
+    header_namespace = "gmock",
+    header_dirs = [
+        ":gmock_include_dir",
+    ],
+    header_only = True,
+    visibility = ["PUBLIC"],
+)
+
+osquery_genrule(
+    name = "gmock-all",
+    out = "gmock-all.cc",
+    cmd = "ln -s $(location :archive)/googletest-release-1.8.1/googlemock/src/gmock-all.cc ${OUT}",
+    cmd_exe = "mklink %OUT% $(location :archive)\googletest-release-1.8.1\googlemock\src\gmock-all.cc",
+)
+
+osquery_cxx_library(
+    name = "gtest",
+    srcs = [
+        ":gmock-all",
+        ":gtest-all",
+        ":gtest_main",
+    ],
+    exported_preprocessor_flags = [
+        "-DGTEST_USE_OWN_TR1_TUPLE=0",
+        "-DGTEST_HAS_TR1_TUPLE=0",
+    ],
+    external = True,
+    platform_compiler_flags = [
+        (
+            WINDOWS,
+            [
+                "/EHsc",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":gmock_src",
+        ":gtest_src",
+        osquery_tp_target("glibc", "pthread"),
+    ],
+    exported_deps = [
+        ":gmock_headers",
+        ":gtest_headers",
+    ],
+)

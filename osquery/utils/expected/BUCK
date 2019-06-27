@@ -1,0 +1,35 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "expected",
+    header_namespace = "osquery/utils/expected",
+    exported_headers = [
+        "expected.h",
+    ],
+    tests = [":expected_tests"],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/utils/debug:debug"),
+        osquery_target("osquery/utils/error:error"),
+        osquery_tp_target("boost"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "expected_tests",
+    srcs = [
+        "tests/expected.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":expected",
+    ],
+)

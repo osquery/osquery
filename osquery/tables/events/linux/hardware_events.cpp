@@ -2,22 +2,18 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <string>
 #include <vector>
 
-#include <osquery/core.h>
+#include <osquery/events/linux/udev.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
-
-#include "osquery/events/linux/udev.h"
 
 namespace osquery {
 
@@ -43,7 +39,7 @@ Status HardwareEventSubscriber::init() {
   subscription->action = UDEV_EVENT_ACTION_ALL;
 
   subscribe(&HardwareEventSubscriber::Callback, subscription);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status HardwareEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
@@ -51,15 +47,15 @@ Status HardwareEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
   if (ec->devtype.empty()) {
     // Superfluous hardware event.
-    return Status(0, "Missing type.");
+    return Status::success();
   } else if (ec->devnode.empty() && ec->driver.empty()) {
-    return Status(0, "Missing node and driver.");
+    return Status::success();
   }
 
   struct udev_device* device = ec->device;
   r["type"] = ec->devtype;
   if (FLAGS_hardware_disabled_types.find(r.at("type")) != std::string::npos) {
-    return Status(0, "Disabled type.");
+    return Status::success();
   }
 
   r["action"] = ec->action_string;
@@ -70,7 +66,7 @@ Status HardwareEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   r["model"] = UdevEventPublisher::getValue(device, "ID_MODEL_FROM_DATABASE");
   if (r["path"].empty() && r["model"].empty()) {
     // Don't emit mising path/model combos.
-    return Status(0, "Missing path and model.");
+    return Status::success();
   }
 
   r["model_id"] = INTEGER(UdevEventPublisher::getValue(device, "ID_MODEL_ID"));

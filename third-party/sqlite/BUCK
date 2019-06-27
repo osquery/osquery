@@ -1,0 +1,98 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_genrule", "osquery_http_archive")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "POSIX", "WINDOWS")
+
+osquery_http_archive(
+    name = "archive",
+    sha256 = "a1ecb747d33d9ffae110c3e836f0094f0b172190807cb1d76568bb167b84b641",
+    type = "tar.gz",
+    urls = [
+        "https://s3.amazonaws.com/osquery-packages/third-party/src/sqlite-amalgamation-3260000.tar.gz",
+    ],
+)
+
+osquery_genrule(
+    name = "sqlite_include_dir",
+    out = "include",
+    cmd = "ln -sf $(location :archive)/sqlite-amalgamation-3260000/include ${OUT}",
+    cmd_exe = "mklink /D %OUT% $(location :archive)\sqlite-amalgamation-3260000\include",
+)
+
+osquery_genrule(
+    name = "sqlite3",
+    out = "sqlite3.c",
+    cmd = "ln -s $(location :archive)/sqlite-amalgamation-3260000/sqlite3.c ${OUT}",
+    cmd_exe = "mklink %OUT% $(location :archive)\sqlite-amalgamation-3260000\sqlite3.c",
+)
+
+osquery_prebuilt_cxx_library(
+    name = "sqlite_exported_headers",
+    header_namespace = "",
+    header_dirs = [
+        ":sqlite_include_dir",
+    ],
+    header_only = True,
+)
+
+osquery_cxx_library(
+    name = "sqlite",
+    srcs = [
+        ":sqlite3",
+    ],
+    exported_platform_linker_flags = [
+        (
+            POSIX,
+            [
+                "-ldl",
+            ],
+        ),
+    ],
+    external = True,
+    platform_compiler_flags = [
+        (
+            POSIX,
+            [
+                "-Wno-array-bounds",
+                "-Wno-error",
+                "-Wno-missing-braces",
+                "-Wno-overlength-strings",
+                "-Wno-parentheses-equality",
+                "-Wno-unused-value",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "/EHsc",
+            ],
+        ),
+    ],
+    preprocessor_flags = [
+        "-DSQLITE_ENABLE_COLUMN_METADATA=1",
+        "-DSQLITE_MAX_VARIABLE_NUMBER=250000",
+        "-DSQLITE_ENABLE_RTREE=1",
+        "-DSQLITE_ENABLE_FTS3=1",
+        "-DSQLITE_ENABLE_FTS3_PARENTHESIS=1",
+        "-DSQLITE_ENABLE_FTS5=1",
+        "-DSQLITE_SECURE_DELETE=1",
+        "-DSQLITE_ENABLE_UNLOCK_NOTIFY=1",
+        "-DSQLITE_ENABLE_DBSTAT_VTAB=1",
+        "-DSQLITE_ENABLE_JSON1=1",
+        "-DSQLITE_ENABLE_PREUPDATE_HOOK=1",
+        "-DSQLITE_ENABLE_SESSION=1",
+        "-DSQLITE_SOUNDEX",
+        '-DSQLITE_VERSION="3.26.0"',
+    ],
+    visibility = ["PUBLIC"],
+    exported_deps = [
+        ":sqlite_exported_headers",
+    ],
+)

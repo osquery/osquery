@@ -1,0 +1,13 @@
+# Osquery Codeowners
+# Documented at https://help.github.com/en/articles/about-code-owners
+#
+# Order is important; the last matching pattern takes the most
+# precedence.
+
+# General write access
+* @osquery/osquery-committers, @osquery/facebook-osquery-write
+
+# As CODEOWNERS is last match oriented, we restrict slightly more
+# sensitive files here.
+CODEOWNERS		@osquery/foundation-committers
+azure-pipelines.yml	@osquery/foundation-committers

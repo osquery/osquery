@@ -2,29 +2,23 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 #include <arpa/inet.h>
+
+#include <unordered_map>
 
 #include <bsm/audit_kevents.h>
 #include <bsm/libbsm.h>
 
 #include <osquery/events.h>
+#include <osquery/events/darwin/openbsm.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include <unordered_map>
-
-#include "osquery/events/darwin/openbsm.h"
+#include <osquery/utils/system/uptime.h>
 
 namespace osquery {
-
-namespace tables {
-extern long getUptime();
-}
 
 static inline void OpenBSM_AUT_SUBJECT32_EX(Row& r, const tokenstr_t& tok) {
   if (tok.id != AUT_SUBJECT32_EX) {
@@ -196,7 +190,7 @@ Status OpenBSMProcEvSubscriber::handleExec(const OpenBSMEventContextRef& ec) {
       break;
     }
   }
-  r["uptime"] = INTEGER(tables::getUptime());
+  r["uptime"] = INTEGER(getUptime());
 
   auto ppid = ppid_map.find(pid);
   if (ppid != ppid_map.end()) {
@@ -205,7 +199,7 @@ Status OpenBSMProcEvSubscriber::handleExec(const OpenBSMEventContextRef& ec) {
   /* If mapping doesn't exist no fork was captured. Not fatal. Ignoring. */
 
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status OpenBSMProcEvSubscriber::handleFork(const OpenBSMEventContextRef& ec) {
@@ -330,7 +324,7 @@ Status OpenBSMSSHLoginSubscriber::Callback(
       break;
     }
   }
-  r["uptime"] = INTEGER(tables::getUptime());
+  r["uptime"] = INTEGER(getUptime());
   add(r);
   return Status(0);
 }

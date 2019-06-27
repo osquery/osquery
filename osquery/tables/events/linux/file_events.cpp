@@ -2,23 +2,19 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <vector>
 #include <string>
 
-#include <osquery/config.h>
-#include <osquery/core.h>
+#include <osquery/config/config.h>
+#include <osquery/events/linux/inotify.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
-
-#include "osquery/events/linux/inotify.h"
-#include "osquery/tables/events/event_utils.h"
+#include <osquery/tables/events/event_utils.h>
 
 namespace osquery {
 
@@ -61,7 +57,25 @@ void FileEventSubscriber::configure() {
   removeSubscriptions();
 
   auto parser = Config::getParser("file_paths");
-  auto& accesses = parser->getData().doc()["file_accesses"];
+  if (parser == nullptr) {
+    LOG(ERROR) << "No key 'file_paths' found when parsing file events"
+        " subscriber configuration.";
+    return;
+  }
+  auto const& doc = parser->getData().doc();
+  auto file_accesses_it = doc.FindMember("file_accesses");
+  if (file_accesses_it == doc.MemberEnd()) {
+    LOG(ERROR) << "No key 'file_accesses' found when parsing file events"
+        " subscriber configuration.";
+    return;
+  }
+  auto& accesses = file_accesses_it->value;
+  if (accesses.GetType() != rapidjson::kArrayType) {
+    LOG(ERROR) << "Wrong type found for file_accesses when parsing file events"
+        " subscriber configuration. Found (" << accesses.GetType() << "),"
+        " expected array (" << rapidjson::kArrayType << ").";
+    return;
+  }
   Config::get().files([this, &accesses](const std::string& category,
                                         const std::vector<std::string>& files) {
     for (const auto& file : files) {
@@ -107,6 +121,6 @@ Status FileEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   // A callback is somewhat useless unless it changes the EventSubscriber
   // state or calls `add` to store a marked up event.
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

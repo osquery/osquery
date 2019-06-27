@@ -1,0 +1,51 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+
+osquery_cxx_test(
+    name = "numeric_monitoring_tests",
+    srcs = [
+        "numeric_monitoring.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/distributed:distributed"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
+        osquery_target("osquery/numeric_monitoring:numeric_monitoring"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "pre_aggregation_cache",
+    srcs = [
+        "pre_aggregation_cache.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/dispatcher:dispatcher"),
+        osquery_target("osquery/distributed:distributed"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
+        osquery_target("osquery/numeric_monitoring:numeric_monitoring"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)

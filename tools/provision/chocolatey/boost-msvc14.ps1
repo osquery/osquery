@@ -1,10 +1,8 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
 
 # For more information -
 # https://studiofreya.com/2016/09/29/how-to-build-boost-1-62-with-visual-studio-2015/
@@ -57,7 +55,7 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retreive the source only if it doesn't already exist
+# Retrieve the source only if it doesn't already exist
 if (-not (Test-Path "boost-$version.7z")) {
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
   Invoke-WebRequest `

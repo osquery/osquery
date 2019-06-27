@@ -2,19 +2,32 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <gtest/gtest.h>
+#include <gflags/gflags.h>
 
+#include <osquery/database.h>
+#include <osquery/registry.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
 
 namespace osquery {
 
-class TablesTests : public testing::Test {};
+DECLARE_bool(disable_database);
+
+class TablesTests : public testing::Test {
+protected:
+ void SetUp() {
+   Initializer::platformSetup();
+   registryAndPluginInit();
+   FLAGS_disable_database = true;
+   DatabasePlugin::setAllowOpen(true);
+   DatabasePlugin::initPlugin();
+ }
+};
 
 TEST_F(TablesTests, test_constraint) {
   auto constraint = Constraint(EQUALS);
@@ -141,7 +154,7 @@ TEST_F(TablesTests, test_constraint_map_cast) {
 class TestTablePlugin : public TablePlugin {
  public:
   void testSetCache(size_t step, size_t interval) {
-    QueryData r;
+    TableRows r;
     QueryContext ctx;
     ctx.useCache(true);
     setCache(step, interval, ctx, r);

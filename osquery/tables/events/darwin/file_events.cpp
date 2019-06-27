@@ -2,24 +2,20 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <future>
 #include <string>
 #include <vector>
 
-#include <osquery/config.h>
-#include <osquery/core.h>
+#include <osquery/config/config.h>
+#include <osquery/events/darwin/fsevents.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
-
-#include "osquery/events/darwin/fsevents.h"
-#include "osquery/tables/events/event_utils.h"
+#include <osquery/tables/events/event_utils.h>
 
 namespace osquery {
 
@@ -108,6 +104,6 @@ Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec,
       ec->path, (ec->action == "CREATED" || ec->action == "UPDATED"), r);
 
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

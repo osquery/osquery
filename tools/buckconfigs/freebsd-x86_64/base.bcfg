@@ -1,0 +1,83 @@
+[cxx]
+  default_platform=freebsd-x86_64
+
+[cxx_base]
+  cppflags = \
+    -I /usr/local/include/libxml2
+
+  cflags = \
+    -std=gnu11 \
+    -Wall \
+    -Wextra \
+    -Wstrict-aliasing \
+    -Wno-missing-field-initializers \
+    -Wnon-virtual-dtor \
+    -Wchar-subscripts \
+    -Wpointer-arith \
+    -Woverloaded-virtual \
+    -Wformat \
+    -Wformat-security \
+    -Werror=format-security \
+    -Wno-c99-extensions \
+    -Wno-zero-length-array \
+    -Wno-unused-parameter \
+    -Wno-gnu-case-range \
+    -Weffc++ \
+    -fpermissive \
+    -fstack-protector-all \
+    -fdata-sections \
+    -ffunction-sections \
+    -fvisibility=hidden \
+    -fvisibility-inlines-hidden \
+    -fPIE \
+    -fpie \
+    -fPIC \
+    -fpic \
+    -pipe \
+    -pedantic \
+    -g
+
+  cxxppflags = \
+    -I /usr/local/include/libxml2
+
+  cxxflags = \
+    -std=gnu++14 \
+    -Wall \
+    -Wextra \
+    -Wstrict-aliasing \
+    -Wno-missing-field-initializers \
+    -Wnon-virtual-dtor \
+    -Wchar-subscripts \
+    -Wpointer-arith \
+    -Woverloaded-virtual \
+    -Wformat \
+    -Wformat-security \
+    -Werror=format-security \
+    -Wno-zero-length-array \
+    -Wno-unused-parameter \
+    -Wno-gnu-case-range \
+    -Weffc++ \
+    -fpermissive \
+    -fstack-protector-all \
+    -fdata-sections \
+    -ffunction-sections \
+    -fvisibility=hidden \
+    -fvisibility-inlines-hidden \
+    -fPIE \
+    -fpie \
+    -fPIC \
+    -fpic \
+    -pipe \
+    -pedantic \
+    -g
+
+  ldflags = \
+    -lboost_system \
+    -lboost_filesystem \
+    -lboost_thread \
+    -lboost_context \
+    -lboost_regex \
+    -lrt \
+    -lc \
+    -lpthread \
+    -lprocstat

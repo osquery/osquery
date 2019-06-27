@@ -71,4 +71,3 @@ Official chocolatey sources do not provide everything we need. In order to mitig
 
  * Upgrades **python2**'s `pip` package
  * Installs all the Python packages as per **requirements.txt** (possible issue with Vagrant from the thrift Python package)
- * Ensures that `third-party/` git submodules are initialized

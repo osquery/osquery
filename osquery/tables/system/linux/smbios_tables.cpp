@@ -2,22 +2,21 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <iomanip>
 #include <sstream>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tables/system/linux/smbios_utils.h"
+#include <osquery/tables/system/linux/smbios_utils.h>
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -78,8 +77,12 @@ void LinuxSMBIOSParser::readFromSysfs(const std::string& sysfs_dmi) {
   std::string content;
   readFile(sysfs_dmi, content);
   table_data_ = (uint8_t*)malloc(content.size());
-  memcpy(table_data_, content.data(), content.size());
-  table_size_ = content.size();
+  if (table_data_ != nullptr) {
+    memcpy(table_data_, content.data(), content.size());
+    table_size_ = content.size();
+  } else {
+    table_size_ = 0;
+  }
 }
 
 bool LinuxSMBIOSParser::discoverTables(size_t address, size_t length) {

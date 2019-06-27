@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <sstream>
@@ -16,11 +14,11 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/config.h>
-#include <osquery/filesystem.h>
+#include <osquery/config/config.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-#include <osquery/system.h>
+#include <osquery/utils/system/time.h>
 
 #include "osquery/events/linux/inotify.h"
 
@@ -65,7 +63,7 @@ Status INotifyEventPublisher::setUp() {
   if (scratch_ == nullptr) {
     return Status(1, "Could not allocate scratch space");
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 bool INotifyEventPublisher::needMonitoring(const std::string& path,
@@ -226,7 +224,7 @@ Status INotifyEventPublisher::run() {
   int selector = ::poll(fds, 1, 1000);
   if (selector == -1) {
     if (errno == EINTR) {
-      return Status(0, "inotify poll interrupted");
+      return Status::success();
     }
     LOG(WARNING) << "Could not read inotify handle";
     return Status(1, "inotify poll failed");
@@ -234,11 +232,11 @@ Status INotifyEventPublisher::run() {
 
   if (selector == 0) {
     // Read timeout.
-    return Status(0, "Continue");
+    return Status::success();
   }
 
   if (!(fds[0].revents & POLLIN)) {
-    return Status(0, "Invalid poll response");
+    return Status::success();
   }
 
   WriteLock lock(scratch_mutex_);
@@ -252,7 +250,7 @@ Status INotifyEventPublisher::run() {
     // Cast the inotify struct, make shared pointer, and append to contexts.
     auto event = reinterpret_cast<struct inotify_event*>(p);
     if (event->mask & IN_Q_OVERFLOW) {
-      // The inotify queue was overflown (try to recieve more events from OS).
+      // The inotify queue was overflown (try to receive more events from OS).
       handleOverflow();
     } else if (event->mask & IN_IGNORED) {
       // This inotify watch was removed.
@@ -273,7 +271,7 @@ Status INotifyEventPublisher::run() {
     p += (sizeof(struct inotify_event)) + event->len;
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
