@@ -42,8 +42,6 @@
 
 #include <osquery/remote/uri.h>
 
-#include <osquery/logger.h>
-
 namespace boost_system = boost::system;
 namespace boost_asio = boost::asio;
 namespace beast_http = boost::beast::http;
@@ -75,8 +73,7 @@ typedef HTTP_Response<beast_http_response> Response;
  *
  * This does not allow HTTP for the TLS logger plugins.
  * It uses a state variable `Options::ssl_connection_` to determine if the
- * connection
- * should be wrapped in a TLS socket.
+ * connection should be wrapped in a TLS socket.
  */
 class Client {
  public:
@@ -206,11 +203,13 @@ class Client {
 
  public:
   Client(Options const& opts = Options())
-      : client_options_(opts), r_(ios_), sock_(ios_), timer_(ios_) {
+      : client_options_(opts), r_(ioc_), sock_(ioc_), timer_(ioc_) {
 // Fix #4235, #5341: Boost on Windows requires notification that it should
 // let windows manage thread cleanup. *Do not remove this on Windows*
 #ifdef WIN32
-    boost::asio::detail::win_thread::set_terminate_threads(true);
+    // Need to call set_terminate_threads only once
+    static std::once_flag flag;
+    std::call_once(flag, []() {boost::asio::detail::win_thread::set_terminate_threads(true);});
 #endif
   }
 
@@ -281,6 +280,23 @@ class Client {
    */
   void postResponseHandler(boost_system::error_code const& ec);
 
+  /// Callback to be provided during async_resolve call.
+  void resolveHandler(const boost::system::error_code& ec,
+                      boost_asio::ip::tcp::resolver::results_type results);
+
+  /// Callback to be provided during async_connect call.
+  void connectHandler(const boost::system::error_code& ec,
+                      const boost_asio::ip::tcp::endpoint&);
+
+  /// Callback to be provided during async_handshake call.
+  void handshakeHandler(const boost::system::error_code& ec);
+
+  /// Callback to be provided during async_write call.
+  void writeHandler(boost_system::error_code const& ec, size_t);
+
+  /// Callback to be provided during async_read call.
+  void readHandler(boost_system::error_code const& ec, size_t);
+
   bool isSocketOpen() {
     return sock_.is_open();
   }
@@ -289,7 +305,7 @@ class Client {
 
  private:
   Options client_options_;
-  boost_asio::io_service ios_;
+  boost_asio::io_context ioc_;
   boost_asio::ip::tcp::resolver r_;
   boost_asio::ip::tcp::socket sock_;
   boost_asio::deadline_timer timer_;
