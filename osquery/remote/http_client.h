@@ -209,7 +209,9 @@ class Client {
 #ifdef WIN32
     // Need to call set_terminate_threads only once
     static std::once_flag flag;
-    std::call_once(flag, []() {boost::asio::detail::win_thread::set_terminate_threads(true);});
+    std::call_once(flag, []() {
+      boost::asio::detail::win_thread::set_terminate_threads(true);
+    });
 #endif
   }
 

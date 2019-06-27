@@ -490,7 +490,7 @@ Response Client::sendHTTPRequest(Request& req) {
       if (!retry_connect && ec_ != boost::asio::error::timed_out) {
         retry_connect = true;
       } else {
-	ec_.clear();
+        ec_.clear();
         throw;
       }
     }
