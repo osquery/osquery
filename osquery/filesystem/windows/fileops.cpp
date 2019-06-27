@@ -625,11 +625,7 @@ bool PlatformFile::isSpecialFile() const {
   return (GetFileType(handle_) != FILE_TYPE_DISK);
 }
 
-static Status isUserCurrentUser(PSID user) {
-  if (!IsValidSid(user)) {
-    return Status(-1, "Invalid SID");
-  }
-
+Status getCurrentUserInfo(PTOKEN_USER& info) {
   HANDLE token = INVALID_HANDLE_VALUE;
   if (!OpenProcessToken(GetCurrentProcess(), TOKEN_READ, &token)) {
     return Status(-1, "OpenProcessToken failed");
@@ -656,8 +652,22 @@ static Status isUserCurrentUser(PSID user) {
         "GetTokenInformation failed (" + std::to_string(GetLastError()) + ")");
   }
 
+  info = reinterpret_cast<PTOKEN_USER>(tuBuff.data());
+  return Status::success();
+}
+
+static Status isUserCurrentUser(PSID user) {
+  if (!IsValidSid(user)) {
+    return Status(-1, "Invalid SID");
+  }
+
+  PTOKEN_USER ptu;
+  auto ret = getCurrentUserInfo(ptu);
+  if (!ret.ok()) {
+    return ret;
+  }
+
   /// Determine if the current user SID matches that of the specified user
-  PTOKEN_USER ptu = reinterpret_cast<PTOKEN_USER>(tuBuff.data());
   if (EqualSid(user, ptu->User.Sid)) {
     return Status::success();
   }

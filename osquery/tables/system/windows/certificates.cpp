@@ -12,8 +12,11 @@
 #include <wincrypt.h>
 
 #include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <osquery/logger.h>
+#include <osquery/process/windows/process_ops.h>
+#include <osquery/sql.h>
 #include <osquery/tables.h>
 
 #include <osquery/utils/conversions/join.h>
@@ -41,9 +44,12 @@ typedef struct _ENUM_ARG {
   DWORD dwFlags;
   const void* pvStoreLocationPara;
   QueryData* results;
-  std::set<std::string>* processed;
   std::string storeLocation;
 } ENUM_ARG, *PENUM_ARG;
+
+const static std::string kLocalSystem = "S-1-5-18";
+const static std::string kLocalService = "S-1-5-19";
+const static std::string kNetworkService = "S-1-5-20";
 
 std::string cryptOIDToString(const char* objId) {
   if (objId == nullptr) {
@@ -96,16 +102,226 @@ void getCertCtxProp(const PCCERT_CONTEXT& certContext,
   }
 }
 
+std::string constructDisplayStoreName(const std::string& serviceNameOrUserId,
+                                      const std::string& storeNameLocalized) {
+  if (serviceNameOrUserId.empty()) {
+    return storeNameLocalized;
+  } else {
+    return serviceNameOrUserId + "\\" + storeNameLocalized;
+  }
+}
+
+/// Given a string with the structure described in `parseSystemStoreString`
+/// return the prefix, if it exists.
+std::string extractServiceOrUserId(LPCWSTR sysStoreW) {
+  const auto& certStoreNameString = wstringToString(sysStoreW);
+
+  // Check if there was a backslash, and parse id from start if so
+  auto delimiter = certStoreNameString.find('\\');
+  if (delimiter == std::string::npos) {
+    return "";
+  } else {
+    return certStoreNameString.substr(0, delimiter);
+  }
+}
+
+/// Given a string with the structure described in `parseSystemStoreString`
+/// return the unlocalized system store name.
+LPCWSTR extractStoreName(LPCWSTR sysStoreW) {
+  auto* delimiter = wcschr(sysStoreW, L'\\');
+  if (delimiter == nullptr) {
+    return sysStoreW;
+  } else {
+    return delimiter + 1;
+  }
+}
+
+/// Convert a system store name to std::string and localize, if possible.
+std::string getLocalizedStoreName(LPCWSTR storeNameW) {
+  auto* localizedName = CryptFindLocalizedName(storeNameW);
+  if (localizedName == nullptr) {
+    return wstringToString(storeNameW);
+  } else {
+    return wstringToString(localizedName);
+  }
+}
+
+/// Expects @name to be the `lpServiceStartName` from
+/// `QueryServiceConfig`
+std::string getSidFromAccountName(const std::string& name) {
+  if (boost::iequals(name, "LocalSystem")) {
+    // `lpServiceStartName` has been observed to contain both uppercase
+    // and lowercase versions of "LocalSystem"
+    return kLocalSystem;
+  } else if (name == "NT Authority\\LocalService") {
+    return kLocalService;
+  } else if (name == "NT Authority\\NetworkService") {
+    return kNetworkService;
+  }
+  return "";
+}
+
+/// Convert string representation of a SID ("S-1-5-18") into the username.
+/// If fails to look up SID, returns an empty string.
+std::string getUsernameFromSid(const std::string& sidString) {
+  if (sidString.empty()) {
+    return "";
+  }
+
+  PSID sid;
+  auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
+  if (ret == 0) {
+    VLOG(1) << "Convert SID to string failed with " << GetLastError()
+            << " for sid: " << sidString;
+    return "";
+  }
+
+  auto eUse = SidTypeUnknown;
+  unsigned long unameSize = 0;
+  unsigned long domNameSize = 1;
+  // LookupAccountSid first gets the size of the username buff required.
+  LookupAccountSidW(
+      nullptr, sid, nullptr, &unameSize, nullptr, &domNameSize, &eUse);
+
+  std::vector<wchar_t> uname(unameSize);
+  std::vector<wchar_t> domName(domNameSize);
+  ret = LookupAccountSidW(nullptr,
+                          sid,
+                          uname.data(),
+                          &unameSize,
+                          domName.data(),
+                          &domNameSize,
+                          &eUse);
+
+  if (ret == 0) {
+    VLOG(1) << "LookupAccountSid failed with " << GetLastError()
+            << " for sid: " << sidString;
+    return "";
+  }
+
+  return wstringToString(uname.data());
+}
+
+bool isValidSid(const std::string& maybeSid) {
+  return getUsernameFromSid(maybeSid).length();
+}
+
+/// Given a string that can contain either a service name or SID: if it is
+/// a service name, return the SID corresponding to the service account.
+/// Otherwise simply return the input string.
+std::string getServiceSid(const std::string& serviceNameOrSid) {
+  // This cache assumes a service will not stop, then restart under a different
+  // account while osquery is running.
+  static std::unordered_map<std::string, std::string> service2accountCache;
+
+  if (isValidSid(serviceNameOrSid)) {
+    return serviceNameOrSid;
+  }
+
+  const std::string& serviceName = serviceNameOrSid;
+  std::string accountName;
+
+  if (service2accountCache.count(serviceName)) {
+    accountName = service2accountCache[serviceName];
+  } else {
+    auto results = SQL::selectAllFrom("services", "name", EQUALS, serviceName);
+
+    if (results.empty()) {
+      // This would be odd; we couldn't find it in the services table, even
+      // though we just saw it in the results from enumerating service
+      // certificates?
+      VLOG(1) << "Failed to look up service account for " << serviceName;
+      return "";
+    }
+
+    accountName = results[0]["user_account"];
+    service2accountCache[serviceName] = accountName;
+  }
+
+  return getSidFromAccountName(accountName);
+}
+
+/// Parse the given system store string whose structure is:
+/// `(<prefix>\)?<unlocalized system store name>`
+/// (e.g. "Third-Party Root Certification Authorities")
+/// (e.g. "S-1-5-18\Trusted Root Certification Authorities")
+/// (e.g. "SshdBroker\Third-Party Root Certification Authorities")
+///
+/// <prefix> can be a SID, service name (`SshdBroker`) (for service stores), or
+/// SID with `_Classes` appended (for user accounts). If it exists, it is
+/// followed by a backslash.
+/// <unlocalized system store name> would be something like `My`, `CA`, etc.
+///
+/// The outputs are:
+/// @serviceNameOrUserId: The prefix, if it exists.
+/// @sid: SID corresponding to this certificate store (or empty)
+/// @storeName: The (localized, if possible) name of the certificate store,
+///             with no prefix of any kind.
+void parseSystemStoreString(LPCWSTR sysStoreW,
+                            const std::string& storeLocation,
+                            std::string& serviceNameOrUserId,
+                            std::string& sid,
+                            std::string& storeName) {
+  LPCWSTR storeNameUnlocalizedW = extractStoreName(sysStoreW);
+  storeName = getLocalizedStoreName(storeNameUnlocalizedW);
+  serviceNameOrUserId = extractServiceOrUserId(sysStoreW);
+
+  // Except for the conditions detailed below, `sid` is either empty, or a
+  // SID after this assignment
+  sid = serviceNameOrUserId;
+
+  if (storeLocation == "Services") {
+    // If we are enumerating the "Services" store, we need to look up the
+    // SID for the service
+    sid = getServiceSid(serviceNameOrUserId);
+  } else if (storeLocation == "Users") {
+    // If we are enumerating the "Users" store, we need to either convert
+    // the `.DEFAULT` user ID (alias for Local System), or trim a `_Classes`
+    // suffix that sometimes appears.
+
+    if (serviceNameOrUserId == ".DEFAULT") {
+      sid = kLocalSystem;
+    }
+
+    // There are cert store user IDs that are structured <SID>_Classes.
+    // The corresponding SID is simply this string with the suffix removed.
+    const static std::string suffix("_Classes");
+    if (boost::ends_with(serviceNameOrUserId, suffix)) {
+      sid = serviceNameOrUserId.substr(
+          0, serviceNameOrUserId.length() - suffix.length());
+    }
+  } else if (storeLocation == "CurrentUser") {
+    PTOKEN_USER currentUserInfo;
+    auto ret = getCurrentUserInfo(currentUserInfo);
+    if (!ret.ok()) {
+      VLOG(1) << "Accessing current user info failed (" << GetLastError()
+              << ")";
+    } else {
+      sid = psidToString(currentUserInfo->User.Sid);
+    }
+  }
+}
+
 /// Enumerate and process a certificate store
 void enumerateCertStore(const HCERTSTORE& certStore,
-                        const std::string& certStoreName,
+                        LPCWSTR sysStoreW,
                         const std::string& storeLocation,
-                        std::set<std::string>& processedCerts,
                         QueryData& results) {
+  std::string storeId, sid, storeName;
+  parseSystemStoreString(sysStoreW, storeLocation, storeId, sid, storeName);
+
+  std::string username = getUsernameFromSid(sid);
+
   auto certContext = CertEnumCertificatesInStore(certStore, nullptr);
-  if (certContext == nullptr) {
-    VLOG(1) << "Failed to enumerate certstore " << storeLocation << "\\"
-            << certStoreName << " with " << GetLastError();
+
+  if (certContext == nullptr && GetLastError() == CRYPT_E_NOT_FOUND) {
+    TLOG << "    Store was empty.";
+  }
+
+  if (certContext == nullptr && GetLastError() != CRYPT_E_NOT_FOUND) {
+    VLOG(1) << "Certificate store access failed:  " << storeLocation << "\\"
+            << constructDisplayStoreName(storeId, storeName) << " with "
+            << GetLastError();
     return;
   }
 
@@ -117,13 +333,10 @@ void enumerateCertStore(const HCERTSTORE& certStore,
     boost::algorithm::hex(std::string(certBuff.begin(), certBuff.end()),
                           back_inserter(fingerprint));
 
-    if (processedCerts.find(fingerprint) != processedCerts.end()) {
-      certContext = CertEnumCertificatesInStore(certStore, certContext);
-      continue;
-    }
-    processedCerts.insert(fingerprint);
-
     Row r;
+    r["sid"] = sid;
+    r["username"] = username;
+    r["store_id"] = storeId;
     r["sha1"] = fingerprint;
     certBuff.resize(256, 0);
     std::fill(certBuff.begin(), certBuff.end(), 0);
@@ -194,7 +407,10 @@ void enumerateCertStore(const HCERTSTORE& certStore,
                           back_inserter(subjectKeyId));
     r["subject_key_id"] = subjectKeyId;
 
-    r["path"] = storeLocation + "\\" + certStoreName;
+    r["path"] =
+        storeLocation + "\\" + constructDisplayStoreName(storeId, storeName);
+    r["store_location"] = storeLocation;
+    r["store"] = storeName;
 
     std::string serial;
     boost::algorithm::hex(
@@ -252,33 +468,40 @@ void enumerateCertStore(const HCERTSTORE& certStore,
 }
 
 /// Windows API callback for processing a system cert store
+///
+/// This function returns TRUE, even when error handling, because returning
+/// FALSE stops enumeration.
+///
+/// @systemStore: Could include a SID at the start ("SID-1234-blah-1001\MY")
+/// instead of only being the system store name ("MY")
 BOOL WINAPI certEnumSystemStoreCallback(const void* systemStore,
                                         unsigned long flags,
                                         PCERT_SYSTEM_STORE_INFO storeInfo,
                                         void* reserved,
                                         void* arg) {
   auto* storeArg = static_cast<ENUM_ARG*>(arg);
-  const auto& certStoreName =
-      wstringToString(static_cast<LPCWSTR>(systemStore));
-  const auto& friendlyStoreName = wstringToString(
-      CryptFindLocalizedName(static_cast<LPCWSTR>(systemStore)));
-  auto certHandle = CertOpenSystemStore(0, certStoreName.c_str());
+  auto* sysStoreW = static_cast<LPCWSTR>(systemStore);
+
+  VLOG(1) << "  Enumerating cert store: " << wstringToString(sysStoreW);
+
+  auto systemStoreLocation = flags & CERT_SYSTEM_STORE_LOCATION_MASK;
+
+  auto certHandle = CertOpenStore(
+      CERT_STORE_PROV_SYSTEM, 0, NULL, systemStoreLocation, sysStoreW);
+
   if (certHandle == nullptr) {
-    VLOG(1) << "Failed to open cert store " << certStoreName << " with "
-            << GetLastError();
-    return FALSE;
+    VLOG(1) << "Failed to open cert store " << wstringToString(sysStoreW)
+            << " with " << GetLastError();
+    return TRUE;
   }
 
-  enumerateCertStore(certHandle,
-                     friendlyStoreName,
-                     storeArg->storeLocation,
-                     *storeArg->processed,
-                     *storeArg->results);
+  enumerateCertStore(
+      certHandle, sysStoreW, storeArg->storeLocation, *storeArg->results);
 
   auto ret = CertCloseStore(certHandle, 0);
   if (ret != TRUE) {
     VLOG(1) << "Closing cert store failed with " << GetLastError();
-    return FALSE;
+    return TRUE;
   }
   return TRUE;
 }
@@ -292,6 +515,9 @@ BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
   enumArg->storeLocation = wstringToString(storeLocation);
   flags &= CERT_SYSTEM_STORE_MASK;
   flags |= enumArg->dwFlags & ~CERT_SYSTEM_STORE_LOCATION_MASK;
+
+  VLOG(1) << "Enumerating cert store location: " << enumArg->storeLocation;
+
   auto ret =
       CertEnumSystemStore(flags,
                           const_cast<void*>(enumArg->pvStoreLocationPara),
@@ -308,7 +534,6 @@ BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
 
 QueryData genCerts(QueryContext& context) {
   QueryData results;
-  std::set<std::string> processedCerts;
   ENUM_ARG enumArg;
 
   unsigned long flags = 0;
@@ -317,7 +542,6 @@ QueryData genCerts(QueryContext& context) {
   enumArg.dwFlags = flags;
   enumArg.pvStoreLocationPara = nullptr;
   enumArg.results = &results;
-  enumArg.processed = &processedCerts;
 
   flags &= ~CERT_SYSTEM_STORE_LOCATION_MASK;
   flags |= (locationId << CERT_SYSTEM_STORE_LOCATION_SHIFT) &
