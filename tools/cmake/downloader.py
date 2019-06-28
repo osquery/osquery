@@ -19,8 +19,9 @@ def main(argc, argv):
     with open(destination_file, "wb") as f:
       f.write(response.read())
 
-  except:
+  except Exception as e:
     print "Failed to retrieve the file from the given url"
+    print str(e)
     return 1
 
   print "Verifying the file hash..."
