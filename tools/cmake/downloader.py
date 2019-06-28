@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 import sys
-import urllib
+import urllib2
 import hashlib
 
 def main(argc, argv):
@@ -15,8 +15,9 @@ def main(argc, argv):
 
   try:
     print "Downloading..."
-    url_opener = urllib.URLopener()
-    url_opener.retrieve(url, destination_file)
+    response = urllib2.urlopen(url)
+    with open(destination_file, "wb") as f:
+      f.write(response.read())
 
   except:
     print "Failed to retrieve the file from the given url"
