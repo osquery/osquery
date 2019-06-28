@@ -5,7 +5,7 @@ jobs:
 
 # LINUX
 
-  - job: LinuxBuild
+  - job: Linux
     pool:
       vmImage: 'Ubuntu-16.04'
 
@@ -33,50 +33,6 @@ jobs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . -j 3
 
-    - task: CopyFiles@2
-      displayName: "Copy build folder to staging directory"
-      inputs:
-        sourceFolder: $(Build.BinariesDirectory)
-        contents: |
-          build/**/CTestTestfile.cmake
-          build/**/*-test
-          build/test_configs/**
-        targetFolder: $(Build.ArtifactStagingDirectory)
-
-    - script: |
-        tar -cf build.tar build
-      displayName: "Tar the build folder"
-      workingDirectory: $(Build.ArtifactStagingDirectory)
-
-    - task: PublishBuildArtifacts@1
-      displayName: "Publish build folder for the next job"
-      inputs:
-        pathtoPublish: $(Build.ArtifactStagingDirectory)/build.tar
-        artifactName: linux-osquery-build
-
-  - job: LinuxTest
-
-    pool:
-      vmImage: 'Ubuntu-16.04'
-
-    container: trailofbits/osql-experimental:ubuntu-18.04
-
-    dependsOn: LinuxBuild
-
-    steps:
-    - checkout: none
-
-    - task: DownloadBuildArtifacts@0
-      displayName: "Download build folder"
-      inputs:
-        artifactName: linux-osquery-build
-        downloadPath: $(Build.BinariesDirectory)
-
-    - script: |
-        tar -xvf linux-osquery-build/build.tar
-      displayName: "Untar build folder"
-      workingDirectory: $(Build.BinariesDirectory)
-
     - script: |
         ctest --build-nocmake -V
       displayName: "Run tests"
@@ -87,7 +43,7 @@ jobs:
 
 # MACOS
 
-  - job: macOSBuild
+  - job: macOS
 
     pool:
       vmImage: macos-10.14
@@ -114,59 +70,17 @@ jobs:
           workingDirectory: $(Build.BinariesDirectory)/build
           cmakeArgs: --build . -j 3
 
-      - task: CopyFiles@2
-        displayName: "Copy build folder to staging directory"
-        inputs:
-          sourceFolder: $(Build.BinariesDirectory)
-          contents: |
-            build/**/CTestTestfile.cmake
-            build/**/*-test
-            build/test_configs/**
-          targetFolder: $(Build.ArtifactStagingDirectory)
-
       - script: |
-          tar -cf build.tar build
-        displayName: "Tar the build folder"
-        workingDirectory: $(Build.ArtifactStagingDirectory)
-
-      - task: PublishBuildArtifacts@1
-        displayName: "Publish build folder for the next job"
-        inputs:
-          pathtoPublish: $(Build.ArtifactStagingDirectory)/build.tar
-          artifactName: macos-osquery-build
-
-  - job: macOSTest
-
-    pool:
-      vmImage: macos-10.14
-
-    dependsOn: macOSBuild
-
-    steps:
-    - checkout: none
-
-    - task: DownloadBuildArtifacts@0
-      displayName: "Download build folder"
-      inputs:
-        artifactName: macos-osquery-build
-        downloadPath: $(Build.BinariesDirectory)
-
-    - script: |
-        tar -xvf macos-osquery-build/build.tar
-      displayName: "Untar build folder"
-      workingDirectory: $(Build.BinariesDirectory)
-
-    - script: |
-        ctest --build-nocmake -V
-      displayName: "Run tests"
-      workingDirectory: $(Build.BinariesDirectory)/build
-      env:
-        GTEST_COLOR: 1
+          ctest --build-nocmake -V
+        displayName: "Run tests"
+        workingDirectory: $(Build.BinariesDirectory)/build
+        env:
+          GTEST_COLOR: 1
 # MACOS
 
 # WINDOWS
 
-  - job: WindowsBuild
+  - job: Windows
 
     pool:
       vmImage: vs2017-win2016
@@ -187,43 +101,6 @@ jobs:
       inputs:
         workingDirectory: $(Build.BinariesDirectory)\build
         cmakeArgs: --build . -j 3 --config Release
-
-    - task: CopyFiles@2
-      displayName: "Copy build folder to staging directory"
-      inputs:
-        sourceFolder: $(Build.BinariesDirectory)
-        contents: |
-          build/**/CTestTestfile.cmake
-          build/**/*-test.exe
-          build/test_configs/**
-        targetFolder: $(Build.ArtifactStagingDirectory)
-
-    - task: PublishBuildArtifacts@1
-      displayName: "Publish build folder for the next job"
-      inputs:
-        pathtoPublish: $(Build.ArtifactStagingDirectory)
-        artifactName: windows-osquery-build
-
-  - job: WindowsTest
-
-    pool:
-      vmImage: vs2017-win2016
-
-    dependsOn: WindowsBuild
-
-    steps:
-    - checkout: none
-
-    - task: DownloadBuildArtifacts@0
-      displayName: "Download build folder"
-      inputs:
-        artifactName: windows-osquery-build
-        downloadPath: $(Build.BinariesDirectory)
-
-    - powershell: |
-        mv $(Build.BinariesDirectory)/windows-osquery-build/build $(Build.BinariesDirectory)/build
-        rmdir $(Build.BinariesDirectory)/windows-osquery-build
-      displayName: "Move build folder to the original path"
 
     - powershell: |
         ctest --build-nocmake -C Release -V
