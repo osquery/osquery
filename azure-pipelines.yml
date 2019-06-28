@@ -88,6 +88,11 @@ jobs:
 
     steps:
     - powershell: |
+        git config --global core.autocrlf false
+
+    - checkout: self
+
+    - powershell: |
         mkdir $(Build.BinariesDirectory)\build
       displayName: "Create build folder"
 
