@@ -6,6 +6,7 @@ jobs:
 # LINUX
 
   - job: Linux
+
     pool:
       vmImage: 'Ubuntu-16.04'
 
@@ -37,8 +38,7 @@ jobs:
         ctest --build-nocmake -V
       displayName: "Run tests"
       workingDirectory: $(Build.BinariesDirectory)/build
-      env:
-        GTEST_COLOR: 1
+
 # LINUX
 
 # MACOS
@@ -49,33 +49,32 @@ jobs:
       vmImage: macos-10.14
 
     steps:
-      - script: |
-          brew upgrade
-          brew install ccache
-        displayName: "Install Homebrew and prerequisites"
-        timeoutInMinutes: 20
+    - script: |
+        brew upgrade
+        brew install ccache
+      displayName: "Install Homebrew and prerequisites"
+      timeoutInMinutes: 20
 
-      - script: mkdir $(Build.BinariesDirectory)/build
-        displayName: "Create build folder"
+    - script: mkdir $(Build.BinariesDirectory)/build
+      displayName: "Create build folder"
 
-      - task: CMake@1
-        displayName: "Configure osquery"
-        inputs:
-          workingDirectory: $(Build.BinariesDirectory)/build
-          cmakeArgs: -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON $(Build.SourcesDirectory)
-
-      - task: CMake@1
-        displayName: "Build osquery"
-        inputs:
-          workingDirectory: $(Build.BinariesDirectory)/build
-          cmakeArgs: --build . -j 3
-
-      - script: |
-          ctest --build-nocmake -V
-        displayName: "Run tests"
+    - task: CMake@1
+      displayName: "Configure osquery"
+      inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
-        env:
-          GTEST_COLOR: 1
+        cmakeArgs: -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON $(Build.SourcesDirectory)
+
+    - task: CMake@1
+      displayName: "Build osquery"
+      inputs:
+        workingDirectory: $(Build.BinariesDirectory)/build
+        cmakeArgs: --build . -j 3
+
+    - script: |
+        ctest --build-nocmake -V
+      displayName: "Run tests"
+      workingDirectory: $(Build.BinariesDirectory)/build
+
 # MACOS
 
 # WINDOWS
@@ -106,6 +105,5 @@ jobs:
         ctest --build-nocmake -C Release -V
       displayName: "Run tests"
       workingDirectory: $(Build.BinariesDirectory)/build
-      env:
-        GTEST_COLOR: 1
+
 # WINDOWS
