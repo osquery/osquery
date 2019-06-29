@@ -76,6 +76,15 @@ void Client::closeSocket() {
 
 void Client::timeoutHandler(boost_system::error_code const& ec) {
   if (!ec) {
+    std::string port = (client_options_.proxy_hostname_)
+                       ? kProxyDefaultPort
+                       : *client_options_.remote_port_;
+
+    std::string connect_host = (client_options_.proxy_hostname_)
+                               ? *client_options_.proxy_hostname_
+                               : *client_options_.remote_hostname_;
+
+    LOG(INFO) << "Failed to connect to " << connect_host << ":" << port;
     closeSocket();
     ec_ = boost_system::errc::make_error_code(boost_system::errc::timed_out);
   }
@@ -96,20 +105,9 @@ void Client::createConnection() {
     connect_host = connect_host.substr(0, pos);
   }
 
-  boost_system::error_code rc;
   boost::asio::async_connect(sock_,
           r_.resolve(boost_asio::ip::tcp::resolver::query{connect_host, port}),
           std::bind(&Client::timeoutHandler, this, std::placeholders::_1));
-
-  if (rc) {
-    std::string error("Failed to connect to ");
-    if (client_options_.proxy_hostname_) {
-      error += "proxy host ";
-    }
-    error += connect_host + ":" + port;
-    throw std::system_error(
-        std::error_code(rc.value(), std::generic_category()), error);
-  }
 
   if (client_options_.keep_alive_) {
     boost_asio::socket_base::keep_alive option(true);
