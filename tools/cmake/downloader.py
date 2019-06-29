@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 import sys
-import urllib
+import urllib2
 import hashlib
 
 def main(argc, argv):
@@ -15,11 +15,13 @@ def main(argc, argv):
 
   try:
     print "Downloading..."
-    url_opener = urllib.URLopener()
-    url_opener.retrieve(url, destination_file)
+    response = urllib2.urlopen(url)
+    with open(destination_file, "wb") as f:
+      f.write(response.read())
 
-  except:
+  except Exception as e:
     print "Failed to retrieve the file from the given url"
+    print str(e)
     return 1
 
   print "Verifying the file hash..."
