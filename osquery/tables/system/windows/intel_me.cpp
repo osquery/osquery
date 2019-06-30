@@ -6,6 +6,9 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <memory>
+#include <unordered_set>
+
 // clang-format off
 #include <osquery/utils/system/system.h>
 #include <SetupAPI.h>
@@ -23,9 +26,6 @@
 namespace osquery {
 namespace {
 const std::unordered_set<size_t> kExpectedMaxLenValues = {512U, 4096U};
-} // namespace
-
-namespace tables {
 
 DEFINE_GUID(HECI_INTERFACE_GUID,
             0xE2D1FF34,
@@ -40,153 +40,340 @@ DEFINE_GUID(HECI_INTERFACE_GUID,
             0x9B,
             0xE5);
 
-void getHECIDriverVersion(QueryData& results) {
-  // Find all devices that have our interface handle for device info
-  auto guid = const_cast<LPGUID>(&HECI_INTERFACE_GUID);
-  HDEVINFO deviceInfo = SetupDiGetClassDevs(
-      guid, nullptr, nullptr, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+const unsigned char kGetFirmwareVersionCommand[4] = {0};
 
-  if (deviceInfo == INVALID_HANDLE_VALUE) {
-    LOG(WARNING) << "Failed to open MEI device with " << GetLastError();
-    return;
+struct HdevInfoDeleter final {
+  using pointer = HDEVINFO;
+
+  void operator()(pointer handle) {
+    SetupDiDestroyDeviceInfoList(handle);
+  }
+};
+
+struct HandleDeleter final {
+  using pointer = HANDLE;
+
+  void operator()(pointer handle) {
+    CloseHandle(handle);
+  }
+};
+
+template <typename DeleterFunctor>
+struct GenericHandleDeleter final {
+  using pointer = typename DeleterFunctor::pointer;
+
+  void operator()(pointer handle) {
+    if (handle == INVALID_HANDLE_VALUE) {
+      return;
+    }
+
+    DeleterFunctor deleter;
+    deleter(handle);
+  }
+};
+
+using DeviceInformationSet =
+    std::unique_ptr<HdevInfoDeleter::pointer,
+                    GenericHandleDeleter<HdevInfoDeleter>>;
+
+using DeviceHandle = std::unique_ptr<HandleDeleter::pointer,
+                                     GenericHandleDeleter<HandleDeleter>>;
+
+osquery::Status getDeviceInformationSet(DeviceInformationSet& dev_info_set,
+                                        const GUID* guid_filter) {
+  dev_info_set.reset();
+
+  auto filter = const_cast<LPGUID>(&HECI_INTERFACE_GUID);
+
+  HDEVINFO handle = SetupDiGetClassDevs(
+      filter, nullptr, nullptr, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+
+  if (handle == INVALID_HANDLE_VALUE) {
+    return osquery::Status::failure(
+        "No device found matching the Intel ME device setup class. Error: " +
+        std::to_string(GetLastError()));
   }
 
-  SP_DEVICE_INTERFACE_DATA interfaceData;
-  interfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+  dev_info_set.reset(handle);
+  return osquery::Status(0);
+}
 
-  // This device path is the output from the driver search logic here.
-  std::string devPath;
+osquery::Status getDeviceInterfacePath(
+    std::string& dev_interface_path,
+    const DeviceInformationSet& dev_info_set,
+    const SP_DEVICE_INTERFACE_DATA& dev_interface) {
+  dev_interface_path = {};
 
-  unsigned long index = 0;
-  auto ret = SetupDiEnumDeviceInterfaces(
-      deviceInfo, nullptr, guid, index, &interfaceData);
-  while (ret == TRUE) {
-    unsigned long detailSize = 0;
-    if (!SetupDiGetDeviceInterfaceDetail(
-            deviceInfo, &interfaceData, nullptr, 0, &detailSize, nullptr)) {
-      if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+  auto dev_interface_copy = dev_interface;
+
+  DWORD buffer_size = 0U;
+  SetupDiGetDeviceInterfaceDetail(dev_info_set.get(),
+                                  &dev_interface_copy,
+                                  nullptr,
+                                  0,
+                                  &buffer_size,
+                                  nullptr);
+
+  auto err = GetLastError();
+  if (err != ERROR_INSUFFICIENT_BUFFER) {
+    return osquery::Status::failure(
+        "Failed to acquire the device interface details. Error: " +
+        std::to_string(err));
+  }
+
+  if (buffer_size <= sizeof(DWORD)) {
+    return osquery::Status::failure(
+        "Invalid buffer size returned for the device interface detail "
+        "structure");
+  }
+
+  std::vector<std::uint8_t> buffer(static_cast<std::size_t>(buffer_size));
+
+  auto device_details =
+      reinterpret_cast<SP_DEVICE_INTERFACE_DETAIL_DATA*>(buffer.data());
+
+  device_details->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+
+  if (!SetupDiGetDeviceInterfaceDetail(dev_info_set.get(),
+                                       &dev_interface_copy,
+                                       device_details,
+                                       buffer_size,
+                                       nullptr,
+                                       nullptr)) {
+    return osquery::Status::failure(
+        "Failed to acquire the device interface details. Error: " +
+        std::to_string(err));
+  }
+
+  std::string path;
+  path.assign(device_details->DevicePath, buffer.size() - sizeof(DWORD));
+
+  if (std::strlen(path.c_str()) == 0U) {
+    return osquery::Status::failure(
+        "Invalid path returned for the given device interface; the string is "
+        "empty");
+  }
+
+  dev_interface_path = std::move(path);
+  path.clear();
+
+  return osquery::Status(0);
+}
+
+osquery::Status enumerateHECIDeviceInterfacePaths(
+    std::unordered_set<std::string>& dev_path_list) {
+  dev_path_list = {};
+
+  // Get a device information set containing all the device interfaces matching
+  // our device setup class GUID
+  DeviceInformationSet dev_info_set;
+  auto status = getDeviceInformationSet(dev_info_set, &HECI_INTERFACE_GUID);
+  if (!status.ok()) {
+    return status;
+  }
+
+  // Go through each item in the device information set, collecting the path for
+  // for each device interface
+  std::unordered_set<std::string> path_list;
+
+  for (DWORD member_index = 0U; true; member_index++) {
+    SP_DEVICE_INTERFACE_DATA dev_interface = {};
+    dev_interface.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+
+    if (!SetupDiEnumDeviceInterfaces(dev_info_set.get(),
+                                     nullptr,
+                                     &HECI_INTERFACE_GUID,
+                                     member_index,
+                                     &dev_interface)) {
+      auto err = GetLastError();
+      if (err != ERROR_NO_MORE_ITEMS) {
+        LOG(WARNING) << "An error has occurred while querying a device. Error: "
+                     << GetLastError();
         continue;
       }
+
+      break;
     }
 
-    auto deviceDetails = static_cast<PSP_DEVICE_INTERFACE_DETAIL_DATA>(
-        LocalAlloc(LPTR, detailSize));
+    std::string dev_interface_path = {};
+    status =
+        getDeviceInterfacePath(dev_interface_path, dev_info_set, dev_interface);
 
-    if (deviceDetails != nullptr) {
-      deviceDetails->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
-      if (SetupDiGetDeviceInterfaceDetail(deviceInfo,
-                                          &interfaceData,
-                                          deviceDetails,
-                                          detailSize,
-                                          nullptr,
-                                          nullptr)) {
-        devPath = deviceDetails->DevicePath;
-      }
-      LocalFree(deviceDetails);
+    if (!status.ok()) {
+      LOG(WARNING) << status.getMessage();
+      continue;
     }
 
-    ret = SetupDiEnumDeviceInterfaces(
-        deviceInfo, nullptr, guid, ++index, &interfaceData);
+    path_list.insert(dev_interface_path);
   }
 
-  SetupDiDestroyDeviceInfoList(deviceInfo);
-
-  // HECI driver was not found
-  if (devPath.empty()) {
-    LOG(WARNING) << "Could not locate HECI driver";
-    return;
+  if (path_list.empty()) {
+    return osquery::Status::failure("No path found for the HECI device");
   }
 
-  HANDLE driver = CreateFile(devPath.c_str(),
-                             GENERIC_READ | GENERIC_WRITE,
-                             FILE_SHARE_READ | FILE_SHARE_WRITE,
-                             nullptr,
-                             OPEN_EXISTING,
-                             0,
-                             nullptr);
-  if (driver == INVALID_HANDLE_VALUE) {
-    LOG(WARNING) << "Failed to open handle to device path with "
-                 << GetLastError();
-    return;
+  dev_path_list = std::move(path_list);
+  path_list.clear();
+
+  return osquery::Status(0);
+}
+
+osquery::Status openDeviceInterface(DeviceHandle& device_handle,
+                                    const std::string& dev_interface_path) {
+  device_handle.reset();
+
+  auto device = CreateFile(dev_interface_path.c_str(),
+                           GENERIC_READ | GENERIC_WRITE,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE,
+                           nullptr,
+                           OPEN_EXISTING,
+                           0,
+                           nullptr);
+
+  if (device == INVALID_HANDLE_VALUE) {
+    return osquery::Status::failure(
+        "Failed to open handle to the following device: " + dev_interface_path +
+        "Error: " + std::to_string(GetLastError()));
   }
 
-  unsigned long ioctlConnectClient = INTEL_ME_WINDOWS_IOCTL;
+  device_handle.reset(device);
+  return osquery::Status(0);
+}
 
-  // Response data from driver open.
-  struct mei_response response;
-  ret = DeviceIoControl(driver,
-                        ioctlConnectClient,
-                        (LPVOID)kMEIUpdateGUID.data(),
-                        static_cast<DWORD>(kMEIUpdateGUID.size()),
-                        &response,
-                        sizeof(response),
-                        nullptr,
-                        nullptr);
+osquery::Status queryDeviceVersion(std::string& version,
+                                   const std::string& dev_interface_path) {
+  version = {};
 
-  if (ret == 0) {
-    auto last_error = GetLastError();
-    if (last_error == ERROR_GEN_FAILURE) {
-      LOG(WARNING)
-          << "The driver is already in use by another client and can't be "
-             "queried at this time";
-    } else {
-      LOG(WARNING) << "Device IOCTL call failed with " << last_error;
+  DeviceHandle device;
+  auto status = openDeviceInterface(device, dev_interface_path);
+  if (!status.ok()) {
+    return status;
+  }
+
+  // Attempt to open the device
+  auto open_command_copy = tables::kMEIUpdateGUID;
+  auto open_command_size = static_cast<DWORD>(open_command_copy.size());
+
+  tables::mei_response response = {};
+  if (!DeviceIoControl(device.get(),
+                       INTEL_ME_WINDOWS_IOCTL,
+                       open_command_copy.data(),
+                       open_command_size,
+                       &response,
+                       sizeof(response),
+                       nullptr,
+                       nullptr)) {
+    auto err = GetLastError();
+    if (err == ERROR_GEN_FAILURE) {
+      return osquery::Status::failure(
+          "The driver is already in use by another client and can't be queried "
+          "at this time");
     }
 
-    CloseHandle(driver);
-    return;
+    return osquery::Status::failure("Failed to query the driver. Error: " +
+                                    std::to_string(err));
   }
 
-  if (response.maxlen < sizeof(mei_version)) {
-    LOG(WARNING) << "Invalid maxlen size: " << response.maxlen;
-    return;
-  } else if (kExpectedMaxLenValues.count(response.maxlen) == 0U) {
+  // Validate the response
+  bool invalid_response = false;
+  if (response.maxlen < sizeof(tables::mei_version)) {
+    LOG(WARNING) << "Invalid maxlen size returned: " +
+                        std::to_string(response.maxlen);
+
+    invalid_response = true;
+  }
+
+  if (kExpectedMaxLenValues.count(response.maxlen) == 0U) {
     LOG(WARNING) << "The returned maxlen field value is unexpected: "
                  << response.maxlen;
+
+    invalid_response = true;
   }
 
-  unsigned char fw_cmd[4] = {0};
-  ret = WriteFile(
-      driver, static_cast<void*>(fw_cmd), sizeof(fw_cmd), nullptr, nullptr);
-  if (ret != TRUE) {
-    LOG(WARNING) << "HECI driver write failed with " << GetLastError();
+  if (response.version != 0x01) {
+    LOG(WARNING) << "Unexpected response version: "
+                 << std::to_string(response.version)
+                 << ". Continuing anyway...";
   }
 
-  // Response from FirmwareUpdate HECI GUID.
+  if (invalid_response) {
+    return osquery::Status::failure(
+        "Invalid response received from the device");
+  }
+
+  // Request the firmware version
+  if (!WriteFile(device.get(),
+                 kGetFirmwareVersionCommand,
+                 sizeof(kGetFirmwareVersionCommand),
+                 nullptr,
+                 nullptr)) {
+    return osquery::Status::failure(
+        "Failed to send the firmware version query to the device");
+  }
+
   std::vector<std::uint8_t> read_buffer(response.maxlen);
   DWORD bytes_read = 0U;
 
-  ret = ReadFile(driver,
-                 read_buffer.data(),
-                 static_cast<DWORD>(read_buffer.size()),
-                 &bytes_read,
-                 nullptr);
-
-  CloseHandle(driver);
-
-  if (ret != TRUE) {
-    std::fill(read_buffer.begin(), read_buffer.end(), 0U);
-    LOG(WARNING) << "HECI driver read failed with " << GetLastError();
-  } else if (static_cast<size_t>(bytes_read) < sizeof(mei_version)) {
-    // This is unlikely
-    std::fill(read_buffer.begin(), read_buffer.end(), 0U);
-    LOG(WARNING) << "The driver has not returned enough bytes";
+  if (!ReadFile(device.get(),
+                read_buffer.data(),
+                static_cast<DWORD>(read_buffer.size()),
+                &bytes_read,
+                nullptr)) {
+    return osquery::Status::failure("Failed to acquire the device response");
   }
 
-  auto version = reinterpret_cast<const mei_version*>(read_buffer.data());
+  if (static_cast<size_t>(bytes_read) < sizeof(tables::mei_version)) {
+    return osquery::Status::failure(
+        "Invalid device response when attempting to acquire the firmware "
+        "version");
+  }
 
-  Row r;
-  r["version"] = std::to_string(version->major) + '.' +
-                 std::to_string(version->minor) + '.' +
-                 std::to_string(version->hotfix) + '.' +
-                 std::to_string(version->build);
+  // Convert the numeric version fields to string
+  auto raw_version =
+      reinterpret_cast<const tables::mei_version*>(read_buffer.data());
 
-  results.push_back(r);
+  version = std::to_string(raw_version->major) + '.' +
+            std::to_string(raw_version->minor) + '.' +
+            std::to_string(raw_version->hotfix) + '.' +
+            std::to_string(raw_version->build);
+
+  return osquery::Status(0);
+}
+} // namespace
+
+namespace tables {
+void getHECIDriverVersion(QueryData& results) {
+  results = {};
+
+  std::unordered_set<std::string> dev_path_list;
+  auto status = enumerateHECIDeviceInterfacePaths(dev_path_list);
+  if (!status.ok()) {
+    LOG(WARNING) << status.getMessage();
+    return;
+  }
+
+  if (dev_path_list.empty()) {
+    LOG(INFO) << "No Intel ME device found";
+    return;
+  }
+
+  for (const auto& dev_path : dev_path_list) {
+    std::string version = {};
+    status = queryDeviceVersion(version, dev_path);
+    if (!status.ok()) {
+      LOG(WARNING) << status.getMessage();
+      continue;
+    }
+
+    Row r = {};
+    r["version"] = std::move(version);
+    results.push_back(std::move(r));
+  }
 }
 
 QueryData getIntelMEInfo(QueryContext& context) {
   QueryData results;
   getHECIDriverVersion(results);
+
   return results;
 }
 } // namespace tables
