@@ -36,6 +36,13 @@ function(generateIncludeNamespace target_name namespace_path mode)
 
   add_dependencies("${target_name}" "${root_target_name}")
 
+  get_target_property(target_type "${target_name}" TYPE)
+  if("${target_type}" STREQUAL "INTERFACE_LIBRARY")
+    set(target_mode "INTERFACE")
+  else()
+    set(target_mode "PUBLIC")
+  endif()
+
   foreach(relative_source_file_path ${ARGN})
     get_filename_component(source_name "${relative_source_file_path}" NAME)
 
@@ -61,19 +68,16 @@ function(generateIncludeNamespace target_name namespace_path mode)
     string(REPLACE "/" "_" file_generator_name "${target_name}_ns_${relative_source_file_path}")
     add_custom_target("${file_generator_name}" DEPENDS "${output_source_file_path}")
     add_dependencies("${root_target_name}" "${file_generator_name}")
-  endforeach()
 
-  get_target_property(target_type "${target_name}" TYPE)
-  if("${target_type}" STREQUAL "INTERFACE_LIBRARY")
-    set(mode "INTERFACE")
-  else()
-    set(mode "PUBLIC")
-  endif()
+    if(ADD_HEADERS_AS_SOURCES)
+      target_sources("${target_name}" ${target_mode} "${absolute_source_file_path}")
+    endif()
+  endforeach()
 
   # So that the IDE finds all the necessary headers
   add_dependencies("prepare_for_ide" "${root_target_name}")
 
-  target_include_directories("${target_name}" ${mode} "${target_namespace_root_directory}")
+  target_include_directories("${target_name}" ${target_mode} "${target_namespace_root_directory}")
 endfunction()
 
 # Generates the global_c_settings, global_cxx_settings targets and the respective thirdparty variant
