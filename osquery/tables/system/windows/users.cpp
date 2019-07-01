@@ -23,8 +23,8 @@
 namespace osquery {
 
 std::string psidToString(PSID sid);
-int getUidFromSid(PSID sid);
-int getGidFromSid(PSID sid);
+uint32_t getUidFromSid(PSID sid);
+uint32_t getGidFromSid(PSID sid);
 
 const std::string kRegProfilePath =
     "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows "
@@ -86,10 +86,12 @@ void processRoamingProfiles(const std::set<std::string>& processedSids,
     if (ret == 0) {
       VLOG(1) << "Convert SID to string failed with " << GetLastError();
     }
-    r["uid"] = INTEGER(getUidFromSid(sid));
-    r["gid"] = INTEGER(getGidFromSid(sid));
-    r["uid_signed"] = r["uid"];
-    r["gid_signed"] = r["gid"];
+    auto uid = getUidFromSid(sid);
+    auto gid = getGidFromSid(sid);
+    r["uid"] = BIGINT(uid);
+    r["gid"] = BIGINT(gid);
+    r["uid_signed"] = INTEGER(uid);
+    r["gid_signed"] = INTEGER(gid);
     r["type"] = kWellKnownSids.find(sidString) == kWellKnownSids.end()
                     ? "roaming"
                     : "special";
@@ -159,10 +161,12 @@ void processLocalAccounts(std::set<std::string>& processedSids,
         Row r;
         r["uuid"] = psidToString(sid);
         r["username"] = wstringToString(iterBuff->usri3_name);
-        r["uid"] = INTEGER(iterBuff->usri3_user_id);
-        r["gid"] = INTEGER(iterBuff->usri3_primary_group_id);
-        r["uid_signed"] = r["uid"];
-        r["gid_signed"] = r["gid"];
+        auto uid = iterBuff->usri3_user_id;
+        auto gid = iterBuff->usri3_primary_group_id;
+        r["uid"] = BIGINT(uid);
+        r["gid"] = BIGINT(gid);
+        r["uid_signed"] = INTEGER(uid);
+        r["gid_signed"] = INTEGER(gid);
         r["description"] =
             wstringToString(LPUSER_INFO_4(userLvl4Buff)->usri4_comment);
         r["directory"] = getUserHomeDir(sidString);

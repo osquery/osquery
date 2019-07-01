@@ -35,8 +35,8 @@ namespace errc = boost::system::errc;
 
 namespace osquery {
 
-int getUidFromSid(PSID sid);
-int getGidFromSid(PSID sid);
+uint32_t getUidFromSid(PSID sid);
+uint32_t getGidFromSid(PSID sid);
 
 /*
  * Avoid having the same right being used in multiple CHMOD_* macros. Doing so

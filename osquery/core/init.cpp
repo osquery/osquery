@@ -208,8 +208,10 @@ volatile std::sig_atomic_t kExitCode{0};
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
 
+#ifdef OSQUERY_WINDOWS
 /// Legacy thread ID to ensure that the windows service waits before exiting
-unsigned long kLegacyThreadId;
+DWORD kLegacyThreadId;
+#endif
 
 /// When no flagfile is provided via CLI, attempt to read flag 'defaults'.
 const std::string kBackupDefaultFlagfile{OSQUERY_HOME "osquery.flags.default"};
@@ -295,8 +297,10 @@ Initializer::Initializer(int& argc,
   // The 'main' thread is that which executes the initializer.
   kMainThreadId = std::this_thread::get_id();
 
+#ifdef OSQUERY_WINDOWS
   // Maintain a legacy thread id for Windows service stops.
-  kLegacyThreadId = platformGetTid();
+  kLegacyThreadId = static_cast<DWORD>(platformGetTid());
+#endif
 
 #ifndef WIN32
   // Set the max number of open files.

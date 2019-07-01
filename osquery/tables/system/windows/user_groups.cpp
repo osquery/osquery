@@ -25,7 +25,7 @@
 namespace osquery {
 
 std::string psidToString(PSID sid);
-int getGidFromSid(PSID sid);
+uint32_t getGidFromSid(PSID sid);
 
 namespace tables {
 
@@ -36,7 +36,6 @@ void processLocalUserGroups(std::string uid,
   unsigned long numGroups = 0;
   unsigned long totalUserGroups = 0;
   LOCALGROUP_USERS_INFO_0* ginfo = nullptr;
-  PSID sid = nullptr;
 
   unsigned long ret = 0;
 
@@ -63,7 +62,7 @@ void processLocalUserGroups(std::string uid,
     auto sid = getSidFromUsername(ginfo[i].lgrui0_name);
 
     r["uid"] = uid;
-    r["gid"] = INTEGER(getGidFromSid(static_cast<PSID>(sid.get())));
+    r["gid"] = BIGINT(getGidFromSid(static_cast<PSID>(sid.get())));
 
     results.push_back(r);
   }
