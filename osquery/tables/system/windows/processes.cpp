@@ -41,8 +41,8 @@
 #include <osquery/utils/scope_guard.h>
 
 namespace osquery {
-int getUidFromSid(PSID sid);
-int getGidFromSid(PSID sid);
+uint32_t getUidFromSid(PSID sid);
+uint32_t getGidFromSid(PSID sid);
 namespace tables {
 
 const std::map<unsigned long, std::string> kMemoryConstants = {

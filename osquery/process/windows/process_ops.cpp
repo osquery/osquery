@@ -23,8 +23,8 @@ std::string psidToString(PSID sid) {
   return std::string(sidOut);
 }
 
-int getUidFromSid(PSID sid) {
-  unsigned long const uid_default = -1;
+uint32_t getUidFromSid(PSID sid) {
+  auto const uid_default = static_cast<uint32_t>(-1);
   LPTSTR sidString;
   if (ConvertSidToStringSid(sid, &sidString) == 0) {
     VLOG(1) << "getUidFromSid failed ConvertSidToStringSid error " +
@@ -32,6 +32,7 @@ int getUidFromSid(PSID sid) {
     LocalFree(sidString);
     return uid_default;
   }
+
   auto toks = osquery::split(sidString, "-");
 
   if (toks.size() < 1) {
@@ -39,7 +40,7 @@ int getUidFromSid(PSID sid) {
     return uid_default;
   }
 
-  auto uid_exp = tryTo<unsigned long int>(toks.at(toks.size() - 1), 10);
+  auto uid_exp = tryTo<uint32_t>(toks.at(toks.size() - 1), 10);
 
   if (uid_exp.isError()) {
     LocalFree(sidString);
@@ -51,38 +52,38 @@ int getUidFromSid(PSID sid) {
   return uid_exp.take();
 }
 
-int getGidFromSid(PSID sid) {
+uint32_t getGidFromSid(PSID sid) {
   auto eUse = SidTypeUnknown;
-  unsigned long unameSize = 0;
-  unsigned long domNameSize = 1;
+  DWORD unameSize = 0;
+  DWORD domNameSize = 1;
 
   // LookupAccountSid first gets the size of the username buff required.
   LookupAccountSidW(
       nullptr, sid, nullptr, &unameSize, nullptr, &domNameSize, &eUse);
   std::vector<wchar_t> uname(unameSize);
   std::vector<wchar_t> domName(domNameSize);
-  auto ret = LookupAccountSidW(nullptr,
-                               sid,
-                               uname.data(),
-                               &unameSize,
-                               domName.data(),
-                               &domNameSize,
-                               &eUse);
+  auto accountFound = LookupAccountSidW(nullptr,
+                                        sid,
+                                        uname.data(),
+                                        &unameSize,
+                                        domName.data(),
+                                        &domNameSize,
+                                        &eUse);
 
-  if (ret == 0) {
-    return -1;
+  if (accountFound == 0) {
+    return static_cast<uint32_t>(-1);
   }
   // USER_INFO_3 struct contains the RID (uid) of our user
-  unsigned long userInfoLevel = 3;
-  unsigned char* userBuff = nullptr;
-  unsigned long gid = -1;
-  ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
+  DWORD userInfoLevel = 3;
+  LPBYTE userBuff = nullptr;
+  auto gid = static_cast<uint32_t>(-1);
+  auto ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
 
   if (ret == NERR_UserNotFound) {
     LPTSTR sidString;
     ConvertSidToStringSid(sid, &sidString);
     auto toks = osquery::split(sidString, "-");
-    gid = tryTo<unsigned long int>(toks.at(toks.size() - 1), 10).takeOr(gid);
+    gid = tryTo<uint32_t>(toks.at(toks.size() - 1), 10).takeOr(gid);
     LocalFree(sidString);
 
   } else if (ret == NERR_Success) {
@@ -101,8 +102,8 @@ std::unique_ptr<BYTE[]> getSidFromUsername(std::wstring accountName) {
 
   // Call LookupAccountNameW() once to retrieve the necessary buffer sizes for
   // the SID (in bytes) and the domain name (in TCHARS):
-  unsigned long sidBufferSize = 0;
-  unsigned long domainNameSize = 0;
+  DWORD sidBufferSize = 0;
+  DWORD domainNameSize = 0;
   auto eSidType = SidTypeUnknown;
   auto ret = LookupAccountNameW(nullptr,
                                 accountName.c_str(),
@@ -146,24 +147,25 @@ std::unique_ptr<BYTE[]> getSidFromUsername(std::wstring accountName) {
   return sidBuffer;
 }
 
-unsigned long getRidFromSid(PSID sid) {
+DWORD getRidFromSid(PSID sid) {
   BYTE* countPtr = GetSidSubAuthorityCount(sid);
-  unsigned long indexOfRid = static_cast<unsigned long>(*countPtr - 1);
-  unsigned long* ridPtr = GetSidSubAuthority(sid, indexOfRid);
+  DWORD indexOfRid = static_cast<DWORD>(*countPtr - 1);
+  DWORD* ridPtr = GetSidSubAuthority(sid, indexOfRid);
   return *ridPtr;
 }
 
-int platformGetUid() {
+uint32_t platformGetUid() {
+  auto gid_default = static_cast<uint32_t>(-1);
   auto token = INVALID_HANDLE_VALUE;
   if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token)) {
-    return -1;
+    return gid_default;
   }
 
   unsigned long nbytes = 0;
   ::GetTokenInformation(token, TokenUser, nullptr, 0, &nbytes);
   if (nbytes == 0) {
     ::CloseHandle(token);
-    return -1;
+    return gid_default;
   }
 
   std::vector<char> tu_buffer;
@@ -176,7 +178,7 @@ int platformGetUid() {
                                       &nbytes);
   ::CloseHandle(token);
   if (status == 0) {
-    return -1;
+    return gid_default;
   }
 
   auto tu = PTOKEN_USER(tu_buffer.data());
@@ -206,7 +208,7 @@ void* platformModuleGetSymbol(ModuleHandle module, const std::string& symbol) {
 }
 
 std::string platformModuleGetError() {
-  return std::string("GetLastError() = " + ::GetLastError());
+  return std::string("GetLastError() = " + std::to_string(::GetLastError()));
 }
 
 bool platformModuleClose(ModuleHandle module) {
@@ -246,11 +248,11 @@ int platformGetPid() {
   return static_cast<int>(GetCurrentProcessId());
 }
 
-int platformGetTid() {
-  return static_cast<int>(GetCurrentThreadId());
+uint64_t platformGetTid() {
+  return GetCurrentThreadId();
 }
 
 void platformMainThreadExit(int excode) {
-  ExitThread(excode);
+  ExitThread(static_cast<DWORD>(excode));
 }
 }

@@ -41,6 +41,6 @@ std::unique_ptr<BYTE[]> getSidFromUsername(std::wstring accountName);
  *
  * @returns the RID represented as an unsigned long integer.
  */
-unsigned long getRidFromSid(PSID sidPtr);
+DWORD getRidFromSid(PSID sidPtr);
 
 } // namespace osquery
