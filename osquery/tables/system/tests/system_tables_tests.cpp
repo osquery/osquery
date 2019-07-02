@@ -197,12 +197,38 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
                 " left join file using (path) left join hash using (path);");
     ASSERT_EQ(results.rows().size(), 1U);
   }
+}
 
+TEST_F(SystemsTablesTests, test_table_constraints) {
   {
     // Check LIKE and = operands.
-    SQL results(
-        R"(select path from file where path = '/etc/' or path LIKE '/dev/%' or path LIKE '\Windows\%';)");
-    ASSERT_GT(results.rows().size(), 1U);
+#ifdef OSQUERY_WINDOWS
+    TCHAR windows_path[64];
+    auto windows_path_length =
+        GetSystemWindowsDirectory(windows_path, sizeof(windows_path));
+    ASSERT_FALSE(windows_path_length == 0);
+
+    std::stringstream qry_stream;
+    qry_stream << boost::format("select path from file where path LIKE '%s") %
+                      windows_path
+               << R"(\%';)";
+    std::string like_query = qry_stream.str();
+    qry_stream = std::stringstream();
+
+    qry_stream << boost::format("select path from file where path = '%s") %
+                      windows_path
+               << R"(';)";
+    std::string equal_query = qry_stream.str();
+
+#else
+    std::string like_query =
+        R"(select path from file where path LIKE '/dev/%';)";
+    std::string equal_query = "select path from file where path = '/etc/'";
+#endif
+    SQL like_results(like_query);
+    SQL equal_results(equal_query);
+    EXPECT_GT(like_results.rows().size(), 1U);
+    EXPECT_GT(equal_results.rows().size(), 0U);
   }
 }
 
