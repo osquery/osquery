@@ -60,7 +60,7 @@ std::string encode(const std::string& unencoded) {
     encoded.append(std::string(writePaddChars, '='));
     return encoded;
   } catch (const boost::archive::iterators::dataflow_exception& e) {
-    LOG(INFO) << "Could not base64 decode string: " << e.what();
+    LOG(INFO) << "Could not base64 encode string: " << e.what();
     return "";
   }
 }
