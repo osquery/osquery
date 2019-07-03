@@ -64,7 +64,7 @@ param(
   [string] $SdkInstall = 'C:\tools\toolchains\vs2017_15.5\WindowsSdk\10.0.16299.91',
   [string] $SdkVersion = '10.0.16299.0',
   [string] $Python3Path = 'C:\Python36\python.exe',
-  [string] $BuckConfigRoot = (Join-Path $PSScriptRoot "..\..\buckconfigs")
+  [string] $BuckConfigRoot = (Join-Path $PSScriptRoot "buckconfigs")
 )
 
 function New-VsToolchainBuckConfig {
@@ -169,6 +169,8 @@ function New-VsToolchainBuckConfig {
       $regEntry = "HKCU:\Software\Python\PythonCore\$pyVer\InstallPath"
       $python3 = (Get-ItemProperty -Path $regEntry -Name 'ExecutablePath').ExecutablePath
     }
+  } else {
+    $python3 = $Python3Path
   }
   if (-not $python3 -or (-not (Test-Path $python3))) {
     Write-Host 'Failed to find python3, check install' -ForegroundColor Red
@@ -271,7 +273,11 @@ function New-VsToolchainBuckConfig {
   }
 
   # Only write out the file if all paths were able to be derived
-  $bcfg = Join-Path $BuckConfigRoot "windows-x86_64/toolchain/vs2017_15.5.bcfg"
+  $buck_root = Join-Path $BuckConfigRoot "windows-x86_64/toolchain"
+  if (-not (Test-Path $buck_root)) {
+    New-Item -ItemType Directory $buck_root
+  }
+  $bcfg = (Join-Path $buck_root "vs2017_15.5.bcfg")
   $outArgs = @{
     FilePath = $bcfg
     Encoding = "utf8"
