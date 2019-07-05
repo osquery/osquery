@@ -243,9 +243,9 @@ std::string getServiceSid(const std::string& serviceNameOrSid) {
 
 /// Parse the given system store string whose structure is:
 /// `(<prefix>\)?<unlocalized system store name>`
-/// (e.g. "Third-Party Root Certification Authorities")
-/// (e.g. "S-1-5-18\Trusted Root Certification Authorities")
-/// (e.g. "SshdBroker\Third-Party Root Certification Authorities")
+/// (e.g. "My")
+/// (e.g. "S-1-5-18\My")
+/// (e.g. "SshdBroker\My")
 ///
 /// <prefix> can be a SID, service name (`SshdBroker`) (for service stores), or
 /// SID with `_Classes` appended (for user accounts). If it exists, it is
