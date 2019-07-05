@@ -149,13 +149,13 @@ std::string getLocalizedStoreName(LPCWSTR storeNameW) {
 /// Expects @name to be the `lpServiceStartName` from
 /// `QueryServiceConfig`
 std::string getSidFromAccountName(const std::string& name) {
+  // `lpServiceStartName` has been observed to contain both uppercase
+  // and lowercase versions of these values
   if (boost::iequals(name, "LocalSystem")) {
-    // `lpServiceStartName` has been observed to contain both uppercase
-    // and lowercase versions of "LocalSystem"
     return kLocalSystem;
-  } else if (name == "NT Authority\\LocalService") {
+  } else if (boost::iequals(name, "NT Authority\\LocalService")) {
     return kLocalService;
-  } else if (name == "NT Authority\\NetworkService") {
+  } else if (boost::iequals(name, "NT Authority\\NetworkService")) {
     return kNetworkService;
   }
   return "";
