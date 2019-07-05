@@ -203,7 +203,7 @@ std::string getUsernameFromSid(const std::string& sidString) {
 }
 
 bool isValidSid(const std::string& maybeSid) {
-  return getUsernameFromSid(maybeSid).length();
+  return getUsernameFromSid(maybeSid).length() != 0;
 }
 
 /// Given a string that can contain either a service name or SID: if it is
