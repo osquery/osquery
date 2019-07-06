@@ -10,6 +10,7 @@ function(osqueryCoreTestsMain)
   generateOsqueryCoreTestsTablestestsTest()
   generateOsqueryCoreTestsWatcherpermissionstestsTest()
   generateOsqueryCoreTestsQuerytestsTest()
+  generateOsqueryCoreTestsProcesstestsTest()
 endfunction()
 
 function(generateOsqueryCoreTestsFlagstestsTest)
@@ -134,6 +135,20 @@ function(generateOsqueryCoreTestsQuerytestsTest)
     osquery_utils_info
     plugins_config_tlsconfig
     specs_tables
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryCoreTestsProcesstestsTest)
+  add_osquery_executable(osquery_core_tests_processtests-test process_tests.cpp)
+
+  target_link_libraries(osquery_core_tests_processtests-test PRIVATE
+    global_cxx_settings
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_main
+    osquery_process
+    tests_helper
     thirdparty_googletest
   )
 endfunction()
