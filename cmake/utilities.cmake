@@ -240,6 +240,11 @@ function(generateGlobalSettingsTargets)
     target_link_options(cxx_settings INTERFACE
       -stdlib=libc++
     )
+    
+    if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+      target_compile_options(cxx_settings INTERFACE -fsanitize=address,undefined)
+      target_link_options(cxx_settings INTERFACE -fsanitize=address,undefined)
+    endif()
 
     if(DEFINED PLATFORM_MACOS)
       target_compile_options(cxx_settings INTERFACE
