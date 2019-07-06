@@ -34,6 +34,10 @@ function(osqueryTablesSystemTestsMain)
     generateOsqueryTablesSystemTestsStartupitemstestsTest()
     generateOsqueryTablesSystemTestsSignaturetestsTest()
   endif()
+
+  if(DEFINED PLATFORM_WINDOWS)
+    generateOsqueryTablesSystemTestsCertificatestestsTest()
+  endif()
 endfunction()
 
 function(generateOsqueryTablesSystemTestsMdtablestestsTest)
@@ -388,6 +392,25 @@ function(generateOsqueryTablesSystemTestsSignaturetestsTest)
   add_osquery_executable(osquery_tables_system_tests_signaturetests-test darwin/signature_tests.mm)
 
   target_link_libraries(osquery_tables_system_tests_signaturetests-test PRIVATE
+    global_cxx_settings
+    osquery_config_tests_testutils
+    osquery_core
+    osquery_core_sql
+    osquery_database
+    osquery_filesystem
+    osquery_remote_tests_remotetestutils
+    osquery_tables_system_systemtable
+    osquery_utils
+    osquery_utils_conversions
+    plugins_database_ephemeral
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryTablesSystemTestsCertificatestestsTest)
+  add_osquery_executable(osquery_tables_system_tests_certificatestests-test windows/certificates_tests.cpp)
+
+  target_link_libraries(osquery_tables_system_tests_certificatestests-test PRIVATE
     global_cxx_settings
     osquery_config_tests_testutils
     osquery_core

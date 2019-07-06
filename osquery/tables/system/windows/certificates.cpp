@@ -24,6 +24,7 @@
 #include <osquery/utils/conversions/windows/strings.h>
 
 #include <osquery/filesystem/fileops.h>
+#include <osquery/tables/system/windows/certificates.h>
 
 namespace osquery {
 namespace tables {
@@ -46,10 +47,6 @@ typedef struct _ENUM_ARG {
   QueryData* results;
   std::string storeLocation;
 } ENUM_ARG, *PENUM_ARG;
-
-const static std::string kLocalSystem = "S-1-5-18";
-const static std::string kLocalService = "S-1-5-19";
-const static std::string kNetworkService = "S-1-5-20";
 
 std::string cryptOIDToString(const char* objId) {
   if (objId == nullptr) {
