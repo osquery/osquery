@@ -37,6 +37,7 @@ function(osqueryTablesSystemTestsMain)
 
   if(DEFINED PLATFORM_WINDOWS)
     generateOsqueryTablesSystemTestsWindowsCertificatestestsTest()
+    generateOsqueryTablesSystemTestsRegistrytestsTest()
   endif()
 endfunction()
 
@@ -422,6 +423,23 @@ function(generateOsqueryTablesSystemTestsWindowsCertificatestestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryTablesSystemTestsRegistrytestsTest)
+  add_osquery_executable(osquery_tables_system_tests_registrytests-test windows/registry_tests.cpp)
+
+  target_link_libraries(osquery_tables_system_tests_registrytests-test PRIVATE
+    global_cxx_settings
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_headers
+    osquery_remote_enroll_tlsenroll
+    osquery_tables_system_systemtable
+    plugins_database_ephemeral
+    tests_helper
+    thirdparty_boost
     thirdparty_googletest
   )
 endfunction()

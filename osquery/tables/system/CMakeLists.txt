@@ -334,6 +334,7 @@ function(generateOsqueryTablesSystemSystemtable)
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     add_test(NAME osquery_tables_system_tests_certificatestests-test COMMAND osquery_tables_system_tests_certificatestests-test)
+    add_test(NAME osquery_tables_system_tests_registrytests-test COMMAND osquery_tables_system_tests_registrytests-test)
   endif()
 
   add_test(NAME osquery_tables_system_tests_systemtablestests-test COMMAND osquery_tables_system_tests_systemtablestests-test)
