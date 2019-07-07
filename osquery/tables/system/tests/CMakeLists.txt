@@ -17,6 +17,7 @@ function(osqueryTablesSystemTestsMain)
     generateOsqueryTablesSystemTestsShellhistorytestsTest()
     generateOsqueryTablesSystemTestsSudoerstestsTest()
     generateOsqueryTablesSystemTestsYumsourcestestsTest()
+    generateOsqueryTablesSystemTestsAugeasTestsTest()
   endif()
 
   generateOsqueryTablesSystemTestsSystemtablestestsTest()
@@ -442,6 +443,36 @@ function(generateOsqueryTablesSystemTestsRegistrytestsTest)
     thirdparty_boost
     thirdparty_googletest
   )
+endfunction()
+
+function(generateOsqueryTablesSystemTestsAugeasTestsTest)
+  add_osquery_executable(osquery_tables_system_tests_augeastests-test posix/augeas_tests.cpp)
+
+  target_link_libraries(osquery_tables_system_tests_augeastests-test PRIVATE
+    global_cxx_settings
+    osquery_config_tests_testutils
+    osquery_dispatcher
+    osquery_events
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_headers
+    osquery_registry
+    osquery_remote_enroll_tlsenroll
+    osquery_sql
+    osquery_tables_events_eventstable
+    plugins_database_ephemeral
+    specs_tables
+    thirdparty_googletest
+  )
+
+  add_custom_target(osquery_tables_system_tests_augeaslenses
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${TEST_CONFIGS_DIR}/augeas/lenses"
+    COMMAND "${CMAKE_COMMAND}" -E copy "$<TARGET_PROPERTY:thirdparty_augeas,INTERFACE_BINARY_DIR>/share/augeas/lenses/dist/*.aug" "${TEST_CONFIGS_DIR}/augeas/lenses")
+
+  add_dependencies(osquery_tables_system_tests_augeastests-test osquery_tables_system_tests_augeaslenses)
+  add_dependencies(osquery_tables_system_tests_augeaslenses thirdparty_augeas)
+  add_dependencies(osquery_tables_system_tests_augeaslenses osquery_tools_tests_testconfigsfolder)
+
 endfunction()
 
 osqueryTablesSystemTestsMain()
