@@ -1,6 +1,7 @@
 # Building osquery
 
-## With CMake
+## Using CMake
+
 osquery supports Linux (Ubuntu 18.04/18.10), macOS, and Windows.
 
 git, CMake (>= 3.13.3), clang 6.0, Python 2, and Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
@@ -13,7 +14,7 @@ The build type is chosen when building on Windows, not during the configure phas
 
 The root folder is assumed to be `/home/<user>`
 
-#### Ubuntu 18.04
+**Ubuntu 18.04**
 
 ```
 # Install the prerequisites
@@ -25,14 +26,13 @@ sudo tar xvf cmake-3.14.5-Linux-x86_64.tar.gz -C /usr/local --strip 1
 # Verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`
 
 # Download and build osquery
-cd $HOME; mkdir osquery; cd osquery
-git clone https://github.com/osquery/osquery.git -b master src
+git clone https://github.com/osquery/osquery
 mkdir build; cd build
-cmake ../src -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-cmake --build . -j # // where # is the number of parallel build jobs
+cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
+cmake --build . -j10 # where 10 is the number of parallel build jobs
 ```
 
-#### Ubuntu 18.10
+**Ubuntu 18.10**
 
 ```
 # Install the prerequisites
@@ -44,41 +44,39 @@ sudo tar xvf cmake-3.14.5-Linux-x86_64.tar.gz -C /usr/local --strip 1
 # Verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`
 
 # Download and build osquery
-cd $HOME; mkdir osquery; cd osquery
-git clone https://github.com/osquery/osquery.git -b master src
+git clone https://github.com/osquery/osquery
 mkdir build; cd build
-cmake ../src -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 (-DBUILD_TESTING=ON for tests)
-cmake --build . -j # // where # is the number of parallel build jobs
+cmake -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 ..
+cmake --build . -j10 # where 10 is the number of parallel build jobs
 ```
 
 ### Windows
 
 The root folder is assumed to be `C:\Users\<user>`
 
-#### Step 1: Install the prerequisites
-- [CMake](https://cmake.org/) (>= 3.14.4): be sure to put it into the PATH
+**Step 1: Install the prerequisites**
+
+- [CMake](https://cmake.org/) (>= 3.14.4): be sure to put it into the `PATH`
 - [Build Tools for Visual Studio 2019](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16): from the installer choose the C++ build tools workload, then on the right, under Installation details, also check MSVC v141
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest) (or equivalent)
 - [Python 2](https://www.python.org/downloads/windows/)
 - [Python 3](https://www.python.org/downloads/windows/)
 
-#### Step 2: Download and build osquery
+**Step 2: Download and build**
 
 ```
 # Download using a PowerShell console
-mkdir osquery; cd osquery
-git clone https://github.com/osquery/osquery.git -b master src
+git clone https://github.com/osquery/osquery
 
 # Configure
 mkdir build; cd build
-cmake ../src -G "Visual Studio 16 2019" -A x64 -T v141
+cmake -G "Visual Studio 16 2019" -A x64 -T v141 ..
 
 # Build
-cmake --build . --config RelWithDebInfo -j # // Number of projects to build in parallel
-
+cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel
 ```
 
-### macOS
+### MacOS
 
 Please ensure [homebrew](https://brew.sh/) has been installed. The root folder is assumed to be `/Users/<user>`
 
@@ -86,27 +84,28 @@ Please ensure [homebrew](https://brew.sh/) has been installed. The root folder i
 # Install prerequisites
 brew install git cmake python@2 python
 
-# Download and build osquery
-mkdir osquery; cd osquery
-git clone https://github.com/osquery/osquery.git -b master src
+# Download and build
+git clone https://github.com/osquery/osquery
 
 # Configure
 mkdir build; cd build
-cmake ../src
+cmake ..
 
 # Build
-cmake --build . -j # // where # is the number of parallel build jobs
-
+cmake --build . -j10 # where 10 is the number of parallel build jobs
 ```
 
 ### Tests
+
 To build with tests active, add `-DBUILD_TESTING=ON` to the osquery configure phase, then build the project. CTest will be used to run the tests and give a report.
 
-#### Run tests on Windows
+**Run tests on Windows**
+
 To run the tests and get just a summary report:\
 `cmake --build . --config <RelWithDebInfo|Release|Debug> --target run_tests`
 
 To get more information when a test fails using powershell:
+
 ```
 $Env:CTEST_OUTPUT_ON_FAILURE=1
 cmake --build . --config <RelWithDebInfo|Release|Debug> --target run_tests
@@ -115,7 +114,8 @@ cmake --build . --config <RelWithDebInfo|Release|Debug> --target run_tests
 To run a single test, in verbose mode:\
 `ctest -R <test name> -C <RelWithDebInfo|Release|Debug> -V`
 
-#### Run tests on Linux/macOS
+**Run tests on Linux/MacOS**
+
 To run the tests and get just a summary report:\
 `cmake --build . --target test`
 
@@ -125,16 +125,34 @@ To get more information when a test fails:\
 To run a single test, in verbose mode:\
 `ctest -R <test name> -V`
 
-## With Buck
+## Using Buck
 
-## Provisioning
+Building and testing is the same on all platforms. Each platform section below describes how to install the required tools and dependencies.
 
-Start by provisioning your machine following the steps bellow according to your
-operating system.
+### Ubuntu 18.04 and 18.10
 
-### macOS
+Install required tools
 
-*Install tools*
+```
+sudo apt install openjdk-8-jre clang libc++1 libc++-dev libc++abi1 libc++abi-dev python python3 python3-distutils
+```
+
+Install library dependencies
+
+```
+sudo apt install liblzma-dev
+```
+
+Install `buck`
+
+```
+wget 'https://github.com/facebook/buck/releases/download/v2018.10.29.01/buck.2018.10.29.01_all.deb'
+sudo apt install ./buck.2018.10.29.01_all.deb
+```
+
+### MacOS
+
+Install required tools using Homebrew
 
 ```
 xcode-select --install
@@ -144,52 +162,29 @@ brew tap caskroom/versions
 brew cask install java8
 ```
 
-*Install Buck and Watchman*
-
-Watchman isn't mandatory but will make builds faster.
+Install `buck` and `watchman`. Watchman isn't mandatory but will make builds faster.
 
 ```
 brew tap facebook/fb
 brew install buck watchman
 ```
 
-### Ubuntu 18.04 / 18.10
-
-*Install tools*
-
-```
-sudo apt install openjdk-8-jre clang libc++1 libc++-dev libc++abi1 libc++abi-dev python python3 python3-distutils
-```
-
-*Install dependencies*
-
-```
-sudo apt install liblzma-dev
-```
-
-*Install Buck*
-
-```
-wget 'https://github.com/facebook/buck/releases/download/v2018.10.29.01/buck.2018.10.29.01_all.deb'
-sudo apt install ./buck.2018.10.29.01_all.deb
-```
-
 ### FreeBSD 11.2
 
-*Install tools*
+Install required tools
 
 ```
 sudo pkg install openjdk8 python3 python2 clang35
 ```
 
-*Install Buck*
+Install `buck`
 
 ```
 sudo curl --output /usr/local/bin/buck 'https://jitpack.io/com/github/facebook/buck/v2018.10.29.01/buck-v2018.10.29.01.pex'
 sudo chmod +x /usr/local/bin/buck
 ```
 
-*Install dependencies*
+Install library dependencies
 
 ```
 sudo pkg install glog thrift thrift-cpp boost-libs magic rocksdb-lite rapidjson zstd linenoise-ng augeas ssdeep sleuthkit yara aws-sdk-cpp lldpd libxml++-2 smartmontools lldpd
@@ -206,7 +201,7 @@ You'll need to have the following software installed before you can build osquer
 
 Once you've installed the above requirements, run `.\tools\generate_buck_config.ps1 -VsInstall '' -VcToolsVersion '' -SdkInstall '' -SdkVersion '' -Python3Path '' -BuckConfigRoot .\tools\buckconfigs\` to generate the buckconfig for building.
 
-## Build & Test
+### Build & Test
 
 To build simply run the following command replacing `<platform>` and `<mode>`
 appropriately:
@@ -236,3 +231,58 @@ Supported modes:
 
 * `release`
 * `debug`
+
+## Building prebuilt dependencies
+
+"Prebuilt" versions of the dependency libraries are provided for Linux, MacOS, and Windows. This means you only need to install the required tooling.
+
+"Prebuilt" or "prebuilds" are versions of library dependencies pre-built using our logic in CMake within the third-party folder. We use CMake's `ExternalProject` and a custom `PREFIX`, or install location, set to the `third-party-prebuilt` submodule. These configurations should be supported on MacOS, Linux, and Windows.
+
+An individual library can be built using:
+
+```
+mkdir -p build/deps && cd build/deps
+cmake ../..
+cmake --build . --config Release --target thirdparty_build_LIBRARY
+```
+
+Or all libraries can be built using
+
+```
+cmake --build . --config Release --target thirdparty_prebuilt
+```
+
+### MacOS
+
+Prebuilt libraries use the system toolchain and operating system version support flags set to `10.13` (subject to change).
+
+Use the prebuilt building helper script. It optionally uses a `STATIC_ENFORCE` environent variable to enforce that the location of the osquery clone and the location of the toolchain are well-known. This is required for reproducible building.
+
+```
+./tools/build_prebuilt.sh
+```
+
+### Linux
+
+**Portable toolchain**
+
+Since there are many Linux distributions we use a static toolchain for building dependencies. This helps achieve a reproducible build and makes debugging easier. You may use any toolchain you like.
+
+Pay attention to the portability aspect of the toolchain. What runtime/dynamic linking requirements does it impose on the output executables.
+
+```
+sudo apt-get install automake pkg-config libtool autopoint bison flex xsltproc texinfo
+wget https://github.com/Kitware/CMake/releases/download/v3.14.5/cmake-3.14.5-Linux-x86_64.tar.gz
+sudo tar xvf cmake-3.14.5-Linux-x86_64.tar.gz -C /usr/local --strip 1
+
+mkdir ~/toolchains; cd ~/toolchains
+wget https://github.com/theopolis/build-anywhere/releases/download/v5/x86_64-anywhere-linux-gnu-v5.tar.xz
+tar xf x86_64-anywhere-linux-gnu-v5.tar.xz
+source ./x86_64-anywhere-linux-gnu/scripts/anywhere-setup.sh
+```
+
+Use the prebuilt building helper script. It optionally uses a `STATIC_ENFORCE` environent variable to enforce that the location of the osquery clone and the location of the toolchain are well-known. This is required for reproducible building.
+
+```
+./tools/build_prebuilt.sh
+```

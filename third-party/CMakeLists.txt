@@ -222,7 +222,7 @@ function(importThirdPartyBinaryLibrary name anchor_file_name)
     set_target_properties("${identifier}" PROPERTIES IMPORTED_LOCATION "${base_path}/${relative_anchor_path}")
   endif()
 
-  #execute_process(COMMAND "${CMAKE_COMMAND}" -E make_directory "${base_folder}/include")
+  execute_process(COMMAND "${CMAKE_COMMAND}" -E make_directory "${base_folder}/include")
   target_include_directories("${identifier}" INTERFACE "${base_path}/include")
 
   set(importThirdPartyBinaryLibrary_baseFolderPath "${base_path}" PARENT_SCOPE)
