@@ -5,7 +5,9 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(osqueryTablesCloudMain)
-  generateOsqueryTablesCloud()
+  if(NOT DEFINED PLATFORM_WINDOWS)
+    generateOsqueryTablesCloud()
+  endif()
 endfunction()
 
 function(generateOsqueryTablesCloud)
