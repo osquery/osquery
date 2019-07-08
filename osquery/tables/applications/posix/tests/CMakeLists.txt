@@ -14,7 +14,7 @@ function(generateOsqueryTablesApplicationsPosixTestsPrometheusmetricstestsTest)
   add_osquery_executable(osquery_tables_applications_posix_tests_prometheusmetricstests-test prometheus_metrics_tests.cpp)
 
   target_link_libraries(osquery_tables_applications_posix_tests_prometheusmetricstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_distributed
     osquery_events

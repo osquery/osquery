@@ -6,7 +6,7 @@
 
 function(osqueryPluginsDatabaseMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -23,7 +23,7 @@ function(generatePluginsDatabaseEphemeral)
   enableLinkWholeArchive(plugins_database_ephemeral)
 
   target_link_libraries(plugins_database_ephemeral PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_database
     osquery_registry
@@ -45,7 +45,7 @@ function(generatePluginsDatabaseRocksdbplugin)
   enableLinkWholeArchive(plugins_database_rocksdbplugin)
 
   target_link_libraries(plugins_database_rocksdbplugin PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_database
     osquery_registry
@@ -75,7 +75,7 @@ function(generatePluginsDatabaseSqliteplugin)
   enableLinkWholeArchive(plugins_database_sqliteplugin)
 
   target_link_libraries(plugins_database_sqliteplugin PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_database
     osquery_filesystem

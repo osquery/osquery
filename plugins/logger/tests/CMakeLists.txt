@@ -24,7 +24,7 @@ function(generatePluginsLoggerTestsFilesystemloggertestsTest)
   add_osquery_executable(plugins_logger_tests_filesystemloggertests-test filesystem_logger.cpp)
 
   target_link_libraries(plugins_logger_tests_filesystemloggertests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_distributed
@@ -48,7 +48,7 @@ function(generatePluginsLoggerTestsBufferedloggertestsTest)
   add_osquery_executable(plugins_logger_tests_bufferedloggertests-test buffered_tests.cpp)
 
   target_link_libraries(plugins_logger_tests_bufferedloggertests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_distributed
@@ -72,7 +72,7 @@ function(generatePluginsLoggerTestsKafkaproducerloggertestsTest)
   add_osquery_executable(plugins_logger_tests_kafkaproducerloggertests-test kafka_producer_tests.cpp)
 
   target_link_libraries(plugins_logger_tests_kafkaproducerloggertests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_distributed
@@ -97,7 +97,7 @@ function(generatePluginsLoggerTestsAwskinesisloggertestsTest)
   add_osquery_executable(plugins_logger_tests_awskinesisloggertests-test aws_kinesis_logger_tests.cpp)
 
   target_link_libraries(plugins_logger_tests_awskinesisloggertests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_distributed
@@ -123,7 +123,7 @@ function(generatePluginsLoggerTestsTlsloggertestsTest)
   add_osquery_executable(plugins_logger_tests_tlsloggertests-test tls_logger_tests.cpp)
 
   target_link_libraries(plugins_logger_tests_tlsloggertests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_distributed
@@ -150,7 +150,7 @@ function(generatePluginsLoggerTestsSyslogloggertestsTest)
   add_osquery_executable(plugins_logger_tests_syslogloggertests-test syslog_logger_tests.cpp)
 
   target_link_libraries(plugins_logger_tests_syslogloggertests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_distributed

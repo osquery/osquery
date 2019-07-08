@@ -28,7 +28,7 @@ function(generateOsqueryUtilsSystemLinuxProcTests)
   )
 
   target_link_libraries(osquery_utils_system_linux_proc_proctests-test PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_system_linux_proc
     thirdparty_googletest
   )

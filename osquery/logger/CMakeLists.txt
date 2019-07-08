@@ -6,7 +6,7 @@
 
 function(osqueryLoggerMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -34,7 +34,7 @@ function(generateOsqueryLoggerDatalogger)
   )
 
   target_link_libraries(osquery_logger_datalogger PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_database

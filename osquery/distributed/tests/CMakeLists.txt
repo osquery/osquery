@@ -12,7 +12,7 @@ function(generateOsqueryDistributedTestsTest)
   add_osquery_executable(osquery_distributed_tests-test distributed_tests.cpp)
 
   target_link_libraries(osquery_distributed_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_distributed

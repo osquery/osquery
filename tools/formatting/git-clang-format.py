@@ -107,6 +107,8 @@ def main():
                    help='passed to clang-format'),
     p.add_argument('-v', '--verbose', action='count', default=0,
                    help='print extra information')
+    p.add_argument('--exclude-folders', default="",
+                   help='comma-separated list of relative paths to folders to exclude from formatting')
     # We gather all the remaining positional arguments into 'args' since we need
     # to use some heuristics to determine whether or not <commit> was present.
     # However, to print pretty messages, we make use of metavar and help.
@@ -120,10 +122,20 @@ def main():
     del opts.quiet
 
     commit, files = interpret_args(opts.args, dash_dash, opts.commit)
+
+    if len(files) > 0 and opts.exclude_folders:
+        print 'The --exclude-folders option cannot be used when specifying files to format'
+        return
+
     changed_lines = compute_diff_and_extract_lines(commit, files)
     if opts.verbose >= 1:
         ignored_files = set(changed_lines)
+
     filter_by_extension(changed_lines, opts.extensions.lower().split(','))
+
+    if len(opts.exclude_folders) > 0:
+        filter_by_path(changed_lines, opts.exclude_folders.split(','))
+
     if opts.verbose >= 1:
         ignored_files.difference_update(changed_lines)
         if ignored_files:
@@ -303,6 +315,18 @@ def filter_by_extension(dictionary, allowed_extensions):
         base_ext = filename.rsplit('.', 1)
         if len(base_ext) == 1 or base_ext[1].lower() not in allowed_extensions:
             del dictionary[filename]
+
+def filter_by_path(dictionary, exclude_folders):
+    """Delete every key in `dictionary` that starts with one of the excluded folders."""
+
+    exclude_folders_abs = list(map(os.path.abspath, exclude_folders))
+    exclude_folders_abs = frozenset(exclude_folders_abs)
+    for filename in dictionary.keys():
+        file_path = os.path.abspath(filename)
+        for excluded_folder in exclude_folders_abs:
+            if file_path.startswith(excluded_folder):
+                del dictionary[filename]
+                break
 
 
 def cd_to_toplevel():

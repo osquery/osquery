@@ -5,7 +5,7 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(osqueryDistributedMain)
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -18,7 +18,7 @@ function(generateOsqueryDistributed)
   )
 
   target_link_libraries(osquery_distributed PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_database

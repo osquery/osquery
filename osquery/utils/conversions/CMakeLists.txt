@@ -5,7 +5,7 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(osqueryUtilsConversionsMain)
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsConversionsConversionstestsTest()
     generateOsqueryUtilsConversionsTotestsTest()
   endif()
@@ -40,7 +40,7 @@ function(generateOsqueryUtilsConversions)
   )
 
   target_link_libraries(osquery_utils_conversions PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_conversions_to
     osquery_utils_expected
     thirdparty_boost
@@ -105,7 +105,7 @@ function(generateOsqueryUtilsConversionsConversionstestsTest)
   add_osquery_executable(osquery_utils_conversions_conversionstests-test ${source_files})
 
   target_link_libraries(osquery_utils_conversions_conversionstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_conversions
     thirdparty_googletest
   )
@@ -116,7 +116,7 @@ function(generateOsqueryUtilsConversionsTotestsTest)
   add_osquery_executable(osquery_utils_conversions_totests-test tests/to.cpp)
 
   target_link_libraries(osquery_utils_conversions_totests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_conversions_to
     thirdparty_googletest
   )

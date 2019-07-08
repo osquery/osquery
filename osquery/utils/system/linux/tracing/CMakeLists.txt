@@ -6,7 +6,7 @@
 
 function(osqueryUtilsSystemLinuxTracingMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -25,7 +25,7 @@ function(generateOsqueryUtilsSystemLinuxTracing)
     )
 
     target_link_libraries(osquery_utils_system_linux_tracing PUBLIC
-      global_cxx_settings
+      osquery_cxx_settings
       osquery_utils_conversions
       osquery_utils_expected
       osquery_logger

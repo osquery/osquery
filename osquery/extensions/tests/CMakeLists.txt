@@ -12,7 +12,7 @@ function(generateOsqueryExtensionsTestsTest)
   add_osquery_executable(osquery_extensions_extensiontests-test extensions.cpp)
 
   target_link_libraries(osquery_extensions_extensiontests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config
     osquery_database
     osquery_dispatcher

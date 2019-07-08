@@ -6,7 +6,7 @@
 
 function(osqueryTablesApplicationsMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("posix/tests")
   endif()
 
@@ -49,7 +49,7 @@ function(generateOsqueryTablesApplications)
   )
 
   target_link_libraries(osquery_tables_applications PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config
     osquery_filesystem
     osquery_tables_system_systemtable

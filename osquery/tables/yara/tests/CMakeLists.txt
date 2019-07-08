@@ -19,7 +19,7 @@ function(generateOsqueryTablesYaraTestsTest)
   add_osquery_executable(osquery_tables_yara_tests-test ${source_files})
 
   target_link_libraries(osquery_tables_yara_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_database

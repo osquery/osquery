@@ -14,7 +14,7 @@ function(generateOsqueryTablesSmartTestsSmartdrivestestsTest)
   add_osquery_executable(osquery_tables_smart_tests_smartdrivestests-test smart_drives_tests.cpp)
 
   target_link_libraries(osquery_tables_smart_tests_smartdrivestests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_config

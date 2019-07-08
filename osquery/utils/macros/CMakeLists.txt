@@ -12,7 +12,7 @@ function(generateOsqueryUtilsMacros)
   add_osquery_library(osquery_utils_macros INTERFACE)
 
   target_link_libraries(osquery_utils_macros INTERFACE
-    global_cxx_settings
+    osquery_cxx_settings
   )
 
   set(public_header_files

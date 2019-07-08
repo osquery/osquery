@@ -20,7 +20,7 @@ function(generateTestsIntegrationTablesIntegrationtestshelper)
   generateIncludeNamespace(tests_integration_tables_integrationtestshelper "osquery/tests/integration/tables" "FILE_ONLY" ${public_headers})
 
   target_link_libraries(tests_integration_tables_integrationtestshelper PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_sql
     osquery_utils
     plugins_database_ephemeral
@@ -297,7 +297,7 @@ function(generateTestsIntegrationTablesTestsTest)
   add_osquery_executable(tests_integration_tables-test ${source_files})
 
   target_link_libraries(tests_integration_tables-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_events
     osquery_extensions

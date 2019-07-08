@@ -16,7 +16,7 @@ function(generateTablesUtilityUtilitytable)
   )
 
   target_link_libraries(osquery_tables_utility_utilitytable PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config
     osquery_core
     osquery_filesystem

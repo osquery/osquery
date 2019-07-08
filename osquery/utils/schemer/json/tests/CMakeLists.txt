@@ -12,7 +12,7 @@ function(generateOsqueryUtilsSchemerJsonTestsSchemerjsontestsTest)
   add_osquery_executable(osquery_utils_schemer_json_tests_schemerjsontests-test schemer_json.cpp)
 
   target_link_libraries(osquery_utils_schemer_json_tests_schemerjsontests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_schemer_json
     thirdparty_googletest
   )

@@ -7,7 +7,7 @@
 function(osqueryExtensionsMain)
   add_subdirectory("thrift")
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -22,7 +22,7 @@ function(generateOsqueryExtensions)
   enableLinkWholeArchive(osquery_extensions)
 
   target_link_libraries(osquery_extensions PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_extensions_extensionsinterface
     osquery_core
     osquery_process
@@ -43,7 +43,7 @@ function(generateOsqueryExtensionsImplthrift)
   endif()
 
   target_link_libraries(osquery_extensions_implthrift PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_extensions_extensionsinterface
     osquery_core
     osquery_extensions_thrift_osquerycpp2
@@ -61,7 +61,7 @@ function(generateOsqueryExtensionsExtensionsinterface)
   )
 
   target_link_libraries(osquery_extensions_extensionsinterface PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_filesystem
   )

@@ -6,7 +6,7 @@
 
 function(osqueryUtilsSystemLinuxEbpfMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -25,7 +25,7 @@ function(generateOsqueryUtilsSystemLinuxEbpf)
     add_osquery_library(osquery_utils_system_linux_ebpf EXCLUDE_FROM_ALL ${source_files})
 
     target_link_libraries(osquery_utils_system_linux_ebpf PUBLIC
-      global_cxx_settings
+      osquery_cxx_settings
       osquery_utils_conversions
       osquery_utils_system_linux_perfevent
       osquery_utils_system_cputopology

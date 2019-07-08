@@ -12,7 +12,7 @@ function(generatePluginsKillswitchTestsKillswitchfilesystemplugintestsTest)
   add_osquery_executable(plugins_killswitch_killswitchfilesystemplugintests-test killswitch_filesystem_tests.cpp)
 
   target_link_libraries(plugins_killswitch_killswitchfilesystemplugintests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_database
     osquery_events
