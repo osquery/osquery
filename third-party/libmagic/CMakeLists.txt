@@ -6,22 +6,35 @@
 
 function(libmagicMain)
   set(name "libmagic")
-  set(version "5.32")
 
-  if(DEFINED PLATFORM_LINUX)
-    set(hash "e6c7144360b29d672db7a98cdfe55dc80812c2100b4a111d65f98e78404835aa")
-  elseif(DEFINED PLATFORM_MACOS)
-    set(hash "66efdaf945b8d04751aa337ef0529ded53fcd7e3b85fb8dfd9e4c40a562ffa6d")
-  else()
+  if(DEFINED PLATFORM_WINDOWS)
     add_osquery_library(thirdparty_libmagic INTERFACE)
     return()
   endif()
 
   set(anchor_file "lib/libmagic.a")
 
-  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
+  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
 
   target_link_libraries("thirdparty_${name}" INTERFACE thirdparty_zlib)
+
+  set(dependencies zlib)
+  definePrebuiltProject(${name}
+    URL https://distfiles.macports.org/file/file-5.32.tar.gz
+    SHA256 8639dc4d1b21e232285cd483604afc4a6ee810710e00e579dbe9591681722b50
+    DEPENDS ${dependencies}
+    CONFIGURE
+      ./configure
+        --prefix=<INSTALL_DIR>
+        --enable-fsect-man5
+        --enable-static
+        --disable-shared
+    BUILD
+      $(MAKE)
+    INSTALL
+      $(MAKE) install
+    BUILD_IN_SOURCE ON
+  )
 endfunction()
 
 libmagicMain()

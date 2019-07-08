@@ -1,0 +1,8 @@
+/#define SIZEOF_UNSIGNED_LONG/c
+#ifdef __LP64__
+#define SIZEOF_UNSIGNED_LONG 8
+#else
+#define SIZEOF_UNSIGNED_LONG 4
+#endif
+.
+w

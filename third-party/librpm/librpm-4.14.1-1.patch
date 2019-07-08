@@ -1,0 +1,26 @@
+diff --git a/rpmio/digest_openssl.c b/rpmio/digest_openssl.c
+index 18e52a7..07647f2 100644
+--- a/rpmio/digest_openssl.c
++++ b/rpmio/digest_openssl.c
+@@ -175,9 +175,6 @@ static const EVP_MD *getEVPMD(int hashalgo)
+     case PGPHASHALGO_RIPEMD160:
+         return EVP_ripemd160();
+ 
+-    case PGPHASHALGO_MD2:
+-        return EVP_md2();
+-
+     case PGPHASHALGO_SHA256:
+         return EVP_sha256();
+
+diff --git a/rpmio/rpmio.c b/rpmio/rpmio.c
+index c7cbc32..425d982 100644
+--- a/rpmio/rpmio.c
++++ b/rpmio/rpmio.c
+@@ -725,7 +725,6 @@ static const FDIO_t bzdio = &bzdio_s ;
+ #include <lzma.h>
+ /* Multithreading support in stable API since xz 5.2.0 */
+ #if LZMA_VERSION >= 50020002
+-#define HAVE_LZMA_MT
+ #endif
+ 
+ #define kBufferSize (1 << 15)

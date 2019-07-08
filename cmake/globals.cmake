@@ -55,3 +55,7 @@ set(PACKAGING_SYSTEM "" CACHE STRING "Packaging system to generate when building
 if(DEFINED PLATFORM_WINDOWS)
   set(WIX_ROOT_FOLDER_PATH "" CACHE STRING "Root folder of the WIX installation")
 endif()
+
+# Prebuilt variables
+set(_ep_keywords_definePrebuiltProject "^(URL|SHA256|DEPENDS|PATCHES|CONFIGURE|BUILD|INSTALL|BUILD_IN_SOURCE)$")
+set(REPLACE_CMD "${CMAKE_SOURCE_DIR}/tools/replace.py")

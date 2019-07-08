@@ -6,7 +6,6 @@
 
 function(opensslMain)
   set(name "openssl")
-  set(version "1.0.2o")
 
   set(anchor_file "lib/libssl.a")
 
@@ -14,22 +13,79 @@ function(opensslMain)
     lib/libcrypto.a
   )
 
-  if(DEFINED PLATFORM_LINUX)
-    set(hash "73472b9cf2d050b3cdda404144d28244b52d89b538b82de95acaaa98e282a1ea")
-  elseif(DEFINED PLATFORM_MACOS)
-    set(hash "39c59c34a497b365af0895de2b3e65e89c03f14c846084902ad3a77f943c3457")
-  elseif(DEFINED PLATFORM_WINDOWS)
-    set(hash "71144e5754cb19c32bad2ba298a3cf24e3fde4a012334c622c84e9a8cdc91ef8")
+  if(DEFINED PLATFORM_WINDOWS)
     set(anchor_file "lib/libeay32.lib")
 
     set(additional_lib
       lib/ssleay32.lib
     )
-  else()
-    return()
   endif()
 
-  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}" ${additional_lib})
+  importThirdPartyBinaryLibrary("${name}" "${anchor_file}" ${additional_lib})
+
+  if(DEFINED PLATFORM_MACOS)
+    set(configure_targets
+      darwin64-x86_64-cc
+      enable-ec_nistp_64_gcc_128
+    )
+    set(build_command
+      mkdir -p <INSTALL_DIR>/etc/openssl &&
+      $(MAKE) depend &&
+      $(MAKE)
+    )
+    set(install_command
+      $(MAKE) install
+    )
+  elseif(DEFINED PLATFORM_LINUX)
+    set(configure_targets
+      linux-x86_64
+    )
+    set(build_command
+      mkdir -p <INSTALL_DIR>/etc/openssl &&
+      $(MAKE) depend &&
+      $(MAKE)
+    )
+    set(install_command
+      $(MAKE) install
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(configure_targets
+      VC-WIN64A
+    )
+    set(build_command
+      ms/do_win64a.bat &&
+      nmake -f ms/nt.mak
+    )
+    set(install_command
+      cp out32/ssleay32.lib <INSTALL_DIR>/lib &&
+      cp out32/libeay32.lib <INSTALL_DIR>/lib &&
+      cp -R inc32/openssl <INSTALL_DIR>/include
+    )
+  endif()
+
+  definePrebuiltProject(${name}
+    URL https://www.openssl.org/source/openssl-1.0.2o.tar.gz
+    SHA256 ec3f5c9714ba0fd45cb4e087301eb1336c317e0d20b575a125050470e8089e4d
+    CONFIGURE
+      perl ./Configure --prefix=<INSTALL_DIR>
+        --openssldir=<INSTALL_DIR>/etc/openssl
+        no-ssl2
+        no-ssl3
+        no-asm
+        no-shared
+        no-weak-ssl-ciphers
+        zlib-dynamic
+        enable-cms
+        --with-zlib-include=<INSTALL_DIR>/include
+        --with-zlib-lib=<INSTALL_DIR>/lib
+        "$ENV{CFLAGS}"
+        ${configure_targets}
+    BUILD
+      ${build_command}
+    INSTALL
+      ${install_command}
+    BUILD_IN_SOURCE ON
+  )
 endfunction()
 
 opensslMain()
