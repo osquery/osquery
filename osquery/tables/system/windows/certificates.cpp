@@ -207,8 +207,8 @@ bool isValidSid(const std::string& maybeSid) {
 /// a service name, return the SID corresponding to the service account.
 /// Otherwise simply return the input string.
 std::string getServiceSid(const std::string& serviceNameOrSid) {
-  // This cache assumes a service will not stop, then restart under a different
-  // account while osquery is running.
+  // FIXME: This cache assumes a service will not stop, then restart under a
+  // different account while osquery is running.
   static std::unordered_map<std::string, std::string> service2accountCache;
 
   if (isValidSid(serviceNameOrSid)) {
