@@ -10,12 +10,26 @@ function(libauditMain)
   endif()
 
   set(name "libaudit")
-  set(version "2.4.2")
-  set(hash "4e87a234f68eb8686ab3fa9096ffd664a899efc8e7839c767abd60ac956f6688")
   set(anchor_file "lib/libaudit.a")
 
-  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
+  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
 
+  definePrebuiltProject(${name}
+    URL https://github.com/Distrotech/libaudit/archive/audit-2.4.2.tar.gz
+    SHA256 63020c88b0f37a93438894e67e63ccede23d658277ecc6afb9d40e4043147d3f
+    CONFIGURE
+      touch INSTALL.tmp &&
+      ./autogen.sh &&
+      ./configure
+        --prefix=<INSTALL_DIR>
+        --disable-shared
+        --enable-static
+    BUILD
+      cd lib && $(MAKE)
+    INSTALL
+      cd lib && $(MAKE) install
+    BUILD_IN_SOURCE ON
+  )
 endfunction()
 
 libauditMain()

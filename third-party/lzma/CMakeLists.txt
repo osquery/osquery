@@ -5,15 +5,30 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(lzmaMain)
-  add_osquery_library(thirdparty_lzma INTERFACE)
-
-  if(DEFINED PLATFORM_LINUX)
-    set(library_name "liblzma.a")
-  else()
-    set(library_name "lzma")
+  if(NOT DEFINED PLATFORM_LINUX)
+    return()
   endif()
 
-  target_link_libraries(thirdparty_lzma INTERFACE "${library_name}")
+  set(name "lzma")
+
+  set(anchor_file lib/liblzma.a)
+
+  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
+
+  definePrebuiltProject(${name}
+    URL https://tukaani.org/xz/xz-5.2.4.tar.gz
+    SHA256 b512f3b726d3b37b6dc4c8570e137b9311e7552e8ccbab4d39d47ce5f4177145
+    CONFIGURE
+      ./autogen.sh &&
+      ./configure --prefix=<INSTALL_DIR>
+        --disable-shared
+        --enable-static
+    BUILD
+      $(MAKE)
+    INSTALL
+      $(MAKE) install
+    BUILD_IN_SOURCE ON
+  )
 endfunction()
 
 lzmaMain()

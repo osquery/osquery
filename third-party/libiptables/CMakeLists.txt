@@ -10,8 +10,6 @@ function(libiptablesMain)
   endif()
 
   set(name "libiptables")
-  set(version "1.8.0")
-  set(hash "f32841cca13b8273f767d859b6c98f6fe7fea05cfc835ff192c794a5d417ba26")
   set(anchor_file "lib/libip4tc.a")
 
   set(additional_libraries
@@ -19,7 +17,24 @@ function(libiptablesMain)
     lib/libiptc.a
   )
 
-  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}" ${additional_libraries})
+  importThirdPartyBinaryLibrary("${name}" "${anchor_file}" ${additional_libraries})
+
+  definePrebuiltProject(${name}
+    URL https://ftp.osuosl.org/pub/blfs/conglomeration/iptables/iptables-1.8.3.tar.bz2
+    SHA256 a23cac034181206b4545f4e7e730e76e08b5f3dd78771ba9645a6756de9cdd80
+    DEPENDS ${dependencies}
+    CONFIGURE
+      ./configure
+        --prefix=<INSTALL_DIR>
+        --disable-nftables
+        --disable-shared
+    BUILD
+      cd libiptc && $(MAKE)
+    INSTALL
+      cd <SOURCE_DIR>/libiptc && $(MAKE) install &&
+      cd <SOURCE_DIR>/include && $(MAKE) install
+    BUILD_IN_SOURCE ON
+  )
 endfunction()
 
 libiptablesMain()

@@ -1,0 +1,22 @@
+diff --git a/Makefile.in b/Makefile.in
+index a62c841..a92187a 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -172,7 +172,7 @@ rpm_DEPENDENCIES = libcliutils.la lib/librpm.la rpmio/librpmio.la
+ am_rpm2archive_OBJECTS = rpm2archive.$(OBJEXT)
+ rpm2archive_OBJECTS = $(am_rpm2archive_OBJECTS)
+ rpm2archive_DEPENDENCIES = lib/librpm.la rpmio/librpmio.la
+-am_rpm2cpio_OBJECTS = rpm2cpio.$(OBJEXT)
++am_rpm2cpio_OBJECTS = rpm2cpio.$(OBJEXT) lib/poptALL.$(OBJEXT) lib/poptQV.$(OBJEXT)
+ rpm2cpio_OBJECTS = $(am_rpm2cpio_OBJECTS)
+ rpm2cpio_DEPENDENCIES = lib/librpm.la rpmio/librpmio.la
+ am_rpmbuild_OBJECTS = rpmbuild-rpmbuild.$(OBJEXT)
+@@ -196,7 +196,7 @@ am_rpmsign_OBJECTS = rpmsign-rpmsign.$(OBJEXT)
+ rpmsign_OBJECTS = $(am_rpmsign_OBJECTS)
+ rpmsign_DEPENDENCIES = libcliutils.la sign/librpmsign.la lib/librpm.la \
+ 	rpmio/librpmio.la
+-am_rpmspec_OBJECTS = rpmspec-rpmspec.$(OBJEXT)
++am_rpmspec_OBJECTS = rpmspec-rpmspec.$(OBJEXT) lib/poptQV.$(OBJEXT)
+ rpmspec_OBJECTS = $(am_rpmspec_OBJECTS)
+ rpmspec_DEPENDENCIES = libcliutils.la build/librpmbuild.la \
+ 	lib/librpm.la rpmio/librpmio.la

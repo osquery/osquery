@@ -1,0 +1,13 @@
+diff --git a/configure.ac b/configure.ac
+index 5230efe..d639e14 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -91,7 +91,7 @@ AUGEAS_COMPILE_WARNINGS(maximum)
+ AUGEAS_CFLAGS=-std=gnu99
+ AC_SUBST(AUGEAS_CFLAGS)
+
+-AUGEAS_CHECK_READLINE
++# AUGEAS_CHECK_READLINE
+ AC_CHECK_FUNCS([open_memstream uselocale])
+
+ AC_MSG_CHECKING([how to pass version script to the linker ($LD)])

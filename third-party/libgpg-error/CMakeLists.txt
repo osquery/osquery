@@ -10,11 +10,24 @@ function(libgpgerrorMain)
   endif()
 
   set(name "libgpg-error")
-  set(version "1.27")
-  set(hash "6976db62b22844015e934f7225b236c8c4851c515815efa9967575eadd6dabf5")
   set(anchor_file "lib/libgpg-error.a")
 
-  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
+  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
+
+  definePrebuiltProject(${name}
+    URL https://gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2
+    SHA256 4f93aac6fecb7da2b92871bb9ee33032be6a87b174f54abf8ddf0911a22d29d2
+    CONFIGURE
+      ./configure
+        --prefix=<INSTALL_DIR>
+        --disable-shared
+        --enable-static
+    BUILD
+      $(MAKE)
+    INSTALL
+      $(MAKE) install
+    BUILD_IN_SOURCE ON
+  )
 endfunction()
 
 libgpgerrorMain()

@@ -6,22 +6,35 @@
 
 function(zlibMain)
   set(name "zlib")
-  set(version "1.2.11")
-
   set(anchor_file "lib/libz.a")
 
-  if(DEFINED PLATFORM_LINUX)
-    set(hash "c6dfd85ce6c440fbaead6d4a3246d7771ed2b9b9f9e8c43257f57e0881d390e9")
-  elseif(DEFINED PLATFORM_MACOS)
-    set(hash "7f9b44ca67eadb2c6dcf6b86688cb759b77b772858dae2a2380c032c7c1d9edd")
-  elseif(DEFINED PLATFORM_WINDOWS)
-    set(hash "1685157a99c419e5150cc5f44a61ad1a1f5ddf414bf1a451ed9b6c7faf26d4bc")
+  if(DEFINED PLATFORM_WINDOWS)
     set(anchor_file "lib/zlibstatic.lib")
-  else()
-    return()
   endif()
 
-  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
+  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
+
+  if (DEFINED PLATFORM_WINDOWS)
+    set(configure_options
+      -DCMAKE_C_FLAGS_RELEASE:STRING=/MT\ /O2\ /Ob2\ /DNDEBUG
+    )
+  endif()
+
+  definePrebuiltProject(${name}
+    URL https://downloads.sourceforge.net/project/libpng/zlib/1.2.11/zlib-1.2.11.tar.gz
+    SHA256 c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1
+    DEPENDS ${dependencies}
+    CONFIGURE
+      cmake
+        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+        -DBUILD_SHARED_LIBS=OFF
+        ${configure_options}
+        <SOURCE_DIR>
+    BUILD
+      cmake --build . --config Release
+    INSTALL
+      cmake --build . --config Release --target install
+  )
 endfunction()
 
 zlibMain()

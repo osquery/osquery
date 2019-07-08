@@ -1,0 +1,22 @@
+diff --git a/src/tinycthread.c b/src/tinycthread.c
+index 0049db3..9b186a3 100644
+--- a/src/tinycthread.c
++++ b/src/tinycthread.c
+@@ -921,7 +921,7 @@ int _tthread_timespec_get(struct timespec *ts, int base)
+ {
+ #if defined(_TTHREAD_WIN32_)
+   struct _timeb tb;
+-#elif !defined(CLOCK_REALTIME)
++#elif !defined(CLOCK_REALTIME) || defined(__APPLE__)
+   struct timeval tv;
+ #endif
+
+@@ -934,7 +934,7 @@ int _tthread_timespec_get(struct timespec *ts, int base)
+   _ftime_s(&tb);
+   ts->tv_sec = (time_t)tb.time;
+   ts->tv_nsec = 1000000L * (long)tb.millitm;
+-#elif defined(CLOCK_REALTIME)
++#elif defined(CLOCK_REALTIME) && !defined(__APPLE__)
+   base = (clock_gettime(CLOCK_REALTIME, ts) == 0) ? base : 0;
+ #else
+   gettimeofday(&tv, NULL);
