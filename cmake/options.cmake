@@ -26,3 +26,7 @@ option(BUILD_TESTING "Whether to enable and build tests or not")
 if("${THIRD_PARTY_REPOSITORY_URL}" STREQUAL "")
   set(THIRD_PARTY_REPOSITORY_URL "https://s3.amazonaws.com/osquery-packages")
 endif()
+
+if("${THIRD_PARTY_PREBUILT_PATH}" STREQUAL "")
+  set(THIRD_PARTY_PREBUILT_PATH "${CMAKE_SOURCE_DIR}/third-party-prebuilt")
+endif()
