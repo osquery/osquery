@@ -332,6 +332,8 @@ function(generateOsqueryTablesSystemSystemtable)
       osquery_tables_system_tests_startupitemstests-test
       PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
     )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    add_test(NAME osquery_tables_system_tests_certificatestests-test COMMAND osquery_tables_system_tests_certificatestests-test)
   endif()
 
   add_test(NAME osquery_tables_system_tests_systemtablestests-test COMMAND osquery_tables_system_tests_systemtablestests-test)
