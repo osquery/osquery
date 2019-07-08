@@ -24,7 +24,7 @@ function(osqueryTablesSystemTestsMain)
   if(DEFINED PLATFORM_MACOS)
     generateOsqueryTablesSystemTestsAppstestsTest()
     generateOsqueryTablesSystemTestsAsltestsTest()
-    generateOsqueryTablesSystemTestsCertificatestestsTest()
+    generateOsqueryTablesSystemTestsMacOsCertificatestestsTest()
     generateOsqueryTablesSystemTestsExtendedattributestestsTest()
     generateOsqueryTablesSystemTestsFirewalltestsTest()
     generateOsqueryTablesSystemTestsLaunchdtestsTest()
@@ -36,7 +36,7 @@ function(osqueryTablesSystemTestsMain)
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
-    generateOsqueryTablesSystemTestsCertificatestestsTest()
+    generateOsqueryTablesSystemTestsWindowsCertificatestestsTest()
   endif()
 endfunction()
 
@@ -231,7 +231,7 @@ function(generateOsqueryTablesSystemTestsAsltestsTest)
   )
 endfunction()
 
-function(generateOsqueryTablesSystemTestsCertificatestestsTest)
+function(generateOsqueryTablesSystemTestsMacOsCertificatestestsTest)
   add_osquery_executable(osquery_tables_system_tests_certificatestests-test darwin/certificates_tests.cpp)
 
   target_link_libraries(osquery_tables_system_tests_certificatestests-test PRIVATE
@@ -407,7 +407,7 @@ function(generateOsqueryTablesSystemTestsSignaturetestsTest)
   )
 endfunction()
 
-function(generateOsqueryTablesSystemTestsCertificatestestsTest)
+function(generateOsqueryTablesSystemTestsWindowsCertificatestestsTest)
   add_osquery_executable(osquery_tables_system_tests_certificatestests-test windows/certificates_tests.cpp)
 
   target_link_libraries(osquery_tables_system_tests_certificatestests-test PRIVATE
