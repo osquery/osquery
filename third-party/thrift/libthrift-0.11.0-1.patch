@@ -1,0 +1,37 @@
+diff --git a/lib/cpp/src/thrift/transport/TServerSocket.cpp b/lib/cpp/src/thrift/transport/TServerSocket.cpp
+index 87b6383..447c89d 100644
+--- a/lib/cpp/src/thrift/transport/TServerSocket.cpp
++++ b/lib/cpp/src/thrift/transport/TServerSocket.cpp
+@@ -584,6 +584,12 @@ shared_ptr<TTransport> TServerSocket::acceptImpl() {
+         // a certain number
+         continue;
+       }
++
++      // Special case because we expect setuid syscalls in other threads.
++      if (THRIFT_GET_SOCKET_ERROR == EINTR) {
++        continue;
++      }
++
+       int errno_copy = THRIFT_GET_SOCKET_ERROR;
+       GlobalOutput.perror("TServerSocket::acceptImpl() THRIFT_POLL() ", errno_copy);
+       throw TTransportException(TTransportException::UNKNOWN, "Unknown", errno_copy);
+diff --git a/configure.ac b/configure.ac
+index 6a7a1a5..8b4ddc2 100755
+--- a/configure.ac
++++ b/configure.ac
+@@ -307,12 +307,14 @@ AM_CONDITIONAL(WITH_TWISTED_TEST, [test "$have_trial" = "yes"])
+ # It's distro specific and far from ideal but needed to cross test py2-3 at once.
+ # TODO: find "python2" if it's 3.x
+ have_py3="no"
++if test "$with_py3" = "yes";  then
+ if python --version 2>&1 | grep -q "Python 2"; then
+   AC_PATH_PROGS([PYTHON3], [python3 python3.5 python35 python3.4 python34])
+   if test -n "$PYTHON3"; then
+     have_py3="yes"
+   fi
+ fi
++fi
+ AM_CONDITIONAL(WITH_PY3, [test "$have_py3" = "yes"])
+ 
+ AX_THRIFT_LIB(perl, [Perl], yes)
+

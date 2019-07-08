@@ -6,26 +6,53 @@
 
 function(rocksdbMain)
   set(name "rocksdb")
-  set(version "5.7.2")
 
   set(anchor_file "lib/librocksdb_lite.a")
 
-  if(DEFINED PLATFORM_LINUX)
-    set(hash "12c8abadd96ae8ac38327e8b30c195c18f30001025f400efcac82053057d9834")
-  elseif(DEFINED PLATFORM_MACOS)
-    set(hash "95b161e7d3def2d4f9241c57061ea1cab4f64e51f0015db490ef99eff890354d")
-  elseif(DEFINED PLATFORM_WINDOWS)
-    set(hash "2c6d47cbc32063e420965c4949832d1c5f253da282949f81d9de4d1faeb00fa8")
-    set(anchor_file "lib/rocksdb.lib")
-  else()
-    return()
+  if(DEFINED PLATFORM_WINDOWS)
+    set(anchor_file "lib/rocksdb_lite.lib")
   endif()
 
-  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
+  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
 
   target_link_libraries("thirdparty_${name}" INTERFACE thirdparty_bzip2)
   target_compile_definitions("thirdparty_${name}" INTERFACE -DROCKSDB_LITE=1)
 
+  if(DEFINED PLATFORM_WINDOWS)
+    set(lib_name rocksdb.lib)
+    set(lib_target rocksdb_lite.lib)
+    set(configure_options
+      -DROCKSDB_INSTALL_ON_WINDOWS=ON
+      -DCMAKE_CXX_FLAGS_RELEASE:STRING=/MT\ /O2\ /Ob2\ /DNDEBUG
+    )
+  else()
+    set(lib_name librocksdb.a)
+    set(lib_target librocksdb_lite.a)
+  endif()
+
+  definePrebuiltProject(${name}
+    URL https://github.com/facebook/rocksdb/archive/v6.1.2.tar.gz
+    SHA256 df93f3b66caa1cbe1c2862c99c33e18a5c5b24a64fb51dfe8ef805e3c9fd1cad
+    CONFIGURE
+      cmake
+        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+        -DROCKSDB_LITE=ON
+        -DWITH_GFLAGS=OFF
+        -DWITH_RUNTIME_DEBUG=OFF
+        -DWITH_TESTS=OFF
+        -DWITH_TOOLS=OFF
+        -DUSE_RTTI=OFF
+        -DPORTABLE=ON
+        -DFAIL_ON_WARNINGS=OFF
+        -DWITH_MD_LIBRARY=OFF
+        ${configure_options}
+        <SOURCE_DIR>
+    BUILD
+      cmake --build . --config Release
+    INSTALL
+      cmake --build . --config Release --target install &&
+      mv <INSTALL_DIR>/lib/${lib_name} <INSTALL_DIR>/lib/${lib_target}
+  )
 endfunction()
 
 rocksdbMain()

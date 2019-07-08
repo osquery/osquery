@@ -22,6 +22,14 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
+// librpm may be configured and compiled with glibc < 2.17.
+#if defined(__GLIBC__) && __GLIBC_MINOR__ > 17
+extern "C" char* __secure_getenv(const char* _s) __attribute__((weak));
+extern "C" char* __secure_getenv(const char* _s) {
+  return secure_getenv(_s);
+}
+#endif
+
 namespace osquery {
 namespace tables {
 

@@ -6,22 +6,30 @@
 
 function(zstdMain)
   set(name "zstd")
-  set(version "1.2.0")
-
   set(anchor_file "lib/libzstd.a")
 
-  if(DEFINED PLATFORM_LINUX)
-    set(hash "f9397aeea5816a7cabd0e7040be86e569d2ffd84832a2e3c4e4bda224d6e42a5")
-  elseif(DEFINED PLATFORM_MACOS)
-    set(hash "4cd66f8c05f735ccf6c1457116ddb4cb2b1b0260458bb3c1476475721c9d70d9")
-  elseif(DEFINED PLATFORM_WINDOWS)
-    set(hash "c214705dfd057b2e9b9e613c88131ccfde22c2f43787af37828ccf3f9bec918d")
-    set(anchor_file "lib/libzstd.lib")
-  else()
-    return()
+  if(DEFINED PLATFORM_WINDOWS)
+    set(anchor_file "lib/zstd_static.lib")
   endif()
 
-  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
+  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
+
+  definePrebuiltProject(${name}
+    URL https://github.com/facebook/zstd/releases/download/v1.4.0/zstd-1.4.0.tar.gz
+    SHA256 7f323f0e0c18488748f3d9b2d4353f00e904ea2ccd0372ea04d7f77aa1156557
+    CONFIGURE
+      cmake
+        -DZSTD_USE_STATIC_RUNTIME=ON
+        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+        -DCMAKE_BUILD_TYPE=Release
+        -DBUILD_SHARED_LIBS=OFF
+        -DZSTD_BUILD_SHARED=OFF
+        <SOURCE_DIR>/build/cmake
+    BUILD
+      cmake --build . --config Release
+    INSTALL
+      cmake --build . --config Release --target install
+  )
 endfunction()
 
 zstdMain()

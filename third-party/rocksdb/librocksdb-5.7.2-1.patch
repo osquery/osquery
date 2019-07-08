@@ -1,0 +1,23 @@
+diff --git a/build_tools/build_detect_platform b/build_tools/build_detect_platform
+index 440c6a5..1888eaa 100755
+--- a/build_tools/build_detect_platform
++++ b/build_tools/build_detect_platform
+@@ -216,7 +216,7 @@ EOF
+       #include <snappy.h>
+       int main() {}
+ EOF
+-    if [ "$?" = 0 ]; then
++    if [ 1 = 0 ]; then
+         COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
+         PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
+         JAVA_LDFLAGS="$JAVA_LDFLAGS -lsnappy"
+@@ -274,7 +274,7 @@ EOF
+       #include <lz4hc.h>
+       int main() {}
+ EOF
+-    if [ "$?" = 0 ]; then
++    if [ 1 = 0 ]; then
+         COMMON_FLAGS="$COMMON_FLAGS -DLZ4"
+         PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -llz4"
+         JAVA_LDFLAGS="$JAVA_LDFLAGS -llz4"
+

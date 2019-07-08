@@ -10,8 +10,6 @@ function(libdevmapperMain)
   endif()
 
   set(name "libdevmapper")
-  set(version "2.2.02.173")
-  set(hash "54fc7a991f42e3693fa3aa9cafe39f0b65a6fe29620f3146fd05f1a1f1bf1eae")
   set(anchor_file "lib/liblvm2app.a")
 
   set(additional_libraries
@@ -20,7 +18,32 @@ function(libdevmapperMain)
     lib/libdaemonclient.a
   )
 
-  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}" ${additional_libraries})
+  importThirdPartyBinaryLibrary("${name}" "${anchor_file}" ${additional_libraries})
+
+  set(dependencies util-linux)
+  definePrebuiltProject(${name}
+    URL https://www.mirrorservice.org/sites/sourceware.org/pub/lvm2/old/LVM2.2.02.173.tgz
+    SHA256 ceb9168c7e009ef487f96a1fe969b23cbb07d920ffb71769affdbdf30fea8d64
+    DEPENDS ${dependencies}
+    CONFIGURE
+      export VALGRIND_CFLAGS=-fPIC\ -I/usr/include/valgrind &&
+      ./configure
+        --prefix=<INSTALL_DIR>
+        --with-lvm1=none
+        --disable-selinux
+        --disable-readline
+        --enable-static_link
+    BUILD
+      $(MAKE) libdm.device-mapper &&
+      cd <SOURCE_DIR>/libdm && $(MAKE) install &&
+      cd <SOURCE_DIR>/lib && $(MAKE) &&
+      cd <SOURCE_DIR>/libdaemon && $(MAKE) &&
+      cd <SOURCE_DIR>/liblvm && $(MAKE) install
+    INSTALL
+      cp <SOURCE_DIR>/lib/liblvm-internal.a <INSTALL_DIR>/lib &&
+      cp <SOURCE_DIR>/libdaemon/client/libdaemonclient.a <INSTALL_DIR>/lib
+    BUILD_IN_SOURCE ON
+  )
 endfunction()
 
 libdevmapperMain()

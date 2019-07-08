@@ -10,13 +10,28 @@ function(libdpkgMain)
   endif()
 
   set(name "libdpkg")
-  set(version "1.19.0.5")
-  set(hash "9bd06978cf7caaa68bd607ac817c2fd0f436659a9620f6e8bf0281c4f3106799")
   set(anchor_file "lib/libdpkg.a")
 
-  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
+  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
 
   target_link_libraries("thirdparty_${name}" INTERFACE thirdparty_zlib)
+
+  set(dependencies zlib bzip2 lzma)
+  definePrebuiltProject(${name}
+    URL https://launchpad.net/debian/+archive/primary/+sourcefiles/dpkg/1.19.0.5/dpkg_1.19.0.5.tar.xz
+    SHA256 818046927a7f77c1bcbbad7d8dbc04cdf0f3e6ec4e1a4f9d313378ecc69d85b5
+    DEPENDS ${dependencies}
+    CONFIGURE
+      ./configure
+        --prefix=<INSTALL_DIR>
+        --disable-dselect
+        --disable-start-stop-daemon
+    BUILD
+      cd lib && $(MAKE)
+    INSTALL
+      cd lib && $(MAKE) install
+    BUILD_IN_SOURCE ON
+  )
 endfunction()
 
 libdpkgMain()
