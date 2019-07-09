@@ -5,7 +5,17 @@ jobs:
 
 # LINUX
 
-  - job: Linux
+  - job: LinuxBuild
+    displayName: Linux
+
+    strategy:
+      matrix:
+        Release:
+          BUILD_TYPE: Release
+          EXTRA_CMAKE_ARGS:
+        Debug:
+          BUILD_TYPE: Debug
+          EXTRA_CMAKE_ARGS: -DOSQUERY_NO_DEBUG_SYMBOLS=ON
 
     pool:
       vmImage: 'Ubuntu-16.04'
@@ -22,7 +32,13 @@ jobs:
       displayName: "Configure osquery"
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DBUILD_TESTING=ON $(Build.SourcesDirectory)
+        cmakeArgs:
+          -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
+          -DCMAKE_C_COMPILER=clang
+          -DCMAKE_CXX_COMPILER=clang++
+          -DBUILD_TESTING=ON
+          $(EXTRA_CMAKE_ARGS)
+          $(Build.SourcesDirectory)
 
     - task: CMake@1
       displayName: "Check code formatting"
@@ -41,11 +57,49 @@ jobs:
       displayName: "Run tests"
       workingDirectory: $(Build.BinariesDirectory)/build
 
+    - script: |
+        echo "##vso[task.setvariable variable=Status;isOutput=true]1"
+      name: JobResult
+
+
+  - job: Linux
+
+    pool:
+      vmImage: 'Ubuntu-16.04'
+
+    condition: succeededOrFailed()
+
+    dependsOn:
+      - LinuxBuild
+
+    variables:
+      LinuxReleaseStatus: $[ dependencies.LinuxBuild.outputs['Release.JobResult.Status'] ]
+      LinuxDebugStatus: $[ dependencies.LinuxBuild.outputs['Debug.JobResult.Status'] ]
+
+    steps:
+    - checkout: none
+
+    - script: |
+        if [ -z "$(LinuxReleaseStatus)" ] || [ -z "$(LinuxDebugStatus)" ]; then
+          exit 1
+        fi
+      displayName: "Detect Linux Release and Debug build status"
+
 # LINUX
 
 # MACOS
 
-  - job: macOS
+  - job: macOSBuild
+    displayName: macOS
+
+    strategy:
+      matrix:
+        Release:
+          BUILD_TYPE: Release
+          EXTRA_CMAKE_ARGS:
+        Debug:
+          BUILD_TYPE: Debug
+          EXTRA_CMAKE_ARGS: -DOSQUERY_NO_DEBUG_SYMBOLS=ON
 
     pool:
       vmImage: macos-10.14
@@ -64,7 +118,7 @@ jobs:
       displayName: "Configure osquery"
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON $(Build.SourcesDirectory)
+        cmakeArgs: -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DBUILD_TESTING=ON $(EXTRA_CMAKE_ARGS) $(Build.SourcesDirectory)
 
     - task: CMake@1
       displayName: "Build osquery"
@@ -76,6 +130,34 @@ jobs:
         ctest --build-nocmake -V
       displayName: "Run tests"
       workingDirectory: $(Build.BinariesDirectory)/build
+
+    - script: |
+        echo "##vso[task.setvariable variable=Status;isOutput=true]1"
+      name: JobResult
+
+
+  - job: macOS
+
+    pool:
+      vmImage: 'Ubuntu-16.04'
+
+    condition: succeededOrFailed()
+
+    dependsOn:
+      - macOSBuild
+
+    variables:
+      macOSReleaseStatus: $[ dependencies.macOSBuild.outputs['Release.JobResult.Status'] ]
+      macOSDebugStatus: $[ dependencies.macOSBuild.outputs['Debug.JobResult.Status'] ]
+
+    steps:
+    - checkout: none
+
+    - script: |
+        if [ -z "$(macOSReleaseStatus)" ] || [ -z "$(macOSDebugStatus)" ]; then
+          exit 1
+        fi
+      displayName: "Detect macOS Release and Debug build status"
 
 # MACOS
 
