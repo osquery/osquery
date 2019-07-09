@@ -30,7 +30,16 @@ TableRows ATCPlugin::generate(QueryContext& context) {
     LOG(WARNING) << "Could not glob: " << path_;
   }
   for (const auto& path : paths) {
-    s = genTableRowsForSqliteTable(path, sqlite_query_, result, false);
+    s = getSqliteJournalMode(path);
+    bool preserve_locking = false;
+    if (!s.ok()) {
+      VLOG(1)
+          << "Unable to detect journal mode, applying default locking policy";
+    } else {
+      preserve_locking = s.getMessage() == "wal";
+    }
+    s = genTableRowsForSqliteTable(
+        path, sqlite_query_, result, preserve_locking);
     if (!s.ok()) {
       LOG(WARNING) << "Error Code: " << s.getCode()
                    << " Could not generate data: " << s.getMessage();
