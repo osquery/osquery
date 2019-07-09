@@ -56,7 +56,9 @@ jobs:
     pool:
       vmImage: 'Ubuntu-16.04'
 
-    container: trailofbits/osql-experimental:ubuntu-18.04
+    container:
+      image: trailofbits/osql-experimental:ubuntu-18.04
+      options: --privileged
 
     steps:
     - script: mkdir $(Build.BinariesDirectory)/build
