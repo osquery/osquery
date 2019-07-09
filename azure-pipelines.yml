@@ -5,7 +5,17 @@ jobs:
 
 # LINUX
 
-  - job: LinuxRelease
+  - job: LinuxBuild
+    displayName: Linux
+
+    strategy:
+      matrix:
+        Release:
+          BUILD_TYPE: Release
+          EXTRA_CMAKE_ARGS:
+        Debug:
+          BUILD_TYPE: Debug
+          EXTRA_CMAKE_ARGS: -DOSQUERY_NO_DEBUG_SYMBOLS=ON
 
     pool:
       vmImage: 'Ubuntu-16.04'
@@ -23,10 +33,11 @@ jobs:
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs:
-          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
           -DCMAKE_C_COMPILER=clang
           -DCMAKE_CXX_COMPILER=clang++
           -DBUILD_TESTING=ON
+          $(EXTRA_CMAKE_ARGS)
           $(Build.SourcesDirectory)
 
     - task: CMake@1
@@ -34,47 +45,6 @@ jobs:
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . --target format_check
-
-    - task: CMake@1
-      displayName: "Build osquery"
-      inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: --build . -j 3
-
-    - script: |
-        ctest --build-nocmake -V
-      displayName: "Run tests"
-      workingDirectory: $(Build.BinariesDirectory)/build
-
-    - script: |
-        echo "##vso[task.setvariable variable=Status;isOutput=true]1"
-      name: JobResult
-
-
-  - job: LinuxDebug
-
-    pool:
-      vmImage: 'Ubuntu-16.04'
-
-    container:
-      image: trailofbits/osql-experimental:ubuntu-18.04
-      options: --privileged
-
-    steps:
-    - script: mkdir $(Build.BinariesDirectory)/build
-      displayName: "Create build folder"
-
-    - task: CMake@1
-      displayName: "Configure osquery"
-      inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs:
-          -DCMAKE_BUILD_TYPE=Debug
-          -DCMAKE_C_COMPILER=clang
-          -DCMAKE_CXX_COMPILER=clang++
-          -DBUILD_TESTING=ON
-          -DOSQUERY_NO_DEBUG_SYMBOLS=ON
-          $(Build.SourcesDirectory)
 
     - task: CMake@1
       displayName: "Build osquery"
@@ -100,12 +70,11 @@ jobs:
     condition: succeededOrFailed()
 
     dependsOn:
-      - LinuxRelease
-      - LinuxDebug
+      - LinuxBuild
 
     variables:
-      LinuxReleaseStatus: $[ dependencies.LinuxRelease.outputs['JobResult.Status'] ]
-      LinuxDebugStatus: $[ dependencies.LinuxDebug.outputs['JobResult.Status'] ]
+      LinuxReleaseStatus: $[ dependencies.LinuxBuild.outputs['Release.JobResult.Status'] ]
+      LinuxDebugStatus: $[ dependencies.LinuxBuild.outputs['Debug.JobResult.Status'] ]
 
     steps:
     - checkout: none
@@ -120,7 +89,17 @@ jobs:
 
 # MACOS
 
-  - job: macOSRelease
+  - job: macOSBuild
+    displayName: macOS
+
+    strategy:
+      matrix:
+        Release:
+          BUILD_TYPE: Release
+          EXTRA_CMAKE_ARGS:
+        Debug:
+          BUILD_TYPE: Debug
+          EXTRA_CMAKE_ARGS: -DOSQUERY_NO_DEBUG_SYMBOLS=ON
 
     pool:
       vmImage: macos-10.14
@@ -139,44 +118,7 @@ jobs:
       displayName: "Configure osquery"
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON $(Build.SourcesDirectory)
-
-    - task: CMake@1
-      displayName: "Build osquery"
-      inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: --build . -j 3
-
-    - script: |
-        ctest --build-nocmake -V
-      displayName: "Run tests"
-      workingDirectory: $(Build.BinariesDirectory)/build
-
-    - script: |
-        echo "##vso[task.setvariable variable=Status;isOutput=true]1"
-      name: JobResult
-
-
-  - job: macOSDebug
-
-    pool:
-      vmImage: macos-10.14
-
-    steps:
-    - script: |
-        brew upgrade
-        brew install ccache
-      displayName: "Install Homebrew and prerequisites"
-      timeoutInMinutes: 20
-
-    - script: mkdir $(Build.BinariesDirectory)/build
-      displayName: "Create build folder"
-
-    - task: CMake@1
-      displayName: "Configure osquery"
-      inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DOSQUERY_NO_DEBUG_SYMBOLS=ON $(Build.SourcesDirectory)
+        cmakeArgs: -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DBUILD_TESTING=ON $(EXTRA_CMAKE_ARGS) $(Build.SourcesDirectory)
 
     - task: CMake@1
       displayName: "Build osquery"
@@ -202,12 +144,11 @@ jobs:
     condition: succeededOrFailed()
 
     dependsOn:
-      - macOSRelease
-      - macOSDebug
+      - macOSBuild
 
     variables:
-      macOSReleaseStatus: $[ dependencies.macOSRelease.outputs['JobResult.Status'] ]
-      macOSDebugStatus: $[ dependencies.macOSDebug.outputs['JobResult.Status'] ]
+      macOSReleaseStatus: $[ dependencies.macOSBuild.outputs['Release.JobResult.Status'] ]
+      macOSDebugStatus: $[ dependencies.macOSBuild.outputs['Debug.JobResult.Status'] ]
 
     steps:
     - checkout: none
