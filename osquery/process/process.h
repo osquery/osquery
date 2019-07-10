@@ -28,8 +28,10 @@ namespace osquery {
 /// Constant for an invalid process
 const auto kInvalidPid = (PlatformPidType)-1;
 
+#ifdef OSQUERY_WINDOWS
 /// Used by Windows to wait on the main execution thread
-extern unsigned long kLegacyThreadId;
+extern DWORD kLegacyThreadId;
+#endif
 
 /**
  * @brief Categories of process states adapted to be platform agnostic
@@ -206,7 +208,7 @@ class SecurityDescriptor {
 #endif
 
 /// Returns the current user's ID (UID on POSIX systems and RID for Windows)
-int platformGetUid();
+uint32_t platformGetUid();
 
 inline void sleepFor(size_t msec) {
   std::chrono::milliseconds mduration(msec);
@@ -265,7 +267,7 @@ int platformGetPid();
  * On Windows, returns the value of GetCurrentThreadId
  * and on posix platforms returns gettid()
  */
-int platformGetTid();
+uint64_t platformGetTid();
 
 /**
  * @brief Allows for platform specific exit logic

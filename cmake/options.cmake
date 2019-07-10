@@ -17,6 +17,10 @@ option(BUILD_SHARED_LIBS "Whether to build shared libraries (like *.dll or *.so)
 
 option(ADD_HEADERS_AS_SOURCES "Whether to add headers as sources of a target or not. This is needed for some IDEs which wouldn't detect headers properly otherwise")
 
+option(OSQUERY_NO_DEBUG_SYMBOLS "Whether to build without debug symbols or not, even if a build type that normally have them has been selected")
+
+option(BUILD_TESTING "Whether to enable and build tests or not")
+
 # This is the default S3 storage used by Facebook to store 3rd party dependencies; it
 # is provided here as a configuration option
 if("${THIRD_PARTY_REPOSITORY_URL}" STREQUAL "")

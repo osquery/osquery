@@ -132,8 +132,14 @@ function(generateGlobalSettingsTargets)
       gdi32.lib
     )
   else()
+    if(OSQUERY_NO_DEBUG_SYMBOLS)
+      set(debug_level -g0)
+    else()
+      set(debug_level -g)
+    endif()
+
     if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-      target_compile_options(global_settings INTERFACE -gdwarf-2 -g3)
+      target_compile_options(global_settings INTERFACE ${debug_level})
     endif()
 
     if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")

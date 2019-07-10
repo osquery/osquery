@@ -26,7 +26,7 @@ namespace osquery {
 
 DECLARE_uint64(alarm_timeout);
 
-int platformGetUid() {
+uint32_t platformGetUid() {
   return ::getuid();
 }
 
@@ -67,7 +67,7 @@ int platformGetPid() {
   return static_cast<int>(getpid());
 }
 
-int platformGetTid() {
+uint64_t platformGetTid() {
   return std::hash<std::thread::id>()(std::this_thread::get_id());
 }
 

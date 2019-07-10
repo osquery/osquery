@@ -63,8 +63,9 @@ void processLocalGroups(QueryData& results) {
         r["comment"] = wstringToString(lginfo[i].lgrpi1_comment);
 
         // Common schema, normalizing group information with POSIX:
-        r["gid"] = INTEGER(getRidFromSid(sidPtr));
-        r["gid_signed"] = INTEGER(getRidFromSid(sidPtr));
+        auto rid = getRidFromSid(sidPtr);
+        r["gid"] = BIGINT(rid);
+        r["gid_signed"] = INTEGER(rid);
         r["groupname"] = wstringToString(lginfo[i].lgrpi1_name);
         results.push_back(r);
       } else {
