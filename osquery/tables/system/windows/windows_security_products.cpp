@@ -181,13 +181,14 @@ QueryData gen_wsp(QueryContext& context) {
   // Use this to convert std::wstring into std::string
   for (const auto& product : products) {
     Row r;
-    r["type"] =
-      tryTakeCopy(kSecurityProviders, product.provider).takeOr(std::string("Unknown"));
+    r["type"] = tryTakeCopy(kSecurityProviders, product.provider)
+                    .takeOr(std::string("Unknown"));
     r["name"] = wstringToString(product.product_name.c_str());
-    r["state_timestamp"] = wstringToString(product.product_state_timestamp.c_str());
+    r["state_timestamp"] =
+        wstringToString(product.product_state_timestamp.c_str());
     r["remediation_path"] = wstringToString(product.remediation_path.c_str());
     r["state"] = tryTakeCopy(kSecurityProviderStates, product.product_state)
-      .takeOr(std::string("Unknown"));
+                     .takeOr(std::string("Unknown"));
     r["signatures_up_to_date"] =
         INTEGER(product.signature_status == WSC_SECURITY_PRODUCT_UP_TO_DATE);
     results.push_back(r);

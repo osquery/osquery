@@ -26,12 +26,12 @@ TEST_F(WindowsSecurityProductsTest, test_sanity) {
   auto const data = execute_query("select * from windows_security_products");
 
   ValidatatioMap row_map = {
-    {"type", SpecificValuesCheck{"Firewall", "Antivirus", "Antispyware"}},
-    {"name", NonEmptyString},
-    {"state", SpecificValuesCheck{"On", "Off", "Snoozed", "Expired"}},
-    {"state_timestamp", NormalType},
-    {"remediation_path", NormalType},
-    {"signatures_up_to_date", IntType},
+      {"type", SpecificValuesCheck{"Firewall", "Antivirus", "Antispyware"}},
+      {"name", NonEmptyString},
+      {"state", SpecificValuesCheck{"On", "Off", "Snoozed", "Expired"}},
+      {"state_timestamp", NormalType},
+      {"remediation_path", NormalType},
+      {"signatures_up_to_date", IntType},
   };
   validate_rows(data, row_map);
 }
