@@ -559,12 +559,16 @@ void enumerateCertStore(const HCERTSTORE& certStore,
       if (storeLocation != "Users" || boost::ends_with(storeId, "_Classes")) {
         TLOG << "    Trying harder to get Personal store.";
 
-        // TODO: This can be optimized, we shouldn't need to call
-        // findPersonalCertsOnDisk twice. We can cache the initial data fetch,
-        // and then use that here. Just need to make sure the rows from the
-        // intial fetch have the columns patched to present where we are
-        // currently in the enumeration. Just the storeId and storeLocation
-        // fields.
+        // TODO: This can technically be optimized. In certain cases, we will
+        // end up retrieving Personal certificates from disk that have already
+        // been fetched for a user/SID. For example, the Services store
+        // location has stores like
+        // S-1-5-21-2821152761-3909955410-1545212275-1001\My. That user's
+        // Personal certs will have already been fetched up front and in this
+        // specific case, we will refetch from disk. We could conceivably save
+        // those results, and reuse them here. Only thing is we'd need to update
+        // the storeId and storeLocation fields to match where we currently are
+        // in the enumeration process.
         findPersonalCertsOnDisk(
             username, results, storeId, sid, storeName, storeLocation);
       }
