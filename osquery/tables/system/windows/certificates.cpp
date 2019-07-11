@@ -29,6 +29,8 @@
 namespace osquery {
 namespace tables {
 
+using ServiceNameMap = std::unordered_map<std::string, std::string>;
+
 #define CERT_ENCODING (PKCS_7_ASN_ENCODING | X509_ASN_ENCODING)
 
 const std::map<unsigned long, std::string> kKeyUsages = {
@@ -46,6 +48,7 @@ typedef struct _ENUM_ARG {
   const void* pvStoreLocationPara;
   QueryData* results;
   std::string storeLocation;
+  ServiceNameMap service2sidCache;
 } ENUM_ARG, *PENUM_ARG;
 
 std::string cryptOIDToString(const char* objId) {
@@ -206,20 +209,17 @@ bool isValidSid(const std::string& maybeSid) {
 /// Given a string that can contain either a service name or SID: if it is
 /// a service name, return the SID corresponding to the service account.
 /// Otherwise simply return the input string.
-std::string getServiceSid(const std::string& serviceNameOrSid) {
-  // FIXME: This cache assumes a service will not stop, then restart under a
-  // different account while osquery is running.
-  static std::unordered_map<std::string, std::string> service2accountCache;
-
+std::string getServiceSid(const std::string& serviceNameOrSid,
+                          ServiceNameMap& service2sidCache) {
   if (isValidSid(serviceNameOrSid)) {
     return serviceNameOrSid;
   }
 
   const std::string& serviceName = serviceNameOrSid;
-  std::string accountName;
+  std::string sid;
 
-  if (service2accountCache.count(serviceName)) {
-    accountName = service2accountCache[serviceName];
+  if (service2sidCache.count(serviceName)) {
+    sid = service2sidCache[serviceName];
   } else {
     auto results = SQL::selectAllFrom("services", "name", EQUALS, serviceName);
 
@@ -231,11 +231,12 @@ std::string getServiceSid(const std::string& serviceNameOrSid) {
       return "";
     }
 
-    accountName = results[0]["user_account"];
-    service2accountCache[serviceName] = accountName;
+    std::string accountName = results[0]["user_account"];
+    sid = getSidFromAccountName(accountName);
+    service2sidCache[serviceName] = sid;
   }
 
-  return getSidFromAccountName(accountName);
+  return sid;
 }
 
 /// Parse the given system store string whose structure is:
@@ -249,6 +250,12 @@ std::string getServiceSid(const std::string& serviceNameOrSid) {
 /// followed by a backslash.
 /// <unlocalized system store name> would be something like `My`, `CA`, etc.
 ///
+/// The inputs are:
+/// @sysStoreW: System store string
+/// @storeLocation: System store location containing this system store
+/// @service2sidCache: Cache of service name to SID. A new cache is created for
+/// every query to keep it from getting stale.
+///
 /// The outputs are:
 /// @serviceNameOrUserId: The prefix, if it exists.
 /// @sid: SID corresponding to this certificate store (or empty)
@@ -256,6 +263,7 @@ std::string getServiceSid(const std::string& serviceNameOrSid) {
 ///             with no prefix of any kind.
 void parseSystemStoreString(LPCWSTR sysStoreW,
                             const std::string& storeLocation,
+                            ServiceNameMap& service2sidCache,
                             std::string& serviceNameOrUserId,
                             std::string& sid,
                             std::string& storeName) {
@@ -270,7 +278,7 @@ void parseSystemStoreString(LPCWSTR sysStoreW,
   if (storeLocation == "Services") {
     // If we are enumerating the "Services" store, we need to look up the
     // SID for the service
-    sid = getServiceSid(serviceNameOrUserId);
+    sid = getServiceSid(serviceNameOrUserId, service2sidCache);
   } else if (storeLocation == "Users") {
     // If we are enumerating the "Users" store, we need to either convert
     // the `.DEFAULT` user ID (alias for Local System), or trim a `_Classes`
@@ -303,9 +311,11 @@ void parseSystemStoreString(LPCWSTR sysStoreW,
 void enumerateCertStore(const HCERTSTORE& certStore,
                         LPCWSTR sysStoreW,
                         const std::string& storeLocation,
+                        ServiceNameMap& service2sidCache,
                         QueryData& results) {
   std::string storeId, sid, storeName;
-  parseSystemStoreString(sysStoreW, storeLocation, storeId, sid, storeName);
+  parseSystemStoreString(
+      sysStoreW, storeLocation, service2sidCache, storeId, sid, storeName);
 
   std::string username = getUsernameFromSid(sid);
 
@@ -492,8 +502,11 @@ BOOL WINAPI certEnumSystemStoreCallback(const void* systemStore,
     return TRUE;
   }
 
-  enumerateCertStore(
-      certHandle, sysStoreW, storeArg->storeLocation, *storeArg->results);
+  enumerateCertStore(certHandle,
+                     sysStoreW,
+                     storeArg->storeLocation,
+                     storeArg->service2sidCache,
+                     *storeArg->results);
 
   auto ret = CertCloseStore(certHandle, 0);
   if (ret != TRUE) {
