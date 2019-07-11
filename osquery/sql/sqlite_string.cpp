@@ -21,9 +21,8 @@
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
 
-#include <osquery/utils/conversions/split.h>
 #include <osquery/logger.h>
-
+#include <osquery/utils/conversions/split.h>
 
 #include <sqlite3.h>
 
@@ -123,7 +122,7 @@ static void tokenStringSplitFunc(sqlite3_context* context,
 static void regexStringSplitFunc(sqlite3_context* context,
                                  int argc,
                                  sqlite3_value** argv) {
-  try{
+  try {
     callStringSplitFunc(context, argc, argv, regexSplit);
   } catch (const boost::regex_error& e) {
     LOG(INFO) << "Invalid regex: " << e.what();
@@ -137,7 +136,6 @@ static void regexStringSplitFunc(sqlite3_context* context,
 static void regexStringMatchFunc(sqlite3_context* context,
                                  int argc,
                                  sqlite3_value** argv) {
-
   // Ensure we have not-null values
   assert(argc == 3);
   if (SQLITE_NULL == sqlite3_value_type(argv[0]) ||
@@ -153,31 +151,32 @@ static void regexStringMatchFunc(sqlite3_context* context,
   auto index = static_cast<size_t>(sqlite3_value_int(argv[2]));
   bool isMatchFound = false;
 
-  try{
-    isMatchFound = boost::regex_search(input,
-				       results,
-				       boost::regex((char*)sqlite3_value_text(argv[1]),
-						    boost::regex::extended));
+  try {
+    isMatchFound =
+        boost::regex_search(input,
+                            results,
+                            boost::regex((char*)sqlite3_value_text(argv[1]),
+                                         boost::regex::extended));
   } catch (const boost::regex_error& e) {
     LOG(INFO) << "Invalid regex: " << e.what();
     sqlite3_result_error(context, "Invalid regex", -1);
     return;
   }
 
-  if(!isMatchFound) {
+  if (!isMatchFound) {
     sqlite3_result_null(context);
     return;
   }
 
-  if( index >= results.size() ) {
+  if (index >= results.size()) {
     sqlite3_result_null(context);
     return;
   }
 
   sqlite3_result_text(context,
-		      results[index].str().c_str(),
-		      static_cast<int>(results[index].str().size()),
-		      SQLITE_TRANSIENT);
+                      results[index].str().c_str(),
+                      static_cast<int>(results[index].str().size()),
+                      SQLITE_TRANSIENT);
 }
 
 /**
@@ -241,6 +240,5 @@ void registerStringExtensions(sqlite3* db) {
                           regexStringMatchFunc,
                           nullptr,
                           nullptr);
-
 }
 } // namespace osquery
