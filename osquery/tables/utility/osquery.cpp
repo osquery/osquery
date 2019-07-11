@@ -19,8 +19,8 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-#include <osquery/utils/info/version.h>
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/info/version.h>
 #include <osquery/utils/macros/macros.h>
 
 namespace osquery {
