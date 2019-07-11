@@ -59,6 +59,7 @@ function(generateNativeTables)
     utility/osquery_flags.table
     utility/osquery_info.table
     utility/osquery_packs.table
+    utility/osquery_platform.table
     utility/osquery_registry.table
     utility/osquery_schedule.table
     utility/time.table
