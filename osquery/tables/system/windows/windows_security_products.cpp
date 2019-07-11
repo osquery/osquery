@@ -1,6 +1,3 @@
-#include <codecvt>
-#include <locale>
-
 #include <iwscapi.h>
 #include <wscapi.h>
 
@@ -8,6 +5,7 @@
 #include <osquery/core/windows/wmi.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/map_take.h>
 #include <osquery/utils/scope_guard.h>
 
@@ -181,15 +179,13 @@ QueryData gen_wsp(QueryContext& context) {
   std::vector<wsc_entry> products;
   GetAllSecurityProducts(products);
   // Use this to convert std::wstring into std::string
-  auto str_converter = std::wstring_convert<std::codecvt_utf8<wchar_t>>();
   for (const auto& product : products) {
     Row r;
     r["type"] =
       tryTakeCopy(kSecurityProviders, product.provider).takeOr(std::string("Unknown"));
-    r["name"] = str_converter.to_bytes(product.product_name);
-    r["state_timestamp"] =
-        str_converter.to_bytes(product.product_state_timestamp);
-    r["remediation_path"] = str_converter.to_bytes(product.remediation_path);
+    r["name"] = wstringToString(product.product_name.c_str());
+    r["state_timestamp"] = wstringToString(product.product_state_timestamp.c_str());
+    r["remediation_path"] = wstringToString(product.remediation_path.c_str());
     r["state"] = tryTakeCopy(kSecurityProviderStates, product.product_state)
       .takeOr(std::string("Unknown"));
     r["signatures_up_to_date"] =
