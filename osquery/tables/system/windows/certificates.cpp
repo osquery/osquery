@@ -553,7 +553,7 @@ void enumerateCertStore(const HCERTSTORE& certStore,
     TLOG << "    Store was empty.";
 
     // Personal stores for other users come back as empty, even if they are not.
-    if (storeName == "Personal") {
+    if (storeName == "Personal" && !username.empty()) {
       // Avoid duplicate rows for personal certs we've already inserted up
       // front.
       if (storeLocation != "Users" || boost::ends_with(storeId, "_Classes")) {
