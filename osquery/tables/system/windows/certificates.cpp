@@ -14,6 +14,8 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <boost/filesystem.hpp>
+
 #include <osquery/logger.h>
 #include <osquery/process/windows/process_ops.h>
 #include <osquery/sql.h>
@@ -25,6 +27,8 @@
 
 #include <osquery/filesystem/fileops.h>
 #include <osquery/tables/system/windows/certificates.h>
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
@@ -307,6 +311,230 @@ void parseSystemStoreString(LPCWSTR sysStoreW,
   }
 }
 
+#pragma pack(1)
+struct Header {
+  DWORD propid;
+  DWORD unknown;
+  DWORD size;
+};
+
+Status getEncodedCert(std::basic_istream<BYTE>& blob,
+                      std::vector<BYTE>& encodedCert) {
+  // See these links for details on this magic number:
+  // https://itsme.home.xs4all.nl/projects/xda/smartphone-certificates.html
+  // https://github.com/wine-mirror/wine/blob/f9301c2b66450a1cdd986e9052fcaa76535ba8b7/dlls/crypt32/crypt32_private.h#L146
+  static const DWORD CERT_CERT_PROP_ID = 0x20;
+
+  Header hdr;
+
+  while (true) {
+    blob.read(reinterpret_cast<BYTE*>(&hdr), sizeof(hdr));
+    if (!blob.good()) {
+      return Status::failure("Malformed certificate blob");
+    }
+
+    if (hdr.propid != CERT_CERT_PROP_ID) {
+      blob.ignore(hdr.size);
+      if (!blob.good()) {
+        return Status::failure("Malformed certificate blob");
+      }
+      continue;
+    }
+
+    encodedCert.resize(hdr.size);
+    blob.read(encodedCert.data(), hdr.size);
+    if (!blob.good()) {
+      return Status::failure("EOF in certificate blob when reading data");
+    }
+    break;
+  }
+
+  return Status::success();
+}
+
+void addCertRow(PCCERT_CONTEXT certContext,
+                QueryData& results,
+                std::string storeId,
+                std::string sid,
+                std::string storeName,
+                std::string username,
+                std::string storeLocation) {
+  // Get the cert fingerprint and ensure we haven't already processed it
+  std::vector<char> certBuff;
+  getCertCtxProp(certContext, CERT_HASH_PROP_ID, certBuff);
+  std::string fingerprint;
+  boost::algorithm::hex(std::string(certBuff.begin(), certBuff.end()),
+                        back_inserter(fingerprint));
+
+  Row r;
+  r["sid"] = sid;
+  r["username"] = username;
+  r["store_id"] = storeId;
+  r["sha1"] = fingerprint;
+  certBuff.resize(256, 0);
+  std::fill(certBuff.begin(), certBuff.end(), 0);
+  CertGetNameString(certContext,
+                    CERT_NAME_SIMPLE_DISPLAY_TYPE,
+                    0,
+                    nullptr,
+                    certBuff.data(),
+                    static_cast<unsigned long>(certBuff.size()));
+  r["common_name"] = certBuff.data();
+  TLOG << "    cert name: " << certBuff.data();
+
+  auto subjSize = CertNameToStr(certContext->dwCertEncodingType,
+                                &(certContext->pCertInfo->Subject),
+                                CERT_SIMPLE_NAME_STR,
+                                nullptr,
+                                0);
+  certBuff.resize(subjSize, 0);
+  std::fill(certBuff.begin(), certBuff.end(), 0);
+  subjSize = CertNameToStr(certContext->dwCertEncodingType,
+                           &(certContext->pCertInfo->Subject),
+                           CERT_SIMPLE_NAME_STR,
+                           certBuff.data(),
+                           subjSize);
+  r["subject"] = subjSize == 0 ? "" : certBuff.data();
+
+  auto issuerSize = CertNameToStr(certContext->dwCertEncodingType,
+                                  &(certContext->pCertInfo->Issuer),
+                                  CERT_SIMPLE_NAME_STR,
+                                  nullptr,
+                                  0);
+  certBuff.resize(issuerSize, 0);
+  std::fill(certBuff.begin(), certBuff.end(), 0);
+  issuerSize = CertNameToStr(certContext->dwCertEncodingType,
+                             &(certContext->pCertInfo->Issuer),
+                             CERT_SIMPLE_NAME_STR,
+                             certBuff.data(),
+                             issuerSize);
+  r["issuer"] = issuerSize == 0 ? "" : certBuff.data();
+
+  // TODO: Find the right API calls to get whether a cert is for a CA
+  r["ca"] = INTEGER(-1);
+
+  r["self_signed"] =
+      WTHelperCertIsSelfSigned(CERT_ENCODING, certContext->pCertInfo)
+          ? INTEGER(1)
+          : INTEGER(0);
+
+  r["not_valid_before"] =
+      INTEGER(filetimeToUnixtime(certContext->pCertInfo->NotBefore));
+
+  r["not_valid_after"] =
+      INTEGER(filetimeToUnixtime(certContext->pCertInfo->NotAfter));
+
+  r["signing_algorithm"] =
+      cryptOIDToString(certContext->pCertInfo->SignatureAlgorithm.pszObjId);
+
+  r["key_algorithm"] = cryptOIDToString(
+      certContext->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId);
+
+  r["key_usage"] = getKeyUsage(certContext->pCertInfo);
+
+  r["key_strength"] = INTEGER(
+      (certContext->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData) * 8);
+
+  certBuff.clear();
+  getCertCtxProp(certContext, CERT_KEY_IDENTIFIER_PROP_ID, certBuff);
+  std::string subjectKeyId;
+  boost::algorithm::hex(std::string(certBuff.begin(), certBuff.end()),
+                        back_inserter(subjectKeyId));
+  r["subject_key_id"] = subjectKeyId;
+
+  r["path"] =
+      storeLocation + "\\" + constructDisplayStoreName(storeId, storeName);
+  r["store_location"] = storeLocation;
+  r["store"] = storeName;
+
+  std::string serial;
+  boost::algorithm::hex(
+      std::string(certContext->pCertInfo->SerialNumber.pbData,
+                  certContext->pCertInfo->SerialNumber.pbData +
+                      certContext->pCertInfo->SerialNumber.cbData),
+      back_inserter(serial));
+  r["serial"] = serial;
+
+  std::string authKeyId;
+  if (certContext->pCertInfo->cExtension != 0) {
+    auto extension = CertFindExtension(szOID_AUTHORITY_KEY_IDENTIFIER2,
+                                       certContext->pCertInfo->cExtension,
+                                       certContext->pCertInfo->rgExtension);
+    if (extension != nullptr) {
+      unsigned long decodedBuffSize = 0;
+      CryptDecodeObjectEx(CERT_ENCODING,
+                          X509_AUTHORITY_KEY_ID2,
+                          extension->Value.pbData,
+                          extension->Value.cbData,
+                          CRYPT_DECODE_NOCOPY_FLAG,
+                          nullptr,
+                          nullptr,
+                          &decodedBuffSize);
+
+      certBuff.resize(decodedBuffSize, 0);
+      std::fill(certBuff.begin(), certBuff.end(), 0);
+      auto decodeRet = CryptDecodeObjectEx(CERT_ENCODING,
+                                           X509_AUTHORITY_KEY_ID2,
+                                           extension->Value.pbData,
+                                           extension->Value.cbData,
+                                           CRYPT_DECODE_NOCOPY_FLAG,
+                                           nullptr,
+                                           certBuff.data(),
+                                           &decodedBuffSize);
+      if (decodeRet != FALSE) {
+        auto authKeyIdBlob =
+            reinterpret_cast<CERT_AUTHORITY_KEY_ID2_INFO*>(certBuff.data());
+
+        boost::algorithm::hex(std::string(authKeyIdBlob->KeyId.pbData,
+                                          authKeyIdBlob->KeyId.pbData +
+                                              authKeyIdBlob->KeyId.cbData),
+                              back_inserter(authKeyId));
+      } else {
+        VLOG(1) << "Failed to decode authority_key_id with (" << GetLastError()
+                << ")";
+      }
+    }
+  }
+  r["authority_key_id"] = authKeyId;
+
+  results.push_back(r);
+}
+
+void findPersonalCertsOnDisk(const std::string& username,
+                             QueryData& results,
+                             std::string storeId,
+                             std::string sid,
+                             std::string storeName,
+                             std::string storeLocation) {
+  std::stringstream certsPath;
+  certsPath
+      << "C:\\Users\\" << username
+      << "\\AppData\\Roaming\\Microsoft\\SystemCertificates\\My\\Certificates";
+
+  try {
+    for (fs::directory_entry& x :
+         fs::directory_iterator(fs::path(certsPath.str()))) {
+      std::basic_ifstream<BYTE> inp(x.path().string(), std::ios::binary);
+
+      std::vector<BYTE> encodedCert;
+      auto ret = getEncodedCert(inp, encodedCert);
+      if (!ret.ok()) {
+        return;
+      }
+
+      auto ctx =
+          CertCreateCertificateContext(X509_ASN_ENCODING,
+                                       encodedCert.data(),
+                                       static_cast<DWORD>(encodedCert.size()));
+
+      addCertRow(
+          ctx, results, storeId, sid, storeName, username, storeLocation);
+    }
+  } catch (const fs::filesystem_error& e) {
+    VLOG(1) << "Error traversing " << certsPath.str() << ": " << e.what();
+  }
+}
+
 /// Enumerate and process a certificate store
 void enumerateCertStore(const HCERTSTORE& certStore,
                         LPCWSTR sysStoreW,
@@ -323,6 +551,25 @@ void enumerateCertStore(const HCERTSTORE& certStore,
 
   if (certContext == nullptr && GetLastError() == CRYPT_E_NOT_FOUND) {
     TLOG << "    Store was empty.";
+
+    // Personal stores for other users come back as empty, even if they are not.
+    if (storeName == "Personal") {
+      // Avoid duplicate rows for personal certs we've already inserted up
+      // front.
+      if (storeLocation != "Users" || boost::ends_with(storeId, "_Classes")) {
+        TLOG << "    Trying harder to get Personal store.";
+
+        // TODO: This can be optimized, we shouldn't need to call
+        // findPersonalCertsOnDisk twice. We can cache the initial data fetch,
+        // and then use that here. Just need to make sure the rows from the
+        // intial fetch have the columns patched to present where we are
+        // currently in the enumeration. Just the storeId and storeLocation
+        // fields.
+        findPersonalCertsOnDisk(
+            username, results, storeId, sid, storeName, storeLocation);
+      }
+    }
+    return;
   }
 
   if (certContext == nullptr && GetLastError() != CRYPT_E_NOT_FOUND) {
@@ -333,143 +580,9 @@ void enumerateCertStore(const HCERTSTORE& certStore,
   }
 
   while (certContext != nullptr) {
-    // Get the cert fingerprint and ensure we haven't already processed it
-    std::vector<char> certBuff;
-    getCertCtxProp(certContext, CERT_HASH_PROP_ID, certBuff);
-    std::string fingerprint;
-    boost::algorithm::hex(std::string(certBuff.begin(), certBuff.end()),
-                          back_inserter(fingerprint));
+    addCertRow(
+        certContext, results, storeId, sid, storeName, username, storeLocation);
 
-    Row r;
-    r["sid"] = sid;
-    r["username"] = username;
-    r["store_id"] = storeId;
-    r["sha1"] = fingerprint;
-    certBuff.resize(256, 0);
-    std::fill(certBuff.begin(), certBuff.end(), 0);
-    CertGetNameString(certContext,
-                      CERT_NAME_SIMPLE_DISPLAY_TYPE,
-                      0,
-                      nullptr,
-                      certBuff.data(),
-                      static_cast<unsigned long>(certBuff.size()));
-    r["common_name"] = certBuff.data();
-
-    auto subjSize = CertNameToStr(certContext->dwCertEncodingType,
-                                  &(certContext->pCertInfo->Subject),
-                                  CERT_SIMPLE_NAME_STR,
-                                  nullptr,
-                                  0);
-    certBuff.resize(subjSize, 0);
-    std::fill(certBuff.begin(), certBuff.end(), 0);
-    subjSize = CertNameToStr(certContext->dwCertEncodingType,
-                             &(certContext->pCertInfo->Subject),
-                             CERT_SIMPLE_NAME_STR,
-                             certBuff.data(),
-                             subjSize);
-    r["subject"] = subjSize == 0 ? "" : certBuff.data();
-
-    auto issuerSize = CertNameToStr(certContext->dwCertEncodingType,
-                                    &(certContext->pCertInfo->Issuer),
-                                    CERT_SIMPLE_NAME_STR,
-                                    nullptr,
-                                    0);
-    certBuff.resize(issuerSize, 0);
-    std::fill(certBuff.begin(), certBuff.end(), 0);
-    issuerSize = CertNameToStr(certContext->dwCertEncodingType,
-                               &(certContext->pCertInfo->Issuer),
-                               CERT_SIMPLE_NAME_STR,
-                               certBuff.data(),
-                               issuerSize);
-    r["issuer"] = issuerSize == 0 ? "" : certBuff.data();
-
-    // TODO: Find the right API calls to get whether a cert is for a CA
-    r["ca"] = INTEGER(-1);
-
-    r["self_signed"] =
-        WTHelperCertIsSelfSigned(CERT_ENCODING, certContext->pCertInfo)
-            ? INTEGER(1)
-            : INTEGER(0);
-
-    r["not_valid_before"] =
-        INTEGER(filetimeToUnixtime(certContext->pCertInfo->NotBefore));
-
-    r["not_valid_after"] =
-        INTEGER(filetimeToUnixtime(certContext->pCertInfo->NotAfter));
-
-    r["signing_algorithm"] =
-        cryptOIDToString(certContext->pCertInfo->SignatureAlgorithm.pszObjId);
-
-    r["key_algorithm"] = cryptOIDToString(
-        certContext->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId);
-
-    r["key_usage"] = getKeyUsage(certContext->pCertInfo);
-
-    r["key_strength"] = INTEGER((certContext->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData) * 8);
-
-    certBuff.clear();
-    getCertCtxProp(certContext, CERT_KEY_IDENTIFIER_PROP_ID, certBuff);
-    std::string subjectKeyId;
-    boost::algorithm::hex(std::string(certBuff.begin(), certBuff.end()),
-                          back_inserter(subjectKeyId));
-    r["subject_key_id"] = subjectKeyId;
-
-    r["path"] =
-        storeLocation + "\\" + constructDisplayStoreName(storeId, storeName);
-    r["store_location"] = storeLocation;
-    r["store"] = storeName;
-
-    std::string serial;
-    boost::algorithm::hex(
-        std::string(certContext->pCertInfo->SerialNumber.pbData,
-                    certContext->pCertInfo->SerialNumber.pbData +
-                        certContext->pCertInfo->SerialNumber.cbData),
-        back_inserter(serial));
-    r["serial"] = serial;
-
-    std::string authKeyId;
-    if (certContext->pCertInfo->cExtension != 0) {
-      auto extension = CertFindExtension(szOID_AUTHORITY_KEY_IDENTIFIER2,
-                                         certContext->pCertInfo->cExtension,
-                                         certContext->pCertInfo->rgExtension);
-      if (extension != nullptr) {
-        unsigned long decodedBuffSize = 0;
-        CryptDecodeObjectEx(CERT_ENCODING,
-                            X509_AUTHORITY_KEY_ID2,
-                            extension->Value.pbData,
-                            extension->Value.cbData,
-                            CRYPT_DECODE_NOCOPY_FLAG,
-                            nullptr,
-                            nullptr,
-                            &decodedBuffSize);
-
-        certBuff.resize(decodedBuffSize, 0);
-        std::fill(certBuff.begin(), certBuff.end(), 0);
-        auto decodeRet = CryptDecodeObjectEx(CERT_ENCODING,
-                                             X509_AUTHORITY_KEY_ID2,
-                                             extension->Value.pbData,
-                                             extension->Value.cbData,
-                                             CRYPT_DECODE_NOCOPY_FLAG,
-                                             nullptr,
-                                             certBuff.data(),
-                                             &decodedBuffSize);
-        if (decodeRet != FALSE) {
-          auto authKeyIdBlob =
-              reinterpret_cast<CERT_AUTHORITY_KEY_ID2_INFO*>(certBuff.data());
-
-          boost::algorithm::hex(std::string(authKeyIdBlob->KeyId.pbData,
-                                            authKeyIdBlob->KeyId.pbData +
-                                                authKeyIdBlob->KeyId.cbData),
-                                back_inserter(authKeyId));
-        } else {
-          VLOG(1) << "Failed to decode authority_key_id with ("
-                  << GetLastError() << ")";
-        }
-      }
-    }
-    r["authority_key_id"] = authKeyId;
-
-    results.push_back(r);
     certContext = CertEnumCertificatesInStore(certStore, certContext);
   }
 }
@@ -542,8 +655,23 @@ BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
   return TRUE;
 }
 
-QueryData genCerts(QueryContext& context) {
-  QueryData results;
+void getPersonalCerts(QueryData& results) {
+  auto users = SQL::selectAllFrom("users");
+  for (const auto& row : users) {
+    auto sid = row.at("uuid");
+    auto username = row.at("username");
+
+    findPersonalCertsOnDisk(username,
+                            results,
+                            sid,
+                            sid,
+                            "Personal", // storeName
+                            "Users" // storeLocation
+    );
+  }
+}
+
+void getOtherCerts(QueryData& results) {
   ENUM_ARG enumArg;
 
   unsigned long flags = 0;
@@ -563,10 +691,17 @@ QueryData genCerts(QueryContext& context) {
   if (ret != 1) {
     VLOG(1) << "Failed to enumerate system store locations with "
             << GetLastError();
-    return results;
   }
+}
+
+QueryData genCerts(QueryContext& context) {
+  QueryData results;
+
+  getPersonalCerts(results);
+  getOtherCerts(results);
 
   return results;
 }
+
 } // namespace tables
 } // namespace osquery
