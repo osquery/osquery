@@ -14,12 +14,15 @@
 namespace osquery {
 namespace tables {
 
+using ServiceNameMap = std::unordered_map<std::string, std::string>;
+
 const static std::string kLocalSystem = "S-1-5-18";
 const static std::string kLocalService = "S-1-5-19";
 const static std::string kNetworkService = "S-1-5-20";
 
 void parseSystemStoreString(LPCWSTR sysStoreW,
                             const std::string& storeLocation,
+                            ServiceNameMap& service2sidCache,
                             std::string& serviceNameOrUserId,
                             std::string& sid,
                             std::string& storeName);

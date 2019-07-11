@@ -38,9 +38,10 @@ TEST_F(CertificatesTablesTest, test_only_store_non_special_case) {
   LPCWSTR input = L"My";
   std::string storeLocation = "CurrentService";
   std::string serviceNameOrUserId, sid, storeName;
+  ServiceNameMap cache;
 
   parseSystemStoreString(
-      input, storeLocation, serviceNameOrUserId, sid, storeName);
+      input, storeLocation, cache, serviceNameOrUserId, sid, storeName);
 
   EXPECT_EQ(serviceNameOrUserId, "");
   EXPECT_EQ(sid, "");
@@ -51,9 +52,10 @@ TEST_F(CertificatesTablesTest, test_service) {
   LPCWSTR input = L"RpcSs\\My"; // This service should always exist
   std::string storeLocation = "Services";
   std::string serviceNameOrUserId, sid, storeName;
+  ServiceNameMap cache;
 
   parseSystemStoreString(
-      input, storeLocation, serviceNameOrUserId, sid, storeName);
+      input, storeLocation, cache, serviceNameOrUserId, sid, storeName);
 
   EXPECT_EQ(serviceNameOrUserId, "RpcSs");
   EXPECT_EQ(sid, kNetworkService);
@@ -64,9 +66,10 @@ TEST_F(CertificatesTablesTest, test_user_default) {
   LPCWSTR input = L".DEFAULT\\My";
   std::string storeLocation = "Users";
   std::string serviceNameOrUserId, sid, storeName;
+  ServiceNameMap cache;
 
   parseSystemStoreString(
-      input, storeLocation, serviceNameOrUserId, sid, storeName);
+      input, storeLocation, cache, serviceNameOrUserId, sid, storeName);
 
   EXPECT_EQ(serviceNameOrUserId, ".DEFAULT");
   EXPECT_EQ(sid, kLocalSystem);
@@ -77,9 +80,10 @@ TEST_F(CertificatesTablesTest, test_user_sid) {
   LPCWSTR input = L"S-1-5-18\\Root";
   std::string storeLocation = "Users";
   std::string serviceNameOrUserId, sid, storeName;
+  ServiceNameMap cache;
 
   parseSystemStoreString(
-      input, storeLocation, serviceNameOrUserId, sid, storeName);
+      input, storeLocation, cache, serviceNameOrUserId, sid, storeName);
 
   EXPECT_EQ(serviceNameOrUserId, "S-1-5-18");
   EXPECT_EQ(sid, kLocalSystem);
@@ -91,9 +95,10 @@ TEST_F(CertificatesTablesTest, test_user_classes) {
       L"S-1-5-21-2821152761-3909955410-1545212275-1001_Classes\\Root";
   std::string storeLocation = "Users";
   std::string serviceNameOrUserId, sid, storeName;
+  ServiceNameMap cache;
 
   parseSystemStoreString(
-      input, storeLocation, serviceNameOrUserId, sid, storeName);
+      input, storeLocation, cache, serviceNameOrUserId, sid, storeName);
 
   EXPECT_EQ(serviceNameOrUserId,
             "S-1-5-21-2821152761-3909955410-1545212275-1001_Classes");
