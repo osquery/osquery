@@ -222,7 +222,6 @@ Status Carver::carve(const boost::filesystem::path& path) {
 
   std::vector<char> inBuff(FLAGS_carver_block_size, 0);
   for (size_t i = 0; i < blkCount; i++) {
-    inBuff.clear();
     auto bytesRead = src.read(inBuff.data(), FLAGS_carver_block_size);
     if (bytesRead > 0) {
       auto bytesWritten = dst.write(inBuff.data(), bytesRead);
