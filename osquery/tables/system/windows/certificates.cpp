@@ -311,12 +311,13 @@ void parseSystemStoreString(LPCWSTR sysStoreW,
   }
 }
 
-#pragma pack(1)
+#pragma pack(push, 1)
 struct Header {
   DWORD propid;
   DWORD unknown;
   DWORD size;
 };
+#pragma pack(pop)
 
 Status getEncodedCert(std::basic_istream<BYTE>& blob,
                       std::vector<BYTE>& encodedCert) {
