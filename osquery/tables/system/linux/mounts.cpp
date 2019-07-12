@@ -25,9 +25,17 @@ QueryData genMounts(QueryContext& context) {
     return {};
   }
 
+  std::vector<std::string> mnt_type_blacklist = {
+    "autofs"
+  };
+
   struct mntent* ent = nullptr;
   while ((ent = getmntent(mounts))) {
     Row r;
+
+    if (std::find(mnt_type_blacklist.begin(), mnt_type_blacklist.end(), std::string(ent->mnt_type)) != mnt_type_blacklist.end()) {
+      continue;
+    }
 
     r["device"] = std::string(ent->mnt_fsname);
     r["device_alias"] = canonicalize_file_name(ent->mnt_fsname);
