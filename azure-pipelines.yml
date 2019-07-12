@@ -5,8 +5,7 @@ jobs:
 
 # LINUX
 
-  - job: LinuxBuild
-    displayName: Linux
+  - job: LinuxCMake
 
     strategy:
       matrix:
@@ -62,6 +61,38 @@ jobs:
       name: JobResult
 
 
+  - job: LinuxBuck
+    displayName: "LinuxBuck Release"
+
+    pool:
+      vmImage: 'Ubuntu-16.04'
+
+    container:
+      image: trailofbits/osql-experimental:ubuntu-18.04
+      options: --privileged
+
+    steps:
+    - script: |
+        wget https://github.com/facebook/buck/releases/download/v2019.06.17.01/buck.2019.06.17.01_all.deb
+        sudo apt update
+        sudo apt install -q -y --no-install-recommends ./buck.2019.06.17.01_all.deb openjdk-8-jre python3-distutils
+      workingDirectory: $(Build.BinariesDirectory)
+
+    - script: |
+        export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
+        buck build @mode/linux-x86_64/release osquery:osqueryd
+      displayName: "Build osquery"
+
+    - script: |
+        export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
+        buck test @mode/linux-x86_64/release osquery/...
+      displayName: "Run tests"
+
+    - script: |
+        echo "##vso[task.setvariable variable=Status;isOutput=true]1"
+      name: JobResult
+
+
   - job: Linux
 
     pool:
@@ -70,27 +101,30 @@ jobs:
     condition: succeededOrFailed()
 
     dependsOn:
-      - LinuxBuild
+      - LinuxCMake
+      - LinuxBuck
 
     variables:
-      LinuxReleaseStatus: $[ dependencies.LinuxBuild.outputs['Release.JobResult.Status'] ]
-      LinuxDebugStatus: $[ dependencies.LinuxBuild.outputs['Debug.JobResult.Status'] ]
+      LinuxCMakeReleaseStatus: $[ dependencies.LinuxCMake.outputs['Release.JobResult.Status'] ]
+      LinuxCMakeDebugStatus: $[ dependencies.LinuxCMake.outputs['Debug.JobResult.Status'] ]
+      LinuxBuckReleaseStatus: $[ dependencies.LinuxBuck.outputs['JobResult.Status'] ]
 
     steps:
     - checkout: none
 
     - script: |
-        if [ -z "$(LinuxReleaseStatus)" ] || [ -z "$(LinuxDebugStatus)" ]; then
+        if [ -z "$(LinuxCMakeReleaseStatus)" ] || [ -z "$(LinuxCMakeDebugStatus)" ] || \
+           [ -z "$(LinuxBuckReleaseStatus)" ]
+        then
           exit 1
         fi
-      displayName: "Detect Linux Release and Debug build status"
+      displayName: "Detect Linux jobs build statuses"
 
 # LINUX
 
 # MACOS
 
-  - job: macOSBuild
-    displayName: macOS
+  - job: macOSCMake
 
     strategy:
       matrix:
@@ -136,6 +170,36 @@ jobs:
       name: JobResult
 
 
+  - job: macOSBuck
+    displayName: "macOSBuck Release"
+
+    pool:
+      vmImage: macos-10.14
+
+    steps:
+    - script: |
+        brew tap facebook/fb
+        brew upgrade
+        brew cask install adoptopenjdk8
+        brew install buck watchman
+      displayName: "Install Homebrew and prerequisites"
+      timeoutInMinutes: 20
+
+    - script: |
+        export JAVA_HOME="$(/usr/libexec/java_home -v 1.8)"
+        buck build @mode/macos-x86_64/release osquery:osqueryd
+      displayName: "Build osquery"
+
+    - script: |
+        export JAVA_HOME="$(/usr/libexec/java_home -v 1.8)"
+        buck test @mode/macos-x86_64/release osquery/...
+      displayName: "Run tests"
+
+    - script: |
+        echo "##vso[task.setvariable variable=Status;isOutput=true]1"
+      name: JobResult
+
+
   - job: macOS
 
     pool:
@@ -144,26 +208,31 @@ jobs:
     condition: succeededOrFailed()
 
     dependsOn:
-      - macOSBuild
+      - macOSCMake
+      - macOSBuck
 
     variables:
-      macOSReleaseStatus: $[ dependencies.macOSBuild.outputs['Release.JobResult.Status'] ]
-      macOSDebugStatus: $[ dependencies.macOSBuild.outputs['Debug.JobResult.Status'] ]
+      macOSCMakeReleaseStatus: $[ dependencies.macOSCMake.outputs['Release.JobResult.Status'] ]
+      macOSCMakeDebugStatus: $[ dependencies.macOSCMake.outputs['Debug.JobResult.Status'] ]
+      macOSBuckReleaseStatus: $[ dependencies.macOSBuck.outputs['JobResult.Status'] ]
 
     steps:
     - checkout: none
 
     - script: |
-        if [ -z "$(macOSReleaseStatus)" ] || [ -z "$(macOSDebugStatus)" ]; then
+        if [ -z "$(macOSCMakeReleaseStatus)" ] || [ -z "$(macOSCMakeDebugStatus)" ] || \
+           [ -z "$(macOSBuckReleaseStatus)" ]
+        then
           exit 1
         fi
-      displayName: "Detect macOS Release and Debug build status"
+      displayName: "Detect macOS jobs build statuses"
 
 # MACOS
 
 # WINDOWS
 
-  - job: Windows
+  - job: WindowsCMake
+    displayName: "WindowsCMake Release"
 
     pool:
       vmImage: vs2017-win2016
@@ -194,5 +263,82 @@ jobs:
         ctest --build-nocmake -C Release -V
       displayName: "Run tests"
       workingDirectory: $(Build.BinariesDirectory)/build
+
+    - powershell: |
+        echo "##vso[task.setvariable variable=Status;isOutput=true]1"
+      name: JobResult
+
+
+  - job: WindowsBuck
+    displayName: "WindowsBuck Release"
+
+    pool:
+      vmImage: vs2017-win2016
+
+    steps:
+    - powershell: |
+        git config --global core.autocrlf false
+
+    - checkout: self
+
+    - powershell: |
+        choco uninstall mingw -y
+        (New-Object System.Net.WebClient).DownloadFile("https://github.com/facebook/buck/releases/download/v2019.06.17.01/buck.2019.06.17.01.nupkg", `
+        "buck.2019.06.17.01.nupkg")
+        Install-Package buck -Source . -SkipDependencies
+      displayName: "Prepare Buck environment"
+      workingDirectory: $(Build.BinariesDirectory)
+
+    - script: |
+        mklink /J $(Build.BinariesDirectory)\vsinstall "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise"
+
+    - powershell: |
+        $vcvers = cat $(Build.BinariesDirectory)\vsinstall\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt
+        .\tools\generate_buck_config.ps1 -VsInstall '$(Build.BinariesDirectory)\vsinstall' `
+        -VcToolsVersion "$vcvers" `
+        -SdkInstall '' `
+        -SdkVersion '' `
+        -Python3Path 'C:\hostedtoolcache\windows\Python\3.7.2\x64\python.exe' `
+        -BuckConfigRoot .\tools\buckconfigs\
+      displayName: "Generate Buck config"
+
+    - script: |
+        set PATH=C:\Python27amd64;%PATH%
+        C:\Python27amd64\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" build @mode/windows-x86_64/release osquery:osqueryd
+      displayName: "Build osquery"
+
+    - script: |
+        set PATH=C:\Python27amd64;%PATH%
+        C:\Python27amd64\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" test @mode/windows-x86_64/release osquery/...
+      displayName: "Run tests"
+
+    - powershell: |
+        echo "##vso[task.setvariable variable=Status;isOutput=true]1"
+      name: JobResult
+
+
+  - job: Windows
+
+    pool:
+      vmImage: 'Ubuntu-16.04'
+
+    condition: succeededOrFailed()
+
+    dependsOn:
+      - WindowsCMake
+      - WindowsBuck
+
+    variables:
+      WindowsCMakeReleaseStatus: $[ dependencies.WindowsCMake.outputs['JobResult.Status'] ]
+      WindowsBuckReleaseStatus: $[ dependencies.WindowsBuck.outputs['JobResult.Status'] ]
+
+    steps:
+    - checkout: none
+
+    - script: |
+        if [ -z "$(WindowsCMakeReleaseStatus)" ] || [ -z "$(WindowsBuckReleaseStatus)" ]; then
+          exit 1
+        fi
+      displayName: "Detect Windows CMake and Buck build status"
 
 # WINDOWS
