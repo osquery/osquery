@@ -296,13 +296,13 @@ void parseSystemStoreString(LPCWSTR sysStoreW,
           0, serviceNameOrUserId.length() - suffix.length());
     }
   } else if (storeLocation == "CurrentUser") {
-    PTOKEN_USER currentUserInfo;
-    auto ret = getCurrentUserInfo(currentUserInfo);
-    if (!ret.ok()) {
+    auto currentUserInfoSmartPtr = getCurrentUserInfo();
+    if (currentUserInfoSmartPtr == nullptr) {
       VLOG(1) << "Accessing current user info failed (" << GetLastError()
               << ")";
     } else {
-      sid = psidToString(currentUserInfo->User.Sid);
+      auto ptu = reinterpret_cast<PTOKEN_USER>(currentUserInfoSmartPtr.get());
+      sid = psidToString(ptu->User.Sid);
     }
   }
 }

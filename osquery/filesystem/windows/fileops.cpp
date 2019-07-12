@@ -625,35 +625,33 @@ bool PlatformFile::isSpecialFile() const {
   return (GetFileType(handle_) != FILE_TYPE_DISK);
 }
 
-Status getCurrentUserInfo(PTOKEN_USER& info) {
+std::unique_ptr<BYTE[]> getCurrentUserInfo() {
   HANDLE token = INVALID_HANDLE_VALUE;
   if (!OpenProcessToken(GetCurrentProcess(), TOKEN_READ, &token)) {
-    return Status(-1, "OpenProcessToken failed");
+    VLOG(1) << "OpenProcessToken failed";
+    return nullptr;
   }
 
   unsigned long size = 0;
   auto ret = GetTokenInformation(token, TokenUser, nullptr, 0, &size);
   if (ret || (!ret && GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
     CloseHandle(token);
-
-    return Status(
-        -1,
-        "GetTokenInformation failed (" + std::to_string(GetLastError()) + ")");
+    VLOG(1) << "GetTokenInformation failed (" << GetLastError() << ")";
+    return nullptr;
   }
 
-  /// Obtain the user SID behind the token handle
-  std::vector<char> tuBuff(size, '\0');
-  ret = GetTokenInformation(token, TokenUser, tuBuff.data(), size, &size);
+  /// Obtain the TOKEN_USER behind the token handle
+  auto ptoken_user = std::make_unique<BYTE[]>(size);
+
+  ret = GetTokenInformation(token, TokenUser, ptoken_user.get(), size, &size);
   CloseHandle(token);
 
   if (!ret) {
-    return Status(
-        -1,
-        "GetTokenInformation failed (" + std::to_string(GetLastError()) + ")");
+    VLOG(1) << "GetTokenInformation failed (" << GetLastError() << ")";
+    return nullptr;
   }
 
-  info = reinterpret_cast<PTOKEN_USER>(tuBuff.data());
-  return Status::success();
+  return ptoken_user;
 }
 
 static Status isUserCurrentUser(PSID user) {
@@ -661,13 +659,15 @@ static Status isUserCurrentUser(PSID user) {
     return Status(-1, "Invalid SID");
   }
 
-  PTOKEN_USER ptu;
-  auto ret = getCurrentUserInfo(ptu);
-  if (!ret.ok()) {
-    return ret;
+  auto ptuSmartPtr = getCurrentUserInfo();
+
+  if (!ptuSmartPtr) {
+    return Status::failure(-1, "Accessing current user info failed");
   }
 
   /// Determine if the current user SID matches that of the specified user
+  PTOKEN_USER ptu = reinterpret_cast<PTOKEN_USER>(ptuSmartPtr.get());
+
   if (EqualSid(user, ptu->User.Sid)) {
     return Status::success();
   }

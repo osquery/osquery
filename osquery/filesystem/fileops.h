@@ -151,7 +151,7 @@ std::string getFileAttribStr(unsigned long);
 
 Status platformStat(const boost::filesystem::path&, WINDOWS_STAT*);
 
-Status getCurrentUserInfo(PTOKEN_USER& info);
+std::unique_ptr<BYTE[]> getCurrentUserInfo();
 
 /**
  * @brief Stores information about the last Windows async request
