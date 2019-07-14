@@ -26,7 +26,7 @@ function(thrifMain)
 
   if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_MACOS)
     set(configure_options
-      -DCMAKE_CXX_FLAGS="-fvisibility=hidden -fvisibility-inlines-hidden $ENV{CXXFLAGS}"
+      -DCMAKE_CXX_FLAGS=-fvisibility=hidden\ -fvisibility-inlines-hidden\ $ENV{CXXFLAGS}
     )
   endif()
 

@@ -24,9 +24,9 @@ option(BUILD_TESTING "Whether to enable and build tests or not")
 # This is the default S3 storage used by Facebook to store 3rd party dependencies; it
 # is provided here as a configuration option
 if("${THIRD_PARTY_REPOSITORY_URL}" STREQUAL "")
-  set(THIRD_PARTY_REPOSITORY_URL "https://s3.amazonaws.com/osquery-packages")
+  set(THIRD_PARTY_REPOSITORY_URL "https://s3.amazonaws.com/osquery-packages" CACHE STRING "")
 endif()
 
 if("${THIRD_PARTY_PREBUILT_PATH}" STREQUAL "")
-  set(THIRD_PARTY_PREBUILT_PATH "${CMAKE_SOURCE_DIR}/third-party-prebuilt")
+  set(THIRD_PARTY_PREBUILT_PATH "${CMAKE_SOURCE_DIR}/third-party-prebuilt" CACHE STRING "Path to prebuilt platform prefixes")
 endif()

@@ -246,14 +246,12 @@ jobs:
       vmImage: vs2017-win2016
 
     steps:
-    - checkout: self
-      submodules: recursive
-      displayName: "Update submodules"
-
     - powershell: |
         git config --global core.autocrlf false
 
     - checkout: self
+      submodules: recursive
+      displayName: "Update submodules"
 
     - powershell: |
         mkdir $(Build.BinariesDirectory)\build

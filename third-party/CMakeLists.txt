@@ -19,7 +19,7 @@ function(osqueryThirdpartyMain)
   add_subdirectory("sqlite")
   add_subdirectory("googletest")
 
-  # Ordered recorsive dependencies
+  # Ordered recursive dependencies
   add_subdirectory("zlib")
   add_subdirectory("bzip2")
   add_subdirectory("libxml2")
@@ -66,6 +66,10 @@ endfunction()
 
 function(definePrebuiltProject name)
   set(identifier "thirdparty_build_${name}")
+  if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    # Ninja build will error with "$(MAKE)" output
+    return()
+  endif()
 
   # Create a target to hold the arguments from the function call.
   set(props "${identifier}_props")
@@ -222,18 +226,29 @@ function(importThirdPartyBinaryLibrary name anchor_file_name)
     set_target_properties("${identifier}" PROPERTIES IMPORTED_LOCATION "${base_path}/${relative_anchor_path}")
   endif()
 
-  execute_process(COMMAND "${CMAKE_COMMAND}" -E make_directory "${base_folder}/include")
+  execute_process(COMMAND "${CMAKE_COMMAND}" -E make_directory "${base_path}/include")
   target_include_directories("${identifier}" INTERFACE "${base_path}/include")
 
   set(importThirdPartyBinaryLibrary_baseFolderPath "${base_path}" PARENT_SCOPE)
 endfunction()
 
 function(importThirdPartyHeaderOnlyLibrary library_type name anchor_file include_folder)
+  if(DEFINED PLATFORM_LINUX)
+    set(platform_name "linux")
+  elseif(DEFINED PLATFORM_MACOS)
+    set(platform_name "macos")
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(platform_name "windows")
+  else()
+    message(FATAL_ERROR "Unrecognized system")
+    return()
+  endif()
+
   set(identifier "thirdparty_${name}")
   set(base_path "${THIRD_PARTY_PREBUILT_PATH}/${platform_name}-x86_64")
 
   add_osquery_library("${identifier}" INTERFACE)
-  target_include_directories("${identifier}" INTERFACE "${base_folder}/${include_folder}")
+  target_include_directories("${identifier}" INTERFACE "${base_path}/${include_folder}")
 endfunction()
 
 # Generates a empty imported or interface library named thirdparty_name that will depends on the targets
