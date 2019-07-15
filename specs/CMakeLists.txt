@@ -259,6 +259,10 @@ function(generateNativeTables)
     "windows/wmi_script_event_consumers.table:windows"
     "windows/physical_disk_performance.table:windows"
     "windows/autoexec.table:windows"
+<<<<<<< HEAD
+=======
+    "windows/userassist.table:windows"
+>>>>>>> Small updates
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd"  
   )
