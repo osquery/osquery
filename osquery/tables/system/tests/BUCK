@@ -6,7 +6,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
-load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX", "WINDOWS")
 
 osquery_cxx_test(
     name = "md_tables_tests",
@@ -258,7 +258,7 @@ osquery_cxx_test(
 )
 
 osquery_cxx_test(
-    name = "certificates_tests",
+    name = "macos_certificates_tests",
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
             osquery_target("tools/tests:test_files"),
@@ -269,6 +269,32 @@ osquery_cxx_test(
             MACOSX,
             [
                 "darwin/certificates_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "windows_certificates_tests",
+    platform_srcs = [
+        (
+            WINDOWS,
+            [
+                "windows/certificates_tests.cpp",
             ],
         ),
     ],
