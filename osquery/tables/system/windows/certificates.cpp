@@ -501,12 +501,12 @@ void addCertRow(PCCERT_CONTEXT certContext,
   results.push_back(r);
 }
 
-void findPersonalCertsOnDisk(const std::string& username,
-                             QueryData& results,
-                             std::string storeId,
-                             std::string sid,
-                             std::string storeName,
-                             std::string storeLocation) {
+void findUserPersonalCertsOnDisk(const std::string& username,
+                                 QueryData& results,
+                                 std::string storeId,
+                                 std::string sid,
+                                 std::string storeName,
+                                 std::string storeLocation) {
   std::stringstream certsPath;
   certsPath
       << "C:\\Users\\" << username
@@ -660,23 +660,30 @@ BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
   return TRUE;
 }
 
-void getPersonalCerts(QueryData& results) {
+/// A user's `Personal` certs are stored on disk and not in the registry.
+/// Furthermore, when using the enumeration APIs, other users' Personal certs
+/// are not visible. This function proactively retrieves these certs from
+/// disk so that the table is guaranteed to, at the very least, list any
+/// existing Personal certs for all local users, regardless of whether those
+/// users' registry hives are currently mounted.
+void genPersonalCertsFromDisk(QueryData& results) {
   auto users = SQL::selectAllFrom("users");
   for (const auto& row : users) {
     auto sid = row.at("uuid");
     auto username = row.at("username");
 
-    findPersonalCertsOnDisk(username,
-                            results,
-                            sid,
-                            sid,
-                            "Personal", // storeName
-                            "Users" // storeLocation
+    findUserPersonalCertsOnDisk(username,
+                                results,
+                                sid,
+                                sid,
+                                "Personal", // storeName
+                                "Users" // storeLocation
     );
   }
 }
 
-void getOtherCerts(QueryData& results) {
+/// Use the standard enumeration APIs to retrieve certificates.
+void genNonPersonalCerts(QueryData& results) {
   ENUM_ARG enumArg;
 
   unsigned long flags = 0;
@@ -702,8 +709,8 @@ void getOtherCerts(QueryData& results) {
 QueryData genCerts(QueryContext& context) {
   QueryData results;
 
-  getPersonalCerts(results);
-  getOtherCerts(results);
+  genPersonalCertsFromDisk(results);
+  genNonPersonalCerts(results);
 
   return results;
 }
