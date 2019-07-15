@@ -24,6 +24,8 @@
 // Standard library support for std::string_view.
 #define BOOST_ASIO_DISABLE_STD_STRING_VIEW 1
 
+#include <mutex>
+
 // clang-format off
 // Keep it on top of all other includes to fix double include WinSock.h header file
 // which is windows specific boost build problem
