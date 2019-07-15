@@ -24,7 +24,10 @@
 // Standard library support for std::string_view.
 #define BOOST_ASIO_DISABLE_STD_STRING_VIEW 1
 
+#ifdef WIN32
+// For std:call_once, used below
 #include <mutex>
+#endif
 
 // clang-format off
 // Keep it on top of all other includes to fix double include WinSock.h header file
