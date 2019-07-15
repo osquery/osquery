@@ -502,11 +502,11 @@ void addCertRow(PCCERT_CONTEXT certContext,
 }
 
 void findUserPersonalCertsOnDisk(const std::string& username,
-                                 QueryData& results,
-                                 std::string storeId,
-                                 std::string sid,
-                                 std::string storeName,
-                                 std::string storeLocation) {
+                                 const std::string storeId,
+                                 const std::string sid,
+                                 const std::string storeName,
+                                 const std::string storeLocation,
+                                 QueryData& results) {
   std::stringstream certsPath;
   certsPath
       << "C:\\Users\\" << username
@@ -570,8 +570,8 @@ void enumerateCertStore(const HCERTSTORE& certStore,
         // those results, and reuse them here. Only thing is we'd need to update
         // the storeId and storeLocation fields to match where we currently are
         // in the enumeration process.
-        findPersonalCertsOnDisk(
-            username, results, storeId, sid, storeName, storeLocation);
+        findUserPersonalCertsOnDisk(
+            username, storeId, sid, storeName, storeLocation, results);
       }
     }
     return;
@@ -673,12 +673,11 @@ void genPersonalCertsFromDisk(QueryData& results) {
     auto username = row.at("username");
 
     findUserPersonalCertsOnDisk(username,
-                                results,
                                 sid,
                                 sid,
                                 "Personal", // storeName
-                                "Users" // storeLocation
-    );
+                                "Users", // storeLocation
+                                results);
   }
 }
 
