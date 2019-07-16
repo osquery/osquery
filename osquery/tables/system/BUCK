@@ -64,6 +64,7 @@ osquery_cxx_library(
             WINDOWS,
             [
                 "windows/registry.h",
+                "windows/certificates.h",
             ],
         ),
     ],
