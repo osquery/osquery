@@ -360,7 +360,6 @@ void addCertRow(PCCERT_CONTEXT certContext,
                 std::string storeName,
                 std::string username,
                 std::string storeLocation) {
-  // Get the cert fingerprint and ensure we haven't already processed it
   std::vector<char> certBuff;
   getCertCtxProp(certContext, CERT_HASH_PROP_ID, certBuff);
   std::string fingerprint;
