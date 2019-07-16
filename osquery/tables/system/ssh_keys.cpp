@@ -40,7 +40,7 @@ bool isEncrypted(std::string& keys_content) {
         kEd25519Header.size(), kEd25519UnencryptedPrefix.size());
     return prefix != kEd25519UnencryptedPrefix;
   }
-  return (keys_content.find("ENCRYPTED") != std::string::npos) ? true : false;
+  return keys_content.find("ENCRYPTED") != std::string::npos;
 }
 
 void genSSHkeyForHosts(const std::string& uid,
