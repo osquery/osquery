@@ -38,14 +38,15 @@ TEST_F(Crontab, test_sanity) {
                                                 "dec"};
   std::unordered_set<std::string> days_list = {
       "mon", "tue", "wed", "thu", "fri", "sat", "sun"};
-  ValidatatioMap row_map = {{"event", SpecificValuesCheck{"",
-                                                          "@reboot",
-                                                          "@hourly",
-                                                          "@daily",
-                                                          "@weekly",
-                                                          "@monthly",
-                                                          "@annually",
-                                                          "@yearly"}},
+  ValidatatioMap row_map = {{"event",
+                             SpecificValuesCheck{"",
+                                                 "@reboot",
+                                                 "@hourly",
+                                                 "@daily",
+                                                 "@weekly",
+                                                 "@monthly",
+                                                 "@annually",
+                                                 "@yearly"}},
                             {"minute", CronValuesCheck(0, 59)},
                             {"hour", CronValuesCheck(0, 23)},
                             {"day_of_month", CronValuesCheck(1, 31)},
