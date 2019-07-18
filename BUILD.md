@@ -144,7 +144,7 @@ xcode-select --install
 
 brew tap caskroom/cask
 brew tap caskroom/versions
-brew cask install java8
+brew cask install adoptopenjdk8
 ```
 
 *Install Buck and Watchman*
