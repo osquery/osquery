@@ -234,12 +234,6 @@ endfunction()
 
 function(generatePackageTarget)
 
-string(REPLACE "." ";" osquery_version_components "${OSQUERY_VERSION}")
-
-list(GET osquery_version_components 0 CPACK_PACKAGE_VERSION_MAJOR)
-list(GET osquery_version_components 1 CPACK_PACKAGE_VERSION_MINOR)
-list(GET osquery_version_components 2 CPACK_PACKAGE_VERSION_PATCH)
-
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
 set(CPACK_PACKAGE_VENDOR "osquery")
 set(CPACK_PACKAGE_CONTACT "osquery@osquery.io")
