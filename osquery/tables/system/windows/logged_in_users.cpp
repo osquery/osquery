@@ -122,7 +122,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
         getSidFromUsername(stringToWstring(wtsSession->UserName));
 
     if (sessionInfo != nullptr) {
-      WTSFreeMemory(clientInfo);
+      WTSFreeMemory(sessionInfo);
       sessionInfo = nullptr;
     }
 
@@ -142,7 +142,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
   }
 
   if (pSessionInfo != nullptr) {
-    WTSFreeMemory(clientInfo);
+    WTSFreeMemory(pSessionInfo);
     pSessionInfo = nullptr;
   }
 
