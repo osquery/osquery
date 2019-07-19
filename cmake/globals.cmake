@@ -50,8 +50,40 @@ endif()
 
 set(TEST_CONFIGS_DIR "${CMAKE_BINARY_DIR}/test_configs")
 
-# osquery versions
-set(OSQUERY_VERSION 3.4.0)
+# osquery versions.
+#
+# 1. $OSQUERY_VERSION is set, use that.
+# 2. Else derive from git
+# 3. If set, append $OSQUERY_VERSION_SUFFIX
+
+if(NOT DEFINED ENV{OSQUERY_VERSION})
+  set(OSQUERY_VERSION 0.0.0)
+  find_package(Git REQUIRED)
+
+  if(GIT_FOUND)
+    execute_process(
+      COMMAND "${GIT_EXECUTABLE}" describe --tags --always --dirty
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+      OUTPUT_VARIABLE branch_version
+      RESULT_VARIABLE exit_code
+    )
+
+    if(NOT ${exit_code} EQUAL 0)
+      message(WARNING "Failed to detect osquery version, it will be left to 0.0.0")
+    else()
+      string(REGEX REPLACE "\n$" "" branch_version "${branch_version}")
+      set(OSQUERY_VERSION ${branch_version})
+    endif()
+  endif()
+else()
+  set(OSQUERY_VERSION "$ENV{OSQUERY_VERSION}")
+endif()
+
+if(DEFINED ENV{OSQUERY_VERSION_SUFFIX})
+  string(APPEND OSQUERY_VERSION "-$ENV{OSQUERY_VERSION_SUFFIX}")
+endif()
+
+message(STATUS "osquery version: ${OSQUERY_VERSION}")
 
 # Cache variables
 set(PACKAGING_SYSTEM "" CACHE STRING "Packaging system to generate when building packages")
