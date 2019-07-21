@@ -189,14 +189,14 @@ BOOL genAdvancedBatteryInfo(Row& r) {
 }
 
 QueryData genBatteryInfo(QueryContext& context) {
+  QueryData results;
   Row row;
   @autoreleasepool {
     if (genIopmBatteryInfo(row)){
       genAdvancedBatteryInfo(row);
+      results.push_back(row);
     }
   }
-  QueryData results;
-  results.push_back(row);
   return results;
 }
 
