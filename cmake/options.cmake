@@ -69,6 +69,9 @@ option(OSQUERY_NO_DEBUG_SYMBOLS "Whether to build without debug symbols or not, 
 
 option(BUILD_TESTING "Whether to enable and build tests or not")
 
+# TODO: Revert this to 'facebook' before we merge!
+set(OSQUERY_THIRD_PARTY_SOURCE "source;pre-built;facebook" CACHE STRING "Sources used to acquire third-party dependencies")
+
 # This is the default S3 storage used by Facebook to store 3rd party dependencies; it
 # is provided here as a configuration option
 if("${THIRD_PARTY_REPOSITORY_URL}" STREQUAL "")
@@ -78,3 +81,4 @@ endif()
 detectOsqueryVersion()
 
 message(STATUS "osquery version: ${OSQUERY_VERSION_INTERNAL}")
+

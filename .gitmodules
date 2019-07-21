@@ -1,0 +1,66 @@
+[submodule "libraries/cmake/source/bzip2/src"]
+	path = libraries/cmake/source/bzip2/src
+	url = git://sourceware.org/git/bzip2.git
+[submodule "libraries/cmake/source/libarchive/src"]
+	path = libraries/cmake/source/libarchive/src
+	url = https://github.com/libarchive/libarchive
+[submodule "libraries/cmake/source/libmagic/src"]
+	path = libraries/cmake/source/libmagic/src
+	url = https://github.com/file/file
+[submodule "libraries/cmake/source/libudev/src"]
+	path = libraries/cmake/source/libudev/src
+	url = https://github.com/systemd/systemd
+[submodule "libraries/cmake/source/libxml2/src"]
+	path = libraries/cmake/source/libxml2/src
+	url = https://github.com/GNOME/libxml2
+[submodule "libraries/cmake/source/linenoise-ng/src"]
+	path = libraries/cmake/source/linenoise-ng/src
+	url = https://github.com/arangodb/linenoise-ng
+[submodule "libraries/cmake/source/lzma/src"]
+	path = libraries/cmake/source/lzma/src
+	url = https://git.tukaani.org/xz.git
+[submodule "libraries/cmake/source/rapidjson/src"]
+	path = libraries/cmake/source/rapidjson/src
+	url = https://github.com/Tencent/rapidjson
+[submodule "libraries/cmake/source/rocksdb/src"]
+	path = libraries/cmake/source/rocksdb/src
+	url = https://github.com/facebook/rocksdb
+[submodule "libraries/cmake/source/sleuthkit/src"]
+	path = libraries/cmake/source/sleuthkit/src
+	url = https://github.com/sleuthkit/sleuthkit
+[submodule "libraries/cmake/source/sqlite/src"]
+	path = libraries/cmake/source/sqlite/src
+	url = https://github.com/osquery/third-party-sqlite
+[submodule "libraries/cmake/source/ssdeep-cpp/src"]
+	path = libraries/cmake/source/ssdeep-cpp/src
+	url = https://github.com/ssdeep-project/ssdeep
+[submodule "libraries/cmake/source/thrift/src"]
+	path = libraries/cmake/source/thrift/src
+	url = https://github.com/apache/thrift
+[submodule "libraries/cmake/source/util-linux/src"]
+	path = libraries/cmake/source/util-linux/src
+	url = https://git.kernel.org/pub/scm/utils/util-linux/util-linux
+[submodule "libraries/cmake/source/yara/src"]
+	path = libraries/cmake/source/yara/src
+	url = https://github.com/VirusTotal/yara
+[submodule "libraries/cmake/source/zlib/src"]
+	path = libraries/cmake/source/zlib/src
+	url = https://github.com/madler/zlib
+[submodule "libraries/cmake/source/zstd/src"]
+	path = libraries/cmake/source/zstd/src
+	url = https://github.com/facebook/zstd
+[submodule "libraries/cmake/source/augeas/src"]
+	path = libraries/cmake/source/augeas/src
+	url = https://github.com/hercules-team/augeas
+[submodule "libraries/cmake/source/smartmontools/src"]
+	path = libraries/cmake/source/smartmontools/src
+	url = https://github.com/osquery/third-party-smartmontools
+[submodule "third-party-prebuilt"]
+	path = third-party-prebuilt
+	url = https://github.com/theopolis/osquery-third-party-prebuilt
+[submodule "libraries/cmake/source/berkeley-db/src"]
+	path = libraries/cmake/source/berkeley-db/src
+	url = https://github.com/osquery/third-party-berkeley-db
+[submodule "libraries/cmake/source/librpm/src"]
+	path = libraries/cmake/source/librpm/src
+	url = https://github.com/rpm-software-management/rpm

@@ -334,7 +334,6 @@ function(generateGlobalSettingsTargets)
 
   add_library(global_cxx_settings INTERFACE)
   target_link_libraries(global_cxx_settings INTERFACE cxx_settings global_settings)
-
 endfunction()
 
 # Marks the specified target to enable link whole archive
@@ -382,7 +381,6 @@ function(generateUnsupportedPlatformSourceFile)
 endfunction()
 
 function(generateCopyFileTarget name type relative_file_paths destination)
-
   set(source_base_path "${CMAKE_CURRENT_SOURCE_DIR}")
 
   if(type STREQUAL "REGEX")
@@ -428,7 +426,6 @@ function(generateCopyFileTarget name type relative_file_paths destination)
   add_dependencies("${name}" "${name}_copy_files")
 
   set_target_properties("${name}" PROPERTIES INTERFACE_BINARY_DIR "${destination}")
-
 endfunction()
 
 function(add_osquery_executable)
