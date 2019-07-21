@@ -140,8 +140,8 @@ function(generateInstallTargets)
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     install(FILES "${CMAKE_BINARY_DIR}/package/linux/osquery.example.conf" DESTINATION share/osquery)
 
-    get_target_property(augeas_binary_dir thirdparty_augeas INTERFACE_BINARY_DIR)
-    install(DIRECTORY "${augeas_binary_dir}/share/augeas/lenses/dist/"
+    get_target_property(augeas_lenses_dir thirdparty_augeas LENSES_FOLDER_PATH)
+    install(DIRECTORY "${augeas_lenses_dir}"
             DESTINATION share/osquery/lenses
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)
@@ -205,8 +205,8 @@ function(generateInstallTargets)
     install(DIRECTORY COMPONENT osquery DESTINATION /private/var/log/osquery)
     install(DIRECTORY COMPONENT osquery DESTINATION /private/var/osquery)
 
-    get_target_property(augeas_binary_dir thirdparty_augeas INTERFACE_BINARY_DIR)
-    install(DIRECTORY "${augeas_binary_dir}/share/augeas/lenses/dist/" COMPONENT osquery
+    get_target_property(augeas_lenses_dir thirdparty_augeas LENSES_FOLDER_PATH)
+    install(DIRECTORY "${augeas_lenses_dir}" COMPONENT osquery
             DESTINATION /private/var/osquery/lenses
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)
