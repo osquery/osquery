@@ -1,0 +1,12 @@
+library(
+    name = "zstd",
+    version = "1.2.0",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    deps = [
+    ],
+)

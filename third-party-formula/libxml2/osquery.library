@@ -1,0 +1,11 @@
+library(
+    name = "libxml2",
+    version = "2.9.7",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    deps = [
+    ],
+)

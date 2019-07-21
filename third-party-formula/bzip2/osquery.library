@@ -1,0 +1,11 @@
+library(
+    name = "bzip2",
+    version = "1.0.6",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "windows-x86_64",
+    ],
+    deps = [
+    ],
+)

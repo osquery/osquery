@@ -1,0 +1,42 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "libmagic",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "e6c7144360b29d672db7a98cdfe55dc80812c2100b4a111d65f98e78404835aa",
+        "macos-x86_64": "66efdaf945b8d04751aa337ef0529ded53fcd7e3b85fb8dfd9e4c40a562ffa6d",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libmagic.a",
+        ],
+        "macos-x86_64": [
+            "lib/libmagic.a",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+        osquery_tp_target("zlib", "zlib"),
+    ],
+    version = "5.32",
+    build = "0",
+    visibility = ["PUBLIC"],
+)

@@ -1,0 +1,11 @@
+library(
+    name = "ssdeep-cpp",
+    version = "2.14.1",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    deps = [
+    ],
+)

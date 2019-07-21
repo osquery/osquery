@@ -1,0 +1,12 @@
+library(
+    name = "boost",
+    version = "1.66.0",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    deps = [
+    ],
+)
