@@ -560,17 +560,20 @@ void enumerateCertStore(const HCERTSTORE& certStore,
     VLOG(1) << "Store was empty.";
 
     // Personal stores for other users come back as empty, even if they are not.
-    if (storeName == "Personal" && !username.empty()) {
-      // Avoid duplicate rows for personal certs we've already inserted up
-      // front.
-      if (storeLocation != "Users" || boost::ends_with(storeId, "_Classes")) {
-        VLOG(1) << "Trying harder to get Personal store.";
+    auto is_personal_store = storeName == "Personal" && !username.empty();
+    // Avoid duplicate rows for personal certs we've already inserted up
+    // front.
+    auto not_already_added =
+        storeLocation != "Users" || boost::ends_with(storeId, "_Classes");
 
-        // TODO(#5654) 2: Potential future optimization
-        findUserPersonalCertsOnDisk(
-            username, storeId, sid, storeName, storeLocation, results);
-      }
+    if (is_personal_store && not_already_added) {
+      VLOG(1) << "Trying harder to get Personal store.";
+
+      // TODO(#5654) 2: Potential future optimization
+      findUserPersonalCertsOnDisk(
+          username, storeId, sid, storeName, storeLocation, results);
     }
+
     return;
   }
 
