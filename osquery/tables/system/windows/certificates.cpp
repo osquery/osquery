@@ -418,7 +418,7 @@ void addCertRow(PCCERT_CONTEXT certContext,
                              issuerSize);
   r["issuer"] = issuerSize == 0 ? "" : certBuff.data();
 
-  // TODO: Find the right API calls to get whether a cert is for a CA
+  // TODO(#5654) 1: Find the right API calls to get whether a cert is for a CA
   r["ca"] = INTEGER(-1);
 
   r["self_signed"] =
@@ -567,16 +567,7 @@ void enumerateCertStore(const HCERTSTORE& certStore,
       if (storeLocation != "Users" || boost::ends_with(storeId, "_Classes")) {
         TLOG << "    Trying harder to get Personal store.";
 
-        // TODO: This can technically be optimized. In certain cases, we will
-        // end up retrieving Personal certificates from disk that have already
-        // been fetched for a user/SID. For example, the Services store
-        // location has stores like
-        // S-1-5-21-2821152761-3909955410-1545212275-1001\My. That user's
-        // Personal certs will have already been fetched up front and in this
-        // specific case, we will refetch from disk. We could conceivably save
-        // those results, and reuse them here. Only thing is we'd need to update
-        // the storeId and storeLocation fields to match where we currently are
-        // in the enumeration process.
+        // TODO(#5654) 2: Potential future optimization
         findUserPersonalCertsOnDisk(
             username, storeId, sid, storeName, storeLocation, results);
       }
