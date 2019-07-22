@@ -388,7 +388,7 @@ void addCertRow(PCCERT_CONTEXT certContext,
                     certBuff.data(),
                     static_cast<unsigned long>(certBuff.size()));
   r["common_name"] = certBuff.data();
-  TLOG << "    cert name: " << certBuff.data();
+  VLOG(1) << "cert name: " << certBuff.data();
 
   auto subjSize = CertNameToStr(certContext->dwCertEncodingType,
                                 &(certContext->pCertInfo->Subject),
@@ -558,14 +558,14 @@ void enumerateCertStore(const HCERTSTORE& certStore,
   auto certContext = CertEnumCertificatesInStore(certStore, nullptr);
 
   if (certContext == nullptr && GetLastError() == CRYPT_E_NOT_FOUND) {
-    TLOG << "    Store was empty.";
+    VLOG(1) << "Store was empty.";
 
     // Personal stores for other users come back as empty, even if they are not.
     if (storeName == "Personal" && !username.empty()) {
       // Avoid duplicate rows for personal certs we've already inserted up
       // front.
       if (storeLocation != "Users" || boost::ends_with(storeId, "_Classes")) {
-        TLOG << "    Trying harder to get Personal store.";
+        VLOG(1) << "Trying harder to get Personal store.";
 
         // TODO(#5654) 2: Potential future optimization
         findUserPersonalCertsOnDisk(
@@ -605,7 +605,7 @@ BOOL WINAPI certEnumSystemStoreCallback(const void* systemStore,
   auto* storeArg = static_cast<ENUM_ARG*>(arg);
   auto* sysStoreW = static_cast<LPCWSTR>(systemStore);
 
-  VLOG(1) << "  Enumerating cert store: " << wstringToString(sysStoreW);
+  VLOG(1) << "Enumerating cert store: " << wstringToString(sysStoreW);
 
   auto systemStoreLocation = flags & CERT_SYSTEM_STORE_LOCATION_MASK;
 
