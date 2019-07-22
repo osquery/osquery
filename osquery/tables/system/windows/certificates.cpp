@@ -319,11 +319,19 @@ struct Header {
 };
 #pragma pack(pop)
 
+/**
+ * This function extracts an encoded certificate from a proprietary Windows
+ * file format, which is described in the links below. Briefly, the file is
+ * an array of elements where each element contains a header followed by a
+ * variable length data buffer. The encoded certificate is stored in the data
+ * buffer of one of these elements whose header has a specific `propid` field.
+ *
+ * Links:
+ * https://itsme.home.xs4all.nl/projects/xda/smartphone-certificates.html
+ * https://github.com/wine-mirror/wine/blob/f9301c2b66450a1cdd986e9052fcaa76535ba8b7/dlls/crypt32/crypt32_private.h#L146
+ */
 Status getEncodedCert(std::basic_istream<BYTE>& blob,
                       std::vector<BYTE>& encodedCert) {
-  // See these links for details on this magic number:
-  // https://itsme.home.xs4all.nl/projects/xda/smartphone-certificates.html
-  // https://github.com/wine-mirror/wine/blob/f9301c2b66450a1cdd986e9052fcaa76535ba8b7/dlls/crypt32/crypt32_private.h#L146
   static const DWORD CERT_CERT_PROP_ID = 0x20;
 
   Header hdr;
