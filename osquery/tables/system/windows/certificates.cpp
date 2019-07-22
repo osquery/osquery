@@ -115,8 +115,10 @@ std::string constructDisplayStoreName(const std::string& serviceNameOrUserId,
   }
 }
 
-/// Given a string with the structure described in `parseSystemStoreString`
-/// return the prefix, if it exists.
+/**
+ * Given a string with the structure described in `parseSystemStoreString`
+ * return the prefix, if it exists.
+ */
 std::string extractServiceOrUserId(LPCWSTR sysStoreW) {
   const auto& certStoreNameString = wstringToString(sysStoreW);
 
@@ -129,8 +131,10 @@ std::string extractServiceOrUserId(LPCWSTR sysStoreW) {
   }
 }
 
-/// Given a string with the structure described in `parseSystemStoreString`
-/// return the unlocalized system store name.
+/**
+ * Given a string with the structure described in `parseSystemStoreString`
+ * return the unlocalized system store name.
+ */
 LPCWSTR extractStoreName(LPCWSTR sysStoreW) {
   auto* delimiter = wcschr(sysStoreW, L'\\');
   if (delimiter == nullptr) {
@@ -140,7 +144,9 @@ LPCWSTR extractStoreName(LPCWSTR sysStoreW) {
   }
 }
 
-/// Convert a system store name to std::string and localize, if possible.
+/**
+ * Convert a system store name to std::string and localize, if possible.
+ */
 std::string getLocalizedStoreName(LPCWSTR storeNameW) {
   auto* localizedName = CryptFindLocalizedName(storeNameW);
   if (localizedName == nullptr) {
@@ -150,8 +156,10 @@ std::string getLocalizedStoreName(LPCWSTR storeNameW) {
   }
 }
 
-/// Expects @name to be the `lpServiceStartName` from
-/// `QueryServiceConfig`
+/**
+ * Expects @name to be the `lpServiceStartName` from
+ * `QueryServiceConfig`
+ */
 std::string getSidFromAccountName(const std::string& name) {
   // `lpServiceStartName` has been observed to contain both uppercase
   // and lowercase versions of these values
@@ -165,8 +173,10 @@ std::string getSidFromAccountName(const std::string& name) {
   return "";
 }
 
-/// Convert string representation of a SID ("S-1-5-18") into the username.
-/// If fails to look up SID, returns an empty string.
+/**
+ * Convert string representation of a SID ("S-1-5-18") into the username.
+ * If fails to look up SID, returns an empty string.
+ */
 std::string getUsernameFromSid(const std::string& sidString) {
   if (sidString.empty()) {
     return "";
@@ -210,9 +220,11 @@ bool isValidSid(const std::string& maybeSid) {
   return getUsernameFromSid(maybeSid).length() != 0;
 }
 
-/// Given a string that can contain either a service name or SID: if it is
-/// a service name, return the SID corresponding to the service account.
-/// Otherwise simply return the input string.
+/**
+ * Given a string that can contain either a service name or SID: if it is
+ * a service name, return the SID corresponding to the service account.
+ * Otherwise simply return the input string.
+ */
 std::string getServiceSid(const std::string& serviceNameOrSid,
                           ServiceNameMap& service2sidCache) {
   if (isValidSid(serviceNameOrSid)) {
@@ -228,9 +240,11 @@ std::string getServiceSid(const std::string& serviceNameOrSid,
     auto results = SQL::selectAllFrom("services", "name", EQUALS, serviceName);
 
     if (results.empty()) {
-      // This would be odd; we couldn't find it in the services table, even
-      // though we just saw it in the results from enumerating service
-      // certificates?
+      /**
+       * This would be odd; we couldn't find it in the services table, even
+       * though we just saw it in the results from enumerating service
+       * certificates?
+       */
       VLOG(1) << "Failed to look up service account for " << serviceName;
       return "";
     }
@@ -243,28 +257,27 @@ std::string getServiceSid(const std::string& serviceNameOrSid,
   return sid;
 }
 
-/// Parse the given system store string whose structure is:
-/// `(<prefix>\)?<unlocalized system store name>`
-/// (e.g. "My")
-/// (e.g. "S-1-5-18\My")
-/// (e.g. "SshdBroker\My")
-///
-/// <prefix> can be a SID, service name (`SshdBroker`) (for service stores), or
-/// SID with `_Classes` appended (for user accounts). If it exists, it is
-/// followed by a backslash.
-/// <unlocalized system store name> would be something like `My`, `CA`, etc.
-///
-/// The inputs are:
-/// @sysStoreW: System store string
-/// @storeLocation: System store location containing this system store
-/// @service2sidCache: Cache of service name to SID. A new cache is created for
-/// every query to keep it from getting stale.
-///
-/// The outputs are:
-/// @serviceNameOrUserId: The prefix, if it exists.
-/// @sid: SID corresponding to this certificate store (or empty)
-/// @storeName: The (localized, if possible) name of the certificate store,
-///             with no prefix of any kind.
+/**
+ * Parse the given system store string whose structure is:
+ * `(<prefix>\)?<unlocalized system store name>`
+ * (e.g. "My")
+ * (e.g. "S-1-5-18\My")
+ * (e.g. "SshdBroker\My")
+ *
+ * <prefix> can be a SID, service name (`SshdBroker`) (for service stores), or
+ * SID with `_Classes` appended (for user accounts). If it exists, it is
+ * followed by a backslash.
+ * <unlocalized system store name> would be something like `My`, `CA`, etc.
+ *
+ * @param sysStoreW System store string
+ * @param storeLocation System store location containing this system store
+ * @param service2sidCache Cache of service name to SID. A new cache is created
+ * for every query to keep it from getting stale.
+ * @param serviceNameOrUserId The prefix, if it exists. (output)
+ * @param sid SID corresponding to this certificate store (or empty) (output)
+ * @param storeName The (localized, if possible) name of the certificate store,
+ * with no prefix of any kind. (output)
+ */
 void parseSystemStoreString(LPCWSTR sysStoreW,
                             const std::string& storeLocation,
                             ServiceNameMap& service2sidCache,
@@ -275,25 +288,33 @@ void parseSystemStoreString(LPCWSTR sysStoreW,
   storeName = getLocalizedStoreName(storeNameUnlocalizedW);
   serviceNameOrUserId = extractServiceOrUserId(sysStoreW);
 
-  // Except for the conditions detailed below, `sid` is either empty, or a
-  // SID after this assignment
+  /**
+   * Except for the conditions detailed below, `sid` is either empty, or a
+   * SID after this assignment
+   */
   sid = serviceNameOrUserId;
 
   if (storeLocation == "Services") {
-    // If we are enumerating the "Services" store, we need to look up the
-    // SID for the service
+    /**
+     * If we are enumerating the "Services" store, we need to look up the
+     * SID for the service
+     */
     sid = getServiceSid(serviceNameOrUserId, service2sidCache);
   } else if (storeLocation == "Users") {
-    // If we are enumerating the "Users" store, we need to either convert
-    // the `.DEFAULT` user ID (alias for Local System), or trim a `_Classes`
-    // suffix that sometimes appears.
+    /**
+     * If we are enumerating the "Users" store, we need to either convert
+     * the `.DEFAULT` user ID (alias for Local System), or trim a `_Classes`
+     * suffix that sometimes appears.
+     */
 
     if (serviceNameOrUserId == ".DEFAULT") {
       sid = kLocalSystem;
     }
 
-    // There are cert store user IDs that are structured <SID>_Classes.
-    // The corresponding SID is simply this string with the suffix removed.
+    /**
+     * There are cert store user IDs that are structured <SID>_Classes.
+     * The corresponding SID is simply this string with the suffix removed.
+     */
     const static std::string suffix("_Classes");
     if (boost::ends_with(serviceNameOrUserId, suffix)) {
       sid = serviceNameOrUserId.substr(
@@ -542,7 +563,9 @@ void findUserPersonalCertsOnDisk(const std::string& username,
   }
 }
 
-/// Enumerate and process a certificate store
+/**
+ * Enumerate and process a certificate store
+ */
 void enumerateCertStore(const HCERTSTORE& certStore,
                         LPCWSTR sysStoreW,
                         const std::string& storeLocation,
@@ -592,13 +615,15 @@ void enumerateCertStore(const HCERTSTORE& certStore,
   }
 }
 
-/// Windows API callback for processing a system cert store
-///
-/// This function returns TRUE, even when error handling, because returning
-/// FALSE stops enumeration.
-///
-/// @systemStore: Could include a SID at the start ("SID-1234-blah-1001\MY")
-/// instead of only being the system store name ("MY")
+/**
+ * Windows API callback for processing a system cert store
+ *
+ * This function returns TRUE, even when error handling, because returning
+ * FALSE stops enumeration.
+ *
+ * @systemStore: Could include a SID at the start ("SID-1234-blah-1001\MY")
+ * instead of only being the system store name ("MY")
+ */
 BOOL WINAPI certEnumSystemStoreCallback(const void* systemStore,
                                         unsigned long flags,
                                         PCERT_SYSTEM_STORE_INFO storeInfo,
@@ -634,7 +659,9 @@ BOOL WINAPI certEnumSystemStoreCallback(const void* systemStore,
   return TRUE;
 }
 
-/// Windows API callback for processing a system cert store location
+/**
+ * Windows API callback for processing a system cert store location
+ */
 BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
                                                  unsigned long flags,
                                                  void* reserved,
@@ -660,12 +687,14 @@ BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
   return TRUE;
 }
 
-/// A user's `Personal` certs are stored on disk and not in the registry.
-/// Furthermore, when using the enumeration APIs, other users' Personal certs
-/// are not visible. This function proactively retrieves these certs from
-/// disk so that the table is guaranteed to, at the very least, list any
-/// existing Personal certs for all local users, regardless of whether those
-/// users' registry hives are currently mounted.
+/**
+ * A user's `Personal` certs are stored on disk and not in the registry.
+ * Furthermore, when using the enumeration APIs, other users' Personal certs
+ * are not visible. This function proactively retrieves these certs from
+ * disk so that the table is guaranteed to, at the very least, list any
+ * existing Personal certs for all local users, regardless of whether those
+ * users' registry hives are currently mounted.
+ */
 void genPersonalCertsFromDisk(QueryData& results) {
   auto users = SQL::selectAllFrom("users");
   for (const auto& row : users) {
@@ -681,7 +710,9 @@ void genPersonalCertsFromDisk(QueryData& results) {
   }
 }
 
-/// Use the standard enumeration APIs to retrieve certificates.
+/**
+ * Use the standard enumeration APIs to retrieve certificates.
+ */
 void genNonPersonalCerts(QueryData& results) {
   ENUM_ARG enumArg;
 
