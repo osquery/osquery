@@ -526,7 +526,7 @@ void findUserPersonalCertsOnDisk(const std::string& username,
       std::vector<BYTE> encodedCert;
       auto ret = getEncodedCert(inp, encodedCert);
       if (!ret.ok()) {
-        return;
+        continue;
       }
 
       auto ctx =
