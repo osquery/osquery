@@ -516,7 +516,7 @@ void findUserPersonalCertsOnDisk(const std::string& username,
                                  QueryData& results) {
   std::stringstream certsPath;
   certsPath
-      << "C:\\Users\\" << username
+      << getSystemRoot().root_name().string() << "\\Users\\" << username
       << "\\AppData\\Roaming\\Microsoft\\SystemCertificates\\My\\Certificates";
 
   try {
