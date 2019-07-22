@@ -363,11 +363,11 @@ Status getEncodedCert(std::basic_istream<BYTE>& blob,
 
 void addCertRow(PCCERT_CONTEXT certContext,
                 QueryData& results,
-                std::string storeId,
-                std::string sid,
-                std::string storeName,
-                std::string username,
-                std::string storeLocation) {
+                const std::string& storeId,
+                const std::string& sid,
+                const std::string& storeName,
+                const std::string& username,
+                const std::string& storeLocation) {
   std::vector<char> certBuff;
   getCertCtxProp(certContext, CERT_HASH_PROP_ID, certBuff);
   std::string fingerprint;
@@ -509,10 +509,10 @@ void addCertRow(PCCERT_CONTEXT certContext,
 }
 
 void findUserPersonalCertsOnDisk(const std::string& username,
-                                 const std::string storeId,
-                                 const std::string sid,
-                                 const std::string storeName,
-                                 const std::string storeLocation,
+                                 const std::string& storeId,
+                                 const std::string& sid,
+                                 const std::string& storeName,
+                                 const std::string& storeLocation,
                                  QueryData& results) {
   std::stringstream certsPath;
   certsPath
