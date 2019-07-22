@@ -55,6 +55,11 @@ typedef struct _ENUM_ARG {
   ServiceNameMap service2sidCache;
 } ENUM_ARG, *PENUM_ARG;
 
+template <typename Iterator>
+inline void toHexStr(Iterator begin, Iterator end, std::string& output) {
+  boost::algorithm::hex(std::string(begin, end), back_inserter(output));
+}
+
 std::string cryptOIDToString(const char* objId) {
   if (objId == nullptr) {
     return "";
@@ -392,8 +397,7 @@ void addCertRow(PCCERT_CONTEXT certContext,
   std::vector<char> certBuff;
   getCertCtxProp(certContext, CERT_HASH_PROP_ID, certBuff);
   std::string fingerprint;
-  boost::algorithm::hex(std::string(certBuff.begin(), certBuff.end()),
-                        back_inserter(fingerprint));
+  toHexStr(certBuff.begin(), certBuff.end(), fingerprint);
 
   Row r;
   r["sid"] = sid;
@@ -467,8 +471,7 @@ void addCertRow(PCCERT_CONTEXT certContext,
   certBuff.clear();
   getCertCtxProp(certContext, CERT_KEY_IDENTIFIER_PROP_ID, certBuff);
   std::string subjectKeyId;
-  boost::algorithm::hex(std::string(certBuff.begin(), certBuff.end()),
-                        back_inserter(subjectKeyId));
+  toHexStr(certBuff.begin(), certBuff.end(), subjectKeyId);
   r["subject_key_id"] = subjectKeyId;
 
   r["path"] =
@@ -477,11 +480,10 @@ void addCertRow(PCCERT_CONTEXT certContext,
   r["store"] = storeName;
 
   std::string serial;
-  boost::algorithm::hex(
-      std::string(certContext->pCertInfo->SerialNumber.pbData,
-                  certContext->pCertInfo->SerialNumber.pbData +
-                      certContext->pCertInfo->SerialNumber.cbData),
-      back_inserter(serial));
+  toHexStr(certContext->pCertInfo->SerialNumber.pbData,
+           certContext->pCertInfo->SerialNumber.pbData +
+               certContext->pCertInfo->SerialNumber.cbData,
+           serial);
   r["serial"] = serial;
 
   std::string authKeyId;
@@ -514,10 +516,9 @@ void addCertRow(PCCERT_CONTEXT certContext,
         auto authKeyIdBlob =
             reinterpret_cast<CERT_AUTHORITY_KEY_ID2_INFO*>(certBuff.data());
 
-        boost::algorithm::hex(std::string(authKeyIdBlob->KeyId.pbData,
-                                          authKeyIdBlob->KeyId.pbData +
-                                              authKeyIdBlob->KeyId.cbData),
-                              back_inserter(authKeyId));
+        toHexStr(authKeyIdBlob->KeyId.pbData,
+                 authKeyIdBlob->KeyId.pbData + authKeyIdBlob->KeyId.cbData,
+                 authKeyId);
       } else {
         VLOG(1) << "Failed to decode authority_key_id with (" << GetLastError()
                 << ")";
