@@ -334,9 +334,9 @@ void parseSystemStoreString(LPCWSTR sysStoreW,
 
 #pragma pack(push, 1)
 struct Header {
-  DWORD propid;
-  DWORD unknown;
-  DWORD size;
+  unsigned long propid;
+  unsigned long unknown;
+  unsigned long size;
 };
 #pragma pack(pop)
 
@@ -353,7 +353,7 @@ struct Header {
  */
 Status getEncodedCert(std::basic_istream<BYTE>& blob,
                       std::vector<BYTE>& encodedCert) {
-  static const DWORD CERT_CERT_PROP_ID = 0x20;
+  static const unsigned long CERT_CERT_PROP_ID = 0x20;
 
   Header hdr;
 
@@ -553,7 +553,7 @@ void findUserPersonalCertsOnDisk(const std::string& username,
       auto ctx =
           CertCreateCertificateContext(X509_ASN_ENCODING,
                                        encodedCert.data(),
-                                       static_cast<DWORD>(encodedCert.size()));
+                                       static_cast<unsigned long>(encodedCert.size()));
 
       addCertRow(
           ctx, results, storeId, sid, storeName, username, storeLocation);
@@ -717,7 +717,7 @@ void genNonPersonalCerts(QueryData& results) {
   ENUM_ARG enumArg;
 
   unsigned long flags = 0;
-  DWORD locationId = CERT_SYSTEM_STORE_CURRENT_USER_ID;
+  unsigned long locationId = CERT_SYSTEM_STORE_CURRENT_USER_ID;
 
   enumArg.dwFlags = flags;
   enumArg.pvStoreLocationPara = nullptr;
