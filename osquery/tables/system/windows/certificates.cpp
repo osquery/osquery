@@ -551,10 +551,10 @@ void findUserPersonalCertsOnDisk(const std::string& username,
         continue;
       }
 
-      auto ctx =
-          CertCreateCertificateContext(X509_ASN_ENCODING,
-                                       encodedCert.data(),
-                                       static_cast<unsigned long>(encodedCert.size()));
+      auto ctx = CertCreateCertificateContext(
+          X509_ASN_ENCODING,
+          encodedCert.data(),
+          static_cast<unsigned long>(encodedCert.size()));
 
       addCertRow(
           ctx, results, storeId, sid, storeName, username, storeLocation);
