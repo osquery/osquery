@@ -586,7 +586,11 @@ void genMemoryRegion(int pid,
     r["pseudo"] = "0";
   }
 
-  r["offset"] = INTEGER(info.offset);
+  // Necessary to do an unaligned read without triggering UB
+  memory_object_offset_t offset;
+  memcpy(&offset, &info.offset, sizeof(offset));
+
+  r["offset"] = INTEGER(offset);
   r["device"] = INTEGER(info.object_id);
 
   // Fields not applicable to OS X maps.
@@ -712,8 +716,13 @@ void genProcessMemoryMap(int pid, QueryData& results, bool exe_only = false) {
     mach_msg_type_number_t count = VM_REGION_SUBMAP_INFO_COUNT_64;
 
     vm_size_t size = 0;
-    status = vm_region_recurse_64(
-        task, &address, &size, &depth, (vm_region_info_64_t)&info, &count);
+    status =
+        vm_region_recurse_64(task,
+                             &address,
+                             &size,
+                             &depth,
+                             reinterpret_cast<vm_region_recurse_info_t>(&info),
+                             &count);
 
     if (status == KERN_INVALID_ADDRESS) {
       // Reached the end of the memory map.
