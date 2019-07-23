@@ -78,7 +78,7 @@ function(identifyPackagingSystemFromPlatform)
     set(platform_packaging_system "productbuild")
   endif()
 
-  overwrite_cache_variable("PACKAGING_SYSTEM" "${platform_packaging_system}")
+  overwrite_cache_variable("PACKAGING_SYSTEM" "STRING" "${platform_packaging_system}")
 endfunction()
 
 function(findPackagingTool)
@@ -106,7 +106,7 @@ function(findPackagingTool)
       get_filename_component(wix_root_path "${wix_root_path}" DIRECTORY)
       message(STATUS "Found WIX toolset at: ${wix_root_path}")
       set(CPACK_WIX_ROOT "${wix_root_path}")
-      overwrite_cache_variable("WIX_ROOT_FOLDER_PATH" "${wix_root_path}")
+      overwrite_cache_variable("WIX_ROOT_FOLDER_PATH" "STRING" "${wix_root_path}")
     else()
       message(WARNING
         "Could not find the WIX packaging tools, either install it or if it's already installed, please set the WIX_ROOT_FOLDER_PATH variable to the root folder of the WIX installation."
@@ -234,11 +234,9 @@ endfunction()
 
 function(generatePackageTarget)
 
-string(REPLACE "." ";" osquery_version_components "${OSQUERY_VERSION}")
-
-list(GET osquery_version_components 0 CPACK_PACKAGE_VERSION_MAJOR)
-list(GET osquery_version_components 1 CPACK_PACKAGE_VERSION_MINOR)
-list(GET osquery_version_components 2 CPACK_PACKAGE_VERSION_PATCH)
+list(GET OSQUERY_VERSION_COMPONENTS 0 CPACK_PACKAGE_VERSION_MAJOR)
+list(GET OSQUERY_VERSION_COMPONENTS 1 CPACK_PACKAGE_VERSION_MINOR)
+list(GET OSQUERY_VERSION_COMPONENTS 2 CPACK_PACKAGE_VERSION_PATCH)
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
 set(CPACK_PACKAGE_VENDOR "osquery")
