@@ -141,7 +141,7 @@ function(generateInstallTargets)
     install(FILES "${CMAKE_BINARY_DIR}/package/linux/osquery.example.conf" DESTINATION share/osquery)
 
     get_target_property(augeas_lenses_dir thirdparty_augeas LENSES_FOLDER_PATH)
-    install(DIRECTORY "${augeas_lenses_dir}"
+    install(DIRECTORY "${augeas_lenses_dir}/"
             DESTINATION share/osquery/lenses
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)

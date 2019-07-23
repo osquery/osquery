@@ -467,7 +467,7 @@ function(generateOsqueryTablesSystemTestsAugeasTestsTest)
 
   add_custom_target(osquery_tables_system_tests_augeaslenses
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${TEST_CONFIGS_DIR}/augeas/lenses"
-    COMMAND "${CMAKE_COMMAND}" -E copy "$<TARGET_PROPERTY:thirdparty_augeas,INTERFACE_BINARY_DIR>/share/augeas/lenses/dist/*.aug" "${TEST_CONFIGS_DIR}/augeas/lenses")
+    COMMAND "${CMAKE_COMMAND}" -E copy "$<TARGET_PROPERTY:thirdparty_augeas,LENSES_FOLDER_PATH>/*.aug" "${TEST_CONFIGS_DIR}/augeas/lenses")
 
   add_dependencies(osquery_tables_system_tests_augeastests-test osquery_tables_system_tests_augeaslenses)
   add_dependencies(osquery_tables_system_tests_augeaslenses thirdparty_augeas)
