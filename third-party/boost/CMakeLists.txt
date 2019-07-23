@@ -6,6 +6,8 @@
 
 function(boostMain)
   set(name "boost")
+  set(version "1.66.0")
+
   set(anchor_file "lib/libboost_chrono-mt.a")
 
   set(additional_libraries
@@ -17,7 +19,12 @@ function(boostMain)
     lib/libboost_system-mt.a
   )
 
-  if(DEFINED PLATFORM_WINDOWS)
+  if(DEFINED PLATFORM_LINUX)
+    set(hash "3a24d65730beb3a718ee443eaedac40033d349582eeb83664ea2529080c812ba")
+  elseif(DEFINED PLATFORM_MACOS)
+    set(hash "69c884d27838a11f9a45b78e03eb12a425d554dac4ad8c6ef19f91e63e945286")
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(hash "5530174b75b67c3c8e59f2ae62c3e18fea1b5e55c795ff19b40fb75cf93dfb51")
     set(anchor_file "lib/libboost_chrono-mt-s.lib")
 
     set(additional_libraries
@@ -28,74 +35,11 @@ function(boostMain)
       lib/libboost_thread-mt-s.lib
       lib/libboost_system-mt-s.lib
     )
+  else()
+    message(SEND_ERROR "Unsupported platform")
   endif()
 
-  importThirdPartyBinaryLibrary("${name}" "${anchor_file}" ${additional_libraries})
-
-  set(dependencies zlib)
-
-  if(DEFINED PLATFORM_MACOS)
-    set(platform_toolchain darwin)
-    set(boost_toolchain clang)
-    set(configure_command
-      CC=clang ./bootstrap.sh
-        --prefix=<INSTALL_DIR>
-        --libdir=<INSTALL_DIR>/lib
-        --with-toolset=cc &&
-      ${REPLACE_CMD} "cc ;" "${platform_toolchain} ;" project-config.jam
-    )
-    set(cxx_flags "cxxflags=-std=c++11 -fvisibility=hidden -fvisibility-inlines-hidden $ENV{CXXFLAGS}")
-    set(link_flags optimization=space "linkflags=$ENV{LDFLAGS}")
-  elseif(DEFINED PLATFORM_LINUX)
-    list(APPEND dependencies bzip2)
-    set(platform_toolchain clang)
-    set(boost_toolchain clang)
-    set(configure_command
-      CC=clang ./bootstrap.sh
-        --prefix=<INSTALL_DIR>
-        --libdir=<INSTALL_DIR>/lib
-        --with-toolset=cc &&
-      ${REPLACE_CMD} "cc ;" "${platform_toolchain} ;" project-config.jam
-    )
-    set(cxx_flags "cxxflags=-std=c++11 -fvisibility=hidden -fvisibility-inlines-hidden $ENV{CXXFLAGS}")
-    set(link_flags optimization=space "linkflags=$ENV{LDFLAGS}")
-  elseif(DEFINED PLATFORM_WINDOWS)
-    set(boost_toolchain msvc-14.1)
-    set(configure_command bootstrap.bat)
-    set(link_flags runtime-link=static)
-  endif()
-
-  definePrebuiltProject(${name}
-    URL https://downloads.sourceforge.net/project/boost/boost/1.66.0/boost_1_66_0.tar.bz2
-    SHA256 5721818253e6a0989583192f96782c4a98eb6204965316df9f5ad75819225ca9
-    DEPENDS ${dependencies}
-    CONFIGURE
-      ${configure_command}
-    BUILD true
-    INSTALL
-      ./b2 install
-        --prefix=<INSTALL_DIR>
-        --libdir=<INSTALL_DIR>/lib
-        -d2
-        --layout=tagged
-        --ignore-site-config
-        --disable-icu
-        --with-filesystem
-        --with-regex
-        --with-system
-        --with-thread
-        --with-coroutine
-        --with-context
-        threading=multi
-        link=static
-        variant=release
-        toolset=${boost_toolchain}
-        address-model=64
-        include=<INSTALL_DIR>/include
-        ${link_flags}
-        ${cxx_flags}
-    BUILD_IN_SOURCE ON
-  )
+  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}" ${additional_libraries})
 endfunction()
 
 boostMain()

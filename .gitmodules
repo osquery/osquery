@@ -1,3 +1,0 @@
-[submodule "third-party-prebuilt"]
-	path = third-party-prebuilt
-	url = https://github.com/theopolis/osquery-third-party-prebuilt

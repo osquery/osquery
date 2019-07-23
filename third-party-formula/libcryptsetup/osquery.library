@@ -1,0 +1,11 @@
+library(
+    name = "libcryptsetup",
+    version = "1.7.5",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+    ],
+    deps = [
+        "libgcrypt:libgcrypt",
+    ],
+)

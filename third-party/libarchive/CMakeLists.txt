@@ -6,38 +6,23 @@
 
 function(archiveMain)
   set(name "libarchive")
+  set(version "3.3.2")
+
   set(anchor_file "lib/libarchive.a")
 
-  if(DEFINED PLATFORM_WINDOWS)
-    set(anchor_file "lib/archive_static.lib")
-  endif()
-
-  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
-
-  set(dependencies zlib)
   if(DEFINED PLATFORM_LINUX)
-    list(APPEND dependencies bzip2 lzma)
+    set(hash "6818c2d6c8067918365cb81992f7853b100ef3244b8767bf2d182a1974f225a3")
+  elseif(DEFINED PLATFORM_MACOS)
+    set(hash "a3ec7af1618116fca2008838ef18d2028148b34e215c748da3f25e4053bfe6e8")
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(hash "cb1fc7e7ed1c652d7c322f629145749a60586eb8ec033a76025a04f4a42117a5")
+    set(anchor_file "lib/archive_static.lib")
+  else()
+    return()
   endif()
 
-  definePrebuiltProject(${name}
-    URL http://www.libarchive.org/downloads/libarchive-3.3.2.tar.gz
-    SHA256 ed2dbd6954792b2c054ccf8ec4b330a54b85904a80cef477a1c74643ddafa0ce
-    DEPENDS ${dependencies}
-    CONFIGURE
-      ./configure --prefix=<INSTALL_DIR>
-        --without-lzo2
-        --without-nettle
-        --without-xml2
-        --without-openssl
-        --with-expat
-        --disable-shared
-        --enable-static
-    BUILD
-      $(MAKE)
-    INSTALL
-      $(MAKE) install
-    BUILD_IN_SOURCE ON
-  )
+  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
+
 endfunction()
 
 archiveMain()

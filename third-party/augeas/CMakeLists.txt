@@ -6,8 +6,13 @@
 
 function(augeasMain)
   set(name "augeas")
+  set(version "1.9.0")
 
-  if(DEFINED PLATFORM_WINDOWS)
+  if(DEFINED PLATFORM_LINUX)
+    set(hash "ff21a672ec7d6ae313eabe32a458d2d4528ad086559a24e9d70638da10983b37")
+  elseif(DEFINED PLATFORM_MACOS)
+    set(hash "7330e0fcfbcea6f58d199916238c47078f3ea2ba85ac4ed2fa74fcb63e034b1c")
+  else()
     add_osquery_library(thirdparty_augeas INTERFACE)
     return()
   endif()
@@ -18,30 +23,7 @@ function(augeasMain)
     "lib/libfa.a"
   )
 
-  importThirdPartyBinaryLibrary("${name}" "${anchor_file}" ${additional_library})
-
-  set(dependencies libxml2)
-  definePrebuiltProject(${name}
-    URL http://download.augeas.net/augeas-1.12.0.tar.gz
-    SHA256 321942c9cc32185e2e9cb72d0a70eea106635b50269075aca6714e3ec282cb87
-    DEPENDS ${dependencies}
-    PATCHES libaugeas-1.12.0-1.patch
-    CONFIGURE
-      autoreconf &&
-      ./configure
-        --prefix=<INSTALL_DIR>
-        --enable-shared=no
-        --without-selinux
-    BUILD
-      cd <SOURCE_DIR>/gnulib/lib && $(MAKE) &&
-      cd <SOURCE_DIR>/src &&
-        $(MAKE) datadir.h &&
-        $(MAKE) install-libLTLIBRARIES &&
-        $(MAKE) install-data-am
-    INSTALL
-      $(MAKE) install-data-am
-    BUILD_IN_SOURCE ON
-  )
+  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}" ${additional_library})
 endfunction()
 
 augeasMain()

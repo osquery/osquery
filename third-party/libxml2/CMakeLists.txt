@@ -6,38 +6,22 @@
 
 function(libxml2Main)
   set(name "libxml2")
+  set(version "2.9.7")
 
-  if(DEFINED PLATFORM_WINDOWS)
+  if(DEFINED PLATFORM_LINUX)
+    set(hash "40f341caf6442347a130e614f7d1be3193656b7c5ad86a644a87f3b15282f7bf")
+  elseif(DEFINED PLATFORM_MACOS)
+    set(hash "15c240f914a430036847d19f18be54b86d0c78d54eff601f9b036b63481b420e")
+  else()
     add_osquery_library(thirdparty_libxml2 INTERFACE)
     return()
   endif()
 
   set(anchor_file "lib/libxml2.a")
 
-  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
+  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
 
   target_link_libraries("thirdparty_${name}" INTERFACE thirdparty_zlib)
-
-  set(dependencies zlib)
-  definePrebuiltProject(${name}
-    URL http://xmlsoft.org/sources/libxml2-2.9.7.tar.gz
-    SHA256 f63c5e7d30362ed28b38bfa1ac6313f9a80230720b7fb6c80575eeab3ff5900c
-    DEPENDS ${dependencies}
-    CONFIGURE
-      ./configure
-        --prefix=<INSTALL_DIR>
-        --without-python
-        --without-lzma
-        --with-zlib=<INSTALL_DIR>
-        --disable-shared
-        --enable-static
-    BUILD
-      $(MAKE)
-    INSTALL
-      $(MAKE) install &&
-      ln -sf libxml2/libxml <INSTALL_DIR>/include
-    BUILD_IN_SOURCE ON
-  )
 endfunction()
 
 libxml2Main()

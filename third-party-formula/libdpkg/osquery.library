@@ -1,0 +1,10 @@
+library(
+    name = "libdpkg",
+    version = "1.19.0.5",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+    ],
+    deps = [
+    ],
+)

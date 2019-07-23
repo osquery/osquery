@@ -24,10 +24,6 @@ jobs:
       options: --privileged
 
     steps:
-    - checkout: self
-      submodules: recursive
-      displayName: "Update submodules"
-
     - script: mkdir $(Build.BinariesDirectory)/build
       displayName: "Create build folder"
 
@@ -149,10 +145,6 @@ jobs:
       displayName: "Install Homebrew and prerequisites"
       timeoutInMinutes: 20
 
-    - checkout: self
-      submodules: recursive
-      displayName: "Update submodules"
-
     - script: mkdir $(Build.BinariesDirectory)/build
       displayName: "Create build folder"
 
@@ -250,8 +242,6 @@ jobs:
         git config --global core.autocrlf false
 
     - checkout: self
-      submodules: recursive
-      displayName: "Update submodules"
 
     - powershell: |
         mkdir $(Build.BinariesDirectory)\build

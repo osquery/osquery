@@ -1,0 +1,54 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "dwarf",
+    exported_deps = [
+        ":libelfin",
+    ],
+    visibility = ["PUBLIC"],
+)
+
+osquery_cxx_library(
+    name = "elf",
+    exported_deps = [
+        ":libelfin",
+    ],
+    visibility = ["PUBLIC"],
+)
+
+osquery_tp_prebuilt_cxx_library(
+    name = "libelfin",
+    platforms = [
+        "linux-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "d3f6611493558a38796072a5464e0c261e6651b5630b51459d9d98dec7d052c9",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libdwarf++.a",
+            "lib/libelf++.a",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+
+    ],
+    version = "0.3",
+    build = "0",
+    visibility = ["PUBLIC"],
+)

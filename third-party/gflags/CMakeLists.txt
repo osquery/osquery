@@ -6,6 +6,7 @@
 
 function(gflagsMain)
   set(name "gflags")
+  set(version "2.2.1")
 
   set(anchor_file "lib/libgflags.a")
 
@@ -13,37 +14,21 @@ function(gflagsMain)
     lib/libgflags_nothreads.a
   )
 
-  if(DEFINED PLATFORM_WINDOWS)
+  if(DEFINED PLATFORM_LINUX)
+    set(hash "5e0813ea29d5ba739c089ae21dccf5b7d4ec6f7a7d9550da0834476fade2b60c")
+  elseif(DEFINED PLATFORM_MACOS)
+    set(hash "217fd2573443981bc8e521fcf4d8201ba4d3c29cace1b9a537f94be08df7ebb6")
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(hash "a7bb0676d7ac0338cfa71f48f5e0d83332470e1fcd0223aa697f1a0fd2e0789a")
+
     set(anchor_file "lib/gflags_static.lib")
     set(additional_library "")
+
+  else()
+    return()
   endif()
 
-  importThirdPartyBinaryLibrary("${name}" "${anchor_file}" ${additional_library})
-
-  if(DEFINED PLATFORM_WINDOWS)
-    set(configure_options
-      -DCMAKE_CXX_FLAGS_RELEASE:STRING=/MT\ /O2\ /Ob2\ /DNDEBUG
-    )
-  endif()
-
-  definePrebuiltProject(${name}
-    URL https://github.com/gflags/gflags/archive/v2.2.1.tar.gz
-    SHA256 ae27cdbcd6a2f935baa78e4f21f675649271634c092b1be01469440495609d0e
-    CONFIGURE
-      cmake
-        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-        -DBUILD_SHARED_LIBS=OFF
-        -DGFLAGS_BUILD_STATIC_LIBS=ON
-        -DGFLAGS_BUILD_SHARED_LIBS=OFF
-        -DGFLAGS_BUILD_gflags_LIB=ON
-        -DGFLAGS_INSTALL_STATIC_LIBS=ON
-        ${configure_options}
-        <SOURCE_DIR>
-    BUILD
-      cmake --build . --config Release
-    INSTALL
-      cmake --build . --config Release --target install
-  )
+  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}" ${additional_library})
 endfunction()
 
 gflagsMain()

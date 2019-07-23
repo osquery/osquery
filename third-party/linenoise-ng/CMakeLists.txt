@@ -6,29 +6,23 @@
 
 function(linenoisengMain)
   set(name "linenoise-ng")
+  set(version "1.0.1")
+  set(hash "")
 
   set(anchor_file "lib/liblinenoise.a")
 
-  if(DEFINED PLATFORM_WINDOWS)
+  if(DEFINED PLATFORM_LINUX)
+    set(hash "604e50db04ab61ef592bcb96941bb30b67e976ac5487f904eab6927d96b9f5e9")
+  elseif(DEFINED PLATFORM_MACOS)
+    set(hash "78030ddb7041e86cfdd8db60bf446a147fb4c82959319597b09dcf0877337cf9")
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(hash "6dbc0acd2c2c02a93136c5a673f87463e3f619ee07fa6b20c5806a2d5bef7c05")
     set(anchor_file "lib/linenoise.lib")
+  else()
+    return()
   endif()
 
-  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
-
-  definePrebuiltProject(${name}
-    URL https://github.com/arangodb/linenoise-ng/archive/master.zip
-    SHA256 35f8fa471328dd534da111f46c1814fb7efdf0feafb1b71c5a6b4b98d5fd67e8
-    CONFIGURE
-      cmake
-        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-        -DCMAKE_BUILD_TYPE=Release
-        -DBUILD_SHARED_LIBS=OFF
-        <SOURCE_DIR>
-    BUILD
-      cmake --build . --config Release
-    INSTALL
-      cmake --build . --config Release --target install
-  )
+  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
 endfunction()
 
 linenoisengMain()

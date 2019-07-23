@@ -1,0 +1,10 @@
+library(
+    name = "util-linux",
+    version = "2.27.1",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+    ],
+    deps = [
+    ],
+)

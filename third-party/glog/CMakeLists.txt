@@ -6,39 +6,25 @@
 
 function(glogMain)
   set(name "glog")
+  set(version "0.3.5")
+
   set(anchor_file "lib/libglog.a")
 
-  if(DEFINED PLATFORM_WINDOWS)
+  if(DEFINED PLATFORM_LINUX)
+    set(hash "1291104355f4373f22294d86eeb2e612d03ea1adbf7cbaef2083ca730e9df60c")
+  elseif(DEFINED PLATFORM_MACOS)
+    set(hash "91ccd947175a029da61447cc2f871798dc3756bc3adfc178cc782e4714e5a712")
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(hash "7c25024502db7e5ffaa0d7e851450946b9193fb093b815692763b619b4d55723")
+
     set(anchor_file "lib/glog.lib")
+  else()
+    return()
   endif()
 
-  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
+  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
 
   target_link_libraries("thirdparty_${name}" INTERFACE thirdparty_gflags)
-
-  if(DEFINED PLATFORM_WINDOWS)
-    set(configure_options
-      -DCMAKE_CXX_FLAGS_RELEASE:STRING=/MT\ /O2\ /Ob2\ /DNDEBUG
-    )
-  endif()
-
-  set(dependencies gflags)
-  definePrebuiltProject(${name}
-    URL https://github.com/google/glog/archive/v0.3.5.tar.gz
-    SHA256 7580e408a2c0b5a89ca214739978ce6ff480b5e7d8d7698a2aa92fadc484d1e0
-    DEPENDS ${dependencies}
-    CONFIGURE
-      cmake
-        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-        -DBUILD_SHARED_LIBS=OFF
-        -DBUILD_TESTING=OFF
-        ${configure_options}
-        <SOURCE_DIR>
-    BUILD
-      cmake --build . --config Release
-    INSTALL
-      cmake --build . --config Release --target install
-  )
 endfunction()
 
 glogMain()

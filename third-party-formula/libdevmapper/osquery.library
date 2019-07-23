@@ -1,0 +1,10 @@
+library(
+    name = "libdevmapper",
+    version = "2.2.02.173",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+    ],
+    deps = [
+    ],
+)

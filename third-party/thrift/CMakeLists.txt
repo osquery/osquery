@@ -6,63 +6,34 @@
 
 function(thrifMain)
   set(name "thrift")
+  set(version "0.11.0")
+
   set(anchor_file "lib/libthrift.a")
 
   set(additional_library
     "lib/libthriftz.a"
   )
 
-  if(DEFINED PLATFORM_WINDOWS)
-    set(anchor_file "lib/thriftzmt.lib")
+  if(DEFINED PLATFORM_LINUX)
+    set(hash "32d0a6c2220114272fe6819a30b5ddfe000d9bed03f0d1fc3b6b68d438b5cc1e")
+  elseif(DEFINED PLATFORM_MACOS)
+    set(hash "11a4f8565728e73a54808bf55517014cc69597ef965c3b2b7ebeb52f6dd43c26")
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(hash "8b115b46d7fbae38eafbd50c4fabca1dd7e14a86ad52bda601ec374b44dc5373")
+
+    set(anchor_file "lib/parse.lib")
 
     set(additional_libraries
+      lib/thriftzmt.lib
       lib/thriftmt.lib
     )
+  else()
+    return()
   endif()
 
-  importThirdPartyBinaryLibrary("${name}" "${anchor_file}" ${additional_libraries})
+  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}" ${additional_libraries})
 
   target_link_libraries("thirdparty_${name}" INTERFACE thirdparty_boost)
-
-  if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_MACOS)
-    set(configure_options
-      -DCMAKE_CXX_FLAGS=-fvisibility=hidden\ -fvisibility-inlines-hidden\ $ENV{CXXFLAGS}
-    )
-  endif()
-
-  set(dependencies boost openssl)
-  definePrebuiltProject(${name}
-    URL https://github.com/apache/thrift/archive/0.11.0.tar.gz
-    SHA256 0e324569321a1b626381baabbb98000c8dd3a59697292dbcc71e67135af0fefd
-    PATCHES libthrift-0.11.0-1.patch
-    DEPENDS ${dependencies}
-    CONFIGURE
-      cmake
-        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-        -DWITH_SHARED_LIB=OFF
-        -DBUILD_TESTING=OFF
-        -DBUILD_EXAMPLES=OFF
-        -DBUILD_C_GLIB=OFF
-        -DBUILD_JAVA=OFF
-        -DBUILD_PYTHON=OFF
-        -DBUILD_HASKELL=OFF
-        -DWITH_BOOST_STATIC=ON
-        -DWITH_STDTHREADS=OFF
-        -DWITH_BOOSTTHREADS=OFF
-        -DWITH_OPENSSL=ON
-        -DWITH_QT4=OFF
-        -DWITH_QT5=OFF
-        -DCMAKE_CXX_STANDARD=11
-        -DWITH_MT=ON
-        -DBOOST_ROOT=<INSTALL_DIR>
-        -DZLIB_ROOT=<INSTALL_DIR>
-        ${configure_options}
-        <SOURCE_DIR>
-    BUILD
-      cmake --build . --config Release
-    INSTALL
-      cmake --build . --config Release --target install
-  )
 endfunction()
 
 thrifMain()

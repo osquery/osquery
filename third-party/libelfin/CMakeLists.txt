@@ -10,25 +10,15 @@ function(libelfinMain)
   endif()
 
   set(name "libelfin")
+  set(version "0.3")
+  set(hash "d3f6611493558a38796072a5464e0c261e6651b5630b51459d9d98dec7d052c9")
   set(anchor_file "lib/libdwarf++.a")
 
   set(additional_lib
     lib/libelf++.a
   )
 
-  importThirdPartyBinaryLibrary("${name}" "${anchor_file}" ${additional_lib})
-
-  definePrebuiltProject(${name}
-    URL https://github.com/aclements/libelfin/archive/v0.3.tar.gz
-    SHA256 c338942b967582922b3514b54b93175ca9051a9668db92dd8ef619824d443ac7
-    CONFIGURE true
-    BUILD
-      export CXXFLAGS=-Wno-unused-command-line-argument\ $ENV{CXXFLAGS} &&
-      $(MAKE)
-    INSTALL
-      $(MAKE) install
-    BUILD_IN_SOURCE ON
-  )
+  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}" ${additional_lib})
 endfunction()
 
 libelfinMain()

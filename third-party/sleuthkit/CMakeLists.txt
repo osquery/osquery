@@ -6,33 +6,19 @@
 
 function(sleuthkitMain)
   set(name "sleuthkit")
+  set(version "4.6.1")
 
-  if(DEFINED PLATFORM_WINDOWS)
+  if(DEFINED PLATFORM_LINUX)
+    set(hash "e9d63528b0b0e868453e1d9a26e29137b222e6b682e53415fccaa41783ea2e24")
+  elseif(DEFINED PLATFORM_MACOS)
+    set(hash "a841486e4972f262baf195d1e5ec91e9800d6f3934689407b270efc8ba465e51")
+  else()
     return()
   endif()
 
   set(anchor_file "lib/libtsk.a")
 
-  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
-
-  definePrebuiltProject(${name}
-    URL https://github.com/sleuthkit/sleuthkit/archive/sleuthkit-4.6.1.tar.gz
-    SHA256 bb2c936dbc88820fc4a875bc9b610f56c6a4a61b7bc8625f86be2549a948a7a9
-    CONFIGURE
-      ./bootstrap &&
-      ./configure
-        --prefix=<INSTALL_DIR>
-        --disable-java
-        --disable-shared
-        --enable-static
-    BUILD
-      $(MAKE)
-    INSTALL
-      $(MAKE) install
-    BUILD_IN_SOURCE ON
-  )
-
-  add_dependencies("thirdparty_build_${name}" "thirdparty_sqlite")
+  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
 endfunction()
 
 sleuthkitMain()

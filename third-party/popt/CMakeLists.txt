@@ -6,30 +6,19 @@
 
 function(poptMain)
   set(name "popt")
+  set(version "1.16")
 
-  if(DEFINED PLATFORM_WINDOWS)
+  if(DEFINED PLATFORM_LINUX)
+    set(hash "3a328038dc908d8912983100b675333207780f6239a10433a78e365f80e8d3bf")
+  elseif(DEFINED PLATFORM_MACOS)
+    set(hash "09ef8458657814af24d60968af57800af7f2896175a235c9b2776772be9171e9")
+  else()
     return()
   endif()
 
   set(anchor_file "lib/libpopt.a")
 
-  importThirdPartyBinaryLibrary("${name}" "${anchor_file}")
-
-  definePrebuiltProject(${name}
-    URL https://fossies.org/linux/misc/popt-1.16.tar.gz
-    SHA256 e728ed296fe9f069a0e005003c3d6b2dde3d9cad453422a10d6558616d304cc8
-    CONFIGURE
-      ./configure
-        --prefix=<INSTALL_DIR>
-        --disable-debug
-        --disable-shared
-        --enable-static
-    BUILD
-      $(MAKE)
-    INSTALL
-      $(MAKE) install
-    BUILD_IN_SOURCE ON
-  )
+  importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}")
 endfunction()
 
 poptMain()
