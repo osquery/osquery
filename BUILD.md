@@ -1,9 +1,11 @@
 # Building osquery
 
-## With CMake
 osquery supports Linux (Ubuntu 18.04/18.10), macOS, and Windows.
 
-git, CMake (>= 3.13.3), clang 6.0, Python 2, and Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
+The supported compilers are: clang/libc++ 6.0 on Linux, MSVC v141 on Windows, AppleClang from Xcode Command Line Tools 10.2.1
+
+## With CMake
+git, CMake (>= 3.13.3), Python 2, and Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
 
 The default build type is `RelWithDebInfo` (optimizations active + debug symbols) and can be changed in the CMake configure phase by setting the `CMAKE_BUILD_TYPE` flag to `Release` or `Debug`.
 
@@ -84,6 +86,7 @@ Please ensure [homebrew](https://brew.sh/) has been installed. The root folder i
 
 ```
 # Install prerequisites
+xcode-select --install
 brew install git cmake python@2 python
 
 # Download and build osquery
