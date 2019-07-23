@@ -64,3 +64,6 @@
 [submodule "libraries/cmake/source/librpm/src"]
 	path = libraries/cmake/source/librpm/src
 	url = https://github.com/rpm-software-management/rpm
+[submodule "libraries/cmake/source/popt/src"]
+	path = libraries/cmake/source/popt/src
+	url = https://github.com/osquery/third-party-popt
