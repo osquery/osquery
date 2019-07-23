@@ -67,3 +67,6 @@
 [submodule "libraries/cmake/source/popt/src"]
 	path = libraries/cmake/source/popt/src
 	url = https://github.com/osquery/third-party-popt
+[submodule "libraries/cmake/source/libdpkg/src"]
+	path = libraries/cmake/source/libdpkg/src
+	url = https://git.dpkg.org/cgit/dpkg/dpkg.git
