@@ -31,6 +31,8 @@ function(sleuthkitMain)
       $(MAKE) install
     BUILD_IN_SOURCE ON
   )
+
+  add_dependencies("thirdparty_build_${name}" "thirdparty_sqlite")
 endfunction()
 
 sleuthkitMain()
