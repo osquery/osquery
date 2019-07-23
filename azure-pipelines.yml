@@ -153,7 +153,7 @@ jobs:
     steps:
     - script: |
         brew upgrade
-        brew install ccache
+        brew install ccache flex bison
       displayName: "Install Homebrew and prerequisites"
       timeoutInMinutes: 20
 

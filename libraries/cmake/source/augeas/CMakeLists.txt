@@ -33,9 +33,37 @@ function(augeasMain)
   # Flex and Bison are now required, since they are needed to build augeas.
   # We could generate those files locally and commit them if we don't want
   # to have them as hard dependencies
-  foreach(dependency FLEX BISON)
-    find_package("${dependency}" REQUIRED)
-  endforeach()
+  if(DEFINED PLATFORM_MACOS)
+    # We need to use Bison and Flex from homebrew because the ones provided by
+    # Xcode are not compatible
+    set(bison_executable_path "/usr/local/opt/bison/bin/bison")
+    set(flex_executable_path "/usr/local/opt/flex/bin/flex")
+
+    if(EXISTS "${bison_executable_path}")
+      set(BISON_EXECUTABLE "${bison_executable_path}")
+    endif()
+
+    if(NOT EXISTS "${flex_executable_path}")
+      set(FLEX_EXECUTABLE "${flex_executable_path}")
+    endif()
+
+    if(NOT DEFINED BISON_EXECUTABLE OR NOT DEFINED FLEX_EXECUTABLE)
+      message(FATAL_ERROR "Both bison and flex are required from homebrew; you can install them with `brew install flex bison`")
+    endif()
+
+    set(environment_modifier
+      "/usr/local/opt/flex/bin:/usr/local/opt/bison/bin:$ENV{PATH}"
+    )
+
+  else()
+    foreach(dependency FLEX BISON)
+      find_package("${dependency}" REQUIRED)
+    endforeach()
+
+    set(environment_modifier
+      "$ENV{PATH}"
+    )
+  endif()
 
   # Generate the parser
   set(augeas_parser_implementation_name "parser")
@@ -45,7 +73,7 @@ function(augeasMain)
 
   add_custom_command(
     OUTPUT "${augeas_parser_implementation}"
-    COMMAND "${BISON_EXECUTABLE}" "${augeas_parser_definition}" -o "${augeas_parser_implementation}"
+    COMMAND "${CMAKE_COMMAND}" -E env PATH=${environment_modifier} "${BISON_EXECUTABLE}" "${augeas_parser_definition}" -o "${augeas_parser_implementation}"
     DEPENDS "${augeas_parser_definition}"
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Bison: Generarating augeas parser"
