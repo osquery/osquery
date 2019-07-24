@@ -76,3 +76,6 @@
 [submodule "libraries/cmake/source/libelfin/src"]
 	path = libraries/cmake/source/libelfin/src
 	url = https://github.com/aclements/libelfin
+[submodule "libraries/cmake/source/libgcrypt/src"]
+	path = libraries/cmake/source/libgcrypt/src
+  url = https://dev.gnupg.org/source/libgcrypt.git
