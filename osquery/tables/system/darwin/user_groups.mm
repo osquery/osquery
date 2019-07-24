@@ -51,30 +51,37 @@ void genODEntries(ODRecordType type, std::set<std::string>& names) {
   }
 }
 
+void setGroupRow(Row& r, group* grp) {
+  r["groupname"] = TEXT(grp->gr_name);
+  r["gid"] = BIGINT(grp->gr_gid);
+  r["gid_signed"] = BIGINT((int32_t)grp->gr_gid);
+}
+
 QueryData genGroups(QueryContext& context) {
   QueryData results;
   if (context.constraints["gid"].exists(EQUALS)) {
     auto gids = context.constraints["gid"].getAll<long long>(EQUALS);
     for (const auto& gid : gids) {
-      Row r;
       struct group* grp = getgrgid(gid);
-      r["gid"] = BIGINT(gid);
-      if (grp != nullptr) {
-        r["groupname"] = std::string(grp->gr_name);
-        r["gid_signed"] = BIGINT((int32_t)grp->gr_gid);
+      if (grp == nullptr) {
+        continue;
       }
+      Row r;
+      setGroupRow(r, grp);
       results.push_back(r);
     }
   } else {
     std::set<std::string> groupnames;
     genODEntries(kODRecordTypeGroups, groupnames);
     for (const auto& groupname : groupnames) {
+      // There may be cases where genODEntries produces responses that
+      // are not in getpwnam. So we populate some of the row here.
       Row r;
+      r["groupname"] = TEXT(groupname);
+
       struct group* grp = getgrnam(groupname.c_str());
-      r["groupname"] = groupname;
       if (grp != nullptr) {
-        r["gid"] = BIGINT(grp->gr_gid);
-        r["gid_signed"] = BIGINT((int32_t)grp->gr_gid);
+        setGroupRow(r, grp);
       }
       results.push_back(r);
     }
@@ -82,7 +89,9 @@ QueryData genGroups(QueryContext& context) {
   return results;
 }
 
-void setRow(Row& r, passwd* pwd) {
+void setUserRow(Row& r, passwd* pwd) {
+  r["username"] = TEXT(pwd->pw_name);
+  r["uid"] = BIGINT(pwd->pw_uid);
   r["gid"] = BIGINT(pwd->pw_gid);
   r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
   r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
@@ -111,11 +120,8 @@ QueryData genUsers(QueryContext& context) {
       if (pwd == nullptr) {
         continue;
       }
-
       Row r;
-      r["uid"] = BIGINT(uid);
-      r["username"] = std::string(pwd->pw_name);
-      setRow(r, pwd);
+      setUserRow(r, pwd);
       results.push_back(r);
     }
   } else {
@@ -124,15 +130,16 @@ QueryData genUsers(QueryContext& context) {
       genODEntries(kODRecordTypeUsers, usernames);
     }
     for (const auto& username : usernames) {
+      // There may be cases where genODEntries produces responses that
+      // are not in getpwnam. So we populate some of the row here.
+      Row r;
+      r["username"] = TEXT(username.c_str());
+
       struct passwd* pwd = getpwnam(username.c_str());
-      if (pwd == nullptr) {
-        continue;
+      if (pwd != nullptr) {
+        setUserRow(r, pwd);
       }
 
-      Row r;
-      r["uid"] = BIGINT(pwd->pw_uid);
-      r["username"] = username;
-      setRow(r, pwd);
       results.push_back(r);
     }
   }
