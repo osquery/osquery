@@ -8,6 +8,7 @@
 
 #import <OpenDirectory/OpenDirectory.h>
 #include <membership.h>
+
 #include <osquery/tables/system/user_groups.h>
 #include <osquery/utils/conversions/tryto.h>
 
@@ -113,7 +114,7 @@ QueryData genGroups(QueryContext& context) {
   return results;
 }
 
-void genUserRow(Row& r, passwd* pwd) {
+void genUserRow(Row& r, const passwd* pwd) {
   r["uid"] = BIGINT(pwd->pw_uid);
   r["gid"] = BIGINT(pwd->pw_gid);
   r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
