@@ -73,3 +73,6 @@
 [submodule "libraries/cmake/source/libaudit/src"]
 	path = libraries/cmake/source/libaudit/src
 	url = https://github.com/linux-audit/audit-userspace
+[submodule "libraries/cmake/source/libelfin/src"]
+	path = libraries/cmake/source/libelfin/src
+	url = https://github.com/aclements/libelfin
