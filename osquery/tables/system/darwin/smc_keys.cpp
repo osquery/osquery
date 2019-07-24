@@ -373,23 +373,7 @@ kern_return_t SMCHelper::call(uint32_t selector,
 inline uint32_t strtoul(const char *str, size_t size, size_t base) {
   uint32_t total = 0;
   for (size_t i = 0; i < size; i++) {
-    if (base == 16) {
-      total += str[i] << (size - 1 - i) * 8;
-    } else {
-      total += (unsigned char)(str[i] << (size - 1 - i) * 8);
-    }
-  }
-  return total;
-}
-
-inline float strtof(const char *str, size_t size, size_t e) {
-  float total = 0;
-  for (size_t i = 0; i < size; i++) {
-    if (i == (size - 1)) {
-      total += (str[i] & 0xff) >> e;
-    } else {
-      total += str[i] << (size - 1 - i) * (8 - e);
-    }
+    total += (unsigned char)(str[i]) << (size - 1 - i) * 8;
   }
   return total;
 }
