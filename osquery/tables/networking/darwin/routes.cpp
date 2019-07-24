@@ -32,7 +32,8 @@ typedef std::pair<int, std::string> RouteType;
 typedef std::map<int, std::string> InterfaceMap;
 typedef std::vector<struct sockaddr *> AddressMap;
 
-const std::string kDefaultRoute = "0.0.0.0";
+constexpr auto kDefaultIPv4Route = "0.0.0.0";
+constexpr auto kDefaultIPv6Route = "::";
 
 const std::vector<RouteType> kRouteTypes = {
     std::make_pair(RTF_LOCAL, "local"),
@@ -87,7 +88,8 @@ Status genRoute(const struct rt_msghdr *route,
     r["gateway"] = ipAsString(addr_map[RTAX_GATEWAY]);
   }
 
-  if (r["destination"] == kDefaultRoute) {
+  if (r["destination"] == kDefaultIPv4Route ||
+      r["destination"] == kDefaultIPv6Route) {
     r["netmask"] = "0";
   } else if ((route->rtm_addrs & RTA_NETMASK) == RTA_NETMASK) {
     addr_map[RTAX_NETMASK]->sa_family = addr_map[RTAX_DST]->sa_family;
