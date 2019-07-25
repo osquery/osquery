@@ -73,7 +73,7 @@ Expected<std::string, JsonError> toJson(Type const& value) {
 template <typename Type, typename RapidJsonInStream>
 ExpectedSuccess<JsonError> fromJson(Type& value, RapidJsonInStream& is) {
   auto dom = rapidjson::Document{};
-  dom.ParseStream(is);
+  dom.ParseStream<rapidjson::kParseFullPrecisionFlag>(is);
   if (dom.HasParseError()) {
     return createError(JsonError::Syntax)
            << "Can not parse value of type "
