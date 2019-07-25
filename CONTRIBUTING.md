@@ -177,7 +177,7 @@ You must submit a Facebook Contributor License Agreement (CLA) before we can
 accept any of your pull requests. You only need to submit one CLA for any of
 Facebook's open source projects.
 
-You can complete your CLA at https://code.facebook.com/cla.
+You can complete your CLA after the github prompt ...testing
 
 
 ## License
