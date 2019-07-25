@@ -38,7 +38,6 @@ function(zstdMain)
     "${library_root}/deprecated/zbuff_decompress.c"
   )
 
-  # todo(alessandro): macOS and Windows support
   target_compile_definitions(thirdparty_zstd PRIVATE
     ZSTD_MULTITHREAD
   )
@@ -53,12 +52,19 @@ function(zstdMain)
   target_link_libraries(thirdparty_zstd PUBLIC
     global_c_settings
     thirdparty_glibc
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_zstd SYSTEM PUBLIC
+  target_link_libraries(thirdparty_zstd PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_zstd PRIVATE
     "${library_root}"
     "${library_root}/common"
+  )
+
+  target_include_directories(thirdparty_zstd SYSTEM INTERFACE
+    "${library_root}"
   )
 endfunction()
 

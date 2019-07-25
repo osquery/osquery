@@ -130,7 +130,10 @@ function(libdpkgMain)
     thirdparty_lzma
     thirdparty_zlib
     thirdparty_bzip2
-    thirdparty_silence_warnings
+  )
+
+  target_link_libraries(thirdparty_libdpkg PRIVATE
+    thirdparty_source_module_warnings
   )
 
   target_compile_definitions(thirdparty_libdpkg PRIVATE
@@ -145,13 +148,14 @@ function(libdpkgMain)
     SYSCONFDIR="/usr/local/etc"
   )
 
-  target_include_directories(thirdparty_libdpkg SYSTEM PRIVATE
+  target_include_directories(thirdparty_libdpkg PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
     "${library_root}/lib/compat"
+    "${library_root}"
+    "${library_root}/lib"
   )
 
-  target_include_directories(thirdparty_libdpkg SYSTEM PUBLIC
-    "${library_root}"
+  target_include_directories(thirdparty_libdpkg SYSTEM INTERFACE
     "${library_root}/lib"
   )
 endfunction()

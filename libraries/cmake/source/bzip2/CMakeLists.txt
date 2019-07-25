@@ -23,17 +23,23 @@ function(bzip2Main)
     "${library_root}/spewG.c"
   )
 
-  # todo(alessandro): macOS and Windows support
   target_compile_definitions(thirdparty_bzip2 PRIVATE
     _FILE_OFFSET_BITS=64
   )
 
   target_link_libraries(thirdparty_bzip2 PUBLIC
     global_c_settings
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_bzip2 SYSTEM PUBLIC
+  target_link_libraries(thirdparty_bzip2 PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_bzip2 PRIVATE
+    "${library_root}"
+  )
+
+  target_include_directories(thirdparty_bzip2 SYSTEM INTERFACE
     "${library_root}"
   )
 endfunction()

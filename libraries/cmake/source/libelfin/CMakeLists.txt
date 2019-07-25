@@ -30,7 +30,7 @@ function(libelfinElf)
   )
 
   target_link_libraries(thirdparty_libelfin_elf PRIVATE
-    thirdparty_silence_warnings
+    thirdparty_source_module_warnings
   )
 
   # The original package built for Buck was built installing
@@ -51,11 +51,12 @@ function(libelfinElf)
     )
   endforeach()
 
-  target_include_directories(thirdparty_libelfin_elf SYSTEM PRIVATE
+  target_include_directories(thirdparty_libelfin_elf PRIVATE
+    "${CMAKE_CURRENT_BINARY_DIR}"
     "${library_root}"
   )
 
-  target_include_directories(thirdparty_libelfin_elf SYSTEM PUBLIC
+  target_include_directories(thirdparty_libelfin_elf SYSTEM INTERFACE
     "${CMAKE_CURRENT_BINARY_DIR}"
   )
 endfunction()
@@ -84,7 +85,7 @@ function(libelfinDwarf)
   )
 
   target_link_libraries(thirdparty_libelfin_dwarf PRIVATE
-    thirdparty_silence_warnings
+    thirdparty_source_module_warnings
   )
 
   # The original package built for Buck was built installing
@@ -105,11 +106,12 @@ function(libelfinDwarf)
     )
   endforeach()
 
-  target_include_directories(thirdparty_libelfin_dwarf SYSTEM PRIVATE
+  target_include_directories(thirdparty_libelfin_dwarf PRIVATE
+    "${CMAKE_CURRENT_BINARY_DIR}"
     "${library_root}"
   )
 
-  target_include_directories(thirdparty_libelfin_dwarf SYSTEM PUBLIC
+  target_include_directories(thirdparty_libelfin_dwarf SYSTEM INTERFACE
     "${CMAKE_CURRENT_BINARY_DIR}"
   )
 endfunction()

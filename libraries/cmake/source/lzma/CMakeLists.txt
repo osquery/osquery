@@ -105,7 +105,10 @@ function(lzmaMain)
 
   target_link_libraries(thirdparty_lzma PUBLIC
     global_c_settings
-    thirdparty_silence_warnings
+  )
+
+  target_link_libraries(thirdparty_lzma PRIVATE
+    thirdparty_source_module_warnings
   )
 
   target_include_directories(thirdparty_lzma PRIVATE
@@ -121,9 +124,10 @@ function(lzmaMain)
     "${library_root}/src/liblzma/rangecoder"
     "${library_root}/src/liblzma/simple"
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${library_root}/src/liblzma/api"
   )
 
-  target_include_directories(thirdparty_lzma SYSTEM PUBLIC
+  target_include_directories(thirdparty_lzma SYSTEM INTERFACE
     "${library_root}/src/liblzma/api"
   )
 endfunction()

@@ -124,17 +124,20 @@ function(augeasMain)
   target_link_libraries(thirdparty_augeas PUBLIC
     global_c_settings
     thirdparty_libxml2
-    thirdparty_silence_warnings
     thirdparty_selinux
   )
 
-  target_include_directories(thirdparty_augeas SYSTEM PRIVATE
+  target_link_libraries(thirdparty_augeas PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_augeas PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
     "${CMAKE_CURRENT_BINARY_DIR}"
     "${library_root}/src"
   )
 
-  target_include_directories(thirdparty_augeas SYSTEM PUBLIC
+  target_include_directories(thirdparty_augeas SYSTEM INTERFACE
     "${library_root}/src"
   )
 
@@ -155,9 +158,14 @@ function(importSELinux)
   target_include_directories(thirdparty_selinux PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
     "${library_root}/lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/gnulib"
   )
 
-  target_include_directories(thirdparty_selinux SYSTEM PUBLIC
+  target_link_libraries(thirdparty_selinux PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_selinux SYSTEM INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/gnulib"
   )
 endfunction()

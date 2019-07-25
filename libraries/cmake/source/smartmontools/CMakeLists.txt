@@ -83,12 +83,22 @@ function(smartmontoolsMain)
   target_link_libraries(thirdparty_smartmontools PUBLIC
     global_cxx_settings
     global_c_settings
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_smartmontools SYSTEM
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/config"
-    PUBLIC "${CMAKE_CURRENT_BINARY_DIR}" "${library_root}"
+  target_link_libraries(thirdparty_smartmontools PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_smartmontools PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${CMAKE_CURRENT_BINARY_DIR}"
+    "${library_root}"
+  )
+
+  target_include_directories(thirdparty_smartmontools SYSTEM INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${CMAKE_CURRENT_BINARY_DIR}"
+    "${library_root}"
   )
 endfunction()
 

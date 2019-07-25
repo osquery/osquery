@@ -95,10 +95,18 @@ function(thrifMain)
     thirdparty_openssl
     thirdparty_zlib
     thirdparty_boost
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_thrift SYSTEM PUBLIC
+  target_link_libraries(thirdparty_thrift PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_thrift PRIVATE
+    "${library_root}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+  )
+
+  target_include_directories(thirdparty_thrift SYSTEM INTERFACE
     "${library_root}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
   )

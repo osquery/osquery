@@ -128,7 +128,6 @@ function(libarchiveMain)
     "${library_root}/libarchive_fe/passphrase.c"
   )
 
-  # todo(alessandro): macOS and Windows support
   target_compile_definitions(thirdparty_libarchive PRIVATE
     HAVE_CONFIG_H
     archive_EXPORTS
@@ -159,14 +158,21 @@ function(libarchiveMain)
     thirdparty_bzip2
     thirdparty_lzma
     thirdparty_libxml2
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_libarchive SYSTEM
-    PUBLIC "${library_root}/libarchive"
-    PRIVATE "${library_root}/src"
-            "${CMAKE_CURRENT_SOURCE_DIR}/config"
-            "${library_root}/libarchive_fe"
+  target_link_libraries(thirdparty_libarchive PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_libarchive PRIVATE
+    "${library_root}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${library_root}/libarchive_fe"
+    "${library_root}/libarchive"
+  )
+
+  target_include_directories(thirdparty_libarchive SYSTEM INTERFACE
+    "${library_root}/libarchive"
   )
 endfunction()
 

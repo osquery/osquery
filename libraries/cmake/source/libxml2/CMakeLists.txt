@@ -51,7 +51,6 @@ function(libxml2Main)
     "${library_root}/xzlib.c"
   )
 
-  # todo(alessandro): macOS and Windows support
   target_compile_definitions(thirdparty_libxml2 PRIVATE
     HAVE_CONFIG_H
     _REENTRANT
@@ -65,17 +64,22 @@ function(libxml2Main)
     global_c_settings
     thirdparty_lzma
     thirdparty_zlib
-    thirdparty_silence_warnings
+  )
+
+  target_link_libraries(thirdparty_libxml2 PRIVATE
+    thirdparty_source_module_warnings
   )
 
   target_include_directories(thirdparty_libxml2 PRIVATE
     "${library_root}"
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${CMAKE_CURRENT_SOURCE_DIR}/version"
+    "${library_root}/include"
   )
 
-  target_include_directories(thirdparty_libxml2 SYSTEM PUBLIC
-    "${library_root}/include"
+  target_include_directories(thirdparty_libxml2 SYSTEM INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/version"
+    "${library_root}/include"
   )
 endfunction()
 

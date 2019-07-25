@@ -16,10 +16,17 @@ function(linenoisengMain)
 
   target_link_libraries(thirdparty_linenoise-ng PUBLIC
     global_cxx_settings
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_linenoise-ng SYSTEM PUBLIC
+  target_link_libraries(thirdparty_linenoise-ng PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_linenoise-ng PRIVATE
+    "${library_root}/include"
+  )
+
+  target_include_directories(thirdparty_linenoise-ng SYSTEM INTERFACE
     "${library_root}/include"
   )
 endfunction()

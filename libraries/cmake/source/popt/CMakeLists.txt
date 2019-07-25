@@ -25,7 +25,10 @@ function(poptMain)
 
   target_link_libraries(thirdparty_popt PUBLIC
     global_c_settings
-    thirdparty_silence_warnings
+  )
+
+  target_link_libraries(thirdparty_popt PRIVATE
+    thirdparty_source_module_warnings
   )
 
   target_compile_definitions(thirdparty_popt PRIVATE
@@ -34,11 +37,12 @@ function(poptMain)
     _REENTRANT  
   )
 
-  target_include_directories(thirdparty_popt SYSTEM PRIVATE
+  target_include_directories(thirdparty_popt PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${library_root}"
   )
 
-  target_include_directories(thirdparty_popt SYSTEM PUBLIC
+  target_include_directories(thirdparty_popt SYSTEM INTERFACE
     "${library_root}"
   )
 endfunction()

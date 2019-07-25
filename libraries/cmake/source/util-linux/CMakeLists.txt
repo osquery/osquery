@@ -220,14 +220,18 @@ function(utillinuxMain)
 
   target_link_libraries(thirdparty_util-linux PUBLIC
     global_c_settings
-    thirdparty_silence_warnings
+  )
+
+
+  target_link_libraries(thirdparty_util-linux PRIVATE
+    thirdparty_source_module_warnings
   )
 
   target_compile_options(thirdparty_util-linux PRIVATE
     -include config.h
   )
 
-  target_include_directories(thirdparty_util-linux SYSTEM PUBLIC
+  target_include_directories(thirdparty_util-linux PRIVATE
     "${library_root}/libblkid/src"
     "${library_root}/libfdisk/src"
     "${library_root}/libsmartcols/src"
@@ -236,6 +240,10 @@ function(utillinuxMain)
     "${library_root}/include"
     "${library_root}"
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
+  )
+
+  target_include_directories(thirdparty_util-linux SYSTEM INTERFACE
+    "${library_root}/include"
   )
 
   # Generate the include files

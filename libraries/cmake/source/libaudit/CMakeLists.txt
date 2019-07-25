@@ -25,17 +25,21 @@ function(libauditMain)
 
   target_link_libraries(thirdparty_libaudit PUBLIC
     global_c_settings
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_libaudit SYSTEM PRIVATE
+  target_link_libraries(thirdparty_libaudit PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_libaudit PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
     "${CMAKE_CURRENT_SOURCE_DIR}/generated"
     "${library_root}"
     "${library_root}/auparse"
+    "${library_root}/lib"
   )
 
-  target_include_directories(thirdparty_libaudit SYSTEM PUBLIC
+  target_include_directories(thirdparty_libaudit SYSTEM INTERFACE
     "${library_root}/lib"
   )
 endfunction()

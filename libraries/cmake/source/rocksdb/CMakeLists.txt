@@ -273,12 +273,20 @@ function(rocksdbMain)
   target_link_libraries(thirdparty_rocksdb PUBLIC
     global_cxx_settings
     thirdparty_googletest
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_rocksdb SYSTEM
-    PRIVATE "${library_root}" "${library_root}/util"
-    PUBLIC "${library_root}/include"
+  target_link_libraries(thirdparty_rocksdb PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_rocksdb PRIVATE
+    "${library_root}"
+    "${library_root}/util"
+    "${library_root}/include"
+  )
+
+  target_include_directories(thirdparty_rocksdb SYSTEM INTERFACE
+    "${library_root}/include"
   )
 endfunction()
 

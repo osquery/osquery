@@ -6,6 +6,8 @@
 
 cmake_minimum_required(VERSION 3.13.3)
 
+option(OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS "This option can be enable to show all warnings in the source modules. Not recommended" OFF)
+
 function(getGitExecutableName output_variable)
   set(output "git")
   if(DEFINED PLATFORM_WINDOWS)
@@ -57,12 +59,14 @@ function(importSourceSubmodule library_name)
   set(submodule_path "${directory_path}/src")
   initializeGitSubmodule("${submodule_path}")
 
-  if(NOT TARGET thirdparty_silence_warnings)
-    add_library(thirdparty_silence_warnings INTERFACE)
+  if(NOT TARGET thirdparty_source_module_warnings)
+    add_library(thirdparty_source_module_warnings INTERFACE)
 
-    target_compile_options(thirdparty_silence_warnings INTERFACE
-      -Wno-everything -Wno-all -Wno-error
-    )
+    if(NOT OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS)
+      target_compile_options(thirdparty_source_module_warnings INTERFACE
+        -Wno-everything -Wno-all -Wno-error
+      )
+    endif()
   endif()
 
   add_subdirectory("${directory_path}")

@@ -200,20 +200,22 @@ function(libgcryptMain)
   )
 
   target_link_libraries(thirdparty_libgcrypt PRIVATE
-    thirdparty_silence_warnings
+    thirdparty_source_module_warnings
   )
 
-  target_include_directories(thirdparty_libgcrypt SYSTEM PRIVATE
+  target_include_directories(thirdparty_libgcrypt PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
+
     "${library_root}/src"
     "${library_root}/mpi"
     "${library_root}/cipher"
-  )
 
-  target_include_directories(thirdparty_libgcrypt SYSTEM PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/generated/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/generated/mpi"
     "${CMAKE_CURRENT_SOURCE_DIR}/generated/cipher"
+  )
+
+  target_include_directories(thirdparty_libgcrypt SYSTEM INTERFACE
     "${library_root}/src"
   )
 endfunction()

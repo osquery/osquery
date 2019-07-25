@@ -284,15 +284,20 @@ function(berkeleydbMain)
   target_link_libraries(thirdparty_berkeley-db PUBLIC
     global_c_settings
     thirdparty_sqlite
-    thirdparty_silence_warnings
+  )
+
+  target_link_libraries(thirdparty_berkeley-db PRIVATE
+    thirdparty_source_module_warnings
   )
 
   target_include_directories(thirdparty_berkeley-db PRIVATE
     "${library_root}/lang/sql/adapter"
     "${library_root}/lang/sql/generated"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated"
+    "${library_root}/src"
   )
 
-  target_include_directories(thirdparty_berkeley-db SYSTEM PUBLIC
+  target_include_directories(thirdparty_berkeley-db SYSTEM INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/generated"
     "${library_root}/src"
   )

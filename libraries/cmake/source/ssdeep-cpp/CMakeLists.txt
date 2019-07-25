@@ -31,12 +31,19 @@ function(ssdeepCppMain)
   target_link_libraries(thirdparty_ssdeep-cpp PUBLIC
     global_cxx_settings
     global_c_settings
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_ssdeep-cpp SYSTEM
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/config"
-    PUBLIC "${library_root}"
+  target_link_libraries(thirdparty_ssdeep-cpp PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_ssdeep-cpp PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${library_root}"
+  )
+
+  target_include_directories(thirdparty_ssdeep-cpp SYSTEM INTERFACE
+    "${library_root}"
   )
 endfunction()
 

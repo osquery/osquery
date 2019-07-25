@@ -138,15 +138,17 @@ function(librpmMain)
   )
 
   target_link_libraries(thirdparty_librpm PRIVATE
-    thirdparty_silence_warnings
+    thirdparty_source_module_warnings
   )
 
-  target_include_directories(thirdparty_librpm SYSTEM PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
-  )
-
-  target_include_directories(thirdparty_librpm SYSTEM PUBLIC
+  target_include_directories(thirdparty_librpm PRIVATE
     "${library_root}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  )
+
+  target_include_directories(thirdparty_librpm SYSTEM INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/generated"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
   )

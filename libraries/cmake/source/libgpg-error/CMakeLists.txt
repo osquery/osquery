@@ -40,16 +40,17 @@ function(libgpgerrorMain)
   )
 
   target_link_libraries(thirdparty_libgpg-error PRIVATE
-    thirdparty_silence_warnings
+    thirdparty_source_module_warnings
   )
 
-  target_include_directories(thirdparty_libgpg-error SYSTEM PRIVATE
+  target_include_directories(thirdparty_libgpg-error PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
-  )
-
-  target_include_directories(thirdparty_libgpg-error SYSTEM PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/generated"
     "${library_root}"
+  )
+
+  target_include_directories(thirdparty_libgpg-error SYSTEM INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated"
   )
 endfunction()
 

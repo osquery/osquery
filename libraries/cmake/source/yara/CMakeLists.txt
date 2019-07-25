@@ -103,12 +103,19 @@ function(yaraMain)
     global_c_settings
     thirdparty_openssl
     thirdparty_libmagic
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_yara SYSTEM
-    PUBLIC "${library_root}/include"
-    PRIVATE "${library_root}"
+  target_link_libraries(thirdparty_yara PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_yara PRIVATE
+    "${library_root}/include"
+    "${library_root}"
+  )
+
+  target_include_directories(thirdparty_yara SYSTEM INTERFACE
+    "${library_root}/include"
   )
 endfunction()
 

@@ -36,10 +36,17 @@ function(zlibMain)
 
   target_link_libraries(thirdparty_zlib PUBLIC
     global_c_settings
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_zlib SYSTEM PUBLIC
+  target_link_libraries(thirdparty_zlib PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_zlib PRIVATE
+    "${library_root}"
+  )
+
+  target_include_directories(thirdparty_zlib SYSTEM INTERFACE
     "${library_root}"
   )
 endfunction()

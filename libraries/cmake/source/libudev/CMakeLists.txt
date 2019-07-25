@@ -59,14 +59,18 @@ function(libudevMain)
 
   target_link_libraries(thirdparty_libudev PUBLIC
     global_c_settings
-    thirdparty_silence_warnings
+  )
+
+  target_link_libraries(thirdparty_libudev PRIVATE
+    thirdparty_source_module_warnings
   )
 
   target_include_directories(thirdparty_libudev PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${library_root}/libudev"
   )
 
-  target_include_directories(thirdparty_libudev SYSTEM PUBLIC
+  target_include_directories(thirdparty_libudev SYSTEM INTERFACE
     "${library_root}/libudev"
   )
 endfunction()

@@ -8,7 +8,10 @@ function(sqliteMain)
   add_subdirectory(src)
   target_link_libraries(thirdparty_sqlite PUBLIC
     global_c_settings
-    thirdparty_silence_warnings
+  )
+
+  target_link_libraries(thirdparty_sqlite PRIVATE
+    thirdparty_source_module_warnings
   )
 endfunction()
 

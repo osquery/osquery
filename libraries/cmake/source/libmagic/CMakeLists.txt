@@ -40,7 +40,6 @@ function(libmagicMain)
     "${library_root}/src/ascmagic.c"
   )
 
-  # todo(alessandro): macOS and Windows support
   target_compile_definitions(thirdparty_libmagic PRIVATE
     HAVE_CONFIG_H
     MAGIC='"/usr/local/share/misc/magic"'
@@ -53,12 +52,20 @@ function(libmagicMain)
   target_link_libraries(thirdparty_libmagic PUBLIC
     global_c_settings
     thirdparty_zlib
-    thirdparty_silence_warnings
   )
 
-  target_include_directories(thirdparty_libmagic SYSTEM
-    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    PRIVATE "${library_root}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/config"
+  target_link_libraries(thirdparty_libmagic PRIVATE
+    thirdparty_source_module_warnings
+  )
+
+  target_include_directories(thirdparty_libmagic PRIVATE
+    "${library_root}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+  )
+
+  target_include_directories(thirdparty_libmagic SYSTEM INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
   )
 endfunction()
 
