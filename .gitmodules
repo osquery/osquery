@@ -82,3 +82,6 @@
 [submodule "libraries/cmake/source/libgpg-error/src"]
 	path = libraries/cmake/source/libgpg-error/src
 	url = https://dev.gnupg.org/source/libgpg-error.git
+[submodule "libraries/cmake/source/libcryptsetup/src"]
+	path = libraries/cmake/source/libcryptsetup/src
+  url = https://gitlab.com/cryptsetup/cryptsetup.git
