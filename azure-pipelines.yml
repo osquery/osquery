@@ -29,7 +29,7 @@ jobs:
     steps:
     # Temporary; this could be embedded in the Docker image, with the
     # rest of the dependencies
-    - script: sudo apt-get update && sudo apt-get install flex bison -y
+    - script: sudo apt-get update && sudo apt-get install flex bison gcc -y
       displayName: "Installing Flex and Bison"
 
     - script: mkdir $(Build.BinariesDirectory)/build
