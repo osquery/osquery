@@ -129,7 +129,7 @@ Key points to remember:
 
 ## Using where clauses
 
-The `QueryContext` data type is osquery's abstraction of the underlying SQL engine's query parsing. It is defined in [include/osquery/tables.h](https://github.com/facebook/osquery/blob/master/include/osquery/tables.h).
+The `QueryContext` data type is osquery's abstraction of the underlying SQL engine's query parsing. It is defined in [osquery/tables.h](/osquery/include/osquery/tables.h).
 
 The most important use of the context is query predicate constraints (e.g., `WHERE col = 'value'`). Some tables MUST have a predicate constraint, others may optionally use the constraints to increase performance.
 
