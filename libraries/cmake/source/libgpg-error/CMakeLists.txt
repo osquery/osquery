@@ -1,0 +1,56 @@
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
+#
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
+
+function(libgpgerrorMain)
+  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+  add_library(thirdparty_libgpg-error
+    "${library_root}/src/mkheader.c"
+    "${library_root}/src/gen-posix-lock-obj.c"
+    "${library_root}/src/mkerrcodes.c"
+    "${library_root}/src/code-to-errno.c"
+    "${library_root}/src/posix-lock.c"
+    "${library_root}/src/posix-thread.c"
+    "${library_root}/src/version.c"
+    "${library_root}/src/estream-printf.c"
+    "${library_root}/src/code-from-errno.c"
+    "${library_root}/src/strsource.c"
+    "${library_root}/src/estream.c"
+    "${library_root}/src/init.c"
+    "${library_root}/src/strerror.c"
+    "${library_root}/src/strsource-sym.c"
+    "${library_root}/src/strerror-sym.c"
+    "${library_root}/src/gpg-error.c"
+    "${library_root}/src/visibility.c"
+    "${library_root}/src/b64dec.c"
+    "${library_root}/doc/yat2m.c"
+  )
+
+  target_compile_definitions(thirdparty_libgpg-error PRIVATE
+    HAVE_CONFIG_H
+    LOCALEDIR="/usr/local/share/locale"
+    PKGDATADIR="/usr/local/share/libgpg-error"
+  )
+
+  target_link_libraries(thirdparty_libgpg-error PUBLIC
+    global_c_settings
+  )
+
+  target_link_libraries(thirdparty_libgpg-error PRIVATE
+    thirdparty_silence_warnings
+  )
+
+  target_include_directories(thirdparty_libgpg-error SYSTEM PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+  )
+
+  target_include_directories(thirdparty_libgpg-error SYSTEM PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated"
+    "${library_root}"
+  )
+endfunction()
+
+libgpgerrorMain()

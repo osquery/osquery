@@ -79,3 +79,6 @@
 [submodule "libraries/cmake/source/libgcrypt/src"]
 	path = libraries/cmake/source/libgcrypt/src
   url = https://dev.gnupg.org/source/libgcrypt.git
+[submodule "libraries/cmake/source/libgpg-error/src"]
+	path = libraries/cmake/source/libgpg-error/src
+	url = https://dev.gnupg.org/source/libgpg-error.git
