@@ -116,3 +116,4 @@ project, visit the [users guide](https://osquery.readthedocs.org/).
 
 Development and usage discussion is happening in the osquery Slack, grab an invite automatically
 [here](https://slack.osquery.io)!
+
