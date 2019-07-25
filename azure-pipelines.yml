@@ -289,6 +289,20 @@ jobs:
       displayName: "Prepare Buck environment"
       workingDirectory: $(Build.BinariesDirectory)
 
+    - powershell: |
+        $python2_path = (Get-Item C:\Python27amd64).FullName
+
+        if (-not $python2_path) {
+          $python2_path = ((Get-Item C:\hostedtoolcache\windows\Python\2*\x64) | Sort-Object -Descending)[0].FullName
+        }
+
+        $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\x64) | Sort-Object -Descending)[0].FullName
+
+        echo "##vso[task.setvariable variable=python2]$python2_path"
+        echo "##vso[task.setvariable variable=python3]$python3_path"
+
+      displayName: "Detect python 2 and 3 installation folders"
+
     - script: |
         mklink /J $(Build.BinariesDirectory)\vsinstall "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise"
 
@@ -298,18 +312,18 @@ jobs:
         -VcToolsVersion "$vcvers" `
         -SdkInstall '' `
         -SdkVersion '' `
-        -Python3Path 'C:\hostedtoolcache\windows\Python\3.7.2\x64\python.exe' `
+        -Python3Path '$(python3)\python.exe' `
         -BuckConfigRoot .\tools\buckconfigs\
       displayName: "Generate Buck config"
 
     - script: |
-        set PATH=C:\Python27amd64;%PATH%
-        C:\Python27amd64\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" build @mode/windows-x86_64/release osquery:osqueryd
+        set PATH=$(python2);%PATH%
+        $(python2)\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" build @mode/windows-x86_64/release osquery:osqueryd
       displayName: "Build osquery"
 
     - script: |
-        set PATH=C:\Python27amd64;%PATH%
-        C:\Python27amd64\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" test @mode/windows-x86_64/release osquery/...
+        set PATH=$(python2);%PATH%
+        $(python2)\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" test @mode/windows-x86_64/release osquery/...
       displayName: "Run tests"
 
     - powershell: |
