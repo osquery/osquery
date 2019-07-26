@@ -25,7 +25,6 @@ function(zlibMain)
     "${library_root}/zutil.c"
   )
 
-  # todo(alessandro): macOS and Windows support
   target_compile_definitions(thirdparty_zlib PRIVATE
     _LARGEFILE64_SOURCE=1
     HAVE_HIDDEN

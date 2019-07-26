@@ -216,7 +216,7 @@ function(libgcryptMain)
   )
 
   target_include_directories(thirdparty_libgcrypt SYSTEM INTERFACE
-    "${library_root}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated/src"
   )
 endfunction()
 
