@@ -279,6 +279,10 @@ function(generateTestsIntegrationTablesTestsTest)
       services.cpp
       shared_resources.cpp
       startup_items.cpp
+<<<<<<< HEAD
+=======
+      userassist.cpp
+>>>>>>> Added tests, removed diagnostic files
       video_info.cpp
       winbaseobj.cpp
       windows_crashes.cpp
