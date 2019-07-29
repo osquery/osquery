@@ -213,11 +213,11 @@ consumeWrappedMessagesFromCircularBuffer(ByteType const* data_ptr,
       data_tail += wrapped_message.header.size;
       offset = data_tail % buffer_size;
     } else {
-      auto wrapped_message =
-          reinterpret_cast<WrappedMessage const*>(data_ptr + offset);
-      messages.emplace_back(wrapped_message->msg);
-      offset += wrapped_message->header.size;
-      data_tail += wrapped_message->header.size;
+      WrappedMessage wrapped_message;
+      memcpy(&wrapped_message, (data_ptr + offset), sizeof(WrappedMessage));
+      messages.emplace_back(wrapped_message.msg);
+      offset += wrapped_message.header.size;
+      data_tail += wrapped_message.header.size;
     }
   }
   return Success{};

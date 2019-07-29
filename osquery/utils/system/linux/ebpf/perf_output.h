@@ -54,11 +54,13 @@ class PerfOutput final {
 
   using MessageBatchType = std::vector<MessageType>;
 
+#pragma pack(push, 1)
   struct WrappedMessage {
     struct perf_event_header header;
     std::uint32_t size;
     MessageType msg;
   };
+#pragma pack(pop)
 
   ExpectedSuccess<PerfOutputError> read(MessageBatchType& dst);
 
