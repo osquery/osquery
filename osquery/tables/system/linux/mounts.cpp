@@ -14,7 +14,7 @@
 #include <osquery/tables.h>
 #include <osquery/utils/system/filepath.h>
 
-const char * const kMntTypeBlacklist[] = {"autofs", NULL};
+const char* const kMntTypeBlacklist[] = {"autofs", NULL};
 
 namespace osquery {
 namespace tables {
@@ -31,8 +31,8 @@ QueryData genMounts(QueryContext& context) {
   while ((ent = getmntent(mounts))) {
     Row r;
 
-    int i=0;
-    while(kMntTypeBlacklist[i]){
+    int i = 0;
+    while (kMntTypeBlacklist[i]) {
       if (!strcmp(kMntTypeBlacklist[i], ent->mnt_type))
         break;
       i++;
