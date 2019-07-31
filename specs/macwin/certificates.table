@@ -19,5 +19,14 @@ schema([
     Column("serial", TEXT, "Certificate serial number"),
 
 ])
+
+extended_schema(WINDOWS, [
+    Column("sid", TEXT, "SID"),
+    Column("store_location", TEXT, "Certificate system store location"),
+    Column("store", TEXT, "Certificate system store"),
+    Column("username", TEXT, "Username"),
+    Column("store_id", TEXT, "Exists for service/user stores. Contains raw store id provided by WinAPI."),
+])
+
 attributes(cacheable=True)
 implementation("certificates@genCerts")

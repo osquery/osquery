@@ -8,12 +8,32 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/config/tests/test_utils.h>
+#include <osquery/database.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 namespace osquery {
+DECLARE_bool(disable_database);
+DECLARE_string(augeas_lenses);
 namespace tables {
 
-class AugeasTests : public testing::Test {};
+class AugeasTests : public testing::Test {
+ protected:
+  void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    FLAGS_augeas_lenses =
+        (osquery::getTestConfigDirectory() / "augeas/lenses").string();
+
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+};
 
 TEST_F(AugeasTests, select_hosts_by_path_expression) {
   auto results =

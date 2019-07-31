@@ -476,9 +476,10 @@ function(add_osquery_library)
 endfunction()
 
 # This function modifies an existing cache variable but without changing its description
-function(overwrite_cache_variable variable_name value)
+function(overwrite_cache_variable variable_name type value)
   get_property(current_help_string CACHE "${variable_name}" PROPERTY HELPSTRING)
-  set("${variable_name}" "${value}" CACHE STRING "${current_help_string}" FORCE)
+  list(APPEND cache_args "CACHE" "${type}" "${current_help_string}")
+  set("${variable_name}" "${value}" ${cache_args} FORCE)
 endfunction()
 
 function(generateSpecialTargets)

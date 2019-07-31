@@ -463,4 +463,13 @@ Status genTableRowsForSqliteTable(const boost::filesystem::path& sqlite_db,
                                   const std::string& sqlite_query,
                                   TableRows& results,
                                   bool respect_locking = true);
+
+/**
+ * @brief Detect journal_mode of d SQLite database file
+ *
+ * Returns a Status, if successful contains the journal mode as message
+ *
+ * @param sqlite_db Path to the sqlite_db
+ */
+Status getSqliteJournalMode(const boost::filesystem::path& sqlite_db);
 } // namespace osquery

@@ -30,4 +30,4 @@ TEST_F(WindowsEventLogTests, test_register_event_pub) {
   status = EventFactory::deregisterEventPublisher("windows_events");
   EXPECT_TRUE(status.ok());
 }
-}
+} // namespace osquery

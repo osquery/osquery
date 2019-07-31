@@ -6,7 +6,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
-load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX", "WINDOWS")
 
 osquery_cxx_test(
     name = "md_tables_tests",
@@ -269,6 +269,12 @@ osquery_cxx_test(
             MACOSX,
             [
                 "darwin/certificates_tests.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/certificates_tests.cpp",
             ],
         ),
     ],

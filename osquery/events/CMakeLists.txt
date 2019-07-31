@@ -118,6 +118,10 @@ function(generateOsqueryEvents)
   if(DEFINED PLATFORM_MACOS)
     add_test(NAME osquery_events_tests_fseventstests-test COMMAND osquery_events_tests_fseventstests-test)
   endif()
+
+  if(DEFINED PLATFORM_WINDOWS)
+    add_test(NAME osquery_events_tests_windowseventlogtests-test COMMAND osquery_events_tests_windowseventlogtests-test)
+  endif()
 endfunction()
 
 function(generateOsqueryEventsEventsregistry)

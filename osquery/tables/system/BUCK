@@ -64,6 +64,7 @@ osquery_cxx_library(
             WINDOWS,
             [
                 "windows/registry.h",
+                "windows/certificates.h",
             ],
         ),
     ],
@@ -73,6 +74,15 @@ osquery_cxx_library(
             [
                 "-laugeas",
                 "-lmagic",
+            ],
+        ),
+    ],
+    platform_compiler_flags = [
+        (
+            MACOSX,
+            [
+                "-Wno-c99-extensions",
+                "-Wno-undeclared-selector",
             ],
         ),
     ],
@@ -268,9 +278,9 @@ osquery_cxx_library(
                 "windows/smbios_tables.cpp",
                 "windows/startup_items.cpp",
                 "windows/system_info.cpp",
+		"windows/userassist.cpp",
                 "windows/user_groups.cpp",
                 "windows/users.cpp",
-		"windows/userassist.cpp",
                 "windows/video_info.cpp",
                 "windows/windows_crashes.cpp",
                 "windows/wmi_bios_info.cpp",
