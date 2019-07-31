@@ -16,13 +16,13 @@
 namespace osquery {
 namespace tables {
 
-QueryData genUserAssist(QueryContext &context) {
+QueryData genUserAssist(QueryContext& context) {
   QueryData results;
   QueryData users;
 
   queryKey("HKEY_USERS", users);
 
-  for (const auto &uKey : users) {
+  for (const auto& uKey : users) {
     if (uKey.count("type") == 0 || uKey.count("path") == 0) {
       continue;
     }
@@ -34,7 +34,7 @@ QueryData genUserAssist(QueryContext &context) {
     QueryData user_assist_results;
     queryKey(fullPath, user_assist_results);
 
-    for (const auto &rKey : user_assist_results) {
+    for (const auto& rKey : user_assist_results) {
       if (rKey.count("type") == 0 || rKey.count("path") == 0) {
         continue;
       }
@@ -44,11 +44,11 @@ QueryData genUserAssist(QueryContext &context) {
       QueryData assist_results;
       queryKey(full_path_key, assist_results);
 
-      for (const auto &aKey : assist_results) {
+      for (const auto& aKey : assist_results) {
         std::string subkey = aKey.at("path");
 
-        //split reg path by \Count\ to get Key values 
-	std::size_t count_key = subkey.find("Count\\");
+        // split reg path by \Count\ to get Key values
+        std::size_t count_key = subkey.find("Count\\");
         std::string value_key = subkey.substr(count_key);
         std::string value_key_reg = value_key.substr(6, std::string::npos);
 
@@ -109,7 +109,8 @@ QueryData genUserAssist(QueryContext &context) {
           }
 
           // Convert Windows FILETIME to UNIX Time
-          unsigned long long last_run = std::stoull(last_run_string.c_str(), 0, 16);
+          unsigned long long last_run =
+              std::stoull(last_run_string.c_str(), 0, 16);
           last_run = (last_run / 10000000) - 11644473600;
 
           std::time_t last_run_time = (int)last_run;
