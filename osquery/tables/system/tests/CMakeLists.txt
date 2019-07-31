@@ -17,6 +17,7 @@ function(osqueryTablesSystemTestsMain)
     generateOsqueryTablesSystemTestsShellhistorytestsTest()
     generateOsqueryTablesSystemTestsSudoerstestsTest()
     generateOsqueryTablesSystemTestsYumsourcestestsTest()
+    generateOsqueryTablesSystemTestsAugeasTestsTest()
   endif()
 
   generateOsqueryTablesSystemTestsSystemtablestestsTest()
@@ -24,7 +25,7 @@ function(osqueryTablesSystemTestsMain)
   if(DEFINED PLATFORM_MACOS)
     generateOsqueryTablesSystemTestsAppstestsTest()
     generateOsqueryTablesSystemTestsAsltestsTest()
-    generateOsqueryTablesSystemTestsCertificatestestsTest()
+    generateOsqueryTablesSystemTestsMacOsCertificatestestsTest()
     generateOsqueryTablesSystemTestsExtendedattributestestsTest()
     generateOsqueryTablesSystemTestsFirewalltestsTest()
     generateOsqueryTablesSystemTestsLaunchdtestsTest()
@@ -33,6 +34,11 @@ function(osqueryTablesSystemTestsMain)
     generateOsqueryTablesSystemTestsSmctestsTest()
     generateOsqueryTablesSystemTestsStartupitemstestsTest()
     generateOsqueryTablesSystemTestsSignaturetestsTest()
+  endif()
+
+  if(DEFINED PLATFORM_WINDOWS)
+    generateOsqueryTablesSystemTestsWindowsCertificatestestsTest()
+    generateOsqueryTablesSystemTestsRegistrytestsTest()
   endif()
 endfunction()
 
@@ -227,7 +233,7 @@ function(generateOsqueryTablesSystemTestsAsltestsTest)
   )
 endfunction()
 
-function(generateOsqueryTablesSystemTestsCertificatestestsTest)
+function(generateOsqueryTablesSystemTestsMacOsCertificatestestsTest)
   add_osquery_executable(osquery_tables_system_tests_certificatestests-test darwin/certificates_tests.cpp)
 
   target_link_libraries(osquery_tables_system_tests_certificatestests-test PRIVATE
@@ -401,6 +407,72 @@ function(generateOsqueryTablesSystemTestsSignaturetestsTest)
     plugins_database_ephemeral
     thirdparty_googletest
   )
+endfunction()
+
+function(generateOsqueryTablesSystemTestsWindowsCertificatestestsTest)
+  add_osquery_executable(osquery_tables_system_tests_certificatestests-test windows/certificates_tests.cpp)
+
+  target_link_libraries(osquery_tables_system_tests_certificatestests-test PRIVATE
+    global_cxx_settings
+    osquery_config_tests_testutils
+    osquery_core
+    osquery_core_sql
+    osquery_database
+    osquery_filesystem
+    osquery_remote_tests_remotetestutils
+    osquery_tables_system_systemtable
+    osquery_utils
+    osquery_utils_conversions
+    plugins_database_ephemeral
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryTablesSystemTestsRegistrytestsTest)
+  add_osquery_executable(osquery_tables_system_tests_registrytests-test windows/registry_tests.cpp)
+
+  target_link_libraries(osquery_tables_system_tests_registrytests-test PRIVATE
+    global_cxx_settings
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_headers
+    osquery_remote_enroll_tlsenroll
+    osquery_tables_system_systemtable
+    plugins_database_ephemeral
+    tests_helper
+    thirdparty_boost
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryTablesSystemTestsAugeasTestsTest)
+  add_osquery_executable(osquery_tables_system_tests_augeastests-test posix/augeas_tests.cpp)
+
+  target_link_libraries(osquery_tables_system_tests_augeastests-test PRIVATE
+    global_cxx_settings
+    osquery_config_tests_testutils
+    osquery_dispatcher
+    osquery_events
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_headers
+    osquery_registry
+    osquery_remote_enroll_tlsenroll
+    osquery_sql
+    osquery_tables_events_eventstable
+    plugins_database_ephemeral
+    specs_tables
+    thirdparty_googletest
+  )
+
+  add_custom_target(osquery_tables_system_tests_augeaslenses
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${TEST_CONFIGS_DIR}/augeas/lenses"
+    COMMAND "${CMAKE_COMMAND}" -E copy "$<TARGET_PROPERTY:thirdparty_augeas,INTERFACE_BINARY_DIR>/share/augeas/lenses/dist/*.aug" "${TEST_CONFIGS_DIR}/augeas/lenses")
+
+  add_dependencies(osquery_tables_system_tests_augeastests-test osquery_tables_system_tests_augeaslenses)
+  add_dependencies(osquery_tables_system_tests_augeaslenses thirdparty_augeas)
+  add_dependencies(osquery_tables_system_tests_augeaslenses osquery_tools_tests_testconfigsfolder)
+
 endfunction()
 
 osqueryTablesSystemTestsMain()

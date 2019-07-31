@@ -9,15 +9,29 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
 
+#include <osquery/flags.h>
+#include <osquery/registry_interface.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 #include <osquery/tables/system/windows/registry.h>
-
-#include "osquery/tests/test_util.h"
+#include <osquery/tests/test_util.h>
 
 namespace osquery {
+DECLARE_bool(disable_database);
 namespace tables {
 
-class RegistryTablesTest : public testing::Test {};
+class RegistryTablesTest : public testing::Test {
+ protected:
+  void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+};
 
 const std::string kTestKey = "HKEY_LOCAL_MACHINE\\SOFTWARE";
 const std::string kTestSpecificKey =

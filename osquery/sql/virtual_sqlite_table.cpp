@@ -6,6 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <boost/algorithm/string.hpp>
+
 #include <osquery/core.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
@@ -112,4 +114,25 @@ Status genTableRowsForSqliteTable(const fs::path& sqlite_db,
 
   return Status{};
 }
+
+Status getSqliteJournalMode(const fs::path& sqlite_db) {
+  TableRows result;
+  auto status = genTableRowsForSqliteTable(
+      sqlite_db, "PRAGMA journal_mode;", result, true);
+  if (!status.ok()) {
+    return status;
+  }
+  if (result.empty()) {
+    VLOG(1) << "PRAGMA query returned empty results";
+    return Status(1, "Could not retrieve journal mode");
+  }
+  auto resultmap = static_cast<Row>(*result[0]);
+  if (resultmap.find("journal_mode") == resultmap.end()) {
+    VLOG(1) << "journal_mode not found PRAGMA query results";
+    return Status(1, "Could not retrieve journal mode");
+  }
+  return Status(Status::kSuccessCode,
+                boost::algorithm::to_lower_copy(resultmap["journal_mode"]));
+}
+
 } // namespace osquery
