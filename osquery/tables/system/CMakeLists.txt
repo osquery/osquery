@@ -192,14 +192,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/system_info.cpp
       windows/user_groups.cpp
       windows/users.cpp
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
       windows/userassist.cpp
->>>>>>> Small updates
-=======
-      windows/userassist.cpp
->>>>>>> 7529da2624eb8052826bcdf9617c7ad9732a00c2
       windows/video_info.cpp
       windows/windows_crashes.cpp
       windows/wmi_bios_info.cpp
