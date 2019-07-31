@@ -85,3 +85,6 @@
 [submodule "libraries/cmake/source/libcryptsetup/src"]
 	path = libraries/cmake/source/libcryptsetup/src
   url = https://gitlab.com/cryptsetup/cryptsetup.git
+[submodule "libraries/cmake/source/libdevmapper/src"]
+	path = libraries/cmake/source/libdevmapper/src
+	url = git://sourceware.org/git/lvm2.git
