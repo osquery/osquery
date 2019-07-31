@@ -88,3 +88,6 @@
 [submodule "libraries/cmake/source/libdevmapper/src"]
 	path = libraries/cmake/source/libdevmapper/src
 	url = git://sourceware.org/git/lvm2.git
+[submodule "libraries/cmake/source/libiptables/src"]
+	path = libraries/cmake/source/libiptables/src
+	url = git://git.netfilter.org/iptables.git
