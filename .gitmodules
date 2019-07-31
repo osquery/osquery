@@ -91,3 +91,6 @@
 [submodule "libraries/cmake/source/libiptables/src"]
 	path = libraries/cmake/source/libiptables/src
 	url = git://git.netfilter.org/iptables.git
+[submodule "libraries/cmake/source/librdkafka/src"]
+	path = libraries/cmake/source/librdkafka/src
+	url = https://github.com/edenhill/librdkafka
