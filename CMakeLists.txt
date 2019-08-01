@@ -87,7 +87,6 @@ function(importLibraries)
     "Linux,Darwin,Windows:linenoise-ng"
     "Linux,Darwin:lldpd"
     "Linux:lzma"
-    "Linux,Darwin,Windows:openssl"
     "Linux,Darwin:popt"
     "Linux,Darwin,Windows:rapidjson"
     "Linux,Darwin,Windows:rocksdb"
@@ -100,6 +99,7 @@ function(importLibraries)
     "Linux,Darwin:yara"
     "Linux,Darwin,Windows:zlib"
     "Linux,Darwin,Windows:zstd"
+    "Linux,Darwin,Windows:openssl"
   )
 
   foreach(python_module ${python_module_list})

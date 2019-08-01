@@ -285,16 +285,17 @@ function(generateGlobalSettingsTargets)
   # C settings
   if(DEFINED PLATFORM_WINDOWS)
     target_compile_options(c_settings INTERFACE
-      /std:c11
       /MT
       /EHs
       /W3
       /guard:cf
       /bigobj
     )
+
+    target_compile_features(c_settings INTERFACE c_std_11)
+
   else()
     target_compile_options(c_settings INTERFACE
-      -std=gnu11
       -Qunused-arguments
       -Wno-shadow-field
       -Wall
@@ -327,6 +328,8 @@ function(generateGlobalSettingsTargets)
       -pipe
       -pedantic
     )
+
+    target_compile_features(c_settings INTERFACE c_std_11)
   endif()
 
   add_library(global_c_settings INTERFACE)

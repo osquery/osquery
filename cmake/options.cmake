@@ -69,10 +69,10 @@ option(OSQUERY_NO_DEBUG_SYMBOLS "Whether to build without debug symbols or not, 
 
 option(BUILD_TESTING "Whether to enable and build tests or not")
 
-# Linux can use source and pre-built modules to link dependencies; this
+# Linux can use source and formula modules to link dependencies; this
 # feature is not yet available on Windows and macOS
 if(DEFINED PLATFORM_LINUX)
-  set(third_party_source_list "source;pre-built;facebook")
+  set(third_party_source_list "source;formula;facebook")
 else()
   set(third_party_source_list "facebook")
 endif()
