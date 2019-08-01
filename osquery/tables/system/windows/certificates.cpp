@@ -542,8 +542,8 @@ void findUserPersonalCertsOnDisk(const std::string& username,
       << "\\AppData\\Roaming\\Microsoft\\SystemCertificates\\My\\Certificates";
 
   try {
-    for (auto& x : fs::directory_iterator(fs::path(certsPath.str()))) {
-      std::basic_ifstream<BYTE> inp(x.path().string(), std::ios::binary);
+    for (auto& file : fs::directory_iterator(fs::path(certsPath.str()))) {
+      std::basic_ifstream<BYTE> inp(file.path().string(), std::ios::binary);
 
       std::vector<BYTE> encodedCert;
       auto ret = getEncodedCert(inp, encodedCert);
