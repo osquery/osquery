@@ -94,3 +94,6 @@
 [submodule "libraries/cmake/source/librdkafka/src"]
 	path = libraries/cmake/source/librdkafka/src
 	url = https://github.com/edenhill/librdkafka
+[submodule "libraries/cmake/source/lldpd/src"]
+	path = libraries/cmake/source/lldpd/src
+	url = https://github.com/vincentbernat/lldpd
