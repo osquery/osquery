@@ -388,12 +388,12 @@ Status getEncodedCert(std::basic_istream<BYTE>& blob,
 }
 
 void addCertRow(PCCERT_CONTEXT certContext,
-                QueryData& results,
                 const std::string& storeId,
                 const std::string& sid,
                 const std::string& storeName,
                 const std::string& username,
-                const std::string& storeLocation) {
+                const std::string& storeLocation,
+                QueryData& results) {
   std::vector<char> certBuff;
   getCertCtxProp(certContext, CERT_HASH_PROP_ID, certBuff);
   std::string fingerprint;
@@ -557,7 +557,7 @@ void findUserPersonalCertsOnDisk(const std::string& username,
           static_cast<unsigned long>(encodedCert.size()));
 
       addCertRow(
-          ctx, results, storeId, sid, storeName, username, storeLocation);
+          ctx, storeId, sid, storeName, username, storeLocation, results);
     }
   } catch (const fs::filesystem_error& e) {
     VLOG(1) << "Error traversing " << certsPath.str() << ": " << e.what();
@@ -591,7 +591,8 @@ void enumerateCertStore(const HCERTSTORE& certStore,
         storeLocation != "Users" || boost::ends_with(storeId, "_Classes");
 
     if (is_personal_store && not_already_added) {
-      VLOG(1) << "Trying harder to get Personal store.";
+      VLOG(1) << "Checking disk for Personal certificates for user: "
+              << username;
 
       // TODO(#5654) 2: Potential future optimization
       findUserPersonalCertsOnDisk(
@@ -610,7 +611,7 @@ void enumerateCertStore(const HCERTSTORE& certStore,
 
   while (certContext != nullptr) {
     addCertRow(
-        certContext, results, storeId, sid, storeName, username, storeLocation);
+        certContext, storeId, sid, storeName, username, storeLocation, results);
 
     certContext = CertEnumCertificatesInStore(certStore, certContext);
   }
@@ -702,12 +703,8 @@ void genPersonalCertsFromDisk(QueryData& results) {
     auto sid = row.at("uuid");
     auto username = row.at("username");
 
-    findUserPersonalCertsOnDisk(username,
-                                sid,
-                                sid,
-                                "Personal", // storeName
-                                "Users", // storeLocation
-                                results);
+    findUserPersonalCertsOnDisk(
+        username, sid, sid, "Personal", "Users", results);
   }
 }
 
