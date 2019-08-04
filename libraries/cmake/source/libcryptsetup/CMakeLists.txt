@@ -55,6 +55,7 @@ function(libcryptsetupMain)
     global_c_settings
     thirdparty_util-linux
     thirdparty_libgcrypt
+    thirdparty_libdevmapper
     thirdparty_popt
   )
 
