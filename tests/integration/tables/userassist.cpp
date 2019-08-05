@@ -11,6 +11,7 @@ class UserassistTest : public testing::Test {
 
 TEST_F(UserassistTest, test_sanity) {
   QueryData const rows = execute_query("select * from userassist");
+  ASSERT_GT(rows.size(), 0ul);
   ValidatatioMap row_map = {
       {"path", NonEmptyString},
       {"last_execution_time", NormalType},
