@@ -55,9 +55,6 @@
 [submodule "libraries/cmake/source/smartmontools/src"]
 	path = libraries/cmake/source/smartmontools/src
 	url = https://github.com/osquery/third-party-smartmontools
-[submodule "third-party-prebuilt"]
-	path = third-party-prebuilt
-	url = https://github.com/theopolis/osquery-third-party-prebuilt
 [submodule "libraries/cmake/source/berkeley-db/src"]
 	path = libraries/cmake/source/berkeley-db/src
 	url = https://github.com/osquery/third-party-berkeley-db
