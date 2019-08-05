@@ -535,6 +535,8 @@ void findUserPersonalCertsOnDisk(const std::string& username,
                                  const std::string& storeName,
                                  const std::string& storeLocation,
                                  QueryData& results) {
+  VLOG(1) << "Checking disk for Personal certificates for user: " << username;
+
   std::stringstream certsPath;
   certsPath
       << getSystemRoot().root_name().string() << "\\Users\\" << username
@@ -588,9 +590,6 @@ void enumerateCertStore(const HCERTSTORE& certStore,
         storeLocation != "Users" || boost::ends_with(storeId, "_Classes");
 
     if (is_personal_store && not_already_added) {
-      VLOG(1) << "Checking disk for Personal certificates for user: "
-              << username;
-
       // TODO(#5654) 2: Potential future optimization
       findUserPersonalCertsOnDisk(
           username, storeId, sid, storeName, storeLocation, results);
