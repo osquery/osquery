@@ -691,8 +691,15 @@ BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
  * users' registry hives are currently mounted.
  */
 void genPersonalCertsFromDisk(QueryData& results) {
-  auto users = SQL::selectAllFrom("users");
-  for (const auto& row : users) {
+  SQL sql(
+      "SELECT uuid, username FROM users WHERE username NOT IN ('SYSTEM', "
+      "'LOCAL SERVICE', 'NETWORK SERVICE')");
+  if (!sql.ok()) {
+    VLOG(1) << sql.getStatus().getMessage();
+    return;
+  }
+
+  for (const auto& row : sql.rows()) {
     auto sid = row.at("uuid");
     auto username = row.at("username");
 
