@@ -26,9 +26,9 @@ function(augeasMain)
   importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}" ${additional_library})
 
   get_target_property(augeas_binary_dir thirdparty_augeas INTERFACE_BINARY_DIR)
-  set_target_properties(thirdparty_augeas PROPERTIES
-    LENSES_FOLDER_PATH "${augeas_binary_dir}/share/augeas/lenses/dist"
-  )
+  #set_target_properties(thirdparty_augeas PROPERTIES
+  #  LENSES_FOLDER_PATH "${augeas_binary_dir}/share/augeas/lenses/dist"
+  #)
 endfunction()
 
 augeasMain()

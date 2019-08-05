@@ -205,11 +205,16 @@ function(generateInstallTargets)
     install(DIRECTORY COMPONENT osquery DESTINATION /private/var/log/osquery)
     install(DIRECTORY COMPONENT osquery DESTINATION /private/var/osquery)
 
-    get_target_property(augeas_lenses_dir thirdparty_augeas LENSES_FOLDER_PATH)
-    install(DIRECTORY "${augeas_lenses_dir}" COMPONENT osquery
+    get_target_property(augeas_target_type thirdparty_augeas TYPE)
+    if(augeas_target_type STREQUAL "INTERFACE_LIBRARY")
+      message(WARNING "Augeas lenses are not being packaged")
+    else()
+      get_target_property(augeas_lenses_dir thirdparty_augeas LENSES_FOLDER_PATH)
+      install(DIRECTORY "${augeas_lenses_dir}" COMPONENT osquery
             DESTINATION /private/var/osquery/lenses
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)
+    endif()
 
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
     install(DIRECTORY "${CMAKE_BINARY_DIR}/package/pkg/packs" COMPONENT osquery DESTINATION /private/var/osquery)
