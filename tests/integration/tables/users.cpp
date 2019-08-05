@@ -9,6 +9,8 @@
 // Sanity check integration test for users
 // Spec file: specs/users.table
 
+#include <string.h>
+
 #include <osquery/tests/integration/tables/helper.h>
 
 #include <osquery/utils/info/platform_type.h>
@@ -25,9 +27,7 @@ class UsersTest : public testing::Test {
 };
 
 TEST_F(UsersTest, test_sanity) {
-  auto const rows = execute_query("select * from users");
-  ASSERT_GE(rows.size(), 1ul); // There must be at least one user
-  auto row_map = ValidationMap{
+  auto row_map = ValidatatioMap{
       {"uid", NonNegativeInt},
       {"uid_signed", IntType},
       {"gid_signed", IntType},
@@ -55,7 +55,21 @@ TEST_F(UsersTest, test_sanity) {
   } else {
     row_map.emplace("uuid", NormalType);
   }
+
+  // select * case
+  auto const rows = execute_query("select * from users");
+  ASSERT_GE(rows.size(), 1ul);
   validate_rows(rows, row_map);
+
+  // select with a specified uid
+  //auto test_uid = rows.front().find("uid").c_str();
+  //auto test_uid = 1; // FIXME: Use something more clever, as above
+  auto test_uid = rows.front().at("uid").c_str();
+  char query_string[50];
+  sprintf(query_string, "select * from users where uid=%s", test_uid);
+  auto const rows_one = execute_query(query_string);
+  ASSERT_GE(rows_one.size(), 1ul);
+  validate_rows(rows_one, row_map);
 }
 
 } // namespace

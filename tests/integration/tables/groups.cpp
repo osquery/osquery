@@ -11,36 +11,47 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
+#include <osquery/utils/info/platform_type.h>
+
 namespace osquery {
 namespace table_tests {
+namespace {
 
 class groups : public testing::Test {
-  protected:
-    void SetUp() override {
-      setUpEnvironment();
-    }
+ protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
 };
 
 TEST_F(groups, test_sanity) {
-  // 1. Query data
-  auto const data = execute_query("select * from groups");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
+  // Build validation map
   // See helper.h for avaialbe flags
   // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"gid", IntType}
-  //      {"gid_signed", IntType}
-  //      {"groupname", NormalType}
-  //      {"group_sid", NormalType}
-  //      {"comment", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ValidatatioMap row_map = {
+      {"gid", IntType},
+      {"gid_signed", IntType},
+      {"groupname", NormalType},
+  };
+
+  if (isPlatform(PlatformType::TYPE_OSX)) {
+    row_map.emplace("is_hidden", IntType);
+  }
+
+  // select * case
+  auto const rows = execute_query("select * from groups");
+  ASSERT_GE(rows.size(), 1ul);
+  validate_rows(rows, row_map);
+
+  // select with a specific gid
+  auto test_gid = rows.front().at("gid").c_str();
+  char query_string[50];
+  sprintf(query_string, "select * from groups where gid=%s", test_gid);
+  auto const rows_one = execute_query(query_string);
+  ASSERT_GE(rows_one.size(), 1ul);
+  validate_rows(rows_one, row_map);
 }
 
+} // namespace
 } // namespace table_tests
 } // namespace osquery
