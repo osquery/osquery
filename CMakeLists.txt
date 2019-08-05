@@ -65,7 +65,7 @@ function(importLibraries)
     "Linux,Darwin,Windows:aws-sdk-cpp"
     "Linux:berkeley-db"
     "Linux,Darwin,Windows:boost"
-    "Linux,Windows:bzip2"
+    "Linux,Darwin,Windows:bzip2"
     "Linux,Darwin,Windows:gflags"
     "Linux,Darwin:glibc"
     "Linux,Darwin,Windows:glog"
