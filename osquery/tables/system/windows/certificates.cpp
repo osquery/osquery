@@ -27,6 +27,7 @@
 
 #include <osquery/filesystem/fileops.h>
 #include <osquery/tables/system/windows/certificates.h>
+#include <osquery/tables/system/windows/users.h>
 
 namespace fs = boost::filesystem;
 
@@ -537,9 +538,15 @@ void findUserPersonalCertsOnDisk(const std::string& username,
                                  QueryData& results) {
   VLOG(1) << "Checking disk for Personal certificates for user: " << username;
 
+  auto homeDir = getUserHomeDir(sid);
+  if (homeDir.empty()) {
+    VLOG(1) << "User " << username << " had no home directory.";
+    return;
+  }
+
   std::stringstream certsPath;
   certsPath
-      << getSystemRoot().root_name().string() << "\\Users\\" << username
+      << homeDir
       << "\\AppData\\Roaming\\Microsoft\\SystemCertificates\\My\\Certificates";
 
   try {
