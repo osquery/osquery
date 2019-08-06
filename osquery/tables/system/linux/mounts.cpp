@@ -9,6 +9,8 @@
 #include <mntent.h>
 #include <sys/vfs.h>
 
+#include <set>
+
 #include <osquery/core.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
@@ -16,6 +18,10 @@
 
 namespace osquery {
 namespace tables {
+
+std::set<std::string> kMountStatBlacklist = {
+    "autofs",
+};
 
 QueryData genMounts(QueryContext& context) {
   QueryData results;
@@ -29,20 +35,23 @@ QueryData genMounts(QueryContext& context) {
   while ((ent = getmntent(mounts))) {
     Row r;
 
+    r["type"] = std::string(ent->mnt_type);
     r["device"] = std::string(ent->mnt_fsname);
     r["device_alias"] = canonicalize_file_name(ent->mnt_fsname);
     r["path"] = std::string(ent->mnt_dir);
-    r["type"] = std::string(ent->mnt_type);
     r["flags"] = std::string(ent->mnt_opts);
 
-    struct statfs st;
-    if (!statfs(ent->mnt_dir, &st)) {
-      r["blocks_size"] = BIGINT(st.f_bsize);
-      r["blocks"] = BIGINT(st.f_blocks);
-      r["blocks_free"] = BIGINT(st.f_bfree);
-      r["blocks_available"] = BIGINT(st.f_bavail);
-      r["inodes"] = BIGINT(st.f_files);
-      r["inodes_free"] = BIGINT(st.f_ffree);
+    // Check type against blacklist before running statfs.
+    if (kMountStatBlacklist.find(r["type"]) == kMountStatBlacklist.end()) {
+      struct statfs st;
+      if (!statfs(ent->mnt_dir, &st)) {
+        r["blocks_size"] = BIGINT(st.f_bsize);
+        r["blocks"] = BIGINT(st.f_blocks);
+        r["blocks_free"] = BIGINT(st.f_bfree);
+        r["blocks_available"] = BIGINT(st.f_bavail);
+        r["inodes"] = BIGINT(st.f_files);
+        r["inodes_free"] = BIGINT(st.f_ffree);
+      }
     }
 
     results.push_back(std::move(r));
