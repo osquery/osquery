@@ -38,6 +38,11 @@ TEST_F(groups, test_sanity) {
     row_map.emplace("is_hidden", IntType);
   }
 
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    row_map.emplace("comment", NormalType);
+    row_map.emplace("group_sid", NormalType);
+  }
+
   // select * case
   auto const rows = execute_query("select * from groups");
   ASSERT_GE(rows.size(), 1ul);
