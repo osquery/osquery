@@ -62,8 +62,6 @@ TEST_F(UsersTest, test_sanity) {
   validate_rows(rows, row_map);
 
   // select with a specified uid
-  //auto test_uid = rows.front().find("uid").c_str();
-  //auto test_uid = 1; // FIXME: Use something more clever, as above
   auto test_uid = rows.front().at("uid").c_str();
   char query_string[50];
   sprintf(query_string, "select * from users where uid=%s", test_uid);
