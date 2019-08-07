@@ -557,6 +557,11 @@ void findUserPersonalCertsOnDisk(const std::string& username,
 
   std::string homeDir;
   auto homeDirUnexpanded = getUserHomeDir(sid);
+  if (homeDirUnexpanded.empty()) {
+    VLOG(1) << "Could not find home dir for account " << username;
+    return;
+  }
+
   // System accounts have environment variables in their paths
   auto ret = expandEnvironmentVariables(homeDirUnexpanded, homeDir);
   if (!ret.ok() || homeDir.empty()) {
