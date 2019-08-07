@@ -718,9 +718,7 @@ BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
  * users' registry hives are currently mounted.
  */
 void genPersonalCertsFromDisk(QueryData& results) {
-  SQL sql(
-      "SELECT uuid, username FROM users WHERE username NOT IN ('SYSTEM', "
-      "'LOCAL SERVICE', 'NETWORK SERVICE')");
+  SQL sql("SELECT uuid, username FROM users");
   if (!sql.ok()) {
     VLOG(1) << sql.getStatus().getMessage();
     return;
