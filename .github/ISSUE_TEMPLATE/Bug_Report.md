@@ -10,6 +10,7 @@ about: Something is not working as expected
 <!--
 Please follow this template.
 Before submitting an issue search for duplicates.
+For build-related issues, please look at the BUILD.md file first. The build procedure has been changed completely, and the old instructions no longer apply.
 -->
 
 ### What operating system and version are you using?
