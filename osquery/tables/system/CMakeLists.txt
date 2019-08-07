@@ -294,6 +294,7 @@ function(generateOsqueryTablesSystemSystemtable)
     list(APPEND platform_public_header_files
       windows/registry.h
       windows/certificates.h
+      windows/users.h
     )
   endif()
 

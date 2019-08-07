@@ -16,6 +16,7 @@
 #include <osquery/logger.h>
 
 #include "osquery/tables/system/windows/registry.h"
+#include "osquery/tables/system/windows/users.h"
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/process/process.h>
