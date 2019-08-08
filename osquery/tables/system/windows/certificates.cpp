@@ -530,7 +530,8 @@ void addCertRow(PCCERT_CONTEXT certContext,
   results.push_back(r);
 }
 
-Status expandEnvironmentVariablesImpl(const std::string& src, std::string& dest) {
+Status expandEnvironmentVariablesImpl(const std::string& src,
+                                      std::string& dest) {
   auto srcW = stringToWstring(src).c_str();
   auto expandedSize = ExpandEnvironmentStringsW(srcW, nullptr, 0);
   if (expandedSize == 0) {
