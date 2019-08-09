@@ -530,9 +530,9 @@ void addCertRow(PCCERT_CONTEXT certContext,
   results.push_back(r);
 }
 
-Status expandEnvironmentVariablesImpl(const std::string& src,
-                                      std::string& dest) {
-  auto srcW = stringToWstring(src).c_str();
+Status expandEnvironmentVariables(const std::string& src, std::string& dest) {
+  auto srcWstring = stringToWstring(src);
+  auto srcW = srcWstring.c_str();
   auto expandedSize = ExpandEnvironmentStringsW(srcW, nullptr, 0);
   if (expandedSize == 0) {
     return Status::failure("Unable to get expanded size");
@@ -548,19 +548,6 @@ Status expandEnvironmentVariablesImpl(const std::string& src,
 
   dest = wstringToString(buf.data());
   return Status::success();
-}
-
-Status expandEnvironmentVariables(const std::string& src, std::string& dest) {
-  const int MAX_RETRY = 100;
-  int i = 0;
-  Status ret{};
-
-  do {
-    ret = expandEnvironmentVariablesImpl(src, dest);
-    i++;
-  } while (!ret.ok() && i < MAX_RETRY);
-
-  return ret;
 }
 
 void findUserPersonalCertsOnDisk(const std::string& username,
