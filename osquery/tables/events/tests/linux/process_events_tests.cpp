@@ -18,8 +18,10 @@
 
 namespace osquery {
 namespace {
+using RawAuditEvent = const std::vector<std::pair<int, std::string>>;
+
 // clang-format off
-const std::vector<std::pair<int, std::string>> kSampleExecveEvent = {
+const RawAuditEvent kSampleExecveEvent = {
   { 1300, "audit(1502125323.756:6): arch=c000003e syscall=59 success=yes exit=0 a0=23eb8e0 a1=23ebbc0 a2=23c9860 a3=7ffe18d32ed0 items=2 ppid=6882 pid=7841 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=2 comm=\"sh\" exe=\"/usr/bin/bash\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)" },
   { 1309, "audit(1502125323.756:6): argc=1 a0=\"sh\"" },
   { 1307, "audit(1502125323.756:6):  cwd=\"/home/alessandro\"" },
@@ -30,7 +32,7 @@ const std::vector<std::pair<int, std::string>> kSampleExecveEvent = {
 // clang-format on
 
 // clang-format off
-const std::vector<std::pair<int, std::string>> kSampleThreadCloneEvent = {
+const RawAuditEvent kSampleThreadCloneEvent = {
   { 1300, "audit(1565632189.127:261722): arch=c000003e syscall=56 success=yes exit=33 a0=3d0f00 a1=7f1b92ffcbf0 a2=7f1b92ffd9d0 a3=7f1b92ffd9d0 items=0 ppid=14790 pid=15929 auid=4294967295 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=(none) ses=4294967295 comm=\"ThreadPoolForeg\" exe=\"/usr/lib/chromium-browser/chromium-browser\" key=(null)" },
   { 1327, "audit(1565632189.127:261722): proctitle=2F7573722F6C69622F6368726F6D69756D2D62726F777365722F6368726F6D69756D2D62726F77736572202D2D747970653D72656E6465726572202D2D6669656C642D747269616C2D68616E646C653D31363934333039363539343737363133333433392C31323333383831333239373737313239363539322C313331303732" },
   { 1320, "audit(1565632189.127:261722): " }
@@ -48,6 +50,98 @@ bool GenerateAuditEventRecord(AuditEventRecord& event_record,
   reply.message = &contents[0];
 
   return AuditdNetlinkParser::ParseAuditReply(reply, event_record);
+}
+
+bool GenerateAuditEvent(std::vector<AuditEventRecord>& record_list,
+                        const RawAuditEvent& audit_event) {
+  record_list.clear();
+  record_list.reserve(audit_event.size());
+
+  for (const auto& record_descriptor : audit_event) {
+    const auto& record_type = record_descriptor.first;
+    const auto& record_data = record_descriptor.second;
+
+    AuditEventRecord event_record = {};
+    auto status =
+        GenerateAuditEventRecord(event_record, record_type, record_data);
+
+    EXPECT_TRUE(status);
+    if (!status) {
+      return false;
+    }
+
+    record_list.push_back(std::move(event_record));
+  }
+
+  return true;
+}
+
+bool GenerateEventContext(std::shared_ptr<AuditEventContext>& event_context,
+                          const RawAuditEvent& audit_event) {
+  event_context.reset();
+
+  std::vector<AuditEventRecord> record_list;
+  auto status = GenerateAuditEvent(record_list, audit_event);
+
+  EXPECT_TRUE(status);
+  if (!status) {
+    return false;
+  }
+
+  EXPECT_EQ(record_list.size(), audit_event.size());
+  if (record_list.size() != audit_event.size()) {
+    return false;
+  }
+
+  event_context = std::make_shared<AuditEventContext>();
+  AuditTraceContext audit_trace_context;
+
+  AuditEventPublisher::ProcessEvents(
+      event_context, record_list, audit_trace_context);
+
+  EXPECT_EQ(audit_trace_context.size(), 0U);
+  if (audit_trace_context.size() != 0U) {
+    return false;
+  }
+
+  EXPECT_EQ(event_context->audit_events.size(), 1U);
+  if (event_context->audit_events.size() != 1U) {
+    return false;
+  }
+
+  return true;
+}
+
+bool GenerateEventRow(Row& row, const RawAuditEvent& audit_event) {
+  row.clear();
+
+  std::shared_ptr<AuditEventContext> event_context;
+
+  {
+    auto status = GenerateEventContext(event_context, audit_event);
+
+    EXPECT_TRUE(status);
+    if (!status) {
+      return false;
+    }
+  }
+
+  std::vector<Row> row_list;
+  auto status = AuditProcessEventSubscriber::ProcessEvents(
+      row_list, event_context->audit_events);
+
+  EXPECT_TRUE(status.ok());
+  if (!status.ok()) {
+    return false;
+  }
+
+  EXPECT_EQ(row_list.size(), 1U);
+  if (row_list.size() != 1U) {
+    return false;
+  }
+
+  row = row_list.at(0U);
+  return true;
 }
 } // namespace
 
@@ -72,47 +166,24 @@ TEST_F(ProcessEventsTests, syscall_name_label) {
 }
 
 TEST_F(ProcessEventsTests, exec_event_processing) {
-  std::vector<AuditEventRecord> event_list;
+  // clang-format off
+  const RawAuditEvent kSampleExecveEvent = {
+    { 1300, "audit(1502125323.756:6): arch=c000003e syscall=59 success=yes exit=0 a0=23eb8e0 a1=23ebbc0 a2=23c9860 a3=7ffe18d32ed0 items=2 ppid=6882 pid=7841 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=2 comm=\"sh\" exe=\"/usr/bin/bash\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)" },
+    { 1309, "audit(1502125323.756:6): argc=1 a0=\"sh\"" },
+    { 1307, "audit(1502125323.756:6):  cwd=\"/home/alessandro\"" },
+    { 1302, "audit(1502125323.756:6): item=0 name=\"/usr/bin/sh\" inode=18867 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:shell_exec_t:s0 objtype=NORMAL" },
+    { 1302, "audit(1502125323.756:6): item=1 name=\"/lib64/ld-linux-x86-64.so.2\" inode=33604032 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:ld_so_t:s0 objtype=NORMAL" },
+    { 1320, "audit(1502125323.756:6): " }
+  };
+  // clang-format on
 
-  for (const auto& record_descriptor : kSampleExecveEvent) {
-    std::string audit_message_copy = record_descriptor.second;
+  Row event_row;
+  auto status = GenerateEventRow(event_row, kSampleExecveEvent);
 
-    audit_reply reply = {};
-    reply.type = record_descriptor.first;
-    reply.len = audit_message_copy.size();
-    reply.message = &audit_message_copy[0];
-
-    AuditEventRecord audit_event_record = {};
-
-    bool parser_status =
-        AuditdNetlinkParser::ParseAuditReply(reply, audit_event_record);
-
-    EXPECT_TRUE(parser_status);
-
-    event_list.push_back(audit_event_record);
+  EXPECT_TRUE(status);
+  if (!status) {
+    return;
   }
-
-  EXPECT_EQ(event_list.size(), kSampleExecveEvent.size());
-
-  // Assemble the audit records into audit events, and make sure
-  // we get the correct amount of objects
-  auto event_context = std::make_shared<AuditEventContext>();
-  AuditTraceContext audit_trace_context;
-
-  AuditEventPublisher::ProcessEvents(
-      event_context, event_list, audit_trace_context);
-
-  EXPECT_EQ(audit_trace_context.size(), 0U);
-  EXPECT_EQ(event_context->audit_events.size(), 1U);
-
-  std::vector<Row> row_list;
-  auto status = AuditProcessEventSubscriber::ProcessEvents(
-      row_list, event_context->audit_events);
-  EXPECT_TRUE(status.ok());
-
-  EXPECT_EQ(row_list.size(), 1U);
-
-  const auto& event_row = row_list.at(0U);
 
   const std::vector<std::string> kExpectedFields = {"uptime",
                                                     "ctime",
