@@ -56,6 +56,25 @@ Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return status;
   }
 
+  for (auto& row : emitted_row_list) {
+    auto qd = SQL::selectAllFrom("file", "path", EQUALS, row.at("path"));
+    row["btime"] = "0";
+
+    if (qd.size() == 1) {
+      row["ctime"] = qd.front().at("ctime");
+      row["atime"] = qd.front().at("atime");
+      row["mtime"] = qd.front().at("mtime");
+
+    } else {
+      VLOG(1) << "Failed to acquire the ctime/atime/mtime values for path "
+              << row.at("path");
+
+      row["ctime"] = "0";
+      row["atime"] = "0";
+      row["mtime"] = "0";
+    }
+  }
+
   addBatch(emitted_row_list);
   return Status::success();
 }
@@ -65,7 +84,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     const std::vector<AuditEvent>& event_list) noexcept {
   // clang-format off
   /*
-    execve
+    execve ()
     1300 audit(1502125323.756:6): arch=c000003e syscall=59 success=yes exit=0 a0=23eb8e0 a1=23ebbc0 a2=23c9860 a3=7ffe18d32ed0 items=2 ppid=6882 pid=7841 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=2 comm="sh" exe="/usr/bin/bash" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)
     1309 audit(1502125323.756:6): argc=1 a0="sh"
     1307 audit(1502125323.756:6):  cwd="/home/alessandro"
@@ -144,23 +163,6 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     std::string field_value;
     GetStringFieldFromMap(field_value, syscall_event_record->fields, "exe", "");
     row["path"] = DecodeAuditPathValues(field_value);
-
-    // Acquire the executable timestamps
-    auto qd = SQL::selectAllFrom("file", "path", EQUALS, row.at("path"));
-    row["btime"] = "0";
-
-    if (qd.size() == 1) {
-      row["ctime"] = qd.front().at("ctime");
-      row["atime"] = qd.front().at("atime");
-      row["mtime"] = qd.front().at("mtime");
-
-    } else {
-      VLOG(1) << "Failed to acquire the ctime/atime/mtime values for path "
-              << row.at("path");
-      row["ctime"] = "0";
-      row["atime"] = "0";
-      row["mtime"] = "0";
-    }
 
     // Unused fields
     row["overflows"] = "";

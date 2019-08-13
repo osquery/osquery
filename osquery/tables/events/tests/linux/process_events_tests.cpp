@@ -166,15 +166,8 @@ TEST_F(ProcessEventsTests, exec_event_processing) {
     return;
   }
 
-  const std::vector<std::string> kExpectedFields = {"uptime",
-                                                    "ctime",
-                                                    "atime",
-                                                    "mtime",
-                                                    "overflows",
-                                                    "env",
-                                                    "env_size",
-                                                    "env_count",
-                                                    "btime"};
+  const std::vector<std::string> kExpectedFields = {
+      "uptime", "overflows", "env", "env_size", "env_count"};
 
   const std::unordered_map<std::string, std::string> kExpectedFieldMap = {
       {"auid", "1000"},
