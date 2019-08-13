@@ -24,7 +24,21 @@ class AuditProcessEventSubscriber final
       std::vector<Row>& emitted_row_list,
       const std::vector<AuditEvent>& event_list) noexcept;
 
-  /// Returns the set of syscalls that this subscriber can handle
-  static const std::set<int>& GetSyscallSet() noexcept;
+  /// Processes the execve/execveat event data
+  static Status ProcessExecveEventData(Row& row,
+                                       const AuditEvent& event) noexcept;
+
+  /// Returns true if the given clone() system call contains the CLONE_THREAD
+  /// flag
+  static Status IsThreadClone(bool& is_thread_clone,
+                              int syscall_nr,
+                              const AuditEventRecord& syscall_record) noexcept;
+
+  /// Returns the given syscall name
+  static bool GetSyscallName(std::string& name, int syscall_nr) noexcept;
+
+  /// Returns the syscall name map
+  static const std::unordered_map<int, std::string>&
+  GetSyscallNameMap() noexcept;
 };
 } // namespace osquery
