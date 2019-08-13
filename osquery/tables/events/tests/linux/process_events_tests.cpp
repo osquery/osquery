@@ -20,25 +20,6 @@ namespace osquery {
 namespace {
 using RawAuditEvent = const std::vector<std::pair<int, std::string>>;
 
-// clang-format off
-const RawAuditEvent kSampleExecveEvent = {
-  { 1300, "audit(1502125323.756:6): arch=c000003e syscall=59 success=yes exit=0 a0=23eb8e0 a1=23ebbc0 a2=23c9860 a3=7ffe18d32ed0 items=2 ppid=6882 pid=7841 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=2 comm=\"sh\" exe=\"/usr/bin/bash\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)" },
-  { 1309, "audit(1502125323.756:6): argc=1 a0=\"sh\"" },
-  { 1307, "audit(1502125323.756:6):  cwd=\"/home/alessandro\"" },
-  { 1302, "audit(1502125323.756:6): item=0 name=\"/usr/bin/sh\" inode=18867 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:shell_exec_t:s0 objtype=NORMAL" },
-  { 1302, "audit(1502125323.756:6): item=1 name=\"/lib64/ld-linux-x86-64.so.2\" inode=33604032 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:ld_so_t:s0 objtype=NORMAL" },
-  { 1320, "audit(1502125323.756:6): " }
-};
-// clang-format on
-
-// clang-format off
-const RawAuditEvent kSampleThreadCloneEvent = {
-  { 1300, "audit(1565632189.127:261722): arch=c000003e syscall=56 success=yes exit=33 a0=3d0f00 a1=7f1b92ffcbf0 a2=7f1b92ffd9d0 a3=7f1b92ffd9d0 items=0 ppid=14790 pid=15929 auid=4294967295 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=(none) ses=4294967295 comm=\"ThreadPoolForeg\" exe=\"/usr/lib/chromium-browser/chromium-browser\" key=(null)" },
-  { 1327, "audit(1565632189.127:261722): proctitle=2F7573722F6C69622F6368726F6D69756D2D62726F777365722F6368726F6D69756D2D62726F77736572202D2D747970653D72656E6465726572202D2D6669656C642D747269616C2D68616E646C653D31363934333039363539343737363133333433392C31323333383831333239373737313239363539322C313331303732" },
-  { 1320, "audit(1565632189.127:261722): " }
-};
-// clang-format on
-
 bool GenerateAuditEventRecord(AuditEventRecord& event_record,
                               int type,
                               std::string contents) {
