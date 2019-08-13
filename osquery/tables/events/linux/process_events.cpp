@@ -84,13 +84,22 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     const std::vector<AuditEvent>& event_list) noexcept {
   // clang-format off
   /*
-    execve ()
+    execve (59)
     1300 audit(1502125323.756:6): arch=c000003e syscall=59 success=yes exit=0 a0=23eb8e0 a1=23ebbc0 a2=23c9860 a3=7ffe18d32ed0 items=2 ppid=6882 pid=7841 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=2 comm="sh" exe="/usr/bin/bash" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)
     1309 audit(1502125323.756:6): argc=1 a0="sh"
     1307 audit(1502125323.756:6):  cwd="/home/alessandro"
     1302 audit(1502125323.756:6): item=0 name="/usr/bin/sh" inode=18867 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:shell_exec_t:s0 objtype=NORMAL
     1302 audit(1502125323.756:6): item=1 name="/lib64/ld-linux-x86-64.so.2" inode=33604032 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:ld_so_t:s0 objtype=NORMAL
     1320 audit(1502125323.756:6):
+
+    execveat (322)
+    1300, audit(1565728125.289:26): arch=c000003e syscall=322 success=yes exit=0 a0=3 a1=5627914857d5 a2=0 a3=0 items=2 ppid=31922 pid=29003 auid=4294967295 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts2 ses=4294967295 comm="fork" exe="/home/alessandro/fork" key=(null)
+    1309, audit(1565728125.289:26): argc=0 a0="/dev/fd/3/fork"
+    1307, audit(1565728125.289:26): cwd="/home/alessandro"
+    1302, audit(1565728125.289:26): item=0 name="fork" inode=1440185 dev=00:32 mode=0100775 ouid=1000 ogid=1000 rdev=00:00 nametype=NORMAL cap_fp=0000000000000000 cap_fi=0000000000000000 cap_fe=0 cap_fver=0
+    1302, audit(1565728125.289:26): item=1 name="/lib64/ld-linux-x86-64.so.2" inode=6763 dev=00:19 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0000000000000000 cap_fi=0000000000000000 cap_fe=0 cap_fver=0
+    1327, audit(1565728125.289:26): proctitle="./execveat"
+    1320, audit(1565728125.289:26):
 
     fork (57), clone (56), vfork (58)
     1300 audit(1565629510.716:246170): arch=c000003e syscall=57 success=yes exit=13733 a0=7fff45d30a68 a1=7fff45d30a78 a2=55a2507aa680 a3=7f92b823cd80 items=0 ppid=9680 pid=13732 auid=4294967295 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=4294967295 comm="fork" exe="/home/alessandro/fork" key=(null)
@@ -259,7 +268,7 @@ Status AuditProcessEventSubscriber::IsThreadClone(
   std::uint64_t clone_flags;
   GetIntegerFieldFromMap(clone_flags, syscall_record.fields, "a0", 16U);
 
-  is_thread_clone = ((clone_flags)&CLONE_THREAD) != 0U;
+  is_thread_clone = (clone_flags & CLONE_THREAD) != 0U;
   return Status::success();
 }
 

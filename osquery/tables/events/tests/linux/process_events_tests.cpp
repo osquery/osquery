@@ -198,7 +198,6 @@ TEST_F(ProcessEventsTests, exec_event_processing) {
     EXPECT_TRUE(it != event_row.end());
 
     if (it == event_row.end()) {
-      std::cout << key << " WAS NOT FOUND" << std::endl;
       continue;
     }
 
