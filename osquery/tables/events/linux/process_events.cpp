@@ -246,6 +246,10 @@ Status AuditProcessEventSubscriber::IsThreadClone(
     const AuditEventRecord& syscall_record) noexcept {
   is_thread_clone = false;
 
+  if (syscall_record.type != AUDIT_SYSCALL) {
+    return Status::failure("Invalid record type");
+  }
+
   if (syscall_nr != __NR_clone) {
     return Status::success();
   }

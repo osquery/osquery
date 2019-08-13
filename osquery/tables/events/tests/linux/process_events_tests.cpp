@@ -36,6 +36,19 @@ const std::vector<std::pair<int, std::string>> kSampleThreadCloneEvent = {
   { 1320, "audit(1565632189.127:261722): " }
 };
 // clang-format on
+
+bool GenerateAuditEventRecord(AuditEventRecord& event_record,
+                              int type,
+                              std::string contents) {
+  event_record = {};
+
+  audit_reply reply{};
+  reply.type = type;
+  reply.len = contents.size();
+  reply.message = &contents[0];
+
+  return AuditdNetlinkParser::ParseAuditReply(reply, event_record);
+}
 } // namespace
 
 class ProcessEventsTests : public testing::Test {};
@@ -150,27 +163,49 @@ TEST_F(ProcessEventsTests, exec_event_processing) {
 }
 
 TEST_F(ProcessEventsTests, thread_detection) {
-  AuditEventRecord audit_event_record = {};
+  const std::string kThreadCreationSyscallRecord =
+      "audit(1565632189.127:261722): arch=c000003e syscall=56 success=yes "
+      "exit=33 a0=3d0f00 "
+      "a1=7f1b92ffcbf0 a2=7f1b92ffd9d0 a3=7f1b92ffd9d0 items=0 ppid=14790 "
+      "pid=15929 "
+      "auid=4294967295 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
+      "egid=1000 sgid=1000 "
+      "fsgid=1000 tty=(none) ses=4294967295 comm=\"ThreadPoolForeg\" "
+      "exe=\"/usr/lib/chromium-browser/chromium-browser\" key=(null)";
+
+  AuditEventRecord event_record{};
 
   {
-    std::string syscall_event_record = kSampleThreadCloneEvent.at(0U).second;
+    auto status = GenerateAuditEventRecord(
+        event_record, AUDIT_SYSCALL, kThreadCreationSyscallRecord);
+    EXPECT_TRUE(status);
 
-    audit_reply reply = {};
-    reply.type = kSampleThreadCloneEvent.at(0U).first;
-    reply.len = syscall_event_record.size();
-    reply.message = &syscall_event_record[0];
-
-    bool parser_status =
-        AuditdNetlinkParser::ParseAuditReply(reply, audit_event_record);
-
-    EXPECT_TRUE(parser_status);
+    if (!status) {
+      return;
+    }
   }
 
+  // Process a valid thread creation event
   bool is_thread{false};
   auto status = AuditProcessEventSubscriber::IsThreadClone(
-      is_thread, __NR_clone, audit_event_record);
-  EXPECT_TRUE(status.ok());
+      is_thread, __NR_clone, event_record);
 
+  EXPECT_TRUE(status.ok());
   EXPECT_TRUE(is_thread);
+
+  // Pass another record, this time with the wrong syscall number
+  status = AuditProcessEventSubscriber::IsThreadClone(
+      is_thread, __NR_execve, event_record);
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_FALSE(is_thread);
+
+  // Pass the wrong record type
+  event_record.type = AUDIT_PATH;
+  status = AuditProcessEventSubscriber::IsThreadClone(
+      is_thread, __NR_clone, event_record);
+
+  EXPECT_FALSE(status.ok());
+  EXPECT_FALSE(is_thread);
 }
 } // namespace osquery
