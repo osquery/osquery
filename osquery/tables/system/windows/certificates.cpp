@@ -531,7 +531,8 @@ void addCertRow(PCCERT_CONTEXT certContext,
 }
 
 Status expandEnvironmentVariables(const std::string& src, std::string& dest) {
-  auto srcW = stringToWstring(src).c_str();
+  auto srcWstring = stringToWstring(src);
+  auto srcW = srcWstring.c_str();
   auto expandedSize = ExpandEnvironmentStringsW(srcW, nullptr, 0);
   if (expandedSize == 0) {
     return Status::failure("Unable to get expanded size");
@@ -541,6 +542,8 @@ Status expandEnvironmentVariables(const std::string& src, std::string& dest) {
   auto ret = ExpandEnvironmentStringsW(srcW, buf.data(), expandedSize);
   if (ret == 0) {
     return Status::failure("Environment variable expansion failed");
+  } else if (ret != expandedSize) {
+    return Status::failure("Partial data written");
   }
 
   dest = wstringToString(buf.data());
@@ -557,6 +560,11 @@ void findUserPersonalCertsOnDisk(const std::string& username,
 
   std::string homeDir;
   auto homeDirUnexpanded = getUserHomeDir(sid);
+  if (homeDirUnexpanded.empty()) {
+    VLOG(1) << "Could not find home dir for account " << username;
+    return;
+  }
+
   // System accounts have environment variables in their paths
   auto ret = expandEnvironmentVariables(homeDirUnexpanded, homeDir);
   if (!ret.ok() || homeDir.empty()) {
