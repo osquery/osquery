@@ -118,8 +118,16 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     }
 
     const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
-    if (kExecProcessEventsSyscalls.count(event_data.syscall_number) == 0U &&
-        kForkProcessEventsSyscalls.count(event_data.syscall_number) == 0U) {
+
+    bool is_exec_syscall{false};
+    if (kExecProcessEventsSyscalls.count(event_data.syscall_number) > 0U) {
+      is_exec_syscall = true;
+
+    } else if (kForkProcessEventsSyscalls.count(event_data.syscall_number) >
+               0U) {
+      is_exec_syscall = false;
+
+    } else {
       continue;
     }
 
@@ -189,7 +197,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     row["env_count"] = "0";
 
     // Handle syscall-specific data
-    if (kExecProcessEventsSyscalls.count(event_data.syscall_number) > 0U) {
+    if (is_exec_syscall) {
       auto status = ProcessExecveEventData(row, event);
       if (!status) {
         VLOG(1) << "Failed to parse the event: " << status.getMessage();
