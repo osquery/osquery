@@ -33,7 +33,7 @@ bool GenerateAuditEventRecord(AuditEventRecord& event_record,
   return AuditdNetlinkParser::ParseAuditReply(reply, event_record);
 }
 
-bool GenerateAuditEvent(std::vector<AuditEventRecord>& record_list,
+void GenerateAuditEvent(std::vector<AuditEventRecord>& record_list,
                         const RawAuditEvent& audit_event) {
   record_list.clear();
   record_list.reserve(audit_event.size());
@@ -46,33 +46,19 @@ bool GenerateAuditEvent(std::vector<AuditEventRecord>& record_list,
     auto status =
         GenerateAuditEventRecord(event_record, record_type, record_data);
 
-    EXPECT_TRUE(status);
-    if (!status) {
-      return false;
-    }
-
+    ASSERT_TRUE(status);
     record_list.push_back(std::move(event_record));
   }
-
-  return true;
 }
 
-bool GenerateEventContext(std::shared_ptr<AuditEventContext>& event_context,
+void GenerateEventContext(std::shared_ptr<AuditEventContext>& event_context,
                           const RawAuditEvent& audit_event) {
   event_context.reset();
 
   std::vector<AuditEventRecord> record_list;
-  auto status = GenerateAuditEvent(record_list, audit_event);
+  GenerateAuditEvent(record_list, audit_event);
 
-  EXPECT_TRUE(status);
-  if (!status) {
-    return false;
-  }
-
-  EXPECT_EQ(record_list.size(), audit_event.size());
-  if (record_list.size() != audit_event.size()) {
-    return false;
-  }
+  ASSERT_EQ(record_list.size(), audit_event.size());
 
   event_context = std::make_shared<AuditEventContext>();
   AuditTraceContext audit_trace_context;
@@ -81,68 +67,45 @@ bool GenerateEventContext(std::shared_ptr<AuditEventContext>& event_context,
       event_context, record_list, audit_trace_context);
 
   EXPECT_EQ(audit_trace_context.size(), 0U);
-  if (audit_trace_context.size() != 0U) {
-    return false;
-  }
-
   EXPECT_EQ(event_context->audit_events.size(), 1U);
-  if (event_context->audit_events.size() != 1U) {
-    return false;
-  }
-
-  return true;
 }
 
-bool GenerateEventRow(Row& row, const RawAuditEvent& audit_event) {
+void GenerateEventRow(Row& row, const RawAuditEvent& audit_event) {
   row.clear();
 
   std::shared_ptr<AuditEventContext> event_context;
-
-  {
-    auto status = GenerateEventContext(event_context, audit_event);
-
-    EXPECT_TRUE(status);
-    if (!status) {
-      return false;
-    }
-  }
+  GenerateEventContext(event_context, audit_event);
 
   std::vector<Row> row_list;
   auto status = AuditProcessEventSubscriber::ProcessEvents(
       row_list, event_context->audit_events);
 
-  EXPECT_TRUE(status.ok());
-  if (!status.ok()) {
-    return false;
-  }
+  ASSERT_TRUE(status.ok());
 
-  EXPECT_EQ(row_list.size(), 1U);
-  if (row_list.size() != 1U) {
-    return false;
-  }
-
+  ASSERT_EQ(row_list.size(), 1U);
   row = row_list.at(0U);
-  return true;
 }
 } // namespace
 
 class ProcessEventsTests : public testing::Test {};
 
 TEST_F(ProcessEventsTests, syscall_name_label) {
-  EXPECT_EQ(
+  ASSERT_EQ(
       kExecProcessEventsSyscalls.size() + kForkProcessEventsSyscalls.size(),
       AuditProcessEventSubscriber::GetSyscallNameMap().size());
 
   std::string name;
 
   for (auto syscall_nr : kExecProcessEventsSyscalls) {
-    auto status = AuditProcessEventSubscriber::GetSyscallName(name, syscall_nr);
-    EXPECT_TRUE(status);
+    auto succeeded =
+        AuditProcessEventSubscriber::GetSyscallName(name, syscall_nr);
+    ASSERT_TRUE(succeeded);
   }
 
   for (auto syscall_nr : kForkProcessEventsSyscalls) {
-    auto status = AuditProcessEventSubscriber::GetSyscallName(name, syscall_nr);
-    EXPECT_TRUE(status);
+    auto succeeded =
+        AuditProcessEventSubscriber::GetSyscallName(name, syscall_nr);
+    ASSERT_TRUE(succeeded);
   }
 }
 
@@ -159,12 +122,7 @@ TEST_F(ProcessEventsTests, exec_event_processing) {
   // clang-format on
 
   Row event_row;
-  auto status = GenerateEventRow(event_row, kSampleExecveEvent);
-
-  EXPECT_TRUE(status);
-  if (!status) {
-    return;
-  }
+  GenerateEventRow(event_row, kSampleExecveEvent);
 
   const std::vector<std::string> kExpectedFields = {
       "uptime", "overflows", "env", "env_size", "env_count"};
@@ -195,11 +153,7 @@ TEST_F(ProcessEventsTests, exec_event_processing) {
     const auto& expected_value = p.second;
 
     auto it = event_row.find(key);
-    EXPECT_TRUE(it != event_row.end());
-
-    if (it == event_row.end()) {
-      continue;
-    }
+    ASSERT_TRUE(it != event_row.end());
 
     const auto& actual_value = it->second;
     EXPECT_EQ(expected_value, actual_value);
@@ -225,16 +179,8 @@ TEST_F(ProcessEventsTests, thread_detection) {
 
   // Thread creation event
   AuditEventRecord event_record{};
-
-  {
-    auto status = GenerateAuditEventRecord(
-        event_record, AUDIT_SYSCALL, kThreadCreationSyscallRecord);
-
-    EXPECT_TRUE(status);
-    if (!status) {
-      return;
-    }
-  }
+  GenerateAuditEventRecord(
+      event_record, AUDIT_SYSCALL, kThreadCreationSyscallRecord);
 
   bool is_thread{false};
   auto status = AuditProcessEventSubscriber::IsThreadClone(
@@ -245,16 +191,8 @@ TEST_F(ProcessEventsTests, thread_detection) {
 
   // Process creation event
   event_record = {};
-
-  {
-    auto status = GenerateAuditEventRecord(
-        event_record, AUDIT_SYSCALL, kProcessCreationSyscallRecord);
-
-    EXPECT_TRUE(status);
-    if (!status) {
-      return;
-    }
-  }
+  GenerateAuditEventRecord(
+      event_record, AUDIT_SYSCALL, kProcessCreationSyscallRecord);
 
   status = AuditProcessEventSubscriber::IsThreadClone(
       is_thread, __NR_clone, event_record);
@@ -297,25 +235,16 @@ TEST_F(ProcessEventsTests, process_id_acquisition) {
 
   // Normal process creation, with fork and vfork
   AuditEventRecord event_record{};
-
-  {
-    auto status = GenerateAuditEventRecord(
-        event_record, AUDIT_SYSCALL, kNormalProcessCreation);
-
-    EXPECT_TRUE(status);
-    if (!status) {
-      return;
-    }
-  }
+  GenerateAuditEventRecord(event_record, AUDIT_SYSCALL, kNormalProcessCreation);
 
   std::uint64_t parent_process_id{0U};
   std::uint64_t process_id{0U};
 
   for (int syscall_nr : {__NR_fork, __NR_vfork}) {
     auto status = AuditProcessEventSubscriber::GetProcessIDs(
-        parent_process_id, process_id, __NR_fork, event_record);
+        parent_process_id, process_id, syscall_nr, event_record);
 
-    EXPECT_TRUE(status.ok());
+    ASSERT_TRUE(status.ok());
     EXPECT_EQ(parent_process_id, 15929U);
     EXPECT_EQ(process_id, 33);
   }
@@ -325,7 +254,7 @@ TEST_F(ProcessEventsTests, process_id_acquisition) {
   auto status = AuditProcessEventSubscriber::GetProcessIDs(
       parent_process_id, process_id, __NR_clone, event_record);
 
-  EXPECT_TRUE(status.ok());
+  ASSERT_TRUE(status.ok());
   EXPECT_EQ(parent_process_id, 15929U);
   EXPECT_EQ(process_id, 33);
 
@@ -333,25 +262,18 @@ TEST_F(ProcessEventsTests, process_id_acquisition) {
   status = AuditProcessEventSubscriber::GetProcessIDs(
       parent_process_id, process_id, __NR_execve, event_record);
 
-  EXPECT_TRUE(status.ok());
+  ASSERT_TRUE(status.ok());
   EXPECT_EQ(parent_process_id, 14790U);
   EXPECT_EQ(process_id, 15929U);
 
   // Process creation with clone() + CLONE_PARENT
-  {
-    auto status = GenerateAuditEventRecord(
-        event_record, AUDIT_SYSCALL, kSamePpidProcessCreation);
-
-    EXPECT_TRUE(status);
-    if (!status) {
-      return;
-    }
-  }
+  GenerateAuditEventRecord(
+      event_record, AUDIT_SYSCALL, kSamePpidProcessCreation);
 
   status = AuditProcessEventSubscriber::GetProcessIDs(
       parent_process_id, process_id, __NR_clone, event_record);
 
-  EXPECT_TRUE(status.ok());
+  ASSERT_TRUE(status.ok());
   EXPECT_EQ(parent_process_id, 14790U);
   EXPECT_EQ(process_id, 33);
 
@@ -361,7 +283,7 @@ TEST_F(ProcessEventsTests, process_id_acquisition) {
   status = AuditProcessEventSubscriber::GetProcessIDs(
       parent_process_id, process_id, __NR_clone, event_record);
 
-  EXPECT_FALSE(status.ok());
+  ASSERT_FALSE(status.ok());
   EXPECT_EQ(parent_process_id, 0U);
   EXPECT_EQ(process_id, 0U);
 }
