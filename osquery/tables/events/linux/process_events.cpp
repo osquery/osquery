@@ -240,14 +240,14 @@ Status AuditProcessEventSubscriber::ProcessExecveEventData(
       continue;
     }
 
-    if (row.at("cmdline").size() > 0) {
+    if (row["cmdline"].size() > 0) {
       row["cmdline"] += " ";
     }
 
     row["cmdline"] += DecodeAuditPathValues(arg.second);
   }
 
-  row["cmdline_size"] = std::to_string(row.at("cmdline").size());
+  row["cmdline_size"] = std::to_string(row["cmdline"].size());
 
   // Get the remaining data from the first AUDIT_PATH record
   const AuditEventRecord* first_path_event_record =
