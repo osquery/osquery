@@ -277,4 +277,92 @@ TEST_F(ProcessEventsTests, thread_detection) {
   EXPECT_FALSE(status.ok());
   EXPECT_FALSE(is_thread);
 }
+
+TEST_F(ProcessEventsTests, process_id_acquisition) {
+  const std::string kNormalProcessCreation =
+      "audit(1565632189.127:261722): arch=c000003e syscall=56 success=yes "
+      "exit=33 a0=1200000 a1=7f1b92ffcbf0 a2=7f1b92ffd9d0 a3=7f1b92ffd9d0 "
+      "items=0 ppid=14790 pid=15929 auid=4294967295 uid=1000 gid=1000 "
+      "euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 "
+      "tty=(none) ses=4294967295 comm=\"ThreadPoolForeg\" "
+      "exe=\"/usr/lib/chromium-browser/chromium-browser\" key=(null)";
+
+  const std::string kSamePpidProcessCreation =
+      "audit(1565632189.127:261722): arch=c000003e syscall=56 success=yes "
+      "exit=33 a0=8000 a1=7f1b92ffcbf0 a2=7f1b92ffd9d0 a3=7f1b92ffd9d0 "
+      "items=0 ppid=14790 pid=15929 auid=4294967295 uid=1000 gid=1000 "
+      "euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 "
+      "tty=(none) ses=4294967295 comm=\"ThreadPoolForeg\" "
+      "exe=\"/usr/lib/chromium-browser/chromium-browser\" key=(null)";
+
+  // Normal process creation, with fork and vfork
+  AuditEventRecord event_record{};
+
+  {
+    auto status = GenerateAuditEventRecord(
+        event_record, AUDIT_SYSCALL, kNormalProcessCreation);
+
+    EXPECT_TRUE(status);
+    if (!status) {
+      return;
+    }
+  }
+
+  std::uint64_t parent_process_id{0U};
+  std::uint64_t process_id{0U};
+
+  for (int syscall_nr : {__NR_fork, __NR_vfork}) {
+    auto status = AuditProcessEventSubscriber::GetProcessIDs(
+        parent_process_id, process_id, __NR_fork, event_record);
+
+    EXPECT_TRUE(status.ok());
+    EXPECT_EQ(parent_process_id, 15929U);
+    EXPECT_EQ(process_id, 33);
+  }
+
+  // Normal process creation, with clone (a0 does not have the CLONE_PARENT bit
+  // set)
+  auto status = AuditProcessEventSubscriber::GetProcessIDs(
+      parent_process_id, process_id, __NR_clone, event_record);
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(parent_process_id, 15929U);
+  EXPECT_EQ(process_id, 33);
+
+  // Any syscall that is not a fork/vfork/clone
+  status = AuditProcessEventSubscriber::GetProcessIDs(
+      parent_process_id, process_id, __NR_execve, event_record);
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(parent_process_id, 14790U);
+  EXPECT_EQ(process_id, 15929U);
+
+  // Process creation with clone() + CLONE_PARENT
+  {
+    auto status = GenerateAuditEventRecord(
+        event_record, AUDIT_SYSCALL, kSamePpidProcessCreation);
+
+    EXPECT_TRUE(status);
+    if (!status) {
+      return;
+    }
+  }
+
+  status = AuditProcessEventSubscriber::GetProcessIDs(
+      parent_process_id, process_id, __NR_clone, event_record);
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(parent_process_id, 14790U);
+  EXPECT_EQ(process_id, 33);
+
+  // Pass an invalid record type
+  event_record.type = AUDIT_PATH;
+
+  status = AuditProcessEventSubscriber::GetProcessIDs(
+      parent_process_id, process_id, __NR_clone, event_record);
+
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(parent_process_id, 0U);
+  EXPECT_EQ(process_id, 0U);
+}
 } // namespace osquery

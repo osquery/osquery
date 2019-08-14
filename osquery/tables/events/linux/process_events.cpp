@@ -138,6 +138,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     bool is_thread = false;
     auto status = IsThreadClone(
         is_thread, event_data.syscall_number, *syscall_event_record);
+
     if (!status.ok()) {
       VLOG(1) << "Malformed AUDIT_SYSCALL event: " << status.getMessage();
       continue;
@@ -152,7 +153,6 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     row["uptime"] = std::to_string(getUptime());
 
     CopyFieldFromMap(row, syscall_event_record->fields, "auid", "0");
-    CopyFieldFromMap(row, syscall_event_record->fields, "pid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "uid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "euid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "gid", "0");
@@ -160,18 +160,27 @@ Status AuditProcessEventSubscriber::ProcessEvents(
 
     if (!GetSyscallName(row["syscall"], event_data.syscall_number)) {
       row["syscall"] = std::to_string(event_data.syscall_number);
-
       VLOG(1) << "Failed to locate the system call name";
     }
-
-    std::uint64_t parent_process_id;
-    GetIntegerFieldFromMap(
-        parent_process_id, syscall_event_record->fields, "ppid");
-    row["parent"] = std::to_string(parent_process_id);
 
     std::string field_value;
     GetStringFieldFromMap(field_value, syscall_event_record->fields, "exe", "");
     row["path"] = DecodeAuditPathValues(field_value);
+
+    // Acquire the process IDs
+    std::uint64_t parent_process_id{0U};
+    std::uint64_t process_id{0U};
+    auto s = GetProcessIDs(parent_process_id,
+                           process_id,
+                           event_data.syscall_number,
+                           *syscall_event_record);
+    if (!s.ok()) {
+      VLOG(1) << "Malformed AUDIT_SYSCALL event: " << status.getMessage();
+      continue;
+    }
+
+    row["parent"] = std::to_string(parent_process_id);
+    row["pid"] = std::to_string(process_id);
 
     // Unused fields
     row["overflows"] = "";
@@ -247,6 +256,42 @@ Status AuditProcessEventSubscriber::ProcessExecveEventData(
 
   GetStringFieldFromMap(
       row["owner_gid"], first_path_event_record->fields, "ogid", "0");
+
+  return Status::success();
+}
+
+Status AuditProcessEventSubscriber::GetProcessIDs(
+    std::uint64_t& parent_process_id,
+    std::uint64_t& process_id,
+    int syscall_nr,
+    const AuditEventRecord& syscall_record) noexcept {
+  parent_process_id = 0U;
+  process_id = 0U;
+
+  if (syscall_record.type != AUDIT_SYSCALL) {
+    return Status::failure("Invalid record type");
+  }
+
+  if (syscall_nr == __NR_fork || syscall_nr == __NR_vfork) {
+    GetIntegerFieldFromMap(parent_process_id, syscall_record.fields, "pid");
+    GetIntegerFieldFromMap(process_id, syscall_record.fields, "exit");
+
+  } else if (syscall_nr == __NR_clone) {
+    GetIntegerFieldFromMap(process_id, syscall_record.fields, "exit");
+
+    std::uint64_t clone_flags{0U};
+    GetIntegerFieldFromMap(clone_flags, syscall_record.fields, "a0", 16U);
+
+    if ((clone_flags & CLONE_PARENT) != 0) {
+      GetIntegerFieldFromMap(parent_process_id, syscall_record.fields, "ppid");
+    } else {
+      GetIntegerFieldFromMap(parent_process_id, syscall_record.fields, "pid");
+    }
+
+  } else {
+    GetIntegerFieldFromMap(parent_process_id, syscall_record.fields, "ppid");
+    GetIntegerFieldFromMap(process_id, syscall_record.fields, "pid");
+  }
 
   return Status::success();
 }

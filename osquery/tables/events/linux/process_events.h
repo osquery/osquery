@@ -28,6 +28,12 @@ class AuditProcessEventSubscriber final
   static Status ProcessExecveEventData(Row& row,
                                        const AuditEvent& event) noexcept;
 
+  /// Acquires the ppid and pid fields from the given event record
+  static Status GetProcessIDs(std::uint64_t& parent_process_id,
+                              std::uint64_t& process_id,
+                              int syscall_nr,
+                              const AuditEventRecord& syscall_record) noexcept;
+
   /// Returns true if the given clone() system call contains the CLONE_THREAD
   /// flag
   static Status IsThreadClone(bool& is_thread_clone,
