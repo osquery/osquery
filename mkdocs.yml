@@ -6,6 +6,9 @@ site_dir: build/wiki
 extra_css:
 - theme/osquery.css
 
+markdown_extensions:
+  - admonition
+
 pages:
 - Introduction:
   - Welcome to osquery: index.md
@@ -13,12 +16,11 @@ pages:
   - osqueryd (daemon): introduction/using-osqueryd.md
   - SQL Introduction: introduction/sql.md
 - Installation:
-  - Install on OS X: installation/install-osx.md
+  - Install on MacOS: installation/install-macos.md
   - Install on Linux: installation/install-linux.md
   - Install on Windows: installation/install-windows.md
   - Install on FreeBSD: installation/install-freebsd.md
   - Command Line Flags: installation/cli-flags.md
-  - 'Optional: Custom Packages': installation/custom-packages.md
 - Deployment:
   - Configuration: deployment/configuration.md
   - Logging: deployment/logging.md
@@ -35,7 +37,6 @@ pages:
   - Debugging: deployment/debugging.md
 - Development:
   - Building osquery: development/building.md
-  - Contributing Code: development/contributing-code.md
   - Creating New Tables: development/creating-tables.md
   - Configuration Plugins: development/config-plugins.md
   - Logging Plugins: development/logger-plugins.md
@@ -44,4 +45,3 @@ pages:
   - Writing Tests: development/unit-tests.md
   - Adding CLI Arguments: development/options-arguments.md
   - Reading/Writing Files: development/reading-files.md
-  - Windows Provisioning: development/windows-provisioning.md
