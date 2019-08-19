@@ -37,6 +37,9 @@ static inline void genBootUuid(Row& r) {
 
   if (kr != KERN_SUCCESS) {
     LOG(WARNING) << "Cannot get EFI properties";
+    if (properties != nullptr) {
+      CFRelease(properties);
+    }
     return;
   }
 
@@ -59,6 +62,9 @@ static inline void genAppleCoprocessorVersion(Row& r) {
 
   if (kr != KERN_SUCCESS) {
     LOG(WARNING) << "Cannot get EFI properties";
+    if (properties != nullptr) {
+      CFRelease(properties);
+    }
     return;
   }
 
@@ -72,7 +78,7 @@ static inline void genAppleCoprocessorVersion(Row& r) {
     CFDataGetBytes(version_data, range, &buffer[0]);
 
     uint32_t version = 0;
-    memcpy(&version, buffer.data(), 4);
+    memcpy(&version, buffer.data(), sizeof(uint32_t));
     r["coprocessor_version"] = (kCoprocessorVersions.count(version) > 0)
                                    ? kCoprocessorVersions.at(version)
                                    : "unknown";
@@ -102,7 +108,9 @@ QueryData genIBridgeInfo(QueryContext& context) {
 
   if (kr != KERN_SUCCESS) {
     LOG(WARNING) << "Cannot get EmbeddedOS properties";
-    IOObjectRelease(service);
+    if (properties != nullptr) {
+      CFRelease(properties);
+    }
     return results;
   }
 
@@ -110,7 +118,6 @@ QueryData genIBridgeInfo(QueryContext& context) {
   r["firmware_version"] = getIOKitProperty(properties, "DeviceBuildVersion");
 
   CFRelease(properties);
-  IOObjectRelease(service);
 
   results.push_back(std::move(r));
   return results;
