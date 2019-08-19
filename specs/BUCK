@@ -125,7 +125,7 @@ osquery_gentable_cxx_library(
             "macos",
         ),
         (
-            "darwin/ibridge.table",
+            "darwin/ibridge_info.table",
             "macos",
         ),
         (
