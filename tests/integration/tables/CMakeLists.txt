@@ -206,6 +206,7 @@ function(generateTestsIntegrationTablesTestsTest)
       gatekeeper.cpp
       gatekeeper_approved_apps.cpp
       homebrew_packages.cpp
+      ibridge.cpp
       iokit_devicetree.cpp
       iokit_registry.cpp
       kernel_extensions.cpp

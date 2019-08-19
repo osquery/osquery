@@ -102,6 +102,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/firewall.cpp
       darwin/gatekeeper.cpp
       darwin/homebrew_packages.cpp
+      darwin/ibridge.cpp
       darwin/iokit_registry.cpp
       darwin/kernel_extensions.cpp
       darwin/kernel_info.cpp

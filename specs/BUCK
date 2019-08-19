@@ -125,6 +125,10 @@ osquery_gentable_cxx_library(
             "macos",
         ),
         (
+            "darwin/ibridge_info.table",
+            "macos",
+        ),
+        (
             "darwin/iokit_devicetree.table",
             "macos",
         ),
