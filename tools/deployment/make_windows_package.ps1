@@ -16,7 +16,7 @@ The script will help make both MSI and Chocolatey install packages for Windows. 
 .PARAMETER InstallType
 Allows you to specify either MSI or Chocolatety for output. Can be aliased with 'Type'
 
-.PARAMETER BuildType
+.PARAMETER BuildPath
 Allows for specification of Buck or CMake build, the default is CMake output binaries. Can be aliased with 'Build'
 
 .PARAMETER ConfigFilePath
@@ -51,14 +51,13 @@ https://osquery.io
 
 #Requires -Version 3.0
 
-
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", '', Scope = "Function", Target = "*")]
 param(
 
   [Alias("Type")]
   [string] $InstallType = 'chocolatey',
   [Alias("Build")]
-  [string] $BuildType = 'cmake',
+  [string] $BuildPath = '',
   [Alias("ConfigFile")]
   [string] $ConfigFilePath = '',
   [Alias("FlagFile")]
@@ -606,20 +605,24 @@ function Main() {
     Get-Help
   }
 
-  $buildPath = ''
-  if ($Build -eq 'buck') {
-    $buildPath = Join-Path $osqRoot 'buck-out\release\gen\osquery'
-  } else {
-    $buildPath = Join-Path $osqRoot 'build\windows10\osquery\Release'
-  }
-  
-  if (-not (Test-Path $buildPath)) {
-    $msg = "[-] Did not find build directory at $buildPath. Check build script output."
-    Write-Host $msg -ForegroundColor -Red
-    exit 1
+  if ($BuildPath -eq '') {
+    # Check the default Buck build locations
+    $BuildPath = Join-Path $osqRoot 'build\windows10\osquery\Release'
+
+    if (-not (Test-Path $BuildPath)) {
+      # Check the default CMake build locations
+      $BuildPath = Join-Path $osqRoot 'buck-out\release\gen\osquery'
+    }
   }
 
-  $daemon = Join-Path $buildPath 'osqueryd.exe'
+  # Make sure our BuildPath exists either specified or defined
+  if (-not (Test-Path $BuildPath)) {
+    $msg = "[-] Did not find build directory at $BuildPath. Check build script output."
+    Write-Host $msg -ForegroundColor -Red
+    exit
+  }
+
+  $daemon = Join-Path $BuildPath 'osqueryd.exe'
   if (-not (Test-Path $daemon)) {
     $msg = '[-] Did not find Release binaries, check build script output.'
     Write-Host $msg -ForegroundColor Red
@@ -627,8 +630,12 @@ function Main() {
   }
 
   # osqueryi.exe is just a copy of osqueryd.exe
-  $shell = Join-Path $buildPath 'osqueryi.exe'
-  Copy-Item -Force $daemon $shell
+  $shell = Join-Path $BuildPath 'osqueryi.exe'
+  if (-not (Test-Path $shell)) {
+    $msg = '[*] Did not find shell, copying daemon to shell.'
+    Write-Host $msg -ForegroundColor Yellow
+    Copy-Item -Force $daemon $shell
+  }
 
   $git = Get-Command 'git'
   $gitArgs = @(
