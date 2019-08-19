@@ -20,7 +20,7 @@ class IBridgeTest : public testing::Test {
 };
 
 TEST_F(IBridgeTest, test_sanity) {
-  auto rows = execute_query("select * from ibridge");
+  auto rows = execute_query("select * from ibridge_info");
   if (rows.empty()) {
     VLOG(1) << "Empty result for table: ibridge, skipping test";
   } else {
