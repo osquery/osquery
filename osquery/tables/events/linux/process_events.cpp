@@ -233,7 +233,7 @@ Status AuditProcessEventSubscriber::ProcessExecveEventData(
     return Status::failure("Malformed AUDIT_EXECVE event");
   }
 
-  row["cmdline"] = "";
+  row["cmdline"].clear();
 
   for (const auto& arg : execve_event_record->fields) {
     if (arg.first == "argc") {
@@ -241,7 +241,7 @@ Status AuditProcessEventSubscriber::ProcessExecveEventData(
     }
 
     if (row["cmdline"].size() > 0) {
-      row["cmdline"] += " ";
+      row["cmdline"] += ' ';
     }
 
     row["cmdline"] += DecodeAuditPathValues(arg.second);
