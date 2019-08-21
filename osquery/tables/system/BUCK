@@ -65,7 +65,10 @@ osquery_cxx_library(
             [
                 "windows/registry.h",
                 "windows/certificates.h",
+<<<<<<< HEAD
                 "windows/users.h",
+=======
+>>>>>>> merge upstream
             ],
         ),
     ],

@@ -50,6 +50,12 @@ endif()
 
 set(TEST_CONFIGS_DIR "${CMAKE_BINARY_DIR}/test_configs")
 
+<<<<<<< HEAD
+=======
+# osquery versions
+set(OSQUERY_VERSION 3.4.0)
+
+>>>>>>> merge upstream
 # Cache variables
 set(PACKAGING_SYSTEM "" CACHE STRING "Packaging system to generate when building packages")
 if(DEFINED PLATFORM_WINDOWS)

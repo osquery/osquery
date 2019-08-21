@@ -289,6 +289,7 @@ jobs:
       displayName: "Prepare Buck environment"
       workingDirectory: $(Build.BinariesDirectory)
 
+<<<<<<< HEAD
     - powershell: |
         $python2_path = (Get-Item C:\Python27amd64).FullName
 
@@ -303,6 +304,8 @@ jobs:
 
       displayName: "Detect python 2 and 3 installation folders"
 
+=======
+>>>>>>> merge upstream
     - script: |
         mklink /J $(Build.BinariesDirectory)\vsinstall "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise"
 
@@ -312,11 +315,16 @@ jobs:
         -VcToolsVersion "$vcvers" `
         -SdkInstall '' `
         -SdkVersion '' `
+<<<<<<< HEAD
         -Python3Path '$(python3)\python.exe' `
+=======
+        -Python3Path 'C:\hostedtoolcache\windows\Python\3.7.2\x64\python.exe' `
+>>>>>>> merge upstream
         -BuckConfigRoot .\tools\buckconfigs\
       displayName: "Generate Buck config"
 
     - script: |
+<<<<<<< HEAD
         set PATH=$(python2);%PATH%
         $(python2)\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" build @mode/windows-x86_64/release osquery:osqueryd
       displayName: "Build osquery"
@@ -324,6 +332,15 @@ jobs:
     - script: |
         set PATH=$(python2);%PATH%
         $(python2)\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" test @mode/windows-x86_64/release osquery/...
+=======
+        set PATH=C:\Python27amd64;%PATH%
+        C:\Python27amd64\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" build @mode/windows-x86_64/release osquery:osqueryd
+      displayName: "Build osquery"
+
+    - script: |
+        set PATH=C:\Python27amd64;%PATH%
+        C:\Python27amd64\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" test @mode/windows-x86_64/release osquery/...
+>>>>>>> merge upstream
       displayName: "Run tests"
 
     - powershell: |

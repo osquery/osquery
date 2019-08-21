@@ -22,9 +22,15 @@ function(generateOsqueryUtilsInfo)
   )
 
   target_compile_definitions(osquery_utils_info PUBLIC
+<<<<<<< HEAD
     OSQUERY_VERSION=${OSQUERY_VERSION_INTERNAL}
     OSQUERY_BUILD_VERSION=${OSQUERY_VERSION_INTERNAL}
     OSQUERY_BUILD_SDK_VERSION=${OSQUERY_VERSION_INTERNAL}
+=======
+    OSQUERY_VERSION=${OSQUERY_VERSION}
+    OSQUERY_BUILD_VERSION=${OSQUERY_VERSION}
+    OSQUERY_BUILD_SDK_VERSION=${OSQUERY_VERSION}
+>>>>>>> merge upstream
   )
 
   set(public_header_files

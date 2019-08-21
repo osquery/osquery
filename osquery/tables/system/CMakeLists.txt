@@ -96,13 +96,20 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/crashes.cpp
       darwin/cups_destinations.cpp
       darwin/cups_jobs.cpp
+<<<<<<< HEAD
+=======
+      darwin/diagnostics.cpp
+>>>>>>> merge upstream
       darwin/disk_encryption.mm
       darwin/event_taps.mm
       darwin/extended_attributes.cpp
       darwin/firewall.cpp
       darwin/gatekeeper.cpp
       darwin/homebrew_packages.cpp
+<<<<<<< HEAD
       darwin/ibridge.cpp
+=======
+>>>>>>> merge upstream
       darwin/iokit_registry.cpp
       darwin/kernel_extensions.cpp
       darwin/kernel_info.cpp
@@ -295,7 +302,10 @@ function(generateOsqueryTablesSystemSystemtable)
     list(APPEND platform_public_header_files
       windows/registry.h
       windows/certificates.h
+<<<<<<< HEAD
       windows/users.h
+=======
+>>>>>>> merge upstream
     )
   endif()
 

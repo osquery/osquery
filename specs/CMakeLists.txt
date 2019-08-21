@@ -84,6 +84,10 @@ function(generateNativeTables)
     "darwin/cups_destinations.table:macos"
     "darwin/cups_jobs.table:macos"
     "darwin/device_firmware.table:macos"
+<<<<<<< HEAD
+=======
+    "darwin/diagnostics.table:macos"
+>>>>>>> merge upstream
     "darwin/disk_events.table:macos"
     "darwin/event_taps.table:macos"
     "darwin/extended_attributes.table:macos"
@@ -91,7 +95,10 @@ function(generateNativeTables)
     "darwin/gatekeeper.table:macos"
     "darwin/gatekeeper_approved_apps.table:macos"
     "darwin/homebrew_packages.table:macos"
+<<<<<<< HEAD
     "darwin/ibridge_info.table:macos"
+=======
+>>>>>>> merge upstream
     "darwin/iokit_devicetree.table:macos"
     "darwin/iokit_registry.table:macos"
     "darwin/kernel_extensions.table:macos"

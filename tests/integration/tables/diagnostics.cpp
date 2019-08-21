@@ -11,6 +11,10 @@ class DiagnosticsTest : public testing::Test {
 
 TEST_F(DiagnosticsTest, test_sanity) {
   QueryData const rows = execute_query("select * from diagnostics");
+  QueryData const specific_query_rows = execute_query("select * from diagnostics where process_name is 'Finder' or process_name is 'Spotlight'");
+  ASSERT_GT(rows.size(), 0ul);
+  ASSERT_GE(rows.size(), 2ul);
+  
   auto const row_map = ValidatatioMap{
       {"path", NormalType},
       {"diagnostic_start", NormalType},
@@ -31,6 +35,7 @@ TEST_F(DiagnosticsTest, test_sanity) {
       {"version", NormalType},
   };
   validate_rows(rows, row_map);
+  validate_rows(specific_query_rows, row_map);
 }
 } // namespace table_tests
 } // namespace osquery

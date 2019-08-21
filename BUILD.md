@@ -86,7 +86,10 @@ Please ensure [homebrew](https://brew.sh/) has been installed. The root folder i
 
 ```
 # Install prerequisites
+<<<<<<< HEAD
 xcode-select --install
+=======
+>>>>>>> merge upstream
 brew install git cmake python@2 python
 
 # Download and build osquery

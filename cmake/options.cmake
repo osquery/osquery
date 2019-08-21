@@ -4,6 +4,7 @@
 # This source code is licensed in accordance with the terms specified in
 # the LICENSE file found in the root directory of this source tree.
 
+<<<<<<< HEAD
 # Detect osquery version
 # The OSQUERY_VERSION cache variable will be used if set or not empty
 # Otherwise detect version through git and set it in the OSQUERY_VERSION_AUTODETECTED cache variable. If detection fails, 0.0.0 will be used.
@@ -52,6 +53,8 @@ function(detectOsqueryVersion)
   set(OSQUERY_VERSION_COMPONENTS "${osquery_version_components}" PARENT_SCOPE)
 endfunction()
 
+=======
+>>>>>>> merge upstream
 # Always generate the compile_commands.json file
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 
@@ -74,7 +77,10 @@ option(BUILD_TESTING "Whether to enable and build tests or not")
 if("${THIRD_PARTY_REPOSITORY_URL}" STREQUAL "")
   set(THIRD_PARTY_REPOSITORY_URL "https://s3.amazonaws.com/osquery-packages")
 endif()
+<<<<<<< HEAD
 
 detectOsqueryVersion()
 
 message(STATUS "osquery version: ${OSQUERY_VERSION_INTERNAL}")
+=======
+>>>>>>> merge upstream

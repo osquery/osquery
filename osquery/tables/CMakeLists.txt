@@ -16,7 +16,11 @@ function(osqueryTablesMain)
   add_subdirectory("system")
   add_subdirectory("utility")
   add_subdirectory("yara")
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> merge upstream
   generateOsqueryTablesTableimplementations()
 endfunction()
 
@@ -33,11 +37,19 @@ function(generateOsqueryTablesTableimplementations)
 
   if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_MACOS)
     target_link_libraries(osquery_tables_tableimplementations INTERFACE
+<<<<<<< HEAD
       osquery_tables_smart
     )
   endif()
 
   if(DEFINED PLATFORM_LINUX)
+=======
+      osquery_tables_cloud
+      osquery_tables_smart
+    )
+
+  elseif(DEFINED PLATFORM_WINDOWS)
+>>>>>>> merge upstream
     target_link_libraries(osquery_tables_tableimplementations INTERFACE
       osquery_tables_cloud
     )
