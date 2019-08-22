@@ -305,6 +305,21 @@ String parsing functions are always helpful, some help within subqueries so they
     </p>
     </details>
 
+- `regex_match(COLUMN, PATTERN, INDEX)`: Runs regex match across the column, and returns matched subgroups. (The 0 index is the full match, subsequent numbers are the groups).
+
+    <details>
+    <summary>Regex Match function example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> select regex_match('hello world. Goodbye', '(\w+) \w+', 0) as m0,
+	                  regex_match('hello world. Goodbye', '(\w+) \w+', 1) as m1;
+      m0 = hello world
+      m1 = hello
+    </p>
+    </details>
+
 
 - `inet_aton(IPv4_STRING)`: return the integer representation of an IPv4 string.
 

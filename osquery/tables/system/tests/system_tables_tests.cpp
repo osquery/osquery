@@ -88,25 +88,52 @@ TEST_F(SystemsTablesTests, test_processes) {
 
 TEST_F(SystemsTablesTests, test_users) {
   {
-    SQL results("select uid, uuid, username from users limit 1");
+    SQL results("select * from users limit 1");
     ASSERT_EQ(results.rows().size(), 1U);
 
     EXPECT_FALSE(results.rows()[0].at("uid").empty());
+    EXPECT_FALSE(results.rows()[0].at("username").empty());
     if (!isPlatform(PlatformType::TYPE_LINUX)) {
       EXPECT_FALSE(results.rows()[0].at("uuid").empty());
     }
-    EXPECT_FALSE(results.rows()[0].at("username").empty());
   }
 
   {
     // Make sure that we can query all users without crash or hang: Issue #3079
-    SQL results("select uid, uuid, username from users");
+    SQL results("select * from users");
     EXPECT_GT(results.rows().size(), 1U);
   }
 
   {
     // Make sure an invalid pid within the query constraint returns no rows.
     SQL results("select uuid, username from users where uuid = -1");
+    EXPECT_EQ(results.rows().size(), 0U);
+  }
+
+  {
+    // Make sure an invalid pid within the query constraint returns no rows.
+    SQL results("select * from users where uid = -1");
+    EXPECT_EQ(results.rows().size(), 0U);
+  }
+}
+
+TEST_F(SystemsTablesTests, test_groups) {
+  {
+    SQL results("select * from groups limit 1");
+    ASSERT_EQ(results.rows().size(), 1U);
+
+    EXPECT_FALSE(results.rows()[0].at("gid").empty());
+  }
+
+  {
+    // Make sure that we can query all users without crash or hang
+    SQL results("select * from groups");
+    EXPECT_GT(results.rows().size(), 1U);
+  }
+
+  {
+    // Make sure an invalid pid within the query constraint returns no rows.
+    SQL results("select * from groups where gid = -1");
     EXPECT_EQ(results.rows().size(), 0U);
   }
 }

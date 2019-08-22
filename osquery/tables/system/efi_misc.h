@@ -12,6 +12,7 @@
 /**
  * @brief EFI DevicePath GUIDs, structs, and macros.
  */
+#pragma pack(push, 1)
 typedef struct {
   uint8_t Type;
   uint8_t SubType;
@@ -27,6 +28,7 @@ typedef struct {
   uint8_t MBRType;
   uint8_t SignatureType;
 } HARDDRIVE_DEVICE_PATH;
+#pragma pack(pop)
 
 #define EFI_END_ENTIRE_DEVICE_PATH 0xff
 #define EFI_END_ENTIRE_DEVICE_PATH_SUBTYPE 0xff

@@ -125,6 +125,10 @@ osquery_gentable_cxx_library(
             "macos",
         ),
         (
+            "darwin/ibridge_info.table",
+            "macos",
+        ),
+        (
             "darwin/iokit_devicetree.table",
             "macos",
         ),
@@ -799,7 +803,7 @@ osquery_gentable_cxx_library(
         (
             "windows/userassist.table",
             "windows",
-	),
+        ),
         (
             "yara/yara_events.table",
             "linux,macos",
@@ -851,3 +855,4 @@ osquery_gentable_cxx_library(
         osquery_target("osquery/tables:table_implementations"),
     ],
 )
+>>>>>>> upstream/master

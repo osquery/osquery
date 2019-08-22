@@ -91,6 +91,7 @@ function(generateNativeTables)
     "darwin/gatekeeper.table:macos"
     "darwin/gatekeeper_approved_apps.table:macos"
     "darwin/homebrew_packages.table:macos"
+    "darwin/ibridge_info.table:macos"
     "darwin/iokit_devicetree.table:macos"
     "darwin/iokit_registry.table:macos"
     "darwin/kernel_extensions.table:macos"

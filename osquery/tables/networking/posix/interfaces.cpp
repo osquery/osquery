@@ -6,6 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
 
@@ -166,8 +167,12 @@ void genDetailsFromAddr(const struct ifaddrs* addr,
     // Get Linux physical properties for the AF_PACKET entry.
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd >= 0) {
-      struct ifreq ifr;
-      memcpy(ifr.ifr_name, addr->ifa_name, IFNAMSIZ);
+      struct ifreq ifr = {};
+      auto ifa_name_length = strlen(addr->ifa_name);
+      snprintf(ifr.ifr_name,
+               std::min<size_t>(ifa_name_length + 1, IFNAMSIZ),
+               "%s",
+               addr->ifa_name);
       if (ioctl(fd, SIOCGIFMTU, &ifr) >= 0) {
         r["mtu"] = BIGINT_FROM_UINT32(ifr.ifr_mtu);
       }
@@ -236,8 +241,11 @@ void genDetailsFromAddr(const struct ifaddrs* addr,
       int fd = socket(AF_INET, SOCK_DGRAM, 0);
       if (fd >= 0) {
         struct ifmediareq ifmr = {};
-        memcpy(ifmr.ifm_name, addr->ifa_name, sizeof(ifmr.ifm_name));
-        const std::unique_ptr<int[]> media_list(new int[ifmr.ifm_count]);
+        auto ifa_name_length = strlen(addr->ifa_name);
+        snprintf(ifmr.ifm_name,
+                 std::min<size_t>(ifa_name_length + 1, IFNAMSIZ),
+                 "%s",
+                 addr->ifa_name);
         if (ioctl(fd, SIOCGIFMEDIA, &ifmr) >= 0) {
           if (IFM_TYPE(ifmr.ifm_active) == IFM_ETHER) {
             int ifmls = get_linkspeed(IFM_SUBTYPE(ifmr.ifm_active));

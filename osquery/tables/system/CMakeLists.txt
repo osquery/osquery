@@ -102,6 +102,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/firewall.cpp
       darwin/gatekeeper.cpp
       darwin/homebrew_packages.cpp
+      darwin/ibridge.cpp
       darwin/iokit_registry.cpp
       darwin/kernel_extensions.cpp
       darwin/kernel_info.cpp
@@ -295,6 +296,7 @@ function(generateOsqueryTablesSystemSystemtable)
     list(APPEND platform_public_header_files
       windows/registry.h
       windows/certificates.h
+      windows/users.h
     )
   endif()
 

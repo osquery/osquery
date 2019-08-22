@@ -97,7 +97,7 @@ class SecondTestClass {
     return second_;
   }
 
-  float const& getThird() const {
+  double const& getThird() const {
     return third_;
   }
 
@@ -108,7 +108,7 @@ class SecondTestClass {
  private:
   std::string first_ = __FILE__;
   int second_ = __LINE__;
-  float third_ = -1;
+  double third_ = -1;
   bool fourth_ = false;
 };
 
@@ -189,7 +189,7 @@ struct ThirdTestClass {
 
   std::string first = "";
   unsigned second = 0u;
-  float third = 0.;
+  double third = 0.;
   std::int64_t fourth = 0;
 };
 

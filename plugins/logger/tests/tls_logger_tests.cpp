@@ -43,7 +43,7 @@ TEST_F(TLSLoggerTests, test_database) {
   auto forwarder = std::make_shared<TLSLogForwarder>();
   std::string expected = "{\"new_json\": true}";
   forwarder->logString(expected);
-  StatusLogLine status;
+  StatusLogLine status{};
   status.message = "{\"status\": \"bar\"}";
   forwarder->logStatus({status});
 

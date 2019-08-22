@@ -174,7 +174,7 @@ class JsonReader final {
 
   template <typename KeyType,
             typename ValueType,
-            typename std::enable_if<std::is_floating_point<ValueType>::value,
+            typename std::enable_if<std::is_same<ValueType, double>::value,
                                     int>::type = 0>
   void copyValueFromJValue(const KeyType& key,
                            ValueType& value,

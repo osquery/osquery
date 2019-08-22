@@ -29,7 +29,6 @@ class SQLTests : public testing::Test {
   }
 };
 
-
 TEST_F(SQLTests, test_raw_access) {
   // Access to the table plugins (no SQL parsing required) works in both
   // extensions and core, though with limitations on available tables.
@@ -121,50 +120,272 @@ TEST_F(SQLTests, test_sql_escape) {
 TEST_F(SQLTests, test_sql_base64_encode) {
   QueryData d;
   query("select to_base64('test') as test;", d);
-  EXPECT_EQ(d.size(), 1U);
+  ASSERT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["test"], "dGVzdA==");
 }
 
 TEST_F(SQLTests, test_sql_base64_decode) {
   QueryData d;
   query("select from_base64('dGVzdA==') as test;", d);
-  EXPECT_EQ(d.size(), 1U);
+  ASSERT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["test"], "test");
 }
 
 TEST_F(SQLTests, test_sql_base64_conditional_encode) {
   QueryData d;
   query("select conditional_to_base64('test') as test;", d);
-  EXPECT_EQ(d.size(), 1U);
+  ASSERT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["test"], "test");
 
   QueryData d2;
   query("select conditional_to_base64('悪因悪果') as test;", d2);
-  EXPECT_EQ(d2.size(), 1U);
+  ASSERT_EQ(d2.size(), 1U);
   EXPECT_EQ(d2[0]["test"], "5oKq5Zug5oKq5p6c");
 }
 
 TEST_F(SQLTests, test_sql_md5) {
   QueryData d;
   query("select md5('test') as test;", d);
-  EXPECT_EQ(d.size(), 1U);
+  ASSERT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["test"], "098f6bcd4621d373cade4e832627b4f6");
 }
 
 TEST_F(SQLTests, test_sql_sha1) {
   QueryData d;
   query("select sha1('test') as test;", d);
-  EXPECT_EQ(d.size(), 1U);
+  ASSERT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["test"], "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3");
 }
 
 TEST_F(SQLTests, test_sql_sha256) {
   QueryData d;
   query("select sha256('test') as test;", d);
-  EXPECT_EQ(d.size(), 1U);
+  ASSERT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["test"],
             "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 }
+
+/*
+ * regex_match
+ */
+
+TEST_F(SQLTests, test_regex_match_multiple) {
+  QueryData d;
+
+  query(
+      "select regex_match('hello world', '(l)(o).*', 0) as t0, \
+                regex_match('hello world', '(l)(o).*', 1) as t1, \
+                regex_match('hello world', '(l)(o).*', 2) as t2, \
+                regex_match('hello world', '(l)(o).*', 3) as t3;",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "lo world");
+  EXPECT_EQ(d[0]["t1"], "l");
+  EXPECT_EQ(d[0]["t2"], "o");
+  EXPECT_EQ(d[0]["t3"], "");
+}
+
+TEST_F(SQLTests, test_regex_match_nomatch) {
+  QueryData d;
+
+  query(
+      "select regex_match('hello world', 'no match', 0) as t0 \
+                regex_match('hello world', 'no match', 1) as t1;",
+      d);
+  ASSERT_EQ(d.size(), 0U);
+}
+
+TEST_F(SQLTests, test_regex_match_complex) {
+  QueryData d;
+
+  query(
+      "select regex_match('hello world', '(\\w+) .*(or|ld)', 0) as t0, \
+                regex_match('hello world', '(\\w+) .*(or|ld)', 1) as t1, \
+                regex_match('hello world', '(\\w+) .*(or|ld)', 2) as t2, \
+                regex_match('hello world', '(\\w+) .*(or|ld)', 3) as t3",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "hello world");
+  EXPECT_EQ(d[0]["t1"], "hello");
+  EXPECT_EQ(d[0]["t2"], "ld");
+  EXPECT_EQ(d[0]["t3"], "");
+}
+
+TEST_F(SQLTests, test_regex_match_fileextract) {
+  QueryData d;
+
+  query(
+      "select regex_match('/filesystem/path/download.extension.zip', "
+      "'.+/([^./]+)', 1) as basename",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["basename"], "download");
+}
+
+TEST_F(SQLTests, test_regex_match_empty) {
+  QueryData d;
+
+  // Empty regex gets you a null result
+  query("select regex_match('hello world', '', 0) as test", d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "");
+}
+
+TEST_F(SQLTests, test_regex_match_invalid1) {
+  QueryData d;
+  query("select regex_match('foo/bar', '(/', 0)", d);
+  ASSERT_EQ(d.size(), 0U);
+}
+
+TEST_F(SQLTests, test_regex_match_invalid2) {
+  QueryData d;
+  query("select regex_match('foo/bar', '+', 0)", d);
+  ASSERT_EQ(d.size(), 0U);
+}
+
+TEST_F(SQLTests, test_regex_match_invalid3) {
+  QueryData d;
+  // `|` is an invalid regexp, but boost doesn't complain, and treats
+  // it much as an empty string. Encode that expection here in
+  // tests.
+  query("select regex_match('foo/bar', '|', 0) as test", d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "");
+}
+
+/*
+ * split
+ */
+
+TEST_F(SQLTests, test_split_slash) {
+  QueryData d;
+
+  query(
+      "select split('/foo/bar', '/', 0) as t0, \
+                split('/foo/bar', '/', 1) as t1, \
+                split('/foo/bar', '/', 2) as t2",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "foo");
+  EXPECT_EQ(d[0]["t1"], "bar");
+  EXPECT_EQ(d[0]["t2"], "");
+}
+
+TEST_F(SQLTests, test_split_double_semicolon) {
+  QueryData d;
+
+  query(
+      "select split('foo;;bar', ';;', 0) as t0, \
+                split('foo;;bar', ';;', 1) as t1, \
+                split('foo;;bar', ';;', 2) as t2",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "foo");
+  EXPECT_EQ(d[0]["t1"], "bar");
+  EXPECT_EQ(d[0]["t2"], "");
+}
+
+TEST_F(SQLTests, test_split_empty) {
+  QueryData d;
+
+  query("select split('foo;;bar', '', 0)", d);
+  ASSERT_EQ(d.size(), 0U);
+}
+
+/*
+ * regex_split
+ */
+
+TEST_F(SQLTests, test_regex_split_slashes) {
+  QueryData d;
+
+  query(
+      "select regex_split('/foo/bar', '/', 0) as t0, \
+                regex_split('/foo/bar', '/', 1) as t1, \
+                regex_split('/foo/bar', '/', 2) as t2, \
+                regex_split('/foo/bar', '/', 3) as t3",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "");
+  EXPECT_EQ(d[0]["t1"], "foo");
+  EXPECT_EQ(d[0]["t2"], "bar");
+  EXPECT_EQ(d[0]["t3"], "");
+}
+
+TEST_F(SQLTests, test_regex_split_double_semicolon) {
+  QueryData d;
+
+  query(
+      "select regex_split('foo;;bar', ';;', 0) as t0, \
+                regex_split('foo;;bar', ';;', 1) as t1, \
+                regex_split('foo;;bar', ';;', 2) as t2",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "foo");
+  EXPECT_EQ(d[0]["t1"], "bar");
+  EXPECT_EQ(d[0]["t2"], "");
+}
+
+TEST_F(SQLTests, test_regex_split_options) {
+  QueryData d;
+
+  query(
+      "select regex_split('foo;bar//qux', '(;|/)+', 0) as t0, \
+                regex_split('foo;bar//qux', '(;|/)+', 1) as t1, \
+                regex_split('foo;bar//qux', '(;|/)+', 2) as t2, \
+                regex_split('foo;bar//qux', '(;|/)+', 3) as t3",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "foo");
+  EXPECT_EQ(d[0]["t1"], "bar");
+  EXPECT_EQ(d[0]["t2"], "qux");
+  EXPECT_EQ(d[0]["t3"], "");
+}
+
+TEST_F(SQLTests, test_regex_split_filename_extract) {
+  QueryData d;
+  // A more complex example.
+  query(
+      "select regex_split('/filesystem/path/download.extension.zip', "
+      "'(.*/)|(.extension.zip)', 1) as test",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "download");
+}
+
+TEST_F(SQLTests, test_regex_split_empty) {
+  QueryData d;
+  query("select regex_split('foo/bar', '', 0)", d);
+  ASSERT_EQ(d.size(), 0U);
+}
+
+TEST_F(SQLTests, test_regex_split_invalid1) {
+  QueryData d;
+  query("select regex_split('foo/bar', '(/', 0)", d);
+  ASSERT_EQ(d.size(), 0U);
+}
+
+TEST_F(SQLTests, test_regex_split_invalid2) {
+  QueryData d;
+  query("select regex_split('foo/bar', '+', 0)", d);
+  ASSERT_EQ(d.size(), 0U);
+}
+
+/*
+ * FIXME: This invalid regex hangs boost
+ * See:
+ *   https://github.com/boostorg/regex/issues/76
+ *   https://github.com/facebook/osquery/issues/5443
+TEST_F(SQLTests, test_regex_split_invalid3) {
+  QueryData d;
+  query("select regex_split('foo/bar', '|', 0)", d);
+  ASSERT_EQ(d.size(), 0U);
+}
+*/
+
+/*
+ * ssdeep_compare
+ */
 
 #ifdef OSQUERY_POSIX
 TEST_F(SQLTests, test_sql_ssdeep_compare) {
@@ -178,8 +399,8 @@ TEST_F(SQLTests, test_sql_ssdeep_compare) {
                       "1536:aoD582YotZMLQp+5RdONCGM/BnxFEu4vNz/xC+Oi+u/UD/"
                       "9LYD:h22YWZVsRBGMZndQNz/xCfi+qeYD";
   query(query_stream.str(), d);
-  EXPECT_EQ(d.size(), 1U);
+  ASSERT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["test_int"], "68");
 }
 #endif
-}
+} // namespace osquery
