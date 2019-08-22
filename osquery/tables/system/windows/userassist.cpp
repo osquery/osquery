@@ -44,7 +44,7 @@ QueryData genUserAssist(QueryContext &context) {
 
   queryKey("HKEY_USERS", users);
 
-  for (const auto &uKey : users) {
+  for (const auto& uKey : users) {
     if (uKey.count("type") == 0 || uKey.count("path") == 0) {
       continue;
     }
@@ -56,7 +56,7 @@ QueryData genUserAssist(QueryContext &context) {
     QueryData user_assist_results;
     queryKey(fullPath, user_assist_results);
 
-    for (const auto &rKey : user_assist_results) {
+    for (const auto& rKey : user_assist_results) {
       if (rKey.count("type") == 0 || rKey.count("path") == 0) {
         continue;
       }
@@ -66,7 +66,7 @@ QueryData genUserAssist(QueryContext &context) {
       QueryData assist_results;
       queryKey(full_path_key, assist_results);
 
-      for (const auto &aKey : assist_results) {
+      for (const auto& aKey : assist_results) {
         std::string subkey = aKey.at("path");
 
         // split reg path by \Count\ to get Key values
