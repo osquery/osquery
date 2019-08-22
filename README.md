@@ -8,7 +8,7 @@ src="https://github.com/facebook/osquery/raw/master/docs/img/logo-2x-dark.png" /
 <p align="center">
 osquery is a SQL powered operating system instrumentation, monitoring, and analytics framework.
 <br>
-Available for Linux, macOS, Windows and FreeBSD.
+Available for Linux, macOS, Windows, and FreeBSD.
 </p>
 
 | Platform | Build status  | | | |
@@ -88,7 +88,7 @@ visit [https://osquery.io/downloads](https://osquery.io/downloads/).
 
 ## Build from source
 
-Building osquery from source is encouraged! Check out our [build guide](BUILD.md).
+Building osquery from source is encouraged! Check out our [build guide](https://osquery.readthedocs.io/en/latest/development/building/).
 
 Also check out our [contributing guide](CONTRIBUTING.md) and join the community on [Slack](https://slack.osquery.io).
 
