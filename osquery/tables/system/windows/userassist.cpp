@@ -16,6 +16,28 @@
 namespace osquery {
 namespace tables {
 
+// Decode ROT13 sub key value
+std::string rot_decode(std::string value_key_reg) {
+  std::string decoded_value_key;
+
+  for (size_t i = 0; i < value_key_reg.size(); i++) {
+    if (isalpha(value_key_reg[i])) {
+      if (value_key_reg[i] >= 'a' && value_key_reg[i] <= 'm') {
+        decoded_value_key.append(1, value_key_reg[i] + 13);
+      } else if (value_key_reg[i] >= 'm' && value_key_reg[i] <= 'z') {
+        decoded_value_key.append(1, value_key_reg[i] - 13);
+      } else if (value_key_reg[i] >= 'A' && value_key_reg[i] <= 'M') {
+        decoded_value_key.append(1, value_key_reg[i] + 13);
+      } else if (value_key_reg[i] >= 'M' && value_key_reg[i] <= 'Z') {
+        decoded_value_key.append(1, value_key_reg[i] - 13);
+      }
+    } else {
+      decoded_value_key.append(1, value_key_reg[i]);
+    }
+  }
+    return decoded_value_key;
+}
+
 QueryData genUserAssist(QueryContext& context) {
   QueryData results;
   QueryData users;
@@ -52,23 +74,7 @@ QueryData genUserAssist(QueryContext& context) {
         std::string value_key = subkey.substr(count_key);
         std::string value_key_reg = value_key.substr(6, std::string::npos);
 
-        // Decode ROT13 sub key value
-        std::string decoded_value_key;
-        for (size_t i = 0; i < value_key_reg.size(); i++) {
-          if (isalpha(value_key_reg[i])) {
-            if (value_key_reg[i] >= 'a' && value_key_reg[i] <= 'm') {
-              decoded_value_key.append(1, value_key_reg[i] + 13);
-            } else if (value_key_reg[i] >= 'm' && value_key_reg[i] <= 'z') {
-              decoded_value_key.append(1, value_key_reg[i] - 13);
-            } else if (value_key_reg[i] >= 'A' && value_key_reg[i] <= 'M') {
-              decoded_value_key.append(1, value_key_reg[i] + 13);
-            } else if (value_key_reg[i] >= 'M' && value_key_reg[i] <= 'Z') {
-              decoded_value_key.append(1, value_key_reg[i] - 13);
-            }
-          } else {
-            decoded_value_key.append(1, value_key_reg[i]);
-          }
-        }
+        std::string decoded_value_key = rot_decode(value_key_reg);
 
         Row r;
 

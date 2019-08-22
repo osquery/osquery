@@ -11,6 +11,10 @@ class UserassistTest : public testing::Test {
 
 TEST_F(UserassistTest, test_sanity) {
   QueryData const rows = execute_query("select * from userassist");
+  QueryData const specific_query_rows = execute_query(
+      "select * from userassist where path is 'Microsoft.Windows.Explorer'");
+  ASSERT_GT(rows.size(), 0ul);
+  ASSERT_EQ(specific_query_rows.size(), 1ul);
   ValidatatioMap row_map = {
       {"path", NonEmptyString},
       {"last_execution_time", NormalType},
@@ -18,6 +22,7 @@ TEST_F(UserassistTest, test_sanity) {
       {"sid", NonEmptyString},
   };
   validate_rows(rows, row_map);
+  validate_rows(specific_query_rows, row_map);
 }
 } // namespace table_tests
 } // namespace osquery
