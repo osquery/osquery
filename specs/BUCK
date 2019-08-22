@@ -855,4 +855,3 @@ osquery_gentable_cxx_library(
         osquery_target("osquery/tables:table_implementations"),
     ],
 )
->>>>>>> upstream/master
