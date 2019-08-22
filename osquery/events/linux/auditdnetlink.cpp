@@ -341,10 +341,6 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
         monitored_syscall_list_.insert(syscall);
       }
     }
-
-  } else if (FLAGS_audit_allow_fork_process_events) {
-    LOG(WARNING) << "--audit_allow_fork_process_events is ignored without "
-                    "--audit_allow_process_events";
   }
 
   // Rules required by the process_file_events table
