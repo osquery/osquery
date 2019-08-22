@@ -58,6 +58,13 @@ Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
   for (auto& row : emitted_row_list) {
     auto qd = SQL::selectAllFrom("file", "path", EQUALS, row.at("path"));
+
+    // In general, we should always have the AUDIT_PATH record; if we don't
+    // have it then we probably just lost it
+    if (row["mode"].empty()) {
+      row["mode"] = qd.front().at("mode");
+    }
+
     row["btime"] = "0";
 
     if (qd.size() == 1) {
