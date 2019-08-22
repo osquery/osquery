@@ -97,6 +97,10 @@ osquery_gentable_cxx_library(
             "macos",
         ),
         (
+            "darwin/diagnostics.table",
+            "macos",
+        ),
+        (
             "darwin/disk_events.table",
             "macos",
         ),

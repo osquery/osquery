@@ -96,6 +96,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/crashes.cpp
       darwin/cups_destinations.cpp
       darwin/cups_jobs.cpp
+      darwin/diagnostics.cpp
       darwin/disk_encryption.mm
       darwin/event_taps.mm
       darwin/extended_attributes.cpp

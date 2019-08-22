@@ -199,6 +199,7 @@ function(generateTestsIntegrationTablesTestsTest)
       cups_destinations.cpp
       cups_jobs.cpp
       device_firmware.cpp
+      diagnostics.cpp
       disk_events.cpp
       event_taps.cpp
       extended_attributes.cpp

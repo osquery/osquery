@@ -84,6 +84,7 @@ function(generateNativeTables)
     "darwin/cups_destinations.table:macos"
     "darwin/cups_jobs.table:macos"
     "darwin/device_firmware.table:macos"
+    "darwin/diagnostics.table:macos"
     "darwin/disk_events.table:macos"
     "darwin/event_taps.table:macos"
     "darwin/extended_attributes.table:macos"
