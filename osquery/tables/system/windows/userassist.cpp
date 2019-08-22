@@ -38,7 +38,7 @@ std::string rot_decode(std::string value_key_reg) {
   return decoded_value_key;
 }
 
-QueryData genUserAssist(QueryContext &context) {
+QueryData genUserAssist(QueryContext& context) {
   QueryData results;
   QueryData users;
 
