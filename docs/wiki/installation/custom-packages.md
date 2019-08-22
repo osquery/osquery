@@ -1,5 +1,5 @@
 !!! warning "Deprecated"
-    The following package guidance is deprecated. Please use CPake to generate packages.
+    The following package guidance is deprecated. Please use CPack to generate packages.
 
 We support building custom deployment packages (pkg/deb/rpm) for less common use cases:
 
