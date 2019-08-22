@@ -1,7 +1,3 @@
-As of osquery 1.8.2+ the Windows builds are feature-complete but provide a limited set of tables compared to macOS and Linux.
-
-## Installing osquery on Windows
-
 We recommend installing Windows via the Chocolatey package system however a helper script for generating an **MSI** installer is available at `tools\deployment\make_windows_package.ps1` by invoking with an 'msi' parameter. Further manual installation instructions are detailed below for those needing more custom deployment options.
 
 ### Installing with Chocolatey
