@@ -245,11 +245,12 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
   HKEY hkey;
   auto ret = RegOpenKeyEx(
       kRegistryHives.at(hive), TEXT(key.c_str()), 0, KEY_READ, &hkey);
-  reg_handle_t hRegistryHandle(hkey, closeRegHandle);
 
   if (ret != ERROR_SUCCESS) {
     return Status(ret, "Failed to open registry handle");
   }
+
+  reg_handle_t hRegistryHandle(hkey, closeRegHandle);
 
   const DWORD maxKeyLength = 255;
   const DWORD maxValueName = 16383;
