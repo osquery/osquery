@@ -15,7 +15,6 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/utils/aws/aws_util.h>
-//Make windows happy https://github.com/aws/aws-sdk-cpp/issues/402
 #ifdef WIN32
 #undef GetMessage
 #endif
