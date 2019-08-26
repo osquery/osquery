@@ -12,7 +12,12 @@ function(opensslMain)
     return()
   endif()
 
-  set(openssl_c_flags -fPIC)
+  set(openssl_c_flags
+    -fPIC
+    --sysroot=${CMAKE_SYSROOT}
+    -l:libunwind.a
+    -lpthread
+  )
   list(APPEND openssl_c_flags ${C_FLAGS})
   string(REPLACE ";" " " openssl_c_flags "${openssl_c_flags}")
 
