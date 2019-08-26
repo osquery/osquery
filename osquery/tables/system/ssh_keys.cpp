@@ -13,34 +13,83 @@
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger/logger.h>
+#include <osquery/logger/log ger.h>
 #include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/scope_guard.h>
 #include <osquery/utils/system/system.h>
 
 #include <boost/algorithm/string.hpp>
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
 
 namespace osquery {
 namespace tables {
 
-const std::string kSSHUserKeysDir = ".ssh/";
-const std::string kEd25519Header = "-----BEGIN OPENSSH PRIVATE KEY-----\n";
-
-// The first bytes of an OpenSSH key are |key type|length of cipher name|cipher
-// name| so all unencrypted ed25519 keys should start with the value below
-// (encoded in base64) This magic string is
-//  6f 70 65 6e 73 73 68 2d 6b 65 79 2d 76 31 00 00 00 00 04 6e 6f 6e 65
-// |--------------------------------------------|-----------|----------|
-// | o  p  e  n  s  s  h  -  k  e  y  -  v  1 \0|          4| n  o  n e|
-//
-const std::string kEd25519UnencryptedPrefix = "b3BlbnNzaC1rZXktdjEAAAAABG5vbmU";
-
-bool isEncrypted(std::string& keys_content) {
-  if (boost::starts_with(keys_content, kEd25519Header)) {
-    const std::string prefix = keys_content.substr(
-        kEd25519Header.size(), kEd25519UnencryptedPrefix.size());
-    return prefix != kEd25519UnencryptedPrefix;
+// parsePrivateKey returns true iff the key is valid
+bool parsePrivateKey(std::string& keys_content,
+                     int* key_type,
+                     bool* is_encrypted) {
+  BIO* bio_stream = BIO_new(BIO_s_mem());
+  BIO_write(bio_stream, keys_content.c_str(), keys_content.size());
+  if (bio_stream == nullptr) {
+    return false;
   }
-  return keys_content.find("ENCRYPTED") != std::string::npos;
+
+  // PEM_read_bio_PrivateKey calls passwordCallback
+  // if the private key is encrypted. We don't care what the key is;
+  // only whether or not it's encrypted.
+  static bool encrypted = false;
+  auto passwordCallback = [](char*, int, int, void*) {
+    encrypted = true;
+    return -1; // let openssl know that the passwordCallback failed
+  };
+
+  EVP_PKEY* pkey;
+  pkey =
+      PEM_read_bio_PrivateKey(bio_stream, nullptr, passwordCallback, nullptr);
+  *is_encrypted = encrypted;
+  scope_guard::create([=]() {
+    BIO_free(bio_stream);
+    EVP_PKEY_free(pkey);
+  });
+
+  if (pkey == nullptr) {
+    if (encrypted) {
+      *key_type = EVP_PKEY_NONE;
+      encrypted = false;
+      return true;
+    }
+    return false;
+  }
+
+  *key_type = EVP_PKEY_base_id(pkey);
+  return true;
+}
+
+std::string keyTypeAsString(int key_type) {
+  switch (key_type) {
+  case EVP_PKEY_RSA:
+  case EVP_PKEY_RSA2:
+    return "rsa";
+  case EVP_PKEY_DSA:
+  case EVP_PKEY_DSA1:
+  case EVP_PKEY_DSA2:
+  case EVP_PKEY_DSA3:
+  case EVP_PKEY_DSA4:
+    return "dsa";
+  case EVP_PKEY_DH:
+  case EVP_PKEY_DHX:
+    return "dh";
+  case EVP_PKEY_EC:
+    return "ec";
+  case EVP_PKEY_HMAC:
+    return "hmac";
+  case EVP_PKEY_CMAC:
+    return "cmac";
+  default:
+    return "";
+  }
 }
 
 void genSSHkeyForHosts(const std::string& uid,
@@ -63,13 +112,15 @@ void genSSHkeyForHosts(const std::string& uid,
       // Cannot read a specific keys file.
       continue;
     }
-
-    if (keys_content.find("PRIVATE KEY") != std::string::npos) {
-      // File is private key, create record for it
+    int key_type;
+    bool encrypted;
+    bool parsed = parsePrivateKey(keys_content, &key_type, &encrypted);
+    if (parsed) {
       Row r;
       r["uid"] = uid;
       r["path"] = kfile;
-      r["encrypted"] = isEncrypted(keys_content) ? "1" : "0";
+      r["encrypted"] = encrypted ? "1" : "0";
+      r["key_type"] = keyTypeAsString(key_type);
       results.push_back(r);
     }
   }
