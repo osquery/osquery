@@ -5,6 +5,7 @@ schema([
       additional=True),
     Column("path", TEXT, "Path to key file", index=True),
     Column("encrypted", INTEGER, "1 if key is encrypted, 0 otherwise"),
+    Column("key_type", TEXT, "The type of the private key. One of [rsa, dsa, dh, ec, hmac, cmac], or the empty string."),
     ForeignKey(column="uid", table="users"),
 ])
 attributes(user_data=True, no_pkey=True)
