@@ -25,8 +25,3 @@ QueryData getUserSshKeys(QueryContext& context);
 
 } // namespace tables
 } // namespace osquery
-
-// TODOS
-// - Copyright header still Facebook?
-// - Include tests in buck build?
-// - Would like a third-party ssh key parser
