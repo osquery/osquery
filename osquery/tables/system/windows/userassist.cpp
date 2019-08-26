@@ -7,20 +7,25 @@
  */
 
 #include <osquery/core.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/tables/system/windows/registry.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/time.h>
 #include <string>
 
 namespace osquery {
 namespace tables {
 
+constexpr auto kFullRegPath =
+    "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist";
+
 // Decode ROT13 sub key value
-std::string rot_decode(std::string value_key_reg) {
+std::string rot_decode(std::string& value_key_reg) {
   std::string decoded_value_key;
 
-  for (size_t i = 0; i < value_key_reg.size(); i++) {
+  for (std::size_t i = 0; i < value_key_reg.size(); i++) {
     if (isalpha(value_key_reg[i])) {
       if (value_key_reg[i] >= 'a' && value_key_reg[i] <= 'm') {
         decoded_value_key.append(1, value_key_reg[i] + 13);
@@ -38,6 +43,53 @@ std::string rot_decode(std::string value_key_reg) {
   return decoded_value_key;
 }
 
+// Get last exeution time
+auto last_execute(std::string& assist_data) {
+  std::string last_run_string = assist_data.substr(120, 16);
+
+  // swap endianess
+  std::reverse(last_run_string.begin(), last_run_string.end());
+
+  char temp;
+  for (std::size_t i = 0; i < last_run_string.length(); i += 2) {
+    temp = last_run_string[i];
+    last_run_string[i] = last_run_string[i + 1];
+    last_run_string[i + 1] = temp;
+  }
+
+  // Convert Windows FILETIME to UNIX Time
+  unsigned long long last_run = std::stoull(last_run_string.c_str(), 0, 16);
+  last_run = (last_run / 10000000) - 11644473600;
+
+  std::time_t last_run_time = (int)last_run;
+
+  struct tm tm;
+  gmtime_s(&tm, &last_run_time);
+
+  auto time_str = platformAsctime(&tm);
+  return time_str;
+}
+
+// Get execution count
+int execution_num(std::string& execution_count) {
+  // swap endianess
+  std::reverse(execution_count.begin(), execution_count.end());
+
+  char temp;
+  for (std::size_t i = 0; i < execution_count.length(); i += 2) {
+    temp = execution_count[i];
+    execution_count[i] = execution_count[i + 1];
+    execution_count[i + 1] = temp;
+  }
+
+  auto count = tryTo<std::size_t>(execution_count, 16);
+  if (count.isError()) {
+    LOG(WARNING) << "Error getting execution count: " << count.takeError();
+    return -1;
+  }
+  return count.get();
+}
+
 QueryData genUserAssist(QueryContext& context) {
   QueryData results;
   QueryData users;
@@ -45,23 +97,24 @@ QueryData genUserAssist(QueryContext& context) {
   queryKey("HKEY_USERS", users);
 
   for (const auto& uKey : users) {
-    if (uKey.count("type") == 0 || uKey.count("path") == 0) {
+    auto keyType = uKey.find("type");
+    auto keyPath = uKey.find("path");
+    if (keyType == uKey.end() || keyPath == uKey.end()) {
       continue;
     }
 
-    std::string path = uKey.at("path");
-    std::string fullPath = path.append(
-        "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist");
-
+    std::string fullPath = keyPath->second + kFullRegPath;
     QueryData user_assist_results;
     queryKey(fullPath, user_assist_results);
 
     for (const auto& rKey : user_assist_results) {
-      if (rKey.count("type") == 0 || rKey.count("path") == 0) {
+      auto keyType = rKey.find("type");
+      auto keyPath = rKey.find("path");
+      if (keyType == rKey.end() || keyPath == rKey.end()) {
         continue;
       }
-      std::string path_key = rKey.at("path");
-      std::string full_path_key = path_key.append("\\Count");
+
+      std::string full_path_key = keyPath->second + "\\Count";
 
       QueryData assist_results;
       queryKey(full_path_key, assist_results);
@@ -91,40 +144,12 @@ QueryData genUserAssist(QueryContext& context) {
           std::string assist_data = aKey.at("data");
           std::string execution_count = assist_data.substr(8, 8);
 
-          // swap endianess
-          std::reverse(execution_count.begin(), execution_count.end());
-
-          char temp;
-          for (int i = 0; i < execution_count.length(); i += 2) {
-            temp = execution_count[i];
-            execution_count[i] = execution_count[i + 1];
-            execution_count[i + 1] = temp;
+          auto count = execution_num(execution_count);
+          if (count == -1) {
+            auto count = "";
           }
 
-          int count = (int)strtol(execution_count.c_str(), 0, 16);
-
-          std::string last_run_string = assist_data.substr(120, 16);
-
-          // swap endianess
-          std::reverse(last_run_string.begin(), last_run_string.end());
-
-          for (int i = 0; i < last_run_string.length(); i += 2) {
-            temp = last_run_string[i];
-            last_run_string[i] = last_run_string[i + 1];
-            last_run_string[i + 1] = temp;
-          }
-
-          // Convert Windows FILETIME to UNIX Time
-          unsigned long long last_run =
-              std::stoull(last_run_string.c_str(), 0, 16);
-          last_run = (last_run / 10000000) - 11644473600;
-
-          std::time_t last_run_time = (int)last_run;
-
-          struct tm tm;
-          gmtime_s(&tm, &last_run_time);
-
-          auto time_str = platformAsctime(&tm);
+          auto time_str = last_execute(assist_data);
 
           r["path"] = decoded_value_key;
           r["last_execution_time"] = time_str;
