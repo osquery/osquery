@@ -31,7 +31,6 @@ std::string rot_decode(std::string& value_key_reg) {
 }
 
 TEST(Rot13Test, DecodeData) {
-
   std::string encoded_data = "Gur dhvpx oebja sbk whzcf bire gur ynml qbt";
   std::string decoded_data = rot_decode(encoded_data);
   ASSERT_TRUE(decoded_data == "The quick brown fox jumps over the lazy dog");
