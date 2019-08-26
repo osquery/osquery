@@ -36,7 +36,7 @@ TEST(Rot13Test, DecodeData) {
   ASSERT_TRUE(decoded_data == "The quick brown fox jumps over the lazy dog");
 }
 
-TEST_F(userassistTest, test_sanity) {
+TEST_F(UserassistTest, test_sanity) {
   QueryData const rows = execute_query("select * from userassist");
   QueryData const specific_query_rows = execute_query(
       "select * from userassist where path is 'Microsoft.Windows.Explorer'");
