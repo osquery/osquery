@@ -80,6 +80,7 @@ function(generateOsqueryEvents)
       linux/auditdnetlink.h
       linux/auditeventpublisher.h
       linux/inotify.h
+      linux/pipe_liner.h
       linux/process_events.h
       linux/process_file_events.h
       linux/selinux_events.h

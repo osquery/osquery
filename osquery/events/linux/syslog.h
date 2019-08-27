@@ -15,6 +15,8 @@
 
 #include <osquery/events.h>
 
+#include "pipe_liner.h"
+
 namespace osquery {
 
 /**
@@ -53,7 +55,8 @@ using SyslogSubscriptionContextRef = std::shared_ptr<SyslogSubscriptionContext>;
  * publisher will read from.
  */
 class SyslogEventPublisher
-    : public EventPublisher<SyslogSubscriptionContext, SyslogEventContext> {
+    : public EventPublisher<SyslogSubscriptionContext, SyslogEventContext>,
+      public PipeLinerListener {
   DECLARE_PUBLISHER("syslog");
 
  public:
@@ -66,7 +69,11 @@ class SyslogEventPublisher
   Status run() override;
 
  public:
-  SyslogEventPublisher() : EventPublisher(), errorCount_(0), lockFd_(-1) {}
+  SyslogEventPublisher()
+      : EventPublisher(), pipeReader_(this), errorCount_(0), lockFd_(-1) {}
+
+ public:
+  virtual void onLine(std::string line) override;
 
  private:
   /// Apply normal subscription to event matching logic.
@@ -113,7 +120,7 @@ class SyslogEventPublisher
   /**
    * @brief Input stream for reading from the pipe.
    */
-  std::fstream readStream_;
+  PipeLiner pipeReader_;
 
   /**
    * @brief Counter used to shut down thread when too many errors occur.
@@ -201,4 +208,4 @@ class RsyslogCsvSeparator {
  private:
   bool last_;
 };
-}
+} // namespace osquery
