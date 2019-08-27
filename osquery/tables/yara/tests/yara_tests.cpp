@@ -2,36 +2,32 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <gtest/gtest.h>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/tables/yara/yara_utils.h>
 
-#include "osquery/tables/yara/yara_utils.h"
+#include <boost/filesystem.hpp>
+
+#include <fstream>
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 
-const std::string ruleFile = "/tmp/osquery-yara.sig";
-const std::string ls = "/bin/ls";
 const std::string alwaysTrue = "rule always_true { condition: true }";
 const std::string alwaysFalse = "rule always_false { condition: false }";
 
 class YARATest : public testing::Test {
  protected:
   void SetUp() override {
-    removePath(ruleFile);
-    if (pathExists(ruleFile).ok()) {
-      throw std::domain_error("Rule file exists.");
-    }
   }
 
   void TearDown() override {
-    removePath(ruleFile);
   }
 
   Row scanFile(const std::string& ruleContent) {
@@ -39,21 +35,36 @@ class YARATest : public testing::Test {
     int result = yr_initialize();
     EXPECT_TRUE(result == ERROR_SUCCESS);
 
-    writeTextFile(ruleFile, ruleContent);
+    const auto rule_file = fs::temp_directory_path() /
+                           fs::unique_path("osquery.tests.yara.%%%%.%%%%.sig");
+    writeTextFile(rule_file.string(), ruleContent);
 
-    Status status = compileSingleFile(ruleFile, &rules);
-    EXPECT_TRUE(status.ok());
+    Status status = compileSingleFile(rule_file.string(), &rules);
+    EXPECT_TRUE(status.ok()) << status.what();
 
     Row r;
     r["count"] = "0";
     r["matches"] = "";
 
-    result = yr_rules_scan_file(
-        rules, ls.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
-    EXPECT_TRUE(result == ERROR_SUCCESS);
+    const auto file_to_scan =
+        fs::temp_directory_path() /
+        fs::unique_path("osquery.tests.yara.%%%%.%%%%.bin");
+    {
+      std::ofstream test_file(file_to_scan.string());
+      test_file << "test\n";
+    }
+
+    result = yr_rules_scan_file(rules,
+                                file_to_scan.string().c_str(),
+                                SCAN_FLAGS_FAST_MODE,
+                                YARACallback,
+                                (void*)&r,
+                                0);
+    EXPECT_TRUE(result == ERROR_SUCCESS) << " yara error code: " << result;
 
     yr_rules_destroy(rules);
-
+    fs::remove_all(rule_file);
+    fs::remove_all(file_to_scan);
     return r;
   }
 };

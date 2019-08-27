@@ -14,8 +14,7 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
-
-#include "osquery/tables/smart/smart_drives.h"
+#include <osquery/tables/smart/smart_drives.h>
 
 namespace osquery {
 namespace tables {
@@ -146,7 +145,7 @@ void querySmartDevices(
     // We now try to find device information based on any explicit storage
     // controller info.  Once we find one, we can search until the max ID of
     // that controller, and assume that all information with that controller
-    // has been retrived.
+    // has been retrieved.
     for (size_t i = 0; i <= type->maxID; i++) {
       std::string full_type = type->driver + std::to_string(i);
 

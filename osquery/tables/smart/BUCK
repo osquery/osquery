@@ -1,0 +1,53 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "smart",
+    header_namespace = "osquery/tables/smart",
+    exported_platform_headers = [
+        (
+            LINUX,
+            [
+                "smart_drives.h",
+            ],
+        ),
+        (
+            MACOSX,
+            [
+                "smart_drives.h",
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "smart_drives.cpp",
+            ],
+        ),
+        (
+            MACOSX,
+            [
+                "smart_drives.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("osquery/tables/smart/tests:smart_drives_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery:headers"),
+        osquery_target("osquery/logger:logger"),
+        osquery_target("osquery/sql:sql"),
+        osquery_tp_target("smartmontools", "libsmartctl"),
+    ],
+)

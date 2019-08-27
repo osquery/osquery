@@ -2,25 +2,27 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <string>
 
-#include <Windows.h>
+// These headers must be included in this order
+// clang-format off
+#include <windows.h>
 #include <shellapi.h>
+// clang-format on
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/main/main.h>
+#include <osquery/process/process.h>
 #include <osquery/system.h>
-
-#include "osquery/core/process.h"
-#include "osquery/main/main.h"
+#include <osquery/utils/config/default_paths.h>
+#include <osquery/utils/system/system.h>
 
 DECLARE_string(flagfile);
 
@@ -107,7 +109,7 @@ static auto kShutdownCallable = ([]() {
     // Wait forever, until the service handler signals us
     ::WaitForSingleObject(stopEvent, INFINITE);
 
-    // Interupt the worker service threads before joining
+    // Interrupt the worker service threads before joining
     Dispatcher::stopServices();
 
     auto ret = ::CloseHandle(stopEvent);

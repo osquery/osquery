@@ -1,0 +1,96 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+
+osquery_cxx_test(
+    name = "sql_tests",
+    srcs = [
+        "sql.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/distributed:distributed"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("osquery/sql:sql"),
+        osquery_target("osquery/sql/tests:sql_test_utils"),
+        osquery_target("plugins/config:tls_config"),
+        osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "virtual_table_tests",
+    srcs = [
+        "virtual_table.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/distributed:distributed"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("osquery/sql:sql"),
+        osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "sqlite_util_tests",
+    srcs = [
+        "sqlite_util_tests.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/distributed:distributed"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("osquery/sql:sql"),
+        osquery_target("osquery/sql/tests:sql_test_utils"),
+        osquery_target("plugins/config:tls_config"),
+        osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "sql_test_utils",
+    srcs = [
+        "sql_test_utils.cpp",
+    ],
+    header_namespace = "osquery/sql/tests",
+    exported_headers = [
+        "sql_test_utils.h",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/distributed:distributed"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("osquery/sql:sql"),
+        osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)

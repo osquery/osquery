@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <libproc.h>
@@ -22,16 +20,17 @@
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/rows/processes.h>
 #include <osquery/tables.h>
+
+#include <chrono>
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
-
-extern long getUptime();
 
 // The maximum number of expected memory regions per process.
 #define MAX_MEMORY_MAPS 512
@@ -112,7 +111,7 @@ struct proc_cred {
 inline bool genProcCred(QueryContext& context,
                         int pid,
                         proc_cred& cred,
-                        Row& r) {
+                        ProcessesRow& r) {
   struct proc_bsdinfo bsdinfo;
   struct proc_bsdshortinfo bsdinfo_short;
 
@@ -147,20 +146,18 @@ inline bool genProcCred(QueryContext& context,
     return false;
   }
 
-  context.setBigIntColumnIfUsed(r, "parent", cred.parent);
-  context.setBigIntColumnIfUsed(r, "pgroup", cred.group);
-  context.setTextColumnIfUsed(r,
-                              "state",
-                              (1 <= cred.status && cred.status <= 5)
-                                  ? kProcessStateMapping[cred.status]
-                                  : '?');
-  context.setIntegerColumnIfUsed(r, "nice", cred.nice);
-  context.setBigIntColumnIfUsed(r, "uid", cred.real.uid);
-  context.setBigIntColumnIfUsed(r, "gid", cred.real.gid);
-  context.setBigIntColumnIfUsed(r, "euid", cred.effective.uid);
-  context.setBigIntColumnIfUsed(r, "egid", cred.effective.gid);
-  context.setBigIntColumnIfUsed(r, "suid", cred.saved.uid);
-  context.setBigIntColumnIfUsed(r, "sgid", cred.saved.gid);
+  r.parent_col = cred.parent;
+  r.pgroup_col = cred.group;
+  r.state_col = (1 <= cred.status && cred.status <= 5)
+                    ? kProcessStateMapping[cred.status]
+                    : '?';
+  r.nice_col = cred.nice;
+  r.uid_col = cred.real.uid;
+  r.gid_col = cred.real.gid;
+  r.euid_col = cred.effective.uid;
+  r.egid_col = cred.effective.gid;
+  r.suid_col = cred.saved.uid;
+  r.sgid_col = cred.saved.gid;
 
   return true;
 }
@@ -180,8 +177,8 @@ static inline int genMaxArgs() {
   return argmax;
 }
 
-void genProcRootAndCWD(const QueryContext& context, int pid, Row& r) {
-  if (!context.isAnyColumnUsed({"cwd", "root"})) {
+void genProcRootAndCWD(const QueryContext& context, int pid, ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::CWD | ProcessesRow::ROOT)) {
     return;
   }
 
@@ -189,14 +186,14 @@ void genProcRootAndCWD(const QueryContext& context, int pid, Row& r) {
   if (proc_pidinfo(
           pid, PROC_PIDVNODEPATHINFO, 0, &pathinfo, sizeof(pathinfo)) ==
       sizeof(pathinfo)) {
-    if (context.isColumnUsed("cwd") &&
+    if (context.isAnyColumnUsed(ProcessesRow::CWD) &&
         pathinfo.pvi_cdir.vip_vi.vi_stat.vst_dev != 0) {
-      r["cwd"] = std::string(pathinfo.pvi_cdir.vip_path);
+      r.cwd_col = std::string(pathinfo.pvi_cdir.vip_path);
     }
 
-    if (context.isColumnUsed("root") &&
+    if (context.isAnyColumnUsed(ProcessesRow::ROOT) &&
         pathinfo.pvi_rdir.vip_vi.vi_stat.vst_dev != 0) {
-      r["root"] = std::string(pathinfo.pvi_rdir.vip_path);
+      r.root_col = std::string(pathinfo.pvi_rdir.vip_path);
     }
   }
 }
@@ -204,36 +201,37 @@ void genProcRootAndCWD(const QueryContext& context, int pid, Row& r) {
 void genProcNamePathAndOnDisk(const QueryContext& context,
                               int pid,
                               const struct proc_cred& cred,
-                              Row& r) {
-  if (!context.isAnyColumnUsed({"name", "path", "on_disk"})) {
+                              ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::NAME | ProcessesRow::PATH |
+                               ProcessesRow::ON_DISK)) {
     return;
   }
 
   std::string path;
   if (pid == 0) {
     path = "";
-    if (context.isColumnUsed("name")) {
+    if (context.isAnyColumnUsed(ProcessesRow::NAME)) {
       // For some reason not even proc_name gives back a name for kernel_task
-      r["name"] = "kernel_task";
+      r.name_col = "kernel_task";
     }
   } else if (cred.status != 5) { // If the process is not a Zombie, try to
                                  // find the path and name.
     path = getProcPath(pid);
-    if (context.isColumnUsed("name")) {
+    if (context.isAnyColumnUsed(ProcessesRow::NAME)) {
       // OS X proc_name only returns 16 bytes, use the basename of the path.
-      r["name"] = fs::path(path).filename().string();
+      r.name_col = fs::path(path).filename().string();
     }
   } else {
     path = "";
-    if (context.isColumnUsed("name")) {
+    if (context.isAnyColumnUsed(ProcessesRow::NAME)) {
       std::vector<char> name(17);
       proc_name(pid, name.data(), 16);
-      r["name"] = std::string(name.data());
+      r.name_col = std::string(name.data());
     }
   }
-  context.setTextColumnIfUsed(r, "path", path);
+  r.path_col = path;
 
-  if (!context.isColumnUsed("on_disk")) {
+  if (!context.isAnyColumnUsed(ProcessesRow::ON_DISK)) {
     return;
   }
 
@@ -243,16 +241,16 @@ void genProcNamePathAndOnDisk(const QueryContext& context,
   // executable is available and the file does NOT exist on disk, set on_disk
   // to 0.
   if (path.empty()) {
-    r["on_disk"] = INTEGER(-1);
+    r.on_disk_col = -1;
   } else if (pathExists(path)) {
-    r["on_disk"] = INTEGER(1);
+    r.on_disk_col = 1;
   } else {
-    r["on_disk"] = INTEGER(0);
+    r.on_disk_col = 0;
   }
 }
 
-void genProcNumThreads(QueryContext& context, int pid, Row& r) {
-  if (!context.isColumnUsed("threads")) {
+void genProcNumThreads(QueryContext& context, int pid, ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::THREADS)) {
     return;
   }
 
@@ -260,14 +258,14 @@ void genProcNumThreads(QueryContext& context, int pid, Row& r) {
   int status =
       proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &task_info, sizeof(task_info));
   if (status == sizeof(task_info)) {
-    r["threads"] = INTEGER(task_info.pti_threadnum);
+    r.threads_col = task_info.pti_threadnum;
   } else {
-    r["threads"] = "-1";
+    r.threads_col = -1;
   }
 }
 
-void genProcUniquePid(QueryContext& context, int pid, Row& r) {
-  if (!context.isColumnUsed("upid") && !context.isColumnUsed("uppid")) {
+void genProcUniquePid(QueryContext& context, int pid, ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::UPID | ProcessesRow::UPPID)) {
     return;
   }
 
@@ -283,17 +281,17 @@ void genProcUniquePid(QueryContext& context, int pid, Row& r) {
   struct proc_uniqidentifierinfo uniqidinfo;
   int status = proc_pidinfo(pid, 17, 0, &uniqidinfo, sizeof(uniqidinfo));
   if (status == sizeof(uniqidinfo)) {
-    r["upid"] = BIGINT(uniqidinfo.p_uniqueid);
-    r["uppid"] = BIGINT(uniqidinfo.p_puniqueid);
+    r.upid_col = uniqidinfo.p_uniqueid;
+    r.uppid_col = uniqidinfo.p_puniqueid;
   } else {
-    r["upid"] = "-1";
-    r["uppid"] = "-1";
+    r.upid_col = -1;
+    r.uppid_col = -1;
   }
 }
 
-void genProcArch(QueryContext& context, int pid, Row& r) {
-  if (!context.isColumnUsed("cpu_type") &&
-      !context.isColumnUsed("cpu_subtype")) {
+void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::CPU_TYPE |
+                               ProcessesRow::CPU_SUBTYPE)) {
     return;
   }
 
@@ -309,26 +307,64 @@ void genProcArch(QueryContext& context, int pid, Row& r) {
   // under the constant PROC_PIDARCHINFO but is unexported
   size_t status = proc_pidinfo(pid, 19, 0, &archinfo, sizeof(archinfo));
   if (status == sizeof(archinfo)) {
-    r["cpu_type"] = INTEGER(archinfo.p_cputype);
-    r["cpu_subtype"] = INTEGER(archinfo.p_cpusubtype);
+    r.cpu_type_col = archinfo.p_cputype;
+    r.cpu_subtype_col = archinfo.p_cpusubtype;
   } else {
-    r["cpu_type"] = "-1";
-    r["cpu_subtype"] = "-1";
+    r.cpu_type_col = -1;
+    r.cpu_subtype_col = -1;
   }
 }
 
-struct proc_args {
-  std::vector<std::string> args;
-  std::map<std::string, std::string> env;
-};
+std::string getProcCmdline(int pid) {
+  static const auto argmax = genMaxArgs();
+  static std::unique_ptr<char[]> pprocargs{new char[argmax]};
+  size_t len = argmax;
+  char* procargs = pprocargs.get();
+  int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
+  if (sysctl(mib, 3, procargs, &len, nullptr, 0) == -1 || len == 0) {
+    return "";
+  }
 
-proc_args getProcRawArgs(int pid, size_t argmax) {
-  proc_args args;
+  // The number of arguments is an integer in front of the result buffer.
+  int nargs = 0;
+  memcpy(&nargs, procargs, sizeof(nargs));
+  if (nargs <= 1) {
+    return "";
+  }
+
+  // Walk the \0-tokenized list of arguments until reaching the returned 'max'
+  // number of arguments or the number appended to the front.
+  char* ptr = procargs;
+  char* cmdline = nullptr;
+  for (int i = 0; i < nargs && ptr < procargs + len; i++) {
+    // Find the end of the arg
+    while (ptr < procargs + len && *ptr != '\0') {
+      ptr += 1;
+    }
+
+    // Replace the null with a space except for the final null in the cmdline
+    if (*ptr == '\0' && i < nargs - 1) {
+      *ptr = ' ';
+      ptr += 1;
+    }
+
+    // The command line is considered to start after the first arg (which is the
+    // exe name)
+    if (i == 0) {
+      cmdline = ptr;
+    }
+  }
+
+  return cmdline;
+}
+
+std::map<std::string, std::string> getProcEnv(int pid, size_t argmax) {
+  std::map<std::string, std::string> env;
   std::unique_ptr<char[]> pprocargs{new char[argmax]};
   char* procargs = pprocargs.get();
   int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
   if (sysctl(mib, 3, procargs, &argmax, nullptr, 0) == -1 || argmax == 0) {
-    return args;
+    return env;
   }
 
   // The number of arguments is an integer in front of the result buffer.
@@ -350,61 +386,37 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
     auto string_arg = std::string(current_arg);
     if (string_arg.size() > 0) {
       if (nargs > 0) {
-        // The first nargs are CLI arguments, afterward they are environment.
-        args.args.push_back(string_arg);
         nargs--;
       } else {
         size_t idx = string_arg.find_first_of("=");
         if (idx != std::string::npos && idx > 0) {
-          args.env[string_arg.substr(0, idx)] = string_arg.substr(idx + 1);
+          env[string_arg.substr(0, idx)] = string_arg.substr(idx + 1);
         }
       }
     }
     current_arg += string_arg.size() + 1;
   }
-  return args;
+  return env;
 }
 
-void genProcCmdline(const QueryContext& context, int pid, Row& r) {
-  if (!context.isColumnUsed("cmdline")) {
+void genProcCmdline(const QueryContext& context, int pid, ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(ProcessesRow::CMDLINE)) {
     return;
   }
 
-  int argmax = genMaxArgs();
   // The command line invocation including arguments.
-  auto args = getProcRawArgs(pid, argmax);
-  std::string cmdline = boost::algorithm::join(args.args, " ");
-  r["cmdline"] = cmdline;
+  std::string cmdline = getProcCmdline(pid);
+  r.cmdline_col = std::move(cmdline);
 }
 
-static inline long getUptimeInUSec() {
-  struct timeval boot_time;
-  size_t len = sizeof(boot_time);
-  int mib[2] = {CTL_KERN, KERN_BOOTTIME};
-
-  if (sysctl(mib, 2, &boot_time, &len, nullptr, 0) < 0) {
-    return -1;
-  }
-
-  time_t seconds_since_boot = boot_time.tv_sec;
-
-  struct timeval tv;
-  gettimeofday(&tv, nullptr);
-
-  // Ignoring boot_time.tv_usec
-  return long(difftime(tv.tv_sec, seconds_since_boot) * CPU_TIME_RATIO +
-              tv.tv_usec);
-}
-
-void genProcResourceUsage(const QueryContext& context, int pid, Row& r) {
-  if (!context.isAnyColumnUsed({"wired_size",
-                                "resident_size",
-                                "total_size",
-                                "user_time",
-                                "system_time",
-                                "disk_bytes_read",
-                                "disk_bytes_written",
-                                "start_time"})) {
+void genProcResourceUsage(const QueryContext& context,
+                          int pid,
+                          ProcessesRow& r) {
+  if (!context.isAnyColumnUsed(
+          ProcessesRow::WIRED_SIZE | ProcessesRow::RESIDENT_SIZE |
+          ProcessesRow::TOTAL_SIZE | ProcessesRow::USER_TIME |
+          ProcessesRow::SYSTEM_TIME | ProcessesRow::DISK_BYTES_READ |
+          ProcessesRow::DISK_BYTES_WRITTEN | ProcessesRow::START_TIME)) {
     return;
   }
 
@@ -414,89 +426,75 @@ void genProcResourceUsage(const QueryContext& context, int pid, Row& r) {
   // proc_pid_rusage returns -1 if it was unable to gather information
   if (status == 0) {
     // size/memory information
-    context.setTextColumnIfUsed(
-        r, "wired_size", rusage_info_data.ri_wired_size);
-    context.setTextColumnIfUsed(
-        r, "resident_size", rusage_info_data.ri_resident_size);
-    context.setTextColumnIfUsed(
-        r, "total_size", rusage_info_data.ri_phys_footprint);
+    r.wired_size_col = rusage_info_data.ri_wired_size;
+    r.resident_size_col = rusage_info_data.ri_resident_size;
+    r.total_size_col = rusage_info_data.ri_phys_footprint;
 
     // time information
-    context.setTextColumnIfUsed(
-        r, "user_time", rusage_info_data.ri_user_time / CPU_TIME_RATIO);
-    context.setTextColumnIfUsed(
-        r, "system_time", rusage_info_data.ri_system_time / CPU_TIME_RATIO);
+    r.user_time_col = rusage_info_data.ri_user_time / CPU_TIME_RATIO;
+    r.system_time_col = rusage_info_data.ri_system_time / CPU_TIME_RATIO;
 
     // disk i/o information
-    context.setTextColumnIfUsed(
-        r, "disk_bytes_read", rusage_info_data.ri_diskio_bytesread);
-    context.setTextColumnIfUsed(
-        r, "disk_bytes_written", rusage_info_data.ri_diskio_byteswritten);
+    r.disk_bytes_read_col = rusage_info_data.ri_diskio_bytesread;
+    r.disk_bytes_written_col = rusage_info_data.ri_diskio_byteswritten;
 
-    if (context.isColumnUsed("start_time")) {
+    if (context.isAnyColumnUsed(ProcessesRow::START_TIME)) {
       // Initialize time conversions.
       static mach_timebase_info_data_t time_base;
       if (time_base.denom == 0) {
         mach_timebase_info(&time_base);
       }
 
-      // Below is the logic to caculate the start_time since boot time
-      // with higher precision
-      auto uptime = getUptimeInUSec();
-      uint64_t absoluteTime = mach_absolute_time();
+      uint64_t const absoluteTime = mach_absolute_time();
+      auto const process_age = std::chrono::nanoseconds{
+          (absoluteTime - rusage_info_data.ri_proc_start_abstime) *
+          time_base.numer / time_base.denom};
 
-      auto multiply = static_cast<double>(time_base.numer) /
-                      static_cast<double>(time_base.denom);
-      auto diff = static_cast<long>(
-          (rusage_info_data.ri_proc_start_abstime - absoluteTime));
-
-      // This is a negative value
-      auto seconds_since_launch =
-          static_cast<long>(diff * multiply) / NSECS_IN_USEC;
-
-      // Get the start_time of process since the computer started
-      r["start_time"] = TEXT((uptime + seconds_since_launch) / CPU_TIME_RATIO);
+      r.start_time_col =
+          std::time(nullptr) -
+          std::chrono::duration_cast<std::chrono::seconds>(process_age).count();
     }
   } else {
-    context.setTextColumnIfUsed(r, "wired_size", "-1");
-    context.setTextColumnIfUsed(r, "resident_size", "-1");
-    context.setTextColumnIfUsed(r, "total_size", "-1");
-    context.setTextColumnIfUsed(r, "user_time", "-1");
-    context.setTextColumnIfUsed(r, "system_time", "-1");
-    context.setTextColumnIfUsed(r, "start_time", "-1");
+    r.wired_size_col = -1;
+    r.resident_size_col = -1;
+    r.total_size_col = -1;
+    r.user_time_col = -1;
+    r.system_time_col = -1;
+    r.start_time_col = -1;
   }
 }
 
-QueryData genProcesses(QueryContext& context) {
-  QueryData results;
+TableRows genProcesses(QueryContext& context) {
+  TableRows results;
 
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
-    Row r;
-    context.setIntegerColumnIfUsed(r, "pid", pid);
+    ProcessesRow* r = new ProcessesRow();
+    r->pid_col = pid;
 
-    genProcCmdline(context, pid, r);
+    genProcCmdline(context, pid, *r);
 
     // The process relative root and current working directory.
-    genProcRootAndCWD(context, pid, r);
+    genProcRootAndCWD(context, pid, *r);
 
     proc_cred cred;
-    if (!genProcCred(context, pid, cred, r)) {
+    if (!genProcCred(context, pid, cred, *r)) {
       continue;
     }
 
-    genProcNamePathAndOnDisk(context, pid, cred, r);
+    genProcNamePathAndOnDisk(context, pid, cred, *r);
 
     // systems usage and time information
-    genProcResourceUsage(context, pid, r);
+    genProcResourceUsage(context, pid, *r);
 
-    genProcNumThreads(context, pid, r);
+    genProcNumThreads(context, pid, *r);
 
-    genProcUniquePid(context, pid, r);
+    genProcUniquePid(context, pid, *r);
 
-    genProcArch(context, pid, r);
+    genProcArch(context, pid, *r);
 
-    results.push_back(r);
+    std::unique_ptr<TableRow> tr(r);
+    results.push_back(std::move(tr));
   }
 
   return results;
@@ -508,8 +506,8 @@ QueryData genProcessEnvs(QueryContext& context) {
   auto pidlist = getProcList(context);
   int argmax = genMaxArgs();
   for (const auto& pid : pidlist) {
-    auto args = getProcRawArgs(pid, argmax);
-    for (const auto& env : args.env) {
+    auto envs = getProcEnv(pid, argmax);
+    for (const auto& env : envs) {
       Row r;
       r["pid"] = INTEGER(pid);
       r["key"] = env.first;
@@ -588,7 +586,11 @@ void genMemoryRegion(int pid,
     r["pseudo"] = "0";
   }
 
-  r["offset"] = INTEGER(info.offset);
+  // Necessary to do an unaligned read without triggering UB
+  memory_object_offset_t offset;
+  memcpy(&offset, &info.offset, sizeof(offset));
+
+  r["offset"] = INTEGER(offset);
   r["device"] = INTEGER(info.object_id);
 
   // Fields not applicable to OS X maps.
@@ -714,8 +716,13 @@ void genProcessMemoryMap(int pid, QueryData& results, bool exe_only = false) {
     mach_msg_type_number_t count = VM_REGION_SUBMAP_INFO_COUNT_64;
 
     vm_size_t size = 0;
-    status = vm_region_recurse_64(
-        task, &address, &size, &depth, (vm_region_info_64_t)&info, &count);
+    status =
+        vm_region_recurse_64(task,
+                             &address,
+                             &size,
+                             &depth,
+                             reinterpret_cast<vm_region_recurse_info_t>(&info),
+                             &count);
 
     if (status == KERN_INVALID_ADDRESS) {
       // Reached the end of the memory map.

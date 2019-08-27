@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <chrono>
@@ -15,8 +13,9 @@
 #include <osquery/flags.h>
 #include <osquery/system.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/dispatcher/distributed_runner.h"
+#include <osquery/utils/system/time.h>
+#include <osquery/dispatcher/distributed_runner.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 
@@ -38,13 +37,13 @@ void DistributedRunner::start() {
       dist.runQueries();
     }
 
-    std::string str_acu = "0";
-    Status database = getDatabaseValue(
-        kPersistentSettings, "distributed_accelerate_checkins_expire", str_acu);
-    auto const accelerate_checkins_expire_exp =
-        tryTo<unsigned long int>(str_acu, 10);
-    if (!database.ok() || accelerate_checkins_expire_exp.isError() ||
-        getUnixTime() > accelerate_checkins_expire_exp.get()) {
+    std::string accelerate_checkins_expire_str = "-1";
+    Status status = getDatabaseValue(kPersistentSettings,
+                                     "distributed_accelerate_checkins_expire",
+                                     accelerate_checkins_expire_str);
+    if (!status.ok() || getUnixTime() > tryTo<unsigned long int>(
+                                            accelerate_checkins_expire_str, 10)
+                                            .takeOr(0ul)) {
       pause(std::chrono::seconds(FLAGS_distributed_interval));
     } else {
       pause(std::chrono::seconds(kDistributedAccelerationInterval));
@@ -55,7 +54,7 @@ void DistributedRunner::start() {
 Status startDistributed() {
   if (!FLAGS_disable_distributed) {
     Dispatcher::addService(std::make_shared<DistributedRunner>());
-    return Status(0, "OK");
+    return Status::success();
   } else {
     return Status(1, "Distributed query service not enabled.");
   }

@@ -3,10 +3,8 @@
  *  Copyright (c) 2004, Intel Corporation
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -14,6 +12,7 @@
 /**
  * @brief EFI DevicePath GUIDs, structs, and macros.
  */
+#pragma pack(push, 1)
 typedef struct {
   uint8_t Type;
   uint8_t SubType;
@@ -29,6 +28,7 @@ typedef struct {
   uint8_t MBRType;
   uint8_t SignatureType;
 } HARDDRIVE_DEVICE_PATH;
+#pragma pack(pop)
 
 #define EFI_END_ENTIRE_DEVICE_PATH 0xff
 #define EFI_END_ENTIRE_DEVICE_PATH_SUBTYPE 0xff

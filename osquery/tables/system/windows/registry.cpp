@@ -2,15 +2,11 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#define _WIN32_DCOM
-
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 /// clang-format off
 #include <LM.h>
 #include <sddl.h>
@@ -29,16 +25,19 @@
 #include <sqlite3.h>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/windows/wmi.h"
-#include "osquery/filesystem/fileops.h"
-#include "osquery/sql/sqlite_util.h"
-#include "osquery/tables/system/windows/registry.h"
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/strings.h>
+
+#include <osquery/filesystem/fileops.h>
+#include <osquery/sql/sqlite_util.h>
+#include <osquery/tables/system/windows/registry.h>
 
 namespace fs = boost::filesystem;
 
@@ -133,7 +132,7 @@ Status queryMultipleRegistryKeys(const std::vector<std::string>& regexes,
     return Status(1,
                   "Failed to finalize statement with " + std::to_string(ret));
   }
-  return Status();
+  return Status::success();
 }
 
 Status getClassName(const std::string& clsId, std::string& rClsName) {
@@ -156,7 +155,7 @@ Status getClassName(const std::string& clsId, std::string& rClsName) {
   for (const auto& row : regQueryResults) {
     if (!row.at("data").empty()) {
       rClsName = row.at("data");
-      return Status();
+      return Status::success();
     }
   }
 
@@ -186,7 +185,7 @@ Status getClassExecutables(const std::string& clsId,
       results.push_back(r.at("data"));
     }
   }
-  return Status();
+  return Status::success();
 }
 
 Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
@@ -221,7 +220,7 @@ Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
       rUsername = std::move(wstringToString(accntName));
     }
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 inline void explodeRegistryPath(const std::string& path,
@@ -240,7 +239,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
   explodeRegistryPath(keyPath, hive, key);
 
   if (kRegistryHives.count(hive) != 1) {
-    return Status();
+    return Status::success();
   }
 
   HKEY hkey;
@@ -249,7 +248,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
   reg_handle_t hRegistryHandle(hkey, closeRegHandle);
 
   if (ret != ERROR_SUCCESS) {
-    return Status(GetLastError(), "Failed to open registry handle");
+    return Status(ret, "Failed to open registry handle");
   }
 
   const DWORD maxKeyLength = 255;
@@ -273,7 +272,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
                             nullptr,
                             &ftLastWriteTime);
   if (retCode != ERROR_SUCCESS) {
-    return Status(GetLastError(), "Failed to query registry info for key");
+    return Status(retCode, "Failed to query registry info for key");
   }
   auto achKey = std::make_unique<TCHAR[]>(maxKeyLength);
   DWORD cbName;
@@ -291,7 +290,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
                              nullptr,
                              &ftLastWriteTime);
       if (retCode != ERROR_SUCCESS) {
-        return Status(GetLastError(), "Failed to enumerate registry key");
+        return Status(retCode, "Failed to enumerate registry key");
       }
 
       Row r;
@@ -305,7 +304,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
   }
 
   if (cValues <= 0) {
-    return Status();
+    return Status::success();
   }
 
   DWORD cchValue = maxKeyLength;
@@ -326,7 +325,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
                            nullptr,
                            nullptr);
     if (retCode != ERROR_SUCCESS) {
-      return Status(GetLastError(), "Failed to enumerate registry values");
+      return Status(retCode, "Failed to enumerate registry values");
     }
 
     DWORD lpData = cbMaxValueData;
@@ -339,7 +338,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
                               bpDataBuff.get(),
                               &lpData);
     if (retCode != ERROR_SUCCESS) {
-      return Status(GetLastError(), "Failed to query registry value");
+      return Status(retCode, "Failed to query registry value");
     }
 
     // It's possible for registry entries to have been inserted incorrectly
@@ -426,7 +425,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
     }
     results.push_back(r);
   }
-  return Status();
+  return Status::success();
 }
 
 static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
@@ -454,7 +453,7 @@ static inline Status populateSubkeys(std::set<std::string>& rKeys,
     }
   }
   rKeys = std::move(newKeys);
-  return Status();
+  return Status::success();
 }
 
 static inline void appendSubkeyToKeys(const std::string& subkey,
@@ -486,14 +485,14 @@ static inline Status populateAllKeysRecursive(
     }
   }
 
-  return Status();
+  return Status::success();
 }
 
 Status expandRegistryGlobs(const std::string& pattern,
                            std::set<std::string>& results) {
   auto pathElems = osquery::split(pattern, kRegSep);
   if (pathElems.size() == 0) {
-    return Status();
+    return Status::success();
   }
 
   /*
@@ -531,7 +530,7 @@ Status expandRegistryGlobs(const std::string& pattern,
       appendSubkeyToKeys(*elem, results);
     }
   }
-  return Status();
+  return Status::success();
 }
 
 static inline void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {

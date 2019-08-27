@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <mach/mach.h>
@@ -15,13 +13,12 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/utils/conversions/darwin/iokit.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/darwin/iokit.hpp"
+#include <osquery/utils/conversions/darwin/cfstring.h>
 
 namespace osquery {
 namespace tables {
@@ -70,6 +67,13 @@ static inline void genHardwareInfo(Row& r) {
   r["hardware_vendor"] = getIOKitProperty(properties, "manufacturer");
   r["hardware_model"] = getIOKitProperty(properties, "product-name");
   r["hardware_serial"] = getIOKitProperty(properties, "IOPlatformSerialNumber");
+
+  // version, manufacturer, and product-name have a trailing space
+  boost::trim(r["hardware_version"]);
+  boost::trim(r["hardware_vendor"]);
+  boost::trim(r["hardware_model"]);
+  boost::trim(r["hardware_serial"]);
+
   CFRelease(properties);
 }
 

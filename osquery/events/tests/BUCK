@@ -1,0 +1,191 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX")
+
+osquery_cxx_test(
+    name = "events_tests",
+    srcs = [
+        "events_tests.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "events_database_tests",
+    srcs = [
+        "events_database_tests.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "syslog_tests",
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/syslog_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "audit_tests",
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/audit_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "process_file_events_tests",
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/process_file_events_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "inotify_tests",
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/inotify_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "fsevents_tests",
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/fsevents_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)

@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <string>
@@ -25,8 +23,7 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/tables/networking/utils.h"
+#include <osquery/tables/networking/posix/utils.h>
 
 namespace osquery {
 namespace tables {
@@ -35,7 +32,8 @@ typedef std::pair<int, std::string> RouteType;
 typedef std::map<int, std::string> InterfaceMap;
 typedef std::vector<struct sockaddr *> AddressMap;
 
-const std::string kDefaultRoute = "0.0.0.0";
+constexpr auto kDefaultIPv4Route = "0.0.0.0";
+constexpr auto kDefaultIPv6Route = "::";
 
 const std::vector<RouteType> kRouteTypes = {
     std::make_pair(RTF_LOCAL, "local"),
@@ -90,7 +88,8 @@ Status genRoute(const struct rt_msghdr *route,
     r["gateway"] = ipAsString(addr_map[RTAX_GATEWAY]);
   }
 
-  if (r["destination"] == kDefaultRoute) {
+  if (r["destination"] == kDefaultIPv4Route ||
+      r["destination"] == kDefaultIPv6Route) {
     r["netmask"] = "0";
   } else if ((route->rtm_addrs & RTA_NETMASK) == RTA_NETMASK) {
     addr_map[RTAX_NETMASK]->sa_family = addr_map[RTAX_DST]->sa_family;
@@ -106,7 +105,7 @@ Status genRoute(const struct rt_msghdr *route,
   // Fields not supported by OSX routes:
   r["source"] = "";
   r["metric"] = "0";
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status genArp(const struct rt_msghdr *route,
@@ -133,7 +132,7 @@ Status genArp(const struct rt_msghdr *route,
     r["permanent"] = "0";
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {

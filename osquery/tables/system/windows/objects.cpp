@@ -2,22 +2,20 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/core/windows/handle.h"
 #include "osquery/core/windows/ntapi.h"
-#include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
 namespace tables {
@@ -115,7 +113,7 @@ Status enumerateObjectNamespace(const std::wstring& directory,
     objects.push_back(object);
   }
 
-  return Status();
+  return Status::success();
 }
 
 // enumerate all objects in a given windows terminal services session

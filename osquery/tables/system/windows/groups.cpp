@@ -2,15 +2,12 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#define _WIN32_DCOM
+#include <osquery/utils/system/system.h>
 
-#include <Windows.h>
 // clang-format off
 #include <LM.h>
 // clang-format on
@@ -18,12 +15,12 @@
 #include <osquery/core.h>
 #include <osquery/tables.h>
 #include <osquery/logger.h>
+#include <osquery/process/process.h>
+#include <osquery/process/windows/process_ops.h>
 
-#include "osquery/core/process.h"
-#include "osquery/core/windows/wmi.h"
-#include "osquery/core/windows/process_ops.h"
 #include "osquery/tables/system/windows/registry.h"
-#include "osquery/core/conversions.h"
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
 
@@ -66,8 +63,9 @@ void processLocalGroups(QueryData& results) {
         r["comment"] = wstringToString(lginfo[i].lgrpi1_comment);
 
         // Common schema, normalizing group information with POSIX:
-        r["gid"] = INTEGER(getRidFromSid(sidPtr));
-        r["gid_signed"] = INTEGER(getRidFromSid(sidPtr));
+        auto rid = getRidFromSid(sidPtr);
+        r["gid"] = BIGINT(rid);
+        r["gid_signed"] = INTEGER(rid);
         r["groupname"] = wstringToString(lginfo[i].lgrpi1_name);
         results.push_back(r);
       } else {

@@ -2,19 +2,20 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
+
+#include <memory>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/operations.hpp>
 
 #include <gtest/gtest.h>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/core.h>
+#include <osquery/core/sql/row.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
@@ -22,10 +23,30 @@
 #include <osquery/registry_factory.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/tests/test_util.h"
+#include <osquery/utils/system/time.h>
 
 namespace osquery {
+DECLARE_bool(disable_database);
+
+static TableRows genRows(EventSubscriberPlugin* sub) {
+  auto vtc = std::make_shared<VirtualTableContent>();
+  QueryContext context(vtc);
+  RowGenerator::pull_type generator(std::bind(&EventSubscriberPlugin::genTable,
+                                              sub,
+                                              std::placeholders::_1,
+                                              std::move(context)));
+
+  TableRows results;
+  if (!generator) {
+    return results;
+  }
+
+  while (generator) {
+    results.push_back(generator.get());
+    generator();
+  }
+  return results;
+}
 
 DECLARE_uint64(events_expiry);
 DECLARE_uint64(events_max);
@@ -33,6 +54,12 @@ DECLARE_bool(events_optimize);
 
 class EventsDatabaseTests : public ::testing::Test {
   void SetUp() override {
+    registryAndPluginInit();
+
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+
     RegistryFactory::get().registry("config_parser")->setUp();
     optimize_ = FLAGS_events_optimize;
     FLAGS_events_optimize = false;

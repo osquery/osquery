@@ -1,0 +1,44 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "librdkafka",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "a8cece2c04522243ee53fd85130c4c6e2874ba27261bef554e74afed7425641b",
+        "macos-x86_64": "61790b76923d0005734db6209d99cd2c262cf2227500261244c208918e8b79b7",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/librdkafka++.a",
+            "lib/librdkafka.a",
+        ],
+        "macos-x86_64": [
+            "lib/librdkafka++.a",
+            "lib/librdkafka.a",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+
+    ],
+    version = "0.11.3",
+    build = "0",
+    visibility = ["PUBLIC"],
+)

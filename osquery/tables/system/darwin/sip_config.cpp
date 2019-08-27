@@ -2,18 +2,15 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/core.h>
-#include <osquery/tables.h>
-#include <osquery/sql.h>
+#include <osquery/utils/conversions/darwin/iokit.h>
 #include <osquery/logger.h>
-
-#include "osquery/core/darwin/iokit.hpp"
+#include <osquery/sql.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
@@ -85,7 +82,7 @@ Status genCsrConfigFromNvram(uint32_t& config) {
   } else {
     CFRelease(properties);
     // The case where csr-active-config is cleared or not set is not an error
-    return Status(0, "csr-active-config key not found");
+    return Status::success();
   }
 }
 

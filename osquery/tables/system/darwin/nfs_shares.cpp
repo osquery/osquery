@@ -7,11 +7,11 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/utils/conversions/split.h>
 
-#include "osquery/core/conversions.h"
 
 namespace osquery {
 namespace tables {

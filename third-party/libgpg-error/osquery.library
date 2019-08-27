@@ -1,0 +1,10 @@
+library(
+    name = "libgpg-error",
+    version = "1.27",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+    ],
+    deps = [
+    ],
+)

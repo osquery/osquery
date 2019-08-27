@@ -1,0 +1,91 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD", "MACOSX")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "utils",
+    srcs = [
+        "base64.cpp",
+        "chars.cpp",
+        "only_movable.cpp",
+    ],
+    header_namespace = "osquery/utils",
+    exported_headers = [
+        "attribute.h",
+        "base64.h",
+        "chars.h",
+        "enum_class_hash.h",
+        "map_take.h",
+        "mutex.h",
+        "only_movable.h",
+        "scope_guard.h",
+    ],
+    exported_platform_headers = [
+        (
+            MACOSX,
+            [
+                "darwin/plist.h",
+            ],
+        ),
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lglog",
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/plist.mm",
+            ],
+        ),
+    ],
+    tests = [":utils_tests"],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_tp_target("glog"),
+        osquery_tp_target("boost"),
+    ],
+    exported_deps = [
+        osquery_target("osquery/logger:logger"),
+        osquery_target("osquery/utils/config:utils_config"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/utils/expected:expected"),
+        osquery_target("osquery/utils/info:info"),
+        osquery_target("osquery/utils/status:status"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "utils_tests",
+    srcs = [
+        "tests/base64.cpp",
+        "tests/chars.cpp",
+        "tests/map_take.cpp",
+        "tests/scope_guard.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":utils",
+    ],
+)
+
+osquery_cxx_library(
+    name = "attribute",
+    header_namespace = "osquery/utils",
+    exported_headers = [
+        "attribute.h",
+    ],
+    visibility = ["PUBLIC"],
+)

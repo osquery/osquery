@@ -1,0 +1,46 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "carver",
+    srcs = [
+        "carver.cpp",
+    ],
+    header_namespace = "osquery/carver",
+    exported_headers = [
+        "carver.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lgflags",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("osquery/carver/tests:carver_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/plugins:plugins"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/distributed:distributed"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/hashing:hashing"),
+        osquery_target("osquery/remote:utility"),
+        osquery_target("osquery/remote/serializers:serializer_json"),
+        osquery_target("osquery/utils:utils"),
+        osquery_tp_target("boost"),
+        osquery_tp_target("gflags"),
+    ],
+)

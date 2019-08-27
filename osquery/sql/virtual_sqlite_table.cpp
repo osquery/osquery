@@ -2,17 +2,20 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <boost/algorithm/string.hpp>
+
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
+#include <osquery/utils/info/platform_type.h>
+
+#include "osquery/sql/dynamic_table_row.h"
 #include "osquery/sql/sqlite_util.h"
 
 namespace fs = boost::filesystem;
@@ -31,10 +34,10 @@ const char* getSystemVFS(bool respect_locking) {
   return nullptr;
 }
 
-Status genSqliteQueryRow(sqlite3_stmt* stmt,
-                         QueryData& qd,
+Status genSqliteTableRow(sqlite3_stmt* stmt,
+                         TableRows& qd,
                          const fs::path& sqlite_db) {
-  Row r;
+  auto r = make_table_row();
   for (int i = 0; i < sqlite3_column_count(stmt); ++i) {
     auto column_name = std::string(sqlite3_column_name(stmt, i));
     auto column_type = sqlite3_column_type(stmt, i);
@@ -63,13 +66,13 @@ Status genSqliteQueryRow(sqlite3_stmt* stmt,
   } else {
     r["path"] = sqlite_db.string();
   }
-  qd.push_back(r);
-  return Status();
+  qd.push_back(std::move(r));
+  return Status::success();
 }
 
-Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
+Status genTableRowsForSqliteTable(const fs::path& sqlite_db,
                                   const std::string& sqlite_query,
-                                  QueryData& results,
+                                  TableRows& results,
                                   bool respect_locking) {
   sqlite3* db = nullptr;
   if (!pathExists(sqlite_db).ok()) {
@@ -99,7 +102,7 @@ Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
   }
 
   while ((sqlite3_step(stmt)) == SQLITE_ROW) {
-    auto s = genSqliteQueryRow(stmt, results, sqlite_db);
+    auto s = genSqliteTableRow(stmt, results, sqlite_db);
     if (!s.ok()) {
       break;
     }
@@ -111,4 +114,25 @@ Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
 
   return Status{};
 }
+
+Status getSqliteJournalMode(const fs::path& sqlite_db) {
+  TableRows result;
+  auto status = genTableRowsForSqliteTable(
+      sqlite_db, "PRAGMA journal_mode;", result, true);
+  if (!status.ok()) {
+    return status;
+  }
+  if (result.empty()) {
+    VLOG(1) << "PRAGMA query returned empty results";
+    return Status(1, "Could not retrieve journal mode");
+  }
+  auto resultmap = static_cast<Row>(*result[0]);
+  if (resultmap.find("journal_mode") == resultmap.end()) {
+    VLOG(1) << "journal_mode not found PRAGMA query results";
+    return Status(1, "Could not retrieve journal mode");
+  }
+  return Status(Status::kSuccessCode,
+                boost::algorithm::to_lower_copy(resultmap["journal_mode"]));
+}
+
 } // namespace osquery

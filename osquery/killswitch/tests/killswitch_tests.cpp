@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <gtest/gtest.h>
@@ -15,13 +13,19 @@
 #include <osquery/killswitch.h>
 #include <osquery/killswitch/killswitch_plugin.h>
 #include <osquery/registry.h>
-#include <osquery/tests/test_util.h>
+#include <osquery/system.h>
 
 namespace osquery {
 
 DECLARE_uint32(killswitch_refresh_rate);
 
-class KillswitchTests : public testing::Test {};
+class KillswitchTests : public testing::Test {
+public:
+  void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+  }
+};
 
 TEST_F(KillswitchTests, test_killswitch_plugin) {
   auto& rf = RegistryFactory::get();

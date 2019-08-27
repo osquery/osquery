@@ -2,26 +2,36 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/filesystem/operations.hpp>
 
+#include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
+#include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
+#include <osquery/utils/info/tool_type.h>
 
 namespace osquery {
+DECLARE_bool(disable_database);
 
 class EventsTests : public ::testing::Test {
- public:
+ protected:
   void SetUp() override {
+    kToolType = ToolType::TEST;
+    registryAndPluginInit();
+
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+
     RegistryFactory::get().registry("config_parser")->setUp();
   }
   void TearDown() override {
@@ -220,7 +230,7 @@ class TestEventPublisher
  public:
   Status setUp() override {
     smallest_ever_ += 1;
-    return Status(0, "OK");
+    return Status::success();
   }
 
   void configure() override {
@@ -334,7 +344,7 @@ static int kBellHathTolled = 0;
 Status TestTheeCallback(const EventContextRef& ec,
                         const SubscriptionContextRef& sc) {
   kBellHathTolled += 1;
-  return Status(0, "OK");
+  return Status::success();
 }
 
 class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
@@ -361,7 +371,7 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
   Status Callback(const ECRef& ec, const SCRef& sc) {
     // We don't care about the subscription or the event contexts.
     bellHathTolled = true;
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status SpecialCallback(const ECRef& ec, const SCRef& sc) {
@@ -369,7 +379,7 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
     if (ec->required_value == 42) {
       contextBellHathTolled = true;
     }
-    return Status(0, "OK");
+    return Status::success();
   }
 
   void lateInit() {
@@ -463,6 +473,7 @@ TEST_F(EventsTests, test_event_subscriber_configure) {
         "\"interval\": 10}, \"2\":{\"query\": \"select * from time, "
         "fake_events\", \"interval\": 19}, \"3\":{\"query\": \"select * "
         "from fake_events, fake_events\", \"interval\": 5}}}"}});
+
   // This will become 19 * 3, rounded up 60.
   EXPECT_EQ(sub->min_expiration_, 60U);
   EXPECT_EQ(sub->query_count_, 3U);

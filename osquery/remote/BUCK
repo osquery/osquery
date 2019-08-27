@@ -1,0 +1,79 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "requests",
+    srcs = ["requests.cpp"],
+    header_namespace = "osquery/remote",
+    exported_headers = ["requests.h"],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lssl",
+                "-lz",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery:headers"),
+        osquery_target("osquery/utils/status:status"),
+        osquery_target("osquery/logger:logger"),
+        osquery_tp_target("boost"),
+        osquery_tp_target("openssl", "ssl"),
+        osquery_tp_target("zlib"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "http_client",
+    srcs = [
+        "http_client.cpp",
+        "uri.cpp",
+    ],
+    header_namespace = "osquery/remote",
+    exported_headers = [
+        "http_client.h",
+        "uri.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lssl",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery:headers"),
+        osquery_target("osquery/utils/status:status"),
+        osquery_tp_target("boost"),
+        osquery_tp_target("openssl", "ssl"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "utility",
+    header_namespace = "osquery/remote",
+    exported_headers = ["utility.h"],
+    tests = [
+        osquery_target("osquery/remote/tests:requests_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/process:process"),
+        osquery_target("osquery/remote/transports:transports_tls"),
+        ":http_client",
+        ":requests",
+    ],
+)

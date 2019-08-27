@@ -2,30 +2,30 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <string>
 
 // clang-format off
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 #include <SetupAPI.h>
 #include <initguid.h>
 #include <Devpkey.h>
 #include <cfgmgr32.h>
 // clang-format on
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/regex.hpp>
 
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/windows/wmi.h"
-#include "osquery/filesystem/fileops.h"
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/core/windows/wmi.h>
+#include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/filesystem/fileops.h>
 
 namespace osquery {
 namespace tables {
@@ -111,7 +111,7 @@ Status getDeviceList(const device_infoset_t& infoset,
     return Status::failure("Failed to enumerate installed devices with " +
                            std::to_string(GetLastError()));
   }
-  return Status();
+  return Status::success();
 }
 
 Status getDeviceProperty(const device_infoset_t& infoset,
@@ -124,7 +124,7 @@ Status getDeviceProperty(const device_infoset_t& infoset,
       infoset.get(), &device, &prop, &dev_prop_type, nullptr, 0, &buff_size, 0);
   auto err = GetLastError();
   if (err == ERROR_NOT_FOUND) {
-    return Status();
+    return Status::success();
   }
   if (err != ERROR_INSUFFICIENT_BUFFER) {
     return Status::failure(
@@ -164,7 +164,7 @@ Status getDeviceProperty(const device_infoset_t& infoset,
                            std::to_string(dev_prop_type));
   }
 
-  return Status();
+  return Status::success();
 }
 
 std::string getDriverImagePath(const std::string& service_key) {
@@ -202,7 +202,7 @@ Status genServiceKeyMap(
     }
     services_image_map[key_it->second] = kNormalizeImage(data_it->second);
   }
-  return Status();
+  return Status::success();
 }
 
 QueryData genDrivers(QueryContext& context) {

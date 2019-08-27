@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <algorithm>
@@ -17,12 +15,23 @@
 #include <gtest/gtest.h>
 
 #include <osquery/query.h>
-
-#include "osquery/tests/test_util.h"
+#include <osquery/sql/tests/sql_test_utils.h>
+#include <osquery/system.h>
+#include <osquery/tests/test_util.h>
 
 namespace osquery {
 
-class QueryTests : public testing::Test {};
+DECLARE_bool(disable_database);
+DECLARE_bool(log_numerics_as_numbers);
+class QueryTests : public testing::Test {
+ public:
+  QueryTests() {
+    registryAndPluginInit();
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+};
 
 TEST_F(QueryTests, test_private_members) {
   auto query = getOsqueryScheduledQuery();
@@ -31,6 +40,7 @@ TEST_F(QueryTests, test_private_members) {
 }
 
 TEST_F(QueryTests, test_add_and_get_current_results) {
+  FLAGS_log_numerics_as_numbers = true;
   // Test adding a "current" set of results to a scheduled query instance.
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);

@@ -1,0 +1,31 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_python_library")
+
+osquery_tp_prebuilt_python_library(
+    name = "markupsafe",
+    filenames = {
+        "freebsd-x86_64": "py36-MarkupSafe-1.0.zip",
+        "linux-x86_64": "MarkupSafe-1.1.0-cp37-cp37m-manylinux1_x86_64.whl",
+        "macos-x86_64": "MarkupSafe-1.1.0-cp37-cp37m-macosx_10_6_intel.whl",
+        "windows-x86_64": "MarkupSafe-1.1.0-cp36-cp36m-win_amd64.whl",
+    },
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "freebsd-x86_64",
+        "windows-x86_64",
+    ],
+    sha1sums = {
+        "freebsd-x86_64": "925a0b34f901f99aeadd4d91a1dd676b3eed494f",
+        "linux-x86_64": "17ad72c7ce71a33144455048af1a5a3538ca1750",
+        "macos-x86_64": "eb3e78cf203e2cd0eaa406ccf157cb613f9f28d8",
+        "windows-x86_64": "0bbf7dc728394c47e375cb62e6690ab8cc5fa396",
+    },
+)

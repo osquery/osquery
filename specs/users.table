@@ -14,6 +14,10 @@ schema([
 extended_schema(WINDOWS, [
     Column("type", TEXT, "Whether the account is roaming (domain), local, or a system profile"),
 ])
+
+extended_schema(DARWIN, [
+    Column("is_hidden", INTEGER, "IsHidden attribute set in OpenDirectory")
+])
 implementation("users@genUsers")
 examples([
   "select * from users where uid = 1000",

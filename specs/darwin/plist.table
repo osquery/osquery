@@ -4,7 +4,7 @@ schema([
     Column("key", TEXT, "Preference top-level key"),
     Column("subkey", TEXT, "Intemediate key path, includes lists/dicts"),
     Column("value", TEXT, "String value of most CF types"),
-    Column("path", TEXT, "(optional) read preferences from a plist",
+    Column("path", TEXT, "(required) read preferences from a plist",
       required=True),
 ])
 implementation("system/darwin/preferences@genOSXPlist")

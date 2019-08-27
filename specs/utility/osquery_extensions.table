@@ -3,7 +3,7 @@ description("List of active osquery extensions.")
 schema([
     Column("uuid", BIGINT, "The transient ID assigned for communication"),
     Column("name", TEXT, "Extension's name"),
-    Column("version", TEXT, "Extenion's version"),
+    Column("version", TEXT, "Extension's version"),
     Column("sdk_version", TEXT, "osquery SDK version used to build the extension"),
     Column("path", TEXT, "Path of the extenion's domain socket or library path"),
     Column("type", TEXT, "SDK extension type: extension or module")

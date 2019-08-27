@@ -23,6 +23,7 @@ extended_schema(WINDOWS, [
     Column("attributes", TEXT, "File attrib string. See: https://ss64.com/nt/attrib.html"),
     Column("volume_serial", TEXT, "Volume serial number"),
     Column("file_id", TEXT, "file ID"),
+    Column("product_version", TEXT, "File product version"),
 ])
 attributes(utility=True)
 implementation("utility/file@genFile")

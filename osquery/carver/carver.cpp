@@ -2,34 +2,32 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#ifdef WIN32
-#define _WIN32_DCOM
-
-#include <Windows.h>
-#endif
+// clang-format off
+// Keep it on top of all other includes to fix double include WinSock.h header file
+// which is windows specific boost build problem
+#include <osquery/remote/utility.h>
+// clang-format on
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/carver/carver.h>
 #include <osquery/database.h>
 #include <osquery/distributed.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/flags.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/logger.h>
+#include <osquery/remote/serializers/json.h>
 #include <osquery/system.h>
+#include <osquery/utils/base64.h>
+#include <osquery/utils/json/json.h>
 
-#include "osquery/carver/carver.h"
-#include "osquery/core/base64.h"
-#include "osquery/core/conversions.h"
-#include "osquery/core/hashing.h"
-#include "osquery/core/json.h"
-#include "osquery/filesystem/fileops.h"
-#include "osquery/remote/serializers/json.h"
-#include "osquery/remote/utility.h"
+#include <osquery/utils/system/system.h>
+#include <osquery/utils/system/time.h>
 
 namespace fs = boost::filesystem;
 
@@ -170,7 +168,7 @@ void Carver::start() {
     carvedFiles.insert(fs::path(p));
   }
 
-  auto s = archive(carvedFiles, archivePath_);
+  auto s = archive(carvedFiles, archivePath_, FLAGS_carver_block_size);
   if (!s.ok()) {
     VLOG(1) << "Failed to create carve archive: " << s.getMessage();
     updateCarveValue(carveGuid_, "status", "ARCHIVE FAILED");
@@ -224,7 +222,6 @@ Status Carver::carve(const boost::filesystem::path& path) {
 
   std::vector<char> inBuff(FLAGS_carver_block_size, 0);
   for (size_t i = 0; i < blkCount; i++) {
-    inBuff.clear();
     auto bytesRead = src.read(inBuff.data(), FLAGS_carver_block_size);
     if (bytesRead > 0) {
       auto bytesWritten = dst.write(inBuff.data(), bytesRead);
@@ -234,7 +231,7 @@ Status Carver::carve(const boost::filesystem::path& path) {
     }
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 };
 
 Status Carver::postCarve(const boost::filesystem::path& path) {
@@ -307,7 +304,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   }
 
   updateCarveValue(carveGuid_, "status", "SUCCESS");
-  return Status(0, "Ok");
+  return Status::success();
 };
 
 Status carvePaths(const std::set<std::string>& paths) {

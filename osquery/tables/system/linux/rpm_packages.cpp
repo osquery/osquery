@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <rpm/header.h>
@@ -18,12 +16,19 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/process.h"
+// librpm may be configured and compiled with glibc < 2.17.
+#if defined(__GLIBC__) && __GLIBC_MINOR__ > 17
+extern "C" char* __secure_getenv(const char* _s) __attribute__((weak));
+extern "C" char* __secure_getenv(const char* _s) {
+  return secure_getenv(_s);
+}
+#endif
 
 namespace osquery {
 namespace tables {
@@ -150,6 +155,7 @@ QueryData genRpmPackages(QueryContext& context) {
     r["size"] = getRpmAttribute(header, RPMTAG_SIZE, td);
     r["sha1"] = getRpmAttribute(header, RPMTAG_SHA1HEADER, td);
     r["arch"] = getRpmAttribute(header, RPMTAG_ARCH, td);
+    r["epoch"] = INTEGER(getRpmAttribute(header, RPMTAG_EPOCH, td));
 
     rpmtdFree(td);
     results.push_back(r);
@@ -207,7 +213,7 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
 
     // Iterate over every file in this package.
     for (size_t i = 0; rpmfiNext(fi) >= 0 && i < file_count; i++) {
-      Row r;
+      auto r = make_table_row();
       auto path = rpmfiFN(fi);
       r["package"] = package_name;
       r["path"] = (path != nullptr) ? path : "";
@@ -224,7 +230,7 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
         r["sha256"] = (digest != nullptr) ? digest : "";
       }
 
-      yield(r);
+      yield(std::move(r));
     }
 
     rpmfiFree(fi);

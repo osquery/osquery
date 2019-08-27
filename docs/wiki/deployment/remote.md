@@ -1,4 +1,4 @@
-osquery's remote configuration and logger plugins are completely optional. The only built-in optional plugins are **tls**. They very simply, receive and report via **https:// ** URI endpoints. osquery provides somewhat flexible node (the machine running osquery) authentication and identification though an 'enrollment' concept.
+osquery's remote configuration and logger plugins are completely optional. The only built-in optional plugins are **tls**. They very simply, receive and report via **https://** URI endpoints. osquery provides somewhat flexible node (the machine running osquery) authentication and identification though an 'enrollment' concept.
 
 The remote settings and plugins are mostly provided as examples. It is best to write custom plugins that implement specific web services or integrations. The remote settings uses a lot of additional [CLI-flags](../installation/cli-flags.md) for configuring the osquery clients, they are mostly organized under the **Remote Settings** heading.
 
@@ -193,9 +193,7 @@ Additionally, the osquery TLS clients use a `osquery/X.Y.Z` UserAgent, where "X.
 
 ## Example projects
 
-Heroku maintains a great project called [Windmill](https://github.com/heroku/windmill), which implements the TLS remote settings API. It includes great documentation on compatibility, configuration, authentication, and enrollment. It is also a great place to start if you are considering writing an integration to the osquery remote settings API.
-
-[Doorman](https://github.com/mwielgoszewski/doorman) is another project that implements the TLS remote settings API. Doorman uses "tags", which can be applied to nodes, packs, and queries, in order to dynamically generate configurations for a unique set or all nodes being managed. Doorman also supports the distributed read and write API, allowing an administrator to schedule ad-hoc queries to be run immediately or in the future.
+[Doorman](https://github.com/mwielgoszewski/doorman) is a project that implements the TLS remote settings API. Doorman uses "tags", which can be applied to nodes, packs, and queries, in order to dynamically generate configurations for a unique set or all nodes being managed. Doorman also supports the distributed read and write API, allowing an administrator to schedule ad-hoc queries to be run immediately or in the future.
 
 [Zentral](https://github.com/zentralopensource/zentral) is a Framework and Django based web server, which implements the TLS remote settings API. Zentral will dynamically generate configurations in "probes", these can contain packs and single queries. Probes process events with input filters (added, removed, "tags", etc.), optionally trigger output actions, and notifications for results returned. Scope for "probes" is available for all devices, business units, and "tagged" device groups, sharding for "probes" is available for scopes. Zentral also supports the distributed read and write API to schedule ad-hoc queries.
 

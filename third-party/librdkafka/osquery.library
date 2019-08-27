@@ -1,0 +1,11 @@
+library(
+    name = "librdkafka",
+    version = "0.11.3",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    deps = [
+    ],
+)

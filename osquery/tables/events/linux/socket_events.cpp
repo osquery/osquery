@@ -2,22 +2,22 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <asm/unistd_64.h>
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/events/linux/auditeventpublisher.h>
+#include <osquery/events/linux/socket_events.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/events/linux/auditeventpublisher.h"
-#include "osquery/tables/events/linux/socket_events.h"
+#include <osquery/tables/events/linux/socket_events.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/uptime.h>
 
 namespace osquery {
 
@@ -30,11 +30,6 @@ HIDDEN_FLAG(bool,
             audit_allow_unix,
             false,
             "Allow socket events to collect domain sockets");
-
-// Depend on the external getUptime table method.
-namespace tables {
-extern long getUptime();
-}
 
 std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
   long const result = tryTo<long>(saddr.substr(offset, 8), 16).takeOr(0l);
@@ -113,7 +108,7 @@ Status SocketEventSubscriber::init() {
   auto sc = createSubscriptionContext();
   subscribe(&SocketEventSubscriber::Callback, sc);
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
@@ -124,7 +119,7 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   }
 
   addBatch(emitted_row_list);
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 Status SocketEventSubscriber::ProcessEvents(
@@ -186,7 +181,7 @@ Status SocketEventSubscriber::ProcessEvents(
     row["fd"] = syscall_event_record->fields.at("a0");
     row["success"] =
         (syscall_event_record->fields.at("success") == "yes") ? "1" : "0";
-    row["uptime"] = std::to_string(tables::getUptime());
+    row["uptime"] = std::to_string(getUptime());
 
     // Set some sane defaults and then attempt to parse the sockaddr value
     row["protocol"] = '0';
@@ -208,11 +203,10 @@ Status SocketEventSubscriber::ProcessEvents(
     emitted_row_list.push_back(row);
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 const std::set<int>& SocketEventSubscriber::GetSyscallSet() noexcept {
-  static const std::set<int> syscall_set = {__NR_bind, __NR_connect};
-  return syscall_set;
+  return kSocketEventsSyscalls;
 }
 } // namespace osquery

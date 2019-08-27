@@ -2,20 +2,18 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
 
+#include <memory>
+
 #include <boost/noncopyable.hpp>
 
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/sql/sqlite_util.h"
+#include <osquery/sql/sqlite_util.h>
 
 namespace osquery {
 
@@ -43,13 +41,13 @@ struct BaseCursor : private boost::noncopyable {
   size_t id{0};
 
   /// Table data generated from last access.
-  QueryData data;
+  TableRows rows;
 
   /// Callable generator.
   std::unique_ptr<RowGenerator::pull_type> generator{nullptr};
 
   /// Results of current call.
-  Row current;
+  TableRowHolder current;
 
   /// Does the backing local table use a generator type.
   bool uses_generator{false};
@@ -72,7 +70,7 @@ struct VirtualTable : private boost::noncopyable {
   sqlite3_vtab base;
 
   /// Added structure: A content structure with metadata about the table.
-  VirtualTableContent* content{nullptr};
+  std::shared_ptr<VirtualTableContent> content;
 
   /// Added structure: The thread-local DB instance associated with the query.
   SQLiteDBInstance* instance{nullptr};

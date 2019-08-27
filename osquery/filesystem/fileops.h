@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -17,7 +15,7 @@
 #ifdef WIN32
 #include <iomanip>
 #include <map>
-#include <windows.h>
+#include <osquery/utils/system/system.h>
 #else
 #include <unistd.h>
 #endif
@@ -29,7 +27,8 @@
 #include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
 
-#include <osquery/status.h>
+#include <osquery/utils/status/status.h>
+#include <osquery/utils/system/env.h>
 
 namespace osquery {
 
@@ -91,6 +90,7 @@ typedef struct win_stat {
   std::string type;
   std::string attributes;
   std::string volume_serial;
+  std::string product_version;
 
 } WINDOWS_STAT;
 
@@ -150,6 +150,8 @@ LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
 std::string getFileAttribStr(unsigned long);
 
 Status platformStat(const boost::filesystem::path&, WINDOWS_STAT*);
+
+std::unique_ptr<BYTE[]> getCurrentUserInfo();
 
 /**
  * @brief Stores information about the last Windows async request

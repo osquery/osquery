@@ -15,7 +15,7 @@ lrwxr-xr-x   1 root  wheel    77 Sep 30 17:37 osqueryd.INFO -> osqueryd.INFO.201
 -rw-------   1 root  wheel   388 Sep 30 17:37 osqueryd.results.log
 ```
 
-On Windows this directory defaults to `C:\ProgramData\osquery\log`.
+On Windows this directory defaults to `C:\Program Files\osquery\log`.
 
 ## Logger plugins
 

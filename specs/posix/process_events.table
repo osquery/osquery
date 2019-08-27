@@ -38,5 +38,8 @@ schema([
 extended_schema(DARWIN, [
     Column("status", BIGINT, "OpenBSM Attribute: Status of the process"),
 ])
+extended_schema(LINUX, [
+    Column("syscall", TEXT, "Syscall name: fork, vfork, clone, execve, execveat"),
+])
 attributes(event_subscriber=True)
 implementation("process_events@process_events::genTable")

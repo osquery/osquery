@@ -1,78 +1,72 @@
-#  Copyright (c) 2014-present, Facebook, Inc.
-#  All rights reserved.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-# Generate the thrift intermediate/interface code.
-set(THRIFT_IMPL_FILE "${CMAKE_CURRENT_LIST_DIR}/impl_thrift.cpp")
+function(osqueryExtensionsMain)
+  add_subdirectory("thrift")
 
-if(LINUX OR DARWIN)
-  if(DEFINED ENV{FBTHRIFT})
-    add_custom_command(
-      COMMAND
-        LD_LIBRARY_PATH=${BUILD_DEPS}/lib:$ENV{LD_LIBRARY_PATH}
-        ${THRIFT_COMPILER} --gen mstch_cpp2:stack_arguments,include_prefix=generated --gen py:no_utf8strings
-        --templates "${BUILD_DEPS}/include/thrift/templates"
-        -o "${CMAKE_BINARY_DIR}/generated"
-        "${CMAKE_SOURCE_DIR}/osquery.thrift"
-      DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
-      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
-      OUTPUT ${THRIFT_GENERATED_FILES}
-    )
-    add_definitions(-DFBTHRIFT -Wno-c++17-extensions)
-
-    ADD_OSQUERY_LINK_CORE("libfolly.so")
-    ADD_OSQUERY_LINK_CORE("libsnappy.so")
-    ADD_OSQUERY_LINK_CORE("wangle")
-    ADD_OSQUERY_LINK_CORE("mstch")
-    ADD_OSQUERY_LINK_CORE("gssapi_krb5")
-    ADD_OSQUERY_LINK_CORE("event")
-    ADD_OSQUERY_LINK_CORE("double-conversion")
-
-    # FBThrift static libraries.
-    ADD_OSQUERY_LINK_CORE("thriftcpp2 thrift-core thriftprotocol thriftfrozen2")
-    ADD_OSQUERY_LINK_CORE("transport server concurrency security protocol async")
-    ADD_OSQUERY_LINK_CORE("crypto ssl")
-
-    set(THRIFT_IMPL_FILE "${CMAKE_CURRENT_LIST_DIR}/impl_fbthrift.cpp")
-  else()
-    add_custom_command(
-      COMMAND
-        LD_LIBRARY_PATH=${BUILD_DEPS}/lib:$ENV{LD_LIBRARY_PATH}
-        ${THRIFT_COMPILER} --gen cpp --gen py:no_utf8strings
-        "${CMAKE_SOURCE_DIR}/osquery.thrift"
-      DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
-      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
-      OUTPUT ${THRIFT_GENERATED_FILES}
-    )
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
   endif()
-else()
-  add_custom_command(
-    COMMAND
-      ${THRIFT_COMPILER} --gen cpp --gen py:no_utf8strings
-        "${CMAKE_SOURCE_DIR}/osquery.thrift"
-    DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
-    OUTPUT ${THRIFT_GENERATED_FILES}
+
+  generateOsqueryExtensions()
+  generateOsqueryExtensionsImplthrift()
+  generateOsqueryExtensionsExtensionsinterface()
+endfunction()
+
+function(generateOsqueryExtensions)
+  add_osquery_library(osquery_extensions EXCLUDE_FROM_ALL extensions.cpp)
+
+  enableLinkWholeArchive(osquery_extensions)
+
+  target_link_libraries(osquery_extensions PUBLIC
+    global_cxx_settings
+    osquery_extensions_extensionsinterface
+    osquery_core
+    osquery_process
+    osquery_utils
+    osquery_utils_conversions
   )
-endif()
 
-if(NOT WINDOWS)
-  add_compile_options(
-    -Wno-macro-redefined
+  add_test(NAME osquery_extensions_extensiontests-test COMMAND osquery_extensions_extensiontests-test)
+endfunction()
+
+function(generateOsqueryExtensionsImplthrift)
+  add_osquery_library(osquery_extensions_implthrift EXCLUDE_FROM_ALL impl_thrift.cpp)
+
+  enableLinkWholeArchive(osquery_extensions_implthrift)
+
+  if(DEFINED PLATFORM_FREEBSD)
+    target_link_options(osquery_extensions_implthrift PUBLIC -lthrift)
+  endif()
+
+  target_link_libraries(osquery_extensions_implthrift PUBLIC
+    global_cxx_settings
+    osquery_extensions_extensionsinterface
+    osquery_core
+    osquery_extensions_thrift_osquerycpp2
+    osquery_process
+    osquery_utils
+    osquery_utils_conversions
   )
-endif()
+endfunction()
 
-ADD_OSQUERY_LIBRARY_CORE(osquery_extensions
-    ${THRIFT_GENERATED_FILES}
-    ${THRIFT_IMPL_FILE}
-    "${CMAKE_CURRENT_LIST_DIR}/extensions.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/interface.cpp"
-)
+function(generateOsqueryExtensionsExtensionsinterface)
+  add_osquery_library(osquery_extensions_extensionsinterface EXCLUDE_FROM_ALL interface.cpp)
 
-ADD_OSQUERY_TEST_CORE(
-  "${CMAKE_CURRENT_LIST_DIR}/tests/extensions_tests.cpp"
-)
+  set(public_header_files
+    interface.h
+  )
+
+  target_link_libraries(osquery_extensions_extensionsinterface PUBLIC
+    global_cxx_settings
+    osquery_headers
+    osquery_filesystem
+  )
+
+  generateIncludeNamespace(osquery_extensions_extensionsinterface "osquery/extensions" "FILE_ONLY" ${public_header_files})
+endfunction()
+
+osqueryExtensionsMain()

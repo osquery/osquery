@@ -1,0 +1,131 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "events",
+    header_namespace = "osquery/events",
+    exported_headers = [
+        "pathset.h",
+    ],
+    exported_platform_headers = [
+        (
+            LINUX,
+            [
+                "linux/auditdnetlink.h",
+                "linux/auditeventpublisher.h",
+                "linux/inotify.h",
+                "linux/process_events.h",
+                "linux/process_file_events.h",
+                "linux/selinux_events.h",
+                "linux/socket_events.h",
+                "linux/syslog.h",
+                "linux/udev.h",
+            ],
+        ),
+        (
+            MACOSX,
+            [
+                "darwin/diskarbitration.h",
+                "darwin/event_taps.h",
+                "darwin/fsevents.h",
+                "darwin/iokit.h",
+                "darwin/openbsm.h",
+                "darwin/scnetwork.h",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/windows_event_log.h",
+            ],
+        ),
+    ],
+    link_whole = True,
+    platform_deps = [
+        (
+            LINUX,
+            [
+                osquery_tp_target("libaudit"),
+                osquery_tp_target("libudev"),
+                osquery_tp_target("util-linux"),
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/auditdnetlink.cpp",
+                "linux/auditeventpublisher.cpp",
+                "linux/inotify.cpp",
+                "linux/syslog.cpp",
+                "linux/udev.cpp",
+            ],
+        ),
+        (
+            MACOSX,
+            [
+                "darwin/diskarbitration.cpp",
+                "darwin/event_taps.cpp",
+                "darwin/fsevents.cpp",
+                "darwin/iokit.cpp",
+                "darwin/openbsm.cpp",
+                "darwin/scnetwork.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/windows_event_log.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("osquery/events/tests:events_tests"),
+        osquery_target("osquery/events/tests:syslog_tests"),
+        osquery_target("osquery/events/tests:audit_tests"),
+        osquery_target("osquery/events/tests:events_database_tests"),
+        osquery_target("osquery/events/tests:fsevents_tests"),
+        osquery_target("osquery/events/tests:inotify_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":events_registry",
+        osquery_target("osquery:headers"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/config:config"),
+        osquery_target("osquery/hashing:hashing"),
+        osquery_target("osquery/sql:sql"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/utils/expected:expected"),
+        osquery_target("osquery/utils/system:time"),
+        osquery_tp_target("boost"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "events_registry",
+    srcs = [
+        "events.cpp",
+    ],
+    header_namespace = "osquery/events",
+    link_whole = True,
+    tests = [
+        osquery_target("osquery/events/tests:events_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/dispatcher:dispatcher"),
+        osquery_target("osquery/sql:sql"),
+        osquery_target("osquery:headers"),
+    ],
+)

@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -81,7 +79,7 @@ void jsonPrint(const QueryData& q);
  *
  * @param r A row to analyze
  * @param lengths A mutable set of column lengths
- * @param use_columns Calulate lengths of column names or values
+ * @param use_columns Calculate lengths of column names or values
  *
  * @return A map of string to int such that the key represents the "column" in
  * the supplied QueryData and the int represents the length of the longest key

@@ -2,24 +2,50 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #ifndef WIN32
 #include <sys/wait.h>
+#else
+#include <Shlwapi.h>
+#include <osquery/utils/system/system.h>
 #endif
+
+#include <boost/format.hpp>
 
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
+#include <osquery/process/process.h>
 
-#include "osquery/core/process.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/tests/test_util.h>
 
 namespace osquery {
+
+std::string kProcessTestExecPath;
+
+/// This is the expected base name of the test process.
+const char* kOsqueryTestModuleName = "osquery_core_tests_processtests-test";
+
+/// These are the expected arguments for our test worker process.
+const char* kExpectedWorkerArgs[] = {
+    nullptr, "--socket", "fake-socket", nullptr};
+const size_t kExpectedWorkerArgsCount =
+    (sizeof(osquery::kExpectedWorkerArgs) / sizeof(char*)) - 1;
+
+/// These are the expected arguments for our test extensions process.
+const char* kExpectedExtensionArgs[] = {nullptr,
+                                        "--verbose",
+                                        "--socket",
+                                        "socket-name",
+                                        "--timeout",
+                                        "100",
+                                        "--interval",
+                                        "5",
+                                        nullptr};
+const size_t kExpectedExtensionArgsCount =
+    (sizeof(osquery::kExpectedExtensionArgs) / sizeof(char*)) - 1;
 
 /// Unlike checkChildProcessStatus, this will block until process exits.
 static bool getProcessExitCode(osquery::PlatformProcess& process,
@@ -59,6 +85,27 @@ static bool getProcessExitCode(osquery::PlatformProcess& process,
   }
 #endif
   return false;
+}
+
+static bool compareArguments(char* result[],
+                             unsigned int result_nelms,
+                             const char* expected[],
+                             unsigned int expected_nelms) {
+  if (result_nelms != expected_nelms) {
+    return false;
+  }
+
+  for (size_t i = 0; i < expected_nelms; i++) {
+    if (strlen(result[i]) != strlen(expected[i])) {
+      return false;
+    }
+
+    if (strncmp(result[i], expected[i], strlen(expected[i])) != 0) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 class ProcessTests : public testing::Test {};
@@ -167,4 +214,100 @@ TEST_F(ProcessTests, test_launchWorker) {
     EXPECT_EQ(code, WORKER_SUCCESS_CODE);
   }
 }
+
+} // namespace osquery
+
+int workerMain(int argc, char* argv[]) {
+  if (!osquery::compareArguments(argv,
+                                 argc,
+                                 osquery::kExpectedWorkerArgs,
+                                 osquery::kExpectedWorkerArgsCount)) {
+    return ERROR_COMPARE_ARGUMENT;
+  }
+
+  auto process = osquery::PlatformProcess::getLauncherProcess();
+  if (process == nullptr) {
+    return ERROR_LAUNCHER_PROCESS;
+  }
+
+#ifdef WIN32
+  CHAR buffer[1024] = {0};
+  DWORD size = 1024;
+  if (!QueryFullProcessImageNameA(process->nativeHandle(), 0, buffer, &size)) {
+    return ERROR_QUERY_PROCESS_IMAGE;
+  }
+  PathStripPathA(buffer);
+
+  auto image_length = strlen(buffer);
+  auto image_length_without_ext = image_length - 4;
+  auto* dot_pos = strrchr(buffer, '.');
+
+  if (image_length_without_ext < 0)
+    return ERROR_IMAGE_NAME_LENGTH;
+
+  if (image_length_without_ext != strlen(osquery::kOsqueryTestModuleName)) {
+    return ERROR_IMAGE_NAME_LENGTH;
+  }
+
+  if (strncmp(buffer,
+              osquery::kOsqueryTestModuleName,
+              image_length_without_ext) != 0) {
+    return ERROR_LAUNCHER_MISMATCH;
+  }
+
+  if (strncmp(dot_pos, ".exe", 4) != 0) {
+    return ERROR_LAUNCHER_MISMATCH;
+  }
+#else
+  const auto parent_pid = getppid();
+  if (process->nativeHandle() != parent_pid) {
+    return ERROR_LAUNCHER_MISMATCH;
+  }
+#if OSQUERY_LINUX
+  auto cmdline = std::array<char, 1024>();
+  {
+    const auto cmdline_file_path =
+        (boost::format("/proc/%d/cmdline") % parent_pid).str();
+    std::ifstream cmdline_file(cmdline_file_path);
+    cmdline_file.getline(cmdline.data(), 1024);
+  }
+
+  const auto* process_name = basename(cmdline.data());
+
+  if (strlen(process_name) != strlen(osquery::kOsqueryTestModuleName)) {
+    return ERROR_IMAGE_NAME_LENGTH;
+  }
+
+  if (strncmp(process_name, osquery::kOsqueryTestModuleName, 1024) != 0) {
+    return ERROR_LAUNCHER_MISMATCH;
+  }
+#endif
+
+#endif
+  return WORKER_SUCCESS_CODE;
+}
+
+int extensionMain(int argc, char* argv[]) {
+  if (!osquery::compareArguments(argv,
+                                 argc,
+                                 osquery::kExpectedExtensionArgs,
+                                 osquery::kExpectedExtensionArgsCount)) {
+    return ERROR_COMPARE_ARGUMENT;
+  }
+  return EXTENSION_SUCCESS_CODE;
+}
+
+int main(int argc, char* argv[]) {
+  osquery::kProcessTestExecPath = argv[0];
+  osquery::kExpectedExtensionArgs[0] = argv[0];
+  osquery::kExpectedWorkerArgs[0] = argv[0];
+
+  if (auto val = osquery::getEnvVar("OSQUERY_WORKER")) {
+    return workerMain(argc, argv);
+  } else if ((val = osquery::getEnvVar("OSQUERY_EXTENSION"))) {
+    return extensionMain(argc, argv);
+  }
+
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

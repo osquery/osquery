@@ -1,0 +1,10 @@
+table_name("ibridge_info")
+description("Information about the Apple iBridge hardware controller.")
+schema([
+    Column("boot_uuid", TEXT, "Boot UUID of the iBridge controller"),
+    Column("coprocessor_version", TEXT, "The manufacturer and chip version"),
+    Column("firmware_version", TEXT, "The build version of the firmware"),
+    Column("unique_chip_id", TEXT, "Unique id of the iBridge controller"),
+])
+attributes(cacheable=True)
+implementation("system/ibridge@genIBridgeInfo")

@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <linux/limits.h>
@@ -13,11 +11,11 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/filesystem/linux/proc.h>
+#include <osquery/utils/conversions/split.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/filesystem/linux/proc.h"
 
 namespace osquery {
 const std::vector<std::string> kUserNamespaceList = {
@@ -56,7 +54,7 @@ Status procGetNamespaceInode(ino_t& inode,
     return Status(1, "Invalid inode value in descriptor for namespace " + path);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status procGetProcessNamespaces(const std::string& process_id,
@@ -81,7 +79,7 @@ Status procGetProcessNamespaces(const std::string& process_id,
     namespace_list[namespace_name] = namespace_inode;
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string procDecodeAddressFromHex(const std::string& encoded_address,

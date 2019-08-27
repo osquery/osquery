@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/sdk.h>
@@ -17,12 +15,12 @@ class ExampleConfigPlugin : public ConfigPlugin {
  public:
   Status setUp() {
     LOG(WARNING) << "ExampleConfigPlugin setting up";
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status genConfig(std::map<std::string, std::string>& config) {
     config["data"] = "{\"queries\":{}}";
-    return Status(0, "OK");
+    return Status::success();
   }
 };
 
@@ -36,14 +34,14 @@ class ExampleTable : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& request) {
-    QueryData results;
+  TableRows generate(QueryContext& request) {
+    TableRows results;
 
-    Row r;
+    auto r = make_table_row();
     r["example_text"] = "example";
     r["example_integer"] = INTEGER(1);
 
-    results.push_back(r);
+    results.push_back(std::move(r));
     return results;
   }
 };
@@ -70,8 +68,8 @@ class ComplexExampleTable : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& request) {
-    Row r;
+  TableRows generate(QueryContext& request) {
+    auto r = make_table_row();
 
     // Use the basic 'force' flag to check implicit SQL usage.
     auto flags =
@@ -86,7 +84,9 @@ class ComplexExampleTable : public TablePlugin {
       r["database_test"] = content;
     }
 
-    return {r};
+    TableRows result;
+    result.push_back(std::move(r));
+    return result;
   }
 };
 

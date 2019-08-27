@@ -1,21 +1,15 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
-. "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\\osquery_utils.ps1"
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
 
-$serviceName = 'osqueryd'
-$serviceDescription = 'osquery daemon service'
-$progData = [System.Environment]::GetEnvironmentVariable('ProgramData')
-$targetFolder = Join-Path $progData 'osquery'
-$daemonFolder = Join-Path $targetFolder 'osqueryd'
-$extensionsFolder = Join-Path $targetFolder 'extensions'
-$logFolder = Join-Path $targetFolder 'log'
-$targetDaemonBin = Join-Path $targetFolder 'osqueryd.exe'
-$destDaemonBin = Join-Path $daemonFolder 'osqueryd.exe'
+# This library file contains constant definitions and helper functions
+
+#Requires -Version 3.0
+
+. "$PSScriptRoot\\osquery_utils.ps1"
+
 $packageParameters = $env:chocolateyPackageParameters
 $arguments = @{}
 
@@ -25,7 +19,7 @@ if ((Get-Service $serviceName -ErrorAction SilentlyContinue) -and `
   Stop-Service $serviceName
   # If we find zombie processes, ensure they're termintated
   $proc = Get-Process | Where-Object { $_.ProcessName -eq 'osqueryd' }
-  if ($proc -ne $null) {
+  if ($null -ne $proc) {
     Stop-Process -Force $proc -ErrorAction SilentlyContinue
   }
 }
@@ -75,8 +69,18 @@ if ($installService) {
   if (-not (Get-Service $serviceName -ErrorAction SilentlyContinue)) {
     Write-Debug 'Installing osquery daemon service.'
     # If the 'install' parameter is passed, we create a Windows service with
-    # the flag file in the default location in \ProgramData\osquery\
-    New-Service -Name $serviceName -BinaryPathName "$destDaemonBin --flagfile=\ProgramData\osquery\osquery.flags" -DisplayName $serviceName -Description $serviceDescription -StartupType Automatic
+    # the flag file in the default location in \Program Files\osquery\
+    # the flag file in the default location in Program Files
+    $cmd = '"{0}" --flagfile="C:\Program Files\osquery\osquery.flags"' -f $destDaemonBin
+
+    $svcArgs = @{
+      Name = $serviceName
+      BinaryPathName = $cmd
+      DisplayName = $serviceName
+      Description = $serviceDescription
+      StartupType = "Automatic"
+    }
+    New-Service @svcArgs
 
     # If the osquery.flags file doesn't exist, we create a blank one.
     if (-not (Test-Path "$targetFolder\osquery.flags")) {

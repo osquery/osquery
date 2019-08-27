@@ -2,16 +2,14 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 
-#include "osquery/core/windows/handle.h"
-#include "osquery/core/windows/ntapi.h"
+#include <osquery/core/windows/handle.h>
+#include <osquery/core/windows/ntapi.h>
 
 namespace osquery {
 
@@ -69,7 +67,7 @@ Status Handle::openSymLinkObj(const std::wstring& strName) {
     return Status(ntStatus, "NtOpenSymbolicLinkObject returned failure");
   }
 
-  return Status();
+  return Status::success();
 }
 
 Status Handle::openDirObj(const std::wstring& strName) {
@@ -109,6 +107,6 @@ Status Handle::openDirObj(const std::wstring& strName) {
     return Status(ntStatus, "NtOpenDirecotryObject returned failure");
   }
 
-  return Status();
+  return Status::success();
 }
 } // namespace osquery

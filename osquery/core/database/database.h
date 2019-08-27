@@ -2,10 +2,8 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -13,9 +11,9 @@
 #include <cstdint>
 
 #include <osquery/debug/debug_only.h>
-#include <osquery/error.h>
-#include <osquery/expected.h>
 #include <osquery/logger.h>
+#include <osquery/utils/error/error.h>
+#include <osquery/utils/expected/expected.h>
 
 namespace osquery {
 
@@ -52,7 +50,7 @@ class Database {
 
   // This funcion should completely destroy db, so after next open
   // db should be fresh new
-  // Implementaion can expect that db is closed before
+  // Implementation can expect that db is closed before
   // calling destroyDB and should crash/fail in case when db is still open
   virtual ExpectedSuccess<DatabaseError> destroyDB() = 0;
 
@@ -84,13 +82,13 @@ class Database {
   // This function designed to write batch of data as one operation and get
   // as much performance as possbile. Because of this, db may not guarantee
   // data consistency or atomic nature of operation
-  // Please see actual function implementaion for details and limitations
+  // Please see actual function implementation for details and limitations
   virtual ExpectedSuccess<DatabaseError> putStringsUnsafe(
       const std::string& domain,
       const std::vector<std::pair<std::string, std::string>>& data) = 0;
 
   void panic(const Error<DatabaseError>& error) {
-    LOG(ERROR) << "Database did panic: " << error.getFullMessageRecursive();
+    LOG(ERROR) << "Database did panic: " << error.getMessage();
     debug_only::fail("Database did panic");
   }
 

@@ -1,0 +1,36 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+
+osquery_cxx_library(
+    name = "status",
+    srcs = [
+        "status.cpp",
+    ],
+    header_namespace = "osquery/utils/status",
+    exported_headers = [
+        "status.h",
+    ],
+    tests = [":status_tests"],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/utils/error:error"),
+        osquery_target("osquery/utils/expected:expected"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "status_tests",
+    srcs = [
+        "tests/status.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":status",
+    ],
+)

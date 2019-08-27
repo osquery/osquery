@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -13,11 +11,10 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/regex.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/tables/system/system_utils.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tables/system/system_utils.h"
+#include <osquery/utils/conversions/split.h>
 
 namespace fs = boost::filesystem;
 namespace alg = boost::algorithm;
@@ -39,7 +36,8 @@ const std::set<std::string> kKernelRegisters = {
 };
 
 /// List of the days of the Week, used to grab our timestamp.
-const std::set<std::string> kDays = {"Mon", "Tue", "Wed", "Thu", "Fri"};
+const std::set<std::string> kDays = {
+    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
 /// Map of the values we currently parse out of the log file
 const std::map<std::string, std::string> kKernelPanicKeys = {

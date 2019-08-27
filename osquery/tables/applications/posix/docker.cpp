@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <cstdlib>
@@ -18,6 +16,11 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+// TODO(5591) Remove this when addressed by Boost's ASIO config.
+// https://www.boost.org/doc/libs/1_67_0/boost/asio/detail/config.hpp
+// Standard library support for std::string_view.
+#define BOOST_ASIO_DISABLE_STD_STRING_VIEW 1
+
 #include <boost/asio.hpp>
 #include <boost/foreach.hpp>
 
@@ -28,14 +31,14 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/json/json.h>
 
 // When building on linux, the extended schema of docker_containers will
 // add some additional columns to support user namespaces
 #ifdef __linux__
-#include "osquery/filesystem/linux/proc.h"
+#include <osquery/filesystem/linux/proc.h>
 #endif
 
 namespace pt = boost::property_tree;
@@ -266,7 +269,7 @@ void getQuery(QueryContext& context,
  * @brief Utility method to get value for specified key.
  *
  * Docker supports querying primary columns by prefix. This is preserved when
- * querying throught OSQuery.
+ * querying thought OSQuery.
  *
  * For example the following should return same result as long as there is only
  * one container with "id" that starts with "12345678":

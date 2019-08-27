@@ -1,0 +1,14 @@
+table_name("atom_packages")
+description("Lists all atom packages in a directory or globally installed in a system.")
+schema([
+    Column("name", TEXT, "Package display name"),
+    Column("version", TEXT, "Package supplied version"),
+    Column("description", TEXT, "Package supplied description"),
+    Column("path", TEXT, "Package's package.json path"),
+    Column("license", TEXT, "License for package"),
+    Column("homepage", TEXT, "Package supplied homepage"),
+])
+implementation("applications/atom_packages@genAtomPackages")
+examples([
+  "select * from atom_packages",
+])

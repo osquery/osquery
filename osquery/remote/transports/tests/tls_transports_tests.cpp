@@ -2,27 +2,34 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
+
+// clang-format off
+// Keep it on top of all other includes to fix double include WinSock.h header file
+// which is windows specific boost build problem
+#include "osquery/remote/transports/tls.h"
+// clang-format on
 
 #include <thread>
 
 #include <gtest/gtest.h>
 
 #include <osquery/logger.h>
+#include <osquery/system.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
-#include "osquery/remote/transports/tls.h"
 
-#include "osquery/tests/test_additional_util.h"
+#include "osquery/remote/tests/test_utils.h"
+#include "osquery/config/tests/test_utils.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
 
+DECLARE_bool(disable_database);
 DECLARE_string(tls_server_certs);
 
 class TLSTransportsTests : public testing::Test {
@@ -54,6 +61,12 @@ class TLSTransportsTests : public testing::Test {
   }
 
   void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+
     certs_ = FLAGS_tls_server_certs;
     FLAGS_tls_server_certs = "";
     TLSServerRunner::start();
@@ -116,7 +129,7 @@ TEST_F(TLSTransportsTests, test_call_with_params) {
   }
 }
 
-TEST_F(TLSTransportsTests, test_call_verify_peer) {
+TEST_F(TLSTransportsTests, DISABLED_test_call_verify_peer) {
   // Create a default request without a transport that accepts invalid peers.
   auto url = "https://localhost:" + port_;
   Request<TLSTransport, JSONSerializer> r(url);
@@ -141,7 +154,7 @@ TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {
   // Require verification but include the server's certificate that includes
   // an unknown signing CA and wrong commonName.
   auto t = std::make_shared<TLSTransport>();
-  t->setPeerCertificate(kTestDataPath + "test_server_ca.pem");
+  t->setPeerCertificate((getTestConfigDirectory() / "test_server_ca.pem").string());
 
   auto url = "https://localhost:" + port_;
   Request<TLSTransport, JSONSerializer> r1(url, t);
@@ -154,7 +167,7 @@ TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {
 
   // Now try with a path that is not a filename.
   t = std::make_shared<TLSTransport>();
-  t->setPeerCertificate(kTestDataPath);
+  t->setPeerCertificate(getTestConfigDirectory().string());
   Request<TLSTransport, JSONSerializer> r2(url, t);
 
   ASSERT_NO_THROW(status = r2.call());
@@ -165,9 +178,9 @@ TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {
 
 TEST_F(TLSTransportsTests, test_call_client_auth) {
   auto t = std::make_shared<TLSTransport>();
-  t->setPeerCertificate(kTestDataPath + "test_server_ca.pem");
-  t->setClientCertificate(kTestDataPath + "test_client.pem",
-                          kTestDataPath + "test_client.key");
+  t->setPeerCertificate((getTestConfigDirectory() / "test_server_ca.pem").string());
+  t->setClientCertificate((getTestConfigDirectory() / "test_client.pem").string(),
+                          (getTestConfigDirectory() / "test_client.key").string());
 
   auto url = "https://localhost:" + port_;
   Request<TLSTransport, JSONSerializer> r(url, t);

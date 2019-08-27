@@ -2,21 +2,23 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
+
+// clang-format off
+// Keep it on top of all other includes to fix double include WinSock.h header file
+// which is windows specific boost build problem
+#include <osquery/remote/http_client.h>
+// clang-format on
 
 #include <chrono>
 
 #include <boost/numeric/conversion/cast.hpp>
 
 #include <osquery/logger.h>
-#include <osquery/status.h>
+#include <osquery/utils/status/status.h>
 #include <osquery/tables.h>
-
-#include "osquery/remote/http_client.h"
 
 namespace osquery {
 namespace tables {
@@ -49,7 +51,7 @@ Status processRequest(Row& r) {
     return Status(1, e.what());
   }
 
-  return Status();
+  return Status::success();
 }
 
 QueryData genCurl(QueryContext& context) {

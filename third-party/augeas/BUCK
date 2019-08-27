@@ -1,0 +1,44 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "augeas",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "ff21a672ec7d6ae313eabe32a458d2d4528ad086559a24e9d70638da10983b37",
+        "macos-x86_64": "7330e0fcfbcea6f58d199916238c47078f3ea2ba85ac4ed2fa74fcb63e034b1c",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libaugeas.a",
+            "lib/libfa.a",
+        ],
+        "macos-x86_64": [
+            "lib/libaugeas.a",
+            "lib/libfa.a",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+
+    ],
+    version = "1.9.0",
+    build = "0",
+    visibility = ["PUBLIC"],
+)

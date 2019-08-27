@@ -2,25 +2,31 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <iostream>
+#include <osquery/core.h>
+#include <osquery/registry_interface.h>
+#include <osquery/sql.h>
+#include <osquery/sql/sqlite_util.h>
+#include <osquery/sql/tests/sql_test_utils.h>
+#include <osquery/system.h>
+#include <osquery/utils/info/platform_type.h>
 
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
-#include <osquery/sql.h>
-
-#include "osquery/sql/sqlite_util.h"
-#include "osquery/tests/test_util.h"
+#include <boost/lexical_cast.hpp>
+#include <boost/variant.hpp>
 
 namespace osquery {
-
-class SQLiteUtilTests : public testing::Test {};
+class SQLiteUtilTests : public testing::Test {
+ public:
+  void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+  }
+};
 
 std::shared_ptr<SQLiteDBInstance> getTestDBC() {
   auto dbc = SQLiteDBManager::getUnique();
@@ -39,6 +45,25 @@ std::shared_ptr<SQLiteDBInstance> getTestDBC() {
   }
 
   return dbc;
+}
+
+TEST_F(SQLiteUtilTests, test_zero_as_float_doesnt_convert_to_int) {
+  auto sql = SQL("SELECT 0.0 as zero");
+  EXPECT_TRUE(sql.ok());
+  EXPECT_EQ(sql.rows().size(), 1U);
+  Row r;
+  r["zero"] = "0.0";
+  EXPECT_EQ(sql.rows()[0], r);
+}
+
+TEST_F(SQLiteUtilTests, test_precision_is_maintained) {
+  auto sql = SQL("SELECT 0.123456789 as high_precision, 0.12 as low_precision");
+  EXPECT_TRUE(sql.ok());
+  EXPECT_EQ(sql.rows().size(), 1U);
+  Row r;
+  r["high_precision"] = "0.123456789";
+  r["low_precision"] = "0.12";
+  EXPECT_EQ(sql.rows()[0], r);
 }
 
 TEST_F(SQLiteUtilTests, test_simple_query_execution) {
@@ -77,7 +102,7 @@ TEST_F(SQLiteUtilTests, test_reset) {
   SQLiteDBManager::resetPrimary();
   auto instance = SQLiteDBManager::get();
 
-  QueryData results;
+  QueryDataTyped results;
   queryInternal("select * from test_view", results, instance);
 
   // Assume the internal (primary) database we reset and recreated.
@@ -86,28 +111,42 @@ TEST_F(SQLiteUtilTests, test_reset) {
 
 TEST_F(SQLiteUtilTests, test_direct_query_execution) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal(kTestQuery, results, dbc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results, getTestDBExpectedResults());
-}
-
-TEST_F(SQLiteUtilTests, test_passing_callback_no_data_param) {
-  char* err = nullptr;
-  auto dbc = getTestDBC();
-  sqlite3_exec(dbc->db(), kTestQuery.c_str(), queryDataCallback, nullptr, &err);
-  EXPECT_TRUE(err != nullptr);
-  if (err != nullptr) {
-    sqlite3_free(err);
-  }
 }
 
 TEST_F(SQLiteUtilTests, test_aggregate_query) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal(kTestQuery, results, dbc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results, getTestDBExpectedResults());
+}
+
+TEST_F(SQLiteUtilTests, test_no_results_query) {
+  auto dbc = getTestDBC();
+  QueryDataTyped results;
+  auto status = queryInternal(
+      "select * from test_table where username=\"A_NON_EXISTENT_NAME\"",
+      results,
+      dbc);
+  EXPECT_TRUE(status.ok());
+}
+
+TEST_F(SQLiteUtilTests, test_whitespace_query) {
+  auto dbc = getTestDBC();
+  QueryDataTyped results;
+  auto status = queryInternal("     ", results, dbc);
+  EXPECT_TRUE(status.ok());
+}
+
+TEST_F(SQLiteUtilTests, test_whitespace_then_nonwhitespace_query) {
+  auto dbc = getTestDBC();
+  QueryDataTyped results;
+  auto status = queryInternal("     ; select * from time  ", results, dbc);
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
@@ -122,7 +161,7 @@ TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
       ASSERT_TRUE(false);
     }
 
-    QueryData expected;
+    QueryDataTyped expected;
     auto status = queryInternal(kTestQuery, expected, dbc);
     EXPECT_EQ(expected, r.second);
   }
@@ -130,7 +169,7 @@ TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
 
 TEST_F(SQLiteUtilTests, test_affected_tables) {
   auto dbc = getTestDBC();
-  QueryData results;
+  QueryDataTyped results;
   auto status = queryInternal("SELECT * FROM time", results, dbc);
 
   // Since the table scanned from "time", it should be recorded as affected.
@@ -143,14 +182,14 @@ TEST_F(SQLiteUtilTests, test_table_attributes_event_based) {
   {
     SQLInternal sql_internal("select * from process_events");
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-      EXPECT_TRUE(sql_internal.ok());
+      EXPECT_TRUE(sql_internal.getStatus().ok());
       EXPECT_TRUE(sql_internal.eventBased());
     }
   }
 
   {
     SQLInternal sql_internal("select * from time");
-    EXPECT_TRUE(sql_internal.ok());
+    EXPECT_TRUE(sql_internal.getStatus().ok());
     EXPECT_FALSE(sql_internal.eventBased());
   }
 }
@@ -175,14 +214,37 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   ASSERT_FALSE(status.ok());
 }
 
-TEST_F(SQLiteUtilTests, test_get_query_tables) {
+TEST_F(SQLiteUtilTests, test_get_query_tables_failed) {
   std::string query =
       "SELECT * FROM time, osquery_info, (SELECT * FROM file) ff GROUP BY pid";
   std::vector<std::string> tables;
   auto status = getQueryTables(query, tables);
   EXPECT_TRUE(status.ok());
 
-  std::vector<std::string> expected = {"file", "time", "osquery_info"};
+  std::vector<std::string> expected = {};
+  EXPECT_EQ(expected, tables);
+}
+
+TEST_F(SQLiteUtilTests, test_get_query_tables) {
+  std::string query =
+      "SELECT * FROM time, osquery_info, (SELECT * FROM users) ff GROUP BY pid";
+  std::vector<std::string> tables;
+  auto status = getQueryTables(query, tables);
+  EXPECT_TRUE(status.ok());
+
+  std::vector<std::string> expected = {"time", "osquery_info", "users"};
+  EXPECT_EQ(expected, tables);
+}
+
+TEST_F(SQLiteUtilTests, test_get_query_tables_required) {
+  std::string query =
+      "SELECT * FROM time, osquery_info, (SELECT * FROM file where path = "
+      "'osquery') ff GROUP BY pid";
+  std::vector<std::string> tables;
+  auto status = getQueryTables(query, tables);
+  EXPECT_TRUE(status.ok());
+
+  std::vector<std::string> expected = {"time", "osquery_info", "file"};
   EXPECT_EQ(expected, tables);
 }
 
@@ -201,84 +263,179 @@ TEST_F(SQLiteUtilTests, test_query_planner) {
   TableColumns columns;
 
   std::string query = "select path, path from file";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query = "select path, path from file where path in ('osquery', 'noquery')";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE, TEXT_TYPE}));
 
-  query = "select path, seconds from file, time";
-  getQueryColumnsInternal(query, columns, dbc);
+  query = "select path, seconds from file, time where path LIKE 'osquery'";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE, INTEGER_TYPE}));
 
   query = "select path || path from file";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query = "select path || path from file where path = 'osquery'";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE}));
 
-  query = "select seconds, path || path from file, time";
-  getQueryColumnsInternal(query, columns, dbc);
+  query = "select seconds, path || path from file, time ";
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query =
+      "select seconds, path || path from file, time where path in ('osquery')";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({INTEGER_TYPE, TEXT_TYPE}));
 
   query = "select seconds, seconds from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({INTEGER_TYPE, INTEGER_TYPE}));
 
   query = "select count(*) from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({BIGINT_TYPE}));
 
   query = "select count(*), count(seconds), seconds from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns),
             TypeList({BIGINT_TYPE, BIGINT_TYPE, INTEGER_TYPE}));
 
   query = "select 1, 'path', path from file";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query = "select 1, 'path', path from file where path = 'os'";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({INTEGER_TYPE, TEXT_TYPE, TEXT_TYPE}));
 
   query = "select weekday, day, count(*), seconds from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns),
             TypeList({TEXT_TYPE, INTEGER_TYPE, BIGINT_TYPE, INTEGER_TYPE}));
 
   query = "select seconds + 1 from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({BIGINT_TYPE}));
 
   query = "select seconds * seconds from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({BIGINT_TYPE}));
 
   query = "select seconds > 1, seconds, count(seconds) from time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns),
             TypeList({INTEGER_TYPE, INTEGER_TYPE, BIGINT_TYPE}));
 
   query =
       "select f1.*, seconds, f2.directory from (select path || path from file) "
       "f1, file as f2, time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query =
+      "select f1.*, seconds, f2.directory from (select path || path from file) "
+      "f1, file as f2, time where path in ('query', 'query')";
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query =
+      "select f1.*, seconds, f2.directory from (select path || path from file "
+      "where path = 'query') "
+      "f1, file as f2, time where path in ('query', 'query')";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE, INTEGER_TYPE, TEXT_TYPE}));
 
   query = "select CAST(seconds AS INTEGER) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({BIGINT_TYPE}));
 
   query = "select CAST(seconds AS TEXT) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE}));
 
   query = "select CAST(seconds AS REAL) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({DOUBLE_TYPE}));
 
   query = "select CAST(seconds AS BOOLEAN) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({UNKNOWN_TYPE}));
 
   query = "select CAST(seconds AS DATETIME) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({UNKNOWN_TYPE}));
 
   query = "select CAST(seconds AS BLOB) FROM time";
-  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
   EXPECT_EQ(getTypes(columns), TypeList({BLOB_TYPE}));
+
+  query = "select url, round_trip_time, response_code from curl";
+  EXPECT_FALSE(getQueryColumnsInternal(query, columns, dbc).ok());
+
+  query =
+      "select url, round_trip_time, response_code from curl where url = "
+      "'https://github.com/facebook/osquery'";
+  EXPECT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
+  EXPECT_EQ(getTypes(columns),
+            TypeList({TEXT_TYPE, BIGINT_TYPE, INTEGER_TYPE}));
 }
+
+using TypeMap = std::map<std::string, ColumnType>;
+
+// Using ColumnType enum just labeling in test_column_type_determination)
+class type_picker_visitor : public boost::static_visitor<ColumnType> {
+ public:
+  ColumnType operator()(const long long& i) const {
+    return INTEGER_TYPE;
+  }
+
+  ColumnType operator()(const std::string& str) const {
+    return TEXT_TYPE;
+  }
+
+  ColumnType operator()(const double& d) const {
+    return DOUBLE_TYPE;
+  }
+};
+
+void testTypesExpected(std::string query, TypeMap expectedTypes) {
+  auto dbc = getTestDBC();
+  QueryDataTyped typedResults;
+  queryInternal(query, typedResults, dbc);
+  for (const auto& row : typedResults) {
+    for (const auto& col : row) {
+      if (expectedTypes.count(col.first)) {
+        EXPECT_EQ(boost::apply_visitor(type_picker_visitor(), col.second),
+                  expectedTypes[col.first])
+            << " These are the integer values of actual/expected ColumnType "
+               "(resp) of "
+            << col.first << " for query: " << query;
+      } else {
+        FAIL() << "Found no expected type for " << col.first
+               << " in test of column types for query " << query;
+      }
+    }
+  }
 }
+
+TEST_F(SQLiteUtilTests, test_column_type_determination) {
+  // Correct identification of text and ints
+  testTypesExpected("select path, inode from file where path like '%'",
+                    TypeMap({{"path", TEXT_TYPE}, {"inode", INTEGER_TYPE}}));
+  // Correctly treating BLOBs as text
+  testTypesExpected("select CAST(seconds AS BLOB) as seconds FROM time",
+                    TypeMap({{"seconds", TEXT_TYPE}}));
+  // Correctly treating ints cast as double as doubles
+  testTypesExpected("select CAST(seconds AS DOUBLE) as seconds FROM time",
+                    TypeMap({{"seconds", DOUBLE_TYPE}}));
+  // Correctly treating bools as ints
+  testTypesExpected("select CAST(seconds AS BOOLEAN) as seconds FROM time",
+                    TypeMap({{"seconds", INTEGER_TYPE}}));
+  // Correctly recognizing values from columns declared double as double, even
+  // if they happen to have integer value.  And also test multi-statement
+  // queries.
+  testTypesExpected(
+      "CREATE TABLE test_types_table (username varchar(30) primary key, age "
+      "double);INSERT INTO test_types_table VALUES (\"mike\", 23); SELECT age "
+      "from test_types_table",
+      TypeMap({{"age", DOUBLE_TYPE}}));
+}
+} // namespace osquery

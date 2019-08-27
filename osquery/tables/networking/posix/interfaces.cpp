@@ -2,12 +2,11 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
 
@@ -27,13 +26,13 @@
 #endif
 #include <sys/ioctl.h>
 
-#include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tables/networking/utils.h"
+#include <osquery/tables/networking/posix/interfaces.h>
+#include <osquery/tables/networking/posix/utils.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -168,8 +167,12 @@ void genDetailsFromAddr(const struct ifaddrs* addr,
     // Get Linux physical properties for the AF_PACKET entry.
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd >= 0) {
-      struct ifreq ifr;
-      memcpy(ifr.ifr_name, addr->ifa_name, IFNAMSIZ);
+      struct ifreq ifr = {};
+      auto ifa_name_length = strlen(addr->ifa_name);
+      snprintf(ifr.ifr_name,
+               std::min<size_t>(ifa_name_length + 1, IFNAMSIZ),
+               "%s",
+               addr->ifa_name);
       if (ioctl(fd, SIOCGIFMTU, &ifr) >= 0) {
         r["mtu"] = BIGINT_FROM_UINT32(ifr.ifr_mtu);
       }
@@ -238,8 +241,11 @@ void genDetailsFromAddr(const struct ifaddrs* addr,
       int fd = socket(AF_INET, SOCK_DGRAM, 0);
       if (fd >= 0) {
         struct ifmediareq ifmr = {};
-        memcpy(ifmr.ifm_name, addr->ifa_name, sizeof(ifmr.ifm_name));
-        const std::unique_ptr<int[]> media_list(new int[ifmr.ifm_count]);
+        auto ifa_name_length = strlen(addr->ifa_name);
+        snprintf(ifmr.ifm_name,
+                 std::min<size_t>(ifa_name_length + 1, IFNAMSIZ),
+                 "%s",
+                 addr->ifa_name);
         if (ioctl(fd, SIOCGIFMEDIA, &ifmr) >= 0) {
           if (IFM_TYPE(ifmr.ifm_active) == IFM_ETHER) {
             int ifmls = get_linkspeed(IFM_SUBTYPE(ifmr.ifm_active));

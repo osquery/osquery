@@ -92,27 +92,29 @@ Here is that code for *osquery/tables/utility/time.cpp*:
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include <ctime>
+#include <osquery/rows/time.h>
 #include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
 
-QueryData genTime(QueryContext &context) {
-  QueryData results;
-  if (!context.isAnyColumnUsed({"hour", "minutes", "seconds"})) {
+TableRows genTime(QueryContext &context) {
+  TableRows results;
+  if (!context.isAnyColumnUsed({TimeRow::HOUR, TimeRow::MINUTES, TimeRow::SECONDS})) {
     return results;
   }
 
-  Row r;
+  TimeRow* r = new TimeRow();
 
   time_t _time = time(0);
   struct tm* now = localtime(&_time);
 
-  context.setIntegerColumnIfUsed(r, "hour", now->tm_hour);
-  context.setIntegerColumnIfUsed(r, "minutes", now->tm_min);
-  context.setIntegerColumnIfUsed(r, "seconds", now->tm_sec);
+  r->hour_col = now->tm_hour;
+  r->minutes_col = now->tm_min;
+  r->seconds_col = now->tm_sec;
 
-  results.push_back(r);
+  std::unique_ptr<TableRow> tr(r);
+  results.push_back(std::move(tr));
   return results;
 }
 }
@@ -122,13 +124,12 @@ QueryData genTime(QueryContext &context) {
 Key points to remember:
 
 - Your implementation function should be in the `osquery::tables` namespace.
-- Your implementation function should accept on `QueryContext&` parameter and return an instance of `QueryData`.
-- Your implementation function should use `context.isAnyColumnUsed` to run only the code necessary for the query,
-and `context.setXXXColumnIfUsed` to set result columns
+- Your implementation function should accept on `QueryContext&` parameter and return an instance of `TableRows`.
+- Your implementation function should use `context.isAnyColumnUsed` to run only the code necessary for the query
 
 ## Using where clauses
 
-The `QueryContext` data type is osquery's abstraction of the underlying SQL engine's query parsing. It is defined in [include/osquery/tables.h](https://github.com/facebook/osquery/blob/master/include/osquery/tables.h).
+The `QueryContext` data type is osquery's abstraction of the underlying SQL engine's query parsing. It is defined in [osquery/tables.h](/osquery/include/osquery/tables.h).
 
 The most important use of the context is query predicate constraints (e.g., `WHERE col = 'value'`). Some tables MUST have a predicate constraint, others may optionally use the constraints to increase performance.
 
@@ -156,15 +157,15 @@ Examples:
 
 ## SQL data types
 
-Data types like `QueryData`, `Row`, `DiffResults`, etc. are osquery's built-in data result types. They're all defined in [include/osquery/database.h](https://github.com/facebook/osquery/blob/master/include/osquery/database.h).
+Data types like `TableRows`, `TableRow`, `DiffResults`, etc. are osquery's built-in data result types. They're all defined in [include/osquery/database.h](https://github.com/facebook/osquery/blob/master/include/osquery/database.h).
 
-`Row` is just a `typedef` for a `std::map<std::string, std::string>`. That's it. A row of data is just a mapping of strings that represent column names to strings that represent column values. Note that, currently, even if your SQL table type is an `int` and not a `std::string`, we need to cast the ints as strings to comply with the type definition of the `Row` object. They'll be casted back to `int`s later. This is all handled transparently by osquery's supporting infrastructure as long as you use the macros like `TEXT`, `INTEGER`, `BIGINT`, etc. when inserting columns into your row.
+`TableRow` is an interface; each table has a generated implementation with strongly-typed fields for each column in the table. There's also `DynamicTableRow`, which is backed by a `std::map<std::string, std::string>` mapping column names to the string representations of their values. `DynamicTableRow` exists to support tables that were written before the strongly-typed row support was added, and for plugins.
 
-`QueryData` is just a `typedef` for a `std::vector<Row>`. Query data is just a list of rows. Simple enough.
+`TableRows` is just a `typedef` for a `std::vector<TableRow>`. Table rows is just a list of rows. Simple enough.
 
-To populate the data that will be returned to the user at runtime, your implementation function must generate the data that you'd like to display and populate a `QueryData` map with the appropriate `Row`s. Then, just return the `QueryData`.
+To populate the data that will be returned to the user at runtime, your implementation function must generate the data that you'd like to display and populate a `TableRows` list with the appropriate `TableRow`s. Then, just return the `TableRows`.
 
-In our case, we used system APIs to create a struct of type `tm` which has fields such as `tm_hour`, `tm_min` and `tm_sec` which represent the current time. We can then create our three entries in our `Row` variable: hour, minutes and seconds. Then we push that single row onto the `QueryData` variable and return it. Note that if we wanted our table to have many rows (a more common use-case), we would just push back more `Row` maps onto `results`.
+In our case, we used system APIs to create a struct of type `tm` which has fields such as `tm_hour`, `tm_min` and `tm_sec` which represent the current time. We can then set our three fields in our `TimeRow` variable: hour_col, minutes_col and seconds_col. Then we push that single row onto the `TableRows` variable and return it. Note that if we wanted our table to have many rows (a more common use-case), we would just push back more `TableRow` maps onto `results`.
 
 ## Building new tables
 

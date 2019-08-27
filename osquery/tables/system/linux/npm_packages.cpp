@@ -2,22 +2,18 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <string>
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
+#include <osquery/utils/json/json.h>
 
 namespace fs = boost::filesystem;
 
@@ -58,9 +54,13 @@ void genPackageResults(const std::string& directory, QueryData& results) {
     // Manually get nested key (Author name)
     if (doc.doc().HasMember("author")) {
       const auto& author = doc.doc()["author"];
-      if (author.HasMember("name")) {
-        const auto& author_name = author["name"];
-        r["author"] = (author_name.IsString()) ? author_name.GetString() : "";
+      if (author.IsString()) {
+          r["author"] = author.GetString();
+      } else if (author.IsObject()) {
+        if (author.HasMember("name")) {
+          const auto& author_name = author["name"];
+          r["author"] = (author_name.IsString()) ? author_name.GetString() : "";
+        }
       }
     }
 

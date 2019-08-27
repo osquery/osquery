@@ -1,115 +1,102 @@
-#  Copyright (c) 2014-present, Facebook, Inc.
-#  All rights reserved.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-target_compile_definitions(libosquery
-  PRIVATE
-    "-DROCKSDB_LITE=1"
-)
+function(osqueryCoreMain)
+  add_subdirectory("plugins")
+  add_subdirectory("sql")
 
-target_sources(libosquery
-  PRIVATE
-    "${CMAKE_CURRENT_LIST_DIR}/base64.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/base64.h"
-    "${CMAKE_CURRENT_LIST_DIR}/conversions.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/conversions.h"
-    "${CMAKE_CURRENT_LIST_DIR}/database/database.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/database/database.h"
-    "${CMAKE_CURRENT_LIST_DIR}/database/in_memory_database.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/database/in_memory_database.h"
-    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.h"
-    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_migration.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_migration.h"
-    "${CMAKE_CURRENT_LIST_DIR}/flags.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/map_take.h"
-    "${CMAKE_CURRENT_LIST_DIR}/hashing.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/hashing.h"
-    "${CMAKE_CURRENT_LIST_DIR}/init.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/json.h"
-    "${CMAKE_CURRENT_LIST_DIR}/process.h"
-    "${CMAKE_CURRENT_LIST_DIR}/query.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/scope_guard.h"
-    "${CMAKE_CURRENT_LIST_DIR}/status.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/system.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/tables.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/utils.h"
-    "${CMAKE_CURRENT_LIST_DIR}/watcher.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/watcher.h"
-)
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
 
-if(APPLE)
-  target_sources(libosquery
-    PRIVATE
-      "${CMAKE_CURRENT_LIST_DIR}/darwin/conversions.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.hpp"
+  generateOsqueryCore()
+endfunction()
+
+function(generateOsqueryCore)
+  set(source_files
+    flags.cpp
+    init.cpp
+    query.cpp
+    system.cpp
+    tables.cpp
+    watcher.cpp
   )
-endif()
 
-if(LINUX)
-  target_sources(libosquery
-    PRIVATE
-    "${CMAKE_CURRENT_LIST_DIR}/linux/cpu.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/linux/cpu.h"
+  if(DEFINED PLATFORM_POSIX)
+    list(APPEND source_files
+      posix/initializer.cpp
+    )
+
+  elseif(DEFINED PLATFORM_WINDOWS)
+    list(APPEND source_files
+      windows/handle.cpp
+      windows/initializer.cpp
+      windows/wmi.cpp
+    )
+  endif()
+
+  add_osquery_library(osquery_core EXCLUDE_FROM_ALL
+    ${source_files}
   )
-endif()
 
-if(POSIX)
-  target_sources(libosquery
-    PRIVATE
-      "${CMAKE_CURRENT_LIST_DIR}/posix/initializer.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/posix/process_ops.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/posix/process.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/posix/utils.cpp"
+  set(dependencies
+    osquery_headers
+    osquery_config
+    osquery_core_plugins
+    osquery_core_sql
+    osquery_filesystem
+    osquery_process
+    osquery_utils
+    osquery_utils_conversions
+    osquery_utils_info
+    osquery_utils_system_env
+    osquery_utils_system_systemutils
+    osquery_utils_system_time
+    osquery_logger
+    osquery_extensions
+    thirdparty_gflags
+    thirdparty_glog
+    thirdparty_openssl
+    thirdparty_sqlite
+    thirdparty_glibc_pthread
   )
-endif()
 
-if(WINDOWS)
-  target_sources(libosquery
-    PRIVATE
-      "${CMAKE_CURRENT_LIST_DIR}/windows/initializer.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/windows/process_ops.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/windows/process_ops.h"
-      "${CMAKE_CURRENT_LIST_DIR}/windows/process.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/windows/handle.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/windows/utils.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/windows/wmi.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/windows/wmi.h"
+  if(DEFINED PLATFORM_LINUX)
+    list(APPEND dependencies thirdparty_util-linux)
+  endif()
+
+  target_link_libraries(osquery_core PUBLIC
+    global_cxx_settings
+
+    ${dependencies}
   )
-endif()
 
-ADD_OSQUERY_TEST_CORE(
-  "${CMAKE_CURRENT_LIST_DIR}/database/tests/in_memory_database_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/database/tests/rocksdb_database_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/base64_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/conversions_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/error_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/exptected_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/flags_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/map_take_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/process_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/query_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/scope_guard_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/status_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/system_test.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/tables_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/time_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/watcher_tests.cpp"
-)
-
-if(POSIX) 
-  ADD_OSQUERY_TEST_CORE(
-    "${CMAKE_CURRENT_LIST_DIR}/tests/posix/permissions_tests.cpp"
-  )   
-endif()
-
-if(LINUX)
-  ADD_OSQUERY_TEST_CORE(
-    "${CMAKE_CURRENT_LIST_DIR}/linux/tests/cpu_test.cpp"
+  set(public_header_files
+    watcher.h
   )
-endif()
+
+  if(DEFINED PLATFORM_WINDOWS)
+    list(APPEND windows_public_header_files
+      windows/handle.h
+      windows/ntapi.h
+      windows/wmi.h
+    )
+
+    generateIncludeNamespace(osquery_core "osquery/core" "FULL_PATH" ${windows_public_header_files})
+  endif()
+
+  generateIncludeNamespace(osquery_core "osquery/core" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME osquery_core_tests_flagstests-test COMMAND osquery_core_tests_flagstests-test)
+  add_test(NAME osquery_core_tests_systemtests-test COMMAND osquery_core_tests_systemtests-test)
+  add_test(NAME osquery_core_tests_tablestests-test COMMAND osquery_core_tests_tablestests-test)
+  add_test(NAME osquery_core_tests_watcherpermissionstests-test COMMAND osquery_core_tests_watcherpermissionstests-test)
+  add_test(NAME osquery_core_tests_querytests-test COMMAND osquery_core_tests_querytests-test)
+  add_test(NAME osquery_core_tests_processtests-test COMMAND osquery_core_tests_processtests-test)
+
+endfunction()
+
+osqueryCoreMain()

@@ -2,14 +2,13 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <iomanip>
-#include <string>
+// Include system.h before openssl, because windows.h should be included in
+// specific environment. See osquery/utils/system/windows/system.h
+#include <osquery/utils/system/system.h>
 
 #include <openssl/asn1.h>
 #include <openssl/bio.h>
@@ -19,6 +18,9 @@
 
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include <iomanip>
+#include <string>
 
 namespace osquery {
 namespace tables {
@@ -199,7 +201,7 @@ Status getTLSCertificate(std::string hostname, QueryData& results) {
   r["hostname"] = hostname;
   fillRow(r, cert.get());
   results.push_back(r);
-  return Status();
+  return Status::success();
 }
 
 QueryData genTLSCertificate(QueryContext& context) {

@@ -1,0 +1,37 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+
+osquery_cxx_library(
+    name = "info",
+    srcs = [
+        "platform_type.cpp",
+        "tool_type.cpp",
+        "version.cpp",
+    ],
+    header_namespace = "osquery/utils/info",
+    exported_headers = [
+        "platform_type.h",
+        "tool_type.h",
+        "version.h",
+    ],
+    exported_preprocessor_flags = [
+        "-DOSQUERY_VERSION={}".format(read_config("osquery", "version")),
+        "-DOSQUERY_BUILD_VERSION={}".format(
+            read_config("osquery", "version"),
+        ),
+        "-DOSQUERY_BUILD_SDK_VERSION={}".format(
+            read_config("osquery", "version"),
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/utils/macros:macros"),
+    ],
+)

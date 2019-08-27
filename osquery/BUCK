@@ -1,0 +1,48 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_binary", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:globs.bzl", "osquery_subdir_glob")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "headers",
+    header_namespace = "osquery",
+    exported_headers = osquery_subdir_glob(
+        [
+            ("include/osquery", "*.h"),
+        ],
+    ),
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lgflags",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/core/plugins:plugins"),
+        osquery_target("osquery/utils/info:info"),
+        osquery_target("osquery/utils/macros:macros"),
+        osquery_target("osquery/utils/system:system_utils"),
+        osquery_tp_target("gflags"),
+        osquery_tp_target("sqlite"),
+    ],
+)
+
+osquery_cxx_binary(
+    name = "osqueryd",
+    # Xcode ignore targets without source files :(
+    srcs = ["empty.cpp"],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/main:main"),
+    ],
+)

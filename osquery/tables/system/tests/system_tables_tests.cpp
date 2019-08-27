@@ -2,32 +2,43 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
-#include <gflags/gflags.h>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/database.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
+DECLARE_bool(disable_database);
 namespace tables {
 
-class SystemsTablesTests : public testing::Test {};
+class SystemsTablesTests : public testing::Test {
+ protected:
+  void SetUp() override {
+    Initializer::platformSetup();
+    registryAndPluginInit();
+
+    // Force registry to use ephemeral database plugin
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
+};
 
 TEST_F(SystemsTablesTests, test_os_version) {
   SQL results("select * from os_version");
@@ -77,25 +88,52 @@ TEST_F(SystemsTablesTests, test_processes) {
 
 TEST_F(SystemsTablesTests, test_users) {
   {
-    SQL results("select uid, uuid, username from users limit 1");
+    SQL results("select * from users limit 1");
     ASSERT_EQ(results.rows().size(), 1U);
 
     EXPECT_FALSE(results.rows()[0].at("uid").empty());
+    EXPECT_FALSE(results.rows()[0].at("username").empty());
     if (!isPlatform(PlatformType::TYPE_LINUX)) {
       EXPECT_FALSE(results.rows()[0].at("uuid").empty());
     }
-    EXPECT_FALSE(results.rows()[0].at("username").empty());
   }
 
   {
     // Make sure that we can query all users without crash or hang: Issue #3079
-    SQL results("select uid, uuid, username from users");
+    SQL results("select * from users");
     EXPECT_GT(results.rows().size(), 1U);
   }
 
   {
     // Make sure an invalid pid within the query constraint returns no rows.
     SQL results("select uuid, username from users where uuid = -1");
+    EXPECT_EQ(results.rows().size(), 0U);
+  }
+
+  {
+    // Make sure an invalid pid within the query constraint returns no rows.
+    SQL results("select * from users where uid = -1");
+    EXPECT_EQ(results.rows().size(), 0U);
+  }
+}
+
+TEST_F(SystemsTablesTests, test_groups) {
+  {
+    SQL results("select * from groups limit 1");
+    ASSERT_EQ(results.rows().size(), 1U);
+
+    EXPECT_FALSE(results.rows()[0].at("gid").empty());
+  }
+
+  {
+    // Make sure that we can query all users without crash or hang
+    SQL results("select * from groups");
+    EXPECT_GT(results.rows().size(), 1U);
+  }
+
+  {
+    // Make sure an invalid pid within the query constraint returns no rows.
+    SQL results("select * from groups where gid = -1");
     EXPECT_EQ(results.rows().size(), 0U);
   }
 }
@@ -186,12 +224,38 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
                 " left join file using (path) left join hash using (path);");
     ASSERT_EQ(results.rows().size(), 1U);
   }
+}
 
+TEST_F(SystemsTablesTests, test_table_constraints) {
   {
     // Check LIKE and = operands.
-    SQL results(
-        R"(select path from file where path = '/etc/' or path LIKE '/dev/%' or path LIKE '\Windows\%';)");
-    ASSERT_GT(results.rows().size(), 1U);
+#ifdef OSQUERY_WINDOWS
+    TCHAR windows_path[64];
+    auto windows_path_length =
+        GetSystemWindowsDirectory(windows_path, sizeof(windows_path));
+    ASSERT_FALSE(windows_path_length == 0);
+
+    std::stringstream qry_stream;
+    qry_stream << boost::format("select path from file where path LIKE '%s") %
+                      windows_path
+               << R"(\%';)";
+    std::string like_query = qry_stream.str();
+    qry_stream = std::stringstream();
+
+    qry_stream << boost::format("select path from file where path = '%s") %
+                      windows_path
+               << R"(';)";
+    std::string equal_query = qry_stream.str();
+
+#else
+    std::string like_query =
+        R"(select path from file where path LIKE '/dev/%';)";
+    std::string equal_query = "select path from file where path = '/etc/'";
+#endif
+    SQL like_results(like_query);
+    SQL equal_results(equal_query);
+    EXPECT_GT(like_results.rows().size(), 1U);
+    EXPECT_GT(equal_results.rows().size(), 0U);
   }
 }
 

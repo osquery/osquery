@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <map>
@@ -13,27 +11,38 @@
 
 #define _WIN32_DCOM
 
+// clang-format off
+#define WIN32_NO_STATUS
 #include <Windows.h>
+#undef WIN32_NO_STATUS
+#include <ntstatus.h>
+// clang-format on
 #include <iomanip>
 #include <psapi.h>
 #include <stdlib.h>
 #include <tlhelp32.h>
+#include <winternl.h>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem/path.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/windows/wmi.h"
-#include "osquery/filesystem/fileops.h"
+#include <osquery/core/windows/wmi.h>
+#include <osquery/filesystem/fileops.h>
+#include <osquery/sql/dynamic_table_row.h>
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/scope_guard.h>
 
 namespace osquery {
-int getUidFromSid(PSID sid);
-int getGidFromSid(PSID sid);
+uint32_t getUidFromSid(PSID sid);
+uint32_t getGidFromSid(PSID sid);
 namespace tables {
 
 const std::map<unsigned long, std::string> kMemoryConstants = {
@@ -49,9 +58,69 @@ const std::map<unsigned long, std::string> kMemoryConstants = {
     {PAGE_NOCACHE, "PAGE_NOCACHE"},
     {PAGE_WRITECOMBINE, "PAGE_WRITECOMBINE"},
 };
-const std::string kWinProcPerfQuery =
-    "SELECT IDProcess, ElapsedTime, HandleCount, PercentProcessorTime FROM "
-    "Win32_PerfRawData_PerfProc_Process";
+
+const unsigned long kMaxPathSize = 0x1000;
+
+/**
+ * All of these structs are needed to interface with
+ * the NtQueryInformationProcess function, which is leveraged
+ * to get the CommandLine data for a process invocation.
+ */
+typedef NTSTATUS(NTAPI* NtQueryInformationProcessPtr)(
+    IN HANDLE ProcessHandle,
+    IN unsigned long ProcessInformationClass,
+    OUT PVOID ProcessInformation,
+    IN ULONG ProcessInformationLength,
+    OUT PULONG ReturnLength OPTIONAL);
+
+typedef ULONG(NTAPI* RtlNtStatusToDosErrorPtr)(NTSTATUS Status);
+
+NtQueryInformationProcessPtr kNtQueryInformationProcess = nullptr;
+
+RtlNtStatusToDosErrorPtr kRtlNtStatusToDosError = nullptr;
+
+typedef struct {
+  USHORT Length;
+  USHORT MaximumLength;
+  PWSTR Buffer;
+} UNICODE_STRING, *PUNICODE_STRING;
+
+typedef struct _RTL_USER_PROCESS_PARAMETERS {
+  BYTE Reserved1[16];
+  PVOID Reserved2[10];
+  UNICODE_STRING ImagePathName;
+  UNICODE_STRING CommandLine;
+} RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
+
+typedef struct _PEB {
+  BYTE Reserved1[2];
+  BYTE BeingDebugged;
+  BYTE Reserved2[1];
+  PVOID Reserved3[2];
+  PPEB_LDR_DATA Ldr;
+  PRTL_USER_PROCESS_PARAMETERS ProcessParameters;
+  PVOID Reserved4[3];
+  PVOID AtlThunkSListPtr;
+  PVOID Reserved5;
+  ULONG Reserved6;
+  PVOID Reserved7;
+  ULONG Reserved8;
+  ULONG AtlThunkSListPtr32;
+  PVOID Reserved9[45];
+  BYTE Reserved10[96];
+  PPS_POST_PROCESS_INIT_ROUTINE PostProcessInitRoutine;
+  BYTE Reserved11[128];
+  PVOID Reserved12[1];
+  ULONG SessionId;
+} PEB, *PPEB;
+
+typedef struct _PROCESS_BASIC_INFORMATION {
+  PVOID Reserved1;
+  PPEB PebBaseAddress;
+  PVOID Reserved2[2];
+  ULONG_PTR UniqueProcessId;
+  PVOID Reserved3;
+} PROCESS_BASIC_INFORMATION;
 
 /// Given a pid, enumerates all loaded modules and memory pages for that process
 Status genMemoryMap(unsigned long pid, QueryData& results) {
@@ -63,18 +132,20 @@ Status genMemoryMap(unsigned long pid, QueryData& results) {
     r["end"] = INTEGER(-1);
     r["permissions"] = "";
     r["offset"] = INTEGER(-1);
-    r["device"] = "-1";
+    r["device"] = INTEGER(-1);
     r["inode"] = INTEGER(-1);
     r["path"] = "";
     r["pseudo"] = INTEGER(-1);
     results.push_back(r);
-    return Status(1, "Failed to open handle to process " + std::to_string(pid));
+    return Status::failure("Failed to open handle to process " +
+                           std::to_string(pid));
   }
   auto modSnap =
       CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid);
   if (modSnap == INVALID_HANDLE_VALUE) {
     CloseHandle(proc);
-    return Status(1, "Failed to enumerate modules for " + std::to_string(pid));
+    return Status::failure("Failed to enumerate modules for " +
+                           std::to_string(pid));
   }
 
   auto formatMemPerms = [](unsigned long perm) {
@@ -119,14 +190,14 @@ Status genMemoryMap(unsigned long pid, QueryData& results) {
   }
   CloseHandle(proc);
   CloseHandle(modSnap);
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 /// Helper function for enumerating all active processes on the system
 Status getProcList(std::set<long>& pids) {
   auto procSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
   if (procSnap == INVALID_HANDLE_VALUE) {
-    return Status(1, "Failed to open process snapshot");
+    return Status::failure("Failed to open process snapshot");
   }
 
   PROCESSENTRY32 procEntry;
@@ -135,7 +206,7 @@ Status getProcList(std::set<long>& pids) {
 
   if (ret == FALSE) {
     CloseHandle(procSnap);
-    return Status(1, "Failed to open first process");
+    return Status::failure("Failed to open first process");
   }
 
   while (ret != FALSE) {
@@ -144,239 +215,367 @@ Status getProcList(std::set<long>& pids) {
   }
 
   CloseHandle(procSnap);
-  return Status(0, "Ok");
+  return Status::success();
 }
 
-void genProcess(const long pid,
-                const WmiResultItem& result,
-                Row& r,
-                QueryContext& context) {
-  Status s;
-  long lPlaceHolder;
-  std::string sPlaceHolder;
+/// For legacy systems, we retrieve the commandline from the PEB
+Status getProcessCommandLineLegacy(HANDLE proc,
+                                   std::string& out,
+                                   const unsigned long pid) {
+  PROCESS_BASIC_INFORMATION pbi;
+  unsigned long len{0};
+  NTSTATUS status = NtQueryInformationProcess(
+      proc, ProcessBasicInformation, &pbi, sizeof(pbi), &len);
 
-  /// Store current process pid for more efficient API use.
-  auto currentPid = GetCurrentProcessId();
-
-  long uid = -1;
-  long gid = -1;
-  HANDLE hProcess = nullptr;
-
-  if (context.isAnyColumnUsed({"uid",
-                               "gid",
-                               "cwd",
-                               "root",
-                               "user_time",
-                               "system_time",
-                               "start_time",
-                               "is_elevated_token"})) {
-    if (pid == currentPid) {
-      hProcess = GetCurrentProcess();
-    } else {
-      hProcess =
-          OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
-    }
-
-    if (GetLastError() == ERROR_ACCESS_DENIED) {
-      uid = 0;
-      gid = 0;
-    }
+  SetLastError(RtlNtStatusToDosError(status));
+  if (NT_ERROR(status) || !pbi.PebBaseAddress) {
+    return Status::failure("NtQueryInformationProcess failed for " +
+                           std::to_string(pid) + " with " +
+                           std::to_string(status));
   }
 
-  result.GetString("Name", r["name"]);
-  result.GetString("ExecutablePath", r["path"]);
-  result.GetString("CommandLine", r["cmdline"]);
-  result.GetString("ExecutionState", r["state"]);
-  result.GetLong("ParentProcessId", lPlaceHolder);
-  r["parent"] = BIGINT(lPlaceHolder);
-  result.GetLong("Priority", lPlaceHolder);
-  r["nice"] = INTEGER(lPlaceHolder);
-  r["on_disk"] = osquery::pathExists(r["path"]).toString();
-  result.GetLong("ThreadCount", lPlaceHolder);
-  r["threads"] = INTEGER(lPlaceHolder);
-  result.GetString("PrivatePageCount", sPlaceHolder);
-  r["wired_size"] = BIGINT(sPlaceHolder);
-  result.GetString("WorkingSetSize", sPlaceHolder);
-  r["resident_size"] = sPlaceHolder;
-  result.GetString("VirtualSize", sPlaceHolder);
-  r["total_size"] = BIGINT(sPlaceHolder);
-
-  if (context.isAnyColumnUsed({"cwd", "root"})) {
-    std::vector<char> fileName(MAX_PATH + 1, 0x0);
-    if (pid == currentPid) {
-      GetModuleFileName(nullptr, fileName.data(), MAX_PATH);
-    } else {
-      GetModuleFileNameEx(hProcess, nullptr, fileName.data(), MAX_PATH);
-    }
-
-    r["cwd"] = SQL_TEXT(fileName.data());
-    r["root"] = r["cwd"];
+  size_t bytes_read = 0;
+  PEB peb;
+  if (!ReadProcessMemory(
+          proc, pbi.PebBaseAddress, &peb, sizeof(peb), &bytes_read)) {
+    return Status::failure("Reading PEB failed for " + std::to_string(pid) +
+                           " with " + std::to_string(status));
   }
 
-  r["pgroup"] = "-1";
-  r["euid"] = "-1";
-  r["suid"] = "-1";
-  r["egid"] = "-1";
-  r["sgid"] = "-1";
-
-  if (context.isAnyColumnUsed({"user_time", "system_time", "start_time"})) {
-    FILETIME createTime;
-    FILETIME exitTime;
-    FILETIME kernelTime;
-    FILETIME userTime;
-    auto procRet = GetProcessTimes(
-        hProcess, &createTime, &exitTime, &kernelTime, &userTime);
-    if (procRet == FALSE) {
-      r["user_time"] = BIGINT(-1);
-      r["system_time"] = BIGINT(-1);
-      r["start_time"] = BIGINT(-1);
-    } else {
-      // Windows stores proc times in 100 nanosecond ticks
-      ULARGE_INTEGER utime;
-      utime.HighPart = userTime.dwHighDateTime;
-      utime.LowPart = userTime.dwLowDateTime;
-      r["user_time"] = BIGINT(utime.QuadPart / 10000);
-      utime.HighPart = kernelTime.dwHighDateTime;
-      utime.LowPart = kernelTime.dwLowDateTime;
-      r["system_time"] = BIGINT(utime.QuadPart / 10000);
-      r["start_time"] = BIGINT(osquery::filetimeToUnixtime(createTime));
-    }
+  RTL_USER_PROCESS_PARAMETERS upp;
+  if (!ReadProcessMemory(
+          proc, peb.ProcessParameters, &upp, sizeof(upp), &bytes_read)) {
+    return Status::failure("Reading USER_PROCESS_PARAMETERS failed for " +
+                           std::to_string(pid));
   }
 
-  if (context.isAnyColumnUsed({"uid", "gid", "is_elevated_token"})) {
-    /// Get the process UID and GID from its SID
-    HANDLE tok = nullptr;
-    std::vector<char> tokUser(sizeof(TOKEN_USER), 0x0);
-    auto ret = OpenProcessToken(hProcess, TOKEN_READ, &tok);
-    if (ret != 0 && tok != nullptr) {
-      unsigned long tokOwnerBuffLen;
-      ret = GetTokenInformation(tok, TokenUser, nullptr, 0, &tokOwnerBuffLen);
-      if (ret == 0 && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-        tokUser.resize(tokOwnerBuffLen);
-        ret = GetTokenInformation(
-            tok, TokenUser, tokUser.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
-      }
-
-      // Check if the process is using an elevated token
-      auto elevated = FALSE;
-      TOKEN_ELEVATION Elevation;
-      DWORD cbSize = sizeof(TOKEN_ELEVATION);
-      if (GetTokenInformation(
-              tok, TokenElevation, &Elevation, sizeof(Elevation), &cbSize)) {
-        elevated = Elevation.TokenIsElevated;
-      }
-
-      r["is_elevated_token"] = elevated ? INTEGER(1) : INTEGER(0);
-    }
-    if (uid != 0 && ret != 0 && !tokUser.empty()) {
-      auto sid = PTOKEN_OWNER(tokUser.data())->Owner;
-      r["uid"] = INTEGER(getUidFromSid(sid));
-      r["gid"] = INTEGER(getGidFromSid(sid));
-    } else {
-      r["uid"] = INTEGER(uid);
-      r["gid"] = INTEGER(gid);
-    }
-    if (tok != nullptr) {
-      CloseHandle(tok);
-      tok = nullptr;
-    }
+  std::vector<wchar_t> command_line(kMaxPathSize, 0x0);
+  SecureZeroMemory(command_line.data(), kMaxPathSize);
+  if (!ReadProcessMemory(proc,
+                         upp.CommandLine.Buffer,
+                         command_line.data(),
+                         upp.CommandLine.Length,
+                         &bytes_read)) {
+    return Status::failure("Failed to read command line for " +
+                           std::to_string(pid));
   }
-
-  if (hProcess != nullptr) {
-    CloseHandle(hProcess);
-  }
+  out = wstringToString(command_line.data());
+  return Status::success();
 }
 
-// collect perf data into a hashmap by pid to later be refferenced
-
-void genPerfPerProcess(
-    std::map<std::int32_t, std::map<std::string, std::int64_t>>& perfData) {
-  const WmiRequest request(kWinProcPerfQuery);
-
-  if (!request.getStatus().ok()) {
-    VLOG(1) << "Failed to query process perf data from WMI";
-    return;
+// On windows 8.1 and later, there's an enum for commandline
+Status getProcessCommandLine(HANDLE& proc,
+                             std::string& out,
+                             const unsigned long pid) {
+  if (kNtQueryInformationProcess == nullptr) {
+    return Status::failure("Failed to resolve NtQueryInformationProcess with " +
+                           std::to_string(GetLastError()));
   }
 
-  const auto& results = request.results();
-  for (const auto& result : results) {
-    std::map<std::string, std::int64_t> processData;
-    long processID;
-    long handleCount = 0;
-    std::string elapsedTime;
-    std::string percentProcessorTime;
+  unsigned long size_out = 0;
+  PROCESS_BASIC_INFORMATION proc_info;
+  SecureZeroMemory(&proc_info, sizeof(PROCESS_BASIC_INFORMATION));
 
-    result.GetString("ElapsedTime", elapsedTime);
-    result.GetLong("HandleCount", handleCount);
-    result.GetString("PercentProcessorTime", percentProcessorTime);
-    processData["elapsed_time"] = std::stoll(elapsedTime);
-    processData["handle_count"] = handleCount;
-    processData["percent_processor_time"] = std::stoll(percentProcessorTime);
-    result.GetLong("IDProcess", processID);
-    perfData[processID] = processData;
+  // See the Process Hacker implementation for more details on the hard coded 60
+  // https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h#L160
+  auto ret = kNtQueryInformationProcess(proc, 60, NULL, 0, &size_out);
+
+  if (ret != STATUS_BUFFER_OVERFLOW && ret != STATUS_BUFFER_TOO_SMALL &&
+      ret != STATUS_INFO_LENGTH_MISMATCH) {
+    return Status::failure("NtQueryInformationProcess failed for " +
+                           std::to_string(pid) + " with " +
+                           std::to_string(ret));
+  }
+
+  std::vector<char> cmdline(size_out, 0x0);
+  ret =
+      kNtQueryInformationProcess(proc, 60, cmdline.data(), size_out, &size_out);
+
+  if (!NT_SUCCESS(ret)) {
+    return Status::failure("NtQueryInformationProcess failed for " +
+                           std::to_string(pid) + " with " +
+                           std::to_string(ret));
+  }
+  auto ustr = reinterpret_cast<PUNICODE_STRING>(cmdline.data());
+  out = wstringToString(ustr->Buffer);
+  return Status::success();
+}
+
+void getProcessPathInfo(HANDLE& proc,
+                        const unsigned long pid,
+                        DynamicTableRowHolder& r) {
+  auto out = kMaxPathSize;
+  std::vector<char> path(kMaxPathSize, 0x0);
+  SecureZeroMemory(path.data(), kMaxPathSize);
+  auto ret = QueryFullProcessImageName(proc, 0, path.data(), &out);
+  if (ret != TRUE) {
+    LOG(ERROR) << "Failed to lookup path information for process " << pid;
+  } else {
+    r["path"] = TEXT(path.data());
+  }
+
+  {
+    auto const boost_path = boost::filesystem::path{path.data()};
+    r["on_disk"] = INTEGER(
+        boost_path.empty() ? -1 : osquery::pathExists(path.data()).ok());
+  }
+
+  path.clear();
+  path.resize(kMaxPathSize, 0x0);
+  if (pid == GetCurrentProcessId()) {
+    ret = GetModuleFileName(nullptr, path.data(), kMaxPathSize);
+  } else {
+    ret = GetModuleFileNameEx(proc, nullptr, path.data(), kMaxPathSize);
+  }
+
+  if (ret == FALSE) {
+    LOG(ERROR) << "Failed to get cwd for " << pid << " with " << GetLastError();
+  } else {
+    r["cwd"] = TEXT(path.data());
+  }
+  r["root"] = r["cwd"];
+}
+
+void genProcessUserTokenInfo(HANDLE& proc, DynamicTableRowHolder& r) {
+  /// Get the process UID and GID from its SID
+  HANDLE tok = nullptr;
+  std::vector<char> tok_user(sizeof(TOKEN_USER), 0x0);
+
+  auto ret = OpenProcessToken(proc, TOKEN_READ, &tok);
+  long elevated = -1;
+  if (ret != 0 && tok != nullptr) {
+    unsigned long tokOwnerBuffLen;
+    ret = GetTokenInformation(tok, TokenUser, nullptr, 0, &tokOwnerBuffLen);
+    if (ret == 0 && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+      tok_user.resize(tokOwnerBuffLen);
+      ret = GetTokenInformation(
+          tok, TokenUser, tok_user.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
+    }
+
+    /// Check if the process is using an elevated token
+    TOKEN_ELEVATION elevation;
+    DWORD cb_size = sizeof(TOKEN_ELEVATION);
+    if (GetTokenInformation(tok,
+                            TokenElevation,
+                            &elevation,
+                            sizeof(TOKEN_ELEVATION),
+                            &cb_size)) {
+      elevated = elevation.TokenIsElevated;
+    }
+  }
+  r["is_elevated_token"] = INTEGER(elevated);
+  if (ret != 0 && !tok_user.empty()) {
+    auto sid = PTOKEN_OWNER(tok_user.data())->Owner;
+
+    r["uid"] = BIGINT(getUidFromSid(sid));
+    r["gid"] = BIGINT(getGidFromSid(sid));
+  }
+  if (tok != nullptr) {
+    CloseHandle(tok);
   }
 }
 
-QueryData genProcesses(QueryContext& context) {
-  QueryData results;
+void genProcessTimeInfo(HANDLE& proc, DynamicTableRowHolder& r) {
+  FILETIME create_time;
+  FILETIME exit_time;
+  FILETIME kernel_time;
+  FILETIME user_time;
+  auto ret =
+      GetProcessTimes(proc, &create_time, &exit_time, &kernel_time, &user_time);
+  if (ret == FALSE) {
+    LOG(ERROR) << "Failed to lookup time data for process "
+               << GetProcessId(proc);
+  } else {
+    // Windows stores proc times in 100 nanosecond ticks
+    ULARGE_INTEGER utime;
+    utime.HighPart = user_time.dwHighDateTime;
+    utime.LowPart = user_time.dwLowDateTime;
+    auto user_time_total = utime.QuadPart;
+    r["user_time"] = BIGINT(user_time_total / 10000);
+    utime.HighPart = kernel_time.dwHighDateTime;
+    utime.LowPart = kernel_time.dwLowDateTime;
+    r["system_time"] = BIGINT(utime.QuadPart / 10000);
+    r["percent_processor_time"] = BIGINT(user_time_total + utime.QuadPart);
 
-  std::string query = "SELECT * FROM Win32_Process";
+    auto proc_create_time = osquery::filetimeToUnixtime(create_time);
+    r["start_time"] = BIGINT(proc_create_time);
 
-  std::set<long> pidlist;
-  if (context.constraints.count("pid") > 0 &&
-      context.constraints.at("pid").exists(EQUALS)) {
-    for (const auto& pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
-      if (pid > 0) {
-        pidlist.insert(pid);
-      }
-    }
-    // None of the constraints returned valid pids, bail out early
-    if (pidlist.empty()) {
-      return results;
-    }
+    FILETIME curr_ft_time;
+    SYSTEMTIME curr_sys_time;
+    GetSystemTime(&curr_sys_time);
+    SystemTimeToFileTime(&curr_sys_time, &curr_ft_time);
+    r["elapsed_time"] =
+        BIGINT(osquery::filetimeToUnixtime(curr_ft_time) - proc_create_time);
+  }
+}
+
+void genProcRssInfo(HANDLE& proc, DynamicTableRowHolder& r) {
+  PROCESS_MEMORY_COUNTERS_EX mem_ctr;
+  auto ret =
+      GetProcessMemoryInfo(proc,
+                           reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&mem_ctr),
+                           sizeof(PROCESS_MEMORY_COUNTERS_EX));
+
+  if (ret != TRUE) {
+    LOG(ERROR) << "Failed to lookup RSS stats for process "
+               << GetProcessId(proc);
+  }
+  r["wired_size"] =
+      ret == TRUE ? BIGINT(mem_ctr.QuotaNonPagedPoolUsage) : BIGINT(-1);
+  r["resident_size"] =
+      ret == TRUE ? BIGINT(mem_ctr.WorkingSetSize) : BIGINT(-1);
+  r["total_size"] = ret == TRUE ? BIGINT(mem_ctr.PrivateUsage) : BIGINT(-1);
+}
+
+TableRows genProcesses(QueryContext& context) {
+  TableRows results;
+
+  auto proc_snap = CreateToolhelp32Snapshot(TH32CS_SNAPALL, NULL);
+  auto const proc_snap_manager =
+      scope_guard::create([&proc_snap]() { CloseHandle(proc_snap); });
+  if (proc_snap == INVALID_HANDLE_VALUE) {
+    LOG(ERROR) << "Failed to create snapshot of processes with "
+               << std::to_string(GetLastError());
+    return {};
   }
 
-  if (pidlist.size() > 0) {
-    std::vector<std::string> constraints;
-    for (const auto& pid : pidlist) {
-      constraints.push_back("ProcessId=" + std::to_string(pid));
-    }
-    if (constraints.size() > 0) {
-      query += " WHERE " + boost::algorithm::join(constraints, " OR ");
-    }
+  PROCESSENTRY32 proc;
+  proc.dwSize = sizeof(PROCESSENTRY32);
+
+  auto ret = Process32First(proc_snap, &proc);
+  if (ret == FALSE) {
+    LOG(ERROR) << "Failed to acquire first process information with "
+               << std::to_string(GetLastError());
+    return {};
   }
 
-  // get per process data
-  std::map<std::int32_t, std::map<std::string, std::int64_t>> perfData;
-  if (context.isAnyColumnUsed(
-          {"elapsed_time", "handle_count", "percent_processor_time"})) {
-    genPerfPerProcess(perfData);
-  }
+  while (ret != FALSE) {
+    auto r = make_table_row();
+    auto pid = proc.th32ProcessID;
+    r["pid"] = BIGINT(pid);
+    r["parent"] = BIGINT(proc.th32ParentProcessID);
+    r["name"] = TEXT(proc.szExeFile);
+    r["threads"] = INTEGER(proc.cntThreads);
 
-  const WmiRequest request(query);
-  if (request.getStatus().ok()) {
-    for (const auto& item : request.results()) {
-      long pid = 0;
-      Row r;
-      if (item.GetLong("ProcessId", pid).ok()) {
-        r["pid"] = BIGINT(pid);
-        // add per process perf data
-        if (context.isAnyColumnUsed(
-                {"elapsed_time", "handle_count", "percent_processor_time"})) {
-          std::map<std::string, std::int64_t> procPerfData;
-          procPerfData = perfData[pid];
-          r["elapsed_time"] = BIGINT(procPerfData["elapsed_time"]);
-          r["handle_count"] = BIGINT(procPerfData["handle_count"]);
-          r["percent_processor_time"] =
-              BIGINT(procPerfData["percent_processor_time"]);
-        }
+    // Set default values for columns, in the event opening the process fails
+    r["pgroup"] = BIGINT(-1);
+    r["euid"] = BIGINT(-1);
+    r["suid"] = BIGINT(-1);
+    r["egid"] = BIGINT(-1);
+    r["sgid"] = BIGINT(-1);
+    r["uid"] = BIGINT(-1);
+    r["gid"] = BIGINT(-1);
 
-        genProcess(pid, item, r, context);
-      } else {
-        r["pid"] = BIGINT(-1);
-      }
+    r["user_time"] = BIGINT(-1);
+    r["system_time"] = BIGINT(-1);
+    r["start_time"] = BIGINT(-1);
+    r["elapsed_time"] = BIGINT(-1);
+    r["percent_processor_time"] = BIGINT(-1);
+
+    r["nice"] = BIGINT(-1);
+    r["wired_size"] = BIGINT(-1);
+    r["resident_size"] = BIGINT(-1);
+    r["total_size"] = BIGINT(-1);
+    r["disk_bytes_read"] = BIGINT(-1);
+    r["disk_bytes_written"] = BIGINT(-1);
+    r["handle_count"] = BIGINT(-1);
+
+    r["on_disk"] = BIGINT(-1);
+
+    auto proc_handle =
+        OpenProcess(PROCESS_ALL_ACCESS, FALSE, proc.th32ProcessID);
+    auto const proc_handle_manager =
+        scope_guard::create([&proc_handle]() { CloseHandle(proc_handle); });
+
+    // If we fail to get all privs, open with less permissions
+    if (proc_handle == NULL) {
+      proc_handle = OpenProcess(
+          PROCESS_QUERY_LIMITED_INFORMATION, FALSE, proc.th32ProcessID);
+    }
+
+    if (proc_handle == NULL) {
+      VLOG(1) << "Failed to open handle to process " << proc.th32ProcessID
+              << " with " << GetLastError();
       results.push_back(r);
+      ret = Process32Next(proc_snap, &proc);
+      continue;
     }
+
+    auto nice = GetPriorityClass(proc_handle);
+    r["nice"] = nice != FALSE ? INTEGER(nice) : "-1";
+
+    if (context.isAnyColumnUsed({"cwd", "root", "path", "on_disk"})) {
+      getProcessPathInfo(proc_handle, pid, r);
+    }
+
+    if (context.isColumnUsed("cmdline")) {
+      if (kNtQueryInformationProcess == nullptr) {
+        // GetModuleHandle doesn't increment a reference, no need to track
+        // handle
+        kNtQueryInformationProcess =
+            reinterpret_cast<NtQueryInformationProcessPtr>(GetProcAddress(
+                GetModuleHandle("ntdll.dll"), "NtQueryInformationProcess"));
+
+        kRtlNtStatusToDosError =
+            reinterpret_cast<RtlNtStatusToDosErrorPtr>(GetProcAddress(
+                GetModuleHandle("ntdll.dll"), "RtlNtStatusToDosError"));
+      }
+
+      std::string cmd{""};
+      auto s = getProcessCommandLine(
+          proc_handle, cmd, static_cast<unsigned long>(proc.th32ProcessID));
+      if (!s.ok()) {
+        s = getProcessCommandLineLegacy(
+            proc_handle, cmd, static_cast<unsigned long>(proc.th32ProcessID));
+      }
+      r["cmdline"] = cmd;
+    }
+
+    if (context.isAnyColumnUsed({"uid", "gid", "is_elevated_token"})) {
+      genProcessUserTokenInfo(proc_handle, r);
+    }
+
+    if (context.isAnyColumnUsed({"user_time",
+                                 "system_time",
+                                 "start_time",
+                                 "elapsed_time",
+                                 "percent_processor_time"})) {
+      genProcessTimeInfo(proc_handle, r);
+    }
+
+    if (context.isAnyColumnUsed(
+            {"wired_size", "resident_size", "total_size"})) {
+      genProcRssInfo(proc_handle, r);
+    }
+
+    if (context.isAnyColumnUsed({"disk_bytes_read", "disk_bytes_written"})) {
+      IO_COUNTERS io_ctrs;
+      ret = GetProcessIoCounters(proc_handle, &io_ctrs);
+      r["disk_bytes_read"] =
+          ret == TRUE ? BIGINT(io_ctrs.ReadTransferCount) : BIGINT(-1);
+      r["disk_bytes_written"] =
+          ret == TRUE ? BIGINT(io_ctrs.WriteTransferCount) : BIGINT(-1);
+    }
+
+    if (context.isColumnUsed("handle_count")) {
+      unsigned long handle_count;
+      ret = GetProcessHandleCount(proc_handle, &handle_count);
+      r["handle_count"] = ret == TRUE ? INTEGER(handle_count) : "-1";
+    }
+
+    /*
+     * Note: On windows the concept of the process state isn't as clear as on
+     * posix. The state value from WMI isn't currently returning anything, and
+     * the most common way to get the state is as follows.
+     */
+    if (context.isColumnUsed("state")) {
+      unsigned long exit_code = 0;
+      GetExitCodeProcess(proc_handle, &exit_code);
+      r["state"] = exit_code == STILL_ACTIVE ? "STILL_ACTIVE" : "EXITED";
+    }
+
+    results.push_back(r);
+    ret = Process32Next(proc_snap, &proc);
   }
 
   return results;

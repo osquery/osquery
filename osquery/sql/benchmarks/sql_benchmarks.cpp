@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <benchmark/benchmark.h>
@@ -28,10 +26,11 @@ class BenchmarkTablePlugin : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& ctx) {
-    QueryData results;
-    results.push_back({{"test_int", "0"}});
-    results.push_back({{"test_int", "0"}, {"test_text", "hello"}});
+  TableRows generate(QueryContext& ctx) {
+    TableRows results;
+    results.push_back(make_table_row({{"test_int", "0"}}));
+    results.push_back(
+        make_table_row({{"test_int", "0"}, {"test_text", "hello"}}));
     return results;
   }
 };
@@ -44,16 +43,16 @@ class BenchmarkTableYieldPlugin : public BenchmarkTablePlugin {
 
   void generator(RowYield& yield, QueryContext& ctx) override {
     {
-      Row r;
+      auto r = make_table_row();
       r["test_int"] = "0";
-      yield(r);
+      yield(std::move(r));
     }
 
     {
-      Row r;
+      auto r = make_table_row();
       r["test_int"] = "0";
       r["test_text"] = "hello";
-      yield(r);
+      yield(std::move(r));
     }
   }
 };
@@ -164,10 +163,11 @@ class BenchmarkLongTablePlugin : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& ctx) {
-    QueryData results;
+  TableRows generate(QueryContext& ctx) {
+    TableRows results;
     for (size_t i = 0; i < 1000; i++) {
-      results.push_back({{"test_int", "0"}, {"test_text", "hello"}});
+      results.push_back(
+          make_table_row({{"test_int", "0"}, {"test_text", "hello"}}));
     }
     return results;
   }
@@ -207,14 +207,14 @@ class BenchmarkWideTablePlugin : public TablePlugin {
     return cols;
   }
 
-  QueryData generate(QueryContext& ctx) override {
-    QueryData results;
+  TableRows generate(QueryContext& ctx) override {
+    TableRows results;
     for (size_t k = 0; k < kWideCount; k++) {
-      Row r;
+      auto r = make_table_row();
       for (size_t i = 0; i < 20; i++) {
         r["test_" + std::to_string(i)] = "0";
       }
-      results.push_back(r);
+      results.push_back(std::move(r));
     }
     return results;
   }
@@ -228,11 +228,11 @@ class BenchmarkWideTableYieldPlugin : public BenchmarkWideTablePlugin {
 
   void generator(RowYield& yield, QueryContext& ctx) override {
     for (size_t k = 0; k < kWideCount; k++) {
-      Row r;
+      auto r = make_table_row();
       for (size_t i = 0; i < 20; i++) {
         r["test_" + std::to_string(i)] = "0";
       }
-      yield(r);
+      yield(std::move(r));
     }
   }
 };

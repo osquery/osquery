@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <sstream>
@@ -15,13 +13,13 @@
 #include <boost/format.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/tables/system/darwin/keychain.h"
+#include <osquery/tables/system/darwin/keychain.h>
+#include <osquery/utils/conversions/join.h>
 
 namespace osquery {
 namespace tables {
@@ -123,7 +121,7 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
   }
 
   acls.push_back(acl_data);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status parseKeychainItemACL(SecAccessRef access,
@@ -149,7 +147,7 @@ Status parseKeychainItemACL(SecAccessRef access,
   }
 
   CFRelease(acl_list);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 static std::string attributeBufferToString(const void* data, UInt32 length) {
@@ -265,7 +263,7 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
     }
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status genKeychainACLApps(const std::string& path, QueryData& results) {
@@ -309,7 +307,7 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
 
   CFRelease(keychain);
   CFRelease(search);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 QueryData genKeychainACLApps(QueryContext& context) {

@@ -1,0 +1,42 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "libxml2",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "40f341caf6442347a130e614f7d1be3193656b7c5ad86a644a87f3b15282f7bf",
+        "macos-x86_64": "15c240f914a430036847d19f18be54b86d0c78d54eff601f9b036b63481b420e",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libxml2.a",
+        ],
+        "macos-x86_64": [
+            "lib/libxml2.a",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+
+    ],
+    version = "2.9.7",
+    build = "0",
+    visibility = ["PUBLIC"],
+)

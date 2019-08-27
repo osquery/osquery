@@ -2,15 +2,11 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#define _WIN32_DCOM
-
-#include <Windows.h>
+#include <osquery/utils/system/system.h>
 
 #include <algorithm>
 
@@ -21,6 +17,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 #include "osquery/core/windows/wmi.h"
 #include "osquery/events/windows/windows_event_log.h"
@@ -64,7 +61,7 @@ void WindowsEventLogEventPublisher::configure() {
 
 Status WindowsEventLogEventPublisher::run() {
   pause(std::chrono::milliseconds(100));
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void WindowsEventLogEventPublisher::stop() {

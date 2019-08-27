@@ -1,32 +1,16 @@
-#  Copyright (c) 2014-present, Facebook, Inc.
-#  All rights reserved.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-# List of python modules containing unittests
-if(NOT DEFINED ENV{SANITIZE})
-  # Linenoise's input buffer fails TSAN checks.
-  ADD_OSQUERY_PYTHON_TEST(test_osqueryi test_osqueryi.py)
-endif()
+function(osqueryToolsTestsMain)
+  add_custom_target(osquery_tools_tests_testconfigsfolder COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/test_configs")
+  generateCopyFileTarget("osquery_tools_tests_conffiles" "REGEX" "*.conf" "${TEST_CONFIGS_DIR}")
+  generateCopyFileTarget("osquery_tools_tests_configfiles" "REGEX" "*.config" "${TEST_CONFIGS_DIR}")
+  generateCopyFileTarget("osquery_tools_tests_plistfiles" "REGEX" "*.plist" "${TEST_CONFIGS_DIR}")
+  generateCopyFileTarget("osquery_tools_tests_testfiles" "REGEX" "*" "${TEST_CONFIGS_DIR}")
+  generateCopyFileTarget("osquery_tools_tests_awsfiles" "REGEX" "aws/*" "${TEST_CONFIGS_DIR}")
+endfunction()
 
-ADD_OSQUERY_PYTHON_TEST(test_osqueryd test_osqueryd.py)
-if(WINDOWS)
-  ADD_OSQUERY_PYTHON_TEST(test_windows_service test_windows_service.py)
-else()
-  ADD_OSQUERY_PYTHON_TEST(test_additional test_additional.py)
-
-  if(NOT DEFINED ENV{SANITIZE})
-    # Too many FATAL's: failed to intercept strlen
-    ADD_OSQUERY_PYTHON_TEST(test_extensions test_extensions.py)
-    # The 'magic' table fails TSAN checks.
-    ADD_OSQUERY_PYTHON_TEST(test_example_queries test_example_queries.py)
-  endif()
-endif()
-
-# If the build hosts are building release packages
-if(DEFINED ENV{RUN_RELEASE_TESTS})
-  ADD_OSQUERY_PYTHON_TEST(test_release test_release.py)
-endif()
+osqueryToolsTestsMain()

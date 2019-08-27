@@ -1,0 +1,48 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "POSIX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_test(
+    name = "yara_tests",
+    platform_deps = [
+        (
+            POSIX,
+            [
+                osquery_target("osquery/config/tests:test_utils"),
+                osquery_target("osquery/core:core"),
+                osquery_target("osquery/database:database"),
+                osquery_target("osquery/filesystem:osquery_filesystem"),
+                osquery_target("osquery/remote:http_client"),
+                osquery_target("osquery/remote/tests:remote_test_utils"),
+                osquery_target("osquery/tables/yara:yara_table"),
+                osquery_target("osquery/tables/system:system_table"),
+                osquery_target("osquery/utils:utils"),
+                osquery_target("osquery/utils/conversions:conversions"),
+                osquery_target("plugins/database:ephemeral"),
+                osquery_tp_target("boost"),
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "yara_tests.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "yara_tests_win_empty.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+)

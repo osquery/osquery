@@ -2,14 +2,9 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
-
-#include <cstdio>
-#include <cstring>
 
 #ifdef WIN32
 #include <io.h>
@@ -20,22 +15,22 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <osquery/core.h>
+#include <osquery/core/watcher.h>
 #include <osquery/database.h>
+#include <osquery/devtools/devtools.h>
+#include <osquery/dispatcher/distributed_runner.h>
+#include <osquery/dispatcher/scheduler.h>
 #include <osquery/extensions.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/main/main.h>
+#include <osquery/process/process.h>
 #include <osquery/registry_factory.h>
+#include <osquery/sql/sqlite_util.h>
 #include <osquery/system.h>
 
-#include "osquery/core/process.h"
-#include "osquery/core/utils.h"
-#include "osquery/core/watcher.h"
-#include "osquery/devtools/devtools.h"
-#include "osquery/dispatcher/distributed_runner.h"
-#include "osquery/dispatcher/scheduler.h"
-#include "osquery/filesystem/fileops.h"
-#include "osquery/main/main.h"
-#include "osquery/sql/sqlite_util.h"
+#include <osquery/experimental/tracing/syscalls_tracing.h>
 
 namespace fs = boost::filesystem;
 
@@ -65,7 +60,8 @@ int profile(int argc, char* argv[]) {
     std::getline(std::cin, query);
   } else if (argc < 2) {
     // No query input provided via stdin or as a positional argument.
-    fprintf(stderr, "No query provided via stdin or args to profile...\n");
+    std::cerr << "No query provided via stdin or args to profile..."
+              << std::endl;
     return 2;
   } else {
     query = std::string(argv[1]);
@@ -85,10 +81,8 @@ int profile(int argc, char* argv[]) {
     auto status = osquery::queryInternal(query, results, dbc);
     dbc->clearAffectedTables();
     if (!status) {
-      fprintf(stderr,
-              "Query failed (%d): %s\n",
-              status.getCode(),
-              status.what().c_str());
+      std::cerr << "Query failed (" << status.getCode()
+                << "): " << status.what() << std::endl;
       return status.getCode();
     }
   }
@@ -111,6 +105,8 @@ int startDaemon(Initializer& runner) {
 
   // Begin the schedule runloop.
   startScheduler();
+
+  osquery::events::init_syscall_tracing();
 
   // Finally wait for a signal / interrupt to shutdown.
   runner.waitForShutdown();
@@ -151,17 +147,29 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
   osquery::Initializer runner(argc, argv, osquery::ToolType::SHELL_DAEMON);
 
   // Options for installing or uninstalling the osqueryd as a service
+  if (FLAGS_install && FLAGS_uninstall) {
+    LOG(ERROR) << "osqueryd service install and uninstall can not be "
+                  "requested together";
+    return 1;
+  }
+
   if (FLAGS_install) {
     auto binPath = fs::system_complete(fs::path(argv[0]));
-    if (!installService(binPath.string())) {
+    if (installService(binPath.string())) {
+      LOG(INFO) << "osqueryd service was installed successfully.";
+      return 0;
+    } else {
       LOG(ERROR) << "Unable to install the osqueryd service";
+      return 1;
     }
-    return 1;
   } else if (FLAGS_uninstall) {
-    if (!uninstallService()) {
+    if (uninstallService()) {
+      LOG(INFO) << "osqueryd service was uninstalled successfully.";
+      return 0;
+    } else {
       LOG(ERROR) << "Unable to uninstall the osqueryd service";
+      return 1;
     }
-    return 1;
   }
 
   runner.installShutdown(shutdown);

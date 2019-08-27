@@ -3,10 +3,8 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
 
 LIB_SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
@@ -96,13 +94,6 @@ function in_ec2() {
   fi
 }
 
-function checkout_thirdparty() {
-  # Reset any work or artifacts from build tests in TP.
-  (cd third-party && git reset --hard HEAD)
-  git submodule init
-  git submodule update
-}
-
 function build_target() {
   threads THREADS
 
@@ -153,7 +144,6 @@ function check_deterministic() {
 
 function initialize() {
   DISTRO=$1
-  checkout_thirdparty
 
   # Remove any previously-cached variables
   rm build/$DISTRO/CMakeCache.txt >/dev/null 2>&1 || true

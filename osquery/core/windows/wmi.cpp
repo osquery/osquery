@@ -2,56 +2,18 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <locale>
 #include <string>
 
+#include <osquery/core/windows/wmi.h>
 #include <osquery/logger.h>
-
-#include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
-
-std::wstring stringToWstring(const std::string& src) {
-  std::wstring utf16le_str;
-  try {
-    utf16le_str = converter.from_bytes(src);
-  } catch (std::exception /* e */) {
-    LOG(WARNING) << "Failed to convert string to wstring " << src;
-  }
-
-  return utf16le_str;
-}
-
-std::string wstringToString(const wchar_t* src) {
-  if (src == nullptr) {
-    return std::string("");
-  }
-
-  std::string utf8_str = converter.to_bytes(src);
-  return utf8_str;
-}
-
-std::string bstrToString(const BSTR src) {
-  return wstringToString(static_cast<const wchar_t*>(src));
-}
-
-WmiResultItem::WmiResultItem(WmiResultItem&& src) {
-  result_ = nullptr;
-  std::swap(result_, src.result_);
-}
-
-WmiResultItem::~WmiResultItem() {
-  if (result_ != nullptr) {
-    result_->Release();
-    result_ = nullptr;
-  }
-}
 
 void WmiResultItem::PrintType(const std::string& name) const {
   std::wstring property_name = stringToWstring(name);
@@ -310,6 +272,7 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
   HRESULT hr = E_FAIL;
 
+  IWbemLocator *locator = nullptr;
   hr = ::CoInitializeSecurity(nullptr,
                               -1,
                               nullptr,
@@ -323,25 +286,31 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
                           0,
                           CLSCTX_INPROC_SERVER,
                           IID_IWbemLocator,
-                          (LPVOID*)&locator_);
+                          (LPVOID*)&locator);
   if (hr != S_OK) {
-    locator_ = nullptr;
     return;
   }
 
+  locator_.reset(locator);
+
+  IWbemServices *services = nullptr;
   hr = locator_->ConnectServer(
-      nspace, nullptr, nullptr, nullptr, 0, nullptr, nullptr, &services_);
+      nspace, nullptr, nullptr, nullptr, 0, nullptr, nullptr, &services);
   if (hr != S_OK) {
-    services_ = nullptr;
     return;
   }
+
+  services_.reset(services);
+
+  IEnumWbemClassObject *wbem_enum = nullptr;
 
   hr = services_->ExecQuery(
-      (BSTR)L"WQL", (BSTR)wql.c_str(), WBEM_FLAG_FORWARD_ONLY, nullptr, &enum_);
+      (BSTR)L"WQL", (BSTR)wql.c_str(), WBEM_FLAG_FORWARD_ONLY, nullptr, &wbem_enum);
   if (hr != S_OK) {
-    enum_ = nullptr;
     return;
   }
+
+  enum_.reset(wbem_enum);
 
   hr = WBEM_S_NO_ERROR;
   while (hr == WBEM_S_NO_ERROR) {
@@ -357,33 +326,7 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
   status_ = Status(0);
 }
 
-WmiRequest::WmiRequest(WmiRequest&& src) {
-  locator_ = nullptr;
-  std::swap(locator_, src.locator_);
-
-  services_ = nullptr;
-  std::swap(services_, src.services_);
-
-  enum_ = nullptr;
-  std::swap(enum_, src.enum_);
-}
-
 WmiRequest::~WmiRequest() {
   results_.clear();
-
-  if (enum_ != nullptr) {
-    enum_->Release();
-    enum_ = nullptr;
-  }
-
-  if (services_ != nullptr) {
-    services_->Release();
-    services_ = nullptr;
-  }
-
-  if (locator_ != nullptr) {
-    locator_->Release();
-    locator_ = nullptr;
-  }
 }
 }

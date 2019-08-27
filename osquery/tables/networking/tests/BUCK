@@ -1,0 +1,98 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_test(
+    name = "networking_tables_tests",
+    srcs = [
+        "networking_tables_tests.cpp",
+    ],
+    env = {
+        "TEST_CONF_FILES_DIR": "$(location {})".format(
+            osquery_target("tools/tests:test_files"),
+        ),
+    },
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote:http_client"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/tables/networking:networking"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_tp_target("boost"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "wifi_tests",
+    env = {
+        "TEST_CONF_FILES_DIR": "$(location {})".format(
+            osquery_target("tools/tests:plist_files"),
+        ),
+    },
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/wifi_tests.mm",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/tables/networking:networking"),
+        osquery_target("osquery/remote:http_client"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_tp_target("boost"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "iptables_tests",
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/iptables_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote:http_client"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/networking:networking"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_tp_target("boost"),
+    ],
+)

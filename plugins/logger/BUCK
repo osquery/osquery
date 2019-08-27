@@ -1,0 +1,329 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD", "LINUX", "MACOSX", "POSIX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+common_deps = [
+    osquery_target("osquery/core:core"),
+    osquery_target("osquery/core/plugins:plugins"),
+    osquery_target("osquery/database:database"),
+    osquery_target("osquery/logger:logger"),
+    osquery_target("osquery/registry:registry"),
+    osquery_tp_target("glog"),
+    osquery_tp_target("gflags"),
+]
+
+osquery_cxx_library(
+    name = "aws_firehose",
+    srcs = [
+        "aws_firehose.cpp",
+    ],
+    header_namespace = "plugins/logger",
+    exported_headers = [
+        "aws_firehose.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lgflags",
+                "-lglog",
+            ],
+        ),
+    ],
+    link_whole = True,
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/dispatcher:dispatcher"),
+        ":aws_log_forwarder",
+    ],
+)
+
+osquery_cxx_library(
+    name = "aws_kinesis",
+    srcs = [
+        "aws_kinesis.cpp",
+    ],
+    header_namespace = "plugins/logger",
+    exported_headers = [
+        "aws_kinesis.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lgflags",
+                "-lglog",
+            ],
+        ),
+    ],
+    link_whole = True,
+    tests = [
+        osquery_target("plugins/logger/tests:aws_kinesis_logger_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery:headers"),
+        osquery_target("osquery/dispatcher:dispatcher"),
+        osquery_target("osquery/process:process"),
+        osquery_target("osquery/registry:registry"),
+        ":aws_log_forwarder",
+    ],
+)
+
+osquery_cxx_library(
+    name = "aws_log_forwarder",
+    header_namespace = "plugins/logger",
+    exported_headers = [
+        "aws_log_forwarder.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lgflags",
+                "-lglog",
+            ],
+        ),
+    ],
+    link_whole = True,
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/utils/aws:aws"),
+        ":buffered",
+    ],
+)
+
+osquery_cxx_library(
+    name = "buffered",
+    srcs = [
+        "buffered.cpp",
+    ],
+    header_namespace = "plugins/logger",
+    exported_headers = [
+        "buffered.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lgflags",
+                "-lglog",
+            ],
+        ),
+    ],
+    link_whole = True,
+    tests = [
+        osquery_target("plugins/logger/tests:buffered_logger_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = common_deps + [
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/json:json"),
+        osquery_target("osquery/utils/system:time"),
+        osquery_target("plugins/config/parsers:parsers"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "filesystem_logger",
+    srcs = [
+        "filesystem_logger.cpp",
+    ],
+    header_namespace = "plugins/logger",
+    exported_headers = [
+        "filesystem_logger.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lgflags",
+                "-lglog",
+            ],
+        ),
+    ],
+    link_whole = True,
+    tests = [
+        osquery_target("plugins/logger/tests:filesystem_logger_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = common_deps + [
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/utils/config:utils_config"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "kafka_producer",
+    header_namespace = "plugins/logger",
+    exported_platform_headers = [
+        (
+            LINUX,
+            [
+                "kafka_producer.h",
+            ],
+        ),
+        (
+            MACOSX,
+            [
+                "kafka_producer.h",
+            ],
+        ),
+    ],
+    link_whole = True,
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "kafka_producer.cpp",
+            ],
+        ),
+        (
+            MACOSX,
+            [
+                "kafka_producer.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("plugins/logger/tests:kafka_producer_logger_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = common_deps + [
+        osquery_target("osquery/dispatcher:dispatcher"),
+        osquery_target("osquery/utils/config:utils_config"),
+        osquery_tp_target("librdkafka"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "stdout",
+    srcs = [
+        "stdout.cpp",
+    ],
+    header_namespace = "plugins/logger",
+    exported_headers = [
+        "stdout.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lgflags",
+                "-lglog",
+            ],
+        ),
+    ],
+    link_whole = True,
+    visibility = ["PUBLIC"],
+    deps = common_deps,
+)
+
+osquery_cxx_library(
+    name = "syslog",
+    header_namespace = "plugins/logger",
+    exported_platform_headers = [
+        (
+            POSIX,
+            [
+                "syslog_logger.h",
+            ],
+        ),
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lgflags",
+                "-lglog",
+            ],
+        ),
+    ],
+    link_whole = True,
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "syslog_logger.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("plugins/logger/tests:syslog_logger_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = common_deps,
+)
+
+osquery_cxx_library(
+    name = "tls_logger",
+    srcs = [
+        "tls_logger.cpp",
+    ],
+    header_namespace = "plugins/logger",
+    exported_headers = [
+        "tls_logger.h",
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lgflags",
+                "-lglog",
+            ],
+        ),
+    ],
+    link_whole = True,
+    tests = [
+        osquery_target("plugins/logger/tests:tls_logger_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = common_deps + [
+        ":buffered",
+        osquery_target("osquery/dispatcher:dispatcher"),
+        osquery_target("osquery/remote/serializers:serializer_json"),
+        osquery_target("osquery/remote:utility"),
+        osquery_target("plugins/config/parsers:parsers"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "windows_event_log",
+    header_namespace = "plugins/logger",
+    exported_platform_headers = [
+        (
+            WINDOWS,
+            [
+                "generated_wel.h",
+                "windows_event_log.h",
+            ],
+        ),
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-lgflags",
+                "-lglog",
+            ],
+        ),
+    ],
+    link_whole = True,
+    platform_srcs = [
+        (
+            WINDOWS,
+            [
+                "windows_event_log.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = common_deps,
+)

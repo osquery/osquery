@@ -1,0 +1,14 @@
+library(
+    name = "smartmontools",
+    version = "0.3.1",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    deps = [
+    ],
+    alias = [
+        "libsmartctl",
+    ],
+)

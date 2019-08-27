@@ -1,0 +1,89 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "events_table",
+    srcs = [
+        "event_utils.cpp",
+    ],
+    header_namespace = "osquery/tables/events",
+    exported_headers = [
+        "event_utils.h",
+    ],
+    exported_platform_headers = [
+        (
+            LINUX,
+            [
+                "linux/process_events.h",
+                "linux/process_file_events.h",
+                "linux/selinux_events.h",
+                "linux/socket_events.h",
+            ],
+        ),
+    ],
+    link_whole = True,
+    platform_linker_flags = [
+        (
+            MACOSX,
+            [
+                "-lbsm",
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/file_events.cpp",
+                "linux/hardware_events.cpp",
+                "linux/process_events.cpp",
+                "linux/process_file_events.cpp",
+                "linux/selinux_events.cpp",
+                "linux/socket_events.cpp",
+                "linux/syslog_events.cpp",
+                "linux/user_events.cpp",
+            ],
+        ),
+        (
+            MACOSX,
+            [
+                "darwin/disk_events.cpp",
+                "darwin/file_events.cpp",
+                "darwin/hardware_events.cpp",
+                "darwin/openbsm_events.cpp",
+                "darwin/user_interaction_events.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/powershell_events.cpp",
+                "windows/windows_events.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        osquery_target("osquery/tables/events/tests:file_events_tests"),
+        osquery_target("osquery/tables/events/tests:selinux_events_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery:headers"),
+        osquery_target("osquery/config:config"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/logger:logger"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/utils/system:uptime"),
+        osquery_target("plugins/config/parsers:parsers"),
+        osquery_tp_target("boost"),
+    ],
+)

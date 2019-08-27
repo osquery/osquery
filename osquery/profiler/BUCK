@@ -1,0 +1,30 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "POSIX", "WINDOWS")
+
+osquery_cxx_library(
+    name = "profiler",
+    headers = glob(["*.h"]),
+    header_namespace = "osquery/profiler",
+    exported_headers = glob(["*.h"]),
+    platform_srcs = [
+        (
+            POSIX,
+            ["posix/code_profiler.cpp"],
+        ),
+        (
+            WINDOWS,
+            ["windows/code_profiler.cpp"],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/core:core"),
+    ],
+)

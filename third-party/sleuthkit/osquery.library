@@ -1,0 +1,11 @@
+library(
+    name = "sleuthkit",
+    version = "4.6.1",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+    ],
+    deps = [
+    ],
+)

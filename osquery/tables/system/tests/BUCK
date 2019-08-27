@@ -1,0 +1,515 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX", "WINDOWS")
+
+osquery_cxx_test(
+    name = "md_tables_tests",
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/md_tables_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "pci_devices_tests",
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/pci_devices_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "portage_tests",
+    platform_srcs = [
+        (
+            LINUX,
+            [
+                "linux/portage_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "known_hosts_tests",
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/known_hosts_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "shell_history_tests",
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/shell_history_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "sudoers_tests",
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/sudoers_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "yum_sources_tests",
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/yum_sources_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "system_tables_tests",
+    srcs = ["system_tables_tests.cpp"],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "apps_tests",
+    env = {
+        "TEST_CONF_FILES_DIR": "$(location {})".format(
+            osquery_target("tools/tests:plist_files"),
+        ),
+    },
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/apps_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "asl_tests",
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/asl_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "certificates_tests",
+    env = {
+        "TEST_CONF_FILES_DIR": "$(location {})".format(
+            osquery_target("tools/tests:test_files"),
+        ),
+    },
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/certificates_tests.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/certificates_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "extended_attributes_tests",
+    env = {
+        "TEST_CONF_FILES_DIR": "$(location {})".format(
+            osquery_target("tools/tests:test_files"),
+        ),
+    },
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/extended_attributes_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "firewall_tests",
+    env = {
+        "TEST_CONF_FILES_DIR": "$(location {})".format(
+            osquery_target("tools/tests:plist_files"),
+        ),
+    },
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/firewall_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "launchd_tests",
+    env = {
+        "TEST_CONF_FILES_DIR": "$(location {})".format(
+            osquery_target("tools/tests:plist_files"),
+        ),
+    },
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/launchd_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "mdfind_tests",
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/mdfind_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "processes_tests",
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/processes_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "smc_tests",
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/smc_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "startup_items_tests",
+    env = {
+        "TEST_CONF_FILES_DIR": "$(location {})".format(
+            osquery_target("tools/tests:plist_files"),
+        ),
+    },
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/startup_items_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "signature_tests",
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/signature_tests.mm",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)

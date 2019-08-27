@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <chrono>
@@ -17,11 +15,12 @@
 #include <time.h>
 
 #ifdef WIN32
-#define _WIN32_DCOM
+
+#include <osquery/utils/system/system.h>
 
 #include <WbemIdl.h>
-#include <Windows.h>
 #include <signal.h>
+
 #else
 #include <unistd.h>
 #endif
@@ -30,26 +29,25 @@
 #include <sys/resource.h>
 #endif
 
-#ifdef FBTHRIFT
-#include <folly/init/Init.h>
-#endif
-
 #include <boost/filesystem.hpp>
 
-#include <osquery/config.h>
+#include "osquery/utils/config/default_paths.h"
+#include "osquery/utils/info/platform_type.h"
+#include <osquery/config/config.h>
 #include <osquery/core.h>
+#include <osquery/data_logger.h>
 #include <osquery/dispatcher.h>
 #include <osquery/events.h>
 #include <osquery/extensions.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/killswitch.h>
-#include <osquery/logger.h>
-#include <osquery/numeric_monitoring/plugin_interface.h>
+#include <osquery/numeric_monitoring.h>
+#include <osquery/process/process.h>
 #include <osquery/registry.h>
-#include <osquery/system.h>
+#include <osquery/utils/info/version.h>
+#include <osquery/utils/system/time.h>
 
-#include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
 
 #ifdef __linux__
@@ -91,6 +89,10 @@ enum {
 
 namespace osquery {
 CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
+CLI_FLAG(bool,
+         enable_signal_handler,
+         false,
+         "Enable custom osquery signals handler instead of default one");
 }
 
 namespace {
@@ -206,8 +208,10 @@ volatile std::sig_atomic_t kExitCode{0};
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
 
+#ifdef OSQUERY_WINDOWS
 /// Legacy thread ID to ensure that the windows service waits before exiting
-unsigned long kLegacyThreadId;
+DWORD kLegacyThreadId;
+#endif
 
 /// When no flagfile is provided via CLI, attempt to read flag 'defaults'.
 const std::string kBackupDefaultFlagfile{OSQUERY_HOME "osquery.flags.default"};
@@ -228,7 +232,7 @@ void initWorkDirectories() {
         recursive,
         ignore_existence);
     if (!status.ok()) {
-      LOG(ERROR) << "Could not initialize db directory " << status.what();
+      LOG(ERROR) << "Could not initialize db directory: " << status.what();
     }
   }
 }
@@ -264,7 +268,10 @@ static inline void printUsage(const std::string& binary, ToolType tool) {
   fprintf(stdout, EPILOG);
 }
 
-Initializer::Initializer(int& argc, char**& argv, ToolType tool)
+Initializer::Initializer(int& argc,
+                         char**& argv,
+                         ToolType tool,
+                         bool const init_glog)
     : argc_(&argc), argv_(&argv) {
   // Initialize random number generated based on time.
   std::srand(static_cast<unsigned int>(
@@ -290,8 +297,10 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   // The 'main' thread is that which executes the initializer.
   kMainThreadId = std::this_thread::get_id();
 
+#ifdef OSQUERY_WINDOWS
   // Maintain a legacy thread id for Windows service stops.
-  kLegacyThreadId = platformGetTid();
+  kLegacyThreadId = static_cast<DWORD>(platformGetTid());
+#endif
 
 #ifndef WIN32
   // Set the max number of open files.
@@ -357,12 +366,6 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   // Let gflags parse the non-help options/flags.
   GFLAGS_NAMESPACE::ParseCommandLineFlags(argc_, argv_, isShell());
 
-  bool init_glog = true;
-#ifdef FBTHRIFT
-  init_glog = false;
-  ::folly::init(&argc, &argv, false);
-#endif
-
   // Initialize registries and plugins
   registryAndPluginInit();
 
@@ -383,17 +386,19 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     initWorkDirectories();
   }
 
-  std::signal(SIGABRT, signalHandler);
-  std::signal(SIGUSR1, signalHandler);
+  if (FLAGS_enable_signal_handler) {
+    std::signal(SIGABRT, signalHandler);
+    std::signal(SIGUSR1, signalHandler);
 
-  // All tools handle the same set of signals.
-  // If a daemon process is a watchdog the signal is passed to the worker,
-  // unless the worker has not yet started.
-  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-    std::signal(SIGTERM, signalHandler);
-    std::signal(SIGINT, signalHandler);
-    std::signal(SIGHUP, signalHandler);
-    std::signal(SIGALRM, signalHandler);
+    // All tools handle the same set of signals.
+    // If a daemon process is a watchdog the signal is passed to the worker,
+    // unless the worker has not yet started.
+    if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+      std::signal(SIGTERM, signalHandler);
+      std::signal(SIGINT, signalHandler);
+      std::signal(SIGHUP, signalHandler);
+      std::signal(SIGALRM, signalHandler);
+    }
   }
 
   // If the caller is checking configuration, disable the watchdog/worker.
@@ -416,7 +421,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       VLOG(1) << "osquery initialized [version=" << kVersion << "]";
     }
   } else {
-    VLOG(1) << "osquery extension initialized [sdk=" << kSDKVersion << "]";
+    VLOG(1) << "osquery extension initialized [sdk=" << kVersion << "]";
   }
 
   if (default_flags) {
@@ -752,7 +757,8 @@ void Initializer::requestShutdown(int retcode) {
   }
 
   // Stop thrift services/clients/and their thread pools.
-  if (std::this_thread::get_id() != kMainThreadId) {
+  if (std::this_thread::get_id() != kMainThreadId &&
+      FLAGS_enable_signal_handler) {
     raise(SIGUSR1);
   } else {
     // The main thread is requesting a shutdown, meaning in almost every case

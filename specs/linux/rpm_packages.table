@@ -8,6 +8,7 @@ schema([
     Column("size", BIGINT, "Package size in bytes"),
     Column("sha1", TEXT, "SHA1 hash of the package contents"),
     Column("arch", TEXT, "Architecture(s) supported"),
+    Column("epoch", INTEGER, "Package epoch value"),
 ])
 attributes(cacheable=True)
 implementation("@genRpmPackages")

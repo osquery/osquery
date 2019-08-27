@@ -2,15 +2,13 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <benchmark/benchmark.h>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/events.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
@@ -52,7 +50,7 @@ class BenchmarkEventSubscriber
   }
 
   Status Callback(const ECRef& ec, const SCRef& sc) {
-    return Status(0, "OK");
+    return Status::success();
   }
 
   void benchmarkInit() {

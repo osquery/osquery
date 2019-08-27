@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -15,7 +13,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -62,25 +60,34 @@ void getSensorSettings(Row& r) {
     return;
   }
 
+  auto const string_default = std::string{""};
+  auto const int_default = std::string{"-1"};
+
   // After successful parsing, the values are extracted
-  std::string config_name = pt.get<std::string>("CB.ConfigName");
+  std::string config_name =
+      pt.get<std::string>("CB.ConfigName", string_default);
   boost::replace_all(config_name, "%20", " ");
   r["config_name"] = SQL_TEXT(config_name);
   r["collect_store_files"] =
-      INTEGER(pt.get<std::string>("CB.CollectStoreFiles"));
+      INTEGER(pt.get<std::string>("CB.CollectStoreFiles", int_default));
   r["collect_module_loads"] =
-      INTEGER(pt.get<std::string>("CB.CollectModuleLoads"));
+      INTEGER(pt.get<std::string>("CB.CollectModuleLoads", int_default));
   r["collect_module_info"] =
-      INTEGER(pt.get<std::string>("CB.CollectModuleInfo"));
-  r["collect_file_mods"] = INTEGER(pt.get<std::string>("CB.CollectFileMods"));
-  r["collect_reg_mods"] = INTEGER(pt.get<std::string>("CB.CollectRegMods"));
-  r["collect_net_conns"] = INTEGER(pt.get<std::string>("CB.CollectNetConns"));
-  r["collect_processes"] = INTEGER(pt.get<std::string>("CB.CollectProcesses"));
+      INTEGER(pt.get<std::string>("CB.CollectModuleInfo", int_default));
+  r["collect_file_mods"] =
+      INTEGER(pt.get<std::string>("CB.CollectFileMods", int_default));
+  r["collect_reg_mods"] =
+      INTEGER(pt.get<std::string>("CB.CollectRegMods", int_default));
+  r["collect_net_conns"] =
+      INTEGER(pt.get<std::string>("CB.CollectNetConns", int_default));
+  r["collect_processes"] =
+      INTEGER(pt.get<std::string>("CB.CollectProcesses", int_default));
   r["collect_cross_processes"] =
-      INTEGER(pt.get<std::string>("CB.CollectCrossProcess"));
+      INTEGER(pt.get<std::string>("CB.CollectCrossProcess", int_default));
   r["collect_emet_events"] =
-      INTEGER(pt.get<std::string>("CB.CollectEmetEvents"));
-  std::string server = pt.get<std::string>("CB.SensorBackendServer");
+      INTEGER(pt.get<std::string>("CB.CollectEmetEvents", int_default));
+  std::string server =
+      pt.get<std::string>("CB.SensorBackendServer", string_default);
   boost::replace_all(server, "%3A", ":");
   r["sensor_backend_server"] = SQL_TEXT(server);
   r["collect_data_file_writes"] = INTEGER(0);

@@ -1,0 +1,50 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX")
+
+osquery_cxx_library(
+    name = "dl",
+    exported_platform_linker_flags = [
+        (
+            POSIX,
+            [
+                "-ldl",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+)
+
+osquery_cxx_library(
+    name = "pthread",
+    exported_platform_linker_flags = [
+        (
+            LINUX,
+            ["-pthread"],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+)
+
+osquery_cxx_library(
+    name = "resolv",
+    exported_platform_linker_flags = [
+        (
+            LINUX,
+            ["-lresolv"],
+        ),
+        (
+            MACOSX,
+            ["-lresolv"],
+        ),
+    ],
+    external = True,
+    visibility = ["PUBLIC"],
+)

@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <sstream>
@@ -16,7 +14,10 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
+#include <osquery/plugins/sql.h>
+
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/info/tool_type.h>
 
 namespace osquery {
 
@@ -90,14 +91,6 @@ void escapeNonPrintableBytesEx(std::string& data) {
   return escapeNonPrintableBytes(data);
 }
 
-void SQL::escapeResults() {
-  for (auto& row : results_) {
-    for (auto& column : row) {
-      escapeNonPrintableBytes(column.second);
-    }
-  }
-}
-
 QueryData SQL::selectAllFrom(const std::string& table) {
   PluginResponse response;
   Registry::call("table", table, {{"action", "generate"}}, response);
@@ -125,6 +118,9 @@ QueryData SQL::selectFrom(const std::initializer_list<std::string>& columns,
     colsUsed.insert(column);
     ctx.colsUsed = colsUsed;
   }
+  // We can't set colsUsedBitset here (because we don't know the column
+  // indexes). The plugin that handles the request will figure it out from the
+  // column names.
   TablePlugin::setRequestFromContext(ctx, request);
 
   PluginResponse response;
@@ -164,7 +160,7 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
     return this->attach(request.at("table"));
   } else if (request.at("action") == "detach") {
     this->detach(request.at("table"));
-    return Status(0, "OK");
+    return Status::success();
   } else if (request.at("action") == "tables") {
     std::vector<std::string> tables;
     auto status = this->getQueryTables(request.at("query"), tables);
@@ -215,7 +211,7 @@ Status mockGetQueryTables(std::string copy_q,
 }
 
 Status getQueryTables(const std::string& q, std::vector<std::string>& tables) {
-  if (!Registry::get().exists("sql", "sql") && kToolType == ToolType::TEST) {
+  if (kToolType == ToolType::TEST) {
     // We 'mock' this functionality for internal tests.
     return mockGetQueryTables(q, tables);
   }

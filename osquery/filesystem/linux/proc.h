@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -18,10 +16,9 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
-
-#include "osquery/core/conversions.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 const std::string kLinuxProcPath = "/proc";
@@ -152,7 +149,7 @@ Status procEnumerateProcesses(UserData& user_data,
       }
 
       // See #792: std::regex is incomplete until GCC 4.9
-      const auto& pid = it->path().leaf().string();
+      const auto pid = it->path().leaf().string();
       if (std::atoll(pid.data()) <= 0) {
         continue;
       }

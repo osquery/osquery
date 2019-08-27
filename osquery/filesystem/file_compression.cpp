@@ -2,17 +2,11 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#ifdef WIN32
-#define _WIN32_DCOM
-
-#include <Windows.h>
-#endif
+#include <osquery/utils/system/system.h>
 
 // This define is required for Windows static linking of libarchive
 #define LIBARCHIVE_STATIC
@@ -22,13 +16,9 @@
 
 #include <osquery/flags.h>
 #include <osquery/system.h>
-
-#include "osquery/carver/carver.h"
-#include "osquery/filesystem/fileops.h"
+#include <osquery/filesystem/filesystem.h>
 
 namespace osquery {
-
-DECLARE_uint32(carver_block_size);
 
 Status compress(const boost::filesystem::path& in,
                 const boost::filesystem::path& out) {
@@ -171,7 +161,7 @@ Status decompress(const boost::filesystem::path& in,
 }
 
 Status archive(const std::set<boost::filesystem::path>& paths,
-               const boost::filesystem::path& out) {
+               const boost::filesystem::path& out, std::size_t block_size) {
   auto arch = archive_write_new();
   if (arch == nullptr) {
     return Status(1, "Failed to create tar archive");
@@ -192,22 +182,20 @@ Status archive(const std::set<boost::filesystem::path>& paths,
     archive_entry_set_perm(entry, 0644);
     archive_write_header(arch, entry);
 
-    auto blockSize =
-        FLAGS_carver_block_size > 0 ? FLAGS_carver_block_size : 8192;
     auto blkCount = static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
-                                             static_cast<double>(blockSize)));
+                                             static_cast<double>(block_size)));
     for (size_t i = 0; i < blkCount; i++) {
-      std::vector<char> block(blockSize, 0);
-      auto r = pFile.read(block.data(), blockSize);
-      if (r != blockSize && r > 0) {
+      std::vector<char> block(block_size, 0);
+      auto r = pFile.read(block.data(), block_size);
+      if (r > 0 && static_cast<std::size_t>(r) != block_size) {
         // resize the buffer to size we read as last block is likely smaller
-        block.resize(r);
+        block.resize(static_cast<std::size_t>(r));
       }
       archive_write_data(arch, block.data(), block.size());
     }
     archive_entry_free(entry);
   }
   archive_write_free(arch);
-  return Status(0, "Ok");
+  return Status::success();
 };
 } // namespace osquery

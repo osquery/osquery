@@ -1,0 +1,31 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+
+osquery_cxx_test(
+    name = "logger_tests",
+    srcs = [
+        "logger.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/plugins:plugins"),
+        osquery_target("osquery/distributed:distributed"),
+        osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
+        osquery_target("osquery/logger:data_logger"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("osquery/utils/info:info"),
+        osquery_target("osquery/utils/system:time"),
+        osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)

@@ -2,18 +2,22 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
 
-#include <osquery/flags.h>
+#include <gtest/gtest_prod.h>
 
-#include "osquery/remote/http_client.h"
-#include "osquery/remote/requests.h"
+// clang-format off
+// Keep it on top of all other includes to fix double include WinSock.h header file
+// which is windows specific boost build problem
+#include <osquery/remote/http_client.h>
+// clang-format on
+
+#include <osquery/flags.h>
+#include <osquery/remote/requests.h>
 
 namespace osquery {
 
@@ -126,5 +130,6 @@ class TLSTransport : public Transport {
   FRIEND_TEST(TLSTransportsTests, test_call_http);
 
   friend class TestDistributedPlugin;
+
 };
 }

@@ -1,28 +1,47 @@
-#  Copyright (c) 2014-present, Facebook, Inc.
-#  All rights reserved.
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
 
-target_sources(libosquery
-  PRIVATE
-    "${CMAKE_CURRENT_LIST_DIR}/dispatcher.cpp"
-)
+function(osqueryDispatcherMain)
 
-ADD_OSQUERY_TEST_CORE(
-  "${CMAKE_CURRENT_LIST_DIR}/tests/dispatcher_tests.cpp"
-)
+  if(BUILD_TESTING)
+    add_subdirectory("tests")
+  endif()
 
-# The following dispatcher ("runner") implementations are additional.
-ADD_OSQUERY_LIBRARY(FALSE osquery_dispatcher_runners
-  "${CMAKE_CURRENT_LIST_DIR}/scheduler.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/scheduler.h"
-  "${CMAKE_CURRENT_LIST_DIR}/distributed_runner.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/distributed_runner.h"
-)
+  generateOsqueryDispatcher()
+endfunction()
 
-ADD_OSQUERY_TEST_ADDITIONAL(
-  "${CMAKE_CURRENT_LIST_DIR}/tests/scheduler_tests.cpp"
-)
+function(generateOsqueryDispatcher)
+  add_osquery_library(osquery_dispatcher EXCLUDE_FROM_ALL
+    dispatcher.cpp
+    distributed_runner.cpp
+    scheduler.cpp
+  )
+
+  target_link_libraries(osquery_dispatcher PUBLIC
+    global_cxx_settings
+    osquery_core
+    osquery_logger_datalogger
+    osquery_process
+    osquery_profiler
+    osquery_sql
+    osquery_utils
+    osquery_utils_conversions
+    plugins_config_parsers
+    thirdparty_googletest_headers
+  )
+
+  set(public_header_files
+    distributed_runner.h
+    scheduler.h
+  )
+
+  generateIncludeNamespace(osquery_dispatcher "osquery/dispatcher" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME osquery_dispatcher_tests-test COMMAND osquery_dispatcher_tests-test)
+  add_test(NAME osquery_dispatcher_tests_scheduler-test COMMAND osquery_dispatcher_tests_scheduler-test)
+endfunction()
+
+osqueryDispatcherMain()

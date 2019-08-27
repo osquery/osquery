@@ -1,0 +1,128 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD", "LINUX", "MACOSX", "POSIX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "osquery_filesystem",
+    srcs = [
+        "file_compression.cpp",
+        "filesystem.cpp",
+    ],
+    header_namespace = "osquery/filesystem",
+    exported_headers = [
+        "fileops.h",
+        "filesystem.h",
+    ],
+    exported_platform_headers = [
+        (
+            LINUX,
+            [
+                "linux/proc.h",
+            ],
+        ),
+    ],
+    exported_post_platform_linker_flags = [
+        (
+            FREEBSD,
+            [
+                "-larchive",
+                "-lzstd",
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            POSIX,
+            [
+                "posix/fileops.cpp",
+            ],
+        ),
+        (
+            LINUX,
+            [
+                "linux/mem.cpp",
+                "linux/proc.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/fileops.cpp",
+            ],
+        ),
+    ],
+    tests = [
+        ":filesystem_tests",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery:headers"),
+        osquery_target("osquery/process:process"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/utils/status:status"),
+        osquery_target("osquery/utils/system:env"),
+        osquery_tp_target("boost"),
+        osquery_tp_target("libarchive"),
+        osquery_tp_target("zstd"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "mock_file_structure",
+    srcs = [
+        "mock_file_structure.cpp",
+    ],
+    header_namespace = "osquery/filesystem",
+    exported_headers = [
+        "mock_file_structure.h",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_tp_target("boost"),
+        ":osquery_filesystem",
+    ],
+)
+
+osquery_cxx_test(
+    name = "filesystem_tests",
+    srcs = [
+        "tests/fileops.cpp",
+        "tests/filesystem.cpp",
+    ],
+    env = {
+        "TEST_CONF_FILES_DIR": "$(location {})".format(
+            osquery_target("tools/tests:plist_files"),
+        ),
+    },
+    platform_srcs = [
+        (
+            MACOSX,
+            ["tests/darwin/plist_tests.cpp"],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/core/sql:core_sql"),
+        osquery_target("osquery/dispatcher:dispatcher"),
+        osquery_target("osquery/distributed:distributed"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/extensions:extensions"),
+        osquery_target("osquery/extensions:impl_thrift"),
+        osquery_target("osquery/process:process"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("plugins/config:tls_config"),
+        osquery_target("specs:tables"),
+        ":mock_file_structure",
+        ":osquery_filesystem",
+    ],
+)

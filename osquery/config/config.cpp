@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <algorithm>
@@ -19,19 +17,21 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/iterator/filter_iterator.hpp>
 
-#include <osquery/config.h>
+#include <osquery/config/config.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
+#include <osquery/flagalias.h>
 #include <osquery/flags.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/flagalias.h"
-#include "osquery/core/hashing.h"
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/time.h>
 
 namespace rj = rapidjson;
 
@@ -475,7 +475,7 @@ Status Config::refresh() {
       if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
         const auto result = restoreConfigBackup();
         if (!result) {
-          return Status::failure(result.getError().getFullMessageRecursive());
+          return Status::failure(result.getError().getMessage());
         } else {
           update(*result);
         }
@@ -503,7 +503,7 @@ Status Config::refresh() {
       }
       // Don't force because the config plugin may have started services.
       Initializer::requestShutdown();
-      return Status();
+      return Status::success();
     }
     status = update(response[0]);
   }
@@ -576,8 +576,8 @@ Expected<ConfigMap, Config::RestoreConfigError> Config::restoreConfigBackup() {
       LOG(ERROR)
           << "restoreConfigBackup database failed to retrieve config for key "
           << key;
-      return createError(Config::RestoreConfigError::DatabaseError,
-                         "Could not retrieve value for the key: " + key);
+      return createError(Config::RestoreConfigError::DatabaseError)
+             << "Could not retrieve value for the key: " << key;
     }
     config[key.substr(kConfigPersistencePrefix.length())] = std::move(value);
   }
@@ -661,7 +661,7 @@ Status Config::updateSource(const std::string& source,
   }
 
   applyParsers(source, doc.doc(), false);
-  return Status();
+  return Status::success();
 }
 
 Status Config::genPack(const std::string& name,
@@ -681,7 +681,7 @@ Status Config::genPack(const std::string& name,
   auto clone = response[0][name];
   if (clone.empty()) {
     LOG(WARNING) << "Error reading the query pack named: " << name;
-    return Status();
+    return Status::success();
   }
 
   stripConfigComments(clone);
@@ -692,7 +692,7 @@ Status Config::genPack(const std::string& name,
     addPack(name, source, doc.doc());
   }
 
-  return Status();
+  return Status::success();
 }
 
 void Config::applyParsers(const std::string& source,
@@ -813,7 +813,7 @@ Status Config::update(const ConfigMap& config) {
     backupConfig(config);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void Config::purge() {
@@ -910,7 +910,6 @@ void ConfigParserPlugin::reset() {
 
 void Config::recordQueryPerformance(const std::string& name,
                                     size_t delay,
-                                    size_t size,
                                     const Row& r0,
                                     const Row& r1) {
   RecursiveLock lock(config_performance_mutex_);
@@ -950,7 +949,6 @@ void Config::recordQueryPerformance(const std::string& name,
   }
 
   query.wall_time += delay;
-  query.output_size += size;
   query.executions += 1;
   query.last_executed = getUnixTime();
 
@@ -1012,7 +1010,7 @@ Status Config::genHash(std::string& hash) const {
   new_hash.update(buffer.data(), buffer.size());
   hash = new_hash.digest();
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string Config::getHash(const std::string& source) const {
@@ -1092,7 +1090,7 @@ Status ConfigPlugin::call(const PluginRequest& request,
 
     response.push_back(
         {{"name", name->second}, {"value", Flag::getValue(name->second)}});
-    return Status();
+    return Status::success();
   }
   return Status(1, "Config plugin action unknown: " + action->second);
 }
@@ -1102,7 +1100,7 @@ Status ConfigParserPlugin::setUp() {
     auto obj = data_.getObject();
     data_.add(key, obj);
   }
-  return Status();
+  return Status::success();
 }
 
 void ConfigRefreshRunner::start() {

@@ -2,22 +2,18 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <string>
 
-#include <osquery/config.h>
-#include <osquery/core.h>
-#include <osquery/logger.h>
+#include <osquery/config/config.h>
+#include <osquery/events/linux/syslog.h>
+#include <osquery/flags.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
-
-#include "osquery/events/linux/syslog.h"
-#include "osquery/tables/events/event_utils.h"
+#include <osquery/tables/events/event_utils.h>
 
 namespace osquery {
 
@@ -37,7 +33,7 @@ class SyslogEventSubscriber : public EventSubscriber<SyslogEventPublisher> {
   Status init() override {
     SyslogSubscriptionContextRef sc = createSubscriptionContext();
     subscribe(&SyslogEventSubscriber::Callback, sc);
-    return Status(0, "OK");
+    return Status::success();
   }
 
   size_t getEventsExpiry() override {
@@ -56,6 +52,6 @@ REGISTER(SyslogEventSubscriber, "event_subscriber", "syslog_events");
 Status SyslogEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r(ec->fields);
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

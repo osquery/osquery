@@ -70,3 +70,10 @@ cscope.out
 # Ignored components
 /external/*
 !/external/CMakeLists.txt
+
+# Buck
+.buckd/
+buck-out/
+
+# Windows system specific toolchain paths
+tools/buckconfigs/windows-x86_64/toolchain/vs2017_15.5.bcfg

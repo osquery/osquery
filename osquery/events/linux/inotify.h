@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -289,7 +287,7 @@ class INotifyEventPublisher
   friend class INotifyTests;
   FRIEND_TEST(INotifyTests, test_inotify_init);
   FRIEND_TEST(INotifyTests, test_inotify_optimization);
-  FRIEND_TEST(INotifyTests, test_inotify_recursion);
+  FRIEND_TEST(INotifyTests, DISABLED_test_inotify_recursion);
   FRIEND_TEST(INotifyTests, test_inotify_match_subscription);
   FRIEND_TEST(INotifyTests, test_inotify_embedded_wildcards);
 };

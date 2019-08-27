@@ -2,21 +2,18 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <array>
 
+#include <osquery/events/linux/auditeventpublisher.h>
+#include <osquery/events/linux/selinux_events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/events/linux/auditeventpublisher.h"
-#include "osquery/tables/events/linux/selinux_events.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 /// The audit subsystem may have a performance impact on the system.
@@ -59,7 +56,7 @@ Status AuditEventPublisher::setUp() {
     executable_path_ = buffer;
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void AuditEventPublisher::configure() {
@@ -99,14 +96,14 @@ Status AuditEventPublisher::run() {
     fire(event_context);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void AuditEventPublisher::ProcessEvents(
     AuditEventContextRef event_context,
     const std::vector<AuditEventRecord>& record_list,
     AuditTraceContext& trace_context) noexcept {
-  static const auto& selinux_event_set = SELinuxEventSubscriber::GetEventSet();
+  static const auto& selinux_event_set = kSELinuxEventList;
 
   // Assemble each record into a AuditEvent object; multi-record events
   // are complete when we receive the terminator (AUDIT_EOE)

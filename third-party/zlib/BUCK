@@ -1,0 +1,47 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "zlib",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "c6dfd85ce6c440fbaead6d4a3246d7771ed2b9b9f9e8c43257f57e0881d390e9",
+        "macos-x86_64": "7f9b44ca67eadb2c6dcf6b86688cb759b77b772858dae2a2380c032c7c1d9edd",
+        "windows-x86_64": "1685157a99c419e5150cc5f44a61ad1a1f5ddf414bf1a451ed9b6c7faf26d4bc",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libz.a",
+        ],
+        "macos-x86_64": [
+            "lib/libz.a",
+        ],
+        "windows-x86_64": [
+            "lib/zlibstatic.lib",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+
+    ],
+    version = "1.2.11",
+    build = "0",
+    visibility = ["PUBLIC"],
+)

@@ -2,10 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <map>
@@ -17,17 +15,21 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/core/watcher.h>
+#include <osquery/extensions/interface.h>
+#include <osquery/filesystem/fileops.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/flagalias.h>
 #include <osquery/logger.h>
+#include <osquery/process/process.h>
 #include <osquery/registry.h>
+#include <osquery/sql.h>
 #include <osquery/system.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/core/flagalias.h"
-#include "osquery/core/process.h"
-#include "osquery/core/watcher.h"
-#include "osquery/extensions/interface.h"
-#include "osquery/filesystem/fileops.h"
+#include <osquery/utils/config/default_paths.h>
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/info/version.h>
 
 namespace fs = boost::filesystem;
 
@@ -166,7 +168,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
         // Create a client with a 10-second receive timeout.
         ExtensionManagerClient client(path, 10 * 1000);
         auto status = client.ping();
-        return Status(0, "OK");
+        return Status::success();
       } catch (const std::exception& /* e */) {
         // Path might exist without a connected extension or extension manager.
       }
@@ -428,7 +430,7 @@ Status loadExtensions(const std::string& loadfile) {
     // forking and executing the extension binary.
     Watcher::get().addExtensionPath(binary);
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status startExtension(const std::string& name, const std::string& version) {
@@ -624,7 +626,7 @@ Status getExtensions(const std::string& manager_path,
                              ext.second.sdk_version};
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status callExtension(const RouteUUID uuid,
@@ -672,7 +674,7 @@ Status startExtensionWatcher(const std::string& manager_path,
   // Start a extension watcher, if the manager dies, so should we.
   Dispatcher::addService(
       std::make_shared<ExtensionWatcher>(manager_path, interval, fatal));
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status startExtensionManager() {
@@ -731,6 +733,6 @@ Status startExtensionManager(const std::string& manager_path) {
     }
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 } // namespace osquery

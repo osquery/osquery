@@ -2,14 +2,12 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/system.h>
 
 #include <thrift/concurrency/ThreadManager.h>
@@ -29,6 +27,8 @@
 #include "ExtensionManager.h"
 
 #include "osquery/extensions/interface.h"
+
+#include <limits>
 
 namespace osquery {
 
@@ -313,6 +313,9 @@ void ExtensionClientCore::init(const std::string& path, bool manager) {
 
   client_ = std::make_unique<ImplExtensionClient>();
   client_->socket = std::make_shared<TPlatformSocket>(path);
+#ifndef WIN32
+  client_->socket->setMaxRecvRetries(std::numeric_limits<int>::max());
+#endif
   client_->transport = std::make_shared<TBufferedTransport>(client_->socket);
   auto protocol = std::make_shared<TBinaryProtocol>(client_->transport);
 
@@ -433,7 +436,7 @@ Status ExtensionManagerClient::query(const std::string& sql, QueryData& qd) {
     qd.push_back(row);
   }
 
-  return Status();
+  return Status::success();
 }
 
 Status ExtensionManagerClient::getQueryColumns(const std::string& sql,

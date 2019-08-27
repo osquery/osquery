@@ -1,0 +1,89 @@
+[cxx]
+  default_platform = linux-x86_64
+
+[cxx_base]
+  cppflags =
+
+  cflags = \
+    -std=gnu11 \
+    -Qunused-arguments \
+    -Wno-shadow-field \
+    -Wall \
+    -Wextra \
+    -Wno-unused-local-typedef \
+    -Wno-deprecated-register \
+    -Wno-unknown-warning-option \
+    -Wstrict-aliasing \
+    -Wno-missing-field-initializers \
+    -Wnon-virtual-dtor \
+    -Wchar-subscripts \
+    -Wpointer-arith \
+    -Woverloaded-virtual \
+    -Wformat \
+    -Wformat-security \
+    -Werror=format-security \
+    -Wuseless-cast \
+    -Wno-c99-extensions \
+    -Wno-zero-length-array \
+    -Wno-unused-parameter \
+    -Wno-gnu-case-range \
+    -Weffc++ \
+    -fpermissive \
+    -fstack-protector-all \
+    -fdata-sections \
+    -ffunction-sections \
+    -fvisibility=hidden \
+    -fvisibility-inlines-hidden \
+    -fno-limit-debug-info \
+    -fPIE \
+    -fpie \
+    -fPIC \
+    -fpic \
+    -pipe \
+    -pedantic \
+    -g
+
+  cxxppflags =
+
+  cxxflags = \
+    -std=gnu++14 \
+    -stdlib=libc++ \
+    -Qunused-arguments \
+    -Wno-shadow-field \
+    -Wall \
+    -Wextra \
+    -Wno-unused-local-typedef \
+    -Wno-deprecated-register \
+    -Wno-unknown-warning-option \
+    -Wstrict-aliasing \
+    -Wno-missing-field-initializers \
+    -Wnon-virtual-dtor \
+    -Wchar-subscripts \
+    -Wpointer-arith \
+    -Woverloaded-virtual \
+    -Wformat \
+    -Wformat-security \
+    -Werror=format-security \
+    -Wuseless-cast \
+    -Wno-c++11-extensions \
+    -Wno-zero-length-array \
+    -Wno-unused-parameter \
+    -Wno-gnu-case-range \
+    -Weffc++ \
+    -fpermissive \
+    -fstack-protector-all \
+    -fdata-sections \
+    -ffunction-sections \
+    -fvisibility=hidden \
+    -fvisibility-inlines-hidden \
+    -fno-limit-debug-info \
+    -fPIE \
+    -fpie \
+    -fPIC \
+    -fpic \
+    -pipe \
+    -pedantic \
+    -g
+
+  ldflags = \
+    -stdlib=libc++

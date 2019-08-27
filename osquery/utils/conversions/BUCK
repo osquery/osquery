@@ -1,0 +1,106 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "MACOSX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_cxx_library(
+    name = "conversions",
+    srcs = [
+        "split.cpp",
+        "tryto.cpp",
+    ],
+    header_namespace = "osquery/utils/conversions",
+    exported_headers = [
+        "castvariant.h",
+        "join.h",
+        "split.h",
+        "tryto.h",
+    ],
+    exported_platform_headers = [
+        (
+            MACOSX,
+            [
+                "darwin/cfdata.h",
+                "darwin/cfnumber.h",
+                "darwin/cfstring.h",
+                "darwin/cftime.h",
+                "darwin/iokit.h",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/strings.h",
+            ],
+        ),
+    ],
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/cfdata.cpp",
+                "darwin/cfnumber.cpp",
+                "darwin/cfstring.cpp",
+                "darwin/cftime.cpp",
+                "darwin/iokit.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/strings.cpp",
+            ],
+        ),
+    ],
+    tests = [":conversions_tests"],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":to",
+        osquery_target("osquery/utils/expected:expected"),
+        osquery_tp_target("boost"),
+        osquery_tp_target("glog"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "to",
+    header_namespace = "osquery/utils/conversions",
+    exported_headers = [
+        "to.h",
+    ],
+    tests = [":conversions_tests"],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_tp_target("boost"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "conversions_tests",
+    srcs = [
+        "tests/join.cpp",
+        "tests/split.cpp",
+        "tests/tryto.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":conversions",
+    ],
+)
+
+osquery_cxx_test(
+    name = "to_tests",
+    srcs = [
+        "tests/to.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":to",
+    ],
+)

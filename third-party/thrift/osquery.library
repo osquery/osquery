@@ -1,0 +1,13 @@
+library(
+    name = "thrift",
+    version = "0.11.0",
+    build = 0,
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    deps = [
+        "boost:boost",
+    ],
+)

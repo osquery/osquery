@@ -2,13 +2,11 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/plugin.h>
+#include <osquery/plugins/plugin.h>
 #include <osquery/registry_factory.h>
 
 #include "osquery/numeric_monitoring/plugin_interface.h"
@@ -36,10 +34,22 @@ RecordKeys createRecordKeys() {
   return keys;
 };
 
+HostIdentifierKeys createHostIdentifierKeys() {
+  auto keys = HostIdentifierKeys{};
+  keys.name = "<DEVICE_NAME>";
+  keys.scheme = "<DEVICE_HOSTNAME_SCHEME>";
+  return keys;
+};
+
 } // namespace
 
 const RecordKeys& recordKeys() {
   static const auto keys = createRecordKeys();
+  return keys;
+}
+
+const HostIdentifierKeys& hostIdentifierKeys() {
+  static const auto keys = createHostIdentifierKeys();
   return keys;
 }
 
@@ -48,7 +58,7 @@ const RecordKeys& recordKeys() {
 Status NumericMonitoringPlugin::call(const PluginRequest& request,
                                      PluginResponse& response) {
   // should be implemented in plugins
-  return Status();
+  return Status::success();
 }
 
 } // namespace osquery
