@@ -280,7 +280,7 @@ osquery_cxx_library(
                 "windows/smbios_tables.cpp",
                 "windows/startup_items.cpp",
                 "windows/system_info.cpp",
-		"windows/userassist.cpp",
+                "windows/userassist.cpp",
                 "windows/user_groups.cpp",
                 "windows/users.cpp",
                 "windows/video_info.cpp",
