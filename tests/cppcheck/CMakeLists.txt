@@ -25,8 +25,6 @@ function(cppcheckMain)
     return()
   endif()
 
-  set(cppcheck_scan_output "${CMAKE_BINARY_DIR}/cppcheck_report.txt")
-
   if(NOT BUILD_TESTING)
     ProcessorCount(job_count)
 
@@ -39,13 +37,11 @@ function(cppcheckMain)
 
   add_custom_target(
     cppcheck
-    COMMAND "${OSQUERY_CPPCHECK_PATH}" "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg" "--output-file=${cppcheck_scan_output}" ${multithread_options} --enable=all --platform=unix64 "--project=${CMAKE_BINARY_DIR}/compile_commands.json" --quiet
+    COMMAND "${OSQUERY_CPPCHECK_PATH}" "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg" ${multithread_options} --enable=all --platform=unix64 "--project=${CMAKE_BINARY_DIR}/compile_commands.json" --quiet
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Running cppcheck..."
     VERBATIM
   )
-
-  message(STATUS "cppcheck: enabled")
 endfunction()
 
 cppcheckMain()
