@@ -77,9 +77,7 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
       // created and we don't need to create it. Except, at startup,
       // the view always needs to be created.
       if (!first_time_ && old_query == query) {
-        if (old_query == query) {
-          continue;
-        }
+        continue;
       }
 
       // View has been updated
