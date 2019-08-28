@@ -102,7 +102,7 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
 
   first_time_ = false;
   return Status(0, "OK");
-  }
+}
 
 REGISTER_INTERNAL(ViewsConfigParserPlugin, "config_parser", "views");
 }
