@@ -17,7 +17,7 @@ The script will help make both MSI and Chocolatey install packages for Windows. 
 Allows you to specify either MSI or Chocolatety for output. Can be aliased with 'Type'
 
 .PARAMETER BuildPath
-Allows for specification of Buck or CMake build, the default is CMake output binaries. Can be aliased with 'Build'
+Allows you to specify a Buck or CMake build. The default is CMake output binaries. Can be aliased with 'Build'
 
 .PARAMETER ConfigFilePath
 Specify the path to find your osquery config file that you would like to include in the build. Can be aliased with 'ConfigFile'
@@ -83,11 +83,11 @@ function New-MsiPackage() {
     [array] $Extras = @()
   )
 
-
   $workingDir = Get-Location
+  $scriptPath = $workingDir
   if ((-not (Get-Command 'candle.exe')) -or
       (-not (Get-Command 'light.exe'))) {
-    $msg = '[-] WiX not found, run .\tools\make-win64-dev-env.bat.'
+    $msg = '[-] WiX not found. Install Wix Toolset and add to system PATH.'
     Write-Host $msg -ForegroundColor Red
     exit 1
   }
@@ -98,7 +98,7 @@ function New-MsiPackage() {
     exit 1
   }
 
-  if (-not (Test-Path (Join-Path (Get-location).Path 'tools\make-win64-binaries.bat'))) {
+  if (-not (Test-Path (Join-Path (Get-location).Path 'tools\osquery.ico'))) {
     Write-Host '[-] This script must be run from the osquery repo root.' `
       -ForegroundColor Red
     exit 1
@@ -123,7 +123,7 @@ function New-MsiPackage() {
   }
 
   # Working directory and output of files will be in `build/msi`
-  $buildPath = Join-Path $(Get-OsqueryBuildPath) 'msi'
+  $buildPath = Join-Path $BuildPath 'msi'
   if (-not (Test-Path $buildPath)) {
     New-Item -Force -ItemType Directory -Path $buildPath
   }
@@ -139,7 +139,7 @@ function New-MsiPackage() {
   Copy-Item -Recurse -Force $certsPath $(Join-Path $(Get-Location) 'certs')
   Copy-Item -Recurse -Force $packsPath $(Join-Path $(Get-Location) 'packs')
   $iconPath = Join-Path $scriptPath 'tools\osquery.ico'
-  Copy-Item -Force $iconPath "$buildPath\osquery.ico"
+  Copy-Item -Force $iconPath $buildPath
 
   $wix =
   @'
@@ -423,12 +423,12 @@ function New-ChocolateyPackage() {
     <copyright>Copyright (c) 2014-present, Facebook, Inc. All rights reserved.</copyright>
     <projectUrl>https://osquery.io</projectUrl>
     <iconUrl>https://osquery.io/static/site/img/logo-big.png</iconUrl>
-    <licenseUrl>https://github.com/facebook/osquery/blob/master/LICENSE</licenseUrl>
+    <licenseUrl>https://github.com/osquery/osquery/blob/master/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <projectSourceUrl>https://github.com/facebook/osquery</projectSourceUrl>
+    <projectSourceUrl>https://github.com/osquery/osquery</projectSourceUrl>
     <docsUrl>https://osquery.readthedocs.io/en/stable</docsUrl>
     <mailingListUrl>https://osquery-slack.herokuapp.com/</mailingListUrl>
-    <bugTrackerUrl>https://github.com/facebook/osquery/issues</bugTrackerUrl>
+    <bugTrackerUrl>https://github.com/osquery/osquery/issues</bugTrackerUrl>
     <tags>InfoSec Tools</tags>
     <summary>
       osquery gives you the ability to query and log things like running
@@ -436,7 +436,7 @@ function New-ChocolateyPackage() {
       exceptions, listening ports, and more.
     </summary>
     <description>
-      osquery allows you to easily ask questions about your Linux, OSX, and
+      osquery allows you to easily ask questions about your Linux, macOS, and
       Windows infrastructure. Whether your goal is intrusion detection,
       infrastructure reliability, or compliance, osquery gives you the ability
       to empower and inform a broad set of organizations within your company.
@@ -449,7 +449,7 @@ function New-ChocolateyPackage() {
     </description>
     <releaseNotes>
 '@
-  $nupkg += "https://github.com/facebook/osquery/releases/tag/$latest"
+  $nupkg += "https://github.com/osquery/osquery/releases/tag/$latest"
   $nupkg +=
   @'
 </releaseNotes>
@@ -618,13 +618,21 @@ function Main() {
   # Make sure our BuildPath exists either specified or defined
   if (-not (Test-Path $BuildPath)) {
     $msg = "[-] Did not find build directory at $BuildPath. Check build script output."
-    Write-Host $msg -ForegroundColor -Red
+    Write-Host ($msg) -ForegroundColor Red
     exit
   }
 
   $daemon = Join-Path $BuildPath 'osqueryd.exe'
   if (-not (Test-Path $daemon)) {
     $msg = '[-] Did not find Release binaries, check build script output.'
+    Write-Host $msg -ForegroundColor Red
+    exit 1
+  }
+  
+  $scriptPath = Get-Location
+  $utils = Join-Path $scriptPath 'tools\provision\chocolatey\osquery_utils.ps1'
+  if (-not (Test-Path $utils)) {
+    $msg = '[-] Did not find osquery utils script, check build script output.'
     Write-Host $msg -ForegroundColor Red
     exit 1
   }
