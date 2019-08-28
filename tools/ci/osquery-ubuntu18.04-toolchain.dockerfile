@@ -3,6 +3,7 @@ COPY *.deb ./
 RUN apt update -q -y && apt upgrade -q -y && apt install -q -y --no-install-recommends \
   git \
   make \
+  cppcheck \
   ccache \
   python \
   python3 \

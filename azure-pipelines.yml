@@ -29,6 +29,12 @@ jobs:
       CCACHE_DIR: $(Pipeline.Workspace)/ccache
 
     steps:
+    # todo(alessandro): remove this once we deploy the new dockerfile
+    - script: |
+        sudo apt-get update
+        sudo apt-get install cppcheck -y
+      displayName: "Installing cppcheck"
+
     - script: mkdir $(Build.BinariesDirectory)/build
       displayName: "Create build folder"
 
@@ -66,6 +72,12 @@ jobs:
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . -j 3
+
+    - task: CMake@1
+      displayName: "Run cppcheck"
+      inputs:
+        workingDirectory: $(Build.BinariesDirectory)/build
+        cmakeArgs: --build . --target cppcheck
 
     - script: |
         ctest --build-nocmake -V
