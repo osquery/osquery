@@ -29,7 +29,7 @@ class ViewsConfigParserPlugin : public ConfigParserPlugin {
 
  private:
   const std::string kConfigViews = "config_views.";
-  std::atomic<bool> first_time_{ true };
+  std::atomic<bool> first_time_{true};
 };
 
 Status ViewsConfigParserPlugin::update(const std::string& source,
