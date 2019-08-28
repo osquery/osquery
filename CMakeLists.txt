@@ -55,10 +55,7 @@ function(main)
   add_subdirectory("plugins")
   add_subdirectory("tools")
   add_subdirectory("specs")
-
-  if(OSQUERY_BUILD_TESTS)
-    add_subdirectory("tests")
-  endif()
+  add_subdirectory("tests")
 
   identifyPackagingSystem()
   generateInstallTargets()
