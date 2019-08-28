@@ -72,15 +72,10 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
       std::string old_query = "";
       getDatabaseValue(kQueries, kConfigViews + name, old_query);
       erase_views.erase(name);
-      if (old_query == query) {
-        // Query already exists in the store, if its the first time, make sure we
-        // create the view.
-        if (first_time_) {
-          auto s = osquery::query("CREATE VIEW " + name + " AS " + query, r);
-          if (!s.ok()) {
-            LOG(INFO) << "Error creating view (" << name << "): " << s.getMessage();
-          }
-        }
+      // If query exists in the store, view would already have been
+      // created and we don't need to create it. Except, at startup,
+      // the view always needs to be created.
+      if (!first_time_ && old_query == query) {
         continue;
       }
 
