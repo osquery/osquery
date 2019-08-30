@@ -8,9 +8,7 @@ It features a heavily reworked build system. This aims to provide flexibility an
 [Git Commits](https://github.com/osquery/osquery/compare/3.3.2...4.0.1)
 
 
-
-
-### New Features
+### New Features / Under the Hood improvements
 
 Audit — `process_events` Implement support for fork/vfork/clone/execveat ([#5701](https://github.com/osquery/osquery/pull/5701))
 
@@ -20,6 +18,17 @@ macOS query pack: detect SearchAwesome malware ([#5713](https://github.com/osque
 
 macOS query pack: detect when a process is tapping keyboard event ([#5345](https://github.com/osquery/osquery/pull/5345))
 
+LRU cache for syscall tracing ([#5521](https://github.com/osquery/osquery/pull/5521))
+
+Basic tracing via eBPF on Linux (#5403, #5386, #5384) 
+
+Experimental `kill` and `setuid` syscall tracing in Linux via eBPF ([#5519](https://github.com/osquery/osquery/pull/5519))
+
+New eventing (ev2) framework ([#5401](https://github.com/osquery/osquery/pull/5401))
+
+Increase the amount of MaxRecvRetries for thrift socket (#5390)
+
+Added CodeProfiler
 
 ### Build
 
@@ -27,9 +36,17 @@ Add CMake support ([#5604](https://github.com/osquery/osquery/pull/5604), [#5627
 
 Add Azure Pipelines support for CI/CD ([#5604](https://github.com/osquery/osquery/pull/5604), [#5632](https://github.com/osquery/osquery/pull/5632), [#5626](https://github.com/osquery/osquery/pull/5626), [#5613](https://github.com/osquery/osquery/pull/5613), [#5607](https://github.com/osquery/osquery/pull/5607), [#5673](https://github.com/osquery/osquery/pull/5673), [#5610](https://github.com/osquery/osquery/pull/5610))
 
+Add BUCK as a build system ([971bee44](https://github.com/osquery/osquery/commit/971bee44))
+
 Fix buck builds ([#5647](https://github.com/osquery/osquery/pull/5647), [#5623](https://github.com/osquery/osquery/pull/5623))
 
 Use `urllib2` to automatically handle HTTP 301/302 redirections ([#5612](https://github.com/osquery/osquery/pull/5612))
+
+Fix detection of some headers on some IDEs ([#5619](https://github.com/osquery/osquery/pull/5619))
+
+Fix prepare_for_ide target on macOS and Windows ([#5618](https://github.com/osquery/osquery/pull/5618))
+
+Update MSI package to install to `Program Files` on Windows ([#5579](https://github.com/osquery/osquery/pull/54579))
 
 ### Harderning
 
@@ -49,11 +66,24 @@ Fix memory leak in `genLoggedInUsers` (Windows). Update `WTSFreeMemoryEx` to `WT
 
 Fix potential null dereferences ([#5332](https://github.com/osquery/osquery/pull/5332))
 
+Fix osquery exiting with wrong status (3824c2e6)
+
+Add additional flag incompatibility check (85eb77a0)
+
+Fix warning with constants initialisation in magic.cpp (2a624f2f)
+
+Fix sign compare warning in file_compression.cpp (b93069b3)
+
+Refactored `logical_drives` table on Windows to be more C++11 ([#5400](https://github.com/osquery/osquery/pull/5400))
+
+Refactored core/windows/wmi to use smart pointers ([#5492](https://github.com/osquery/osquery/pull/5492))
+
 
 ### Bug Fixes
 
-Change MSI Service Error handling ([#5467](https://github.com/osquery/osquery/pull/5467))
+Fix: Config views now recreated on startup ([#5732](https://github.com/osquery/osquery/pull/5732))
 
+Change MSI Service Error handling ([#5467](https://github.com/osquery/osquery/pull/5467))
 
 Allow mounting SQLite DBs using WAL journaling with ATC ([#5525](https://github.com/osquery/osquery/issues/5225), [#5633](https://github.com/osquery/osquery/pull/5633))
 
@@ -67,8 +97,7 @@ windows/certificates: Do not filter out system accounts ([#5696](https://github.
 
 windows/certificates: Improve table's coverage of Personal certificates ([#5640](https://github.com/osquery/osquery/pull/5640))
 
-windows/certificates: Fix enumeration bugs, add columns ([#5631](https://github.com/osquery/osquery/pull/5631)) **MOVE to Table Changes**
-
+windows/certificates: Fix enumeration bugs ([#5631](https://github.com/osquery/osquery/pull/5631))
 
 tables: Add optimization back to macOS `users` and `groups` ([#5684](https://github.com/osquery/osquery/pull/5684))
 
@@ -80,19 +109,63 @@ Include weekends on the kernel_panics table ([#5298](https://github.com/osquery/
 
 Fix `key_strength` bug for windows certificates table ([#5304](https://github.com/osquery/osquery/pull/5304))
 
+Fix: `interface` column of `routes` table could be empty on Windows (bcf0ab8e)
+
+Fix: `name` column of `programs` table could be empty on Windows (7bceba4b)
+
+Fix `disable_watcher` flag (08dc11b7)
+
+Fix: populate `path` column correctly in `firefox_addons` table ([#5462](https://github.com/osquery/osquery/pull/5462))
+
+Fix numeric monitoring plugin not being registered ([#5484](https://github.com/osquery/osquery/pull/5484))
+
+Fix wrong error code returned when querying the Windows registry ([%5621](https://github.com/osquery/osquery/pull/5621))
+
+Fix windows/logical_drives boot partition detection ([#5477](https://github.com/osquery/osquery/pull/5477))
+
+Replace sync calls by async ones ([#5606](https://github.com/osquery/osquery/pull/5606))
+
+Fix rocksDB crash (a31d7582)
+
+Fix bug in table column data validator (e3037331)
+
+Fix random port problem (a32ed7c4)
+
+Refactor battery table and return some information even if advanced information is missing (6a64e353)
+
 
 ### Table Changes
 
-* d9fdc5b8 - tables: implement ibridge table to report on T1/T2 chip for mac notebooks  ([#5707](https://github.com/osquery/osquery/pull/5707))
-* d7c7a1de - Remove cloud tables from windows (#5657) (Remove EC2 tables from windows where were unavailable)
-* 507638dd - chrome_extensions: Add the profile name to the table (#5213) 
-* 898ed37d - Table for OSX Running and Active Applications (https://github.com/osquery/osquery/pull/5216)
-* 3bbe6c51 - win_timestamp column of time table is windows specific 
-* bcf0ab8e - interface column of routes table could be empty on windows 
-* 7bceba4b - Name column in programs table could be emtpy on windows
-* 6fe7b4cb - Epoch in rpm_packages table (#5248) 
-* fe70a514 - windows/logged_in_users: Add sid, hive columns (#5454) 
-* 139aaef0 - windows/logical_drives: Refactor (#5400) 
-* 5edb4c5b - Add Windows product version information to file table (#5431) 
 
+Added table `ibridge_info` on macOS (Notebooks only) ([#5707](https://github.com/osquery/osquery/pull/5707))
 
+Added table `running_apps` on macOS ([#5216](https://github.com/osquery/osquery/pull/5216))
+
+Added table `atom_packages` on macOS and Linux ([6d159d40](https://github.com/osquery/osquery/commit/6d159d40))
+
+Remove EC2 tables on Windows where were unavailable) ([#5657](https://github.com/osquery/osquery/pull/5657))
+
+Added column `win_timestamp` to `time` table on Windows ([3bbe6c51](https://github.com/osquery/osquery/commit/3bbe6c51))
+
+Added column `is_hidded` to `users` and `groups` table on macOS ([#5368](https://github.com/osquery/osquery/pull/5368))
+
+Added column `profile` to `chrome_extensions` table ([#5213](https://github.com/osquery/osquery/pull/5213))
+
+Added column `epoch` to `rpm_packages` table on Linux ([#5248](https://github.com/osquery/osquery/pull/5248))
+
+Added column `sid` to `logged_in_users` table on Windows ([#5454](https://github.com/osquery/osquery/pull/5454))
+Added column `registry_hive` to `logged_in_users` table on Windows ([#5454](https://github.com/osquery/osquery/pull/5454))
+
+Added column `sid` to `certificates` table on Windows ([#5631](https://github.com/osquery/osquery/pull/5631))
+
+Added column `store_location` to `certificates` table on Windows ([#5631](https://github.com/osquery/osquery/pull/5631))
+
+Added column `store` to `certificates` table on Windows ([#5631](https://github.com/osquery/osquery/pull/5631))
+
+Added column `username` to `certificates` table on Windows ([#5631](https://github.com/osquery/osquery/pull/5631))
+
+Added column `store_id` to `certificates` table on Windows ([#5631](https://github.com/osquery/osquery/pull/5631))
+
+Added column `product_version`  to `file` table on Windows ([#5431](https://github.com/osquery/osquery/pull/5431))
+
+Added column `source` to `sudoers` table on POSIX systems ([#5350](https://github.com/osquery/osquery/pull/5350))
