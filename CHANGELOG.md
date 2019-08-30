@@ -1,4 +1,4 @@
-<a name="4.0.0"></a>
+<a name="4.0.1"></a>
 ## [4.0.0](https://github.com/osquery/osquery/compare/3.3.2...4.0.0) (2019-06-28)
 
 
