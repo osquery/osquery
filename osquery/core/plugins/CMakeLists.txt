@@ -16,7 +16,7 @@ function(generateOsqueryCorePlugins)
   )
 
   target_link_libraries(osquery_core_plugins PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core_sql
     osquery_utils_json
     osquery_utils_status

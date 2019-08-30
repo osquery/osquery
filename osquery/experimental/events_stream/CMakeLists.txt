@@ -16,7 +16,7 @@ function(generateOsqueryExperimentalEventsstreamEventsstreamregistry)
   enableLinkWholeArchive(osquery_experimental_eventsstream_registry)
 
   target_link_libraries(osquery_experimental_eventsstream_registry PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_utils
     thirdparty_boost
@@ -33,7 +33,7 @@ function(generateOsqueryExperimentalEventsstream)
   add_osquery_library(osquery_experimental_eventsstream EXCLUDE_FROM_ALL events_stream.cpp)
 
   target_link_libraries(osquery_experimental_eventsstream PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_experimental_eventsstream_registry
     osquery_core
     osquery_utils

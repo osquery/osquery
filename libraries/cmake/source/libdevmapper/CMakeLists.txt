@@ -1,0 +1,249 @@
+# Copyright (c) 2014-present, Facebook, Inc.
+# All rights reserved.
+#
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
+
+function(libdevmapperMain)
+  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+  add_library(thirdparty_libdevmapper
+    "${library_root}/lib/activate/activate.c"
+    "${library_root}/lib/activate/dev_manager.c"
+    "${library_root}/lib/activate/fs.c"
+    "${library_root}/lib/cache/lvmcache.c"
+    "${library_root}/lib/cache_segtype/cache.c"
+    "${library_root}/lib/commands/toolcontext.c"
+    "${library_root}/lib/config/config.c"
+    "${library_root}/libdaemon/client/config-util.c"
+    "${library_root}/libdaemon/client/daemon-client.c"
+    "${library_root}/libdaemon/client/daemon-io.c"
+    "${library_root}/lib/datastruct/btree.c"
+    "${library_root}/lib/datastruct/str_list.c"
+    "${library_root}/lib/device/dev-cache.c"
+    "${library_root}/lib/device/dev-dasd.c"
+    "${library_root}/lib/device/dev-ext.c"
+    "${library_root}/lib/device/dev-io.c"
+    "${library_root}/lib/device/dev-luks.c"
+    "${library_root}/lib/device/dev-md.c"
+    "${library_root}/lib/device/dev-swap.c"
+    "${library_root}/lib/device/dev-type.c"
+    "${library_root}/lib/display/display.c"
+    "${library_root}/libdm/datastruct/bitset.c"
+    "${library_root}/libdm/datastruct/hash.c"
+    "${library_root}/libdm/datastruct/list.c"
+    "${library_root}/libdm/ioctl/libdm-iface.c"
+    "${library_root}/libdm/libdm-common.c"
+    "${library_root}/libdm/libdm-config.c"
+    "${library_root}/libdm/libdm-deptree.c"
+    "${library_root}/libdm/libdm-file.c"
+    "${library_root}/libdm/libdm-report.c"
+    "${library_root}/libdm/libdm-stats.c"
+    "${library_root}/libdm/libdm-string.c"
+    "${library_root}/libdm/libdm-targets.c"
+    "${library_root}/libdm/libdm-timestamp.c"
+    "${library_root}/libdm/mm/dbg_malloc.c"
+    "${library_root}/libdm/mm/pool.c"
+    "${library_root}/libdm/regex/matcher.c"
+    "${library_root}/libdm/regex/parse_rx.c"
+    "${library_root}/libdm/regex/ttree.c"
+    "${library_root}/liblvm/lvm_base.c"
+    "${library_root}/liblvm/lvm_lv.c"
+    "${library_root}/liblvm/lvm_misc.c"
+    "${library_root}/liblvm/lvm_prop.c"
+    "${library_root}/liblvm/lvm_pv.c"
+    "${library_root}/liblvm/lvm_vg.c"
+    "${library_root}/lib/error/errseg.c"
+    "${library_root}/lib/filters/filter-composite.c"
+    "${library_root}/lib/filters/filter-fwraid.c"
+    "${library_root}/lib/filters/filter-internal.c"
+    "${library_root}/lib/filters/filter-md.c"
+    "${library_root}/lib/filters/filter-mpath.c"
+    "${library_root}/lib/filters/filter-partitioned.c"
+    "${library_root}/lib/filters/filter-persistent.c"
+    "${library_root}/lib/filters/filter-regex.c"
+    "${library_root}/lib/filters/filter-sysfs.c"
+    "${library_root}/lib/filters/filter-type.c"
+    "${library_root}/lib/filters/filter-usable.c"
+    "${library_root}/lib/format_pool/disk_rep.c"
+    "${library_root}/lib/format_pool/format_pool.c"
+    "${library_root}/lib/format_pool/import_export.c"
+    "${library_root}/lib/format_pool/pool_label.c"
+    "${library_root}/lib/format_text/archive.c"
+    "${library_root}/lib/format_text/archiver.c"
+    "${library_root}/lib/format_text/export.c"
+    "${library_root}/lib/format_text/flags.c"
+    "${library_root}/lib/format_text/format-text.c"
+    "${library_root}/lib/format_text/import.c"
+    "${library_root}/lib/format_text/import_vsn1.c"
+    "${library_root}/lib/format_text/text_label.c"
+    "${library_root}/lib/freeseg/freeseg.c"
+    "${library_root}/lib/label/label.c"
+    "${library_root}/lib/locking/cluster_locking.c"
+    "${library_root}/lib/locking/external_locking.c"
+    "${library_root}/lib/locking/file_locking.c"
+    "${library_root}/lib/locking/locking.c"
+    "${library_root}/lib/locking/no_locking.c"
+    "${library_root}/lib/log/log.c"
+    "${library_root}/lib/metadata/cache_manip.c"
+    "${library_root}/lib/metadata/lv.c"
+    "${library_root}/lib/metadata/lv_manip.c"
+    "${library_root}/lib/metadata/merge.c"
+    "${library_root}/lib/metadata/metadata.c"
+    "${library_root}/lib/metadata/mirror.c"
+    "${library_root}/lib/metadata/pool_manip.c"
+    "${library_root}/lib/metadata/pv.c"
+    "${library_root}/lib/metadata/pv_manip.c"
+    "${library_root}/lib/metadata/pv_map.c"
+    "${library_root}/lib/metadata/raid_manip.c"
+    "${library_root}/lib/metadata/replicator_manip.c"
+    "${library_root}/lib/metadata/segtype.c"
+    "${library_root}/lib/metadata/snapshot_manip.c"
+    "${library_root}/lib/metadata/thin_manip.c"
+    "${library_root}/lib/metadata/vg.c"
+    "${library_root}/lib/mirror/mirrored.c"
+    "${library_root}/lib/misc/crc.c"
+    "${library_root}/lib/misc/lvm-exec.c"
+    "${library_root}/lib/misc/lvm-file.c"
+    "${library_root}/lib/misc/lvm-flock.c"
+    "${library_root}/lib/misc/lvm-globals.c"
+    "${library_root}/lib/misc/lvm-maths.c"
+    "${library_root}/lib/misc/lvm-percent.c"
+    "${library_root}/lib/misc/lvm-signal.c"
+    "${library_root}/lib/misc/lvm-string.c"
+    "${library_root}/lib/misc/lvm-wrappers.c"
+    "${library_root}/lib/misc/sharedlib.c"
+    "${library_root}/lib/mm/memlock.c"
+    "${library_root}/lib/notify/lvmnotify.c"
+    "${library_root}/lib/properties/prop_common.c"
+    "${library_root}/lib/raid/raid.c"
+    "${library_root}/lib/report/properties.c"
+    "${library_root}/lib/report/report.c"
+    "${library_root}/lib/snapshot/snapshot.c"
+    "${library_root}/lib/striped/striped.c"
+    "${library_root}/lib/thin/thin.c"
+    "${library_root}/lib/unknown/unknown.c"
+    "${library_root}/lib/uuid/uuid.c"
+    "${library_root}/lib/zero/zero.c"
+  )
+
+  target_compile_definitions(thirdparty_libdevmapper PRIVATE
+    HAVE_CONFIG_H
+  )
+
+  target_link_libraries(thirdparty_libdevmapper PRIVATE
+    thirdparty_c_settings
+  )
+
+  set(public_header_path_list
+    daemons/clvmd/clvm.h
+    daemons/dmeventd/libdevmapper-event.h
+    daemons/lvmetad/lvmetad-client.h
+    daemons/lvmlockd/lvmlockd-client.h
+    daemons/lvmpolld/lvmpolld-protocol.h
+    daemons/lvmpolld/polling_ops.h
+    lib/activate/activate.h
+    lib/activate/targets.h
+    lib/cache/lvmcache.h
+    lib/cache/lvmetad.h
+    lib/commands/toolcontext.h
+    lib/config/config.h
+    lib/config/config_settings.h
+    lib/config/defaults.h
+    libdaemon/client/config-util.h
+    libdaemon/client/daemon-client.h
+    libdaemon/client/daemon-io.h
+    lib/datastruct/btree.h
+    lib/datastruct/str_list.h
+    lib/device/dev-cache.h
+    lib/device/dev-ext-udev-constants.h
+    lib/device/device.h
+    lib/device/device-types.h
+    lib/device/dev-type.h
+    lib/display/display.h
+    libdm/libdevmapper.h
+    libdm/misc/dm-ioctl.h
+    libdm/misc/dmlib.h
+    libdm/misc/dm-logging.h
+    libdm/misc/dm-log-userspace.h
+    libdm/misc/kdev_t.h
+    lib/filters/filter.h
+    lib/format1/format1.h
+    lib/format_pool/format_pool.h
+    lib/format_text/archiver.h
+    lib/format_text/format-text.h
+    lib/format_text/text_export.h
+    lib/format_text/text_import.h
+    lib/label/label.h
+    lib/locking/locking.h
+    lib/locking/lvmlockd.h
+    lib/log/log.h
+    lib/log/lvm-logging.h
+    liblvm/lvm2app.h
+    lib/lvmpolld/lvmpolld-client.h
+    lib/lvmpolld/polldaemon.h
+    lib/metadata/lv_alloc.h
+    lib/metadata/lv.h
+    lib/metadata/metadata-exported.h
+    lib/metadata/metadata.h
+    lib/metadata/pv_alloc.h
+    lib/metadata/pv.h
+    lib/metadata/segtype.h
+    lib/metadata/vg.h
+    lib/misc/crc.h
+    lib/misc/intl.h
+    lib/misc/last-path-component.h
+    lib/misc/lib.h
+    lib/misc/lvm-exec.h
+    lib/misc/lvm-file.h
+    lib/misc/lvm-flock.h
+    lib/misc/lvm-globals.h
+    lib/misc/lvm-maths.h
+    lib/misc/lvm-percent.h
+    lib/misc/lvm-signal.h
+    lib/misc/lvm-string.h
+    lib/misc/lvm-wrappers.h
+    lib/misc/sharedlib.h
+    lib/misc/util.h
+    lib/mm/memlock.h
+    lib/mm/xlate.h
+    lib/notify/lvmnotify.h
+    lib/properties/prop_common.h
+    lib/report/properties.h
+    lib/report/report.h
+    lib/uuid/uuid.h
+    po/pogen.h
+    tools/lvm2cmd.h
+    tools/tool.h
+  )
+
+  foreach(public_header_path ${public_header_path_list})
+    get_filename_component(public_header_name "${public_header_path}" NAME)
+
+    configure_file(
+      "${library_root}/${public_header_path}"
+      "${CMAKE_CURRENT_BINARY_DIR}/include/${public_header_name}"
+      COPYONLY
+    )
+  endforeach()
+
+  target_include_directories(thirdparty_libdevmapper PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_BINARY_DIR}/include"
+
+    "${library_root}/include"
+    "${library_root}/lib"
+    "${library_root}/libdaemon/client"
+    "${library_root}/libdm"
+    "${library_root}/libdm/ioctl"
+    "${library_root}/tools"
+  )
+
+  target_include_directories(thirdparty_libdevmapper SYSTEM INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_BINARY_DIR}/include"
+  )
+endfunction()
+
+libdevmapperMain()

@@ -116,9 +116,9 @@ function(findPackagingTool)
 endfunction()
 
 function(generateInstallTargets)
+  get_property(augeas_lenses_path GLOBAL PROPERTY AUGEAS_LENSES_FOLDER_PATH)
 
   if(DEFINED PLATFORM_LINUX)
-
     # .
     if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
       file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/linux_postinstall.sh" DESTINATION "${CMAKE_BINARY_DIR}/package/deb")
@@ -140,8 +140,7 @@ function(generateInstallTargets)
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     install(FILES "${CMAKE_BINARY_DIR}/package/linux/osquery.example.conf" DESTINATION share/osquery)
 
-    get_target_property(augeas_binary_dir thirdparty_augeas INTERFACE_BINARY_DIR)
-    install(DIRECTORY "${augeas_binary_dir}/share/augeas/lenses/dist/"
+    install(DIRECTORY "${augeas_lenses_path}/"
             DESTINATION share/osquery/lenses
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)
@@ -205,8 +204,7 @@ function(generateInstallTargets)
     install(DIRECTORY COMPONENT osquery DESTINATION /private/var/log/osquery)
     install(DIRECTORY COMPONENT osquery DESTINATION /private/var/osquery)
 
-    get_target_property(augeas_binary_dir thirdparty_augeas INTERFACE_BINARY_DIR)
-    install(DIRECTORY "${augeas_binary_dir}/share/augeas/lenses/dist/" COMPONENT osquery
+    install(DIRECTORY "${augeas_lenses_path}" COMPONENT osquery
             DESTINATION /private/var/osquery/lenses
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)

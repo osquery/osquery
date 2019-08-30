@@ -67,7 +67,20 @@ option(ADD_HEADERS_AS_SOURCES "Whether to add headers as sources of a target or 
 
 option(OSQUERY_NO_DEBUG_SYMBOLS "Whether to build without debug symbols or not, even if a build type that normally have them has been selected")
 
-option(BUILD_TESTING "Whether to enable and build tests or not")
+option(OSQUERY_BUILD_TESTS "Whether to enable and build tests or not")
+
+# Unfortunately, due glog always enabling BUILD_TESTING, we have to force it off, so that tests won't be built
+overwrite_cache_variable("BUILD_TESTING" "BOOL" "OFF")
+
+# Linux can use source and formula modules to link dependencies; this
+# feature is not yet available on Windows and macOS
+if(DEFINED PLATFORM_LINUX)
+  set(third_party_source_list "source;formula;facebook")
+else()
+  set(third_party_source_list "facebook")
+endif()
+
+set(OSQUERY_THIRD_PARTY_SOURCE "${third_party_source_list}" CACHE STRING "Sources used to acquire third-party dependencies")
 
 # This is the default S3 storage used by Facebook to store 3rd party dependencies; it
 # is provided here as a configuration option
@@ -78,3 +91,4 @@ endif()
 detectOsqueryVersion()
 
 message(STATUS "osquery version: ${OSQUERY_VERSION_INTERNAL}")
+

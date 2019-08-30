@@ -8,7 +8,7 @@ function(osqueryUtilsSystemMain)
 
   add_subdirectory("linux")
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsSystemErrnoErrnotestsTest()
     generateOsqueryUtilsSystemCpuCputopologytestsTest()
     generateOsqueryUtilsSystemTimeTimetestsTest()
@@ -41,7 +41,7 @@ function(generateOsqueryUtilsSystemEnv)
   )
 
   target_link_libraries(osquery_utils_system_env PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     thirdparty_boost
   )
 
@@ -68,7 +68,7 @@ function(generateOsqueryUtilsSystemFilepath)
     generateIncludeNamespace(osquery_utils_system_filepath "osquery/utils/system" "FILE_ONLY" ${public_header_files})
 
     target_link_libraries(osquery_utils_system_filepath PUBLIC
-      global_cxx_settings
+      osquery_cxx_settings
     )
   endif()
 
@@ -92,7 +92,7 @@ function(generateOsqueryUtilsSystemErrno)
   ) 
 
   target_link_libraries(osquery_utils_system_errno PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
   )
 
   set(public_header_files
@@ -118,7 +118,7 @@ function(generateOsqueryUtilsSystemCputopology)
     )
 
     target_link_libraries(osquery_utils_system_cputopology PUBLIC
-      global_cxx_settings
+      osquery_cxx_settings
       osquery_utils_conversions
       osquery_utils_expected
       thirdparty_boost
@@ -162,7 +162,7 @@ function(generateOsqueryUtilsSystemTime)
   )
 
   target_link_libraries(osquery_utils_system_time PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     thirdparty_boost
   )
 
@@ -196,7 +196,7 @@ function(generateOsqueryUtilsSystem)
   ) 
 
   target_link_libraries(osquery_utils_system_systemutils PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_info
     thirdparty_boost
     thirdparty_googletest_headers
@@ -222,7 +222,7 @@ function(generateOsqueryUtilsSystemUptime)
   ) 
 
   target_link_libraries(osquery_utils_system_uptime PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_system_systemutils
   )
 
@@ -246,7 +246,7 @@ function(generateOsqueryUtilsSystemErrnoErrnotestsTest)
   add_osquery_executable(osquery_utils_system_errno_errnotests-test ${source_files})
 
   target_link_libraries(osquery_utils_system_errno_errnotests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_system_errno
     thirdparty_googletest
   )
@@ -265,7 +265,7 @@ function(generateOsqueryUtilsSystemCpuCputopologytestsTest)
   add_osquery_executable(osquery_utils_system_cputopologytests-test ${source_files})
 
   target_link_libraries(osquery_utils_system_cputopologytests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_system_cputopology
     thirdparty_googletest
   )
@@ -275,7 +275,7 @@ function(generateOsqueryUtilsSystemTimeTimetestsTest)
   add_osquery_executable(osquery_utils_system_time_timetest-test tests/time.cpp)
 
   target_link_libraries(osquery_utils_system_time_timetest-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_system_time
     thirdparty_googletest
   )

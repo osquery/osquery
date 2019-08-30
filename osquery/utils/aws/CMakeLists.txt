@@ -6,7 +6,7 @@
 
 function(osqueryUtilsAwsMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -19,7 +19,7 @@ function(generateOsqueryUtilsAws)
   )
 
   target_link_libraries(osquery_utils_aws PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_remote_httpclient
     osquery_remote_transports_transportstls
     osquery_utils_json

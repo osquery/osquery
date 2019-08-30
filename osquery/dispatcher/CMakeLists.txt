@@ -6,7 +6,7 @@
 
 function(osqueryDispatcherMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -21,7 +21,7 @@ function(generateOsqueryDispatcher)
   )
 
   target_link_libraries(osquery_dispatcher PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_logger_datalogger
     osquery_process

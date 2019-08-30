@@ -14,7 +14,7 @@ function(generateOsqueryTablesLldpdLlpdtable)
   )
 
   target_link_libraries(osquery_tables_lldpd_llpdtable PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_logger
     thirdparty_lldpd

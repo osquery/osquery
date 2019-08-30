@@ -6,7 +6,7 @@
 
 function(osqueryUtilsVersioningMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -17,7 +17,7 @@ function(generateOsqueryUtilsVersioningSemantic)
   add_osquery_library(osquery_utils_versioning_semantic EXCLUDE_FROM_ALL semantic.cpp)
 
   target_link_libraries(osquery_utils_versioning_semantic PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     thirdparty_boost
     osquery_utils_conversions
   )

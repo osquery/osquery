@@ -16,7 +16,7 @@ function(generatePluginsDistributedTls)
   enableLinkWholeArchive(plugins_distributed_tls_distributedtls)
 
   target_link_libraries(plugins_distributed_tls_distributedtls PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_database

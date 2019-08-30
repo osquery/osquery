@@ -41,7 +41,7 @@ function(generateOsqueryHeaders)
   target_include_directories(osquery_headers INTERFACE "${CMAKE_SOURCE_DIR}/osquery/include")
 
   target_link_libraries(osquery_headers INTERFACE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core_plugins
     osquery_utils_info
     osquery_utils_macros
@@ -62,7 +62,7 @@ function(generateOsqueryd)
   set_target_properties(osqueryd PROPERTIES POSITION_INDEPENDENT_CODE true)
 
   target_link_libraries(osqueryd PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_main
   )
 endfunction()

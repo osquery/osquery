@@ -6,7 +6,7 @@
 
 function(osqueryTablesSystemMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -208,7 +208,7 @@ function(generateOsqueryTablesSystemSystemtable)
   )
 
   target_link_libraries(osquery_tables_system_systemtable PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_events
@@ -223,12 +223,17 @@ function(generateOsqueryTablesSystemSystemtable)
     osquery_utils_system_systemutils
     osquery_utils_system_time
     osquery_utils_system_uptime
-    thirdparty_augeas
     thirdparty_boost
-    thirdparty_libmagic
-    thirdparty_libxml2
     osquery_rows_processes_header
   )
+
+  if(NOT DEFINED PLATFORM_WINDOWS)
+    target_link_libraries(osquery_tables_system_systemtable PUBLIC
+      thirdparty_augeas
+      thirdparty_libmagic
+      thirdparty_libxml2
+    )
+  endif()
 
   if(DEFINED PLATFORM_LINUX)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC

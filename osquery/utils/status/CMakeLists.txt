@@ -6,7 +6,7 @@
 
 function(osqueryUtilsStatusMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsStatusStatustestsTest()
   endif()
 
@@ -19,7 +19,7 @@ function(generateOsqueryUtilsStatus)
   )
 
   target_link_libraries(osquery_utils_status PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_error
     osquery_utils_expected
   )
@@ -38,7 +38,7 @@ function(generateOsqueryUtilsStatusStatustestsTest)
   add_osquery_executable(osquery_utils_status_statustests-test tests/status.cpp)
 
   target_link_libraries(osquery_utils_status_statustests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_status
     thirdparty_googletest
   )

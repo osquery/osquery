@@ -6,7 +6,7 @@
 
 function(osqueryFilesystemMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryFilesystemTest()
   endif()
 
@@ -43,7 +43,7 @@ function(generateOsqueryFilesystem)
   )
 
   target_link_libraries(osquery_filesystem PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_process
     osquery_utils_conversions
@@ -81,7 +81,7 @@ function(generateOsqueryFilesystemMockfilestructure)
   )
 
   target_link_libraries(osquery_filesystem_mockfilestructure PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     thirdparty_boost
     osquery_filesystem
   )
@@ -107,7 +107,7 @@ function(generateOsqueryFilesystemTest)
   add_osquery_executable(osquery_filesystem_filesystemtests-test ${source_files})
 
   target_link_libraries(osquery_filesystem_filesystemtests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_core_sql

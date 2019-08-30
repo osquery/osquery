@@ -17,7 +17,7 @@ function(generateOsqueryExtensionsThriftOsquerycpp2)
   )
 
   target_link_libraries(osquery_extensions_thrift_osquerycpp2 PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     thirdparty_thrift
   )
 

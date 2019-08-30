@@ -17,7 +17,7 @@ function(generateOsqueryTablesEventsTestsFileeventstestsTest)
   add_osquery_executable(osquery_tables_events_tests_fileeventstests-test file_events_tests.cpp)
 
   target_link_libraries(osquery_tables_events_tests_fileeventstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_config
     osquery_config_tests_testutils
@@ -40,7 +40,7 @@ function(generateOsqueryTablesEventsTestsSelinuxeventstestsTest)
   add_osquery_executable(osquery_tables_events_tests_selinuxeventstests-test linux/selinux_events_tests.cpp)
 
   target_link_libraries(osquery_tables_events_tests_selinuxeventstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_config
@@ -64,7 +64,7 @@ function(generateOsqueryTablesEventsTestsProcesseventstestsTest)
   add_osquery_executable(osquery_tables_events_tests_processeventstests-test linux/process_events_tests.cpp)
 
   target_link_libraries(osquery_tables_events_tests_processeventstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_config

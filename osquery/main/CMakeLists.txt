@@ -29,7 +29,7 @@ function(generateOsqueryMain)
   )
 
   target_link_libraries(osquery_main PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_core_plugins

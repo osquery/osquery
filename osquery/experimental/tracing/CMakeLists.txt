@@ -25,7 +25,7 @@ function(generateOsqueryExperimentalTracingSyscallstracing)
   add_osquery_library(osquery_experimental_tracing_syscallstracing EXCLUDE_FROM_ALL ${source_files})
 
   target_link_libraries(osquery_experimental_tracing_syscallstracing PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_dispatcher
     osquery_experimental_tracing_linux_probesevents

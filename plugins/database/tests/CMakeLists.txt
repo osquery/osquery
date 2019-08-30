@@ -14,7 +14,7 @@ function(generatePluginsDatabaseTestsSqliteplugintestsTest)
   add_osquery_executable(plugins_database_tests_sqliteplugintests-test sqlite.cpp)
 
   target_link_libraries(plugins_database_tests_sqliteplugintests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_database
     osquery_dispatcher
@@ -37,7 +37,7 @@ function(generatePluginsDatabaseTestsRocksdbtestsTest)
   add_osquery_executable(plugins_database_tests_rocksdbtests-test rocksdb.cpp)
 
   target_link_libraries(plugins_database_tests_rocksdbtests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_database
     osquery_dispatcher

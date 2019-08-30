@@ -6,7 +6,7 @@
 
 function(osqueryDevtoolsMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -20,7 +20,7 @@ function(generateOsqueryDevtools)
   )
 
   target_link_libraries(osquery_devtools PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config
     osquery_core
     osquery_filesystem

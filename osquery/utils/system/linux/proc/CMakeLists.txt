@@ -6,7 +6,7 @@
 
 function(osqueryUtilsSystemLinuxProcMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -19,7 +19,7 @@ function(generateOsqueryUtilsSystemLinuxProc)
     add_osquery_library(osquery_utils_system_linux_proc EXCLUDE_FROM_ALL proc.cpp)
 
     target_link_libraries(osquery_utils_system_linux_proc PUBLIC
-      global_cxx_settings
+      osquery_cxx_settings
       thirdparty_boost
     )
 

@@ -6,7 +6,7 @@
 
 function(osqueryTablesSmartMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -27,7 +27,7 @@ function(generateOsqueryTablesSmart)
     )
 
     target_link_libraries(osquery_tables_smart PUBLIC
-      global_cxx_settings
+      osquery_cxx_settings
       osquery_headers
       osquery_logger
       osquery_sql

@@ -6,7 +6,7 @@
 
 function(osqueryEV2Main)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryEV2testsTest()
   endif()
 
@@ -23,7 +23,7 @@ function(generateOsqueryEV2)
   add_osquery_library(osquery_ev2 EXCLUDE_FROM_ALL ${source_files})
 
   target_link_libraries(osquery_ev2 PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_expected
   )
 
@@ -49,7 +49,7 @@ function(generateOsqueryEV2testsTest)
   add_osquery_executable(osquery_ev2_ev2tests-test ${source_files})
 
   target_link_libraries(osquery_ev2_ev2tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_ev2
     thirdparty_googletest
   )
