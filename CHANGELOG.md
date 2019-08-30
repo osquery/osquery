@@ -20,13 +20,13 @@ macOS query pack: detect when a process is tapping keyboard event ([#5345](https
 
 LRU cache for syscall tracing ([#5521](https://github.com/osquery/osquery/pull/5521))
 
-Basic tracing via eBPF on Linux (#5403, #5386, #5384) 
+Basic tracing via eBPF on Linux ([#5403](https://github.com/osquery/osquery/pull/5403), [#5386](https://github.com/osquery/osquery/pull/5386), [#5384](https://github.com/osquery/osquery/pull/5384)) 
 
 Experimental `kill` and `setuid` syscall tracing in Linux via eBPF ([#5519](https://github.com/osquery/osquery/pull/5519))
 
 New eventing (ev2) framework ([#5401](https://github.com/osquery/osquery/pull/5401))
 
-Increase the amount of MaxRecvRetries for thrift socket (#5390)
+Increase the amount of MaxRecvRetries for thrift socket ([#5390](https://github.com/osquery/osquery/pull/5390))
 
 Added CodeProfiler
 
@@ -67,13 +67,13 @@ Fix memory leak in `genLoggedInUsers` (Windows). Update `WTSFreeMemoryEx` to `WT
 
 Fix potential null dereferences ([#5332](https://github.com/osquery/osquery/pull/5332))
 
-Fix osquery exiting with wrong status (3824c2e6)
+Fix osquery exiting with wrong status ([3824c2e6](https://github.com/osquery/osquery/commit/3824c2e6))
 
-Add additional flag incompatibility check (85eb77a0)
+Add additional flag incompatibility check ([85eb77a0](https://github.com/osquery/osquery/commit/85eb77a0))
 
-Fix warning with constants initialisation in magic.cpp (2a624f2f)
+Fix warning with constants initialisation in magic.cpp ([2a624f2f](https://github.com/osquery/osquery/commit/2a624f2f))
 
-Fix sign compare warning in file_compression.cpp (b93069b3)
+Fix sign compare warning in file_compression.cpp ([b93069b3](https://github.com/osquery/osquery/commit/b93069b3))
 
 Refactored `logical_drives` table on Windows to be more C++11 ([#5400](https://github.com/osquery/osquery/pull/5400))
 
@@ -112,29 +112,29 @@ Include weekends on the kernel_panics table ([#5298](https://github.com/osquery/
 
 Fix `key_strength` bug for windows certificates table ([#5304](https://github.com/osquery/osquery/pull/5304))
 
-Fix: `interface` column of `routes` table could be empty on Windows (bcf0ab8e)
+Fix: `interface` column of `routes` table could be empty on Windows ([bcf0ab8e](https://github.com/osquery/osquery/commit/bcf0ab8e))
 
-Fix: `name` column of `programs` table could be empty on Windows (7bceba4b)
+Fix: `name` column of `programs` table could be empty on Windows ([7bceba4b](https://github.com/osquery/osquery/commit/7bceba4b))
 
-Fix `disable_watcher` flag (08dc11b7)
+Fix `disable_watcher` flag ([08dc11b7](https://github.com/osquery/osquery/commit/08dc11b7))
 
 Fix: populate `path` column correctly in `firefox_addons` table ([#5462](https://github.com/osquery/osquery/pull/5462))
 
 Fix numeric monitoring plugin not being registered ([#5484](https://github.com/osquery/osquery/pull/5484))
 
-Fix wrong error code returned when querying the Windows registry ([%5621](https://github.com/osquery/osquery/pull/5621))
+Fix wrong error code returned when querying the Windows registry ([#5621](https://github.com/osquery/osquery/pull/5621))
 
 Fix windows/logical_drives boot partition detection ([#5477](https://github.com/osquery/osquery/pull/5477))
 
 Replace sync calls by async ones ([#5606](https://github.com/osquery/osquery/pull/5606))
 
-Fix rocksDB crash (a31d7582)
+Fix rocksDB crash ([a31d7582](https://github.com/osquery/osquery/commit/a31d7582))
 
-Fix bug in table column data validator (e3037331)
+Fix bug in table column data validator ([e3037331](https://github.com/osquery/osquery/commit/e3037331))
 
-Fix random port problem (a32ed7c4)
+Fix random port problem ([a32ed7c4](https://github.com/osquery/osquery/commit/a32ed7c4))
 
-Refactor battery table and return some information even if advanced information is missing (6a64e353)
+Refactor battery table and return some information even if advanced information is missing ([6a64e353](https://github.com/osquery/osquery/commit/6a64e353))
 
 
 ### Table Changes
@@ -157,6 +157,7 @@ Added column `profile` to `chrome_extensions` table ([#5213](https://github.com/
 Added column `epoch` to `rpm_packages` table on Linux ([#5248](https://github.com/osquery/osquery/pull/5248))
 
 Added column `sid` to `logged_in_users` table on Windows ([#5454](https://github.com/osquery/osquery/pull/5454))
+
 Added column `registry_hive` to `logged_in_users` table on Windows ([#5454](https://github.com/osquery/osquery/pull/5454))
 
 Added column `sid` to `certificates` table on Windows ([#5631](https://github.com/osquery/osquery/pull/5631))
