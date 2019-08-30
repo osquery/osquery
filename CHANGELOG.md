@@ -1,5 +1,11 @@
 <a name="4.0.1"></a>
-## [4.0.0](https://github.com/osquery/osquery/compare/3.3.2...4.0.0) (2019-06-28)
+## [4.0.1](https://github.com/osquery/osquery/releases/tag/4.0.1)
+
+This release has two major focuses.  It is first release since [osquery transitioned to being part of the linux foundation](https://www.linuxfoundation.org/press-release/2019/06/the-linux-foundation-announces-intent-to-form-new-foundation-to-support-osquery-community/).
+
+It features a heavily reworked build system. This aims to provide flexibility and stability. 
+
+[Git Commits](https://github.com/osquery/osquery/compare/3.3.2...4.0.1)
 
 
 
