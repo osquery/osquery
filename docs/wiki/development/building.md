@@ -29,8 +29,10 @@ wget https://github.com/Kitware/CMake/releases/download/v3.14.5/cmake-3.14.5-Lin
 sudo tar xvf cmake-3.14.5-Linux-x86_64.tar.gz -C /usr/local --strip 1
 # Verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`
 
-# Download and build osquery
+# Download source
 git clone https://github.com/osquery/osquery
+
+# Build osquery
 mkdir build; cd build
 cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
 cmake --build . -j10 # where 10 is the number of parallel build jobs
@@ -40,15 +42,17 @@ cmake --build . -j10 # where 10 is the number of parallel build jobs
 
 ```bash
 # Install the prerequisites
-sudo apt install git llvm-6.0 clang-6.0 libc++-dev libc++abi-dev liblzma-dev python python3
+sudo apt install git llvm-6.0 clang-6.0 libc++-dev libc++abi-dev liblzma-dev python python3 bison flex
 
 # Download and install a newer CMake
 wget https://github.com/Kitware/CMake/releases/download/v3.14.5/cmake-3.14.5-Linux-x86_64.tar.gz
 sudo tar xvf cmake-3.14.5-Linux-x86_64.tar.gz -C /usr/local --strip 1
 # Verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`
 
-# Download and build osquery
+# Download source
 git clone https://github.com/osquery/osquery
+
+# Build osquery
 mkdir build; cd build
 cmake -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 ..
 cmake --build . -j10 # where 10 is the number of parallel build jobs
@@ -71,7 +75,7 @@ brew install git cmake python@2 python
 **Step 2: Download and build**
 
 ```bash
-# Download and build
+# Download source
 git clone https://github.com/osquery/osquery
 
 # Configure
@@ -97,7 +101,8 @@ The root folder is assumed to be `C:\Users\<user>`
 **Step 2: Download and build**
 
 ```PowerShell
-# Download using a PowerShell console
+# Using a PowerShell console as Administrator (see note, below)
+# Download source
 git clone https://github.com/osquery/osquery
 
 # Configure
@@ -107,6 +112,8 @@ cmake -G "Visual Studio 16 2019" -A x64 -T v141 ..
 # Build
 cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel
 ```
+
+The use of an Administrator shell is recommended because the build process creates symbolic links. These [require a special permission to create on Windows](https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links), and the simplest solution is to build as Administrator. If you wish, you can instead assign just the `SeCreateSymbolicLinkPrivilege` permission to the user account. The setting can be found in "Local Security Policy" under Security Settings, Local Policies, User Rights Assignment. There is also an opportunity while installing Git for Windows from the official installer (unselected by default) to enable this permission for a specific user, who then has to log out and back in for the policy change to apply.
 
 ## Testing
 
