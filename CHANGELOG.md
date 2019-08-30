@@ -7,7 +7,6 @@ It features a heavily reworked build system. This aims to provide flexibility an
 
 [Git Commits](https://github.com/osquery/osquery/compare/3.3.2...4.0.1)
 
-
 ### New Features / Under the Hood improvements
 
 Audit — `process_events` Implement support for fork/vfork/clone/execveat ([#5701](https://github.com/osquery/osquery/pull/5701))
@@ -30,10 +29,11 @@ Increase the amount of MaxRecvRetries for thrift socket ([#5390](https://github.
 
 Added CodeProfiler
 
-
 ### Build
 
-Add CMake support ([#5604](https://github.com/osquery/osquery/pull/5604), [#5627](https://github.com/osquery/osquery/pull/5627), [#5630](https://github.com/osquery/osquery/pull/5630))
+Refactor CMake build ([#5604](https://github.com/osquery/osquery/pull/5604), [#5627](https://github.com/osquery/osquery/pull/5627), [#5630](https://github.com/osquery/osquery/pull/5630), ([#5618](https://github.com/osquery/osquery/pull/5618)), ([#5619](https://github.com/osquery/osquery/pull/5619)))
+
+Refactor third-party libraries to build from source on Linux ([#5706](https://github.com/osquery/osquery/pull/5706))
 
 Add Azure Pipelines support for CI/CD ([#5604](https://github.com/osquery/osquery/pull/5604), [#5632](https://github.com/osquery/osquery/pull/5632), [#5626](https://github.com/osquery/osquery/pull/5626), [#5613](https://github.com/osquery/osquery/pull/5613), [#5607](https://github.com/osquery/osquery/pull/5607), [#5673](https://github.com/osquery/osquery/pull/5673), [#5610](https://github.com/osquery/osquery/pull/5610))
 
@@ -42,10 +42,6 @@ Add BUCK as a build system ([971bee44](https://github.com/osquery/osquery/commit
 Fix buck builds ([#5647](https://github.com/osquery/osquery/pull/5647), [#5623](https://github.com/osquery/osquery/pull/5623))
 
 Use `urllib2` to automatically handle HTTP 301/302 redirections ([#5612](https://github.com/osquery/osquery/pull/5612))
-
-Fix detection of some headers on some IDEs ([#5619](https://github.com/osquery/osquery/pull/5619))
-
-Fix prepare_for_ide target on macOS and Windows ([#5618](https://github.com/osquery/osquery/pull/5618))
 
 Update MSI package to install to `Program Files` on Windows ([#5579](https://github.com/osquery/osquery/pull/54579))
 
@@ -80,7 +76,6 @@ Refactored `logical_drives` table on Windows to be more C++11 ([#5400](https://g
 Refactored core/windows/wmi to use smart pointers ([#5492](https://github.com/osquery/osquery/pull/5492))
 
 Fixed crash in virtual table implementaion ([6ade85a5](https://github.com/osquery/osquery/commit/6ade85a5))
-
 
 ### Bug Fixes
 
@@ -136,9 +131,7 @@ Fix random port problem ([a32ed7c4](https://github.com/osquery/osquery/commit/a3
 
 Refactor battery table and return some information even if advanced information is missing ([6a64e353](https://github.com/osquery/osquery/commit/6a64e353))
 
-
 ### Table Changes
-
 
 Added table `ibridge_info` on macOS (Notebooks only) ([#5707](https://github.com/osquery/osquery/pull/5707))
 
