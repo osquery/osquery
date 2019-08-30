@@ -30,6 +30,7 @@ Increase the amount of MaxRecvRetries for thrift socket (#5390)
 
 Added CodeProfiler
 
+
 ### Build
 
 Add CMake support ([#5604](https://github.com/osquery/osquery/pull/5604), [#5627](https://github.com/osquery/osquery/pull/5627), [#5630](https://github.com/osquery/osquery/pull/5630))
@@ -77,6 +78,8 @@ Fix sign compare warning in file_compression.cpp (b93069b3)
 Refactored `logical_drives` table on Windows to be more C++11 ([#5400](https://github.com/osquery/osquery/pull/5400))
 
 Refactored core/windows/wmi to use smart pointers ([#5492](https://github.com/osquery/osquery/pull/5492))
+
+Fixed crash in virtual table implementaion ([6ade85a5](https://github.com/osquery/osquery/commit/6ade85a5))
 
 
 ### Bug Fixes
