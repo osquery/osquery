@@ -10,13 +10,11 @@ class UserassistTest : public testing::Test {
   }
 };
 
-namespace tables {
 TEST(Rot13Test, DecodeData) {
   std::string encoded_data = "Gur dhvpx oebja sbk whzcf bire gur ynml qbt";
-  std::string decoded_data = rot_decode(encoded_data);
+  std::string decoded_data = tables::rot_decode(encoded_data);
   ASSERT_TRUE(decoded_data == "The quick brown fox jumps over the lazy dog");
 }
-} // namespace tables
 
 TEST_F(UserassistTest, test_sanity) {
   QueryData const rows = execute_query("select * from userassist");
