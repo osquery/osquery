@@ -297,6 +297,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.h
       windows/certificates.h
       windows/users.h
+      windows/userassist.h
     )
   endif()
 

@@ -66,6 +66,7 @@ osquery_cxx_library(
                 "windows/registry.h",
                 "windows/certificates.h",
                 "windows/users.h",
+                "windows/userassist.h",
             ],
         ),
     ],
