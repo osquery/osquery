@@ -1,6 +1,19 @@
 osquery supports proprietary tables, config plugins, and logger plugins built in C++ (or languages other than C++) through a Thrift-based extensions API. This is helpful if your enterprise or integration uses an internal method for configuration or log collection. You can internally develop and maintain these custom behaviors in an extension, and ask osquery to depend on the plugins it exposes. To make deployment and management of extensions simpler, osqueryd may "autoload", or subprocess, these extension binaries and monitor their performance.
 
-If you are interested in writing extensions, please read the [SDK and Extensions](../development/osquery-sdk.md) development article. That wiki article describes the Thrift API and provides example C++ code for an extension. Every extension runs as a separate process and communicates to the main osquery process using Thrift and a UNIX domain socket. A single extension may contain an arbitrary number of plugins, and each are registered using a setUp API call. At Facebook, we deploy an `fb-osquery` package and a single extension binary that contains our Facebook-specific tables and internal configuration/logging APIs. 
+If you are interested in writing extensions, please read the [SDK and Extensions](../development/osquery-sdk.md) development article. That wiki article describes the Thrift API and provides example C++ code for an extension. Every extension runs as a separate process and communicates to the main osquery process using Thrift and a UNIX domain socket. A single extension may contain an arbitrary number of plugins, and each are registered using a setUp API call. Facebook, for example, is known to deploy an `fb-osquery` package and a single extension binary that contains its Facebook-specific tables and internal configuration/logging APIs.
+
+## Extensions Binary Permissions
+
+First, a note: the osquery agent will refuse to load an extension executable from the filesystem if the file's permissions allow write or modify by non-privileged accounts. Before loading an extension, change the owner of the `your_extension.ext` file to be the root account.
+
+On Windows, because of permission inheritance, just changing the owner of a file is not sufficient. You must also change the owner of the parent directory, remove all inherited DACLs, and disable inheritance. For example, if your osquery extensions are in the `.\Extensions` directory, the following commands will set permissions that satisfy osquery:
+
+```PowerShell
+icacls .\Extensions /setowner Administrators /t
+icacls .\Extensions /grant Administrators:f /t
+icacls .\Extensions /inheritance:r /t
+icacls .\Extensions /inheritance:d /t
+```
 
 ## Autoloading Extensions
 
@@ -42,7 +55,7 @@ The same dependency check is applied to the logger plugin setting after a valid 
 Extensions can also be loaded individually on the osquery command line, for example:
 
 ```sh
-$ osqueryi --extension /path/to/your_extension.ext
+osqueryi --extension /path/to/your_extension.ext
 ```
 
 ## More Options
@@ -57,5 +70,5 @@ $ cat /etc/osquery/osquery.flags
 
 ## Troubleshooting
 
-* Ensure that your osquery config has `--disable_extensions=false`, which ought to be the default value.
-* If you encounter the following error, you need change the owner of the `your_extension.ext` file to be the root account, or else run osquery with the `--allow_unsafe` flag (not recommended): `watcher.cpp:535] [Ref #1382] Extension binary has unsafe permissions:1`
+- Ensure that your osquery config has `--disable_extensions=false`, which ought to be the default value.
+- If you observe a runtime error from osquery, `Extension binary has unsafe permissions`, you have to lock down the filesystem permissions on the extension executable. See the steps in "Extensions Binary Permissions," above. For quick testing, you can bypass this by running osquery with the `--allow_unsafe` flag (not recommended in deployment).
