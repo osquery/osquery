@@ -99,13 +99,21 @@ function(setupBuildFlags)
         OSQUERY_BUILD_PLATFORM=linux
       )
 
+      set(osquery_linux_common_link_options
+        -Wl,-z,relro,-z,now
+      )
+
       set(linux_cxx_link_options
         --no-undefined
       )
 
       list(APPEND osquery_defines ${osquery_linux_common_defines})
       target_link_options(cxx_settings INTERFACE
+        ${osquery_linux_common_link_options}
         ${linux_cxx_link_options}
+      )
+      target_link_options(c_settings INTERFACE
+        ${osquery_linux_common_link_options}
       )
     elseif(DEFINED PLATFORM_MACOS)
       set(macos_cxx_compile_options
