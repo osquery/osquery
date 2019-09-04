@@ -11,8 +11,8 @@ osquery is a SQL powered operating system instrumentation, monitoring, and analy
 Available for Linux, macOS, Windows, and FreeBSD.
 </p>
 
-| Platform | Build status  |   | Key Infomation  |   |
-|----------|---------------|---|-----------------|---|
+| Platform | Build status  |   | Key Information  |   |
+|----------|---------------|---|------------------|---|
 |MacOS 10.14  | [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=macOS)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) | | **Homepage:** | https://osquery.io
 |Ubuntu 18.04 | [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=Linux)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) | | **Downloads:** | https://osquery.io/downloads
 |Windows Server 2016 | [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=Windows)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) | | **Tables:** | https://osquery.io/schema
