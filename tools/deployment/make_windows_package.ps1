@@ -366,7 +366,7 @@ function New-ChocolateyPackage() {
 
   $working_dir = Get-Location
   if (-not (Get-Command '7z.exe')) {
-    $msg = '[-] 7z not found, please install and ensure that 7z.exe is in the system path.'
+    $msg = '[-] 7z not found, please install and ensure that 7z.exe is in the system PATH.'
     Write-Host $msg -ForegroundColor Red
     exit 1
   }
