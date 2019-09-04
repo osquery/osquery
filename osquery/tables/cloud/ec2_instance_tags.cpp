@@ -15,9 +15,6 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/utils/aws/aws_util.h>
-#ifdef WIN32
-#undef GetMessage
-#endif
 
 namespace osquery {
 namespace tables {
