@@ -25,6 +25,9 @@ jobs:
 
     timeoutInMinutes: 120
 
+    variables:
+      CCACHE_DIR: $(Pipeline.Workspace)/ccache
+
     steps:
     - script: mkdir $(Build.BinariesDirectory)/build
       displayName: "Create build folder"
@@ -46,6 +49,13 @@ jobs:
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . --target format_check
+
+    - task: CacheBeta@0
+      inputs:
+        key: ccache | Linux$(BUILD_TYPE)CMake | $(CacheVersion) | $(Build.SourceVersion)
+        restoreKeys: ccache | Linux$(BUILD_TYPE)CMake | $(CacheVersion)
+        path: $(CCACHE_DIR)
+      displayName: ccache
 
     - task: CMake@1
       displayName: "Build osquery"
@@ -140,6 +150,9 @@ jobs:
     pool:
       vmImage: macos-10.14
 
+    variables:
+      CCACHE_DIR: $(Pipeline.Workspace)/ccache
+
     steps:
     - script: |
         brew upgrade
@@ -155,6 +168,13 @@ jobs:
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DOSQUERY_BUILD_TESTS=ON $(EXTRA_CMAKE_ARGS) $(Build.SourcesDirectory)
+
+    - task: CacheBeta@0
+      inputs:
+        key: ccache | macOS$(BUILD_TYPE)CMake | $(CacheVersion) | $(Build.SourceVersion)
+        restoreKeys: ccache | macOS$(BUILD_TYPE)CMake | $(CacheVersion)
+        path: $(CCACHE_DIR)
+      displayName: ccache
 
     - task: CMake@1
       displayName: "Build osquery"
