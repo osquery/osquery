@@ -11,15 +11,13 @@ osquery is a SQL powered operating system instrumentation, monitoring, and analy
 Available for Linux, macOS, Windows, and FreeBSD.
 </p>
 
-| Platform | Build status  |   | Key Infomation  |   |
-|----------|---------------|---|-----------------|---|
-|MacOS 10.14  | [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=macOS)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) | | **Homepage:** | https://osquery.io
-|Ubuntu 18.04 | [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=Linux)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) | | **Downloads:** | https://osquery.io/downloads
-|Windows Server 2016 | [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=Windows)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) | | **Tables:** | https://osquery.io/schema
-|FreeBSD 11 | N/A | | **Packs:** | [https://osquery.io/packs](https://github.com/facebook/osquery/tree/master/packs)
-| | | | **Guide:** | https://osquery.readthedocs.org
-| | | | [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com) | https://osquery-slack.herokuapp.com
-| | | | [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125) |
+**Information and resources**
+- Homepage: https://osquery.io
+- Downloads: https://osquery.io/downloads
+- Documentation: https://osquery.readthedocs.org
+- Table Schema: https://osquery.io/schema
+- Query Packs: [https://osquery.io/packs](https://github.com/facebook/osquery/tree/master/packs)
+- Slack Inviter: https://osquery-slack.herokuapp.com
 
 ## What is osquery?
 
@@ -89,9 +87,14 @@ visit [https://osquery.io/downloads](https://osquery.io/downloads/).
 
 ## Build from source
 
-Building osquery from source is encouraged! Check out our [build guide](https://osquery.readthedocs.io/en/latest/development/building/).
+Building osquery from source is encouraged! Check out our [build guide](https://osquery.readthedocs.io/en/latest/development/building/). Also check out our [contributing guide](CONTRIBUTING.md) and join the community on [Slack](https://slack.osquery.io).
 
-Also check out our [contributing guide](CONTRIBUTING.md) and join the community on [Slack](https://slack.osquery.io).
+**Build status and badges**
+- MacOS 10.14: [![MacOS 10.14](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=macOS)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master)
+- Ubuntu 18.04: [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=Linux)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master)
+- Windows 2016: [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=Windows)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master)
+- CII Best Practices: [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125)
+- Slack Status: [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com)
 
 ## License
 
