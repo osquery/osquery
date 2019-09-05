@@ -87,7 +87,7 @@ jobs:
 
     - script: |
         export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
-        buck test @mode/linux-x86_64/release osquery/...
+        buck test @mode/linux-x86_64/release osquery/... tests/... plugins/...
       displayName: "Run tests"
 
     - script: |
@@ -194,7 +194,7 @@ jobs:
 
     - script: |
         export JAVA_HOME="$(/usr/libexec/java_home -v 1.8)"
-        buck test @mode/macos-x86_64/release osquery/...
+        buck test @mode/macos-x86_64/release osquery/... tests/... plugins/...
       displayName: "Run tests"
 
     - script: |
@@ -325,7 +325,7 @@ jobs:
 
     - script: |
         set PATH=$(python2);%PATH%
-        $(python2)\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" test @mode/windows-x86_64/release osquery/...
+        $(python2)\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" test @mode/windows-x86_64/release osquery/... tests/... plugins/...
       displayName: "Run tests"
 
     - powershell: |
