@@ -171,7 +171,7 @@ You must submit a Contributor License Agreement (CLA) before we can
 accept any of your pull requests. You only need to submit one CLA for
 any of osquery's open source projects.
 
-This is manged through the Linux Foundations's EasyCLA. It will
+This is managed through the Linux Foundations's EasyCLA. It will
 comment appropriately on your PR.
 
 ## License
