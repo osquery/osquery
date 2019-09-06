@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14.5)
+cmake_minimum_required(VERSION 3.14.6)
 project(thirdparty_openssl)
 
 include(ExternalProject)

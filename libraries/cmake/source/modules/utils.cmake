@@ -4,7 +4,7 @@
 # This source code is licensed in accordance with the terms specified in
 # the LICENSE file found in the root directory of this source tree.
 
-cmake_minimum_required(VERSION 3.13.3)
+cmake_minimum_required(VERSION 3.14.6)
 
 option(OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS "This option can be enable to show all warnings in the source modules. Not recommended" OFF)
 
