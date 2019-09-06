@@ -2,6 +2,9 @@ include(CheckPIESupported)
 check_pie_supported()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(CMAKE_LINK_SEARCH_START_STATIC ON)
+set(CMAKE_LINK_SEARCH_END_STATIC ON)
+
 function(setupBuildFlags)
   add_library(cxx_settings INTERFACE)
   add_library(c_settings INTERFACE)
@@ -55,16 +58,9 @@ function(setupBuildFlags)
       -Woverloaded-virtual
       -Wnon-virtual-dtor
       -Weffc++
-      -stdlib=libc++
     )
 
     set(posix_cxx_link_options
-      -stdlib=libc++
-    )
-
-    set(posix_cxx_libraries
-      c++
-      c++abi
     )
 
     set(posix_c_compile_options
@@ -107,19 +103,31 @@ function(setupBuildFlags)
         --no-undefined
       )
 
+      set(linux_cxx_link_libraries
+        libc++abi.a
+        rt
+        dl
+      )
+
       list(APPEND osquery_defines ${osquery_linux_common_defines})
       target_link_options(cxx_settings INTERFACE
         ${osquery_linux_common_link_options}
         ${linux_cxx_link_options}
       )
+
       target_link_options(c_settings INTERFACE
         ${osquery_linux_common_link_options}
+      )
+
+      target_link_libraries(cxx_settings INTERFACE
+        ${linux_cxx_link_libraries}
       )
     elseif(DEFINED PLATFORM_MACOS)
       set(macos_cxx_compile_options
         -x objective-c++
         -fobjc-arc
         -Wabi-tag
+        -stdlib=libc++
       )
 
       set(macos_cxx_link_options
@@ -135,6 +143,7 @@ function(setupBuildFlags)
         "SHELL:-framework Security"
         "SHELL:-framework ServiceManagement"
         "SHELL:-framework SystemConfiguration"
+        -stdlib=libc++
       )
 
       set(macos_cxx_link_libraries
@@ -142,6 +151,7 @@ function(setupBuildFlags)
         cups
         bsm
         xar
+        c++abi
       )
 
       set(osquery_macos_common_defines

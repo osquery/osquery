@@ -91,9 +91,6 @@
 /* Define to 1 if you have the <gelf.h> header file. */
 /* #undef HAVE_GELF_H */
 
-/* Define to 1 if you have the `getauxval' function. */
-#define HAVE_GETAUXVAL 1
-
 /* Define to 1 if you have the `getcwd' function. */
 #define HAVE_GETCWD 1
 
@@ -209,7 +206,7 @@
 /* #undef HAVE_SECHASH_H */
 
 /* Define to 1 if you have the `secure_getenv' function. */
-#define HAVE_SECURE_GETENV 1
+#define HAVE_SECURE_GETENV 0
 
 /* Define to 1 if you have the `setenv' function. */
 #define HAVE_SETENV 1

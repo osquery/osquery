@@ -20,7 +20,7 @@ jobs:
       vmImage: 'Ubuntu-16.04'
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04
+      image: trailofbits/osquery:ubuntu-18.04-toolchain
       options: --privileged
 
     timeoutInMinutes: 120
@@ -38,8 +38,7 @@ jobs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs:
           -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
-          -DCMAKE_C_COMPILER=clang
-          -DCMAKE_CXX_COMPILER=clang++
+          -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain
           -DOSQUERY_BUILD_TESTS=ON
           $(EXTRA_CMAKE_ARGS)
           $(Build.SourcesDirectory)

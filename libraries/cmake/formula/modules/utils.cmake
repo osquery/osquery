@@ -51,7 +51,15 @@ function(importFormula library_name)
     endif()
 
     execute_process(
-      COMMAND "${CMAKE_COMMAND}" -G ${generator_option} ${toolset_option} "-DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}" "-DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}" "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}" "-DCMAKE_INSTALL_PREFIX:STRING=${install_prefix}" "${project_directory_path}"
+      COMMAND "${CMAKE_COMMAND}"
+      -G ${generator_option}
+      ${toolset_option}
+      "-DCMAKE_SYSROOT:PATH=${CMAKE_SYSROOT}"
+      "-DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}"
+      "-DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}"
+      "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
+      "-DCMAKE_INSTALL_PREFIX:STRING=${install_prefix}"
+      "${project_directory_path}"
       WORKING_DIRECTORY "${build_directory_path}"
       RESULT_VARIABLE error
       OUTPUT_VARIABLE std_output

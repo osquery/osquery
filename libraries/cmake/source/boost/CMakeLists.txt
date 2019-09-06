@@ -176,6 +176,11 @@ function(importBoostInterfaceLibrary folder_name)
     "${library_root}/include"
   )
 
+  if("${folder_name}" STREQUAL "uuid")
+    target_compile_definitions(${target_name} INTERFACE
+      BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX)
+  endif()
+
   foreach(additional_dependency ${ARGN})
     string(REPLACE "_" "" additional_dependency "${additional_dependency}")
 

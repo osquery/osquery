@@ -8,6 +8,12 @@ cmake_minimum_required(VERSION 3.14.6)
 
 cmake_policy(SET CMP0083 NEW)
 
+# toolchain.cmake needs to be included before project() because the former sets the compiler path for the custom toolchain,
+# if the user specify it and the latter does compiler detection.
+# utilities.cmake is a dependency of toolchain.cmake.
+include(cmake/utilities.cmake)
+include(cmake/toolchain.cmake)
+
 project(osquery)
 
 if(OSQUERY_BUILD_TESTS)
@@ -15,10 +21,13 @@ if(OSQUERY_BUILD_TESTS)
 endif()
 
 include(cmake/globals.cmake)
-include(cmake/utilities.cmake)
 include(cmake/options.cmake)
 include(cmake/flags.cmake)
 include(cmake/packaging.cmake)
+
+if (OSQUERY_TOOLCHAIN_SYSROOT AND NOT DEFINED PLATFORM_LINUX)
+  message(FATAL_ERROR "The custom toolchain can only be used with Linux, undefine OSQUERY_TOOLCHAIN_SYSROOT and specify a compiler to use")
+endif()
 
 function(main)
   message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
