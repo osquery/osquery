@@ -3,7 +3,7 @@
 
 This release has two major focuses. It is the first release since [osquery transitioned to a Linux Foundation project](https://www.linuxfoundation.org/press-release/2019/06/the-linux-foundation-announces-intent-to-form-new-foundation-to-support-osquery-community/).
 
-It features a heavily reworked build system. This aims to provide flexibility and stability. 
+It features a heavily reworked build system. This aims to provide flexibility and stability.
 
 [Git Commits](https://github.com/osquery/osquery/compare/3.3.2...4.0.1)
 
@@ -12,7 +12,7 @@ It features a heavily reworked build system. This aims to provide flexibility an
 - Linux Audit `process_events` Implement support for fork/vfork/clone/execveat ([#5701](https://github.com/osquery/osquery/pull/5701))
 - New SQLite function `regex_match` to match across columns ([#5444](https://github.com/osquery/osquery/pull/5444))
 - LRU cache for syscall tracing ([#5521](https://github.com/osquery/osquery/pull/5521))
-- Basic tracing via eBPF on Linux ([#5403](https://github.com/osquery/osquery/pull/5403), [#5386](https://github.com/osquery/osquery/pull/5386), [#5384](https://github.com/osquery/osquery/pull/5384)) 
+- Basic tracing via eBPF on Linux ([#5403](https://github.com/osquery/osquery/pull/5403), [#5386](https://github.com/osquery/osquery/pull/5386), [#5384](https://github.com/osquery/osquery/pull/5384))
 - Experimental `kill` and `setuid` syscall tracing in Linux via eBPF ([#5519](https://github.com/osquery/osquery/pull/5519))
 - New eventing (ev2) framework ([#5401](https://github.com/osquery/osquery/pull/5401))
 - Improved table performance profiles ([#5187](https://github.com/osquery/osquery/pull/5187))
@@ -28,15 +28,17 @@ It features a heavily reworked build system. This aims to provide flexibility an
 - Add Buck as a build system ([971bee44](https://github.com/osquery/osquery/commit/971bee44))
 - Use `urllib2` to automatically handle HTTP 301/302 redirections ([#5612](https://github.com/osquery/osquery/pull/5612))
 - Update MSI package to install to `Program Files` on Windows ([#5579](https://github.com/osquery/osquery/pull/54579))
+- Linux custom toolchain integration ([#5759](https://github.com/osquery/osquery/pull/5759))
 
 
 ### Harderning
 
+- Link binaries with Full RELRO on Linux ([#5748](https://github.com/osquery/osquery/pull/5748))
 - Remove FTS features from SQLite ([#5703](https://github.com/osquery/osquery/pull/5703)) ([#5702](https://github.com/osquery/osquery/issues/5702))
-- Fix SQLite API usage errors ([#5551](https://github.com/osquery/osquery/pull/5551)) 
+- Fix SQLite API usage errors ([#5551](https://github.com/osquery/osquery/pull/5551))
 - Fix issues reported by ASAN ([#5665](https://github.com/osquery/osquery/pull/5665))
 - Handle bad FDs in `md_tables` ([#5553](https://github.com/osquery/osquery/pull/5533))
-- Fix lock resource leak in events/syslog ([#5552](https://github.com/osquery/osquery/pull/5552)) 
+- Fix lock resource leak in events/syslog ([#5552](https://github.com/osquery/osquery/pull/5552))
 - Fix memory leak in macOS `keychain_items` and `extended_attributes` tables ([#5550](https://github.com/osquery/osquery/pull/5550), [#5538](https://github.com/osquery/osquery/pull/5538))
 - Fix memory leak in `genLoggedInUsers` (Windows). Update `WTSFreeMemoryEx` to `WTSFreeMemory` ([#5642](https://github.com/osquery/osquery/pull/5642))
 - Fix potential null dereferences in `smbios_tables` ([#5332](https://github.com/osquery/osquery/pull/5332))
@@ -52,14 +54,17 @@ It features a heavily reworked build system. This aims to provide flexibility an
 
 ### Bug Fixes
 
+- Fix the reading of the serial of a certificate (little-endian big int) ([#5742](https://github.com/osquery/osquery/pull/5742))
+- Fix bugs and update pathname variables in MSI package build script ([#5733](https://github.com/osquery/osquery/pull/5733))
+- Fix `registry` table exception closing an uninitialized key handle ([#5718](https://github.com/osquery/osquery/pull/5718))
 - Config views are now recreated on startup ([#5732](https://github.com/osquery/osquery/pull/5732))
 - Change MSI Service Error handling on Windows ([#5467](https://github.com/osquery/osquery/pull/5467))
 - Allow mounting SQLite DBs using WAL journaling with ATC ([#5525](https://github.com/osquery/osquery/issues/5225), [#5633](https://github.com/osquery/osquery/pull/5633))
-- Fix `mount` table interacting with direct autofs ([#5635](https://github.com/osquery/osquery/pull/5635)) 
+- Fix `mount` table interacting with direct autofs ([#5635](https://github.com/osquery/osquery/pull/5635))
 - Fix HTTP Host Header to include port ([#5576](https://github.com/osquery/osquery/pull/5576))
 - Various fixes to the Windows `certificates` table and expansion to include Personal certificates ([#5697](https://github.com/osquery/osquery/pull/5697)), ([#5696](https://github.com/osquery/osquery/pull/5696)), ([#5640](https://github.com/osquery/osquery/pull/5640)), ([#5631](https://github.com/osquery/osquery/pull/5631))
 - Add optimization back to macOS `users` and `groups` ([#5684](https://github.com/osquery/osquery/pull/5684))
-- Do not return a row for macOS `battery` if no data is present ([#5650](https://github.com/osquery/osquery/pull/5650)) 
+- Do not return a row for macOS `battery` if no data is present ([#5650](https://github.com/osquery/osquery/pull/5650))
 - Fix several integer conversions in `process_ops` ([#5614](https://github.com/osquery/osquery/pull/5614))
 - Include weekends on the `kernel_panics` table ([#5298](https://github.com/osquery/osquery/pull/5298))
 - Fix `key_strength` bug for Windows `certificates` table ([#5304](https://github.com/osquery/osquery/pull/5304))
