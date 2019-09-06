@@ -15,9 +15,12 @@ Available for Linux, macOS, Windows, and FreeBSD.
 - Homepage: https://osquery.io
 - Downloads: https://osquery.io/downloads
 - Documentation: https://osquery.readthedocs.org
+- Stack Overflow: https://stackoverflow.com/questions/tagged/osquery
 - Table Schema: https://osquery.io/schema
 - Query Packs: [https://osquery.io/packs](https://github.com/facebook/osquery/tree/master/packs)
-- Slack Inviter: https://osquery-slack.herokuapp.com
+- Slack: [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com)
+- CII Best Practices: [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125)
+
 
 ## What is osquery?
 
@@ -89,12 +92,10 @@ visit [https://osquery.io/downloads](https://osquery.io/downloads/).
 
 Building osquery from source is encouraged! Check out our [build guide](https://osquery.readthedocs.io/en/latest/development/building/). Also check out our [contributing guide](CONTRIBUTING.md) and join the community on [Slack](https://slack.osquery.io).
 
-**Build status and badges**
+**Build status**
 - MacOS 10.14: [![MacOS 10.14](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=macOS)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master)
 - Ubuntu 18.04: [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=Linux)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master)
 - Windows 2016: [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=Windows)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master)
-- CII Best Practices: [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125)
-- Slack Status: [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com)
 
 ## License
 
