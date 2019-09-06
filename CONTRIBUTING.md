@@ -11,7 +11,7 @@ All contributions from the community are submitted via pull requests
 open against the osquery's
 [master](https://github.com/osquery/osquery/tree/master) branch on
 GitHub. After being reviewed by the core team and tested by CI. If all
-is well, be pushed to master and the corresponding PR closed.
+is well, they will be pushed to master and the corresponding PR closed.
 
 If you need help, both the core team and community members are on the osquery
 [Slack](https://osquery.slack.com). Feel free to register using the following
