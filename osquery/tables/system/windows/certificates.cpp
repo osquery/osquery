@@ -57,8 +57,17 @@ typedef struct _ENUM_ARG {
 } ENUM_ARG, *PENUM_ARG;
 
 template <typename Iterator>
-inline void toHexStr(Iterator begin, Iterator end, std::string& output) {
-  boost::algorithm::hex(std::string(begin, end), back_inserter(output));
+inline void toHexStr(Iterator begin,
+                     Iterator end,
+                     std::string& output,
+                     bool littleEndian = false) {
+  std::string s = std::string(begin, end);
+  if (littleEndian) {
+    std::reverse_iterator<std::string::iterator> r = s.rbegin();
+    boost::algorithm::hex(std::string(r, s.rend()), back_inserter(output));
+  } else {
+    boost::algorithm::hex(s, back_inserter(output));
+  }
 }
 
 std::string cryptOIDToString(const char* objId) {
@@ -483,7 +492,8 @@ void addCertRow(PCCERT_CONTEXT certContext,
   toHexStr(certContext->pCertInfo->SerialNumber.pbData,
            certContext->pCertInfo->SerialNumber.pbData +
                certContext->pCertInfo->SerialNumber.cbData,
-           serial);
+           serial,
+           true);
   r["serial"] = serial;
 
   std::string authKeyId;
