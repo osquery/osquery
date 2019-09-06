@@ -6,7 +6,7 @@ The supported compilers are: clang/libc++ 6.0 on Linux, MSVC v141 on Windows, an
 
 # Building with CMake
 
-Git, CMake (>= 3.14.4), Python 2, and Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
+Git, CMake (>= 3.14.6), Python 2, and Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
 
 The default build type is `RelWithDebInfo` (optimizations active + debug symbols) and can be changed in the CMake configure phase by setting the `CMAKE_BUILD_TYPE` flag to `Release` or `Debug`.
 
@@ -25,8 +25,8 @@ The root folder is assumed to be `/home/<user>`
 sudo apt install git llvm clang libc++-dev libc++abi-dev liblzma-dev python python3 bison flex
 
 # Download and install a newer CMake
-wget https://github.com/Kitware/CMake/releases/download/v3.14.5/cmake-3.14.5-Linux-x86_64.tar.gz
-sudo tar xvf cmake-3.14.5-Linux-x86_64.tar.gz -C /usr/local --strip 1
+wget https://github.com/Kitware/CMake/releases/download/v3.14.6/cmake-3.14.6-Linux-x86_64.tar.gz
+sudo tar xvf cmake-3.14.6-Linux-x86_64.tar.gz -C /usr/local --strip 1
 # Verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`
 
 # Download source
@@ -45,8 +45,8 @@ cmake --build . -j10 # where 10 is the number of parallel build jobs
 sudo apt install git llvm-6.0 clang-6.0 libc++-dev libc++abi-dev liblzma-dev python python3 bison flex
 
 # Download and install a newer CMake
-wget https://github.com/Kitware/CMake/releases/download/v3.14.5/cmake-3.14.5-Linux-x86_64.tar.gz
-sudo tar xvf cmake-3.14.5-Linux-x86_64.tar.gz -C /usr/local --strip 1
+wget https://github.com/Kitware/CMake/releases/download/v3.14.6/cmake-3.14.6-Linux-x86_64.tar.gz
+sudo tar xvf cmake-3.14.6-Linux-x86_64.tar.gz -C /usr/local --strip 1
 # Verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`
 
 # Download source
@@ -92,7 +92,7 @@ The root folder is assumed to be `C:\Users\<user>`
 
 **Step 1: Install the prerequisites**
 
-- [CMake](https://cmake.org/) (>= 3.14.4): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!
+- [CMake](https://cmake.org/) (>= 3.14.6): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!
 - [Build Tools for Visual Studio 2019](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16): from the installer choose the C++ build tools workload, then on the right, under "C++ build tools",  "Optional", select "MSVC v141 - VS 2017 C++". Do not install CMake using the Visual Studio Installer, because it will be an older version than needed.
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest) (or equivalent)
 - [Python 2](https://www.python.org/downloads/windows/), specifically the 64-bit version.
