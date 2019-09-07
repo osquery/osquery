@@ -121,9 +121,9 @@ function(generateInstallTargets)
 
   if(DEFINED PLATFORM_LINUX)
     # .
-    if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
+    if("${PACKAGING_SYSTEM}" STREQUAL "DEB")
       file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/linux_postinstall.sh" DESTINATION "${CMAKE_BINARY_DIR}/package/deb")
-      install(FILES "${CMAKE_BINARY_DIR}/package/deb/linux_postinstall.sh" DESTINATION . RENAME postinst)
+      file(RENAME "${CMAKE_BINARY_DIR}/package/deb/linux_postinstall.sh" "${CMAKE_BINARY_DIR}/package/deb/postinst")
     endif()
 
     # bin
@@ -238,6 +238,8 @@ list(GET OSQUERY_VERSION_COMPONENTS 1 CPACK_PACKAGE_VERSION_MINOR)
 list(GET OSQUERY_VERSION_COMPONENTS 2 CPACK_PACKAGE_VERSION_PATCH)
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
+set(CPACK_PACKAGE_NAME "osquery")
+set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 set(CPACK_PACKAGE_VENDOR "osquery")
 set(CPACK_PACKAGE_CONTACT "osquery@osquery.io")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://osquery.io")
@@ -250,12 +252,22 @@ configure_file(cmake/CPackConfig.cmake.in package/CPackConfig.cmake @ONLY)
 set(CPACK_GENERATOR "${PACKAGING_SYSTEM}")
 
 if(DEFINED PLATFORM_LINUX)
+  set(CPACK_STRIP_FILES ON)
+  set(CPACK_SET_DESTDIR ON)
+
+  if(CPACK_GENERATOR STREQUAL "TGZ")
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_1.linux.x86_64")
+    set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY 0)
+  endif()
+
   if(CPACK_GENERATOR STREQUAL "DEB")
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_1.linux.amd64")
     set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
     set(CPACK_DEBIAN_PACKAGE_SECTION "default")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>=2.12), zlib1g")
 
   elseif(CPACK_GENERATOR STREQUAL "RPM")
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-1.linux.x86_64")
     set(CPACK_RPM_PACKAGE_DESCRIPTION "osquery is an operating system instrumentation toolchain.")
     set(CPACK_RPM_PACKAGE_GROUP "default")
     set(CPACK_RPM_PACKAGE_LICENSE "BSD")
