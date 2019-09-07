@@ -877,11 +877,13 @@ void getHECIDriverVersion(QueryData& results) {
       continue;
     }
 
+    // It useful to dump some information to the user in case something
+    // goes wrong with this table; it is of great help to developers when
+    // looking for a similar piece of hardware to reproduce the bug
     VLOG(1) << printIntelMEVersion(intel_me_info);
 
     // Do not dump the whole structures; just get the essential version
-    // information
-    // and ignore the rest
+    // information and ignore the rest
     std::string version = {};
 
     switch (intel_me_info.interface_type) {
@@ -913,7 +915,7 @@ void getHECIDriverVersion(QueryData& results) {
     }
 
     default: {
-      LOG(ERROR) << "Invalid interface type";
+      LOG(ERROR) << "Unrecognized Intel ME protocol/interface type";
       break;
     }
     }
