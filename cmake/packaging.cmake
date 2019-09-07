@@ -149,6 +149,9 @@ function(generateInstallTargets)
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     install(DIRECTORY "${CMAKE_BINARY_DIR}/package/linux/packs" DESTINATION share/osquery)
 
+    file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
+    install(FILES "${CMAKE_BINARY_DIR}/package/linux/certs.pem" DESTINATION share/osquery/certs)
+
     # etc
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.sysconfig" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
@@ -193,6 +196,9 @@ function(generateInstallTargets)
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
     install(DIRECTORY "${CMAKE_BINARY_DIR}/package/wix/packs" DESTINATION .)
 
+    # certs
+    file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
+    install(FILES "${CMAKE_BINARY_DIR}/package/wix/certs.pem" DESTINATION certs)
   elseif(DEFINED PLATFORM_MACOS)
     # bin
     install(TARGETS osqueryd DESTINATION bin COMPONENT osquery)
@@ -212,6 +218,9 @@ function(generateInstallTargets)
 
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
     install(DIRECTORY "${CMAKE_BINARY_DIR}/package/pkg/packs" COMPONENT osquery DESTINATION /private/var/osquery)
+
+    file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
+    install(FILES "${CMAKE_BINARY_DIR}/package/pkg/certs.pem" COMPONENT osquery DESTINATION /private/var/osquery/certs)
 
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
     file(RENAME "${CMAKE_BINARY_DIR}/package/pkg/com.facebook.osqueryd.conf" "${CMAKE_BINARY_DIR}/package/pkg/com.osquery.osqueryd.conf")
@@ -246,14 +255,13 @@ set(CPACK_PACKAGE_HOMEPAGE_URL "https://osquery.io")
 set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_BINARY_DIR}/package/CPackConfig.cmake")
 set(CPACK_PACKAGE_RELOCATABLE ON)
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/package/LICENSE.txt")
+set(CPACK_STRIP_FILES ON)
 
 configure_file(cmake/CPackConfig.cmake.in package/CPackConfig.cmake @ONLY)
 
 set(CPACK_GENERATOR "${PACKAGING_SYSTEM}")
 
 if(DEFINED PLATFORM_LINUX)
-  set(CPACK_STRIP_FILES ON)
-
   if(CPACK_GENERATOR STREQUAL "TGZ")
     set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_1.linux.x86_64")
     set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY 0)
@@ -281,9 +289,11 @@ if(DEFINED PLATFORM_LINUX)
     )
   endif()
 elseif(DEFINED PLATFORM_MACOS)
+  set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
 elseif(DEFINED PLATFORM_WINDOWS)
   file(COPY "${CMAKE_SOURCE_DIR}/tools/osquery.ico" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
   file(COPY "${CMAKE_SOURCE_DIR}/cmake/wix_patches/osquery_wix_patch.xml" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
+  set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
   set(CPACK_WIX_PRODUCT_ICON "${CMAKE_BINARY_DIR}/package/wix/osquery.ico")
   set(CPACK_WIX_UPGRADE_GUID "ea6c7327-461e-4033-847c-acdf2b85dede")
   set(CPACK_WIX_PATCH_FILE "${CMAKE_BINARY_DIR}/package/wix/osquery_wix_patch.xml" )
