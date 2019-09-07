@@ -81,7 +81,9 @@ void keyEnumPrograms(const std::string& key,
         r["install_date"] = aKey.at("data");
       }
     }
-    results.push_back(r);
+    if (!r.empty()) {
+      results.push_back(r);
+    }
   }
 }
 
