@@ -7,6 +7,7 @@
 set(linux_supported_packaging_systems
   DEB
   RPM
+  TGZ
 )
 
 set(windows_supported_packaging_system
