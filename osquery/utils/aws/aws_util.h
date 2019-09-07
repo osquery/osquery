@@ -29,7 +29,7 @@
 // name to either GetMessageW or GetMessageA depending on the UNICODE
 // define. We have to undefine this because it causes a method in the
 // AWS sdk to be renamed, causing a compilation error.
-#ifdef WIN32 && defined(GetMessage)
+#if defined(WIN32) && defined(GetMessage)
 #undef GetMessage
 #endif
 
