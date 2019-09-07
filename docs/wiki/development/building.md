@@ -144,7 +144,7 @@ To run a single test, in verbose mode:
 ctest -R <test name> -C <RelWithDebInfo|Release|Debug> -V
 ```
 
-**Run tests on Linux and MacOS**
+**Run tests on Linux and macOS**
 
 To run the tests and get just a summary report:
 
@@ -161,7 +161,13 @@ CTEST_OUTPUT_ON_FAILURE=1 cmake --build . --target test
 To run a single test, in verbose mode:
 
 ```bash
-ctest -R <test name> -V
+ctest -R <testName> -V
+```
+
+A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
+
+```bash
+GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory tests under the <testName> set.
 ```
 
 # Building with Buck
