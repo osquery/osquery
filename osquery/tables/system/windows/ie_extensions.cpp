@@ -76,10 +76,10 @@ static inline Status getBHOs(QueryData& results) {
         r["path"] = std::move(fullPath);
       }
 
-      std::string version;
-      ret = windowsGetFileVersion(exec, version);
+      std::string productVersion, fileVersion;
+      ret = windowsGetVersionInfo(exec, productVersion, fileVersion);
       if (ret.ok()) {
-        r["version"] = std::move(version);
+        r["version"] = std::move(productVersion);
       }
 
       r["registry_path"] = res.at("path");

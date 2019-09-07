@@ -91,6 +91,7 @@ typedef struct win_stat {
   std::string attributes;
   std::string volume_serial;
   std::string product_version;
+  std::string file_version;
 
 } WINDOWS_STAT;
 
@@ -188,14 +189,17 @@ Status windowsShortPathToLongPath(const std::string& shortPath,
                                   std::string& rLongPath);
 
 /*
- * @brief Get the product version associated with a file
+ * @brief Get the product and file version associated with a file
  *
  * @param path: Full path to the file
- * @param rVersion: String representing the product version, e.g. "16.0.8201.0"
- *
+ * @param product_version: String representing the product version, e.g.
+ * "16.0.8201.0"
+ * @param file_version: String representing the file version
  * @return Success if the version could be retrieved, otherwise failure
  */
-Status windowsGetFileVersion(const std::string& path, std::string& rVersion);
+Status windowsGetVersionInfo(const std::string& path,
+                             std::string& product_version,
+                             std::string& file_version);
 #endif
 
 /**
