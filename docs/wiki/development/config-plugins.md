@@ -1,6 +1,6 @@
 For details on how **osqueryd** schedules queries and loads information from a config, see the [configuration](../deployment/configuration.md) deployment guide.
 
-You may distribute configurations in your environment differently than Facebook. To support all environments, the way that **osqueryd** goes about retrieving configurations is completely pluggable and configurable. By default, **osqueryd** will look for a JSON file on disk using the default config plugin: **filesystem**. If you distribute configurations via something like [Zookeeper](http://zookeeper.apache.org/) or [etcd](https://github.com/coreos/etcd), you need to write a C++ function that can acquire a string of JSON. This developer tutorial will walk through the default filesystem config plugin as a demonstration for creating new config inputs.
+You may distribute configurations in your environment differently than Facebook. To support all environments, the way that **osqueryd** goes about retrieving configurations is completely pluggable and configurable. By default, **osqueryd** will look for a JSON file on disk using the default config plugin: **filesystem**. If you distribute configurations via something like [Zookeeper](https://zookeeper.apache.org) or [etcd](https://github.com/coreos/etcd), you need to write a C++ function that can acquire a string of JSON. This developer tutorial will walk through the default filesystem config plugin as a demonstration for creating new config inputs.
 
 ## Example: Filesystem config
 

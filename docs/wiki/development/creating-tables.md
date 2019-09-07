@@ -2,7 +2,7 @@ SQL tables are used to represent abstract operating system concepts, such as run
 
 A table can be used in conjunction with other tables via operations like sub-queries and joins. This allows for a rich data exploration experience. While osquery ships with a default set of tables, osquery provides an API that allows you to create new tables.
 
-You can explore current schema here: [https://osquery.io/schema](https://osquery.io/schema/). Tables that are up for grabs in terms of development can be found on Github issues using the "virtual tables" + "[up for grabs tag](https://github.com/facebook/osquery/issues?q=is%3Aopen+is%3Aissue+label%3A%22virtual+tables%22)".
+You can explore current schema here: [https://osquery.io/schema](https://osquery.io/schema/). Tables that are up for grabs in terms of development can be found on Github issues using the "virtual tables" + "[up for grabs tag](https://github.com/osquery/osquery/issues?q=is%3Aopen+is%3Aissue+label%3A%22virtual+tables%22)".
 
 ## New Table Walkthrough
 
@@ -15,7 +15,7 @@ Column values (a single row) will be dynamically computed at query time.
 Under the hood, osquery uses libraries from SQLite core to create "virtual tables". The default API for creating virtual tables is relatively complex. osquery has abstracted this complexity away, allowing you to write a simple table declaration.
 
 To make table-creation simple osquery uses a *table spec* file.
-The current specs are organized by operating system in the [specs](https://github.com/facebook/osquery/tree/master/specs) source folder.
+The current specs are organized by operating system in the [specs](https://github.com/osquery/osquery/tree/master/specs) source folder.
 For our time exercise, a spec file would look like the following:
 
 ```python
@@ -48,12 +48,12 @@ You might wonder "this syntax looks similar to Python?". Well, it is! The build 
 
 You may be wondering how osquery handles cross-platform support while still allowing operating-system specific tables. The osquery build process takes care of this by only generating the relevant code based on a directory structure convention.
 
-- Cross-platform: [specs/](https://github.com/facebook/osquery/tree/master/specs/)
-- MacOS: [specs/darwin/](https://github.com/facebook/osquery/tree/master/specs/darwin)
-- General Linux: [specs/linux/](https://github.com/facebook/osquery/tree/master/specs/linux)
-- Windows: [specs/windows/](https://github.com/facebook/osquery/tree/master/specs/windows)
-- POSIX: [specs/posix/](https://github.com/facebook/osquery/tree/master/specs/posix)
-- FreeBSD: [specs/freebsd/](https://github.com/facebook/osquery/tree/master/specs/freebsd)
+- Cross-platform: [specs/](https://github.com/osquery/osquery/tree/master/specs/)
+- MacOS: [specs/darwin/](https://github.com/osquery/osquery/tree/master/specs/darwin)
+- General Linux: [specs/linux/](https://github.com/osquery/osquery/tree/master/specs/linux)
+- Windows: [specs/windows/](https://github.com/osquery/osquery/tree/master/specs/windows)
+- POSIX: [specs/posix/](https://github.com/osquery/osquery/tree/master/specs/posix)
+- FreeBSD: [specs/freebsd/](https://github.com/osquery/osquery/tree/master/specs/freebsd)
 - You get the picture ;)
 
 > NOTICE: the CMake build provides custom defines for each platform and platform version.
@@ -157,7 +157,7 @@ Examples:
 
 ## SQL data types
 
-Data types like `TableRows`, `TableRow`, `DiffResults`, etc. are osquery's built-in data result types. They're all defined in [include/osquery/database.h](https://github.com/facebook/osquery/blob/master/include/osquery/database.h).
+Data types like `TableRows`, `TableRow`, `DiffResults`, etc. are osquery's built-in data result types. They're all defined in [include/osquery/database.h](https://github.com/osquery/osquery/blob/master/include/osquery/database.h).
 
 `TableRow` is an interface; each table has a generated implementation with strongly-typed fields for each column in the table. There's also `DynamicTableRow`, which is backed by a `std::map<std::string, std::string>` mapping column names to the string representations of their values. `DynamicTableRow` exists to support tables that were written before the strongly-typed row support was added, and for plugins.
 
@@ -171,7 +171,7 @@ In our case, we used system APIs to create a struct of type `tm` which has field
 
 If you've created a new **.{c,cpp,mm}** file in the correct folder within *osquery/tables*, CMake will discover and attempt to compile your implementation.
 
-Return to the root of the repository and execute `make`. This will generate the appropriate code and link everything properly. If you need to add additional linking it gets a tad more complicated. Consider the following code within the table's [CMakeLists.txt](https://github.com/facebook/osquery/blob/master/osquery/tables/CMakeLists.txt):
+Return to the root of the repository and execute `make`. This will generate the appropriate code and link everything properly. If you need to add additional linking it gets a tad more complicated. Consider the following code within the table's [CMakeLists.txt](https://github.com/osquery/osquery/blob/master/osquery/tables/CMakeLists.txt):
 
 ```cmake
 

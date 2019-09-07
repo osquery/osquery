@@ -26,12 +26,12 @@ Some configuration is shared between the two plugins:
 When working with AWS, osquery will look for credentials and region configuration in the following order:
 
 1. Configuration flags
-2. Profile from the [AWS config files](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#cli-config-files) (only if `--aws_profile_name` is specified)
+2. Profile from the [AWS config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-config-files) (only if `--aws_profile_name` is specified)
 3. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 4. `default` profile in the AWS config files
 5. Profile from the EC2 Instance Metadata Service
 
-All of the STS configuration flags are optional.  However, if `aws_sts_arn_role` is set, you can utilize temporary credentials via assume role with the [AWS Security Token Service](http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
+All of the STS configuration flags are optional.  However, if `aws_sts_arn_role` is set, you can utilize temporary credentials via assume role with the [AWS Security Token Service](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
 
 ### Kinesis Streams
 

@@ -1,4 +1,4 @@
-[include/osquery/filesystem.h](https://github.com/facebook/osquery/blob/master/include/osquery/filesystem.h) contains utilities for accessing the filesystem.
+[include/osquery/filesystem.h](https://github.com/osquery/osquery/blob/master/include/osquery/filesystem.h) contains utilities for accessing the filesystem.
 
 Consider the following example for reading a file from the filesystem:
 
