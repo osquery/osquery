@@ -6,9 +6,9 @@ All commits to osquery should be well unit-tested. Having tests is useful for ma
 
 This guide is going to take you through the process of creating and building a new unit test in the osquery project.
 
-Ensure that you can properly build the code by running `make` at the root of the osquery repository. If your build fails, refer to the ["building the code"](building.md) guide.
+First ensure that you can properly build the code, by referring to the ["building osquery"](building.md) guide.
 
-Before you modify osquery code (or any code for that matter), make sure that you can successfully execute all tests. Run `make test` to run all tests.
+Before you modify osquery code (or any code for that matter), make sure that you can successfully execute all tests. The steps for building and running tests are particular to the platform and build toolchain you are using, so again refer to the ["building osquery"](building.md) guide for the appropriate information for your setup.
 
 **Adding a test**
 
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 }
 ```
 
-The above code is very simple. If you're unfamiliar with the syntax/concepts of the Google Test framework, read the [Google Test Primer](http://code.google.com/p/googletest/wiki/V1_7_Primer#Basic_Concepts).
+The above code is very simple. If you're unfamiliar with the syntax/concepts of the Google Test framework, read the [Google Test Primer](https://github.com/google/googletest/blob/master/googletest/docs/primer.md#basic-concepts).
 
 ## Building a test
 
@@ -48,10 +48,6 @@ ADD_OSQUERY_TEST(example_test example_test.cpp)
 
 After you specify the test sources, add whatever libraries you have to link against and properly set the compiler flags, make sure you call `ADD_TEST` with your unit test. This registers it with CTest (CMake's test runner).
 
-## Running a test
-
-From the root of the repository run `make`. If your code compiles properly, run `make test`. Ensure that your test has passed.
-
 **Extending the test**
 
-Your test is just C++ code. Use the [Google Test documentation](http://code.google.com/p/googletest/wiki/V1_7_Primer#Assertions) to assist you in writing meaningful tests.
+Your test is just C++ code. Use the [Google Test documentation](https://github.com/google/googletest/blob/master/googletest/docs/primer.md#assertions) to assist you in writing meaningful tests.
