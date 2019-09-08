@@ -44,7 +44,7 @@ CREATE TABLE process_open_sockets(pid INTEGER, fd BIGINT, socket BIGINT, family 
 CREATE TABLE processes(pid BIGINT, name TEXT, path TEXT, cmdline TEXT, state TEXT, cwd TEXT, root TEXT, uid BIGINT, gid BIGINT, euid BIGINT, egid BIGINT, suid BIGINT, sgid BIGINT, on_disk INTEGER, wired_size BIGINT, resident_size BIGINT, phys_footprint BIGINT, user_time BIGINT, system_time BIGINT, start_time BIGINT, parent BIGINT, pgroup BIGINT, nice INTEGER);
 ```
 
-This [complete schema](https://osquery.io/schema/) for all supported platforms is available on the homepage. To see schema in your shell for tables foreign to your OS, like kernel modules on OSX, use the `--enable_foreign` [command line flag](../installation/cli-flags.md).
+This [complete schema](https://osquery.io/schema/) for all supported platforms is available on the homepage. To see schema in your shell for tables foreign to your OS, like kernel modules on macOS, use the `--enable_foreign` [command line flag](../installation/cli-flags.md).
 
 ### Your first query
 
@@ -426,4 +426,4 @@ There are also encoding functions available to you to process query results.
 
 Over time it may makes sense to rename tables and columns. osquery tries to apply plurals to table names and achieve the easiest foreign key JOIN syntax. This often means slightly skewing concept attributes or biasing towards diction used by POSIX.
 
-The tools makes an effort to mark deprecated tables and create 'clone' `VIEW`s so previously scheduled queries continue to work. Similarly for old column names, the column will be marked `HIDDEN` and only returned if explicitly selected. This does not make queries using `*` future-proof, as they will begin using the new column names when the client is updated. All of these changes are considered osquery API changes and marked as such in [release notes](https://github.com/facebook/osquery/releases) on GitHub.
+The tools makes an effort to mark deprecated tables and create 'clone' `VIEW`s so previously scheduled queries continue to work. Similarly for old column names, the column will be marked `HIDDEN` and only returned if explicitly selected. This does not make queries using `*` future-proof, as they will begin using the new column names when the client is updated. All of these changes are considered osquery API changes and marked as such in [release notes](https://github.com/osquery/osquery/releases) on GitHub.

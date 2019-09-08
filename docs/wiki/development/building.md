@@ -35,6 +35,7 @@ sudo tar xvf cmake-3.14.6-Linux-x86_64.tar.gz -C /usr/local --strip 1
 
 # Download source
 git clone https://github.com/osquery/osquery
+cd osquery
 
 # Build osquery
 mkdir build; cd build
@@ -61,6 +62,7 @@ brew install git cmake python@2 python
 ```bash
 # Download source
 git clone https://github.com/osquery/osquery
+cd osquery
 
 # Configure
 mkdir build; cd build
@@ -88,6 +90,7 @@ The root folder is assumed to be `C:\Users\<user>`
 # Using a PowerShell console as Administrator (see note, below)
 # Download source
 git clone https://github.com/osquery/osquery
+cd osquery
 
 # Configure
 mkdir build; cd build
@@ -124,7 +127,7 @@ To run a single test, in verbose mode:
 ctest -R <test name> -C <RelWithDebInfo|Release|Debug> -V
 ```
 
-**Run tests on Linux and MacOS**
+**Run tests on Linux and macOS**
 
 To run the tests and get just a summary report:
 
@@ -141,7 +144,13 @@ CTEST_OUTPUT_ON_FAILURE=1 cmake --build . --target test
 To run a single test, in verbose mode:
 
 ```bash
-ctest -R <test name> -V
+ctest -R <testName> -V
+```
+
+A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
+
+```bash
+GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory tests under the <testName> set.
 ```
 
 # Building with Buck
@@ -150,19 +159,19 @@ Building and testing is the same on all platforms. Each platform section below d
 
 ## Linux (Buck)
 
-Install required tools on Ubuntu 18.04 or Ubuntu 18.10
+Install required tools on Ubuntu 18.04 or Ubuntu 18.10:
 
 ```bash
 sudo apt install openjdk-8-jre clang libc++1 libc++-dev libc++abi1 libc++abi-dev python python3 python3-distutils
 ```
 
-Install library dependencies
+Install library dependencies:
 
 ```bash
 sudo apt install liblzma-dev
 ```
 
-Install `buck`
+Install `buck`:
 
 ```bash
 wget 'https://github.com/facebook/buck/releases/download/v2018.10.29.01/buck.2018.10.29.01_all.deb'
@@ -190,20 +199,20 @@ brew install buck watchman
 
 ## FreeBSD (Buck)
 
-Install required tools on FreeBSD 11.2.
+Install required tools on FreeBSD 11.2:
 
 ```bash
 sudo pkg install openjdk8 python3 python2 clang35
 ```
 
-Install `buck`.
+Install `buck`:
 
 ```bash
 sudo curl --output /usr/local/bin/buck 'https://jitpack.io/com/github/facebook/buck/v2018.10.29.01/buck-v2018.10.29.01.pex'
 sudo chmod +x /usr/local/bin/buck
 ```
 
-Install library dependencies.
+Install library dependencies:
 
 ```bash
 sudo pkg install glog thrift thrift-cpp boost-libs magic rocksdb-lite rapidjson zstd linenoise-ng augeas ssdeep sleuthkit yara aws-sdk-cpp lldpd libxml++-2 smartmontools lldpd
@@ -213,10 +222,10 @@ sudo pkg install glog thrift thrift-cpp boost-libs magic rocksdb-lite rapidjson 
 
 You'll need to have the following software installed before you can build osquery on Windows:
 
-* Buck, this also requires the JRE 8 version
-* Visual Studio 2017 or greater
-* The Windows 10 SDK
-* Python3
+- Buck, this also requires the JRE 8 version
+- Visual Studio 2017 or greater
+- The Windows 10 SDK
+- Python3
 
 Once you've installed the above requirements, run `.\tools\generate_buck_config.ps1 -VsInstall '' -VcToolsVersion '' -SdkInstall '' -SdkVersion '' -Python3Path '' -BuckConfigRoot .\tools\buckconfigs\` to generate the buckconfig for building.
 

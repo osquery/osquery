@@ -1,8 +1,10 @@
-`osqueryi` is the osquery interactive query console/shell. It is completely standalone and does not communicate with a daemon and does not need to run as an administrator. Use the shell to prototype queries and explore the current state of your operating system.
+`osqueryi` is the osquery interactive query console/shell. In this mode, it is completely standalone, does not communicate with a daemon, and does not need to run as an administrator (although some tables may return fewer results when running as non-administrator). Use the osquery shell to prototype queries and explore the current state of your operating system.
 
 ## Executing SQL queries
 
-**osqueryi** lets you run meta-commands and query osquery tables. See the [schema API](https://osquery.io/schema/) for a complete list of tables, types, and column descriptions. For SQL syntax help, see [SQL as understood by SQLite](http://www.sqlite.org/lang.html).
+**osqueryi** lets you run meta-commands and query osquery tables. See the [schema API](https://osquery.io/schema/) for a complete list of tables, types, and column descriptions. For SQL syntax help, see [SQL as understood by SQLite](https://www.sqlite.org/lang.html).
+
+***Note***: the `osqueryd` binary, when run as `osqueryd -S`, operates as `osqueryi`. It will also operate in the interactive mode if the executable is renamed as `osqueryi`.
 
 Here is an example query:
 

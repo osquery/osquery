@@ -30,8 +30,8 @@ Additionally, osquery's codebase is made up of high-performance, modular compone
 
 ## Getting Help
 
-If any part of osquery is not working as expected, please create a [GitHub Issue](https://github.com/facebook/osquery/issues). Keep in touch with osquery developers and users in our Slack [https://osquery-slack.herokuapp.com/](https://osquery-slack.herokuapp.com/).
+If any part of osquery is not working as expected, please create a [GitHub Issue](https://github.com/osquery/osquery/issues). Keep in touch with osquery developers and users in our Slack [https://osquery-slack.herokuapp.com/](https://osquery-slack.herokuapp.com/).
 
 ## Documentation
 
-This wiki, hosted on ReadTheDocs.org, is written in Markdown and kept within the osquery Github repository in the [docs/wiki](https://github.com/facebook/osquery/tree/master/docs/wiki) directory. Please submit changes using Github pull requests. The wiki is built automatically with every commit and available as "[latest](http://osquery.readthedocs.io/en/latest/)". A "stable" release is built alongside osquery versions using Github's tagged-releases.
+This wiki, hosted on ReadTheDocs.org, is written in Markdown and kept within the osquery Github repository in the [docs/wiki](https://github.com/osquery/osquery/tree/master/docs/wiki) directory. Please submit changes using Github pull requests. The wiki is built automatically with every commit and available as "[latest](https://osquery.readthedocs.io/en/latest/)". A "stable" release is built alongside osquery versions using Github's tagged-releases.
