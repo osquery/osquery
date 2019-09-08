@@ -199,38 +199,38 @@ function(generateInstallTargets)
     install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION certs)
   elseif(DEFINED PLATFORM_MACOS)
     # bin
-    install(TARGETS osqueryd DESTINATION bin COMPONENT osquery)
-    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink osqueryd osqueryi)" COMPONENT osquery)
-    install(FILES "${CMAKE_BINARY_DIR}/osqueryi" DESTINATION bin COMPONENT osquery)
+    install(TARGETS osqueryd DESTINATION bin)
+    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink osqueryd osqueryi)")
+    install(FILES "${CMAKE_BINARY_DIR}/osqueryi" DESTINATION bin)
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryctl" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
-    install(PROGRAMS "${CMAKE_BINARY_DIR}/package/pkg/osqueryctl" DESTINATION bin COMPONENT osquery)
+    install(PROGRAMS "${CMAKE_BINARY_DIR}/package/pkg/osqueryctl" DESTINATION bin)
 
     # /private/var
-    install(DIRECTORY COMPONENT osquery DESTINATION /private/var/log/osquery)
-    install(DIRECTORY COMPONENT osquery DESTINATION /private/var/osquery)
+    install(DIRECTORY DESTINATION /private/var/log/osquery)
+    install(DIRECTORY DESTINATION /private/var/osquery)
 
-    install(DIRECTORY "${augeas_lenses_path}" COMPONENT osquery
+    install(DIRECTORY "${augeas_lenses_path}"
             DESTINATION /private/var/osquery/lenses
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)
 
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
-    install(DIRECTORY "${CMAKE_BINARY_DIR}/package/pkg/packs" COMPONENT osquery DESTINATION /private/var/osquery)
+    install(DIRECTORY "${CMAKE_BINARY_DIR}/package/pkg/packs" DESTINATION /private/var/osquery)
 
-    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" COMPONENT osquery DESTINATION /private/var/osquery/certs)
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION /private/var/osquery/certs)
 
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
     file(RENAME "${CMAKE_BINARY_DIR}/package/pkg/com.facebook.osqueryd.conf" "${CMAKE_BINARY_DIR}/package/pkg/com.osquery.osqueryd.conf")
-    install(FILES "${CMAKE_BINARY_DIR}/package/pkg/com.osquery.osqueryd.conf" DESTINATION /private/var/osquery COMPONENT osquery)
+    install(FILES "${CMAKE_BINARY_DIR}/package/pkg/com.osquery.osqueryd.conf" DESTINATION /private/var/osquery)
 
     file(READ "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.plist" osquery_service_plist)
     string(REPLACE "com.facebook.osqueryd" "com.osquery.osqueryd" osquery_service_plist "${osquery_service_plist}")
     file(WRITE "${CMAKE_BINARY_DIR}/package/productbuild/com.osquery.osqueryd.plist" "${osquery_service_plist}")
 
-    install(FILES "${CMAKE_BINARY_DIR}/package/productbuild/com.osquery.osqueryd.plist" DESTINATION /private/var/osquery COMPONENT osquery)
+    install(FILES "${CMAKE_BINARY_DIR}/package/productbuild/com.osquery.osqueryd.plist" DESTINATION /private/var/osquery)
 
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
-    install(FILES "${CMAKE_BINARY_DIR}/package/pkg/osquery.example.conf" DESTINATION /private/var/osquery COMPONENT osquery)
+    install(FILES "${CMAKE_BINARY_DIR}/package/pkg/osquery.example.conf" DESTINATION /private/var/osquery)
   endif()
 
   file(COPY "${CMAKE_SOURCE_DIR}/LICENSE" DESTINATION "${CMAKE_BINARY_DIR}/package")
@@ -275,7 +275,7 @@ if(DEFINED PLATFORM_LINUX)
     set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-1.linux.x86_64")
     set(CPACK_RPM_PACKAGE_DESCRIPTION "osquery is an operating system instrumentation toolchain.")
     set(CPACK_RPM_PACKAGE_GROUP "default")
-    set(CPACK_RPM_PACKAGE_LICENSE "BSD")
+    set(CPACK_RPM_PACKAGE_LICENSE "Apache-2.0 OR GPL-2.0-only")
     set(CPACK_RPM_PACKAGE_REQUIRES "glibc >= 2.12, zlib")
     list(APPEND CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
       /etc/sysconfig
@@ -287,6 +287,9 @@ if(DEFINED PLATFORM_LINUX)
   endif()
 elseif(DEFINED PLATFORM_MACOS)
   set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+
+  # Needed to maintain legacy 'com.facebook.osquery' package identifier.
+  set(CPACK_PACKAGE_VENDOR "facebook")
 elseif(DEFINED PLATFORM_WINDOWS)
   file(COPY "${CMAKE_SOURCE_DIR}/tools/osquery.ico" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
   file(COPY "${CMAKE_SOURCE_DIR}/cmake/wix_patches/osquery_wix_patch.xml" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
@@ -304,7 +307,4 @@ endif()
 
 include(CPack)
 
-if(DEFINED PLATFORM_MACOS)
-  cpack_add_component(osquery REQUIRED)
-endif()
 endfunction()
