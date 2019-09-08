@@ -2,7 +2,7 @@ osquery supports many flavors of Linux, FreeBSD, macOS, and Windows.
 
 While osquery runs on a large number of operating systems, we only provide build instructions for a select few.
 
-The supported compilers are: clang/libc++ 6.0 on Linux, MSVC v141 on Windows, and AppleClang from Xcode Command Line Tools 10.2.1.
+The supported compilers are: the osquery toolchain (LLVM/Clang 8.0.1) on Linux, MSVC v141 on Windows, and AppleClang from Xcode Command Line Tools 10.2.1.
 
 # Building with CMake
 
@@ -18,11 +18,15 @@ Note: the recommended system memory for building osquery is at least 8GB, or Cla
 
 The root folder is assumed to be `/home/<user>`
 
-**Ubuntu 18.04**
+**Ubuntu 18.04/18.10**
 
 ```bash
 # Install the prerequisites
-sudo apt install git llvm clang libc++-dev libc++abi-dev liblzma-dev python python3 bison flex
+sudo apt install git python python3 bison flex
+
+# Download and install the osquery toolchain
+wget https://github.com/osquery/osquery-toolchain/releases/download/1.0.0/osquery-toolchain-1.0.0.tar.xz
+sudo tar xvf osquery-toolchain-1.0.0.tar.xz -C /usr/local
 
 # Download and install a newer CMake
 wget https://github.com/Kitware/CMake/releases/download/v3.14.6/cmake-3.14.6-Linux-x86_64.tar.gz
@@ -35,28 +39,7 @@ cd osquery
 
 # Build osquery
 mkdir build; cd build
-cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
-cmake --build . -j10 # where 10 is the number of parallel build jobs
-```
-
-**Ubuntu 18.10**
-
-```bash
-# Install the prerequisites
-sudo apt install git llvm-6.0 clang-6.0 libc++-dev libc++abi-dev liblzma-dev python python3 bison flex
-
-# Download and install a newer CMake
-wget https://github.com/Kitware/CMake/releases/download/v3.14.6/cmake-3.14.6-Linux-x86_64.tar.gz
-sudo tar xvf cmake-3.14.6-Linux-x86_64.tar.gz -C /usr/local --strip 1
-# Verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`
-
-# Download source
-git clone https://github.com/osquery/osquery
-cd osquery
-
-# Build osquery
-mkdir build; cd build
-cmake -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 ..
+cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
 cmake --build . -j10 # where 10 is the number of parallel build jobs
 ```
 
