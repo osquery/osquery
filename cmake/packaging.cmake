@@ -149,8 +149,7 @@ function(generateInstallTargets)
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     install(DIRECTORY "${CMAKE_BINARY_DIR}/package/linux/packs" DESTINATION share/osquery)
 
-    file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
-    install(FILES "${CMAKE_BINARY_DIR}/package/linux/certs.pem" DESTINATION share/osquery/certs)
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION share/osquery/certs)
 
     # etc
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.sysconfig" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
@@ -197,8 +196,7 @@ function(generateInstallTargets)
     install(DIRECTORY "${CMAKE_BINARY_DIR}/package/wix/packs" DESTINATION .)
 
     # certs
-    file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
-    install(FILES "${CMAKE_BINARY_DIR}/package/wix/certs.pem" DESTINATION certs)
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION certs)
   elseif(DEFINED PLATFORM_MACOS)
     # bin
     install(TARGETS osqueryd DESTINATION bin COMPONENT osquery)
@@ -219,8 +217,7 @@ function(generateInstallTargets)
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
     install(DIRECTORY "${CMAKE_BINARY_DIR}/package/pkg/packs" COMPONENT osquery DESTINATION /private/var/osquery)
 
-    file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
-    install(FILES "${CMAKE_BINARY_DIR}/package/pkg/certs.pem" COMPONENT osquery DESTINATION /private/var/osquery/certs)
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" COMPONENT osquery DESTINATION /private/var/osquery/certs)
 
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
     file(RENAME "${CMAKE_BINARY_DIR}/package/pkg/com.facebook.osqueryd.conf" "${CMAKE_BINARY_DIR}/package/pkg/com.osquery.osqueryd.conf")
