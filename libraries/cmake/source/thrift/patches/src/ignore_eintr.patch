@@ -1,0 +1,17 @@
+diff --git a/lib/cpp/src/thrift/transport/TServerSocket.cpp b/lib/cpp/src/thrift/transport/TServerSocket.cpp
+index 87b6383..447c89d 100644
+--- a/lib/cpp/src/thrift/transport/TServerSocket.cpp
++++ b/lib/cpp/src/thrift/transport/TServerSocket.cpp
+@@ -584,6 +584,12 @@ shared_ptr<TTransport> TServerSocket::acceptImpl() {
+         // a certain number
+         continue;
+       }
++
++      // Special case because we expect setuid syscalls in other threads.
++      if (THRIFT_GET_SOCKET_ERROR == EINTR) {
++        continue;
++      }
++
+       int errno_copy = THRIFT_GET_SOCKET_ERROR;
+       GlobalOutput.perror("TServerSocket::acceptImpl() THRIFT_POLL() ", errno_copy);
+       throw TTransportException(TTransportException::UNKNOWN, "Unknown", errno_copy);
