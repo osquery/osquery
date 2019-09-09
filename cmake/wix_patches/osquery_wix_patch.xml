@@ -11,7 +11,7 @@
         <ServiceInstall Id='osqueryd'
             Name='osqueryd'
             Account='NT AUTHORITY\SYSTEM'
-            Arguments='--flagfile=[INSTALL_ROOT]osquery.flags'
+            Arguments='--flagfile="[INSTALL_ROOT]osquery.flags"'
             Start='auto'
             Type='ownProcess'
             Vital='yes'
