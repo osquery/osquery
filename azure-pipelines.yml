@@ -20,7 +20,7 @@ jobs:
       vmImage: 'Ubuntu-16.04'
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-v2
       options: --privileged
 
     timeoutInMinutes: 120

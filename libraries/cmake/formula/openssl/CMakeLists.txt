@@ -26,7 +26,7 @@ function(opensslMain)
     URL "https://www.openssl.org/source/openssl-1.0.2o.tar.gz"
 
     CONFIGURE_COMMAND
-      "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}"
+      "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
       perl ./Configure "--prefix=${CMAKE_INSTALL_PREFIX}" "--openssldir=${CMAKE_INSTALL_PREFIX}/etc/openssl"
         no-ssl2
         no-ssl3
