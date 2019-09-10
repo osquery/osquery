@@ -64,9 +64,9 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
   if (provider != WSC_SECURITY_PROVIDER_FIREWALL &&
       provider != WSC_SECURITY_PROVIDER_ANTIVIRUS &&
       provider != WSC_SECURITY_PROVIDER_ANTISPYWARE) {
-    VLOG(1) << "Invalid security provider code: " << provider;
-
-    return Status(E_INVALIDARG);
+    std::string errMsg = "Invalid security provider code: " + provider;
+    VLOG(1) << errMsg;
+    return Status::failure(errMsg);
   }
 
   // Initialize can only be called once per instance, so you need to
@@ -77,23 +77,26 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
                         __uuidof(IWSCProductList),
                         reinterpret_cast<LPVOID*>(&PtrProductList));
   if (FAILED(hr)) {
-    VLOG(1) << "Failed to create provider instances: " << hr;
-    return Status(hr);
+    std::string errMsg = "Failed to create provider instances: " + hr;
+    VLOG(1) << errMsg;
+    return Status::failure(errMsg);
   }
 
   // Initialize the product list with the type of security product you're
   // interested in.
   hr = PtrProductList->Initialize(provider);
   if (FAILED(hr)) {
-    VLOG(1) << "Failed to initialize provider: " << hr;
-    return Status(hr);
+    std::string errMsg = "Failed to initialize provider: " + hr;
+    VLOG(1) << errMsg;
+    return Status::failure(errMsg);
   }
 
   // Get the number of security products of that type.
   hr = PtrProductList->get_Count(&ProductCount);
   if (FAILED(hr)) {
-    VLOG(1) << "Failed to get products count: " << hr;
-    return Status(hr);
+    std::string errMsg = "Failed to get products count: " + hr;
+    VLOG(1) << errMsg;
+    return Status::failure(errMsg);
   }
 
   // Loop over each product, querying the specific attributes.
@@ -101,8 +104,9 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     // Get the next security product
     hr = PtrProductList->get_Item(i, &PtrProduct);
     if (FAILED(hr)) {
-      VLOG(1) << "Failed to get product item: " << hr;
-      return Status(hr);
+      std::string errMsg = "Failed to get product item: " + hr;
+      VLOG(1) << errMsg;
+      return Status::failure(errMsg);
     }
     wsc_entry tmp;
     tmp.provider = provider;
@@ -110,8 +114,9 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     // Get the product name
     hr = PtrProduct->get_ProductName(&PtrVal);
     if (FAILED(hr)) {
-      VLOG(1) << "Failed to get product name: " << hr;
-      return Status(hr);
+      std::string errMsg = "Failed to get product name: " + hr;
+      VLOG(1) << errMsg;
+      return Status::failure(errMsg);
     }
     tmp.product_name = PtrVal;
     SysFreeString(PtrVal);
@@ -120,16 +125,18 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     // Get the product state
     hr = PtrProduct->get_ProductState(&ProductState);
     if (FAILED(hr)) {
-      VLOG(1) << "Failed to get product state: " << hr;
-      return Status(hr);
+      std::string errMsg = "Failed to get product state: " + hr;
+      VLOG(1) << errMsg;
+      return Status::failure(errMsg);
     }
     tmp.product_state = ProductState;
 
     // Get the remediation path for the security product
     hr = PtrProduct->get_RemediationPath(&PtrVal);
     if (FAILED(hr)) {
-      VLOG(1) << "Failed to get remediation path: " << hr;
-      return Status(hr);
+      std::string errMsg = "Failed to get remediation path: " + hr;
+      VLOG(1) << errMsg;
+      return Status::failure(errMsg);
     }
     tmp.remediation_path = PtrVal;
     SysFreeString(PtrVal);
@@ -138,16 +145,18 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     // Get the signature status
     hr = PtrProduct->get_SignatureStatus(&SignatureStatus);
     if (FAILED(hr)) {
-      VLOG(1) << "Failed to get signature status: " << hr;
-      return Status(hr);
+      std::string errMsg = "Failed to get signature status: " + hr;
+      VLOG(1) << errMsg;
+      return Status::failure(errMsg);
     }
     tmp.signature_status = SignatureStatus;
 
     // Get the state timestamp
     hr = PtrProduct->get_ProductStateTimestamp(&PtrVal);
     if (FAILED(hr)) {
-      VLOG(1) << "Failed to get product state timestamp: " << hr;
-      return Status(hr);
+      std::string errMsg = "Failed to get product state timestamp: " + hr;
+      VLOG(1) << errMsg;
+      return Status::failure(errMsg);
     }
     tmp.product_state_timestamp = PtrVal;
     SysFreeString(PtrVal);
@@ -159,7 +168,7 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     out_list.push_back(tmp);
   }
 
-  return Status(0);
+  return Status::success();
 }
 
 void GetAllSecurityProducts(std::vector<wsc_entry>& out_list) {
