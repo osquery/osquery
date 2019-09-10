@@ -2,7 +2,7 @@ SQL tables are used to represent abstract operating system concepts, such as run
 
 A table can be used in conjunction with other tables via operations like sub-queries and joins. This allows for a rich data exploration experience. While osquery ships with a default set of tables, osquery provides an API that allows you to create new tables.
 
-You can explore current schema here: [https://osquery.io/schema](https://osquery.io/schema/). Tables that are up for grabs in terms of development can be found on Github issues using the "virtual tables" + "[up for grabs tag](https://github.com/osquery/osquery/issues?q=is%3Aopen+is%3Aissue+label%3A%22virtual+tables%22)".
+You can explore current schema here: [https://osquery.io/schema](https://osquery.io/schema/). Tables that are up for grabs in terms of development can be found on GitHub issues using the "virtual tables" + "[up for grabs tag](https://github.com/osquery/osquery/issues?q=is%3Aopen+is%3Aissue+label%3A%22virtual+tables%22)".
 
 ## New Table Walkthrough
 
@@ -49,7 +49,7 @@ You might wonder "this syntax looks similar to Python?". Well, it is! The build 
 You may be wondering how osquery handles cross-platform support while still allowing operating-system specific tables. The osquery build process takes care of this by only generating the relevant code based on a directory structure convention.
 
 - Cross-platform: [specs/](https://github.com/osquery/osquery/tree/master/specs/)
-- MacOS: [specs/darwin/](https://github.com/osquery/osquery/tree/master/specs/darwin)
+- macOS: [specs/darwin/](https://github.com/osquery/osquery/tree/master/specs/darwin)
 - General Linux: [specs/linux/](https://github.com/osquery/osquery/tree/master/specs/linux)
 - Windows: [specs/windows/](https://github.com/osquery/osquery/tree/master/specs/windows)
 - POSIX: [specs/posix/](https://github.com/osquery/osquery/tree/master/specs/posix)

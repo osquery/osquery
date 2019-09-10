@@ -143,7 +143,7 @@ virtual_table.cpp:549] Please see the table documentation: https://osquery.io/sc
 
 If you start the shell using `osqueryi --disable_events=0` you will no longer get this warning. BUT! It is most likely the case that the events you are trying to inspect require future configuration. `file_events` requires a [file integrity monitoring](file-integrity-monitoring.md) configurations, `process_events` requires either additional flags or OpenBSM configuration, these situations are described in [process auditing](process-auditing.md).
 
-On Linux and MacOS the `hardware_events` table is enabled for-free, so try to plug in a USB and run `select * from hardware_events`.
+On Linux and macOS the `hardware_events` table is enabled for-free, so try to plug in a USB and run `select * from hardware_events`.
 
 ### Missing event subscribers
 

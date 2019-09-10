@@ -18,15 +18,15 @@ The default packages create the following structure:
 
 ## Installing osquery
 
-To install osquery follow the instructions on the [Downloads](https://osquery.io/downloads/official) page according to your distro.
+To install osquery, follow the instructions on the [Downloads](https://osquery.io/downloads/official) page according to your distro.
 
 ## Running osquery
 
 To start a standalone osquery use: `osqueryi`. This does not need a server or service. All the table implementations are included!
 
-After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to the **osqueryd**, the daemon, tool. To start the daemon:
+After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to the `osqueryd`, the daemon, tool. To start the daemon:
 
-```
+```sh
 sudo cp /usr/share/osquery/osquery.example.conf /etc/osquery/osquery.conf
 # sudo service osqueryd start
 sudo systemctl start osqueryd
