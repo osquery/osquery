@@ -58,5 +58,4 @@
     userenv.lib \
     wevtapi.lib \
     shell32.lib \
-    gdi32.lib \
-    wscapi.lib
+    gdi32.lib
