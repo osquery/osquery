@@ -14,13 +14,20 @@ $packageParameters = $env:chocolateyPackageParameters
 $arguments = @{}
 
 # Ensure the service is stopped and processes are not running if exists.
-if ((Get-Service $serviceName -ErrorAction SilentlyContinue) -and `
-  (Get-Service $serviceName).Status -eq 'Running') {
+$svc = Get-WmiObject -ClassName Win32_Service -Filter "Name='osqueryd'"
+if ($svc -and $svc.State -eq 'Running') {
   Stop-Service $serviceName
   # If we find zombie processes, ensure they're termintated
   $proc = Get-Process | Where-Object { $_.ProcessName -eq 'osqueryd' }
   if ($null -ne $proc) {
     Stop-Process -Force $proc -ErrorAction SilentlyContinue
+  }
+  
+  # If the service was installed using the legacy path in ProgramData, remove
+  # it and allow the service creation below to fix it up.
+  if ([regex]::escape($svc.PathName) -like [regex]::escape("${legacyInstall}*")) {
+    Get-CimInstance -ClassName Win32_Service -Filter "Name='osqueryd'" |
+    Invoke-CimMethod -MethodName Delete
   }
 }
 
