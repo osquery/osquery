@@ -14,6 +14,16 @@ if("${CPACK_GENERATOR}" STREQUAL "DEB")
        "/etc/init.d/osqueryd\n"
        "/etc/default/osqueryd\n")
 
+  # Patch the EnvironmentFile in the systemd unit
+  file(READ "@CMAKE_BINARY_DIR@/package/linux/osqueryd.service" osqueryd_service_file)
+  string(REPLACE "/etc/sysconfig/osqueryd" "/etc/default/osqueryd" osqueryd_service_file "${osqueryd_service_file}")
+  file(WRITE "@CMAKE_BINARY_DIR@/package/linux/osqueryd.service" "${osqueryd_service_file}")
+
+  # Patch /etc/sysconfig to /etc/default in the initd script
+  file(READ "@CMAKE_BINARY_DIR@/package/linux/osqueryd.initd" osqueryd_initd_file)
+  string(REPLACE "/etc/sysconfig" "/etc/default" osqueryd_initd_file "${osqueryd_initd_file}")
+  file(WRITE "@CMAKE_BINARY_DIR@/package/linux/osqueryd.initd" "${osqueryd_initd_file}")
+
   set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "@CMAKE_BINARY_DIR@/package/deb/conffiles;@CMAKE_BINARY_DIR@/package/deb/postinst")
 elseif("${CPACK_GENERATOR}" STREQUAL "productbuild")
 	set(CPACK_SET_DESTDIR ON)
