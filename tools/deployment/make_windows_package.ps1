@@ -83,8 +83,6 @@ function New-MsiPackage() {
     [array] $Extras = @()
   )
 
-  $workingDir = $PSScriptRoot
-  $scriptPath = $workingDir
   if ((-not (Get-Command 'candle.exe')) -or
       (-not (Get-Command 'light.exe'))) {
     $msg = '[-] WiX not found. Install Wix Toolset and add to system PATH.'
@@ -94,10 +92,19 @@ function New-MsiPackage() {
 
   # use the existence of the icon file as a check that the script appears
   # to be invoked from the right location
-  $iconPath = Join-Path $PSScriptRoot '..\osquery.ico'
+  $iconPath = Join-Path $osqRoot 'tools\osquery.ico'
   if (-not (Test-Path $iconPath)) {
     Write-Host '[-] This script must be run from the osquery root source directory.' `
       -ForegroundColor Red
+    exit 1
+  }
+
+  # Ensure that the shell and daemon exist and get their full paths
+  $shell = Resolve-Path $shell
+  $daemon = Resolve-Path $daemon
+  if ((-not (Test-Path $daemon)) -or (-not (Test-Path $shell))) {
+    $msg = '[-] Failed to resolve full path of osqueryd, check Shell and Daemon parameters'
+    Write-Host $msg -ForegroundColor Red
     exit 1
   }
 
@@ -120,11 +127,10 @@ function New-MsiPackage() {
   }
 
   # Working directory and output of files will be in `build/msi`
-  $outputPath = Join-Path $BuildPath 'msi'
+  $outputPath = Join-Path $osqRoot 'build\msi'
   if (-not (Test-Path $outputPath)) {
     New-Item -Force -ItemType Directory -Path $outputPath
   }
-  Set-Location $outputPath
 
   # if no flags file specified, create a stub to run the service
   if ($flagsPath -eq '') {
@@ -138,8 +144,8 @@ function New-MsiPackage() {
   }
 
   # We take advantage of a trick with WiX to copy folders
-  Copy-Item -Recurse -Force $certsPath $(Join-Path $(Get-Location) 'certs')
-  Copy-Item -Recurse -Force $packsPath $(Join-Path $(Get-Location) 'packs')
+  Copy-Item -Recurse -Force $certsPath $(Join-Path $outputPath 'certs')
+  Copy-Item -Recurse -Force $packsPath $(Join-Path $outputPath 'packs')
   Copy-Item -Force $iconPath $outputPath
 
   $wix =
@@ -152,7 +158,7 @@ function New-MsiPackage() {
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
   <Product
     Name='osquery'
-    Manufacturer='Facebook'
+    Manufacturer='osquery'
 '@
 $wix += "`n    Id='$(New-Guid)'`n"
 $wix +=
@@ -165,8 +171,8 @@ $wix +=
     <Package Id='*'
       Keywords='Installer'
       Description='osquery standalone installer'
-      Comments='Facebooks opensource host intrusion detection agent'
-      Manufacturer='Facebook'
+      Comments='opensource host intrusion detection agent'
+      Manufacturer='osquery'
       InstallerVersion='200'
       Platform='x64'
       Languages='1033'
@@ -197,6 +203,7 @@ $wix +=
         <Directory Id='INSTALLFOLDER' Name='osquery'>
           <Directory Id='DaemonFolder' Name='osqueryd'>
             <Component Id='osqueryd'
+                Win64='yes'
                 Guid='41c9910d-bded-45dc-8f82-3cd00a24fa2f'>
                 <CreateFolder>
                 <Permission User="[WIX_ACCOUNT_USERS]" Read="yes"
@@ -226,13 +233,13 @@ $wix +=
                 Wait='no'/>
             </Component>
           </Directory>
-          <Component Id='osqueryi' Guid='6a49524e-52b0-4e99-876f-ec50c0082a04'>
+          <Component Id='osqueryi' Win64='yes' Guid='6a49524e-52b0-4e99-876f-ec50c0082a04'>
             <File Id='osqueryi'
               Name='osqueryi.exe'
               Source='OSQUERY_SHELL_PATH'
               KeyPath='yes'/>
           </Component>
-          <Component Id='extras' Guid='3f435561-8fe7-4725-975a-95930c44d063'>
+          <Component Id='extras' Win64='yes' Guid='3f435561-8fe7-4725-975a-95930c44d063'>
             <File Id='osquery.conf'
               Name='osquery.conf'
               Source='OSQUERY_CONF_PATH'
@@ -260,7 +267,7 @@ foreach ($e in $Extras) {
 $wix += @'
             </Component>
             <Directory Id='PacksFolder' Name='packs'>
-              <Component Id='packs'
+              <Component Id='packs' Win64='yes'
                   Guid='e871e2b6-953e-4930-888b-78426816e566'>
               <CreateFolder/>
 
@@ -276,7 +283,7 @@ $wix +=
                </Component>
              </Directory>
              <Directory Id='CertsFolder' Name='certs'>
-             <Component Id='certs'
+             <Component Id='certs' Win64='yes'
                  Guid='bb27566a-6c31-4024-8f72-28709f919b08'>
              <CreateFolder/>
 '@
@@ -297,7 +304,7 @@ $wix += @'
     <Icon Id="osquery.ico" SourceFile="OSQUERY_IMAGE_PATH"/>
     <Property Id="ARPPRODUCTICON" Value="osquery.ico" />
 
-    <Component Id='logs'
+    <Component Id='logs' Win64='yes'
                 Directory='FileSystemLogging'
                 Guid='bda18e0c-d356-441d-a264-d3e2c1718979'>
       <CreateFolder/>
@@ -325,10 +332,15 @@ $wix += @'
   $wix = $wix -Replace 'OSQUERY_UTILS_PATH', "$utils"
   $wix = $wix -Replace 'OSQUERY_CERTS_PATH', "certs"
   $wix = $wix -Replace 'OSQUERY_IMAGE_PATH', "$outputPath\osquery.ico"
-  $wix = $wix -Replace 'OSQUERY_MGMT_PATH', "$scriptPath\tools\manage-osqueryd.ps1"
-  $wix = $wix -Replace 'OSQUERY_MAN_PATH', "$scriptPath\tools\wel\osquery.man"
+  $wix = $wix -Replace 'OSQUERY_MGMT_PATH', "$osqRoot\tools\manage-osqueryd.ps1"
+  $wix = $wix -Replace 'OSQUERY_MAN_PATH', "$osqRoot\tools\wel\osquery.man"
 
   $wix | Out-File -Encoding 'UTF8' "$outputPath\osquery.wxs"
+
+  # We change directory to `build/msi` so as not to drop build artifacts in
+  # the root of the repo
+  $workingDir = Get-Location
+  Set-Location $outputPath
 
   $candle = (Get-Command 'candle').Source
   $candleArgs = @(
@@ -352,7 +364,6 @@ $wix += @'
     $msg = "[+] MSI Package written to $msi"
     Write-Host $msg -ForegroundColor Green
   }
-
   Set-Location $workingDir
 }
 
@@ -372,7 +383,6 @@ function New-ChocolateyPackage() {
   }
 
   # Listing of artifacts bundled with osquery
-  $scriptPath = $osqRoot
   $chocoPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
   $certs = Join-Path "$chocoPath" 'lib\openssl\local\certs'
   if (-not (Test-Path $certs)) {
@@ -399,7 +409,7 @@ function New-ChocolateyPackage() {
   }
 
   $windowsEventLogManifestPath = Join-Path (Get-location).Path "tools\wel\osquery.man"
-  $mgmtScript = "$scriptPath\tools\manage-osqueryd.ps1"
+  $mgmtScript = "$osqRoot\tools\manage-osqueryd.ps1"
 
   $nupkg =
   @'
@@ -409,8 +419,8 @@ function New-ChocolateyPackage() {
     <id>osquery</id>
     <version>OSQUERY_VERSION</version>
     <title>osquery</title>
-    <authors>Facebook</authors>
-    <owners>Facebook</owners>
+    <authors>osquery</authors>
+    <owners>osquery</owners>
     <copyright>Copyright (c) 2014-present, Facebook, Inc. All rights reserved.</copyright>
     <projectUrl>https://osquery.io</projectUrl>
     <iconUrl>https://osquery.io/static/site/img/logo-big.png</iconUrl>
@@ -451,16 +461,16 @@ function New-ChocolateyPackage() {
 </package>
 '@
   $nupkg = $nupkg -Replace 'OSQUERY_VERSION', $version
-  $chocoBuildPath = "$scriptPath\build\chocolatey"
+  $chocoBuildPath = "$osqRoot\build\chocolatey"
   $osqueryChocoPath = "$chocoBuildPath\osquery"
   New-Item -Force -ItemType Directory -Path "$osqueryChocoPath\tools\bin"
-  Copy-Item -Recurse -Force "$scriptPath\tools\deployment\chocolatey\tools" "$osqueryChocoPath"
-  Copy-Item -Recurse -Force "$scriptPath\tools\provision\chocolatey\osquery_utils.ps1" "$osqueryChocoPath\tools\osquery_utils.ps1"
+  Copy-Item -Recurse -Force "$osqRoot\tools\deployment\chocolatey\tools" "$osqueryChocoPath"
+  Copy-Item -Recurse -Force "$osqRoot\tools\provision\chocolatey\osquery_utils.ps1" "$osqueryChocoPath\tools\osquery_utils.ps1"
 
-  $binDir = "$scriptPath\build\windows10\osquery\Release\"
+  $binDir = "$osqRoot\build\windows10\osquery\Release\"
   $clientPath = Join-Path $binDir 'osqueryi.exe'
   $daemonPath = Join-Path $binDir 'osqueryd.exe'
-  $mgmtScript = "$scriptPath\tools\manage-osqueryd.ps1"
+  $mgmtScript = "$osqRoot\tools\manage-osqueryd.ps1"
   $license = Join-Path "$osqueryChocoPath\tools\" 'LICENSE.txt'
   Copy-Item $lic $license
   $verification = Join-Path "$osqueryChocoPath\tools\" 'VERIFICATION.txt'
