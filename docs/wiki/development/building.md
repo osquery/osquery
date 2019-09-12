@@ -22,7 +22,7 @@ The root folder is assumed to be `/home/<user>`
 
 ```bash
 # Install the prerequisites
-sudo apt install git python python3 bison flex
+sudo apt install --no-install-recommends git python python3 bison flex make
 
 # Download and install the osquery toolchain
 wget https://github.com/osquery/osquery-toolchain/releases/download/1.0.0/osquery-toolchain-1.0.0.tar.xz
