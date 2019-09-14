@@ -8,10 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "osquery/tables/system/linux/pci_devices.h"
+#include <osquery/tables/system/linux/pci_devices.h>
 
 using namespace testing;
 
