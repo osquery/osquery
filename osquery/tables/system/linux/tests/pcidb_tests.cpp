@@ -12,12 +12,11 @@
 
 #include <osquery/tables/system/linux/pci_devices.h>
 
-using namespace testing;
 
 namespace osquery {
 namespace tables {
 
-class PciDBTest : public ::testing::Test {};
+class PciDBTest : public testing::Test {};
 
 TEST_F(PciDBTest, basic_db_format) {
   std::istringstream raw_db(
