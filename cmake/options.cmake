@@ -77,7 +77,7 @@ overwrite_cache_variable("BUILD_TESTING" "BOOL" "OFF")
 if(DEFINED PLATFORM_LINUX)
   set(third_party_source_list "source;formula;facebook")
 else()
-  set(third_party_source_list "hack;facebook")
+  set(third_party_source_list "source_migration;facebook")
 endif()
 
 set(OSQUERY_THIRD_PARTY_SOURCE "${third_party_source_list}" CACHE STRING "Sources used to acquire third-party dependencies")
