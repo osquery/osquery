@@ -61,6 +61,7 @@ function(identifyPackagingSystemFromPlatform)
 
     set(rpm_distros
       Fedora
+      CentOS
     )
 
     if("${lsb_release_id_short}" IN_LIST deb_distros)
