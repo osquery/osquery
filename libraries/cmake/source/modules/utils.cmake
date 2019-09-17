@@ -119,13 +119,22 @@ function(importSourceSubmodule)
     endif()
   endforeach()
 
-  if(NOT OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS AND NOT DEFINED PLATFORM_WINDOWS)
-    target_compile_options(osquery_thirdparty_extra_c_settings INTERFACE
-      -Wno-everything -Wno-all -Wno-error
-    )
-    target_compile_options(osquery_thirdparty_extra_cxx_settings INTERFACE
-      -Wno-everything -Wno-all -Wno-error
-    )
+  if(NOT OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS)
+    if(DEFINED PLATFORM_POSIX)
+      target_compile_options(osquery_thirdparty_extra_c_settings INTERFACE
+        -Wno-everything -Wno-all -Wno-error
+      )
+      target_compile_options(osquery_thirdparty_extra_cxx_settings INTERFACE
+        -Wno-everything -Wno-all -Wno-error
+      )
+    elseif(DEFINED PLATFORM_WINDOWS)
+      target_compile_options(osquery_thirdparty_extra_c_settings INTERFACE
+        /w
+      )
+      target_compile_options(osquery_thirdparty_extra_cxx_settings INTERFACE
+        /w
+      )
+    endif()
   endif()
 
   add_subdirectory(

@@ -35,29 +35,28 @@ function(librariesMain)
       -Oz
       -g0
     )
-
-    set(defines
-      NDEBUG
-    )
-
-    add_library(thirdparty_options INTERFACE)
-
-    target_compile_options(thirdparty_options INTERFACE
-      ${compile_options}
-    )
-    target_compile_definitions(thirdparty_options INTERFACE
-      ${defines}
-    )
-
-    target_link_libraries(thirdparty_cxx_settings INTERFACE thirdparty_options)
-    target_link_libraries(thirdparty_c_settings INTERFACE thirdparty_options)
-
-    add_library(osquery_thirdparty_extra_c_settings INTERFACE)
-    add_library(osquery_thirdparty_extra_cxx_settings INTERFACE)
-    target_link_libraries(thirdparty_cxx_settings INTERFACE osquery_thirdparty_extra_c_settings)
-    target_link_libraries(thirdparty_c_settings INTERFACE osquery_thirdparty_extra_cxx_settings)
-
   endif()
+
+  set(defines
+    NDEBUG
+  )
+
+  add_library(thirdparty_options INTERFACE)
+
+  target_compile_options(thirdparty_options INTERFACE
+    ${compile_options}
+  )
+  target_compile_definitions(thirdparty_options INTERFACE
+    ${defines}
+  )
+
+  target_link_libraries(thirdparty_cxx_settings INTERFACE thirdparty_options)
+  target_link_libraries(thirdparty_c_settings INTERFACE thirdparty_options)
+
+  add_library(osquery_thirdparty_extra_c_settings INTERFACE)
+  add_library(osquery_thirdparty_extra_cxx_settings INTERFACE)
+  target_link_libraries(thirdparty_cxx_settings INTERFACE osquery_thirdparty_extra_c_settings)
+  target_link_libraries(thirdparty_c_settings INTERFACE osquery_thirdparty_extra_cxx_settings)
 
 endfunction()
 
