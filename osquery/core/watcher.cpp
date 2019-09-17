@@ -345,21 +345,29 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
 }
 
 void WatcherRunner::stopChild(const PlatformProcess& child) const {
-  child.killGracefully();
+  const auto childPid = child.pid();
+  if (childPid < 0) {
+    const auto message = std::string("Watcher cannot stop worker process (") + std::to_string(childPid) + ").";
+    LOG(INFO) << message;
+    return;
+  }
 
-  // Clean up the defunct (zombie) process.
+  const auto killedGracefully = child.killGracefully();
+  if (killedGracefully) {
+    LOG(INFO) << "Pid: " << childPid << " killed gracefully";
+    return;
+  }
+
+  LOG(WARNING) << "osqueryd worker (" << childPid << ") could not be stopped. Sending kill signal.";
+  const auto killed = child.kill();
+  if (!killed) {
+    LOG(WARNING) << "osqueryd worker (" << childPid << ") could not be killed!";
+  }
+
   if (!child.cleanup()) {
-    auto child_pid = child.pid();
-
-    LOG(WARNING) << "osqueryd worker (" << std::to_string(child_pid)
-                 << ") could not be stopped. Sending kill signal.";
-
-    child.kill();
-    if (!child.cleanup()) {
-      auto message = std::string("Watcher cannot stop worker process (") +
-                     std::to_string(child_pid) + ").";
-      Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
-    }
+    const auto message = std::string("Watcher cannot stop worker process (") + std::to_string(childPid) + ").";
+    LOG(WARNING) << message;
+    Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
   }
 }
 
