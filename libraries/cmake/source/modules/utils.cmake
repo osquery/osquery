@@ -119,7 +119,7 @@ function(importSourceSubmodule)
     endif()
   endforeach()
 
-  if(NOT OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS)
+  if(NOT OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS AND NOT DEFINED PLATFORM_WINDOWS)
     target_compile_options(osquery_thirdparty_extra_c_settings INTERFACE
       -Wno-everything -Wno-all -Wno-error
     )
