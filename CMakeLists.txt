@@ -8,12 +8,6 @@ cmake_minimum_required(VERSION 3.14.6)
 
 cmake_policy(SET CMP0083 NEW)
 
-# Prevents default /W3 flag on Windows that can conflict with other
-# warning settings we make.
-if(POLICY CMP0092)
-  cmake_policy(SET CMP0092 NEW)
-endif()
-
 # toolchain.cmake needs to be included before project() because the former sets the compiler path for the custom toolchain,
 # if the user specify it and the latter does compiler detection.
 # utilities.cmake is a dependency of toolchain.cmake.
