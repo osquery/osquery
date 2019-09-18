@@ -190,7 +190,6 @@ function(setupBuildFlags)
       "$<$<CONFIG:Debug>:/Od;/UNDEBUG>$<$<NOT:$<CONFIG:Debug>>:/Ot>"
       /MT
       /EHs
-      /W3
       /guard:cf
       /bigobj
     )
@@ -292,6 +291,15 @@ function(setupBuildFlags)
   target_compile_definitions(osquery_c_settings INTERFACE
     ${osquery_defines}
   )
+
+  if(DEFINED PLATFORM_WINDOWS)
+    target_compile_options(osquery_cxx_settings INTERFACE
+      /W3
+    )
+    target_compile_options(osquery_c_settings INTERFACE
+      /W3
+    )
+  endif()
 
 endfunction()
 

@@ -129,10 +129,10 @@ function(importSourceSubmodule)
       )
     elseif(DEFINED PLATFORM_WINDOWS)
       target_compile_options(osquery_thirdparty_extra_c_settings INTERFACE
-        /w
+        /W0
       )
       target_compile_options(osquery_thirdparty_extra_cxx_settings INTERFACE
-        /w
+        /W0
       )
     endif()
   endif()
