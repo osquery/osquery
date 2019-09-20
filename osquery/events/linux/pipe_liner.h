@@ -2,7 +2,9 @@
 #define _PIPE_LINER_H_
 
 #include <fcntl.h>
-#include <string.h>
+#include <unistd.h>
+#include <string>
+#include <vector>
 #include <sys/stat.h>
 #include <sys/types.h>
 
