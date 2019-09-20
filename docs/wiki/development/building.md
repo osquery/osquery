@@ -78,11 +78,14 @@ The root folder is assumed to be `C:\Users\<user>`
 
 **Step 1: Install the prerequisites**
 
+Note: It may be easier to install these prerequisites using [Chocolatey](https://chocolatey.org/).
+
 - [CMake](https://cmake.org/) (>= 3.14.6): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!
-- [Build Tools for Visual Studio 2019](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16): from the installer choose the C++ build tools workload, then on the right, under "C++ build tools",  "Optional", select "MSVC v141 - VS 2017 C++". Do not install CMake using the Visual Studio Installer, because it will be an older version than needed.
+- [Build Tools for Visual Studio 2019](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16): from the installer choose the "Desktop development with C++" workload, then on the right, under "C++ build tools",  "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", and "Windows 10 SDK". Do not install CMake using the Visual Studio Installer, because it will be an older version than required.
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest) (or equivalent)
 - [Python 2](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
+- [Wix Toolset](https://wixtoolset.org/releases/)
 
 **Step 2: Download and build**
 
@@ -94,7 +97,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -G "Visual Studio 16 2019" -A x64 -T v141 ..
+cmake -A x64 -T v141 ..
 
 # Build
 cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel
