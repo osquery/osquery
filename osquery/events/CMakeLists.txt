@@ -111,6 +111,7 @@ function(generateOsqueryEvents)
 
   if(DEFINED PLATFORM_LINUX)
     add_test(NAME osquery_events_tests_syslogtests-test COMMAND osquery_events_tests_syslogtests-test)
+    add_test(NAME osquery_events_tests_pipelinertests-test COMMAND osquery_events_tests_pipelinertests-test)
     add_test(NAME osquery_events_tests_audittests-test COMMAND osquery_events_tests_audittests-test)
     add_test(NAME osquery_events_tests_processfileeventstests-test COMMAND osquery_events_tests_processfileeventstests-test)
     add_test(NAME osquery_events_tests_inotifytests-test COMMAND osquery_events_tests_inotifytests-test)
