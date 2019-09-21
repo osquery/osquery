@@ -97,6 +97,7 @@ function(setupBuildFlags)
 
       set(osquery_linux_common_link_options
         -Wl,-z,relro,-z,now
+        -Wl,--build-id
       )
 
       set(linux_cxx_link_options
