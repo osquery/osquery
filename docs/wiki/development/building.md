@@ -273,12 +273,6 @@ This capability is provided by the [vagrant-aws](https://github.com/mitchellh/va
 vagrant plugin install vagrant-aws
 ```
 
-Next, add a vagrant dummy box for AWS:
-
-```sh
-vagrant box add andytson/aws-dummy
-```
-
 Before launching an AWS-backed virtual machine, set a few environment variables:
 
 ```sh
@@ -287,20 +281,22 @@ export AWS_ACCESS_KEY_ID=...
 export AWS_SECRET_ACCESS_KEY=...
 # Name of AWS keypair for launching and accessing the EC2 instance.
 export AWS_KEYPAIR_NAME=my-osquery-vagrant-security-group
+# Path to local private key for SSH authentication
 export AWS_SSH_PRIVATE_KEY_PATH=/path/to/keypair.pem
 # Name of AWS security group that allows TCP/22 from vagrant host.
+# Leaving this unset may work in some AWS/EC2 configurations.
 # If using a non-default VPC use the security group ID instead.
 export AWS_SECURITY_GROUP=my-osquery-vagrant-security-group
 # Set this to the AWS region, "us-east-1" (default) or "us-west-1".
 export AWS_DEFAULT_REGION=...
-# Set this to the AWS instance type. If unset, m3.medium is used.
-export AWS_INSTANCE_TYPE=m3.large
+# Set this to the AWS instance type. If unset, m3.large is used.
+export AWS_INSTANCE_TYPE=m3.medium
 # (Optional) Set this to the VPC subnet ID.
 # (Optional) Make sure your subnet assigns public IPs and there is a route.
 export AWS_SUBNET_ID=...
 ```
 
-Spin up a VM in EC2 and SSH in (remember to suspect/destroy when finished):
+Spin up a VM in EC2 and SSH in (remember to suspend/destroy when finished):
 
 ```sh
 vagrant up aws-amazon2015.03 --provider=aws
