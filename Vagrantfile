@@ -1,3 +1,7 @@
+# We provide this Vagrantfile as a convenience. It is not officially
+# supported.  If adding boxes, please limit sources to well-known
+# organizations, not individual authors.
+
 targets = {
   "debian7" => {
     "box" => "bento/debian-7"
