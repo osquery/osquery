@@ -1,3 +1,4 @@
+#include <windows.h>
 #include <iwscapi.h>
 #include <wscapi.h>
 
@@ -36,6 +37,19 @@ struct wsc_entry {
 
 Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
                            std::vector<wsc_entry>& out_list) {
+  // Attempt a runtime link to the DLL containing these functions,
+  // since linking the library was causing a crash on some Windows
+  // machines (like the CI server).
+  CLSID * productListClassPtr = nullptr;
+  static HINSTANCE wscLib = LoadLibrary(TEXT("wscapi.dll"));
+  if (wscLib != nullptr) {
+    productListClassPtr = (CLSID *)GetProcAddress(wscLib, "CLSID_WSCProductList");
+  }
+
+  if (productListClassPtr == nullptr) {
+    return Status::failure("Could not load resources from wscapi.dll");
+  }
+
   // Much of the following is adapted from the MS example at
   // https://github.com/Microsoft/Windows-classic-samples/blob/master/Samples/WebSecurityCenter/cpp/WscApiSample.cpp
 
@@ -71,7 +85,7 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
 
   // Initialize can only be called once per instance, so you need to
   // CoCreateInstance for each security product type you want to query.
-  hr = CoCreateInstance(CLSID_WSCProductList,
+  hr = CoCreateInstance((REFCLSID)(*productListClassPtr),
                         NULL,
                         CLSCTX_INPROC_SERVER,
                         __uuidof(IWSCProductList),
