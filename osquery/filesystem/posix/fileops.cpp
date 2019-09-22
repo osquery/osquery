@@ -289,16 +289,17 @@ bool platformChmod(const std::string& path, mode_t perms) {
 std::vector<std::string> platformGlob(const std::string& find_path) {
   std::vector<std::string> results;
 
-  glob_t data;
+  glob_t * data;
+  data = (glob_t *)alloca(sizeof(glob_t));
   ::glob(
-      find_path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, &data);
-  size_t count = data.gl_pathc;
+      find_path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, data);
+  size_t count = data -> gl_pathc;
 
   for (size_t index = 0; index < count; index++) {
-    results.push_back(data.gl_pathv[index]);
+    results.push_back(data -> gl_pathv[index]);
   }
 
-  ::globfree(&data);
+  ::globfree(data);
   return results;
 }
 
