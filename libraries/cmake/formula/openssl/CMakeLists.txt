@@ -5,6 +5,7 @@ include(ExternalProject)
 
 function(opensslMain)
   generateMetadataTargets()
+  setPlatformDefines()
 
   if(NOT DEFINED thirdparty_zlib_INCLUDE_DIRS OR
      NOT DEFINED thirdparty_zlib_LIBRARIES)
@@ -12,12 +13,21 @@ function(opensslMain)
     return()
   endif()
 
-  set(openssl_c_flags
-    -fPIC
-    --sysroot=${CMAKE_SYSROOT}
-    -l:libunwind.a
-    -lpthread
-  )
+  if(DEFINED PLATFORM_LINUX)
+    set(openssl_c_flags
+      -fPIC
+      --sysroot=${CMAKE_SYSROOT}
+      -l:libunwind.a
+      -lpthread
+    )
+    set(openssl_targets linux-x86_64)
+  elseif(DEFINED PLATFORM_MACOS)
+    set(openssl_c_flags
+      -fPIC
+    )
+    set(openssl_targets darwin64-x86_64-cc enable-ec_nistp_64_gcc_128)
+  endif()
+
   list(APPEND openssl_c_flags ${C_FLAGS})
   string(REPLACE ";" " " openssl_c_flags "${openssl_c_flags}")
 
@@ -37,7 +47,7 @@ function(opensslMain)
         enable-cms
         "--with-zlib-include=${thirdparty_zlib_INCLUDE_DIRS}"
         "--with-zlib-lib=${thirdparty_zlib_LIBRARIES}"
-        linux-x86_64
+        ${openssl_targets}
         ${openssl_c_flags}
 
     BUILD_COMMAND
@@ -76,6 +86,21 @@ function(generateMetadataTargets)
       VERBATIM
     )
   endforeach()
+endfunction()
+
+function(setPlatformDefines)
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    set(PLATFORM_POSIX 1 PARENT_SCOPE)
+    set(PLATFORM_LINUX 1 PARENT_SCOPE)
+
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(PLATFORM_POSIX 1 PARENT_SCOPE)
+    set(PLATFORM_MACOS 1 PARENT_SCOPE)
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    set(PLATFORM_WINDOWS 1 PARENT_SCOPE)
+  else()
+    message(FATAL_ERROR "Unrecognized platform")
+  endif()
 endfunction()
 
 opensslMain()
