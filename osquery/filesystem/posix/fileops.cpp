@@ -292,7 +292,7 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
   auto data = (glob_t*)alloca(sizeof(glob_t));
   ::glob(
       find_path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, data);
-  size_t count = data -> gl_pathc;
+  size_t count = data->gl_pathc;
 
   for (size_t index = 0; index < count; index++) {
     results.push_back(data->gl_pathv[index]);
