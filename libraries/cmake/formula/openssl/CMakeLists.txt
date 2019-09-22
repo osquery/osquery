@@ -22,6 +22,7 @@ function(opensslMain)
     )
     set(openssl_targets linux-x86_64)
   elseif(DEFINED PLATFORM_MACOS)
+    message(STATUS "${CMAKE_OSX_DEPLOYMENT_TARGET}")
     set(openssl_c_flags
       -fPIC
     )
@@ -92,7 +93,6 @@ function(setPlatformDefines)
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set(PLATFORM_POSIX 1 PARENT_SCOPE)
     set(PLATFORM_LINUX 1 PARENT_SCOPE)
-
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     set(PLATFORM_POSIX 1 PARENT_SCOPE)
     set(PLATFORM_MACOS 1 PARENT_SCOPE)

@@ -123,6 +123,8 @@ function(setupBuildFlags)
         ${linux_cxx_link_libraries}
       )
     elseif(DEFINED PLATFORM_MACOS)
+      set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14")
+
       set(macos_cxx_compile_options
         -x objective-c++
         -fobjc-arc

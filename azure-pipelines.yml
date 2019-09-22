@@ -181,6 +181,9 @@ jobs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . -j 3
 
+    - script: cat $(Build.BinariesDirectory)/build/formula_logs/openssl.txt
+      condition: always()
+
     - script: |
         ctest --build-nocmake -V
       displayName: "Run tests"

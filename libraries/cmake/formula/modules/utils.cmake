@@ -54,6 +54,7 @@ function(importFormula library_name)
       COMMAND "${CMAKE_COMMAND}"
       -G ${generator_option}
       ${toolset_option}
+      "-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}"
       "-DCMAKE_SYSROOT:PATH=${CMAKE_SYSROOT}"
       "-DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}"
       "-DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}"
