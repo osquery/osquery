@@ -194,7 +194,6 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/system_info.cpp
       windows/user_groups.cpp
       windows/users.cpp
-      windows/userassist.cpp
       windows/video_info.cpp
       windows/windows_crashes.cpp
       windows/windows_security_products.cpp

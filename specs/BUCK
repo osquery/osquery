@@ -801,10 +801,6 @@ osquery_gentable_cxx_library(
             "windows",
         ),
         (
-            "windows/userassist.table",
-            "windows",
-        ),
-        (
             "windows/bam.table",
             "windows",
         )
