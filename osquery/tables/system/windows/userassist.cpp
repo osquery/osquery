@@ -48,27 +48,33 @@ std::string rot_decode(std::string& value_key_reg) {
 auto last_execute(std::string& assist_data) {
   std::string last_run_string = assist_data.substr(120, 16);
 
-  // swap endianess
-  std::reverse(last_run_string.begin(), last_run_string.end());
+  // If timestamp is zero dont convert to UNIX Time
+  if (last_run_string == "0000000000000000") {
+    std::string no_timestamp = "";
+    return no_timestamp;
+  } else {
+    // swap endianess
+    std::reverse(last_run_string.begin(), last_run_string.end());
 
-  char temp;
-  for (std::size_t i = 0; i < last_run_string.length(); i += 2) {
-    temp = last_run_string[i];
-    last_run_string[i] = last_run_string[i + 1];
-    last_run_string[i + 1] = temp;
+    char temp;
+    for (std::size_t i = 0; i < last_run_string.length(); i += 2) {
+      temp = last_run_string[i];
+      last_run_string[i] = last_run_string[i + 1];
+      last_run_string[i + 1] = temp;
+    }
+
+    // Convert Windows FILETIME to UNIX Time
+    unsigned long long last_run = std::stoull(last_run_string.c_str(), 0, 16);
+    last_run = (last_run / 10000000) - 11644473600;
+
+    std::time_t last_run_time = last_run;
+
+    struct tm tm;
+    gmtime_s(&tm, &last_run_time);
+
+    auto time_str = platformAsctime(&tm);
+    return time_str;
   }
-
-  // Convert Windows FILETIME to UNIX Time
-  unsigned long long last_run = std::stoull(last_run_string.c_str(), 0, 16);
-  last_run = (last_run / 10000000) - 11644473600;
-
-  std::time_t last_run_time = (int)last_run;
-
-  struct tm tm;
-  gmtime_s(&tm, &last_run_time);
-
-  auto time_str = platformAsctime(&tm);
-  return time_str;
 }
 
 // Get execution count
@@ -154,7 +160,11 @@ QueryData genUserAssist(QueryContext& context) {
 
           r["path"] = decoded_value_key;
           r["last_execution_time"] = time_str;
-          r["count"] = INTEGER(count);
+          if (time_str == "") {
+            r["count"] = "";
+          } else {
+            r["count"] = INTEGER(count);
+          }
           r["sid"] = uKey.at("name");
 
           results.push_back(r);
