@@ -93,7 +93,7 @@ function(generateOsqueryEventsTestsPipelinertestsTest)
   add_osquery_executable(osquery_events_tests_pipelinertests-test linux/pipe_liner_tests.cpp)
 
   target_link_libraries(osquery_events_tests_pipelinertests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_core_sql
