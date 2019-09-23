@@ -4,8 +4,8 @@ namespace osquery {
 namespace table_tests {
 class BamTest : public testing::Test {
  protected:
-  voaid SetUp() override {
-    SetUpEnvironment();
+  void SetUp() override {
+    setUpEnvironment();
   }
 };
 
@@ -16,7 +16,7 @@ TEST_F(BamTest, test_sanity) {
   ASSERT_GT(rows.size(), 0ul);
   ASSERT_GT(rows.size(), 1ul);
 
-  ValidationMap row_map = {{"path", NonEmptyString},
+  validatationMap row_map = {{"path", NonEmptyString},
                            {"last_execution_time", NormalType},
                            {"sid", NonEmptyString}};
   validate_rows(rows, row_map);
