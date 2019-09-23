@@ -258,6 +258,7 @@ function(generateTestsIntegrationTablesTestsTest)
       arp_cache.cpp
       authenticode.cpp
       autoexec.cpp
+      bam.cpp
       certificates.cpp
       chocolatey_packages.cpp
       cpu_info.cpp
@@ -280,6 +281,7 @@ function(generateTestsIntegrationTablesTestsTest)
       services.cpp
       shared_resources.cpp
       startup_items.cpp
+      userassist.cpp
       video_info.cpp
       winbaseobj.cpp
       windows_crashes.cpp

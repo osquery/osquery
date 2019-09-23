@@ -161,6 +161,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/appcompat_shims.cpp
       windows/authenticode.cpp
       windows/autoexec.cpp
+      windows/bam.cpp
       windows/bitlocker_info.cpp
       windows/certificates.cpp
       windows/chocolatey_packages.cpp
@@ -193,6 +194,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/system_info.cpp
       windows/user_groups.cpp
       windows/users.cpp
+      windows/userassist.cpp
       windows/video_info.cpp
       windows/windows_crashes.cpp
       windows/windows_security_products.cpp
@@ -302,6 +304,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.h
       windows/certificates.h
       windows/users.h
+      windows/userassist.h
     )
   endif()
 
