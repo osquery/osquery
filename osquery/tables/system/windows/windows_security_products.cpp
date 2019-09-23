@@ -1,3 +1,11 @@
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
+ */
+
 #include <windows.h>
 #include <iwscapi.h>
 #include <wscapi.h>
@@ -40,7 +48,7 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
   // Attempt a runtime link to the DLL containing these functions,
   // since linking the library was causing a crash on some Windows
   // machines (like the CI server).
-  CLSID * productListClassPtr = nullptr;
+  CLSID* productListClassPtr = nullptr;
   static HINSTANCE wscLib = LoadLibrary(TEXT("wscapi.dll"));
   if (wscLib != nullptr) {
     productListClassPtr = (CLSID *)GetProcAddress(wscLib, "CLSID_WSCProductList");

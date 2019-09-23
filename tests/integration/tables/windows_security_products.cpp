@@ -30,7 +30,7 @@ TEST_F(WindowsSecurityProductsTest, test_sanity) {
       {"state", SpecificValuesCheck{"On", "Off", "Snoozed", "Expired"}},
       {"state_timestamp", NormalType},
       {"remediation_path", NormalType},
-      {"signatures_up_to_date", IntType},
+      {"signatures_up_to_date", BoolType},
   };
   validate_rows(data, row_map);
 }
