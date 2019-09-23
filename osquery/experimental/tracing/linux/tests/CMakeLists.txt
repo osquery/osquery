@@ -24,7 +24,7 @@ function(generateOsqueryExperimentalTracingLinuxTestsEbpftracepointtestsTest)
   add_osquery_executable(osquery_experimental_tracing_linux_tests_ebpftracepointtests-test ${source_files})
 
   target_link_libraries(osquery_experimental_tracing_linux_tests_ebpftracepointtests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_experimental_tracing_linux_probesevents
     thirdparty_googletest
   )

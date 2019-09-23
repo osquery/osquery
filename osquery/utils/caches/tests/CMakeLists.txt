@@ -12,7 +12,7 @@ function(generateOsqueryUtilsCachesTestsLrutestsTest)
   add_osquery_executable(osquery_utils_caches_tests_lrutests-test lru.cpp)
 
   target_link_libraries(osquery_utils_caches_tests_lrutests-test PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_caches_lru
     thirdparty_googletest
   )

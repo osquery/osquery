@@ -1,8 +1,8 @@
-osquery 1.7.3 introduced support for consuming and querying the Mac OSX system log via Apple System Log (ASL). osquery 1.7.4 introduced support for the Linux syslog via **rsyslog**. This document explains how to configure and use these syslog tables.
+osquery 1.7.3 introduced support for consuming and querying the macOS system log via Apple System Log (ASL). osquery 1.7.4 introduced support for the Linux syslog via **rsyslog**. This document explains how to configure and use these syslog tables.
 
 ## Apple macOS Syslog
 
-On Mac OSX, the `asl` virtual table makes use of Apple's ASL store, querying this structured store using the routines provided in [`asl.h`](https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man3/asl.3.html).
+On macOS, the `asl` virtual table makes use of Apple's ASL store, querying this structured store using the routines provided in [`asl.h`](https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man3/asl.3.html).
 
 ### Configuration
 
@@ -112,4 +112,4 @@ Once configuration is complete, the `syslog` table can be queried like any other
 
 > NOTICE: only logs produced after this table was properly configured (and while osquery is running) will be available for querying.
 
-If no logs are available to query, try turning on verbose logging, and see [issue #1964](https://github.com/facebook/osquery/issues/1964) for debugging suggestions.
+If no logs are available to query, try turning on verbose logging, and see [issue #1964](https://github.com/osquery/osquery/issues/1964) for debugging suggestions.

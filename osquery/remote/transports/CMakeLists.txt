@@ -6,7 +6,7 @@
 
 function(osqueryRemoteTransportsMain)
 
-  if(BUILD_TESTING AND DEFINED PLATFORM_POSIX)
+  if(OSQUERY_BUILD_TESTS AND DEFINED PLATFORM_POSIX)
     generateOsqueryRemoteTransportsRemotetransportstlstestsTest()
   endif()
 
@@ -19,7 +19,7 @@ function(generateOsqueryRemoteTransportsTransportstls)
   )
 
   target_link_libraries(osquery_remote_transports_transportstls PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_remote_httpclient
@@ -50,7 +50,7 @@ function(generateOsqueryRemoteTransportsRemotetransportstlstestsTest)
   add_osquery_executable(osquery_remote_transports_remotetransportstlstests-test tests/tls_transports_tests.cpp)
 
   target_link_libraries(osquery_remote_transports_remotetransportstlstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_database
     osquery_events

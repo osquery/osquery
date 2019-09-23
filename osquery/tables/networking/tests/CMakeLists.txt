@@ -18,7 +18,7 @@ function(generateOsqueryTablesNetworkingTestsNetworkingtablestestsTest)
   add_osquery_executable(osquery_tables_networking_tests_networkingtablestests-test networking_tables_tests.cpp)
 
   target_link_libraries(osquery_tables_networking_tests_networkingtablestests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_database
@@ -40,7 +40,7 @@ function(generateOsqueryTablesNetworkingTestsWifitestsTest)
   add_osquery_executable(osquery_tables_networking_tests_wifitests-test darwin/wifi_tests.mm)
 
   target_link_libraries(osquery_tables_networking_tests_wifitests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_core_sql
@@ -63,7 +63,7 @@ function(generateOsqueryTablesNetworkingTestsIptablestestsTest)
   add_osquery_executable(osquery_tables_networking_tests_iptablestests-test linux/iptables_tests.cpp)
 
   target_link_libraries(osquery_tables_networking_tests_iptablestests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_core_sql

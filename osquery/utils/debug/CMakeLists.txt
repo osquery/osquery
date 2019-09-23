@@ -6,7 +6,7 @@
 
 function(osqueryUtilsDebugMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsDebugDebugtestsTest()
   endif()
 
@@ -17,7 +17,7 @@ function(generateOsqueryUtilsDebug)
   add_osquery_library(osquery_utils_debug INTERFACE)
 
   target_link_libraries(osquery_utils_debug INTERFACE
-    global_cxx_settings
+    osquery_cxx_settings
     thirdparty_boost
   )
 
@@ -35,7 +35,7 @@ function(generateOsqueryUtilsDebugDebugtestsTest)
   add_osquery_executable(osquery_utils_debug_debugtests-test tests/debug_only.cpp)
 
   target_link_libraries(osquery_utils_debug_debugtests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_debug
     thirdparty_googletest
   )

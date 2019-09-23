@@ -1,6 +1,6 @@
 For details on how osqueryd schedules queries and loads information from a config, see the [configuration](../deployment/configuration.md) deployment guide.
 
-If you would like to use services like [scribe](https://github.com/facebookarchive/scribe) or [flume](http://flume.apache.org/), you need to write a C++ function that consumes/handles a string argument.
+If you would like to use services like [scribe](https://github.com/facebookarchive/scribe) or [flume](https://flume.apache.org), you need to write a C++ function that consumes/handles a string argument.
 
 ## Example: glog logger
 

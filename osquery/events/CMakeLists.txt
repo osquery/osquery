@@ -6,7 +6,7 @@
 
 function(osqueryEventsMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -48,7 +48,7 @@ function(generateOsqueryEvents)
   enableLinkWholeArchive(osquery_events)
 
   target_link_libraries(osquery_events PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_config
@@ -130,7 +130,7 @@ function(generateOsqueryEventsEventsregistry)
   add_osquery_library(osquery_events_eventsregistry EXCLUDE_FROM_ALL events.cpp)
 
   target_link_libraries(osquery_events_eventsregistry PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_dispatcher
     osquery_sql

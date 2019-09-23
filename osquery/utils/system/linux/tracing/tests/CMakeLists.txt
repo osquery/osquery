@@ -27,7 +27,7 @@ function(generateOsqueryUtilsSystemLinuxTracingTestsTest)
   add_osquery_executable(osquery_utils_system_linux_tracing_tests-test ${source_files})
 
   target_link_libraries(osquery_utils_system_linux_tracing_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_system_linux_tracing
     thirdparty_googletest
   )

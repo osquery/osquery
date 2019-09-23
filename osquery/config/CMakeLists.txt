@@ -5,7 +5,7 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(osqueryConfigMain)
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -21,7 +21,7 @@ function(generateOsqueryConfig)
   enableLinkWholeArchive(osquery_config)
 
   target_link_libraries(osquery_config PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_filesystem
     osquery_hashing

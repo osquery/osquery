@@ -6,7 +6,7 @@
 
 function(osqueryTablesNetworkingMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -72,7 +72,7 @@ function(generateOsqueryTablesNetworking)
   )
 
   target_link_libraries(osquery_tables_networking PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_filesystem
     osquery_remote_httpclient
@@ -80,8 +80,13 @@ function(generateOsqueryTablesNetworking)
     osquery_utils_conversions
     osquery_tables_system_systemtable
     thirdparty_boost
-    thirdparty_glibc_resolv
   )
+
+  if(NOT DEFINED PLATFORM_WINDOWS)
+    target_link_libraries(osquery_tables_networking PUBLIC
+      thirdparty_glibc_resolv
+    )
+  endif()
 
   if(DEFINED PLATFORM_LINUX)
     list(APPEND platform_deps

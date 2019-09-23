@@ -12,7 +12,7 @@ function(osqueryRegistryTestsTest)
   add_osquery_executable(osquery_registry_tests-test registry.cpp)
 
   target_link_libraries(osquery_registry_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_distributed
     osquery_events

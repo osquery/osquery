@@ -13,7 +13,7 @@ function(generateOsqueryUtilsConfig)
     default_paths.cpp
   )
 
-  target_link_libraries(osquery_utils_config PUBLIC global_cxx_settings)
+  target_link_libraries(osquery_utils_config PUBLIC osquery_cxx_settings)
 
   set(public_header_files
     default_paths.h

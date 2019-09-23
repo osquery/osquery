@@ -12,7 +12,7 @@ function(generateOsqueryUtilsAwsTestsTest)
   add_osquery_executable(osquery_utils_aws_tests-test aws_util_tests.cpp)
 
   target_link_libraries(osquery_utils_aws_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_dispatcher
     osquery_events

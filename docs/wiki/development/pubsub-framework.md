@@ -1,8 +1,8 @@
-Most of osquery's virtual tables are generated when an SQL statement requests data. For example, the [time](https://github.com/facebook/osquery/blob/master/osquery/tables/utility/time.cpp) gets the current time and returns it as a single row. So whenever a call selects data from time, e.g., `SELECT * FROM time;` the current time of the call will return.
+Most of osquery's virtual tables are generated when an SQL statement requests data. For example, the [time](https://github.com/osquery/osquery/blob/master/osquery/tables/utility/time.cpp) gets the current time and returns it as a single row. So whenever a call selects data from time, e.g., `SELECT * FROM time;` the current time of the call will return.
 
-From an operating systems perspective, query-time synchronous data retrieval is lossy. Consider the [processes](https://github.com/facebook/osquery/blob/master/osquery/tables/system/linux/processes.cpp) table: if a process like `ps` runs for a fraction of a moment there's no way `SELECT * FROM processes;` will ever include the details.
+From an operating systems perspective, query-time synchronous data retrieval is lossy. Consider the [processes](https://github.com/osquery/osquery/blob/master/osquery/tables/system/linux/processes.cpp) table: if a process like `ps` runs for a fraction of a moment there's no way `SELECT * FROM processes;` will ever include the details.
 
-To solve for this osquery exposes a [pubsub framework](https://github.com/facebook/osquery/tree/master/osquery/events) for aggregating operating system information asynchronously at event time, storing related event details in the osquery backing store, and performing a lookup to report stored rows query time. This reporting pipeline is much more complicated than typical query-time virtual table generation. The time of event, storage history, and applicable (final) virtual table data information must be carefully considered. As events occur, the rows returned by a query will compound, as such selecting from an event-based virtual table generator should always include a time range.
+To solve for this osquery exposes a [pubsub framework](https://github.com/osquery/osquery/tree/master/osquery/events) for aggregating operating system information asynchronously at event time, storing related event details in the osquery backing store, and performing a lookup to report stored rows query time. This reporting pipeline is much more complicated than typical query-time virtual table generation. The time of event, storage history, and applicable (final) virtual table data information must be carefully considered. As events occur, the rows returned by a query will compound, as such selecting from an event-based virtual table generator should always include a time range.
 
 If no time range is provided, as in: `SELECT * FROM process_events;`, it is assumed you want to scan from `t=[0, now)`. Otherwise, all of the `*_events` tables must have a `time` column, this is used to optimize searching: `SELECT * FROM process_events WHERE time > NOW() - 300;`.
 
@@ -24,9 +24,9 @@ The pubsub runflow is exposed as a publisher `setUp()`, a series of `addSubscrip
 
 ## Example: inotify
 
-Filesystem events are the simplest example, let's consider Linux's inotify framework. [osquery/events/linux/inotify.cpp](https://github.com/facebook/osquery/blob/master/osquery/events/linux/inotify.cpp) is exposed as an osquery publisher.
+Filesystem events are the simplest example, let's consider Linux's inotify framework. [osquery/events/linux/inotify.cpp](https://github.com/osquery/osquery/blob/master/osquery/events/linux/inotify.cpp) is exposed as an osquery publisher.
 
-There's an array of yet-to-be-implemented uses of the inotify publisher, but a simple example includes querying for every change to "/etc/passwd". The [osquery/tables/events/linux/file_events.cpp](https://github.com/facebook/osquery/blob/master/osquery/tables/events/linux/file_events.cpp) table uses a pubsub subscription and implements a subscriber. The subscriptions are constructed from the configuration. See the file [integrity monitoring deployment](../deployment/file-integrity-monitoring.md) guide for details.
+There's an array of yet-to-be-implemented uses of the inotify publisher, but a simple example includes querying for every change to "/etc/passwd". The [osquery/tables/events/linux/file_events.cpp](https://github.com/osquery/osquery/blob/master/osquery/tables/events/linux/file_events.cpp) table uses a pubsub subscription and implements a subscriber. The subscriptions are constructed from the configuration. See the file [integrity monitoring deployment](../deployment/file-integrity-monitoring.md) guide for details.
 
 ## Event Subscribers
 
@@ -57,7 +57,7 @@ class NewETCFilesEventSubscriber : public EventSubscriber<INotifyEventPublisher>
 };
 ```
 
-Done! Well, not exactly. This subscriber will do nothing since it hasn't given the publisher a subscription nor set up a callback to save appropriate events. To create a subscription we must know more about the publisher, for inotify we must create a [`INotifySubscriptionContext`](https://github.com/facebook/osquery/blob/master/osquery/events/linux/inotify.h) then subscribe to the publisher using this context and a callback.
+Done! Well, not exactly. This subscriber will do nothing since it hasn't given the publisher a subscription nor set up a callback to save appropriate events. To create a subscription we must know more about the publisher, for inotify we must create a [`INotifySubscriptionContext`](https://github.com/osquery/osquery/blob/master/osquery/events/linux/inotify.h) then subscribe to the publisher using this context and a callback.
 
 Let's implement `NewETCFilesEventSubscriber::init()` to add the subscription:
 

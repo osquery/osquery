@@ -7,6 +7,7 @@
 set(linux_supported_packaging_systems
   DEB
   RPM
+  TGZ
 )
 
 set(windows_supported_packaging_system
@@ -60,6 +61,7 @@ function(identifyPackagingSystemFromPlatform)
 
     set(rpm_distros
       Fedora
+      CentOS
     )
 
     if("${lsb_release_id_short}" IN_LIST deb_distros)
@@ -116,13 +118,13 @@ function(findPackagingTool)
 endfunction()
 
 function(generateInstallTargets)
+  get_property(augeas_lenses_path GLOBAL PROPERTY AUGEAS_LENSES_FOLDER_PATH)
 
   if(DEFINED PLATFORM_LINUX)
-
     # .
-    if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
+    if("${PACKAGING_SYSTEM}" STREQUAL "DEB")
       file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/linux_postinstall.sh" DESTINATION "${CMAKE_BINARY_DIR}/package/deb")
-      install(FILES "${CMAKE_BINARY_DIR}/package/deb/linux_postinstall.sh" DESTINATION . RENAME postinst)
+      file(RENAME "${CMAKE_BINARY_DIR}/package/deb/linux_postinstall.sh" "${CMAKE_BINARY_DIR}/package/deb/postinst")
     endif()
 
     # bin
@@ -140,14 +142,15 @@ function(generateInstallTargets)
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     install(FILES "${CMAKE_BINARY_DIR}/package/linux/osquery.example.conf" DESTINATION share/osquery)
 
-    get_target_property(augeas_binary_dir thirdparty_augeas INTERFACE_BINARY_DIR)
-    install(DIRECTORY "${augeas_binary_dir}/share/augeas/lenses/dist/"
+    install(DIRECTORY "${augeas_lenses_path}/"
             DESTINATION share/osquery/lenses
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)
 
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     install(DIRECTORY "${CMAKE_BINARY_DIR}/package/linux/packs" DESTINATION share/osquery)
+
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION share/osquery/certs)
 
     # etc
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.sysconfig" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
@@ -193,6 +196,8 @@ function(generateInstallTargets)
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
     install(DIRECTORY "${CMAKE_BINARY_DIR}/package/wix/packs" DESTINATION .)
 
+    # certs
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION certs)
   elseif(DEFINED PLATFORM_MACOS)
     # bin
     install(TARGETS osqueryd DESTINATION bin COMPONENT osquery)
@@ -205,14 +210,15 @@ function(generateInstallTargets)
     install(DIRECTORY COMPONENT osquery DESTINATION /private/var/log/osquery)
     install(DIRECTORY COMPONENT osquery DESTINATION /private/var/osquery)
 
-    get_target_property(augeas_binary_dir thirdparty_augeas INTERFACE_BINARY_DIR)
-    install(DIRECTORY "${augeas_binary_dir}/share/augeas/lenses/dist/" COMPONENT osquery
+    install(DIRECTORY "${augeas_lenses_path}" COMPONENT osquery
             DESTINATION /private/var/osquery/lenses
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)
 
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
     install(DIRECTORY "${CMAKE_BINARY_DIR}/package/pkg/packs" COMPONENT osquery DESTINATION /private/var/osquery)
+
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" COMPONENT osquery DESTINATION /private/var/osquery/certs)
 
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
     file(RENAME "${CMAKE_BINARY_DIR}/package/pkg/com.facebook.osqueryd.conf" "${CMAKE_BINARY_DIR}/package/pkg/com.osquery.osqueryd.conf")
@@ -239,24 +245,35 @@ list(GET OSQUERY_VERSION_COMPONENTS 1 CPACK_PACKAGE_VERSION_MINOR)
 list(GET OSQUERY_VERSION_COMPONENTS 2 CPACK_PACKAGE_VERSION_PATCH)
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
+set(CPACK_PACKAGE_NAME "osquery")
+set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 set(CPACK_PACKAGE_VENDOR "osquery")
 set(CPACK_PACKAGE_CONTACT "osquery@osquery.io")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://osquery.io")
 set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_BINARY_DIR}/package/CPackConfig.cmake")
 set(CPACK_PACKAGE_RELOCATABLE ON)
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/package/LICENSE.txt")
+set(CPACK_STRIP_FILES ON)
 
 configure_file(cmake/CPackConfig.cmake.in package/CPackConfig.cmake @ONLY)
 
 set(CPACK_GENERATOR "${PACKAGING_SYSTEM}")
 
 if(DEFINED PLATFORM_LINUX)
+  if(CPACK_GENERATOR STREQUAL "TGZ")
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_1.linux.x86_64")
+    set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY 0)
+    set(CPACK_SET_DESTDIR ON)
+  endif()
+
   if(CPACK_GENERATOR STREQUAL "DEB")
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_1.linux.amd64")
     set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
     set(CPACK_DEBIAN_PACKAGE_SECTION "default")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>=2.12), zlib1g")
 
   elseif(CPACK_GENERATOR STREQUAL "RPM")
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-1.linux.x86_64")
     set(CPACK_RPM_PACKAGE_DESCRIPTION "osquery is an operating system instrumentation toolchain.")
     set(CPACK_RPM_PACKAGE_GROUP "default")
     set(CPACK_RPM_PACKAGE_LICENSE "BSD")
@@ -270,9 +287,11 @@ if(DEFINED PLATFORM_LINUX)
     )
   endif()
 elseif(DEFINED PLATFORM_MACOS)
+  set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
 elseif(DEFINED PLATFORM_WINDOWS)
   file(COPY "${CMAKE_SOURCE_DIR}/tools/osquery.ico" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
   file(COPY "${CMAKE_SOURCE_DIR}/cmake/wix_patches/osquery_wix_patch.xml" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
+  set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
   set(CPACK_WIX_PRODUCT_ICON "${CMAKE_BINARY_DIR}/package/wix/osquery.ico")
   set(CPACK_WIX_UPGRADE_GUID "ea6c7327-461e-4033-847c-acdf2b85dede")
   set(CPACK_WIX_PATCH_FILE "${CMAKE_BINARY_DIR}/package/wix/osquery_wix_patch.xml" )

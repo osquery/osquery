@@ -25,7 +25,7 @@ function(generateOsqueryProfiler)
   )
 
   target_link_libraries(osquery_profiler PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
   )
 

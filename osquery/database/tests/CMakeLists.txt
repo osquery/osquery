@@ -13,7 +13,7 @@ function(generateOsqueryDatabaseTestsTest)
   add_osquery_executable(osquery_database_tests-test database.cpp)
 
   target_link_libraries(osquery_database_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_database
     osquery_dispatcher
@@ -34,7 +34,7 @@ function(generateOsqueryDatabaseTestsResultsTest)
   add_osquery_executable(osquery_database_tests_results-test results.cpp)
 
   target_link_libraries(osquery_database_tests_results-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core_sql
     osquery_core
     osquery_database

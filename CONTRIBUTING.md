@@ -7,14 +7,11 @@ your code is under review and give you the basics of how to get started.
 
 ## Contributing 101
 
-All contributions from the community are submitted via pull requests open against the osquery's
-[master](https://github.com/facebook/osquery/tree/master) branch on GitHub. After
-being reviewed by the
-core team and tested by TravisCI the code will be imported to Phabricator, Facebook's code
-management system. Pull requests will then go through additional testing and, if all is well, be pushed to
-master and the corresponding PR closed. The core team submits contributions directly through
-Phabricator, but a corresponding PR will be opened on GitHub providing transparency onto our
-development and an opportunity for the community to comment on the PR before it is merged.
+All contributions from the community are submitted via pull requests
+open against the osquery's
+[master](https://github.com/osquery/osquery/tree/master) branch on
+GitHub. After being reviewed by the core team and tested by CI. If all
+is well, they will be pushed to master and the corresponding PR closed.
 
 If you need help, both the core team and community members are on the osquery
 [Slack](https://osquery.slack.com). Feel free to register using the following
@@ -30,10 +27,10 @@ the `officehours` channel.
 
 If you plan to submit a change to the osquery core, a new big feature, or in
 general a change that merits discussion, start by opening a
-[Blueprint](https://github.com/facebook/osquery/issues/new?template=Blueprint.md) issue.
+[Blueprint](https://github.com/osquery/osquery/issues/new?template=Blueprint.md) issue.
 
 A blueprint issue is a standard GitHub issue, tagged with the label
-[blueprint](https://github.com/facebook/osquery/labels/blueprint), which describes your idea, the
+[blueprint](https://github.com/osquery/osquery/labels/blueprint), which describes your idea, the
 problem you're solving and how you plan to implement your solution. The goal of the blueprint is to
 allow both the core team and the community to discuss whether a certain change is desirable and will
 be accepted, and identify possible problems with the implementation before it even starts.
@@ -55,7 +52,7 @@ issue on the pull request.
 
 Please remember that blueprints are mostly designed to save **you** time by preventing you from
 implementing code which won't be accepted or will need to be extensively modified later on. Please
-use the right [template](https://github.com/facebook/osquery/issues/new?template=Blueprint.md) for
+use the right [template](https://github.com/osquery/osquery/issues/new?template=Blueprint.md) for
 the issue. Feel free to advertise your blueprint and ask for feedback on Slack.
 
 ### Pull requests
@@ -76,7 +73,7 @@ Don't forget to tag the issues you're addressing on the body of your PR descript
 is intended to close an issue keywords (like `fixes` or `closes`) as defined on [GitHub
 Help](https://help.github.com/articles/closing-issues-using-keywords/).
 
-Once you submit your PR the core team will review it and continuous integration tests will be triggered on TravisCI for
+Once you submit your PR, the core team will review it and continuous integration tests will be triggered on in the  CI systems for
 the multiple platforms we support. If the tests fail or the reviewer requests changes, please submit
 those changes by **appending new commits** to your feature branch. **Avoid amending old commits** as
 that makes it harder for the reviewer to track your updates. If you need to keep your PR up-to-date
@@ -84,10 +81,8 @@ with master the preferred way is to rebase your branch on master and force-push.
 team might help you with getting your PR accepted by pushing directly to your branch when that makes
 sense.
 
-Once both the core team and TravisCI are happy with the PR (remember tests need to pass for all of
-the supported platforms) the PR will be imported to Phabricator where additional tests will run. If
-all is well the PR will be squashed into a single commit and pushed to the master branch from
-Phabricator which will finally close the PR.
+Once both the core team and CI are happy with the PR (remember tests need to pass for all of
+the supported platforms) the PR will be squashed into a single commit and pushed to the master branch.
 
 Only the core team can merge pull requests and therefore at least one core team member will always
 review your PR, however reviews from the community are highly encouraged and desirable.
@@ -98,7 +93,7 @@ want to get back to it at a certain point feel free to re-open, or comment on it
 ### A note about labels
 
 The core team uses labels to tag each and every pull request. If you care about their meaning take a
-look at [labels](https://github.com/facebook/osquery/labels) on GitHub. However, only the core team
+look at [labels](https://github.com/osquery/osquery/labels) on GitHub. However, only the core team
 can label issues and PRs, so you don't need to care too much about this.
 
 ### Milestones and release versions
@@ -114,7 +109,7 @@ tagged with a later milestone we'll only merge it after the previous milestones 
 
 ### Branches and tags
 
-The osquery repo contains only the [master](https://github.com/facebook/osquery/tree/master) branch
+The osquery repo contains only the [master](https://github.com/osquery/osquery/tree/master) branch
 which we do our best to keep stable. We don't keep feature or release branches. The master branch
 will always keep a linear history and no merge commits are allowed. All our releases are tagged.
 
@@ -125,9 +120,9 @@ Developing code is not the only way to contribute to osquery. Submitting bug rep
 is also valuable and appreciated.
 
 We use GitHub issues to track bugs and feature requests. To submit a bug report follow the [Bug
-Report](https://github.com/facebook/osquery/issues/new?template=Bug_Report.md) template, to submit
+Report](https://github.com/osquery/osquery/issues/new?template=Bug_Report.md) template, to submit
 a feature request use the [Feature
-Request](https://github.com/facebook/osquery/issues/new?template=Feature_Request.md) template.
+Request](https://github.com/osquery/osquery/issues/new?template=Feature_Request.md) template.
 
 **Please only use issues for bug reports or feature requests**. If you have deployment questions or
 issues or a general question about osquery hit our Slack instead as you'll have better support
@@ -161,24 +156,23 @@ Belongs in Core:
 
 * Observes guiding principles
 * Has been shared with and approved by osquery project maintainers as a new feature in Core
-* Meets Facebook's testing and quality standards
+* Meets osquery's testing and quality standards
 
 Belongs in an extension:
 
 * Might not observe the osquery core guiding principles
-* Has not been shared with or approved by Facebook as a new feature in Core
 * Expands the scope of use for osquery beyond endpoint monitoring
 * Integrates with a proprietary or esoteric tool that is not widely applicable
 
 
 ## Contributor License Agreement
 
-You must submit a Facebook Contributor License Agreement (CLA) before we can
-accept any of your pull requests. You only need to submit one CLA for any of
-Facebook's open source projects.
+You must submit a Contributor License Agreement (CLA) before we can
+accept any of your pull requests. You only need to submit one CLA for
+any of osquery's open source projects.
 
-You can complete your CLA at https://code.facebook.com/cla.
-
+This is managed through the Linux Foundations's EasyCLA. It will
+comment appropriately on your PR.
 
 ## License
 
