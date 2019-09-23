@@ -808,6 +808,10 @@ osquery_gentable_cxx_library(
             "yara/yara.table",
             "linux,macos,freebsd",
         ),
+        (
+            "windows/windows_security_products.table",
+            "windows",
+        ),
     ],
     spec_files = [
         "carbon_black_info.table",
