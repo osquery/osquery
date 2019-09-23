@@ -64,13 +64,11 @@ QueryData genBam(QueryContext& context) {
       queryKey(kFullRegPath, bam_entries);
 
       for (const auto& bKey : bam_entries) {
-        if (bKey.at("name") == "Version" ||
-            bKey.at("name") == "SequenceNumber") {
-          continue;
-        }
         r["path"] = bKey.at("name");
         std::string last_run = bKey.at("data");
 
+        // SequenceNumber and Version are not executables and do not have
+        // timestamps
         if (bKey.at("name") == "SequenceNumber" ||
             bKey.at("name") == "Version") {
           r["last_execution_time"] = "";
