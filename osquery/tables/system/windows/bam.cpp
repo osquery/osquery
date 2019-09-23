@@ -57,34 +57,34 @@ QueryData genBam(QueryContext& context) {
   for (const auto& rKey : bam_keys) {
     std::size_t bam_entry = rKey.find("UserSettings\\S");
     if (bam_entry != std::string::npos) {
-      std::string sid =  rKey.substr(rKey.find("S-1"));
+      std::string sid = rKey.substr(rKey.find("S-1"));
 
       kFullRegPath = rKey;
-        QueryData bam_entries;
-        queryKey(kFullRegPath, bam_entries);
+      QueryData bam_entries;
+      queryKey(kFullRegPath, bam_entries);
 
-        for (const auto& bKey : bam_entries) {
-          if (bKey.at("name") == "Version" ||
-              bKey.at("name") == "SequenceNumber") {
-            continue;
-		  }
-          r["path"] = bKey.at("name");
-          std::string last_run = bKey.at("data");
-
-          if (bKey.at("name") == "SequenceNumber" ||
-              bKey.at("name") == "Version") {
-            r["last_execution_time"] = "";
-            r["sid"] = sid;
-          } else {
-            r["last_execution_time"] = last_execute_time(last_run);
-            r["sid"] = sid;
-          }
-
-          results.push_back(r);
+      for (const auto& bKey : bam_entries) {
+        if (bKey.at("name") == "Version" ||
+            bKey.at("name") == "SequenceNumber") {
+          continue;
         }
-      } else {
+        r["path"] = bKey.at("name");
+        std::string last_run = bKey.at("data");
+
+        if (bKey.at("name") == "SequenceNumber" ||
+            bKey.at("name") == "Version") {
+          r["last_execution_time"] = "";
+          r["sid"] = sid;
+        } else {
+          r["last_execution_time"] = last_execute_time(last_run);
+          r["sid"] = sid;
+        }
+
+        results.push_back(r);
+      }
+    } else {
       LOG(WARNING) << "No BAM Registry Key found";
-	}
+    }
   }
 
   return results;
