@@ -1,5 +1,5 @@
 table_name("bam")
-description("Background Activities Monitor (BAM) tracks application execution.")
+description("Background Activities Moderator (BAM) tracks application execution.")
 schema([
 	Column("path", TEXT, "Application file path."),
 	Column("last_execution_time", TEXT, "Most recent time application was executed."),
