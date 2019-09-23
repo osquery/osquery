@@ -307,6 +307,25 @@ vagrant ssh aws-amazon2015.03
 
 Package creation is facilitated by CPack.
 
+The package will include several components:
+- The executables: `osqueryd`, `osqueryi`, and small management script `osqueryctl`
+- An osquery systemd unit on Linux (with initd script wrapper)
+- An osquery LaunchDaemon on macOS
+- The lenses provided by our Augeas third-party dependency
+- A default, or fall-back, OpenSSL certificate store (found within the repository)
+- The example query packs from the repository
+- Folder structures required for logging
+
+To create a DEB, RPM, or TGZ on Linux, CPack will attempt to auto-detect the appropriate package type.
+You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
+
+```sh
+cmake -DPACKAGING_SYSTEM=RPM ..
+make package
+```
+
+On macOS the `package` target will create a `.pkg`, and on Windows it will create a `.msi`.
+
 # Build Performance
 
 Generating a virtual table should *not* impact system performance. This is easier said than done, as some tables may _seem_ inherently latent (if you expect to run queries like `SELECT * from suid_bin;` which performs a complete filesystem traversal looking for binaries with suid permissions). Please read the osquery features and guide on [performance safety](../deployment/performance-safety.md).
