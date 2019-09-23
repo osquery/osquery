@@ -81,7 +81,7 @@ QueryData genBam(QueryContext& context) {
         results.push_back(r);
       }
     } else {
-      LOG(WARNING) << "No BAM Registry Key found";
+      continue;
     }
   }
 
