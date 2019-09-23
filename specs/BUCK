@@ -803,7 +803,7 @@ osquery_gentable_cxx_library(
         (
             "windows/bam.table",
             "windows",
-        )
+        ),
         (
             "yara/yara_events.table",
             "linux,macos",
