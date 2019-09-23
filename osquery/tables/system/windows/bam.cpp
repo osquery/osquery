@@ -18,7 +18,7 @@ namespace tables {
 constexpr auto kBamRegPath =
     "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\bam\\%%\\";
 
-// Get last exeution time
+// Get last execution time
 auto last_execute_time(std::string& assist_data) {
   std::string last_run_string = assist_data.substr(0, 16);
 
