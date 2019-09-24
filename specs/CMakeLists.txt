@@ -261,6 +261,7 @@ function(generateNativeTables)
     "windows/physical_disk_performance.table:windows"
     "windows/autoexec.table:windows"
     "windows/windows_security_products.table:windows"
+    "windows/bam.table:windows"
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd"
   )
