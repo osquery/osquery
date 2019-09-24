@@ -35,7 +35,7 @@ osquery_cxx_test(
 osquery_cxx_test(
     name = "rocksdb_tests",
     srcs = [
-        # "rocksdb.cpp", # TODO: it is failing :(
+        "rocksdb.cpp",
     ],
     visibility = ["PUBLIC"],
     deps = [
