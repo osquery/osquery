@@ -43,6 +43,35 @@ jobs:
           $(EXTRA_CMAKE_ARGS)
           $(Build.SourcesDirectory)
 
+    - script: |
+        set -e
+
+        # List all .cpp files to format, skipping all the ones inside the libraries folder, sort them and save the list on a file
+        find . -type d -path ./libraries -prune -o -type f -name "*.cpp" -print \
+        | sort > $(Build.BinariesDirectory)/files_to_format.txt
+
+        # Read back the list of files, modify them appending two newlines, so that the format_check.py is triggered
+        while read line; do echo -e "\n\n" >> $line; done <<< `cat $(Build.BinariesDirectory)/files_to_format.txt`
+
+        # Run the format check, save the command output and invert the exit code, since finding formatting issues is what we want
+        ! cmake --build . --target format_check > $(Build.BinariesDirectory)/format_output.txt
+
+        # Print the command output previously saved
+        cat format_output.txt
+
+        # Extract all the modified files from the output, sort them and save the list on a file
+        cat $(Build.BinariesDirectory)/format_output.txt \
+        | grep "diff --git" | awk '{ print $3 }' | sed 's/^a/./g' \
+        | sort > $(Build.BinariesDirectory)/formatted_files.txt
+
+        # Verify that the script formatted everything it should have
+        git diff --no-index $(Build.BinariesDirectory)/files_to_format.txt $(Build.BinariesDirectory)/formatted_files.txt
+
+        # Restore original source code
+        git reset --hard HEAD
+      displayName: "format_check.py test"
+      workingDirectory: $(Build.SourcesDirectory)
+
     - task: CMake@1
       displayName: "Check code formatting"
       inputs:
