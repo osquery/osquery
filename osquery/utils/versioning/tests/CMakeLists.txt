@@ -12,7 +12,7 @@ function(generateOsqueryUtilsVersioningTestsSemanticversiontestTest)
   add_osquery_executable(osquery_utils_versioning_semanticversiontest-test semantic.cpp)
 
   target_link_libraries(osquery_utils_versioning_semanticversiontest-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_versioning_semantic
     thirdparty_googletest
   )

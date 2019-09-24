@@ -25,6 +25,14 @@
 
 #include <osquery/utils/status/status.h>
 
+// This macro from the Windows headers is used to map the GetMessage
+// name to either GetMessageW or GetMessageA depending on the UNICODE
+// define. We have to undefine this because it causes a method in the
+// AWS sdk to be renamed, causing a compilation error.
+#if defined(WIN32) && defined(GetMessage)
+#undef GetMessage
+#endif
+
 namespace osquery {
 
 using RegionName = const char* const;

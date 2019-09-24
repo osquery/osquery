@@ -17,7 +17,7 @@ function(generateOsqueryTablesCloud)
   )
 
   target_link_libraries(osquery_tables_cloud PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_logger
     osquery_utils_aws

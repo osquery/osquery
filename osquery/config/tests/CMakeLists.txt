@@ -20,7 +20,7 @@ function(generateOsqueryConfigTestsTestUtils)
   generateIncludeNamespace(osquery_config_tests_testutils "osquery/config/tests" "FILE_ONLY" ${public_header_files})
 
   target_link_libraries(osquery_config_tests_testutils PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_filesystem
     osquery_utils_json
     osquery_utils_system_env
@@ -31,7 +31,7 @@ function(generateOsqueryConfigTestsTest)
   add_osquery_executable(osquery_config_tests-test config_tests.cpp)
 
   target_link_libraries(osquery_config_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config
     osquery_dispatcher
     osquery_events
@@ -56,7 +56,7 @@ function(generateOsqueryConfigTestsPacksTest)
   add_osquery_executable(osquery_config_tests_packs-test packs.cpp)
 
   target_link_libraries(osquery_config_tests_packs-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config
     osquery_dispatcher
     osquery_events

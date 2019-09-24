@@ -5,7 +5,7 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(osqueryNumericmonitoringMain)
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -20,7 +20,7 @@ function(generateOsqueryNumericmonitoring)
   )
 
   target_link_libraries(osquery_numericmonitoring PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_utils
     thirdparty_boost

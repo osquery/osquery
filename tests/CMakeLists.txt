@@ -20,7 +20,7 @@ function(generateTestsHelper)
   generateIncludeNamespace(tests_helper "osquery/tests" "FILE_ONLY" ${public_header_files})
 
   target_link_libraries(tests_helper PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_filesystem
     osquery_process

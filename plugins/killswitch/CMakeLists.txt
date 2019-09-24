@@ -5,7 +5,7 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(pluginsKillswitchMain)
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -21,7 +21,7 @@ function(generatePluginsKillswitchKillswitchfilesystem)
   enableLinkWholeArchive(plugins_killswitch_killswitchfilesystem)
 
   target_link_libraries(plugins_killswitch_killswitchfilesystem PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_killswitch
     osquery_utils_config
   )
@@ -48,7 +48,7 @@ function(generatePluginsKillswitchTls)
   enableLinkWholeArchive(plugins_killswitch_killswitchtls)
 
   target_link_libraries(plugins_killswitch_killswitchtls PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_killswitch
     osquery_remote_utility
     osquery_remote_serializers_serializerjson

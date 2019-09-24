@@ -5,7 +5,7 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(osqueryRemoteEnrollTlsenrollMain)
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryRemoteenrolltestsTest()
   endif()
 
@@ -19,7 +19,7 @@ function(generateOsqueryRemoteEnrollTlsenroll)
   )
 
   target_link_libraries(osquery_remote_enroll_tlsenroll PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_process
     osquery_remote_httpclient
@@ -60,7 +60,7 @@ function(generateOsqueryRemoteenrolltestsTest)
   add_osquery_executable(osquery_remote_enroll_remoteenrolltests-test ${source_files})
 
   target_link_libraries(osquery_remote_enroll_remoteenrolltests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_database
     osquery_events

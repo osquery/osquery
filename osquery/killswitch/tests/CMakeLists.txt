@@ -12,7 +12,7 @@ function(generateOsqueryKillswitchTestsTest)
   add_osquery_executable(osquery_killswitch_tests-test killswitch_tests.cpp)
 
   target_link_libraries(osquery_killswitch_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_database
     osquery_events

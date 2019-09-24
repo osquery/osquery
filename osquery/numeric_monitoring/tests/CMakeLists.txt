@@ -13,7 +13,7 @@ function(osqueryNumericmonitoringTestsTest)
   add_osquery_executable(osquery_numericmonitoring_tests-test numeric_monitoring.cpp)
 
   target_link_libraries(osquery_numericmonitoring_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_events
     osquery_extensions
@@ -32,7 +32,7 @@ function(osqueryNumericmonitoringTestsPreaggregationcacheTest)
   add_osquery_executable(osquery_numericmonitoring_tests_preaggregationcache-test pre_aggregation_cache.cpp)
 
   target_link_libraries(osquery_numericmonitoring_tests_preaggregationcache-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_dispatcher
     osquery_distributed

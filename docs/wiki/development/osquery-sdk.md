@@ -1,4 +1,4 @@
-The osquery "public API" or SDK is the set of osquery headers and a subset of the source "cpp" files implementing what we call osquery **core**. The core code can be thought of as the framework or platform, it is everything except for the SQLite code and most table implementations. The public headers can be found in [osquery/include/osquery/](https://github.com/facebook/osquery/tree/master/include/osquery).
+The osquery "public API" or SDK is the set of osquery headers and a subset of the source "cpp" files implementing what we call osquery **core**. The core code can be thought of as the framework or platform, it is everything except for the SQLite code and most table implementations. The public headers can be found in [osquery/include/osquery/](https://github.com/osquery/osquery/tree/master/include/osquery).
 
 osquery is organized into a **core**, **additional**, and **testing** during a default build from source. We call the set of public headers implementing **core** the 'osquery SDK'. This SDK can be used to build osquery outside of our CMake build system with a minimum set of dependencies. This organization better isolates OS API dependencies from development tools and libraries and provides a logical separation between code needed for extensions and module compiling.
 
@@ -8,11 +8,11 @@ The public API and SDK headers are documented via **doxygen**. To generate web-b
 
 Extensions are separate processes that communicate over a Thrift IPC channel to osquery **core** in order to register one or more plugins or virtual tables. An extension allows you to develop independently: it may be compiled and linked using an external build system, against proprietary code. Your extension will be version-compatible with our publicly-built binary packages on [https://osquery.io/downloads](https://osquery.io/downloads).
 
-Extensions use osquery's [Thrift API](https://github.com/facebook/osquery/blob/master/osquery.thrift) to communicate between **osqueryi** or **osqueryd** and the extension process. Extensions are commonly written in C++, but can also be developed [in Python](https://github.com/osquery/osquery-python), [in Go](https://github.com/kolide/osquery-go), or in really any language that supports [Thrift](https://thrift.apache.org/).
+Extensions use osquery's [Thrift API](https://github.com/osquery/osquery/blob/master/osquery.thrift) to communicate between **osqueryi** or **osqueryd** and the extension process. Extensions are commonly written in C++, but can also be developed [in Python](https://github.com/osquery/osquery-python), [in Go](https://github.com/kolide/osquery-go), or in really any language that supports [Thrift](https://thrift.apache.org/).
 
 Only the osquery SDK provides the simple `startExtension` symbol that manages the life of your process, including the Thrift service threads and a watchdog.
 
-osquery extensions should statically link the **core** code and use the `<osquery/sdk.h>` helper include file. C++ extensions should link: boost, thrift, glog, gflags, and optionally rocksdb for eventing. Let's walk through a basic example extension in C++ (source for [example_extension.cpp](https://github.com/facebook/osquery/blob/master/osquery/examples/example_extension.cpp)):
+osquery extensions should statically link the **core** code and use the `<osquery/sdk.h>` helper include file. C++ extensions should link: boost, thrift, glog, gflags, and optionally rocksdb for eventing. Let's walk through a basic example extension in C++ (source for [example_extension.cpp](https://github.com/osquery/osquery/blob/master/osquery/examples/example_extension.cpp)):
 
 ```cpp
 // Note 1: Include the sdk.h helper.
@@ -67,7 +67,7 @@ The **osqueryi** or **osqueryd** processes start an "extension manager" Thrift s
 
 Please see the deployment [guide on extensions](../deployment/extensions.md) for a more-complete overview of how and why extensions are used.
 
-If you [build from source](../development/building.md), you will build an example extension. The code can be found in the [`osquery/examples`](https://github.com/facebook/osquery/blob/master/osquery/examples/example_extension.cpp) folder; it adds a config plugin called "example" and additional table called "example". There are two ways to run an extension: load the extension at an arbitrary time after shell or daemon execution, or request an "autoload" of extensions. The auto-loading method has several advantages, such as allowing dependencies on external config plugins and inheriting the same process monitoring as is applied to the osquery core worker processes.
+If you [build from source](../development/building.md), you will build an example extension. The code can be found in the [`osquery/examples`](https://github.com/osquery/osquery/blob/master/osquery/examples/example_extension.cpp) folder; it adds a config plugin called "example" and additional table called "example". There are two ways to run an extension: load the extension at an arbitrary time after shell or daemon execution, or request an "autoload" of extensions. The auto-loading method has several advantages, such as allowing dependencies on external config plugins and inheriting the same process monitoring as is applied to the osquery core worker processes.
 
 The **osqueryi** shell also allows a quick and easy command-line autoload using `--extension`. Let's review both options.
 
@@ -135,7 +135,7 @@ Your "external" extension, in the sense that the code is developed and contained
 
 This will find and compile all `.*\.{cpp,c,mm}` files within your external directory. If you need something more complicated, add a `CMakeLists.txt` to your directory and add your targets to the `externals` target.
 
-See [`CMake/CMakeLibs.cmake`](https://github.com/facebook/osquery/blob/master/CMake/CMakeLibs.cmake) for more information about the `ADD_OSQUERY_EXTENSION` CMake macro.
+See [`CMake/CMakeLibs.cmake`](https://github.com/osquery/osquery/blob/master/CMake/CMakeLibs.cmake) for more information about the `ADD_OSQUERY_EXTENSION` CMake macro.
 
 Example:
 

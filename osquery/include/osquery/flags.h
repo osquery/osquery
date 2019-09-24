@@ -14,7 +14,9 @@
 #include <boost/noncopyable.hpp>
 
 #define GFLAGS_DLL_DEFINE_FLAG
+#ifndef GFLAGS_DLL_DECLARE_FLAG
 #define GFLAGS_DLL_DECLARE_FLAG
+#endif
 #define STRIP_FLAG_HELP 1
 #include <gflags/gflags.h>
 

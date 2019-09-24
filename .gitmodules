@@ -1,0 +1,126 @@
+[submodule "libraries/cmake/source/bzip2/src"]
+	path = libraries/cmake/source/bzip2/src
+	url = https://sourceware.org/git/bzip2.git
+[submodule "libraries/cmake/source/libarchive/src"]
+	path = libraries/cmake/source/libarchive/src
+	url = https://github.com/libarchive/libarchive
+[submodule "libraries/cmake/source/libmagic/src"]
+	path = libraries/cmake/source/libmagic/src
+	url = https://github.com/file/file
+[submodule "libraries/cmake/source/libudev/src"]
+	path = libraries/cmake/source/libudev/src
+	url = https://github.com/systemd/systemd
+[submodule "libraries/cmake/source/libxml2/src"]
+	path = libraries/cmake/source/libxml2/src
+	url = https://github.com/GNOME/libxml2
+[submodule "libraries/cmake/source/linenoise-ng/src"]
+	path = libraries/cmake/source/linenoise-ng/src
+	url = https://github.com/arangodb/linenoise-ng
+[submodule "libraries/cmake/source/lzma/src"]
+	path = libraries/cmake/source/lzma/src
+	url = https://github.com/xz-mirror/xz
+[submodule "libraries/cmake/source/rapidjson/src"]
+	path = libraries/cmake/source/rapidjson/src
+	url = https://github.com/Tencent/rapidjson
+[submodule "libraries/cmake/source/rocksdb/src"]
+	path = libraries/cmake/source/rocksdb/src
+	url = https://github.com/facebook/rocksdb
+[submodule "libraries/cmake/source/sleuthkit/src"]
+	path = libraries/cmake/source/sleuthkit/src
+	url = https://github.com/sleuthkit/sleuthkit
+[submodule "libraries/cmake/source/sqlite/src"]
+	path = libraries/cmake/source/sqlite/src
+	url = https://github.com/osquery/third-party-sqlite
+[submodule "libraries/cmake/source/ssdeep-cpp/src"]
+	path = libraries/cmake/source/ssdeep-cpp/src
+	url = https://github.com/ssdeep-project/ssdeep
+[submodule "libraries/cmake/source/thrift/src"]
+	path = libraries/cmake/source/thrift/src
+	url = https://github.com/apache/thrift
+[submodule "libraries/cmake/source/util-linux/src"]
+	path = libraries/cmake/source/util-linux/src
+	url = https://git.kernel.org/pub/scm/utils/util-linux/util-linux
+[submodule "libraries/cmake/source/yara/src"]
+	path = libraries/cmake/source/yara/src
+	url = https://github.com/VirusTotal/yara
+[submodule "libraries/cmake/source/zlib/src"]
+	path = libraries/cmake/source/zlib/src
+	url = https://github.com/madler/zlib
+[submodule "libraries/cmake/source/zstd/src"]
+	path = libraries/cmake/source/zstd/src
+	url = https://github.com/facebook/zstd
+[submodule "libraries/cmake/source/augeas/src"]
+	path = libraries/cmake/source/augeas/src
+	url = https://github.com/hercules-team/augeas
+[submodule "libraries/cmake/source/smartmontools/src"]
+	path = libraries/cmake/source/smartmontools/src
+	url = https://github.com/osquery/third-party-smartmontools
+[submodule "libraries/cmake/source/berkeley-db/src"]
+	path = libraries/cmake/source/berkeley-db/src
+	url = https://github.com/osquery/third-party-berkeley-db
+[submodule "libraries/cmake/source/librpm/src"]
+	path = libraries/cmake/source/librpm/src
+	url = https://github.com/rpm-software-management/rpm
+[submodule "libraries/cmake/source/popt/src"]
+	path = libraries/cmake/source/popt/src
+	url = https://github.com/osquery/third-party-popt
+[submodule "libraries/cmake/source/libdpkg/src"]
+	path = libraries/cmake/source/libdpkg/src
+	url = https://git.dpkg.org/cgit/dpkg/dpkg.git
+[submodule "libraries/cmake/source/libaudit/src"]
+	path = libraries/cmake/source/libaudit/src
+	url = https://github.com/linux-audit/audit-userspace
+[submodule "libraries/cmake/source/libelfin/src"]
+	path = libraries/cmake/source/libelfin/src
+	url = https://github.com/aclements/libelfin
+[submodule "libraries/cmake/source/libgcrypt/src"]
+	path = libraries/cmake/source/libgcrypt/src
+	url = https://dev.gnupg.org/source/libgcrypt.git
+[submodule "libraries/cmake/source/libgpg-error/src"]
+	path = libraries/cmake/source/libgpg-error/src
+	url = https://dev.gnupg.org/source/libgpg-error.git
+[submodule "libraries/cmake/source/libcryptsetup/src"]
+	path = libraries/cmake/source/libcryptsetup/src
+	url = https://gitlab.com/cryptsetup/cryptsetup.git
+[submodule "libraries/cmake/source/libdevmapper/src"]
+	path = libraries/cmake/source/libdevmapper/src
+	url = https://github.com/lvmteam/lvm2
+[submodule "libraries/cmake/source/libiptables/src"]
+	path = libraries/cmake/source/libiptables/src
+	url = https://github.com/osquery/third-party-iptables
+[submodule "libraries/cmake/source/librdkafka/src"]
+	path = libraries/cmake/source/librdkafka/src
+	url = https://github.com/edenhill/librdkafka
+[submodule "libraries/cmake/source/lldpd/src"]
+	path = libraries/cmake/source/lldpd/src
+	url = https://github.com/vincentbernat/lldpd
+[submodule "libraries/cmake/source/googletest/src"]
+	path = libraries/cmake/source/googletest/src
+	url = https://github.com/google/googletest
+[submodule "libraries/cmake/source/glog/src"]
+	path = libraries/cmake/source/glog/src
+	url = https://github.com/google/glog
+[submodule "libraries/cmake/source/gflags/src"]
+	path = libraries/cmake/source/gflags/src
+	url = https://github.com/gflags/gflags
+[submodule "libraries/cmake/source/aws-sdk-cpp/aws-c-common_src"]
+	path = libraries/cmake/source/aws-sdk-cpp/aws-c-common_src
+	url = https://github.com/awslabs/aws-c-common
+[submodule "libraries/cmake/source/aws-sdk-cpp/aws-c-event-stream_src"]
+	path = libraries/cmake/source/aws-sdk-cpp/aws-c-event-stream_src
+	url = https://github.com/awslabs/aws-c-event-stream
+[submodule "libraries/cmake/source/aws-sdk-cpp/aws-checksums_src"]
+	path = libraries/cmake/source/aws-sdk-cpp/aws-checksums_src
+	url = https://github.com/awslabs/aws-checksums
+[submodule "libraries/cmake/source/aws-sdk-cpp/aws-sdk-cpp_src"]
+	path = libraries/cmake/source/aws-sdk-cpp/aws-sdk-cpp_src
+	url = https://github.com/aws/aws-sdk-cpp
+[submodule "libraries/cmake/source/boost/src"]
+	path = libraries/cmake/source/boost/src
+	url = https://github.com/boostorg/boost
+[submodule "libraries/cmake/source/icu/src"]
+	path = libraries/cmake/source/icu/src
+	url = https://github.com/unicode-org/icu
+[submodule "libraries/cmake/source/augeas/gnulib/src"]
+	path = libraries/cmake/source/augeas/gnulib/src
+	url = https://github.com/osquery/third-party-gnulib

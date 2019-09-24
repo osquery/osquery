@@ -12,7 +12,7 @@ function(generateOsqueryUtilsSchemerTestsSchemertestsTest)
   add_osquery_executable(osquery_utils_schemer_tests_schemertests-test schemer.cpp)
 
   target_link_libraries(osquery_utils_schemer_tests_schemertests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_conversions_to
     osquery_utils_schemer
     thirdparty_googletest

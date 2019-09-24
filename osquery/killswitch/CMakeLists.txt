@@ -6,7 +6,7 @@
 
 function(osqueryKillswitchMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -23,7 +23,7 @@ function(generateOsqueryKillswitch)
   enableLinkWholeArchive(osquery_killswitch)
 
   target_link_libraries(osquery_killswitch PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     thirdparty_googletest_headers
   )

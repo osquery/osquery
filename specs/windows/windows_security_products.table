@@ -1,0 +1,14 @@
+table_name("windows_security_products")
+description("Enumeration of registered Windows security products.")
+schema([
+    Column("type", TEXT, "Type of security product"),
+    Column("name", TEXT, "Name of product"),
+    Column("state", TEXT, "State of protection"),
+    Column("state_timestamp", TEXT, "Timestamp for the product state"),
+    Column("remediation_path", TEXT, "Remediation path"),
+    Column("signatures_up_to_date", INTEGER, "1 if product signatures are up to date, else 0"),
+])
+implementation("system/windows/windows_security_products@gen_wsp")
+examples([
+  "select * from windows_security_products",
+])

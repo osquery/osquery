@@ -19,7 +19,7 @@ function(generateOsqueryRemoteTestsRemotetestsutils)
   generateIncludeNamespace(osquery_remote_tests_remotetestutils "osquery/remote/tests" "FILE_ONLY" ${public_header_files})
 
   target_link_libraries(osquery_remote_tests_remotetestutils PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_database
     osquery_events
@@ -39,7 +39,7 @@ function(generateOsqueryRemoteTestsRequeststestsTest)
   add_osquery_executable(osquery_remote_tests_requeststests-test requests_tests.cpp)
 
   target_link_libraries(osquery_remote_tests_requeststests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_database
     osquery_events

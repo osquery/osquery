@@ -1,6 +1,6 @@
 An osquery deployment consists of:
 
-* Installing the tools for [Windows](../installation/install-windows.md), [macOS](../installation/install-osx.md), or [Linux](../installation/install-linux.md)
+* Installing the tools for [Windows](../installation/install-windows.md), [macOS](../installation/install-macos.md), or [Linux](../installation/install-linux.md)
 * Reviewing the [osqueryd](../introduction/using-osqueryd.md) introduction
 * Configuring and starting the **osqueryd** service (this page)
 * Managing and [collecting](log-aggregation.md) the query results
@@ -70,7 +70,7 @@ tooling](performance-safety.md) to understand the performance impact for each
 query.
 
 The results of your query are cached on disk using
-[RocksDB](http://rocksdb.org/). On the first query run, all of the results are
+[RocksDB](https://rocksdb.org). On the first query run, all of the results are
 stored in RocksDB. On subsequent runs, only result-set-difference (changes) are logged to RocksDB.
 
 Scheduled queries can also set: `"removed":false` and `"snapshot":true`. See
@@ -243,7 +243,7 @@ When osquery's config parser is provided a string instead of inline dictionary t
 
 **Where can I get more packs?**
 
-We release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc.). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts. You can find the query packs that are released by the osquery team documented at [https://osquery.io/docs/packs](https://osquery.io/docs/packs) and the content in [**/packs**](https://github.com/facebook/osquery/blob/master/packs) within the osquery repository.
+We release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc.). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts. You can find the query packs that are released by the osquery team documented at [https://osquery.io/docs/packs](https://osquery.io/docs/packs) and the content in [**/packs**](https://github.com/osquery/osquery/blob/master/packs) within the osquery repository.
 
 **How do I modify the default options in the provided packs?**
 
@@ -585,7 +585,7 @@ And the following files/templates used by the recipe:
 **templates/default/launchd.plist.erb**
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>Label</key>

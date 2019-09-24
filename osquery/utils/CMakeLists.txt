@@ -20,7 +20,7 @@ function(osqueryUtilsMain)
   add_subdirectory("versioning")
   add_subdirectory("schemer")
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsUtilstestsTest()
   endif()
 
@@ -47,7 +47,7 @@ function(generateOsqueryUtils)
   add_osquery_library(osquery_utils_attribute INTERFACE)
 
   target_link_libraries(osquery_utils PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     thirdparty_glog
     osquery_logger
     osquery_utils_config
@@ -101,7 +101,7 @@ function(generateOsqueryUtilsUtilstestsTest)
   add_osquery_executable(osquery_utils_utilstests-test ${source_files})
 
   target_link_libraries(osquery_utils_utilstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils
     thirdparty_googletest
   )

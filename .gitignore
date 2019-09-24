@@ -30,7 +30,6 @@ build/
 # Run Artifacts
 *.log
 *.orig
-*.patch
 *.rej
 
 # Vagrant Artifacts

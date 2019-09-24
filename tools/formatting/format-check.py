@@ -12,19 +12,21 @@ import subprocess
 import sys
 
 
-def check(base_commit):
+def check(base_commit, exclude_folders):
     try:
-        p = subprocess.Popen(
-                [
-                    "python",
-                    os.path.join(os.path.dirname(os.path.abspath(__file__)), "git-clang-format.py"),
-                    "--style=file",
-                    "--diff",
-                    "--commit",
-                    base_commit,
-                    ],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
+        cmd = [
+          "python",
+          os.path.join(os.path.dirname(os.path.abspath(__file__)), "git-clang-format.py"),
+          "--style=file",
+          "--diff",
+          "--commit",
+          base_commit,
+        ]
+
+        if exclude_folders:
+            cmd += ["--exclude-folders", exclude_folders]
+
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
     except OSError as e:
         print("{}\n\n{!r}".format("Failed to call git-clang-format.py", e))
@@ -63,6 +65,13 @@ def get_base_commit(base_branch):
 def main():
     parser = argparse.ArgumentParser(description="Check code changes formatting.")
     parser.add_argument(
+            "--exclude-folders",
+            metavar="excluded_folders",
+            type=str,
+            default="",
+            help="comma-separated list of relative paths to folders to exclude from formatting"
+    )
+    parser.add_argument(
             "base_branch",
             metavar="base_branch",
             type=str,
@@ -75,7 +84,7 @@ def main():
 
     base_commit = get_base_commit(args.base_branch)
 
-    return check(base_commit) if base_commit is not None else False
+    return check(base_commit, args.exclude_folders) if base_commit is not None else False
 
 if __name__ == "__main__":
     sys.exit(not main())

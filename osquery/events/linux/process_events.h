@@ -12,5 +12,9 @@
 
 #include <set>
 
-const std::set<int> kProcessEventsSyscalls = {
-  __NR_execve};
+namespace osquery {
+const std::set<int> kExecProcessEventsSyscalls = {__NR_execve, __NR_execveat};
+
+const std::set<int> kForkProcessEventsSyscalls = {
+    __NR_fork, __NR_vfork, __NR_clone};
+} // namespace osquery

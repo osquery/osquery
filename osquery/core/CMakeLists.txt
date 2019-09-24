@@ -8,7 +8,7 @@ function(osqueryCoreMain)
   add_subdirectory("plugins")
   add_subdirectory("sql")
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -61,15 +61,18 @@ function(generateOsqueryCore)
     thirdparty_glog
     thirdparty_openssl
     thirdparty_sqlite
-    thirdparty_glibc_pthread
   )
+
+  if(DEFINED PLATFORM_POSIX)
+    list(APPEND dependencies thirdparty_glibc_pthread)
+  endif()
 
   if(DEFINED PLATFORM_LINUX)
     list(APPEND dependencies thirdparty_util-linux)
   endif()
 
   target_link_libraries(osquery_core PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
 
     ${dependencies}
   )

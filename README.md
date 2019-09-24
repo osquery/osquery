@@ -8,17 +8,20 @@ src="https://github.com/facebook/osquery/raw/master/docs/img/logo-2x-dark.png" /
 <p align="center">
 osquery is a SQL powered operating system instrumentation, monitoring, and analytics framework.
 <br>
-Available for Linux, macOS, Windows and FreeBSD.
+Available for Linux, macOS, Windows, and FreeBSD.
 </p>
 
-| Platform | Build status  | | | |
-|----------|---------------|---|---|---|
-|MacOS 10.14  | [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=macOS)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) | | **Homepage:** | https://osquery.io
-|Ubuntu 18.04 | [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=Linux)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) | | **Downloads:** | https://osquery.io/downloads
-|Windows Server 2016 | [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master&jobName=Windows)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) | | **Tables:** | https://osquery.io/schema
-|FreeBSD 11 | N/A | | **Packs:** | [https://osquery.io/packs](https://github.com/facebook/osquery/tree/master/packs)
-| | | | **Guide:** | https://osquery.readthedocs.org
-| | | | [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com) | https://osquery-slack.herokuapp.com
+**Information and resources**
+- Homepage: https://osquery.io
+- Downloads: https://osquery.io/downloads
+- Documentation: https://osquery.readthedocs.org
+- Stack Overflow: https://stackoverflow.com/questions/tagged/osquery
+- Table Schema: https://osquery.io/schema
+- Query Packs: [https://osquery.io/packs](https://github.com/facebook/osquery/tree/master/packs)
+- Slack: [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com)
+- Build Status: [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) [![Coverity Scan Build Status](https://scan.coverity.com/projects/13317/badge.svg)](https://scan.coverity.com/projects/osquery)
+- CII Best Practices: [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125)
+
 
 ## What is osquery?
 
@@ -88,9 +91,7 @@ visit [https://osquery.io/downloads](https://osquery.io/downloads/).
 
 ## Build from source
 
-Building osquery from source is encouraged! Check out our [build guide](BUILD.md).
-
-Also check out our [contributing guide](CONTRIBUTING.md) and join the community on [Slack](https://slack.osquery.io).
+Building osquery from source is encouraged! Check out our [build guide](https://osquery.readthedocs.io/en/latest/development/building/). Also check out our [contributing guide](CONTRIBUTING.md) and join the community on [Slack](https://slack.osquery.io).
 
 ## License
 

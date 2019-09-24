@@ -6,7 +6,7 @@
 
 function(osqueryNumericmonitoringPluginsMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -22,7 +22,7 @@ function(generateOsqueryNumericmonitoringPluginsNumericmonitoringfilesystem)
   enableLinkWholeArchive(plugins_numericmonitoring_filesystem)
 
   target_link_libraries(plugins_numericmonitoring_filesystem PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_filesystem
     osquery_numericmonitoring
   )

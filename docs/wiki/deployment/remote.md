@@ -177,7 +177,7 @@ The TLS client does not handle HTTP errors, if the service returns a bad request
 
 ## Server testing
 
-We include a very basic example python TLS/HTTPS server: [./tools/tests/test_http_server.py](https://github.com/facebook/osquery/blob/master/tools/tests/test_http_server.py). And a set of unit/integration tests: [./osquery/remote/transports/tests/tls_transports_tests.cpp](https://github.com/facebook/osquery/blob/master/osquery/remote/transports/tests/tls_transports_tests.cpp) for a reference server implementation.
+We include a very basic example python TLS/HTTPS server: [./tools/tests/test_http_server.py](https://github.com/osquery/osquery/blob/master/tools/tests/test_http_server.py). And a set of unit/integration tests: [./osquery/remote/transports/tests/tls_transports_tests.cpp](https://github.com/osquery/osquery/blob/master/osquery/remote/transports/tests/tls_transports_tests.cpp) for a reference server implementation.
 
 The TLS clients built into osquery use the system-provided OpenSSL libraries. The clients use osquery's http_client built on top of Boost.Beast ASIO header-library.
 
@@ -199,7 +199,7 @@ Additionally, the osquery TLS clients use a `osquery/X.Y.Z` UserAgent, where "X.
 
 **Remote settings testing**
 
-The most basic example of a server implementing the remote settings API is the [./tools/tests/test_http_server.py](https://github.com/facebook/osquery/blob/master/tools/tests/test_http_server.py) example script. Let's start this server and have **osqueryd** exercise the API:
+The most basic example of a server implementing the remote settings API is the [./tools/tests/test_http_server.py](https://github.com/osquery/osquery/blob/master/tools/tests/test_http_server.py) example script. Let's start this server and have **osqueryd** exercise the API:
 
 ```
 $ ./tools/tests/test_http_server.py -h

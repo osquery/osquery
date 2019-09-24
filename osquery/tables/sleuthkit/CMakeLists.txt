@@ -14,7 +14,7 @@ function(generateOsqueryTablesSleuthkit)
   )
 
   target_link_libraries(osquery_tables_sleuthkit_sleuthkittable PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_hashing
     osquery_logger

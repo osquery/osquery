@@ -20,8 +20,13 @@ jobs:
       vmImage: 'Ubuntu-16.04'
 
     container:
-      image: trailofbits/osql-experimental:ubuntu-18.04
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-v2
       options: --privileged
+
+    timeoutInMinutes: 120
+
+    variables:
+      CCACHE_DIR: $(Pipeline.Workspace)/ccache
 
     steps:
     - script: mkdir $(Build.BinariesDirectory)/build
@@ -33,9 +38,8 @@ jobs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs:
           -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
-          -DCMAKE_C_COMPILER=clang
-          -DCMAKE_CXX_COMPILER=clang++
-          -DBUILD_TESTING=ON
+          -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain
+          -DOSQUERY_BUILD_TESTS=ON
           $(EXTRA_CMAKE_ARGS)
           $(Build.SourcesDirectory)
 
@@ -44,6 +48,13 @@ jobs:
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . --target format_check
+
+    - task: CacheBeta@0
+      inputs:
+        key: ccache | Linux$(BUILD_TYPE)CMake | $(CacheVersion) | $(Build.SourceVersion)
+        restoreKeys: ccache | Linux$(BUILD_TYPE)CMake | $(CacheVersion)
+        path: $(CCACHE_DIR)
+      displayName: ccache
 
     - task: CMake@1
       displayName: "Build osquery"
@@ -85,7 +96,7 @@ jobs:
 
     - script: |
         export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
-        buck test @mode/linux-x86_64/release osquery/...
+        buck test @mode/linux-x86_64/release osquery/... tests/... plugins/...
       displayName: "Run tests"
 
     - script: |
@@ -138,10 +149,13 @@ jobs:
     pool:
       vmImage: macos-10.14
 
+    variables:
+      CCACHE_DIR: $(Pipeline.Workspace)/ccache
+
     steps:
     - script: |
         brew upgrade
-        brew install ccache
+        brew install ccache flex bison
       displayName: "Install Homebrew and prerequisites"
       timeoutInMinutes: 20
 
@@ -152,7 +166,14 @@ jobs:
       displayName: "Configure osquery"
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DBUILD_TESTING=ON $(EXTRA_CMAKE_ARGS) $(Build.SourcesDirectory)
+        cmakeArgs: -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DOSQUERY_BUILD_TESTS=ON $(EXTRA_CMAKE_ARGS) $(Build.SourcesDirectory)
+
+    - task: CacheBeta@0
+      inputs:
+        key: ccache | macOS$(BUILD_TYPE)CMake | $(CacheVersion) | $(Build.SourceVersion)
+        restoreKeys: ccache | macOS$(BUILD_TYPE)CMake | $(CacheVersion)
+        path: $(CCACHE_DIR)
+      displayName: ccache
 
     - task: CMake@1
       displayName: "Build osquery"
@@ -192,7 +213,7 @@ jobs:
 
     - script: |
         export JAVA_HOME="$(/usr/libexec/java_home -v 1.8)"
-        buck test @mode/macos-x86_64/release osquery/...
+        buck test @mode/macos-x86_64/release osquery/... tests/... plugins/...
       displayName: "Run tests"
 
     - script: |
@@ -251,7 +272,7 @@ jobs:
       displayName: "Configure osquery"
       inputs:
         workingDirectory: $(Build.BinariesDirectory)\build
-        cmakeArgs: -G "Visual Studio 15 2017 Win64" -T host=x64 -DBUILD_TESTING=ON $(Build.SourcesDirectory)
+        cmakeArgs: -G "Visual Studio 15 2017 Win64" -T host=x64 -DOSQUERY_BUILD_TESTS=ON $(Build.SourcesDirectory)
 
     - task: CMake@1
       displayName: "Build osquery"
@@ -323,7 +344,7 @@ jobs:
 
     - script: |
         set PATH=$(python2);%PATH%
-        $(python2)\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" test @mode/windows-x86_64/release osquery/...
+        $(python2)\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" test @mode/windows-x86_64/release osquery/... tests/... plugins/...
       displayName: "Run tests"
 
     - powershell: |

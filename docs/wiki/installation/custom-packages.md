@@ -1,3 +1,6 @@
+!!! warning "Deprecated"
+    The following package guidance is deprecated. Please use CPack to generate packages.
+
 We support building custom deployment packages (pkg/deb/rpm) for less common use cases:
 
 - Slipstreaming additional tools into osquery's existing packages
@@ -33,7 +36,7 @@ $ ./tools/deployment/make_osx_package.sh -h
 This tool will build an OS X/macOS package with:
 
 - the **osqueryi** and **osqueryd** binaries
-- the [LaunchDaemon](https://github.com/facebook/osquery/blob/master/tools/deployment/com.facebook.osqueryd.plist) that is responsible for osqueryd
+- the [LaunchDaemon](https://github.com/osquery/osquery/blob/master/tools/deployment/com.facebook.osqueryd.plist) that is responsible for osqueryd
 - the osqueryd config file that was specified via the command line using "-c"
 
 Here is the output from us running `make_osx_package.sh`:
@@ -50,11 +53,11 @@ $ ./tools/deployment/make_osx_package.sh -c ~/Desktop/osquery.conf
 
 The distributable package can be found at `./build/darwin/osquery-VERSION.pkg`.
 
-You can now use your existing package distribution system ([JAMF](http://www.jamfsoftware.com/), [Chef](https://www.getchef.com/chef/), etc.) to push this package to your infrastructure.
+You can now use your existing package distribution system ([JAMF](https://www.jamf.com), [Chef](https://www.chef.io/products/chef-infra/), etc.) to push this package to your infrastructure.
 
 ### Custom LaunchDaemon
 
-If you want to modify the command-line arguments used to start **osqueryd**, copy and modify the [LaunchDaemon](https://github.com/facebook/osquery/blob/master/tools/com.facebook.osqueryd.plist), which is included with this repository, to suit your liking.
+If you want to modify the command-line arguments used to start **osqueryd**, copy and modify the [LaunchDaemon](https://github.com/osquery/osquery/blob/master/tools/com.facebook.osqueryd.plist), which is included with this repository, to suit your liking.
 
 When you run **make_osx_package.sh**, include a `-l`/`--launchd-path` flag which indicates the path of your new LaunchDaemon. If specified, this will be used instead of the default LaunchDaemon. For example:
 

@@ -6,7 +6,7 @@
 
 function(osqueryUtilsErrorMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsErrorErrortestsTest()
   endif()
 
@@ -17,7 +17,7 @@ function(generateOsqueryUtilsError)
   add_osquery_library(osquery_utils_error INTERFACE)
 
   target_link_libraries(osquery_utils_error INTERFACE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_conversions_to
     osquery_utils_attribute
   )
@@ -36,7 +36,7 @@ function(generateOsqueryUtilsErrorErrortestsTest)
   add_osquery_executable(osquery_utils_error_errortests-test tests/error.cpp)
 
   target_link_libraries(osquery_utils_error_errortests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_error
     thirdparty_googletest
   )

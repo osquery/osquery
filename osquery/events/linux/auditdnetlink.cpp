@@ -56,6 +56,7 @@ FLAG(bool,
 // External flags; they are used to determine which rules need to be installed
 DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
+DECLARE_bool(audit_allow_fork_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
 DECLARE_bool(audit_allow_selinux_events);
@@ -325,10 +326,20 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
 
   // Rules required by the process_events table
   if (FLAGS_audit_allow_process_events) {
-    VLOG(1) << "Enabling audit rules for the process_events table";
+    VLOG(1) << "Enabling audit rules for the process_events (execve, execveat) "
+               "table";
 
-    for (int syscall : kProcessEventsSyscalls) {
+    for (int syscall : kExecProcessEventsSyscalls) {
       monitored_syscall_list_.insert(syscall);
+    }
+
+    if (FLAGS_audit_allow_fork_process_events) {
+      VLOG(1) << "Enabling audit rules for the process_events (fork, vfork, "
+                 "clone) table";
+
+      for (int syscall : kForkProcessEventsSyscalls) {
+        monitored_syscall_list_.insert(syscall);
+      }
     }
   }
 

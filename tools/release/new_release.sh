@@ -75,37 +75,38 @@ function main() {
   cat << EOF >> ${PACKAGES}
 {
   "version": "$VERSION",
+  "url": "https://pkg.osquery.io",
   "downloads": {
     "official": [
       {
         "type": "macOS",
         "package": "osquery-$VERSION.pkg",
         "content": "$DARWIN",
-        "url": "https://pkg.osquery.io/darwin/osquery-$VERSION.pkg"
+        "platform": "darwin"
       },
       {
         "type": "Linux",
         "package": "osquery-$VERSION_1.linux_x86_64.tar.gz",
         "content": "$LINUX",
-        "url": "https://pkg.osquery.io/linux/osquery-$VERSION_1.linux_x86_64.tar.gz"
+        "platform": "linux"
       },
       {
         "type": "RPM",
         "package": "osquery-$VERSION-1.linux.x86_64.rpm",
         "content": "$RPM",
-        "url": "https://pkg.osquery.io/rpm/osquery-$VERSION-1.linux.x86_64.rpm"
+        "platform": "rpm"
       },
       {
         "type": "Debian",
         "package": "osquery_$VERSION_1.linux.amd64.deb",
         "content": "$DEB",
-        "url": "https://pkg.osquery.io/deb/osquery_$VERSION_1.linux.amd64.deb"
+        "platform": "deb"
       },
       {
         "type": "Windows",
         "package": "osquery-$VERSION.msi",
         "content": "$WINDOWS",
-        "url": "https://pkg.osquery.io/windows/osquery-$VERSION.msi"
+        "platform": "windows"
       }
     ],
     "debug": [
@@ -113,19 +114,19 @@ function main() {
         "type": "macOS",
         "package": "osquery-debug-$VERSION.pkg",
         "content": "$DEBUG_DARWIN",
-        "url": "https://pkg.osquery.io/darwin/osquery-debug-$VERSION.pkg"
+        "platform": "darwin"
       },
       {
         "type": "RPM",
         "package": "osquery-debuginfo-$VERSION-1.linux.x86_64.rpm",
         "content": "$DEBUG_RPM",
-        "url": "https://pkg.osquery.io/rpm/osquery-debuginfo-$VERSION-1.linux.x86_64.rpm"
+        "platform": "rpm"
       },
       {
         "type": "Debian",
         "package": "osquery-dbg_2.10.2_1.linux.amd64.deb",
         "content": "$DEBUG_DEB",
-        "url": "https://pkg.osquery.io/deb/osquery-dbg_$VERSION_1.linux.amd64.deb"
+        "platform": "deb"
       }
     ]
   }

@@ -6,7 +6,7 @@
 
 function(osqueryRemoteSerializersMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryRemoteserializersjsontestsTest()
   endif()
 
@@ -19,7 +19,7 @@ function(generateOsqueryRemoteSerializersSerializerjson)
   )
 
   target_link_libraries(osquery_remote_serializers_serializerjson PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_remote_requests
     osquery_utils_json
     thirdparty_boost
@@ -38,7 +38,7 @@ function(generateOsqueryRemoteserializersjsontestsTest)
   add_osquery_executable(osquery_remote_serializers_remotejsonserializerstests-test tests/json_serializers_tests.cpp)
 
   target_link_libraries(osquery_remote_serializers_remotejsonserializerstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_remote_serializers_serializerjson
     thirdparty_googletest
   )

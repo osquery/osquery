@@ -1,0 +1,29 @@
+diff --git a/libudev/libudev-device.c b/libudev/libudev-device.c
+index 1024b46803..21e9d46c65 100644
+--- a/libudev/libudev-device.c
++++ b/libudev/libudev-device.c
+@@ -23,6 +23,10 @@
+ #include <sys/stat.h>
+ #include <sys/ioctl.h>
+ #include <sys/socket.h>
++#include <sys/types.h>
++#ifdef __GNU_LIBRARY__
++#include <sys/sysmacros.h>
++#endif
+ #include <linux/sockios.h>
+ 
+ #include "libudev.h"
+diff --git a/libudev/libudev-enumerate.c b/libudev/libudev-enumerate.c
+index f14d5c8f57..85669c6f53 100644
+--- a/libudev/libudev-enumerate.c
++++ b/libudev/libudev-enumerate.c
+@@ -20,6 +20,9 @@
+ #include <stdbool.h>
+ #include <sys/stat.h>
+ #include <sys/param.h>
++#ifdef __GNU_LIBRARY__
++#include <sys/sysmacros.h>
++#endif
+ 
+ #include "libudev.h"
+ #include "libudev-private.h"

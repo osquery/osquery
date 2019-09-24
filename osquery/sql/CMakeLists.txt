@@ -6,7 +6,7 @@
 
 function(osquerySqlMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -40,7 +40,7 @@ function(generateOsquerySql)
   enableLinkWholeArchive(osquery_sql)
 
   target_link_libraries(osquery_sql PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_carver
     osquery_core
     osquery_core_plugins
@@ -52,8 +52,13 @@ function(generateOsquerySql)
     thirdparty_googletest_headers
     thirdparty_sqlite
     thirdparty_gflags
-    thirdparty_ssdeep-cpp
   )
+
+  if(NOT DEFINED PLATFORM_WINDOWS)
+    target_link_libraries(osquery_sql PUBLIC
+      thirdparty_ssdeep-cpp
+    )
+  endif()
 
   set(public_header_files
     dynamic_table_row.h

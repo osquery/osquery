@@ -12,7 +12,7 @@ function(generateOsquerySystemNetworkTestsHostnamehostidentitytestsTest)
   add_osquery_executable(osquery_system_network_tests_hostnamehostidentitytests-test host_identity.cpp)
 
   target_link_libraries(osquery_system_network_tests_hostnamehostidentitytests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_system_network_hostname
     thirdparty_boost
     osquery_config_tests_testutils
