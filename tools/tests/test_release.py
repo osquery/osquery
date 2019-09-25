@@ -69,9 +69,6 @@ class ReleaseTests(test_base.QueryTester):
         self.assertEqual(proc, 1)
 
 if __name__ == '__main__':
-    SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-    SOURCE_DIR = os.path.abspath(SCRIPT_DIR + "/../../")
-
     module = test_base.Tester()
     # Find and import the thrift-generated python interface
     test_base.loadThriftFromBuild(test_base.ARGS.build)

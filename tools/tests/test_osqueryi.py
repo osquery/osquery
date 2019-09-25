@@ -39,7 +39,7 @@ class OsqueryiTest(unittest.TestCase):
             self.binary,
             "--config_check",
             "--database_path=%s" % (self.dbpath),
-            "--config_path=%s/test.config" % test_base.SCRIPT_DIR,
+            "--config_path=%s/test.config" % test_base.TEST_CONFIGS_DIR,
             "--extensions_autoload=",
             "--verbose",
         ],
@@ -51,7 +51,7 @@ class OsqueryiTest(unittest.TestCase):
 
     def test_config_dump(self):
         '''Test that config raw output is dumped when requested'''
-        config = os.path.join(test_base.SCRIPT_DIR, "test_noninline_packs.conf")
+        config = os.path.join(test_base.TEST_CONFIGS_DIR, "test_noninline_packs.conf")
         proc = test_base.TimeoutRunner([
                 self.binary,
                 "--config_dump",
@@ -97,7 +97,7 @@ class OsqueryiTest(unittest.TestCase):
             "--extensions_autoload=",
             "--verbose",
             "--database_path=%s" % (self.dbpath),
-            "--config_path=%s" % os.path.join(test_base.SCRIPT_DIR, "test.badconfig")
+            "--config_path=%s" % os.path.join(test_base.TEST_CONFIGS_DIR, "test.badconfig")
         ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.proc.poll(), 1)
@@ -121,11 +121,10 @@ class OsqueryiTest(unittest.TestCase):
 
     def test_config_check_example(self):
         '''Test that the example config passes'''
-        example_path = os.path.join("deployment", "osquery.example.conf")
         proc = test_base.TimeoutRunner([
                 self.binary,
                 "--config_check",
-                "--config_path=%s" % os.path.join(test_base.SCRIPT_DIR, "..", example_path),
+                "--config_path=%s" % os.path.join(test_base.TEST_CONFIGS_DIR, "osquery.example.conf"),
                 "--extensions_autoload=",
                 "--verbose",
             ],
@@ -245,7 +244,7 @@ class OsqueryiTest(unittest.TestCase):
     @test_base.flaky
     def test_atc(self):
         local_osquery_instance = test_base.OsqueryWrapper(self.binary,
-                                                 args={"config_path": "test.config"})
+                                                 args={"config_path": "%s" % os.path.join(test_base.TEST_CONFIGS_DIR, "test.config") })
         result = local_osquery_instance.run_query('SELECT a_number FROM test_atc')
         self.assertEqual(result, [{'a_number':'314159'}])
 

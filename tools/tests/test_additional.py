@@ -19,7 +19,7 @@ import utils
 class AdditionalFeatureTests(test_base.ProcessGenerator, unittest.TestCase):
     @test_base.flaky
     def test_query_packs(self):
-        query_pack_path = test_base.CONFIG_DIR + "/test_pack.conf"
+        query_pack_path = test_base.TEST_CONFIGS_DIR + "/test_pack.conf"
         utils.write_config({
             "queries": {
                 "simple_test": {

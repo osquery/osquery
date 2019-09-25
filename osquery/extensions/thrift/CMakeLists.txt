@@ -29,6 +29,7 @@ function(generateOsqueryExtensionsThriftOsquerycpp2)
   )
 
   generateIncludeNamespace(osquery_extensions_thrift_osquerycpp2 "" "FILE_ONLY" ${public_header_files})
+
 endfunction()
 
 osqueryExtensionsThriftMain()

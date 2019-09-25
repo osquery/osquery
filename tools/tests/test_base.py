@@ -39,10 +39,6 @@ if os.name == "nt":
 else:
     import pexpect
 
-# While this path can be variable, in practice is lives statically.
-OSQUERY_DEPENDENCIES = os.getenv("OSQUERY_DEPS", "/usr/local/osquery")
-sys.path = [OSQUERY_DEPENDENCIES + "/lib/python2.7/site-packages"] + sys.path
-
 if os.name != "nt":
     try:
         from pexpect.replwrap import REPLWrapper
@@ -546,14 +542,22 @@ def flaky(gen):
 
 class Tester(object):
     def __init__(self):
-        global ARGS, CONFIG, CONFIG_DIR
+        global ARGS, CONFIG, CONFIG_DIR, TEST_CONFIGS_DIR
         parser = argparse.ArgumentParser(
             description=("osquery python integration testing."))
+
+        parser.add_argument(
+            "--test-configs-dir",
+            required=True,
+            help="Directory where the config files the test may use are"
+        )
+
         parser.add_argument(
             "--config",
             metavar="FILE",
             default=None,
             help="Use special options from a config.")
+
         parser.add_argument(
             "--verbose",
             default=False,
@@ -578,6 +582,7 @@ class Tester(object):
 
         utils.reset_dir(CONFIG_DIR)
         CONFIG = read_config(ARGS.config) if ARGS.config else DEFAULT_CONFIG
+        TEST_CONFIGS_DIR = ARGS.test_configs_dir
 
     @timeout_decorator.timeout(20 * 60)
     def run(self):
@@ -711,14 +716,11 @@ def getLatestInfoLog(base):
 
 
 def loadThriftFromBuild(build_dir):
-    '''Find and import the thrift-generated python interface.'''
-    thrift_path = build_dir + "/generated/gen-py"
+    '''Import the thrift-generated python interface.'''
     try:
-        sys.path = [thrift_path, thrift_path + "/osquery"] + sys.path
-        from osquery import ExtensionManager, Extension
+        from osquery.extensions import ExtensionManager, Extension
         EXClient.setUp(ExtensionManager, Extension)
     except ImportError as e:
-        print("Cannot import osquery thrift API from %s" % (thrift_path))
+        print("Cannot import osquery thrift API")
         print("Exception: %s" % (str(e)))
-        print("You must first run: make")
         exit(1)

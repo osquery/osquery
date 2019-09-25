@@ -34,6 +34,7 @@ function(thrifMain)
   importThirdPartyBinaryLibrary("${name}" "${version}" "${hash}" "${anchor_file}" ${additional_libraries})
 
   target_link_libraries("thirdparty_${name}" INTERFACE thirdparty_boost)
+
 endfunction()
 
 thrifMain()

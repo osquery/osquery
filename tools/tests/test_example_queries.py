@@ -17,7 +17,6 @@ import sys
 import test_base
 import utils
 
-
 class ExampleQueryTests(test_base.QueryTester):
     @test_base.flaky
     def test_cross_platform_queries(self):
@@ -35,12 +34,11 @@ class ExampleQueryTests(test_base.QueryTester):
         self._execute_set(PLATFORM_EXAMPLES["utility"])
 
 if __name__ == '__main__':
+    module = test_base.Tester()
+
     # Import the API generation code for example query introspection.
-    SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-    SOURCE_DIR = os.path.abspath(SCRIPT_DIR + "/../../")
-    sys.path.append(SOURCE_DIR + "/tools/codegen")
     from genapi import gen_api
-    API = gen_api(SOURCE_DIR + "/specs")
+    API = gen_api("%s/specs" % (test_base.TEST_CONFIGS_DIR))
 
     # Organize example queries by platform
     PLATFORM_EXAMPLES = {}
@@ -53,8 +51,6 @@ if __name__ == '__main__':
                 PLATFORM_EXAMPLES[category["key"]] += [
                     "select * from %s limit 1" % table["name"]
                 ]
-
-    module = test_base.Tester()
 
     # Find and import the thrift-generated python interface
     test_base.loadThriftFromBuild(test_base.ARGS.build)

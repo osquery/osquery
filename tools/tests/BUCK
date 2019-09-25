@@ -11,6 +11,6 @@ osquery_python_library(
     srcs = [
         "utils.py",
     ],
-    base_module = "osquery.tools.tests",
+    base_module = "osquery_tests.tools.tests",
     visibility = ["PUBLIC"],
 )
