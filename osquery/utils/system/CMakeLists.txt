@@ -21,6 +21,7 @@ function(osqueryUtilsSystemMain)
   generateOsqueryUtilsSystemTime()
   generateOsqueryUtilsSystem()
   generateOsqueryUtilsSystemUptime()
+  generateOsqueryUtilsSystemStatus()
 endfunction()
 
 function(generateOsqueryUtilsSystemEnv)
@@ -89,7 +90,7 @@ function(generateOsqueryUtilsSystemErrno)
 
   add_osquery_library(osquery_utils_system_errno EXCLUDE_FROM_ALL
     ${source_files}
-  ) 
+  )
 
   target_link_libraries(osquery_utils_system_errno PUBLIC
     osquery_cxx_settings
@@ -147,7 +148,7 @@ function(generateOsqueryUtilsSystemTime)
     list(APPEND source_files
       posix/time.cpp
     )
-    
+
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/time.cpp
@@ -193,7 +194,7 @@ function(generateOsqueryUtilsSystem)
 
   add_osquery_library(osquery_utils_system_systemutils EXCLUDE_FROM_ALL
     ${source_files}
-  ) 
+  )
 
   target_link_libraries(osquery_utils_system_systemutils PUBLIC
     osquery_cxx_settings
@@ -219,7 +220,7 @@ endfunction()
 function(generateOsqueryUtilsSystemUptime)
   add_osquery_library(osquery_utils_system_uptime EXCLUDE_FROM_ALL
     uptime.cpp
-  ) 
+  )
 
   target_link_libraries(osquery_utils_system_uptime PUBLIC
     osquery_cxx_settings
