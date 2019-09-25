@@ -45,7 +45,6 @@ function(generateOsqueryConfigTestsTest)
     plugins_database_ephemeral
     specs_tables
     osquery_config_tests_testutils
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
 
@@ -69,7 +68,6 @@ function(generateOsqueryConfigTestsPacksTest)
     plugins_database_ephemeral
     specs_tables
     osquery_config_tests_testutils
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
 
