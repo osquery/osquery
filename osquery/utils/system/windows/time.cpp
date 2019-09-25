@@ -12,8 +12,8 @@
 #include <string.h>
 #include <vector>
 
-#include <boost/algorithm/string.hpp>
 #include <Windows.h>
+#include <boost/algorithm/string.hpp>
 
 #define MAX_BUFFER_SIZE 256
 
@@ -31,4 +31,4 @@ std::string platformAsctime(const struct tm* timeptr) {
   boost::replace_all(time_str, "\n", "");
   return time_str;
 }
-}
+} // namespace osquery

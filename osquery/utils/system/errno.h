@@ -16,8 +16,8 @@
 #include <Windows.h>
 #endif
 
-#include <string>
 #include <osquery/utils/status/status.h>
+#include <string>
 
 namespace osquery {
 
@@ -29,4 +29,4 @@ std::string platformStrerr(int errnum);
 Status getWindowsErrorDescription(std::string& error_message, DWORD error_id);
 #endif
 
-}
+} // namespace osquery

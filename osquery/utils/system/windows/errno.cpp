@@ -55,4 +55,4 @@ Status getWindowsErrorDescription(std::string& error_message, DWORD error_id) {
   return Status(0);
 }
 
-}
+} // namespace osquery
