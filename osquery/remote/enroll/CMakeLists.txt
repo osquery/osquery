@@ -75,7 +75,6 @@ function(generateOsqueryRemoteenrolltestsTest)
     plugins_database_ephemeral
     tests_helper
     thirdparty_googletest
-    osquery_tools_tests_testfiles
   )
 endfunction()
 

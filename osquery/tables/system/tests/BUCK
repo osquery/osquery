@@ -206,7 +206,7 @@ osquery_cxx_test(
     name = "apps_tests",
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:plist_files"),
+            osquery_target("tools/tests/configs:plist_files"),
         ),
     },
     platform_srcs = [
@@ -261,7 +261,7 @@ osquery_cxx_test(
     name = "certificates_tests",
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:test_files"),
+            osquery_target("tools/tests/configs:test_files"),
         ),
     },
     platform_srcs = [
@@ -298,7 +298,7 @@ osquery_cxx_test(
     name = "extended_attributes_tests",
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:test_files"),
+            osquery_target("tools/tests/configs:test_files"),
         ),
     },
     platform_srcs = [
@@ -328,7 +328,7 @@ osquery_cxx_test(
     name = "firewall_tests",
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:plist_files"),
+            osquery_target("tools/tests/configs:plist_files"),
         ),
     },
     platform_srcs = [
@@ -358,7 +358,7 @@ osquery_cxx_test(
     name = "launchd_tests",
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:plist_files"),
+            osquery_target("tools/tests/configs:plist_files"),
         ),
     },
     platform_srcs = [
@@ -463,7 +463,7 @@ osquery_cxx_test(
     name = "startup_items_tests",
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:plist_files"),
+            osquery_target("tools/tests/configs:plist_files"),
         ),
     },
     platform_srcs = [

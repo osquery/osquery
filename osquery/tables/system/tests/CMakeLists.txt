@@ -230,7 +230,6 @@ function(generateOsqueryTablesSystemTestsAppstestsTest)
     osquery_utils_conversions
     plugins_database_ephemeral
     thirdparty_googletest
-    osquery_tools_tests_plistfiles
   )
 endfunction()
 
@@ -269,7 +268,6 @@ function(generateOsqueryTablesSystemTestsMacOsCertificatestestsTest)
     osquery_utils_conversions
     plugins_database_ephemeral
     thirdparty_googletest
-    osquery_tools_tests_testfiles
   )
 endfunction()
 
@@ -289,7 +287,6 @@ function(generateOsqueryTablesSystemTestsExtendedattributestestsTest)
     osquery_utils_conversions
     plugins_database_ephemeral
     thirdparty_googletest
-    osquery_tools_tests_testfiles
   )
 endfunction()
 
@@ -309,7 +306,6 @@ function(generateOsqueryTablesSystemTestsFirewalltestsTest)
     osquery_utils_conversions
     plugins_database_ephemeral
     thirdparty_googletest
-    osquery_tools_tests_plistfiles
   )
 endfunction()
 
@@ -329,7 +325,6 @@ function(generateOsqueryTablesSystemTestsLaunchdtestsTest)
     osquery_utils_conversions
     plugins_database_ephemeral
     thirdparty_googletest
-    osquery_tools_tests_plistfiles
   )
 endfunction()
 
@@ -406,7 +401,6 @@ function(generateOsqueryTablesSystemTestsStartupitemstestsTest)
     osquery_utils_conversions
     plugins_database_ephemeral
     thirdparty_googletest
-    osquery_tools_tests_plistfiles
   )
 endfunction()
 
@@ -493,7 +487,6 @@ function(generateOsqueryTablesSystemTestsAugeasTestsTest)
 
   add_dependencies(osquery_tables_system_tests_augeastests-test osquery_tables_system_tests_augeaslenses)
   add_dependencies(osquery_tables_system_tests_augeaslenses thirdparty_augeas)
-  add_dependencies(osquery_tables_system_tests_augeaslenses osquery_tools_tests_testconfigsfolder)
 
 endfunction()
 

@@ -14,7 +14,7 @@ osquery_cxx_test(
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:conf_files"),
+            osquery_target("tools/tests/configs:conf_files"),
         ),
     },
     visibility = ["PUBLIC"],
@@ -44,7 +44,7 @@ osquery_cxx_test(
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:conf_files"),
+            osquery_target("tools/tests/configs:conf_files"),
         ),
     },
     visibility = ["PUBLIC"],
@@ -74,7 +74,7 @@ osquery_cxx_test(
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:conf_files"),
+            osquery_target("tools/tests/configs:conf_files"),
         ),
     },
     visibility = ["PUBLIC"],
@@ -105,7 +105,7 @@ osquery_cxx_test(
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:conf_files"),
+            osquery_target("tools/tests/configs:conf_files"),
         ),
     },
     visibility = ["PUBLIC"],
@@ -136,7 +136,7 @@ osquery_cxx_test(
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:conf_files"),
+            osquery_target("tools/tests/configs:conf_files"),
         ),
     },
     visibility = ["PUBLIC"],
