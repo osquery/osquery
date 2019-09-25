@@ -14,7 +14,7 @@ osquery_cxx_test(
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:test_files"),
+            osquery_target("tools/tests/configs:test_files"),
         ),
     },
     visibility = ["PUBLIC"],

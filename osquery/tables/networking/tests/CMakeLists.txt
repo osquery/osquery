@@ -32,7 +32,6 @@ function(generateOsqueryTablesNetworkingTestsNetworkingtablestestsTest)
     plugins_database_ephemeral
     thirdparty_boost
     thirdparty_googletest
-    osquery_tools_tests_testfiles
   )
 endfunction()
 
@@ -55,7 +54,6 @@ function(generateOsqueryTablesNetworkingTestsWifitestsTest)
     plugins_database_ephemeral
     thirdparty_boost
     thirdparty_googletest
-    osquery_tools_tests_plistfiles
   )
 endfunction()
 

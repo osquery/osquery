@@ -30,7 +30,7 @@ osquery_cxx_test(
     name = "remote_transports_tls_tests",
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:test_files"),
+            osquery_target("tools/tests/configs:test_files"),
         ),
     },
     platform_srcs = [
