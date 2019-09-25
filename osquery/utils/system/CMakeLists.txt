@@ -21,7 +21,7 @@ function(osqueryUtilsSystemMain)
   generateOsqueryUtilsSystemTime()
   generateOsqueryUtilsSystem()
   generateOsqueryUtilsSystemUptime()
-  generateOsqueryUtilsSystemStatus()
+  generateOsqueryUtilsStatus()
 endfunction()
 
 function(generateOsqueryUtilsSystemEnv)
