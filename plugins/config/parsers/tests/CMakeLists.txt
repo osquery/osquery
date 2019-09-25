@@ -32,9 +32,10 @@ function(generatePluginsConfigParsersTestsDecoratorstestsTest)
     plugins_config_parsers
     plugins_database_ephemeral
     specs_tables
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
+
+  add_dependencies(plugins_config_parsers_tests_decoratorstests-test osquery_tools_tests_conffiles)
 endfunction()
 
 function(generatePluginsConfigParsersTestsEventsparsertestsTest)
@@ -58,10 +59,10 @@ function(generatePluginsConfigParsersTestsEventsparsertestsTest)
     plugins_config_parsers
     plugins_database_ephemeral
     specs_tables
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
 
+  add_dependencies(plugins_config_parsers_tests_eventsparsertests-test osquery_tools_tests_conffiles)
 endfunction()
 
 function(generatePluginsConfigParsersTestsFilepathstestsTest)
@@ -85,9 +86,10 @@ function(generatePluginsConfigParsersTestsFilepathstestsTest)
     plugins_config_parsers
     plugins_database_ephemeral
     specs_tables
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
+
+  add_dependencies(plugins_config_parsers_tests_filepathstests-test osquery_tools_tests_conffiles)
 endfunction()
 
 function(generatePluginsConfigParsersTestsOptionstestsTest)
@@ -112,9 +114,10 @@ function(generatePluginsConfigParsersTestsOptionstestsTest)
     plugins_config_parsers
     plugins_database_ephemeral
     specs_tables
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
+
+  add_dependencies(plugins_config_parsers_tests_optionstests-test osquery_tools_tests_conffiles)
 endfunction()
 
 function(generatePluginsConfigParsersTestsViewstestsTest)

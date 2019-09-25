@@ -26,8 +26,9 @@ function(generateOsqueryUtilsAwsTestsTest)
     plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
-    osquery_tools_tests_awsfiles
   )
+
+  add_dependencies(osquery_utils_aws_tests-test osquery_tools_tests_awsfiles)
 endfunction()
 
 osqueryUtilsAwsTestsMain()

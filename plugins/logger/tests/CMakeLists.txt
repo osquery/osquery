@@ -142,8 +142,9 @@ function(generatePluginsLoggerTestsTlsloggertestsTest)
     specs_tables
     thirdparty_googletest
     thirdparty_gflags
-    osquery_tools_tests_testfiles
   )
+
+  add_dependencies(plugins_logger_tests_tlsloggertests-test osquery_tools_tests_testfiles)
 endfunction()
 
 function(generatePluginsLoggerTestsSyslogloggertestsTest)
@@ -169,8 +170,9 @@ function(generatePluginsLoggerTestsSyslogloggertestsTest)
     thirdparty_googletest
     thirdparty_gflags
     osquery_remote_tests_remotetestutils
-    osquery_tools_tests_testfiles
   )
+
+  add_dependencies(plugins_logger_tests_syslogloggertests-test osquery_tools_tests_testfiles)
 endfunction()
 
 pluginsLoggerTestsMain()

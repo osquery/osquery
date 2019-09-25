@@ -123,9 +123,10 @@ function(generateOsqueryFilesystemTest)
     specs_tables
     osquery_filesystem_mockfilestructure
     osquery_filesystem
-    osquery_tools_tests_plistfiles
     thirdparty_googletest
   )
+
+  add_dependencies(osquery_filesystem_filesystemtests-test osquery_tools_tests_plistfiles)
 endfunction()
 
 osqueryFilesystemMain()

@@ -5,12 +5,14 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(osqueryToolsTestsMain)
-  add_custom_target(osquery_tools_tests_testconfigsfolder COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/test_configs")
-  generateCopyFileTarget("osquery_tools_tests_conffiles" "REGEX" "*.conf" "${TEST_CONFIGS_DIR}")
-  generateCopyFileTarget("osquery_tools_tests_configfiles" "REGEX" "*.config" "${TEST_CONFIGS_DIR}")
-  generateCopyFileTarget("osquery_tools_tests_plistfiles" "REGEX" "*.plist" "${TEST_CONFIGS_DIR}")
-  generateCopyFileTarget("osquery_tools_tests_testfiles" "REGEX" "*" "${TEST_CONFIGS_DIR}")
-  generateCopyFileTarget("osquery_tools_tests_awsfiles" "REGEX" "aws/*" "${TEST_CONFIGS_DIR}")
+  if(OSQUERY_BUILD_TESTS)
+    set(configs_base_path "${CMAKE_CURRENT_SOURCE_DIR}/configs")
+    generateCopyFileTarget("osquery_tools_tests_conffiles" "${configs_base_path}" "REGEX" "*.conf" "${TEST_CONFIGS_DIR}")
+    generateCopyFileTarget("osquery_tools_tests_configfiles" "${configs_base_path}" "REGEX" "*.config" "${TEST_CONFIGS_DIR}")
+    generateCopyFileTarget("osquery_tools_tests_plistfiles" "${configs_base_path}" "REGEX" "*.plist" "${TEST_CONFIGS_DIR}")
+    generateCopyFileTarget("osquery_tools_tests_testfiles" "${configs_base_path}" "REGEX" "*" "${TEST_CONFIGS_DIR}")
+    generateCopyFileTarget("osquery_tools_tests_awsfiles" "${configs_base_path}" "REGEX" "aws/*" "${TEST_CONFIGS_DIR}")
+  endif()
 endfunction()
 
 osqueryToolsTestsMain()

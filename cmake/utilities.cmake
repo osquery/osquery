@@ -124,14 +124,23 @@ function(generateUnsupportedPlatformSourceFile)
   set(unsupported_platform_source_file "${source_file}" PARENT_SCOPE)
 endfunction()
 
-function(generateCopyFileTarget name type relative_file_paths destination)
-  set(source_base_path "${CMAKE_CURRENT_SOURCE_DIR}")
+function(generateCopyFileTarget name base_path type relative_file_paths destination)
 
-  if(type STREQUAL "REGEX")
-    file(GLOB_RECURSE relative_file_paths RELATIVE "${source_base_path}" "${source_base_path}/${relative_file_paths}")
+  if(base_path)
+    set(base_path "${base_path}/")
+  else()
+    set(base_path "${CMAKE_CURRENT_SOURCE_DIR}/")
   endif()
 
-  add_library("${name}" INTERFACE)
+  if(type STREQUAL "REGEX")
+    if(base_path)
+      file(GLOB_RECURSE relative_file_paths RELATIVE "${base_path}" "${base_path}${relative_file_paths}")
+    else()
+      file(GLOB_RECURSE relative_file_paths "${base_path}${relative_file_paths}")
+    endif()
+  endif()
+
+  add_custom_target("${name}")
 
   foreach(file ${relative_file_paths})
     get_filename_component(intermediate_directory "${file}" DIRECTORY)
@@ -148,7 +157,16 @@ function(generateCopyFileTarget name type relative_file_paths destination)
     list(APPEND created_directories "${destination}/${directory}")
   endforeach()
 
-  add_custom_target("${name}_create_dirs" DEPENDS "${created_directories}")
+  list(APPEND "create_dirs_deps"
+    "${created_directories}"
+    "${destination}"
+  )
+
+  add_custom_target("${name}_create_dirs" DEPENDS "${create_dirs_deps}")
+  add_custom_command(
+    OUTPUT "${destination}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${destination}"
+  )
 
   foreach(file ${relative_file_paths})
 
@@ -160,16 +178,17 @@ function(generateCopyFileTarget name type relative_file_paths destination)
 
     add_custom_command(
       OUTPUT "${destination}/${file}"
-      COMMAND "${CMAKE_COMMAND}" -E copy "${source_base_path}/${file}" "${destination}/${file}"
+      COMMAND "${CMAKE_COMMAND}" -E copy "${base_path}${file}" "${destination}/${file}"
     )
     list(APPEND copied_files "${destination}/${file}")
   endforeach()
 
-  add_custom_target("${name}_copy_files" DEPENDS "${name}_create_dirs" "${copied_files}")
+  add_custom_target("${name}_copy_files" DEPENDS "${copied_files}")
 
+  add_dependencies("${name}_copy_files" "${name}_create_dirs")
   add_dependencies("${name}" "${name}_copy_files")
 
-  set_target_properties("${name}" PROPERTIES INTERFACE_BINARY_DIR "${destination}")
+  set_target_properties("${name}" PROPERTIES FILES_DESTINATION_DIR "${destination}")
 endfunction()
 
 function(add_osquery_executable)

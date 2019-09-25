@@ -75,8 +75,9 @@ function(generateOsqueryRemoteenrolltestsTest)
     plugins_database_ephemeral
     tests_helper
     thirdparty_googletest
-    osquery_tools_tests_testfiles
   )
+
+  add_dependencies(osquery_remote_enroll_remoteenrolltests-test osquery_tools_tests_testfiles)
 endfunction()
 
 osqueryRemoteEnrollTlsenrollMain()
