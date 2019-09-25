@@ -20,8 +20,8 @@ jobs:
       vmImage: 'Ubuntu-16.04'
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v5
-      options: --privileged
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-v6
+      options: --privileged --init
 
     timeoutInMinutes: 120
 
@@ -199,6 +199,7 @@ jobs:
     - script: |
         brew upgrade
         brew install ccache flex bison
+        pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
         sudo xcode-select -s /Applications/Xcode_10.3.app/Contents/Developer
       displayName: "Install Homebrew and prerequisites"
       timeoutInMinutes: 20
@@ -328,6 +329,11 @@ jobs:
         git config --global core.symlinks true
 
     - checkout: self
+
+    - powershell: |
+        $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\x64) | Sort-Object -Descending)[0].FullName
+        & $python3_path\python -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
+      displayName: Install tests prerequisites
 
     - powershell: |
         mkdir $(Build.BinariesDirectory)\build
