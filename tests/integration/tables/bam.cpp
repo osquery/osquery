@@ -17,8 +17,8 @@ TEST_F(BamTest, test_sanity) {
   ASSERT_GT(rows.size(), 1ul);
 
   ValidatatioMap row_map = {{"path", NonEmptyString},
-                           {"last_execution_time", NormalType},
-                           {"sid", NonEmptyString}};
+                            {"last_execution_time", NormalType},
+                            {"sid", NonEmptyString}};
   validate_rows(rows, row_map);
   validate_rows(specific_query_rows, row_map);
 }
