@@ -164,6 +164,7 @@ function(generateOsqueryUtilsSystemTime)
 
   target_link_libraries(osquery_utils_system_time PUBLIC
     osquery_cxx_settings
+    osquery_utils_status
     thirdparty_boost
   )
 
