@@ -26,7 +26,7 @@ TEST_F(OsVersion, test_sanity) {
 
   ASSERT_EQ(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"name", NonEmptyString},
       {"version", NonEmptyString},
       {"major", NonNegativeInt},

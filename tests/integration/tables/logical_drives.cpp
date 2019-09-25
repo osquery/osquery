@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -26,7 +25,7 @@ TEST_F(logicalDrives, test_sanity) {
   auto const data = execute_query("select * from logical_drives");
   ASSERT_GE(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"device_id", NormalType},
       {"type", NormalType},
       {"description", NormalType},

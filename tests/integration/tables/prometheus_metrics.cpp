@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -32,7 +31,7 @@ TEST_F(prometheusMetrics, test_sanity) {
   // 3. Build validation map
   // See helper.h for avaialbe flags
   // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
+  // ValidationMap row_map = {
   //      {"target_name", NormalType}
   //      {"metric_name", NormalType}
   //      {"metric_value", NormalType}
