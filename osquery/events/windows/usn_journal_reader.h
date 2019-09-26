@@ -10,22 +10,15 @@
 
 #pragma once
 
+#include <algorithm>
 #include <atomic>
-#include <condition_variable>
 #include <ctime>
 #include <memory>
 #include <ostream>
+#include <sstream>
 #include <vector>
 
-// The CMake project is not using the `SYSTEM` attribute when adding the
-// include directories for the libraries, so every little warning will
-// stop the compiler due to /WX
-#pragma warning(push)
-#pragma warning(disable : 4180)
-
-#include <boost/multiprecision/cpp_int.hpp>
-
-#pragma warning(pop)
+#include <boost/functional/hash.hpp>
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -37,10 +30,39 @@
 #include <osquery/events.h>
 
 namespace osquery {
-namespace boostmp = boost::multiprecision;
 
 /// The USN File Reference Number uniquely identifies a file within a volume
-using USNFileReferenceNumber = boostmp::int128_t;
+struct USNFileReferenceNumber {
+  std::vector<std::uint8_t> data;
+
+  USNFileReferenceNumber() : data() {}
+  USNFileReferenceNumber(std::uint64_t val) {
+    data.resize(sizeof(val));
+    std::memcpy(data.data(), &val, sizeof(val));
+  }
+
+  void operator=(DWORDLONG val) {
+    static_assert(sizeof(val) == 8, "unexpected assignment size");
+    data.resize(sizeof(val));
+    std::memcpy(data.data(), &val, sizeof(val));
+  }
+  void operator=(FILE_ID_128 val) {
+    static_assert(sizeof(val.Identifier) == 16, "unexpected assignment size");
+    data.resize(sizeof(val.Identifier));
+    std::memcpy(data.data(), &val.Identifier, sizeof(val.Identifier));
+  }
+  void operator=(GUID val) {
+    static_assert(sizeof(val) == 16, "unexpected assignment size");
+    data.resize(sizeof(val));
+    std::memcpy(data.data(), &val, sizeof(val));
+  }
+
+  bool operator==(const USNFileReferenceNumber& rhs) const;
+  bool operator!=(const USNFileReferenceNumber& rhs) const;
+  bool operator<(const USNFileReferenceNumber& rhs) const;
+
+  std::string str() const;
+};
 
 /// Event record
 struct USNJournalEventRecord final {
@@ -85,7 +107,7 @@ struct USNJournalEventRecord final {
 
   /// The drive letter is used to resolve reference numbers to path. It is also
   /// useful for debugging
-  char drive_letter;
+  char drive_letter{0U};
 
   /// Record version; mostly for debug
   size_t journal_record_version;
@@ -129,7 +151,7 @@ extern const std::unordered_map<USNJournalEventRecord::Type, std::string>
 /// FileChangePublisher
 struct USNJournalReaderContext final {
   /// This is the letter where the volume has been mounted to
-  char drive_letter{};
+  char drive_letter{0U};
 
   /// This flag is set when the reader is no longer needed (i.e.: mount point
   /// removed, or subscription no longer useful)
@@ -139,10 +161,10 @@ struct USNJournalReaderContext final {
   std::vector<USNJournalEventRecord> processed_record_list;
 
   /// Mutex for the list of processed records
-  std::mutex processed_records_mutex;
+  Mutex processed_records_mutex;
 
   /// This is used to wake up the publisher
-  std::condition_variable processed_records_cv;
+  ConditionVariable processed_records_cv;
 };
 
 using USNJournalReaderContextRef = std::shared_ptr<USNJournalReaderContext>;
@@ -153,7 +175,7 @@ class USNJournalReader final : public InternalRunnable {
   struct PrivateData;
 
   /// Private class data
-  std::unique_ptr<PrivateData> d;
+  std::unique_ptr<PrivateData> d_;
 
   /// Initialization routine
   Status initialize();
@@ -246,3 +268,12 @@ std::ostream& operator<<(std::ostream& stream,
 std::ostream& operator<<(std::ostream& stream,
                          const USNJournalEventRecord& record);
 } // namespace osquery
+
+namespace std {
+template <>
+struct hash<osquery::USNFileReferenceNumber> {
+  std::size_t operator()(const osquery::USNFileReferenceNumber& ref) const {
+    return boost::hash_range(ref.data.begin(), ref.data.end());
+  }
+};
+} // namespace std

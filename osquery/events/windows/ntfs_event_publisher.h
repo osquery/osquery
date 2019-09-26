@@ -71,10 +71,10 @@ struct NTFSEventRecord final {
   USN update_sequence_number{0U};
 
   /// Ordinal for the file or directory referenced by this record
-  USNFileReferenceNumber node_ref_number{0U};
+  USNFileReferenceNumber node_ref_number;
 
   /// Ordinal for the directory containing the file or directory referenced
-  USNFileReferenceNumber parent_ref_number{0U};
+  USNFileReferenceNumber parent_ref_number;
 
   /// Drive letter
   char drive_letter{0U};
@@ -151,7 +151,7 @@ class NTFSEventPublisher final
   struct PrivateData;
 
   /// Private class data
-  std::unique_ptr<PrivateData> d;
+  std::unique_ptr<PrivateData> d_;
 
   /// If needed, this method spawns a new USNJournalReader service for the given
   /// volume

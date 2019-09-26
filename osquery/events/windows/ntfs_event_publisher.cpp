@@ -9,10 +9,10 @@
  */
 
 #include <map>
-#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 
+#include <boost/chrono.hpp>
 #include <boost/functional/hash.hpp>
 
 #include <osquery/config/config.h>
@@ -76,12 +76,12 @@ struct NTFSEventPublisher::PrivateData final {
 
 void NTFSEventPublisher::restartJournalReaderServices(
     NTFSEventPublisherConfiguration& active_drives) {
-  WriteLock lock(d->reader_service_map_mutex);
+  WriteLock lock(d_->reader_service_map_mutex);
 
   // Spawn new services
   for (const auto& drive_letter : active_drives) {
-    if (d->reader_service_map.find(drive_letter) !=
-        d->reader_service_map.end()) {
+    if (d_->reader_service_map.find(drive_letter) !=
+        d_->reader_service_map.end()) {
       continue;
     }
 
@@ -96,14 +96,14 @@ void NTFSEventPublisher::restartJournalReaderServices(
     USNJournalReaderInstance instance = {};
     instance.reader = service;
     instance.context = context;
-    d->reader_service_map.insert({drive_letter, instance});
+    d_->reader_service_map.insert({drive_letter, instance});
 
     Dispatcher::addService(service);
   }
 
   // Terminate the ones we no longer need
-  for (auto service_it = d->reader_service_map.begin();
-       service_it != d->reader_service_map.end();) {
+  for (auto service_it = d_->reader_service_map.begin();
+       service_it != d_->reader_service_map.end();) {
     const auto& drive_letter = service_it->first;
     if (active_drives.count(drive_letter)) {
       service_it++;
@@ -117,7 +117,7 @@ void NTFSEventPublisher::restartJournalReaderServices(
             << drive_letter << ":";
 
     service_context->terminate = true;
-    service_it = d->reader_service_map.erase(service_it);
+    service_it = d_->reader_service_map.erase(service_it);
   }
 }
 
@@ -126,20 +126,19 @@ std::vector<USNJournalEventRecord> NTFSEventPublisher::acquireJournalRecords() {
   // from each one of them
   std::vector<USNJournalEventRecord> record_list;
 
-  for (auto& reader_info : d->reader_service_map) {
+  for (auto& reader_info : d_->reader_service_map) {
     auto& reader_instance = reader_info.second;
     auto& reader_context = reader_instance.context;
 
     std::vector<USNJournalEventRecord> new_record_list = {};
 
     {
-      std::unique_lock<std::mutex> lock(
-          reader_context->processed_records_mutex);
+      WriteLock lock(reader_context->processed_records_mutex);
 
       auto wait_status = reader_context->processed_records_cv.wait_for(
-          lock, std::chrono::seconds(1));
+          lock, boost::chrono::seconds(1));
 
-      if (wait_status == std::cv_status::no_timeout) {
+      if (wait_status == boost::cv_status::no_timeout) {
         new_record_list = std::move(reader_context->processed_record_list);
         reader_context->processed_record_list.clear();
       }
@@ -246,6 +245,7 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
 
   buffer.resize(required_bytes);
   if (buffer.size() != required_bytes) {
+    ::CloseHandle(handle);
     throw std::bad_alloc();
   }
 
@@ -306,11 +306,11 @@ Status NTFSEventPublisher::getPathFromParentFRN(
 
 Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
                                          char drive_letter) {
-  UpgradeLock lock(d->volume_data_map_mutex);
+  UpgradeLock lock(d_->volume_data_map_mutex);
 
   {
-    auto it = d->volume_data_map.find(drive_letter);
-    if (it != d->volume_data_map.end()) {
+    auto it = d_->volume_data_map.find(drive_letter);
+    if (it != d_->volume_data_map.end()) {
       volume = it->second;
       return Status(0);
     }
@@ -413,23 +413,23 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
     return Status(1, "Failed to parse the root USN record");
   }
 
-  d->volume_data_map.insert({drive_letter, volume_data});
+  d_->volume_data_map.insert({drive_letter, volume_data});
   return Status(0);
 }
 
 void NTFSEventPublisher::releaseDriveHandleMap() {
-  WriteLock lock(d->volume_data_map_mutex);
+  WriteLock lock(d_->volume_data_map_mutex);
 
-  for (const auto& p : d->volume_data_map) {
+  for (const auto& p : d_->volume_data_map) {
     const auto& volume_data = p.second;
     ::CloseHandle(volume_data.volume_handle);
     ::CloseHandle(volume_data.root_folder_handle);
   }
 
-  d->volume_data_map.clear();
+  d_->volume_data_map.clear();
 }
 
-NTFSEventPublisher::NTFSEventPublisher() : d(new PrivateData) {}
+NTFSEventPublisher::NTFSEventPublisher() : d_(new PrivateData) {}
 
 NTFSEventPublisher::~NTFSEventPublisher() {
   tearDown();
@@ -447,7 +447,7 @@ void NTFSEventPublisher::configure() {
 }
 
 Status NTFSEventPublisher::run() {
-  ReadLock lock(d->reader_service_map_mutex);
+  ReadLock lock(d_->reader_service_map_mutex);
 
   auto journal_records = acquireJournalRecords();
   if (journal_records.empty()) {
@@ -459,8 +459,8 @@ Status NTFSEventPublisher::run() {
   // We need to perform every step in the right order
   for (const auto& journal_record : journal_records) {
     // Locate the required service
-    auto service_it = d->reader_service_map.find(journal_record.drive_letter);
-    assert(service_it != d->reader_service_map.end());
+    auto service_it = d_->reader_service_map.find(journal_record.drive_letter);
+    assert(service_it != d_->reader_service_map.end());
 
     auto& service_instance = service_it->second;
 
@@ -518,6 +518,7 @@ Status NTFSEventPublisher::run() {
     // on disk, but only on the first call to look them up. I'm not
     // sure why yet, but falling back on the parent FRN cache and
     // building the path from it works for now.
+    // See https://github.com/osquery/osquery/issues/5848
     auto status = getPathFromReferenceNumber(event.path,
                                              journal_record.drive_letter,
                                              journal_record.node_ref_number);
@@ -561,7 +562,7 @@ Status NTFSEventPublisher::run() {
   // Put a limit on the size of the caches we are using
   // NOTE(ww): We could also try to incrementally free up
   // the parent FRN cache by tracking DirectoryDeletions.
-  for (auto& p : d->reader_service_map) {
+  for (auto& p : d_->reader_service_map) {
     auto& service_instance = p.second;
 
     auto& parent_frn_cache = service_instance.parent_frn_cache;

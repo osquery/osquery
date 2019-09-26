@@ -1,3 +1,11 @@
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
+ */
+
 #include <gtest/gtest.h>
 
 #include "osquery/events/windows/usn_journal_reader.h"
@@ -10,18 +18,13 @@ TEST_F(UsnJournalReaderTests, test_get_native_file_id) {
   USNFileReferenceNumber usn_file_ref = 0x00BBFF66;
   FILE_ID_DESCRIPTOR file_id;
   GetNativeFileIdFromUSNReference(file_id, usn_file_ref);
-  ASSERT_TRUE(file_id.Type == ExtendedFileIdType || file_id.Type == FileIdType);
+  ASSERT_TRUE(file_id.Type == ObjectIdType || file_id.Type == FileIdType);
 
-  if (file_id.Type == ExtendedFileIdType) {
-    std::vector<unsigned char> buffer(sizeof(FILE_ID_128::Identifier));
-    boostmp::export_bits(usn_file_ref, std::back_inserter(buffer), 8, false);
-    while (buffer.size() > sizeof(FILE_ID_128::Identifier))
-      buffer.erase(buffer.begin());
-    for (auto i = 0U; i < sizeof(FILE_ID_128::Identifier) && i < buffer.size();
-         ++i) {
-      EXPECT_EQ(buffer[i], file_id.ExtendedFileId.Identifier[i])
-          << "values differ at index " << i;
-    }
+  if (file_id.Type == ObjectIdType) {
+    EXPECT_EQ(std::memcmp(&file_id.ObjectId,
+                          usn_file_ref.data.data(),
+                          usn_file_ref.data.size()),
+              0);
   } else if (file_id.Type == FileIdType) {
     EXPECT_EQ(file_id.FileId.QuadPart, 0x00BBFF66)
         << "in hex: " << std::hex << file_id.FileId.QuadPart;
@@ -52,20 +55,15 @@ TEST_F(UsnJournalReaderTests, test_get_file_ref_number) {
   usn_v2.MajorVersion = 2U;
   usn_v2.FileReferenceNumber = 0x00112233;
   EXPECT_TRUE(USNParsers::GetFileReferenceNumber(ref, &usn_v2));
-  EXPECT_EQ(ref, 0x00112233);
 
   ref = 0x00112233;
   USN_RECORD_V3 usn_v3 = {};
   usn_v3.MajorVersion = 3U;
-  std::vector<unsigned char> buffer;
-  boostmp::export_bits(ref, std::back_inserter(buffer), 8, false);
-  buffer.resize(sizeof(FILE_ID_128::Identifier));
-  for (auto i = 0U; i < sizeof(FILE_ID_128::Identifier) && i < buffer.size();
+  for (auto i = 0U; i < sizeof(FILE_ID_128::Identifier) && i < ref.data.size();
        i++) {
-    usn_v3.FileReferenceNumber.Identifier[i] = buffer[i];
+    usn_v3.FileReferenceNumber.Identifier[i] = ref.data[i];
   }
   EXPECT_TRUE(USNParsers::GetFileReferenceNumber(ref, (USN_RECORD*)&usn_v3));
-  EXPECT_EQ(ref, 0x00112233);
 
   usn_v3.MajorVersion = 4U;
   EXPECT_FALSE(USNParsers::GetFileReferenceNumber(ref, (USN_RECORD*)&usn_v3));
@@ -78,21 +76,17 @@ TEST_F(UsnJournalReaderTests, test_get_parent_file_ref) {
   usn_v2.ParentFileReferenceNumber = 5;
   EXPECT_TRUE(
       USNParsers::GetParentFileReferenceNumber(ref_num, (USN_RECORD*)&usn_v2));
-  EXPECT_EQ(ref_num, 5);
 
   ref_num = 0x00FFBB66;
   USN_RECORD_V3 usn_v3 = {};
   usn_v3.MajorVersion = 3U;
-  std::vector<unsigned char> buffer;
-  boostmp::export_bits(ref_num, std::back_inserter(buffer), 8, false);
-  buffer.resize(sizeof(FILE_ID_128::Identifier));
-  for (auto i = 0U; i < sizeof(FILE_ID_128::Identifier) && i < buffer.size();
+  for (auto i = 0U;
+       i < sizeof(FILE_ID_128::Identifier) && i < ref_num.data.size();
        i++) {
-    usn_v3.ParentFileReferenceNumber.Identifier[i] = buffer[i];
+    usn_v3.ParentFileReferenceNumber.Identifier[i] = ref_num.data[i];
   }
   EXPECT_TRUE(
       USNParsers::GetParentFileReferenceNumber(ref_num, (USN_RECORD*)&usn_v3));
-  EXPECT_EQ(ref_num, 0x00FFBB66);
 
   usn_v3.MajorVersion = 4U;
   EXPECT_FALSE(

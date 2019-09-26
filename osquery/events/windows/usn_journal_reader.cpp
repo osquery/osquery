@@ -8,10 +8,12 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <algorithm>
 #include <array>
 #include <ctime>
 #include <iomanip>
 #include <map>
+#include <sstream>
 
 #include <Windows.h>
 #include <winioctl.h>
@@ -171,6 +173,28 @@ DWORD GetUSNChangeReasonFlagMask() {
 }
 } // namespace
 
+bool USNFileReferenceNumber::operator==(
+    const USNFileReferenceNumber& rhs) const {
+  return data.size() == rhs.data.size() && data == rhs.data;
+}
+bool USNFileReferenceNumber::operator!=(
+    const USNFileReferenceNumber& rhs) const {
+  return !(*this == rhs);
+}
+bool USNFileReferenceNumber::operator<(
+    const USNFileReferenceNumber& rhs) const {
+  return data < rhs.data;
+}
+
+std::string USNFileReferenceNumber::str() const {
+  std::ostringstream os;
+  for (auto& i : data) {
+    os << std::to_string(i);
+  }
+
+  return os.str();
+};
+
 struct USNJournalReader::PrivateData final {
   /// Shared data between this service and the publisher
   USNJournalReaderContextRef journal_reader_context;
@@ -206,11 +230,11 @@ struct USNJournalReader::PrivateData final {
 
 Status USNJournalReader::initialize() {
   // Create a handle to the volume and save it
-  d->volume_path =
-      std::string("\\\\.\\") + d->journal_reader_context->drive_letter + ":";
+  d_->volume_path =
+      std::string("\\\\.\\") + d_->journal_reader_context->drive_letter + ":";
 
-  d->volume_handle =
-      ::CreateFile(d->volume_path.c_str(),
+  d_->volume_handle =
+      ::CreateFile(d_->volume_path.c_str(),
                    FILE_GENERIC_READ,
                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                    nullptr,
@@ -218,10 +242,10 @@ Status USNJournalReader::initialize() {
                    0,
                    nullptr);
 
-  if (d->volume_handle == INVALID_HANDLE_VALUE) {
+  if (d_->volume_handle == INVALID_HANDLE_VALUE) {
     std::stringstream error_message;
     error_message << "Failed to get a handle to the following volume: "
-                  << d->volume_path << ". Terminating...";
+                  << d_->volume_path << ". Terminating...";
 
     return Status(1, error_message.str());
   }
@@ -230,7 +254,7 @@ Status USNJournalReader::initialize() {
   USN_JOURNAL_DATA_V2 journal_data = {};
   DWORD bytes_received = 0U;
 
-  if (!::DeviceIoControl(d->volume_handle,
+  if (!::DeviceIoControl(d_->volume_handle,
                          FSCTL_QUERY_USN_JOURNAL,
                          nullptr,
                          0,
@@ -239,21 +263,24 @@ Status USNJournalReader::initialize() {
                          &bytes_received,
                          nullptr) ||
       bytes_received != sizeof(journal_data)) {
+    ::CloseHandle(d_->volume_handle);
+    d_->volume_handle = INVALID_HANDLE_VALUE;
+
     std::stringstream error_message;
     error_message << "Failed to acquire the initial journal ID and sequence "
                      "number for the following volume: "
-                  << d->volume_path << ". Terminating...";
+                  << d_->volume_path << ". Terminating...";
 
     return Status(1, error_message.str());
   }
 
   /// This is the next USN identifier, to be used when requesting the next
   /// updates; we keep the initial ones for queries
-  d->initial_sequence_number = journal_data.NextUsn;
-  d->next_update_seq_number = d->initial_sequence_number;
+  d_->initial_sequence_number = journal_data.NextUsn;
+  d_->next_update_seq_number = d_->initial_sequence_number;
 
   // Also save the journal id
-  d->journal_id = journal_data.UsnJournalID;
+  d_->journal_id = journal_data.UsnJournalID;
 
   return Status(0);
 }
@@ -270,36 +297,42 @@ Status USNJournalReader::acquireRecords() {
                                                 0U,
                                                 1U,
                                                 kUSNJournalReaderBufferSize,
-                                                d->journal_id,
+                                                d_->journal_id,
                                                 2U,
                                                 3U};
 
-  read_data_command.StartUsn = d->next_update_seq_number;
+  read_data_command.StartUsn = d_->next_update_seq_number;
 
   DWORD bytes_received = 0U;
-  if (!::DeviceIoControl(d->volume_handle,
+  if (!::DeviceIoControl(d_->volume_handle,
                          FSCTL_READ_USN_JOURNAL,
                          &read_data_command,
                          sizeof(read_data_command),
-                         d->read_buffer.data(),
-                         static_cast<DWORD>(d->read_buffer.size()),
+                         d_->read_buffer.data(),
+                         static_cast<DWORD>(d_->read_buffer.size()),
                          &bytes_received,
                          nullptr) ||
       bytes_received < sizeof(USN)) {
     std::stringstream error_message;
     error_message << "Failed to read the journal of the following volume: "
-                  << d->volume_path << ". Terminating...";
+                  << d_->volume_path << ". Terminating...";
 
     return Status(1, error_message.str());
   }
 
-  d->bytes_received = static_cast<size_t>(bytes_received);
+  d_->bytes_received = static_cast<size_t>(bytes_received);
 
   // Save the new update sequence number for the next query
   auto next_update_seq_number_ptr =
-      reinterpret_cast<USN*>(d->read_buffer.data());
+      reinterpret_cast<USN*>(d_->read_buffer.data());
 
-  d->next_update_seq_number = *next_update_seq_number_ptr;
+  // NOTE(ww): It's worth investigating whether we can use gaps
+  // in the sequence number here to detect whether or not
+  // we're missing events on a busy system. Does NTFS guarantee
+  // strictly sequential USNs? What about other FSes that implement
+  // the change journal?
+  // See: https://github.com/osquery/osquery/pull/5371#discussion_r332122819
+  d_->next_update_seq_number = *next_update_seq_number_ptr;
   return Status(0);
 }
 
@@ -313,9 +346,9 @@ Status USNJournalReader::processAcquiredRecords(
     std::vector<USNJournalEventRecord>& record_list) {
   record_list.clear();
 
-  const auto buffer_end_ptr = d->read_buffer.data() + d->bytes_received;
+  const auto buffer_end_ptr = d_->read_buffer.data() + d_->bytes_received;
 
-  auto current_buffer_ptr = d->read_buffer.data() + sizeof(USN);
+  auto current_buffer_ptr = d_->read_buffer.data() + sizeof(USN);
 
   // NOTE(ww): According to MSDN, all DeviceIoControl ops that work with
   // USN_RECORD_V2 and USN_RECORD_V3 return buffers where the records
@@ -327,15 +360,15 @@ Status USNJournalReader::processAcquiredRecords(
 
     const auto next_buffer_ptr =
         current_buffer_ptr + current_record->RecordLength;
-    if (next_buffer_ptr > buffer_end_ptr) {
+    if (next_buffer_ptr > buffer_end_ptr || current_record->RecordLength <= 0) {
       return Status(1, "Received a malformed USN_RECORD. Terminating...");
     }
 
     auto status =
         ProcessAndAppendUSNRecord(record_list,
                                   current_record,
-                                  d->per_file_last_record_type_map,
-                                  d->journal_reader_context->drive_letter);
+                                  d_->per_file_last_record_type_map,
+                                  d_->journal_reader_context->drive_letter);
     if (!status.ok()) {
       LOG(ERROR) << status.getMessage();
     }
@@ -353,10 +386,10 @@ void USNJournalReader::dispatchEventRecords(
   }
 
   // Notify the publisher that we have new records ready to be acquired
-  auto& context = d->journal_reader_context;
+  auto& context = d_->journal_reader_context;
 
   {
-    std::unique_lock<std::mutex> lock(context->processed_records_mutex);
+    WriteLock lock(context->processed_records_mutex);
 
     context->processed_record_list.reserve(
         context->processed_record_list.size() + record_list.size());
@@ -379,7 +412,7 @@ void USNJournalReader::start() {
   }
 
   // Enter the main loop, listening for journal changes
-  while (!interrupted() && !d->journal_reader_context->terminate) {
+  while (!interrupted() && !d_->journal_reader_context->terminate) {
     status = acquireRecords();
     if (!status.ok()) {
       LOG(ERROR) << status.getMessage();
@@ -400,21 +433,29 @@ void USNJournalReader::start() {
 }
 
 void USNJournalReader::stop() {
-  if (d->volume_handle != INVALID_HANDLE_VALUE) {
-    ::CloseHandle(d->volume_handle);
-    d->volume_handle = INVALID_HANDLE_VALUE;
+  if (d_->volume_handle != INVALID_HANDLE_VALUE) {
+    ::CloseHandle(d_->volume_handle);
+    d_->volume_handle = INVALID_HANDLE_VALUE;
   }
 }
 
 USNJournalReader::USNJournalReader(
     USNJournalReaderContextRef journal_reader_context)
-    : InternalRunnable("USNJournalReader"), d(new PrivateData) {
-  d->journal_reader_context = journal_reader_context;
+    : InternalRunnable("USNJournalReader"), d_(new PrivateData) {
+  d_->journal_reader_context = journal_reader_context;
 }
 
 USNJournalReader::~USNJournalReader() {}
 
-// TODO(alessandro): Write a test for this
+/* When possible, the change journal will "compress" records for a single
+ * FRN together by marking different bits on the `Reason` member high,
+ * each bit representing a different journaled event. This function
+ * iterates over those bits, extracting each event into a standalone
+ * record and placing those decompressed records into a vector for
+ * later consumption.
+ *
+ * TODO: Needs tests; see https://github.com/osquery/osquery/issues/5847
+ */
 Status USNJournalReader::DecompressRecord(
     std::vector<USNJournalEventRecord>& new_records,
     const USNJournalEventRecord& base_record,
@@ -452,6 +493,7 @@ Status USNJournalReader::DecompressRecord(
       per_file_last_record_type_map[new_record.node_ref_number] =
           new_record.type;
 
+      // clear out space if map if hit size limit (oldest records, first)
       if (per_file_last_record_type_map.size() >= 20000U) {
         auto range_start = per_file_last_record_type_map.begin();
         auto range_end = std::next(range_start, 10000U);
@@ -464,7 +506,7 @@ Status USNJournalReader::DecompressRecord(
   return Status(0);
 }
 
-// TODO(alessandro): Write a test for this
+// TODO: Needs tests; see https://github.com/osquery/osquery/issues/5847
 Status USNJournalReader::ProcessAndAppendUSNRecord(
     std::vector<USNJournalEventRecord>& record_list,
     const USN_RECORD* record,
@@ -473,10 +515,6 @@ Status USNJournalReader::ProcessAndAppendUSNRecord(
   // We don't care about range tracking records
   if (record->MajorVersion == 4U) {
     return Status(0);
-  }
-
-  if (record->MinorVersion != 0U) {
-    LOG(WARNING) << "Unexpected minor version value";
   }
 
   USNJournalEventRecord base_event_record = {};
@@ -530,23 +568,14 @@ Status USNJournalReader::ProcessAndAppendUSNRecord(
 
 void GetNativeFileIdFromUSNReference(FILE_ID_DESCRIPTOR& file_id,
                                      const USNFileReferenceNumber& ref) {
-  std::vector<unsigned char> buffer;
-  boostmp::export_bits(ref, std::back_inserter(buffer), 8, false);
-
   file_id = {};
   file_id.dwSize = sizeof(FILE_ID_DESCRIPTOR);
 
-  // export_bits will only push as many unsigned chars as are needed to
-  // represent
-  // a value, so we've no guarantee to sizes, but if bits are set above the 64th
-  // bit, it's an extended file id
-  if (buffer.size() <= sizeof(std::uint64_t)) {
+  if (ref.data.size() <= sizeof(LARGE_INTEGER)) {
     file_id.Type = FileIdType;
-
-    buffer.resize(sizeof(std::uint64_t));
-    auto id_ptr = reinterpret_cast<const std::uint64_t*>(buffer.data());
-    file_id.FileId.QuadPart = *id_ptr;
-
+    std::copy(ref.data.begin(),
+              ref.data.end(),
+              reinterpret_cast<std::uint8_t*>(&file_id.FileId.QuadPart));
   } else {
     /* NOTE(ww): osquery retains Windows 7 compatibility,
        which means that we don't have access to the FILE_ID_128
@@ -555,9 +584,9 @@ void GetNativeFileIdFromUSNReference(FILE_ID_DESCRIPTOR& file_id,
        matter for our purposes.
      */
     file_id.Type = ObjectIdType;
-    buffer.resize(sizeof(GUID));
-
-    memcpy(&file_id.ObjectId, buffer.data(), sizeof(GUID));
+    std::copy(ref.data.begin(),
+              ref.data.end(),
+              reinterpret_cast<std::uint8_t*>(&file_id.ObjectId));
   }
 }
 
@@ -587,20 +616,12 @@ bool GetFileReferenceNumber(USNFileReferenceNumber& ref_number,
   case 2U: {
     ref_number =
         reinterpret_cast<const USN_RECORD_V2*>(record)->FileReferenceNumber;
-
     return true;
   }
 
   case 3U: {
-    const auto& byte_array = reinterpret_cast<const USN_RECORD_V3*>(record)
-                                 ->FileReferenceNumber.Identifier;
-
-    boostmp::import_bits(ref_number,
-                         byte_array,
-                         byte_array + sizeof(FILE_ID_128::Identifier),
-                         0,
-                         false);
-
+    ref_number =
+        reinterpret_cast<const USN_RECORD_V3*>(record)->FileReferenceNumber;
     return true;
   }
 
@@ -621,15 +642,8 @@ bool GetParentFileReferenceNumber(USNFileReferenceNumber& ref_number,
   }
 
   case 3U: {
-    const auto& byte_array = reinterpret_cast<const USN_RECORD_V3*>(record)
-                                 ->ParentFileReferenceNumber.Identifier;
-
-    boostmp::import_bits(ref_number,
-                         byte_array,
-                         byte_array + sizeof(FILE_ID_128::Identifier),
-                         0,
-                         false);
-
+    ref_number = reinterpret_cast<const USN_RECORD_V3*>(record)
+                     ->ParentFileReferenceNumber;
     return true;
   }
 
@@ -838,8 +852,8 @@ std::ostream& operator<<(std::ostream& stream,
   stream << "drive_letter:\"" << record.drive_letter << "\" ";
   stream << "type:\"" << record.type << "\" ";
   stream << "usn:\"" << record.update_sequence_number << "\" ";
-  stream << "parent_ref:\"" << record.parent_ref_number << "\" ";
-  stream << "ref:\"" << record.node_ref_number << "\" ";
+  stream << "parent_ref:\"" << record.parent_ref_number.str() << "\" ";
+  stream << "ref:\"" << record.node_ref_number.str() << "\" ";
 
   {
     std::tm local_time;

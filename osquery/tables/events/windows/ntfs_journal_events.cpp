@@ -214,7 +214,7 @@ void NTFSEventSubscriber::configure() {
 
   StringList access_categories;
   if (json_document.HasMember("file_accesses")) {
-    auto& json_file_accesses = json_document["file_acceses"].GetArray();
+    auto& json_file_accesses = json_document["file_accesses"].GetArray();
 
     for (const auto& item : json_file_accesses) {
       access_categories.push_back(item.GetString());
@@ -333,12 +333,7 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
       continue;
     }
 
-    const auto& byte_array = file_id_info.FileId.Identifier;
-    boostmp::import_bits(frn,
-                         byte_array,
-                         byte_array + sizeof(FILE_ID_128::Identifier),
-                         0,
-                         false);
+    frn = file_id_info.FileId;
 #else
     BY_HANDLE_FILE_INFORMATION file_id_info;
     if (!::GetFileInformationByHandle(file_hnd, &file_id_info)) {
