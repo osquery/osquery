@@ -26,7 +26,7 @@ class DebPackages : public testing::Test {
 TEST_F(DebPackages, test_sanity) {
   QueryData rows = execute_query("select * from deb_packages");
   if (rows.size() > 0) {
-    ValidatatioMap row_map = {
+    ValidationMap row_map = {
         {"name", NonEmptyString},
         {"version", NonEmptyString},
         {"source", NormalType},

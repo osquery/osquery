@@ -27,7 +27,7 @@ TEST_F(Sandboxes, test_sanity) {
   QueryData data = execute_query("select * from sandboxes");
 
   if (!data.empty()) {
-    ValidatatioMap row_map = {
+    ValidationMap row_map = {
         {"label", NonEmptyString},
         {"user", NonEmptyString},
         {"enabled", Bool},

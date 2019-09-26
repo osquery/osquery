@@ -77,15 +77,14 @@ enum {
 };
 
 using CustomCheckerType = std::function<bool(const std::string&)>;
-using ValidatatioDataType = boost::variant<int, CustomCheckerType>;
-using ValidatatioMap = std::unordered_map<std::string, ValidatatioDataType>;
+using ValidationDataType = boost::variant<int, CustomCheckerType>;
+using ValidationMap = std::unordered_map<std::string, ValidationDataType>;
 
 QueryData execute_query(std::string query);
 
-void validate_row(const Row& row,
-                  const ValidatatioMap& validation_map);
+void validate_row(const Row& row, const ValidationMap& validation_map);
 void validate_rows(const std::vector<Row>& rows,
-                   const ValidatatioMap& validation_map);
+                   const ValidationMap& validation_map);
 bool validate_value_using_flags(const std::string& value, int flags);
 bool is_valid_hex(const std::string& value);
 
