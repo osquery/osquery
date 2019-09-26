@@ -43,6 +43,11 @@ jobs:
           $(EXTRA_CMAKE_ARGS)
           $(Build.SourcesDirectory)
 
+    - script: |
+        ./tools/formatting/format-test.sh --build $(Build.BinariesDirectory)/build
+      displayName: "format_check.py test"
+      workingDirectory: $(Build.SourcesDirectory)
+
     - task: CMake@1
       displayName: "Check code formatting"
       inputs:
