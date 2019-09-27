@@ -47,11 +47,12 @@ void DatabasePluginTests::SetUp() {
   rf.plugin("database", existing_plugin_)->tearDown();
 
   setName(name());
-  path_ = FLAGS_database_path;
+  previous_path_ = FLAGS_database_path;
   FLAGS_database_path = (
       fs::temp_directory_path() /
       fs::unique_path("osquery.database_plugin_tests.%%%%.%%%%.%%%%.%%%%.db")
   ).string();
+  path_ = FLAGS_database_path;
   // removePath(path_);
 
   auto plugin = rf.plugin("database", getName());
@@ -65,8 +66,8 @@ void DatabasePluginTests::TearDown() {
   auto& rf = RegistryFactory::get();
   rf.plugin("database", name_)->tearDown();
   rf.setActive("database", existing_plugin_);
-  fs::remove_all(fs::path(FLAGS_database_path));
-  FLAGS_database_path = path_;
+  fs::remove_all(fs::path(path_));
+  FLAGS_database_path = previous_path_;
 }
 
 void DatabasePluginTests::testPluginCheck() {
