@@ -26,7 +26,7 @@ TEST_F(connectivity, test_sanity) {
 
   ASSERT_EQ(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
+  ValidatationMap row_map = {
       {"disconnected", IntType},
       {"ipv4_no_traffic", IntType},
       {"ipv6_no_traffic", IntType},
