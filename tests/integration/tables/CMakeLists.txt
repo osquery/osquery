@@ -259,6 +259,7 @@ function(generateTestsIntegrationTablesTestsTest)
       authenticode.cpp
       autoexec.cpp
       certificates.cpp
+      connectivity.cpp
       chocolatey_packages.cpp
       cpu_info.cpp
       disk_info.cpp
