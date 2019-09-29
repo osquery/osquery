@@ -207,6 +207,8 @@ jobs:
         brew tap facebook/fb
         brew upgrade
         brew cask install adoptopenjdk8
+        # See https://github.com/Homebrew/homebrew-core/pull/44581 where a longer-term fix is being discussed.
+        sed -i.bak 's/www.apache.org\/dyn\/closer.cgi?path=/archive.apache.org\/dist\//' /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/ant.rb
         brew install buck watchman
       displayName: "Install Homebrew and prerequisites"
       timeoutInMinutes: 20
