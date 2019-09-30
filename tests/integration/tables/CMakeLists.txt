@@ -262,6 +262,7 @@ function(generateTestsIntegrationTablesTestsTest)
       connectivity.cpp
       chocolatey_packages.cpp
       cpu_info.cpp
+      default_environment.cpp
       disk_info.cpp
       drivers.cpp
       ie_extensions.cpp

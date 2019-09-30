@@ -165,6 +165,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/certificates.cpp
       windows/chocolatey_packages.cpp
       windows/cpu_info.cpp
+      windows/default_environment.cpp
       windows/disk_info.cpp
       windows/drivers.cpp
       windows/groups.cpp

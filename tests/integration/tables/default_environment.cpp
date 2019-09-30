@@ -27,7 +27,7 @@ TEST_F(defaultEnvironment, test_sanity) {
 
   ASSERT_GE(data.size(), 0ul);
 
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"variable", NonEmptyString},
       {"value", NormalType},
       {"expand", IntType},
