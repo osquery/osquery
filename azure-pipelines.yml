@@ -204,9 +204,10 @@ jobs:
 
     steps:
     - script: |
+        brew update
         brew tap facebook/fb
         brew upgrade
-        brew cask install adoptopenjdk8
+        brew cask install adoptopenjdk
         brew install buck watchman
       displayName: "Install Homebrew and prerequisites"
       timeoutInMinutes: 20
