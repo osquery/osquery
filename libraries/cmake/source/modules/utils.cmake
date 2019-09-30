@@ -67,20 +67,40 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
   set(initializeGitSubmodule_IsAlreadyCloned FALSE PARENT_SCOPE)
 endfunction()
 
-function(patchSubmoduleSourceCode patches_dir apply_to_dir)
+function(patchSubmoduleSourceCode patches_dir source_dir apply_to_dir)
   file(GLOB submodule_patches "${patches_dir}/*.patch")
 
+  list(LENGTH submodule_patches patches_num)
+
+  if(NOT patches_num GREATER 0)
+    set(patchSubmoduleSourceCode_Patched FALSE PARENT_SCOPE)
+    return()
+  endif()
+
+
+  # We patch in source before moving because git apply won't apply the patch if the directory
+  # is in it's the correct one, but it's inside a repository and it's not the root of that.
+  # This happens when the build folder is inside the source folder.
   foreach(patch ${submodule_patches})
     execute_process(
       COMMAND "${GIT_EXECUTABLE}" apply "${patch}"
       RESULT_VARIABLE process_exit_code
-      WORKING_DIRECTORY "${apply_to_dir}"
+      WORKING_DIRECTORY "${source_dir}"
     )
 
     if(NOT ${process_exit_code} EQUAL 0)
       message(FATAL_ERROR "Failed to patch the following git submodule: \"${apply_to_dir}\"")
     endif()
   endforeach()
+
+  # Move the patched sources to another location because some submodules
+  # have symbolic link loops which cannot be correctly copied.
+  get_filename_component(parent_dir "${apply_to_dir}" DIRECTORY)
+
+  execute_process(COMMAND "${CMAKE_COMMAND}" -E make_directory "${parent_dir}")
+  execute_process(COMMAND "${CMAKE_COMMAND}" -E rename "${source_dir}" "${apply_to_dir}")
+
+  set(patchSubmoduleSourceCode_Patched TRUE PARENT_SCOPE)
 endfunction()
 
 function(importSourceSubmodule)
@@ -88,7 +108,7 @@ function(importSourceSubmodule)
     ARGS
     "NO_RECURSIVE"
     "NAME"
-    "SUBMODULES;SHALLOW_SUBMODULES"
+    "SUBMODULES;SHALLOW_SUBMODULES;PATCH"
     ${ARGN}
   )
 
@@ -113,9 +133,38 @@ function(importSourceSubmodule)
     endif()
 
     initializeGitSubmodule("${directory_path}/${submodule_name}" ${ARGS_NO_RECURSIVE} ${shallow_clone})
+  endforeach()
 
-    if(NOT initializeGitSubmodule_IsAlreadyCloned)
-      patchSubmoduleSourceCode("${directory_path}/patches/${submodule_name}" "${directory_path}/${submodule_name}")
+  foreach(submodule_to_patch ${ARGS_PATCH})
+    set(patched_source_dir "${CMAKE_BINARY_DIR}/libs/src/patched-source/${ARGS_NAME}/${submodule_to_patch}")
+
+    set(library_name "${ARGS_NAME}")
+
+    if (NOT "${submodule_to_patch}" STREQUAL "src")
+      set(library_name "${library_name}_${submodule_to_patch}")
+    endif()
+
+    string(REPLACE "/" "_" library_name "${library_name}")
+
+    set(OSQUERY_${library_name}_ROOT_DIR "${patched_source_dir}")
+
+    if(NOT EXISTS "${patched_source_dir}")
+      patchSubmoduleSourceCode(
+        "${directory_path}/patches/${submodule_to_patch}"
+        "${directory_path}/${submodule_to_patch}"
+        "${patched_source_dir}"
+      )
+
+      if(patchSubmoduleSourceCode_Patched)
+        list(FIND ARGS_SHALLOW_SUBMODULES "${submodule_to_patch}" shallow_clone)
+        if(${shallow_clone} EQUAL -1)
+          set(shallow_clone false)
+        else()
+          set(shallow_clone true)
+        endif()
+
+        initializeGitSubmodule("${directory_path}/${submodule_to_patch}" ${ARGS_NO_RECURSIVE} ${shallow_clone})
+      endif()
     endif()
   endforeach()
 

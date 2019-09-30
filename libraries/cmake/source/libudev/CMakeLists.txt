@@ -7,7 +7,7 @@
 # http://pkgs.fedoraproject.org/repo/pkgs/udev/udev-173.tar.bz2/91a88a359b60bbd074b024883cc0dbde/udev-173.tar.bz2
 
 function(libudevMain)
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(library_root "${OSQUERY_libudev_ROOT_DIR}")
 
   add_library(thirdparty_libudev
     "${library_root}/libudev/libudev-device-private.c"
