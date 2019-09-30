@@ -68,6 +68,7 @@ cscope.out
 
 # Ignored components
 /external/*
+!/external/cmake/cmakelibs.cmake
 !/external/CMakeLists.txt
 
 # Buck

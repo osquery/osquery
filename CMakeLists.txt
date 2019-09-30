@@ -71,6 +71,7 @@ function(main)
   add_subdirectory("plugins")
   add_subdirectory("tools")
   add_subdirectory("specs")
+  add_subdirectory("external")
   add_subdirectory("tests")
 
   identifyPackagingSystem()
