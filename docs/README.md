@@ -30,7 +30,7 @@ The output HTML documentation is written to `./build/docs/html/`. Use `index.htm
 
 Table schema, the osquery user API, is created using the Python-based ".spec" files in [`./specs`](https://github.com/facebook/osquery/tree/master/specs). More documentation on how specs work can be found in the [Creating New Tables](http://osquery.readthedocs.org/en/stable/development/creating-tables/) developer documentation. These files are used to build osquery, but can be parsed to create JSON-based API schema. This JSON is published to the homepage at [https://osquery.io/schema/].
 
-Use: `./tools/codegen/genapi.py` to generate the amalgamated schema. To generate a "change log" between tags, use the same script but use `--diff` and supply the two JSON inputs.
+Use: `./tools/codegen/genapi.py` to generate the amalgamated schema. To generate a "changelog" between tags, use the same script but use `--diff` and supply the two JSON inputs.
 
 ```python
 ./tools/codegen/genapi.py > ./build/docs/CURRENT.json
