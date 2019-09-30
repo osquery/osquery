@@ -10,7 +10,6 @@
 #include <locale>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
@@ -243,18 +242,16 @@ Status splitVendorModelAttrs(std::string pci_id_attr,
                              std::string& model) {
   // pci.ids lower cases everything, so we follow suit.
   boost::algorithm::to_lower(pci_id_attr);
-  std::vector<std::string> ids;
-  boost::split(ids, pci_id_attr, boost::is_any_of(":"));
 
-  if (ids.size() != 2) {
+  auto colon = pci_id_attr.find(":");
+  if (colon == std::string::npos || colon == pci_id_attr.length() - 1 ||
+      pci_id_attr.find(":", colon + 1) != std::string::npos) {
     return Status::failure(
-        "Expected 2 identifiers from sysFs PCI device attribute, but "
-        "got " +
-        std::to_string(ids.size()));
+        "Unexpected input from sysFs PCI device attribute: " + pci_id_attr);
   }
 
-  vendor = std::move(ids[0]);
-  model = std::move(ids[1]);
+  vendor = pci_id_attr.substr(0, colon);
+  model = pci_id_attr.substr(colon + 1);
   return Status::success();
 }
 
@@ -299,10 +296,11 @@ void extractSubsysVendorModelFromPciDB(Row& row,
   }
 }
 
-Status extractVendorModelFromPciDBIfPresent(Row& row,
-                                            std::string device_ids_attr,
-                                            std::string subsystem_ids_attr,
-                                            const PciDB& pcidb) {
+Status extractVendorModelFromPciDBIfPresent(
+    Row& row,
+    const std::string& device_ids_attr,
+    const std::string& subsystem_ids_attr,
+    const PciDB& pcidb) {
   std::string vendor_id;
   std::string model_id;
   auto status = splitVendorModelAttrs(device_ids_attr, vendor_id, model_id);
