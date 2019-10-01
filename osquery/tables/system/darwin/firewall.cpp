@@ -98,7 +98,8 @@ QueryData parseALFExceptionsTree(const pt::ptree& tree) {
       auto status = pathFromNestedPlistAliasData(alias_data, path);
 
       if (!status.ok()) {
-        TLOG << "Could not parse nested plist for applications: " << status.getMessage();
+        TLOG << "Could not parse nested plist for applications: "
+             << status.getMessage();
         continue;
       }
 
