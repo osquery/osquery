@@ -9,7 +9,7 @@ function(utillinuxMain)
     return()
   endif()
 
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(library_root "${OSQUERY_util-linux_ROOT_DIR}")
 
   add_library(thirdparty_util-linux
     "${library_root}/libblkid/src/getsize.c"
