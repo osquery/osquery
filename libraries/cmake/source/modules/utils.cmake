@@ -78,9 +78,10 @@ function(patchSubmoduleSourceCode patches_dir source_dir apply_to_dir)
   endif()
 
 
-  # We patch in source before moving because git apply won't apply the patch if the directory
-  # is in it's the correct one, but it's inside a repository and it's not the root of that.
-  # This happens when the build folder is inside the source folder.
+  # We patch the submodule before moving it to the binary folder
+  # because if git apply working directory is inside a repository or submodule
+  # and it's not its root directory, patching will fail silently.
+  # This can happen for instance when the build directory is inside the source directory.
   foreach(patch ${submodule_patches})
     execute_process(
       COMMAND "${GIT_EXECUTABLE}" apply "${patch}"
