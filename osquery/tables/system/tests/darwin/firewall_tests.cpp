@@ -28,6 +28,15 @@ pt::ptree getALFTree() {
   return tree;
 }
 
+pt::ptree getALFTreeNestedPath() {
+  std::string content;
+  readFile(getTestConfigDirectory() / "test_alf_nested_path.plist", content);
+
+  pt::ptree tree;
+  parsePlistContent(content, tree);
+  return tree;
+}
+
 class FirewallTests : public testing::Test {};
 
 TEST_F(FirewallTests, test_parse_alf_tree) {
@@ -60,6 +69,19 @@ TEST_F(FirewallTests, test_parse_alf_exceptions_tree) {
         "/System/Library/PrivateFrameworks/Admin.framework/Versions/A/"
         "Resources/readconfig"},
        {"state", "3"}},
+  };
+  EXPECT_EQ(results, expected);
+}
+
+TEST_F(FirewallTests, test_parse_alf_exceptions_tree_nested_path) {
+  pt::ptree tree = getALFTreeNestedPath();
+  auto results = parseALFExceptionsTree(tree);
+
+  osquery::QueryData expected = {
+      {{"path",
+        "/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/"
+        "com.apple.WebKit.Networking.xpc"},
+       {"state", "0"}},
   };
   EXPECT_EQ(results, expected);
 }
