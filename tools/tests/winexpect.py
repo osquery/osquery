@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
@@ -50,7 +50,7 @@ class REPLWrapper(object):
             self.child.proc.stdin.flush()
 
             # Wait for stderr/stdout to populate for at most timeout seconds
-            for i in xrange(self.timeout):
+            for i in range(self.timeout):
                 if not self.child.out_queue.empty():
                     break
                 time.sleep(1)

@@ -1,0 +1,1 @@
+/Users/adhaamehab/Documents/workspace/personal/osquery/tools/codegen/gentable.py

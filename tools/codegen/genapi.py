@@ -1,15 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import argparse
 import ast
@@ -73,7 +68,7 @@ class Encoder(json.JSONEncoder):
     """
 
     def __init__(self, *args, **kwargs):
-        super(Encoder, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.kwargs = dict(kwargs)
         del self.kwargs['indent']
         self._replacement_map = {}
@@ -88,7 +83,7 @@ class Encoder(json.JSONEncoder):
 
     def encode(self, o):
         result = super(Encoder, self).encode(o)
-        for k, v in self._replacement_map.iteritems():
+        for k, v in self._replacement_map.items():
             result = result.replace('"@@%s@@"' % (k,), v)
         return result
 
@@ -145,7 +140,7 @@ def gen_diff(api_old_path, api_new_path):
     tables_removed = []
     columns_added = []
     columns_removed = []
-    for name, table in new_tables.iteritems():
+    for name, table in new_tables.items():
         if name not in old_tables:
             tables_added.append(name)
             continue
@@ -155,7 +150,7 @@ def gen_diff(api_old_path, api_new_path):
                 columns_added.append("%s:%s:%s:%s" % (category["name"],
                                                       table["name"], column["name"], column["type"]))
 
-    for name, table in old_tables.iteritems():
+    for name, table in old_tables.items():
         if name not in new_tables:
             tables_removed.append(name)
             continue
@@ -216,7 +211,7 @@ def gen_api(tables_path, profile={}):
                                                            blacklist=blacklist)
                 categories[platform]["tables"].append(table_spec)
     categories = [{"key": k, "name": v["name"], "tables": v["tables"]}
-                  for k, v in categories.iteritems()]
+                  for k, v in categories.items()]
     return categories
 
 

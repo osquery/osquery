@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #===- git-clang-format - ClangFormat Git Integration ---------*- python -*--===#
 #
@@ -348,7 +348,7 @@ def run_clang_format_and_save_to_tree(changed_lines, binary='clang-format',
 
     Returns the object ID (SHA-1) of the created tree."""
     def index_info_generator():
-        for filename, line_ranges in changed_lines.iteritems():
+        for filename, line_ranges in changed_lines.items():
             mode = oct(os.stat(filename).st_mode)
             blob_id = clang_format_to_blob(filename, line_ranges, binary=binary,
                                            style=style)
