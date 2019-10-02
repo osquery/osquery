@@ -404,13 +404,13 @@ bool isEc2Instance() {
   static std::once_flag once_flag;
   std::call_once(once_flag, []() {
     if (checked) {
-      return;
+      return is_ec2_instance;
     }
     checked = true;
 
     std::ifstream fd(kHypervisorUuid, std::ifstream::in);
     if (fd && !(fd.get() == 'e' && fd.get() == 'c' && fd.get() == '2')) {
-      return; // Not EC2 instance
+      return false; // Not EC2 instance
     }
 
     http::Request req(kEc2MetadataUrl);
