@@ -184,6 +184,22 @@ function(setupBuildFlags)
       target_compile_options(cxx_settings INTERFACE -g0)
       target_compile_options(c_settings INTERFACE -g0)
     endif()
+
+    if(OSQUERY_FUZZ)
+      target_compile_options(cxx_settings INTERFACE
+        -fsanitize=address,fuzzer-no-link
+        -fsanitize-coverage=edge,indirect-calls
+      )
+      target_compile_options(c_settings INTERFACE
+        -fsanitize=address,fuzzer-no-link
+        -fsanitize-coverage=edge,indirect-calls
+      )
+
+      # Require at least address (may be refactored out)
+      target_link_options(cxx_settings INTERFACE
+        -fsanitize=address
+      )
+    endif()
   elseif(DEFINED PLATFORM_WINDOWS)
 
     set(windows_common_compile_options
