@@ -26,7 +26,7 @@ TEST_F(alfServices, test_sanity) {
   auto const data = execute_query("select * from alf_services");
   ASSERT_EQ(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"screen_sharing", IntType},
       {"file_sharing", IntType},
       {"printer_sharing", IntType},

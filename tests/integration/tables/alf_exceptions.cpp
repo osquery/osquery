@@ -26,7 +26,7 @@ TEST_F(alfExceptions, test_sanity) {
 
   ASSERT_GE(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"path", NormalType},
       {"state", IntType},
   };
