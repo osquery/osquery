@@ -20,7 +20,6 @@ namespace tables {
 
 QueryData genConnectivity(QueryContext& context) {
   QueryData results;
-  Row r;
 
   INetworkListManager* mgr = nullptr;
   HRESULT res = CoCreateInstance(CLSID_NetworkListManager,
@@ -39,9 +38,11 @@ QueryData genConnectivity(QueryContext& context) {
 
   if (res != S_OK) {
     TLOG << "GetConnectivity() failed";
+    mgr->Release();
     return results;
   }
 
+  Row r;
   r["disconnected"] =
       INTEGER(bool(connectivity & NLM_CONNECTIVITY_DISCONNECTED));
   r["ipv4_no_traffic"] =
