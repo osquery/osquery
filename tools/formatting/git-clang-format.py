@@ -124,7 +124,7 @@ def main():
     commit, files = interpret_args(opts.args, dash_dash, opts.commit)
 
     if len(files) > 0 and opts.exclude_folders:
-        print 'The --exclude-folders option cannot be used when specifying files to format'
+        print('The --exclude-folders option cannot be used when specifying files to format')
         return
 
     changed_lines = compute_diff_and_extract_lines(commit, files)
