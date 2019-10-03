@@ -14,9 +14,11 @@ table. Similarly, socket events are abstracted into the
 table.
 
 To collect process events add a query like:
+
 ```sql
 SELECT * FROM process_events;
 ```
+
 to your query schedule, or to a query pack.
 
 Enabling these auditing features requires additional configuration to
@@ -35,7 +37,6 @@ On macOS, you should be able to see events using:
 sudo osqueryi --disable_audit=false --disable_events=false
 ```
 
-
 ### Examine configuration flags
 
 To verify that osquery's flags are set correct, you can query the
@@ -51,7 +52,6 @@ osquery> select * from osquery_flags where name in ("disable_events", "disable_a
 | disable_events | bool | Disable osquery publish/subscribe system          | false         | false | 0          |
 +----------------+------+---------------------------------------------------+---------------+-------+------------+
 ```
-
 
 ### Examine event table
 
@@ -85,8 +85,6 @@ osquery> select * from osquery_events;
 +-------------------------+-----------------+------------+---------------+--------+-----------+--------+
 ```
 
-
-
 ## Linux process auditing
 
 osquery uses the Linux Audit System to collect and process audit events from the kernel. It accomplishes this by monitoring the `execve()` syscall. Auditd should not be running when using osquery's process auditing, as it will conflict with osqueryd over access to the audit netlink socket. You should also ensure auditd is not configured to start at boot.
@@ -96,6 +94,7 @@ The only prerequisite for using osquery's auditing functionality on Linux is tha
 There is no requirement to install auditd or libaudit. Osquery only uses the audit features that exist in the kernel.
 
 A sample log entry from process_events may look something like this:
+
 ```json
 {
   "action": "added",
@@ -133,6 +132,7 @@ Osquery can also be used to record network connections by enabling `socket_event
 To enable socket events, use the `--audit_allow_sockets` flag.
 
 A sample socket_event log entry looks like this:
+
 ```json
 {
   "action": "added",
@@ -166,6 +166,7 @@ There are a few different methods to ensure you have configured auditing correct
 3. Run `auditctl -s` if the binary is present on your system and verify that `enable` is not set to zero and the `pid` corresponds to a process for osquery
 4. Verify that your osquery configuration has a query to `SELECT` from the process_events and/or socket_events tables
 5. You may also run auditing using osqueryi **as root**:
+
 ```
 $ osqueryi --audit_allow_config=true --audit_allow_sockets=true --audit_persist=true --disable_audit=false --events_expiry=1 --events_max=50000 --logger_plugin=filesystem  --disable_events=false
 ```
@@ -181,6 +182,7 @@ On Linux, a companion table called `user_events` is included that provides sever
 osquery supports OpenBSM audit on macOS platforms. To enable it in osquery, you need to set `--disable_audit=false`
 
 OpenBSM is enabled on all macOS installations, but doesn't audit process execution or the root user with default settings. To start process auditing on macOS, edit the `audit_control` file in `/etc/security/`. An example configuration is provided below but the important flags are: `ex`, `pc`, `argv`, and `arge`. The `ex` flag will log `exec` events while `pc` logs `exec`, `fork`, and `exit`. If you don't need `fork` and `exit` you may leave that flag out however in future, getting parent pid may require `fork`. If you care about getting the arguments and environment variables you also need `argv` and `arge`. More about these flags can be found [on FreeBSD's man page](https://www.freebsd.org/cgi/man.cgi?apropos=0&sektion=5&query=audit_control&manpath=FreeBSD+7.0-current&format=html). Note that it might require a reboot of the system for these new flags to take effect. `audit -s` should restart the system but your mileage may vary.
+
 ```
 #
 # $P4: //depot/projects/trustedbsd/openbsm/etc/audit_control#8 $
