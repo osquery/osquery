@@ -33,6 +33,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 DECLARE_bool(disable_database);
+DECLARE_string(extensions_require);
 
 const int kDelay = 20;
 const int kTimeout = 3000;
@@ -134,9 +135,23 @@ class ExtensionsTest : public testing::Test {
 TEST_F(ExtensionsTest, test_manager_runnable) {
   // Start a testing extension manager.
   auto status = startExtensionManager(socket_path);
-  EXPECT_TRUE(status.ok()) << " error " << status.what();
+  ASSERT_TRUE(status.ok()) << " error " << status.what();
   // Call success if the Unix socket was created.
   EXPECT_TRUE(socketExistsLocal(socket_path));
+}
+
+TEST_F(ExtensionsTest, test_manager_bad_socket) {
+  auto status = startExtensionManager("/this/doesnt/exist");
+  EXPECT_FALSE(status.ok());
+}
+
+TEST_F(ExtensionsTest, test_manager_bad_require_extension) {
+  FLAGS_extensions_require = "this_extension_doesnt_exist";
+  auto status = startExtensionManager(socket_path);
+  ASSERT_FALSE(status.ok());
+  EXPECT_TRUE(status.getMessage().find("Required extension not found") !=
+              std::string::npos);
+  FLAGS_extensions_require = "";
 }
 
 TEST_F(ExtensionsTest, test_extension_runnable) {
@@ -269,4 +284,4 @@ TEST_F(ExtensionsTest, DISABLED_test_extension_broadcast) {
   rf.allowDuplicates(false);
 }
 
-}
+} // namespace osquery
