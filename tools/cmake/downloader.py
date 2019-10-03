@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-import urllib3
+from urllib.request import urlopen
 import hashlib
 
 def main(argc, argv):
@@ -14,9 +14,8 @@ def main(argc, argv):
   expected_hash = argv[3]
 
   try:
-    print("Downloading...")
-    http = urllib3.PoolManager()
-    response = http.request('GET', url)
+    print("Downloading...") 
+    response = urlopen(url)
 
     with open(destination_file, "wb") as f:
       f.write(response.data)
