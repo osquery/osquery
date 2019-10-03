@@ -25,11 +25,22 @@ for guidance.
 
 ## General Troubleshooting
 
-Though some testing can be performed via `osqueryi`, `osqueryi` and
-`osqueryd` operate independently. Configuration used on one must be
-propagated to the other.
+Though some testing of underlying operating system configuration can
+be performed via `osqueryi`; `osqueryi` and `osqueryd` operate
+independently and do not communicate.
+
+On macOS, you should be able to see events using:
+
+```
+sudo osqueryi --disable_audit=false --disable_events=false
+```
+
 
 ### Examine configuration flags
+
+To verify that osquery's flags are set correct, you can query the
+`osquery_flags` table. For example, on a macOS machine, this shows
+osquery will process OpenBSM events.
 
 ```
 osquery> select * from osquery_flags where name in ("disable_events", "disable_audit");
@@ -41,11 +52,17 @@ osquery> select * from osquery_flags where name in ("disable_events", "disable_a
 +----------------+------+---------------------------------------------------+---------------+-------+------------+
 ```
 
+
 ### Examine event table
 
 osquery keeps state about the events subsystem in the `osquery_events`
-table. The `subscriptions` is of note here. This example is from a
-macOS machine with events enabled. (But no events detected)
+table. The `events` column is of note here.
+
+This example is from a macOS machine with events enabled, but no
+events. You should try triggering an event, and then confirming that
+the event count is non-0. If it remains at zero, the problem is likely
+in how the OS auditing side is configured. See the platform specific
+instructions.
 
 ```
 osquery> select * from osquery_events;
@@ -68,15 +85,6 @@ osquery> select * from osquery_events;
 +-------------------------+-----------------+------------+---------------+--------+-----------+--------+
 ```
 
-### Try to get working on osqueryi
-
-You can run osqueryi and see events. This can be valuable in working
-though the configuration options, and OS side. At the simplest, you
-should be able to see events using:
-
-```
-sudo osqueryi --disable_audit=false --disable_events=false
-```
 
 
 ## Linux process auditing
