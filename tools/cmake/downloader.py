@@ -18,7 +18,7 @@ def main(argc, argv):
     response = urlopen(url)
 
     with open(destination_file, "wb") as f:
-      f.write(response.data)
+      f.write(response.read())
 
   except Exception as e:
     print("Failed to retrieve the file from the given url")

@@ -398,7 +398,6 @@ def implementation(impl_string, generator=False):
     """
     define the path to the implementation file and the function which
     implements the virtual table. You should use the following format:
-
       # the path is "osquery/table/implementations/foo.cpp"
       # the function is "QueryData genFoo();"
       implementation("foo@genFoo")
