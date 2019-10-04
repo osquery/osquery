@@ -35,11 +35,23 @@ function(cppcheckMain)
     message(WARNING "cppcheck: OSQUERY_BUILD_TESTS is OFF, disabling 'unusedFunction' checks and enabling multi-thread support")
   endif()
 
+  execute_process(
+    COMMAND "${OSQUERY_CPPCHECK_PATH}" "--version"
+    OUTPUT_VARIABLE cppcheck_version
+  )
+
+  file(READ "${CMAKE_CURRENT_SOURCE_DIR}/suppressions_list.txt"
+    cppcheck_suppressions_list
+  )
+
+  string(REPLACE "\n" ", " cppcheck_suppressions_list "${cppcheck_suppressions_list}")
+
   add_custom_target(
     cppcheck
+    COMMAND "${CMAKE_COMMAND}" -E echo "Suppression list: '${cppcheck_suppressions_list}'"
     COMMAND "${OSQUERY_CPPCHECK_PATH}" "--suppressions-list=${CMAKE_CURRENT_SOURCE_DIR}/suppressions_list.txt" "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg" ${multithread_options} --enable=all --platform=unix64 "--project=${CMAKE_BINARY_DIR}/compile_commands.json" --quiet
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Running cppcheck..."
+    COMMENT "Running ${cppcheck_version}"
     VERBATIM
   )
 endfunction()
