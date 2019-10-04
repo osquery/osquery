@@ -32,11 +32,13 @@ endif()
 if(OSQUERY_ENABLE_CLANG_TIDY)
   detectClangTidy()
 
-  foreach(language C CXX)
-    set("CMAKE_${language}_CLANG_TIDY"
-      "${OSQUERY_CLANG_TIDY_PATH};${OSQUERY_CLANG_TIDY_CHECKS}"
-    )
-  endforeach()
+  if(CLANG_TIDY_FOUND)
+    foreach(language C CXX)
+      set("CMAKE_${language}_CLANG_TIDY"
+        "${OSQUERY_CLANG_TIDY_PATH};${OSQUERY_CLANG_TIDY_CHECKS}"
+      )
+    endforeach()
+  endif()
 endif()
 
 function(main)

@@ -357,7 +357,7 @@ endfunction()
 
 # This function looks for the clang-tidy executable, and it's called in global
 # scope from the main CMakeLists.txt file
-function(detectClangTidy)
+function(findClangTidy)
   if("${OSQUERY_CLANG_TIDY_PATH}" STREQUAL "" AND NOT "${OSQUERY_TOOLCHAIN_SYSROOT}" STREQUAL "")
     overwrite_cache_variable(OSQUERY_CLANG_TIDY_PATH STRING
       "${OSQUERY_TOOLCHAIN_SYSROOT}/usr/bin/clang-tidy"
@@ -366,11 +366,14 @@ function(detectClangTidy)
 
   find_program(OSQUERY_CLANG_TIDY_PATH "clang-tidy")
   if("${OSQUERY_CLANG_TIDY_PATH}" STREQUAL "OSQUERY_CLANG_TIDY_PATH-NOTFOUND")
-    message(ERROR "clang-tidy: The executable was not found")
+    message(WARNING "clang-tidy: The executable was not found")
 
   elseif(NOT EXISTS "${OSQUERY_CLANG_TIDY_PATH}")
-    message(ERROR "clang-tidy: The provided clang-tidy path is not valid")
-  endif()
+    message(WARNING "clang-tidy: The provided clang-tidy path is not valid")
 
-  message(STATUS "clang-tidy: Enabled with ${OSQUERY_CLANG_TIDY_PATH}")
+  else()
+    message(STATUS "clang-tidy: Enabled with ${OSQUERY_CLANG_TIDY_PATH}")
+
+    set(CLANG_TIDY_FOUND true PARENT_SCOPE)
+  endif()
 endfunction()
