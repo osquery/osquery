@@ -30,20 +30,11 @@ osquery::QueryData parseALFExceptionsTree(const pt::ptree& tree);
 osquery::QueryData parseALFExplicitAuthsTree(const pt::ptree& tree);
 
 // Given a property tree of the parsed content of com.apple.alf.plist,
-// parseALFServicesTree parses out the services which exist under the
-// "firewall" key
-osquery::QueryData parseALFServicesTree(const pt::ptree& tree);
-
-// Given a property tree of the parsed content of com.apple.alf.plist,
 // parseALFTree parses out the top level string and int keys
 osquery::QueryData parseALFTree(const pt::ptree& tree);
 
 // kALFPlistPath is the path of the com.apple.alf.plist path
 extern const std::string kALFPlistPath;
-
-// kFirewallTreeKeys is a map of keys and columns which are used while parsing
-// in the function parseALFServicesTree
-extern const std::map<std::string, std::string> kFirewallTreeKeys;
 
 // kTopLevelIntKeys is a map of keys and columns which are used while parsing
 // in the function parseALFTree

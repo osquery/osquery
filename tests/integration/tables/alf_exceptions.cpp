@@ -22,21 +22,16 @@ class alfExceptions : public testing::Test {
 };
 
 TEST_F(alfExceptions, test_sanity) {
-  // 1. Query data
   auto const data = execute_query("select * from alf_exceptions");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"path", NormalType}
-  //      {"state", IntType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+
+  ASSERT_GE(data.size(), 1ul);
+
+  ValidationMap row_map = {
+      {"path", NormalType},
+      {"state", IntType},
+  };
+
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

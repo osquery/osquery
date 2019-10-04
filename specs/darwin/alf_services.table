@@ -1,8 +1,0 @@
-table_name("alf_services")
-description("OS X application layer firewall (Firewall) services.")
-schema([
-    Column("service", TEXT, "Firewalled service name"),
-    Column("process", TEXT, "Process name"),
-    Column("state", INTEGER, "Firewall service state"),
-])
-implementation("firewall@genALFServices")

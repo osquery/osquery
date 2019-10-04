@@ -28,6 +28,15 @@ pt::ptree getALFTree() {
   return tree;
 }
 
+pt::ptree getALFTreeNestedPath() {
+  std::string content;
+  readFile(getTestConfigDirectory() / "test_alf_nested_path.plist", content);
+
+  pt::ptree tree;
+  parsePlistContent(content, tree);
+  return tree;
+}
+
 class FirewallTests : public testing::Test {};
 
 TEST_F(FirewallTests, test_parse_alf_tree) {
@@ -64,6 +73,19 @@ TEST_F(FirewallTests, test_parse_alf_exceptions_tree) {
   EXPECT_EQ(results, expected);
 }
 
+TEST_F(FirewallTests, test_parse_alf_exceptions_tree_nested_path) {
+  pt::ptree tree = getALFTreeNestedPath();
+  auto results = parseALFExceptionsTree(tree);
+
+  osquery::QueryData expected = {
+      {{"path",
+        "/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/"
+        "com.apple.WebKit.Networking.xpc/"},
+       {"state", "0"}},
+  };
+  EXPECT_EQ(results, expected);
+}
+
 TEST_F(FirewallTests, test_parse_alf_explicit_auths_tree) {
   pt::ptree tree = getALFTree();
   auto results = parseALFExplicitAuthsTree(tree);
@@ -75,51 +97,6 @@ TEST_F(FirewallTests, test_parse_alf_explicit_auths_tree) {
       {{"process", "com.apple.php"}},
       {{"process", "com.apple.nc"}},
       {{"process", "com.apple.ksh"}},
-  };
-  EXPECT_EQ(results, expected);
-}
-
-TEST_F(FirewallTests, test_parse_alf_services_tree) {
-  pt::ptree tree = getALFTree();
-  auto results = parseALFServicesTree(tree);
-  osquery::QueryData expected = {
-      {
-          {"service", "Personal Web Sharing"},
-          {"process", "httpd"},
-          {"state", "0"},
-      },
-      {
-          {"service", "Printer Sharing"}, {"process", "cupsd"}, {"state", "0"},
-      },
-      {
-          {"service", "Remote Apple Events"},
-          {"process", "AEServer"},
-          {"state", "0"},
-      },
-      {
-          {"service", "FTP Access"}, {"process", "ftpd"}, {"state", "0"},
-      },
-      {
-          {"service", "Personal File Sharing"},
-          {"process", "AppleFileServer"},
-          {"state", "0"},
-      },
-      {
-          {"service", "Remote Login - SSH"},
-          {"process", "sshd-keygen-wrapper"},
-          {"state", "0"},
-      },
-      {
-          {"service", "Samba Sharing"}, {"process", "smbd"}, {"state", "0"},
-      },
-      {
-          {"service", "Apple Remote Desktop"},
-          {"process", "AppleVNCServer"},
-          {"state", "0"},
-      },
-      {
-          {"service", "ODSAgent"}, {"process", "ODSAgent"}, {"state", "0"},
-      },
   };
   EXPECT_EQ(results, expected);
 }
@@ -147,5 +124,5 @@ TEST_F(FirewallTests, test_on_disk_format) {
   }
   EXPECT_NO_THROW(tree.get_child("firewall"));
 }
-}
-}
+} // namespace tables
+} // namespace osquery
