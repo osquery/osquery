@@ -22,7 +22,7 @@ function(generateOsqueryTablesNetworking)
     etc_services.cpp
     listening_ports.cpp
   )
-  
+
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
       posix/dns_resolvers.cpp
@@ -61,6 +61,7 @@ function(generateOsqueryTablesNetworking)
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/arp_cache.cpp
+      windows/connectivity.cpp
       windows/interfaces.cpp
       windows/process_open_sockets.cpp
       windows/routes.cpp

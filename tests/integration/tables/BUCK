@@ -258,6 +258,7 @@ osquery_cxx_test(
                 "autoexec.cpp",
                 "certificates.cpp",
                 "chocolatey_packages.cpp",
+                "connectivity.cpp",
                 "cpu_info.cpp",
                 "disk_info.cpp",
                 "drivers.cpp",
