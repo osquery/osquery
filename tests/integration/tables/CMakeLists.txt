@@ -284,7 +284,6 @@ function(generateTestsIntegrationTablesTestsTest)
       winbaseobj.cpp
       windows_crashes.cpp
       windows_events.cpp
-      windows_security_products.cpp
       wmi_bios_info.cpp
       wmi_cli_event_consumers.cpp
       wmi_event_filters.cpp

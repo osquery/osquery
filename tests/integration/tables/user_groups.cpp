@@ -24,7 +24,10 @@ class UserGroups : public testing::Test {
 TEST_F(UserGroups, test_sanity) {
   QueryData data = execute_query("select * from user_groups");
   ASSERT_GT(data.size(), 0ul);
-  ValidationMap row_map = {{"uid", verifyUidGid}, {"gid", verifyUidGid}};
+  ValidatatioMap row_map = {
+    {"uid", verifyUidGid},
+    {"gid", verifyUidGid}
+  };
   validate_rows(data, row_map);
 }
 

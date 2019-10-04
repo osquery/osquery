@@ -287,7 +287,6 @@ osquery_cxx_test(
                 "wmi_event_filters.cpp",
                 "wmi_filter_consumer_binding.cpp",
                 "wmi_script_event_consumers.cpp",
-                "windows_security_products.cpp",
             ],
         ),
     ],

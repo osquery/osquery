@@ -28,7 +28,7 @@ TEST_F(Time, test_sanity) {
 
   ASSERT_EQ(data.size(), 1ul);
 
-  ValidationMap row_map = {
+  ValidatatioMap row_map = {
       {"weekday", NonEmptyString},
       {"year", IntType},
       {"month", IntMinMaxCheck(1, 12)},

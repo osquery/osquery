@@ -49,5 +49,5 @@ if __name__ == "__main__":
             continue
         if file['file'].find("gtest") > 0:
             continue
-        print(file['file'])
+        print(file['file'].replace(args.base, ""))
         pass

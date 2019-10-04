@@ -12,7 +12,4 @@ importSourceSubmodule(
 
   SHALLOW_SUBMODULES
     "src"
-
-  PATCH
-    "src"
 )

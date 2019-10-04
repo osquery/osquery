@@ -1,3 +1,4 @@
+
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -31,7 +32,7 @@ TEST_F(physicalDiskPerformance, test_sanity) {
   // 3. Build validation map
   // See helper.h for avaialbe flags
   // Or use custom DataCheck object
-  // ValidationMap row_map = {
+  // ValidatatioMap row_map = {
   //      {"name", NormalType}
   //      {"avg_disk_bytes_per_read", IntType}
   //      {"avg_disk_bytes_per_write", IntType}

@@ -1,3 +1,4 @@
+
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -33,7 +34,7 @@ class ProcessEnvs : public testing::Test {
 TEST_F(ProcessEnvs, test_sanity) {
   QueryData data = execute_query("select * from process_envs");
 
-  ValidationMap row_map = {
+  ValidatatioMap row_map = {
       {"pid", NonNegativeInt},
       {"key", NonEmptyString},
       {"value", NormalType},

@@ -27,7 +27,7 @@ class UsersTest : public testing::Test {
 TEST_F(UsersTest, test_sanity) {
   auto const rows = execute_query("select * from users");
   ASSERT_GE(rows.size(), 1ul); // There must be at least one user
-  auto row_map = ValidationMap{
+  auto row_map = ValidatatioMap{
       {"uid", NonNegativeInt},
       {"uid_signed", IntType},
       {"gid_signed", IntType},

@@ -4,8 +4,8 @@
 # This source code is licensed in accordance with the terms specified in
 # the LICENSE file found in the root directory of this source tree.
 
-function(thriftMain)
-  set(library_root "${OSQUERY_thrift_ROOT_DIR}/lib/cpp")
+function(thrifMain)
+  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/cpp")
 
   add_library(thirdparty_thrift
     # libthrift
@@ -111,4 +111,4 @@ function(thriftMain)
   )
 endfunction()
 
-thriftMain()
+thrifMain()

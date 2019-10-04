@@ -58,7 +58,7 @@ bool checkProcessOpenFilePath(std::string const& value){
 TEST_F(ProcessOpenFilesTest, test_sanity) {
   QueryData data = execute_query("select * from process_open_files");
   ASSERT_GT(data.size(), 0ul);
-  ValidationMap row_map = {
+  ValidatatioMap row_map = {
       {"pid", NonNegativeInt},
       {"fd", NonNegativeInt},
       {"path", checkProcessOpenFilePath},

@@ -1,3 +1,4 @@
+
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -24,7 +25,7 @@ class KernelModules : public testing::Test {
 TEST_F(KernelModules, test_sanity) {
   QueryData data = execute_query("select * from kernel_modules");
   ASSERT_GT(data.size(), 0ul);
-  ValidationMap row_map = {
+  ValidatatioMap row_map = {
       {"name", NonEmptyString},
       {"size", NonNegativeInt},
       {"used_by", NonEmptyString},

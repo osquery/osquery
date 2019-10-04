@@ -23,10 +23,10 @@ class KernelInfo : public testing::Test {
 
 TEST_F(KernelInfo, test_sanity) {
   QueryData data = execute_query("select * from kernel_info");
-  ValidationMap row_map = {{"version", NonEmptyString},
-                           {"arguments", NormalType},
-                           {"path", NormalType},
-                           {"device", NonEmptyString}};
+  ValidatatioMap row_map = {{"version", NonEmptyString},
+                            {"arguments", NormalType},
+                            {"path", NormalType},
+                            {"device", NonEmptyString}};
   validate_rows(data, row_map);
 }
 

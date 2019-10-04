@@ -61,6 +61,10 @@ function(generatePluginsDatabaseRocksdbplugin)
   generateIncludeNamespace(plugins_database_rocksdbplugin "plugins/database" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME plugins_database_tests_rocksdbtests-test COMMAND plugins_database_tests_rocksdbtests-test)
+
+  set_tests_properties(plugins_database_tests_rocksdbtests-test PROPERTIES
+    DISABLED True
+  )
 endfunction()
 
 function(generatePluginsDatabaseSqliteplugin)

@@ -1,3 +1,4 @@
+
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -25,7 +26,7 @@ class RegistryTest : public testing::Test {
 TEST_F(RegistryTest, test_sanity) {
   QueryData const rows = execute_query("select * from registry");
   ASSERT_GT(rows.size(), 0ul);
-  auto const row_map = ValidationMap{
+  auto const row_map = ValidatatioMap{
       {"key", NonEmptyString},
       {"path", NonEmptyString},
       {"name", NonEmptyString},

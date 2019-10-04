@@ -1,3 +1,4 @@
+
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -23,7 +24,7 @@ class LoggedInUsersTest : public testing::Test {
 
 TEST_F(LoggedInUsersTest, test_sanity) {
   auto const rows = execute_query("select * from logged_in_users");
-  auto const row_map = ValidationMap{
+  auto const row_map = ValidatatioMap{
       {"type", NonEmptyString},
       {"user", NormalType},
       {"tty", NormalType},

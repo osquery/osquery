@@ -25,7 +25,7 @@ TEST_F(IBridgeTest, test_sanity) {
     VLOG(1) << "Empty result for table: ibridge, skipping test";
   } else {
     ASSERT_EQ(rows.size(), 1ul);
-    ValidationMap validation_map = {
+    ValidatatioMap validation_map = {
         {"boot_uuid", NormalType},
         {"coprocessor_version", NonEmptyString},
         {"firmware_version", NonEmptyString},

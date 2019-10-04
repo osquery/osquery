@@ -1,3 +1,4 @@
+
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -37,22 +38,22 @@ TEST_F(Crontab, test_sanity) {
                                                 "dec"};
   std::unordered_set<std::string> days_list = {
       "mon", "tue", "wed", "thu", "fri", "sat", "sun"};
-  ValidationMap row_map = {{"event",
-                            SpecificValuesCheck{"",
-                                                "@reboot",
-                                                "@hourly",
-                                                "@daily",
-                                                "@weekly",
-                                                "@monthly",
-                                                "@annually",
-                                                "@yearly"}},
-                           {"minute", CronValuesCheck(0, 59)},
-                           {"hour", CronValuesCheck(0, 23)},
-                           {"day_of_month", CronValuesCheck(1, 31)},
-                           {"month", CronValuesCheck(1, 31, month_list)},
-                           {"day_of_week", CronValuesCheck(0, 7, days_list)},
-                           {"command", NonEmptyString},
-                           {"path", FileOnDisk}};
+  ValidatatioMap row_map = {{"event",
+                             SpecificValuesCheck{"",
+                                                 "@reboot",
+                                                 "@hourly",
+                                                 "@daily",
+                                                 "@weekly",
+                                                 "@monthly",
+                                                 "@annually",
+                                                 "@yearly"}},
+                            {"minute", CronValuesCheck(0, 59)},
+                            {"hour", CronValuesCheck(0, 23)},
+                            {"day_of_month", CronValuesCheck(1, 31)},
+                            {"month", CronValuesCheck(1, 31, month_list)},
+                            {"day_of_week", CronValuesCheck(0, 7, days_list)},
+                            {"command", NonEmptyString},
+                            {"path", FileOnDisk}};
   validate_rows(data, row_map);
 }
 

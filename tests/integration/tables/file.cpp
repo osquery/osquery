@@ -1,3 +1,4 @@
+
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -48,23 +49,23 @@ TEST_F(FileTests, test_sanity) {
       "\"");
   EXPECT_EQ(data.size(), 1ul);
 
-  ValidationMap row_map = {{"path", FileOnDisk},
-                           {"directory", DirectoryOnDisk},
-                           {"filename", NonEmptyString},
-                           {"inode", IntType},
-                           {"uid", NonNegativeInt},
-                           {"gid", NonNegativeInt},
-                           {"mode", NormalType},
-                           {"device", IntType},
-                           {"size", NonNegativeInt},
-                           {"block_size", NonNegativeInt},
-                           {"atime", NonNegativeInt},
-                           {"mtime", NonNegativeInt},
-                           {"ctime", NonNegativeInt},
-                           {"btime", NonNegativeInt},
-                           {"hard_links", IntType},
-                           {"symlink", IntType},
-                           {"type", NonEmptyString}};
+  ValidatatioMap row_map = {{"path", FileOnDisk},
+                            {"directory", DirectoryOnDisk},
+                            {"filename", NonEmptyString},
+                            {"inode", IntType},
+                            {"uid", NonNegativeInt},
+                            {"gid", NonNegativeInt},
+                            {"mode", NormalType},
+                            {"device", IntType},
+                            {"size", NonNegativeInt},
+                            {"block_size", NonNegativeInt},
+                            {"atime", NonNegativeInt},
+                            {"mtime", NonNegativeInt},
+                            {"ctime", NonNegativeInt},
+                            {"btime", NonNegativeInt},
+                            {"hard_links", IntType},
+                            {"symlink", IntType},
+                            {"type", NonEmptyString}};
 #ifdef WIN32
   row_map["attributes"] = NormalType;
   row_map["volume_serial"] = NormalType;

@@ -1,3 +1,4 @@
+
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -36,7 +37,7 @@ TEST_F(ProcessesTest, test_sanity) {
 
   EXPECT_GE(now, boot_time);
 
-  ValidationMap row_map = {
+  ValidatatioMap row_map = {
       {"pid", IntType},
       {"name", NormalType},
       {"path", NormalType},

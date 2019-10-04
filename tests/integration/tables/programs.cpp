@@ -24,15 +24,15 @@ class ProgramsTest : public testing::Test {
 TEST_F(ProgramsTest, test_sanity) {
   QueryData data = execute_query("select * from programs");
   ASSERT_GT(data.size(), 0ul);
-  ValidationMap row_map = {{"name", NormalType},
-                           {"version", NormalType},
-                           {"install_location", NormalType},
-                           {"install_source", NormalType},
-                           {"language", NormalType},
-                           {"publisher", NormalType},
-                           {"uninstall_string", NormalType},
-                           {"install_date", NormalType},
-                           {"identifying_number", NormalType}};
+  ValidatatioMap row_map = {{"name", NormalType},
+                            {"version", NormalType},
+                            {"install_location", NormalType},
+                            {"install_source", NormalType},
+                            {"language", NormalType},
+                            {"publisher", NormalType},
+                            {"uninstall_string", NormalType},
+                            {"install_date", NormalType},
+                            {"identifying_number", NormalType}};
   validate_rows(data, row_map);
 }
 

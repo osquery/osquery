@@ -1,3 +1,4 @@
+
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -29,7 +30,7 @@ TEST_F(KnownHostsTest, test_sanity) {
     LOG(WARNING) << "select from \"known_hosts\" table returned no results and "
                     "therefore won't be tested";
   } else {
-    auto const row_map = ValidationMap{
+    auto const row_map = ValidatatioMap{
         {"uid", IntType},
         {"key", NonEmptyString},
         {"key_file", FileOnDisk},

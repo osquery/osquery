@@ -14,19 +14,24 @@ import sys
 
 def check(base_commit, exclude_folders):
     try:
-        cmd = [
-          "python",
-          os.path.join(os.path.dirname(os.path.abspath(__file__)), "git-clang-format.py"),
-          "--style=file",
-          "--diff",
-          "--commit",
-          base_commit,
-        ]
 
+        exclude_folders_option=""
         if exclude_folders:
-            cmd += ["--exclude-folders", exclude_folders]
+            exclude_folders_option = "--exclude_folders " + exclude_folders
 
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(
+                [
+                    "python",
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)), "git-clang-format.py"),
+                    "--style=file",
+                    "--diff",
+                    "--commit",
+                    base_commit,
+                    "-v",
+                    exclude_folders_option,
+                    ],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
         out, err = p.communicate()
     except OSError as e:
         print("{}\n\n{!r}".format("Failed to call git-clang-format.py", e))

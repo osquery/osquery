@@ -155,8 +155,7 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
 
   if (FLAGS_install) {
     auto binPath = fs::system_complete(fs::path(argv[0]));
-    // "Wrap" the binPath in the event it contains spaces
-    if (installService("\"" + binPath.string() + "\"")) {
+    if (installService(binPath.string())) {
       LOG(INFO) << "osqueryd service was installed successfully.";
       return 0;
     } else {

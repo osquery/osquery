@@ -26,9 +26,9 @@ class MemoryMapTest : public testing::Test {
 TEST_F(MemoryMapTest, test_sanity) {
   QueryData data = execute_query("select * from memory_map");
   ASSERT_GT(data.size(), 0ul);
-  ValidationMap row_map = {{"name", NonEmptyString},
-                           {"start", NonNegativeInt},
-                           {"end", NonNegativeInt}};
+  ValidatatioMap row_map = {{"name", NonEmptyString},
+                            {"start", NonNegativeInt},
+                            {"end", NonNegativeInt}};
   validate_rows(data, row_map);
 
   for (const auto& row : data) {

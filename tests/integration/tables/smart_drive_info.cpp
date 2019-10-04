@@ -1,3 +1,4 @@
+
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -31,7 +32,7 @@ TEST_F(smartDriveInfo, test_sanity) {
   // 3. Build validation map
   // See helper.h for avaialbe flags
   // Or use custom DataCheck object
-  // ValidationMap row_map = {
+  // ValidatatioMap row_map = {
   //      {"device_name", NormalType}
   //      {"disk_id", IntType}
   //      {"driver_type", NormalType}

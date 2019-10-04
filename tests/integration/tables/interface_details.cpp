@@ -1,3 +1,4 @@
+
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -70,7 +71,7 @@ TEST_F(InterfaceDetailsTest, test_sanity) {
     return true;
   };
 #endif
-  auto const row_map = ValidationMap{
+  auto const row_map = ValidatatioMap{
       {"interface", NonEmptyString},
       {"mac", verify_non_empty_string_or_empty_on_win},
       {"type", NonNegativeInt},
