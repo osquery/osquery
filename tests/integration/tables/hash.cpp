@@ -44,7 +44,7 @@ TEST_F(Hash, test_sanity) {
 
   ASSERT_EQ(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"path", NonEmptyString},
       {"directory", NonEmptyString},
       {"md5", NonEmptyString},

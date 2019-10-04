@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -30,7 +29,7 @@ TEST_F(AptSourcesTest, test_sanity) {
     LOG(WARNING) << "select from \"apt_sources\" table returned no results and "
                     "therefore won't be tested";
   } else {
-    auto const row_map = ValidatatioMap{
+    auto const row_map = ValidationMap{
         {"name", NonEmptyString},
         {"source", FileOnDisk},
         {"base_uri", NonEmptyString},

@@ -142,7 +142,7 @@ QueryData execute_query(std::string query) {
   return rows;
 }
 
-void validate_row(const Row& row, const ValidatatioMap& validation_map) {
+void validate_row(const Row& row, const ValidationMap& validation_map) {
   for (auto const& rec : row) {
     EXPECT_NE(validation_map.count(rec.first), std::size_t{0})
         << "Unexpected column " << boost::io::quoted(rec.first) << " in a row";
@@ -154,7 +154,7 @@ void validate_row(const Row& row, const ValidatatioMap& validation_map) {
         << "Could not find column " << boost::io::quoted(key)
         << " in the generated columns";
     std::string value = row_data_iter->second;
-    ValidatatioDataType validator = iter.second;
+    ValidationDataType validator = iter.second;
     if (validator.type() == typeid(int)) {
       int flags = boost::get<int>(validator);
       ASSERT_TRUE(validate_value_using_flags(value, flags))
@@ -168,7 +168,7 @@ void validate_row(const Row& row, const ValidatatioMap& validation_map) {
   }
 }
 void validate_rows(const std::vector<Row>& rows,
-                   const ValidatatioMap& validation_map) {
+                   const ValidationMap& validation_map) {
   for (auto row : rows) {
     validate_row(row, validation_map);
   }

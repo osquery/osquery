@@ -240,7 +240,7 @@ Status installService(const std::string& binPath) {
   }
 
   SC_HANDLE schService =
-      OpenService(schSCManager, kServiceName.c_str(), SERVICE_ALL_ACCESS);
+      OpenServiceA(schSCManager, kServiceName.c_str(), SERVICE_ALL_ACCESS);
 
   if (schService != nullptr) {
     CloseServiceHandle(schService);
@@ -251,29 +251,37 @@ Status installService(const std::string& binPath) {
   HANDLE flagsFilePtr = nullptr;
   auto binPathWithFlagFile = binPath + " --flagfile=";
   auto flagsFile = FLAGS_flagfile.empty() ? kDefaultFlagsFile : FLAGS_flagfile;
+  // "Wrap" the flag file in the event there are spaces in the path. We do this
+  // in a safer way in the event FLAGS_flagFile is already wrapped in quotes
+  if (flagsFile[0] != '"') {
+    flagsFile = "\"" + flagsFile;
+  }
+  if (flagsFile[flagsFile.size() - 1] != '"') {
+    flagsFile = flagsFile + "\"";
+  }
   binPathWithFlagFile += flagsFile;
-  flagsFilePtr = CreateFile(flagsFile.c_str(),
-                            GENERIC_READ,
-                            FILE_SHARE_READ,
-                            nullptr,
-                            OPEN_ALWAYS,
-                            0,
-                            nullptr);
+  flagsFilePtr = CreateFileA(flagsFile.c_str(),
+                             GENERIC_READ,
+                             FILE_SHARE_READ,
+                             nullptr,
+                             OPEN_ALWAYS,
+                             0,
+                             nullptr);
   CloseHandle(flagsFilePtr);
 
-  schService = CreateService(schSCManager,
-                             kServiceName.c_str(),
-                             kServiceDisplayName.c_str(),
-                             SERVICE_ALL_ACCESS,
-                             SERVICE_WIN32_OWN_PROCESS,
-                             SERVICE_AUTO_START,
-                             SERVICE_ERROR_NORMAL,
-                             binPathWithFlagFile.c_str(),
-                             nullptr,
-                             nullptr,
-                             nullptr,
-                             nullptr,
-                             nullptr);
+  schService = CreateServiceA(schSCManager,
+                              kServiceName.c_str(),
+                              kServiceDisplayName.c_str(),
+                              SERVICE_ALL_ACCESS,
+                              SERVICE_WIN32_OWN_PROCESS,
+                              SERVICE_AUTO_START,
+                              SERVICE_ERROR_NORMAL,
+                              binPathWithFlagFile.c_str(),
+                              nullptr,
+                              nullptr,
+                              nullptr,
+                              nullptr,
+                              nullptr);
 
   if (schService) {
     setupServiceRecovery(schService);

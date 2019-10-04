@@ -260,8 +260,9 @@ function(generateNativeTables)
     "windows/wmi_script_event_consumers.table:windows"
     "windows/physical_disk_performance.table:windows"
     "windows/autoexec.table:windows"
+    "windows/windows_security_products.table:windows"
     "yara/yara_events.table:linux,macos"
-    "yara/yara.table:linux,macos,freebsd"  
+    "yara/yara.table:linux,macos,freebsd"
   )
 
   foreach(spec_descriptor ${platform_dependent_spec_files})

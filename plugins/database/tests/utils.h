@@ -54,6 +54,9 @@ class DatabasePluginTests : public testing::Test {
   /// Path to testing database.
   std::string path_;
 
+  /// Previous (before SetUp) database path.
+  std::string previous_path_;
+
  protected:
   /// Require each plugin tester to implement a set name.
   virtual std::string name() = 0;

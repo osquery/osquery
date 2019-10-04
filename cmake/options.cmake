@@ -69,6 +69,8 @@ option(OSQUERY_NO_DEBUG_SYMBOLS "Whether to build without debug symbols or not, 
 
 option(OSQUERY_BUILD_TESTS "Whether to enable and build tests or not")
 
+option(OSQUERY_FUZZ "Whether to build fuzzing harnesses")
+
 # Unfortunately, due glog always enabling BUILD_TESTING, we have to force it off, so that tests won't be built
 overwrite_cache_variable("BUILD_TESTING" "BOOL" "OFF")
 

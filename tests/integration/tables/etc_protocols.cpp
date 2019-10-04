@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -24,7 +23,7 @@ class EtcProtocolsTest : public testing::Test {
 
 TEST_F(EtcProtocolsTest, test_sanity) {
   auto const rows = execute_query("select * from etc_protocols");
-  auto const row_map = ValidatatioMap{
+  auto const row_map = ValidationMap{
       {"name", NonEmptyString},
       {"number", NonNegativeInt},
       {"alias", NonEmptyString},

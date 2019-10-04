@@ -78,11 +78,16 @@ The root folder is assumed to be `C:\Users\<user>`
 
 **Step 1: Install the prerequisites**
 
-- [CMake](https://cmake.org/) (>= 3.14.6): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!
-- [Build Tools for Visual Studio 2019](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16): from the installer choose the C++ build tools workload, then on the right, under "C++ build tools",  "Optional", select "MSVC v141 - VS 2017 C++". Do not install CMake using the Visual Studio Installer, because it will be an older version than needed.
+Note: It may be easier to install these prerequisites using [Chocolatey](https://chocolatey.org/).
+
+- [CMake](https://cmake.org/) (>= 3.14.6): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!  Do not install CMake using the Visual Studio Installer, because it contains an older version than required.
+- Visual Studio 2019 (2 options)
+  1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", and "Windows 10 SDK".
+  2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", and "Windows 10 SDK".
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest) (or equivalent)
 - [Python 2](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
+- [Wix Toolset](https://wixtoolset.org/releases/)
 
 **Step 2: Download and build**
 
@@ -94,7 +99,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -G "Visual Studio 16 2019" -A x64 -T v141 ..
+cmake -A x64 -T v141 ..
 
 # Build
 cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel
@@ -306,6 +311,25 @@ vagrant ssh aws-amazon2015.03
 # Custom Packages
 
 Package creation is facilitated by CPack.
+
+The package will include several components:
+- The executables: `osqueryd`, `osqueryi`, and small management script `osqueryctl`
+- An osquery systemd unit on Linux (with initd script wrapper)
+- An osquery LaunchDaemon on macOS
+- The lenses provided by our Augeas third-party dependency
+- A default, or fall-back, OpenSSL certificate store (found within the repository)
+- The example query packs from the repository
+- Folder structures required for logging
+
+To create a DEB, RPM, or TGZ on Linux, CPack will attempt to auto-detect the appropriate package type.
+You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
+
+```sh
+cmake -DPACKAGING_SYSTEM=RPM ..
+make package
+```
+
+On macOS the `package` target will create a `.pkg`, and on Windows it will create a `.msi`.
 
 # Build Performance
 

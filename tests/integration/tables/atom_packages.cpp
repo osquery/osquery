@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -24,7 +23,7 @@ class atomPackages : public testing::Test {
 
 TEST_F(atomPackages, test_sanity) {
   auto const data = execute_query("select * from atom_packages");
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"name", NormalType},
       {"version", NormalType},
       {"description", NormalType},
