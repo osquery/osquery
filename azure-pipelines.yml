@@ -79,6 +79,12 @@ jobs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . --target cppcheck
 
+    - task: CMake@1
+      displayName: "Run clang-tidy"
+      inputs:
+        workingDirectory: $(Build.BinariesDirectory)/build
+        cmakeArgs: --build . --target clang-tidy
+
     - script: |
         ctest --build-nocmake -V
       displayName: "Run tests"
