@@ -29,16 +29,11 @@ function(cppcheckMain)
     return()
   endif()
 
-  if(NOT OSQUERY_BUILD_TESTS)
-    ProcessorCount(job_count)
-    math(EXPR job_count "${job_count} + 1")
-
-    set(multithread_options
-      -j ${job_count}
-    )
-
-    message(WARNING "cppcheck: OSQUERY_BUILD_TESTS is OFF, disabling 'unusedFunction' checks and enabling multi-thread support")
-  endif()
+  ProcessorCount(job_count)
+  math(EXPR job_count "${job_count} + 1")
+  set(multithread_options
+    -j ${job_count}
+  )
 
   execute_process(
     COMMAND "${OSQUERY_CPPCHECK_PATH}" "--version"
@@ -51,6 +46,8 @@ function(cppcheckMain)
 
   string(REPLACE "\n" ", " cppcheck_suppressions_list "${cppcheck_suppressions_list}")
 
+  # We don't care if multithreading disables the unusedFunction check, since that would turn off
+  # suppressions (and we don't want to waste time analyzing the source modules)
   add_custom_target(
     cppcheck
     COMMAND "${CMAKE_COMMAND}" -E echo "Suppression list: '${cppcheck_suppressions_list}'"
