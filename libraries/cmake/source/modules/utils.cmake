@@ -187,6 +187,10 @@ function(importSourceSubmodule)
     endif()
   endif()
 
+  # Make sure we don't run clang-tidy on the source modules
+  unset(CMAKE_C_CLANG_TIDY)
+  unset(CMAKE_CXX_CLANG_TIDY)
+
   add_subdirectory(
     "${directory_path}"
     "${CMAKE_BINARY_DIR}/libs/src/${ARGS_NAME}"

@@ -25,8 +25,18 @@ include(cmake/options.cmake)
 include(cmake/flags.cmake)
 include(cmake/packaging.cmake)
 
-if (OSQUERY_TOOLCHAIN_SYSROOT AND NOT DEFINED PLATFORM_LINUX)
+if(OSQUERY_TOOLCHAIN_SYSROOT AND NOT DEFINED PLATFORM_LINUX)
   message(FATAL_ERROR "The custom toolchain can only be used with Linux, undefine OSQUERY_TOOLCHAIN_SYSROOT and specify a compiler to use")
+endif()
+
+if(OSQUERY_ENABLE_CLANG_TIDY)
+  detectClangTidy()
+
+  foreach(language C CXX)
+    set("CMAKE_${language}_CLANG_TIDY"
+      "${OSQUERY_CLANG_TIDY_PATH};${OSQUERY_CLANG_TIDY_CHECKS}"
+    )
+  endforeach()
 endif()
 
 function(main)

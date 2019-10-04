@@ -71,12 +71,8 @@ option(OSQUERY_BUILD_TESTS "Whether to enable and build tests or not")
 
 option(OSQUERY_FUZZ "Whether to build fuzzing harnesses")
 
-# clang-tidy configuration; auto-detection will be performed if left empty
-set(OSQUERY_RUN_CLANG_TIDY_PATH "" CACHE STRING "The path to the run-clang-tidy.py script")
-set(OSQUERY_CLANG_TIDY_PATH "" CACHE STRING "The path to the clang-tidy executable")
-
-# cppcheck configuration; auto-detection will be performed if left empty
-set(OSQUERY_CPPCHECK_PATH "" CACHE STRING "The path to the cppcheck executable")
+option(OSQUERY_ENABLE_CLANG_TIDY "Enables clang-tidy support")
+set(OSQUERY_CLANG_TIDY_CHECKS "-checks=*,-clang-analyzer*" CACHE STRING "List of checks performed by clang-tidy")
 
 # Unfortunately, due glog always enabling BUILD_TESTING, we have to force it off, so that tests won't be built
 overwrite_cache_variable("BUILD_TESTING" "BOOL" "OFF")

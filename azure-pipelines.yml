@@ -79,12 +79,6 @@ jobs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . --target cppcheck
 
-    - task: CMake@1
-      displayName: "Run clang-tidy"
-      inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: --build . --target clang-tidy
-
     - script: |
         ctest --build-nocmake -V
       displayName: "Run tests"
@@ -191,7 +185,7 @@ jobs:
       displayName: "Configure osquery"
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DOSQUERY_BUILD_TESTS=ON $(EXTRA_CMAKE_ARGS) $(Build.SourcesDirectory)
+        cmakeArgs: -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DOSQUERY_ENABLE_CLANG_TIDY=ON -DOSQUERY_BUILD_TESTS=ON $(EXTRA_CMAKE_ARGS) $(Build.SourcesDirectory)
 
     - task: CacheBeta@0
       inputs:

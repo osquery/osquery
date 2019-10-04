@@ -25,9 +25,11 @@ function(cppcheckMain)
     return()
 
   elseif(NOT EXISTS "${OSQUERY_CPPCHECK_PATH}")
-    message(STATUS "cppcheck: The provided executable path is not valid")
+    message(STATUS "cppcheck: The provided executable path is not valid: ${OSQUERY_CPPCHECK_PATH}")
     return()
   endif()
+
+  message(STATUS "cppcheck: Enabled with ${OSQUERY_CPPCHECK_PATH}")
 
   ProcessorCount(job_count)
   math(EXPR job_count "${job_count} + 1")
