@@ -21,12 +21,17 @@ function(cppcheckMain)
 
   find_program(OSQUERY_CPPCHECK_PATH cppcheck)
   if("${OSQUERY_CPPCHECK_PATH}" STREQUAL "OSQUERY_CPPCHECK_PATH-NOTFOUND")
-    message(STATUS "cppcheck: The executable was not found!")
+    message(STATUS "cppcheck: The executable was not found")
+    return()
+
+  elseif(NOT EXISTS "${OSQUERY_CPPCHECK_PATH}")
+    message(STATUS "cppcheck: The provided executable path is not valid")
     return()
   endif()
 
   if(NOT OSQUERY_BUILD_TESTS)
     ProcessorCount(job_count)
+    math(EXPR job_count "${job_count} + 1")
 
     set(multithread_options
       -j ${job_count}

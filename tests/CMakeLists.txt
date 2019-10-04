@@ -6,6 +6,7 @@
 
 function(testsMain)
   add_subdirectory("cppcheck")
+  add_subdirectory("clang-tidy")
 
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("integration/tables")
