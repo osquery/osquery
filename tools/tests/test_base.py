@@ -1,16 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-# pyexpect.replwrap will not work with unicode_literals
-# from __future__ import unicode_literals
 
 import copy
 import getpass
@@ -147,13 +141,13 @@ class OsqueryWrapper(REPLWrapper):
             options[option] = args[option]
         options["database_path"] += str(random.randint(1000, 9999))
         command = command + " " + " ".join(
-            ["--%s=%s" % (k, v) for k, v in options.iteritems()])
+            ["--%s=%s" % (k, v) for k, v in options.items()])
         if os.name == "nt":
             proc = WinExpectSpawn(command, env=env)
         else:
             proc = pexpect.spawn(command, env=env)
 
-        super(OsqueryWrapper, self).__init__(
+        super().__init__(
             proc,
             self.PROMPT,
             None,

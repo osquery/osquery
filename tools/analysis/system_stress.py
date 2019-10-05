@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
@@ -54,7 +54,7 @@ def init(e, po, n, j, l, count):
         return
 
     procs = []
-    for i in xrange(n):
+    for i in range(n):
         p = Process(target=init, args=(e, po, n, j + i + 1, l, count))
         p.start()
         procs.append(p)
@@ -86,7 +86,7 @@ def main(args):
 
     c = Value('i', 0)
     l = Lock()
-    for i in xrange(args.n):
+    for i in range(args.n):
         init(e, args.p, args.n, i, l, c)
     print("Executed %d (default shell) processes" % c.value)
     return 0
