@@ -14,34 +14,26 @@
 namespace osquery {
 namespace table_tests {
 
-class startupItems : public testing::Test {
+class StartupItemsTest : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(startupItems, test_sanity) {
-  // 1. Query data
+TEST_F(StartupItemsTest, test_sanity) {
   auto const data = execute_query("select * from startup_items");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"name", NormalType}
-  //      {"path", NormalType}
-  //      {"args", NormalType}
-  //      {"type", NormalType}
-  //      {"source", NormalType}
-  //      {"status", NormalType}
-  //      {"username", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+
+  ValidationMap row_map = {
+      {"name", NonEmptyString},
+      {"path", NonEmptyString},
+      {"args", NormalType},
+      {"type", SpecificValuesCheck{"Startup Item", "Login Item"}},
+      {"source", NonEmptyString},
+      {"status", SpecificValuesCheck{"enabled", "disabled"}},
+      {"username", NonEmptyString},
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
