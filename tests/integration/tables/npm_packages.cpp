@@ -14,34 +14,26 @@
 namespace osquery {
 namespace table_tests {
 
-class npmPackages : public testing::Test {
+class NpmPackagesTest : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(npmPackages, test_sanity) {
-  // 1. Query data
+TEST_F(NpmPackagesTest, test_sanity) {
   auto const data = execute_query("select * from npm_packages");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"name", NormalType}
-  //      {"version", NormalType}
-  //      {"description", NormalType}
-  //      {"author", NormalType}
-  //      {"license", NormalType}
-  //      {"path", NormalType}
-  //      {"directory", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+
+  ValidationMap row_map = {
+      {"name", NonEmptyString},
+      {"version", NonEmptyString},
+      {"description", NormalType},
+      {"author", NormalType},
+      {"license", NormalType},
+      {"path", NonEmptyString},
+      {"directory", NonEmptyString},
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
