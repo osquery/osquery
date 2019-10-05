@@ -1,15 +1,3 @@
-<a name="4.0.2"></a>
-## [4.0.2](https://github.com/osquery/osquery/releases/tag/4.0.2)
-
-This release fixes crashes identified in 4.0.1. There are no changes in functionality.
-
-[Git Commits](https://github.com/osquery/osquery/compare/4.0.1...4.0.2)
-
-### Bug Fixes
-
-- Fix configuration of AWS libraries to address crash in Linux ([#5799](https://github.com/osquery/osquery/pull/5799))
-- Remove RocksDB optimization causing crash ([#5797](https://github.com/osquery/osquery/pull/5797))
-
 <a name="4.0.1"></a>
 ## [4.0.1](https://github.com/osquery/osquery/releases/tag/4.0.1)
 
