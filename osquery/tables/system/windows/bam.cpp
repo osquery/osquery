@@ -1,4 +1,7 @@
 /**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
  *  This source code is licensed in accordance with the terms specified in
  *  the LICENSE file found in the root directory of this source tree.
  */
@@ -18,38 +21,48 @@ namespace tables {
 constexpr auto kBamRegPath =
     "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\bam\\%%\\%%";
 
-// Get last execution time
+// Get last exeution time
 auto last_execute_time(std::string& assist_data) {
   std::string last_run_string = assist_data.substr(0, 16);
 
-  // swap endianess
-  std::reverse(last_run_string.begin(), last_run_string.end());
+  // Timestamp should always by 16 chars in length
+  if (last_run_string.length() == 16) {
+    // swap endianess
+    std::reverse(last_run_string.begin(), last_run_string.end());
 
-  char temp;
-  for (std::size_t i = 0; i < last_run_string.length(); i += 2) {
-    temp = last_run_string[i];
-    last_run_string[i] = last_run_string[i + 1];
-    last_run_string[i + 1] = temp;
+    for (std::size_t i = 0; i < last_run_string.length(); i += 2) {
+      char temp = last_run_string[i];
+      last_run_string[i] = last_run_string[i + 1];
+      last_run_string[i + 1] = temp;
+    }
+
+    // Convert Windows FILETIME to UNIX Time
+    unsigned long long last_run =
+        tryTo<unsigned long long>(std::stoull(last_run_string.c_str(), 0, 16))
+            .takeOr(0ull);
+    if (last_run == 0ull) {
+      LOG(WARNING) << "Failed to convert FILETIME to UNIX time.";
+      return std::string();
+    }
+    last_run = (last_run / 10000000) - 11644473600;
+    std::time_t last_run_time = last_run;
+
+    struct tm tm;
+    gmtime_s(&tm, &last_run_time);
+
+    auto time_str = platformAsctime(&tm);
+    return time_str;
+  } else {
+    LOG(WARNING) << "Timestamp format is incorrect. Reported length is: "
+                 << last_run_string.length();
+    return std::string();
   }
-
-  // Convert Windows FILETIME to UNIX Time
-  unsigned long long last_run = std::stoull(last_run_string.c_str(), 0, 16);
-  last_run = (last_run / 10000000) - 11644473600;
-
-  std::time_t last_run_time = last_run;
-
-  struct tm tm;
-  gmtime_s(&tm, &last_run_time);
-
-  auto time_str = platformAsctime(&tm);
-  return time_str;
 }
 
 QueryData genBam(QueryContext& context) {
   QueryData results;
 
   std::set<std::string> bam_keys;
-  std::string kFullRegPath;
   Row r;
 
   expandRegistryGlobs(kBamRegPath, bam_keys);
@@ -59,16 +72,13 @@ QueryData genBam(QueryContext& context) {
     if (bam_entry != std::string::npos) {
       std::string sid = rKey.substr(rKey.find("S-1"));
 
-      kFullRegPath = rKey;
       QueryData bam_entries;
-      queryKey(kFullRegPath, bam_entries);
+      queryKey(rKey, bam_entries);
 
       for (const auto& bKey : bam_entries) {
         r["path"] = bKey.at("name");
         std::string last_run = bKey.at("data");
 
-        // SequenceNumber and Version are not executables and do not have
-        // timestamps
         if (bKey.at("name") == "SequenceNumber" ||
             bKey.at("name") == "Version") {
           r["last_execution_time"] = "";
@@ -80,11 +90,8 @@ QueryData genBam(QueryContext& context) {
 
         results.push_back(r);
       }
-    } else {
-      continue;
     }
   }
-
   return results;
 }
 } // namespace tables
