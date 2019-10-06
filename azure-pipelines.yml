@@ -43,6 +43,11 @@ jobs:
           $(EXTRA_CMAKE_ARGS)
           $(Build.SourcesDirectory)
 
+    - script: |
+        ./tools/formatting/format-test.sh --build $(Build.BinariesDirectory)/build
+      displayName: "format_check.py test"
+      workingDirectory: $(Build.SourcesDirectory)
+
     - task: CMake@1
       displayName: "Check code formatting"
       inputs:
@@ -95,9 +100,11 @@ jobs:
       displayName: "Build osquery"
 
     - script: |
-        export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
-        buck test @mode/linux-x86_64/release osquery/... tests/... plugins/...
-      displayName: "Run tests"
+        # Buck compiles these tests in Debug mode, exhausting disk space.
+        # Until we find a solution, we'll disable the tests.
+        #export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
+        #buck test @mode/linux-x86_64/release osquery/... tests/... plugins/...
+      displayName: "Run tests (DISABLED)"
 
     - script: |
         echo "##vso[task.setvariable variable=Status;isOutput=true]1"
@@ -199,9 +206,10 @@ jobs:
 
     steps:
     - script: |
+        brew update
         brew tap facebook/fb
         brew upgrade
-        brew cask install adoptopenjdk8
+        brew cask install adoptopenjdk
         brew install buck watchman
       displayName: "Install Homebrew and prerequisites"
       timeoutInMinutes: 20

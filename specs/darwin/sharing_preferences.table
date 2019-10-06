@@ -1,4 +1,4 @@
-table_name("sharing_preferences")
+table_name("sharing_preferences", aliases=["alf_services"])
 description("OS X Sharing preferences.")
 schema([
 Column("screen_sharing", INTEGER, "1 If screen sharing is enabled else 0"),

@@ -27,7 +27,7 @@ function(googleTestMain)
     set("${option_name}" true CACHE BOOL "" FORCE)
   endforeach()
 
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(library_root "${OSQUERY_googletest_ROOT_DIR}")
   add_subdirectory("${library_root}" "${CMAKE_CURRENT_BINARY_DIR}/submodule" EXCLUDE_FROM_ALL)
 
   set(target_list

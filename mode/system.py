@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
 import sys
@@ -98,14 +98,14 @@ def get_build_type(build_type):
     else:
         fail("Unsupported build type {}".format(build_type))
 
+class CustomArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        fail(message)
 
 if __name__ == "__main__":
 
-    class ThrowingArgumentParser(argparse.ArgumentParser):
-        def error(self, message):
-            fail(message)
 
-    parser = ThrowingArgumentParser(
+    parser = CustomArgumentParser(
         description="Automatically set the proper config files for buck. This is selected based on the platform"
     )
     parser.add_argument(

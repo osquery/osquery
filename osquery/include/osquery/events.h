@@ -910,7 +910,7 @@ class EventFactory : private boost::noncopyable {
   std::vector<std::string> loggers_;
 
   /// Factory publisher state manipulation.
-  Mutex factory_lock_;
+  RecursiveMutex factory_lock_;
 };
 
 /**

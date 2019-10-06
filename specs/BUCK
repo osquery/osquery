@@ -49,10 +49,6 @@ osquery_gentable_cxx_library(
             "macos",
         ),
         (
-            "darwin/alf_services.table",
-            "macos",
-        ),
-        (
             "darwin/app_schemes.table",
             "macos",
         ),
@@ -734,6 +730,10 @@ osquery_gentable_cxx_library(
         ),
         (
             "windows/chocolatey_packages.table",
+            "windows",
+        ),
+        (
+            "windows/connectivity.table",
             "windows",
         ),
         (

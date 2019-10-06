@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
@@ -6,35 +6,26 @@
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import ast
 import os
 import random
 import subprocess
 import sys
+import argparse
 
-try:
-    import argparse
-except ImportError:
-    print("Cannot import argparse.")
-    exit(1)
+
 
 # Import the testing utils
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../tests/")
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../codegen/")
 
-import utils
 from gentable import \
-  table_name, schema, description, examples, attributes, implementation, \
-  extended_schema, fuzz_paths, \
-  WINDOWS, LINUX, POSIX, DARWIN, FREEBSD, \
-  Column, ForeignKey, table as TableState, TableState as _TableState, \
-  TEXT, DATE, DATETIME, INTEGER, BIGINT, UNSIGNED_BIGINT, DOUBLE, BLOB
-
+    table_name, schema, description, examples, attributes, implementation, \
+    extended_schema, fuzz_paths, \
+    WINDOWS, LINUX, POSIX, DARWIN, FREEBSD, \
+    Column, ForeignKey, table as TableState, TableState as _TableState, \
+    TEXT, DATE, DATETIME, INTEGER, BIGINT, UNSIGNED_BIGINT, DOUBLE, BLOB
+import utils
 
 def _fuzz_paths(shell, name, paths, query):
     cmd = [
@@ -48,7 +39,7 @@ def _fuzz_paths(shell, name, paths, query):
     cmd.append("--disable_extensions")
     cmd.append(query)
     if args.verbose:
-        print (" ".join(cmd))
+        print(" ".join(cmd))
     proc = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
@@ -58,9 +49,10 @@ def _fuzz_paths(shell, name, paths, query):
         print(stdout)
         print(stderr)
     if proc.returncode != 0:
-        print (" ".join(cmd))
+        print(" ".join(cmd))
         print(stderr)
     return proc.returncode
+
 
 def _fuzz_queries(shell, name, paths, examples=[]):
     print("Fuzzing file reads for: %s" % (name))
@@ -141,7 +133,7 @@ if __name__ == "__main__":
             if len(TableState.fuzz_paths) > 0:
                 # The table specification opted-into path-based fuzzing.
                 ret = _fuzz_queries(args.shell, TableState.table_name,
-                    TableState.fuzz_paths, TableState.examples)
+                                    TableState.fuzz_paths, TableState.examples)
                 if ret > 0:
                     exit_code = ret
                 if not args.c and ret != 0:

@@ -695,12 +695,20 @@ Status startExtensionManager(const std::string& manager_path) {
   // Seconds converted to milliseconds, used as a thread interruptible.
   auto latency = atoi(FLAGS_extensions_interval.c_str()) * 1000;
   // Start a extension manager watcher, to monitor all registered extensions.
-  Dispatcher::addService(
+  status = Dispatcher::addService(
       std::make_shared<ExtensionManagerWatcher>(manager_path, latency));
 
+  if (!status.ok()) {
+    return status;
+  }
+
   // Start the extension manager thread.
-  Dispatcher::addService(
+  status = Dispatcher::addService(
       std::make_shared<ExtensionManagerRunner>(manager_path));
+
+  if (!status.ok()) {
+    return status;
+  }
 
   // The shell or daemon flag configuration may require an extension.
   if (!FLAGS_extensions_require.empty()) {
@@ -721,7 +729,8 @@ Status startExtensionManager(const std::string& manager_path) {
           // If we have already waited for the timeout period, stop early.
           stop = true;
         }
-        return Status(1, "Extension not autoloaded: " + extension);
+        return Status(
+            1, "Required extension not found or not loaded: " + extension);
       }));
 
       // A required extension was not loaded.

@@ -1,15 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import json
 import os
@@ -106,7 +101,7 @@ def check_leaks(shell, query, count=1, supp_file=None):
 
 def profile_leaks(shell, queries, count=1, rounds=1, supp_file=None):
     report = {}
-    for name, query in queries.iteritems():
+    for name, query in queries.items():
         print("Analyzing leaks in query: %s" % query)
         # Apply count (optionally run the query several times).
         summary = check_leaks(shell, query, count, supp_file)
@@ -144,14 +139,14 @@ def run_query(shell, query, timeout=0, count=1):
 
 def summary_line(name, result):
     if not args.n:
-        for key, v in result.iteritems():
+        for key, v in result.items():
             print("%s" % (
                 RANGES["colors"][v[0]]("%s:%s" % (
                     key[0].upper(), v[0]))),
                   end="")
         print(" ", end="")
     print("%s:" % name, end=" ")
-    for key, v in result.iteritems():
+    for key, v in result.items():
         print("%s: %s" % (key, v[1]), end=" ")
     print("")
 
@@ -165,7 +160,7 @@ def summary(results, display=False):
         return len(ranges)
 
     summary_results = {}
-    for name, result in results.iteritems():
+    for name, result in results.items():
         failed = "exit" in result and result["exit"] > 0
         summary_result = {}
         for key in RANGES:
@@ -186,7 +181,7 @@ def summary(results, display=False):
 
 def profile(shell, queries, timeout=0, count=1, rounds=1):
     report = {}
-    for name, query in queries.iteritems():
+    for name, query in queries.items():
         forced = True if name == "force" else False
         if not forced:
             print("Profiling query: %s" % query)
@@ -200,7 +195,7 @@ def profile(shell, queries, timeout=0, count=1, rounds=1):
             summary(
                 {"%s (%d/%d)" % (name, i + 1, rounds): result}, display=True)
             # Store each result round to return an average.
-            for k, v in result.iteritems():
+            for k, v in result.items():
                 results[k] = results.get(k, [])
                 results[k].append(v)
         average_results = {}

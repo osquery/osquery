@@ -10,7 +10,7 @@ function(downloadRemoteFile identifier base_url file_name hash)
   set(destination "${CMAKE_CURRENT_BINARY_DIR}/${file_name}")
   set(url "${base_url}/${file_name}")
 
-  set(command_prefix "${EX_TOOL_PYTHON2_EXECUTABLE_PATH}")
+  set(command_prefix "${EX_TOOL_PYTHON3_EXECUTABLE_PATH}")
 
   add_custom_command(
     OUTPUT "${destination}"

@@ -1,15 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import json
 import os
@@ -87,20 +82,20 @@ def queries_from_config(config_path):
         exit(1)
     queries = {}
     if "schedule" in config:
-        for name, details in config["schedule"].iteritems():
+        for name, details in config["schedule"].items():
             queries[name] = details["query"]
     if "packs" in config:
-        for keys,values in config["packs"].iteritems():
+        for keys,values in config["packs"].items():
             # Check if it is an internal pack definition
             if type(values) is dict:
-                for queryname, query in values["queries"].iteritems():
+                for queryname, query in values["queries"].items():
                     queries["pack_" + queryname] = query["query"]
             else:
                 with open(values) as fp:
                     packfile = fp.read()
                     packcontent = rmcomment.sub('', packfile)
                     packqueries = json.loads(packcontent)
-                    for queryname, query in packqueries["queries"].iteritems():
+                    for queryname, query in packqueries["queries"].items():
                         queries["pack_" + queryname] = query["query"]
 
     return queries

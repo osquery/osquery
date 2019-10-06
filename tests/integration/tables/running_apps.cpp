@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -36,9 +35,9 @@ TEST_F(runningApps, test_sanity) {
   // 3. Build validation map
   // See IntegrationTableTest.cpp for avaialbe flags
   // Or use custom DataCheck object
-  ValidatatioMap row_map = {{"pid", IntType},
-                            {"bundle_identifier", NormalType},
-                            {"is_active", IntType}};
+  ValidationMap row_map = {{"pid", IntType},
+                           {"bundle_identifier", NormalType},
+                           {"is_active", IntType}};
   // 4. Perform validation
   validate_rows(general_query_data, row_map);
   validate_rows(specific_query_data, row_map);
