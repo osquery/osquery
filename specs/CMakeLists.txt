@@ -72,6 +72,7 @@ function(generateNativeTables)
     "darwin/alf.table:macos"
     "darwin/alf_exceptions.table:macos"
     "darwin/alf_explicit_auths.table:macos"
+    "darwin/alf_services.table:macos"
     "darwin/app_schemes.table:macos"
     "darwin/apps.table:macos"
     "darwin/asl.table:macos"

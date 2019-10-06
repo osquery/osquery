@@ -134,14 +134,8 @@ static Status filterArray(id plist, const std::string& root, pt::ptree& tree) {
 static inline Status filterPlist(NSData* plist, pt::ptree& tree) {
   if ([plist isKindOfClass:[NSDictionary class]]) {
     return filterDictionary((NSMutableDictionary*)plist, "", tree);
-  } else if ([plist isKindOfClass:[NSArray class]]) {
-    return filterArray((NSMutableArray*)plist, "root", tree);
-  } else if ([plist isKindOfClass:[NSData class]]) {
-    tree.push_back(pt::ptree::value_type("data", getValue(plist)));
   } else {
-    TLOG << "Unknown type during plist filtering: "
-         << [[plist className] UTF8String];
-    return Status(1, "Unexpected plist type");
+    return filterArray((NSMutableArray*)plist, "root", tree);
   }
   return Status(0, "OK");
 }
@@ -282,23 +276,5 @@ Status pathFromPlistAliasData(const std::string& data, std::string& result) {
   auto status = pathFromUnknownAlias(static_cast<CFDataRef>(bookmark), result);
   CFRelease(bookmark);
   return status;
-}
-
-/// Parse a nested (base-64 encoded) plist's alias data for its path
-/// Observed experimentally with /Library/Preferences/com.apple.alf.plist
-Status pathFromNestedPlistAliasData(const std::string& data,
-                                    std::string& result) {
-  auto decoded = base64::decode(data);
-
-  if (decoded.size() == 0) {
-    return Status(1, "Failed base64 decode");
-  }
-
-  pt::ptree plist;
-  parsePlistContent(decoded, plist);
-
-  auto nested_data = plist.get<std::string>("data", "");
-
-  return pathFromPlistAliasData(nested_data, result);
 }
 }
