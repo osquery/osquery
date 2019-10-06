@@ -48,7 +48,7 @@ std::string rot_decode(std::string& value_key_reg) {
 auto last_execute(std::string& assist_data) {
   if (assist_data.length() <= 136) {
     LOG(WARNING) << "Userassist last execute Timestamp format is incorrect";
-    return std::string()
+    return std::string();
   }
   std::string last_run_string = assist_data.substr(120, 16);
 
@@ -72,7 +72,7 @@ auto last_execute(std::string& assist_data) {
         tryTo<unsigned long long>(last_run_string, 16).takeOr(0ull);
     if (last_run == 0ull) {
       LOG(WARNING) << "Failed to convert FILETIME to UNIX time.";
-      return std::string()
+      return std::string();
     }
     last_run = (last_run / 10000000) - 11644473600;
 
