@@ -46,6 +46,10 @@ std::string rot_decode(std::string& value_key_reg) {
 
 // Get last exeution time
 auto last_execute(std::string& assist_data) {
+  if (assist_data.length() <= 136) {
+    LOG(WARNING) << "Userassist last execute Timestamp format is incorrect";
+    return std::string()
+  }
   std::string last_run_string = assist_data.substr(120, 16);
 
   // If timestamp is zero dont convert to UNIX Time
@@ -55,15 +59,21 @@ auto last_execute(std::string& assist_data) {
     // swap endianess
     std::reverse(last_run_string.begin(), last_run_string.end());
 
-    char temp;
     for (std::size_t i = 0; i < last_run_string.length(); i += 2) {
-      temp = last_run_string[i];
+      char temp = last_run_string[i];
       last_run_string[i] = last_run_string[i + 1];
       last_run_string[i + 1] = temp;
     }
 
     // Convert Windows FILETIME to UNIX Time
-    unsigned long long last_run = std::stoull(last_run_string.c_str(), 0, 16);
+    // unsigned long long last_run = std::stoull(last_run_string.c_str(), 0,
+    // 16);
+    unsigned long long last_run =
+        tryTo<unsigned long long>(last_run_string, 16).takeOr(0ull);
+    if (last_run == 0ull) {
+      LOG(WARNING) << "Failed to convert FILETIME to UNIX time.";
+      return std::string()
+    }
     last_run = (last_run / 10000000) - 11644473600;
 
     std::time_t last_run_time = last_run;
@@ -77,13 +87,19 @@ auto last_execute(std::string& assist_data) {
 }
 
 // Get execution count
-int execution_num(std::string& execution_count) {
+int execution_num(std::string& assist_data) {
+  if (assist_data.length() <= 16) {
+    LOG(WARNING) << "Userassist execution count format is incorrect";
+    return -1;
+  }
+
+  std::string execution_count = assist_data.substr(8, 8);
+
   // swap endianess
   std::reverse(execution_count.begin(), execution_count.end());
 
-  char temp;
   for (std::size_t i = 0; i < execution_count.length(); i += 2) {
-    temp = execution_count[i];
+    char temp = execution_count[i];
     execution_count[i] = execution_count[i + 1];
     execution_count[i + 1] = temp;
   }
@@ -148,13 +164,8 @@ QueryData genUserAssist(QueryContext& context) {
           results.push_back(r);
         } else {
           std::string assist_data = aKey.at("data");
-          std::string execution_count = assist_data.substr(8, 8);
 
-          auto count = execution_num(execution_count);
-          if (count == -1) {
-            auto count = "";
-          }
-
+          auto count = execution_num(assist_data);
           auto time_str = last_execute(assist_data);
 
           r["path"] = decoded_value_key;

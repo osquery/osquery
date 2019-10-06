@@ -30,7 +30,7 @@ TEST_F(UserassistTest, test_sanity) {
       "select * from userassist where path is 'Microsoft.Windows.Explorer'");
   ASSERT_GT(rows.size(), 0ul);
   ASSERT_EQ(specific_query_rows.size(), 1ul);
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"path", NonEmptyString},
       {"last_execution_time", NormalType},
       {"count", NormalType},
