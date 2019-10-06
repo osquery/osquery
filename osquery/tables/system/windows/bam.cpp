@@ -38,8 +38,7 @@ auto last_execute_time(std::string& assist_data) {
 
     // Convert Windows FILETIME to UNIX Time
     unsigned long long last_run =
-        tryTo<unsigned long long>(std::stoull(last_run_string.c_str(), 0, 16))
-            .takeOr(0ull);
+        tryTo<unsigned long long>(last_run_string, 16).takeOr(0ull);
     if (last_run == 0ull) {
       LOG(WARNING) << "Failed to convert FILETIME to UNIX time.";
       return std::string();
