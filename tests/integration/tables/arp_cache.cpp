@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -25,7 +24,7 @@ class ArpCacheTest : public testing::Test {
 TEST_F(ArpCacheTest, test_sanity) {
   QueryData data = execute_query("select * from arp_cache");
 
-  auto const row_map = ValidatatioMap{
+  auto const row_map = ValidationMap{
       {"address", verifyIpAddress},
       {"mac", verifyMacAddress},
       {"interface", NonEmptyString},

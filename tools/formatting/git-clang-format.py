@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #===- git-clang-format - ClangFormat Git Integration ---------*- python -*--===#
 #
@@ -9,7 +9,7 @@
 #
 #===------------------------------------------------------------------------===#
 
-r"""
+"""
 clang-format git integration
 ============================
 
@@ -123,8 +123,8 @@ def main():
 
     commit, files = interpret_args(opts.args, dash_dash, opts.commit)
 
-    if len(files) > 0 and opts.exclude_folders:
-        print 'The --exclude-folders option cannot be used when specifying files to format'
+    if files and opts.exclude_folders:
+        print('The --exclude-folders option cannot be used when specifying files to format')
         return
 
     changed_lines = compute_diff_and_extract_lines(commit, files)
@@ -133,21 +133,21 @@ def main():
 
     filter_by_extension(changed_lines, opts.extensions.lower().split(','))
 
-    if len(opts.exclude_folders) > 0:
+    if opts.exclude_folders:
         filter_by_path(changed_lines, opts.exclude_folders.split(','))
 
     if opts.verbose >= 1:
         ignored_files.difference_update(changed_lines)
         if ignored_files:
-            print 'Ignoring changes in the following files (wrong extension):'
+            print('Ignoring changes in the following files (wrong extension):')
             for filename in ignored_files:
-                print '   ', filename
+                print('   ', filename)
         if changed_lines:
-            print 'Running clang-format on the following files:'
+            print('Running clang-format on the following files:')
             for filename in changed_lines:
-                print '   ', filename
+                print('   ', filename)
     if not changed_lines:
-        print 'no modified files to format'
+        print('no modified files to format')
         return
     # The computed diff outputs absolute paths, so we must cd before accessing
     # those files.
@@ -157,20 +157,20 @@ def main():
                                                  binary=opts.binary,
                                                  style=opts.style)
     if opts.verbose >= 1:
-        print 'old tree:', old_tree
-        print 'new tree:', new_tree
+        print('old tree:', old_tree)
+        print('new tree:', new_tree)
     if old_tree == new_tree:
         if opts.verbose >= 0:
-            print 'clang-format did not modify any files'
+            print('clang-format did not modify any files')
     elif opts.diff:
         print_diff(old_tree, new_tree)
     else:
         changed_files = apply_changes(old_tree, new_tree, force=opts.force,
                                       patch_mode=opts.patch)
         if (opts.verbose >= 0 and not opts.patch) or opts.verbose >= 1:
-            print 'changed files:'
+            print('changed files:')
             for filename in changed_files:
-                print '   ', filename
+                print('   ', filename)
 
 
 def load_git_config(non_string_options=None):
@@ -348,7 +348,7 @@ def run_clang_format_and_save_to_tree(changed_lines, binary='clang-format',
 
     Returns the object ID (SHA-1) of the created tree."""
     def index_info_generator():
-        for filename, line_ranges in changed_lines.iteritems():
+        for filename, line_ranges in changed_lines.items():
             mode = oct(os.stat(filename).st_mode)
             blob_id = clang_format_to_blob(filename, line_ranges, binary=binary,
                                            style=style)

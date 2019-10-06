@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -32,7 +31,7 @@ TEST_F(osqueryEvents, test_sanity) {
   // 3. Build validation map
   // See helper.h for avaialbe flags
   // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
+  // ValidationMap row_map = {
   //      {"name", NormalType}
   //      {"publisher", NormalType}
   //      {"type", NormalType}

@@ -99,6 +99,7 @@ osquery_cxx_library(
             WINDOWS,
             [
                 "windows/arp_cache.cpp",
+                "windows/connectivity.cpp",
                 "windows/interfaces.cpp",
                 "windows/process_open_sockets.cpp",
                 "windows/routes.cpp",

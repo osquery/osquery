@@ -260,6 +260,7 @@ function(generateTestsIntegrationTablesTestsTest)
       autoexec.cpp
       bam.cpp
       certificates.cpp
+      connectivity.cpp
       chocolatey_packages.cpp
       cpu_info.cpp
       disk_info.cpp

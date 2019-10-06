@@ -24,7 +24,7 @@ class WindowsSecurityProductsTest : public testing::Test {
 TEST_F(WindowsSecurityProductsTest, test_sanity) {
   auto const data = execute_query("select * from windows_security_products");
 
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"type", SpecificValuesCheck{"Firewall", "Antivirus", "Antispyware"}},
       {"name", NonEmptyString},
       {"state", SpecificValuesCheck{"On", "Off", "Snoozed", "Expired"}},

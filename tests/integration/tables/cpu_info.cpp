@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -25,18 +24,18 @@ class cpuInfo : public testing::Test {
 TEST_F(cpuInfo, test_sanity) {
   const QueryData data = execute_query("select * from cpu_info");
   ASSERT_EQ(data.size(), 1ul);
-  ValidatatioMap row_map = {{"device_id", NormalType},
-                            {"model", NormalType},
-                            {"manufacturer", NormalType},
-                            {"processor_type", NonNegativeOrErrorInt},
-                            {"availability", NonNegativeOrErrorInt},
-                            {"cpu_status", NonNegativeOrErrorInt},
-                            {"number_of_cores", NonNegativeOrErrorInt},
-                            {"logical_processors", NonNegativeOrErrorInt},
-                            {"address_width", NonNegativeOrErrorInt},
-                            {"current_clock_speed", NonNegativeOrErrorInt},
-                            {"max_clock_speed", NonNegativeOrErrorInt},
-                            {"socket_designation", NormalType}};
+  ValidationMap row_map = {{"device_id", NormalType},
+                           {"model", NormalType},
+                           {"manufacturer", NormalType},
+                           {"processor_type", NonNegativeOrErrorInt},
+                           {"availability", NonNegativeOrErrorInt},
+                           {"cpu_status", NonNegativeOrErrorInt},
+                           {"number_of_cores", NonNegativeOrErrorInt},
+                           {"logical_processors", NonNegativeOrErrorInt},
+                           {"address_width", NonNegativeOrErrorInt},
+                           {"current_clock_speed", NonNegativeOrErrorInt},
+                           {"max_clock_speed", NonNegativeOrErrorInt},
+                           {"socket_designation", NormalType}};
   validate_rows(data, row_map);
 }
 

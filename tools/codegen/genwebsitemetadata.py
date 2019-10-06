@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
@@ -13,11 +13,6 @@ Usage:
 #
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import argparse
 import io

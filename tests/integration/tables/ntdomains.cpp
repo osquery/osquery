@@ -26,7 +26,7 @@ TEST_F(NtDomains, test_sanity) {
 
   ASSERT_GE(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"name", NonEmptyString},
       {"client_site_name", NormalType},
       {"dc_site_name", NormalType},

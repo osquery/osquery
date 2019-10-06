@@ -651,13 +651,15 @@ void Initializer::start() const {
   // internal 'shutdown' method.
   auto s = osquery::startExtensionManager();
   if (!s.ok()) {
-    auto severity = (Watcher::get().hasManagedExtensions()) ? google::GLOG_ERROR
-                                                            : google::GLOG_INFO;
+    auto error_message =
+        "An error occured during extension manager startup: " + s.getMessage();
+    auto severity =
+        (FLAGS_disable_extensions) ? google::GLOG_INFO : google::GLOG_ERROR;
     if (severity == google::GLOG_INFO) {
-      VLOG(1) << "Cannot start extension manager: " + s.getMessage();
+      VLOG(1) << error_message;
     } else {
       google::LogMessage(__FILE__, __LINE__, severity).stream()
-          << "Cannot start extension manager: " + s.getMessage();
+          << error_message;
     }
   }
 

@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -32,7 +31,7 @@ TEST_F(userEvents, test_sanity) {
   // 3. Build validation map
   // See helper.h for avaialbe flags
   // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
+  // ValidationMap row_map = {
   //      {"uid", IntType}
   //      {"auid", IntType}
   //      {"pid", IntType}
