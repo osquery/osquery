@@ -24,7 +24,7 @@ TEST_F(BamTest, test_sanity) {
   ASSERT_GT(rows.size(), 0ul);
   ASSERT_GT(specific_query_rows.size(), 1ul);
 
-  ValidatationMap row_map = {
+  ValidationMap row_map = {
       {"path", NonEmptyString},
       {"last_execution_time", NormalType},
       {"sid", NonEmptyString},
