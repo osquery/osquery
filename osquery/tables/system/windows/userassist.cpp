@@ -50,8 +50,7 @@ auto last_execute(std::string& assist_data) {
 
   // If timestamp is zero dont convert to UNIX Time
   if (last_run_string == "0000000000000000") {
-    std::string no_timestamp = "";
-    return no_timestamp;
+    return std::string();
   } else {
     // swap endianess
     std::reverse(last_run_string.begin(), last_run_string.end());
