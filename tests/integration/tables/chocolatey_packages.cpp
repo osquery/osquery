@@ -14,33 +14,25 @@
 namespace osquery {
 namespace table_tests {
 
-class chocolateyPackages : public testing::Test {
+class ChocolateyPackagesTest : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(chocolateyPackages, test_sanity) {
-  // 1. Query data
+TEST_F(ChocolateyPackagesTest, test_sanity) {
   auto const data = execute_query("select * from chocolatey_packages");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"name", NormalType}
-  //      {"version", NormalType}
-  //      {"summary", NormalType}
-  //      {"author", NormalType}
-  //      {"license", NormalType}
-  //      {"path", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+
+  ValidationMap row_map = {
+      {"name", NormalType},
+      {"version", NormalType},
+      {"summary", NormalType},
+      {"author", NormalType},
+      {"license", NormalType},
+      {"path", NonEmptyString},
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
