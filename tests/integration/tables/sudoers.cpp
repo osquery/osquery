@@ -14,22 +14,20 @@
 namespace osquery {
 namespace table_tests {
 
-class sudoers : public testing::Test {
+class Sudoers : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(sudoers, test_sanity) {
+TEST_F(Sudoers, test_sanity) {
   auto const data = execute_query("select * from sudoers");
-
-  ValidationMap row_map ={
-    {"source", NonEmptyString},
-    {"header", NonEmptyString},
-    {"rule_details", NonEmptyString}
+  ValidationMap row_map = {
+      {"source", NonEmptyString},
+      {"header", NonEmptyString},
+      {"rule_details", NonEmptyString},
   };
-
   validate_rows(data, row_map);
 }
 
