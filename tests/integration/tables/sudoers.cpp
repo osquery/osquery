@@ -22,21 +22,15 @@ class sudoers : public testing::Test {
 };
 
 TEST_F(sudoers, test_sanity) {
-  // 1. Query data
   auto const data = execute_query("select * from sudoers");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"header", NormalType}
-  //      {"rule_details", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+
+  ValidationMap row_map ={
+    {"source", NonEmptyString},
+    {"header", NonEmptyString},
+    {"rule_details", NonEmptyString}
+  };
+
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
