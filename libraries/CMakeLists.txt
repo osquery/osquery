@@ -53,10 +53,10 @@ function(librariesMain)
   target_link_libraries(thirdparty_cxx_settings INTERFACE thirdparty_options)
   target_link_libraries(thirdparty_c_settings INTERFACE thirdparty_options)
 
-  add_library(osquery_thirdparty_extra_c_settings INTERFACE)
   add_library(osquery_thirdparty_extra_cxx_settings INTERFACE)
-  target_link_libraries(thirdparty_cxx_settings INTERFACE osquery_thirdparty_extra_c_settings)
-  target_link_libraries(thirdparty_c_settings INTERFACE osquery_thirdparty_extra_cxx_settings)
+  add_library(osquery_thirdparty_extra_c_settings INTERFACE)
+  target_link_libraries(thirdparty_cxx_settings INTERFACE osquery_thirdparty_extra_cxx_settings)
+  target_link_libraries(thirdparty_c_settings INTERFACE osquery_thirdparty_extra_c_settings)
 
 endfunction()
 
