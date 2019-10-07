@@ -9,8 +9,9 @@ cmake_minimum_required(VERSION 3.13.3)
 include(ProcessorCount)
 
 function(cppcheckMain)
-  if(NOT DEFINED PLATFORM_LINUX)
-    message(STATUS "cppcheck: Platform is not supported")
+  find_package(cppcheck)
+  if(NOT CPPCHECK_FOUND)
+    message(STATUS "cppcheck: The executable was not found")
     return()
   endif()
 
@@ -19,27 +20,12 @@ function(cppcheckMain)
     return()
   endif()
 
-  find_program(OSQUERY_CPPCHECK_PATH cppcheck)
-  if("${OSQUERY_CPPCHECK_PATH}" STREQUAL "OSQUERY_CPPCHECK_PATH-NOTFOUND")
-    message(STATUS "cppcheck: The executable was not found")
-    return()
-
-  elseif(NOT EXISTS "${OSQUERY_CPPCHECK_PATH}")
-    message(STATUS "cppcheck: The provided executable path is not valid: ${OSQUERY_CPPCHECK_PATH}")
-    return()
-  endif()
-
-  message(STATUS "cppcheck: Enabled with ${OSQUERY_CPPCHECK_PATH}")
+  message(STATUS "cppcheck: Enabled with ${CPPCHECK_EXECUTABLE}")
 
   ProcessorCount(job_count)
   math(EXPR job_count "${job_count} + 1")
   set(multithread_options
     -j ${job_count}
-  )
-
-  execute_process(
-    COMMAND "${OSQUERY_CPPCHECK_PATH}" "--version"
-    OUTPUT_VARIABLE cppcheck_version
   )
 
   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/suppressions_list.txt"
@@ -53,9 +39,9 @@ function(cppcheckMain)
   add_custom_target(
     cppcheck
     COMMAND "${CMAKE_COMMAND}" -E echo "Suppression list: '${cppcheck_suppressions_list}'"
-    COMMAND "${OSQUERY_CPPCHECK_PATH}" "--suppressions-list=${CMAKE_CURRENT_SOURCE_DIR}/suppressions_list.txt" "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg" ${multithread_options} --enable=all --platform=unix64 "--project=${CMAKE_BINARY_DIR}/compile_commands.json" --quiet
+    COMMAND cppcheck::cppcheck "--suppressions-list=${CMAKE_CURRENT_SOURCE_DIR}/suppressions_list.txt" "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg" ${multithread_options} --enable=all --platform=unix64 "--project=${CMAKE_BINARY_DIR}/compile_commands.json" --quiet
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Running ${cppcheck_version}"
+    COMMENT "Running Cppcheck ${CPPCHECK_VERSION_STRING}"
     VERBATIM
   )
 endfunction()
