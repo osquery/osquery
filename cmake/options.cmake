@@ -72,7 +72,7 @@ option(OSQUERY_BUILD_TESTS "Whether to enable and build tests or not")
 option(OSQUERY_FUZZ "Whether to build fuzzing harnesses")
 
 option(OSQUERY_ENABLE_CLANG_TIDY "Enables clang-tidy support")
-set(OSQUERY_CLANG_TIDY_CHECKS "-checks=*,-clang-analyzer*" CACHE STRING "List of checks performed by clang-tidy")
+set(OSQUERY_CLANG_TIDY_CHECKS "-checks=cert-*,cppcoreguidelines-*,performance-*,portability-*,readability-*,modernize-*,bugprone-*" CACHE STRING "List of checks performed by clang-tidy")
 
 # Unfortunately, due glog always enabling BUILD_TESTING, we have to force it off, so that tests won't be built
 overwrite_cache_variable("BUILD_TESTING" "BOOL" "OFF")
