@@ -40,7 +40,6 @@ jobs:
           -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
           -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain
           -DOSQUERY_BUILD_TESTS=ON
-          -DOSQUERY_ENABLE_CLANG_TIDY=ON
           $(EXTRA_CMAKE_ARGS)
           $(Build.SourcesDirectory)
 
