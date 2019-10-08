@@ -158,6 +158,29 @@ A "single" test case often still involves dozens or hundreds of unit tests. To r
 GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory tests under the <testName> set.
 ```
 
+## Running Cppcheck (Linux only)
+
+1. Install it from the distro repository: `apt install cppcheck`
+2. Build the **cppcheck** target `cmake --build . --target cppcheck`
+
+## Running clang-tidy (Linux only)
+
+The clang-tidy executable is shipped along with the osquery toolchain, and it is the recommended way to run it. It is however possible to use the system one, provided it's accessible from the PATH environment variable.
+
+1. When configuring, pass `-DOSQUERY_ENABLE_CLANG_TIDY=ON` to CMake
+2. Configure the checks: `-DOSQUERY_CLANG_TIDY_CHECKS=check1,check2` **(optional)**
+3. Build osquery
+
+By default, the following checks are enabled:
+
+1. cert-*
+2. cppcoreguidelines-*
+3. performance-*
+4. portability-*
+5. readability-*
+6. modernize-*
+7. bugprone-*
+
 # Building with Buck
 
 Building and testing is the same on all platforms. Each platform section below describes how to install the required tools and dependencies.
