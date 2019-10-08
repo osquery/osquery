@@ -128,44 +128,45 @@ function(generateInstallTargets)
     endif()
 
     # bin
-    install(TARGETS osqueryd DESTINATION bin)
-    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink osqueryd osqueryi)")
-    install(FILES "${CMAKE_BINARY_DIR}/osqueryi" DESTINATION bin)
+    install(TARGETS osqueryd DESTINATION bin COMPONENT osquery)
+    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink osqueryd osqueryi)" COMPONENT osquery)
+    install(FILES "${CMAKE_BINARY_DIR}/osqueryi" DESTINATION bin COMPONENT osquery)
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryctl" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
-    install(PROGRAMS "${CMAKE_BINARY_DIR}/package/linux/osqueryctl" DESTINATION bin)
+    install(PROGRAMS "${CMAKE_BINARY_DIR}/package/linux/osqueryctl" DESTINATION bin COMPONENT osquery)
 
     # lib
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.service" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
-    install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" DESTINATION lib/systemd/system)
+    install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" DESTINATION lib/systemd/system COMPONENT osquery)
 
     # share
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
-    install(FILES "${CMAKE_BINARY_DIR}/package/linux/osquery.example.conf" DESTINATION share/osquery)
+    install(FILES "${CMAKE_BINARY_DIR}/package/linux/osquery.example.conf" DESTINATION share/osquery COMPONENT osquery)
 
     install(DIRECTORY "${augeas_lenses_path}/"
             DESTINATION share/osquery/lenses
+            COMPONENT osquery
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)
 
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
-    install(DIRECTORY "${CMAKE_BINARY_DIR}/package/linux/packs" DESTINATION share/osquery)
+    install(DIRECTORY "${CMAKE_BINARY_DIR}/package/linux/packs" DESTINATION share/osquery COMPONENT osquery)
 
-    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION share/osquery/certs)
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION share/osquery/certs COMPONENT osquery)
 
     # etc
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.sysconfig" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
-      install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/default RENAME osqueryd)
+      install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/default RENAME osqueryd COMPONENT osquery)
     else()
-      install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/sysconfig RENAME osqueryd)
+      install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/sysconfig RENAME osqueryd COMPONENT osquery)
     endif()
 
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.initd" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
-    install(PROGRAMS "${CMAKE_BINARY_DIR}/package/linux/osqueryd.initd" DESTINATION /etc/init.d RENAME "osqueryd")
-    install(DIRECTORY DESTINATION /etc/osquery)
+    install(PROGRAMS "${CMAKE_BINARY_DIR}/package/linux/osqueryd.initd" DESTINATION /etc/init.d RENAME "osqueryd" COMPONENT osquery)
+    install(DIRECTORY DESTINATION /etc/osquery COMPONENT osquery)
     # var
-    install(DIRECTORY DESTINATION /var/log/osquery)
-    install(DIRECTORY DESTINATION /var/osquery)
+    install(DIRECTORY DESTINATION /var/log/osquery COMPONENT osquery)
+    install(DIRECTORY DESTINATION /var/osquery COMPONENT osquery)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     # .
@@ -245,6 +246,7 @@ list(GET OSQUERY_VERSION_COMPONENTS 1 CPACK_PACKAGE_VERSION_MINOR)
 list(GET OSQUERY_VERSION_COMPONENTS 2 CPACK_PACKAGE_VERSION_PATCH)
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
+set(CPACK_COMPONENT_OSQUERY_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION_SUMMARY})
 set(CPACK_PACKAGE_NAME "osquery")
 set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 set(CPACK_PACKAGE_VENDOR "osquery")
@@ -253,11 +255,16 @@ set(CPACK_PACKAGE_HOMEPAGE_URL "https://osquery.io")
 set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_BINARY_DIR}/package/CPackConfig.cmake")
 set(CPACK_PACKAGE_RELOCATABLE ON)
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/package/LICENSE.txt")
-set(CPACK_STRIP_FILES ON)
+set(CPACK_COMPONENTS_ALL osquery)
 
 configure_file(cmake/CPackConfig.cmake.in package/CPackConfig.cmake @ONLY)
 
 set(CPACK_GENERATOR "${PACKAGING_SYSTEM}")
+
+# Set this on by default and off for DEB
+if(NOT CPACK_GENERATOR STREQUAL "DEB")
+  set(CPACK_STRIP_FILES ON)
+endif()
 
 if(DEFINED PLATFORM_LINUX)
   set(OSQUERY_PACKAGE_RELEASE "1.linux")
@@ -269,12 +276,15 @@ if(DEFINED PLATFORM_LINUX)
   endif()
 
   if(CPACK_GENERATOR STREQUAL "DEB")
+    set(CPACK_DEBIAN_OSQUERY_PACKAGE_NAME ${CPACK_PACKAGE_NAME})
     set(CPACK_DEBIAN_PACKAGE_RELEASE "${OSQUERY_PACKAGE_RELEASE}")
-    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${OSQUERY_PACKAGE_RELEASE}.amd64")
+    set(CPACK_DEBIAN_OSQUERY_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${OSQUERY_PACKAGE_RELEASE}.amd64.deb")
     set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
     set(CPACK_DEBIAN_PACKAGE_SECTION "default")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>=2.12), zlib1g")
     set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${CPACK_PACKAGE_HOMEPAGE_URL}")
+    set(CPACK_DEB_COMPONENT_INSTALL ON)
+    set(CPACK_DEBIAN_DEBUGINFO_PACKAGE ON)
 
   elseif(CPACK_GENERATOR STREQUAL "RPM")
     set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${OSQUERY_PACKAGE_RELEASE}.x86_64")
@@ -309,7 +319,7 @@ endif()
 
 include(CPack)
 
-if(DEFINED PLATFORM_MACOS)
+if(DEFINED PLATFORM_MACOS OR DEFINED PLATFORM_LINUX)
   cpack_add_component(osquery REQUIRED)
 endif()
 endfunction()
