@@ -29,12 +29,6 @@ jobs:
       CCACHE_DIR: $(Pipeline.Workspace)/ccache
 
     steps:
-    # todo(alessandro): remove this once we deploy the new dockerfile
-    - script: |
-        sudo apt-get update
-        sudo apt-get install cppcheck -y
-      displayName: "Installing cppcheck"
-
     - script: mkdir $(Build.BinariesDirectory)/build
       displayName: "Create build folder"
 
