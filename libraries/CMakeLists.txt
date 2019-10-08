@@ -22,6 +22,7 @@ function(librariesMain)
     list(APPEND module_path_list "${third_party_source_path}")
   endforeach()
 
+  list(INSERT module_path_list 0 ${CMAKE_MODULE_PATH})
   overwrite_cache_variable("CMAKE_MODULE_PATH" STRING "${module_path_list}")
 
   add_library(thirdparty_cxx_settings INTERFACE)

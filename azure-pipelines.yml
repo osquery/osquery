@@ -20,7 +20,7 @@ jobs:
       vmImage: 'Ubuntu-16.04'
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v2
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-v3
       options: --privileged
 
     timeoutInMinutes: 120
@@ -66,6 +66,12 @@ jobs:
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . -j 3
+
+    - task: CMake@1
+      displayName: "Run cppcheck"
+      inputs:
+        workingDirectory: $(Build.BinariesDirectory)/build
+        cmakeArgs: --build . --target cppcheck
 
     - script: |
         ctest --build-nocmake -V
