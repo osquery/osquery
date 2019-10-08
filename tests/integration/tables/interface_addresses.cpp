@@ -29,7 +29,7 @@ TEST_F(InterfaceAddressesTest, test_sanity) {
   auto const row_map = ValidationMap{
       {"interface", NonEmptyString},
       {"address", verifyIpAddress},
-      {"mask", verifyIpAddress},
+      {"mask", verifyEmptyStringOrIpAddress},
       {"broadcast", verifyEmptyStringOrIpAddress},
       {"point_to_point", verifyEmptyStringOrIpAddress},
       {"type",
