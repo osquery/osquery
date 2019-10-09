@@ -14,30 +14,22 @@
 namespace osquery {
 namespace table_tests {
 
-class nvram : public testing::Test {
+class NvramTest : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(nvram, test_sanity) {
-  // 1. Query data
+TEST_F(NvramTest, test_sanity) {
   auto const data = execute_query("select * from nvram");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"name", NormalType}
-  //      {"type", NormalType}
-  //      {"value", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_GT(data.size(), 0ul);
+  ValidationMap row_map = {
+      {"name", NonEmptyString},
+      {"type", NonEmptyString},
+      {"value", NonEmptyString},
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
