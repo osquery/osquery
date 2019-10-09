@@ -126,9 +126,6 @@ RegistryRoutes RegistryInterface::getRoutes() const {
 Status RegistryInterface::call(const std::string& item_name,
                                const PluginRequest& request,
                                PluginResponse& response) {
-  if (item_name.empty()) {
-    return Status::failure("No registry item name specified");
-  }
   PluginRef plugin;
   {
     ReadLock lock(mutex_);
