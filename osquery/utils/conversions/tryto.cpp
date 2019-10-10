@@ -31,6 +31,8 @@ Expected<bool, ConversionError> stringToBool(std::string from) {
      {"ok", true},
      {"disable", false},
      {"enable", true},
+     {"on", true},
+     {"off", false},
  };
  using CharType = std::string::value_type;
  // Classic locale could be used here because all available string
