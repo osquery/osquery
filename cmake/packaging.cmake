@@ -239,11 +239,19 @@ function(generateInstallTargets)
   file(RENAME "${CMAKE_BINARY_DIR}/package/LICENSE" "${CMAKE_BINARY_DIR}/package/LICENSE.txt")
 endfunction()
 
+macro(cleanupVersionComponent version_component output_var)
+  string(REGEX MATCH "^[0-9]+" ${output_var} "${version_component}")
+endmacro()
+
 function(generatePackageTarget)
 
 list(GET OSQUERY_VERSION_COMPONENTS 0 CPACK_PACKAGE_VERSION_MAJOR)
 list(GET OSQUERY_VERSION_COMPONENTS 1 CPACK_PACKAGE_VERSION_MINOR)
 list(GET OSQUERY_VERSION_COMPONENTS 2 CPACK_PACKAGE_VERSION_PATCH)
+
+if(PLATFORM_WINDOWS)
+  cleanupVersionComponent("${CPACK_PACKAGE_VERSION_PATCH}" "CPACK_PACKAGE_VERSION_PATCH")
+endif()
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
 set(CPACK_COMPONENT_OSQUERY_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION_SUMMARY})
@@ -255,7 +263,9 @@ set(CPACK_PACKAGE_HOMEPAGE_URL "https://osquery.io")
 set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_BINARY_DIR}/package/CPackConfig.cmake")
 set(CPACK_PACKAGE_RELOCATABLE ON)
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/package/LICENSE.txt")
-set(CPACK_COMPONENTS_ALL osquery)
+if(DEFINED PLATFORM_MACOS OR DEFINED PLATFORM_LINUX)
+  set(CPACK_COMPONENTS_ALL osquery)
+endif()
 
 configure_file(cmake/CPackConfig.cmake.in package/CPackConfig.cmake @ONLY)
 
