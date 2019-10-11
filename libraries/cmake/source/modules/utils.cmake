@@ -8,27 +8,6 @@ cmake_minimum_required(VERSION 3.14.6)
 
 option(OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS "This option can be enable to show all warnings in the source modules. Not recommended" OFF)
 
-function(getGitExecutableName output_variable)
-  set(output "git")
-  if(DEFINED PLATFORM_WINDOWS)
-    set(output "${output}.exe")
-  endif()
-
-  set("${output_variable}" "${output}" PARENT_SCOPE)
-endfunction()
-
-function(locateGitExecutable output_variable)
-  getGitExecutableName(git_executable_name)
-
-  find_program(git_path "${git_executable_name}")
-  if("${git_path}" STREQUAL "git_path-NOTFOUND")
-    set("${output_variable}" "git_path-NOTFOUND" PARENT_SCOPE)
-
-  else()
-    set("${output_variable}" "${git_path}" PARENT_SCOPE)
-  endif()
-endfunction()
-
 function(initializeGitSubmodule submodule_path no_recursive shallow)
   file(GLOB submodule_folder_contents "${submodule_path}/*")
 
@@ -77,6 +56,7 @@ function(patchSubmoduleSourceCode patches_dir source_dir apply_to_dir)
     return()
   endif()
 
+  find_package(Git REQUIRED)
 
   # We patch the submodule before moving it to the binary folder
   # because if git apply working directory is inside a repository or submodule
