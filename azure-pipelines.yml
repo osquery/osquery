@@ -20,7 +20,7 @@ jobs:
       vmImage: 'Ubuntu-16.04'
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v3
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-00a17eb0
       options: --privileged
 
     timeoutInMinutes: 120
@@ -76,6 +76,24 @@ jobs:
     - script: |
         ctest --build-nocmake -V
       displayName: "Run tests"
+      workingDirectory: $(Build.BinariesDirectory)/build
+
+    - script: |
+        cmake -DPACKAGING_SYSTEM=DEB $(Build.SourcesDirectory)
+        cmake --build . --target package -j 3
+      displayName: "Run DEB packaging"
+      workingDirectory: $(Build.BinariesDirectory)/build
+
+    - script: |
+        cmake -DPACKAGING_SYSTEM=RPM $(Build.SourcesDirectory)
+        cmake --build . --target package -j 3
+      displayName: "Run RPM packaging"
+      workingDirectory: $(Build.BinariesDirectory)/build
+
+    - script: |
+        cmake -DPACKAGING_SYSTEM=TGZ $(Build.SourcesDirectory)
+        cmake --build . --target package -j 3
+      displayName: "Run TGZ packaging"
       workingDirectory: $(Build.BinariesDirectory)/build
 
     - script: |
@@ -199,6 +217,18 @@ jobs:
       displayName: "Run tests"
       workingDirectory: $(Build.BinariesDirectory)/build
 
+    - task: CMake@1
+      displayName: "Run productbuild packaging"
+      inputs:
+        workingDirectory: $(Build.BinariesDirectory)/build
+        cmakeArgs: --build . --target package -j 3
+
+    - script: |
+        cmake -DPACKAGING_SYSTEM=TGZ $(Build.SourcesDirectory)
+        cmake --build . --target package -j 3
+      displayName: "Run TGZ packaging"
+      workingDirectory: $(Build.BinariesDirectory)/build
+
     - script: |
         echo "##vso[task.setvariable variable=Status;isOutput=true]1"
       name: JobResult
@@ -298,6 +328,12 @@ jobs:
         ctest --build-nocmake -C Release -V
       displayName: "Run tests"
       workingDirectory: $(Build.BinariesDirectory)/build
+
+    - task: CMake@1
+      displayName: "Run WIX packaging"
+      inputs:
+        workingDirectory: $(Build.BinariesDirectory)/build
+        cmakeArgs: --build . --target package --config Release -j 3
 
     - powershell: |
         echo "##vso[task.setvariable variable=Status;isOutput=true]1"
