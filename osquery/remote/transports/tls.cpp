@@ -24,7 +24,7 @@ namespace osquery {
 const std::string kTLSUserAgentBase = "osquery/";
 
 /// TLS server hostname.
-CLI_FLAG(string,
+FLAG(string,
          tls_hostname,
          "",
          "TLS/HTTPS hostname for Config, Logger, and Enroll plugins");
@@ -33,7 +33,7 @@ CLI_FLAG(string,
 CLI_FLAG(string, proxy_hostname, "", "Optional HTTP proxy hostname");
 
 /// Path to optional TLS server/CA certificate(s), used for pinning.
-CLI_FLAG(string,
+FLAG(string,
          tls_server_certs,
          OSQUERY_CERTS_HOME "certs.pem",
          "Optional path to a TLS server PEM certificate(s) bundle");

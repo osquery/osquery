@@ -38,18 +38,26 @@ class FlagsTests : public testing::Test {
 };
 
 FLAG(string, test_string_flag, "TEST STRING", "TEST DESCRIPTION");
+CLI_FLAG(string, test_string_cli_flag, "CLI_FLAG_STRING", "Non-mutalbe CLI_FLAG test");
 
 TEST_F(FlagsTests, test_set_get) {
   // Test the core gflags functionality.
   EXPECT_EQ(FLAGS_test_string_flag, "TEST STRING");
+  EXPECT_EQ(FLAGS_test_string_cli_flag, "CLI_FLAG_STRING");
 
   // Check that the gflags flag name was recorded in the osquery flag tracker.
   auto all_flags = Flag::flags();
   EXPECT_EQ(all_flags.count("test_string_flag"), 1U);
+  EXPECT_EQ(all_flags.count("test_string_cli_flag"), 1U);
 
   // Update the value of the flag, and access through the osquery wrapper.
   FLAGS_test_string_flag = "NEW TEST STRING";
   EXPECT_EQ(Flag::getValue("test_string_flag"), "NEW TEST STRING");
+
+  // Update and access value of the flag through the osquery wrapper.
+  Flag::updateValue("test_string_cli_flag", "CLI_FLAG_STRING2");
+  // Check if value is immutable.
+  EXPECT_EQ(Flag::getValue("test_string_cli_flag"), "CLI_FLAG_STRING");
 }
 
 TEST_F(FlagsTests, test_defaults) {

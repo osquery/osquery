@@ -115,7 +115,11 @@ std::string Flag::getDescription(const std::string& name) {
 }
 
 Status Flag::updateValue(const std::string& name, const std::string& value) {
-  if (instance().flags_.count(name) > 0) {
+  auto it = instance().flags_.find(name);
+  if (it != instance().flags_.end()) {
+    if (it->second.cli) {
+      return Status(1, "Can not override cli flag --" + name);
+    }
     flags::SetCommandLineOption(name.c_str(), value.c_str());
     return Status::success();
   } else if (instance().aliases_.count(name) > 0) {

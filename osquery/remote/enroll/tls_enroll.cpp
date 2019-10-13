@@ -38,7 +38,7 @@ CLI_FLAG(uint64,
          "same as [config_tls_max_attempts]");
 
 /// Enrollment TLS endpoint (path) using TLS hostname.
-CLI_FLAG(string,
+FLAG(string,
          enroll_tls_endpoint,
          "",
          "TLS/HTTPS endpoint for client enrollment");

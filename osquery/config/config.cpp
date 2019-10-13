@@ -64,7 +64,7 @@ CREATE_REGISTRY(ConfigPlugin, "config");
 CREATE_LAZY_REGISTRY(ConfigParserPlugin, "config_parser");
 
 /// The config plugin must be known before reading options.
-CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
+FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
 CLI_FLAG(bool,
          config_check,
@@ -73,7 +73,7 @@ CLI_FLAG(bool,
 
 CLI_FLAG(bool, config_dump, false, "Dump the contents of the configuration");
 
-CLI_FLAG(uint64,
+FLAG(uint64,
          config_refresh,
          0,
          "Optional interval in seconds to re-read configuration");

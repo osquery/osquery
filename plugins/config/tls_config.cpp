@@ -34,7 +34,7 @@ CLI_FLAG(uint64,
          "Number of attempts to retry a TLS config request");
 
 /// Config retrieval TLS endpoint (path) using TLS hostname.
-CLI_FLAG(string,
+FLAG(string,
          config_tls_endpoint,
          "",
          "TLS/HTTPS endpoint for config retrieval");

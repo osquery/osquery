@@ -33,7 +33,7 @@ CLI_FLAG(bool,
          "Disable enrollment functions on related config/logger plugins");
 
 /// Path to optional enrollment secret data, sent with enrollment requests.
-CLI_FLAG(string,
+FLAG(string,
          enroll_secret_path,
          "",
          "Path to an optional client enrollment-auth secret");
