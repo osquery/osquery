@@ -36,7 +36,7 @@ understand the expressiveness that is afforded to you by osquery, consider the f
 queries:
 
 List the [`users`](https://osquery.io/schema/current#users):
-```sql
+SQL
 SELECT * FROM users;
 ```
 
@@ -46,14 +46,14 @@ SELECT * FROM processes WHERE on_disk = 0;
 ```
 
 Get the process name, port, and PID, for processes listening on all interfaces:
-```sql
-SELECT DISTINCT processes.name, listening_ports.port, processes.pid
+SQL
+SELECT DISTINCT processes. name, listening_ports.port, processes.pid
   FROM listening_ports JOIN processes USING (pid)
   WHERE listening_ports.address = '0.0.0.0';
 ```
 
 Find every macOS LaunchDaemon that launches an executable and keeps it running:
-```sql
+SQL
 SELECT name, program || program_arguments AS executable
   FROM launchd
   WHERE (run_at_load = 1 AND keep_alive = 1)
@@ -62,7 +62,7 @@ SELECT name, program || program_arguments AS executable
 
 Check for ARP anomalies from the host's perspective:
 
-```sql
+SQL
 SELECT address, mac, COUNT(mac) AS mac_count
   FROM arp_cache GROUP BY mac
   HAVING count(mac) > 1;
@@ -70,7 +70,7 @@ SELECT address, mac, COUNT(mac) AS mac_count
 
 Alternatively, you could also use a SQL sub-query to accomplish the same result:
 
-```sql
+SQL
 SELECT address, mac, mac_count
   FROM
     (SELECT address, mac, COUNT(mac) AS mac_count FROM arp_cache GROUP BY mac)
@@ -91,11 +91,11 @@ visit [https://osquery.io/downloads](https://osquery.io/downloads/).
 
 ## Build from source
 
-Building osquery from source is encouraged! Check out our [build guide](https://osquery.readthedocs.io/en/latest/development/building/). Also check out our [contributing guide](CONTRIBUTING.md) and join the community on [Slack](https://slack.osquery.io).
+Building osquery from the source is encouraged! Check out our [build guide](https://osquery.readthedocs.io/en/latest/development/building/). Also, check out our [contributing guide](CONTRIBUTING.md) and join the community on [Slack](https://slack.osquery.io).
 
 ## License
 
-By contributing to osquery you agree that your contributions will be licensed as defined on the
+By contributing to osquery you agree that your contributions will be licensed as defined in the
 LICENSE file.
 
 ## Vulnerabilities
@@ -113,7 +113,7 @@ osquery](https://www.facebook.com/notes/facebook-bug-bounty/bug-hunting-osquery/
 
 If you're interested in learning more about osquery read the [launch blog
 post](https://code.facebook.com/posts/844436395567983/introducing-osquery/) for background on the
-project, visit the [users guide](https://osquery.readthedocs.org/).
+the project, visit the [users guide](https://osquery.readthedocs.org/).
 
 Development and usage discussion is happening in the osquery Slack, grab an invite automatically
 [here](https://slack.osquery.io)!
