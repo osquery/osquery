@@ -8,6 +8,7 @@
 
 #include <osquery/config/config.h>
 #include <osquery/database.h>
+#include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 
@@ -23,6 +24,7 @@ extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
 
   osquery::PluginResponse rsp;
   osquery::Registry::get().call("sql", r, rsp);
+  FLAGS_minloglevel = 4;
 
   return 0;
 }
