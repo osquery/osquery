@@ -51,8 +51,7 @@ function(generateAwsCcommonTarget)
     "${library_root}/source/uuid.c"
   )
 
-  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin" OR
-     "${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+  if(DEFINED PLATFORM_POSIX)
     set(additional_source_file_list
       "${library_root}/source/posix/clock.c"
       "${library_root}/source/posix/condition_variable.c"
@@ -65,7 +64,7 @@ function(generateAwsCcommonTarget)
       "${library_root}/source/posix/time.c"
     )
 
-  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  elseif(DEFINED PLATFORM_WINDOWS)
     set(additional_source_file_list
       "${library_root}/source/windows/clock.c"
       "${library_root}/source/windows/condition_variable.c"
@@ -115,8 +114,26 @@ function(generateAwsChecksumsTarget)
     "${library_root}/source/crc.c"
     "${library_root}/source/crc_jni.c"
     "${library_root}/source/crc_sw.c"
-    "${library_root}/source/intel/cpuid.c"
-    "${library_root}/source/intel/crc32c_sse42_asm.c"
+  )
+
+  if(DEFINED PLATFORM_POSIX)
+    set(additional_source_file_list
+      "${library_root}/source/intel/cpuid.c"
+      "${library_root}/source/intel/crc32c_sse42_asm.c"
+    )
+
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(additional_source_file_list
+      "${library_root}/source/visualc/visualc_cpuid.c"
+      "${library_root}/source/visualc/visualc_crc32c_sse42.c"
+    )
+
+  else()
+    message(FATAL_ERROR "Unsupported operating system")
+  endif()
+
+  target_sources(thirdparty_aws_checksums PRIVATE
+    ${additional_source_file_list}
   )
 
   target_include_directories(thirdparty_aws_checksums SYSTEM PUBLIC
@@ -189,7 +206,7 @@ function(generateAwsCore)
   set(USE_AWS_MEMORY_MANAGEMENT ${OSQUERY_USE_AWS_MEMORY_MANAGEMENT})
 
   configure_file(
-    "${library_root}/include/aws/core/SDKConfig.h.in" 
+    "${library_root}/include/aws/core/SDKConfig.h.in"
     "${binary_root}/include/aws/core/SDKConfig.h"
    )
 
@@ -227,13 +244,6 @@ function(generateAwsCore)
     "${library_root}/source/monitoring/DefaultMonitoring.cpp"
     "${library_root}/source/monitoring/HttpClientMetrics.cpp"
     "${library_root}/source/monitoring/MonitoringManager.cpp"
-    "${library_root}/source/net/linux-shared/Net.cpp"
-    "${library_root}/source/net/linux-shared/SimpleUDP.cpp"
-    "${library_root}/source/platform/linux-shared/Environment.cpp"
-    "${library_root}/source/platform/linux-shared/FileSystem.cpp"
-    "${library_root}/source/platform/linux-shared/OSVersionInfo.cpp"
-    "${library_root}/source/platform/linux-shared/Security.cpp"
-    "${library_root}/source/platform/linux-shared/Time.cpp"
     "${library_root}/source/utils/Array.cpp"
     "${library_root}/source/utils/DNS.cpp"
     "${library_root}/source/utils/DateTimeCommon.cpp"
@@ -283,6 +293,36 @@ function(generateAwsCore)
     "${library_root}/source/utils/threading/Semaphore.cpp"
     "${library_root}/source/utils/threading/ThreadTask.cpp"
     "${library_root}/source/utils/xml/XmlSerializer.cpp"
+  )
+
+  if(DEFINED PLATFORM_POSIX)
+    set(additional_source_file_list
+      "${library_root}/source/net/linux-shared/Net.cpp"
+      "${library_root}/source/net/linux-shared/SimpleUDP.cpp"
+      "${library_root}/source/platform/linux-shared/Environment.cpp"
+      "${library_root}/source/platform/linux-shared/FileSystem.cpp"
+      "${library_root}/source/platform/linux-shared/OSVersionInfo.cpp"
+      "${library_root}/source/platform/linux-shared/Security.cpp"
+      "${library_root}/source/platform/linux-shared/Time.cpp"
+    )
+
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(additional_source_file_list
+      "${library_root}/source/net/windows/Net.cpp"
+      "${library_root}/source/net/windows/SimpleUDP.cpp"
+      "${library_root}/source/platform/windows/Environment.cpp"
+      "${library_root}/source/platform/windows/FileSystem.cpp"
+      "${library_root}/source/platform/windows/OSVersionInfo.cpp"
+      "${library_root}/source/platform/windows/Security.cpp"
+      "${library_root}/source/platform/windows/Time.cpp"
+    )
+
+  else()
+    message(FATAL_ERROR "Unsupported operating system")
+  endif()
+
+  target_sources(thirdparty_aws_core PRIVATE
+    ${additional_source_file_list}
   )
 
   target_link_libraries(thirdparty_aws_core PUBLIC
