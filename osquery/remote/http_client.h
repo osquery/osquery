@@ -310,6 +310,8 @@ class Client {
 
   void closeSocket();
 
+  void callNetworkOperation(std::function<void()> callback);
+
  private:
   Options client_options_;
   boost_asio::io_context ioc_;
