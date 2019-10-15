@@ -31,7 +31,7 @@ QueryData genDefaultEnvironment(QueryContext& context) {
     r["variable"] = env.at("name");
     r["value"] = env.at("data");
     r["expand"] = INTEGER(env.at("type") == "REG_EXPAND_SZ");
-    results.push_back(r);
+    results.push_back(std::move(r));
   }
 
   return results;
