@@ -11,6 +11,7 @@
 #include <osquery/process/process.h>
 #include <osquery/process/windows/process_ops.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
 #include <AclAPI.h>
 #include <LM.h>
@@ -1567,22 +1568,6 @@ Status socketExists(const fs::path& path, bool remove_socket) {
     }
   }
   return Status::success();
-}
-
-LONGLONG filetimeToUnixtime(const FILETIME& ft) {
-  LARGE_INTEGER date, adjust;
-  date.HighPart = ft.dwHighDateTime;
-  date.LowPart = ft.dwLowDateTime;
-  adjust.QuadPart = 11644473600000 * 10000;
-  date.QuadPart -= adjust.QuadPart;
-  return date.QuadPart / 10000000;
-}
-
-LONGLONG longIntToUnixtime(LARGE_INTEGER& ft) {
-  ULARGE_INTEGER ull;
-  ull.LowPart = ft.LowPart;
-  ull.HighPart = ft.HighPart;
-  return ull.QuadPart / 10000000ULL - 11644473600ULL;
 }
 
 std::string getFileAttribStr(unsigned long file_attributes) {

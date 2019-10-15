@@ -21,11 +21,11 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/system/errno.h>
 
 #include "osquery/core/windows/wmi.h"
 #include "osquery/events/windows/usn_journal_reader.h"
-#include "osquery/filesystem/fileops.h"
 
 #ifndef FILE_ATTRIBUTE_RECALL_ON_OPEN
 #define FILE_ATTRIBUTE_RECALL_ON_OPEN 0x00040000

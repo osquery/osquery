@@ -100,7 +100,9 @@ using PlatformHandle = int;
 using PlatformTimeType = struct timeval;
 #endif
 
-typedef struct { PlatformTimeType times[2]; } PlatformTime;
+typedef struct {
+  PlatformTimeType times[2];
+} PlatformTime;
 
 /// Constant for an invalid handle.
 const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
@@ -142,11 +144,6 @@ std::string lastErrorMessage(unsigned long);
 enum SeekMode { PF_SEEK_BEGIN = 0, PF_SEEK_CURRENT, PF_SEEK_END };
 
 #ifdef WIN32
-/// Takes a Windows FILETIME object and returns seconds since epoch
-LONGLONG filetimeToUnixtime(const FILETIME& ft);
-
-LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
-
 std::string getFileAttribStr(unsigned long);
 
 Status platformStat(const boost::filesystem::path&, WINDOWS_STAT*);
@@ -437,4 +434,4 @@ Status platformLstat(const std::string& path, struct stat& d_stat);
  * @return osquery::Status
  */
 Status describeBSDFileFlags(std::string& output, std::uint32_t st_flags);
-}
+} // namespace osquery
