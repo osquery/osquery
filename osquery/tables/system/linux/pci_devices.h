@@ -115,10 +115,11 @@ class PciDB {
 };
 
 /// Extracts PCI device information into row for provided sysFS attributes.
-Status extractVendorModelFromPciDBIfPresent(Row& row,
-                                            const std::string& device_ids_attr,
-                                            const std::string& subsystem_ids_attr,
-                                            const PciDB& pcidb);
+Status extractVendorModelFromPciDBIfPresent(
+    Row& row,
+    const std::string& device_ids_attr,
+    const std::string& subsystem_ids_attr,
+    const PciDB& pcidb);
 
 ///  Extracts PCI class identifier information into row for provided sysFs
 ///  attribute.
