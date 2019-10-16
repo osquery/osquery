@@ -12,7 +12,6 @@
 
 #include <osquery/tables/system/linux/pci_devices.h>
 
-
 namespace osquery {
 namespace tables {
 
