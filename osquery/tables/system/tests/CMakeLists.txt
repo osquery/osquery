@@ -9,6 +9,7 @@ function(osqueryTablesSystemTestsMain)
   if(DEFINED PLATFORM_LINUX)
     generateOsqueryTablesSystemTestsMdtablestestsTest()
     generateOsqueryTablesSystemTestsPcidevicestestsTest()
+    generateOsqueryTablesSystemTestsPcidbtestsTest()
     generateOsqueryTablesSystemTestsPortagetestsTest()
   endif()
 
@@ -65,6 +66,25 @@ function(generateOsqueryTablesSystemTestsPcidevicestestsTest)
   add_osquery_executable(osquery_tables_system_tests_pcidevicestests-test linux/pci_devices_tests.cpp)
 
   target_link_libraries(osquery_tables_system_tests_pcidevicestests-test PRIVATE
+    osquery_cxx_settings
+    osquery_config_tests_testutils
+    osquery_core
+    osquery_core_sql
+    osquery_database
+    osquery_filesystem
+    osquery_remote_tests_remotetestutils
+    osquery_tables_system_systemtable
+    osquery_utils
+    osquery_utils_conversions
+    plugins_database_ephemeral
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryTablesSystemTestsPcidbtestsTest)
+  add_osquery_executable(osquery_tables_system_tests_pcidbtests-test linux/pcidb_tests.cpp)
+
+  target_link_libraries(osquery_tables_system_tests_pcidbtests-test PRIVATE
     osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
