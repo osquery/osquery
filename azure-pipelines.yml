@@ -187,6 +187,9 @@ jobs:
     - script: |
         brew upgrade
         brew install ccache flex bison
+        brew unlink git
+        brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/1024ec738fe0972e467859ce55687e9e0131f83a/Formula/git.rb
+        brew switch git 2.21.0
       displayName: "Install Homebrew and prerequisites"
       timeoutInMinutes: 20
 
