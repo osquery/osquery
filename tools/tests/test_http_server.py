@@ -14,12 +14,12 @@ import random
 import ssl
 import string
 import sys
-import thread
+import _thread
 import threading
 
 # Create a simple TLS/HTTP server.
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from urlparse import parse_qs
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs
 
 # Script run directory, used for default values
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -29,11 +29,11 @@ HTTP_SERVER_USE_TLS = False
 HTTP_SERVER_PERSIST = False
 HTTP_SERVER_TIMEOUT = 10
 HTTP_SERVER_VERBOSE = False
-HTTP_SERVER_CERT = SCRIPT_DIR + "/test_server.pem"
-HTTP_SERVER_KEY = SCRIPT_DIR + "/test_server.key"
-HTTP_SERVER_CA = SCRIPT_DIR + "/test_server_ca.pem"
+HTTP_SERVER_CERT = "test_server.pem"
+HTTP_SERVER_KEY = "test_server.key"
+HTTP_SERVER_CA = "test_server_ca.pem"
 HTTP_SERVER_USE_ENROLL_SECRET = True
-HTTP_SERVER_ENROLL_SECRET = SCRIPT_DIR + "/test_enroll_secret.txt"
+HTTP_SERVER_ENROLL_SECRET = "test_enroll_secret.txt"
 
 # Global accessor value for arguments passed to the server
 ARGS = None
@@ -167,7 +167,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         debug("RealSimpleHandler::post %s" % self.path)
         self._set_headers()
-        content_len = int(self.headers.getheader('content-length', 0))
+        content_len = int(self.headers.get('content-length', 0))
 
         body = self.rfile.read(content_len)
         request = json.loads(body)
@@ -335,7 +335,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
 
     def _reply(self, response):
         debug("Replying: %s" % (str(response)))
-        self.wfile.write(json.dumps(response))
+        self.wfile.write(json.dumps(response).encode())
 
 
 def handler():
@@ -385,7 +385,6 @@ def run_http_server(bind_port=80, **kwargs):
     except KeyboardInterrupt:
         sys.exit(0)
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description=("osquery python https server for client TLS testing."))
@@ -414,17 +413,17 @@ if __name__ == '__main__':
     parser.add_argument(
         "--cert",
         metavar="CERT_FILE",
-        default=HTTP_SERVER_CERT,
+        default=None,
         help="TLS server cert.")
     parser.add_argument(
         "--key",
         metavar="PRIVATE_KEY_FILE",
-        default=HTTP_SERVER_KEY,
+        default=None,
         help="TLS server cert private key.")
     parser.add_argument(
         "--ca",
         metavar="CA_FILE",
-        default=HTTP_SERVER_CA,
+        default=None,
         help="TLS server CA list for client-auth.")
 
     parser.add_argument(
@@ -437,12 +436,31 @@ if __name__ == '__main__':
         metavar="SECRET_FILE",
         default=HTTP_SERVER_ENROLL_SECRET,
         help="File containing enrollment secret")
+    parser.add_argument(
+        "--test-configs-dir",
+        required=True,
+        help="Directory where the script will search for configuration files it needs")
 
     parser.add_argument(
         "port", metavar="PORT", type=int, help="Bind to which local TCP port.")
 
-    args = {
+    args = parser.parse_args()
+
+    if args.cert is None:
+        args.cert = "%s/%s" % (args.test_configs_dir, HTTP_SERVER_CERT)
+
+    if args.key is None:
+        args.key = "%s/%s" % (args.test_configs_dir, HTTP_SERVER_KEY)
+
+    if args.ca is None:
+        args.ca = "%s/%s" % (args.test_configs_dir, HTTP_SERVER_CA)
+
+    if args.enroll_secret is None:
+        args.enroll_secret =  "%s/%s" % (args.test_configs_dir, HTTP_SERVER_ENROLL_SECRET)
+
+    nonempty_args = {
         k: v
-        for k, v in vars(parser.parse_args()).items() if v is not None
+        for k, v in vars(args).items() if v is not None
     }
-    run_http_server(args['port'], **args)
+
+    run_http_server(nonempty_args['port'], **nonempty_args)

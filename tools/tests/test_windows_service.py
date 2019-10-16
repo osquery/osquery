@@ -17,6 +17,8 @@ import tempfile
 import time
 import threading
 import unittest
+import ctypes
+import copy
 
 from signal import SIGTERM
 
@@ -87,9 +89,9 @@ FLAGS_FILE = """
 def assertUserIsAdmin():
     if os.name != 'nt':
         sys.exit(-1)
-    try:
-        os.listdir('\\Windows\\Temp')
-    except WindowsError:
+
+    if not ctypes.windll.shell32.IsUserAnAdmin():
+        print("User is not an Admin. Please run this script as an Administrator.")
         sys.exit(-1)
 
 
@@ -102,10 +104,11 @@ def sc(*args):
             ['sc.exe'] + list(args),
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE)
-    except subprocess.CalledProcessError, err:
+    except subprocess.CalledProcessError as err:
         return (err.returncode, err.output)
 
-    out, _ = p.communicate()
+    stdout, _ = p.communicate()
+    out = stdout.decode()
     out = [x.strip() for x in out.split('\r\n') if x.strip() is not '']
 
     if len(out) >= 1:
@@ -125,15 +128,18 @@ def sc(*args):
 
 
 def findOsquerydBinary():
-    script_root = os.path.split(os.path.abspath(__file__))[0]
-    build_root = os.path.abspath(
-        os.path.join(script_root, '..', '..', 'build', 'windows10', 'osquery'))
-    path = os.path.join(build_root, 'Release', 'osqueryd.exe')
+    path = os.path.abspath("%s/osquery/Release/osqueryd.exe" % (test_base.BUILD_DIR))
     if os.path.exists(path):
         return path
-    path = os.path.join(build_root, 'RelWithDebInfo', 'osqueryd.exe')
+
+    path = os.path.abspath("%s/osquery/RelWithDebInfo/osqueryd.exe" % (test_base.BUILD_DIR))
     if os.path.exists(path):
         return path
+
+    path = os.path.abspath("%s/osquery/osqueryd.exe" % (test_base.BUILD_DIR))
+    if os.path.exists(path):
+        return path
+
     sys.exit(-1)
 
 
@@ -203,7 +209,7 @@ def killOsqueryProcesses():
 # that matches our regex, stopping it, and then deleting the service
 def cleanOsqueryServices():
     service_args = POWERSHELL_ARGS + ['$(Get-Service osqueryd_test_*).Name']
-    services = subprocess.check_output(service_args).split()
+    services = subprocess.check_output(service_args).decode().split()
 
     # No services found on the system
     if len(services) == 0:
@@ -217,6 +223,14 @@ def cleanOsqueryServices():
         test_base.expectTrue(isServiceStopped)
         uninstallService(service)
 
+def prepareTlsServerArgs():
+    tls_server_args = copy.deepcopy(TLS_SERVER_ARGS)
+    tls_server_args["ca"] = "%s/%s" % (test_base.TEST_CONFIGS_DIR, TLS_SERVER_ARGS["ca"])
+    tls_server_args["key"] = "%s/%s" % (test_base.TEST_CONFIGS_DIR, TLS_SERVER_ARGS["key"])
+    tls_server_args["cert"] = "%s/%s" % (test_base.TEST_CONFIGS_DIR, TLS_SERVER_ARGS["cert"])
+    tls_server_args["enroll_secret"] = "%s/%s" % (test_base.TEST_CONFIGS_DIR, TLS_SERVER_ARGS["enroll_secret"])
+    return tls_server_args
+
 
 class OsquerydTest(unittest.TestCase):
 
@@ -225,6 +239,7 @@ class OsquerydTest(unittest.TestCase):
     def setUp(self):
         # Ensure that no residual processes are alive before starting
         cleanOsqueryServices()
+        tls_server_args = prepareTlsServerArgs()
 
         self.test_instance = random.randint(0, 65535)
         self.tmp_dir = os.path.join(tempfile.gettempdir(),
@@ -245,38 +260,39 @@ class OsquerydTest(unittest.TestCase):
         self.flagfile = os.path.join(self.tmp_dir, 'osquery.flags')
 
         # Write out our mock configuration files
-        with open(self.config_path, 'wb') as fd:
+        with open(self.config_path, 'w') as fd:
             fd.write(CONFIG_FILE)
 
-        with open(self.flagfile, 'wb') as fd:
+        with open(self.flagfile, 'w') as fd:
             fd.write(
                 FLAGS_FILE.format(self.log_path, self.pidfile,
-                                  test_http_server.HTTP_SERVER_CA,
-                                  test_http_server.HTTP_SERVER_ENROLL_SECRET))
+                                  tls_server_args["ca"],
+                                  tls_server_args["enroll_secret"]))
 
         # Start the test TLS server to add more internal services
         self.http_server_ = threading.Thread(
             target=test_http_server.run_http_server,
             args=(443, ),
-            kwargs=TLS_SERVER_ARGS)
+            kwargs=tls_server_args)
         self.http_server_.daemon = True
         self.http_server_.start()
 
     def runDaemon(self, *args):
         try:
-            p = subprocess.Popen(
+            with subprocess.Popen(
                 [self.bin_path] + list(args),
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE)
+                stderr=subprocess.PIPE) as p:
 
-            start = time.time()
-            while p.poll() is None:
-                if time.time() - start > 5:
-                    p.kill()
-                    break
-                time.sleep(1)
+                start = time.time()
+                while p.poll() is None:
+                    if time.time() - start > 5:
+                        p.kill()
+                        break
+                    time.sleep(1)
 
-            return (p.stdout.read(), p.stderr.read())
+                return (p.stdout.read(), p.stderr.read())
+
         except subprocess.CalledProcessError:
             return ('', '')
 
@@ -302,7 +318,7 @@ class OsquerydTest(unittest.TestCase):
             '--database_path', self.database_path, '--logger_path',
             self.log_path, '--pidfile', self.pidfile)
 
-        self.assertNotEqual(stderr.find('is already running'), -1)
+        self.assertNotEqual(stderr.decode().find('is already running'), -1)
 
         if code == 0:
             code = stopService(name)
