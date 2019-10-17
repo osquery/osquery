@@ -13,6 +13,8 @@
 
 namespace osquery {
 void RegistryInterface::remove(const std::string& item_name) {
+  WriteLock lock(mutex_);
+
   if (items_.count(item_name) > 0) {
     items_[item_name]->tearDown();
     items_.erase(item_name);
@@ -330,6 +332,8 @@ void RegistryInterface::setname(const std::string& name) {
 }
 
 bool RegistryInterface::isInternal_(const std::string& item_name) const {
+  ReadLock lock(mutex_);
+
   if (std::find(internal_.begin(), internal_.end(), item_name) ==
       internal_.end()) {
     return false;
@@ -339,6 +343,8 @@ bool RegistryInterface::isInternal_(const std::string& item_name) const {
 
 bool RegistryInterface::exists_(const std::string& item_name,
                                 bool local) const {
+  ReadLock lock(mutex_);
+
   bool has_local = (items_.count(item_name) > 0);
   bool has_external = (external_.count(item_name) > 0);
   bool has_route = (routes_.count(item_name) > 0);
