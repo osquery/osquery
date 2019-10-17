@@ -310,6 +310,16 @@ class Client {
 
   void closeSocket();
 
+  /**
+   * @brief Wrap actual network call.
+   *
+   * callNetworkOperation is a wrapper function which wraps following tasks
+   * 1. Start the timer for network call timeout.
+   * 2. Call provided call back which is actually an async network call.
+   * 3. Wait for timer and async network call simultaneously.
+   *
+   * This function sets ec_ in case of boost io service returns with an error.
+   */
   void callNetworkOperation(std::function<void()> callback);
 
  private:

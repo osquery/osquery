@@ -32,7 +32,7 @@ const long kSSLShortReadError{0x140000dbL};
 void Client::callNetworkOperation(std::function<void()> callback) {
   if (client_options_.timeout_) {
     timer_.async_wait(
-        [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
+        std::bind(&Client::timeoutHandler, this, std::placeholders::_1));
   }
 
   callback();
