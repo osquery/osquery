@@ -10,6 +10,8 @@ include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 importSourceSubmodule(
   NAME "libgcrypt"
 
-  SHALLOW_SUBMODULES
+  # Hosting for this repo does not support shallow clones in newer
+  # versions of git.
+  SUBMODULES
     "src"
 )

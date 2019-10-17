@@ -10,6 +10,8 @@ include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 importSourceSubmodule(
   NAME "libcryptsetup"
 
-  SHALLOW_SUBMODULES
+  # This git repo is hosted on gitlab, which doesn't properly support
+  # making a shallow clone.
+  SUBMODULES
     "src"
 )
