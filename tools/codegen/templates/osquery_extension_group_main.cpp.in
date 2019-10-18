@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/sdk.h>
+#include <osquery/sdk/sdk.h>
 #include <osquery/system.h>
 
 using namespace osquery;

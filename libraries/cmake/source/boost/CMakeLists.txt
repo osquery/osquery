@@ -41,6 +41,10 @@ function(boostMain)
     thirdparty_boost_uuid
     thirdparty_boost_beast
     thirdparty_boost_xpressive
+    thirdparty_boost_process
+    thirdparty_boost_iostreams
+    thirdparty_boost_winapi
+    thirdparty_boost_circularbuffer
   )
 
   find_package(icu REQUIRED)
@@ -243,6 +247,10 @@ function(importBoostInterfaceLibraries)
     "lexical_cast:range,numeric_conversion,integer,array,container,math"
     "system:config"
     "tuple:config"
+    "process:config"
+    "circular_buffer:config"
+    "winapi:config"
+    "iostreams:config"
   )
 
   add_library(thirdparty_boost_config INTERFACE)
