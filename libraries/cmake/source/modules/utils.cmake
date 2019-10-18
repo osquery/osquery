@@ -31,10 +31,19 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
     set(optional_depth_arg "")
   endif()
 
+  # In git versions >= 2.18.0 we need to explicitly set the protocol
+  # in order to do a shallow clone without error.
+  if(GIT_VERSION_STRING VERSION_EQUAL "2.18.0" OR GIT_VERSION_STRING VERSION_GREATER "2.18.0")
+    set(optional_protocol_arg -c protocol.version=2)
+  else()
+    set(optional_protocol_arg "")
+  endif()
+
+
   get_filename_component(working_directory "${submodule_path}" DIRECTORY)
 
   execute_process(
-    COMMAND "${GIT_EXECUTABLE}" submodule update --init ${optional_recursive_arg} ${optional_depth_arg} "${submodule_path}"
+    COMMAND "${GIT_EXECUTABLE}" ${optional_protocol_arg} submodule update --init ${optional_recursive_arg} ${optional_depth_arg} "${submodule_path}"
     RESULT_VARIABLE process_exit_code
     WORKING_DIRECTORY "${working_directory}"
   )
