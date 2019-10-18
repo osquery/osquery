@@ -79,16 +79,25 @@ function(patchSubmoduleSourceCode patches_dir source_dir apply_to_dir)
     )
 
     if(NOT ${process_exit_code} EQUAL 0)
-      message(FATAL_ERROR "Failed to patch the following git submodule: \"${apply_to_dir}\"")
+      message(FATAL_ERROR "Failed to patch the following git submodule: \"${source_dir}\"")
     endif()
   endforeach()
 
-  # Move the patched sources to another location because some submodules
-  # have symbolic link loops which cannot be correctly copied.
   get_filename_component(parent_dir "${apply_to_dir}" DIRECTORY)
 
-  execute_process(COMMAND "${CMAKE_COMMAND}" -E make_directory "${parent_dir}")
-  execute_process(COMMAND "${CMAKE_COMMAND}" -E rename "${source_dir}" "${apply_to_dir}")
+  file(MAKE_DIRECTORY "${parent_dir}")
+  file(COPY "${source_dir}" DESTINATION "${parent_dir}")
+
+  # We need to restore the source code to its original state, pre patch
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" reset --hard HEAD
+    RESULT_VARIABLE process_exit_code
+    WORKING_DIRECTORY "${source_dir}"
+  )
+
+  if(NOT ${process_exit_code} EQUAL 0)
+    message(FATAL_ERROR "Failed to git reset the following submodule: \"${source_dir}\"")
+  endif()
 
   set(patchSubmoduleSourceCode_Patched TRUE PARENT_SCOPE)
 endfunction()
@@ -144,17 +153,6 @@ function(importSourceSubmodule)
         "${directory_path}/${submodule_to_patch}"
         "${patched_source_dir}"
       )
-
-      if(patchSubmoduleSourceCode_Patched)
-        list(FIND ARGS_SHALLOW_SUBMODULES "${submodule_to_patch}" shallow_clone)
-        if(${shallow_clone} EQUAL -1)
-          set(shallow_clone false)
-        else()
-          set(shallow_clone true)
-        endif()
-
-        initializeGitSubmodule("${directory_path}/${submodule_to_patch}" ${ARGS_NO_RECURSIVE} ${shallow_clone})
-      endif()
     endif()
   endforeach()
 

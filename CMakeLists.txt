@@ -179,7 +179,7 @@ function(importLibraries)
       endif()
 
     else()
-      message(FATAL_ERROR "The '${library}' was found but it couldn't be imported correctly")
+      message(FATAL_ERROR "The '${library}' library was found but it couldn't be imported correctly")
     endif()
   endforeach()
 endfunction()
