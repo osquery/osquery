@@ -21,7 +21,7 @@ namespace osquery {
  * CMake, or the build tooling, will generate a OSQUERY_PLATFORM_MASK and pass
  * it to the library compile only.
  *
- * This information is exposed through the osquery_info table. Be cautious 
+ * This information is exposed through the osquery_info table. Be cautious
  * changing values.
  */
 enum class PlatformType {

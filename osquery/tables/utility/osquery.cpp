@@ -218,7 +218,6 @@ QueryData genOsqueryInfo(QueryContext& context) {
   }
   r["platform_mask"] = INTEGER(static_cast<uint64_t>(kPlatformType));
 
-
   std::string uuid;
   r["uuid"] = (getHostUUID(uuid)) ? uuid : "";
 
