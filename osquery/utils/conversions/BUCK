@@ -89,6 +89,20 @@ osquery_cxx_test(
         "tests/split.cpp",
         "tests/tryto.cpp",
     ],
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/tests/cfstring.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/tests/strings.cpp",
+            ],
+        ),
+    ],
     visibility = ["PUBLIC"],
     deps = [
         ":conversions",

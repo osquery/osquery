@@ -8,6 +8,11 @@ function(osqueryUtilsConversionsMain)
   if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsConversionsConversionstestsTest()
     generateOsqueryUtilsConversionsTotestsTest()
+    if(DEFINED PLATFORM_MACOS)
+      generateOsqueryUtilsConversionsDarwintestsTest()
+    elseif(DEFINED PLATFORM_WINDOWS)
+      generateOsqueryUtilsConversionsWindowstestsTest()
+    endif()
   endif()
 
   generateOsqueryUtilsConversions()
@@ -42,6 +47,7 @@ function(generateOsqueryUtilsConversions)
   target_link_libraries(osquery_utils_conversions PUBLIC
     osquery_cxx_settings
     osquery_logger
+    osquery_filesystem
     osquery_utils_conversions_to
     osquery_utils_expected
     thirdparty_boost
@@ -65,11 +71,12 @@ function(generateOsqueryUtilsConversions)
       darwin/cftime.h
       darwin/iokit.h
     )
-
+    add_test(NAME osquery_utils_conversions_darwintests-test COMMAND osquery_utils_conversions_darwintests-test)
   elseif(DEFINED PLATFORM_WINDOWS)
     set(platform_public_header_files
       windows/strings.h
     )
+    add_test(NAME osquery_utils_conversions_windowstests-test COMMAND osquery_utils_conversions_windowstests-test)
   endif()
 
   list(LENGTH platform_public_header_files platform_public_header_files_size)
@@ -78,7 +85,6 @@ function(generateOsqueryUtilsConversions)
   endif()
 
   add_test(NAME osquery_utils_conversions_conversionstests-test COMMAND osquery_utils_conversions_conversionstests-test)
-
 endfunction()
 
 function(generateOsqueryUtilsConversionsTo)
@@ -93,6 +99,50 @@ function(generateOsqueryUtilsConversionsTo)
   generateIncludeNamespace(osquery_utils_conversions_to "osquery/utils/conversions" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_utils_conversions_totests-test COMMAND osquery_utils_conversions_totests-test)
+endfunction()
+
+function(generateOsqueryUtilsConversionsDarwintestsTest)
+  set(source_files
+    darwin/tests/cfstring.cpp
+  )
+
+  add_osquery_executable(osquery_utils_conversions_darwintests-test ${source_files})
+
+  target_link_libraries(osquery_utils_conversions_darwintests-test PRIVATE
+    osquery_cxx_settings
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_remote_enroll_tlsenroll
+    osquery_utils_conversions
+    osquery_utils_conversions_to
+    osquery_utils_expected
+    tests_helper
+    thirdparty_boost
+    thirdparty_glog
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryUtilsConversionsWindowstestsTest)
+  set(source_files
+    windows/tests/strings.cpp
+  )
+
+  add_osquery_executable(osquery_utils_conversions_windowstests-test ${source_files})
+
+  target_link_libraries(osquery_utils_conversions_windowstests-test PRIVATE
+    osquery_cxx_settings
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_remote_enroll_tlsenroll
+    osquery_utils_conversions
+    osquery_utils_conversions_to
+    osquery_utils_expected
+    tests_helper
+    thirdparty_boost
+    thirdparty_glog
+    thirdparty_googletest
+  )
 endfunction()
 
 function(generateOsqueryUtilsConversionsConversionstestsTest)
