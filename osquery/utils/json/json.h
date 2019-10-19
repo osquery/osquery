@@ -19,6 +19,14 @@
 #pragma warning(disable : 4715)
 #endif
 
+/**
+ * This protects parsing from overflowing the stack.
+ * See http://rapidjson.org/md_doc_features.html for more details.
+ *
+ * This must be defined before including RapidJSON headers.
+ */
+#define RAPIDJSON_PARSE_DEFAULT_FLAGS (kParseIterativeFlag)
+
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/stringbuffer.h>

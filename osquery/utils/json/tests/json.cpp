@@ -228,4 +228,17 @@ TEST_F(ConversionsTests, test_json_bool_like) {
   EXPECT_FALSE(JSON::valueToBool(doc.doc()["false6"]));
 }
 
+/*
+ * By default, rapidjson will use recursive parsing without stack guards,
+ * which would result in a segfault for this test. To guard against
+ * malicious json, we should be configured to use iterative mode.
+ * https://github.com/Tencent/rapidjson/issues/632
+ */
+TEST_F(ConversionsTests, test_iterativeparsing) {
+  std::string json(543210, '[');
+  auto doc = JSON::newObject();
+
+  EXPECT_FALSE(doc.fromString(json).ok());
+}
+
 } // namespace osquery
