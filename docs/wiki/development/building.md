@@ -6,7 +6,7 @@ The supported compilers are: the osquery toolchain (LLVM/Clang 8.0.1) on Linux, 
 
 # Building with CMake
 
-Git, CMake (>= 3.14.6), Python 2, and Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
+Git (>= 2.14.0), CMake (>= 3.14.6), Python 2, and Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
 
 The default build type is `RelWithDebInfo` (optimizations active + debug symbols) and can be changed in the CMake configure phase by setting the `CMAKE_BUILD_TYPE` flag to `Release` or `Debug`.
 
@@ -158,6 +158,14 @@ A "single" test case often still involves dozens or hundreds of unit tests. To r
 GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory tests under the <testName> set.
 ```
 
+## Running clang-format (Linux and MacOS only)
+
+Note that on Linux the `clang-format` executable is shipped along with the osquery toolchain, and it is the recommended way to run it.
+
+```bash
+cmake --build . --target format_check
+```
+
 ## Running Cppcheck (Linux only)
 
 1. Install it from the distro repository: `apt install cppcheck`
@@ -165,7 +173,7 @@ GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory t
 
 ## Running clang-tidy (Linux only)
 
-The clang-tidy executable is shipped along with the osquery toolchain, and it is the recommended way to run it. It is however possible to use the system one, provided it's accessible from the PATH environment variable.
+The `clang-tidy` executable is shipped along with the osquery toolchain, and it is the recommended way to run it. It is however possible to use the system one, provided it's accessible from the PATH environment variable.
 
 1. When configuring, pass `-DOSQUERY_ENABLE_CLANG_TIDY=ON` to CMake
 2. Configure the checks: `-DOSQUERY_CLANG_TIDY_CHECKS=check1,check2` **(optional)**
