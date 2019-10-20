@@ -185,7 +185,7 @@ function(setupBuildFlags)
       target_compile_options(c_settings INTERFACE -g0)
     endif()
 
-    if(OSQUERY_FUZZ)
+    if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
       target_compile_options(cxx_settings INTERFACE
         -fsanitize=address,fuzzer-no-link
         -fsanitize-coverage=edge,indirect-calls
