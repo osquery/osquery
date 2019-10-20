@@ -564,7 +564,9 @@ Status readRows(sqlite3_stmt* prepared_statement,
     } while (SQLITE_ROW == rc);
   }
   if (rc != SQLITE_DONE) {
-    return Status::failure(sqlite3_errmsg(instance->db()));
+    auto s = Status::failure(sqlite3_errmsg(instance->db()));
+    sqlite3_finalize(prepared_statement);
+    return s;
   }
 
   rc = sqlite3_finalize(prepared_statement);
@@ -627,10 +629,11 @@ Status getQueryColumnsInternal(const std::string& q,
                                  &stmt,
                                  nullptr);
     if (rc != SQLITE_OK || stmt == nullptr) {
+      auto s = Status::failure(sqlite3_errmsg(instance->db()));
       if (stmt != nullptr) {
         sqlite3_finalize(stmt);
       }
-      return Status(1, sqlite3_errmsg(instance->db()));
+      return s;
     }
 
     // Get column count
