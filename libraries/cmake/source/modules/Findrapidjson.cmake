@@ -12,6 +12,6 @@ importSourceSubmodule(
 
   NO_RECURSIVE
 
-  SHALLOW_SUBMODULES
+  SUBMODULES
     "src"
 )
