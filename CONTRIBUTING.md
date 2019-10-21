@@ -7,8 +7,7 @@ your code is under review.
 
 ## Contributing 101
 
-All contributions from the community are submitted via pull requests (PRs)
-open against the osquery's
+All contributions are submitted via pull requests (PRs) open against the osquery's
 [master](https://github.com/osquery/osquery/tree/master) branch on
 GitHub. After being reviewed by the _core team_ and tested by CI, if all
 is well, they will be pushed to master and the corresponding PR closed.
@@ -20,7 +19,7 @@ If you need help, both the core team and community members are on the osquery
 [Slack](https://osquery.slack.com). Feel free to register using the following
 [link](https://slack.osquery.io/) if you haven't done so yet and get in touch with us.
 The `#code-review` Slack channel has been set up to handle urgent review needs as well as questions
-about your PR. Note: prefer to keep (or echo) discussion about code changes in the GitHub
+about your PR. Note: prefer to keep discussion about code changes in the GitHub
 pull request thread.
 
 The osquery team also hosts regular office hours where the community is invited to discuss osquery
@@ -72,7 +71,7 @@ body of work. If your work requires a bug-fix, submit that first on a separate P
 refactors. If you can split your work into multiple smaller PRs please also do so. This is of utmost
 importance to allow fast reviews and to simplify regression tracking, reverts and references.
 
-Start by developing your feature on your [feature branch](https://guides.github.com/introduction/flow/) and when ready submit a pull request against the osquery master branch. The initial PR should preferably **contain a single commit**.
+Start by developing your feature on a [feature branch](https://guides.github.com/introduction/flow/) and when ready submit a pull request against the osquery master branch. The initial PR should preferably **contain a single commit**.
 If you are unfamiliar with GitHub or how pull requests work, GitHub has a very easy to follow guide
 that teaches you [how to fork the project and submit your first PR]
 (https://guides.github.com/activities/forking/).
@@ -131,12 +130,12 @@ a feature request use the [Feature
 Request](https://github.com/osquery/osquery/issues/new?template=Feature_Request.md) template.
 
 **Please only use issues for bug reports or feature requests**. If you have deployment questions or
-issues or a general question about osquery hit our Slack instead as you will have better support
+issues or a general question about osquery use our Slack instead as you will have better support
 there. For the fastest result, you should search the available channels and choose
 the most appropriate one for your question. You should post in the general channel
 as a last resort.
 
-**If you are using a vendor please use the appropriate channel as we won't be able to support vendor
+**If you are using a vendor product please use the appropriate channel as we won't be able to support vendor
 deployments on the non-vendor channels.**
 
 ## Guidelines for contributing features to osquery core
