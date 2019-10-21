@@ -12,9 +12,7 @@
 #include <osquery/utils/conversions/split.h>
 
 namespace osquery {
-void RegistryInterface::remove(const std::string& item_name) {
-  WriteLock lock(mutex_);
-
+void RegistryInterface::removeUnsafe(const std::string& item_name) {
   if (items_.count(item_name) > 0) {
     items_[item_name]->tearDown();
     items_.erase(item_name);
@@ -31,6 +29,11 @@ void RegistryInterface::remove(const std::string& item_name) {
   for (const auto& alias : removed_aliases) {
     aliases_.erase(alias);
   }
+}
+
+void RegistryInterface::remove(const std::string& item_name) {
+  WriteLock lock(mutex_);
+  removeUnsafe(item_name);
 }
 
 bool RegistryInterface::isInternal(const std::string& item_name) const {
@@ -205,7 +208,7 @@ Status RegistryInterface::addPlugin(const std::string& plugin_name,
 }
 
 void RegistryInterface::setUp() {
-  ReadLock lock(mutex_);
+  UpgradeLock lock(mutex_);
 
   // If this registry does not auto-setup do NOT setup the registry items.
   if (!auto_setup_) {
@@ -228,8 +231,11 @@ void RegistryInterface::setUp() {
     }
   }
 
-  for (const auto& failed_item : failed) {
-    remove(failed_item);
+  {
+    WriteUpgradeLock wlock(lock);
+    for (const auto& failed_item : failed) {
+      removeUnsafe(failed_item);
+    }
   }
 }
 

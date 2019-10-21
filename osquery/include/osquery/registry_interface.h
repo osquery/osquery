@@ -233,6 +233,9 @@ class RegistryInterface : private boost::noncopyable {
   mutable Mutex mutex_;
 
  private:
+  void removeUnsafe(const std::string& item_name);
+
+ private:
   friend class RegistryFactory;
 
   bool isInternal_(const std::string& item_name) const;
