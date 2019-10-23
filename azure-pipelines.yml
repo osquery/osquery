@@ -199,7 +199,7 @@ jobs:
     - script: |
         brew upgrade
         brew install ccache flex bison
-        pip3 install setuptools pexpect psutil timeout_decorator six thrift==0.11.0 osquery
+        pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
         sudo xcode-select -s /Applications/Xcode_10.3.app/Contents/Developer
       displayName: "Install Homebrew and prerequisites"
       timeoutInMinutes: 20

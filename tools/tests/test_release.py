@@ -29,12 +29,12 @@ class ReleaseTests(test_base.QueryTester):
     @test_base.flaky
     def test_pack_queries(self):
         packs = {}
-        PACKS_DIR = SOURCE_DIR + "/packs"
+        PACKS_DIR = test_base.BUILD_DIR + "/package/linux/packs"
         for root, dirs, files in os.walk(PACKS_DIR):
             for name in files:
                 with open(os.path.join(PACKS_DIR, name), 'r') as fh:
                     content = fh.read()
-                    content = string.replace(content, "\\\n", "")
+                    content = content.replace("\\\n", "")
                     packs[name] = json.loads(content)
         for name, pack in packs.items():
             if "queries" not in pack:

@@ -44,7 +44,7 @@ class OsqueryiTest(unittest.TestCase):
             "--verbose",
         ],
             SHELL_TIMEOUT)
-        self.assertEqual(proc.stdout, "")
+        self.assertEqual(proc.stdout, b"")
         print(proc.stdout)
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
@@ -68,7 +68,7 @@ class OsqueryiTest(unittest.TestCase):
         if os.name == "nt":
             actual = actual.replace('\r', '')
 
-        self.assertEqual(actual, '{"%s": %s}\n' % (config, content))
+        self.assertEqual(actual.decode("utf-8"), '{"%s": %s}\n' % (config, content))
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
@@ -129,7 +129,7 @@ class OsqueryiTest(unittest.TestCase):
                 "--verbose",
             ],
             SHELL_TIMEOUT)
-        self.assertEqual(proc.stdout, "")
+        self.assertEqual(proc.stdout, b"")
         print (proc.stdout)
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
@@ -190,9 +190,9 @@ class OsqueryiTest(unittest.TestCase):
             SHELL_TIMEOUT
         )
         if os.name == "nt":
-            self.assertEqual(proc.stdout, "[\r\n  {\"0\":\"0\"}\r\n]\r\n")
+            self.assertEqual(proc.stdout, b"[\r\n  {\"0\":\"0\"}\r\n]\r\n")
         else:
-            self.assertEqual(proc.stdout, "[\n  {\"0\":\"0\"}\n]\n")
+            self.assertEqual(proc.stdout, b"[\n  {\"0\":\"0\"}\n]\n")
         print(proc.stdout)
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
