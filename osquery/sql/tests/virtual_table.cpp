@@ -205,7 +205,8 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
       "sample", columnDefinition(response, false, false), dbc, false);
   EXPECT_EQ(status.getCode(), SQLITE_OK);
 
-  std::string const q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
+  std::string const q =
+      "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
   QueryData results;
   status = queryInternal(q, results, dbc);
   EXPECT_EQ(
@@ -326,7 +327,8 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   for (const auto& test : constraint_tests) {
     QueryData results;
     queryInternal(test.first, results, dbc);
-    EXPECT_EQ(results, test.second) << "Unexpected result for the query: " << test.first;
+    EXPECT_EQ(results, test.second)
+        << "Unexpected result for the query: " << test.first;
   }
 
   std::vector<QueryData> union_results = {

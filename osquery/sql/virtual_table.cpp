@@ -709,11 +709,11 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       // Record the term index (this index exists across all expressions).
       const auto& constraint_info = pIdxInfo->aConstraint[i];
       if (FLAGS_planner) {
-        plan("xBestIndex Evaluating constraints for table: " + pVtab->content->name +
-           " [index=" + std::to_string(i) +
-           " column=" + std::to_string(constraint_info.iColumn) +
-           " term=" + std::to_string((int)constraint_info.iTermOffset) +
-           " usable=" + std::to_string((int)constraint_info.usable) + "]");
+        plan("xBestIndex Evaluating constraints for table: " +
+             pVtab->content->name + " [index=" + std::to_string(i) +
+             " column=" + std::to_string(constraint_info.iColumn) +
+             " term=" + std::to_string((int)constraint_info.iTermOffset) +
+             " usable=" + std::to_string((int)constraint_info.usable) + "]");
       }
       if (!constraint_info.usable) {
         continue;
@@ -759,13 +759,13 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       // table implementation must be able to quickly find and return a
       // single row. See issue 5379.
 
-      pIdxInfo->aConstraintUsage[i].argvIndex =
-          static_cast<int>(++expr_index);
+      pIdxInfo->aConstraintUsage[i].argvIndex = static_cast<int>(++expr_index);
 
       if (FLAGS_planner) {
-            plan("xBestIndex Adding index constraint for table: " + pVtab->content->name +
-                 " [column=" + name + " arg_index=" + std::to_string(expr_index) +
-                 " op=" + std::to_string(constraint_info.op) + "]");
+        plan("xBestIndex Adding index constraint for table: " +
+             pVtab->content->name + " [column=" + name +
+             " arg_index=" + std::to_string(expr_index) +
+             " op=" + std::to_string(constraint_info.op) + "]");
       }
     }
   }
@@ -796,7 +796,8 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
         const auto& options = std::get<2>(columns[i]);
         if (options & ColumnOptions::REQUIRED) {
           numRequiredColumns++;
-        } else if (options & (ColumnOptions::INDEX | ColumnOptions::ADDITIONAL)) {
+        } else if (options &
+                   (ColumnOptions::INDEX | ColumnOptions::ADDITIONAL)) {
           numIndexedColumns++;
         }
       }
@@ -805,10 +806,10 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
 
   pIdxInfo->idxNum = static_cast<int>(kConstraintIndexID++);
   if (FLAGS_planner) {
-    plan("xBestIndex Recording constraint set for table: " + pVtab->content->name +
-       " [cost=" + std::to_string(cost) +
-       " size=" + std::to_string(constraints.size()) +
-       " idx=" + std::to_string(pIdxInfo->idxNum) + "]");
+    plan("xBestIndex Recording constraint set for table: " +
+         pVtab->content->name + " [cost=" + std::to_string(cost) +
+         " size=" + std::to_string(constraints.size()) +
+         " idx=" + std::to_string(pIdxInfo->idxNum) + "]");
   }
   // Add the constraint set to the table's tracked constraints.
   pVtab->content->constraints[pIdxInfo->idxNum] = std::move(constraints);
