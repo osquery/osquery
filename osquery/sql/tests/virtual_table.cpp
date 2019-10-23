@@ -299,12 +299,12 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   std::vector<std::pair<std::string, QueryData>> constraint_tests = {
       MP("select k.x from p, k", makeResult("x", {"1", "2", "1", "2"})),
       MP("select k.x from (select * from k) k2, p, k where k.x = p.x",
-         makeResult("x", {"1", "1", "2", "2"})),
+         makeResult("x", {"1", "2", "1", "2"})),
       MP("select k.x from (select * from k where z = 1) k2, p, k where k.x = "
          "p.x",
          makeResult("x", {"1", "2"})),
       MP("select k.x from k k1, (select * from p) p1, k where k.x = p1.x",
-         makeResult("x", {"1", "1", "2", "2"})),
+         makeResult("x", {"1", "2", "1", "2"})),
       MP("select k.x from (select * from p) p1, k, (select * from k) k2 where "
          "k.x = p1.x",
          makeResult("x", {"1", "1", "2", "2"})),
