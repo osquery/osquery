@@ -695,9 +695,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   double cost = 1000000;
 
   // Tables may have requirements or use indexes.
-  int numIndexedColumns = 0;
   int numRequiredColumns = 0;
-  int numIndexedConstraints = 0;
   int numRequiredConstraints = 0;
 
   // Expressions operating on the same virtual table are loosely identified by
@@ -738,7 +736,6 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
         numRequiredConstraints++;
         cost = 1;
       } else if (options & (ColumnOptions::INDEX | ColumnOptions::ADDITIONAL)) {
-        numIndexedConstraints++;
         cost = 1;
       } else {
         // not indexed, let sqlite filter it
@@ -754,7 +751,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       // important: if we specify an index, it means xFilter will be called
       // once for every row.  So if you have an IN() list with 50 items,
       // xFilter will get called 50 times, once for each item.  If you have
-      // a JOIN with 500 rows, xFilter will get 500 times.  Therefore,
+      // a JOIN with 500 rows, xFilter is called 500 times.  Therefore,
       // when a spec file specifies a column to be required or index, the
       // table implementation must be able to quickly find and return a
       // single row. See issue 5379.
@@ -796,9 +793,6 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
         const auto& options = std::get<2>(columns[i]);
         if (options & ColumnOptions::REQUIRED) {
           numRequiredColumns++;
-        } else if (options &
-                   (ColumnOptions::INDEX | ColumnOptions::ADDITIONAL)) {
-          numIndexedColumns++;
         }
       }
     }
