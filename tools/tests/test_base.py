@@ -325,26 +325,34 @@ class ProcRunner(object):
 
 
 def getLatestOsqueryBinary(binary):
-    if os.name == "posix":
-        return os.path.join(ARGS.build, "osquery", binary)
 
-    release_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "Release", "{}.exe".format(binary)))
-    relwithdebinfo_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "{}.exe".format(binary)))
+    if os.name == "nt":
+        normal_release_path = os.path.abspath(os.path.join(BUILD_DIR, "osquery", "{}.exe".format(binary)))
 
-    if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
-        if os.stat(release_path).st_mtime > os.stat(
-                relwithdebinfo_path).st_mtime:
-            return release_path
-        else:
-            return relwithdebinfo_path
-    elif os.path.exists(release_path):
-        return release_path
-    elif os.path.exists(relwithdebinfo_path):
-        return relwithdebinfo_path
+        if os.path.exists(normal_release_path):
+            return normal_release_path
+
+        msbuild_release_path = os.path.abspath(
+        os.path.join(BUILD_DIR, "osquery", "Release", "{}.exe".format(binary)))
+        msbuild_relwithdebinfo_path = os.path.abspath(
+            os.path.join(BUILD_DIR, "osquery", "RelWithDebInfo", "{}.exe".format(binary)))
+
+        if os.path.exists(msbuild_release_path) and os.path.exists(msbuild_relwithdebinfo_path):
+            if os.stat(msbuild_release_path).st_mtime > os.stat(
+                    msbuild_relwithdebinfo_path).st_mtime:
+                return msbuild_release_path
+            else:
+                return msbuild_relwithdebinfo_path
+        elif os.path.exists(msbuild_release_path):
+            return msbuild_release_path
+        elif os.path.exists(msbuild_relwithdebinfo_path):
+            return msbuild_relwithdebinfo_path
     else:
-        return None
+        normal_release_path = os.path.abspath(os.path.join(BUILD_DIR, "osquery", binary))
+        if os.path.exists(normal_release_path):
+            return normal_release_path
+
+    return None
 
 
 class ProcessGenerator(object):

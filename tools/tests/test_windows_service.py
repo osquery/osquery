@@ -127,22 +127,6 @@ def sc(*args):
     return (-1, 'UNKNOWN')
 
 
-def findOsquerydBinary():
-    path = os.path.abspath("%s/osquery/Release/osqueryd.exe" % (test_base.BUILD_DIR))
-    if os.path.exists(path):
-        return path
-
-    path = os.path.abspath("%s/osquery/RelWithDebInfo/osqueryd.exe" % (test_base.BUILD_DIR))
-    if os.path.exists(path):
-        return path
-
-    path = os.path.abspath("%s/osquery/osqueryd.exe" % (test_base.BUILD_DIR))
-    if os.path.exists(path):
-        return path
-
-    sys.exit(-1)
-
-
 def installService(name, path):
     return sc('create', name, 'binPath=', path)
 
@@ -245,7 +229,7 @@ class OsquerydTest(unittest.TestCase):
         self.tmp_dir = os.path.join(tempfile.gettempdir(),
                                     'osquery-test-python-{}'.format(
                                         self.test_instance))
-        self.bin_path = findOsquerydBinary()
+        self.bin_path = test_base.getLatestOsqueryBinary("osqueryd")
 
         if os.path.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
