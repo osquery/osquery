@@ -47,7 +47,6 @@ class REPLWrapper(object):
             return res
         try:
             command = command + '\r\n'
-            print(command)
             self.child.proc.stdin.write(command.encode())
             self.child.proc.stdin.flush()
 

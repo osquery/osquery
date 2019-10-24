@@ -73,7 +73,7 @@ function(generateOsqueryd)
   add_custom_target(create_osqueryi ALL DEPENDS osqueryi${osquery_ext})
   add_custom_command(OUTPUT osqueryi${osquery_ext}
     COMMAND "${CMAKE_COMMAND}" -E create_symlink osqueryd${osquery_ext} osqueryi${osquery_ext}
-    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:osqueryd>"
   )
   add_dependencies(create_osqueryi osqueryd)
 endfunction()
