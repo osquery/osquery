@@ -65,14 +65,15 @@ function(generateOsqueryd)
     osquery_main
   )
 
-  set(osqueryi_ext "")
+  set(osquery_ext "")
   if(PLATFORM_WINDOWS)
-    set(osqueryi_ext ".exe")
+    set(osquery_ext ".exe")
   endif()
 
-  add_custom_target(create_osqueryi ALL DEPENDS osqueryi${osqueryi_ext})
-  add_custom_command(OUTPUT osqueryi${osqueryi_ext}
-    COMMAND ${CMAKE_COMMAND} -E create_symlink osqueryd osqueryi${osqueryi_ext}
+  add_custom_target(create_osqueryi ALL DEPENDS osqueryi${osquery_ext})
+  add_custom_command(OUTPUT osqueryi${osquery_ext}
+    COMMAND "${CMAKE_COMMAND}" -E create_symlink osqueryd${osquery_ext} osqueryi${osquery_ext}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   )
   add_dependencies(create_osqueryi osqueryd)
 endfunction()
