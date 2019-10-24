@@ -139,9 +139,9 @@ class OsqueryWrapper(REPLWrapper):
         command = command + " " + " ".join(
             ["--%s=%s" % (k, v) for k, v in options.items()])
         if os.name == "nt":
-            proc = WinExpectSpawn(command, env=env)
+            proc = WinExpectSpawn(command, env=env, cwd=TEST_CONFIGS_DIR)
         else:
-            proc = pexpect.spawn(command, env=env)
+            proc = pexpect.spawn(command, env=env, cwd=TEST_CONFIGS_DIR)
 
         super().__init__(
             proc,
