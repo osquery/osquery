@@ -695,8 +695,8 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   double cost = 1000000;
 
   // Tables may have requirements or use indexes.
-  int numRequiredColumns = 0;
-  int numRequiredConstraints = 0;
+  size_t numRequiredColumns = 0;
+  size_t numRequiredConstraints = 0;
 
   // Expressions operating on the same virtual table are loosely identified by
   // the consecutive sets of terms each of the constraint sets are applied onto.
