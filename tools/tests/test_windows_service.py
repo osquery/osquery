@@ -308,7 +308,6 @@ class OsquerydTest(unittest.TestCase):
             code = stopService(name)
             self.assertEqual(code, 0)
 
-        test_base.expectTrue(serviceDead)
         self.assertTrue(serviceDead())
 
         _, output = queryService(name)

@@ -75,6 +75,7 @@ function(generatePythonTests)
 
   if(DEFINED PLATFORM_WINDOWS)
     addPythonTest(NAME tools_tests_testwindowsservice SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_windows_service.py")
+    set_tests_properties(tools_tests_testwindowsservice PROPERTIES TIMEOUT 120)
   else()
     addPythonTest(NAME tools_tests_testadditional SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_additional.py")
 
