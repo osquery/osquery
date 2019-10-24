@@ -45,8 +45,8 @@ class OsqueryiTest(unittest.TestCase):
         ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.stdout, b"")
-        print(proc.stdout)
-        print(proc.stderr)
+        print(proc.stdout.decode())
+        print(proc.stderr.decode())
         self.assertEqual(proc.proc.poll(), 0)
 
     def test_config_dump(self):
@@ -63,13 +63,13 @@ class OsqueryiTest(unittest.TestCase):
         content = ""
         with open(config, 'r') as fh:
             content = fh.read()
-        actual = proc.stdout
+        actual = proc.stdout.decode()
 
         if os.name == "nt":
             actual = actual.replace('\r', '')
 
-        self.assertEqual(actual.decode("utf-8"), '{"%s": %s}\n' % (config, content))
-        print (proc.stderr)
+        self.assertEqual(actual, '{"%s": %s}\n' % (config, content))
+        print (proc.stderr.decode())
         self.assertEqual(proc.proc.poll(), 0)
 
     @test_base.flaky
@@ -85,8 +85,8 @@ class OsqueryiTest(unittest.TestCase):
         ],
             SHELL_TIMEOUT)
         self.assertNotEqual(proc.stderr, "")
-        print(proc.stdout)
-        print(proc.stderr)
+        print(proc.stdout.decode())
+        print(proc.stderr.decode())
         self.assertEqual(proc.proc.poll(), 1)
 
     def test_config_check_failure_valid_path(self):
@@ -101,7 +101,7 @@ class OsqueryiTest(unittest.TestCase):
         ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.proc.poll(), 1)
-        self.assertNotEqual(proc.stderr, "")
+        self.assertNotEqual(proc.stderr, b"")
 
     def test_config_check_failure_missing_plugin(self):
         # Finally with a missing config plugin
@@ -114,7 +114,7 @@ class OsqueryiTest(unittest.TestCase):
             "--config_plugin=does_not_exist"
         ],
             SHELL_TIMEOUT)
-        self.assertNotEqual(proc.stderr, "")
+        self.assertNotEqual(proc.stderr, b"")
         self.assertNotEqual(proc.proc.poll(), 0)
         # Also do not accept a SIGSEG
         self.assertEqual(proc.proc.poll(), EXIT_CATASTROPHIC)
@@ -130,8 +130,8 @@ class OsqueryiTest(unittest.TestCase):
             ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.stdout, b"")
-        print (proc.stdout)
-        print (proc.stderr)
+        print (proc.stdout.decode())
+        print (proc.stderr.decode())
         self.assertEqual(proc.proc.poll(), 0)
 
     def test_meta_commands(self):
@@ -193,8 +193,8 @@ class OsqueryiTest(unittest.TestCase):
             self.assertEqual(proc.stdout, b"[\r\n  {\"0\":\"0\"}\r\n]\r\n")
         else:
             self.assertEqual(proc.stdout, b"[\n  {\"0\":\"0\"}\n]\n")
-        print(proc.stdout)
-        print(proc.stderr)
+        print(proc.stdout.decode())
+        print(proc.stderr.decode())
         self.assertEqual(proc.proc.poll(), 0)
 
     @test_base.flaky
@@ -231,7 +231,7 @@ class OsqueryiTest(unittest.TestCase):
     @test_base.flaky
     def test_time_using_all(self):
         self.osqueryi.run_command(' ')
-        result = self.osqueryi.run_command('.all time')
+        result = self.osqueryi.run_command('.all time').decode()
         self.assertNotEqual(result.rstrip(), "Error querying table: time")
 
     @test_base.flaky

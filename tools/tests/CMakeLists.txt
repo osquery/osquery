@@ -69,6 +69,7 @@ function(generatePythonTests)
   addPythonTest(NAME tools_tests_testosqueryd SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_osqueryd.py")
 
   addPythonTest(NAME tools_tests_testosqueryi SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_osqueryi.py")
+  set_tests_properties(tools_tests_testosqueryi PROPERTIES TIMEOUT 120)
 
   addPythonTest(NAME tools_tests_testrelease SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_release.py")
 
