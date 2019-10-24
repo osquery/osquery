@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.14.6)
 project(thirdparty_openssl)
 
+set(OPENSSL_VERSION "1.0.2t")
+
 include(ExternalProject)
 
 function(opensslMain)
@@ -12,20 +14,8 @@ function(opensslMain)
     return()
   endif()
 
-  set(openssl_c_flags
-    -fPIC
-    --sysroot=${CMAKE_SYSROOT}
-    -l:libunwind.a
-    -lpthread
-  )
-  list(APPEND openssl_c_flags ${C_FLAGS})
-  string(REPLACE ";" " " openssl_c_flags "${openssl_c_flags}")
-
-  ExternalProject_Add(
-    openssl
-    URL "https://www.openssl.org/source/openssl-1.0.2o.tar.gz"
-
-    CONFIGURE_COMMAND
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    set(configure_command
       "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
       perl ./Configure "--prefix=${CMAKE_INSTALL_PREFIX}" "--openssldir=${CMAKE_INSTALL_PREFIX}/etc/openssl"
         no-ssl2
@@ -38,29 +28,133 @@ function(opensslMain)
         "--with-zlib-include=${thirdparty_zlib_INCLUDE_DIRS}"
         "--with-zlib-lib=${thirdparty_zlib_LIBRARIES}"
         linux-x86_64
-        ${openssl_c_flags}
+        -fPIC
+        --sysroot=${CMAKE_SYSROOT}
+        -l:libunwind.a
+        -lpthread
+    )
 
-    BUILD_COMMAND
-     "${CMAKE_COMMAND}" -E make_directory "${CMAKE_INSTALL_PREFIX}/etc/openssl" &&
+    set(build_command
+      "${CMAKE_COMMAND}" -E make_directory "${CMAKE_INSTALL_PREFIX}/etc/openssl" &&
       make depend &&
       make
+    )
 
-    INSTALL_COMMAND
+    set(optional_install_command
       make install
+    )
 
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(configure_command
+      "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
+      perl ./Configure "--prefix=${CMAKE_INSTALL_PREFIX}" "--openssldir=${CMAKE_INSTALL_PREFIX}/etc/openssl"
+        no-ssl2
+        no-ssl3
+        no-asm
+        no-shared
+        no-weak-ssl-ciphers
+        zlib-dynamic
+        enable-cms
+        "--with-zlib-include=${thirdparty_zlib_INCLUDE_DIRS}"
+        "--with-zlib-lib=${thirdparty_zlib_LIBRARIES}"
+        darwin64-x86_64-cc
+        enable-ec_nistp_64_gcc_128
+        -fPIC
+    )
+
+    set(build_command
+      /usr/bin/sed -i ".bak" "s+^CFLAG=+CFLAG=-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk +g" "Makefile" &&
+        "${CMAKE_COMMAND}" -E make_directory "${CMAKE_INSTALL_PREFIX}/etc/openssl" &&
+        make depend &&
+        make
+    )
+
+    set(optional_install_command
+      make install
+    )
+
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    unset(perl_executable_path CACHE)
+    find_program(perl_executable_path "perl.exe"
+      PATHS "C:\\Strawberry\\perl\\bin"
+    )
+
+    if("${perl_executable_path}" STREQUAL "perl_executable_path-NOTFOUND")
+      message(FATAL_ERROR "The perl.exe executable could not be found. Please install Strawberry Perl")
+    endif()
+
+    unset(nasm_executable_path CACHE)
+    find_program(nasm_executable_path "nasm.exe"
+      PATHS "C:\\Program Files\\NASM"
+    )
+
+    if("${nasm_executable_path}" STREQUAL "nasm_executable_path-NOTFOUND")
+      message(FATAL_ERROR "The nasm.exe executable could not be found. Please install NASM")
+    endif()
+
+    set(configure_command
+      "${CMAKE_COMMAND}" -E env
+      "${perl_executable_path}" Configure
+        no-ssl2
+        no-ssl3
+        no-asm
+        no-shared
+        no-weak-ssl-ciphers
+        zlib-dynamic
+        enable-cms
+        "--with-zlib-include=${thirdparty_zlib_INCLUDE_DIRS}"
+        "--with-zlib-lib=${thirdparty_zlib_LIBRARIES}"
+        VC-WIN64A
+    )
+
+    get_filename_component(perl_bin_path "${perl_executable_path}" DIRECTORY)
+
+    set(build_command
+      cmake -E env "PATH=${perl_bin_path}" "cmd.exe" "/C" "ms\\do_nt.bat" &&
+      "cmd.exe" "/C" "nmake /f ms\\nt.mak"
+    )
+
+    set(install_command
+      "${CMAKE_COMMAND}" -E make_directory "${CMAKE_INSTALL_PREFIX}/lib" &&
+      "${CMAKE_COMMAND}" -E copy "out32/libeay32.lib" "${CMAKE_INSTALL_PREFIX}/lib" &&
+      "${CMAKE_COMMAND}" -E copy "out32/ssleay32.lib" "${CMAKE_INSTALL_PREFIX}/lib" &&
+      "${CMAKE_COMMAND}" -E make_directory "${CMAKE_INSTALL_PREFIX}/include" &&
+      "${CMAKE_COMMAND}" -E copy_directory "inc32/openssl" "${CMAKE_INSTALL_PREFIX}/include/openssl"
+    )
+
+  else()
+    message(FATAL_ERROR "Unsupported system")
+  endif()
+
+  list(APPEND openssl_c_flags ${C_FLAGS})
+  string(REPLACE ";" " " openssl_c_flags "${openssl_c_flags}")
+
+  ExternalProject_Add(openssl
+    URL "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+    CONFIGURE_COMMAND ${configure_command}
+    BUILD_COMMAND ${build_command}
+    INSTALL_COMMAND ${install_command}
     BUILD_IN_SOURCE true
   )
 endfunction()
 
 function(generateMetadataTargets)
-  set(metadata_version "1.0.2o")
+  set(metadata_version "${OPENSSL_VERSION}")
   set(metadata_revision "1")
   set(metadata_dependencies "thirdparty_zlib")
 
-  set(metadata_libraries
-    "lib/libssl.a"
-    "lib/libcrypto.a"
-  )
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    set(metadata_libraries
+      "lib/libeay32.lib"
+      "lib/ssleay32.lib"
+    )
+
+  else()
+    set(metadata_libraries
+      "lib/libssl.a"
+      "lib/libcrypto.a"
+    )
+  endif()
 
   set(metadata_field_list
     metadata_version
