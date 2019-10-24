@@ -8,3 +8,6 @@ schema([
     Column("mime_encoding", TEXT, "MIME encoding data from libmagic"),
 ])
 implementation("system/magic@genMagicData")
+examples([
+  "select * from magic where path = '.'",
+])
