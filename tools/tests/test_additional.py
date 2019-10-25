@@ -49,7 +49,7 @@ class AdditionalFeatureTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Introspect into the daemon's query packs.
         client = test_base.EXClient(daemon.options["extensions_socket"])
-        test_base.expectTrue(client.try_open)
+        test_base.expectTrue(client.try_open, attempts=2, interval=5)
         self.assertTrue(client.open())
         em = client.getEM()
 

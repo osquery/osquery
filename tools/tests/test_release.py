@@ -71,5 +71,5 @@ class ReleaseTests(test_base.QueryTester):
 if __name__ == '__main__':
     module = test_base.Tester()
     # Find and import the thrift-generated python interface
-    test_base.loadThriftFromBuild(test_base.ARGS.build)
+    test_base.loadThriftFromBuild(test_base.BUILD_DIR)
     module.run()

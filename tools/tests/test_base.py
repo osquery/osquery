@@ -458,23 +458,23 @@ class EXClient(object):
         if self.transport:
             self.transport.close()
 
-    def try_open(self, timeout=0.1, interval=0.01):
+    def try_open(self, attempts=10, interval=0.5):
         '''Try to open, on success, close the UNIX domain socket.'''
-        did_open = self.open(timeout, interval)
+        did_open = self.open(attempts, interval)
         if did_open:
             self.close()
         return did_open
 
-    def open(self, timeout=0.1, interval=0.01):
+    def open(self, attempts=10, interval=0.5):
         '''Attempt to open the UNIX domain socket.'''
         delay = 0
-        while delay < timeout:
+        for i in range(0, attempts):
             try:
                 self.transport.open()
                 return True
             except Exception as e:
                 pass
-            delay += interval
+
             time.sleep(interval)
         return False
 
@@ -640,7 +640,7 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
 
         # The sets of example tests will use the extensions APIs.
         self.client = EXClient(self.daemon.options["extensions_socket"])
-        expectTrue(self.client.try_open)
+        expectTrue(self.client.try_open, attempts=2, interval=5)
         self.assertTrue(self.client.open())
         self.em = self.client.getEM()
 
@@ -687,14 +687,13 @@ class CleanChildProcesses:
             pass
 
 
-def expectTrue(functional, interval=0.01, timeout=8):
+def expectTrue(functional, interval=1, attempts=10):
     """Helper function to run a function with expected latency"""
     delay = 0
-    while delay < timeout:
+    for i in range(0, attempts):
         if functional():
             return True
         time.sleep(interval)
-        delay += interval
     return False
 
 
