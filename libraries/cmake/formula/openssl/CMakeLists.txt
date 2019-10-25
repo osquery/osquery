@@ -30,8 +30,6 @@ function(opensslMain)
     enable-cms
     "--with-zlib-include=${thirdparty_zlib_INCLUDE_DIRS}"
     "--with-zlib-lib=${thirdparty_zlib_LIBRARIES}"
-
-    ${C_FLAGS}
   )
 
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
@@ -39,6 +37,7 @@ function(opensslMain)
       "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
       perl ./Configure linux-x86_64
         ${common_options}
+        ${C_FLAGS}
 
         "--prefix=${CMAKE_INSTALL_PREFIX}"
         "--openssldir=${CMAKE_INSTALL_PREFIX}/etc/openssl"
@@ -64,6 +63,7 @@ function(opensslMain)
       "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
       perl ./Configure darwin64-x86_64-cc
         ${common_options}
+        ${C_FLAGS}
 
         "--prefix=${CMAKE_INSTALL_PREFIX}"
         "--openssldir=${CMAKE_INSTALL_PREFIX}/etc/openssl"
