@@ -313,8 +313,8 @@ jobs:
       displayName: "Create build folder"
 
     - powershell: |
-        tools\ci\scripts\install_strawberry_perl.ps1
-      displayName: "Installing: Strawberry Perl"
+        tools\ci\scripts\install_openssl_formula_dependencies.ps1
+      displayName: "Installing: Strawberry Perl and NASM"
       workingDirectory: $(Build.SourcesDirectory)
 
     - task: CMake@1
