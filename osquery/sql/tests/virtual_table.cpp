@@ -1023,7 +1023,7 @@ struct NoConstraintTestTablePlugin : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& context) override {
+  TableRows generate(QueryContext& context) override {
     scans++;
     QueryData results;
     auto indexes = context.constraints["name"].getAll<int>(EQUALS);
