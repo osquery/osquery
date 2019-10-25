@@ -430,6 +430,18 @@ void genProcRssInfo(HANDLE& proc, DynamicTableRowHolder& r) {
 TableRows genProcesses(QueryContext& context) {
   TableRows results;
 
+  // Check for pid filtering in constraints.
+  // We use a list here, but sqlite3 will usually call this with
+  // a single pid for each item in JOIN or IN() list.
+
+  std::set<int> pidlist;
+  if (context.constraints.count("pid") > 0 &&
+      context.constraints.at("pid").exists(EQUALS)) {
+    for (const auto& pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
+      pidlist.insert(pid);
+    }
+  }
+
   auto proc_snap = CreateToolhelp32Snapshot(TH32CS_SNAPALL, NULL);
   auto const proc_snap_manager =
       scope_guard::create([&proc_snap]() { CloseHandle(proc_snap); });
@@ -450,8 +462,15 @@ TableRows genProcesses(QueryContext& context) {
   }
 
   while (ret != FALSE) {
-    auto r = make_table_row();
     auto pid = proc.th32ProcessID;
+
+    bool wanted_pid = (pidlist.empty() || pidlist.count(pid) > 0);
+    if (!wanted_pid) {
+      ret = Process32Next(proc_snap, &proc);
+      continue;
+    }
+
+    auto r = make_table_row();
     r["pid"] = BIGINT(pid);
     r["parent"] = BIGINT(proc.th32ParentProcessID);
     r["name"] = TEXT(proc.szExeFile);
