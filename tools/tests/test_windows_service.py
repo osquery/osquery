@@ -166,13 +166,13 @@ def serviceStarted(service_name):
 
 def startService(name, *argv):
     start_ = sc('start', name, *argv)
-    test_base.expectTrue(serviceAlive)
+    test_base.expectTrue(serviceAlive, interval=2)
     return start_[0]
 
 
 def stopService(name):
     stop_ = sc('stop', name)
-    test_base.expectTrue(serviceDead)
+    test_base.expectTrue(serviceDead, interval=2)
     return stop_[0]
 
 
@@ -291,7 +291,7 @@ class OsquerydTest(unittest.TestCase):
         self.assertEqual(code, 0)
 
         # Ensure the service is online before proceeding
-        test_base.expectTrue(serviceAlive)
+        self.assertTrue(serviceAlive())
 
         _, output = queryService(name)
         self.assertEqual(output, '4RUNNING')
@@ -331,19 +331,15 @@ class OsquerydTest(unittest.TestCase):
 
         code = startService(name, '--flagfile', self.flagfile)
         self.assertEqual(code, 0)
-
-        test_base.expectTrue(serviceAlive)
         self.assertTrue(serviceAlive())
 
         for _ in range(5):
             status = restartService(name, '--flagfile', self.flagfile)
             self.assertTrue(status)
-            test_base.expectTrue(serviceAlive)
             self.assertTrue(serviceAlive())
 
         code = stopService(name)
         self.assertEqual(code, 0)
-        test_base.expectTrue(serviceDead)
         self.assertTrue(serviceDead())
 
         _, output = queryService(name)
