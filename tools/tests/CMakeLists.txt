@@ -33,7 +33,7 @@ function(addPythonTest)
     COMMAND ${python_test_command}
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 
-  set_tests_properties(${osquery_test_NAME} PROPERTIES TIMEOUT 30)
+  set_tests_properties(${osquery_test_NAME} PROPERTIES TIMEOUT 60)
 endfunction()
 
 function(preparePythonTestsEnvironment)
