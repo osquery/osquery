@@ -14,46 +14,38 @@
 namespace osquery {
 namespace table_tests {
 
-class apps : public testing::Test {
+class AppsTest : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(apps, test_sanity) {
-  // 1. Query data
+TEST_F(AppsTest, test_sanity) {
   auto const data = execute_query("select * from apps");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"name", NormalType}
-  //      {"path", NormalType}
-  //      {"bundle_executable", NormalType}
-  //      {"bundle_identifier", NormalType}
-  //      {"bundle_name", NormalType}
-  //      {"bundle_short_version", NormalType}
-  //      {"bundle_version", NormalType}
-  //      {"bundle_package_type", NormalType}
-  //      {"environment", NormalType}
-  //      {"element", NormalType}
-  //      {"compiler", NormalType}
-  //      {"development_region", NormalType}
-  //      {"display_name", NormalType}
-  //      {"info_string", NormalType}
-  //      {"minimum_system_version", NormalType}
-  //      {"category", NormalType}
-  //      {"applescript_enabled", NormalType}
-  //      {"copyright", NormalType}
-  //      {"last_opened_time", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_GE(data.size(), 1ul);
+  ValidationMap row_map = {
+       {"name", NonEmptyString}
+       {"path", DirectoryOnDisk}
+       {"bundle_executable", NormalType}
+       {"bundle_identifier", NormalType}
+       {"bundle_name", NormalType}
+       {"bundle_short_version", NormalType}
+       {"bundle_version", NormalType}
+       {"bundle_package_type", NonEmptyString}
+       {"environment", NormalType}
+       {"element", IntType}
+       {"compiler", NormalType}
+       {"development_region", NormalType}
+       {"display_name", NormalType}
+       {"info_string", NormalType}
+       {"minimum_system_version", NormalType}
+       {"category", NormalType}
+       {"applescript_enabled", IntType}
+       {"copyright", NormalType}
+       {"last_opened_time", NormalType}
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
