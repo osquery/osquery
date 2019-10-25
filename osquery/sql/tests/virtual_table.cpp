@@ -1025,12 +1025,14 @@ struct NoConstraintTestTablePlugin : public TablePlugin {
 
   TableRows generate(QueryContext& context) override {
     scans++;
-    QueryData results;
+
+    TableRows tr;
     auto indexes = context.constraints["name"].getAll<int>(EQUALS);
-    results.push_back({{"name", "alpha"}, {"straints", "-1"}});
-    results.push_back(
-        {{"name", "beta"}, {"straints", INTEGER(indexes.size())}});
-    return results;
+
+    tr.push_back(make_table_row({{"name", "alpha"}, {"straints", "-1"}}));
+    tr.push_back(make_table_row(
+        {{"name", "beta"}, {"straints", INTEGER(indexes.size())}}));
+    return tr;
   }
 
   // Here the goal is to expect/assume the number of scans.
