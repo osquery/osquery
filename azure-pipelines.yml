@@ -184,6 +184,8 @@ jobs:
     pool:
       vmImage: macos-10.14
 
+    timeoutInMinutes: 120
+
     variables:
       CCACHE_DIR: $(Pipeline.Workspace)/ccache
 
@@ -309,6 +311,8 @@ jobs:
 
     pool:
       vmImage: vs2017-win2016
+
+    timeoutInMinutes: 120
 
     steps:
     - powershell: |
