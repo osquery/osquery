@@ -1008,4 +1008,55 @@ TEST_F(VirtualTableTests, test_used_columns_bitset_with_alias) {
   EXPECT_EQ(results[0].find("col3"), results[0].end());
   EXPECT_EQ(results[0]["aliasToCol2"], "value2");
 }
+
+/*
+ * Query this with
+ *  "SELECT * FROM table WHERE name IN ('alpha','beta','charlie','delta')"
+ * No index columns are defined.  So if constraints are right, there
+ * should be a single table scan (generate call) with no constraints passed.
+ */
+struct NoConstraintTestTablePlugin : public TablePlugin {
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("straints", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+  QueryData generate(QueryContext& context) override {
+    scans++;
+    QueryData results;
+    auto indexes = context.constraints["name"].getAll<int>(EQUALS);
+    results.push_back({{"name", "alpha"}, {"straints", "-1"}});
+    results.push_back(
+        {{"name", "beta"}, {"straints", INTEGER(indexes.size())}});
+    return results;
+  }
+
+  // Here the goal is to expect/assume the number of scans.
+  size_t scans{0};
+  // add friend so test can call protected columnDefinition()
+  FRIEND_TEST(VirtualTableTests, test_noindex_constraints);
+};
+
+TEST_F(VirtualTableTests, test_noindex_constraints) {
+  auto dbc = SQLiteDBManager::getUnique();
+  auto table_registry = RegistryFactory::get().registry("table");
+
+  auto tablePlugin = std::make_shared<NoConstraintTestTablePlugin>();
+  table_registry->add("noco", tablePlugin);
+  attachTableInternal("noco", tablePlugin->columnDefinition(false), dbc, false);
+
+  QueryData results;
+  queryInternal(
+      "SELECT * from noco WHERE name IN ('alpha','beta','charlie','delta')",
+      results,
+      dbc);
+  dbc->clearAffectedTables();
+
+  ASSERT_EQ(1U, tablePlugin->scans);
+  ASSERT_EQ(2U, results.size());
+  ASSERT_EQ("0", results[1]["straints"]);
+}
+
 } // namespace osquery
