@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.14.6)
 project(thirdparty_openssl)
 
+# NOTE: Updating to 1.1.1d should be easy:
+# 1. Increase the OPENSSL_VERSION value
+# 2. Update the 'sed' patching in macOS to update CFLAGS (rather than CFLAG)
+# 3. Remove the call to the do_nt.bat script
+# 4. Update the Windows library names to libssl/libcrypto
+
 set(OPENSSL_VERSION "1.0.2t")
 
 include(ExternalProject)
@@ -14,20 +20,29 @@ function(opensslMain)
     return()
   endif()
 
+  set(common_options
+    no-ssl2
+    no-ssl3
+    no-asm
+    no-shared
+    no-weak-ssl-ciphers
+    zlib-dynamic
+    enable-cms
+    "--with-zlib-include=${thirdparty_zlib_INCLUDE_DIRS}"
+    "--with-zlib-lib=${thirdparty_zlib_LIBRARIES}"
+
+    ${C_FLAGS}
+  )
+
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set(configure_command
       "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
-      perl ./Configure "--prefix=${CMAKE_INSTALL_PREFIX}" "--openssldir=${CMAKE_INSTALL_PREFIX}/etc/openssl"
-        no-ssl2
-        no-ssl3
-        no-asm
-        no-shared
-        no-weak-ssl-ciphers
-        zlib-dynamic
-        enable-cms
-        "--with-zlib-include=${thirdparty_zlib_INCLUDE_DIRS}"
-        "--with-zlib-lib=${thirdparty_zlib_LIBRARIES}"
-        linux-x86_64
+      perl ./Configure linux-x86_64
+        ${common_options}
+
+        "--prefix=${CMAKE_INSTALL_PREFIX}"
+        "--openssldir=${CMAKE_INSTALL_PREFIX}/etc/openssl"
+
         -fPIC
         --sysroot=${CMAKE_SYSROOT}
         -l:libunwind.a
@@ -47,23 +62,21 @@ function(opensslMain)
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     set(configure_command
       "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
-      perl ./Configure "--prefix=${CMAKE_INSTALL_PREFIX}" "--openssldir=${CMAKE_INSTALL_PREFIX}/etc/openssl"
-        no-ssl2
-        no-ssl3
-        no-asm
-        no-shared
-        no-weak-ssl-ciphers
-        zlib-dynamic
-        enable-cms
-        "--with-zlib-include=${thirdparty_zlib_INCLUDE_DIRS}"
-        "--with-zlib-lib=${thirdparty_zlib_LIBRARIES}"
-        darwin64-x86_64-cc
+      perl ./Configure darwin64-x86_64-cc
+        ${common_options}
+
+        "--prefix=${CMAKE_INSTALL_PREFIX}"
+        "--openssldir=${CMAKE_INSTALL_PREFIX}/etc/openssl"
+
         enable-ec_nistp_64_gcc_128
         -fPIC
     )
 
+    # Don't be afraid to manually patch the build scripts; for some settings, there is no
+    # other way.
+    # see https://wiki.openssl.org/index.php/Compilation_and_Installation#Modifying_Build_Settings
     set(build_command
-      /usr/bin/sed -i ".bak" "s+^CFLAG=+CFLAG=-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk +g" "Makefile" &&
+      /usr/bin/sed -i ".bak" "s+^CFLAG=+CFLAG=-isysroot ${CMAKE_OSX_SYSROOT} +g" "Makefile" &&
         "${CMAKE_COMMAND}" -E make_directory "${CMAKE_INSTALL_PREFIX}/etc/openssl" &&
         make depend &&
         make
@@ -94,17 +107,8 @@ function(opensslMain)
 
     set(configure_command
       "${CMAKE_COMMAND}" -E env
-      "${perl_executable_path}" Configure
-        no-ssl2
-        no-ssl3
-        no-asm
-        no-shared
-        no-weak-ssl-ciphers
-        zlib-dynamic
-        enable-cms
-        "--with-zlib-include=${thirdparty_zlib_INCLUDE_DIRS}"
-        "--with-zlib-lib=${thirdparty_zlib_LIBRARIES}"
-        VC-WIN64A
+      "${perl_executable_path}" Configure VC-WIN64A
+        ${common_options}
     )
 
     get_filename_component(perl_bin_path "${perl_executable_path}" DIRECTORY)

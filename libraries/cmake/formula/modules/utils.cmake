@@ -50,13 +50,20 @@ function(importFormula library_name)
       set(generator_option -G "${CMAKE_GENERATOR}")
     endif()
 
+    if(DEFINED PLATFORM_MACOS)
+      set(optional_osx_sysroot_setting
+        "-DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}"
+      )
+    endif()
+
     execute_process(
       COMMAND "${CMAKE_COMMAND}"
         ${generator_option}
         ${toolset_option}
+        ${optional_osx_sysroot_setting}
         "-DCMAKE_SYSROOT:PATH=${CMAKE_SYSROOT}"
-        "-DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}"
-        "-DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}"
+        "-DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}"
+        "-DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}"
         "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
         "-DCMAKE_INSTALL_PREFIX:PATH=${install_prefix}"
         "${project_directory_path}"
