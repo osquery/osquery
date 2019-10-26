@@ -198,7 +198,7 @@ class ProcRunner(object):
     this class wrapper.
     '''
 
-    def __init__(self, name, path, _args=[], interval=0.02, silent=False):
+    def __init__(self, name, path, _args=[], interval=1, silent=False):
         self.started = False
         self.proc = None
         self.name = name
@@ -230,34 +230,32 @@ class ProcRunner(object):
         try:
             while self.proc.poll() is None:
                 self.started = True
-                time.sleep(self.interval)
+                time.sleep(0.1)
             self.started = True
             self.retcode = -1 if self.proc is None else self.proc.poll()
             self.proc = None
         except Exception as e:
             return
 
-    def requireStarted(self, timeout=2):
+    def requireStarted(self, attempts=5):
         delay = 0
-        while delay < timeout:
+        for i in range(attempts):
             if self.started is True:
                 break
-            time.sleep(self.interval * 10)
-            delay += self.interval * 10
+            time.sleep(self.interval)
 
-    def getChildren(self, timeout=1):
+    def getChildren(self, attempts=5):
         '''Get the child pids.'''
         self.requireStarted()
         if not self.proc:
             return []
         try:
             proc = psutil.Process(pid=self.proc.pid)
-            delay = 0
+            attempt = 0
             while len(proc.children()) == 0:
-                if delay > timeout:
+                if attempt > attempts:
                     return []
                 time.sleep(self.interval)
-                delay += self.interval
             return [p.pid for p in proc.children()]
         except:
             pass
@@ -290,20 +288,20 @@ class ProcRunner(object):
                 pass
         self.proc = None
 
-    def isAlive(self, timeout=3):
+    def isAlive(self, attempts=10):
         self.requireStarted()
         '''Check if the process is alive.'''
-        delay = 0
+        attempt = 0
         while self.proc is None:
-            if delay > timeout:
+            if attempt > attempts:
                 break
             time.sleep(self.interval)
-            delay += self.interval
+            attempt += 1
         if self.proc is None:
             return False
         return self.proc.poll() is None
 
-    def isDead(self, pid, timeout=5):
+    def isDead(self, pid, attempts=10):
         self.requireStarted()
         '''Check if the process was killed.
 
@@ -316,11 +314,11 @@ class ProcRunner(object):
         except psutil.NoSuchProcess as e:
             return True
         delay = 0
-        while delay < timeout:
+        for i in range(attempts):
             if not proc.is_running():
                 return True
             time.sleep(self.interval)
-            delay += self.interval
+
         return False
 
 
