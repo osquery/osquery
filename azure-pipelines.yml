@@ -67,6 +67,10 @@ jobs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . -j 3
 
+    - script: cat $(Build.BinariesDirectory)/build/formula_logs/openssl.txt
+      displayName: "OpenSSL formula output"
+      condition: always()
+
     - task: CMake@1
       displayName: "Run cppcheck"
       inputs:
@@ -180,6 +184,8 @@ jobs:
     pool:
       vmImage: macos-10.14
 
+    timeoutInMinutes: 120
+
     variables:
       CCACHE_DIR: $(Pipeline.Workspace)/ccache
 
@@ -211,6 +217,10 @@ jobs:
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . -j 3
+
+    - script: cat $(Build.BinariesDirectory)/build/formula_logs/openssl.txt
+      displayName: "OpenSSL formula output"
+      condition: always()
 
     - script: |
         ctest --build-nocmake -V
@@ -302,6 +312,8 @@ jobs:
     pool:
       vmImage: vs2017-win2016
 
+    timeoutInMinutes: 120
+
     steps:
     - powershell: |
         git config --global core.autocrlf false
@@ -311,6 +323,11 @@ jobs:
     - powershell: |
         mkdir $(Build.BinariesDirectory)\build
       displayName: "Create build folder"
+
+    - powershell: |
+        tools\ci\scripts\install_openssl_formula_dependencies.ps1
+      displayName: "Installing: Strawberry Perl and NASM"
+      workingDirectory: $(Build.SourcesDirectory)
 
     - task: CMake@1
       displayName: "Configure osquery"
@@ -323,6 +340,10 @@ jobs:
       inputs:
         workingDirectory: $(Build.BinariesDirectory)\build
         cmakeArgs: --build . -j 3 --config Release
+
+    - script: cmd /C type $(Build.BinariesDirectory)\build\formula_logs\openssl.txt
+      displayName: "OpenSSL formula output"
+      condition: always()
 
     - powershell: |
         ctest --build-nocmake -C Release -V

@@ -88,6 +88,7 @@ Note: It may be easier to install these prerequisites using [Chocolatey](https:/
 - [Python 2](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Wix Toolset](https://wixtoolset.org/releases/)
+- [Strawberry Perl](http://strawberryperl.com/) and [NASM](https://nasm.us) for the OpenSSL formula. It is recommended to install them to their default destination folders.
 
 **Step 2: Download and build**
 
