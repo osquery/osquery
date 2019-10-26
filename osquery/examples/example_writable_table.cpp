@@ -293,6 +293,6 @@ int main(int argc, char* argv[]) {
   }
 
   // Finally wait for a signal / interrupt to shutdown.
-  runner.waitForShutdown();
+  runner.waitThenShutdown();
   return 0;
 }
