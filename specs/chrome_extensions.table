@@ -5,7 +5,7 @@ schema([
         additional=True),
     Column("name", TEXT, "Extension display name"),
     Column("profile", TEXT, "The Chrome profile that contains this extension"),
-    Column("identifier", TEXT, "Extension identifier", index=True),
+    Column("identifier", TEXT, "Extension identifier"),
     Column("version", TEXT, "Extension-supplied version"),
     Column("description", TEXT, "Extension-optional description"),
     Column("locale", TEXT, "Default locale supported by extension"),
