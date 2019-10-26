@@ -356,6 +356,11 @@ void Config::addPack(const std::string& name,
     // "name": {pack-content} response similar to embedded pack content
     // within the configuration.
     for (const auto& pack : obj.GetObject()) {
+      if (!pack.value.IsObject()) {
+        LOG(WARNING) << "Error parsing pack: " << pack.name.GetString()
+                     << ": the value should be an object";
+        continue;
+      }
       addSinglePack(pack.name.GetString(), pack.value);
     }
   } else {
@@ -1118,4 +1123,4 @@ void ConfigRefreshRunner::start() {
     Config::get().refresh();
   }
 }
-}
+} // namespace osquery
