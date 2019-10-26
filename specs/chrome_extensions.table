@@ -2,7 +2,7 @@ table_name("chrome_extensions")
 description("Chrome browser extensions.")
 schema([
     Column("uid", BIGINT, "The local user that owns the extension",
-        additional=True),
+        index=True),
     Column("name", TEXT, "Extension display name"),
     Column("profile", TEXT, "The Chrome profile that contains this extension"),
     Column("identifier", TEXT, "Extension identifier"),

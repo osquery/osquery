@@ -2,7 +2,7 @@ table_name("safari_extensions")
 description("Safari browser extension details for all users.")
 schema([
     Column("uid", BIGINT, "The local user that owns the extension",
-      additional=True),
+      index=True),
     Column("name", TEXT, "Extension display name"),
     Column("identifier", TEXT, "Extension identifier"),
     Column("version", TEXT, "Extension long version"),

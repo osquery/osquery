@@ -2,7 +2,7 @@ table_name("opera_extensions")
 description("Opera browser extensions.")
 schema([
   Column("uid", BIGINT, "The local user that owns the extension",
-    additional=True),
+    index=True),
   Column("name", TEXT, "Extension display name"),
   Column("identifier", TEXT, "Extension identifier"),
   Column("version", TEXT, "Extension-supplied version"),
