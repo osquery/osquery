@@ -141,10 +141,15 @@ def queryService(name):
 
 
 def getOsqueryProcs():
-    return [
-        p.pid for p in psutil.process_iter() if p.name() == 'osqueryd.exe'
-    ]
+    processes_pid = []
+    for p in psutil.process_iter():
+        try:
+            if p.name() == 'osqueryd.exe':
+                processes_pid.append(p.pid)
+        except (psutil.NoSuchProcess, psutil.ZombieProcess):
+            pass
 
+    return processes_pid
 
 def serviceAlive():
     return len(getOsqueryProcs()) == 2
