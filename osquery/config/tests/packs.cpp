@@ -226,6 +226,12 @@ TEST_F(PacksTests, test_multi_pack) {
   std::vector<std::string> expected = {"first", "second"};
   ASSERT_EQ(expected.size(), pack_names.size());
   EXPECT_EQ(expected, pack_names);
+
+  // We expect this to not throw an error.
+  std::string bad_multi_pack_content = "{\"first\": \"\"}";
+  auto bad_multi_pack = JSON::newObject();
+  bad_multi_pack.fromString(bad_multi_pack_content);
+  c.addPack("*", "", multi_pack.doc());
 }
 
 TEST_F(PacksTests, test_discovery_zero_state) {
