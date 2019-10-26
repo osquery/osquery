@@ -29,6 +29,24 @@ const std::string kProxyDefaultPort{"3128"};
 
 const long kSSLShortReadError{0x140000dbL};
 
+void Client::callNetworkOperation(std::function<void()> callback) {
+  if (client_options_.timeout_) {
+    timer_.async_wait(
+        std::bind(&Client::timeoutHandler, this, std::placeholders::_1));
+  }
+
+  callback();
+
+  {
+    boost_system::error_code rc;
+    ioc_.run(rc);
+    ioc_.reset();
+    if (rc) {
+      ec_ = rc;
+    }
+  }
+}
+
 void Client::postResponseHandler(boost_system::error_code const& ec) {
   if ((ec.category() == boost_asio::error::ssl_category) &&
       (ec.value() == kSSLShortReadError)) {
@@ -131,25 +149,13 @@ void Client::createConnection() {
     connect_host = connect_host.substr(0, pos);
   }
 
-  if (client_options_.timeout_) {
-    timer_.async_wait(
-        [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
-  }
-
-  r_.async_resolve(boost_asio::ip::tcp::resolver::query{connect_host, port},
-                   std::bind(&Client::resolveHandler,
-                             this,
-                             std::placeholders::_1,
-                             std::placeholders::_2));
-
-  {
-    boost_system::error_code rc;
-    ioc_.run(rc);
-    ioc_.reset();
-    if (rc) {
-      ec_ = rc;
-    }
-  }
+  callNetworkOperation([&]() {
+    r_.async_resolve(boost_asio::ip::tcp::resolver::query{connect_host, port},
+                     std::bind(&Client::resolveHandler,
+                               this,
+                               std::placeholders::_1,
+                               std::placeholders::_2));
+  });
 
   if (ec_) {
     std::string error("Failed to connect to ");
@@ -175,26 +181,14 @@ void Client::createConnection() {
     req.version(11);
     req.prepare_payload();
 
-    if (client_options_.timeout_) {
-      timer_.async_wait(
-          [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
-    }
-
-    beast_http::async_write(sock_,
-                            req,
-                            std::bind(&Client::writeHandler,
-                                      this,
-                                      std::placeholders::_1,
-                                      std::placeholders::_2));
-
-    {
-      boost_system::error_code rc;
-      ioc_.run(rc);
-      ioc_.reset();
-      if (rc) {
-        ec_ = rc;
-      }
-    }
+    callNetworkOperation([&]() {
+      beast_http::async_write(sock_,
+                              req,
+                              std::bind(&Client::writeHandler,
+                                        this,
+                                        std::placeholders::_1,
+                                        std::placeholders::_2));
+    });
 
     if (ec_) {
       throw std::system_error(ec_);
@@ -204,27 +198,15 @@ void Client::createConnection() {
     beast_http_response_parser rp;
     rp.skip(true);
 
-    if (client_options_.timeout_) {
-      timer_.async_wait(
-          [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
-    }
-
-    beast_http::async_read_header(sock_,
-                                  b,
-                                  rp,
-                                  std::bind(&Client::readHandler,
-                                            this,
-                                            std::placeholders::_1,
-                                            std::placeholders::_2));
-
-    {
-      boost_system::error_code rc;
-      ioc_.run(rc);
-      ioc_.reset();
-      if (rc) {
-        ec_ = rc;
-      }
-    }
+    callNetworkOperation([&]() {
+      beast_http::async_read_header(sock_,
+                                    b,
+                                    rp,
+                                    std::bind(&Client::readHandler,
+                                              this,
+                                              std::placeholders::_1,
+                                              std::placeholders::_2));
+    });
 
     if (ec_) {
       throw std::system_error(ec_);
@@ -281,18 +263,11 @@ void Client::encryptConnection() {
                                client_options_.sni_hostname_->c_str());
   }
 
-  ssl_sock_->async_handshake(
-      boost_asio::ssl::stream_base::client,
-      std::bind(&Client::handshakeHandler, this, std::placeholders::_1));
-
-  {
-    boost_system::error_code rc;
-    ioc_.run(rc);
-    ioc_.reset();
-    if (rc) {
-      ec_ = rc;
-    }
-  }
+  callNetworkOperation([&]() {
+    ssl_sock_->async_handshake(
+        boost_asio::ssl::stream_base::client,
+        std::bind(&Client::handshakeHandler, this, std::placeholders::_1));
+  });
 
   if (ec_) {
     throw std::system_error(ec_);
@@ -327,49 +302,31 @@ void Client::sendRequest(STREAM_TYPE& stream,
   }
 
   beast_http_request_serializer sr{req};
-  beast_http::async_write(stream,
-                          sr,
-                          std::bind(&Client::writeHandler,
-                                    this,
-                                    std::placeholders::_1,
-                                    std::placeholders::_2));
 
-  {
-    boost_system::error_code rc;
-    ioc_.run(rc);
-    ioc_.reset();
-    if (rc) {
-      ec_ = rc;
-    }
-  }
+  callNetworkOperation([&]() {
+    beast_http::async_write(stream,
+                            sr,
+                            std::bind(&Client::writeHandler,
+                                      this,
+                                      std::placeholders::_1,
+                                      std::placeholders::_2));
+  });
 
   if (ec_) {
     throw std::system_error(ec_);
   }
 
-  if (client_options_.timeout_) {
-    timer_.async_wait(
-        [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
-  }
-
   boost::beast::flat_buffer b;
 
-  beast_http::async_read(stream,
-                         b,
-                         resp,
-                         std::bind(&Client::readHandler,
-                                   this,
-                                   std::placeholders::_1,
-                                   std::placeholders::_2));
-
-  {
-    boost_system::error_code rc;
-    ioc_.run(rc);
-    ioc_.reset();
-    if (rc) {
-      ec_ = rc;
-    }
-  }
+  callNetworkOperation([&]() {
+    beast_http::async_read(stream,
+                           b,
+                           resp,
+                           std::bind(&Client::readHandler,
+                                     this,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2));
+  });
 
   if (ec_) {
     throw std::system_error(ec_);
