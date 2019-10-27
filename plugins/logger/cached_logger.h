@@ -1,5 +1,7 @@
 #pragma once
 
+#include <osquery/dispatcher.h>
+#include <osquery/registry.h>
 #include <osquery/plugins/logger.h>
 
 namespace osquery {
