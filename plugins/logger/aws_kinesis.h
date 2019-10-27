@@ -9,17 +9,17 @@
 #pragma once
 
 #include <chrono>
+#include <gflags/gflags.h>
 #include <memory>
 #include <vector>
-#include <gflags/gflags.h>
 
 #include <aws/kinesis/KinesisClient.h>
 #include <aws/kinesis/model/PutRecordsRequestEntry.h>
 
+#include "plugins/logger/cached_logger.h"
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
 #include <osquery/plugins/logger.h>
-#include "plugins/logger/cached_logger.h"
 
 namespace osquery {
 
@@ -39,4 +39,4 @@ class KinesisLoggerPlugin : public CachedLoggerPlugin {
  private:
 };
 
-}
+} // namespace osquery

@@ -44,7 +44,7 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-DECLARE_string(aws_access_key_id);  // from aws_util.cpp
+DECLARE_string(aws_access_key_id); // from aws_util.cpp
 DECLARE_string(aws_session_token);
 
 REGISTER(KinesisLoggerPlugin, "logger", "aws_kinesis");
@@ -74,7 +74,10 @@ static bool gHaveSetup = false;
 class KinesisForwarder : public Forwarder {
  public:
   KinesisForwarder(const LoggerBounds bounds)
-      : Forwarder(bounds), linebuf_(bounds.max_bytes_per_record), _condition_lock(), _condition() {
+      : Forwarder(bounds),
+        linebuf_(bounds.max_bytes_per_record),
+        _condition_lock(),
+        _condition() {
     partition_key_ = getHostIdentifier();
   }
   virtual ~KinesisForwarder() {}
@@ -105,7 +108,7 @@ class KinesisForwarder : public Forwarder {
     int retry;
     for (retry = 0; retry < 3; retry++) {
       if (retry > 0) {
-	    _pause(std::chrono::milliseconds(100));
+        _pause(std::chrono::milliseconds(100));
       }
       auto outcome = client_->PutRecords(request);
 
@@ -115,20 +118,23 @@ class KinesisForwarder : public Forwarder {
 
       int failedCount = outcome.GetResult().GetFailedRecordCount();
       if (failedCount > 0 && failedCount < (int)records.size()) {
-        LOG(WARNING) << "partial failure: " << failedCount << " of " << records.size();
+        LOG(WARNING) << "partial failure: " << failedCount << " of "
+                     << records.size();
 
         // remove successful entries
-        const std::vector<Aws::Kinesis::Model::PutRecordsResultEntry> &refResults = outcome.GetResult().GetRecords();
+        const std::vector<Aws::Kinesis::Model::PutRecordsResultEntry>&
+            refResults = outcome.GetResult().GetRecords();
         auto it = records.begin();
         int numRecords = (int)records.size();
         for (int i = 0; i < numRecords; i++) {
           if (i >= (int)refResults.size()) {
             break; // just in case. results should match records.size
           }
-          const Aws::Kinesis::Model::PutRecordsResultEntry &entry = refResults[i];
-          const Aws::String & refEntryErrCode = entry.GetErrorCode();
+          const Aws::Kinesis::Model::PutRecordsResultEntry& entry =
+              refResults[i];
+          const Aws::String& refEntryErrCode = entry.GetErrorCode();
           if (refEntryErrCode.empty()) {
-            records.erase(it++);  // remove successful
+            records.erase(it++); // remove successful
           } else {
             it++;
           }
@@ -137,7 +143,8 @@ class KinesisForwarder : public Forwarder {
         continue; // will retry
       }
 
-      const Aws::Kinesis::KinesisErrors code = outcome.GetError().GetErrorType();
+      const Aws::Kinesis::KinesisErrors code =
+          outcome.GetError().GetErrorType();
 
       // network connection down?
 
@@ -150,8 +157,8 @@ class KinesisForwarder : public Forwarder {
         return Status(FORWARDER_STATUS_NO_CONNECTION);
       }
 
-      if (code == Aws::Kinesis::KinesisErrors::ACCESS_DENIED
-          || code == Aws::Kinesis::KinesisErrors::MISSING_AUTHENTICATION_TOKEN) {
+      if (code == Aws::Kinesis::KinesisErrors::ACCESS_DENIED ||
+          code == Aws::Kinesis::KinesisErrors::MISSING_AUTHENTICATION_TOKEN) {
         client_ = nullptr;
         LOG(WARNING) << "kinesis access denied. clearing handle";
         return Status(FORWARDER_STATUS_NO_CONNECTION);
@@ -159,14 +166,16 @@ class KinesisForwarder : public Forwarder {
 
       // anything we can retry?
 
-      if (code == Aws::Kinesis::KinesisErrors::REQUEST_EXPIRED
-          || code == Aws::Kinesis::KinesisErrors::INTERNAL_FAILURE) {
-        LOG(WARNING) << "kinesis failed with code:" << std::to_string((uint32_t)code);
+      if (code == Aws::Kinesis::KinesisErrors::REQUEST_EXPIRED ||
+          code == Aws::Kinesis::KinesisErrors::INTERNAL_FAILURE) {
+        LOG(WARNING) << "kinesis failed with code:"
+                     << std::to_string((uint32_t)code);
         continue;
       }
 
       // any other error probably can't be fixed by retry
-      LOG(ERROR) << "send fail. Code:" << (uint32_t)code << " msg:" << outcome.GetError().GetMessage();
+      LOG(ERROR) << "send fail. Code:" << (uint32_t)code
+                 << " msg:" << outcome.GetError().GetMessage();
 
       // invalidate handle because:
       //   Sometimes get code==UNKNOWN error with ExpiredTokenException in the
@@ -191,8 +200,8 @@ class KinesisForwarder : public Forwarder {
     static std::string last_aws_access_key;
     static std::string last_aws_session_token;
 
-    if (last_aws_access_key != FLAGS_aws_access_key_id
-        || last_aws_session_token != FLAGS_aws_session_token ) {
+    if (last_aws_access_key != FLAGS_aws_access_key_id ||
+        last_aws_session_token != FLAGS_aws_session_token) {
       VLOG(1) << "using new aws access key:" << FLAGS_aws_access_key_id;
       last_aws_access_key = FLAGS_aws_access_key_id;
       last_aws_session_token = FLAGS_aws_session_token;
@@ -224,9 +233,8 @@ class KinesisForwarder : public Forwarder {
    * read file lines, populate records.
    * returns false on success, true on error.
    */
-  int _load(
-      std::string file_path,
-      Aws::Vector<Aws::Kinesis::Model::PutRecordsRequestEntry>& records) {
+  int _load(std::string file_path,
+            Aws::Vector<Aws::Kinesis::Model::PutRecordsRequestEntry>& records) {
     file_path = fs::path(file_path).make_preferred().string();
 
     FILE* fp = FOPEN(file_path.c_str(), "r");
@@ -249,8 +257,9 @@ class KinesisForwarder : public Forwarder {
       len--;
 
       // check for truncated msgs - expect valid JSON object
-      if (linebuf_[len-1] != '}') {
-        LOG(WARNING) << "Drop Truncated : (possibly due to watchdog kill):" << std::string(linebuf_.data());
+      if (linebuf_[len - 1] != '}') {
+        LOG(WARNING) << "Drop Truncated : (possibly due to watchdog kill):"
+                     << std::string(linebuf_.data());
         continue;
       }
 
@@ -301,8 +310,8 @@ class KinesisForwarder : public Forwarder {
   }
 
   void _pause(std::chrono::milliseconds milli) {
-	  std::unique_lock<std::mutex> lock(_condition_lock);
-	  _condition.wait_for(lock, milli);
+    std::unique_lock<std::mutex> lock(_condition_lock);
+    _condition.wait_for(lock, milli);
   }
 
   std::vector<char> linebuf_;

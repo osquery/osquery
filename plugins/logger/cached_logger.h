@@ -27,8 +27,8 @@ struct LoggerBounds {
 };
 
 #define FORWARDER_STATUS_NO_CONNECTION 999
-#define FORWARDER_STATUS_EMPTY_FILE    998
-#define FORWARDER_STATUS_READ_ERROR    997
+#define FORWARDER_STATUS_EMPTY_FILE 998
+#define FORWARDER_STATUS_READ_ERROR 997
 
 class Forwarder {
  public:
@@ -155,7 +155,7 @@ class CachedLoggerPlugin : public LoggerPlugin {
   /**
    * Internally, this just calls logString() for each.
    */
-  //Status logStringBatch(std::vector<std::string>& items) override;
+  // Status logStringBatch(std::vector<std::string>& items) override;
 
   /**
    * important : override tearDown so forwarderThread_ can be interrupted.
@@ -183,7 +183,9 @@ class CachedLoggerPlugin : public LoggerPlugin {
    * It holds the mutex, checks bounds, does _rotateLog if needed,
    * increments channel counters, and writes to file.
    */
-  Status _logStringInternal(LogChannel& channel, const std::string& s, bool isResult);
+  Status _logStringInternal(LogChannel& channel,
+                            const std::string& s,
+                            bool isResult);
 
   /**
    * _enumerateExistingFiles is called from setProps()
@@ -211,11 +213,11 @@ class CachedLoggerPlugin : public LoggerPlugin {
   LogChannel results_channel_;
   LogChannel status_channel_;
   std::vector<CacheFileInfo> files_to_forward_;
-  bool cacheLimitReached_ {false};
+  bool cacheLimitReached_{false};
 };
 
 #ifdef WIN32
-inline FILE* FOPEN(const char *FILEPATH, const char *MODE) {
+inline FILE* FOPEN(const char* FILEPATH, const char* MODE) {
   FILE* fp;
   if (0 != fopen_s(&fp, FILEPATH, MODE)) {
     return nullptr;
