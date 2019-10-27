@@ -131,7 +131,8 @@ void Client::createConnection() {
   }
 
   callNetworkOperation([&]() {
-    r_.async_resolve(boost::asio::ip::tcp::resolver::query{connect_host, port},
+    r_.async_resolve(connect_host,
+                     port,
                      std::bind(&Client::resolveHandler,
                                this,
                                std::placeholders::_1,
