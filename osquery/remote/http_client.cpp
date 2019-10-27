@@ -6,19 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-// TODO(5591) Remove this when addressed by Boost's ASIO config.
-// https://www.boost.org/doc/libs/1_67_0/boost/asio/detail/config.hpp
-// Standard library support for std::string_view.
-#define BOOST_ASIO_DISABLE_STD_STRING_VIEW 1
-
-// clang-format off
-// Keep it on top of all other includes to fix double include WinSock.h header file
-// which is windows specific boost build problem
-#include <boost/asio.hpp>
-#include <osquery/remote/http_client.h>
-// clang-format on
-
 #include <osquery/logger.h>
+#include <osquery/remote/http_client.h>
 
 namespace osquery {
 namespace http {
@@ -38,7 +27,7 @@ void Client::callNetworkOperation(std::function<void()> callback) {
   callback();
 
   {
-    boost_system::error_code rc;
+    boost::system::error_code rc;
     ioc_.run(rc);
     ioc_.reset();
     if (rc) {
@@ -47,8 +36,8 @@ void Client::callNetworkOperation(std::function<void()> callback) {
   }
 }
 
-void Client::postResponseHandler(boost_system::error_code const& ec) {
-  if ((ec.category() == boost_asio::error::ssl_category) &&
+void Client::postResponseHandler(boost::system::error_code const& ec) {
+  if ((ec.category() == boost::asio::error::ssl_category) &&
       (ec.value() == kSSLShortReadError)) {
     // Ignoring short read error, set ec_ to success.
     ec_.clear();
@@ -62,13 +51,13 @@ void Client::postResponseHandler(boost_system::error_code const& ec) {
 
 void Client::closeSocket() {
   if (sock_.is_open()) {
-    boost_system::error_code rc;
-    sock_.shutdown(boost_asio::ip::tcp::socket::shutdown_both, rc);
+    boost::system::error_code rc;
+    sock_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, rc);
     sock_.close(rc);
   }
 }
 
-void Client::timeoutHandler(boost_system::error_code const& ec) {
+void Client::timeoutHandler(boost::system::error_code const& ec) {
   if (!ec) {
     closeSocket();
     ec_ = boost::asio::error::make_error_code(boost::asio::error::timed_out);
@@ -76,7 +65,7 @@ void Client::timeoutHandler(boost_system::error_code const& ec) {
 }
 
 void Client::connectHandler(const boost::system::error_code& ec,
-                            const boost_asio::ip::tcp::endpoint&) {
+                            const boost::asio::ip::tcp::endpoint&) {
   if (client_options_.timeout_) {
     timer_.cancel();
   }
@@ -88,7 +77,7 @@ void Client::connectHandler(const boost::system::error_code& ec,
 
 void Client::resolveHandler(
     const boost::system::error_code& ec,
-    boost_asio::ip::tcp::resolver::results_type results) {
+    boost::asio::ip::tcp::resolver::results_type results) {
   if (!ec) {
     boost::asio::async_connect(sock_,
                                results,
@@ -117,7 +106,7 @@ void Client::handshakeHandler(const boost::system::error_code& ec) {
   }
 }
 
-void Client::writeHandler(boost_system::error_code const& ec, size_t) {
+void Client::writeHandler(boost::system::error_code const& ec, size_t) {
   if (client_options_.timeout_) {
     timer_.cancel();
   }
@@ -127,7 +116,7 @@ void Client::writeHandler(boost_system::error_code const& ec, size_t) {
   }
 }
 
-void Client::readHandler(boost_system::error_code const& ec, size_t) {
+void Client::readHandler(boost::system::error_code const& ec, size_t) {
   if (client_options_.timeout_) {
     timer_.cancel();
   }
@@ -150,7 +139,7 @@ void Client::createConnection() {
   }
 
   callNetworkOperation([&]() {
-    r_.async_resolve(boost_asio::ip::tcp::resolver::query{connect_host, port},
+    r_.async_resolve(boost::asio::ip::tcp::resolver::query{connect_host, port},
                      std::bind(&Client::resolveHandler,
                                this,
                                std::placeholders::_1,
@@ -162,12 +151,12 @@ void Client::createConnection() {
     if (client_options_.proxy_hostname_) {
       error += "proxy host ";
     }
-    error += connect_host + ":" + port;
+    error += connect_host + ':' + port;
     throw std::system_error(ec_, error);
   }
 
   if (client_options_.keep_alive_) {
-    boost_asio::socket_base::keep_alive option(true);
+    boost::asio::socket_base::keep_alive option(true);
     sock_.set_option(option);
   }
 
@@ -177,7 +166,7 @@ void Client::createConnection() {
 
     beast_http_request req;
     req.method(beast_http::verb::connect);
-    req.target(remote_host + ":" + remote_port);
+    req.target(remote_host + ':' + remote_port);
     req.version(11);
     req.prepare_payload();
 
@@ -220,21 +209,21 @@ void Client::createConnection() {
 }
 
 void Client::encryptConnection() {
-  boost_asio::ssl::context ctx{boost_asio::ssl::context::sslv23};
+  boost::asio::ssl::context ctx{boost::asio::ssl::context::sslv23};
 
   if (client_options_.always_verify_peer_) {
-    ctx.set_verify_mode(boost_asio::ssl::verify_peer);
+    ctx.set_verify_mode(boost::asio::ssl::verify_peer);
   } else {
-    ctx.set_verify_mode(boost_asio::ssl::verify_none);
+    ctx.set_verify_mode(boost::asio::ssl::verify_none);
   }
 
   if (client_options_.server_certificate_) {
-    ctx.set_verify_mode(boost_asio::ssl::verify_peer);
+    ctx.set_verify_mode(boost::asio::ssl::verify_peer);
     ctx.load_verify_file(*client_options_.server_certificate_);
   }
 
   if (client_options_.verify_path_) {
-    ctx.set_verify_mode(boost_asio::ssl::verify_peer);
+    ctx.set_verify_mode(boost::asio::ssl::verify_peer);
     ctx.add_verify_path(*client_options_.verify_path_);
   }
 
@@ -249,12 +238,12 @@ void Client::encryptConnection() {
 
   if (client_options_.client_certificate_file_) {
     ctx.use_certificate_file(*client_options_.client_certificate_file_,
-                             boost_asio::ssl::context::pem);
+                             boost::asio::ssl::context::pem);
   }
 
   if (client_options_.client_private_key_file_) {
     ctx.use_private_key_file(*client_options_.client_private_key_file_,
-                             boost_asio::ssl::context::pem);
+                             boost::asio::ssl::context::pem);
   }
 
   ssl_sock_ = std::make_shared<ssl_stream>(sock_, ctx);
@@ -265,7 +254,7 @@ void Client::encryptConnection() {
 
   callNetworkOperation([&]() {
     ssl_sock_->async_handshake(
-        boost_asio::ssl::stream_base::client,
+        boost::asio::ssl::stream_base::client,
         std::bind(&Client::handshakeHandler, this, std::placeholders::_1));
   });
 
@@ -287,7 +276,7 @@ void Client::sendRequest(STREAM_TYPE& stream,
         (kHTTPSDefaultPort != *client_options_.remote_port_)) {
       host_header_value += ':' + *client_options_.remote_port_;
     } else if (!client_options_.ssl_connection_ &&
-        kHTTPDefaultPort != *client_options_.remote_port_) {
+               kHTTPDefaultPort != *client_options_.remote_port_) {
       host_header_value += ':' + *client_options_.remote_port_;
     }
     req.set(beast_http::field::host, host_header_value);
@@ -298,7 +287,7 @@ void Client::sendRequest(STREAM_TYPE& stream,
 
   if (client_options_.timeout_) {
     timer_.async_wait(
-        [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
+        [=](boost::system::error_code const& ec) { timeoutHandler(ec); });
   }
 
   beast_http_request_serializer sr{req};
@@ -513,5 +502,5 @@ Response Client::delete_(Request& req) {
   req.method(beast_http::verb::delete_);
   return sendHTTPRequest(req);
 }
-}
-}
+} // namespace http
+} // namespace osquery
