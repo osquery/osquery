@@ -96,6 +96,7 @@ endfunction()
 function(generatePluginsLoggerBuffered)
   add_osquery_library(plugins_logger_buffered EXCLUDE_FROM_ALL
     buffered.cpp
+    cached_logger.cpp
   )
 
   enableLinkWholeArchive(plugins_logger_buffered)
@@ -111,6 +112,7 @@ function(generatePluginsLoggerBuffered)
 
   set(public_header_files
     buffered.h
+    cached_logger.h
   )
 
   generateIncludeNamespace(plugins_logger_buffered "plugins/logger" "FILE_ONLY" ${public_header_files})

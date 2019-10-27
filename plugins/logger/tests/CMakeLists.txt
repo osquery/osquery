@@ -7,6 +7,7 @@
 function(pluginsLoggerTestsMain)
   generatePluginsLoggerTestsFilesystemloggertestsTest()
   generatePluginsLoggerTestsBufferedloggertestsTest()
+  generatePluginsLoggerTestsCachedloggertestsTest()
 
   if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_MACOS)
     generatePluginsLoggerTestsKafkaproducerloggertestsTest()
@@ -48,6 +49,30 @@ function(generatePluginsLoggerTestsBufferedloggertestsTest)
   add_osquery_executable(plugins_logger_tests_bufferedloggertests-test buffered_tests.cpp)
 
   target_link_libraries(plugins_logger_tests_bufferedloggertests-test PRIVATE
+    osquery_cxx_settings
+    osquery_core
+    osquery_core_plugins
+    osquery_distributed
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_logger_datalogger
+    osquery_registry
+    osquery_remote_enroll_tlsenroll
+    osquery_utils_conversions
+    osquery_utils_info
+    osquery_utils_system_time
+    plugins_config_tlsconfig
+    plugins_database_ephemeral
+    plugins_logger_buffered
+    specs_tables
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generatePluginsLoggerTestsCachedloggertestsTest)
+  add_osquery_executable(plugins_logger_tests_cachedloggertests-test cached_logger_tests.cpp)
+
+  target_link_libraries(plugins_logger_tests_cachedloggertests-test PRIVATE
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
