@@ -62,6 +62,11 @@ function(generateOsqueryFuzzHarnesses)
   set_target_properties(osqueryfuzz-config PROPERTIES POSITION_INDEPENDENT_CODE true)
   target_link_libraries(osqueryfuzz-config PRIVATE ${fuzzing_libraries})
   target_link_options(osqueryfuzz-config PRIVATE -fsanitize=fuzzer)
+
+  add_osquery_executable(osqueryfuzz-sqlquery fuzz_sqlquery.cpp)
+  set_target_properties(osqueryfuzz-sqlquery PROPERTIES POSITION_INDEPENDENT_CODE true)
+  target_link_libraries(osqueryfuzz-sqlquery PRIVATE ${fuzzing_libraries})
+  target_link_options(osqueryfuzz-sqlquery PRIVATE -fsanitize=fuzzer)
 endfunction()
 
 osqueryMainHarnesses()
