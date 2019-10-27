@@ -291,15 +291,15 @@ class Client {
   void postResponseHandler(boost::system::error_code const& ec);
 
   /// Callback to be provided during async_resolve call.
-  void resolveHandler(const boost::system::error_code& ec,
+  void resolveHandler(boost::system::error_code const& ec,
                       boost::asio::ip::tcp::resolver::results_type results);
 
   /// Callback to be provided during async_connect call.
-  void connectHandler(const boost::system::error_code& ec,
-                      const boost::asio::ip::tcp::endpoint&);
+  void connectHandler(boost::system::error_code const& ec,
+                      boost::asio::ip::tcp::endpoint const&);
 
   /// Callback to be provided during async_handshake call.
-  void handshakeHandler(const boost::system::error_code& ec);
+  void handshakeHandler(boost::system::error_code const& ec);
 
   /// Callback to be provided during async_write call.
   void writeHandler(boost::system::error_code const& ec, size_t);

@@ -9,6 +9,8 @@
 #include <osquery/logger.h>
 #include <osquery/remote/http_client.h>
 
+#include <boost/asio/connect.hpp>
+
 namespace osquery {
 namespace http {
 
@@ -64,8 +66,8 @@ void Client::timeoutHandler(boost::system::error_code const& ec) {
   }
 }
 
-void Client::connectHandler(const boost::system::error_code& ec,
-                            const boost::asio::ip::tcp::endpoint&) {
+void Client::connectHandler(boost::system::error_code const & ec,
+                            boost::asio::ip::tcp::endpoint const&) {
   if (client_options_.timeout_) {
     timer_.cancel();
   }
@@ -76,7 +78,7 @@ void Client::connectHandler(const boost::system::error_code& ec,
 }
 
 void Client::resolveHandler(
-    const boost::system::error_code& ec,
+    boost::system::error_code const& ec,
     boost::asio::ip::tcp::resolver::results_type results) {
   if (!ec) {
     boost::asio::async_connect(sock_,
@@ -96,7 +98,7 @@ void Client::resolveHandler(
   }
 }
 
-void Client::handshakeHandler(const boost::system::error_code& ec) {
+void Client::handshakeHandler(boost::system::error_code const& ec) {
   if (client_options_.timeout_) {
     timer_.cancel();
   }
