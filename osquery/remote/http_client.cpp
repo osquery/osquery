@@ -38,6 +38,16 @@ void Client::callNetworkOperation(std::function<void()> callback) {
   }
 }
 
+void Client::cancelTimerAndSetError(boost::system::error_code const& ec) {
+  if (client_options_.timeout_) {
+    timer_.cancel();
+  }
+
+  if (ec_ != boost::asio::error::timed_out) {
+    ec_ = ec;
+  }
+}
+
 void Client::postResponseHandler(boost::system::error_code const& ec) {
   if ((ec.category() == boost::asio::error::ssl_category) &&
       (ec.value() == kSSLShortReadError)) {
@@ -51,8 +61,12 @@ void Client::postResponseHandler(boost::system::error_code const& ec) {
   }
 }
 
+bool Client::isSocketOpen() {
+  return sock_.is_open();
+}
+
 void Client::closeSocket() {
-  if (sock_.is_open()) {
+  if (isSocketOpen()) {
     boost::system::error_code rc;
     sock_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, rc);
     sock_.close(rc);
@@ -66,15 +80,9 @@ void Client::timeoutHandler(boost::system::error_code const& ec) {
   }
 }
 
-void Client::connectHandler(boost::system::error_code const & ec,
+void Client::connectHandler(boost::system::error_code const& ec,
                             boost::asio::ip::tcp::endpoint const&) {
-  if (client_options_.timeout_) {
-    timer_.cancel();
-  }
-
-  if (ec_ != boost::asio::error::timed_out) {
-    ec_ = ec;
-  }
+  cancelTimerAndSetError(ec);
 }
 
 void Client::resolveHandler(
@@ -88,34 +96,16 @@ void Client::resolveHandler(
                                          std::placeholders::_1,
                                          std::placeholders::_2));
   } else {
-    if (client_options_.timeout_) {
-      timer_.cancel();
-    }
-
-    if (ec_ != boost::asio::error::timed_out) {
-      ec_ = ec;
-    }
+    cancelTimerAndSetError(ec);
   }
 }
 
 void Client::handshakeHandler(boost::system::error_code const& ec) {
-  if (client_options_.timeout_) {
-    timer_.cancel();
-  }
-
-  if (ec_ != boost::asio::error::timed_out) {
-    ec_ = ec;
-  }
+  cancelTimerAndSetError(ec);
 }
 
 void Client::writeHandler(boost::system::error_code const& ec, size_t) {
-  if (client_options_.timeout_) {
-    timer_.cancel();
-  }
-
-  if (ec_ != boost::asio::error::timed_out) {
-    ec_ = ec;
-  }
+  cancelTimerAndSetError(ec);
 }
 
 void Client::readHandler(boost::system::error_code const& ec, size_t) {

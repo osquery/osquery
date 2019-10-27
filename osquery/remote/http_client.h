@@ -307,14 +307,14 @@ class Client {
   /// Callback to be provided during async_read call.
   void readHandler(boost::system::error_code const& ec, size_t);
 
-  bool isSocketOpen() {
-    return sock_.is_open();
-  }
+  /// Check if the socket is open.
+  bool isSocketOpen();
 
+  /// If the socket is open, request a shutdown and close.
   void closeSocket();
 
   /**
-   * @brief Wrap actual network call.
+   * @brief Wrap calls to boost::beast async functions.
    *
    * callNetworkOperation is a wrapper function which wraps following tasks
    * 1. Start the timer for network call timeout.
@@ -324,6 +324,13 @@ class Client {
    * This function sets ec_ in case of boost io service returns with an error.
    */
   void callNetworkOperation(std::function<void()> callback);
+
+  /**
+   * @brief Used in callbacks to cancel timers and set ec_.
+   *
+   * Note that one side-effect is ec_ will be overwritten.
+   */
+  void cancelTimerAndSetError(boost::system::error_code const& ec);
 
  private:
   Options client_options_;
