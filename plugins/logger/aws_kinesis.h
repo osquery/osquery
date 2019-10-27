@@ -19,7 +19,7 @@
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
 #include <osquery/plugins/logger.h>
-#include <plugins/logger/cached_logger.h>
+#include "plugins/logger/cached_logger.h"
 
 namespace osquery {
 

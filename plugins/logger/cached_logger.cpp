@@ -7,19 +7,17 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/dispatcher.h>
-#include <osquery/utils/info/version.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
-
+#include <osquery/utils/info/version.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
 #include <plugins/config/parsers/decorators.h>
 
-#include <plugins/logger/cached_logger.h>
-//#include "osquery/logger/plugins/cached_logger.h"
-#include <osquery/hashing/hashing.h>
+#include "plugins/logger/cached_logger.h"
 
 // How often to check for files to send (default only)
 #define DEFAULT_INTERVAL_SEC 30
