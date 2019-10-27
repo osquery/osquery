@@ -82,6 +82,7 @@ function(generatePythonTests)
     addPythonTest(NAME tools_tests_testadditional SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_additional.py")
 
     addPythonTest(NAME tools_tests_testexamplequeries SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_example_queries.py")
+    set_tests_properties(tools_tests_testexamplequeries PROPERTIES TIMEOUT 120)
 
     # The following tests need to be restored when extensions work again
     addPythonTest(NAME tools_tests_testextensions SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_extensions.py")
