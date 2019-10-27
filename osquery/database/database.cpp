@@ -567,8 +567,6 @@ static Status migrateV1V2(void) {
 }
 
 Status upgradeDatabase(int to_version) {
-  LOG(INFO) << "Checking database version for migration";
-
   std::string value;
   Status st = getDatabaseValue(kPersistentSettings, kDbVersionKey, value);
 
@@ -590,10 +588,6 @@ Status upgradeDatabase(int to_version) {
 
   while (db_version != to_version) {
     Status migrate_status;
-
-    LOG(INFO) << "Performing migration: " << db_version << " -> "
-              << (db_version + 1);
-
     switch (db_version) {
     case 0:
       migrate_status = migrateV0V1();
@@ -622,9 +616,6 @@ Status upgradeDatabase(int to_version) {
                  << " but persisting the new version failed.";
       return Status(1, "Database migration failed.");
     }
-
-    LOG(INFO) << "Migration " << db_version << " -> " << (db_version + 1)
-              << " successfully completed!";
 
     db_version++;
   }
