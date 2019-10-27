@@ -29,10 +29,12 @@
 
 #include "osquery/extensions/interface.h"
 
-#include <condition_variable>
 #include <limits>
-#include <mutex>
-#include <thread>
+
+#include <boost/chrono/include.hpp>
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/lock_types.hpp>
+#include <boost/thread/locks.hpp>
 
 namespace osquery {
 
@@ -55,7 +57,7 @@ class ThriftServerEventHandler : public TServerEventHandler,
   ThriftServerEventHandler() : server_is_listening_{false} {}
 
   void preServe() override {
-    std::unique_lock<std::mutex> lock(m_);
+    boost::unique_lock<boost::mutex> lock(m_);
     server_is_listening_ = true;
     server_is_listening_cv_.notify_all();
   }
@@ -67,9 +69,9 @@ class ThriftServerEventHandler : public TServerEventHandler,
     The one minute timeout is there only to mitigate a possible developer error.
   */
   void waitUntilServerIsListening() {
-    std::unique_lock<std::mutex> lock(m_);
+    boost::unique_lock<boost::mutex> lock(m_);
     if (!server_is_listening_cv_.wait_for(
-            lock, std::chrono::minutes(1), [this] {
+            lock, boost::chrono::minutes(1), [this] {
               return server_is_listening_;
             })) {
       VLOG(1)
@@ -79,13 +81,13 @@ class ThriftServerEventHandler : public TServerEventHandler,
   }
 
   void reset() {
-    std::unique_lock<std::mutex> lock(m_);
+    boost::unique_lock<boost::mutex> lock(m_);
     server_is_listening_ = false;
   }
 
  private:
-  std::condition_variable server_is_listening_cv_;
-  std::mutex m_;
+  boost::condition_variable server_is_listening_cv_;
+  boost::mutex m_;
   bool server_is_listening_;
 };
 
