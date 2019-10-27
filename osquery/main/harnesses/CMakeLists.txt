@@ -31,7 +31,6 @@ function(generateOsqueryFuzzHarnesses)
     osquery_experimental_tracing_syscallstracing
     osquery_extensions
     osquery_extensions_implthrift
-    osquery_killswitch
     osquery_logger_datalogger
     osquery_process
     osquery_numericmonitoring
@@ -51,8 +50,6 @@ function(generateOsqueryFuzzHarnesses)
     plugins_logger_stdout
     plugins_logger_syslog
     plugins_logger_tlslogger
-    plugins_killswitch_killswitchfilesystem
-    plugins_killswitch_killswitchtls
     plugins_numericmonitoring_filesystem
     plugins_remote_enroll_tlsenrollplugin
     specs_tables
