@@ -67,6 +67,7 @@ function(generateOsqueryUtils)
     mutex.h
     only_movable.h
     scope_guard.h
+    fgets_buffer.h
   )
 
   generateIncludeNamespace(osquery_utils "osquery/utils" "FILE_ONLY" ${public_header_files})
@@ -96,6 +97,7 @@ function(generateOsqueryUtilsUtilstestsTest)
     tests/chars.cpp
     tests/map_take.cpp
     tests/scope_guard.cpp
+    tests/fgets_buffer.cpp
   )
 
   add_osquery_executable(osquery_utils_utilstests-test ${source_files})
