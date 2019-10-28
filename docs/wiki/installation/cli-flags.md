@@ -235,11 +235,15 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. This is 
 
 Optionally enable GZIP compression for request bodies when sending. This is optional, and disabled by default, as the deployment must explicitly know that the logging endpoint supports GZIP for content encoding.
 
-`--logger_tls_max=1048576`
+`--logger_tls_max_linesize=1048576`
 
 It is common for TLS/HTTPS servers to enforce a maximum request body size. The default behavior in osquery is to enforce each log line be under 1M bytes. This means each result line from a query's results cannot exceed 1M, this is very unlikely. Each log attempt will try to forward up to 1024 lines. If your service is limited request bodies, configure the client to limit the log line size.
 
 Use this only in emergency situations as size violations are dropped. It is extremely uncommon for this to occur, as the `--value_max` for each column would need to be drastically larger, or the offending table would have to implement several hundred columns.
+
+`--logger_tls_max_lines=1024`
+
+This configures the max number of log lines to send every period (meaning every `logger_tls_period`).
 
 `--distributed_tls_read_endpoint=`
 
