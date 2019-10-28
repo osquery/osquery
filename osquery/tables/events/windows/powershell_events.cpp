@@ -116,7 +116,7 @@ void PowershellEventSubscriber::addScriptResult(Row& results) {
 
   const auto& cf =
       parser->getData().doc()["feature_vectors"]["character_frequencies"];
-  if (cf.Empty() || cf.Size() != kCharFreqVectorLen) {
+  if (!cf.IsArray() || cf.Size() != kCharFreqVectorLen || cf.Empty()) {
     VLOG(1) << "Invalid character frequency map found, skipping computation";
     add(r);
     return;
