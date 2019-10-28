@@ -230,14 +230,14 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
   size_t current_time = osquery::getUnixTime();
 
   // config provides STS creds that includes the token
-  if (FLAGS_aws_session_token.size() > 0) {
+  if (!FLAGS_aws_session_token.empty()) {
     if (access_key_id_.empty()) {
       initAwsSdk();
       access_key_id_ = FLAGS_aws_access_key_id;
       secret_access_key_ = FLAGS_aws_secret_access_key;
       session_token_ = FLAGS_aws_session_token;
-      VLOG(1) << "Using provided aws_session_token for id:"
-              << FLAGS_aws_access_key_id;
+      VLOG(1) << "Using provided aws_session_token for id starting with :"
+              << FLAGS_aws_access_key_id.substr(0, 8);
     }
     return Aws::Auth::AWSCredentials(
         access_key_id_, secret_access_key_, session_token_);
@@ -534,4 +534,4 @@ void setAWSProxy(Aws::Client::ClientConfiguration& config) {
     config.proxyPassword = FLAGS_aws_proxy_password;
   }
 }
-}
+} // namespace osquery
