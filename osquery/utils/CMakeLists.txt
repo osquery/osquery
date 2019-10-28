@@ -105,6 +105,7 @@ function(generateOsqueryUtilsUtilstestsTest)
   target_link_libraries(osquery_utils_utilstests-test PRIVATE
     osquery_cxx_settings
     osquery_utils
+    osquery_filesystem
     thirdparty_googletest
   )
 endfunction()
