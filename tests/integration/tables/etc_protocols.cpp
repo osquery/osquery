@@ -26,7 +26,7 @@ TEST_F(EtcProtocolsTest, test_sanity) {
   auto const row_map = ValidationMap{
       {"name", NonEmptyString},
       {"number", NonNegativeInt},
-      {"alias", NonEmptyString},
+      {"alias", NonNull},
       {"comment", NormalType},
   };
   validate_rows(rows, row_map);
