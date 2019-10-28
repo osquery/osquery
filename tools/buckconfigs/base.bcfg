@@ -1,6 +1,3 @@
-[osquery]
-  version = 4.0.1
-
 [build]
   osquery = oss
 

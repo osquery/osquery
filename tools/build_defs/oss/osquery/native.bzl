@@ -9,6 +9,13 @@ load(
 )
 load("//tools/build_defs/oss/osquery:native_functions.bzl", "osquery_native")
 
+with allow_unsafe_import():
+    import os
+
+def osquery_version():
+    proc = os.popen("git describe --tags --always --dirty")
+    return proc.readline().strip()
+
 def osquery_get_os():
     if native.host_info().os.is_linux:
         return "linux"
