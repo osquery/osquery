@@ -176,6 +176,7 @@ function(generateCopyFileTarget name base_path type relative_file_paths destinat
     add_custom_command(
       OUTPUT "${destination}/${file}"
       COMMAND "${CMAKE_COMMAND}" -E copy "${base_path}${file}" "${destination}/${file}"
+      DEPENDS "${base_path}${file}"
     )
     list(APPEND copied_files "${destination}/${file}")
   endforeach()
