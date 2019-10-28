@@ -8,3 +8,7 @@ schema([
     Column("base64", INTEGER, "1 if the value is base64 encoded else 0"),
 ])
 implementation("extended_attributes@genXattr")
+examples([
+    "select * from extended_attributes where path = '/usr'",
+    "select * from extended_attributes where directory = '/'"
+])
