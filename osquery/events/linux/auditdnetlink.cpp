@@ -484,7 +484,7 @@ bool AuditdNetlinkReader::clearAuditConfiguration() noexcept {
     }
 
     // Save the rule
-    const auto reply_size = sizeof(reply) + reply.ruledata->buflen;
+    const auto reply_size = sizeof(audit_rule_data) + reply.ruledata->buflen;
 
     AuditRuleDataObject reply_object(reply_size);
 
@@ -645,6 +645,7 @@ NetlinkStatus AuditdNetlinkReader::acquireHandle() noexcept {
   if (FLAGS_audit_allow_config) {
     if (FLAGS_audit_force_reconfigure) {
       if (!clearAuditConfiguration()) {
+        audit_close(audit_netlink_handle_);
         audit_netlink_handle_ = -1;
         return NetlinkStatus::Error;
       }
