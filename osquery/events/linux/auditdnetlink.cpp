@@ -54,7 +54,10 @@ FLAG(bool,
      "Configure the audit subsystem from scratch");
 
 /// This value is passed directly to the audit API.
-FLAG(int32, audit_backlog_wait_time, 0, "Set the audit backlog wait time");
+FLAG(int32, audit_backlog_wait_time, 0, "The audit backlog wait time");
+
+/// This value is passed directly to the audit API.
+FLAG(int32, audit_backlog_limit, 4096, "The audit backlog limit");
 
 // External flags; they are used to determine which rules need to be installed
 DECLARE_bool(audit_allow_fim_events);
@@ -314,7 +317,7 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
   // enforce sane minimums: -b 8192 -e 100
   audit_set_backlog_wait_time(audit_netlink_handle_,
                               FLAGS_audit_backlog_wait_time);
-  audit_set_backlog_limit(audit_netlink_handle_, 4096);
+  audit_set_backlog_limit(audit_netlink_handle_, FLAGS_audit_backlog_limit);
   audit_set_failure(audit_netlink_handle_, AUDIT_FAIL_SILENT);
 
   // Request only the highest priority of audit status messages.
