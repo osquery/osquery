@@ -23,8 +23,8 @@ function main() {
   # dict format is keyword="value" or just "value" - so we need to make sure our output is quoted.
 
   egrep -h -R -o "HasMember\\(\"([^\"]+)\"\\)" ./  | sed 's/HasMember(//' | sed 's/)//' > tmp
-  egrep -h -o -e "\"([^\"]+)\"" $SCRIPT_DIR/../../../tools/tests/*.conf >> tmp
-  egrep -h -o -e "\"([^\"]+)\"" $SCRIPT_DIR/../../../packs/*.conf >> tmp
+  egrep -h -o -e "\"([^\"]+)\"" $SCRIPT_DIR/../tests/*.conf >> tmp
+  egrep -h -o -e "\"([^\"]+)\"" $SCRIPT_DIR/../../packs/*.conf >> tmp
 
   sort tmp | uniq > $1
   rm tmp
