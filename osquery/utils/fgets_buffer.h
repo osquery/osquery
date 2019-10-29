@@ -15,6 +15,8 @@ struct NonblockingFile {
   virtual ssize_t read(std::vector<char>& buf) = 0;
 
   virtual void close() = 0;
+
+  virtual ~NonblockingFile() {}
 };
 
 typedef std::shared_ptr<NonblockingFile> SPNonblockingFile;
@@ -89,6 +91,22 @@ class NonblockingFileImpl : public NonblockingFile {
   uint32_t selectTimeoutUsec_;
 };
 
+#ifndef strnchr
+inline char* strnchr(char* p, char needle, size_t len) {
+  if (p == nullptr) {
+    return nullptr;
+  }
+  const char* e = p + len;
+  while (p < e && *p != needle) {
+    p++;
+  }
+  if (p >= e) {
+    return nullptr;
+  }
+  return p;
+}
+#endif // strnchr
+
 class FgetsBuffer {
  public:
   /**
@@ -145,7 +163,7 @@ class FgetsBuffer {
    * @return true on error, false if able to get a line into dest
    */
   bool _gets(std::string& dest) {
-    char* pos = strnstr(buf_.data(), "\n", buf_.size());
+    char* pos = strnchr(buf_.data(), '\n', buf_.size());
     if (NULL == pos) {
       if (buf_.size() >= maxLineLen_) {
         // blow it all away

@@ -16,23 +16,21 @@ static const std::string TEST2 = "abcdef0123456789";
 namespace osquery {
 
 class fgetsTest : public ::testing::Test {
-protected:
-  virtual void SetUp() {
-    
-  }
+ protected:
+  virtual void SetUp() {}
 };
 
 struct FakeFile : public NonblockingFile {
-  
+  virtual ~FakeFile() {}
   bool isValid() override {
     return isValid_;
   }
-  
+
   bool isDataAvail() override {
     return !buf_.empty();
   };
-  
-  ssize_t read(std::vector<char> &dest) override {
+
+  ssize_t read(std::vector<char>& dest) override {
     size_t remaining = dest.capacity() - dest.size();
     size_t len = (buf_.size() > remaining ? remaining : buf_.size());
     auto p = dest.data() + dest.size();
@@ -41,17 +39,16 @@ struct FakeFile : public NonblockingFile {
     buf_.clear();
     return (ssize_t)len;
   }
-  
-  void close() override {
-  }
 
-  bool isValid_ { true };
+  void close() override {}
+
+  bool isValid_{true};
   std::string buf_;
 };
 
 TEST_F(fgetsTest, basic) {
   auto spFile = std::make_shared<FakeFile>();
-  spFile->buf_ = TEST1 ;
+  spFile->buf_ = TEST1;
   FgetsBuffer fb(spFile, 16 /* max line length */);
   std::string line;
 
@@ -72,20 +69,20 @@ TEST_F(fgetsTest, basic) {
 
 TEST_F(fgetsTest, basic_with_newline) {
   auto spFile = std::make_shared<FakeFile>();
-  spFile->buf_ = TEST1 ;
+  spFile->buf_ = TEST1;
   FgetsBuffer fb(spFile, 16 /* max line length */, true /* include newline */);
   std::string line;
-  
+
   // "one\ntwo\nthree\n"
-  
+
   auto status = fb.fgets(line);
   ASSERT_FALSE(status);
   ASSERT_EQ("one\n", line);
-  
+
   status = fb.fgets(line);
   ASSERT_FALSE(status);
   ASSERT_EQ("two\n", line);
-  
+
   status = fb.fgets(line);
   ASSERT_FALSE(status);
   ASSERT_EQ("three\n", line);
@@ -98,7 +95,7 @@ TEST_F(fgetsTest, test_max) {
   std::string line;
   auto status = fb.fgets(line);
   ASSERT_TRUE(status);
-  ASSERT_EQ(TEST2.size(),fb.getNumDroppedChars());
+  ASSERT_EQ(TEST2.size(), fb.getNumDroppedChars());
 }
 
 TEST_F(fgetsTest, multi_read) {
@@ -118,15 +115,14 @@ TEST_F(fgetsTest, multi_read) {
   status = fb.fgets(line);
   ASSERT_TRUE(status);
 
-  
   spFile->buf_ = "a time ";
   status = fb.fgets(line);
   ASSERT_TRUE(status);
-  
+
   spFile->buf_ = "it ended.\n";
   status = fb.fgets(line);
   ASSERT_FALSE(status);
-  ASSERT_EQ("Once upon a time it ended.",line);
+  ASSERT_EQ("Once upon a time it ended.", line);
 }
 
 } // namespace osquery
