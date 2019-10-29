@@ -28,20 +28,17 @@
 
 namespace osquery {
 
-CLI_FLAG(uint64,
-         logger_tls_max_lines,
-         1024,
-         "Max number of logs to send per period");
+FLAG(uint64,
+     logger_tls_max_lines,
+     1024,
+     "Max number of logs to send per period");
 
-CLI_FLAG(string,
-         logger_tls_endpoint,
-         "",
-         "TLS/HTTPS endpoint for results logging");
+FLAG(string, logger_tls_endpoint, "", "TLS/HTTPS endpoint for results logging");
 
-CLI_FLAG(uint64,
-         logger_tls_period,
-         4,
-         "Seconds between flushing logs over TLS/HTTPS");
+FLAG(uint64,
+     logger_tls_period,
+     4,
+     "Seconds between flushing logs over TLS/HTTPS");
 
 FLAG(uint64,
      logger_tls_max_linesize,
