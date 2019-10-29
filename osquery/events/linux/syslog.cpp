@@ -55,6 +55,7 @@ const char* kTimeFormat = "%Y-%m-%dT%H:%M:%S";
 const std::vector<std::string> kCsvFields = {
     "time", "host", "severity", "facility", "tag", "message"};
 const size_t kErrorThreshold = 10;
+static const size_t MAX_LINE_LEN = 16384;
 
 Status SyslogEventPublisher::setUp() {
   if (!FLAGS_enable_syslog) {
@@ -88,10 +89,11 @@ Status SyslogEventPublisher::setUp() {
     return s;
   }
 
-  spPipe_ = std::make_shared<NonblockingFileImpl>(FLAGS_syslog_pipe_path);
-  spReader_ =
-      std::make_shared<FgetsBuffer>(spPipe_, 16384, false /* strip newline */);
-  if (!spPipe_->isValid()) {
+  // The reader buffers bytes read from nonblocking file
+
+  auto spPipe = std::make_shared<NonblockingFileImpl>(FLAGS_syslog_pipe_path);
+  spReader_ = std::make_shared<FgetsBuffer>(spPipe, MAX_LINE_LEN, false);
+  if (!spPipe->isValid()) {
     return Status(1,
                   "Error opening pipe for reading: " + FLAGS_syslog_pipe_path);
   }

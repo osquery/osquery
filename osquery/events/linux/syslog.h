@@ -68,7 +68,7 @@ class SyslogEventPublisher
 
  public:
   SyslogEventPublisher()
-      : EventPublisher(), errorCount_(0), lockFd_(-1), spPipe_(), spReader_() {}
+      : EventPublisher(), errorCount_(0), lockFd_(-1), spReader_() {}
 
  private:
   /// Apply normal subscription to event matching logic.
@@ -129,8 +129,6 @@ class SyslogEventPublisher
    * readStream_.
    */
   int lockFd_;
-
-  std::shared_ptr<NonblockingFileImpl> spPipe_;
 
   std::shared_ptr<FgetsBuffer> spReader_;
 

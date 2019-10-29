@@ -1,3 +1,11 @@
+/**
+ *  Copyright (c) 2019-present, osquery Foundation
+ *  All rights reserved.
+ *
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
+ */
+
 #pragma once
 
 #include <memory>
@@ -8,6 +16,14 @@
 
 #include <osquery/filesystem/fileops.h>
 
+/*
+ * This all exists to ensure that we don't get hangs when
+ * using fgets() on pipes.  See issue #4810 for details.
+ */
+
+/**
+ * @brief Abstraction of a non blocking file for use with FgetsBuffer
+ */
 struct NonblockingFile {
   virtual bool isValid() = 0;
 
@@ -143,13 +159,17 @@ class FgetsBuffer {
     return true;
   }
 
+  SPNonblockingFile getFile() {
+    return spFile_;
+  }
+
  protected:
   /**
    *
    * @return true on error, false if able to get a line into dest
    */
   bool _gets(std::string& dest) {
-    char* pos = (char *)memchr(buf_.data(), '\n', buf_.size());
+    char* pos = (char*)memchr(buf_.data(), '\n', buf_.size());
     if (NULL == pos) {
       if (buf_.size() >= maxLineLen_) {
         // blow it all away
