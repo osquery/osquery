@@ -23,6 +23,7 @@ RUN apt update -q -y && apt upgrade -q -y && apt install -q -y --no-install-reco
   rpm \
   dpkg-dev \
   file \
+  elfutils \
 && dpkg -i linux-base_1.0_all.deb linux-firmware_1.0_all.deb linux-generic_1.0_all.deb \
 && apt clean && rm -rf /var/lib/apt/lists/* \
 && sudo pip install timeout_decorator

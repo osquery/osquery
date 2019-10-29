@@ -234,11 +234,17 @@ TEST_F(ConversionsTests, test_json_bool_like) {
  * malicious json, we should be configured to use iterative mode.
  * https://github.com/Tencent/rapidjson/issues/632
  */
-TEST_F(ConversionsTests, test_iterativeparsing) {
+TEST_F(ConversionsTests, test_json_iterativeparsing) {
   std::string json(543210, '[');
   auto doc = JSON::newObject();
 
   EXPECT_FALSE(doc.fromString(json).ok());
 }
 
+TEST_F(ConversionsTests, test_json_largeexp) {
+  std::string json("0.0000074836628E-2147483636");
+  auto doc = JSON::newObject();
+
+  EXPECT_TRUE(doc.fromString(json).ok());
+}
 } // namespace osquery

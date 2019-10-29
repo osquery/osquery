@@ -724,7 +724,7 @@ void Initializer::start() const {
   EventFactory::delay();
 }
 
-void Initializer::waitForShutdown() {
+void Initializer::waitThenShutdown() {
   {
     RecursiveLock lock(shutdown_mutex_);
     if (shutdown_ != nullptr) {
@@ -758,9 +758,10 @@ void Initializer::requestShutdown(int retcode) {
     kExitCode = retcode;
   }
 
+  auto current_thread_id = std::this_thread::get_id();
+
   // Stop thrift services/clients/and their thread pools.
-  if (std::this_thread::get_id() != kMainThreadId &&
-      FLAGS_enable_signal_handler) {
+  if (current_thread_id != kMainThreadId && FLAGS_enable_signal_handler) {
     raise(SIGUSR1);
   } else {
     // The main thread is requesting a shutdown, meaning in almost every case
@@ -768,7 +769,9 @@ void Initializer::requestShutdown(int retcode) {
     // Exceptions include: tight request / wait in an exception handler or
     // custom signal handling.
     Dispatcher::stopServices();
-    waitForShutdown();
+
+    if (current_thread_id == kMainThreadId)
+      waitThenShutdown();
   }
 }
 

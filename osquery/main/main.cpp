@@ -109,7 +109,7 @@ int startDaemon(Initializer& runner) {
   osquery::events::init_syscall_tracing();
 
   // Finally wait for a signal / interrupt to shutdown.
-  runner.waitForShutdown();
+  runner.waitThenShutdown();
   return 0;
 }
 
