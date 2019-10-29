@@ -26,6 +26,7 @@ osquery_cxx_library(
         "mutex.h",
         "only_movable.h",
         "scope_guard.h",
+        "fgets_buffer.h",
     ],
     exported_platform_headers = [
         (
