@@ -17,7 +17,6 @@
 #include <osquery/data_logger.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
-#include <osquery/killswitch.h>
 #include <osquery/numeric_monitoring.h>
 #include <osquery/process/process.h>
 #include <osquery/profiler/code_profiler.h>

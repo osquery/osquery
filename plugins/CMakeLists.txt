@@ -7,7 +7,6 @@
 add_subdirectory("config")
 add_subdirectory("database")
 add_subdirectory("distributed")
-add_subdirectory("killswitch")
 add_subdirectory("logger")
 add_subdirectory("numeric_monitoring")
 add_subdirectory("remote/enroll")

@@ -10,7 +10,6 @@
 
 #include <boost/format.hpp>
 
-#include <osquery/killswitch.h>
 #include <osquery/numeric_monitoring.h>
 #include <osquery/profiler/code_profiler.h>
 
@@ -26,8 +25,8 @@ void record(const std::vector<std::string>& names,
                        monitoring::PreAggregationType::None);
   }
 }
-
 } // namespace
+
 class CodeProfiler::CodeProfilerData {
  public:
   CodeProfilerData() : wall_time_(std::chrono::steady_clock::now()) {}
@@ -44,15 +43,13 @@ CodeProfiler::CodeProfiler(const std::initializer_list<std::string>& names)
     : names_(names), code_profiler_data_(new CodeProfilerData()) {}
 
 CodeProfiler::~CodeProfiler() {
-  if (Killswitch::get().isWindowsProfilingEnabled()) {
-    CodeProfilerData code_profiler_data_end;
+  CodeProfilerData code_profiler_data_end;
 
-    const auto query_duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            code_profiler_data_end.getWallTime() -
-            code_profiler_data_->getWallTime());
+  const auto query_duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          code_profiler_data_end.getWallTime() -
+          code_profiler_data_->getWallTime());
 
-    record(names_, ".time.wall.millis", query_duration.count());
-  }
+  record(names_, ".time.wall.millis", query_duration.count());
 }
 } // namespace osquery

@@ -29,7 +29,6 @@ osquery_cxx_library(
         osquery_target("osquery/events:events_registry"),
         osquery_target("osquery/experimental/events_stream:events_stream_registry"),
         osquery_target("osquery/extensions:extensions"),
-        osquery_target("osquery/killswitch:killswitch"),
         osquery_target("osquery/numeric_monitoring:numeric_monitoring"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/sql:sql"),
