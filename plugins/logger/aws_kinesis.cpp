@@ -202,7 +202,7 @@ class KinesisForwarder : public Forwarder {
 
     if (last_aws_access_key != FLAGS_aws_access_key_id ||
         last_aws_session_token != FLAGS_aws_session_token) {
-      VLOG(1) << "using new aws access key:" << FLAGS_aws_access_key_id;
+      VLOG(1) << "using new aws access key:" << FLAGS_aws_access_key_id.substr(0,8);
       last_aws_access_key = FLAGS_aws_access_key_id;
       last_aws_session_token = FLAGS_aws_session_token;
       return true;
