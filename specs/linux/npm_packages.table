@@ -7,7 +7,8 @@ schema([
     Column("author", TEXT, "Package author name"),
     Column("license", TEXT, "License for package"),
     Column("path", TEXT, "Module's package.json path"),
-    Column("directory", TEXT, "Node module's directory where this package is located")
+    Column("directory", TEXT, "Node module's directory where this package is located",
+       index=True)
 ])
 implementation("system/linux/npm_packages@genNPMPackages")
 examples([

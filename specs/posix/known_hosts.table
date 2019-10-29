@@ -2,9 +2,9 @@ table_name("known_hosts")
 description("A line-delimited known_hosts table.")
 schema([
     Column("uid", BIGINT, "The local user that owns the known_hosts file",
-      additional=True),
-    Column("key", TEXT, "parsed authorized keys line", index=True),
-    Column("key_file", TEXT, "Path to known_hosts file", index=True),
+      index=True),
+    Column("key", TEXT, "parsed authorized keys line"),
+    Column("key_file", TEXT, "Path to known_hosts file"),
     ForeignKey(column="uid", table="users"),
 ])
 attributes(user_data=True, no_pkey=True)
