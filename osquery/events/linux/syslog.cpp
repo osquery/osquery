@@ -61,6 +61,11 @@ Status SyslogEventPublisher::setUp() {
     return Status(1, "Publisher disabled via configuration");
   }
 
+  // The pipe file should exist as part of install / config. We create
+  // pipe file here if it doesn't exist, but won't receive events until:
+  // - the /etc/rsyslog.d/90-osquery.conf file is in place
+  // - syslog service is restarted
+
   Status s;
   if (!pathExists(FLAGS_syslog_pipe_path)) {
     VLOG(1) << "Pipe does not exist: creating pipe " << FLAGS_syslog_pipe_path;
@@ -83,13 +88,10 @@ Status SyslogEventPublisher::setUp() {
     return s;
   }
 
-  // Opening with both flags appears to be the only way to open the pipe
-  // without blocking for a writer. We won't ever write to the pipe, but we
-  // don't want to block here and will instead block waiting for a read in the
-  // run() method
-  readStream_.open(FLAGS_syslog_pipe_path,
-                   std::ifstream::in | std::ifstream::out);
-  if (!readStream_.good()) {
+  spPipe_ = std::make_shared<NonblockingFileImpl>(FLAGS_syslog_pipe_path);
+  spReader_ =
+      std::make_shared<FgetsBuffer>(spPipe_, 16384, false /* strip newline */);
+  if (!spPipe_->isValid()) {
     return Status(1,
                   "Error opening pipe for reading: " + FLAGS_syslog_pipe_path);
   }
@@ -156,14 +158,10 @@ Status SyslogEventPublisher::run() {
   // weird and there is a huge amount of input, we limit how many logs we
   // take in per run to avoid pegging the CPU.
   for (size_t i = 0; i < FLAGS_syslog_rate_limit; ++i) {
-    if (readStream_.rdbuf()->in_avail() == 0) {
-      // If there is no pending data, we have flushed everything and can wait
-      // until the next time EventFactory calls run(). This also allows the
-      // thread to join when it is stopped by EventFactory.
-      return Status::success();
-    }
     std::string line;
-    std::getline(readStream_, line);
+    if (spReader_->fgets(line)) {
+      return Status();
+    }
     auto ec = createEventContext();
     Status status = populateEventContext(line, ec);
     if (status.ok()) {
@@ -218,4 +216,4 @@ bool SyslogEventPublisher::shouldFire(const SyslogSubscriptionContextRef& sc,
                                       const SyslogEventContextRef& ec) const {
   return true;
 }
-}
+} // namespace osquery

@@ -14,6 +14,7 @@
 #include <map>
 
 #include <osquery/events.h>
+#include <osquery/utils/fgets_buffer.h>
 
 namespace osquery {
 
@@ -66,7 +67,8 @@ class SyslogEventPublisher
   Status run() override;
 
  public:
-  SyslogEventPublisher() : EventPublisher(), errorCount_(0), lockFd_(-1) {}
+  SyslogEventPublisher()
+      : EventPublisher(), errorCount_(0), lockFd_(-1), spPipe_(), spReader_() {}
 
  private:
   /// Apply normal subscription to event matching logic.
@@ -111,11 +113,6 @@ class SyslogEventPublisher
                                      SyslogEventContextRef& ec);
 
   /**
-   * @brief Input stream for reading from the pipe.
-   */
-  std::fstream readStream_;
-
-  /**
    * @brief Counter used to shut down thread when too many errors occur.
    *
    * This counter is incremented when an error occurs, and decremented when a
@@ -132,6 +129,10 @@ class SyslogEventPublisher
    * readStream_.
    */
   int lockFd_;
+
+  std::shared_ptr<NonblockingFileImpl> spPipe_;
+
+  std::shared_ptr<FgetsBuffer> spReader_;
 
  private:
   FRIEND_TEST(SyslogTests, test_populate_event_context);
@@ -201,4 +202,4 @@ class RsyslogCsvSeparator {
  private:
   bool last_;
 };
-}
+} // namespace osquery

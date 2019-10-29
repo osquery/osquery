@@ -25,6 +25,7 @@ typedef std::shared_ptr<NonblockingFile> SPNonblockingFile;
  * Implementation of non-blocking file access.
  */
 class NonblockingFileImpl : public NonblockingFile {
+ public:
   NonblockingFileImpl(std::string filepath,
                       uint32_t selectTimeoutUsec = 5000000)
       : NonblockingFile(),
