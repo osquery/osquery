@@ -236,7 +236,7 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       access_key_id_ = FLAGS_aws_access_key_id;
       secret_access_key_ = FLAGS_aws_secret_access_key;
       session_token_ = FLAGS_aws_session_token;
-      VLOG(1) << "Using provided aws_session_token for id starting with : "
+      VLOG(1) << "Using provided aws_session_token for id starting with: "
               << FLAGS_aws_access_key_id.substr(0, 8);
     }
     return Aws::Auth::AWSCredentials(
