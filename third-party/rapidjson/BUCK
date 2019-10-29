@@ -20,9 +20,9 @@ osquery_tp_prebuilt_cxx_library(
         "windows-x86_64",
     ],
     sha256sums = {
-        "linux-x86_64": "f9a3d4e71cb72f00372696fb6c2c14094cec30519a692982de5b893a3562f244",
-        "macos-x86_64": "ab8c220677cc03424d0683e36542a9dcd4eac1ff99ceae70007ce6e2462da9fa",
-        "windows-x86_64": "62d59198edd5851d2c990d0e68edf7fbb633bb2816ed22adbdede03e688b0b67",
+        "linux-x86_64": "2839b377339dd99612dd91025e96657fc5ba2792cd037251bb37df2d977622b0",
+        "macos-x86_64": "b217f95eb2518f5c4ee683eb03e1d3c027f9bf94e99f0853a4da738d6612e261",
+        "windows-x86_64": "05dfb37b661b72d6f26a2295471343b8d5797ecedd795480ddc9a977791b5319",
     },
     platform_static_libs = {
         "linux-x86_64": [
@@ -41,7 +41,7 @@ osquery_tp_prebuilt_cxx_library(
     deps = [
 
     ],
-    version = "1.1.0",
+    version = "1.1.0-1a825d24",
     build = "0",
     visibility = ["PUBLIC"],
 )
