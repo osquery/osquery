@@ -49,6 +49,27 @@ void doYARAScan(YR_RULES* rules,
   }
 }
 
+static bool shouldSkipFile(const std::string& path) {
+  struct stat sb;
+  if (0 != stat(path.c_str(), &sb)) {
+    return true; // failed to stat
+  }
+
+  // avoid special files /dev/x , /proc/x, FIFO's named-pipes, etc.
+  if ((sb.st_mode & S_IFMT) != S_IFREG) {
+    return true;
+  }
+
+  // avoid reading osquery DB LOCK files
+  if (path.find("osquery") != std::string::npos) {
+    if (boost::algorithm::ends_with(path,"LOCK") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 QueryData genYara(QueryContext& context) {
   QueryData results;
 
@@ -92,7 +113,7 @@ QueryData genYara(QueryContext& context) {
         if (status.ok()) {
           for (const auto& resolved : patterns) {
             // Check that each resolved path is readable.
-            if (isReadable(resolved)) {
+            if (isReadable(resolved) && !shouldSkipFile(resolved)) {
               paths.insert(resolved);
             }
           }
@@ -135,5 +156,5 @@ QueryData genYara(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
