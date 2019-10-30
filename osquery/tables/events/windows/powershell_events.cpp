@@ -108,8 +108,8 @@ void PowershellEventSubscriber::addScriptResult(Row& results) {
 
   const auto& doc = parser->getData().doc();
   if (!doc.IsObject() || !doc.HasMember("feature_vectors") ||
-      !doc["feature_vectors"].HasMember("chracter_frequencies") ||
-      !doc["feature_vectors"]["chracter_frequencies"].IsArray()) {
+      !doc["feature_vectors"].HasMember("character_frequencies") ||
+      !doc["feature_vectors"]["character_frequencies"].IsArray()) {
     VLOG(1) << "No character frequency map found, skipping computation";
     add(r);
     return;
