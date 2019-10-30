@@ -23,7 +23,6 @@
 #include <osquery/extensions.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
-#include <osquery/killswitch.h>
 #include <osquery/numeric_monitoring.h>
 #include <osquery/plugins/logger.h>
 #include <osquery/registry_factory.h>
@@ -80,6 +79,8 @@ HIDDEN_FLAG(bool,
             logger_status_sync,
             false,
             "Always send status logs synchronously");
+
+DECLARE_bool(enable_numeric_monitoring);
 
 /**
  * @brief Logger plugin registry.
@@ -409,7 +410,7 @@ Status logQueryLogItem(const QueryLogItem& results,
     return Status::success();
   }
 
-  if (Killswitch::get().isTotalQueryCounterMonitorEnabled()) {
+  if (FLAGS_enable_numeric_monitoring) {
     monitoring::record(
         kTotalQueryCounterMonitorPath, 1, monitoring::PreAggregationType::Sum);
   }
@@ -438,7 +439,7 @@ Status logSnapshotQuery(const QueryLogItem& item) {
     return Status::success();
   }
 
-  if (Killswitch::get().isTotalQueryCounterMonitorEnabled()) {
+  if (FLAGS_enable_numeric_monitoring) {
     monitoring::record(
         kTotalQueryCounterMonitorPath, 1, monitoring::PreAggregationType::Sum);
   }
@@ -545,4 +546,4 @@ void systemLog(const std::string& line) {
   syslog(LOG_NOTICE, "%s", line.c_str());
 #endif
 }
-}
+} // namespace osquery
