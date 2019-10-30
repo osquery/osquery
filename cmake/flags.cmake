@@ -292,6 +292,26 @@ function(setupBuildFlags)
     )
 
     list(APPEND osquery_defines ${osquery_windows_common_defines})
+
+    # Remove some flags from the default ones to avoid "overriding" warnings or unwanted results.
+    if(OSQUERY_WINDOWS AND "${CMAKE_GENERATOR}" STREQUAL "Ninja")
+      string(REPLACE "/MD" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+      string(REPLACE "/MD" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+      string(REPLACE "/MD" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+      string(REPLACE "/MD" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+
+      string(REPLACE "/Zi" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+      string(REPLACE "/Zi" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+
+      # This must be removed, because passing /EHs doesn't override it
+      string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+      overwrite_cache_variable("CMAKE_C_FLAGS_RELEASE" STRING "${CMAKE_C_FLAGS_RELEASE}")
+      overwrite_cache_variable("CMAKE_C_FLAGS_RELWITHDEBINFO" STRING "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+      overwrite_cache_variable("CMAKE_CXX_FLAGS_RELEASE" STRING "${CMAKE_CXX_FLAGS_RELEASE}")
+      overwrite_cache_variable("CMAKE_CXX_FLAGS_RELWITHDEBINFO" STRING "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+      overwrite_cache_variable("CMAKE_CXX_FLAGS" STRING "${CMAKE_CXX_FLAGS}")
+    endif()
   else()
     message(FATAL_ERROR "Platform not supported!")
   endif()
