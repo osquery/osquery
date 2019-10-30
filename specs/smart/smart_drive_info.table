@@ -1,7 +1,7 @@
 table_name("smart_drive_info")
 description("Drive information read by SMART controller utilizing autodetect.")
 schema([
-    Column("device_name", TEXT, "Name of block device", index=True),
+    Column("device_name", TEXT, "Name of block device"),
     Column("disk_id", INTEGER,
         "Physical slot number of device, only exists when hardware storage controller exists"),
     Column("driver_type", TEXT,

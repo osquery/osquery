@@ -1,7 +1,7 @@
 table_name("logon_sessions")
 description("Windows Logon Session.")
 schema([
-    Column("logon_id", INTEGER, "A locally unique identifier (LUID) that identifies a logon session.", index=True),
+    Column("logon_id", INTEGER, "A locally unique identifier (LUID) that identifies a logon session."),
     Column("user", TEXT, "The account name of the security principal that owns the logon session."),
     Column("logon_domain", TEXT, "The name of the domain used to authenticate the owner of the logon session."),
     Column("authentication_package", TEXT, "The authentication package used to authenticate the owner of the logon session."),

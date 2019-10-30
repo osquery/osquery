@@ -23,7 +23,6 @@
 #include <boost/format.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
 
-#include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/numeric_monitoring.h>
 #include <osquery/profiler/code_profiler.h>
@@ -152,21 +151,18 @@ CodeProfiler::CodeProfiler(const std::initializer_list<std::string>& names)
     : names_(names), code_profiler_data_(new CodeProfilerData()) {}
 
 CodeProfiler::~CodeProfiler() {
-  if (Killswitch::get().isPosixProfilingEnabled()) {
-    CodeProfilerData code_profiler_data_end;
+  CodeProfilerData code_profiler_data_end;
 
-    auto rusage_start = code_profiler_data_->takeRusageData();
-    if (!rusage_start) {
-      LOG(ERROR) << "rusage_start error: "
-                 << rusage_start.getError().getMessage();
+  auto rusage_start = code_profiler_data_->takeRusageData();
+  if (!rusage_start) {
+    LOG(ERROR) << "rusage_start error: "
+               << rusage_start.getError().getMessage();
+  } else {
+    auto rusage_end = code_profiler_data_end.takeRusageData();
+    if (!rusage_end) {
+      LOG(ERROR) << "rusage_end error: " << rusage_end.getError().getMessage();
     } else {
-      auto rusage_end = code_profiler_data_end.takeRusageData();
-      if (!rusage_end) {
-        LOG(ERROR) << "rusage_end error: "
-                   << rusage_end.getError().getMessage();
-      } else {
-        recordRusageStatDifference(names_, *rusage_start, *rusage_end);
-      }
+      recordRusageStatDifference(names_, *rusage_start, *rusage_end);
     }
 
     const auto query_duration =

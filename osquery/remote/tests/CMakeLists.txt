@@ -30,7 +30,6 @@ function(generateOsqueryRemoteTestsRemotetestsutils)
     osquery_utils_info
     plugins_config_tlsconfig
     plugins_database_ephemeral
-    plugins_killswitch_killswitchfilesystem
     tests_helper
   )
 endfunction()
@@ -51,7 +50,6 @@ function(generateOsqueryRemoteTestsRequeststestsTest)
     osquery_utils_info
     plugins_config_tlsconfig
     plugins_database_ephemeral
-    plugins_killswitch_killswitchfilesystem
     tests_helper
     thirdparty_googletest
   )

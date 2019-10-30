@@ -23,7 +23,6 @@
 #include <osquery/flagalias.h>
 #include <osquery/flags.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
@@ -476,19 +475,15 @@ Status Config::refresh() {
     }
 
     loaded_ = true;
-    if (Killswitch::get().isConfigBackupEnabled()) {
-      if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
-        const auto result = restoreConfigBackup();
-        if (!result) {
-          return Status::failure(result.getError().getMessage());
-        } else {
-          update(*result);
-        }
+    if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
+      LOG(INFO) << "Backing up configuration";
+      const auto result = restoreConfigBackup();
+      if (!result) {
+        return Status::failure(result.getError().getMessage());
+      } else {
+        update(*result);
       }
-    } else {
-      LOG(INFO) << "Config backup is disabled by the killswitch";
     }
-
     return status;
   } else if (getRefresh() != FLAGS_config_refresh) {
     VLOG(1) << "Normal configuration delay restored";
