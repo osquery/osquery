@@ -7,8 +7,14 @@
  */
 
 #include <boost/filesystem.hpp>
+#include <thread>
+
+#ifdef LINUX
+#include <malloc.h>
+#endif
 
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/utils/status/status.h>
@@ -21,6 +27,18 @@
 #include <yara.h>
 
 namespace osquery {
+
+// After a large scan of many files, the memory allocation could be
+// substantial.  free() may not return it to operating system, but
+// rather keep it around in anticipation that app will reallocate.
+// Call malloc_trim() on linux to try to convince it to release.
+#ifdef LINUX
+FLAG(bool,
+     yara_malloc_trim,
+     true,
+     "Call malloc_trim() after yara scans (linux)");
+#endif
+
 namespace tables {
 
 void doYARAScan(YR_RULES* rules,
@@ -129,11 +147,20 @@ QueryData genYara(QueryContext& context) {
     for (const auto& group : groups) {
       if (rules.count(group) > 0) {
         doYARAScan(rules[group], path.c_str(), results, group, group);
+
+        // sleep between each file to help smooth out malloc spikes
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
       }
     }
   }
 
+#ifdef LINUX
+  if (osquery::FLAGS_yara_malloc_trim) {
+    malloc_trim(0);
+  }
+#endif
+
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
