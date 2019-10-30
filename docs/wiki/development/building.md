@@ -25,8 +25,8 @@ The root folder is assumed to be `/home/<user>`
 sudo apt install --no-install-recommends git python python3 bison flex make
 
 # Optional: install python tests prerequisites
-sudo apt install --no-install-recommends python-pip python-setuptools python-psutil python-pexpect python-six
-pip install timeout-decorator
+sudo apt install --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel
+pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
 
 # Download and install the osquery toolchain
 wget https://github.com/osquery/osquery-toolchain/releases/download/1.0.0/osquery-toolchain-1.0.0.tar.xz
@@ -61,7 +61,7 @@ xcode-select --install
 brew install git cmake python@2 python
 
 # Optional: install python tests prerequisites
-pip install setuptools pexpect psutil timeout_decorator six
+pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
 ```
 
 **Step 2: Download and build**
@@ -101,11 +101,11 @@ Note: It may be easier to install these prerequisites using [Chocolatey](https:/
 - [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
 
 **Optional: Install python tests prerequisites**
-Python 2 is assumed to be installed in `C:\Python27`
+Python 3 is assumed to be installed in `C:\Program Files\Python37`
 
 ```PowerShell
 # Using a PowerShell console
-C:\Python27\python.exe -m pip install setuptools psutil timeout_decorator six
+& 'C:\Program Files\Python37\python.exe' -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
 ```
 
 **Step 2: Download and build**
