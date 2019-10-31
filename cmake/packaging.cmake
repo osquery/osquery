@@ -280,8 +280,8 @@ function(generatePackageTarget)
 
   set(CPACK_GENERATOR "${PACKAGING_SYSTEM}")
 
-  # Set this on by default and off for DEB
-  if(NOT CPACK_GENERATOR STREQUAL "DEB")
+  # Set this on by default and off for DEB/RPM
+  if(NOT CPACK_GENERATOR STREQUAL "DEB" AND NOT CPACK_GENERATOR STREQUAL "RPM")
     set(CPACK_STRIP_FILES ON)
   endif()
 
@@ -295,7 +295,6 @@ function(generatePackageTarget)
 
     if(CPACK_GENERATOR STREQUAL "TGZ")
       set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${OSQUERY_PACKAGE_RELEASE}.x86_64")
-
     elseif(CPACK_GENERATOR STREQUAL "DEB")
       set(CPACK_DEBIAN_OSQUERY_PACKAGE_NAME ${CPACK_PACKAGE_NAME})
       set(CPACK_DEBIAN_PACKAGE_RELEASE "${OSQUERY_PACKAGE_RELEASE}")
@@ -306,8 +305,8 @@ function(generatePackageTarget)
       set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${CPACK_PACKAGE_HOMEPAGE_URL}")
       set(CPACK_DEB_COMPONENT_INSTALL ON)
       set(CPACK_DEBIAN_DEBUGINFO_PACKAGE ON)
-
     elseif(CPACK_GENERATOR STREQUAL "RPM")
+      set(CPACK_RPM_PACKAGE_RELEASE_DIST "${OSQUERY_PACKAGE_RELEASE}")
       set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${OSQUERY_PACKAGE_RELEASE}.x86_64")
       set(CPACK_RPM_PACKAGE_DESCRIPTION "osquery is an operating system instrumentation toolchain.")
       set(CPACK_RPM_PACKAGE_GROUP "default")
@@ -320,6 +319,8 @@ function(generatePackageTarget)
         /usr/lib/systemd
         /usr/lib/systemd/system
       )
+      set(CPACK_RPM_DEBUGINFO_PACKAGE ON)
+      set(CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX /usr/src/debug/osquery)
     endif()
   elseif(DEFINED PLATFORM_MACOS)
     set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
