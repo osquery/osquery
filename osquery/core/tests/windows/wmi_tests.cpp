@@ -14,17 +14,17 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/config/tests/test_utils.h>
 #include <osquery/core.h>
 #include <osquery/system.h>
 #include <osquery/utils/system/env.h>
-#include <osquery/config/tests/test_utils.h>
 
 #include "osquery/core/windows/wmi.h"
 
 namespace osquery {
 
 class WmiTests : public testing::Test {
-protected:
+ protected:
   void SetUp() {
     Initializer::platformSetup();
   }
@@ -56,7 +56,7 @@ TEST_F(WmiTests, test_methodcall_inparams) {
   args.Put<std::string>("Permissions", "1");
 
   // Get the first item off the result vector since we should only have one.
-  auto &resultItem = wmiResults.front();
+  auto& resultItem = wmiResults.front();
   auto status = resultItem.ExecMethod("GetEffectivePermission", args, out);
 
   EXPECT_EQ(status.getMessage(), "OK");
@@ -64,13 +64,15 @@ TEST_F(WmiTests, test_methodcall_inparams) {
 
   bool retval = false;
 
-  // The reutnr value is stored in the ReturnValue key within the out-parameter object
+  // The reutnr value is stored in the ReturnValue key within the out-parameter
+  // object
   status = out.GetBool("ReturnValue", retval);
 
   EXPECT_EQ(status.getMessage(), "OK");
   EXPECT_TRUE(status.ok());
 
-  // As both Administrator and normal user, we should be able to FILE_LIST_DIRECTORY on WINDIR
+  // As both Administrator and normal user, we should be able to
+  // FILE_LIST_DIRECTORY on WINDIR
   EXPECT_TRUE(retval);
 }
 
@@ -85,7 +87,7 @@ TEST_F(WmiTests, test_methodcall_outparams) {
   WmiResultItem out;
 
   // Get the first item off the result vector since we should only have one.
-  auto &resultItem = wmiResults.front();
+  auto& resultItem = wmiResults.front();
   auto status = resultItem.ExecMethod("GetOwner", args, out);
 
   // We use this check to make debugging errors faster
@@ -118,4 +120,4 @@ TEST_F(WmiTests, test_methodcall_outparams) {
   EXPECT_EQ(domain_name, "NT AUTHORITY");
 }
 
-}
+} // namespace osquery

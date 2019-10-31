@@ -20,7 +20,7 @@ WmiMethodArgs::WmiMethodArgs(WmiMethodArgs&& src) {
 }
 
 WmiMethodArgs::~WmiMethodArgs() {
-  for (const auto &p : arguments) {
+  for (const auto& p : arguments) {
     auto var = p.second;
 
     // BSTR variant types have a raw pointer we need to clean up
@@ -32,7 +32,8 @@ WmiMethodArgs::~WmiMethodArgs() {
 }
 
 template <>
-Status WmiMethodArgs::Put<unsigned int>(const std::string& name, const unsigned int& value) {
+Status WmiMethodArgs::Put<unsigned int>(const std::string& name,
+                                        const unsigned int& value) {
   VARIANT var;
   var.vt = VT_UI4;
   var.ulVal = value;
@@ -42,7 +43,8 @@ Status WmiMethodArgs::Put<unsigned int>(const std::string& name, const unsigned 
 }
 
 template <>
-Status WmiMethodArgs::Put<std::string>(const std::string& name, const std::string& value) {
+Status WmiMethodArgs::Put<std::string>(const std::string& name,
+                                       const std::string& value) {
   auto wide_value = stringToWstring(value);
 
   VARIANT var;
@@ -321,13 +323,17 @@ Status WmiResultItem::GetVectorOfStrings(const std::string& name,
   return Status(0);
 }
 
-Status WmiResultItem::ExecMethod(const std::string& method, const WmiMethodArgs& args, WmiResultItem& out_result) const {
+Status WmiResultItem::ExecMethod(const std::string& method,
+                                 const WmiMethodArgs& args,
+                                 WmiResultItem& out_result) const {
   std::wstring property_name = stringToWstring(method);
 
-  IWbemClassObject *raw = nullptr;
+  IWbemClassObject* raw = nullptr;
 
-  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> in_def{nullptr, impl::wmiObjectDeleter};
-  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> class_obj{nullptr, impl::wmiObjectDeleter};
+  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> in_def{
+      nullptr, impl::wmiObjectDeleter};
+  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> class_obj{
+      nullptr, impl::wmiObjectDeleter};
 
   BSTR wmi_class_name = WbemClassObjectPropToBSTR(*this, "__CLASS");
   if (wmi_class_name == nullptr) {
@@ -355,7 +361,8 @@ Status WmiResultItem::ExecMethod(const std::string& method, const WmiMethodArgs&
   in_def.reset(raw);
   raw = nullptr;
 
-  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> args_inst{nullptr, impl::wmiObjectDeleter};
+  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> args_inst{
+      nullptr, impl::wmiObjectDeleter};
 
   // in_def can be nullptr if the chosen method has no in-parameters
   if (in_def != nullptr) {
@@ -366,8 +373,8 @@ Status WmiResultItem::ExecMethod(const std::string& method, const WmiMethodArgs&
     args_inst.reset(raw);
 
     // Build up the WMI method call arguments
-    for (const auto &p : args.GetArguments()) {
-      const auto &name = p.first;
+    for (const auto& p : args.GetArguments()) {
+      const auto& name = p.first;
       auto pVal = p.second;
 
       auto args_name = stringToWstring(name);
@@ -379,8 +386,9 @@ Status WmiResultItem::ExecMethod(const std::string& method, const WmiMethodArgs&
     }
   }
 
-  // In order to execute a WMI method, we need to know the specific object name and method name
-  IWbemClassObject *out_params = nullptr;
+  // In order to execute a WMI method, we need to know the specific object name
+  // and method name
+  IWbemClassObject* out_params = nullptr;
 
   auto wmi_meth_name = SysAllocString(property_name.c_str());
   if (wmi_meth_name == nullptr) {
@@ -393,8 +401,15 @@ Status WmiResultItem::ExecMethod(const std::string& method, const WmiMethodArgs&
     return Status(-1, "Out of memory");
   }
 
-  // Execute the WMI method, the return value and out-params all exist in out_params
-  hr = services_->ExecMethod(wmi_obj_path, wmi_meth_name, 0, nullptr, args_inst.get(), &out_params, nullptr);
+  // Execute the WMI method, the return value and out-params all exist in
+  // out_params
+  hr = services_->ExecMethod(wmi_obj_path,
+                             wmi_meth_name,
+                             0,
+                             nullptr,
+                             args_inst.get(),
+                             &out_params,
+                             nullptr);
 
   SysFreeString(wmi_meth_name);
   SysFreeString(wmi_obj_path);
@@ -414,7 +429,7 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
   HRESULT hr = E_FAIL;
 
-  IWbemLocator *locator = nullptr;
+  IWbemLocator* locator = nullptr;
   hr = ::CoInitializeSecurity(nullptr,
                               -1,
                               nullptr,
@@ -435,7 +450,7 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
   locator_.reset(locator);
 
-  IWbemServices *services = nullptr;
+  IWbemServices* services = nullptr;
   hr = locator_->ConnectServer(
       nspace, nullptr, nullptr, nullptr, 0, nullptr, nullptr, &services);
   if (hr != S_OK) {
@@ -444,10 +459,13 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
   services_.reset(services);
 
-  IEnumWbemClassObject *wbem_enum = nullptr;
+  IEnumWbemClassObject* wbem_enum = nullptr;
 
-  hr = services_->ExecQuery(
-      (BSTR)L"WQL", (BSTR)wql.c_str(), WBEM_FLAG_FORWARD_ONLY, nullptr, &wbem_enum);
+  hr = services_->ExecQuery((BSTR)L"WQL",
+                            (BSTR)wql.c_str(),
+                            WBEM_FLAG_FORWARD_ONLY,
+                            nullptr,
+                            &wbem_enum);
   if (hr != S_OK) {
     return;
   }
@@ -471,4 +489,4 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 WmiRequest::~WmiRequest() {
   results_.clear();
 }
-}
+} // namespace osquery
