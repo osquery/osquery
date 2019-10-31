@@ -6,6 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <boost/algorithm.hpp>
 #include <boost/filesystem.hpp>
 
 #include <osquery/filesystem/filesystem.h>
