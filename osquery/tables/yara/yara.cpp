@@ -63,7 +63,7 @@ static bool shouldSkipFile(const std::string& path) {
 
   // avoid reading osquery DB LOCK files
   if (path.find("osquery") != std::string::npos) {
-    if (boost::algorithm::ends_with(path,"LOCK") {
+    if (boost::algorithm::ends_with(path,"LOCK")) {
       return true;
     }
   }
