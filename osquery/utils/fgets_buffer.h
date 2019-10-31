@@ -29,7 +29,7 @@ struct NonblockingFile {
 
   virtual bool isDataAvail() = 0;
 
-  virtual ssize_t read(std::vector<char>& buf) = 0;
+  virtual ssize_t nbRead(std::vector<char>& buf) = 0;
 
   virtual void close() = 0;
 
@@ -82,7 +82,7 @@ class NonblockingFileImpl : public NonblockingFile {
    * Reads data from file, appending to buf upto capacity.
    * @return number of bytes read, -1 on error, 0 on none.
    */
-  ssize_t read(std::vector<char>& buf) override {
+  ssize_t nbRead(std::vector<char>& buf) override {
     char tmpbuf[4096];
     size_t remaining = buf.capacity() - buf.size();
     auto len = (remaining > sizeof(tmpbuf) ? sizeof(tmpbuf) : remaining);
@@ -149,7 +149,7 @@ class FgetsBuffer {
     if (spFile_->isDataAvail()) {
       // read more
 
-      ssize_t bytesRead = spFile_->read(buf_);
+      ssize_t bytesRead = spFile_->nbRead(buf_);
       if (bytesRead > 0) {
         // try again to see if entire line is available
 

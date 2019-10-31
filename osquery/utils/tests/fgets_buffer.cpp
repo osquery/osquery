@@ -30,7 +30,7 @@ struct FakeFile : public NonblockingFile {
     return !buf_.empty();
   };
 
-  ssize_t read(std::vector<char>& dest) override {
+  ssize_t nbRead(std::vector<char>& dest) override {
     size_t remaining = dest.capacity() - dest.size();
     size_t len = (buf_.size() > remaining ? remaining : buf_.size());
     auto p = dest.data() + dest.size();
