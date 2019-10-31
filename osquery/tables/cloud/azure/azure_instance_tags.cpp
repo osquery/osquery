@@ -28,6 +28,7 @@ QueryData genAzureTags(QueryContext& context) {
 
   if (!s.ok()) {
     TLOG << "Couldn't fetch metadata: " << s.what();
+    return results;
   }
 
   auto tags_str = tree_get(tree, "tags");

@@ -22,7 +22,7 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/remote:http_client"),
-        osquery_target("osquery/remote/transports:tls"),
+        osquery_target("osquery/remote/transports:transports_tls"),
         osquery_target("osquery/utils/json:json"),
         osquery_target("osquery/utils/status:status"),
     ],
