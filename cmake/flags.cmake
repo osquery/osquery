@@ -61,6 +61,7 @@ function(setupBuildFlags)
     )
 
     set(posix_cxx_link_options
+      -ldl
     )
 
     set(posix_c_compile_options
@@ -102,6 +103,8 @@ function(setupBuildFlags)
 
       set(linux_cxx_link_options
         --no-undefined
+        -lresolv
+        -pthread
       )
 
       set(linux_cxx_link_libraries
@@ -145,6 +148,7 @@ function(setupBuildFlags)
         "SHELL:-framework ServiceManagement"
         "SHELL:-framework SystemConfiguration"
         -stdlib=libc++
+        -lresolv
       )
 
       set(macos_cxx_link_libraries

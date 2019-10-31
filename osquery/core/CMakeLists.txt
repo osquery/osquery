@@ -63,10 +63,6 @@ function(generateOsqueryCore)
     thirdparty_sqlite
   )
 
-  if(DEFINED PLATFORM_POSIX)
-    list(APPEND dependencies thirdparty_glibc_pthread)
-  endif()
-
   if(DEFINED PLATFORM_LINUX)
     list(APPEND dependencies thirdparty_util-linux)
   endif()
