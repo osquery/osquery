@@ -255,6 +255,7 @@ class ProcRunner(object):
             while len(proc.children()) == 0:
                 if attempt > attempts:
                     return []
+                attempt += 1
                 time.sleep(self.interval)
             return [p.pid for p in proc.children()]
         except:
@@ -388,11 +389,11 @@ class ProcessGenerator(object):
 
     def _run_extension(self, timeout=0, path=None, silent=False):
         '''Spawn an osquery extension (example_extension)'''
-        global ARGS, CONFIG
+        global CONFIG, BUILD_DIR
         config = copy.deepcopy(CONFIG)
         config["options"]["extensions_socket"] += str(
             random.randint(1000, 9999))
-        binary = os.path.join(ARGS.build, "osquery", "example_extension.ext")
+        binary = os.path.join(BUILD_DIR, "osquery", "examples", "example_extension.ext")
         if path is not None:
             config["options"]["extensions_socket"] = path
         extension = ProcRunner(
