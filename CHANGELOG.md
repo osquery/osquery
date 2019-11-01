@@ -42,11 +42,11 @@
 
 ### Table Changes
 
-Added table `alf_services` to Darwin (Apple OS X) ([#5378](https://github.com/osquery/osquery/pull/5378))
-Removed table `connectivity` from Microsoft Windows ([#5500](https://github.com/osquery/osquery/pull/5500))
-Removed table `default_environment` from Microsoft Windows ([#5441](https://github.com/osquery/osquery/pull/5441))
-Removed table `windows_security_products` from Microsoft Windows ([#5479](https://github.com/osquery/osquery/pull/5479))
-Removed column `platform_mask` (`INTEGER_TYPE`) from table `osquery_info` ([#5898](https://github.com/osquery/osquery/pull/5898))
+- Added table `alf_services` to Darwin (Apple OS X) ([#5378](https://github.com/osquery/osquery/pull/5378))
+- Removed table `connectivity` from Microsoft Windows ([#5500](https://github.com/osquery/osquery/pull/5500))
+- Removed table `default_environment` from Microsoft Windows ([#5441](https://github.com/osquery/osquery/pull/5441))
+- Removed table `windows_security_products` from Microsoft Windows ([#5479](https://github.com/osquery/osquery/pull/5479))
+- Removed column `platform_mask` (`INTEGER_TYPE`) from table `osquery_info` ([#5898](https://github.com/osquery/osquery/pull/5898))
 
 <a name="4.0.2"></a>
 ## [4.0.2](https://github.com/osquery/osquery/releases/tag/4.0.2)
