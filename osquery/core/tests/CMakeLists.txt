@@ -147,6 +147,7 @@ function(generateOsqueryCoreTestsWmitestsTest)
   add_osquery_executable(osquery_core_tests_wmitests-test windows/wmi_tests.cpp)
 
   target_link_libraries(osquery_core_tests_wmitests-test PRIVATE
+    osquery_cxx_settings
     osquery_core
     osquery_config_tests_testutils
     osquery_remote_enroll_tlsenroll
