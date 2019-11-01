@@ -154,6 +154,7 @@ function(generateOsqueryCoreTestsWmitestsTest)
     osquery_sql_tests_sqltestutils
     osquery_utils_info
     tests_helper
+    thirdparty_googletest
   )
 endfunction()
 
