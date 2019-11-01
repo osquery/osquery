@@ -1,7 +1,11 @@
 ---
 name: New Release
-about: Reserved for contributors
+about: Checklist of Release actions
 ---
+
+<!-- Please only use this issue-type if you are creating a new release. -->
+
+<!-- Set the issue title to 'New release checklist for version X.Y.Z'. -->
 
 # New release checklist
 
