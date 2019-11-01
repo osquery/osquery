@@ -426,4 +426,8 @@ boost::filesystem::path getSystemRoot();
  * @return osquery::Status
  */
 Status platformLstat(const std::string& path, struct stat& d_stat);
+
+#ifdef __APPLE__
+Status describeBSDFileFlags(std::string& output, std::uint32_t st_flags);
+#endif
 }
