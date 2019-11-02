@@ -334,7 +334,7 @@ jobs:
 
     - powershell: |
         tools\ci\scripts\install_openssl_formula_dependencies.ps1
-      displayName: "Installing: Strawberry Perl and NASM"
+      displayName: "Installing: Strawberry Perl"
       workingDirectory: $(Build.SourcesDirectory)
 
     - task: CMake@1
