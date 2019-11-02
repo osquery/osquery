@@ -28,7 +28,7 @@
 
 ### Bug Fixes
 
-- Set Windows MSI ErrorControl to normal instead of critical #8e67884
+- Set Windows MSI ErrorControl to normal instead of critical ([#5818](https://github.com/osquery/osquery/pull/5818))
 - Wrap flagfile with quotes for Windows install flag ([#5824](https://github.com/osquery/osquery/pull/5824))
 - Improve submodule usages in CMake ([#5850](https://github.com/osquery/osquery/pull/5850)), ([#5880](https://github.com/osquery/osquery/pull/5880)), ([#5892](https://github.com/osquery/osquery/pull/5892)), ([#5897](https://github.com/osquery/osquery/pull/5897)), ([#5907](https://github.com/osquery/osquery/pull/5907))
 - Improve locking support in internal APIS ([#5841](https://github.com/osquery/osquery/pull/5841)), ([#5906](https://github.com/osquery/osquery/pull/5906)), ([#5943](https://github.com/osquery/osquery/pull/5943)), ([#5944](https://github.com/osquery/osquery/pull/5944))
@@ -43,10 +43,10 @@
 ### Table Changes
 
 - Added table `alf_services` to Darwin (Apple OS X) ([#5378](https://github.com/osquery/osquery/pull/5378))
-- Removed table `connectivity` from Microsoft Windows ([#5500](https://github.com/osquery/osquery/pull/5500))
-- Removed table `default_environment` from Microsoft Windows ([#5441](https://github.com/osquery/osquery/pull/5441))
-- Removed table `windows_security_products` from Microsoft Windows ([#5479](https://github.com/osquery/osquery/pull/5479))
-- Removed column `platform_mask` (`INTEGER_TYPE`) from table `osquery_info` ([#5898](https://github.com/osquery/osquery/pull/5898))
+- Added table `connectivity` to Microsoft Windows ([#5500](https://github.com/osquery/osquery/pull/5500))
+- Added table `default_environment` to Microsoft Windows ([#5441](https://github.com/osquery/osquery/pull/5441))
+- Added table `windows_security_products` to Microsoft Windows ([#5479](https://github.com/osquery/osquery/pull/5479))
+- Added column `platform_mask` (`INTEGER_TYPE`) to table `osquery_info` ([#5898](https://github.com/osquery/osquery/pull/5898))
 
 <a name="4.0.2"></a>
 ## [4.0.2](https://github.com/osquery/osquery/releases/tag/4.0.2)
