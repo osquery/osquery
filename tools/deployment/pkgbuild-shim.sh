@@ -30,10 +30,11 @@ while [ "$1" != "" ]; do
     shift
 done
 
-# set identifier as we desire
-if [ ! -z "$PKG_IDENTIFIER" ]; then
-    args+=(--identifier "$PKG_IDENTIFIER")
-fi
+# Set the identifier, if not overridden
+PKG_IDENTIFIER=${PKG_IDENTIFIER:-com.facebook.osquery}
+args+=(--identifier "$PKG_IDENTIFIER")
 
 # hand off to pkgbuild
+echo "exec pkgbuild as:"
+echo "${args[@]}"
 exec pkgbuild "${args[@]}"
