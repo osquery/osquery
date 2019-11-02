@@ -12,11 +12,12 @@ function(generateOsqueryCorePlugins)
   add_osquery_library(osquery_core_plugins EXCLUDE_FROM_ALL
     logger.cpp
     plugin.cpp
-    sql.cpp
+    sql_plugin.cpp
   )
 
   target_link_libraries(osquery_core_plugins PUBLIC
     osquery_cxx_settings
+    osquery_core
     osquery_core_sql
     osquery_utils_json
     osquery_utils_status
@@ -25,10 +26,10 @@ function(generateOsqueryCorePlugins)
   set(public_header_files
     logger.h
     plugin.h
-    sql.h
+    sql_plugin.h
   )
 
-  generateIncludeNamespace(osquery_core_plugins "osquery/plugins" "FILE_ONLY" ${public_header_files})
+  generateIncludeNamespace(osquery_core_plugins "osquery/core/plugins" "FILE_ONLY" ${public_header_files})
 endfunction()
 
 osqueryCorePluginsMain()

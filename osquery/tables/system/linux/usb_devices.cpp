@@ -10,8 +10,8 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include <osquery/events/linux/udev.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/system/linux/udev.h>
 
 namespace osquery {
 namespace tables {
@@ -29,7 +29,7 @@ const std::string kUSBKeyAddress = "BUSNUM";
 const std::string kUSBKeyPort = "DEVNUM";
 const std::string kUSBKeyType = "TYPE";
 
-QueryData genUSBDevices(QueryContext &context) {
+QueryData genUSBDevices(QueryContext& context) {
   QueryData results;
 
   auto udev_handle = udev_new();
@@ -48,26 +48,25 @@ QueryData genUSBDevices(QueryContext &context) {
   device_entries = udev_enumerate_get_list_entry(enumerate);
 
   udev_list_entry_foreach(entry, device_entries) {
-    const char *path = udev_list_entry_get_name(entry);
+    const char* path = udev_list_entry_get_name(entry);
     auto device = udev_device_new_from_syspath(udev_handle, path);
 
     Row r;
-    // r["driver"] = UdevEventPublisher::getValue(device, kUSBKeyDriver);
-    r["vendor"] = UdevEventPublisher::getValue(device, kUSBKeyVendor);
-    r["model"] = UdevEventPublisher::getValue(device, kUSBKeyModel);
+    // r["driver"] = getUdevValue(device, kUSBKeyDriver);
+    r["vendor"] = getUdevValue(device, kUSBKeyVendor);
+    r["model"] = getUdevValue(device, kUSBKeyModel);
     if (r["model"].empty()) {
-      r["model"] = UdevEventPublisher::getValue(device, kUSBKeyModelFallback);
+      r["model"] = getUdevValue(device, kUSBKeyModelFallback);
     }
 
     // USB-specific vendor/model ID properties.
-    r["model_id"] = UdevEventPublisher::getValue(device, kUSBKeyModelID);
-    r["vendor_id"] = UdevEventPublisher::getValue(device, kUSBKeyVendorID);
-    r["version"] =
-        UdevEventPublisher::getValue(device, kUSBDeviceReleaseNumber);
-    r["serial"] = UdevEventPublisher::getValue(device, kUSBKeySerial);
+    r["model_id"] = getUdevValue(device, kUSBKeyModelID);
+    r["vendor_id"] = getUdevValue(device, kUSBKeyVendorID);
+    r["version"] = getUdevValue(device, kUSBDeviceReleaseNumber);
+    r["serial"] = getUdevValue(device, kUSBKeySerial);
 
     // This will be of the form class/subclass/protocol and has to be parsed
-    auto devType = UdevEventPublisher::getValue(device, kUSBKeyType);
+    auto devType = getUdevValue(device, kUSBKeyType);
     auto classInfo = osquery::split(devType, "/");
     if (classInfo.size() == 3) {
       r["class"] = classInfo[0];
@@ -80,11 +79,11 @@ QueryData genUSBDevices(QueryContext &context) {
     }
 
     // Address/port accessors.
-    r["usb_address"] = UdevEventPublisher::getValue(device, kUSBKeyAddress);
-    r["usb_port"] = UdevEventPublisher::getValue(device, kUSBKeyPort);
+    r["usb_address"] = getUdevValue(device, kUSBKeyAddress);
+    r["usb_port"] = getUdevValue(device, kUSBKeyPort);
 
     // Removable detection.
-    auto removable = UdevEventPublisher::getAttr(device, "removable");
+    auto removable = getUdevAttr(device, "removable");
     if (removable == "unknown") {
       r["removable"] = "-1";
     } else {
@@ -103,5 +102,5 @@ QueryData genUSBDevices(QueryContext &context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

@@ -18,6 +18,7 @@ function(osqueryUtilsSystemMain)
   generateOsqueryUtilsSystemFilepath()
   generateOsqueryUtilsSystemErrno()
   generateOsqueryUtilsSystemCputopology()
+  generateOsqueryUtilsSystemUdev()
   generateOsqueryUtilsSystemTime()
   generateOsqueryUtilsSystem()
   generateOsqueryUtilsSystemUptime()
@@ -89,7 +90,7 @@ function(generateOsqueryUtilsSystemErrno)
 
   add_osquery_library(osquery_utils_system_errno EXCLUDE_FROM_ALL
     ${source_files}
-  ) 
+  )
 
   target_link_libraries(osquery_utils_system_errno PUBLIC
     osquery_cxx_settings
@@ -138,6 +139,25 @@ function(generateOsqueryUtilsSystemCputopology)
 
 endfunction()
 
+function(generateOsqueryUtilsSystemUdev)
+  if(DEFINED PLATFORM_LINUX)
+    add_osquery_library(osquery_utils_system_udev EXCLUDE_FROM_ALL
+      linux/udev.cpp
+    )
+
+    target_link_libraries(osquery_utils_system_udev PUBLIC
+      osquery_cxx_settings
+      thirdparty_libudev
+    )
+
+    set(public_header_files
+      linux/udev.h
+    )
+
+    generateIncludeNamespace(osquery_utils_system_udev "osquery/utils/system" "FULL_PATH" ${public_header_files})
+  endif()
+endfunction()
+
 function(generateOsqueryUtilsSystemTime)
   set(source_files
     time.cpp
@@ -147,7 +167,7 @@ function(generateOsqueryUtilsSystemTime)
     list(APPEND source_files
       posix/time.cpp
     )
-    
+
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/time.cpp
@@ -193,7 +213,7 @@ function(generateOsqueryUtilsSystem)
 
   add_osquery_library(osquery_utils_system_systemutils EXCLUDE_FROM_ALL
     ${source_files}
-  ) 
+  )
 
   target_link_libraries(osquery_utils_system_systemutils PUBLIC
     osquery_cxx_settings
@@ -219,7 +239,7 @@ endfunction()
 function(generateOsqueryUtilsSystemUptime)
   add_osquery_library(osquery_utils_system_uptime EXCLUDE_FROM_ALL
     uptime.cpp
-  ) 
+  )
 
   target_link_libraries(osquery_utils_system_uptime PUBLIC
     osquery_cxx_settings

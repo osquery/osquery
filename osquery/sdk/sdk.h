@@ -25,17 +25,6 @@
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
-/**
- * @brief Create the external SQLite implementation wrapper.
- *
- * Anything built with only libosquery and not the 'additional' library will
- * not include a native SQL implementation. This applies to extensions and
- * separate applications built with the osquery SDK.
- *
- * The ExternalSQLPlugin is a wrapper around the SQLite API, which forwards
- * calls to an osquery extension manager (core).
- */
-REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
 
 /**
  * @brief Mimic the REGISTER macro, extensions should use this helper.
@@ -117,4 +106,4 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
 #define CREATE_REGISTRY "Do not CREATE_REGISTRY in the osquery SDK"
 #undef CREATE_LAZY_REGISTRY
 #define CREATE_LAZY_REGISTRY "Do not CREATE_LAZY_REGISTRY in the osquery SDK"
-}
+} // namespace osquery

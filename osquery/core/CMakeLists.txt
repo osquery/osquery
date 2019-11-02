@@ -47,6 +47,8 @@ function(generateOsqueryCore)
     osquery_config
     osquery_core_plugins
     osquery_core_sql
+    osquery_dispatcher
+    osquery_distributed
     osquery_filesystem
     osquery_process
     osquery_utils

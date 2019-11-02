@@ -8,21 +8,20 @@
 
 #pragma once
 
-#include <atomic>
-#include <map>
-#include <mutex>
-#include <unordered_set>
+#include <osquery/sql.h>
+#include <osquery/utils/mutex.h>
+
+#include <gtest/gtest_prod.h>
 
 #include <sqlite3.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/noncopyable.hpp>
 
-#include <osquery/sql.h>
-
-#include <osquery/utils/mutex.h>
-
-#include <gtest/gtest_prod.h>
+#include <atomic>
+#include <map>
+#include <mutex>
+#include <unordered_set>
 
 #define SQLITE_SOFT_HEAP_LIMIT (5 * 1024 * 1024)
 
@@ -436,7 +435,7 @@ void registerHashingExtensions(sqlite3* db);
 /**
  * @brief Register osquery operation 'custom' functions.
  */
-void registerOperationExtensions(sqlite3* db);
+extern void registerCarverExtensions(sqlite3* db);
 
 /**
  * @brief Register encoding-related 'custom' functions.

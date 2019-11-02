@@ -7,9 +7,7 @@
  */
 
 #include <osquery/config/tests/test_utils.h>
-
 #include <osquery/filesystem/filesystem.h>
-
 #include <osquery/utils/system/env.h>
 
 #include <gtest/gtest.h>
@@ -31,22 +29,22 @@ fs::path getConfDirPathImpl() {
   return fs::path(value_opt.get());
 }
 
-}
+} // namespace
 
 namespace osquery {
 
 fs::path const& getTestConfigDirectory() {
-    static auto const path = getConfDirPathImpl();
-    return path;
+  static auto const path = getConfDirPathImpl();
+  return path;
 }
 
 std::map<std::string, std::string> getTestConfigMap(const std::string& file) {
   std::string content;
   auto const filepath = getTestConfigDirectory() / file;
   auto status = readFile(filepath, content);
-  EXPECT_TRUE(status.ok())
-      << "Could not read file: " << boost::io::quoted(filepath.string())
-      << ", because: " << status.what();
+  EXPECT_TRUE(status.ok()) << "Could not read file: "
+                           << boost::io::quoted(filepath.string())
+                           << ", because: " << status.what();
   std::map<std::string, std::string> config;
   config["awesome"] = content;
   return config;
@@ -56,9 +54,9 @@ JSON getExamplePacksConfig() {
   std::string content;
   auto const filepath = getTestConfigDirectory() / "test_inline_pack.conf";
   auto status = readFile(filepath, content);
-  EXPECT_TRUE(status.ok())
-      << "Could not read file: " << boost::io::quoted(filepath.string())
-      << ", because: " << status.what();
+  EXPECT_TRUE(status.ok()) << "Could not read file: "
+                           << boost::io::quoted(filepath.string())
+                           << ", because: " << status.what();
   JSON doc = JSON::newObject();
   doc.fromString(content);
   return doc;

@@ -6,18 +6,20 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <fstream>
-#include <locale>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/trim.hpp>
-
 #include <osquery/core.h>
-#include <osquery/events/linux/udev.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/tables/system/linux/pci_devices.h>
+#include <osquery/utils/system/linux/udev.h>
+
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
+#include <libudev.h>
+
+#include <fstream>
+#include <locale>
 
 namespace osquery {
 namespace tables {
@@ -337,14 +339,14 @@ Status extractPCIVendorModelInfo(
     std::unique_ptr<udev_device, decltype(&udev_device_unref)>& device,
     const PciDB& pcidb) {
   // Fallback data comes from UdevEventPublisher.
-  row["vendor"] = UdevEventPublisher::getValue(device.get(), kPCIKeyVendor);
-  row["model"] = UdevEventPublisher::getValue(device.get(), kPCIKeyModel);
+  row["vendor"] = getUdevValue(device.get(), kPCIKeyVendor);
+  row["model"] = getUdevValue(device.get(), kPCIKeyModel);
 
   // Now try PciDB for more up to date info.
   return extractVendorModelFromPciDBIfPresent(
       row,
-      UdevEventPublisher::getValue(device.get(), kPCIKeyID),
-      UdevEventPublisher::getValue(device.get(), kPCISubsysID),
+      getUdevValue(device.get(), kPCIKeyID),
+      getUdevValue(device.get(), kPCISubsysID),
       pcidb);
 }
 
@@ -420,11 +422,10 @@ QueryData genPCIDevices(QueryContext& context) {
     }
 
     Row r;
-    r["pci_slot"] = UdevEventPublisher::getValue(device.get(), kPCIKeySlot);
-    r["pci_class"] = UdevEventPublisher::getValue(device.get(), kPCIKeyClass);
-    r["pci_subclass"] =
-        UdevEventPublisher::getValue(device.get(), kPCIKeySubclass);
-    r["driver"] = UdevEventPublisher::getValue(device.get(), kPCIKeyDriver);
+    r["pci_slot"] = getUdevValue(device.get(), kPCIKeySlot);
+    r["pci_class"] = getUdevValue(device.get(), kPCIKeyClass);
+    r["pci_subclass"] = getUdevValue(device.get(), kPCIKeySubclass);
+    r["driver"] = getUdevValue(device.get(), kPCIKeyDriver);
 
     auto status = extractPCIVendorModelInfo(r, device, pcidb);
     if (!status.ok()) {
@@ -432,8 +433,7 @@ QueryData genPCIDevices(QueryContext& context) {
               << status.getMessage();
     }
 
-    status = extractPCIClassIDAttrs(
-        r, UdevEventPublisher::getValue(device.get(), kPCIClassID));
+    status = extractPCIClassIDAttrs(r, getUdevValue(device.get(), kPCIClassID));
     if (!status.ok()) {
       VLOG(1) << "Failed to extract PCI class attributes: "
               << status.getMessage();

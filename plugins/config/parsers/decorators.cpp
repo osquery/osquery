@@ -6,22 +6,17 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <plugins/config/parsers/decorators.h>
 #include <osquery/config/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 #include <osquery/utils/json/json.h>
+#include <plugins/config/parsers/decorators.h>
 
 namespace osquery {
 
 FLAG(bool, disable_decorators, false, "Disable log result decoration");
-
-FLAG(bool,
-     decorations_top_level,
-     false,
-     "Add decorators as top level JSON objects");
 
 /// Statically define the parser name to avoid mistakes.
 const std::string kDecorationsName{"decorators"};
@@ -99,7 +94,7 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
   /// Protect the configuration controlled content.
   static Mutex kDecorationsConfigMutex;
 };
-}
+} // namespace
 
 DecorationStore DecoratorsConfigParserPlugin::kDecorations;
 Mutex DecoratorsConfigParserPlugin::kDecorationsMutex;
@@ -299,4 +294,4 @@ void getDecorations(std::map<std::string, std::string>& results) {
 REGISTER_INTERNAL(DecoratorsConfigParserPlugin,
                   "config_parser",
                   kDecorationsName.c_str());
-}
+} // namespace osquery

@@ -16,6 +16,8 @@ function(generateOsqueryConfig)
   add_osquery_library(osquery_config EXCLUDE_FROM_ALL
     config.cpp
     packs.cpp
+    config_plugin.cpp
+    config_parser_plugin.cpp
   )
 
   enableLinkWholeArchive(osquery_config)
@@ -23,6 +25,8 @@ function(generateOsqueryConfig)
   target_link_libraries(osquery_config PUBLIC
     osquery_cxx_settings
     osquery_headers
+    osquery_dispatcher
+    osquery_events
     osquery_filesystem
     osquery_hashing
     osquery_utils
@@ -31,17 +35,16 @@ function(generateOsqueryConfig)
 
   set(public_header_files
     config.h
+    config_plugin.h
+    config_parser_plugin.h
   )
 
   generateIncludeNamespace(osquery_config "osquery/config" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_config_tests-test COMMAND osquery_config_tests-test)
 
-  add_test(NAME osquery_config_tests_packs-test COMMAND osquery_config_tests_packs-test)
-
   set_tests_properties(
     osquery_config_tests-test
-    osquery_config_tests_packs-test
     PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
   )
 

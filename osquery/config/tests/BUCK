@@ -11,34 +11,7 @@ osquery_cxx_test(
     name = "config_tests",
     srcs = [
         "config_tests.cpp",
-    ],
-    env = {
-        "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:conf_files"),
-        ),
-    },
-    visibility = ["PUBLIC"],
-    deps = [
-        osquery_target("osquery/config:config"),
-        osquery_target("osquery/dispatcher:dispatcher"),
-        osquery_target("osquery/events:events"),
-        osquery_target("osquery/extensions:extensions"),
-        osquery_target("osquery/extensions:impl_thrift"),
-        osquery_target("osquery/filesystem:mock_file_structure"),
-        osquery_target("osquery/registry:registry"),
-        osquery_target("osquery/remote/enroll:tls_enroll"),
-        osquery_target("osquery/utils/system:time"),
-        osquery_target("plugins/config:tls_config"),
-        osquery_target("plugins/database:ephemeral"),
-        osquery_target("specs:tables"),
-        ":test_utils",
-    ],
-)
-
-osquery_cxx_test(
-    name = "packs",
-    srcs = [
-        "packs.cpp",
+        "packs_tests.cpp",
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(

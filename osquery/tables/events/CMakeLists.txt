@@ -56,7 +56,7 @@ function(generateOsqueryTablesEventsEventstable)
     osquery_headers
     osquery_config
     osquery_core
-    osquery_events
+    osquery_events_publishers
     osquery_logger
     osquery_registry
     osquery_utils_system_uptime

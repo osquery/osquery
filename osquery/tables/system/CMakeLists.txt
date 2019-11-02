@@ -239,6 +239,7 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_LINUX)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
+      osquery_utils_system_udev
       thirdparty_libdevmapper
       thirdparty_libdpkg
       thirdparty_libelfin

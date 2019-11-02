@@ -11,7 +11,6 @@
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/registry_interface.h>
-#include <osquery/plugins/sql.h>
 
 namespace osquery {
 
@@ -41,24 +40,6 @@ inline std::string getExtensionSocket(
     RouteUUID uuid, const std::string& path = FLAGS_extensions_socket) {
   return (uuid == 0) ? path : path + "." + std::to_string(uuid);
 }
-
-/// External (extensions) SQL implementation plugin provider for "sql" registry.
-class ExternalSQLPlugin : public SQLPlugin {
- public:
-  Status query(const std::string& query,
-               QueryData& results,
-               bool use_cache = false) const override;
-
-  Status getQueryTables(const std::string& query,
-                        std::vector<std::string>& tables) const override {
-    static_cast<void>(query);
-    static_cast<void>(tables);
-    return Status::success();
-  }
-
-  Status getQueryColumns(const std::string& query,
-                         TableColumns& columns) const override;
-};
 
 /// Status get a list of active extenions.
 Status getExtensions(ExtensionList& extensions);
@@ -183,4 +164,4 @@ Status startExtensionManager();
 
 /// Internal startExtensionManager implementation.
 Status startExtensionManager(const std::string& manager_path);
-}
+} // namespace osquery

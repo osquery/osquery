@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <osquery/config/config.h>
+#include <osquery/config/config_plugin.h>
 #include <osquery/dispatcher.h>
 
 namespace osquery {

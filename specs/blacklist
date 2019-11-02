@@ -25,3 +25,4 @@ freebsd:oem_strings
 
 # Blacklisting as an example:
 example
+carves

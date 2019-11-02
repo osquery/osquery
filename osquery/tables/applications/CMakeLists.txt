@@ -52,6 +52,7 @@ function(generateOsqueryTablesApplications)
     osquery_cxx_settings
     osquery_config
     osquery_filesystem
+    osquery_remote_httpclient
     osquery_tables_system_systemtable
     osquery_utils_conversions
     osquery_utils_info

@@ -7,7 +7,6 @@
 function(osqueryConfigTestsMain)
   generateOsqueryConfigTestsTestUtils()
   generateOsqueryConfigTestsTest()
-  generateOsqueryConfigTestsPacksTest()
 endfunction()
 
 function(generateOsqueryConfigTestsTestUtils)
@@ -28,51 +27,24 @@ function(generateOsqueryConfigTestsTestUtils)
 endfunction()
 
 function(generateOsqueryConfigTestsTest)
-  add_osquery_executable(osquery_config_tests-test config_tests.cpp)
+  add_osquery_executable(osquery_config_tests-test
+    config_tests.cpp
+    packs_tests.cpp
+  )
 
   target_link_libraries(osquery_config_tests-test PRIVATE
     osquery_cxx_settings
     osquery_config
-    osquery_dispatcher
-    osquery_events
-    osquery_extensions
     osquery_extensions_implthrift
-    osquery_filesystem_mockfilestructure
-    osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_utils_system_time
-    plugins_config_tlsconfig
     plugins_database_ephemeral
-    specs_tables
+
+    thirdparty_googletest
+
+    osquery_filesystem_mockfilestructure
     osquery_config_tests_testutils
     osquery_tools_tests_conffiles
-    thirdparty_googletest
   )
-
-endfunction()
-
-function(generateOsqueryConfigTestsPacksTest)
-  add_osquery_executable(osquery_config_tests_packs-test packs.cpp)
-
-  target_link_libraries(osquery_config_tests_packs-test PRIVATE
-    osquery_cxx_settings
-    osquery_config
-    osquery_dispatcher
-    osquery_events
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_filesystem_mockfilestructure
-    osquery_registry
-    osquery_remote_enroll_tlsenroll
-    osquery_utils_system_time
-    plugins_config_tlsconfig
-    plugins_database_ephemeral
-    specs_tables
-    osquery_config_tests_testutils
-    osquery_tools_tests_conffiles
-    thirdparty_googletest
-  )
-
 endfunction()
 
 osqueryConfigTestsMain()

@@ -6,8 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include "logger.h"
-
+#include <osquery/core/plugins/logger.h>
 #include <osquery/utils/json/json.h>
 
 namespace rj = rapidjson;
@@ -17,7 +16,7 @@ namespace osquery {
 namespace {
 
 void deserializeIntermediateLog(const PluginRequest& request,
-                                       std::vector<StatusLogLine>& log) {
+                                std::vector<StatusLogLine>& log) {
   if (request.count("log") == 0) {
     return;
   }
@@ -40,7 +39,7 @@ void deserializeIntermediateLog(const PluginRequest& request,
   }
 }
 
-}
+} // namespace
 
 Status LoggerPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {

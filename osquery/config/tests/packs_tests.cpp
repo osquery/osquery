@@ -26,7 +26,6 @@
 #include <string>
 #include <vector>
 
-
 namespace osquery {
 
 DECLARE_bool(disable_database);
@@ -279,4 +278,4 @@ TEST_F(PacksTests, test_restore_splay) {
   EXPECT_LE(splay3, 3600U * 10 + (360 * 10));
   EXPECT_NE(splay, splay3);
 }
-}
+} // namespace osquery

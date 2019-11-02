@@ -21,7 +21,10 @@ namespace rj = rapidjson;
 
 namespace osquery {
 
-DECLARE_bool(decorations_top_level);
+FLAG(bool,
+     decorations_top_level,
+     false,
+     "Add decorators as top level JSON objects");
 
 /// Log numeric values as numbers (in JSON syntax)
 FLAG(bool,
@@ -337,4 +340,4 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& item,
   return Status::success();
 }
 
-}
+} // namespace osquery

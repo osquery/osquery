@@ -11,6 +11,51 @@ function(osquerySqlMain)
   endif()
 
   generateOsquerySql()
+  generateOsquerySqlCarver()
+  generateOsquerySqlSqliteplugin()
+endfunction()
+
+function(generateOsquerySqlCarver)
+  set(source_files
+    sqlite_carver.cpp
+  )
+
+  add_osquery_library(osquery_sql_carver EXCLUDE_FROM_ALL
+    ${source_files}
+  )
+
+  # enableLinkWholeArchive(osquery_sql_carver)
+
+  target_link_libraries(osquery_sql_carver PUBLIC
+    osquery_cxx_settings
+    osquery_sql
+    osquery_carver
+    osquery_core
+    osquery_core_plugins
+    thirdparty_boost
+    thirdparty_googletest_headers
+    thirdparty_sqlite
+    thirdparty_gflags
+  )
+endfunction()
+
+function(generateOsquerySqlSqliteplugin)
+  set(source_files
+    sql_plugin_sqlite.cpp
+  )
+
+  add_osquery_library(osquery_sql_sqliteplugin EXCLUDE_FROM_ALL
+    ${source_files}
+  )
+
+  enableLinkWholeArchive(osquery_sql_sqliteplugin)
+
+  target_link_libraries(osquery_sql_sqliteplugin PUBLIC
+    osquery_cxx_settings
+    osquery_core
+    osquery_core_plugins
+    thirdparty_sqlite
+  )
 endfunction()
 
 function(generateOsquerySql)
@@ -21,7 +66,6 @@ function(generateOsquerySql)
     sqlite_filesystem.cpp
     sqlite_hashing.cpp
     sqlite_math.cpp
-    sqlite_operations.cpp
     sqlite_util.cpp
     virtual_sqlite_table.cpp
     virtual_table.cpp
@@ -37,11 +81,10 @@ function(generateOsquerySql)
     ${source_files}
   )
 
-  enableLinkWholeArchive(osquery_sql)
+  # enableLinkWholeArchive(osquery_sql)
 
   target_link_libraries(osquery_sql PUBLIC
     osquery_cxx_settings
-    osquery_carver
     osquery_core
     osquery_core_plugins
     osquery_hashing
@@ -52,6 +95,10 @@ function(generateOsquerySql)
     thirdparty_googletest_headers
     thirdparty_sqlite
     thirdparty_gflags
+  )
+
+  target_link_libraries(osquery_sql PRIVATE
+    osquery_sql_sqliteplugin
   )
 
   if(NOT DEFINED PLATFORM_WINDOWS)

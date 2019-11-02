@@ -7,20 +7,17 @@
  */
 
 #include <osquery/config/config.h>
-
+#include <osquery/config/config_plugin.h>
 #include <osquery/config/tests/test_utils.h>
-
-#include <osquery/filesystem/filesystem.h>
-#include <osquery/filesystem/mock_file_structure.h>
-
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/dispatcher.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/filesystem/mock_file_structure.h>
 #include <osquery/flags.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
-
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
@@ -36,7 +33,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-
 
 namespace osquery {
 
@@ -113,7 +109,8 @@ class TestConfigPlugin : public ConfigPlugin {
     }
 
     std::string content;
-    auto s = readFile(getTestConfigDirectory() / "test_noninline_packs.conf", content);
+    auto s = readFile(getTestConfigDirectory() / "test_noninline_packs.conf",
+                      content);
     config["data"] = content;
     return s;
   }
@@ -369,7 +366,8 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
 TEST_F(ConfigTests, test_nonblacklist_query) {
   std::map<std::string, size_t> blacklist;
 
-  const std::string kConfigTestNonBlacklistQuery{"pack_unrestricted_pack_process_heartbeat"};
+  const std::string kConfigTestNonBlacklistQuery{
+      "pack_unrestricted_pack_process_heartbeat"};
 
   blacklist[kConfigTestNonBlacklistQuery] = getUnixTime() * 2;
   saveScheduleBlacklist(blacklist);
@@ -662,4 +660,4 @@ TEST_F(ConfigTests, test_config_backup_integrate) {
 
   FLAGS_config_enable_backup = config_enable_backup_saved;
 }
-}
+} // namespace osquery

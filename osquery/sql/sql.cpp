@@ -14,15 +14,10 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#include <osquery/plugins/sql.h>
-
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/info/tool_type.h>
 
 namespace osquery {
-
-
-CREATE_LAZY_REGISTRY(SQLPlugin, "sql");
 
 SQL::SQL(const std::string& query, bool use_cache) {
   TableColumns table_columns;
@@ -134,45 +129,6 @@ QueryData SQL::selectFrom(const std::initializer_list<std::string>& columns,
   return response;
 }
 
-Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
-  response.clear();
-  if (request.count("action") == 0) {
-    return Status(1, "SQL plugin must include a request action");
-  }
-
-  if (request.at("action") == "query") {
-    bool use_cache = (request.count("cache") && request.at("cache") == "1");
-    return this->query(request.at("query"), response, use_cache);
-  } else if (request.at("action") == "columns") {
-    TableColumns columns;
-    auto status = this->getQueryColumns(request.at("query"), columns);
-    // Convert columns to response
-    for (const auto& column : columns) {
-      response.push_back(
-          {{"n", std::get<0>(column)},
-           {"t", columnTypeName(std::get<1>(column))},
-           {"o", INTEGER(static_cast<size_t>(std::get<2>(column)))}});
-    }
-    return status;
-  } else if (request.at("action") == "attach") {
-    // Attach a virtual table name using an optional included definition.
-    return this->attach(request.at("table"));
-  } else if (request.at("action") == "detach") {
-    this->detach(request.at("table"));
-    return Status::success();
-  } else if (request.at("action") == "tables") {
-    std::vector<std::string> tables;
-    auto status = this->getQueryTables(request.at("query"), tables);
-    if (status.ok()) {
-      for (const auto& table : tables) {
-        response.push_back({{"t", table}});
-      }
-    }
-    return status;
-  }
-  return Status(1, "Unknown action");
-}
-
 Status query(const std::string& q, QueryData& results, bool use_cache) {
   return Registry::call(
       "sql",
@@ -224,4 +180,4 @@ Status getQueryTables(const std::string& q, std::vector<std::string>& tables) {
   }
   return status;
 }
-}
+} // namespace osquery

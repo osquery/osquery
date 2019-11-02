@@ -6,8 +6,18 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/tables/system/linux/md_tables.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
+
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
 #include <errno.h>
 #include <fcntl.h>
+#include <libudev.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -19,16 +29,6 @@
 #include <fstream>
 #include <memory>
 #include <numeric>
-
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/algorithm/string/trim.hpp>
-
-#include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/events/linux/udev.h>
-#include <osquery/tables/system/linux/md_tables.h>
-#include <osquery/utils/conversions/split.h>
-#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -120,9 +120,8 @@ std::string MD::getPathByDevName(const std::string& name) {
   std::string devPath;
 
   walkUdevDevices("block", [&](udev_device* const& device) {
-    auto const devName = std::string(
-      udev_device_get_property_value(device, "DEVNAME")
-    );
+    auto const devName =
+        std::string(udev_device_get_property_value(device, "DEVNAME"));
     if (boost::ends_with(devName, name)) {
       if (!boost::starts_with(devPath, "/")) {
         devPath = "/dev/" + devPath;

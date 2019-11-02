@@ -151,6 +151,7 @@ function(generatePluginsLoggerKafkaproducer)
     target_link_libraries(plugins_logger_kafkaproducer PUBLIC
       osquery_cxx_settings
       plugins_logger_commondeps
+      osquery_remote_transports_transportstls
       osquery_dispatcher
       osquery_utils_config
       thirdparty_librdkafka

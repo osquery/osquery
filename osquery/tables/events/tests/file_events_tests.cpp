@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
+#include <osquery/config/config_plugin.h>
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/database.h>
 #include <osquery/events.h>

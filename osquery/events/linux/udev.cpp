@@ -100,24 +100,6 @@ Status UdevEventPublisher::run() {
   return Status::success();
 }
 
-std::string UdevEventPublisher::getValue(struct udev_device* device,
-                                         const std::string& property) {
-  auto value = udev_device_get_property_value(device, property.c_str());
-  if (value != nullptr) {
-    return std::string(value);
-  }
-  return "";
-}
-
-std::string UdevEventPublisher::getAttr(struct udev_device* device,
-                                        const std::string& attr) {
-  auto value = udev_device_get_sysattr_value(device, attr.c_str());
-  if (value != nullptr) {
-    return std::string(value);
-  }
-  return "";
-}
-
 UdevEventContextRef UdevEventPublisher::createEventContextFrom(
     struct udev_device* device) {
   auto ec = createEventContext();

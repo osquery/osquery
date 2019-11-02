@@ -13,6 +13,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/config/config_plugin.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>

@@ -14,6 +14,7 @@
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
+#include <osquery/utils/system/linux/udev.h>
 
 namespace osquery {
 
@@ -63,20 +64,18 @@ Status HardwareEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   r["driver"] = ec->driver;
 
   // UDEV properties.
-  r["model"] = UdevEventPublisher::getValue(device, "ID_MODEL_FROM_DATABASE");
+  r["model"] = getUdevValue(device, "ID_MODEL_FROM_DATABASE");
   if (r["path"].empty() && r["model"].empty()) {
     // Don't emit mising path/model combos.
     return Status::success();
   }
 
-  r["model_id"] = INTEGER(UdevEventPublisher::getValue(device, "ID_MODEL_ID"));
-  r["vendor"] = UdevEventPublisher::getValue(device, "ID_VENDOR_FROM_DATABASE");
-  r["vendor_id"] =
-      INTEGER(UdevEventPublisher::getValue(device, "ID_VENDOR_ID"));
-  r["serial"] =
-      INTEGER(UdevEventPublisher::getValue(device, "ID_SERIAL_SHORT"));
-  r["revision"] = INTEGER(UdevEventPublisher::getValue(device, "ID_REVISION"));
+  r["model_id"] = INTEGER(getUdevValue(device, "ID_MODEL_ID"));
+  r["vendor"] = getUdevValue(device, "ID_VENDOR_FROM_DATABASE");
+  r["vendor_id"] = INTEGER(getUdevValue(device, "ID_VENDOR_ID"));
+  r["serial"] = INTEGER(getUdevValue(device, "ID_SERIAL_SHORT"));
+  r["revision"] = INTEGER(getUdevValue(device, "ID_REVISION"));
   add(r);
   return Status(0);
 }
-}
+} // namespace osquery

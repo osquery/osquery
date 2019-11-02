@@ -8,7 +8,8 @@ function(osqueryTablesMain)
   add_subdirectory("applications")
   add_subdirectory("cloud")
   add_subdirectory("events")
-  add_subdirectory("forensic")
+  # The forensic tables depend on carver.
+  # add_subdirectory("forensic")
   add_subdirectory("lldpd")
   add_subdirectory("networking")
   add_subdirectory("sleuthkit")
@@ -46,7 +47,7 @@ function(generateOsqueryTablesTableimplementations)
   target_link_libraries(osquery_tables_tableimplementations INTERFACE
     osquery_tables_applications
     osquery_tables_events_eventstable
-    osquery_tables_forensic
+    # osquery_tables_forensic
     osquery_tables_networking
     osquery_tables_system_systemtable
     osquery_tables_utility_utilitytable

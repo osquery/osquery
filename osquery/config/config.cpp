@@ -19,6 +19,7 @@
 
 #include <osquery/config/config.h>
 #include <osquery/database.h>
+#include <osquery/dispatcher.h>
 #include <osquery/events.h>
 #include <osquery/flagalias.h>
 #include <osquery/flags.h>
@@ -43,24 +44,6 @@ using ConfigMap = std::map<std::string, std::string>;
 
 std::atomic<bool> is_first_time_refresh(true);
 }; // namespace
-
-/**
- * @brief Config plugin registry.
- *
- * This creates an osquery registry for "config" which may implement
- * ConfigPlugin. A ConfigPlugin's call API should make use of a genConfig
- * after reading JSON data in the plugin implementation.
- */
-CREATE_REGISTRY(ConfigPlugin, "config");
-
-/**
- * @brief ConfigParser plugin registry.
- *
- * This creates an osquery registry for "config_parser" which may implement
- * ConfigParserPlugin. A ConfigParserPlugin should not export any call actions
- * but rather have a simple property tree-accessor API through Config.
- */
-CREATE_LAZY_REGISTRY(ConfigParserPlugin, "config_parser");
 
 /// The config plugin must be known before reading options.
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
@@ -900,14 +883,6 @@ void Config::reset() {
   }
 }
 
-void ConfigParserPlugin::reset() {
-  // Resets will clear all top-level keys from the parser's data store.
-  for (auto& category : data_.doc().GetObject()) {
-    auto obj = data_.getObject();
-    data_.add(category.name.GetString(), obj, data_.doc());
-  }
-}
-
 void Config::recordQueryPerformance(const std::string& name,
                                     size_t delay,
                                     const Row& r0,
@@ -1044,64 +1019,6 @@ void Config::files(std::function<void(const std::string& category,
 }
 
 Config::~Config() = default;
-
-Status ConfigPlugin::genPack(const std::string& name,
-                             const std::string& value,
-                             std::string& pack) {
-  return Status(1, "Not implemented");
-}
-
-Status ConfigPlugin::call(const PluginRequest& request,
-                          PluginResponse& response) {
-  auto action = request.find("action");
-  if (action == request.end()) {
-    return Status::failure("Config plugins require an action");
-  }
-
-  if (action->second == "genConfig") {
-    std::map<std::string, std::string> config;
-    auto stat = genConfig(config);
-    response.push_back(config);
-    return stat;
-  } else if (action->second == "genPack") {
-    auto name = request.find("name");
-    auto value = request.find("value");
-    if (name == request.end() || value == request.end()) {
-      return Status(1, "Missing name or value");
-    }
-
-    std::string pack;
-    auto stat = genPack(name->second, value->second, pack);
-    response.push_back({{name->second, pack}});
-    return stat;
-  } else if (action->second == "update") {
-    auto source = request.find("source");
-    auto data = request.find("data");
-    if (source == request.end() || data == request.end()) {
-      return Status(1, "Missing source or data");
-    }
-
-    return Config::get().update({{source->second, data->second}});
-  } else if (action->second == "option") {
-    auto name = request.find("name");
-    if (name == request.end()) {
-      return Status(1, "Missing option name");
-    }
-
-    response.push_back(
-        {{"name", name->second}, {"value", Flag::getValue(name->second)}});
-    return Status::success();
-  }
-  return Status(1, "Config plugin action unknown: " + action->second);
-}
-
-Status ConfigParserPlugin::setUp() {
-  for (const auto& key : keys()) {
-    auto obj = data_.getObject();
-    data_.add(key, obj);
-  }
-  return Status::success();
-}
 
 void ConfigRefreshRunner::start() {
   while (!interrupted()) {

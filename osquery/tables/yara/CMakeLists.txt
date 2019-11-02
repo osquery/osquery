@@ -42,7 +42,7 @@ function(generateOsqueryTablesYaraYaratable)
     osquery_headers
     osquery_config
     osquery_dispatcher
-    osquery_events
+    osquery_events_publishers
     osquery_logger
     osquery_registry
     osquery_utils_config
@@ -57,7 +57,7 @@ function(generateOsqueryTablesYaraYaratable)
   generateIncludeNamespace(osquery_tables_yara_yaratable "osquery/tables/yara" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_tables_yara_tests-test COMMAND osquery_tables_yara_tests-test)
-  
+
 endfunction()
 
 osqueryTablesYaraMain()

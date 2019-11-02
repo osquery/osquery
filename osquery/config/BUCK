@@ -12,15 +12,18 @@ osquery_cxx_library(
     srcs = [
         "config.cpp",
         "packs.cpp",
+        "config_plugin.cpp",
+        "config_parser_plugin.cpp",
     ],
     header_namespace = "osquery/config",
     exported_headers = [
         "config.h",
+        "config_plugin.h",
+        "config_parser_plugin.h",
     ],
     link_whole = True,
     tests = [
         osquery_target("osquery/config/tests:config_tests"),
-        osquery_target("osquery/config/tests:packs"),
     ],
     visibility = ["PUBLIC"],
     deps = [

@@ -14,17 +14,19 @@ function(osquerySdkMain)
 endfunction()
 
 function(generateOsquerySdkPluginsdk)
-  add_osquery_library(osquery_sdk_pluginsdk EXCLUDE_FROM_ALL empty_register_foreign_tables.cpp)
+  add_osquery_library(osquery_sdk_pluginsdk EXCLUDE_FROM_ALL
+    sql_plugin_external.cpp
+    empty_register_foreign_tables.cpp
+  )
 
   target_link_libraries(osquery_sdk_pluginsdk INTERFACE
     osquery_headers
     osquery_config
-    osquery_dispatcher
+    osquery_core_plugins
     osquery_events_eventsregistry
     osquery_experimental_eventsstream_registry
     osquery_extensions
     osquery_numericmonitoring
-    osquery_remote_enroll_tlsenroll
     osquery_sql
     osquery_utils_conversions
     osquery_utils_debug
@@ -46,7 +48,6 @@ function(generateOsquerySdkPluginsdk)
   enableLinkWholeArchive(osquery_sdk_pluginsdk)
 
   set(public_headers
-    plugin_sdk.h
     sdk.h
   )
 

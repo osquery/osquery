@@ -8,18 +8,18 @@
 
 #pragma once
 
-#include <functional>
-#include <map>
-#include <memory>
-#include <vector>
-
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/core/sql/query_performance.h>
-#include <osquery/plugins/plugin.h>
 #include <osquery/query.h>
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/json/json.h>
 
 #include <gtest/gtest_prod.h>
+
+#include <functional>
+#include <map>
+#include <memory>
+#include <vector>
 
 namespace osquery {
 
@@ -27,7 +27,6 @@ class Status;
 class Config;
 class Pack;
 class Schedule;
-class ConfigParserPlugin;
 class ConfigRefreshRunner;
 
 /// The name of the executing query within the single-threaded schedule.
@@ -385,189 +384,6 @@ class Config : private boost::noncopyable {
   FRIEND_TEST(EventsTests, test_event_subscriber_configure);
   FRIEND_TEST(TLSConfigTests, test_retrieve_config);
   FRIEND_TEST(TLSConfigTests, test_runner_and_scheduler);
-};
-
-/**
- * @brief Superclass for the pluggable config component.
- *
- * In order to make the distribution of configurations to hosts running
- * osquery, we take advantage of a plugin interface which allows you to
- * integrate osquery with your internal configuration distribution mechanisms.
- * You may use ZooKeeper, files on disk, a custom solution, etc. In order to
- * use your specific configuration distribution system, one simply needs to
- * create a custom subclass of ConfigPlugin. That subclass should implement
- * the ConfigPlugin::genConfig method.
- *
- * Consider the following example:
- *
- * @code{.cpp}
- *   class TestConfigPlugin : public ConfigPlugin {
- *    public:
- *     virtual Status genConfig(std::map<std::string, std::string>& config) {
- *       config["my_source"] = "{}";
- *       return Status::success();
- *     }
- *   };
- *
- *   REGISTER(TestConfigPlugin, "config", "test");
- *  @endcode
- */
-class ConfigPlugin : public Plugin {
- public:
-  /**
-   * @brief Virtual method which should implemented custom config retrieval
-   *
-   * ConfigPlugin::genConfig should be implemented by a subclasses of
-   * ConfigPlugin which needs to retrieve config data in a custom way.
-   *
-   * @param config The output ConfigSourceMap, a map of JSON to source names.
-   *
-   * @return A failure status will prevent the source map from merging.
-   */
-  virtual Status genConfig(std::map<std::string, std::string>& config) = 0;
-
-  /**
-   * @brief Virtual method which could implement custom query pack retrieval
-   *
-   * The default config syntax for query packs is like the following:
-   *
-   * @code
-   *   {
-   *     "packs": {
-   *       "foo": {
-   *         "version": "1.5.0",
-   *         "platform:" "any",
-   *         "queries": {
-   *           // ...
-   *         }
-   *       }
-   *     }
-   *   }
-   * @endcode
-   *
-   * Alternatively, you can define packs like the following as well:
-   *
-   * @code
-   *   {
-   *     "packs": {
-   *       "foo": "/var/osquery/packs/foo.json",
-   *       "bar": "/var/osquery/packs/bar.json"
-   *     }
-   *   }
-   * @endcode
-   *
-   * If you defined the "value" of your pack as a string instead of an inline
-   * data structure, then osquery will pass the responsibility of retrieving
-   * the pack to the active config plugin. In the above example, it seems
-   * obvious that the value is a local file path. Alternatively, if the
-   * filesystem config plugin wasn't being used, the string could be a remote
-   * URL, etc.
-   *
-   * genPack is not a pure virtual, so you don't have to define it if you don't
-   * want to use the shortened query pack syntax. The default implementation
-   * returns a failed status.
-   *
-   * @param name is the name of the query pack
-   * @param value is the string based value that was provided with the pack
-   * @param pack should be populated with the string JSON pack content
-   *
-   * @return a Status instance indicating the success or failure of the call
-   */
-  virtual Status genPack(const std::string& name,
-                         const std::string& value,
-                         std::string& pack);
-
-  /// Main entrypoint for config plugin requests
-  Status call(const PluginRequest& request, PluginResponse& response) override;
-};
-
-/**
- * @brief A pluggable configuration parser.
- *
- * An osquery config instance is populated from JSON using a ConfigPlugin.
- * That plugin may update the config data asynchronously and read from
- * several sources, as is the case with "filesystem" and reading multiple files.
- *
- * A ConfigParserPlugin will receive the merged configuration at osquery start
- * and the updated (still merged) config if any ConfigPlugin updates the
- * instance asynchronously. Each parser specifies a set of top-level JSON
- * keys to receive. The config instance will auto-merge the key values
- * from multiple sources.
- *
- * The keys must contain either dictionaries or lists.
- *
- * If a top-level key is a dictionary, each source with the top-level key
- * will have its own dictionary keys merged and replaced based on the lexical
- * order of sources. For the "filesystem" config plugin this is the lexical
- * sorting of filenames. If the top-level key is a list, each source with the
- * top-level key will have its contents appended.
- *
- * Each config parser plugin will live alongside the config instance for the
- * life of the osquery process. The parser may perform actions at config load
- * and config update "time" as well as keep its own data members and be
- * accessible through the Config class API.
- */
-class ConfigParserPlugin : public Plugin {
- public:
-  using ParserConfig = std::map<std::string, JSON>;
-
- public:
-  /**
-   * @brief Return a list of top-level config keys to receive in updates.
-   *
-   * The ConfigParserPlugin::update method will receive a map of these keys
-   * with a JSON-parsed document of configuration data.
-   *
-   * @return A list of string top-level JSON keys.
-   */
-  virtual std::vector<std::string> keys() const = 0;
-
-  /**
-   * @brief Receive a merged JSON document for each top-level config key.
-   *
-   * Called when the Config instance is initially loaded with data from the
-   * active config plugin and when it is updated via an async ConfigPlugin
-   * update. Every config parser will receive a map of merged data for each key
-   * they requested in keys().
-   *
-   * @param source source of the config data
-   * @param config A JSON-parsed document map.
-   * @return Failure if the parser should no longer receive updates.
-   */
-  virtual Status update(const std::string& source,
-                        const ParserConfig& config) = 0;
-
-  /// Allow parsers to perform some setup before the configuration is loaded.
-  Status setUp() override;
-
-  Status call(const PluginRequest& /*request*/,
-              PluginResponse& /*response*/) override {
-    return Status(0);
-  }
-
-  /**
-   * @brief Accessor for parser-manipulated data.
-   *
-   * Parsers should be used generically, for places within the code base that
-   * request a parser (check for its existence), should only use this
-   * ConfigParserPlugin::getData accessor.
-   *
-   * More complex parsers that require dynamic casting are not recommended.
-   */
-  const JSON& getData() const {
-    return data_;
-  }
-
- protected:
-  /// Allow the config to request parser state resets.
-  virtual void reset();
-
- protected:
-  /// Allow the config parser to keep some global state.
-  JSON data_;
-
- private:
-  friend class Config;
 };
 
 /**
