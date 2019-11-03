@@ -35,6 +35,7 @@ function(generateOsqueryConfigTestsTest)
   target_link_libraries(osquery_config_tests-test PRIVATE
     osquery_cxx_settings
     osquery_config
+    osquery_config_configplugin
     osquery_extensions_implthrift
     osquery_utils_system
     plugins_database_ephemeral

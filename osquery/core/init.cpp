@@ -31,10 +31,9 @@
 
 #include <boost/filesystem.hpp>
 
-#include "osquery/utils/config/default_paths.h"
-#include "osquery/utils/info/platform_type.h"
 #include <osquery/config/config.h>
 #include <osquery/core.h>
+#include <osquery/core/watcher.h>
 #include <osquery/data_logger.h>
 #include <osquery/dispatcher.h>
 #include <osquery/events.h>
@@ -44,10 +43,11 @@
 #include <osquery/numeric_monitoring.h>
 #include <osquery/process/process.h>
 #include <osquery/registry.h>
+#include <osquery/system.h>
+#include <osquery/utils/config/default_paths.h>
+#include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/version.h>
 #include <osquery/utils/system/time.h>
-
-#include "osquery/core/watcher.h"
 
 #ifdef __linux__
 #include <sys/syscall.h>
@@ -92,14 +92,10 @@ CLI_FLAG(bool,
          enable_signal_handler,
          false,
          "Enable custom osquery signals handler instead of default one");
-}
+} // namespace osquery
 
 namespace {
 extern "C" {
-static inline bool hasWorkerVariable() {
-  return ::osquery::getEnvVar("OSQUERY_WORKER").is_initialized();
-}
-
 volatile std::sig_atomic_t kHandledSignal{0};
 
 static inline bool hasWorker() {
@@ -120,7 +116,7 @@ void signalHandler(int num) {
 
     // Handle signals based on a tri-state (worker, watcher, neither).
     if (num == SIGHUP) {
-      if (!hasWorker() || hasWorkerVariable()) {
+      if (!hasWorker() || isWorker()) {
         // Reload configuration.
       }
     } else if (num == SIGTERM || num == SIGINT || num == SIGABRT ||
@@ -167,7 +163,7 @@ void signalHandler(int num) {
   }
 }
 }
-}
+} // namespace
 
 using chrono_clock = std::chrono::high_resolution_clock;
 
@@ -196,8 +192,6 @@ CLI_FLAG(bool, D, false, "Run as a daemon process");
 CLI_FLAG(bool, daemonize, false, "Attempt to daemonize (POSIX only)");
 
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
-
-ToolType kToolType{ToolType::UNKNOWN};
 
 /// The saved exit code from a thread's request to stop the process.
 volatile std::sig_atomic_t kExitCode{0};
@@ -383,6 +377,9 @@ Initializer::Initializer(int& argc,
     initWorkDirectories();
   }
 
+  // Always handle the SIGTERM signal if the initializer exists.
+  std::signal(SIGTERM, signalHandler);
+
   if (FLAGS_enable_signal_handler) {
     std::signal(SIGABRT, signalHandler);
     std::signal(SIGUSR1, signalHandler);
@@ -391,7 +388,6 @@ Initializer::Initializer(int& argc,
     // If a daemon process is a watchdog the signal is passed to the worker,
     // unless the worker has not yet started.
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-      std::signal(SIGTERM, signalHandler);
       std::signal(SIGINT, signalHandler);
       std::signal(SIGHUP, signalHandler);
       std::signal(SIGALRM, signalHandler);
@@ -565,10 +561,6 @@ void Initializer::initWorkerWatcher(const std::string& name) const {
     // This initialize will handle work for processes without watchdogs too.
     initWatcher();
   }
-}
-
-bool Initializer::isWorker() {
-  return hasWorkerVariable();
 }
 
 bool Initializer::isWatcher() {
@@ -760,8 +752,9 @@ void Initializer::requestShutdown(int retcode) {
     // custom signal handling.
     Dispatcher::stopServices();
 
-    if (current_thread_id == kMainThreadId)
+    if (current_thread_id == kMainThreadId) {
       waitThenShutdown();
+    }
   }
 }
 
@@ -774,4 +767,4 @@ void Initializer::shutdown(int retcode) {
   platformTeardown();
   ::exit(retcode);
 }
-}
+} // namespace osquery

@@ -233,49 +233,6 @@ PackRef& Schedule::last() {
   return packs_.back();
 }
 
-/**
- * @brief A thread that periodically reloads configuration state.
- *
- * This refresh runner thread can refresh any configuration plugin.
- * It may accelerate the time between checks if the configuration fails to load.
- * For configurations pulled from the network this assures that configuration
- * is fresh when re-attaching.
- */
-class ConfigRefreshRunner : public InternalRunnable {
- public:
-  ConfigRefreshRunner() : InternalRunnable("ConfigRefreshRunner") {}
-
-  /// A simple wait/interruptible lock.
-  void start() override;
-
- private:
-  /// The current refresh rate in seconds.
-  std::atomic<size_t> refresh_sec_{0};
-
- private:
-  friend class Config;
-};
-
-void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist) {
-  std::string content;
-  getDatabaseValue(kPersistentSettings, kFailedQueries, content);
-  auto blacklist_pairs = osquery::split(content, ":");
-  if (blacklist_pairs.size() == 0 || blacklist_pairs.size() % 2 != 0) {
-    // Nothing in the blacklist, or malformed data.
-    return;
-  }
-
-  size_t current_time = getUnixTime();
-  for (size_t i = 0; i < blacklist_pairs.size() / 2; i++) {
-    // Fill in a mapping of query name to time the blacklist expires.
-    auto expire =
-        tryTo<long long>(blacklist_pairs[(i * 2) + 1], 10).takeOr(0ll);
-    if (expire > 0 && current_time < (size_t)expire) {
-      blacklist[blacklist_pairs[(i * 2)]] = (size_t)expire;
-    }
-  }
-}
-
 void saveScheduleBlacklist(const std::map<std::string, size_t>& blacklist) {
   std::string content;
   for (const auto& query : blacklist) {

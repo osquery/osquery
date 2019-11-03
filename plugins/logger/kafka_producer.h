@@ -14,8 +14,8 @@
 #include <librdkafka/rdkafka.h>
 
 #include <osquery/core.h>
+#include <osquery/core/plugins/logger.h>
 #include <osquery/dispatcher.h>
-#include <osquery/plugins/logger.h>
 
 namespace osquery {
 

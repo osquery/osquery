@@ -7,19 +7,18 @@
  */
 
 #include <chrono>
+#include <csignal>
 #include <cstdlib>
 #include <string>
 #include <vector>
 
-#include <osquery/core.h>
-#include <osquery/filesystem/filesystem.h>
+//#include <osquery/core.h>
+#include <osquery/extensions/interface.h>
+//#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-#include <osquery/system.h>
 #include <osquery/sql.h>
-
-#include "osquery/extensions/interface.h"
-
+//#include <osquery/system.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/version.h>
@@ -57,7 +56,9 @@ Status ExtensionInterface::call(const std::string& registry,
 void ExtensionInterface::shutdown() {
   // Request a graceful shutdown of the Thrift listener.
   VLOG(1) << "Extension " << uuid_ << " requested shutdown";
-  Initializer::requestShutdown(EXIT_SUCCESS);
+  // If an initializer exists it will attempt a graceful cleanup.
+  // Otherwise the process will end.
+  std::raise(SIGTERM);
 }
 
 ExtensionList ExtensionManagerInterface::extensions() {
@@ -183,94 +184,5 @@ bool ExtensionManagerInterface::exists(const std::string& name) {
     }
   }
   return false;
-}
-
-void removeStalePaths(const std::string& manager) {
-  std::vector<std::string> paths;
-  // Attempt to remove all stale extension sockets.
-  resolveFilePattern(manager + ".*", paths);
-  for (const auto& path : paths) {
-    removePath(path);
-  }
-}
-
-ExtensionRunnerCore::~ExtensionRunnerCore() = default;
-
-ExtensionRunnerCore::ExtensionRunnerCore(const std::string& path)
-    : InternalRunnable("ExtensionRunnerCore"), ExtensionRunnerInterface() {
-  path_ = path;
-}
-
-void ExtensionRunnerCore::stop() {
-  {
-    WriteLock lock(service_start_);
-    service_stopping_ = true;
-  }
-
-  stopServer();
-}
-
-void ExtensionRunnerCore::startServer() {
-  {
-    WriteLock lock(service_start_);
-    // A request to stop the service may occur before the thread starts.
-    if (service_stopping_) {
-      return;
-    }
-
-    if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-      // Before starting and after stopping the manager, remove stale sockets.
-      // This is not relevant in Windows
-      removeStalePaths(path_);
-    }
-
-    connect();
-  }
-
-  serve();
-}
-
-ExtensionRunner::ExtensionRunner(const std::string& manager_path,
-                                 RouteUUID uuid)
-    : ExtensionRunnerCore(""), uuid_(uuid) {
-  path_ = getExtensionSocket(uuid, manager_path);
-}
-
-RouteUUID ExtensionRunner::getUUID() const {
-  return uuid_;
-}
-
-void ExtensionRunner::start() {
-  setThreadName(name() + " " + path_);
-  init(uuid_);
-
-  VLOG(1) << "Extension service starting: " << path_;
-  try {
-    startServer();
-  } catch (const std::exception& e) {
-    LOG(ERROR) << "Cannot start extension handler: " << path_ << " ("
-               << e.what() << ")";
-  }
-}
-
-ExtensionManagerRunner::ExtensionManagerRunner(const std::string& manager_path)
-    : ExtensionRunnerCore(manager_path) {}
-
-ExtensionManagerRunner::~ExtensionManagerRunner() {
-  // Only attempt to remove stale paths if the server was started.
-  WriteLock lock(service_start_);
-  stopServerManager();
-}
-
-void ExtensionManagerRunner::start() {
-  init(0, true);
-
-  VLOG(1) << "Extension manager service starting: " << path_;
-  try {
-    startServer();
-  } catch (const std::exception& e) {
-    LOG(WARNING) << "Extensions disabled: cannot start extension manager ("
-                 << path_ << ") (" << e.what() << ")";
-  }
 }
 } // namespace osquery

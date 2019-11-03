@@ -7,3 +7,13 @@
  */
 
 #include <osquery/utils/info/tool_type.h>
+
+namespace osquery {
+
+/**
+ * Unknown before something sets it.
+ *
+ * For tests this should be set in the gtest main.
+ */
+ToolType kToolType{ToolType::UNKNOWN};
+} // namespace osquery

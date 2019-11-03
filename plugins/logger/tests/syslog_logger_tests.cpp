@@ -18,7 +18,7 @@ namespace osquery {
 class SyslogLoggerTests : public testing::Test {
 protected:
  void SetUp() {
-   Initializer::platformSetup();
+   platformSetup();
    registryAndPluginInit();
  }
 };

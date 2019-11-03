@@ -19,11 +19,12 @@ function(generateOsqueryRegistry)
     registry_interface.cpp
   )
 
-  target_link_libraries(osquery_registry PUBLIC
+  target_link_libraries(osquery_registry PRIVATE
     osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_process
+    osquery_extensions
     osquery_utils
     osquery_utils_system
     thirdparty_boost

@@ -9,8 +9,8 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 #include <string>
+#include <utility>
 
 #include <gtest/gtest_prod.h>
 
@@ -49,7 +49,7 @@ class Transport {
    * @param A string representing the destination
    *
    * @return success or failure of the operation
-  */
+   */
   virtual void setDestination(const std::string& destination) {
     destination_ = destination;
   }
@@ -86,7 +86,9 @@ class Transport {
    *
    * @return success or failure of the operation
    */
-  Status getResponseStatus() const { return response_status_; }
+  Status getResponseStatus() const {
+    return response_status_;
+  }
 
   /**
    * @brief Get the parameters of the response
@@ -214,7 +216,9 @@ class Request {
    *
    * @return success or failure of the operation
    */
-  Status call() { return transport_->sendRequest(); }
+  Status call() {
+    return transport_->sendRequest();
+  }
 
   /**
    * @brief Send a simple request to the destination with parameters
@@ -268,7 +272,7 @@ class Request {
   /// options from request call (duplicated in transport)
   JSON options_;
 
-private:
+ private:
   FRIEND_TEST(TLSTransportsTests, test_call);
   FRIEND_TEST(TLSTransportsTests, test_call_with_params);
   FRIEND_TEST(TLSTransportsTests, test_call_verify_peer);
@@ -277,4 +281,4 @@ private:
 
   friend class TestDistributedPlugin;
 };
-}
+} // namespace osquery

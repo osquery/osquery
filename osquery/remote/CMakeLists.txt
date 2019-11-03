@@ -26,7 +26,12 @@ function(generateOsqueryRemoteRequests)
   target_link_libraries(osquery_remote_requests PUBLIC
     osquery_cxx_settings
     osquery_headers
-    osquery_utils
+    osquery_utils_status
+    osquery_utils_json
+    thirdparty_googletest_headers
+  )
+
+  target_link_libraries(osquery_remote_requests PRIVATE
     thirdparty_boost
     thirdparty_openssl
     thirdparty_zlib

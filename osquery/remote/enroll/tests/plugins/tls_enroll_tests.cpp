@@ -47,7 +47,7 @@ class TLSEnrollTests : public testing::Test {
 };
 
 void TLSEnrollTests::SetUp() {
-  Initializer::platformSetup();
+  platformSetup();
   registryAndPluginInit();
   FLAGS_disable_database = true;
   DatabasePlugin::setAllowOpen(true);

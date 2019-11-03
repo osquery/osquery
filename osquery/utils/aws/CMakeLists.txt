@@ -20,12 +20,15 @@ function(generateOsqueryUtilsAws)
 
   target_link_libraries(osquery_utils_aws PUBLIC
     osquery_cxx_settings
-    osquery_remote_httpclient
-    osquery_remote_transports_transportstls
     osquery_utils
     osquery_utils_json
     osquery_utils_system
     thirdparty_aws-sdk-cpp
+  )
+
+  target_link_libraries(osquery_utils_aws PRIVATE
+    osquery_remote_httpclient
+    osquery_remote_transports_transportstls
   )
 
   set(public_header_files

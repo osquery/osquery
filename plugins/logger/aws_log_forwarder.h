@@ -15,9 +15,9 @@
 #include <vector>
 
 #include <osquery/core.h>
+#include <osquery/core/plugins/logger.h>
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
-#include <osquery/plugins/logger.h>
 
 #include <osquery/utils/aws/aws_util.h>
 
@@ -78,8 +78,9 @@ class AwsLogForwarder : public BufferedLogForwarder {
     }
 
     std::stringstream output;
-    output << name_ << ": The following log records have been discarded "
-                       "because they were too big:\n";
+    output << name_
+           << ": The following log records have been discarded "
+              "because they were too big:\n";
 
     for (const auto& record : discarded_records) {
       output << record << "\n";
@@ -127,8 +128,9 @@ class AwsLogForwarder : public BufferedLogForwarder {
       if (!status.ok()) {
         // To achieve behavior parity with TLS logger plugin, skip non-JSON
         // content
-        LOG(ERROR) << name_ << ": The following log record has been discarded "
-                               "because it was not in JSON format: "
+        LOG(ERROR) << name_
+                   << ": The following log record has been discarded "
+                      "because it was not in JSON format: "
                    << record;
 
         continue;
@@ -331,4 +333,4 @@ class AwsLogForwarder : public BufferedLogForwarder {
   /// Logger name; used when printing messages
   std::string name_;
 };
-}
+} // namespace osquery

@@ -117,7 +117,7 @@ void initTesting() {
   DatabasePlugin::setAllowOpen(true);
   DatabasePlugin::initPlugin();
 
-  Initializer::platformSetup();
+  platformSetup();
 }
 
 void shutdownTesting() {

@@ -25,7 +25,7 @@ namespace tables {
 class CertificatesTablesTest : public testing::Test {
  protected:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
 
     FLAGS_disable_database = true;

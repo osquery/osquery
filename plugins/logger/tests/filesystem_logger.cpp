@@ -37,7 +37,7 @@ DECLARE_bool(log_numerics_as_numbers);
 class FilesystemLoggerTests : public testing::Test {
  public:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);

@@ -41,7 +41,7 @@ function(generateOsqueryHeaders)
 
   target_link_libraries(osquery_headers INTERFACE
     osquery_cxx_settings
-    osquery_core_plugins
+    osquery_core_plugins # <-- causes a lot of linkage
     osquery_utils
     thirdparty_gflags
     thirdparty_sqlite

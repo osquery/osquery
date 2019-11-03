@@ -22,6 +22,7 @@ function(generateOsqueryRemoteSerializersSerializerjson)
     osquery_cxx_settings
     osquery_remote_requests
     osquery_utils_json
+    # osquery_extensions_implthrift
     thirdparty_boost
   )
 

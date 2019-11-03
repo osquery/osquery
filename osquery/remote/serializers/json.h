@@ -8,14 +8,15 @@
 
 #pragma once
 
-#include <osquery/remote/requests.h>
+//#include <osquery/remote/requests.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 
 /**
  * @brief JSON Serializer
  */
-class JSONSerializer : public Serializer {
+class JSONSerializer /*: public Serializer*/ {
  public:
   /**
    * @brief See Serializer::serialize
@@ -32,6 +33,8 @@ class JSONSerializer : public Serializer {
    *
    * @return The content type
    */
-  std::string getContentType() const { return "application/json"; }
+  std::string getContentType() const {
+    return "application/json";
+  }
 };
-}
+} // namespace osquery

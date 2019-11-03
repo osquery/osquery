@@ -34,6 +34,7 @@ function(generateOsqueryExperimentalTracingSyscallstracing)
     osquery_utils_json
     osquery_utils_system
     osquery_utils_system_linux_perfevent
+    osquery_utils_system_linux_proc
   )
 
   set(public_header_files

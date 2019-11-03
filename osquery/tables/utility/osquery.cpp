@@ -211,7 +211,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["build_platform"] = STR(OSQUERY_BUILD_PLATFORM);
   r["build_distro"] = STR(OSQUERY_BUILD_DISTRO);
   r["start_time"] = INTEGER(Config::getStartTime());
-  if (Initializer::isWorker()) {
+  if (isWorker()) {
     r["watcher"] = INTEGER(PlatformProcess::getLauncherProcess()->pid());
   } else {
     r["watcher"] = "-1";

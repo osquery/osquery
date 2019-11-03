@@ -57,10 +57,10 @@
 #ifdef WIN32
 #include "osquery/core/windows/wmi.h"
 #endif
-#include "osquery/utils/info/tool_type.h"
-#include "osquery/utils/info/platform_type.h"
-#include "osquery/utils/conversions/tryto.h"
 #include "osquery/utils/config/default_paths.h"
+#include "osquery/utils/conversions/tryto.h"
+#include "osquery/utils/info/platform_type.h"
+#include "osquery/utils/info/tool_type.h"
 #ifdef WIN32
 #include <osquery/utils/conversions/windows/strings.h>
 #endif
@@ -115,6 +115,16 @@ struct tm* localtime_r(time_t* t, struct tm* result) {
   return result;
 }
 #endif
+
+extern "C" {
+static inline bool hasWorkerVariable() {
+  return ::osquery::getEnvVar("OSQUERY_WORKER").is_initialized();
+}
+
+bool isWorker() {
+  return hasWorkerVariable();
+}
+}
 
 std::string getHostname() {
   long max_path = 256;

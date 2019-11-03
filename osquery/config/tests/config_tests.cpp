@@ -7,6 +7,7 @@
  */
 
 #include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/config/config_plugin.h>
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core.h>
@@ -18,8 +19,6 @@
 #include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
-#include <osquery/utils/info/platform_type.h>
-#include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
 
 #include <boost/filesystem/path.hpp>
@@ -51,7 +50,7 @@ extern void saveScheduleBlacklist(
 class ConfigTests : public testing::Test {
  public:
   ConfigTests() {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);

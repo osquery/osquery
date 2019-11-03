@@ -17,13 +17,12 @@ function(generateOsqueryCorePlugins)
 
   target_link_libraries(osquery_core_plugins PUBLIC
     osquery_cxx_settings
-
-    osquery_core
     osquery_core_sql
     osquery_utils_status
   )
 
   target_link_libraries(osquery_core_plugins PRIVATE
+    osquery_core
     osquery_utils_json
   )
 

@@ -30,7 +30,7 @@ DECLARE_string(distributed_tls_write_endpoint);
 class DistributedTests : public testing::Test {
  protected:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);

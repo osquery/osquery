@@ -99,7 +99,7 @@ static void UpdateServiceStatus(unsigned long controls,
 
 static auto kShutdownCallable = ([]() {
   // To prevent invalid access to the stop event, we return if running as shell
-  if (Initializer::isShell()) {
+  if (isShell()) {
     return;
   }
   // The event only gets initialized in the entry point of the service. Child

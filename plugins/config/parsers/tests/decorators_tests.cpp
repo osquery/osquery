@@ -26,7 +26,7 @@ DECLARE_bool(log_numerics_as_numbers);
 class DecoratorsConfigParserPluginTests : public testing::Test {
  public:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
 
     // Force registry to use ephemeral database plugin

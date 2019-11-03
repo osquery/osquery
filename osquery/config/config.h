@@ -26,7 +26,6 @@ class Status;
 class Config;
 class Pack;
 class Schedule;
-class ConfigRefreshRunner;
 class ConfigParserPlugin;
 
 /// The name of the executing query within the single-threaded schedule.
@@ -351,15 +350,10 @@ class Config : private boost::noncopyable {
   bool started_thread_{false};
 
  private:
-  /// Hold a reference to the refresh runner to update the acceleration.
-  std::shared_ptr<ConfigRefreshRunner> refresh_runner_{nullptr};
-
- private:
   friend class Initializer;
 
  private:
   friend class ConfigTests;
-  friend class ConfigRefreshRunner;
   friend class FilePathsConfigParserPluginTests;
   friend class FileEventsTableTests;
   friend class DecoratorsConfigParserPluginTests;

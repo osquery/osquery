@@ -13,28 +13,50 @@ function(osqueryCoreMain)
   endif()
 
   generateOsqueryCore()
+  generateOsqueryCoreInit()
+endfunction()
+
+function(generateOsqueryCoreInit)
+  set(source_files
+    init.cpp
+    watcher.cpp
+  )
+
+  add_osquery_library(osquery_core_init EXCLUDE_FROM_ALL
+    ${source_files}
+  )
+
+  target_link_libraries(osquery_core_init PRIVATE
+    osquery_cxx_settings
+    osquery_core
+    osquery_config
+  )
+
+  set(public_header_files
+    watcher.h
+    init.h
+  )
+
+  generateIncludeNamespace(osquery_core_init "osquery/core" "FULL_PATH" ${public_header_files})
 endfunction()
 
 function(generateOsqueryCore)
   set(source_files
     flags.cpp
-    init.cpp
     query.cpp
     system.cpp
     tables.cpp
-    watcher.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
-      posix/initializer.cpp
+      posix/platform.cpp
     )
-
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/handle.cpp
-      windows/initializer.cpp
       windows/wmi.cpp
+      windows/platform.cpp
     )
   endif()
 
@@ -57,24 +79,16 @@ function(generateOsqueryCore)
 
   target_link_libraries(osquery_core PUBLIC
     osquery_cxx_settings
-
     ${public_dependencies}
   )
 
   target_link_libraries(osquery_core PRIVATE
     osquery_config
-    osquery_dispatcher
-    osquery_distributed
     osquery_filesystem
     osquery_process
+    osquery_registry
     osquery_utils
     osquery_utils_system
-    osquery_logger
-    osquery_extensions
-)
-
-  set(public_header_files
-    watcher.h
   )
 
   if(DEFINED PLATFORM_WINDOWS)
@@ -86,8 +100,6 @@ function(generateOsqueryCore)
 
     generateIncludeNamespace(osquery_core "osquery/core" "FULL_PATH" ${windows_public_header_files})
   endif()
-
-  generateIncludeNamespace(osquery_core "osquery/core" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_core_tests_flagstests-test COMMAND osquery_core_tests_flagstests-test)
   add_test(NAME osquery_core_tests_systemtests-test COMMAND osquery_core_tests_systemtests-test)
