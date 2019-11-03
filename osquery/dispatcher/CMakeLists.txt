@@ -47,7 +47,11 @@ function(generateOsqueryDispatcherScheduler)
   target_link_libraries(osquery_dispatcher_scheduler PRIVATE
     osquery_cxx_settings
     osquery_core
+    osquery_config
     osquery_dispatcher
+    osquery_process
+    osquery_profiler
+    osquery_sql
     plugins_config_parsers
     thirdparty_googletest_headers
   )

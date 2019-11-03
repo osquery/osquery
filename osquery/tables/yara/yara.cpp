@@ -8,6 +8,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/config/config.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>

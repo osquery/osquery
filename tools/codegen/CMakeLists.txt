@@ -70,7 +70,7 @@ function(generatePythonModulePath base_path path identifier)
 
   set(root_target "${identifier}_generator")
   add_custom_target("${root_target}")
-  
+
   set(previous_target "${root_target}")
   list(REVERSE target_list)
 
@@ -117,7 +117,7 @@ function(generateTables category)
     # Use the file name as table name
     get_filename_component(table_name "${table_spec}" NAME_WE)
     set(generated_source_code "${output_folder}/${table_name}.cpp")
-    
+
     set(generated_headers_folder "${output_folder}/osquery/rows")
     set(generated_header_code "${generated_headers_folder}/${table_name}.h")
 
@@ -206,7 +206,10 @@ function(generateTableCategoryAmalgamation category_name)
   set(target_name "codegen_${category_name}_tables")
 
   add_osquery_library("${target_name}" EXCLUDE_FROM_ALL "${amalgamation_file}")
-  target_link_libraries("${target_name}" PUBLIC osquery_events)
+  target_link_libraries("${target_name}" PUBLIC
+    osquery_headers
+    osquery_sql
+  )
 
   # Return the target name to the caller
   set(generateTableCategoryAmalgamation_output "${target_name}" PARENT_SCOPE)

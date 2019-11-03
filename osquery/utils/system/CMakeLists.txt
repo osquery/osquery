@@ -50,6 +50,7 @@ function(generateOsqueryUtilsSystem)
   )
 
   set(public_header_files
+    filepath.h
     uptime.h
     time.h
     errno.h
@@ -62,18 +63,17 @@ function(generateOsqueryUtilsSystem)
 
   if(DEFINED PLATFORM_POSIX)
     set(posix_public_header_files
-      filepath.h
-      posix/errno.h
+      # posix/errno.h
       posix/system.h
     )
 
-    generateIncludeNamespace(osquery_utils_system_posix "osquery/utils/system/posix" "FILE_ONLY" ${posix_public_header_files})
+    generateIncludeNamespace(osquery_utils_system_posix "osquery/utils/system" "FILE_ONLY" ${posix_public_header_files})
   elseif(DEFINED PLATFORM_WINDOWS)
     set(windows_public_header_files
       windows/system.h
     )
 
-    generateIncludeNamespace(osquery_utils_system_windows "osquery/utils/system/windows" "FILE_ONLY" ${windows_public_header_files})
+    generateIncludeNamespace(osquery_utils_system_windows "osquery/utils/system" "FILE_ONLY" ${windows_public_header_files})
   endif()
 
   if(DEFINED PLATFORM_LINUX)
