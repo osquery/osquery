@@ -30,11 +30,10 @@ function(generateOsqueryExperimentalTracingSyscallstracing)
     osquery_dispatcher
     osquery_experimental_tracing_linux_probesevents
     osquery_experimental_eventsstream
-    osquery_utils_caches_lru
-    osquery_utils_conversions
+    osquery_utils
     osquery_utils_json
-    osquery_utils_system_linux_proc
-    osquery_utils_system_time
+    osquery_utils_system
+    osquery_utils_system_linux_perfevent
   )
 
   set(public_header_files

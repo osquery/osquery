@@ -10,8 +10,8 @@
 
 #include "plugins/logger/buffered.h"
 
+#include <osquery/core/plugins/logger.h>
 #include <osquery/dispatcher.h>
-#include <osquery/plugins/logger.h>
 
 namespace osquery {
 
@@ -72,4 +72,4 @@ class TLSLoggerPlugin : public LoggerPlugin {
  private:
   friend class TLSLoggerTests;
 };
-}
+} // namespace osquery

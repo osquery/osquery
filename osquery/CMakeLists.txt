@@ -42,9 +42,7 @@ function(generateOsqueryHeaders)
   target_link_libraries(osquery_headers INTERFACE
     osquery_cxx_settings
     osquery_core_plugins
-    osquery_utils_info
-    osquery_utils_macros
-    osquery_utils_system_systemutils
+    osquery_utils
     thirdparty_gflags
     thirdparty_sqlite
     thirdparty_googletest_headers

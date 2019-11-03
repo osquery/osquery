@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 
 namespace osquery {
 
@@ -21,4 +21,4 @@ class PrometheusMetricsConfigParserPlugin : public ConfigParserPlugin {
   std::vector<std::string> keys() const override;
   Status update(const std::string& source, const ParserConfig& config) override;
 };
-}
+} // namespace osquery

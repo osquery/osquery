@@ -15,14 +15,14 @@ function(generateTablesUtilityUtilitytable)
     time.cpp
   )
 
-  target_link_libraries(osquery_tables_utility_utilitytable PUBLIC
+  target_link_libraries(osquery_tables_utility_utilitytable PRIVATE
     osquery_cxx_settings
     osquery_config
     osquery_core
     osquery_filesystem
     osquery_process
-    osquery_utils_macros
-    osquery_utils_system_systemutils
+    osquery_utils
+    osquery_utils_system
     thirdparty_boost
   )
 endfunction()

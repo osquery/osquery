@@ -26,7 +26,7 @@ function(generateOsqueryTablesSmart)
       "${source_files}"
     )
 
-    target_link_libraries(osquery_tables_smart PUBLIC
+    target_link_libraries(osquery_tables_smart PRIVATE
       osquery_cxx_settings
       osquery_headers
       osquery_logger

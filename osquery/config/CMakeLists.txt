@@ -10,33 +10,55 @@ function(osqueryConfigMain)
   endif()
 
   generateOsqueryConfig()
+  generateOsqueryConfigConfigplugin()
+endfunction()
+
+function(generateOsqueryConfigConfigplugin)
+  add_osquery_library(osquery_config_configplugin EXCLUDE_FROM_ALL
+    config_plugin.cpp
+    config_parser_plugin.cpp
+  )
+
+  enableLinkWholeArchive(osquery_config_configplugin)
+
+  target_link_libraries(osquery_config_configplugin PUBLIC
+    osquery_cxx_settings
+    osquery_headers
+
+    osquery_core
+  )
+
+  set(public_header_files
+    config_plugin.h
+    config_parser_plugin.h
+  )
+
+  generateIncludeNamespace(osquery_config_configplugin "osquery/config" "FILE_ONLY" ${public_header_files})
 endfunction()
 
 function(generateOsqueryConfig)
   add_osquery_library(osquery_config EXCLUDE_FROM_ALL
     config.cpp
     packs.cpp
-    config_plugin.cpp
-    config_parser_plugin.cpp
   )
 
-  enableLinkWholeArchive(osquery_config)
+  # enableLinkWholeArchive(osquery_config)
 
-  target_link_libraries(osquery_config PUBLIC
+  target_link_libraries(osquery_config PRIVATE
     osquery_cxx_settings
     osquery_headers
+
+    osquery_config_configplugin
     osquery_dispatcher
     osquery_events
     osquery_filesystem
     osquery_hashing
     osquery_utils
-    osquery_utils_system_time
+    osquery_utils_system
   )
 
   set(public_header_files
     config.h
-    config_plugin.h
-    config_parser_plugin.h
   )
 
   generateIncludeNamespace(osquery_config "osquery/config" "FILE_ONLY" ${public_header_files})

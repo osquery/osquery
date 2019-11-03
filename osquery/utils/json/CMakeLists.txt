@@ -21,9 +21,7 @@ function(generateOsqueryUtilsJson)
   target_link_libraries(osquery_utils_json PUBLIC
     osquery_cxx_settings
     osquery_utils
-    osquery_utils_conversions
-    osquery_utils_status
-    osquery_utils_system_systemutils
+    osquery_utils_system
     thirdparty_rapidjson
   )
 

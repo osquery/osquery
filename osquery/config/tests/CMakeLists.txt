@@ -18,11 +18,11 @@ function(generateOsqueryConfigTestsTestUtils)
 
   generateIncludeNamespace(osquery_config_tests_testutils "osquery/config/tests" "FILE_ONLY" ${public_header_files})
 
-  target_link_libraries(osquery_config_tests_testutils PUBLIC
+  target_link_libraries(osquery_config_tests_testutils PRIVATE
     osquery_cxx_settings
     osquery_filesystem
     osquery_utils_json
-    osquery_utils_system_env
+    osquery_utils_system
   )
 endfunction()
 
@@ -36,11 +36,9 @@ function(generateOsqueryConfigTestsTest)
     osquery_cxx_settings
     osquery_config
     osquery_extensions_implthrift
-    osquery_utils_system_time
+    osquery_utils_system
     plugins_database_ephemeral
-
     thirdparty_googletest
-
     osquery_filesystem_mockfilestructure
     osquery_config_tests_testutils
     osquery_tools_tests_conffiles

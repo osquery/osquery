@@ -9,7 +9,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/tables.h>
 #include <osquery/utils/config/default_paths.h>
 
@@ -69,4 +69,4 @@ class YARAConfigParserPlugin : public ConfigParserPlugin {
   /// Store the signatures and file_paths and compile the rules.
   Status update(const std::string& source, const ParserConfig& config) override;
 };
-}
+} // namespace osquery

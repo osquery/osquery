@@ -22,8 +22,9 @@ function(generateOsqueryUtilsAws)
     osquery_cxx_settings
     osquery_remote_httpclient
     osquery_remote_transports_transportstls
+    osquery_utils
     osquery_utils_json
-    osquery_utils_status
+    osquery_utils_system
     thirdparty_aws-sdk-cpp
   )
 

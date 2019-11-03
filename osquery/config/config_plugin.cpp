@@ -6,7 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/config/config.h>
+#include "config.h"
+
 #include <osquery/config/config_plugin.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>

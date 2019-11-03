@@ -19,10 +19,12 @@ function(generatePluginsConfigFilesystemconfig)
 
   enableLinkWholeArchive(plugins_config_filesystemconfig)
 
-  target_link_libraries(plugins_config_filesystemconfig PUBLIC
+  target_link_libraries(plugins_config_filesystemconfig PRIVATE
     osquery_cxx_settings
     osquery_config
-    osquery_utils_config
+    osquery_config_configplugin
+    osquery_filesystem
+    osquery_utils
   )
 endfunction()
 
@@ -33,9 +35,10 @@ function(generatePluginsConfigTlsconfig)
 
   enableLinkWholeArchive(plugins_config_tlsconfig)
 
-  target_link_libraries(plugins_config_tlsconfig PUBLIC
+  target_link_libraries(plugins_config_tlsconfig PRIVATE
     osquery_cxx_settings
     osquery_config
+    osquery_config_configplugin
     osquery_remote_requests
     osquery_remote_utility
     osquery_remote_serializers_serializerjson
@@ -53,9 +56,10 @@ function(generatePluginsConfigUpdateconfigplugin)
 
   enableLinkWholeArchive(plugins_config_updateconfigplugin)
 
-  target_link_libraries(plugins_config_updateconfigplugin PUBLIC
+  target_link_libraries(plugins_config_updateconfigplugin PRIVATE
     osquery_cxx_settings
     osquery_config
+    osquery_config_configplugin
   )
 endfunction()
 

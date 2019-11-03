@@ -19,8 +19,8 @@ function(generateOsqueryUtilsSystemLinuxPerfevent)
 
     target_link_libraries(osquery_utils_system_linux_perfevent PUBLIC
       osquery_cxx_settings
-      osquery_utils_expected
-      osquery_utils_system_errno
+      osquery_utils
+      osquery_utils_system
       thirdparty_boost
     )
 

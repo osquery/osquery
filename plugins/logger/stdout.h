@@ -8,7 +8,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/plugins/logger.h>
+#include <osquery/core/plugins/logger.h>
 #include <osquery/registry_factory.h>
 
 namespace osquery {
@@ -30,6 +30,4 @@ class StdoutLoggerPlugin : public LoggerPlugin {
 
 REGISTER(StdoutLoggerPlugin, "logger", "stdout");
 
-
-}
-
+} // namespace osquery

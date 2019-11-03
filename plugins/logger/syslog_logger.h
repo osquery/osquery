@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include <osquery/plugins/logger.h>
+#include <osquery/core/plugins/logger.h>
 #include <osquery/registry_factory.h>
 
 namespace osquery {
@@ -32,6 +32,4 @@ class SyslogLoggerPlugin : public LoggerPlugin {
 };
 
 REGISTER(SyslogLoggerPlugin, "logger", "syslog");
-}
-
-
+} // namespace osquery

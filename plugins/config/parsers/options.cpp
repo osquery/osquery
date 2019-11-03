@@ -8,7 +8,7 @@
 
 #include <set>
 
-#include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/data_logger.h>
 #include <osquery/flags.h>
 #include <osquery/registry_factory.h>
@@ -106,4 +106,4 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
 }
 
 REGISTER_INTERNAL(OptionsConfigParserPlugin, "config_parser", "options");
-}
+} // namespace osquery

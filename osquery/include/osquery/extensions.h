@@ -63,6 +63,9 @@ Status pingExtension(const std::string& path);
  */
 Status applyExtensionDelay(std::function<Status(bool& stop)> predicate);
 
+/// Wrapper for applyExtensionDelay and pings an extension manager.
+Status extensionPathActive(const std::string& path, bool use_timeout = false);
+
 /**
  * @brief Request the extensions API to autoload any appropriate extensions.
  *

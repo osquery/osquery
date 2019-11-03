@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <osquery/plugins/plugin.h>
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/utils/json/json.h>
 
 #include <map>

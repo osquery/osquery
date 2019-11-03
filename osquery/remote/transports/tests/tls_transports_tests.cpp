@@ -24,7 +24,7 @@
 #include "osquery/remote/serializers/json.h"
 
 #include "osquery/remote/tests/test_utils.h"
-#include "osquery/config/tests/test_utils.h"
+// #include "osquery/config/tests/test_utils.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
@@ -154,7 +154,8 @@ TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {
   // Require verification but include the server's certificate that includes
   // an unknown signing CA and wrong commonName.
   auto t = std::make_shared<TLSTransport>();
-  t->setPeerCertificate((getTestConfigDirectory() / "test_server_ca.pem").string());
+  t->setPeerCertificate(
+      (getTestConfigDirectory() / "test_server_ca.pem").string());
 
   auto url = "https://localhost:" + port_;
   Request<TLSTransport, JSONSerializer> r1(url, t);
@@ -178,9 +179,11 @@ TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {
 
 TEST_F(TLSTransportsTests, test_call_client_auth) {
   auto t = std::make_shared<TLSTransport>();
-  t->setPeerCertificate((getTestConfigDirectory() / "test_server_ca.pem").string());
-  t->setClientCertificate((getTestConfigDirectory() / "test_client.pem").string(),
-                          (getTestConfigDirectory() / "test_client.key").string());
+  t->setPeerCertificate(
+      (getTestConfigDirectory() / "test_server_ca.pem").string());
+  t->setClientCertificate(
+      (getTestConfigDirectory() / "test_client.pem").string(),
+      (getTestConfigDirectory() / "test_client.key").string());
 
   auto url = "https://localhost:" + port_;
   Request<TLSTransport, JSONSerializer> r(url, t);
@@ -191,4 +194,4 @@ TEST_F(TLSTransportsTests, test_call_client_auth) {
     EXPECT_TRUE(status.ok());
   }
 }
-}
+} // namespace osquery

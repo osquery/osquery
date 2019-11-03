@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include <osquery/config/config_parser_plugin.h>
 #include <osquery/core/sql/query_performance.h>
 #include <osquery/query.h>
 #include <osquery/utils/expected/expected.h>
@@ -28,6 +27,7 @@ class Config;
 class Pack;
 class Schedule;
 class ConfigRefreshRunner;
+class ConfigParserPlugin;
 
 /// The name of the executing query within the single-threaded schedule.
 extern const std::string kExecutingQuery;

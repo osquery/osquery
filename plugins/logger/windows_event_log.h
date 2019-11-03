@@ -13,7 +13,7 @@
 // clang-format on
 
 #include <osquery/flags.h>
-#include <osquery/plugins/logger.h>
+#include <osquery/core/plugins/logger.h>
 
 namespace osquery {
 
@@ -49,4 +49,4 @@ class WindowsEventLoggerPlugin : public LoggerPlugin {
  private:
   REGHANDLE registration_handle_{0};
 };
-}
+} // namespace osquery

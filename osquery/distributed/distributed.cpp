@@ -9,10 +9,10 @@
 #include <sstream>
 #include <utility>
 
+#include <osquery/core/plugins/logger.h>
 #include <osquery/database.h>
 #include <osquery/distributed.h>
 #include <osquery/logger.h>
-#include <osquery/plugins/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
@@ -354,4 +354,4 @@ Status deserializeDistributedQueryResultJSON(const std::string& json,
   }
   return deserializeDistributedQueryResult(doc.doc(), r);
 }
-}
+} // namespace osquery

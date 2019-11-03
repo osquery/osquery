@@ -28,10 +28,11 @@ function(generatePluginsConfigParsers)
 
   enableLinkWholeArchive(plugins_config_parsers)
 
-  target_link_libraries(plugins_config_parsers PUBLIC
+  target_link_libraries(plugins_config_parsers PRIVATE
     osquery_cxx_settings
     osquery_headers
     osquery_config
+    osquery_config_configplugin
     osquery_core
     osquery_database
     osquery_filesystem

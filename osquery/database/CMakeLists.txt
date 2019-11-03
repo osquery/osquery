@@ -18,7 +18,7 @@ function(generateOsqueryDatabase)
     database.cpp
   )
 
-  target_link_libraries(osquery_database PUBLIC
+  target_link_libraries(osquery_database PRIVATE
     osquery_cxx_settings
     osquery_core
     osquery_utils

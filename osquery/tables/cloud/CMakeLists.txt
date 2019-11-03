@@ -16,7 +16,7 @@ function(generateOsqueryTablesCloud)
     ec2_instance_tags.cpp
   )
 
-  target_link_libraries(osquery_tables_cloud PUBLIC
+  target_link_libraries(osquery_tables_cloud PRIVATE
     osquery_cxx_settings
     osquery_headers
     osquery_logger

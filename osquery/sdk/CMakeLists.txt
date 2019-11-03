@@ -10,48 +10,36 @@ function(osquerySdkMain)
     add_subdirectory("tests")
   endif()
 
-  generateOsquerySdkPluginsdk()
+  generateOsquerySdk()
 endfunction()
 
-function(generateOsquerySdkPluginsdk)
-  add_osquery_library(osquery_sdk_pluginsdk EXCLUDE_FROM_ALL
+function(generateOsquerySdk)
+  add_osquery_library(osquery_sdk EXCLUDE_FROM_ALL
     sql_plugin_external.cpp
     empty_register_foreign_tables.cpp
   )
 
-  target_link_libraries(osquery_sdk_pluginsdk INTERFACE
+  target_link_libraries(osquery_sdk PUBLIC
     osquery_headers
     osquery_config
     osquery_core_plugins
-    osquery_events_eventsregistry
     osquery_experimental_eventsstream_registry
     osquery_extensions
     osquery_numericmonitoring
     osquery_sql
-    osquery_utils_conversions
-    osquery_utils_debug
-    osquery_utils_expected
-    osquery_utils_info
-    osquery_utils_macros
-    osquery_utils_status
-    osquery_utils_system_env
-    osquery_utils_system_errno
-    osquery_utils_system_filepath
-    osquery_utils_system_systemutils
-    osquery_utils_system_time
-    osquery_utils_system_uptime
-    osquery_utils_attribute
     osquery_utils
+    osquery_utils_debug
+    osquery_utils_system
     plugins_database_ephemeral
   )
 
-  enableLinkWholeArchive(osquery_sdk_pluginsdk)
+  enableLinkWholeArchive(osquery_sdk)
 
   set(public_headers
     sdk.h
   )
 
-  generateIncludeNamespace(osquery_sdk_pluginsdk "osquery/sdk" "FILE_ONLY" ${public_headers})
+  generateIncludeNamespace(osquery_sdk "osquery/sdk" "FILE_ONLY" ${public_headers})
 
   add_test(NAME osquery_sdk_tests_pluginsdktests-test COMMAND osquery_sdk_tests_pluginsdktests-test)
 endfunction()

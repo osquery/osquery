@@ -8,13 +8,12 @@ load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 
 osquery_cxx_library(
-    name = "plugin_sdk",
+    name = "sdk",
     srcs = [
         "empty_register_foreign_tables.cpp",
     ],
     header_namespace = "osquery/sdk",
     exported_headers = [
-        "plugin_sdk.h",
         "sdk.h",
     ],
     link_whole = True,

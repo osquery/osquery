@@ -23,6 +23,7 @@ function(generateOsqueryNumericmonitoring)
     osquery_cxx_settings
     osquery_core
     osquery_utils
+    osquery_logger
     thirdparty_boost
   )
 

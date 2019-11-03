@@ -50,11 +50,18 @@ function(generateOsqueryUtils)
     osquery_cxx_settings
     thirdparty_glog
     osquery_logger
+    osquery_utils_caches_lru
     osquery_utils_config
     osquery_utils_conversions
+    osquery_utils_conversions_to
+    osquery_utils_debug
+    osquery_utils_error
     osquery_utils_expected
     osquery_utils_info
+    osquery_utils_macros
     osquery_utils_status
+    osquery_utils_schemer
+    osquery_utils_versioning_semantic
     thirdparty_boost
   )
 

@@ -37,15 +37,17 @@ function(generateOsqueryTablesYaraYaratable)
 
   enableLinkWholeArchive(osquery_tables_yara_yaratable)
 
-  target_link_libraries(osquery_tables_yara_yaratable PUBLIC
+  target_link_libraries(osquery_tables_yara_yaratable PRIVATE
     osquery_cxx_settings
     osquery_headers
     osquery_config
+    osquery_config_configplugin
     osquery_dispatcher
     osquery_events_publishers
+    osquery_filesystem
     osquery_logger
     osquery_registry
-    osquery_utils_config
+    osquery_utils
     thirdparty_boost
     thirdparty_yara
   )

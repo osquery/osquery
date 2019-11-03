@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include <osquery/plugins/plugin.h>
+#include <osquery/core/plugins/plugin.h>
 
 namespace osquery {
 // A list of key/str pairs; used for write batching with setDatabaseBatch

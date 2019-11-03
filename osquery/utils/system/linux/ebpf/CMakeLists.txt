@@ -26,13 +26,10 @@ function(generateOsqueryUtilsSystemLinuxEbpf)
 
     target_link_libraries(osquery_utils_system_linux_ebpf PUBLIC
       osquery_cxx_settings
-      osquery_utils_conversions
-      osquery_utils_system_linux_perfevent
-      osquery_utils_system_cputopology
-      osquery_utils_expected
-      osquery_utils_versioning_semantic
-      osquery_utils_system_errno
       osquery_logger
+      osquery_utils
+      osquery_utils_system
+      osquery_utils_system_linux_perfevent
       thirdparty_boost
       thirdparty_googletest_headers
     )

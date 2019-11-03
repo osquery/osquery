@@ -20,14 +20,13 @@ function(generateOsqueryDispatcher)
     distributed_runner.cpp
   )
 
-  target_link_libraries(osquery_dispatcher PUBLIC
+  target_link_libraries(osquery_dispatcher PRIVATE
     osquery_cxx_settings
     osquery_core
     osquery_logger_datalogger
     osquery_process
     osquery_profiler
     osquery_utils
-    osquery_utils_conversions
     thirdparty_googletest_headers
   )
 
@@ -45,7 +44,7 @@ function(generateOsqueryDispatcherScheduler)
     scheduler.cpp
   )
 
-  target_link_libraries(osquery_dispatcher_scheduler PUBLIC
+  target_link_libraries(osquery_dispatcher_scheduler PRIVATE
     osquery_cxx_settings
     osquery_core
     osquery_dispatcher

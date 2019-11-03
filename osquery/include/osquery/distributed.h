@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include <osquery/plugins/plugin.h>
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/query.h>
 #include <osquery/utils/status/status.h>
 
@@ -277,4 +277,4 @@ class Distributed {
   friend class DistributedTests;
   FRIEND_TEST(DistributedTests, DISABLED_test_workflow);
 };
-}
+} // namespace osquery

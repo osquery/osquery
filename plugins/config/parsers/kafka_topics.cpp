@@ -6,9 +6,6 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <iostream>
-
-#include <osquery/config/config.h>
 #include <osquery/registry_factory.h>
 #include <plugins/config/parsers/kafka_topics.h>
 

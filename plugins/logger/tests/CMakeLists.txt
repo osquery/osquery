@@ -33,9 +33,8 @@ function(generatePluginsLoggerTestsFilesystemloggertestsTest)
     osquery_logger_datalogger
     osquery_registry
     osquery_remote_enroll_tlsenroll
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
+    osquery_utils
+    osquery_utils_system
     plugins_config_tlsconfig
     plugins_database_ephemeral
     plugins_logger_filesystemlogger
@@ -57,9 +56,8 @@ function(generatePluginsLoggerTestsBufferedloggertestsTest)
     osquery_logger_datalogger
     osquery_registry
     osquery_remote_enroll_tlsenroll
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
+    osquery_utils
+    osquery_utils_system
     plugins_config_tlsconfig
     plugins_database_ephemeral
     plugins_logger_buffered
@@ -81,9 +79,8 @@ function(generatePluginsLoggerTestsKafkaproducerloggertestsTest)
     osquery_logger_datalogger
     osquery_registry
     osquery_remote_enroll_tlsenroll
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
+    osquery_utils
+    osquery_utils_system
     plugins_config_tlsconfig
     plugins_database_ephemeral
     plugins_logger_kafkaproducer
@@ -106,9 +103,8 @@ function(generatePluginsLoggerTestsAwskinesisloggertestsTest)
     osquery_logger_datalogger
     osquery_registry
     osquery_remote_enroll_tlsenroll
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
+    osquery_utils
+    osquery_utils_system
     plugins_config_tlsconfig
     plugins_database_ephemeral
     plugins_logger_awskinesis
@@ -133,9 +129,8 @@ function(generatePluginsLoggerTestsTlsloggertestsTest)
     osquery_registry
     osquery_remote_enroll_tlsenroll
     osquery_remote_tests_remotetestutils
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
+    osquery_utils
+    osquery_utils_system
     plugins_config_tlsconfig
     plugins_database_ephemeral
     plugins_logger_tlslogger
@@ -159,9 +154,8 @@ function(generatePluginsLoggerTestsSyslogloggertestsTest)
     osquery_logger_datalogger
     osquery_registry
     osquery_remote_enroll_tlsenroll
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
+    osquery_utils
+    osquery_utils_system
     plugins_config_tlsconfig
     plugins_database_ephemeral
     plugins_logger_syslog

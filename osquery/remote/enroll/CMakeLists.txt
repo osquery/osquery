@@ -27,7 +27,7 @@ function(generateOsqueryRemoteEnrollTlsenroll)
     osquery_remote_serializers_serializerjson
     osquery_remote_transports_transportstls
     osquery_utils_json
-    osquery_utils_system_time
+    osquery_utils_system
     thirdparty_boost
   )
 
@@ -69,8 +69,7 @@ function(generateOsqueryRemoteenrolltestsTest)
     osquery_process
     osquery_remote_enroll_tlsenroll
     osquery_remote_tests_remotetestutils
-    osquery_utils_conversions
-    osquery_utils_info
+    osquery_utils
     plugins_config_tlsconfig
     plugins_database_ephemeral
     tests_helper

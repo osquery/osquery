@@ -41,6 +41,7 @@ function(generateOsqueryMain)
     osquery_database
     osquery_devtools
     osquery_dispatcher
+    osquery_dispatcher_scheduler
     osquery_experimental_eventsstream_registry
     osquery_experimental_tracing_syscallstracing
     osquery_extensions

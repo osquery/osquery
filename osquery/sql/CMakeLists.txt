@@ -54,6 +54,7 @@ function(generateOsquerySqlSqliteplugin)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
+    osquery_sql
     thirdparty_sqlite
   )
 endfunction()
@@ -90,7 +91,7 @@ function(generateOsquerySql)
     osquery_hashing
     osquery_process
     osquery_utils
-    osquery_utils_system_errno
+    osquery_utils_system
     thirdparty_boost
     thirdparty_googletest_headers
     thirdparty_sqlite

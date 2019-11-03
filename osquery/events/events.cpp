@@ -15,6 +15,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>

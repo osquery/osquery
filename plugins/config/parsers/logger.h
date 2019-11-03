@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 
 namespace osquery {
 

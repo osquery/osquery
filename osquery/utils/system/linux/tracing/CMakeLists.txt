@@ -26,8 +26,7 @@ function(generateOsqueryUtilsSystemLinuxTracing)
 
     target_link_libraries(osquery_utils_system_linux_tracing PUBLIC
       osquery_cxx_settings
-      osquery_utils_conversions
-      osquery_utils_expected
+      osquery_utils
       osquery_logger
       thirdparty_boost
       thirdparty_googletest_headers

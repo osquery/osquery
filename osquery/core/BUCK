@@ -37,7 +37,6 @@ osquery_cxx_library(
         (
             FREEBSD,
             [
-                "-lcrypto",
                 "-lgflags",
                 "-lglog",
             ],
@@ -91,7 +90,6 @@ osquery_cxx_library(
         osquery_target("osquery/logger:logger"),
         osquery_tp_target("gflags"),
         osquery_tp_target("glog"),
-        osquery_tp_target("openssl", "crypto"),
         osquery_tp_target("glibc", "pthread"),
     ],
 )

@@ -12,7 +12,7 @@
 #include <string>
 
 #include <osquery/core.h>
-#include <osquery/plugins/plugin.h>
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/query.h>
 #include <osquery/utils/expected/expected.h>
 

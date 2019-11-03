@@ -19,7 +19,7 @@ add_library(external_options INTERFACE)
 target_compile_options(external_options INTERFACE -DOSQUERY_EXTERNAL)
 target_link_libraries(external_options INTERFACE
   osquery_cxx_settings
-  osquery_sdk_pluginsdk
+  osquery_sdk
   osquery_extensions_implthrift
 )
 

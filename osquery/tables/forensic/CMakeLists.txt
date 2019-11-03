@@ -13,7 +13,7 @@ function(generateOsqueryTablesForensic)
     carves.cpp
   )
 
-  target_link_libraries(osquery_tables_forensic PUBLIC
+  target_link_libraries(osquery_tables_forensic PRIVATE
     osquery_cxx_settings
     osquery_headers
     osquery_carver

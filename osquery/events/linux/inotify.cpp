@@ -15,6 +15,7 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
@@ -465,4 +466,4 @@ bool INotifyEventPublisher::isPathMonitored(const std::string& path) const {
   auto path_iterator = path_descriptors_.find(parent_path);
   return (path_iterator != path_descriptors_.end());
 }
-}
+} // namespace osquery

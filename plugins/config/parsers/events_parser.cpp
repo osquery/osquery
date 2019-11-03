@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/registry_factory.h>
 
 namespace osquery {
@@ -43,4 +43,4 @@ Status EventsConfigParserPlugin::update(const std::string& source,
 }
 
 REGISTER_INTERNAL(EventsConfigParserPlugin, "config_parser", "events");
-}
+} // namespace osquery

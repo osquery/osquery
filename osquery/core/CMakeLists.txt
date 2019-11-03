@@ -42,38 +42,36 @@ function(generateOsqueryCore)
     ${source_files}
   )
 
-  set(dependencies
+  set(public_dependencies
     osquery_headers
-    osquery_config
     osquery_core_plugins
     osquery_core_sql
-    osquery_dispatcher
-    osquery_distributed
-    osquery_filesystem
-    osquery_process
     osquery_utils
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_env
-    osquery_utils_system_systemutils
-    osquery_utils_system_time
-    osquery_logger
-    osquery_extensions
     thirdparty_gflags
     thirdparty_glog
-    thirdparty_openssl
-    thirdparty_sqlite
   )
 
   if(DEFINED PLATFORM_LINUX)
-    list(APPEND dependencies thirdparty_util-linux)
+    list(APPEND public_dependencies thirdparty_util-linux)
   endif()
 
   target_link_libraries(osquery_core PUBLIC
     osquery_cxx_settings
 
-    ${dependencies}
+    ${public_dependencies}
   )
+
+  target_link_libraries(osquery_core PRIVATE
+    osquery_config
+    osquery_dispatcher
+    osquery_distributed
+    osquery_filesystem
+    osquery_process
+    osquery_utils
+    osquery_utils_system
+    osquery_logger
+    osquery_extensions
+)
 
   set(public_header_files
     watcher.h

@@ -23,7 +23,6 @@
 #include <osquery/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/registry.h>
-#include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/conversions/join.h>
@@ -161,7 +160,7 @@ Status applyExtensionDelay(std::function<Status(bool& stop)> predicate) {
   return status;
 }
 
-Status extensionPathActive(const std::string& path, bool use_timeout = false) {
+Status extensionPathActive(const std::string& path, bool use_timeout) {
   return applyExtensionDelay(([path, &use_timeout](bool& stop) {
     if (socketExists(path)) {
       try {

@@ -52,20 +52,24 @@ function(generateOsqueryTablesEventsEventstable)
 
   enableLinkWholeArchive(osquery_tables_events_eventstable)
 
-  target_link_libraries(osquery_tables_events_eventstable PUBLIC
+  target_link_libraries(osquery_tables_events_eventstable PRIVATE
     osquery_headers
     osquery_config
+    osquery_config_configplugin
     osquery_core
     osquery_events_publishers
+    osquery_hashing
     osquery_logger
     osquery_registry
-    osquery_utils_system_uptime
+    osquery_utils_system
     plugins_config_parsers
     thirdparty_boost
   )
 
   if(DEFINED PLATFORM_MACOS)
-    target_link_libraries(osquery_tables_events_eventstable PUBLIC bsm)
+    target_link_libraries(osquery_tables_events_eventstable PRIVATE
+      bsm
+    )
   endif()
 
   set(public_header_files

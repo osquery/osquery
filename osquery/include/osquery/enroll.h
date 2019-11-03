@@ -11,8 +11,8 @@
 #include <set>
 #include <string>
 
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/flags.h>
-#include <osquery/plugins/plugin.h>
 #include <osquery/utils/json/json.h>
 
 namespace osquery {
@@ -104,4 +104,4 @@ Status clearNodeKey();
  * @return enroll_secret The trimmed content read from FLAGS_enroll_secret_path.
  */
 const std::string getEnrollSecret();
-}
+} // namespace osquery

@@ -7,6 +7,7 @@
  */
 
 #include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
@@ -31,7 +32,7 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
 
  private:
   /// The access map binds source to category.
-  std::map<std::string, std::vector<std::string> > access_map_;
+  std::map<std::string, std::vector<std::string>> access_map_;
 };
 
 Status FilePathsConfigParserPlugin::setUp() {
@@ -164,4 +165,4 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
 }
 
 REGISTER_INTERNAL(FilePathsConfigParserPlugin, "config_parser", "file_paths");
-}
+} // namespace osquery

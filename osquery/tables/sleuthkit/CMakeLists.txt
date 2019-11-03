@@ -13,12 +13,12 @@ function(generateOsqueryTablesSleuthkit)
     sleuthkit.cpp
   )
 
-  target_link_libraries(osquery_tables_sleuthkit_sleuthkittable PUBLIC
+  target_link_libraries(osquery_tables_sleuthkit_sleuthkittable PRIVATE
     osquery_cxx_settings
     osquery_headers
     osquery_hashing
     osquery_logger
-    osquery_utils_conversions
+    osquery_utils
     thirdparty_sleuthkit
   )
 endfunction()

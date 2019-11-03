@@ -29,11 +29,9 @@ function(generateExperimentalTracingLinuxProbesevents)
     target_link_libraries("${library_name}" PUBLIC
       osquery_cxx_settings
       osquery_logger
-      osquery_utils_conversions
-      osquery_utils_expected
+      osquery_utils
       osquery_utils_system_linux_ebpf
       osquery_utils_system_linux_tracing
-      osquery_utils
       thirdparty_boost
     )
 

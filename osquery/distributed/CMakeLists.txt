@@ -24,7 +24,7 @@ function(generateOsqueryDistributed)
     osquery_database
     osquery_logger
     osquery_utils_json
-    osquery_utils_system_time
+    osquery_utils_system
   )
 
   add_test(NAME osquery_distributed_tests-test COMMAND osquery_distributed_tests-test)

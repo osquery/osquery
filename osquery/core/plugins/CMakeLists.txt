@@ -17,11 +17,17 @@ function(generateOsqueryCorePlugins)
 
   target_link_libraries(osquery_core_plugins PUBLIC
     osquery_cxx_settings
+
     osquery_core
     osquery_core_sql
-    osquery_utils_json
     osquery_utils_status
   )
+
+  target_link_libraries(osquery_core_plugins PRIVATE
+    osquery_utils_json
+  )
+
+  enableLinkWholeArchive(osquery_core_plugins)
 
   set(public_header_files
     logger.h

@@ -13,7 +13,7 @@ function(generateOsqueryTablesLldpdLlpdtable)
     lldp_neighbors.cpp
   )
 
-  target_link_libraries(osquery_tables_lldpd_llpdtable PUBLIC
+  target_link_libraries(osquery_tables_lldpd_llpdtable PRIVATE
     osquery_cxx_settings
     osquery_headers
     osquery_logger

@@ -22,8 +22,8 @@
 #include <sqlite3.h>
 
 #include <osquery/core.h>
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/core/sql/column.h>
-#include <osquery/plugins/plugin.h>
 #include <osquery/query.h>
 
 #include <gtest/gtest_prod.h>
@@ -172,7 +172,6 @@ struct Constraint {
       : op(_op), expr(std::move(_expr)) {}
 };
 
-
 /**
  * @brief Attributes about a Table implementation.
  */
@@ -206,8 +205,6 @@ inline TableAttributes operator|(TableAttributes a, TableAttributes b) {
 inline size_t operator&(TableAttributes a, TableAttributes b) {
   return static_cast<size_t>(a) & static_cast<size_t>(b);
 }
-
-
 
 /// Alias for an ordered list of column name and corresponding SQL type.
 using TableColumns =
@@ -366,7 +363,7 @@ struct ConstraintList : private boost::noncopyable {
   friend struct QueryContext;
 
  private:
-   FRIEND_TEST(TablesTests, test_constraint_list);
+  FRIEND_TEST(TablesTests, test_constraint_list);
 };
 
 /// Pass a constraint map to the query request.

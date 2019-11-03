@@ -209,7 +209,7 @@ function(generateOsqueryTablesSystemSystemtable)
     ${source_files}
   )
 
-  target_link_libraries(osquery_tables_system_systemtable PUBLIC
+  target_link_libraries(osquery_tables_system_systemtable PRIVATE
     osquery_cxx_settings
     osquery_headers
     osquery_core
@@ -218,19 +218,16 @@ function(generateOsqueryTablesSystemSystemtable)
     osquery_hashing
     osquery_logger
     osquery_process
+    osquery_sql
     osquery_utils
-    osquery_utils_conversions
-    osquery_utils_expected
-    osquery_utils_system_filepath
-    osquery_utils_system_systemutils
-    osquery_utils_system_time
-    osquery_utils_system_uptime
+    osquery_utils_system
     thirdparty_boost
+    thirdparty_ssdeep-cpp
     osquery_rows_processes_header
   )
 
   if(NOT DEFINED PLATFORM_WINDOWS)
-    target_link_libraries(osquery_tables_system_systemtable PUBLIC
+    target_link_libraries(osquery_tables_system_systemtable PRIVATE
       thirdparty_augeas
       thirdparty_libmagic
       thirdparty_libxml2
@@ -238,8 +235,7 @@ function(generateOsqueryTablesSystemSystemtable)
   endif()
 
   if(DEFINED PLATFORM_LINUX)
-    target_link_libraries(osquery_tables_system_systemtable PUBLIC
-      osquery_utils_system_udev
+    target_link_libraries(osquery_tables_system_systemtable PRIVATE
       thirdparty_libdevmapper
       thirdparty_libdpkg
       thirdparty_libelfin
@@ -249,7 +245,7 @@ function(generateOsqueryTablesSystemSystemtable)
     )
 
   elseif(DEFINED PLATFORM_MACOS)
-    target_link_libraries(osquery_tables_system_systemtable PUBLIC
+    target_link_libraries(osquery_tables_system_systemtable PRIVATE
       thirdparty_openssl
     )
 

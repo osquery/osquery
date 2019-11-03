@@ -1,8 +1,21 @@
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
+ */
 
-
+#include <osquery/core/plugins/sql_plugin.h>
+#include <osquery/extensions.h>
+#include <osquery/extensions/interface.h>
+#include <osquery/flags.h>
 #include <osquery/registry_factory.h>
+#include <osquery/tables.h>
 
 namespace osquery {
+
+DECLARE_string(extensions_socket);
 
 /// External (extensions) SQL implementation plugin provider for "sql" registry.
 class ExternalSQLPlugin : public SQLPlugin {

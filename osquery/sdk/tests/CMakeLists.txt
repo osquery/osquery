@@ -5,16 +5,16 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(osquerySdkTestsMain)
-  generateOsquerySdkTestsPluginsdktestsTest()
+  generateOsquerySdkTestsTest()
 endfunction()
 
-function(generateOsquerySdkTestsPluginsdktestsTest)
-  add_osquery_executable(osquery_sdk_tests_pluginsdktests-test registry_tests.cpp)
+function(generateOsquerySdkTestsTest)
+  add_osquery_executable(osquery_sdk_tests-test registry_tests.cpp)
 
-  target_link_libraries(osquery_sdk_tests_pluginsdktests-test PUBLIC
+  target_link_libraries(osquery_sdk_tests-test PUBLIC
     osquery_cxx_settings
     osquery_extensions_implthrift
-    osquery_sdk_pluginsdk
+    osquery_sdk
     thirdparty_googletest
   )
 endfunction()

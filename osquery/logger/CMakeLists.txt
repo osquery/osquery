@@ -33,7 +33,7 @@ function(generateOsqueryLoggerDatalogger)
     logger.cpp
   )
 
-  target_link_libraries(osquery_logger_datalogger PUBLIC
+  target_link_libraries(osquery_logger_datalogger PRIVATE
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
@@ -41,9 +41,9 @@ function(generateOsqueryLoggerDatalogger)
     osquery_filesystem
     osquery_numericmonitoring
     osquery_registry
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
+    osquery_utils
+    osquery_utils_json
+    osquery_utils_system
     osquery_logger
   )
 

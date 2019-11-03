@@ -10,10 +10,10 @@
 
 #include <exception>
 
+#include <osquery/core/plugins/logger.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/registry_factory.h>
-#include <osquery/plugins/logger.h>
 #include <osquery/flagalias.h>
+#include <osquery/registry_factory.h>
 
 namespace osquery {
 
@@ -60,4 +60,4 @@ class FilesystemLoggerPlugin : public LoggerPlugin {
 };
 
 REGISTER(FilesystemLoggerPlugin, "logger", "filesystem");
-}
+} // namespace osquery

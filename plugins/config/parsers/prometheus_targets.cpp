@@ -8,8 +8,6 @@
 
 #include <iostream>
 
-#include <osquery/config/config.h>
-#include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <plugins/config/parsers/prometheus_targets.h>
 
@@ -36,4 +34,4 @@ Status PrometheusMetricsConfigParserPlugin::update(const std::string& source,
 REGISTER_INTERNAL(PrometheusMetricsConfigParserPlugin,
                   "config_parser",
                   "prometheus_targets");
-}
+} // namespace osquery

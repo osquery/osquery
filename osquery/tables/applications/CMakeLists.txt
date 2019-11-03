@@ -48,14 +48,13 @@ function(generateOsqueryTablesApplications)
     ${source_files}
   )
 
-  target_link_libraries(osquery_tables_applications PUBLIC
+  target_link_libraries(osquery_tables_applications PRIVATE
     osquery_cxx_settings
     osquery_config
     osquery_filesystem
     osquery_remote_httpclient
     osquery_tables_system_systemtable
-    osquery_utils_conversions
-    osquery_utils_info
+    osquery_utils
     osquery_utils_json
     plugins_config_parsers
     thirdparty_boost

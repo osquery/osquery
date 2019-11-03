@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include <map>
 #include <functional>
+#include <map>
+#include <string>
 
-#include <osquery/config/config.h>
 #include <osquery/database.h>
 
 namespace osquery {
@@ -55,4 +55,4 @@ void getDecorations(std::map<std::string, std::string>& results);
 
 /// Clear decorations for a source when it updates.
 void clearDecorations(const std::string& source);
-}
+} // namespace osquery

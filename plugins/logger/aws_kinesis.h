@@ -13,15 +13,13 @@
 #include <chrono>
 #include <memory>
 #include <vector>
-#include <gflags/gflags.h>
 
 #include <aws/kinesis/KinesisClient.h>
 #include <aws/kinesis/model/PutRecordsRequestEntry.h>
 
 #include <osquery/core.h>
+#include <osquery/core/plugins/logger.h>
 #include <osquery/dispatcher.h>
-#include <osquery/plugins/logger.h>
-
 
 namespace osquery {
 DECLARE_uint64(aws_kinesis_period);
@@ -84,4 +82,4 @@ class KinesisLoggerPlugin : public LoggerPlugin {
  private:
   std::shared_ptr<KinesisLogForwarder> forwarder_{nullptr};
 };
-}
+} // namespace osquery

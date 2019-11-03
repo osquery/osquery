@@ -72,13 +72,12 @@ function(generateOsqueryTablesNetworking)
     ${source_files}
   )
 
-  target_link_libraries(osquery_tables_networking PUBLIC
+  target_link_libraries(osquery_tables_networking PRIVATE
     osquery_cxx_settings
     osquery_core
     osquery_filesystem
     osquery_remote_httpclient
     osquery_utils
-    osquery_utils_conversions
     osquery_tables_system_systemtable
     thirdparty_boost
   )
@@ -89,7 +88,7 @@ function(generateOsqueryTablesNetworking)
     )
   endif()
 
-  target_link_libraries(osquery_tables_networking PUBLIC
+  target_link_libraries(osquery_tables_networking PRIVATE
     ${platform_deps}
   )
 

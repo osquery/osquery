@@ -26,10 +26,11 @@ function(generateOsqueryProcess)
     ${source_files}
   )
 
-  target_link_libraries(osquery_process PUBLIC
+  target_link_libraries(osquery_process PRIVATE
     osquery_cxx_settings
     osquery_headers
-    osquery_utils_system_env
+    osquery_logger
+    osquery_utils_system
     thirdparty_boost
   )
 

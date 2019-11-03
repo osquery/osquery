@@ -22,6 +22,7 @@ function(generateOsqueryRemoteTransportsTransportstls)
     osquery_cxx_settings
     osquery_headers
     osquery_core
+    osquery_filesystem
     osquery_remote_httpclient
     osquery_remote_requests
     osquery_utils_json
@@ -58,8 +59,7 @@ function(generateOsqueryRemoteTransportsRemotetransportstlstestsTest)
     osquery_extensions_implthrift
     osquery_remote_enroll_tlsenroll
     osquery_remote_tests_remotetestutils
-    osquery_utils_conversions
-    osquery_utils_info
+    osquery_utils
     plugins_config_tlsconfig
     plugins_database_ephemeral
     tests_helper

@@ -15,7 +15,6 @@ function(osqueryEventsMain)
 endfunction()
 
 function(generateOsqueryEventsEventspublishers)
-
   if(DEFINED PLATFORM_LINUX)
     list(APPEND source_files
       linux/auditdnetlink.cpp
@@ -47,22 +46,21 @@ function(generateOsqueryEventsEventspublishers)
 
   enableLinkWholeArchive(osquery_events_publishers)
 
-  target_link_libraries(osquery_events_publishers PUBLIC
+  target_link_libraries(osquery_events_publishers PRIVATE
     osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_config
+    osquery_config_configplugin
     osquery_events
     osquery_hashing
-    osquery_utils_conversions
-    osquery_utils_expected
-    osquery_utils_system_time
+    osquery_utils
+    osquery_utils_system
     thirdparty_boost
   )
 
   if(DEFINED PLATFORM_LINUX)
     target_link_libraries(osquery_events_publishers PUBLIC
-      osquery_utils_system_udev
       thirdparty_libaudit
       thirdparty_libudev
       thirdparty_util-linux
@@ -127,12 +125,15 @@ endfunction()
 function(generateOsqueryEvents)
   add_osquery_library(osquery_events EXCLUDE_FROM_ALL events.cpp)
 
-  target_link_libraries(osquery_events PUBLIC
+  target_link_libraries(osquery_events PRIVATE
     osquery_cxx_settings
+    osquery_config_configplugin
+    osquery_headers
     osquery_core
+    osquery_config
     osquery_sql
     osquery_dispatcher
-    osquery_headers
+    osquery_utils_system
   )
 
   add_test(NAME osquery_events_tests-test COMMAND osquery_events_tests-test)

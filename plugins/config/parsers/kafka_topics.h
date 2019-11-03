@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 
 namespace osquery {
 

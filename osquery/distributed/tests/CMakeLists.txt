@@ -16,16 +16,15 @@ function(generateOsqueryDistributedTestsTest)
     osquery_core
     osquery_core_plugins
     osquery_distributed
-    osquery_extensions
-    osquery_extensions_implthrift
+    #osquery_extensions
+    #osquery_extensions_implthrift
     osquery_logger
     osquery_registry
-    osquery_remote_enroll_tlsenroll
-    osquery_remote_tests_remotetestutils
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
-    plugins_config_tlsconfig
+    #osquery_remote_enroll_tlsenroll
+    #osquery_remote_tests_remotetestutils
+    osquery_utils
+    osquery_utils_system
+    #plugins_config_tlsconfig
     plugins_database_ephemeral
     specs_tables
     thirdparty_googletest

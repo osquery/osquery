@@ -27,8 +27,7 @@ function(generateOsqueryDevtools)
     osquery_process
     osquery_sql
     osquery_utils
-    osquery_utils_conversions
-    osquery_utils_system_env
+    osquery_utils_system
     thirdparty_googletest_headers
     thirdparty_linenoise-ng
   )

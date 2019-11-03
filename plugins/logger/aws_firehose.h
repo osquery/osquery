@@ -11,18 +11,17 @@
 #include "aws_log_forwarder.h"
 
 #include <chrono>
+#include <gflags/gflags.h>
 #include <memory>
 #include <vector>
-#include <gflags/gflags.h>
 
 #include <aws/firehose/FirehoseClient.h>
 #include <aws/firehose/model/PutRecordBatchResponseEntry.h>
 #include <aws/firehose/model/Record.h>
 
 #include <osquery/core.h>
+#include <osquery/core/plugins/logger.h>
 #include <osquery/dispatcher.h>
-#include <osquery/plugins/logger.h>
-
 
 namespace osquery {
 
@@ -83,4 +82,4 @@ class FirehoseLoggerPlugin : public LoggerPlugin {
  private:
   std::shared_ptr<FirehoseLogForwarder> forwarder_{nullptr};
 };
-}
+} // namespace osquery
