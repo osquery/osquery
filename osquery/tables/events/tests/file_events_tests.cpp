@@ -52,11 +52,6 @@ class FileEventsTableTests : public testing::Test {
     FLAGS_registry_exceptions = exceptions_;
   }
 
- protected:
-  Status load() {
-    return Config::get().load();
-  }
-
  private:
   bool exceptions_{false};
 };
@@ -81,25 +76,16 @@ TEST_F(FileEventsTableTests, test_table_empty) {
   EXPECT_EQ(results.size(), 0U);
 }
 
-class FileEventsTestsConfigPlugin : public ConfigPlugin {
- public:
-  Status genConfig(std::map<std::string, std::string>& config) override {
-    auto doc = getUnrestrictedPack();
-    return doc.toString(config["data"]);
-  }
-};
-
 #ifndef WIN32
 TEST_F(FileEventsTableTests, test_configure_subscriptions) {
   // Attach/create the publishers.
   attachEvents();
 
   // Load a configuration with file paths, verify subscriptions.
-  auto registry = RegistryFactory::get().registry("config");
-  registry->add("file_events_tests",
-                std::make_shared<FileEventsTestsConfigPlugin>());
-  RegistryFactory::get().setActive("config", "file_events_tests");
-  this->load();
+  auto doc = getUnrestrictedPack();
+  ConfigMap config_data;
+  doc.toString(config_data["data"]);
+  Config::get().update(config_data);
 
   // Explicitly request a configure for subscribers.
   Registry::get().registry("event_subscriber")->configure();

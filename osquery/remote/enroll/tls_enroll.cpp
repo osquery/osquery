@@ -18,9 +18,6 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-
 #include <osquery/process/process.h>
 #include <osquery/remote/requests.h>
 #include <osquery/remote/serializers/json.h>
@@ -122,4 +119,4 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
   }
   return Status::success();
 }
-}
+} // namespace osquery

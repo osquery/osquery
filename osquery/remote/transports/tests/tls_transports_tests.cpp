@@ -16,6 +16,7 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/database.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/registry_factory.h>
@@ -24,7 +25,7 @@
 #include "osquery/remote/serializers/json.h"
 
 #include "osquery/remote/tests/test_utils.h"
-// #include "osquery/config/tests/test_utils.h"
+#include "osquery/config/tests/test_utils.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {

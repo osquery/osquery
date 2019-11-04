@@ -24,15 +24,14 @@ function(generateTestsHelper)
 
   target_link_libraries(tests_helper PUBLIC
     osquery_cxx_settings
-    osquery_core
+    osquery_headers
+    osquery_config
+    osquery_core_sql
     osquery_filesystem
     osquery_process
-    # osquery_remote_serializers_serializerjson
-    osquery_sql
     osquery_utils
     osquery_utils_system
     plugins_database_ephemeral
-    specs_tables
     thirdparty_boost
     thirdparty_googletest_headers
   )

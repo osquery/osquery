@@ -14,17 +14,13 @@ function(generateOsqueryDistributedTestsTest)
   target_link_libraries(osquery_distributed_tests-test PRIVATE
     osquery_cxx_settings
     osquery_core
-    osquery_core_plugins
     osquery_distributed
-    #osquery_extensions
-    #osquery_extensions
+    osquery_remote_enroll
     osquery_logger
     osquery_registry
-    #osquery_remote_enroll_tlsenroll
-    #osquery_remote_tests_remotetestutils
+    osquery_remote_tests_remotetestutils
     osquery_utils
     osquery_utils_system
-    #plugins_config_tlsconfig
     plugins_database_ephemeral
     specs_tables
     thirdparty_googletest

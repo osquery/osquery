@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/database.h>
 #include <osquery/filesystem/filesystem.h>
@@ -70,4 +71,4 @@ TEST_F(EventsConfigParserPluginTests, test_get_event) {
   // Reset the configuration.
   c.reset();
 }
-}
+} // namespace osquery

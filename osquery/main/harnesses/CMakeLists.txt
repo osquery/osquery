@@ -27,6 +27,7 @@ function(generateOsqueryFuzzHarnesses)
     osquery_database
     osquery_devtools
     osquery_dispatcher
+    osquery_distributed
     osquery_experimental_eventsstream_registry
     osquery_experimental_tracing_syscallstracing
     osquery_extensions

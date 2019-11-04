@@ -6,35 +6,24 @@
 
 function(osqueryDatabaseTestsMain)
   generateOsqueryDatabaseTestsTest()
-  generateOsqueryDatabaseTestsResultsTest()
 endfunction()
 
 function(generateOsqueryDatabaseTestsTest)
-  add_osquery_executable(osquery_database_tests-test database.cpp)
+  add_osquery_executable(osquery_database_tests-test
+    database.cpp
+    results.cpp
+  )
 
   target_link_libraries(osquery_database_tests-test PRIVATE
     osquery_cxx_settings
     osquery_core
-    osquery_database
-    osquery_registry
-    osquery_utils_json
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryDatabaseTestsResultsTest)
-  add_osquery_executable(osquery_database_tests_results-test results.cpp)
-
-  target_link_libraries(osquery_database_tests_results-test PRIVATE
-    osquery_cxx_settings
     osquery_core_sql
-    osquery_core
     osquery_database
     osquery_registry
     osquery_utils_json
     osquery_sql_tests_sqltestutils
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()

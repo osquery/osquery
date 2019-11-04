@@ -13,7 +13,7 @@
 #include <boost/tokenizer.hpp>
 
 #include "osquery/events/linux/syslog.h"
-#include "osquery/tests/test_util.h"
+//#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
@@ -78,4 +78,4 @@ TEST_F(SyslogTests, test_csv_separator) {
   ASSERT_EQ(std::vector<std::string>({"\",f\\ø\"o,", "\",bá\\'r", "baz\\,\""}),
             splitCsv("\"\"\",f\\ø\"\"o,\",\"\"\",bá\\'r\",\"baz\\,\"\"\""));
 }
-}
+} // namespace osquery

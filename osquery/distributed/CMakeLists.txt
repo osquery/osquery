@@ -19,10 +19,11 @@ function(generateOsqueryDistributed)
 
   target_link_libraries(osquery_distributed PUBLIC
     osquery_cxx_settings
-    osquery_core
-    osquery_core_plugins
+    #osquery_core
+    #osquery_core_plugins
     osquery_database
     osquery_logger
+    osquery_sql
     osquery_utils_json
     osquery_utils_system
   )

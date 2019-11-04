@@ -98,7 +98,7 @@ function(generateOsquerySql)
     thirdparty_gflags
   )
 
-  target_link_libraries(osquery_sql PRIVATE
+  target_link_libraries(osquery_sql PUBLIC
     osquery_sql_sqliteplugin
   )
 

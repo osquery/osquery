@@ -22,6 +22,7 @@ function(generateOsqueryNumericmonitoring)
   target_link_libraries(osquery_numericmonitoring PUBLIC
     osquery_cxx_settings
     osquery_core
+    osquery_dispatcher
     osquery_utils
     osquery_logger
     thirdparty_boost

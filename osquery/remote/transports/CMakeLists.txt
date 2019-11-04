@@ -54,14 +54,11 @@ function(generateOsqueryRemoteTransportsRemotetransportstlstestsTest)
     osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_database
-    osquery_events
-    osquery_extensions
-    osquery_extensions
     osquery_remote_enroll_tlsenroll
     osquery_remote_tests_remotetestutils
     osquery_utils
-    plugins_config_tlsconfig
     plugins_database_ephemeral
+    specs_tables
     tests_helper
     thirdparty_googletest
     osquery_tools_tests_testfiles

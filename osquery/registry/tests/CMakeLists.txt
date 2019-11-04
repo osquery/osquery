@@ -14,13 +14,7 @@ function(osqueryRegistryTestsTest)
   target_link_libraries(osquery_registry_tests-test PRIVATE
     osquery_cxx_settings
     osquery_database
-    osquery_distributed
-    osquery_events
-    osquery_extensions
-    osquery_extensions
     osquery_registry
-    osquery_remote_enroll_tlsenroll
-    plugins_config_tlsconfig
     plugins_database_ephemeral
     specs_tables
     thirdparty_googletest

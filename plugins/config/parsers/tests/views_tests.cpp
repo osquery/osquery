@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/database.h>
 #include <osquery/registry.h>
@@ -82,4 +83,4 @@ TEST_F(ViewsConfigParserPluginTests, test_update_view) {
 
   c.reset();
 }
-}
+} // namespace osquery

@@ -15,11 +15,7 @@ function(pluginsNumericmonitoringTestsFilesystemtestsTest)
   target_link_libraries(plugins_numericmonitoring_tests_filesystem-test PRIVATE
     osquery_cxx_settings
     osquery_database
-    osquery_extensions
-    osquery_extensions
     osquery_numericmonitoring
-    osquery_remote_enroll_tlsenroll
-    plugins_config_tlsconfig
     plugins_database_ephemeral
     plugins_numericmonitoring_filesystem
     specs_tables

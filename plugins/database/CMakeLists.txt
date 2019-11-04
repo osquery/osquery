@@ -22,7 +22,7 @@ function(generatePluginsDatabaseEphemeral)
 
   enableLinkWholeArchive(plugins_database_ephemeral)
 
-  target_link_libraries(plugins_database_ephemeral PRIVATE
+  target_link_libraries(plugins_database_ephemeral PUBLIC
     osquery_cxx_settings
     osquery_core
     osquery_database
@@ -44,7 +44,7 @@ function(generatePluginsDatabaseRocksdbplugin)
 
   enableLinkWholeArchive(plugins_database_rocksdbplugin)
 
-  target_link_libraries(plugins_database_rocksdbplugin PRIVATE
+  target_link_libraries(plugins_database_rocksdbplugin PUBLIC
     osquery_cxx_settings
     osquery_core
     osquery_database
@@ -71,7 +71,7 @@ function(generatePluginsDatabaseSqliteplugin)
 
   enableLinkWholeArchive(plugins_database_sqliteplugin)
 
-  target_link_libraries(plugins_database_sqliteplugin PRIVATE
+  target_link_libraries(plugins_database_sqliteplugin PUBLIC
     osquery_cxx_settings
     osquery_core
     osquery_database

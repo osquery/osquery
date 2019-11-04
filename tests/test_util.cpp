@@ -7,28 +7,29 @@
  */
 
 #include <chrono>
-#include <deque>
+// #include <deque>
 #include <random>
 #include <sstream>
-#include <thread>
+// #include <thread>
 
-#include <csignal>
-#include <ctime>
+// #include <csignal>
+// #include <ctime>
 
 #include <gtest/gtest.h>
 
 #include <boost/filesystem/operations.hpp>
 
+#include <osquery/config/config.h>
+#include <osquery/database.h>
 #include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/utils/system/time.h>
-#include <osquery/utils/conversions/tryto.h>
-
 #include <osquery/process/process.h>
+#include <osquery/registry.h>
+#include <osquery/registry_factory.h>
 #include <osquery/tests/test_util.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/info/tool_type.h>
+#include <osquery/utils/system/time.h>
 
 namespace fs = boost::filesystem;
 
@@ -44,9 +45,9 @@ std::string kTestWorkingDirectory;
 std::string kTestDataPath{"../../../tools/tests/"};
 
 DECLARE_string(database_path);
-DECLARE_string(extensions_socket);
-DECLARE_string(extensions_autoload);
-DECLARE_string(enroll_tls_endpoint);
+// DECLARE_string(extensions_socket);
+// DECLARE_string(extensions_autoload);
+// DECLARE_string(enroll_tls_endpoint);
 DECLARE_bool(disable_logging);
 DECLARE_bool(disable_database);
 
@@ -106,8 +107,8 @@ void initTesting() {
   fs::remove_all(kTestWorkingDirectory);
   fs::create_directories(kTestWorkingDirectory);
   FLAGS_database_path = kTestWorkingDirectory + "unittests.db";
-  FLAGS_extensions_socket = kTestWorkingDirectory + "unittests.em";
-  FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
+  // FLAGS_extensions_socket = kTestWorkingDirectory + "unittests.em";
+  // FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
 
   FLAGS_disable_logging = true;
   FLAGS_disable_database = true;
@@ -122,8 +123,7 @@ void initTesting() {
 
 void shutdownTesting() {
   DatabasePlugin::shutdown();
-
-  Initializer::platformTeardown();
+  platformTeardown();
 }
 
 ScheduledQuery getOsqueryScheduledQuery() {

@@ -1,9 +1,14 @@
-// Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
+ */
+
 #include <osquery/core.h>
-#include <osquery/registry_interface.h>
 #include <osquery/sql.h>
 #include <osquery/sql/sqlite_util.h>
-#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
 

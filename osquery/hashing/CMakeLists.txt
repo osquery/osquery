@@ -17,7 +17,6 @@ function(generateOsqueryHashing)
     osquery_cxx_settings
     osquery_filesystem
     osquery_utils
-    osquery_utils_info
     thirdparty_openssl
   )
 

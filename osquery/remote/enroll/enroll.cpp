@@ -13,7 +13,6 @@
 #include <osquery/enroll.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
-#include <osquery/process/process.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 #include <osquery/utils/system/time.h>
@@ -60,7 +59,10 @@ CLI_FLAG(bool,
 CREATE_LAZY_REGISTRY(EnrollPlugin, "enroll");
 
 const std::set<std::string> kEnrollHostDetails{
-    "os_version", "osquery_info", "system_info", "platform_info",
+    "os_version",
+    "osquery_info",
+    "system_info",
+    "platform_info",
 };
 
 Status clearNodeKey() {
@@ -140,4 +142,4 @@ Status EnrollPlugin::call(const PluginRequest& request,
     return Status::success();
   }
 }
-}
+} // namespace osquery

@@ -10,11 +10,10 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/config/tests/test_utils.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
 #include <osquery/utils/base64.h>
 #include <osquery/utils/darwin/plist.h>
-#include <osquery/config/tests/test_utils.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -100,4 +99,4 @@ TEST_F(PlistTests, test_parse_plist_content_with_blobs) {
   // Verify we parsed the binary blob correctly
   EXPECT_NE(alias.find("Applications/Flux.app"), std::string::npos);
 }
-}
+} // namespace osquery

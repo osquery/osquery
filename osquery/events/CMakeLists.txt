@@ -46,7 +46,7 @@ function(generateOsqueryEventsEventspublishers)
 
   enableLinkWholeArchive(osquery_events_publishers)
 
-  target_link_libraries(osquery_events_publishers PRIVATE
+  target_link_libraries(osquery_events_publishers PUBLIC
     osquery_cxx_settings
     osquery_headers
     osquery_core
@@ -104,8 +104,6 @@ function(generateOsqueryEventsEventspublishers)
 
   generateIncludeNamespace(osquery_events_publishers "osquery/events" "FULL_PATH" ${platform_public_header_files})
 
-  add_test(NAME osquery_events_tests_eventsdatabasetests-test COMMAND osquery_events_tests_eventsdatabasetests-test)
-
   if(DEFINED PLATFORM_LINUX)
     add_test(NAME osquery_events_tests_syslogtests-test COMMAND osquery_events_tests_syslogtests-test)
     add_test(NAME osquery_events_tests_audittests-test COMMAND osquery_events_tests_audittests-test)
@@ -125,14 +123,14 @@ endfunction()
 function(generateOsqueryEvents)
   add_osquery_library(osquery_events EXCLUDE_FROM_ALL events.cpp)
 
-  target_link_libraries(osquery_events PRIVATE
+  target_link_libraries(osquery_events PUBLIC
     osquery_cxx_settings
-    osquery_config_configplugin
     osquery_headers
+    osquery_config_configplugin
     osquery_core
     osquery_config
-    osquery_sql
     osquery_dispatcher
+    osquery_sql
     osquery_utils_system
   )
 

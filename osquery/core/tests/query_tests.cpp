@@ -14,7 +14,9 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/database.h>
 #include <osquery/query.h>
+#include <osquery/registry.h>
 #include <osquery/sql/tests/sql_test_utils.h>
 #include <osquery/system.h>
 #include <osquery/tests/test_util.h>
@@ -155,4 +157,4 @@ TEST_F(QueryTests, test_get_stored_query_names) {
   auto in_vector = std::find(names.begin(), names.end(), "foobar");
   EXPECT_NE(in_vector, names.end());
 }
-}
+} // namespace osquery

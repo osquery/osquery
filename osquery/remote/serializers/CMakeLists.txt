@@ -22,7 +22,6 @@ function(generateOsqueryRemoteSerializersSerializerjson)
     osquery_cxx_settings
     osquery_remote_requests
     osquery_utils_json
-    # osquery_extensions
     thirdparty_boost
   )
 
@@ -41,6 +40,7 @@ function(generateOsqueryRemoteserializersjsontestsTest)
   target_link_libraries(osquery_remote_serializers_remotejsonserializerstests-test PRIVATE
     osquery_cxx_settings
     osquery_remote_serializers_serializerjson
+    specs_tables
     thirdparty_googletest
   )
 endfunction()

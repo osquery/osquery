@@ -86,8 +86,8 @@ function(generateOsqueryFilesystemMockfilestructure)
 
   target_link_libraries(osquery_filesystem_mockfilestructure PUBLIC
     osquery_cxx_settings
-    thirdparty_boost
     osquery_filesystem
+    thirdparty_boost
   )
 
   set(public_header_files
@@ -114,16 +114,8 @@ function(generateOsqueryFilesystemTest)
     osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
-    osquery_core_sql
-    osquery_dispatcher
-    osquery_distributed
-    osquery_events
-    osquery_extensions
-    osquery_extensions
     osquery_process
-    osquery_registry
-    osquery_remote_enroll_tlsenroll
-    plugins_config_tlsconfig
+    osquery_utils
     specs_tables
     osquery_filesystem_mockfilestructure
     osquery_filesystem

@@ -13,7 +13,7 @@ function(generatePluginsRemoteEnrollTlsenrollplugin)
 
   enableLinkWholeArchive(plugins_remote_enroll_tlsenrollplugin)
 
-  target_link_libraries(plugins_remote_enroll_tlsenrollplugin PRIVATE
+  target_link_libraries(plugins_remote_enroll_tlsenrollplugin PUBLIC
     osquery_cxx_settings
     osquery_remote_enroll_tlsenroll
   )

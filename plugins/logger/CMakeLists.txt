@@ -40,7 +40,7 @@ function(generatePluginsLoggerAwsfirehose)
 
   enableLinkWholeArchive(plugins_logger_awsfirehose)
 
-  target_link_libraries(plugins_logger_awsfirehose PRIVATE
+  target_link_libraries(plugins_logger_awsfirehose PUBLIC
     osquery_cxx_settings
     osquery_dispatcher
     plugins_logger_awslogforwarder
@@ -60,7 +60,7 @@ function(generatePluginsLoggerAwskinesis)
 
   enableLinkWholeArchive(plugins_logger_awskinesis)
 
-  target_link_libraries(plugins_logger_awskinesis PRIVATE
+  target_link_libraries(plugins_logger_awskinesis PUBLIC
     osquery_cxx_settings
     osquery_headers
     osquery_dispatcher
@@ -100,19 +100,16 @@ function(generatePluginsLoggerBuffered)
 
   enableLinkWholeArchive(plugins_logger_buffered)
 
-  target_link_libraries(plugins_logger_buffered PRIVATE
+  target_link_libraries(plugins_logger_buffered PUBLIC
     osquery_cxx_settings
+    osquery_headers
     plugins_logger_commondeps
+    osquery_core_plugins
+    osquery_dispatcher
     osquery_utils
     osquery_utils_json
     osquery_utils_system
     plugins_config_parsers
-  )
-
-  target_link_libraries(plugins_logger_buffered PUBLIC
-    osquery_headers
-    osquery_core_plugins
-    osquery_dispatcher
   )
 
   set(public_header_files
@@ -130,7 +127,7 @@ function(generatePluginsLoggerFilesystemlogger)
 
   enableLinkWholeArchive(plugins_logger_filesystemlogger)
 
-  target_link_libraries(plugins_logger_filesystemlogger PRIVATE
+  target_link_libraries(plugins_logger_filesystemlogger PUBLIC
     osquery_cxx_settings
     plugins_logger_commondeps
     osquery_filesystem
@@ -154,7 +151,7 @@ function(generatePluginsLoggerKafkaproducer)
 
     enableLinkWholeArchive(plugins_logger_kafkaproducer)
 
-    target_link_libraries(plugins_logger_kafkaproducer PRIVATE
+    target_link_libraries(plugins_logger_kafkaproducer PUBLIC
       osquery_cxx_settings
       osquery_config
       plugins_config_parsers
@@ -183,7 +180,7 @@ function(generatePluginsLoggerStdout)
 
   enableLinkWholeArchive(plugins_logger_stdout)
 
-  target_link_libraries(plugins_logger_stdout PRIVATE
+  target_link_libraries(plugins_logger_stdout PUBLIC
     osquery_cxx_settings
     plugins_logger_commondeps
   )
@@ -204,7 +201,7 @@ function(generatePluginsLoggerSyslog)
 
     enableLinkWholeArchive(plugins_logger_syslog)
 
-    target_link_libraries(plugins_logger_syslog PRIVATE
+    target_link_libraries(plugins_logger_syslog PUBLIC
       osquery_cxx_settings
       plugins_logger_commondeps
     )
@@ -231,7 +228,7 @@ function(generatePluginsLoggerTlslogger)
 
   enableLinkWholeArchive(plugins_logger_tlslogger)
 
-  target_link_libraries(plugins_logger_tlslogger PRIVATE
+  target_link_libraries(plugins_logger_tlslogger PUBLIC
     osquery_cxx_settings
     plugins_logger_commondeps
     osquery_dispatcher
@@ -262,7 +259,7 @@ function(generatePluginsLoggerWindowseventlog)
 
   enableLinkWholeArchive(plugins_logger_windowseventlog)
 
-  target_link_libraries(plugins_logger_windowseventlog PRIVATE
+  target_link_libraries(plugins_logger_windowseventlog PUBLIC
     osquery_cxx_settings
     plugins_logger_commondeps
   )

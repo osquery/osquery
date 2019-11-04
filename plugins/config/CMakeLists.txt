@@ -19,7 +19,7 @@ function(generatePluginsConfigFilesystemconfig)
 
   enableLinkWholeArchive(plugins_config_filesystemconfig)
 
-  target_link_libraries(plugins_config_filesystemconfig PRIVATE
+  target_link_libraries(plugins_config_filesystemconfig PUBLIC
     osquery_cxx_settings
     osquery_config
     osquery_config_configplugin
@@ -35,7 +35,7 @@ function(generatePluginsConfigTlsconfig)
 
   enableLinkWholeArchive(plugins_config_tlsconfig)
 
-  target_link_libraries(plugins_config_tlsconfig PRIVATE
+  target_link_libraries(plugins_config_tlsconfig PUBLIC
     osquery_cxx_settings
     osquery_config
     osquery_config_configplugin
@@ -56,7 +56,7 @@ function(generatePluginsConfigUpdateconfigplugin)
 
   enableLinkWholeArchive(plugins_config_updateconfigplugin)
 
-  target_link_libraries(plugins_config_updateconfigplugin PRIVATE
+  target_link_libraries(plugins_config_updateconfigplugin PUBLIC
     osquery_cxx_settings
     osquery_config
     osquery_config_configplugin

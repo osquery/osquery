@@ -26,7 +26,7 @@ function(generateOsqueryRemoteRequests)
   target_link_libraries(osquery_remote_requests PUBLIC
     osquery_cxx_settings
     osquery_headers
-    osquery_utils_status
+    osquery_utils
     osquery_utils_json
     thirdparty_googletest_headers
   )

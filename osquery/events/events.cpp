@@ -36,8 +36,6 @@ CREATE_REGISTRY(EventSubscriberPlugin, "event_subscriber");
 /// Checkpoint interval to inspect max event buffering.
 #define EVENTS_CHECKPOINT 256
 
-FLAG(bool, disable_events, false, "Disable osquery publish/subscribe system");
-
 FLAG(bool,
      events_optimize,
      true,
@@ -50,6 +48,8 @@ FLAG(uint64, events_expiry, 3600, "Timeout to expire event subscriber results");
 // Access this flag through EventSubscriberPlugin::getEventsMax to allow for
 // overriding in subclasses
 FLAG(uint64, events_max, 50000, "Maximum number of events per type to buffer");
+
+DECLARE_bool(disable_events);
 
 static inline EventTime timeFromRecord(const std::string& record) {
   // Convert a stored index "as string bytes" to a time value.

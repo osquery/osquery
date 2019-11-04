@@ -9,12 +9,30 @@ function(osqueryRemoteEnrollTlsenrollMain)
     generateOsqueryRemoteenrolltestsTest()
   endif()
 
+  generateOsqueryRemoteEnroll()
   generateOsqueryRemoteEnrollTlsenroll()
+endfunction()
+
+function(generateOsqueryRemoteEnroll)
+  add_osquery_library(osquery_remote_enroll EXCLUDE_FROM_ALL
+    enroll.cpp
+  )
+
+  enableLinkWholeArchive(osquery_remote_enroll)
+
+  target_link_libraries(osquery_remote_enroll PUBLIC
+    osquery_cxx_settings
+    osquery_core
+    osquery_filesystem
+    osquery_sql
+    osquery_utils_json
+    osquery_utils_system
+    thirdparty_boost
+  )
 endfunction()
 
 function(generateOsqueryRemoteEnrollTlsenroll)
   add_osquery_library(osquery_remote_enroll_tlsenroll EXCLUDE_FROM_ALL
-    enroll.cpp
     tls_enroll.cpp
   )
 
@@ -22,6 +40,7 @@ function(generateOsqueryRemoteEnrollTlsenroll)
     osquery_cxx_settings
     osquery_core
     osquery_process
+    osquery_remote_enroll
     osquery_remote_httpclient
     osquery_remote_requests
     osquery_remote_serializers_serializerjson
@@ -63,16 +82,13 @@ function(generateOsqueryRemoteenrolltestsTest)
     osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_database
-    osquery_events
-    osquery_extensions
-    osquery_extensions
     osquery_process
     osquery_remote_enroll_tlsenroll
     osquery_remote_tests_remotetestutils
     osquery_utils
-    plugins_config_tlsconfig
     plugins_database_ephemeral
     tests_helper
+    specs_tables
     thirdparty_googletest
     osquery_tools_tests_testfiles
   )

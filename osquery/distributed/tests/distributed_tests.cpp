@@ -17,8 +17,7 @@
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 
-#include "osquery/remote/tests/test_utils.h"
-#include "osquery/sql/sqlite_util.h"
+#include <osquery/remote/tests/test_utils.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/json/json.h>
 

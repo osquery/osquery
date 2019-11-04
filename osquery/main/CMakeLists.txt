@@ -32,7 +32,7 @@ function(generateOsqueryMain)
     ${source_files}
   )
 
-  target_link_libraries(osquery_main PRIVATE
+  target_link_libraries(osquery_main PUBLIC
     osquery_cxx_settings
     osquery_headers
     osquery_core

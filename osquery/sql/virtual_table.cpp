@@ -21,6 +21,9 @@
 
 namespace osquery {
 
+/// Events are somewhat core, a toggle is keep in virtual table abstractions.
+FLAG(bool, disable_events, false, "Disable osquery publish/subscribe system");
+
 FLAG(bool, enable_foreign, false, "Enable no-op foreign virtual tables");
 
 FLAG(uint64,

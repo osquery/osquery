@@ -21,6 +21,8 @@
 
 #include <osquery/tests/test_util.h>
 
+#include <fstream>
+
 namespace osquery {
 
 std::string kProcessTestExecPath;

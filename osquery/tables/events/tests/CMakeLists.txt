@@ -22,14 +22,9 @@ function(generateOsqueryTablesEventsTestsFileeventstestsTest)
     osquery_config
     osquery_config_tests_testutils
     osquery_database
-    osquery_extensions
-    osquery_extensions
     osquery_logger
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_tables_events_eventstable
-    plugins_config_tlsconfig
-    plugins_config_parsers
     plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
@@ -46,14 +41,9 @@ function(generateOsqueryTablesEventsTestsSelinuxeventstestsTest)
     osquery_config
     osquery_config_tests_testutils
     osquery_database
-    osquery_extensions
-    osquery_extensions
     osquery_logger
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_tables_events_eventstable
-    plugins_config_tlsconfig
-    plugins_config_parsers
     plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
@@ -70,14 +60,9 @@ function(generateOsqueryTablesEventsTestsProcesseventstestsTest)
     osquery_config
     osquery_config_tests_testutils
     osquery_database
-    osquery_extensions
-    osquery_extensions
     osquery_logger
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_tables_events_eventstable
-    plugins_config_tlsconfig
-    plugins_config_parsers
     plugins_database_ephemeral
     specs_tables
     thirdparty_googletest

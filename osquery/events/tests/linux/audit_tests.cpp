@@ -20,7 +20,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/auditdnetlink.h"
-#include "osquery/tests/test_util.h"
+//#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
@@ -133,4 +133,4 @@ TEST_F(AuditTests, test_parse_sock_addr) {
   EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
   FLAGS_audit_allow_unix = socket_flag;
 }
-}
+} // namespace osquery

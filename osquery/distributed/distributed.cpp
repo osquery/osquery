@@ -9,7 +9,6 @@
 #include <sstream>
 #include <utility>
 
-#include <osquery/core/plugins/logger.h>
 #include <osquery/database.h>
 #include <osquery/distributed.h>
 #include <osquery/logger.h>

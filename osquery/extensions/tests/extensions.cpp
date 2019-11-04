@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/dispatcher.h>
 #include <osquery/extensions.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/registry_factory.h>

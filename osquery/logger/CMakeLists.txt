@@ -37,6 +37,7 @@ function(generateOsqueryLoggerDatalogger)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
+    osquery_events
     osquery_database
     osquery_filesystem
     osquery_numericmonitoring

@@ -16,10 +16,9 @@ function(generateOsqueryDispatcherTestsTest)
     osquery_cxx_settings
     osquery_database
     osquery_dispatcher
-    #osquery_distributed
     osquery_registry
     plugins_database_ephemeral
-    # specs_tables
+    specs_tables
     thirdparty_googletest
   )
 endfunction()

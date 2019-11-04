@@ -10,13 +10,13 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
-#include <osquery/registry.h>
-#include <osquery/system.h>
-
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/database.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/registry.h>
 #include <osquery/registry_interface.h>
+#include <osquery/system.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
@@ -48,8 +48,10 @@ class FilePathsConfigParserPluginTests : public testing::Test {
 
   size_t numFiles() {
     size_t count = 0;
-    Config::get().files(([&count](
-        const std::string&, const std::vector<std::string>&) { count++; }));
+    Config::get().files(
+        ([&count](const std::string&, const std::vector<std::string>&) {
+          count++;
+        }));
     return count;
   }
 
@@ -67,13 +69,14 @@ TEST_F(FilePathsConfigParserPluginTests, test_get_files) {
   std::vector<std::string> values;
 
   Config::get().update(config_data_);
-  Config::get().files(([&categories, &values](
-      const std::string& category, const std::vector<std::string>& files) {
-    categories.push_back(category);
-    for (const auto& file : files) {
-      values.push_back(file);
-    }
-  }));
+  Config::get().files(
+      ([&categories, &values](const std::string& category,
+                              const std::vector<std::string>& files) {
+        categories.push_back(category);
+        for (const auto& file : files) {
+          values.push_back(file);
+        }
+      }));
 
   EXPECT_EQ(categories, expected_categories);
   EXPECT_EQ(values, expected_values);
@@ -104,4 +107,4 @@ TEST_F(FilePathsConfigParserPluginTests, test_remove_source) {
   Config::get().update(config_data_);
   EXPECT_EQ(numFiles(), 0U);
 }
-}
+} // namespace osquery

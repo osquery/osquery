@@ -15,7 +15,7 @@ endfunction()
 
 function(generateOsqueryTablesYaraYaratable)
 
-  if(PLATFORM_WINDOWS OR PLATFORM_FREEBSD)
+  if(DEFINED PLATFORM_WINDOWS OR DEFINED PLATFORM_FREEBSD)
     add_osquery_library(osquery_tables_yara_yaratable INTERFACE)
     return()
   endif()
@@ -37,7 +37,7 @@ function(generateOsqueryTablesYaraYaratable)
 
   enableLinkWholeArchive(osquery_tables_yara_yaratable)
 
-  target_link_libraries(osquery_tables_yara_yaratable PRIVATE
+  target_link_libraries(osquery_tables_yara_yaratable PUBLIC
     osquery_cxx_settings
     osquery_headers
     osquery_config

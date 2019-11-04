@@ -24,13 +24,11 @@ function(generateOsqueryTablesYaraTestsTest)
     osquery_core
     osquery_database
     osquery_filesystem
-    osquery_remote_httpclient
-    osquery_remote_tests_remotetestutils
     osquery_tables_yara_yaratable
     osquery_tables_system_systemtable
     osquery_utils
-    osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_boost
     thirdparty_googletest
   )

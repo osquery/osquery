@@ -38,6 +38,7 @@ function(generateOsqueryConfigTestsTest)
     osquery_config
     osquery_utils_system
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
     osquery_filesystem_mockfilestructure
     osquery_config_tests_testutils
@@ -58,6 +59,7 @@ function(generateOsqueryConfigServiceTestsTest)
     osquery_utils_system
     osquery_distributed
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
     osquery_filesystem_mockfilestructure
     osquery_config_tests_testutils

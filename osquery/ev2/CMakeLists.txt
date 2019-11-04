@@ -24,7 +24,7 @@ function(generateOsqueryEV2)
 
   target_link_libraries(osquery_ev2 PUBLIC
     osquery_cxx_settings
-    osquery_utils_expected
+    osquery_utils
   )
 
   set(public_header_files

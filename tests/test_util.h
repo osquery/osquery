@@ -12,11 +12,9 @@
 #include <utility>
 #include <vector>
 
-#include <osquery/config/config.h>
-#include <osquery/core.h>
-#include <osquery/database.h>
+#include <osquery/core/sql/scheduled_query.h>
+#include <osquery/core/sql/table_rows.h>
 #include <osquery/events.h>
-#include <osquery/filesystem/filesystem.h>
 
 namespace osquery {
 

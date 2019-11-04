@@ -21,9 +21,11 @@ function(generateOsqueryCoreTestsTest)
   target_link_libraries(osquery_core_tests-test PRIVATE
     osquery_cxx_settings
     osquery_core
-    osquery_config_tests_testutils
+    osquery_database
     osquery_registry
     osquery_utils
+    osquery_config_tests_testutils
+    osquery_sql_tests_sqltestutils
     tests_helper
     specs_tables
     thirdparty_googletest
@@ -46,6 +48,7 @@ function(generateOsqueryCoreTestsWatcherpermissionstestsTest)
   target_link_libraries(osquery_core_tests_watcherpermissionstests-test PRIVATE
     osquery_cxx_settings
     osquery_core
+    osquery_core_init
     osquery_process
     osquery_registry
     osquery_utils

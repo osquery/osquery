@@ -58,6 +58,7 @@ function(generateOsqueryTablesSystemTestsMdtablestestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -77,6 +78,7 @@ function(generateOsqueryTablesSystemTestsPcidevicestestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -96,6 +98,7 @@ function(generateOsqueryTablesSystemTestsPcidbtestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -115,6 +118,7 @@ function(generateOsqueryTablesSystemTestsPortagetestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -134,6 +138,7 @@ function(generateOsqueryTablesSystemTestsKnownhoststestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -153,6 +158,7 @@ function(generateOsqueryTablesSystemTestsShellhistorytestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -172,6 +178,7 @@ function(generateOsqueryTablesSystemTestsSudoerstestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -191,6 +198,7 @@ function(generateOsqueryTablesSystemTestsYumsourcestestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -210,6 +218,7 @@ function(generateOsqueryTablesSystemTestsSystemtablestestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -229,6 +238,7 @@ function(generateOsqueryTablesSystemTestsAppstestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
     osquery_tools_tests_plistfiles
   )
@@ -249,6 +259,7 @@ function(generateOsqueryTablesSystemTestsAsltestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -268,6 +279,7 @@ function(generateOsqueryTablesSystemTestsMacOsCertificatestestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
     osquery_tools_tests_testfiles
   )
@@ -288,6 +300,7 @@ function(generateOsqueryTablesSystemTestsExtendedattributestestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
     osquery_tools_tests_testfiles
   )
@@ -308,6 +321,7 @@ function(generateOsqueryTablesSystemTestsFirewalltestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
     osquery_tools_tests_plistfiles
   )
@@ -328,6 +342,7 @@ function(generateOsqueryTablesSystemTestsLaunchdtestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
     osquery_tools_tests_plistfiles
   )
@@ -348,6 +363,7 @@ function(generateOsqueryTablesSystemTestsMdfindtestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -367,6 +383,7 @@ function(generateOsqueryTablesSystemTestsProcessestestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -386,6 +403,7 @@ function(generateOsqueryTablesSystemTestsSmctestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -400,11 +418,11 @@ function(generateOsqueryTablesSystemTestsStartupitemstestsTest)
     osquery_core_sql
     osquery_database
     osquery_filesystem
-    osquery_remote_tests_remotetestutils
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
     osquery_tools_tests_plistfiles
   )
@@ -425,6 +443,7 @@ function(generateOsqueryTablesSystemTestsSignaturetestsTest)
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -439,11 +458,11 @@ function(generateOsqueryTablesSystemTestsWindowsCertificatestestsTest)
     osquery_core_sql
     osquery_database
     osquery_filesystem
-    osquery_remote_tests_remotetestutils
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
     plugins_database_ephemeral
+    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -453,13 +472,11 @@ function(generateOsqueryTablesSystemTestsRegistrytestsTest)
 
   target_link_libraries(osquery_tables_system_tests_registrytests-test PRIVATE
     osquery_cxx_settings
-    osquery_extensions
-    osquery_extensions
     osquery_headers
-    osquery_remote_enroll_tlsenroll
     osquery_tables_system_systemtable
     plugins_database_ephemeral
     tests_helper
+    specs_tables
     thirdparty_boost
     thirdparty_googletest
   )
@@ -473,11 +490,8 @@ function(generateOsqueryTablesSystemTestsAugeasTestsTest)
     osquery_config_tests_testutils
     osquery_dispatcher
     osquery_events
-    osquery_extensions
-    osquery_extensions
     osquery_headers
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_sql
     osquery_tables_events_eventstable
     plugins_database_ephemeral

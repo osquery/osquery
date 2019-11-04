@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
+#include <osquery/config/config_parser_plugin.h>
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
@@ -93,4 +94,4 @@ TEST_F(OptionsConfigParserPluginTests, test_json_option) {
   EXPECT_EQ(R"raw({"foo":1,"bar":"baz"})raw",
             Flag::getValue("custom_nested_json"));
 }
-}
+} // namespace osquery

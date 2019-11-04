@@ -22,17 +22,7 @@ function(generateOsquerySqlTestsSqltestutils)
 
   target_link_libraries(osquery_sql_tests_sqltestutils PUBLIC
     osquery_cxx_settings
-    osquery_database
-    osquery_distributed
-    osquery_events
-    osquery_extensions
-    osquery_extensions
-    osquery_registry
-    osquery_remote_enroll_tlsenroll
-    osquery_sql
-    plugins_config_tlsconfig
-    plugins_database_ephemeral
-    specs_tables
+    osquery_core
   )
 endfunction()
 
@@ -41,16 +31,9 @@ function(generateOsquerySqlTestsTest)
 
   target_link_libraries(osquery_sql_tests-test PRIVATE
     osquery_cxx_settings
-    osquery_database
-    osquery_distributed
-    osquery_events
-    osquery_extensions
-    osquery_extensions
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_sql
     osquery_sql_tests_sqltestutils
-    plugins_config_tlsconfig
     specs_tables
     thirdparty_googletest
   )
@@ -62,14 +45,8 @@ function(generateOsquerySqlTestsVirtualtableTestsTest)
   target_link_libraries(osquery_sql_tests_virtualtabletests-test PRIVATE
     osquery_cxx_settings
     osquery_database
-    osquery_distributed
-    osquery_events
-    osquery_extensions
-    osquery_extensions
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_sql
-    plugins_config_tlsconfig
     plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
@@ -81,16 +58,9 @@ function(generateOsquerySqlTestsSqliteutiltestsTest)
 
   target_link_libraries(osquery_sql_tests_sqliteutilstests-test PRIVATE
     osquery_cxx_settings
-    osquery_database
-    osquery_distributed
-    osquery_events
-    osquery_extensions
-    osquery_extensions
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_sql
     osquery_sql_tests_sqltestutils
-    plugins_config_tlsconfig
     specs_tables
     thirdparty_googletest
   )
