@@ -74,7 +74,9 @@ cmake --build .
 
 ## Windows 10
 
-The root folder is assumed to be `C:\Users\<user>`
+The root folder is assumed to be `C:\`
+
+Note: The intention here is to reduce the length of the prefix of the osquery folder, since Windows and msbuild have a 255 characters max path limit.
 
 **Step 1: Install the prerequisites**
 
