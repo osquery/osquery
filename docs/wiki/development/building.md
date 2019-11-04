@@ -89,6 +89,7 @@ Note: It may be easier to install these prerequisites using [Chocolatey](https:/
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Wix Toolset](https://wixtoolset.org/releases/)
 - [Strawberry Perl](http://strawberryperl.com/) for the OpenSSL formula. It is recommended to install it to the default destination path.
+- [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
 
 **Step 2: Download and build**
 
