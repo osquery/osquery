@@ -100,7 +100,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -A x64 -T v141 ..
+cmake -G "Visual Studio 16 2019" -A x64 -T v141 ..
 
 # Build
 cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel
