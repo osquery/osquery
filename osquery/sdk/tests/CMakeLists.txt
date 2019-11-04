@@ -11,9 +11,9 @@ endfunction()
 function(generateOsquerySdkTestsTest)
   add_osquery_executable(osquery_sdk_tests-test registry_tests.cpp)
 
-  target_link_libraries(osquery_sdk_tests-test PUBLIC
+  target_link_libraries(osquery_sdk_tests-test PRIVATE
     osquery_cxx_settings
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_sdk
     thirdparty_googletest
   )

@@ -162,7 +162,7 @@ function(generateOsqueryEventsTestsFseventstestsTest)
     osquery_database
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_filesystem
     osquery_remote_tests_remotetestutils
     osquery_tables_system_systemtable
@@ -181,7 +181,7 @@ function(generateOsqueryEventsTestsWindowseventlogtestsTest)
     osquery_cxx_settings
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_remote_enroll_tlsenroll
     tests_helper
     thirdparty_googletest

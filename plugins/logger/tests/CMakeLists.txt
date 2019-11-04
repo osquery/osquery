@@ -29,7 +29,7 @@ function(generatePluginsLoggerTestsFilesystemloggertestsTest)
     osquery_core_plugins
     osquery_distributed
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_logger_datalogger
     osquery_registry
     osquery_remote_enroll_tlsenroll
@@ -52,7 +52,7 @@ function(generatePluginsLoggerTestsBufferedloggertestsTest)
     osquery_core_plugins
     osquery_distributed
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_logger_datalogger
     osquery_registry
     osquery_remote_enroll_tlsenroll
@@ -75,7 +75,7 @@ function(generatePluginsLoggerTestsKafkaproducerloggertestsTest)
     osquery_core_plugins
     osquery_distributed
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_logger_datalogger
     osquery_registry
     osquery_remote_enroll_tlsenroll
@@ -99,7 +99,7 @@ function(generatePluginsLoggerTestsAwskinesisloggertestsTest)
     osquery_core_plugins
     osquery_distributed
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_logger_datalogger
     osquery_registry
     osquery_remote_enroll_tlsenroll
@@ -124,7 +124,7 @@ function(generatePluginsLoggerTestsTlsloggertestsTest)
     osquery_core_plugins
     osquery_distributed
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_logger_datalogger
     osquery_registry
     osquery_remote_enroll_tlsenroll
@@ -150,7 +150,7 @@ function(generatePluginsLoggerTestsSyslogloggertestsTest)
     osquery_core_plugins
     osquery_distributed
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_logger_datalogger
     osquery_registry
     osquery_remote_enroll_tlsenroll

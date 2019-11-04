@@ -15,6 +15,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <osquery/core.h>
+#include <osquery/core/init.h>
 #include <osquery/core/watcher.h>
 #include <osquery/database.h>
 #include <osquery/devtools/devtools.h>
@@ -180,7 +181,7 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
   // In either case the watcher may start optionally loaded extensions.
   runner.initWorkerWatcher(kWatcherWorkerName);
 
-  if (runner.isDaemon()) {
+  if (isDaemon()) {
     return startDaemon(runner);
   }
   return startShell(runner, argc, argv);

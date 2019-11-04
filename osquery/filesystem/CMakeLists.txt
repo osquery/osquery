@@ -119,7 +119,7 @@ function(generateOsqueryFilesystemTest)
     osquery_distributed
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_process
     osquery_registry
     osquery_remote_enroll_tlsenroll

@@ -6,14 +6,26 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/core/init.h>
+#include <osquery/core/watcher.h>
+#include <osquery/extensions/interface.h>
 #include <osquery/extensions/service.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
+#include <osquery/system.h>
+#include <osquery/utils/config/default_paths.h>
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/split.h>
 #include <osquery/utils/info/platform_type.h>
+
+#include <boost/filesystem/path.hpp>
 
 #include <map>
 #include <vector>
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 
@@ -46,6 +58,7 @@ DECLARE_bool(disable_extensions);
 DECLARE_string(extensions_socket);
 DECLARE_string(extensions_timeout);
 DECLARE_string(extensions_socket);
+DECLARE_string(extensions_interval);
 
 /// A Dispatcher service thread that watches an ExtensionManagerHandler.
 class ExtensionWatcher : public InternalRunnable {

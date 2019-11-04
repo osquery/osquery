@@ -32,20 +32,22 @@ function(generateOsqueryMain)
     ${source_files}
   )
 
-  target_link_libraries(osquery_main PUBLIC
+  target_link_libraries(osquery_main PRIVATE
     osquery_cxx_settings
     osquery_headers
     osquery_core
+    osquery_core_init
     osquery_core_plugins
     osquery_core_sql
     osquery_database
     osquery_devtools
     osquery_dispatcher
     osquery_dispatcher_scheduler
+    osquery_distributed
     osquery_experimental_eventsstream_registry
     osquery_experimental_tracing_syscallstracing
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions_service
     osquery_logger_datalogger
     osquery_process
     osquery_numericmonitoring
@@ -72,7 +74,7 @@ function(generateOsqueryMain)
   )
 
   if(DEFINED PLATFORM_LINUX)
-    target_link_libraries(osquery_main PUBLIC
+    target_link_libraries(osquery_main PRIVATE
       plugins_logger_awsfirehose
       plugins_logger_awskinesis
       plugins_logger_awslogforwarder
@@ -80,7 +82,7 @@ function(generateOsqueryMain)
     )
 
   elseif(DEFINED PLATFORM_MACOS)
-    target_link_libraries(osquery_main PUBLIC
+    target_link_libraries(osquery_main PRIVATE
       plugins_logger_awsfirehose
       plugins_logger_awskinesis
       plugins_logger_awslogforwarder
@@ -88,7 +90,7 @@ function(generateOsqueryMain)
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
-    target_link_libraries(osquery_main PUBLIC
+    target_link_libraries(osquery_main PRIVATE
       plugins_logger_awsfirehose
       plugins_logger_awskinesis
       plugins_logger_awslogforwarder

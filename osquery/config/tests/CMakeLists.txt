@@ -7,6 +7,7 @@
 function(osqueryConfigTestsMain)
   generateOsqueryConfigTestsTestUtils()
   generateOsqueryConfigTestsTest()
+  generateOsqueryConfigServiceTestsTest()
 endfunction()
 
 function(generateOsqueryConfigTestsTestUtils)
@@ -35,9 +36,27 @@ function(generateOsqueryConfigTestsTest)
   target_link_libraries(osquery_config_tests-test PRIVATE
     osquery_cxx_settings
     osquery_config
-    osquery_config_configplugin
-    osquery_extensions_implthrift
     osquery_utils_system
+    plugins_database_ephemeral
+    thirdparty_googletest
+    osquery_filesystem_mockfilestructure
+    osquery_config_tests_testutils
+    osquery_tools_tests_conffiles
+  )
+endfunction()
+
+function(generateOsqueryConfigServiceTestsTest)
+  add_osquery_executable(osquery_config_refresh_tests-test
+    config_refresh_tests.cpp
+  )
+
+  target_link_libraries(osquery_config_refresh_tests-test PRIVATE
+    osquery_cxx_settings
+    osquery_config
+    osquery_config_service
+    osquery_extensions_service
+    osquery_utils_system
+    osquery_distributed
     plugins_database_ephemeral
     thirdparty_googletest
     osquery_filesystem_mockfilestructure

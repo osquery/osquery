@@ -27,11 +27,10 @@ function(generateTestsHelper)
     osquery_core
     osquery_filesystem
     osquery_process
-    osquery_remote_serializers_serializerjson
+    # osquery_remote_serializers_serializerjson
     osquery_sql
     osquery_utils
-    osquery_utils_conversions
-    osquery_utils_system_time
+    osquery_utils_system
     plugins_database_ephemeral
     specs_tables
     thirdparty_boost

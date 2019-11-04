@@ -16,16 +16,9 @@ function(generateOsqueryDatabaseTestsTest)
     osquery_cxx_settings
     osquery_core
     osquery_database
-    osquery_dispatcher
-    osquery_events
-    osquery_extensions
-    osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_utils_json
-    plugins_config_tlsconfig
     plugins_database_ephemeral
-    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -38,17 +31,10 @@ function(generateOsqueryDatabaseTestsResultsTest)
     osquery_core_sql
     osquery_core
     osquery_database
-    osquery_dispatcher
-    osquery_events
-    osquery_extensions
-    osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_utils_json
     osquery_sql_tests_sqltestutils
-    plugins_config_tlsconfig
     plugins_database_ephemeral
-    specs_tables
     thirdparty_googletest
   )
 endfunction()

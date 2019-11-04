@@ -21,11 +21,7 @@
 #include <osquery/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/registry.h>
-#include <osquery/system.h>
 #include <osquery/utils/config/default_paths.h>
-#include <osquery/utils/conversions/join.h>
-#include <osquery/utils/conversions/split.h>
-#include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/version.h>
 
 namespace fs = boost::filesystem;

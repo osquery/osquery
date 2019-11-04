@@ -454,7 +454,7 @@ function(generateOsqueryTablesSystemTestsRegistrytestsTest)
   target_link_libraries(osquery_tables_system_tests_registrytests-test PRIVATE
     osquery_cxx_settings
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_headers
     osquery_remote_enroll_tlsenroll
     osquery_tables_system_systemtable
@@ -474,7 +474,7 @@ function(generateOsqueryTablesSystemTestsAugeasTestsTest)
     osquery_dispatcher
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_headers
     osquery_registry
     osquery_remote_enroll_tlsenroll

@@ -69,7 +69,7 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-DECLARE_uint64(alarm_timeout);
+CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
 
 /// The path to the pidfile for osqueryd
 CLI_FLAG(string,

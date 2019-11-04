@@ -24,7 +24,7 @@ function(generateOsqueryRemoteTestsRemotetestsutils)
     # osquery_database
     # osquery_events
     # osquery_extensions
-    # osquery_extensions_implthrift
+    # osquery_extensions
     osquery_remote_enroll_tlsenroll
     osquery_utils
     plugins_config_tlsconfig
@@ -42,7 +42,7 @@ function(generateOsqueryRemoteTestsRequeststestsTest)
     # osquery_database
     # osquery_events
     # osquery_extensions
-    # osquery_extensions_implthrift
+    # osquery_extensions
     osquery_remote_enroll_tlsenroll
     osquery_remote_tests_remotetestutils
     osquery_utils

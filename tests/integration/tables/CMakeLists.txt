@@ -304,7 +304,7 @@ function(generateTestsIntegrationTablesTestsTest)
     osquery_database
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_remote_enroll_tlsenroll
     osquery_utils_conversions
     osquery_utils_info

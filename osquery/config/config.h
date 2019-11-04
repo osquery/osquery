@@ -13,6 +13,8 @@
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/json/json.h>
 
+#include <boost/noncopyable.hpp>
+
 #include <gtest/gtest_prod.h>
 
 #include <functional>
@@ -26,10 +28,13 @@ class Status;
 class Config;
 class Pack;
 class Schedule;
+// class ConfigRefreshRunner;
 class ConfigParserPlugin;
 
 /// The name of the executing query within the single-threaded schedule.
 extern const std::string kExecutingQuery;
+
+using ConfigMap = std::map<std::string, std::string>;
 
 /**
  * @brief The programmatic representation of osquery's configuration
@@ -43,7 +48,7 @@ class Config : private boost::noncopyable {
  private:
   Config();
 
-  void backupConfig(const std::map<std::string, std::string>& config);
+  void backupConfig(const ConfigMap& config);
 
  public:
   ~Config();
@@ -56,9 +61,7 @@ class Config : private boost::noncopyable {
    * @brief restoreConfigBackup retrieve backed up config
    * @return config persisted int the database
    */
-  static Expected<std::map<std::string, std::string>,
-                  Config::RestoreConfigError>
-  restoreConfigBackup();
+  static Expected<ConfigMap, Config::RestoreConfigError> restoreConfigBackup();
 
   /**
    * @brief Update the internal config data.
@@ -66,7 +69,7 @@ class Config : private boost::noncopyable {
    * @param config A map of domain or namespace to config data.
    * @return If the config changes were applied.
    */
-  Status update(const std::map<std::string, std::string>& config);
+  Status update(const ConfigMap& config);
 
   /**
    * @brief Record performance (monitoring) information about a scheduled query.
@@ -241,6 +244,12 @@ class Config : private boost::noncopyable {
   static const std::shared_ptr<ConfigParserPlugin> getParser(
       const std::string& parser);
 
+  /// Check if the configuration is valid.
+  bool valid();
+
+  /// Check if the configuration has attempted a load.
+  bool loaded();
+
  protected:
   /**
    * @brief Call the genConfig method of the config retriever plugin.
@@ -249,20 +258,20 @@ class Config : private boost::noncopyable {
    * If a non-zero value is passed to --config_refresh, this starts a thread
    * that periodically calls genConfig to reload config state
    */
-  Status refresh();
+  // Status refresh();
 
   /// Update the refresh rate.
-  void setRefresh(size_t refresh_sec);
+  // void setRefresh(size_t refresh_sec);
 
   /// Inspect the refresh rate.
-  size_t getRefresh() const;
+  // size_t getRefresh() const;
 
   /**
    * @brief Check if a config plugin is registered and load configs.
    *
    * Calls refresh after confirming a config plugin is registered
    */
-  Status load();
+  // Status load();
 
   /// A step method for Config::update.
   Status updateSource(const std::string& source, const std::string& json);
@@ -321,6 +330,12 @@ class Config : private boost::noncopyable {
    */
   void reset();
 
+  /// Set the valid state.
+  void valid(bool _valid);
+
+  /// Set the loaded state.
+  void loaded(bool _loaded);
+
  private:
   /// Schedule of packs and their queries.
   std::unique_ptr<Schedule> schedule_;
@@ -336,7 +351,7 @@ class Config : private boost::noncopyable {
   std::map<std::string, std::string> hash_;
 
   /// Check if the config received valid/parsable content from a config plugin.
-  bool valid_{false};
+  std::atomic<bool> valid_{false};
 
   /**
    * @brief Check if the configuration has attempted a load.
@@ -344,26 +359,28 @@ class Config : private boost::noncopyable {
    * Check if the config is updating sources in response to an async update
    * or the initialization load step.
    */
-  bool loaded_{false};
+  std::atomic<bool> loaded_{false};
 
   /// Try if the configuration has started an auto-refresh thread.
-  bool started_thread_{false};
+  // bool started_thread_{false};
 
  private:
   friend class Initializer;
 
  private:
   friend class ConfigTests;
+  friend class ConfigRefreshTests;
+  friend class ConfigRefreshRunner;
   friend class FilePathsConfigParserPluginTests;
   friend class FileEventsTableTests;
   friend class DecoratorsConfigParserPluginTests;
   friend class SchedulerTests;
   friend class WatcherTests;
   FRIEND_TEST(ConfigTests, test_config_backup);
-  FRIEND_TEST(ConfigTests, test_config_backup_integrate);
-  FRIEND_TEST(ConfigTests, test_config_refresh);
   FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
   FRIEND_TEST(ConfigTests, test_nonblacklist_query);
+  FRIEND_TEST(ConfigRefreshTests, test_config_refresh);
+  FRIEND_TEST(ConfigRefreshTests, test_config_backup_integrate);
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_add_view);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_swap_view);

@@ -16,30 +16,6 @@ function(osqueryCoreMain)
   generateOsqueryCoreInit()
 endfunction()
 
-function(generateOsqueryCoreInit)
-  set(source_files
-    init.cpp
-    watcher.cpp
-  )
-
-  add_osquery_library(osquery_core_init EXCLUDE_FROM_ALL
-    ${source_files}
-  )
-
-  target_link_libraries(osquery_core_init PRIVATE
-    osquery_cxx_settings
-    osquery_core
-    osquery_config
-  )
-
-  set(public_header_files
-    watcher.h
-    init.h
-  )
-
-  generateIncludeNamespace(osquery_core_init "osquery/core" "FULL_PATH" ${public_header_files})
-endfunction()
-
 function(generateOsqueryCore)
   set(source_files
     flags.cpp
@@ -64,31 +40,31 @@ function(generateOsqueryCore)
     ${source_files}
   )
 
-  set(public_dependencies
+  set(dependencies
     osquery_headers
     osquery_core_plugins
     osquery_core_sql
+    osquery_database
+    osquery_filesystem
+    osquery_logger
+    osquery_process
+    osquery_sql
+    osquery_registry
     osquery_utils
+    osquery_utils_system
     thirdparty_gflags
     thirdparty_glog
   )
 
   if(DEFINED PLATFORM_LINUX)
-    list(APPEND public_dependencies thirdparty_util-linux)
+    list(APPEND dependencies
+      thirdparty_util-linux
+    )
   endif()
 
   target_link_libraries(osquery_core PUBLIC
     osquery_cxx_settings
-    ${public_dependencies}
-  )
-
-  target_link_libraries(osquery_core PRIVATE
-    osquery_config
-    osquery_filesystem
-    osquery_process
-    osquery_registry
-    osquery_utils
-    osquery_utils_system
+    ${dependencies}
   )
 
   if(DEFINED PLATFORM_WINDOWS)
@@ -108,6 +84,42 @@ function(generateOsqueryCore)
   add_test(NAME osquery_core_tests_querytests-test COMMAND osquery_core_tests_querytests-test)
   add_test(NAME osquery_core_tests_processtests-test COMMAND osquery_core_tests_processtests-test)
 
+endfunction()
+
+function(generateOsqueryCoreInit)
+  set(source_files
+    init.cpp
+    watcher.cpp
+  )
+
+  add_osquery_library(osquery_core_init EXCLUDE_FROM_ALL
+    ${source_files}
+  )
+
+  target_link_libraries(osquery_core_init PUBLIC
+    osquery_cxx_settings
+    osquery_core
+    osquery_config
+    osquery_config_service
+    osquery_dispatcher
+    osquery_distributed
+    osquery_events
+    osquery_extensions
+    osquery_extensions_service
+    osquery_filesystem
+    osquery_numericmonitoring
+    osquery_process
+    osquery_registry
+    osquery_utils
+    osquery_utils_system
+  )
+
+  set(public_header_files
+    watcher.h
+    init.h
+  )
+
+  generateIncludeNamespace(osquery_core_init "osquery/core" "FULL_PATH" ${public_header_files})
 endfunction()
 
 osqueryCoreMain()

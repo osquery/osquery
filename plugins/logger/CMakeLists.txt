@@ -109,6 +109,12 @@ function(generatePluginsLoggerBuffered)
     plugins_config_parsers
   )
 
+  target_link_libraries(plugins_logger_buffered PUBLIC
+    osquery_headers
+    osquery_core_plugins
+    osquery_dispatcher
+  )
+
   set(public_header_files
     buffered.h
   )

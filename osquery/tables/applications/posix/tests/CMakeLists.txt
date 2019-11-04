@@ -19,7 +19,7 @@ function(generateOsqueryTablesApplicationsPosixTestsPrometheusmetricstestsTest)
     osquery_distributed
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_registry
     osquery_remote_enroll_tlsenroll
     osquery_sql

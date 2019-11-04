@@ -23,7 +23,7 @@ function(generateOsqueryTablesEventsTestsFileeventstestsTest)
     osquery_config_tests_testutils
     osquery_database
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_logger
     osquery_registry
     osquery_remote_enroll_tlsenroll
@@ -47,7 +47,7 @@ function(generateOsqueryTablesEventsTestsSelinuxeventstestsTest)
     osquery_config_tests_testutils
     osquery_database
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_logger
     osquery_registry
     osquery_remote_enroll_tlsenroll
@@ -71,7 +71,7 @@ function(generateOsqueryTablesEventsTestsProcesseventstestsTest)
     osquery_config_tests_testutils
     osquery_database
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_logger
     osquery_registry
     osquery_remote_enroll_tlsenroll

@@ -20,7 +20,7 @@ target_compile_options(external_options INTERFACE -DOSQUERY_EXTERNAL)
 target_link_libraries(external_options INTERFACE
   osquery_cxx_settings
   osquery_sdk
-  osquery_extensions_implthrift
+  osquery_extensions
 )
 
 function(subdirlist output path)

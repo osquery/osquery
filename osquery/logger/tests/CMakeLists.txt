@@ -17,7 +17,7 @@ function(generateOsqueryLoggerTestsTest)
     osquery_core_plugins
     osquery_distributed
     #osquery_extensions
-    #osquery_extensions_implthrift
+    #osquery_extensions
     osquery_logger_datalogger
     osquery_registry
     #osquery_remote_enroll_tlsenroll

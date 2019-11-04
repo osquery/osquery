@@ -12,7 +12,6 @@
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core.h>
 #include <osquery/database.h>
-#include <osquery/dispatcher.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/filesystem/mock_file_structure.h>
 #include <osquery/flags.h>
@@ -26,17 +25,13 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
-#include <chrono>
 #include <map>
 #include <memory>
 #include <string>
-#include <thread>
 #include <vector>
 
 namespace osquery {
 
-DECLARE_uint64(config_refresh);
-DECLARE_uint64(config_accelerated_refresh);
 DECLARE_bool(config_enable_backup);
 DECLARE_bool(disable_database);
 
@@ -65,97 +60,42 @@ class ConfigTests : public testing::Test {
  protected:
   void SetUp() {
     fake_directory_ = fs::canonical(createMockFileStructure());
-
-    refresh_ = FLAGS_config_refresh;
-    FLAGS_config_refresh = 0;
-
     createMockFileStructure();
   }
 
   void TearDown() {
     fs::remove_all(fake_directory_);
-    FLAGS_config_refresh = refresh_;
   }
 
  protected:
-  Status load() {
-    return Config::get().load();
-  }
-
-  void setLoaded() {
-    Config::get().loaded_ = true;
-  }
-
   Config& get() {
     return Config::get();
   }
-
- private:
-  size_t refresh_{0};
 };
 
-class TestConfigPlugin : public ConfigPlugin {
+class EmptyConfigPlugin : public ConfigPlugin {
  public:
-  TestConfigPlugin() {
-    gen_config_count_ = 0;
-    gen_pack_count_ = 0;
-  }
-
-  Status genConfig(std::map<std::string, std::string>& config) override {
+  EmptyConfigPlugin() = default;
+  Status genConfig(ConfigMap& config) override {
     gen_config_count_++;
-    if (fail_) {
-      return Status(1);
-    }
-
-    std::string content;
-    auto s = readFile(getTestConfigDirectory() / "test_noninline_packs.conf",
-                      content);
-    config["data"] = content;
-    return s;
+    return Status::success();
   }
 
   Status genPack(const std::string& name,
                  const std::string& value,
                  std::string& pack) override {
     gen_pack_count_++;
-    getUnrestrictedPack().toString(pack);
     return Status::success();
   }
 
  public:
-  std::atomic<size_t> gen_config_count_{0};
-  std::atomic<size_t> gen_pack_count_{0};
-  std::atomic<bool> fail_{false};
-};
-
-class TestDataConfigParserPlugin : public ConfigParserPlugin {
- public:
-  std::vector<std::string> keys() const override {
-    return {"data"};
-  }
-
-  Status setUp() override {
-    return Status::success();
-  }
-
-  Status update(const std::string& source,
-                const ParserConfig& config) override {
-    source_ = source;
-    config_.clear();
-    for (const auto& entry : config) {
-      std::string content;
-      entry.second.toString(content);
-      config_[entry.first] = content;
-    }
-    return Status::success();
-  }
-  std::string source_{""};
-  std::map<std::string, std::string> config_;
+  size_t gen_config_count_{0};
+  size_t gen_pack_count_{0};
 };
 
 TEST_F(ConfigTests, test_plugin) {
   auto& rf = RegistryFactory::get();
-  auto plugin = std::make_shared<TestConfigPlugin>();
+  auto plugin = std::make_shared<EmptyConfigPlugin>();
   rf.registry("config")->add("test", plugin);
   // Change the active config plugin.
   EXPECT_TRUE(rf.setActive("config", "test").ok());
@@ -215,28 +155,6 @@ TEST_F(ConfigTests, test_schedule_blacklist) {
   // When restoring, the values below the current time will not be included.
   restoreScheduleBlacklist(blacklist);
   EXPECT_EQ(blacklist.size(), 1U);
-}
-
-TEST_F(ConfigTests, test_pack_noninline) {
-  auto& rf = RegistryFactory::get();
-  rf.registry("config")->add("test", std::make_shared<TestConfigPlugin>());
-  // Change the active config plugin.
-  EXPECT_TRUE(rf.setActive("config", "test").ok());
-
-  // Get a specialized config/test plugin.
-  const auto& plugin =
-      std::dynamic_pointer_cast<TestConfigPlugin>(rf.plugin("config", "test"));
-
-  this->load();
-  // Expect the test plugin to have recorded 1 pack.
-  // This value is incremented when its genPack method is called.
-  EXPECT_EQ(plugin->gen_pack_count_, 1U);
-
-  int total_packs = 0;
-  // Expect the config to have recorded a pack for the inline and non-inline.
-  get().packs([&total_packs](const Pack& pack) { total_packs++; });
-  EXPECT_EQ(total_packs, 2);
-  rf.registry("config")->remove("test");
 }
 
 TEST_F(ConfigTests, test_pack_restrictions) {
@@ -468,7 +386,6 @@ TEST_F(ConfigTests, test_plugin_reconfigure) {
       ->add("placebo", std::make_shared<PlaceboConfigParserPlugin>());
 
   // Create a config that has been loaded.
-  setLoaded();
   get().update({{"data", "{}"}});
   // Get the placebo.
   auto placebo = std::static_pointer_cast<PlaceboConfigParserPlugin>(
@@ -530,133 +447,12 @@ TEST_F(ConfigTests, test_pack_file_paths) {
   EXPECT_EQ(count, 0U);
 }
 
-void waitForConfig(std::shared_ptr<TestConfigPlugin>& plugin, size_t count) {
-  // Max wait of 3 seconds.
-  auto delay = std::chrono::milliseconds{3000};
-  auto const step = std::chrono::milliseconds{20};
-  while (delay.count() > 0) {
-    if (plugin->gen_config_count_ > count) {
-      break;
-    }
-    delay -= step;
-    std::this_thread::sleep_for(step);
-  }
-}
-
-TEST_F(ConfigTests, test_config_refresh) {
-  auto& rf = RegistryFactory::get();
-  auto refresh = FLAGS_config_refresh;
-  auto refresh_acceleratred = FLAGS_config_accelerated_refresh;
-
-  // Create and add a test plugin.
-  auto plugin = std::make_shared<TestConfigPlugin>();
-  EXPECT_TRUE(rf.registry("config")->add("test", plugin));
-  EXPECT_TRUE(rf.setActive("config", "test"));
-
-  // Reset the configuration and stop the refresh thread.
-  get().reset();
-
-  // Stop the existing refresh runner thread.
-  Dispatcher::stopServices();
-  Dispatcher::joinServices();
-
-  // Set a config_refresh value to convince the Config to start the thread.
-  FLAGS_config_refresh = 2;
-  FLAGS_config_accelerated_refresh = 1;
-  get().setRefresh(FLAGS_config_refresh);
-
-  // Fail the first config load.
-  plugin->fail_ = true;
-
-  // The runner will wait at least one refresh-delay.
-  auto count = static_cast<size_t>(plugin->gen_config_count_);
-
-  get().load();
-  EXPECT_TRUE(get().started_thread_);
-  EXPECT_GT(plugin->gen_config_count_, count);
-  EXPECT_EQ(get().getRefresh(), FLAGS_config_accelerated_refresh);
-
-  plugin->fail_ = false;
-  count = static_cast<size_t>(plugin->gen_config_count_);
-
-  waitForConfig(plugin, count + 1);
-  EXPECT_GT(plugin->gen_config_count_, count);
-  EXPECT_EQ(get().getRefresh(), FLAGS_config_refresh);
-
-  // Now make the configuration break.
-  plugin->fail_ = true;
-  count = static_cast<size_t>(plugin->gen_config_count_);
-
-  waitForConfig(plugin, count + 1);
-  EXPECT_GT(plugin->gen_config_count_, count);
-  EXPECT_EQ(get().getRefresh(), FLAGS_config_accelerated_refresh);
-
-  // Test that the normal acceleration is restored.
-  plugin->fail_ = false;
-  count = static_cast<size_t>(plugin->gen_config_count_);
-
-  waitForConfig(plugin, count + 1);
-  EXPECT_GT(plugin->gen_config_count_, count);
-  EXPECT_EQ(get().getRefresh(), FLAGS_config_refresh);
-
-  // Stop the new refresh runner thread.
-  Dispatcher::stopServices();
-  Dispatcher::joinServices();
-
-  FLAGS_config_refresh = refresh;
-  FLAGS_config_accelerated_refresh = refresh_acceleratred;
-  rf.registry("config")->remove("test");
-}
-
 TEST_F(ConfigTests, test_config_backup) {
   get().reset();
-  const std::map<std::string, std::string> expected_config = {{"a", "b"},
-                                                              {"c", "d"}};
+  const ConfigMap expected_config = {{"a", "b"}, {"c", "d"}};
   get().backupConfig(expected_config);
   const auto config = get().restoreConfigBackup();
   EXPECT_TRUE(config);
   EXPECT_EQ(*config, expected_config);
-}
-
-TEST_F(ConfigTests, test_config_backup_integrate) {
-  const auto config_enable_backup_saved = FLAGS_config_enable_backup;
-  FLAGS_config_enable_backup = true;
-
-  get().reset();
-  auto& rf = RegistryFactory::get();
-  auto data_parser = std::make_shared<TestDataConfigParserPlugin>();
-  auto success_plugin = std::make_shared<TestConfigPlugin>();
-  auto fail_plugin = std::make_shared<TestConfigPlugin>();
-  fail_plugin->fail_ = true;
-  success_plugin->fail_ = false;
-
-  rf.registry("config")->add("test_success", success_plugin);
-  rf.registry("config")->add("test_fail", fail_plugin);
-  rf.registry("config_parser")->add("test", data_parser);
-  // Change the active config plugin.
-  EXPECT_TRUE(rf.setActive("config", "test_success").ok());
-
-  auto status = get().refresh();
-  EXPECT_TRUE(status.ok());
-  EXPECT_EQ(success_plugin->gen_config_count_, 1);
-
-  auto source_backup = data_parser->source_;
-  auto config_backup = data_parser->config_;
-
-  EXPECT_TRUE(source_backup.length() > 0);
-
-  get().reset();
-  data_parser->source_.clear();
-  data_parser->config_.clear();
-  EXPECT_TRUE(rf.setActive("config", "test_fail").ok());
-
-  status = get().refresh();
-  EXPECT_FALSE(status.ok());
-  EXPECT_EQ(fail_plugin->gen_config_count_, 1);
-
-  EXPECT_EQ(data_parser->source_, source_backup);
-  EXPECT_EQ(data_parser->config_, config_backup);
-
-  FLAGS_config_enable_backup = config_enable_backup_saved;
 }
 } // namespace osquery

@@ -21,6 +21,7 @@
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+#include <osquery/utils/system/posix/system.h>
 
 // librpm may be configured and compiled with glibc < 2.17.
 #if defined(__GLIBC__) && __GLIBC_MINOR__ > 17
@@ -241,5 +242,5 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   rpmtsFree(ts);
   rpmFreeRpmrc();
 }
-}
-}
+} // namespace tables
+} // namespace osquery

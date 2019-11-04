@@ -20,7 +20,7 @@ function(generatePluginsDatabaseTestsSqliteplugintestsTest)
     osquery_dispatcher
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_registry
     osquery_remote_enroll_tlsenroll
     osquery_utils_json
@@ -43,7 +43,7 @@ function(generatePluginsDatabaseTestsRocksdbtestsTest)
     osquery_dispatcher
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_registry
     osquery_remote_enroll_tlsenroll
     osquery_utils_json

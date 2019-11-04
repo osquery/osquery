@@ -6,11 +6,16 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/extensions/handler.h>
 #include <osquery/extensions/interface.h>
+#include <osquery/extensions/service.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/logger.h>
 
 #include <thrift/concurrency/ThreadManager.h>
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TThreadedServer.h>
+#include <thrift/transport/TBufferTransports.h>
 
 #ifdef WIN32
 #include <thrift/transport/TPipeServer.h>
@@ -22,9 +27,10 @@
 #include <boost/thread/lock_types.hpp>
 #include <boost/thread/locks.hpp>
 
+using namespace apache::thrift::concurrency;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::server;
-using namespace apache::thrift::concurrency;
+using namespace apache::thrift::transport;
 
 namespace osquery {
 

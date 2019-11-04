@@ -11,6 +11,7 @@ function(osqueryConfigMain)
 
   generateOsqueryConfig()
   generateOsqueryConfigConfigplugin()
+  generateOsqueryConfigService()
 endfunction()
 
 function(generateOsqueryConfigConfigplugin)
@@ -24,8 +25,7 @@ function(generateOsqueryConfigConfigplugin)
   target_link_libraries(osquery_config_configplugin PUBLIC
     osquery_cxx_settings
     osquery_headers
-
-    osquery_core
+    osquery_core_plugins
   )
 
   set(public_header_files
@@ -42,14 +42,10 @@ function(generateOsqueryConfig)
     packs.cpp
   )
 
-  # enableLinkWholeArchive(osquery_config)
-
-  target_link_libraries(osquery_config PRIVATE
+  target_link_libraries(osquery_config PUBLIC
     osquery_cxx_settings
     osquery_headers
-
     osquery_config_configplugin
-    osquery_dispatcher
     osquery_events
     osquery_filesystem
     osquery_hashing
@@ -69,7 +65,36 @@ function(generateOsqueryConfig)
     osquery_config_tests-test
     PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
   )
+endfunction()
 
+function(generateOsqueryConfigService)
+  add_osquery_library(osquery_config_service EXCLUDE_FROM_ALL
+    config_refresh.cpp
+  )
+
+  target_link_libraries(osquery_config_service PUBLIC
+    osquery_cxx_settings
+    osquery_headers
+    osquery_config
+    osquery_core_init
+    osquery_registry
+    osquery_dispatcher
+    osquery_logger
+    osquery_utils
+  )
+
+  set(public_header_files
+    config_refresh.h
+  )
+
+  generateIncludeNamespace(osquery_config_service "osquery/config" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME osquery_config_refresh_tests-test COMMAND osquery_config_refresh_tests-test)
+
+  set_tests_properties(
+    osquery_config_refresh_tests-test
+    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+  )
 endfunction()
 
 osqueryConfigMain()

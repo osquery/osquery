@@ -17,7 +17,7 @@ function(generateOsqueryUtilsAwsTestsTest)
     osquery_dispatcher
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_process
     osquery_remote_enroll_tlsenroll
     osquery_utils_aws

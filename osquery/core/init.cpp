@@ -32,7 +32,9 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/config/config_refresh.h>
 #include <osquery/core.h>
+#include <osquery/core/init.h>
 #include <osquery/core/watcher.h>
 #include <osquery/data_logger.h>
 #include <osquery/dispatcher.h>
@@ -87,11 +89,11 @@ enum {
 #define USAGE "Usage: %s [OPTION]... %s\n\n"
 
 namespace osquery {
-CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
 CLI_FLAG(bool,
          enable_signal_handler,
          false,
          "Enable custom osquery signals handler instead of default one");
+DECLARE_uint64(alarm_timeout);
 } // namespace osquery
 
 namespace {
@@ -116,7 +118,7 @@ void signalHandler(int num) {
 
     // Handle signals based on a tri-state (worker, watcher, neither).
     if (num == SIGHUP) {
-      if (!hasWorker() || isWorker()) {
+      if (!hasWorker() || osquery::isWorker()) {
         // Reload configuration.
       }
     } else if (num == SIGTERM || num == SIGINT || num == SIGABRT ||
@@ -660,7 +662,7 @@ void Initializer::start() const {
 
   if (FLAGS_config_check) {
     // The initiator requested an initialization and config check.
-    s = Config::get().load();
+    s = startAndLoadConfig();
     if (!s.ok()) {
       std::cerr << "Error reading config: " << s.toString() << "\n";
     }
@@ -675,7 +677,7 @@ void Initializer::start() const {
   }
 
   // Load the osquery config using the default/active config plugin.
-  s = Config::get().load();
+  s = startAndLoadConfig();
   if (!s.ok()) {
     auto message = "Error reading config: " + s.toString();
     if (isDaemon()) {

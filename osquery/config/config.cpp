@@ -20,7 +20,6 @@
 #include <osquery/config/config.h>
 #include <osquery/config/config_parser_plugin.h>
 #include <osquery/database.h>
-#include <osquery/dispatcher.h>
 #include <osquery/events.h>
 #include <osquery/flagalias.h>
 #include <osquery/flags.h>
@@ -28,56 +27,28 @@
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/mutex.h>
 #include <osquery/utils/system/time.h>
 
 namespace rj = rapidjson;
 
 namespace osquery {
 namespace {
+
 /// Prefix to persist config data
 const std::string kConfigPersistencePrefix{"config_persistence."};
-
-using ConfigMap = std::map<std::string, std::string>;
-
-std::atomic<bool> is_first_time_refresh(true);
 }; // namespace
 
 /// The config plugin must be known before reading options.
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
 CLI_FLAG(bool,
-         config_check,
-         false,
-         "Check the format of an osquery config and exit");
-
-CLI_FLAG(bool, config_dump, false, "Dump the contents of the configuration");
-
-CLI_FLAG(uint64,
-         config_refresh,
-         0,
-         "Optional interval in seconds to re-read configuration");
-FLAG_ALIAS(google::uint64, config_tls_refresh, config_refresh);
-
-/// How long to wait when config update fails
-CLI_FLAG(uint64,
-         config_accelerated_refresh,
-         300,
-         "Interval to wait if reading a configuration fails");
-
-CLI_FLAG(bool,
          config_enable_backup,
          false,
          "Backup config and use it when refresh fails");
 
-FLAG_ALIAS(google::uint64,
-           config_tls_accelerated_refresh,
-           config_accelerated_refresh);
-
-DECLARE_string(config_plugin);
 DECLARE_string(pack_delimiter);
 
 /**
@@ -95,7 +66,6 @@ std::atomic<size_t> kStartTime;
 
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
-Mutex config_refresh_mutex_;
 Mutex config_backup_mutex_;
 
 /// Several config methods require enumeration via predicate lambdas.
@@ -244,6 +214,26 @@ void saveScheduleBlacklist(const std::map<std::string, size_t>& blacklist) {
   setDatabaseValue(kPersistentSettings, kFailedQueries, content);
 }
 
+void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist) {
+  std::string content;
+  getDatabaseValue(kPersistentSettings, kFailedQueries, content);
+  auto blacklist_pairs = osquery::split(content, ":");
+  if (blacklist_pairs.size() == 0 || blacklist_pairs.size() % 2 != 0) {
+    // Nothing in the blacklist, or malformed data.
+    return;
+  }
+
+  size_t current_time = getUnixTime();
+  for (size_t i = 0; i < blacklist_pairs.size() / 2; i++) {
+    // Fill in a mapping of query name to time the blacklist expires.
+    auto expire =
+        tryTo<long long>(blacklist_pairs[(i * 2) + 1], 10).takeOr(0ll);
+    if (expire > 0 && current_time < (size_t)expire) {
+      blacklist[blacklist_pairs[(i * 2)]] = (size_t)expire;
+    }
+  }
+}
+
 Schedule::Schedule() {
   if (RegistryFactory::get().external()) {
     // Extensions should not restore or save schedule details.
@@ -263,10 +253,7 @@ Schedule::Schedule() {
   }
 }
 
-Config::Config()
-    : schedule_(std::make_unique<Schedule>()),
-      valid_(false),
-      refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
+Config::Config() : schedule_(std::make_unique<Schedule>()), valid_(false) {}
 
 Config& Config::get() {
   static Config instance;
@@ -402,87 +389,6 @@ void Config::packs(std::function<void(const Pack& pack)> predicate) const {
   for (PackRef& pack : schedule_->packs_) {
     predicate(std::cref(*pack.get()));
   }
-}
-
-Status Config::refresh() {
-  PluginResponse response;
-  auto status = Registry::call("config", {{"action", "genConfig"}}, response);
-
-  WriteLock lock(config_refresh_mutex_);
-  if (!status.ok()) {
-    if (FLAGS_config_refresh > 0 && getRefresh() == FLAGS_config_refresh) {
-      VLOG(1) << "Using accelerated configuration delay";
-      setRefresh(FLAGS_config_accelerated_refresh);
-    }
-
-    loaded_ = true;
-    if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
-      LOG(INFO) << "Backing up configuration";
-      const auto result = restoreConfigBackup();
-      if (!result) {
-        return Status::failure(result.getError().getMessage());
-      } else {
-        update(*result);
-      }
-    }
-    return status;
-  } else if (getRefresh() != FLAGS_config_refresh) {
-    VLOG(1) << "Normal configuration delay restored";
-    setRefresh(FLAGS_config_refresh);
-  }
-
-  // if there was a response, parse it and update internal state
-  valid_ = true;
-  if (response.size() > 0) {
-    if (FLAGS_config_dump) {
-      // If config checking is enabled, debug-write the raw config data.
-      for (const auto& content : response[0]) {
-        fprintf(stdout,
-                "{\"%s\": %s}\n",
-                content.first.c_str(),
-                content.second.c_str());
-      }
-      // Don't force because the config plugin may have started services.
-      Initializer::requestShutdown();
-      return Status::success();
-    }
-    status = update(response[0]);
-  }
-
-  is_first_time_refresh = false;
-  loaded_ = true;
-  return status;
-}
-
-void Config::setRefresh(size_t refresh_sec) {
-  refresh_runner_->refresh_sec_ = refresh_sec;
-}
-
-size_t Config::getRefresh() const {
-  return refresh_runner_->refresh_sec_;
-}
-
-Status Config::load() {
-  valid_ = false;
-  auto config_plugin = RegistryFactory::get().getActive("config");
-  if (!RegistryFactory::get().exists("config", config_plugin)) {
-    return Status(1, "Missing config plugin " + config_plugin);
-  }
-
-  // Set the initial and optional refresh value.
-  setRefresh(FLAGS_config_refresh);
-
-  /*
-   * If the initial configuration includes a non-0 refresh, start an
-   * additional service that sleeps and periodically regenerates the
-   * configuration.
-   */
-  if (!FLAGS_config_check && !started_thread_ && getRefresh() > 0) {
-    Dispatcher::addService(refresh_runner_);
-    started_thread_ = true;
-  }
-
-  return refresh();
 }
 
 void stripConfigComments(std::string& json) {
@@ -726,6 +632,7 @@ Status Config::update(const ConfigMap& config) {
     // This update call is most likely a response to an async update request
     // from a config plugin. This request should request all plugins to update.
     for (const auto& registry : RegistryFactory::get().all()) {
+      // TODO(theopolis): Use a set defined above for this check.
       if (registry.first == "event_publisher" ||
           registry.first == "event_subscriber") {
         continue;
@@ -733,12 +640,14 @@ Status Config::update(const ConfigMap& config) {
       registry.second->configure();
     }
 
+    // TODO(theopolis): Have this be an "installed" function.
     EventFactory::configUpdate();
   }
 
   // This cannot be under the previous if block because on extensions loaded_
-  // allways false.
+  // always false.
   if (needs_reconfigure) {
+    // TODO(theopolis): This logic can be simplified.
     std::string loggers = RegistryFactory::get().getActive("logger");
     for (const auto& logger : osquery::split(loggers, ",")) {
       LOG(INFO) << "Calling configure for logger " << logger;
@@ -821,10 +730,9 @@ void Config::reset() {
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
   loaded_ = false;
-  is_first_time_refresh = true;
 
-  refresh_runner_ = std::make_shared<ConfigRefreshRunner>();
-  started_thread_ = false;
+  // refresh_runner_ = std::make_shared<ConfigRefreshRunner>();
+  // started_thread_ = false;
 
   // Also request each parse to reset state.
   for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {
@@ -839,6 +747,22 @@ void Config::reset() {
     }
     parser->reset();
   }
+}
+
+bool Config::loaded() {
+  return loaded_;
+}
+
+void Config::loaded(bool _loaded) {
+  loaded_ = _loaded;
+}
+
+bool Config::valid() {
+  return valid_;
+}
+
+void Config::valid(bool _valid) {
+  valid_ = _valid;
 }
 
 void Config::recordQueryPerformance(const std::string& name,
@@ -978,19 +902,4 @@ void Config::files(std::function<void(const std::string& category,
 
 Config::~Config() = default;
 
-void ConfigRefreshRunner::start() {
-  while (!interrupted()) {
-    // Cool off and time wait the configured period.
-    // Apply this interruption initially as at t=0 the config was read.
-    pause(std::chrono::seconds(refresh_sec_));
-    // Since the pause occurs before the logic, we need to check for an
-    // interruption request.
-    if (interrupted()) {
-      return;
-    }
-
-    VLOG(1) << "Refreshing configuration state";
-    Config::get().refresh();
-  }
-}
 } // namespace osquery

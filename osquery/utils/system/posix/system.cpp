@@ -6,4 +6,4 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include "system.h"
+#include <osquery/utils/system/posix/system.h>

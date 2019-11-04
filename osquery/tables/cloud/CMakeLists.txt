@@ -20,6 +20,7 @@ function(generateOsqueryTablesCloud)
     osquery_cxx_settings
     osquery_headers
     osquery_logger
+    osquery_remote_httpclient
     osquery_utils_aws
     thirdparty_boost
   )

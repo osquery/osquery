@@ -44,6 +44,7 @@ function(generateOsqueryExtensions)
 
   set(public_header_files
     interface.h
+    handler.h
   )
 
   generateIncludeNamespace(osquery_extensions "osquery/extensions" "FILE_ONLY" ${public_header_files})
@@ -70,6 +71,7 @@ function(generateOsqueryExtensionsExtensionsservice)
   )
 
   target_link_libraries(osquery_extensions_service PRIVATE
+    osquery_extensions_thrift_osquerycpp2
     osquery_core
     osquery_logger
     osquery_filesystem

@@ -56,7 +56,7 @@ function(generateOsqueryRemoteTransportsRemotetransportstlstestsTest)
     osquery_database
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_remote_enroll_tlsenroll
     osquery_remote_tests_remotetestutils
     osquery_utils

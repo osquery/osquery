@@ -20,6 +20,7 @@
 #include <boost/thread.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/core/init.h>
 #include <osquery/core/sql/query_data.h>
 #include <osquery/core/watcher.h>
 #include <osquery/data_logger.h>

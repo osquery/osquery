@@ -15,7 +15,6 @@
 
 #include <osquery/config/config.h>
 #include <osquery/dispatcher/scheduler.h>
-#include <osquery/sql/sqlite_util.h>
 #include <osquery/utils/system/time.h>
 
 namespace osquery {
@@ -266,4 +265,4 @@ TEST_F(SchedulerTests, test_scheduler_reload) {
   SchedulerRunner runner(expire, 1);
   FLAGS_schedule_reload = backup_reload;
 }
-}
+} // namespace osquery

@@ -20,7 +20,7 @@ function(generateOsqueryDispatcher)
     distributed_runner.cpp
   )
 
-  target_link_libraries(osquery_dispatcher PRIVATE
+  target_link_libraries(osquery_dispatcher PUBLIC
     osquery_cxx_settings
     osquery_core
     osquery_logger_datalogger
@@ -44,9 +44,10 @@ function(generateOsqueryDispatcherScheduler)
     scheduler.cpp
   )
 
-  target_link_libraries(osquery_dispatcher_scheduler PRIVATE
+  target_link_libraries(osquery_dispatcher_scheduler PUBLIC
     osquery_cxx_settings
     osquery_core
+    osquery_core_init
     osquery_config
     osquery_dispatcher
     osquery_process

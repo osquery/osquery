@@ -14,17 +14,18 @@
 
 #include <osquery/config/config.h>
 #include <osquery/core.h>
+#include <osquery/core/init.h>
 #include <osquery/data_logger.h>
 #include <osquery/database.h>
+#include <osquery/dispatcher/scheduler.h>
 #include <osquery/flags.h>
 #include <osquery/numeric_monitoring.h>
 #include <osquery/process/process.h>
 #include <osquery/profiler/code_profiler.h>
 #include <osquery/query.h>
+#include <osquery/sql/sqlite_util.h>
 #include <osquery/utils/system/time.h>
 
-#include "osquery/dispatcher/scheduler.h"
-#include "osquery/sql/sqlite_util.h"
 #include "plugins/config/parsers/decorators.h"
 
 namespace osquery {
@@ -182,22 +183,21 @@ void SchedulerRunner::start() {
   auto i = osquery::getUnixTime();
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
     auto start_time_point = std::chrono::steady_clock::now();
-    Config::get().scheduledQueries(
-        ([&i](const std::string& name, const ScheduledQuery& query) {
-          if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
-            TablePlugin::kCacheInterval = query.splayed_interval;
-            TablePlugin::kCacheStep = i;
-            const auto status = launchQuery(name, query);
-            monitoring::record(
-                (boost::format("scheduler.query.%s.%s.status.%s") %
-                 query.pack_name % query.name %
-                 (status.ok() ? "success" : "failure"))
-                    .str(),
-                1,
-                monitoring::PreAggregationType::Sum,
-                true);
-          }
-        }));
+    Config::get().scheduledQueries(([&i](const std::string& name,
+                                         const ScheduledQuery& query) {
+      if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
+        TablePlugin::kCacheInterval = query.splayed_interval;
+        TablePlugin::kCacheStep = i;
+        const auto status = launchQuery(name, query);
+        monitoring::record((boost::format("scheduler.query.%s.%s.status.%s") %
+                            query.pack_name % query.name %
+                            (status.ok() ? "success" : "failure"))
+                               .str(),
+                           1,
+                           monitoring::PreAggregationType::Sum,
+                           true);
+      }
+    }));
     // Configuration decorators run on 60 second intervals only.
     if ((i % 60) == 0) {
       runDecorators(DECORATE_INTERVAL, i);

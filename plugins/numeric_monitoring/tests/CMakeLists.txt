@@ -16,7 +16,7 @@ function(pluginsNumericmonitoringTestsFilesystemtestsTest)
     osquery_cxx_settings
     osquery_database
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_numericmonitoring
     osquery_remote_enroll_tlsenroll
     plugins_config_tlsconfig

@@ -183,8 +183,7 @@ bool is_valid_hex(const std::string& value) {
   return true;
 }
 
-bool validate_value_using_flags(const std::string& value,
-                                                      int flags) {
+bool validate_value_using_flags(const std::string& value, int flags) {
   if ((flags & NonEmpty) > 0) {
     if (value.length() == 0) {
       return false;
@@ -273,7 +272,7 @@ bool validate_value_using_flags(const std::string& value,
 }
 
 void setUpEnvironment() {
-  Initializer::platformSetup();
+  platformSetup();
   registryAndPluginInit();
   FLAGS_disable_database = true;
   DatabasePlugin::setAllowOpen(true);

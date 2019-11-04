@@ -15,15 +15,11 @@ function(generateOsqueryDispatcherTestsTest)
   target_link_libraries(osquery_dispatcher_tests-test PRIVATE
     osquery_cxx_settings
     osquery_database
-    osquery_distributed
-    #osquery_events
-    #osquery_extensions
-    #osquery_extensions_implthrift
+    osquery_dispatcher
+    #osquery_distributed
     osquery_registry
-    #osquery_remote_enroll_tlsenroll
-    #plugins_config_tlsconfig
     plugins_database_ephemeral
-    specs_tables
+    # specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -33,14 +29,10 @@ function(generateOsqueryDispatcherTestsSchedulerTest)
 
     target_link_libraries(osquery_dispatcher_tests_scheduler-test PRIVATE
     osquery_cxx_settings
+    osquery_config
     osquery_database
-    osquery_distributed
-    #osquery_events
-    #osquery_extensions
-    #osquery_extensions_implthrift
+    osquery_dispatcher_scheduler
     osquery_registry
-    #osquery_remote_enroll_tlsenroll
-    #plugins_config_tlsconfig
     plugins_database_ephemeral
     specs_tables
     osquery_utils_system

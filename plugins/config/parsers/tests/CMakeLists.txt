@@ -23,7 +23,7 @@ function(generatePluginsConfigParsersTestsDecoratorstestsTest)
     osquery_dispatcher
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_filesystem
     osquery_registry
     osquery_remote_enroll_tlsenroll
@@ -49,7 +49,7 @@ function(generatePluginsConfigParsersTestsEventsparsertestsTest)
     osquery_dispatcher
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_filesystem
     osquery_registry
     osquery_remote_enroll_tlsenroll
@@ -75,7 +75,7 @@ function(generatePluginsConfigParsersTestsFilepathstestsTest)
     osquery_dispatcher
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_filesystem
     osquery_registry
     osquery_remote_enroll_tlsenroll
@@ -102,7 +102,7 @@ function(generatePluginsConfigParsersTestsOptionstestsTest)
     osquery_dispatcher
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_filesystem
     osquery_registry
     osquery_remote_enroll_tlsenroll
@@ -128,7 +128,7 @@ function(generatePluginsConfigParsersTestsViewstestsTest)
     osquery_dispatcher
     osquery_events
     osquery_extensions
-    osquery_extensions_implthrift
+    osquery_extensions
     osquery_filesystem
     osquery_registry
     osquery_remote_enroll_tlsenroll
