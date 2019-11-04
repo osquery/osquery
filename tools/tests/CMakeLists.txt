@@ -86,7 +86,7 @@ function(generatePythonTests)
 
     # The following tests need to be restored when extensions work again
     addPythonTest(NAME tools_tests_testextensions SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_extensions.py")
-    set_tests_properties(tools_tests_testextensions PROPERTIES DISABLED TRUE)
+    set_tests_properties(tools_tests_testextensions PROPERTIES TIMEOUT 120)
   endif()
 endfunction()
 
