@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/core/utils.h"
+#include <osquery/filesystem/fileops.h>
 
 namespace osquery {
 namespace {
