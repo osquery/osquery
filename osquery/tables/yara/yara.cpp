@@ -36,7 +36,7 @@ namespace osquery {
 FLAG(bool,
      yara_malloc_trim,
      true,
-     "Call malloc_trim() after yara scans (linux)");
+     "Call malloc_trim() after YARA scans (linux)");
 #endif
 
 namespace tables {
