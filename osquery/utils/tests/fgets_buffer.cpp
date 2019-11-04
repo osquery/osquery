@@ -124,5 +124,4 @@ TEST_F(fgetsTest, multi_read) {
   ASSERT_FALSE(status);
   ASSERT_EQ("Once upon a time it ended.", line);
 }
-
 } // namespace osquery
