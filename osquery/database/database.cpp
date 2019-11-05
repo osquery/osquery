@@ -599,7 +599,7 @@ Status upgradeDatabase(int to_version) {
 
     default:
       LOG(ERROR) << "Logic error: the migration code is broken!";
-      migrate_status = Status::failure();
+      migrate_status = Status::failure("Migration code broken.");
       break;
     }
 
