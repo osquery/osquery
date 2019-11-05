@@ -1,0 +1,50 @@
+#  Copyright (c) 2019-present, osquery Foundation
+#  All rights reserved.
+#
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
+
+# @generated
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_prebuilt_cxx_library")
+load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+
+osquery_tp_prebuilt_cxx_library(
+    name = "conveyor",
+    platforms = [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+    ],
+    sha256sums = {
+        "linux-x86_64": "",
+        "macos-x86_64": "",
+        "windows-x86_64": "",
+    },
+    platform_static_libs = {
+        "linux-x86_64": [
+            "lib/libconveyor.a",
+            "lib/libconveyorz.a",
+        ],
+        "macos-x86_64": [
+            "lib/libconveyor.a",
+            "lib/libconveyorz.a",
+        ],
+        "windows-x86_64": [
+            "lib/conveyormt.lib",
+            "lib/conveyorzmt.lib",
+        ],
+    },
+    linker_flags = [
+
+    ],
+    deps = [
+      osquery_tp_target("boost", "boost"),
+    ],
+    version = "0.5.5",
+    build = "0",
+    visibility = ["PUBLIC"],
+)
