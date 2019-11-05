@@ -163,7 +163,8 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
   "calendarTime": "Tue Sep 30 17:37:30 2014",
   "unixTime": "1412123850",
   "epoch": "314159265",
-  "counter": "1"
+  "counter": "1",
+  "numerics": false
 }
 ```
 
@@ -180,7 +181,8 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
   "calendarTime": "Tue Sep 30 17:37:30 2014",
   "unixTime": "1412123850",
   "epoch": "314159265",
-  "counter": "1"
+  "counter": "1",
+  "numerics": false
 }
 ```
 
@@ -221,7 +223,8 @@ Consider the following example:
   "calendarTime": "Mon May  2 22:27:32 2016 UTC",
   "unixTime": "1462228052",
   "epoch": "314159265",
-  "counter": "1"
+  "counter": "1",
+  "numerics": false
 }
 ```
 
@@ -256,23 +259,30 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
   "calendarTime": "Tue Sep 30 17:37:30 2014",
   "unixTime": "1412123850",
   "epoch": "314159265",
-  "counter": "1"
+  "counter": "1",
+  "numerics": false
 }
 ```
 
 Most of the time the **Event format** is the most appropriate. The next section in the deployment guide describes [log aggregation](log-aggregation.md) methods. The aggregation methods describe collecting, searching, and alerting on the results from a query schedule.
 
-## Schedule epoch
+## Special top-level fields
+
+### Schedule epoch
 
 When [differential logs](#differential-logs) were described above, we mentioned that after the initial execution of a scheduled query, only differential results are logged. While this is very efficient from a size-of-logs perspective, it introduces some challenges. To begin with, if the logs are stored in a log management system of some kind, it becomes difficult or impossible to identify which log results are from the initial run of the query, and which ones are differentials to the initial results. In some situations, this becomes problematic - for example, for some tables like the users table that don't change very often at all and so don't generate differential results very often, one would have to search far into historical logs to find the last results returned by osquery; conversely, for some tables like processes that change frequently, one would have to do a fair amount of logic applying the effects of added and removed rows to reconstruct the current state of running processes.
 
 To aid with this, osquery maintains an **epoch** marker along with each scheduled query execution, and calculates differentials only if the epoch of the last run matches the current epoch. If it doesn't, then it treats the current execution of the query as an initial run. You can set the epoch marker by starting osquery with the --schedule_epoch=<some 64bit int> flag or by updating the schedule_epoch flag remotely from a TLS backend. The epoch is transmitted with each log result, so that it is easy to identify which results belong to which execution of the scheduled query.
 
-## Schedule counter
+### Schedule counter
 
 When setting up alerts for [differential logs](#differential-logs) data you might want to skip the initial **added** records. **counter** can be used to identify if the added records are all records from initial query of if they are new records. For initial query results that includes all records counter will be **"0"**. For subsequent query executions counter will be incremented by **1**. When **epoch** changes, counter will be reset back to "0".
 
-## Unique host identification
+### Numerics
+
+This is an indicator for all results, `true` if osquery attempted to log numerics as numbers, otherwise `false` indicates they were logged as strings.
+
+### Unique host identification
 
 If you need a way to uniquely identify hosts embedded into **osqueryd**'s results log, then the `--host_identifier` flag is what you're looking for.
 By default, **host_identifier** is set to "hostname". The host's hostname will be used as the host identifier in results logs. If hostnames are not unique or consistent in your environment, you can launch osqueryd with `--host_identifier=uuid`.
