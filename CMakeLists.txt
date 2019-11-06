@@ -124,6 +124,7 @@ function(importLibraries)
     "Linux,Darwin,Windows:zstd"
     "Linux,Darwin,Windows:openssl"
     "Linux,Darwin,Windows:aws-sdk-cpp"
+    "Linux,Darwin,Windows:conveyor"
   )
 
   foreach(python_module ${python_module_list})

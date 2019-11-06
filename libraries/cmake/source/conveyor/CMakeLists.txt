@@ -5,15 +5,15 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(conveyorMain)
-  set(library_root "${OSQUERY_conveyor_ROOT_DIR}/lib/cpp")
+  set(library_root "${OSQUERY_conveyor_ROOT_DIR}/src")
 
   add_library(thirdparty_conveyor
     # libconveyor
-    "${library_root}/src/src/conveyor.cpp"
+    "${library_root}/src/conveyor.cpp"
   )
 
   target_sources(thirdparty_conveyor PRIVATE
-    "${library_root}/src/src/conveyor.cpp"
+    "${library_root}/src/conveyor.cpp"
   )
 
   target_link_libraries(thirdparty_conveyor PUBLIC
@@ -25,11 +25,11 @@ function(conveyorMain)
   )
 
   target_include_directories(thirdparty_conveyor PRIVATE
-    "${library_root}/src"
+    "${library_root}/include"
   )
 
   target_include_directories(thirdparty_conveyor SYSTEM INTERFACE
-    "${library_root}/src"
+    "${library_root}/include"
   )
 endfunction()
 

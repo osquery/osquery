@@ -59,6 +59,7 @@ function(generateOsqueryEvents)
     osquery_utils_expected
     osquery_utils_system_time
     thirdparty_boost
+    thirdparty_conveyor
   )
 
   if(DEFINED PLATFORM_LINUX)
