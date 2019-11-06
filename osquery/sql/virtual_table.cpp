@@ -29,9 +29,12 @@ FLAG(uint64,
      "Add an optional microsecond delay between table scans");
 
 FLAG(bool,
-     compat_index_all_extension_columns,
+     extensions_default_index,
      true,
-     "Enable INDEX (and thereby constraints) on all extension tables");
+     "Enable INDEX (and thereby constraints) on all extension table columns. "
+     "Provides backwards compatiblity for extensions (or SDKs) that don't "
+     "correctly define indexes in column options. (default true)"
+   );
 
 SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
@@ -609,8 +612,8 @@ int xCreate(sqlite3* db,
         }
       }
 
-      if (is_extension && FLAGS_compat_index_all_extension_columns &&
-          0 == (int)options) {
+      if (is_extension && FLAGS_extensions_default_index &&
+          ColumnOptions::DEFAULT == options) {
         options = ColumnOptions::INDEX;
       }
 
