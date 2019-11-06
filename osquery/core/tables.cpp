@@ -18,6 +18,10 @@
 namespace osquery {
 
 FLAG(bool, disable_caching, false, "Disable scheduled query caching");
+FLAG(bool,
+     compat_index_all_extension_columns,
+     true,
+     "Enable INDEX (and thereby constraints) on all extension tables");
 
 CREATE_LAZY_REGISTRY(TablePlugin, "table");
 
@@ -335,6 +339,9 @@ std::string columnDefinition(const PluginResponse& response,
         auto op = tryTo<int>(cop->second);
         if (op) {
           options = static_cast<ColumnOptions>(op.take());
+          if (FLAGS_compat_index_all_extension_columns && 0 == (int)options) {
+            options = ColumnOptions::INDEX;
+          }
         }
       }
       auto column_type = columnTypeName(ctype->second);
