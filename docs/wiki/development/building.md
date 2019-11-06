@@ -24,6 +24,10 @@ The root folder is assumed to be `/home/<user>`.
 # Install the prerequisites
 sudo apt install --no-install-recommends git python3 bison flex make
 
+# Optional: install python tests prerequisites
+sudo apt install --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel
+pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
+
 # Download and install the osquery toolchain
 wget https://github.com/osquery/osquery-toolchain/releases/download/1.0.0/osquery-toolchain-1.0.0.tar.xz
 sudo tar xvf osquery-toolchain-1.0.0.tar.xz -C /usr/local
@@ -55,6 +59,9 @@ Please ensure [Homebrew](https://brew.sh/) has been installed, first. Then do th
 # Install prerequisites
 xcode-select --install
 brew install git cmake python
+
+# Optional: install python tests prerequisites
+pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
 ```
 
 **Step 2: Download and build**
@@ -93,6 +100,14 @@ Note: It may be easier to install these prerequisites using [Chocolatey](https:/
 - [Wix Toolset](https://wixtoolset.org/releases/)
 - [Strawberry Perl](http://strawberryperl.com/) for the OpenSSL formula. It is recommended to install it to the default destination path.
 - [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
+
+**Optional: Install python tests prerequisites**
+Python 3 is assumed to be installed in `C:\Program Files\Python37`
+
+```PowerShell
+# Using a PowerShell console
+& 'C:\Program Files\Python37\python.exe' -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
+```
 
 The use of an Administrator shell is recommended because the build process creates symbolic links. These [require a special permission to create on Windows](https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links), and the simplest solution is to build as Administrator. If you wish, you can instead assign just the `SeCreateSymbolicLinkPrivilege` permission to the user account. The setting can be found in "Local Security Policy" under Security Settings, Local Policies, User Rights Assignment. The user then has to log out and back in for the policy change to apply.
 
