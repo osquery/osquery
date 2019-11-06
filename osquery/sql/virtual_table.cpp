@@ -32,6 +32,8 @@ SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
 DECLARE_bool(disable_events);
 
+DECLARE_bool(compat_index_all_extension_columns);
+
 RecursiveMutex kAttachMutex;
 
 namespace tables {
@@ -602,6 +604,10 @@ int xCreate(sqlite3* db,
         if (op) {
           options = static_cast<ColumnOptions>(op.take());
         }
+      }
+
+      if (is_extension && FLAGS_compat_index_all_extension_columns && 0 == (int)options) {
+        options = ColumnOptions::INDEX;
       }
 
       pVtab->content->columns.push_back(std::make_tuple(

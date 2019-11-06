@@ -339,11 +339,13 @@ std::string columnDefinition(const PluginResponse& response,
         auto op = tryTo<int>(cop->second);
         if (op) {
           options = static_cast<ColumnOptions>(op.take());
-          if (FLAGS_compat_index_all_extension_columns && 0 == (int)options) {
-            options = ColumnOptions::INDEX;
-          }
         }
       }
+
+      if (is_extension && FLAGS_compat_index_all_extension_columns && 0 == (int)options) {
+        options = ColumnOptions::INDEX;
+      }
+
       auto column_type = columnTypeName(ctype->second);
       columns.push_back(make_tuple(cname->second, column_type, options));
       if (aliases) {
