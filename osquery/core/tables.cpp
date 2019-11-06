@@ -337,7 +337,6 @@ std::string columnDefinition(const PluginResponse& response,
           options = static_cast<ColumnOptions>(op.take());
         }
       }
-
       auto column_type = columnTypeName(ctype->second);
       columns.push_back(make_tuple(cname->second, column_type, options));
       if (aliases) {
