@@ -427,7 +427,13 @@ boost::filesystem::path getSystemRoot();
  */
 Status platformLstat(const std::string& path, struct stat& d_stat);
 
-#ifdef __APPLE__
+/**
+ * @brief Populates the provided string with a textual representation of the provided file flags.
+ *
+ * Returns failure if unrecognized flags are set, success in all other cases.
+ *
+ *
+ * @return osquery::Status
+ */
 Status describeBSDFileFlags(std::string& output, std::uint32_t st_flags);
-#endif
 }
