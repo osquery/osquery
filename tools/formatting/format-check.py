@@ -47,7 +47,7 @@ def check(base_commit, exclude_folders):
         print("Code passes formatting tests!")
         return True
     else:
-        print("DEBUG:",out)
+        print("DEBUG:",out.encode('utf8').decode('utf8'))
         print("{}\n\n{}".format(
             "Modifications failed code formatting requirements", out
             ))
