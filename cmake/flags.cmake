@@ -294,7 +294,7 @@ function(setupBuildFlags)
     list(APPEND osquery_defines ${osquery_windows_common_defines})
 
     # Remove some flags from the default ones to avoid "overriding" warnings or unwanted results.
-    if(OSQUERY_WINDOWS AND "${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    if(DEFINED PLATFORM_WINDOWS AND "${CMAKE_GENERATOR}" STREQUAL "Ninja")
       string(REPLACE "/MD" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
       string(REPLACE "/MD" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
       string(REPLACE "/MD" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
