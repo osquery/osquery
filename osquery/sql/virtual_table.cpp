@@ -33,8 +33,7 @@ FLAG(bool,
      true,
      "Enable INDEX (and thereby constraints) on all extension table columns. "
      "Provides backwards compatiblity for extensions (or SDKs) that don't "
-     "correctly define indexes in column options. (default true)"
-   );
+     "correctly define indexes in column options. (default true)");
 
 SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
