@@ -53,7 +53,7 @@ static bool isAzureInstance() {
     } else if (isPlatform(PlatformType::TYPE_POSIX)) {
       is_azure_instance = pathExists(fs::path("/var/log/waagent.log")).ok();
     } else {
-      TLOG << "Unsupported Azure platform: " << OSQUERY_BUILD_PLATFORM;
+      TLOG << "Unsupported Azure platform: " #OSQUERY_BUILD_PLATFORM;
       is_azure_instance = false;
     }
   });
