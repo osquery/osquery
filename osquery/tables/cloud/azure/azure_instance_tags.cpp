@@ -9,7 +9,6 @@
  */
 
 #include <boost/algorithm/string.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
@@ -18,21 +17,20 @@
 
 namespace osquery {
 namespace tables {
-namespace pt = boost::property_tree;
 
 QueryData genAzureTags(QueryContext& context) {
   QueryData results;
-  pt::ptree tree;
+  JSON doc;
 
-  Status s = fetchAzureMetadata(tree);
+  Status s = fetchAzureMetadata(doc);
 
   if (!s.ok()) {
     TLOG << "Couldn't fetch metadata: " << s.what();
     return results;
   }
 
-  auto tags_str = tree_get(tree, "tags");
-  auto vm_id = tree_get(tree, "vmId");
+  auto tags_str = tree_get(doc, "tags");
+  auto vm_id = tree_get(doc, "vmId");
   std::vector<std::string> tags;
 
   boost::split(tags, tags_str, boost::is_any_of(";"));

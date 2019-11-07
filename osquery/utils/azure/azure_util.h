@@ -10,15 +10,13 @@
 
 #pragma once
 
-#include <boost/property_tree/ptree.hpp>
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/status/status.h>
-
-namespace pt = boost::property_tree;
 
 namespace osquery {
 
-std::string tree_get(pt::ptree& tree, const std::string key);
+std::string tree_get(JSON& doc, const std::string key);
 
-Status fetchAzureMetadata(pt::ptree& tree);
+Status fetchAzureMetadata(JSON& doc);
 
 } // namespace osquery

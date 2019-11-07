@@ -8,8 +8,6 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <osquery/core.h>
 #include <osquery/logger.h>
 
@@ -17,8 +15,8 @@
 #include <osquery/remote/http_client.h>
 #include <osquery/utils/azure/azure_util.h>
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/json/json.h>
 
-namespace pt = boost::property_tree;
 namespace http = osquery::http;
 namespace fs = boost::filesystem;
 
@@ -61,11 +59,19 @@ static bool isAzureInstance() {
   return is_azure_instance;
 }
 
-std::string tree_get(pt::ptree& tree, const std::string key) {
-  return tree.get<std::string>(key, "");
+std::string tree_get(JSON& doc, const std::string key) {
+  if (!doc.doc().HasMember(key)) {
+    return {};
+  }
+
+  if (!doc.doc()[key].IsString()) {
+    return {};
+  }
+
+  return doc.doc()[key].GetString();
 }
 
-Status fetchAzureMetadata(pt::ptree& tree) {
+Status fetchAzureMetadata(JSON& doc) {
   if (!isAzureInstance()) {
     return Status(1, "Not an Azure instance");
   }
@@ -98,17 +104,7 @@ Status fetchAzureMetadata(pt::ptree& tree) {
                       std::to_string(response.result_int()));
   }
 
-  std::stringstream json_stream;
-  json_stream << response.body();
-  try {
-    pt::read_json(json_stream, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    return Status(1,
-                  "Couldn't parse JSON from: " + kAzureMetadataEndpoint + ": " +
-                      e.what());
-  }
-
-  return Status(0);
+  return doc.fromString(response.body());
 }
 
 } // namespace osquery
