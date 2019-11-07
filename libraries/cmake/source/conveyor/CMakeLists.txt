@@ -5,7 +5,10 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(conveyorMain)
-  set(library_root "${OSQUERY_conveyor_ROOT_DIR}/src")
+
+  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+  message("conveyor library_root:${library_root}")
 
   add_library(thirdparty_conveyor
     # libconveyor
