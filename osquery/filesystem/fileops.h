@@ -428,7 +428,8 @@ boost::filesystem::path getSystemRoot();
 Status platformLstat(const std::string& path, struct stat& d_stat);
 
 /**
- * @brief Populates the provided string with a textual representation of the provided file flags.
+ * @brief Populates the provided string with a textual representation of the
+ * provided file flags.
  *
  * Returns failure if unrecognized flags are set, success in all other cases.
  *
