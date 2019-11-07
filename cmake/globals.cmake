@@ -19,7 +19,7 @@ endif()
 
 # This is the destination for the remotely imported Python modules, used when
 # setting up the PYTHONPATH folder
-set(PYTHON_PATH "${CMAKE_BINARY_DIR}/python_path")
+set(OSQUERY_PYTHON_PATH "${CMAKE_BINARY_DIR}/python_path")
 
 # TODO(alessandro): Add missing defines: PLATFORM_FREEBSD
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")

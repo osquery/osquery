@@ -101,8 +101,6 @@ endfunction()
 
 function(findPythonExecutablePath)
   find_package(Python3 3.5 COMPONENTS Interpreter REQUIRED)
-
-  set(EX_TOOL_PYTHON3_EXECUTABLE_PATH "${Python3_EXECUTABLE}" PARENT_SCOPE)
 endfunction()
 
 function(generateBuildTimeSourceFile file_path content)
@@ -266,7 +264,6 @@ function(generateSpecialTargets)
   # Used to generate all the files necessary to have a complete view of the project in the IDE
   add_custom_target(prepare_for_ide)
 
-
   set(excluded_folders
     "libraries/cmake/source"
   )
@@ -277,12 +274,12 @@ function(generateSpecialTargets)
   endif()
 
   add_custom_target(format_check
-    COMMAND ${command_prefix} ${EX_TOOL_PYTHON3_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/formatting/format-check.py --exclude-folders ${excluded_folders} origin/master
+    COMMAND ${command_prefix} "${Python3_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/tools/formatting/format-check.py --exclude-folders ${excluded_folders} origin/master
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
   )
   add_custom_target(format
-    COMMAND ${command_prefix} ${EX_TOOL_PYTHON3_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py --exclude-folders ${excluded_folders} -f --style=file
+    COMMAND ${command_prefix} "${Python3_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py --exclude-folders ${excluded_folders} -f --style=file
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
   )
