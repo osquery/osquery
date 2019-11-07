@@ -19,6 +19,8 @@ function(specsMain)
   endforeach()
 
   target_link_libraries(specs_tables INTERFACE ${table_target_list})
+
+  generateCopyFileTarget("specs_table_files" "" "REGEX" "*.table" "${TEST_CONFIGS_DIR}/specs")
 endfunction()
 
 function(generateForeignTables spec_file_list)
