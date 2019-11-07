@@ -131,6 +131,7 @@ osquery_cxx_library(
         osquery_target("osquery/utils/json:json"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("plugins/config/parsers:parsers"),
+        osquery_tp_target("boost"),
     ],
 )
 
