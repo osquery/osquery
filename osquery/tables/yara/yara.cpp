@@ -38,6 +38,11 @@ FLAG(bool,
      true,
      "Call malloc_trim() after YARA scans (linux)");
 #endif
+FLAG(uint32,
+     yara_intrafile_sleep,
+     50,
+     "Time in ms to sleep after scan of each file (default 50). Helps reduce "
+     "memory spikes.");
 
 namespace tables {
 
@@ -149,7 +154,8 @@ QueryData genYara(QueryContext& context) {
         doYARAScan(rules[group], path.c_str(), results, group, group);
 
         // sleep between each file to help smooth out malloc spikes
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(FLAGS_yara_intrafile_sleep));
       }
     }
   }
