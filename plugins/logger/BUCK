@@ -104,10 +104,12 @@ osquery_cxx_library(
     name = "buffered",
     srcs = [
         "buffered.cpp",
+        "cached_logger.cpp"
     ],
     header_namespace = "plugins/logger",
     exported_headers = [
         "buffered.h",
+        "cached_logger.h",
     ],
     exported_post_platform_linker_flags = [
         (
@@ -121,6 +123,7 @@ osquery_cxx_library(
     link_whole = True,
     tests = [
         osquery_target("plugins/logger/tests:buffered_logger_tests"),
+        osquery_target("plugins/logger/tests:cached_logger_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = common_deps + [
