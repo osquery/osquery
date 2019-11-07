@@ -14,7 +14,6 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/filesystem/fileops.h>
-#include <osquery/utils/info/platform_type.h>
 
 namespace fs = boost::filesystem;
 
@@ -98,16 +97,16 @@ void genFileInfo(const fs::path& path,
     r["type"] = "unknown";
   }
 
-  if (isPlatform(PlatformType::TYPE_OSX)) {
-    std::string bsd_file_flags_description;
-    if (!describeBSDFileFlags(bsd_file_flags_description, file_stat.st_flags)) {
-      VLOG(1)
-          << "The following file had undocumented BSD file flags (chflags) set: "
-          << path;
-    }
-
-    r["bsd_flags"] = bsd_file_flags_description;
+#if defined(__APPLE__)
+  std::string bsd_file_flags_description;
+  if (!describeBSDFileFlags(bsd_file_flags_description, file_stat.st_flags)) {
+    VLOG(1)
+        << "The following file had undocumented BSD file flags (chflags) set: "
+        << path;
   }
+
+  r["bsd_flags"] = bsd_file_flags_description;
+#endif
 
 #else
 
