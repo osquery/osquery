@@ -73,6 +73,7 @@ osquery_cxx_library(
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/process:process"),
         osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
         ":aws_log_forwarder",
     ],
 )
