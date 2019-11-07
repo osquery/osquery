@@ -20,10 +20,6 @@ namespace osquery {
 namespace tables {
 namespace pt = boost::property_tree;
 
-// Azure VM IDs are unique and don't change on an instance,
-// so we can safely cache them.
-static std::string kCachedVmId;
-
 QueryData genAzureMetadata(QueryContext& context) {
   QueryData results;
   Row r;
@@ -36,11 +32,7 @@ QueryData genAzureMetadata(QueryContext& context) {
     TLOG << "Couldn't fetch metadata: " << s.what();
   }
 
-  if (kCachedVmId.empty()) {
-    kCachedVmId = tree_get(tree, "vmId");
-  }
-
-  r["vm_id"] = kCachedVmId;
+  r["vm_id"] = tree_get(tree, "vmId");
   r["location"] = tree_get(tree, "location");
   r["name"] = tree_get(tree, "name");
   r["offer"] = tree_get(tree, "offer");

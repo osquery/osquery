@@ -16,12 +16,21 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/remote/http_client.h>
 #include <osquery/utils/azure/azure_util.h>
+#include <osquery/utils/info/platform_type.h>
 
 namespace pt = boost::property_tree;
 namespace http = osquery::http;
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
+// 2018-02-01 is supported across all Azure regions, according to MS.
+const std::string kAzureMetadataEndpoint =
+    "http://169.254.169.254/metadata/instance/compute?api-version=2018-02-01";
+
+// 3 seconds should be more than enough time for the metadata endpoint to
+// respond.
+const int kAzureMetadataTimeout = 3;
 
 static bool isAzureInstance() {
   static std::atomic<bool> checked(false);
@@ -39,14 +48,14 @@ static bool isAzureInstance() {
 
     checked = true;
 
-#ifdef WINDOWS
-    is_azure_instance = pathExists(fs::path("C:\\WindowsAzure")).ok();
-#elif POSIX
-    is_azure_instance = pathExists(fs::path("/var/log/waagent.log")).ok();
-#else
-    TLOG << "isAzureInstance(): unsupported platform: " << OSQUERY_BUILD_PLATFORM;
-    is_azure_instance = false;
-#endif
+    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+      is_azure_instance = pathExists(fs::path("C:\\WindowsAzure")).ok();
+    } else if (isPlatform(PlatformType::TYPE_POSIX)) {
+      is_azure_instance = pathExists(fs::path("/var/log/waagent.log")).ok();
+    } else {
+      TLOG << "Unsupported Azure platform: " << OSQUERY_BUILD_PLATFORM;
+      is_azure_instance = false;
+    }
   });
 
   return is_azure_instance;

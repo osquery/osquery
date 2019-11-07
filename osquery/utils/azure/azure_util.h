@@ -17,14 +17,6 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-// 2018-02-01 is supported across all Azure regions, according to MS.
-const std::string kAzureMetadataEndpoint =
-    "http://169.254.169.254/metadata/instance/compute?api-version=2018-02-01";
-
-// 3 seconds should be more than enough time for the metadata endpoint to
-// respond.
-const int kAzureMetadataTimeout = 3;
-
 std::string tree_get(pt::ptree& tree, const std::string key);
 
 Status fetchAzureMetadata(pt::ptree& tree);
