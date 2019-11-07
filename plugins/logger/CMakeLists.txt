@@ -108,6 +108,7 @@ function(generatePluginsLoggerBuffered)
     osquery_utils_json
     osquery_utils_system_time
     plugins_config_parsers
+    osquery_filesystem
   )
 
   set(public_header_files

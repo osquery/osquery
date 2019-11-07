@@ -38,6 +38,7 @@ osquery_cxx_test(
     name = "buffered_logger_tests",
     srcs = [
         "buffered_tests.cpp",
+        "cached_logger_tests.cpp",
     ],
     visibility = ["PUBLIC"],
     deps = [

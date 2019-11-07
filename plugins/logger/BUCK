@@ -123,7 +123,6 @@ osquery_cxx_library(
     link_whole = True,
     tests = [
         osquery_target("plugins/logger/tests:buffered_logger_tests"),
-        osquery_target("plugins/logger/tests:cached_logger_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = common_deps + [
