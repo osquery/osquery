@@ -9,9 +9,9 @@
 #pragma once
 
 #include <chrono>
+#include <gflags/gflags.h>
 #include <memory>
 #include <vector>
-#include <gflags/gflags.h>
 
 #include <aws/kinesis/KinesisClient.h>
 #include <aws/kinesis/model/PutRecordsRequestEntry.h>
@@ -39,4 +39,4 @@ class KinesisLoggerPlugin : public CachedLoggerPlugin {
  private:
 };
 
-}
+} // namespace osquery

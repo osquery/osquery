@@ -21,7 +21,6 @@ namespace osquery {
 
 class CachedLoggerTests : public Test {
  public:
-
 };
 
 TEST_F(CachedLoggerTests, rotate_logic) {
@@ -39,7 +38,7 @@ TEST_F(CachedLoggerTests, rotate_logic) {
 
   // the following would be true, but file is empty. e.g. channel.num_lines==0
   EXPECT_FALSE(CachedLoggerPlugin::_needsRotate(
-	  bounds, channel, minute_from_now, 256, num_files_queued));
+      bounds, channel, minute_from_now, 256, num_files_queued));
 
   channel.num_lines = 1;
   EXPECT_TRUE(CachedLoggerPlugin::_needsRotate(

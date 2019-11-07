@@ -7,11 +7,11 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/dispatcher.h>
-#include <osquery/utils/info/version.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
+#include <osquery/utils/info/version.h>
 
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
@@ -37,14 +37,15 @@ FLAG(bool,
      "Enable WARNING status logging of stats every 5-minutes.");
 
 FLAG(bool,
-    cached_logger_audit_trail,
-    false,
-    "Enable saving a local copy of all results logs for QA");
+     cached_logger_audit_trail,
+     false,
+     "Enable saving a local copy of all results logs for QA");
 
 FLAG(uint64,
-    cached_logger_max_files,
-    7500,
-    "In case of connectivity issue, will stop logging if number of files reaches limit.");
+     cached_logger_max_files,
+     7500,
+     "In case of connectivity issue, will stop logging if number of files "
+     "reaches limit.");
 
 // this should be part of CachedLoggerPlugin, but didn't want to muddy up
 // header file.
@@ -56,24 +57,23 @@ static const std::string LOGGER_CACHE_DIR = "z_cached_logs";
 
 DECLARE_string(database_path);
 
-  struct LoggerStats {
-    uint64_t results_records_written;
-    uint64_t results_records_sent;
-    uint64_t results_files_written;
-    uint64_t results_files_sent;
-    uint64_t status_records_written;
-    uint64_t status_records_sent;
-    uint64_t status_files_written;
-    uint64_t status_files_sent;
-    uint64_t results_log_errors;
-    uint64_t status_log_errors;
-    uint64_t num_files_failed_to_send;
-  };
+struct LoggerStats {
+  uint64_t results_records_written;
+  uint64_t results_records_sent;
+  uint64_t results_files_written;
+  uint64_t results_files_sent;
+  uint64_t status_records_written;
+  uint64_t status_records_sent;
+  uint64_t status_files_written;
+  uint64_t status_files_sent;
+  uint64_t results_log_errors;
+  uint64_t status_log_errors;
+  uint64_t num_files_failed_to_send;
+};
 
-  static LoggerStats gStats;
-  static LoggerStats gStatsLast;
-  static time_t gLastStatTime = 0;
-
+static LoggerStats gStats;
+static LoggerStats gStatsLast;
+static time_t gLastStatTime = 0;
 
 class ForwarderThread : public InternalRunnable {
  public:
@@ -97,7 +97,6 @@ class ForwarderThread : public InternalRunnable {
 
  protected:
   virtual void start() override {
-
     while (!interrupted()) {
       std::vector<std::string> file_paths;
       logger_.getCachedFiles(file_paths, burst_file_count_);
@@ -112,8 +111,9 @@ class ForwarderThread : public InternalRunnable {
           pause(std::chrono::seconds(30));
           break;
         }
-        logger_.removeCachedFile(file_paths[i],
-          status.ok() || status.getCode() == FORWARDER_STATUS_EMPTY_FILE);
+        logger_.removeCachedFile(
+            file_paths[i],
+            status.ok() || status.getCode() == FORWARDER_STATUS_EMPTY_FILE);
       }
 
       // Cool off and time wait the configured period.
@@ -136,14 +136,19 @@ void CachedLoggerPlugin::start(std::shared_ptr<Forwarder> forwarder,
                                uint32_t interval_seconds,
                                uint32_t burst_file_count,
                                uint32_t burst_sleep_millis) {
-
   // make sure deadletter director exists
 
-  createDirectory((fs::path(cache_path_) / LOGGER_CACHE_DIR).make_preferred(), false, true);
-  createDirectory((fs::path(cache_path_) / LOGGER_FAILED_DIR).make_preferred(), false, true);
+  createDirectory(
+      (fs::path(cache_path_) / LOGGER_CACHE_DIR).make_preferred(), false, true);
+  createDirectory((fs::path(cache_path_) / LOGGER_FAILED_DIR).make_preferred(),
+                  false,
+                  true);
 
   if (FLAGS_cached_logger_audit_trail) {
-    createDirectory((fs::path(cache_path_) / LOGGER_AUDIT_TRAIL_DIR).make_preferred(), false, true);
+    createDirectory(
+        (fs::path(cache_path_) / LOGGER_AUDIT_TRAIL_DIR).make_preferred(),
+        false,
+        true);
   }
 
   // start forwarder thread
@@ -198,7 +203,8 @@ void CachedLoggerPlugin::setProps(std::string logname,
     return;
   }
 
-  createDirectory((fs::path(cache_path_) / LOGGER_CACHE_DIR).make_preferred(), false, true);
+  createDirectory(
+      (fs::path(cache_path_) / LOGGER_CACHE_DIR).make_preferred(), false, true);
 
   _enumerateExistingFiles();
 
@@ -249,7 +255,7 @@ Status CachedLoggerPlugin::_logStringInternal(LogChannel& channel,
                                               const std::string& s,
                                               bool isResult) {
   RecursiveLock lock(mutex_);
-  if (nullptr == channel.fp || cacheLimitReached_ ) {
+  if (nullptr == channel.fp || cacheLimitReached_) {
     return Status();
   }
 
@@ -289,8 +295,9 @@ Status CachedLoggerPlugin::_logStringInternal(LogChannel& channel,
   // With normal config (WARNING and ERROR status only), status lines are
   // infrequent.  So when we rotate results, also rotate status if needed.
 
-  if (isResult && didRotate && useSeparateStatusChannel_ && status_channel_.num_bytes > 0) {
-      _rotateLog(status_channel_);
+  if (isResult && didRotate && useSeparateStatusChannel_ &&
+      status_channel_.num_bytes > 0) {
+    _rotateLog(status_channel_);
   }
 
   return Status();
@@ -348,21 +355,22 @@ Status CachedLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
     }
 
     _logStringInternal(
-        (useSeparateStatusChannel_ ? status_channel_ : results_channel_), json, false);
+        (useSeparateStatusChannel_ ? status_channel_ : results_channel_),
+        json,
+        false);
   }
 
   return Status();
 }
 
-static void fallOnSword()
-{
+static void fallOnSword() {
   LOG(WARNING) << "\n*******************************************************\n"
-  "The number of cached log files has reached limit:"
-  << FLAGS_cached_logger_max_files
-  << "\nLogging will sent to /dev/null\n"
-  "1. Fix connectivity issue with log forwarding.\n"
-  "2. Delete some or all z_*.json files in DB directory\n"
-  "*******************************************************";
+                  "The number of cached log files has reached limit:"
+               << FLAGS_cached_logger_max_files
+               << "\nLogging will sent to /dev/null\n"
+                  "1. Fix connectivity issue with log forwarding.\n"
+                  "2. Delete some or all z_*.json files in DB directory\n"
+                  "*******************************************************";
 }
 
 /**
@@ -374,7 +382,8 @@ void CachedLoggerPlugin::_enumerateExistingFiles() {
   auto dir = fs::path(cache_path_);
   std::vector<std::string> items;
   // Get list of all cached log files
-  Status status = listFilesInDirectory((dir / LOGGER_CACHE_DIR).string(), items, false);
+  Status status =
+      listFilesInDirectory((dir / LOGGER_CACHE_DIR).string(), items, false);
   // also add cached files in DB/ dir (legacy support)
   status = listFilesInDirectory(cache_path_, items, false);
   for (std::string filename : items) {
@@ -422,10 +431,11 @@ void CachedLoggerPlugin::_clearAndNameLog(LogChannel& channel, time_t now) {
   channel.filepath = path.make_preferred().string();
 }
 
-#define DIFF(NAME) { \
-  diff.NAME = gStats.NAME - gStatsLast.NAME; \
-s += std::string(#NAME) + ":" + std::to_string(diff.NAME) + " "; \
-}
+#define DIFF(NAME)                                                             \
+  {                                                                            \
+    diff.NAME = gStats.NAME - gStatsLast.NAME;                                 \
+    s += std::string(#NAME) + ":" + std::to_string(diff.NAME) + " ";           \
+  }
 
 static void _reportStats(time_t now) {
   if (gLastStatTime == 0) {
@@ -437,7 +447,7 @@ static void _reportStats(time_t now) {
     return;
   }
 
-  std::string s = "period:" + std::to_string(now-gLastStatTime) + "s ";
+  std::string s = "period:" + std::to_string(now - gLastStatTime) + "s ";
   gLastStatTime = now;
   LoggerStats diff;
 
@@ -507,17 +517,18 @@ void CachedLoggerPlugin::_rotateLog(LogChannel& channel) {
   }
 }
 
-static inline void updateSentStats(CacheFileInfo &info, bool wasSentSuccessfully){
+static inline void updateSentStats(CacheFileInfo& info,
+                                   bool wasSentSuccessfully) {
   if (wasSentSuccessfully) {
     if (info.isResult) {
-      gStats.results_files_sent ++;
+      gStats.results_files_sent++;
       gStats.results_records_sent += info.num_lines;
     } else {
       gStats.status_files_sent++;
       gStats.status_records_sent += info.num_lines;
     }
   } else {
-    gStats.num_files_failed_to_send ++;
+    gStats.num_files_failed_to_send++;
   }
 }
 
@@ -550,11 +561,15 @@ void CachedLoggerPlugin::removeCachedFile(std::string& file_path,
 
     // copy to dead_letter dir if !wasSentSuccessfully
 
-    fs::path deadFile = (fs::path(cache_path_) / LOGGER_FAILED_DIR / fs::path(file_path).filename()).make_preferred();
+    fs::path deadFile = (fs::path(cache_path_) / LOGGER_FAILED_DIR /
+                         fs::path(file_path).filename())
+                            .make_preferred();
     movePath(fs::path(file_path), deadFile);
   } else {
     if (FLAGS_cached_logger_audit_trail) {
-      fs::path dest = (fs::path(cache_path_) / LOGGER_AUDIT_TRAIL_DIR / fs::path(file_path).filename()).make_preferred();
+      fs::path dest = (fs::path(cache_path_) / LOGGER_AUDIT_TRAIL_DIR /
+                       fs::path(file_path).filename())
+                          .make_preferred();
       movePath(fs::path(file_path), dest);
     } else {
       removePath(fs::path(file_path));
@@ -569,7 +584,7 @@ void CachedLoggerPlugin::getCachedFiles(
     std::vector<std::string>& cached_file_paths, int count) {
   RecursiveLock lock(mutex_);
   for (int i = 0; i < count && i < (int)files_to_forward_.size(); i++) {
-    //VLOG(1) << i << "] getCachedFiles " << files_to_forward_[i].filepath;
+    // VLOG(1) << i << "] getCachedFiles " << files_to_forward_[i].filepath;
     cached_file_paths.push_back(files_to_forward_[i].filepath);
   }
 }
