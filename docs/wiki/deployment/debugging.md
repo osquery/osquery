@@ -125,6 +125,12 @@ While not expected, the backing store may be corrupted by problems with the file
 
 If your `--database_path` is `/var/osquery/osquery.db` then the backup is `/var/osquery/osquery.db.backup`. The database is always a folder and the backup location is the suffix ".backup" appended.
 
+### No query solution errors
+
+You may see `no query solution` errors in status logs, as the result of an `osqueryi` query, etc.
+This typically means a REQUIRED columns must be present in the WHERE clause. For example, the `file` table needs either a `directory` or `path`.
+Tables that have a required column are documented on [the schema page](https://osquery.io/schema/).
+
 ### Inspecting TLS/HTTPS body request and responses
 
 When using the TLS-related plugins the hidden flag `--tls_dump` can be used with `--verbose`. This flag will print all of the HTTPS body content (usually JSON data) to `stderr`.

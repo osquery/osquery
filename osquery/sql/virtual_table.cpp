@@ -285,8 +285,10 @@ static void plan(const std::string& output) {
 int xOpen(sqlite3_vtab* tab, sqlite3_vtab_cursor** ppCursor) {
   auto* pCur = new BaseCursor;
   auto* pVtab = (VirtualTable*)tab;
-  plan("Opening cursor (" + std::to_string(kPlannerCursorID) +
-       ") for table: " + pVtab->content->name);
+  if (FLAGS_planner) {
+    plan("xOpen Opening cursor (" + std::to_string(kPlannerCursorID) +
+         ") for table: " + pVtab->content->name);
+  }
   pCur->id = kPlannerCursorID++;
   pCur->base.pVtab = tab;
   *ppCursor = (sqlite3_vtab_cursor*)pCur;
@@ -768,7 +770,6 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   }
 
   // track columns used
-
   UsedColumns colsUsed;
   UsedColumnsBitset colsUsedBitset(pIdxInfo->colUsed);
   if (colsUsedBitset.any()) {
@@ -813,7 +814,6 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
 
   // Return error if required constraint not present.
   // For example, you can't do a hash of a file if path not provided.
-
   if (numRequiredColumns > 0 && numRequiredConstraints <= 0) {
     return SQLITE_CONSTRAINT;
   }
@@ -842,12 +842,6 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   // The SQLite instance communicates to the TablePlugin via the context.
   context.useCache(pVtab->instance->useCache());
 
-  // Track required columns, this is different than the requirements check
-  // that occurs within BestIndex because this scan includes a cursor.
-  // For each cursor used, if a requirement exists, we need to scan the
-  // selected set of constraints for a match.
-  bool required_satisfied = true;
-
   // The specialized table attribute USER_BASED imposes a special requirement
   // for UID. This may be represented in the requirements, but otherwise
   // would benefit from specific notification to the caller.
@@ -868,19 +862,16 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
         std::get<1>(content->columns[i]);
     // Save the column options for comparison within constraints enumeration.
     options[column_name] = std::get<2>(content->columns[i]);
-    if (options[column_name] & ColumnOptions::REQUIRED) {
-      required_satisfied = false;
-    }
   }
 
 // Filtering between cursors happens iteratively, not consecutively.
 // If there are multiple sets of constraints, they apply to each cursor.
-#if defined(DEBUG)
-  plan("Filtering called for table: " + content->name +
-       " [constraint_count=" + std::to_string(content->constraints.size()) +
-       " argc=" + std::to_string(argc) + " idx=" + std::to_string(idxNum) +
-       "]");
-#endif
+  if (FLAGS_planner) {
+    plan("xFilter Filtering called for table: " + content->name +
+         " [constraint_count=" + std::to_string(content->constraints.size()) +
+         " argc=" + std::to_string(argc) + " idx=" + std::to_string(idxNum) +
+         "]");
+  }
 
   // Iterate over every argument to xFilter, filling in constraint values.
   if (content->constraints.size() > 0) {
@@ -895,9 +886,11 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
         // Set the expression from SQLite's now-populated argv.
         auto& constraint = constraints[i];
         constraint.second.expr = std::string(expr);
-        plan("Adding constraint to cursor (" + std::to_string(pCur->id) +
-             "): " + constraint.first + " " + opString(constraint.second.op) +
-             " " + constraint.second.expr);
+        if (FLAGS_planner) {
+          plan("xFilter Adding constraint to cursor (" +
+               std::to_string(pCur->id) + "): " + constraint.first + " " +
+               opString(constraint.second.op) + " " + constraint.second.expr);
+        }
         // Add the constraint to the column-sorted query request map.
         context.constraints[constraint.first].add(constraint.second);
       }
@@ -908,11 +901,6 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     // Evaluate index and optimized constraint requirements.
     // These are satisfied regardless of expression content availability.
     for (const auto& constraint : constraints) {
-      if (options[constraint.first] & ColumnOptions::REQUIRED) {
-        // A required option exists in the constraints.
-        required_satisfied = true;
-      }
-
       if (!user_based_satisfied &&
           (constraint.first == "uid" || constraint.first == "username")) {
         // UID was required and exists in the constraints.
@@ -935,18 +923,13 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     LOG(WARNING) << "The " << pVtab->content->name
                  << " table returns data based on the current user by default, "
                     "consider JOINing against the users table";
-  } else if (!required_satisfied) {
-    LOG(WARNING)
-        << "Table " << pVtab->content->name
-        << " was queried without a required column in the WHERE clause";
   } else if (!events_satisfied) {
     LOG(WARNING) << "Table " << pVtab->content->name
                  << " is event-based but events are disabled";
   }
 
   // Provide a helpful reference to table documentation within the shell.
-  if (Initializer::isShell() &&
-      (!user_based_satisfied || !required_satisfied || !events_satisfied)) {
+  if (Initializer::isShell() && (!user_based_satisfied || !events_satisfied)) {
     LOG(WARNING) << "Please see the table documentation: "
                  << table_doc(pVtab->content->name);
   }
@@ -985,7 +968,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   pCur->n = pCur->rows.size();
 
   if (FLAGS_planner) {
-    plan(pVtab->content->name +
+    plan("xFilter " + pVtab->content->name +
          " generate returned row count:" + std::to_string(pCur->n));
   }
 
