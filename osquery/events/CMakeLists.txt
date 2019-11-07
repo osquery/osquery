@@ -134,6 +134,7 @@ function(generateOsqueryEventsEventsregistry)
     osquery_dispatcher
     osquery_sql
     osquery_headers
+    thirdparty_conveyor
   )
 
   add_test(NAME osquery_events_tests-test COMMAND osquery_events_tests-test)

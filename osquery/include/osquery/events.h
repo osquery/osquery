@@ -119,11 +119,7 @@ extern const std::vector<size_t> kEventTimeLists;
  */
 struct SubscriberExpirationDetails {
  public:
-  /// The max internal is the minimum wait time for expiring subscriber data.
-  size_t max_interval{0};
-
-  /// The number of queries that should run between intervals.
-  size_t query_count{0};
+  std::map<size_t,std::vector<std::string> > query_interval_map;
 };
 
 /**
@@ -213,6 +209,15 @@ class Eventer {
   EventState state_{EventState::EVENT_NONE};
 
   friend class EventFactory;
+};
+
+struct EventPubStats {
+  size_t numEvents;
+  size_t numDrops;
+  size_t numWriteErrors;
+  size_t lastNumDrops;
+  size_t lastNumWriteErrors;
+  time_t lastTs;
 };
 
 class EventPublisherPlugin : public Plugin,
@@ -571,7 +576,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * loops.
    */
   EventSubscriberPlugin()
-      : expire_events_(true), expire_time_(0), optimize_time_(0) {}
+      : expire_events_(true), conveyor_void_(), columns_hasher_void_(), interval_cursor_map_(), stats_() {}
   ~EventSubscriberPlugin() override = default;
 
   /**
@@ -604,6 +609,8 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   explicit EventSubscriberPlugin(EventSubscriberPlugin const&) = delete;
   EventSubscriberPlugin& operator=(EventSubscriberPlugin const&) = delete;
 
+  void analyzeIntervals(const std::map<size_t,std::vector<std::string>> &qimap);
+
  protected:
   /**
    * @brief Backing storage indexing namespace.
@@ -632,6 +639,9 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   /// Remove all subscriptions from this subscriber.
   void removeSubscriptions();
 
+  /// conveyor_void_ and
+  void _initPrivateState();
+
  protected:
   /// A helper value counting the number of fired events tracked by publishers.
   EventContextID event_count_{0};
@@ -648,47 +658,22 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   /// Do not respond to periodic/scheduled/triggered event expiration requests.
   bool expire_events_{false};
 
-  /// Events before the expire_time_ are invalid and will be purged.
-  EventTime expire_time_{0};
-
-  /// Cached value of last generated EventID.
-  size_t last_eid_{0};
-
-  /**
-   * @brief Optimize subscriber selects by tracking the last select time.
-   *
-   * Event subscribers may optimize selects when used in a daemon schedule by
-   * requiring an event 'time' constraint and otherwise applying a minimum time
-   * as the last time the scheduled query ran.
-   */
-  EventTime optimize_time_{0};
-
-  /**
-   * @brief Last event ID returned while using events-optimization.
-   *
-   * A time with second precision is not sufficient, but it works for index
-   * retrieval. While sorting using the time optimization, discard events
-   * before or equal to the optimization ID.
-   */
-  size_t optimize_eid_{0};
-
   /// The minimum acceptable expiration, based on the query schedule.
   std::atomic<size_t> min_expiration_{0};
 
   /// The number of scheduled queries using this subscriber.
   std::atomic<size_t> query_count_{0};
 
-  /// Set of queries that have used this subscriber table.
-  std::set<std::string> queries_;
+  // file ring buffer persistence
+  std::shared_ptr<void> conveyor_void_;
 
-  /// Lock used when incrementing the EventID database index.
-  Mutex event_id_lock_;
+  // encoder calculates hash of columns used by row for decoder use
+  std::shared_ptr<void> columns_hasher_void_;
 
-  /// Lock used when recording an EventID and time into search bins.
-  Mutex event_record_lock_;
+  // maps interval to cache cursor
+  std::map<size_t,std::shared_ptr<void>> interval_cursor_map_;
 
-  /// Lock used when recording queries executing against this subscriber.
-  mutable Mutex event_query_record_;
+  EventPubStats stats_;
 
  private:
   friend class EventFactory;
@@ -736,6 +721,8 @@ class EventFactory : private boost::noncopyable {
    * EventFactory `getEventPublisher` accessor is encouraged.
    */
   static Status registerEventPublisher(const PluginRef& pub);
+
+  static void _setActiveSchedulerQuery(const ScheduledQuery* pquery);
 
   /**
    * @brief Add an EventSubscriber to the factory.

@@ -8,8 +8,6 @@ function(conveyorMain)
 
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-  message("conveyor library_root:${library_root}")
-
   add_library(thirdparty_conveyor
     # libconveyor
     "${library_root}/src/conveyor.cpp"

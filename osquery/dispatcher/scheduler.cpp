@@ -16,6 +16,7 @@
 #include <osquery/core.h>
 #include <osquery/data_logger.h>
 #include <osquery/database.h>
+#include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/numeric_monitoring.h>
 #include <osquery/process/process.h>
@@ -83,7 +84,9 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
                               pid);
     auto t0 = getUnixTime();
     Config::get().recordQueryStart(name);
+    EventFactory::_setActiveSchedulerQuery(&query);
     SQLInternal sql(query.query, true);
+    EventFactory::_setActiveSchedulerQuery(nullptr);
     // Snapshot the performance after, and compare.
     auto t1 = getUnixTime();
     auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
