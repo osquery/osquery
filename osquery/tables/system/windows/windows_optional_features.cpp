@@ -16,7 +16,6 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
 namespace osquery {
@@ -52,7 +51,7 @@ QueryData genWinOptionalFeatures(QueryContext& context) {
     if (wmiResults[i].GetUnsignedInt32("InstallState", state).ok() == false) {
       long i4;
       if (wmiResults[i].GetLong("InstallState", i4).ok()) {
-        state = (uint32_t)i4;
+        static_cast<uint32_t>(i4);
       }
     }
     r["state"] = INTEGER(state);
