@@ -40,7 +40,7 @@ QueryData genWinOptionalFeatures(QueryContext& context) {
 
   for (unsigned int i = 0; i < wmiResults.size(); ++i) {
     Row r;
-    uint32_t state = 99;
+    uint32_t state;
 
     wmiResults[i].GetString("Name", r["name"]);
     wmiResults[i].GetString("Caption", r["caption"]);
@@ -49,9 +49,9 @@ QueryData genWinOptionalFeatures(QueryContext& context) {
     // For whatever reason, I4 is accessed using GetLong().
 
     if (wmiResults[i].GetUnsignedInt32("InstallState", state).ok() == false) {
-      long i4;
-      if (wmiResults[i].GetLong("InstallState", i4).ok()) {
-        static_cast<uint32_t>(i4);
+      long state_long;
+      if (wmiResults[i].GetLong("InstallState", state_long).ok()) {
+        state = static_cast<uint32_t>(state_long);
       }
     }
     r["state"] = INTEGER(state);
