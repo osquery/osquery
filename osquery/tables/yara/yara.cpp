@@ -41,8 +41,8 @@ FLAG(bool,
 FLAG(uint32,
      yara_intrafile_sleep,
      50,
-     "Time in ms to sleep after scan of each file (default 50). Helps reduce "
-     "memory spikes.");
+     "Time in ms to sleep after scan of each file (default 50) to reduce "
+     "memory spikes");
 
 namespace tables {
 
