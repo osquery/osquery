@@ -38,6 +38,8 @@ struct NonblockingFile {
 
 typedef std::shared_ptr<NonblockingFile> SPNonblockingFile;
 
+#ifdef OSQUERY_POSIX
+
 /**
  * Implementation of non-blocking file access.
  */
@@ -108,6 +110,7 @@ class NonblockingFileImpl : public NonblockingFile {
   int fd_{-1};
   uint32_t selectTimeoutUsec_;
 };
+#endif // OSQUERY_POSIX
 
 class FgetsBuffer {
  public:
