@@ -6,9 +6,6 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -48,27 +45,6 @@ void doYARAScan(YR_RULES* rules,
   if (result == ERROR_SUCCESS) {
     results.push_back(std::move(r));
   }
-}
-
-static bool shouldSkipFile(const std::string& path) {
-  struct stat sb;
-  if (0 != stat(path.c_str(), &sb)) {
-    return true; // failed to stat
-  }
-
-  // avoid special files /dev/x , /proc/x, FIFO's named-pipes, etc.
-  if ((sb.st_mode & S_IFMT) != S_IFREG) {
-    return true;
-  }
-
-  // avoid reading osquery DB LOCK files
-  if (path.find("osquery") != std::string::npos) {
-    if (boost::algorithm::ends_with(path,"LOCK")) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 QueryData genYara(QueryContext& context) {
@@ -113,8 +89,14 @@ QueryData genYara(QueryContext& context) {
             resolveFilePattern(pattern, patterns, GLOB_FILES | GLOB_NO_CANON);
         if (status.ok()) {
           for (const auto& resolved : patterns) {
+            struct stat sb;
+            if (0 != stat(resolved.c_str(), &sb)) {
+              continue; // failed to stat
+            }
+
             // Check that each resolved path is readable.
-            if (isReadable(resolved) && !shouldSkipFile(resolved)) {
+            if (isReadable(resolved) &&
+                !yaraShouldSkipFile(resolved, sb.st_mode)) {
               paths.insert(resolved);
             }
           }

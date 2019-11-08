@@ -17,6 +17,25 @@
 namespace osquery {
 
 /**
+ * Avoid scanning files that could cause hangs or issues.
+ */
+bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
+  // avoid special files /dev/x , /proc/x, FIFO's named-pipes, etc.
+  if ((st_mode & S_IFMT) != S_IFREG) {
+    return true;
+  }
+
+  // avoid reading osquery DB LOCK files
+  if (path.find("osquery") != std::string::npos) {
+    if (boost::algorithm::ends_with(path, "LOCK")) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * The callback used when there are compilation problems in the rules.
  */
 void YARACompilerCallback(int error_level,
@@ -310,4 +329,4 @@ Status YARAConfigParserPlugin::update(const std::string& source,
 
 /// Call the simple YARA ConfigParserPlugin "yara".
 REGISTER(YARAConfigParserPlugin, "config_parser", "yara");
-}
+} // namespace osquery
