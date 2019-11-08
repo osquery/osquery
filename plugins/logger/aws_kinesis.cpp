@@ -19,6 +19,7 @@
 #include <aws/kinesis/model/PutRecordsResult.h>
 
 #include <boost/algorithm/string/join.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
