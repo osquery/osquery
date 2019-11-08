@@ -37,5 +37,5 @@ TEST_F(WinOptFeaturesTablesTest, get_state_name) {
   EXPECT_EQ("Disabled", getDismPackageFeatureStateName(2));
   EXPECT_EQ("Absent", getDismPackageFeatureStateName(3));
 }
-}
-}
+} // namespace tables
+} // namespace osquery
