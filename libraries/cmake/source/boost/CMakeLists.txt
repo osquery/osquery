@@ -24,6 +24,7 @@ function(boostMain)
   generateBoostException()
   generateBoostSerialization()
   generateBoostRandom()
+  generateBoostWinapi()
 
   add_library(thirdparty_boost INTERFACE)
 
@@ -161,6 +162,7 @@ function(generateBoostRandom)
     thirdparty_boost_core
     thirdparty_boost_system
     thirdparty_boost_throwexception
+    thirdparty_boost_winapi
   )
 
   target_link_libraries(thirdparty_boost_random PRIVATE
@@ -249,7 +251,6 @@ function(importBoostInterfaceLibraries)
     "tuple:config"
     "process:config"
     "circular_buffer:config"
-    "winapi:config"
     "iostreams:config"
   )
 
@@ -267,6 +268,30 @@ function(importBoostInterfaceLibraries)
 
     importBoostInterfaceLibrary("${library_name}" ${library_dependency_list})
   endforeach()
+endfunction()
+
+function(generateBoostWinapi)
+  add_library(thirdparty_boost_winapi INTERFACE)
+
+  if(NOT DEFINED PLATFORM_WINDOWS)
+    return()
+  endif()
+
+  set(library_root "${BOOST_ROOT}/libs/winapi")
+
+  target_include_directories(thirdparty_boost_winapi SYSTEM INTERFACE
+    "${library_root}/include"
+  )
+
+  target_compile_definitions(thirdparty_boost_winapi INTERFACE
+    BOOST_USE_WINDOWS_H
+    NOMINMAX
+  )
+
+  target_link_libraries(thirdparty_boost_winapi INTERFACE
+    thirdparty_boost_config
+    thirdparty_boost_predef
+  )
 endfunction()
 
 function(generateBoostLocale)
@@ -390,6 +415,7 @@ function(generateBoostChrono)
     thirdparty_boost_system
     thirdparty_boost_throwexception
     thirdparty_boost_utility
+    thirdparty_boost_winapi
   )
 
   target_link_libraries(thirdparty_boost_chrono PRIVATE
@@ -620,14 +646,38 @@ endfunction()
 function(generateBoostContext)
   set(library_root "${BOOST_ROOT}/libs/context")
 
-  set(asm_source_file_list
-    "${library_root}/src/asm/jump_x86_64_sysv_elf_gas.S"
-    "${library_root}/src/asm/make_x86_64_sysv_elf_gas.S"
-    "${library_root}/src/asm/ontop_x86_64_sysv_elf_gas.S"
-  )
+  if(DEFINED PLATFORM_LINUX)
+    set(asm_source_file_list
+      "${library_root}/src/asm/jump_x86_64_sysv_elf_gas.S"
+      "${library_root}/src/asm/make_x86_64_sysv_elf_gas.S"
+      "${library_root}/src/asm/ontop_x86_64_sysv_elf_gas.S"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    set(asm_source_file_list
+      "${library_root}/src/asm/jump_x86_64_sysv_macho_gas.S"
+      "${library_root}/src/asm/make_x86_64_sysv_macho_gas.S"
+      "${library_root}/src/asm/ontop_x86_64_sysv_macho_gas.S"
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(asm_source_file_list
+      "${library_root}/src/asm/jump_x86_64_ms_pe_masm.asm"
+      "${library_root}/src/asm/make_x86_64_ms_pe_masm.asm"
+      "${library_root}/src/asm/ontop_x86_64_ms_pe_masm.asm"
+    )
+  endif()
 
   foreach(asm_source_file ${asm_source_file_list})
-    set_property(SOURCE "${asm_source_file}" PROPERTY LANGUAGE C)
+    if(DEFINED PLATFORM_POSIX)
+      set_property(SOURCE "${asm_source_file}" PROPERTY LANGUAGE C)
+    endif()
+
+    if(DEFINED PLATFORM_MACOS)
+      set_property(SOURCE "${asm_source_file}" PROPERTY COMPILE_FLAGS "-x assembler-with-cpp")
+    endif()
+
+    if(DEFINED PLATFORM_WINDOWS)
+      set_property(SOURCE "${asm_source_file}" PROPERTY COMPILE_FLAGS "/Cp /Cx /Zp4")
+    endif()
   endforeach()
 
   add_library(thirdparty_boost_context STATIC
@@ -641,9 +691,16 @@ function(generateBoostContext)
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
+    enable_language(ASM_MASM)
+
     target_sources(thirdparty_boost_context PRIVATE
       "${library_root}/src/windows/stack_traits.cpp"
     )
+
+    target_compile_definitions(thirdparty_boost_context PRIVATE
+      BOOST_CONTEXT_EXPORT=
+    )
+
   endif()
 
   target_include_directories(thirdparty_boost_context SYSTEM PUBLIC
@@ -728,6 +785,7 @@ function(generateBoostFilesystem)
     thirdparty_boost_io
     thirdparty_boost_containerhash
     thirdparty_boost_smartptr
+    thirdparty_boost_winapi
   )
 
   target_link_libraries(thirdparty_boost_filesystem PRIVATE
@@ -822,6 +880,10 @@ function(generateBoostThread)
       "${library_root}/src/win32/tss_dll.cpp"
       "${library_root}/src/win32/tss_pe.cpp"
     )
+
+    target_compile_definitions(thirdparty_boost_thread PRIVATE
+      BOOST_THREAD_BUILD_LIB
+    )
   endif()
 
   target_include_directories(thirdparty_boost_thread SYSTEM PUBLIC
@@ -845,6 +907,7 @@ function(generateBoostThread)
     thirdparty_boost_function
     thirdparty_boost_typeindex
     thirdparty_boost_algorithm
+    thirdparty_boost_winapi
   )
 
   target_link_libraries(thirdparty_boost_thread PRIVATE
