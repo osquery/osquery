@@ -29,8 +29,8 @@ QueryData genAzureTags(QueryContext& context) {
     return results;
   }
 
-  auto tags_str = tree_get(doc, "tags");
-  auto vm_id = tree_get(doc, "vmId");
+  auto tags_str = getAzureKey(doc, "tags");
+  auto vm_id = getAzureKey(doc, "vmId");
   std::vector<std::string> tags;
 
   boost::split(tags, tags_str, boost::is_any_of(";"));

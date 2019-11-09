@@ -59,7 +59,7 @@ static bool isAzureInstance() {
   return is_azure_instance;
 }
 
-std::string tree_get(JSON& doc, const std::string key) {
+std::string getAzureKey(JSON& doc, const std::string& key) {
   if (!doc.doc().HasMember(key)) {
     return {};
   }
@@ -92,11 +92,6 @@ Status fetchAzureMetadata(JSON& doc) {
         1, "Couldn't request " + kAzureMetadataEndpoint + ": " + e.what());
   }
 
-  // Azure's metadata service is known to be spotty.
-  if (response.result_int() == 404) {
-    return Status(1, "Azure metadata service 404'd");
-  }
-
   // Non-200s can indicate a variety of conditions, so report them.
   if (response.result_int() != 200) {
     return Status(1,
@@ -104,7 +99,16 @@ Status fetchAzureMetadata(JSON& doc) {
                       std::to_string(response.result_int()));
   }
 
-  return doc.fromString(response.body());
+  auto s = doc.fromString(response.body());
+  if (!s.ok()) {
+    return s;
+  }
+
+  if (!doc.doc().isObject()) {
+    return Status(1, "Azure metadata service response isn't a JSON object");
+  }
+
+  return s;
 }
 
 } // namespace osquery

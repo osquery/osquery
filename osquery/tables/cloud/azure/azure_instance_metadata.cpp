@@ -26,24 +26,25 @@ QueryData genAzureMetadata(QueryContext& context) {
 
   if (!s.ok()) {
     TLOG << "Couldn't fetch metadata: " << s.what();
+    return results;
   }
 
-  r["vm_id"] = tree_get(doc, "vmId");
-  r["location"] = tree_get(doc, "location");
-  r["name"] = tree_get(doc, "name");
-  r["offer"] = tree_get(doc, "offer");
-  r["publisher"] = tree_get(doc, "publisher");
-  r["sku"] = tree_get(doc, "sku");
-  r["version"] = tree_get(doc, "version");
-  r["os_type"] = tree_get(doc, "osType");
-  r["platform_update_domain"] = tree_get(doc, "platformUpdateDomain");
-  r["platform_fault_domain"] = tree_get(doc, "platformFaultDomain");
-  r["vm_size"] = tree_get(doc, "vmSize");
-  r["subscription_id"] = tree_get(doc, "subscriptionId");
-  r["resource_group_name"] = tree_get(doc, "resourceGroupName");
-  r["placement_group_id"] = tree_get(doc, "placementGroupId");
-  r["vm_scale_set_name"] = tree_get(doc, "vmScaleSetName");
-  r["zone"] = tree_get(doc, "zone");
+  r["vm_id"] = getAzureKey(doc, "vmId");
+  r["location"] = getAzureKey(doc, "location");
+  r["name"] = getAzureKey(doc, "name");
+  r["offer"] = getAzureKey(doc, "offer");
+  r["publisher"] = getAzureKey(doc, "publisher");
+  r["sku"] = getAzureKey(doc, "sku");
+  r["version"] = getAzureKey(doc, "version");
+  r["os_type"] = getAzureKey(doc, "osType");
+  r["platform_update_domain"] = getAzureKey(doc, "platformUpdateDomain");
+  r["platform_fault_domain"] = getAzureKey(doc, "platformFaultDomain");
+  r["vm_size"] = getAzureKey(doc, "vmSize");
+  r["subscription_id"] = getAzureKey(doc, "subscriptionId");
+  r["resource_group_name"] = getAzureKey(doc, "resourceGroupName");
+  r["placement_group_id"] = getAzureKey(doc, "placementGroupId");
+  r["vm_scale_set_name"] = getAzureKey(doc, "vmScaleSetName");
+  r["zone"] = getAzureKey(doc, "zone");
 
   results.push_back(r);
 

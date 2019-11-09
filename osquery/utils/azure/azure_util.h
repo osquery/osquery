@@ -15,7 +15,7 @@
 
 namespace osquery {
 
-std::string tree_get(JSON& doc, const std::string key);
+std::string getAzureKey(JSON& doc, const std::string& key);
 
 Status fetchAzureMetadata(JSON& doc);
 
