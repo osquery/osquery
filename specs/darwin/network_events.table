@@ -1,0 +1,7 @@
+table_name("network_events")
+description("Track network events from the audit framework.")
+schema([
+    Column("message", TEXT, "Message from the event!")
+])
+attributes(event_subscriber=True)
+implementation("network_events@genTable")
