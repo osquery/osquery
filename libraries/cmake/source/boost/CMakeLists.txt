@@ -620,15 +620,23 @@ endfunction()
 function(generateBoostContext)
   set(library_root "${BOOST_ROOT}/libs/context")
 
-  set(asm_source_file_list
-    "${library_root}/src/asm/jump_x86_64_sysv_elf_gas.S"
-    "${library_root}/src/asm/make_x86_64_sysv_elf_gas.S"
-    "${library_root}/src/asm/ontop_x86_64_sysv_elf_gas.S"
-  )
+  if(DEFINED PLATFORM_LINUX)
+    set(asm_source_file_list
+      "${library_root}/src/asm/jump_x86_64_sysv_elf_gas.S"
+      "${library_root}/src/asm/make_x86_64_sysv_elf_gas.S"
+      "${library_root}/src/asm/ontop_x86_64_sysv_elf_gas.S"
+    )
 
-  foreach(asm_source_file ${asm_source_file_list})
-    set_property(SOURCE "${asm_source_file}" PROPERTY LANGUAGE C)
-  endforeach()
+    foreach(asm_source_file ${asm_source_file_list})
+      set_property(SOURCE "${asm_source_file}" PROPERTY LANGUAGE C)
+    endforeach()
+  elseif(DEFINED PLATFORM_MACOS)
+    set(asm_source_file_list
+      "${library_root}/src/asm/jump_x86_64_sysv_macho_gas.S"
+      "${library_root}/src/asm/make_x86_64_sysv_macho_gas.S"
+      "${library_root}/src/asm/ontop_x86_64_sysv_macho_gas.S"
+    )
+  endif()
 
   add_library(thirdparty_boost_context STATIC
     "${library_root}/src/execution_context.cpp"
