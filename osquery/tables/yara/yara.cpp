@@ -39,7 +39,7 @@ FLAG(bool,
      "Call malloc_trim() after YARA scans (linux)");
 #endif
 FLAG(uint32,
-     yara_intrafile_sleep,
+     yara_delay,
      50,
      "Time in ms to sleep after scan of each file (default 50) to reduce "
      "memory spikes");
@@ -155,7 +155,7 @@ QueryData genYara(QueryContext& context) {
 
         // sleep between each file to help smooth out malloc spikes
         std::this_thread::sleep_for(
-            std::chrono::milliseconds(FLAGS_yara_intrafile_sleep));
+            std::chrono::milliseconds(FLAGS_yara_delay));
       }
     }
   }
