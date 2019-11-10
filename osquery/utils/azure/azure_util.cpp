@@ -104,7 +104,7 @@ Status fetchAzureMetadata(JSON& doc) {
     return s;
   }
 
-  if (!doc.doc().isObject()) {
+  if (!doc.doc().IsObject()) {
     return Status(1, "Azure metadata service response isn't a JSON object");
   }
 
