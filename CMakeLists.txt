@@ -109,7 +109,7 @@ function(importLibraries)
     "Linux,Darwin:libxml2"
     "Linux,Darwin,Windows:linenoise-ng"
     "Linux,Darwin:lldpd"
-    "Linux:lzma"
+    "Linux,Darwin:lzma"
     "Linux,Darwin:popt"
     "Linux,Darwin,Windows:rapidjson"
     "Linux,Darwin,Windows:rocksdb"
