@@ -252,6 +252,8 @@ function(importBoostInterfaceLibraries)
     "process:config"
     "circular_buffer:config"
     "iostreams:config"
+    "scope_exit:typeof,config"
+    "typeof:config"
   )
 
   add_library(thirdparty_boost_config INTERFACE)
