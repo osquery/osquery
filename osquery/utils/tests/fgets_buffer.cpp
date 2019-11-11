@@ -102,13 +102,17 @@ TEST_F(fgetsTest, test_max) {
 TEST_F(fgetsTest, multi_read) {
   std::string line;
   auto spFile = std::make_unique<FakeFile>();
+  spFile->buf_ = "Once ";
+
+  // for test purposes, violate unique with direct access
+  auto pFile = spFile.get();
+
   FgetsBuffer fb(std::move(spFile), 64 /* max line length */);
 
-  spFile->buf_ = "Once ";
   auto status = fb.fgets(line);
   ASSERT_TRUE(status);
 
-  spFile->buf_ = "upon ";
+  pFile->buf_ = "upon ";
   status = fb.fgets(line);
   ASSERT_TRUE(status);
 
@@ -116,11 +120,11 @@ TEST_F(fgetsTest, multi_read) {
   status = fb.fgets(line);
   ASSERT_TRUE(status);
 
-  spFile->buf_ = "a time ";
+  pFile->buf_ = "a time ";
   status = fb.fgets(line);
   ASSERT_TRUE(status);
 
-  spFile->buf_ = "it ended.\n";
+  pFile->buf_ = "it ended.\n";
   status = fb.fgets(line);
   ASSERT_FALSE(status);
   ASSERT_EQ("Once upon a time it ended.", line);
