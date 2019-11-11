@@ -99,7 +99,8 @@ Status SyslogEventPublisher::setUp() {
   VLOG(1) << "Successfully opened pipe for syslog ingestion: "
           << FLAGS_syslog_pipe_path;
 
-  spReader_ = std::make_shared<FgetsBuffer>(std::move(spPipe), MAX_LINE_LEN, false);
+  spReader_ =
+      std::make_shared<FgetsBuffer>(std::move(spPipe), MAX_LINE_LEN, false);
 
   return Status::success();
 }

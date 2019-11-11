@@ -70,7 +70,8 @@ TEST_F(fgetsTest, basic) {
 TEST_F(fgetsTest, basic_with_newline) {
   auto spFile = std::make_unique<FakeFile>();
   spFile->buf_ = TEST1;
-  FgetsBuffer fb(std::move(spFile), 16 /* max line length */, true /* include newline */);
+  FgetsBuffer fb(
+      std::move(spFile), 16 /* max line length */, true /* include newline */);
   std::string line;
 
   // "one\ntwo\nthree\n"
