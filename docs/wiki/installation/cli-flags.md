@@ -175,6 +175,10 @@ Extensions are loaded as processes. They are expected to start a thrift service 
 
 Optional comma-delimited set of extension names to require before **osqueryi** or **osqueryd** will start. The tool will fail if the extension has not started according to the interval and timeout.
 
+`--extensions_default_index=true`
+
+Enable INDEX (and thereby constraints) on all extension table columns.  Provides backwards compatiblity for extensions (or SDKs) that don't correctly define indexes in column options. See issue 6006 for more details.
+
 ### Remote settings flags (optional)
 
 When using non-default [remote](../deployment/remote.md) plugins such as the **tls** config, logger and distributed plugins, there are process-wide settings applied to every plugin.

@@ -31,9 +31,7 @@ FLAG(uint64,
 FLAG(bool,
      extensions_default_index,
      true,
-     "Enable INDEX (and thereby constraints) on all extension table columns. "
-     "Provides backwards compatiblity for extensions (or SDKs) that don't "
-     "correctly define indexes in column options. (default true)");
+     "Enable INDEX on all extension table columns (default true)");
 
 SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
@@ -586,6 +584,7 @@ int xCreate(sqlite3* db,
 
   // Tables may request aliases as views.
   std::set<std::string> views;
+  bool extensionSetsOptionColumn = false;
 
   // Keep a local copy of the column details in the VirtualTableContent struct.
   // This allows introspection into the column type without additional calls.
@@ -611,9 +610,12 @@ int xCreate(sqlite3* db,
         }
       }
 
-      if (is_extension && FLAGS_extensions_default_index &&
-          ColumnOptions::DEFAULT == options) {
-        options = ColumnOptions::INDEX;
+      if (is_extension && FLAGS_extensions_default_index) {
+        if (ColumnOptions::DEFAULT == options) {
+          options = ColumnOptions::INDEX;
+        } else {
+          extensionSetsOptionColumn = true;
+        }
       }
 
       pVtab->content->columns.push_back(std::make_tuple(
@@ -656,6 +658,13 @@ int xCreate(sqlite3* db,
         }
       }
     }
+  }
+
+  if (is_extension && FLAGS_extensions_default_index &&
+      !extensionSetsOptionColumn) {
+    LOG(INFO) << "Deprecation warning: extension table " << name
+              << " does not set any column options and will not receive any "
+                 "INDEX constraints when --extensions_default_index=false";
   }
 
   // Create the requested 'aliases'.
