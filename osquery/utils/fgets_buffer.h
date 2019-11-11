@@ -29,14 +29,14 @@ struct NonblockingFile {
 
   virtual bool isDataAvail() = 0;
 
-  virtual int64_t nbRead(std::vector<char>& buf) = 0;
+  virtual int64_t read(std::vector<char>& buf) = 0;
 
   virtual void close() = 0;
 
   virtual ~NonblockingFile() {}
 };
 
-typedef std::shared_ptr<NonblockingFile> SPNonblockingFile;
+typedef std::unique_ptr<NonblockingFile> SPNonblockingFile;
 
 #ifdef OSQUERY_POSIX
 
@@ -84,7 +84,7 @@ class NonblockingFileImpl : public NonblockingFile {
    * Reads data from file, appending to buf upto capacity.
    * @return number of bytes read, -1 on error, 0 on none.
    */
-  int64_t nbRead(std::vector<char>& buf) override {
+  int64_t read(std::vector<char>& buf) override {
     char tmpbuf[4096];
     size_t remaining = buf.capacity() - buf.size();
     auto len = (remaining > sizeof(tmpbuf) ? sizeof(tmpbuf) : remaining);
@@ -121,7 +121,7 @@ class FgetsBuffer {
   FgetsBuffer(SPNonblockingFile spFile,
               size_t maxLineLen = 16384,
               bool includeNewline = false)
-      : spFile_(spFile),
+      : spFile_(std::move(spFile)),
         buf_(),
         maxLineLen_(maxLineLen),
         includeNewline_(includeNewline) {
@@ -152,7 +152,7 @@ class FgetsBuffer {
     if (spFile_->isDataAvail()) {
       // read more
 
-      int64_t bytesRead = spFile_->nbRead(buf_);
+      int64_t bytesRead = spFile_->read(buf_);
       if (bytesRead > 0) {
         // try again to see if entire line is available
 

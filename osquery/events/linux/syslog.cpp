@@ -91,7 +91,7 @@ Status SyslogEventPublisher::setUp() {
 
   // The reader buffers bytes read from nonblocking file
 
-  auto spPipe = std::make_shared<NonblockingFileImpl>(FLAGS_syslog_pipe_path);
+  auto spPipe = std::make_unique<NonblockingFileImpl>(FLAGS_syslog_pipe_path);
   if (!spPipe->isValid()) {
     return Status(1,
                   "Error opening pipe for reading: " + FLAGS_syslog_pipe_path);
@@ -99,7 +99,7 @@ Status SyslogEventPublisher::setUp() {
   VLOG(1) << "Successfully opened pipe for syslog ingestion: "
           << FLAGS_syslog_pipe_path;
 
-  spReader_ = std::make_shared<FgetsBuffer>(spPipe, MAX_LINE_LEN, false);
+  spReader_ = std::make_shared<FgetsBuffer>(std::move(spPipe), MAX_LINE_LEN, false);
 
   return Status::success();
 }

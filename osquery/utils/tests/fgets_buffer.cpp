@@ -30,7 +30,7 @@ struct FakeFile : public NonblockingFile {
     return !buf_.empty();
   };
 
-  int64_t nbRead(std::vector<char>& dest) override {
+  int64_t read(std::vector<char>& dest) override {
     size_t remaining = dest.capacity() - dest.size();
     size_t len = (buf_.size() > remaining ? remaining : buf_.size());
     auto p = dest.data() + dest.size();
@@ -47,9 +47,9 @@ struct FakeFile : public NonblockingFile {
 };
 
 TEST_F(fgetsTest, basic) {
-  auto spFile = std::make_shared<FakeFile>();
+  auto spFile = std::make_unique<FakeFile>();
   spFile->buf_ = TEST1;
-  FgetsBuffer fb(spFile, 16 /* max line length */);
+  FgetsBuffer fb(std::move(spFile), 16 /* max line length */);
   std::string line;
 
   // "one\ntwo\nthree\n"
@@ -68,9 +68,9 @@ TEST_F(fgetsTest, basic) {
 }
 
 TEST_F(fgetsTest, basic_with_newline) {
-  auto spFile = std::make_shared<FakeFile>();
+  auto spFile = std::make_unique<FakeFile>();
   spFile->buf_ = TEST1;
-  FgetsBuffer fb(spFile, 16 /* max line length */, true /* include newline */);
+  FgetsBuffer fb(std::move(spFile), 16 /* max line length */, true /* include newline */);
   std::string line;
 
   // "one\ntwo\nthree\n"
@@ -89,9 +89,9 @@ TEST_F(fgetsTest, basic_with_newline) {
 }
 
 TEST_F(fgetsTest, test_max) {
-  auto spFile = std::make_shared<FakeFile>();
+  auto spFile = std::make_unique<FakeFile>();
   spFile->buf_ = TEST2 + "\n";
-  FgetsBuffer fb(spFile, TEST2.size() /* max line length */);
+  FgetsBuffer fb(std::move(spFile), TEST2.size() /* max line length */);
   std::string line;
   auto status = fb.fgets(line);
   ASSERT_TRUE(status);
@@ -100,8 +100,8 @@ TEST_F(fgetsTest, test_max) {
 
 TEST_F(fgetsTest, multi_read) {
   std::string line;
-  auto spFile = std::make_shared<FakeFile>();
-  FgetsBuffer fb(spFile, 64 /* max line length */);
+  auto spFile = std::make_unique<FakeFile>();
+  FgetsBuffer fb(std::move(spFile), 64 /* max line length */);
 
   spFile->buf_ = "Once ";
   auto status = fb.fgets(line);
