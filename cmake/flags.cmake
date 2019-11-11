@@ -248,6 +248,7 @@ function(setupBuildFlags)
     set(osquery_windows_common_defines
       WIN32=1
       WINDOWS=1
+      WIN32_LEAN_AND_MEAN
       OSQUERY_WINDOWS=1
       OSQUERY_BUILD_PLATFORM=windows
       OSQUERY_BUILD_DISTRO=10
