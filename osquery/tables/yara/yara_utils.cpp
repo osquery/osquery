@@ -16,9 +16,6 @@
 
 namespace osquery {
 
-/**
- * Avoid scanning files that could cause hangs or issues.
- */
 bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
   // avoid special files /dev/x , /proc/x, FIFO's named-pipes, etc.
   if ((st_mode & S_IFMT) != S_IFREG) {

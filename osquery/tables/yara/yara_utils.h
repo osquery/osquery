@@ -39,6 +39,9 @@ Status handleRuleFiles(const std::string& category,
                        const pt::ptree& rule_files,
                        std::map<std::string, YR_RULES*>& rules);
 
+/**
+ * Avoid scanning files that could cause hangs or issues.
+ */
 bool yaraShouldSkipFile(const std::string& path, mode_t st_mode);
 
 int YARACallback(int message, void* message_data, void* user_data);
