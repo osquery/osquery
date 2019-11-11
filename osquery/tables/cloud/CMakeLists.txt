@@ -22,6 +22,8 @@ function(generateOsqueryTablesCloud)
     osquery_logger
     osquery_utils_aws
     thirdparty_boost
+    thirdparty_aws_core
+    thirdparty_aws_ec2
   )
 endfunction()
 
