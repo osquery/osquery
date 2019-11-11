@@ -101,6 +101,8 @@ struct EventSubscriberPlugin::PrivateData final {
   std::map<size_t,std::shared_ptr<IntervalCursorState>> interval_cursor_map;
 };
 
+// This is declared here, rather than as 'default' in header
+// due to the use of unique_ptr of incomplete type (PrivateData)
 EventSubscriberPlugin::~EventSubscriberPlugin() {
 }
 
