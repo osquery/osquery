@@ -476,7 +476,7 @@ TEST_F(EventsTests, test_event_subscriber_configure) {
 
   // This will become 19 * 3, rounded up 60.
   EXPECT_EQ(sub->min_expiration_, 60U);
-  EXPECT_EQ(sub->query_count_, 3U);
+  EXPECT_EQ(sub->numQueries(), 3U);
 
   // Register it within the event factory too.
   EventFactory::deregisterEventSubscriber(sub->getName());

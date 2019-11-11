@@ -31,28 +31,6 @@ osquery_cxx_test(
 )
 
 osquery_cxx_test(
-    name = "events_database_tests",
-    srcs = [
-        "events_database_tests.cpp",
-    ],
-    visibility = ["PUBLIC"],
-    deps = [
-        osquery_target("osquery/config/tests:test_utils"),
-        osquery_target("osquery/core:core"),
-        osquery_target("osquery/core/sql:core_sql"),
-        osquery_target("osquery/database:database"),
-        osquery_target("osquery/events:events"),
-        osquery_target("osquery/filesystem:osquery_filesystem"),
-        osquery_target("osquery/remote/tests:remote_test_utils"),
-        osquery_target("osquery/tables/system:system_table"),
-        osquery_target("osquery/utils:utils"),
-        osquery_target("osquery/utils/conversions:conversions"),
-        osquery_target("plugins/database:ephemeral"),
-        osquery_target("specs:tables"),
-    ],
-)
-
-osquery_cxx_test(
     name = "syslog_tests",
     platform_srcs = [
         (

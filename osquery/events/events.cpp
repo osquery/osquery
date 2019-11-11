@@ -48,6 +48,8 @@ FLAG(bool,
 
 HIDDEN_FLAG(bool, events_debug, false, "");
 
+FLAG(bool, events_clear_on_start, true, "On startup, clear cached events and start fresh.");
+
 #define DBGLOG                                                                 \
   if (FLAGS_events_debug)                                                      \
   LOG(INFO)
@@ -86,6 +88,26 @@ static inline EventTime timeFromRecord(const std::string& record) {
 static const ScheduledQuery* gActiveQuery = nullptr;
 void EventFactory::_setActiveSchedulerQuery(const ScheduledQuery* pquery) { gActiveQuery = pquery; }
 
+// PrivateData contains implementation specific details that
+// would clutter the header file
+struct EventSubscriberPlugin::PrivateData final {
+  // file ring buffer persistence
+  std::shared_ptr<Conveyor> conveyor;
+
+  // encoder calculates hash of columns used by row for decoder use
+  std::shared_ptr<StringHash> columns_hasher;
+
+  // maps interval to cache cursor
+  std::map<size_t,std::shared_ptr<IntervalCursorState>> interval_cursor_map;
+};
+
+EventSubscriberPlugin::~EventSubscriberPlugin() {
+}
+
+EventSubscriberPlugin::EventSubscriberPlugin()
+      : expire_events_(true), d_(new PrivateData), stats_() {}
+
+
 void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
   // Stop is an unsigned (-1), our end of time equivalent.
   EventTime start = 0, stop = 0;
@@ -109,7 +131,7 @@ void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
   } else if (Initializer::isDaemon()) {
     // If the daemon is querying a subscriber without a 'time' constraint and
     // allows optimization, only emit events since the last query.
-    // conveyor_ takes care of the details based on query_count_ and get_calls_
+    // conveyor takes care of the details based on query_count_ and get_calls_
   }
   get(yield, start, stop);
 }
@@ -130,7 +152,7 @@ void EventSubscriberPlugin::_initPrivateState() {
     // only use expiry as a fallback (60 minutes)
     expiry = 3600;
   }
-  if (conveyor_void_ == nullptr) {
+  if (d_->conveyor == nullptr) {
     auto path = boost::filesystem::path(FLAGS_database_path) / "events";
     path.make_preferred(); // for windows path seperators
     createDirectory(path);
@@ -140,15 +162,16 @@ void EventSubscriberPlugin::_initPrivateState() {
                                        (uint32_t)FLAGS_events_max,
                                        (uint32_t)(expiry),
                                        16 * 1024 * 1024 /* max record size*/};
-    conveyor_void_ = ConveyorNew(settings);
-    columns_hasher_void_ = std::make_shared<StringHash>();
-    interval_cursor_map_ = std::map<size_t, std::shared_ptr<void>>();
+    d_->conveyor = ConveyorNew(settings);
+    d_->columns_hasher = std::make_shared<StringHash>();
+    d_->interval_cursor_map = std::map<size_t, std::shared_ptr<IntervalCursorState>>();
 
-    if (conveyor_void_ != nullptr) {
-      auto conveyor_ = std::static_pointer_cast<Conveyor>(conveyor_void_);
-      conveyor_->deleteAndStartFresh();
-      // TODO: clear or load stored events?
-      // conveyor_->loadPersistedState();
+    if (d_->conveyor != nullptr) {
+      if (FLAGS_events_clear_on_start) {
+        d_->conveyor->deleteAndStartFresh();
+      } else {
+        d_->conveyor->loadPersistedState();
+      }
     }
   }
 }
@@ -249,13 +272,13 @@ struct MyConveyorListener : public ConveyorListener {
   std::string namespace_;
 };
 
-static void trackDropStats(size_t numRecords, int status, EventPubStats& stats);
-static bool shouldLogDropStats(EventPubStats& stats);
+static void trackDropStats(size_t numRecords, int status, EventTableStats& stats);
+static bool shouldLogDropStats(EventTableStats& stats);
 
 void EventSubscriberPlugin::get(RowYield& yield,
                                 EventTime start,
                                 EventTime stop) {
-  if (conveyor_void_ == nullptr) {
+  if (d_->conveyor == nullptr) {
     LOG(WARNING) << "event subscriber private state not set";
     return;
   }
@@ -268,7 +291,6 @@ void EventSubscriberPlugin::get(RowYield& yield,
 
   bool cleanupRecords = true;
   bool isTrackedIntervalQuery = false;
-  auto conveyor_ = std::static_pointer_cast<Conveyor>(conveyor_void_);
   SPFileCursor cursor;
 
   if (!Initializer::isDaemon()) {
@@ -277,19 +299,19 @@ void EventSubscriberPlugin::get(RowYield& yield,
     // provide timestamps constraint.  Additionally, cleanup will happen for
     // expired records as they are seen.
     cleanupRecords = false;
-    cursor = conveyor_->openCursor();
+    cursor = d_->conveyor->openCursor();
   } else {
     // Advance cursor after all queries on main_interval_ have been run once.
 
     auto pQuery = gActiveQuery;
 
-    auto fit = interval_cursor_map_.find(pQuery->interval);
-    if (fit == interval_cursor_map_.end()) {
+    auto fit = d_->interval_cursor_map.find(pQuery->interval);
+    if (fit == d_->interval_cursor_map.end()) {
       // not a scheduled query
-      cursor = conveyor_->openCursor();
+      cursor = d_->conveyor->openCursor();
     } else {
       isTrackedIntervalQuery = true;
-      auto spState = std::static_pointer_cast<IntervalCursorState>(fit->second);
+      auto spState = fit->second;
       cleanupRecords = ((spState->num_get_calls % spState->num_queries) ==
                         (spState->num_queries - 1));
       spState->num_get_calls++;
@@ -299,35 +321,42 @@ void EventSubscriberPlugin::get(RowYield& yield,
   }
 
   MyConveyorListener myListener(yield, start, stop, dbNamespace());
-  conveyor_->enumerateRecords(myListener, nullptr, cursor, std::time(NULL));
+  d_->conveyor->enumerateRecords(myListener, nullptr, cursor, std::time(NULL));
   if (cleanupRecords) {
-    conveyor_->advanceCursor(cursor);
-    conveyor_->persistState();
+    d_->conveyor->advanceCursor(cursor);
+    d_->conveyor->persistState();
     DBGLOG << dbNamespace()
            << " cursor advanced start.id:" << cursor->getStart().id
            << " end.id:" << cursor->getEnd().id;
   }
 }
 
-Status EventSubscriberPlugin::add(const Row& row) {
-  auto conveyor_ = std::static_pointer_cast<Conveyor>(conveyor_void_);
-  auto columns_hasher_ =
-      std::static_pointer_cast<StringHash>(columns_hasher_void_);
+/**
+ * Count and return number of queries
+ */
+size_t EventSubscriberPlugin::numQueries() {
+  size_t num = 0;
+  for(auto it : d_->interval_cursor_map) {
+    num += it.second->num_queries;
+  }
+  return num;
+}
 
+Status EventSubscriberPlugin::add(const Row& row) {
   DBGLOG << dbNamespace() << " .add() s:" << debug_serialize_row(row);
 
   event_count_++;
 
   std::string serialized_row;
-  if (StringMapCoder::encode(row, serialized_row, *columns_hasher_)) {
+  if (StringMapCoder::encode(row, serialized_row, *d_->columns_hasher)) {
     Status status = Status(1, "failed to encode event cache row");
     VLOG(1) << status.getMessage();
     return status;
   }
 
   int rv = 0;
-  if (nullptr != conveyor_) {
-    rv = conveyor_->addRecord(serialized_row, std::time(NULL));
+  if (nullptr != d_->conveyor) {
+    rv = d_->conveyor->addRecord(serialized_row, std::time(NULL));
     trackDropStats(1, rv, stats_);
   }
   return Status(rv);
@@ -347,10 +376,7 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
   auto event_time = custom_event_time != 0 ? custom_event_time : getUnixTime();
   auto event_time_str = std::to_string(event_time);
 
-  auto conveyor_ = std::static_pointer_cast<Conveyor>(conveyor_void_);
-  auto columns_hasher_ =
-      std::static_pointer_cast<StringHash>(columns_hasher_void_);
-  if (conveyor_ == nullptr) {
+  if (d_->conveyor == nullptr) {
     return Status(0);
   }
 
@@ -363,7 +389,7 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
 
     // Serialize and store the row data, for query-time retrieval.
     std::string serialized_row;
-    if (StringMapCoder::encode(row, serialized_row, *columns_hasher_)) {
+    if (StringMapCoder::encode(row, serialized_row, *d_->columns_hasher)) {
       Status status = Status(1, "failed to encode event cache row");
       VLOG(1) << status.getMessage();
       continue;
@@ -386,7 +412,7 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
   }
 
   // Save the batched data inside the database
-  int rv = conveyor_->addBatch(serialized, std::time(NULL));
+  int rv = d_->conveyor->addBatch(serialized, std::time(NULL));
   trackDropStats(serialized.size(), rv, stats_);
 
   return Status(rv);
@@ -458,28 +484,26 @@ void EventFactory::forwardEvent(const std::string& event) {
 
 void EventSubscriberPlugin::analyzeIntervals(
     const std::map<size_t, std::vector<std::string>>& qimap) {
-  auto conveyor_ = std::static_pointer_cast<Conveyor>(conveyor_void_);
 
   if (qimap.size() == 0) {
     return; // should never happen
   }
 
   // cleanup and close existing cursors
-  for (auto it : interval_cursor_map_) {
-    auto spState = std::static_pointer_cast<IntervalCursorState>(it.second);
-    conveyor_->closeCursor(spState->cursor);
+  for (auto it : d_->interval_cursor_map) {
+    auto spState = it.second;
+    d_->conveyor->closeCursor(spState->cursor);
   }
 
-  interval_cursor_map_.clear();
+  d_->interval_cursor_map.clear();
 
   for (auto it : qimap) {
     auto interval = it.first;
-    interval_cursor_map_[interval] = std::make_shared<IntervalCursorState>();
-    auto stateObj = std::static_pointer_cast<IntervalCursorState>(
-        interval_cursor_map_[interval]);
+    d_->interval_cursor_map[interval] = std::make_shared<IntervalCursorState>();
+    auto stateObj = d_->interval_cursor_map[interval];
     stateObj->interval = interval;
     stateObj->num_queries = (uint32_t)it.second.size();
-    stateObj->cursor = conveyor_->openCursor();
+    stateObj->cursor = d_->conveyor->openCursor();
     VLOG(1) << dbNamespace() << " has " << stateObj->num_queries
             << " queries at interval:" << interval
             << (interval > 300 ? " ( LONG )" : "");
@@ -909,7 +933,7 @@ void attachEvents() {
 
 static const int DROP_STAT_INTERVAL_SECONDS = 5 * 60;
 
-void trackDropStats(size_t numRecords, int status, EventPubStats& stats) {
+void trackDropStats(size_t numRecords, int status, EventTableStats& stats) {
   if (status == 0) {
     stats.numEvents += numRecords;
     return;
@@ -928,7 +952,7 @@ void trackDropStats(size_t numRecords, int status, EventPubStats& stats) {
   stats.numDrops += numDrops;
 }
 
-bool shouldLogDropStats(EventPubStats& stats) {
+bool shouldLogDropStats(EventTableStats& stats) {
   bool shouldLog = false;
   time_t now = time(NULL);
 

@@ -119,6 +119,7 @@ extern const std::vector<size_t> kEventTimeLists;
  */
 struct SubscriberExpirationDetails {
  public:
+  // interval_seconds -> [ query_names ]
   std::map<size_t,std::vector<std::string> > query_interval_map;
 };
 
@@ -211,7 +212,10 @@ class Eventer {
   friend class EventFactory;
 };
 
-struct EventPubStats {
+/**
+ * Statistics are kept for each table in EventSubscriberPlugin
+ */
+struct EventTableStats {
   size_t numEvents;
   size_t numDrops;
   size_t numWriteErrors;
@@ -391,6 +395,7 @@ class EventPublisherPlugin : public Plugin,
 };
 
 class EventSubscriberPlugin : public Plugin, public Eventer {
+  struct PrivateData;
  public:
   /**
    * @brief Add Subscription%s to the EventPublisher this module will act on.
@@ -575,10 +580,9 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * EventPublisher instances will have run `setUp` and initialized their run
    * loops.
    */
-  EventSubscriberPlugin()
-      : expire_events_(true), conveyor_void_(), columns_hasher_void_(), interval_cursor_map_(), stats_() {}
-  ~EventSubscriberPlugin() override = default;
-
+  EventSubscriberPlugin();
+  ~EventSubscriberPlugin();
+  
   /**
    * @brief Suggested entrypoint for table generation.
    *
@@ -662,18 +666,12 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   std::atomic<size_t> min_expiration_{0};
 
   /// The number of scheduled queries using this subscriber.
-  std::atomic<size_t> query_count_{0};
+  size_t numQueries();
 
-  // file ring buffer persistence
-  std::shared_ptr<void> conveyor_void_;
+  /// Private class data
+  std::unique_ptr<PrivateData> d_;
 
-  // encoder calculates hash of columns used by row for decoder use
-  std::shared_ptr<void> columns_hasher_void_;
-
-  // maps interval to cache cursor
-  std::map<size_t,std::shared_ptr<void>> interval_cursor_map_;
-
-  EventPubStats stats_;
+  EventTableStats stats_;
 
  private:
   friend class EventFactory;
