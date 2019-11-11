@@ -74,7 +74,9 @@ cmake --build .
 
 ## Windows 10
 
-The root folder is assumed to be `C:\Users\<user>`
+The root folder is assumed to be `C:\`
+
+Note: The intention here is to reduce the length of the prefix of the osquery folder, since Windows and msbuild have a 255 characters max path limit.
 
 **Step 1: Install the prerequisites**
 
@@ -88,7 +90,8 @@ Note: It may be easier to install these prerequisites using [Chocolatey](https:/
 - [Python 2](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Wix Toolset](https://wixtoolset.org/releases/)
-- [Strawberry Perl](http://strawberryperl.com/) and [NASM](https://nasm.us) for the OpenSSL formula. It is recommended to install them to their default destination folders.
+- [Strawberry Perl](http://strawberryperl.com/) for the OpenSSL formula. It is recommended to install it to the default destination path.
+- [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
 
 **Step 2: Download and build**
 
@@ -100,7 +103,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -A x64 -T v141 ..
+cmake -G "Visual Studio 16 2019" -A x64 -T v141 ..
 
 # Build
 cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel

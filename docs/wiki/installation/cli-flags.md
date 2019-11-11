@@ -265,6 +265,13 @@ Percent to splay config times.
 The query schedule often includes several queries with the same interval.
 It is often not the intention of the schedule author to run these queries together at that interval. But rather, each query should run at about the interval. A default schedule splay of 10% is applied to each query when the configuration is loaded.
 
+`--schedule_max_drift=60`
+
+Max time drift in seconds.
+The scheduler tries to compensate the splay drift until the delta exceeds this value.
+If the max drift is exceeded the splay will be reseted to zero and the compensation process will start from the beginning.
+This is needed to avoid the problem of endless compensation (which is CPU greedy) after a long SIGSTOP/SIGCONT pause or something similar. Set it to zero to disable drift compensation.
+
 `--pack_refresh_interval=3600`
 
 Query Packs may optionally include one or more discovery queries, which allow

@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <osquery/database.h>
+#include <osquery/flagalias.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/query.h>
@@ -25,9 +26,10 @@ DECLARE_bool(decorations_top_level);
 
 /// Log numeric values as numbers (in JSON syntax)
 FLAG(bool,
-     log_numerics_as_numbers,
+     logger_numerics,
      false,
      "Use numeric JSON syntax for numeric values");
+FLAG_ALIAS(bool, log_numerics_as_numbers, logger_numerics);
 
 uint64_t Query::getPreviousEpoch() const {
   uint64_t epoch = 0;
@@ -204,7 +206,7 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
   doc.add("counter", static_cast<size_t>(item.counter), obj);
 
   // Apply field indicatiting if numerics are serialized as numbers
-  doc.add("logNumericsAsNumbers", FLAGS_log_numerics_as_numbers, obj);
+  doc.add("numerics", FLAGS_logger_numerics, obj);
 
   // Append the decorations.
   if (!item.decorations.empty()) {
@@ -240,8 +242,8 @@ inline void getLegacyFieldsAndDecorations(const JSON& doc, QueryLogItem& item) {
 Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
   if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
     auto obj = doc.getObject();
-    auto status = serializeDiffResults(
-        item.results, doc, obj, FLAGS_log_numerics_as_numbers);
+    auto status =
+        serializeDiffResults(item.results, doc, obj, FLAGS_logger_numerics);
     if (!status.ok()) {
       return status;
     }
@@ -250,7 +252,7 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
   } else {
     auto arr = doc.getArray();
     auto status = serializeQueryData(
-        item.snapshot_results, doc, arr, FLAGS_log_numerics_as_numbers);
+        item.snapshot_results, doc, arr, FLAGS_logger_numerics);
     if (!status.ok()) {
       return status;
     }
@@ -281,14 +283,14 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
   auto temp_doc = JSON::newObject();
   if (!item.results.added.empty() || !item.results.removed.empty()) {
     auto status = serializeDiffResults(
-        item.results, temp_doc, temp_doc.doc(), FLAGS_log_numerics_as_numbers);
+        item.results, temp_doc, temp_doc.doc(), FLAGS_logger_numerics);
     if (!status.ok()) {
       return status;
     }
   } else if (!item.snapshot_results.empty()) {
     auto arr = doc.getArray();
     auto status = serializeQueryData(
-        item.snapshot_results, temp_doc, arr, FLAGS_log_numerics_as_numbers);
+        item.snapshot_results, temp_doc, arr, FLAGS_logger_numerics);
     if (!status.ok()) {
       return status;
     }

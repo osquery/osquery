@@ -11,12 +11,15 @@
 #
 
 # It does not seem that they have HTTPS: https://github.com/StrawberryPerl/strawberryperl.com/issues/11
-Invoke-WebRequest "http://strawberryperl.com/download/5.30.0.1/strawberry-perl-5.30.0.1-64bit.zip" -OutFile "$env:TEMP\strawberry_perl.zip"
-Expand-Archive "$env:TEMP\strawberry_perl.zip" -DestinationPath "C:\Strawberry" -Force
+(New-Object System.Net.WebClient).DownloadFile("http://strawberryperl.com/download/5.30.0.1/strawberry-perl-5.30.0.1-64bit.zip", "$env:TEMP\strawberry_perl.zip")
 
-#
-# Download and install the NASM assembler
-#
-
-Invoke-WebRequest "https://www.nasm.us/pub/nasm/releasebuilds/2.14.02/win64/nasm-2.14.02-installer-x64.exe" -OutFile "$env:TEMP\nasm_installer.exe"
-Start-Process "$env:TEMP\nasm_installer.exe" -Wait -ArgumentList "/S", "/D=C:\Program Files\NASM"
+# Prefer 7zip if present, which is faster
+if (Get-Command 7z -errorAction SilentlyContinue)
+{
+	7z x -oC:\Strawberry -y "$env:TEMP\strawberry_perl.zip"
+}
+else
+{
+	Write-Host "Couldn't find 7zip, will use the slower Expand-Archive"
+	Expand-Archive -Path "$env:TEMP\strawberry_perl.zip" -DestinationPath "C:\Strawberry" -Force
+}

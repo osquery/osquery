@@ -22,7 +22,8 @@
 namespace osquery {
 
 DECLARE_bool(disable_database);
-DECLARE_bool(log_numerics_as_numbers);
+DECLARE_bool(logger_numerics);
+
 class QueryTests : public testing::Test {
  public:
   QueryTests() {
@@ -40,7 +41,7 @@ TEST_F(QueryTests, test_private_members) {
 }
 
 TEST_F(QueryTests, test_add_and_get_current_results) {
-  FLAGS_log_numerics_as_numbers = true;
+  FLAGS_logger_numerics = true;
   // Test adding a "current" set of results to a scheduled query instance.
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);

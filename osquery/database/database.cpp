@@ -567,8 +567,6 @@ static Status migrateV1V2(void) {
 }
 
 Status upgradeDatabase(int to_version) {
-  LOG(INFO) << "Checking database version for migration";
-
   std::string value;
   Status st = getDatabaseValue(kPersistentSettings, kDbVersionKey, value);
 
@@ -582,7 +580,7 @@ Status upgradeDatabase(int to_version) {
     if (ret.isError()) {
       LOG(ERROR) << "Invalid value '" << value << "'for " << kDbVersionKey
                  << " key. Database is corrupted.";
-      return Status(1, "Invalid value for database version.");
+      return Status::failure("Invalid value for database version.");
     } else {
       db_version = ret.get();
     }
@@ -590,10 +588,6 @@ Status upgradeDatabase(int to_version) {
 
   while (db_version != to_version) {
     Status migrate_status;
-
-    LOG(INFO) << "Performing migration: " << db_version << " -> "
-              << (db_version + 1);
-
     switch (db_version) {
     case 0:
       migrate_status = migrateV0V1();
@@ -605,12 +599,14 @@ Status upgradeDatabase(int to_version) {
 
     default:
       LOG(ERROR) << "Logic error: the migration code is broken!";
-      migrate_status = Status(1);
+      migrate_status = Status::failure("Migration code broken.");
       break;
     }
 
     if (!migrate_status.ok()) {
-      return Status(1, "Database migration failed.");
+      LOG(ERROR) << "Failed to migrate the database to version '" << db_version
+                 << "': " << migrate_status.getMessage();
+      return Status::failure("Database migration failed.");
     }
 
     st = setDatabaseValue(
@@ -620,11 +616,8 @@ Status upgradeDatabase(int to_version) {
                  << "The DB was correctly migrated from version " << db_version
                  << " to version " << (db_version + 1)
                  << " but persisting the new version failed.";
-      return Status(1, "Database migration failed.");
+      return Status::failure("Database version commit failed.");
     }
-
-    LOG(INFO) << "Migration " << db_version << " -> " << (db_version + 1)
-              << " successfully completed!";
 
     db_version++;
   }

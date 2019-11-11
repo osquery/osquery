@@ -20,22 +20,28 @@ jobs:
       vmImage: 'Ubuntu-16.04'
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v4
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-v5
       options: --privileged
 
     timeoutInMinutes: 120
 
     variables:
       CCACHE_DIR: $(Pipeline.Workspace)/ccache
+      # Debug packages require padded source prefixes (#5936).
+      BUILD_DIR: $(Build.BinariesDirectory)/usr/src/debug/osquery/build
 
     steps:
-    - script: mkdir $(Build.BinariesDirectory)/build
+    - checkout: self
+      # See BUILD_DIR.
+      path: s/usr/src/debug/osquery
+
+    - script: mkdir -p $(BUILD_DIR)
       displayName: "Create build folder"
 
     - task: CMake@1
       displayName: "Configure osquery"
       inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
+        workingDirectory: $(BUILD_DIR)
         cmakeArgs:
           -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
           -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain
@@ -44,14 +50,14 @@ jobs:
           $(Build.SourcesDirectory)
 
     - script: |
-        ./tools/formatting/format-test.sh --build $(Build.BinariesDirectory)/build
+        ./tools/formatting/format-test.sh --build $(BUILD_DIR)
       displayName: "format_check.py test"
       workingDirectory: $(Build.SourcesDirectory)
 
     - task: CMake@1
       displayName: "Check code formatting"
       inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
+        workingDirectory: $(BUILD_DIR)
         cmakeArgs: --build . --target format_check
 
     - task: CacheBeta@0
@@ -64,41 +70,41 @@ jobs:
     - task: CMake@1
       displayName: "Build osquery"
       inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
+        workingDirectory: $(BUILD_DIR)
         cmakeArgs: --build . -j 3
 
-    - script: cat $(Build.BinariesDirectory)/build/formula_logs/openssl.txt
+    - script: cat $(BUILD_DIR)/formula_logs/openssl.txt
       displayName: "OpenSSL formula output"
       condition: always()
 
     - task: CMake@1
       displayName: "Run cppcheck"
       inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
+        workingDirectory: $(BUILD_DIR)
         cmakeArgs: --build . --target cppcheck
 
     - script: |
         ctest --build-nocmake -V
       displayName: "Run tests"
-      workingDirectory: $(Build.BinariesDirectory)/build
+      workingDirectory: $(BUILD_DIR)
 
     - script: |
         cmake -DPACKAGING_SYSTEM=DEB $(Build.SourcesDirectory)
         cmake --build . --target package -j 3
       displayName: "Run DEB packaging"
-      workingDirectory: $(Build.BinariesDirectory)/build
+      workingDirectory: $(BUILD_DIR)
 
     - script: |
         cmake -DPACKAGING_SYSTEM=RPM $(Build.SourcesDirectory)
         cmake --build . --target package -j 3
       displayName: "Run RPM packaging"
-      workingDirectory: $(Build.BinariesDirectory)/build
+      workingDirectory: $(BUILD_DIR)
 
     - script: |
         cmake -DPACKAGING_SYSTEM=TGZ $(Build.SourcesDirectory)
         cmake --build . --target package -j 3
       displayName: "Run TGZ packaging"
-      workingDirectory: $(Build.BinariesDirectory)/build
+      workingDirectory: $(BUILD_DIR)
 
     - script: |
         echo "##vso[task.setvariable variable=Status;isOutput=true]1"
@@ -328,7 +334,7 @@ jobs:
 
     - powershell: |
         tools\ci\scripts\install_openssl_formula_dependencies.ps1
-      displayName: "Installing: Strawberry Perl and NASM"
+      displayName: "Installing: Strawberry Perl"
       workingDirectory: $(Build.SourcesDirectory)
 
     - task: CMake@1
