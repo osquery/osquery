@@ -25,7 +25,7 @@ function(generateAwsCcommonTarget)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/aws-c-common_src")
   set(binary_root "${CMAKE_CURRENT_BINARY_DIR}/aws-c-common")
 
-  add_library(thirdparty_aws_c_common STATIC
+  add_library(thirdparty_aws_c_common STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/array_list.c"
     "${library_root}/source/assert.c"
     "${library_root}/source/byte_buf.c"
@@ -109,7 +109,7 @@ endfunction()
 function(generateAwsChecksumsTarget)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/aws-checksums_src")
 
-  add_library(thirdparty_aws_checksums STATIC
+  add_library(thirdparty_aws_checksums STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/cpuid_generic.c"
     "${library_root}/source/crc.c"
     "${library_root}/source/crc_jni.c"
@@ -148,7 +148,7 @@ endfunction()
 function(generateAwsCeventStreamTarget)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/aws-c-event-stream_src")
 
-  add_library(thirdparty_aws_c_event_stream STATIC
+  add_library(thirdparty_aws_c_event_stream STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/event_stream.c"
   )
 
@@ -210,7 +210,7 @@ function(generateAwsCore)
     "${binary_root}/include/aws/core/SDKConfig.h"
    )
 
-  add_library(thirdparty_aws_core STATIC
+  add_library(thirdparty_aws_core STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/AmazonSerializableWebServiceRequest.cpp"
     "${library_root}/source/AmazonStreamingWebServiceRequest.cpp"
     "${library_root}/source/AmazonWebServiceRequest.cpp"
@@ -352,7 +352,7 @@ endfunction()
 function(generateAwsFirehose)
   set(library_root "${AWS_SDK_CPP_ROOT}/aws-cpp-sdk-firehose")
 
-  add_library(thirdparty_aws_firehose STATIC
+  add_library(thirdparty_aws_firehose STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/FirehoseClient.cpp"
     "${library_root}/source/FirehoseEndpoint.cpp"
     "${library_root}/source/FirehoseErrorMarshaller.cpp"
@@ -462,7 +462,7 @@ endfunction()
 function(generateAwsKinesis)
   set(library_root "${AWS_SDK_CPP_ROOT}/aws-cpp-sdk-kinesis")
 
-  add_library(thirdparty_aws_kinesis STATIC
+  add_library(thirdparty_aws_kinesis STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/KinesisClient.cpp"
     "${library_root}/source/KinesisEndpoint.cpp"
     "${library_root}/source/KinesisErrorMarshaller.cpp"
@@ -550,7 +550,7 @@ endfunction()
 function(generateAwsEc2)
   set(library_root "${AWS_SDK_CPP_ROOT}/aws-cpp-sdk-ec2")
 
-  add_library(thirdparty_aws_ec2 STATIC
+  add_library(thirdparty_aws_ec2 STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/EC2Client.cpp"
     "${library_root}/source/EC2Endpoint.cpp"
     "${library_root}/source/EC2ErrorMarshaller.cpp"
@@ -1770,7 +1770,7 @@ endfunction()
 function(generateAwsSts)
   set(library_root "${AWS_SDK_CPP_ROOT}/aws-cpp-sdk-sts")
 
-  add_library(thirdparty_aws_sts STATIC
+  add_library(thirdparty_aws_sts STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/STSClient.cpp"
     "${library_root}/source/STSEndpoint.cpp"
     "${library_root}/source/STSErrorMarshaller.cpp"
