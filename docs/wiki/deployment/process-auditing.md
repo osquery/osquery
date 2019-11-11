@@ -114,7 +114,8 @@ A sample log entry from process_events may look something like this:
   },
   "unixTime": 1527895550,
   "hostIdentifier": "vagrant",
-  "name": "process_events"
+  "name": "process_events",
+  "numerics": false
 }
 ```
 
@@ -151,7 +152,8 @@ A sample socket_event log entry looks like this:
   },
   "unixTime": 1527895545,
   "hostIdentifier": "vagrant",
-  "name": "socket_events"
+  "name": "socket_events",
+  "numerics": false
 }
 ```
 

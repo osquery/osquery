@@ -191,6 +191,20 @@ function(add_osquery_executable)
 
   add_executable(${osquery_exe_name} ${osquery_exe_args})
 
+  if(DEFINED PLATFORM_WINDOWS)
+    set(OSQUERY_MANIFEST_TARGET_NAME "${osquery_exe_name}")
+
+    string(REGEX MATCH "^[0-9]+\.[0-9]+\.[0-9]+" osquery_cleaned_version "${OSQUERY_VERSION_INTERNAL}")
+    set(OSQUERY_MANIFEST_VERSION "${osquery_cleaned_version}")
+
+    configure_file(
+      "${CMAKE_SOURCE_DIR}/tools/osquery.manifest.in"
+      "${osquery_exe_name}.manifest"
+      @ONLY NEWLINE_STYLE WIN32
+    )
+    target_sources(${osquery_exe_name} PRIVATE "${osquery_exe_name}.manifest")
+  endif()
+
   if("${osquery_exe_name}" MATCHES "-test$" AND DEFINED PLATFORM_POSIX)
     target_link_options("${osquery_exe_name}" PRIVATE -Wno-sign-compare)
   endif()
@@ -241,12 +255,12 @@ function(generateSpecialTargets)
   endif()
 
   add_custom_target(format_check
-    COMMAND ${command_prefix} ${EX_TOOL_PYTHON2_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/formatting/format-check.py --exclude-folders ${excluded_folders} origin/master
+    COMMAND ${command_prefix} ${EX_TOOL_PYTHON3_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/formatting/format-check.py --exclude-folders ${excluded_folders} origin/master
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
   )
   add_custom_target(format
-    COMMAND ${command_prefix} ${EX_TOOL_PYTHON2_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py --exclude-folders ${excluded_folders} -f --style=file
+    COMMAND ${command_prefix} ${EX_TOOL_PYTHON3_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py --exclude-folders ${excluded_folders} -f --style=file
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
   )

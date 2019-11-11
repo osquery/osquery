@@ -9,8 +9,7 @@
 #include <codecvt>
 #include <string>
 
-#include <glog/logging.h>
-
+#include <osquery/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {

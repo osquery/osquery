@@ -32,15 +32,7 @@ namespace osquery {
 
 FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit");
 
-FLAG(uint64,
-     schedule_max_drift,
-     60,
-     "Max time drift in seconds. Scheduler tries to compensate the drift until "
-     "the drift exceed this value. After it the drift will be reseted to zero "
-     "and the compensation process will start from the beginning. It is needed "
-     "to avoid the problem of endless compensation (which is CPU greedy) after "
-     "a long SIGSTOP/SIGCONT pause or something similar. Set it to zero to "
-     "switch off a drift compensation. Default: 60");
+FLAG(uint64, schedule_max_drift, 60, "Max time drift in seconds");
 
 FLAG(uint64,
      schedule_reload,

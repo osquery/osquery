@@ -41,6 +41,7 @@ function(generateOsqueryUtilsConversions)
 
   target_link_libraries(osquery_utils_conversions PUBLIC
     osquery_cxx_settings
+    osquery_logger
     osquery_utils_conversions_to
     osquery_utils_expected
     thirdparty_boost
