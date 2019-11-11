@@ -162,10 +162,6 @@ class FgetsBuffer {
     return true;
   }
 
-  SPNonblockingFile getFile() {
-    return spFile_;
-  }
-
  protected:
   /**
    *
