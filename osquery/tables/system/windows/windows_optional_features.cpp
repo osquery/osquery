@@ -38,39 +38,40 @@ QueryData genWinOptionalFeatures(QueryContext& context) {
     return results;
   }
 
-  for (unsigned int i = 0; i < wmiResults.size(); ++i) {
+  for (const auto& wmiObj : wmiResults) {
     Row r;
     uint32_t state;
 
-    wmiResults[i].GetString("Name", r["name"]);
-    wmiResults[i].GetString("Caption", r["caption"]);
+    wmiObj.GetString("Name", r["name"]);
+    wmiObj.GetString("Caption", r["caption"]);
 
     // wbemtest.exe shows Column as UINT32, but comes in as I4.
     // For whatever reason, I4 is accessed using GetLong().
 
-    if (wmiResults[i].GetUnsignedInt32("InstallState", state).ok() == false) {
+    if (wmiObj.GetUnsignedInt32("InstallState", state).ok() == false) {
       long state_long;
-      if (wmiResults[i].GetLong("InstallState", state_long).ok()) {
+      if (wmiObj.GetLong("InstallState", state_long).ok()) {
         state = static_cast<uint32_t>(state_long);
       }
     }
     r["state"] = INTEGER(state);
 
-    r["statename"] = getDismPackageFeatureStateName(atoi(r["state"].c_str()));
+    r["statename"] = getDismPackageFeatureStateName(state);
     results.push_back(r);
   }
   return results;
 }
 
-/*
-https://docs.microsoft.com/en-us/windows/desktop/CIMWin32Prov/win32-optionalfeature
-Enabled (1)
-Disabled (2)
-Absent (3)
-Unknown (4)
-*/
+/**
+ *
+ * https://docs.microsoft.com/en-us/windows/desktop/CIMWin32Prov/win32-optionalfeature
+ * Enabled (1)
+ * Disabled (2)
+ * Absent (3)
+ * Unknown (4)
+ */
 std::string getDismPackageFeatureStateName(uint32_t state) {
-  static std::vector<std::string> stateNames = {
+  const std::vector<std::string> stateNames = {
       "Unknown", "Enabled", "Disabled", "Absent"};
 
   if (state >= stateNames.size()) {
