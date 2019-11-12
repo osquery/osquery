@@ -130,7 +130,7 @@ class SyslogEventPublisher
    */
   int lockFd_;
 
-  std::shared_ptr<FgetsBuffer> spReader_;
+  std::unique_ptr<FgetsBuffer> spReader_;
 
  private:
   FRIEND_TEST(SyslogTests, test_populate_event_context);

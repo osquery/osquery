@@ -100,7 +100,7 @@ Status SyslogEventPublisher::setUp() {
           << FLAGS_syslog_pipe_path;
 
   spReader_ =
-      std::make_shared<FgetsBuffer>(std::move(spPipe), MAX_LINE_LEN, false);
+      std::make_unique<FgetsBuffer>(std::move(spPipe), MAX_LINE_LEN, false);
 
   return Status::success();
 }
