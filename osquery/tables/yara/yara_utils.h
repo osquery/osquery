@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/config/config.h>
