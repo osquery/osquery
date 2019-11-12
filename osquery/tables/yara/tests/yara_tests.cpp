@@ -24,11 +24,9 @@ const std::string alwaysFalse = "rule always_false { condition: false }";
 
 class YARATest : public testing::Test {
  protected:
-  void SetUp() override {
-  }
+  void SetUp() override {}
 
-  void TearDown() override {
-  }
+  void TearDown() override {}
 
   Row scanFile(const std::string& ruleContent) {
     YR_RULES* rules = nullptr;
@@ -80,4 +78,22 @@ TEST_F(YARATest, test_match_false) {
   // Should have 0 count
   EXPECT_TRUE(r["count"] == "0");
 }
+
+TEST_F(YARATest, should_skip_file) {
+  // pretty much any regular file should be scanned
+
+  EXPECT_FALSE(yaraShouldSkipFile("/any/file/here", S_IFREG));
+
+  // should skip devices, pipes, sockets, directories, etc.
+
+  EXPECT_TRUE(yaraShouldSkipFile("/any/file/here", S_IFCHR));
+  EXPECT_TRUE(yaraShouldSkipFile("/any/file/here", S_IFDIR));
+#ifdef __APPLE__
+  EXPECT_TRUE(yaraShouldSkipFile("/any/file/here", S_IFLNK));
+  EXPECT_TRUE(yaraShouldSkipFile("/any/file/here", S_IFSOCK));
+  EXPECT_TRUE(yaraShouldSkipFile("/any/file/here", S_IFBLK));
+  EXPECT_TRUE(yaraShouldSkipFile("/any/file/here", S_IFIFO));
+#endif
+}
+
 } // namespace osquery

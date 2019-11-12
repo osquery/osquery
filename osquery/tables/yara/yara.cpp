@@ -114,8 +114,14 @@ QueryData genYara(QueryContext& context) {
             resolveFilePattern(pattern, patterns, GLOB_FILES | GLOB_NO_CANON);
         if (status.ok()) {
           for (const auto& resolved : patterns) {
+            struct stat sb;
+            if (0 != stat(resolved.c_str(), &sb)) {
+              continue; // failed to stat
+            }
+
             // Check that each resolved path is readable.
-            if (isReadable(resolved)) {
+            if (isReadable(resolved) &&
+                !yaraShouldSkipFile(resolved, sb.st_mode)) {
               paths.insert(resolved);
             }
           }
