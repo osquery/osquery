@@ -55,7 +55,7 @@ const char* kTimeFormat = "%Y-%m-%dT%H:%M:%S";
 const std::vector<std::string> kCsvFields = {
     "time", "host", "severity", "facility", "tag", "message"};
 const size_t kErrorThreshold = 10;
-static const size_t MAX_LINE_LEN = 16384;
+static const size_t kMaxLineLen = 16384;
 
 Status SyslogEventPublisher::setUp() {
   if (!FLAGS_enable_syslog) {
@@ -100,7 +100,7 @@ Status SyslogEventPublisher::setUp() {
           << FLAGS_syslog_pipe_path;
 
   spReader_ =
-      std::make_unique<FgetsBuffer>(std::move(spPipe), MAX_LINE_LEN, false);
+      std::make_unique<FgetsBuffer>(std::move(spPipe), kMaxLineLen, false);
 
   return Status::success();
 }

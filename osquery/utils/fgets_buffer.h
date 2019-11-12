@@ -168,8 +168,8 @@ class FgetsBuffer {
    * @return true on error, false if able to get a line into dest
    */
   bool _gets(std::string& dest) {
-    char* pos = (char*)memchr(buf_.data(), '\n', buf_.size());
-    if (NULL == pos) {
+    char* pos = reinterpret_cast<char*>(memchr(buf_.data(), '\n', buf_.size()));
+    if (nullptr == pos) {
       if (buf_.size() >= maxLineLen_) {
         // blow it all away
         droppedChars_ += buf_.size();
