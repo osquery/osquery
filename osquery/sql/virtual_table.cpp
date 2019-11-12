@@ -28,6 +28,11 @@ FLAG(uint64,
      0,
      "Add an optional microsecond delay between table scans");
 
+FLAG(bool,
+     extensions_default_index,
+     true,
+     "Enable INDEX on all extension table columns (default true)");
+
 SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
 DECLARE_bool(disable_events);
@@ -601,6 +606,15 @@ int xCreate(sqlite3* db,
         auto op = tryTo<long>(cop->second);
         if (op) {
           options = static_cast<ColumnOptions>(op.take());
+        }
+      }
+
+      if (is_extension && FLAGS_extensions_default_index) {
+        if (ColumnOptions::DEFAULT == options) {
+          options = ColumnOptions::INDEX;
+        } else {
+          // The extension is effected by extensions_default_index.
+          // Consider adding a deprecation warning (#6035).
         }
       }
 
