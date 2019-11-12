@@ -12,6 +12,7 @@ osquery_cxx_test(
     name = "events_tests",
     srcs = [
         "events_tests.cpp",
+        "stringmap_coder_tests.cpp",
     ],
     visibility = ["PUBLIC"],
     deps = [

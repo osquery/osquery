@@ -72,6 +72,7 @@ function(generateOsqueryEvents)
 
   set(public_header_files
     pathset.h
+    stringmap_encoder.hpp
   )
 
   generateIncludeNamespace(osquery_events "osquery/events" "FILE_ONLY" ${public_header_files})

@@ -48,7 +48,10 @@ FLAG(bool,
 
 HIDDEN_FLAG(bool, events_debug, false, "");
 
-FLAG(bool, events_clear_on_start, true, "On startup, clear cached events and start fresh.");
+FLAG(bool,
+     events_clear_on_start,
+     true,
+     "On startup, clear cached events and start fresh.");
 
 #define DBGLOG                                                                 \
   if (FLAGS_events_debug)                                                      \
@@ -86,7 +89,9 @@ static inline EventTime timeFromRecord(const std::string& record) {
 }
 
 static const ScheduledQuery* gActiveQuery = nullptr;
-void EventFactory::_setActiveSchedulerQuery(const ScheduledQuery* pquery) { gActiveQuery = pquery; }
+void EventFactory::_setActiveSchedulerQuery(const ScheduledQuery* pquery) {
+  gActiveQuery = pquery;
+}
 
 // PrivateData contains implementation specific details that
 // would clutter the header file
@@ -94,21 +99,19 @@ struct EventSubscriberPlugin::PrivateData final {
   // file ring buffer persistence
   std::shared_ptr<Conveyor> conveyor;
 
-  // encoder calculates hash of columns used by row for decoder use
-  std::shared_ptr<StringHash> columns_hasher;
+  // for encoding Row to bytes
+  StringMapCoder coder;
 
   // maps interval to cache cursor
-  std::map<size_t,std::shared_ptr<IntervalCursorState>> interval_cursor_map;
+  std::map<size_t, std::shared_ptr<IntervalCursorState>> interval_cursor_map;
 };
 
 // This is declared here, rather than as 'default' in header
 // due to the use of unique_ptr of incomplete type (PrivateData)
-EventSubscriberPlugin::~EventSubscriberPlugin() {
-}
+EventSubscriberPlugin::~EventSubscriberPlugin() {}
 
 EventSubscriberPlugin::EventSubscriberPlugin()
-      : expire_events_(true), d_(new PrivateData), stats_() {}
-
+    : expire_events_(true), d_(new PrivateData), stats_() {}
 
 void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
   // Stop is an unsigned (-1), our end of time equivalent.
@@ -165,8 +168,8 @@ void EventSubscriberPlugin::_initPrivateState() {
                                        (uint32_t)(expiry),
                                        16 * 1024 * 1024 /* max record size*/};
     d_->conveyor = ConveyorNew(settings);
-    d_->columns_hasher = std::make_shared<StringHash>();
-    d_->interval_cursor_map = std::map<size_t, std::shared_ptr<IntervalCursorState>>();
+    d_->interval_cursor_map =
+        std::map<size_t, std::shared_ptr<IntervalCursorState>>();
 
     if (d_->conveyor != nullptr) {
       if (FLAGS_events_clear_on_start) {
@@ -228,7 +231,7 @@ struct MyConveyorListener : public ConveyorListener {
                      EventTime start,
                      EventTime stop,
                      std::string dbns)
-      : yield_(yield), start_(start), stop_(stop), namespace_(dbns) {
+      : yield_(yield), start_(start), stop_(stop), namespace_(dbns), coder_() {
     isCommandLineMode = !Initializer::isDaemon();
   }
   virtual ~MyConveyorListener() {}
@@ -255,7 +258,7 @@ struct MyConveyorListener : public ConveyorListener {
       }
     }
 
-    if (StringMapCoder::decode(r, value, lastKeyHash_)) {
+    if (coder_.decode(r, value)) {
       LOG(WARNING) << namespace_ << " failed to deserialize event. id:" << id;
       return;
     }
@@ -270,11 +273,13 @@ struct MyConveyorListener : public ConveyorListener {
   EventTime start_;
   EventTime stop_;
   bool isCommandLineMode;
-  uint32_t lastKeyHash_{0};
   std::string namespace_;
+  StringMapCoder coder_;
 };
 
-static void trackDropStats(size_t numRecords, int status, EventTableStats& stats);
+static void trackDropStats(size_t numRecords,
+                           int status,
+                           EventTableStats& stats);
 static bool shouldLogDropStats(EventTableStats& stats);
 
 void EventSubscriberPlugin::get(RowYield& yield,
@@ -338,7 +343,7 @@ void EventSubscriberPlugin::get(RowYield& yield,
  */
 size_t EventSubscriberPlugin::numQueries() {
   size_t num = 0;
-  for(auto it : d_->interval_cursor_map) {
+  for (auto it : d_->interval_cursor_map) {
     num += it.second->num_queries;
   }
   return num;
@@ -350,7 +355,7 @@ Status EventSubscriberPlugin::add(const Row& row) {
   event_count_++;
 
   std::string serialized_row;
-  if (StringMapCoder::encode(row, serialized_row, *d_->columns_hasher)) {
+  if (d_->coder.encode(row, serialized_row)) {
     Status status = Status(1, "failed to encode event cache row");
     VLOG(1) << status.getMessage();
     return status;
@@ -391,7 +396,7 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
 
     // Serialize and store the row data, for query-time retrieval.
     std::string serialized_row;
-    if (StringMapCoder::encode(row, serialized_row, *d_->columns_hasher)) {
+    if (d_->coder.encode(row, serialized_row)) {
       Status status = Status(1, "failed to encode event cache row");
       VLOG(1) << status.getMessage();
       continue;
@@ -486,7 +491,6 @@ void EventFactory::forwardEvent(const std::string& event) {
 
 void EventSubscriberPlugin::analyzeIntervals(
     const std::map<size_t, std::vector<std::string>>& qimap) {
-
   if (qimap.size() == 0) {
     return; // should never happen
   }
