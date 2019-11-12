@@ -22,13 +22,6 @@ bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
     return true;
   }
 
-  // avoid reading osquery DB LOCK files
-  if (path.find("osquery") != std::string::npos) {
-    if (boost::algorithm::ends_with(path, "LOCK")) {
-      return true;
-    }
-  }
-
   return false;
 }
 

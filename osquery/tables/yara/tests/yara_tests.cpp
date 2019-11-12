@@ -84,16 +84,6 @@ TEST_F(YARATest, should_skip_file) {
 
   EXPECT_FALSE(yaraShouldSkipFile("/any/file/here", S_IFREG));
 
-  // should skip osquery db LOCK
-
-  auto lockPath = fs::path(OSQUERY_DB_HOME) / "osquery.db" / "LOCK";
-  std::string lockPathStr = lockPath.make_preferred().string();
-  EXPECT_TRUE(yaraShouldSkipFile(lockPathStr, S_IFREG));
-
-  // any other LOCK can be scanned
-
-  EXPECT_FALSE(yaraShouldSkipFile("/Applications/some/LOCK", S_IFREG));
-
   // should skip devices, pipes, sockets, directories, etc.
 
   EXPECT_TRUE(yaraShouldSkipFile("/any/file/here", S_IFCHR));
