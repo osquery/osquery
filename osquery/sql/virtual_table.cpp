@@ -584,7 +584,6 @@ int xCreate(sqlite3* db,
 
   // Tables may request aliases as views.
   std::set<std::string> views;
-  bool extensionSetsOptionColumn = false;
 
   // Keep a local copy of the column details in the VirtualTableContent struct.
   // This allows introspection into the column type without additional calls.
@@ -614,7 +613,8 @@ int xCreate(sqlite3* db,
         if (ColumnOptions::DEFAULT == options) {
           options = ColumnOptions::INDEX;
         } else {
-          extensionSetsOptionColumn = true;
+          // The extension is effected by extensions_default_index.
+          // Consider adding a deprecation warning (#6035).
         }
       }
 
@@ -658,13 +658,6 @@ int xCreate(sqlite3* db,
         }
       }
     }
-  }
-
-  if (is_extension && FLAGS_extensions_default_index &&
-      !extensionSetsOptionColumn) {
-    LOG(INFO) << "Deprecation warning: extension table " << name
-              << " does not set any column options and will not receive any "
-                 "INDEX constraints when --extensions_default_index=false";
   }
 
   // Create the requested 'aliases'.
