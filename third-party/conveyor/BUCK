@@ -20,6 +20,9 @@ osquery_tp_prebuilt_cxx_library(
         "windows-x86_64",
     ],
     sha256sums = {
+        "linux-x86_64": "73472b9cf2d050b3cdda404144d28244b52d89b538b82de95acaaa98e282a1ea",
+        "macos-x86_64": "39c59c34a497b365af0895de2b3e65e89c03f14c846084902ad3a77f943c3457",
+        "windows-x86_64": "71144e5754cb19c32bad2ba298a3cf24e3fde4a012334c622c84e9a8cdc91ef8",
     },
     platform_static_libs = {
         "linux-x86_64": [
