@@ -179,8 +179,12 @@ function(rocksdbMain)
   endif()
 
   target_compile_definitions(thirdparty_rocksdb PRIVATE
-    ROCKSDB_LITE
     ${platform_definitions}
+  )
+
+  # This is used in RocksDB headers.
+  target_compile_definitions(thirdparty_rocksdb PUBLIC
+    ROCKSDB_LITE
   )
 
   target_link_libraries(thirdparty_rocksdb PRIVATE
