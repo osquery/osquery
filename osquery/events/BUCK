@@ -127,5 +127,6 @@ osquery_cxx_library(
         osquery_target("osquery/dispatcher:dispatcher"),
         osquery_target("osquery/sql:sql"),
         osquery_target("osquery:headers"),
+        osquery_tp_target("conveyor"),
     ],
 )

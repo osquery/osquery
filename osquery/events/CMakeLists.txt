@@ -108,8 +108,6 @@ function(generateOsqueryEvents)
 
   generateIncludeNamespace(osquery_events "osquery/events" "FULL_PATH" ${platform_public_header_files})
 
-  add_test(NAME osquery_events_tests_eventsdatabasetests-test COMMAND osquery_events_tests_eventsdatabasetests-test)
-
   if(DEFINED PLATFORM_LINUX)
     add_test(NAME osquery_events_tests_syslogtests-test COMMAND osquery_events_tests_syslogtests-test)
     add_test(NAME osquery_events_tests_audittests-test COMMAND osquery_events_tests_audittests-test)
