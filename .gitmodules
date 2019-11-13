@@ -126,4 +126,4 @@
 	url = https://github.com/osquery/third-party-gnulib
 [submodule "libraries/cmake/source/conveyor/src"]
 	path = libraries/cmake/source/conveyor/src
-	url = git@github.com:Alienvault-Engineering/conveyor.git
+	url = https://github.com/Alienvault-Engineering/conveyor
