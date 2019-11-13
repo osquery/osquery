@@ -120,7 +120,7 @@ extern const std::vector<size_t> kEventTimeLists;
 struct SubscriberExpirationDetails {
  public:
   // interval_seconds -> [ query_names ]
-  std::map<size_t,std::vector<std::string> > query_interval_map;
+  std::map<size_t, std::vector<std::string>> query_interval_map;
 };
 
 /**
@@ -396,6 +396,7 @@ class EventPublisherPlugin : public Plugin,
 
 class EventSubscriberPlugin : public Plugin, public Eventer {
   struct PrivateData;
+
  public:
   /**
    * @brief Add Subscription%s to the EventPublisher this module will act on.
@@ -582,7 +583,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    */
   EventSubscriberPlugin();
   ~EventSubscriberPlugin();
-  
+
   /**
    * @brief Suggested entrypoint for table generation.
    *
@@ -613,7 +614,8 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   explicit EventSubscriberPlugin(EventSubscriberPlugin const&) = delete;
   EventSubscriberPlugin& operator=(EventSubscriberPlugin const&) = delete;
 
-  void analyzeIntervals(const std::map<size_t,std::vector<std::string>> &qimap);
+  void analyzeIntervals(
+      const std::map<size_t, std::vector<std::string>>& qimap);
 
  protected:
   /**
