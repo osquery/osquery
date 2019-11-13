@@ -76,44 +76,8 @@ class OpenBSMSSHLoginSubscriber
                   const OpenBSMSubscriptionContextRef& sc);
 };
 
-class OpenBSMNetEvSubscriber
-    : public EventSubscriber<OpenBSMEventPublisher> {
- public:
-  Status init() override {
-    return Status(0);
-  }
-
-  void configure() override;
-
-  Status Callback(const OpenBSMEventContextRef& ec,
-                  const OpenBSMSubscriptionContextRef& sc);
-};
-
 REGISTER(OpenBSMProcEvSubscriber, "event_subscriber", "process_events");
 REGISTER(OpenBSMSSHLoginSubscriber, "event_subscriber", "user_events");
-REGISTER(OpenBSMNetEvSubscriber, "event_subscriber", "network_events");
-
-void OpenBSMNetEvSubscriber::configure() {
-  std::vector<size_t> event_ids{
-      AUE_CONNECT,
-      AUE_ACCEPT,
-      AUE_BIND
-  };
-  for (const auto& evid : event_ids) {
-    auto sc = createSubscriptionContext();
-    sc->event_id = evid;
-    subscribe(&OpenBSMNetEvSubscriber::Callback, sc);
-  }
-
-}
-
-Status OpenBSMNetEvSubscriber::Callback(
-    const OpenBSMEventContextRef& ec, const OpenBSMSubscriptionContextRef& sc) {
-  Row r;
-  r["message"] = "Socket event recorded!";
-  add(r);
-  return Status(0);
-}
 
 void OpenBSMProcEvSubscriber::configure() {
   std::vector<size_t> event_ids{

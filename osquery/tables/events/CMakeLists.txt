@@ -35,7 +35,7 @@ function(generateOsqueryTablesEventsEventstable)
       darwin/disk_events.cpp
       darwin/file_events.cpp
       darwin/hardware_events.cpp
-      darwin/network_events.cpp
+      darwin/socket_events.cpp
       darwin/openbsm_events.cpp
       darwin/user_interaction_events.cpp
     )

@@ -126,6 +126,7 @@ function(generateNativeTables)
     "darwin/signature.table:macos"
     "darwin/sip_config.table:macos"
     "darwin/smc_keys.table:macos"
+    "darwin/socket_events.table:macos"
     "darwin/temperature_sensors.table:macos"
     "darwin/time_machine_backups.table:macos"
     "darwin/time_machine_destinations.table:macos"
