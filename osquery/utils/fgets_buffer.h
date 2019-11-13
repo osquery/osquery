@@ -8,13 +8,16 @@
 
 #pragma once
 
+#include <string.h>
+
 #include <cstdint>
 #include <memory>
-#include <string.h>
 #include <string>
 #include <vector>
 
 #include <osquery/filesystem/fileops.h>
+
+class fgetsTest;
 
 /*
  * This all exists to ensure that we don't get hangs when
@@ -36,7 +39,7 @@ struct NonblockingFile {
   virtual ~NonblockingFile() {}
 };
 
-typedef std::unique_ptr<NonblockingFile> SPNonblockingFile;
+typedef std::unique_ptr<NonblockingFile> NonblockingFileRef;
 
 #ifdef OSQUERY_POSIX
 
@@ -53,7 +56,11 @@ class NonblockingFileImpl : public NonblockingFile {
     fd_ = ::open(path_.c_str(), O_RDONLY | O_NONBLOCK);
   }
 
-  virtual ~NonblockingFileImpl() {}
+  virtual ~NonblockingFileImpl() {
+    if (fd_ > 0) {
+      ::close(fd_);
+    }
+  }
 
   /**
    * If unable to open file in constructor, or
@@ -68,7 +75,7 @@ class NonblockingFileImpl : public NonblockingFile {
    */
   bool isDataAvail() override {
     fd_set set;
-    struct timeval timeout = {0, (int)selectTimeoutUsec_};
+    struct timeval timeout = {0, static_cast<int>(selectTimeoutUsec_)};
 
     FD_ZERO(&set); /* clear the set */
     FD_SET(fd_, &set); /* add our file descriptor to the set */
@@ -118,7 +125,7 @@ class FgetsBuffer {
    * If includeNewline is true, then strings returned by fgets() will
    * have newline character at the end (like stdio behavior).
    */
-  FgetsBuffer(SPNonblockingFile spFile,
+  FgetsBuffer(NonblockingFileRef spFile,
               size_t maxLineLen = 16384,
               bool includeNewline = false)
       : spFile_(std::move(spFile)),
@@ -193,9 +200,12 @@ class FgetsBuffer {
     return false;
   }
 
-  SPNonblockingFile spFile_;
+ private:
+  NonblockingFileRef spFile_;
   std::vector<char> buf_;
   size_t maxLineLen_;
   size_t droppedChars_{0};
   bool includeNewline_;
+
+  friend fgetsTest;
 };

@@ -55,7 +55,7 @@ const char* kTimeFormat = "%Y-%m-%dT%H:%M:%S";
 const std::vector<std::string> kCsvFields = {
     "time", "host", "severity", "facility", "tag", "message"};
 const size_t kErrorThreshold = 10;
-static const size_t kMaxLineLen = 16384;
+const size_t kSyslogMaxLineLen = 16384;
 
 Status SyslogEventPublisher::setUp() {
   if (!FLAGS_enable_syslog) {
@@ -99,8 +99,8 @@ Status SyslogEventPublisher::setUp() {
   VLOG(1) << "Successfully opened pipe for syslog ingestion: "
           << FLAGS_syslog_pipe_path;
 
-  spReader_ =
-      std::make_unique<FgetsBuffer>(std::move(spPipe), kMaxLineLen, false);
+  spReader_ = std::make_unique<FgetsBuffer>(
+      std::move(spPipe), kSyslogMaxLineLen, false);
 
   return Status::success();
 }
@@ -164,7 +164,7 @@ Status SyslogEventPublisher::run() {
   for (size_t i = 0; i < FLAGS_syslog_rate_limit; ++i) {
     std::string line;
     if (spReader_->fgets(line)) {
-      return Status();
+      return Status::success();
     }
     auto ec = createEventContext();
     Status status = populateEventContext(line, ec);
