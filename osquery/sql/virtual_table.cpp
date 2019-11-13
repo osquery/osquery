@@ -52,6 +52,9 @@ static std::atomic<size_t> kPlannerCursorID{0};
  */
 static std::atomic<size_t> kConstraintIndexID{0};
 
+/// We consider the max-cost as an error-state, e.g., unusable constraints.
+const double kMaxIndexCost{1000000};
+
 static inline std::string opString(unsigned char op) {
   switch (op) {
   case EQUALS:
@@ -290,8 +293,10 @@ static void plan(const std::string& output) {
 int xOpen(sqlite3_vtab* tab, sqlite3_vtab_cursor** ppCursor) {
   auto* pCur = new BaseCursor;
   auto* pVtab = (VirtualTable*)tab;
-  plan("Opening cursor (" + std::to_string(kPlannerCursorID) +
-       ") for table: " + pVtab->content->name);
+  if (FLAGS_planner) {
+    plan("xOpen Opening cursor (" + std::to_string(kPlannerCursorID) +
+         ") for table: " + pVtab->content->name);
+  }
   pCur->id = kPlannerCursorID++;
   pCur->base.pVtab = tab;
   *ppCursor = (sqlite3_vtab_cursor*)pCur;
@@ -706,11 +711,11 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   // Expect this index to correspond with argv within xFilter.
   size_t expr_index = 0;
   // If any constraints are unusable increment the cost of the index.
-  double cost = 1000000;
+  double cost = kMaxIndexCost;
 
   // Tables may have requirements or use indexes.
-  size_t numRequiredColumns = 0;
-  size_t numRequiredConstraints = 0;
+  bool hasRequiredColumns = false;
+  bool hasRequiredConstraints = false;
 
   // Expressions operating on the same virtual table are loosely identified by
   // the consecutive sets of terms each of the constraint sets are applied onto.
@@ -747,7 +752,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       // Check if this constraint is on an index or required column.
       const auto& options = std::get<2>(columns[constraint_info.iColumn]);
       if (options & ColumnOptions::REQUIRED) {
-        numRequiredConstraints++;
+        hasRequiredConstraints = true;
         cost = 1;
       } else if (options & (ColumnOptions::INDEX | ColumnOptions::ADDITIONAL)) {
         cost = 1;
@@ -782,7 +787,6 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   }
 
   // track columns used
-
   UsedColumns colsUsed;
   UsedColumnsBitset colsUsedBitset(pIdxInfo->colUsed);
   if (colsUsedBitset.any()) {
@@ -792,24 +796,31 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       // column is used.
 
       auto bit = i < 63 ? i : 63U;
-      if (colsUsedBitset[bit]) {
-        auto column_name = std::get<0>(columns[i]);
+      if (!colsUsedBitset[bit]) {
+        continue;
+      }
 
-        if (pVtab->content->aliases.count(column_name)) {
-          colsUsedBitset.reset(bit);
-          auto real_column_index = pVtab->content->aliases[column_name];
-          bit = real_column_index < 63 ? real_column_index : 63U;
-          colsUsedBitset.set(bit);
-          column_name = std::get<0>(columns[real_column_index]);
-        }
-        colsUsed.insert(column_name);
+      auto column_name = std::get<0>(columns[i]);
+      if (pVtab->content->aliases.count(column_name)) {
+        colsUsedBitset.reset(bit);
+        auto real_column_index = pVtab->content->aliases[column_name];
+        bit = real_column_index < 63 ? real_column_index : 63U;
+        colsUsedBitset.set(bit);
+        column_name = std::get<0>(columns[real_column_index]);
+      }
+      colsUsed.insert(column_name);
 
-        const auto& options = std::get<2>(columns[i]);
-        if (options & ColumnOptions::REQUIRED) {
-          numRequiredColumns++;
-        }
+      const auto& options = std::get<2>(columns[i]);
+      if (options & ColumnOptions::REQUIRED) {
+        hasRequiredColumns = true;
       }
     }
+  }
+
+  // Return max-cost if a required constraint is not present.
+  // For example, you can't do a hash of a file if path not provided.
+  if (hasRequiredColumns && !hasRequiredConstraints) {
+    cost = kMaxIndexCost;
   }
 
   pIdxInfo->idxNum = static_cast<int>(kConstraintIndexID++);
@@ -824,13 +835,6 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   pVtab->content->colsUsed[pIdxInfo->idxNum] = std::move(colsUsed);
   pVtab->content->colsUsedBitsets[pIdxInfo->idxNum] = colsUsedBitset;
   pIdxInfo->estimatedCost = cost;
-
-  // Return error if required constraint not present.
-  // For example, you can't do a hash of a file if path not provided.
-
-  if (numRequiredColumns > 0 && numRequiredConstraints <= 0) {
-    return SQLITE_CONSTRAINT;
-  }
 
   return SQLITE_OK;
 }
@@ -889,12 +893,12 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
 
 // Filtering between cursors happens iteratively, not consecutively.
 // If there are multiple sets of constraints, they apply to each cursor.
-#if defined(DEBUG)
-  plan("Filtering called for table: " + content->name +
-       " [constraint_count=" + std::to_string(content->constraints.size()) +
-       " argc=" + std::to_string(argc) + " idx=" + std::to_string(idxNum) +
-       "]");
-#endif
+  if (FLAGS_planner) {
+    plan("xFilter Filtering called for table: " + content->name +
+         " [constraint_count=" + std::to_string(content->constraints.size()) +
+         " argc=" + std::to_string(argc) + " idx=" + std::to_string(idxNum) +
+         "]");
+  }
 
   // Iterate over every argument to xFilter, filling in constraint values.
   if (content->constraints.size() > 0) {
@@ -909,9 +913,11 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
         // Set the expression from SQLite's now-populated argv.
         auto& constraint = constraints[i];
         constraint.second.expr = std::string(expr);
-        plan("Adding constraint to cursor (" + std::to_string(pCur->id) +
-             "): " + constraint.first + " " + opString(constraint.second.op) +
-             " " + constraint.second.expr);
+        if (FLAGS_planner) {
+          plan("xFilter Adding constraint to cursor (" +
+               std::to_string(pCur->id) + "): " + constraint.first + " " +
+               opString(constraint.second.op) + " " + constraint.second.expr);
+        }
         // Add the constraint to the column-sorted query request map.
         context.constraints[constraint.first].add(constraint.second);
       }
@@ -999,7 +1005,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   pCur->n = pCur->rows.size();
 
   if (FLAGS_planner) {
-    plan(pVtab->content->name +
+    plan("xFilter " + pVtab->content->name +
          " generate returned row count:" + std::to_string(pCur->n));
   }
 
