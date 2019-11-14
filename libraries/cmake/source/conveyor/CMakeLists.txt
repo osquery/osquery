@@ -13,6 +13,12 @@ function(conveyorMain)
     "${library_root}/src/conveyor.cpp"
   )
 
+  if (PLATFORM_WINDOWS)
+    set_source_files_properties(
+      "${library_root}/src/conveyor.cpp"
+    PROPERTIES COMPILE_FLAGS -DWINDOWS
+  )
+
   target_sources(thirdparty_conveyor PRIVATE
     "${library_root}/src/conveyor.cpp"
   )
