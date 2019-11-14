@@ -11,8 +11,8 @@
 #include <bsm/libbsm.h>
 
 #include <iostream>
-#include <stdio.h>
 #include <libproc.h>
+#include <stdio.h>
 
 #include <osquery/events.h>
 #include <osquery/events/darwin/openbsm.h>
@@ -28,8 +28,7 @@ FLAG(bool,
      false,
      "Allow the audit publisher to install socket-related rules");
 
-static std::string getIpFromToken(const tokenstr_t &tok)
-{
+static std::string getIpFromToken(const tokenstr_t& tok) {
   char ip_str[INET6_ADDRSTRLEN];
   if (tok.tt.sockinet_ex32.family == 2) {
     struct in_addr ipv4;
@@ -48,7 +47,7 @@ static std::string getPathFromPid(int pid) {
 
   ret = proc_pidpath(pid, pathbuf, sizeof(pathbuf));
   if (ret > 0) {
-    return (std::string) pathbuf;
+    return (std::string)pathbuf;
   } else {
     return "";
   }
@@ -74,16 +73,12 @@ class OpenBSMNetEvSubscriber : public EventSubscriber<OpenBSMEventPublisher> {
 REGISTER(OpenBSMNetEvSubscriber, "event_subscriber", "socket_events");
 
 void OpenBSMNetEvSubscriber::configure() {
-  std::vector<size_t> event_ids{
-      AUE_CONNECT,
-      AUE_BIND
-  };
+  std::vector<size_t> event_ids{AUE_CONNECT, AUE_BIND};
   for (const auto& evid : event_ids) {
     auto sc = createSubscriptionContext();
     sc->event_id = evid;
     subscribe(&OpenBSMNetEvSubscriber::Callback, sc);
   }
-
 }
 
 Status OpenBSMNetEvSubscriber::Callback(
@@ -93,7 +88,6 @@ Status OpenBSMNetEvSubscriber::Callback(
   uint32_t pid = 0;
 
   for (const auto& tok : ec->tokens) {
-
     if (tok.id != AUT_SOCKUNIX) {
       switch (tok.id) {
       case AUT_HEADER32:
@@ -157,7 +151,7 @@ Status OpenBSMNetEvSubscriber::Callback(
         pid = tok.tt.subj32_ex.pid;
         break;
       case AUT_RETURN32: {
-        if(tok.tt.ret32.ret == 0) {
+        if (tok.tt.ret32.ret == 0) {
           r["success"] = INTEGER(1);
         } else {
           r["success"] = INTEGER(0);
@@ -165,7 +159,7 @@ Status OpenBSMNetEvSubscriber::Callback(
         break;
       }
       case AUT_RETURN64: {
-        if(tok.tt.ret64.val == 0) {
+        if (tok.tt.ret64.val == 0) {
           r["success"] = INTEGER(1);
         } else {
           r["success"] = INTEGER(0);
@@ -228,4 +222,4 @@ Status OpenBSMNetEvSubscriber::Callback(
   return Status(0);
 }
 
-}
+} // namespace osquery
