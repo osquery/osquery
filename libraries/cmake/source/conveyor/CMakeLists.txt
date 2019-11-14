@@ -17,7 +17,8 @@ function(conveyorMain)
     set_source_files_properties(
       "${library_root}/src/conveyor.cpp"
     PROPERTIES COMPILE_FLAGS -DWINDOWS
-  )
+    )
+  endif()
 
   target_sources(thirdparty_conveyor PRIVATE
     "${library_root}/src/conveyor.cpp"
