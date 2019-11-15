@@ -16,7 +16,7 @@ Note: the recommended system memory for building osquery is at least 8GB, or Cla
 
 ## Linux
 
-The root folder is assumed to be `/home/<user>`
+The root folder is assumed to be `/home/<user>`.
 
 **Ubuntu 18.04/18.10**
 
@@ -59,6 +59,8 @@ brew install git cmake python@2 python
 
 **Step 2: Download and build**
 
+A macOS 10.11 deployment target is selected in this example.
+
 ```bash
 # Download source
 git clone https://github.com/osquery/osquery
@@ -66,7 +68,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake ..
+cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 ..
 
 # Build
 cmake --build .
