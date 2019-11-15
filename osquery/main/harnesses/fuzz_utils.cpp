@@ -16,7 +16,7 @@ int osqueryFuzzerInitialize(int* argc, char*** argv) {
   osquery::registryAndPluginInit();
   osquery::DatabasePlugin::setAllowOpen(true);
   osquery::Registry::get().setActive("database", "ephemeral");
-  osquery::DatabasePlugin::initPlugin().ok();
+  osquery::DatabasePlugin::initPlugin();
 
   osquery::PluginRequest r;
   r["action"] = "detach";
