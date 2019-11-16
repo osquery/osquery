@@ -36,20 +36,19 @@ Status processRequest(Row& r) {
     request << osquery::http::Request::Header("User-Agent", r["user_agent"]);
 
     // Measure the rtt using the system clock
-    std::chrono::time_point<std::chrono::system_clock> start =
-        std::chrono::system_clock::now();
-    response = client_.get(request);
-    std::chrono::time_point<std::chrono::system_clock> end =
-        std::chrono::system_clock::now();
+    auto time_start = std::chrono::system_clock::now();
+    response = client.get(request);
+    auto time_end = std::chrono::system_clock::now();
 
-    r["response_code"] = INTEGER(static_cast<int>(response_.status()));
-    r["round_trip_time"] = BIGINT(
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start)
-            .count());
-    r["result"] = response_.body();
+    r["response_code"] = INTEGER(static_cast<int>(response.status()));
+    r["round_trip_time"] =
+        BIGINT(std::chrono::duration_cast<std::chrono::microseconds>(time_end -
+                                                                     time_start)
+                   .count());
+    r["result"] = response.body();
     r["bytes"] = BIGINT(r["result"].size());
   } catch (const std::exception& e) {
-    return Status(1, e.what());
+    return Status::failure(e.what());
   }
 
   return Status::success();
