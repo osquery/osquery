@@ -10,6 +10,7 @@
 // Keep it on top of all other includes to fix double include WinSock.h header file
 // which is windows specific boost build problem
 #include <osquery/remote/http_client.h>
+#include <osquery/remote/transports/tls.h>
 // clang-format on
 
 #include <chrono>
@@ -27,17 +28,17 @@ const std::string kOsqueryUserAgent{"osquery"};
 
 Status processRequest(Row& r) {
   try {
-    osquery::http::Client client_;
-    osquery::http::Response response_;
-    osquery::http::Request request_(r["url"]);
+    osquery::http::Client client(TLSTransport().getOptions());
+    osquery::http::Response response;
+    osquery::http::Request request(r["url"]);
 
     // Change the user-agent for the request to be osquery
-    request_ << osquery::http::Request::Header("User-Agent", r["user_agent"]);
+    request << osquery::http::Request::Header("User-Agent", r["user_agent"]);
 
     // Measure the rtt using the system clock
     std::chrono::time_point<std::chrono::system_clock> start =
         std::chrono::system_clock::now();
-    response_ = client_.get(request_);
+    response = client_.get(request);
     std::chrono::time_point<std::chrono::system_clock> end =
         std::chrono::system_clock::now();
 

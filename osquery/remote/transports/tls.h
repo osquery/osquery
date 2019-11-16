@@ -76,6 +76,22 @@ class TLSTransport : public Transport {
  public:
   TLSTransport();
 
+  /**
+   * This returns the restrictive (best practice) set of options.
+   * They include a limited cipher suite as well as the potential client
+   * certificates.
+   *
+   * Use these options with a TLS client communicating with osquery-related
+   * infrastructure.
+   */
+  http::Client::Options getInternalOptions();
+
+  /**
+   * This returns basic/generial options.
+   *
+   * Use these options if you are communicating with AWS or generic Internet
+   * infrastrucutre.
+   */
   http::Client::Options getOptions();
 
  private:
