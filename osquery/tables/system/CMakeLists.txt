@@ -270,6 +270,7 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_POSIX)
     set(platform_public_header_files
+      posix/apt_sources.h
       posix/known_hosts.h
       posix/shell_history.h
       posix/sudoers.h

@@ -33,10 +33,10 @@ TEST_F(AptSourcesTest, test_sanity) {
         {"name", NonEmptyString},
         {"source", FileOnDisk},
         {"base_uri", NonEmptyString},
-        {"release", NonEmptyString},
-        {"version", NonEmptyString},
+        {"release", NormalType},
+        {"version", NormalType},
         {"maintainer", NonEmptyString},
-        {"components", NonEmptyString},
+        {"components", NormalType},
         {"architectures", NonEmptyString},
     };
     validate_rows(data, row_map);
