@@ -166,7 +166,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     if (socketExists(path)) {
       try {
         // Create a client with a 10-second receive timeout.
-        ExtensionManagerClient client(path, 10 * 1000);
+        ExtensionManagerClient client(path, 1);
         auto status = client.ping();
         return Status::success();
       } catch (const std::exception& /* e */) {
@@ -312,6 +312,10 @@ void ExtensionManagerWatcher::watch() {
 }
 
 void initShellSocket(const std::string& homedir) {
+  if (FLAGS_disable_extensions) {
+    return;
+  }
+
   if (!Flag::isDefault("extensions_socket")) {
     return;
   }
