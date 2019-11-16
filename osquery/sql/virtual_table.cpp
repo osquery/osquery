@@ -951,6 +951,10 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     context.colsUsed = content->colsUsed[idxNum];
   }
 
+  // Reset the virtual table contents.
+  pCur->rows.clear();
+  options.clear();
+
   if (!user_based_satisfied) {
     LOG(WARNING) << "The " << pVtab->content->name
                  << " table returns data based on the current user by default, "
@@ -965,15 +969,17 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   }
 
   // Provide a helpful reference to table documentation within the shell.
-  if (Initializer::isShell() &&
-      (!user_based_satisfied || !required_satisfied || !events_satisfied)) {
-    LOG(WARNING) << "Please see the table documentation: "
-                 << table_doc(pVtab->content->name);
-  }
+  if ((!user_based_satisfied || !required_satisfied || !events_satisfied)) {
+    if (Initializer::isShell()) {
+      LOG(WARNING) << "Please see the table documentation: "
+                   << table_doc(pVtab->content->name);
+    }
 
-  // Reset the virtual table contents.
-  pCur->rows.clear();
-  options.clear();
+    // Return early if constraints do not make sense.
+    if (!required_satisfied) {
+      return SQLITE_CONSTRAINT;
+    }
+  }
 
   // Generate the row data set.
   plan("Scanning rows for cursor (" + std::to_string(pCur->id) + ")");
