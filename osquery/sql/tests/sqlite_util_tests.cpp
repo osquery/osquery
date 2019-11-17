@@ -214,6 +214,12 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   ASSERT_FALSE(status.ok());
 }
 
+TEST_F(SQLiteUtilTests, test_get_query_tables_failed) {
+  auto dbc = getTestDBC();
+  QueryDataTyped results;
+  EXPECT_FALSE(queryInternal("SELECT * FROM file", results, dbc).ok());
+}
+
 TEST_F(SQLiteUtilTests, test_get_query_tables) {
   std::string query =
       "SELECT * FROM time, osquery_info, (SELECT * FROM users) ff GROUP BY pid";
