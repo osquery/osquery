@@ -81,7 +81,8 @@ void genSingleVariable(const io_registry_entry_t& options,
     return;
   }
 
-  auto value = IORegistryEntryCreateCFProperty(options, name, 0, 0);
+  auto value =
+      IORegistryEntryCreateCFProperty(options, name, kCFAllocatorDefault, 0);
   CFRelease(name);
   if (value == nullptr) {
     LOG(INFO) << "Cannot find NVRAM variable: " << key;
@@ -115,7 +116,7 @@ QueryData genNVRAM(QueryContext& context) {
 
   // NVRAM registry entry is :/options.
   auto options = IORegistryEntryFromPath(master_port, kIODTOptionsPath.c_str());
-  if (options == 0) {
+  if (options == MACH_PORT_NULL) {
     VLOG(1) << "NVRAM is not supported on this system";
     return {};
   }
@@ -129,7 +130,8 @@ QueryData genNVRAM(QueryContext& context) {
         }));
   } else {
     CFMutableDictionaryRef options_dict;
-    kr = IORegistryEntryCreateCFProperties(options, &options_dict, 0, 0);
+    kr = IORegistryEntryCreateCFProperties(
+        options, &options_dict, kCFAllocatorDefault, 0);
     if (kr != KERN_SUCCESS) {
       VLOG(1) << "Could not get NVRAM properties";
     } else {
