@@ -312,6 +312,10 @@ void ExtensionManagerWatcher::watch() {
 }
 
 void initShellSocket(const std::string& homedir) {
+  if (FLAGS_disable_extensions) {
+    return;
+  }
+
   if (!Flag::isDefault("extensions_socket")) {
     return;
   }
