@@ -55,6 +55,4 @@ attributes(
   # Set utility if this table should be built into the osquery-SDK (core).
   # Utility tables are mostly reserved for osquery meta-information.
   utility=False,
-  # Set kernel_required if an osquery kernel extension/module/driver is needed.
-  kernel_required=False
 )

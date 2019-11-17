@@ -79,7 +79,7 @@ TABLE_ATTRIBUTES = {
     "user_data": "USER_BASED",
     "cacheable": "CACHEABLE",
     "utility": "UTILITY",
-    "kernel_required": "KERNEL_REQUIRED",
+    "kernel_required": "KERNEL_REQUIRED", # Deprecated
 }
 
 

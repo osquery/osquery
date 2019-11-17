@@ -192,7 +192,7 @@ enum class TableAttributes {
   /// This table inspect items relative to each user, a JOIN may be required.
   USER_BASED = 8,
 
-  /// This table's data requires an osquery kernel extension/module.
+  /// (Deprecated) This table's data requires an osquery kernel module.
   KERNEL_REQUIRED = 16,
 };
 

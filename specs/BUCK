@@ -397,10 +397,6 @@ osquery_gentable_cxx_library(
             "linux",
         ),
         (
-            "linux/kernel_integrity.table",
-            "linux",
-        ),
-        (
             "linux/elf_sections.table",
             "linux",
         ),
