@@ -1,7 +1,7 @@
 table_name("nvram")
 description("Apple NVRAM variable listing.")
 schema([
-    Column("name", TEXT, "Variable name"),
+    Column("name", TEXT, "Variable name", additional=True, index=True),
     Column("type", TEXT, "Data type (CFData, CFString, etc)"),
     Column("value", TEXT, "Raw variable data"),
 ])

@@ -28,7 +28,7 @@ std::string stringFromCFData(const CFDataRef& cf_data) {
     uint8_t byte = buffer[i];
     if (isprint(byte)) {
       result << byte;
-    } else if (buffer[i] == 0) {
+    } else if (range.length > 1 && buffer[i] == 0) {
       result << ' ';
     } else {
       result << '%' << std::setfill('0') << std::setw(2) << std::hex
