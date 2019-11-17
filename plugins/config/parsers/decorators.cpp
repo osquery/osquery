@@ -187,7 +187,7 @@ void DecoratorsConfigParserPlugin::updateDecorations(const std::string& source,
   }
 
   const auto& interval = doc.doc()[interval_key];
-  if (interval.IsObject()) {
+  if (!interval.IsObject()) {
     LOG(WARNING)
         << "Invalid decorator interval configuration in config source: "
         << source;
