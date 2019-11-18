@@ -25,12 +25,6 @@ function(generateOsqueryCore)
     watcher.cpp
   )
 
-  if(DEFINED PLATFORM_MACOS)
-    list(APPEND source_files
-      darwin/bsd_file_flags.cpp
-    )
-  endif()
-
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
       posix/initializer.cpp

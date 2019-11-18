@@ -20,6 +20,12 @@ function(generateOsqueryFilesystem)
     filesystem.cpp
   )
 
+  if(DEFINED PLATFORM_MACOS)
+    list(APPEND source_files
+      darwin/bsd_file_flags.cpp
+    )
+  endif()
+
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
       posix/fileops.cpp
@@ -101,7 +107,10 @@ function(generateOsqueryFilesystemTest)
   )
 
   if(DEFINED PLATFORM_MACOS)
-    list(APPEND source_files tests/darwin/plist_tests.cpp)
+    list(APPEND source_files 
+        tests/darwin/plist_tests.cpp
+        tests/darwin/bsd_file_flags_tests.cpp
+        )
   endif()
 
   add_osquery_executable(osquery_filesystem_filesystemtests-test ${source_files})

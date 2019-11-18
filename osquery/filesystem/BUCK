@@ -45,6 +45,12 @@ osquery_cxx_library(
             ],
         ),
         (
+            MACOSX,
+            [
+                "darwin/bsd_file_flags.cpp",
+            ],
+        ),
+        (
             LINUX,
             [
                 "linux/mem.cpp",
@@ -104,7 +110,8 @@ osquery_cxx_test(
     platform_srcs = [
         (
             MACOSX,
-            ["tests/darwin/plist_tests.cpp"],
+            ["tests/darwin/plist_tests.cpp",
+             "tests/darwin/bsd_file_flags_tests.cpp"],
         ),
     ],
     visibility = ["PUBLIC"],
