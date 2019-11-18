@@ -17,7 +17,7 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
     return()
   endif()
 
-  find_package(Git REQUIRED)
+  findGit()
 
   if(no_recursive)
     set(optional_recursive_arg "")
@@ -75,7 +75,7 @@ function(patchSubmoduleSourceCode library_name patches_dir source_dir apply_to_d
     return()
   endif()
 
-  find_package(Git REQUIRED)
+  findGit()
 
   # We patch the submodule before moving it to the binary folder
   # because if git apply working directory is inside a repository or submodule

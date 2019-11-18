@@ -17,7 +17,7 @@ function(detectOsqueryVersion)
   set(osquery_version 0.0.0)
 
   if(NOT OSQUERY_VERSION)
-    find_package(Git REQUIRED)
+    findGit()
 
     execute_process(
       COMMAND "${GIT_EXECUTABLE}" describe --tags --always --dirty

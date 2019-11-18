@@ -366,3 +366,55 @@ function(copyInterfaceTargetFlagsTo destination_target source_target mode)
   target_compile_definitions(${destination_target} ${mode} ${dest_compile_definitions_list})
   target_link_options(${destination_target} ${mode} ${dest_link_options_list})
 endfunction()
+
+function(getGitVersion git_path)
+  execute_process(COMMAND "${git_path}" --version
+    RESULT_VARIABLE git_command_result
+    OUTPUT_VARIABLE git_output
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+
+  if(NOT ${git_command_result} EQUAL 0)
+    set(GIT_VERSION_STRING "GIT_VERSION_STRING-NOTFOUND" PARENT_SCOPE)
+    return()
+  endif()
+
+  string(REPLACE "git version " "" current_git_version_string "${git_output}")
+
+  set(GIT_VERSION_STRING "${current_git_version_string}" PARENT_SCOPE)
+endfunction()
+
+function(findGit)
+  if(DEFINED PLATFORM_WINDOWS)
+    if(NOT DEFINED GIT_EXECUTABLE)
+      set(git_path "C:\\Program Files\\Git\\cmd\\git.exe")
+
+      if(EXISTS "${git_path}")
+        getGitVersion("${git_path}")
+
+        if("${GIT_VERSION_STRING}" STREQUAL "GIT_VERSION_STRING-NOTFOUND")
+          unset(git_path)
+        endif()
+      endif()
+
+      if(DEFINED git_path)
+        set(GIT_EXECUTABLE "${git_path}" CACHE INTERNAL "Path to git command")
+        message(STATUS "Found Git: ${git_path} (found version \"${GIT_VERSION_STRING}\")")
+      else()
+        message(FATAL_ERROR "Not found: Git, please install Git for Windows in its default path")
+      endif()
+    endif()
+
+    if(NOT DEFINED GIT_VERSION_STRING)
+      getGitVersion("${GIT_EXECUTABLE}")
+    endif()
+  else()
+    find_package(Git REQUIRED)
+  endif()
+
+  if(NOT DEFINED GIT_VERSION_STRING OR "${GIT_VERSION_STRING}" STREQUAL "GIT_VERSION_STRING-NOTFOUND")
+    message(FATAL_ERROR "Failed to get the version from git")
+  endif()
+
+  set(GIT_VERSION_STRING "${GIT_VERSION_STRING}" PARENT_SCOPE)
+endfunction()
