@@ -92,10 +92,6 @@ function(generateOsqueryCoreTestsWatcherpermissionstestsTest)
     list(APPEND source_files posix/permissions_tests.cpp)
   endif()
 
-  if(DEFINED PLATFORM_MACOS)
-    list(APPEND source_files darwin/bsd_file_flags_tests.cpp)
-  endif()
-
   add_osquery_executable(osquery_core_tests_watcherpermissionstests-test ${source_files})
 
   target_link_libraries(osquery_core_tests_watcherpermissionstests-test PRIVATE

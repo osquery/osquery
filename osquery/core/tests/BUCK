@@ -6,7 +6,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
-load("//tools/build_defs/oss/osquery:platforms.bzl", "POSIX", "MACOSX")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "POSIX")
 
 osquery_cxx_test(
     name = "flags_tests",
@@ -90,12 +90,6 @@ osquery_cxx_test(
             POSIX,
             [
                 "posix/permissions_tests.cpp",
-            ],
-        ),
-        (
-            MACOSX,
-            [
-                "darwin/bsd_file_flags_tests.cpp",
             ],
         ),
     ],
