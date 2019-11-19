@@ -19,6 +19,8 @@ namespace osquery {
 
 DECLARE_bool(disable_database);
 
+FLAG(bool, test_options_race_parser, false, "");
+
 class OptionsConfigParserPluginTests : public testing::Test {
  protected:
   void SetUp() override {
@@ -32,6 +34,24 @@ class OptionsConfigParserPluginTests : public testing::Test {
   }
 };
 
+class TestOptionsRaceParser : public ConfigParserPlugin {
+ public:
+  std::vector<std::string> keys() const override {
+    return {"before_options"};
+  }
+
+  Status setUp() override {
+    return Status::success();
+  }
+
+  Status update(const std::string&, const ParserConfig&) override {
+    if (!FLAGS_test_options_race_parser) {
+      throw std::runtime_error("The flag test_options_race_parser is false");
+    }
+    return Status::success();
+  }
+};
+
 TEST_F(OptionsConfigParserPluginTests, test_get_option) {
   Config c;
   auto s = c.update(getTestConfigMap("test_parse_items.conf"));
@@ -41,6 +61,20 @@ TEST_F(OptionsConfigParserPluginTests, test_get_option) {
   const auto& parser = c.getParser("options")->getData();
   ASSERT_FALSE(parser.doc().HasMember("options"));
 
+  c.reset();
+}
+
+TEST_F(OptionsConfigParserPluginTests, test_get_option_first) {
+  auto& rf = RegistryFactory::get();
+  auto options_race_parser = std::make_shared<TestOptionsRaceParser>();
+  rf.registry("config_parser")->add("before_options", options_race_parser);
+
+  Config c;
+  std::map<std::string, std::string> update;
+  update["options"] = "{\"options\": {\"test_options_race_parser\": true}}";
+  EXPECT_NO_THROW(c.update(update));
+
+  rf.registry("config_parser")->remove("before_options");
   c.reset();
 }
 
