@@ -25,10 +25,13 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
     set(optional_recursive_arg "--recursive")
   endif()
 
+  set(optional_depth_arg "")
   if(shallow)
-    set(optional_depth_arg "--depth=1")
-  else()
-    set(optional_depth_arg "")
+    if(GIT_VERSION_STRING VERSION_GREATER_EQUAL "2.14.0")
+      set(optional_depth_arg "--depth=1")
+    else()
+      message(WARNING "Git version >=2.14.0 is required to perform shallow clones, detected version ${GIT_VERSION_STRING}, falling back to full clones (slower).")
+    endif()
   endif()
 
   # In git versions >= 2.18.0 we need to explicitly set the protocol
