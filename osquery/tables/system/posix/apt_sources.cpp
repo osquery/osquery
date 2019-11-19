@@ -34,14 +34,17 @@ Status parseAptSourceLine(const std::string& line, AptSource& apt_source) {
   }
 
   apt_source.base_uri = comp[offset];
-
-  bool use_dists = true;
   apt_source.cache_file.push_back(comp[offset].substr(host + 3));
+  if (apt_source.cache_file[0].empty()) {
+    return Status::failure("Cache file is empty");
+  }
+
   // Cannot have trailing slashes
   while (apt_source.cache_file.back().back() == '/') {
     apt_source.cache_file.back().pop_back();
   }
 
+  bool use_dists = true;
   for (size_t i = offset + 1; i < comp.size(); i++) {
     if (comp[i][0] == '#') {
       // Stop parsing if there is a comment.

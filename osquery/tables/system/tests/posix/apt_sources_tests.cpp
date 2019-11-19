@@ -46,6 +46,11 @@ TEST_F(AptSourcesImplTests, parse_apt_source_line) {
        "https://pkg.osquery.io///",
        "pkg.osquery.io apt source",
        "pkg.osquery.io_apt_source"},
+      // trailing comments are ok
+      {"https://pkg.osquery.io deb main # main",
+       "https://pkg.osquery.io",
+       "pkg.osquery.io deb main",
+       "pkg.osquery.io_dists_deb"},
   };
 
   for (const auto& test_case : test_cases) {
@@ -60,6 +65,21 @@ TEST_F(AptSourcesImplTests, parse_apt_source_line) {
     auto cache_filename = getCacheFilename(apt_source.cache_file);
     EXPECT_EQ(cache_filename, test_case.cache_filename);
   }
+}
+
+TEST_F(AptSourcesImplTests, test_failures) {
+  AptSource apt_source;
+  auto s = parseAptSourceLine("https://", apt_source);
+  EXPECT_FALSE(s.ok()) << "Protocol-only line is invalid";
+
+  s = parseAptSourceLine("pkg.osquery.io", apt_source);
+  EXPECT_FALSE(s.ok()) << "Protocol is required";
+
+  s = parseAptSourceLine("", apt_source);
+  ASSERT_FALSE(s.ok()) << "Empty line is invalid";
+
+  s = parseAptSourceLine(" # comment https://pkg.osquery.io", apt_source);
+  ASSERT_FALSE(s.ok()) << "Comment line is invalid";
 }
 
 } // namespace tables
