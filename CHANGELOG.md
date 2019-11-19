@@ -1,3 +1,38 @@
+<a name="4.1.1"></a>
+## [4.1.1](https://github.com/osquery/osquery/releases/tag/4.1.1)
+
+[Git Commits](https://github.com/osquery/osquery/compare/4.1.0...4.1.1)
+
+### New Features / Under the Hood improvements
+
+- Improve `nvram` table to use input variable names ([#6053](https://github.com/osquery/osquery/pull/6053))
+- Improve `apt_sources` source detection ([#6047](https://github.com/osquery/osquery/pull/6047))
+- Change `atom_packages` to use user constraints ([#6052](https://github.com/osquery/osquery/pull/6052))
+- Re-enable required-column warning messages ([#6038](https://github.com/osquery/osquery/pull/6038))
+
+### Build
+
+- Migrate several libraries to the CMake source layer ([#5902](https://github.com/osquery/osquery/pull/5902)), ([#6023](https://github.com/osquery/osquery/pull/6023))
+- Update SQLite from 3.29.0-3 to 3.30.1-1 ([#6020](https://github.com/osquery/osquery/pull/6020))
+- Recommend building with MacOS 10.11 SDK ([#6000](https://github.com/osquery/osquery/pull/6000))
+
+### Hardening
+
+### Bug Fixes
+
+- Fix Linux audit incorrect read and handle leak ([#5959](https://github.com/osquery/osquery/pull/5959))
+- Change "logNumericsAsNumbers" to "numerics" logger top-level key ([#6002](https://github.com/osquery/osquery/pull/6002))
+- Restore INDEX behavior for extensions ([#6006](https://github.com/osquery/osquery/pull/6006))
+- Fix potential JSON parsing issues in ATC plugin ([#6029](https://github.com/osquery/osquery/pull/6029))
+- Avoid scanning special files with YARA ([#5971](https://github.com/osquery/osquery/pull/5971))
+- Fix use-after-move in YARA subscriber ([#6054](https://github.com/osquery/osquery/pull/6054))
+- Handle relative redirects in internal HTTP clients ([#6049](https://github.com/osquery/osquery/pull/6049))
+- Apply options config parsing before others ([#6050](https://github.com/osquery/osquery/pull/6050))
+
+### Table Changes
+
+- Added table `windows_optional_features` to Microsoft Windows [#5991](https://github.com/osquery/osquery/pull/5991))
+
 <a name="4.1.0"></a>
 ## [4.1.0](https://github.com/osquery/osquery/releases/tag/4.1.0)
 
