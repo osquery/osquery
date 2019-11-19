@@ -55,7 +55,14 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
   set(initializeGitSubmodule_IsAlreadyCloned FALSE PARENT_SCOPE)
 endfunction()
 
-function(patchSubmoduleSourceCode patches_dir source_dir apply_to_dir)
+function(patchSubmoduleSourceCode library_name patches_dir source_dir apply_to_dir)
+
+  # We need to "patch" Thrift by avoiding to copy its tutorial folder,
+  # because on Windows it contains a symlink that CMake is not able to copy.
+  if(DEFINED PLATFORM_WINDOWS AND "${library_name}" STREQUAL "thrift")
+    set(exclude_filter ".*/thrift/src/tutorial/.*")
+  endif()
+
   file(GLOB submodule_patches "${patches_dir}/*.patch")
 
   list(LENGTH submodule_patches patches_num)
@@ -86,7 +93,12 @@ function(patchSubmoduleSourceCode patches_dir source_dir apply_to_dir)
   get_filename_component(parent_dir "${apply_to_dir}" DIRECTORY)
 
   file(MAKE_DIRECTORY "${parent_dir}")
-  file(COPY "${source_dir}" DESTINATION "${parent_dir}")
+
+  if(exclude_filter)
+    file(COPY "${source_dir}" DESTINATION "${parent_dir}" REGEX "${exclude_filter}" EXCLUDE)
+  else()
+    file(COPY "${source_dir}" DESTINATION "${parent_dir}")
+  endif()
 
   # We need to restore the source code to its original state, pre patch
   execute_process(
@@ -149,6 +161,7 @@ function(importSourceSubmodule)
 
     if(NOT EXISTS "${patched_source_dir}")
       patchSubmoduleSourceCode(
+        "${ARGS_NAME}"
         "${directory_path}/patches/${submodule_to_patch}"
         "${directory_path}/${submodule_to_patch}"
         "${patched_source_dir}"
