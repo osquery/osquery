@@ -16,7 +16,7 @@ Here are some common things we look for:
 
 - The code is formatted correctly, considering using `make format_check`.
 - Common utilities within `./osquery/utils` are used where appropriate (avoid reinventions).
-- Modern C++11 structures and patterns are used where appropriate.
+- Modern C++ structures and patterns are used whenever possible.
 - No memory or file descriptor leaks, please check all early-return and destructors.
 - No explicit casting, such as `return (int)my_var`, instead use `static_cast`.
 - The minimal ammount of includes are used, only include what you use.
