@@ -19,7 +19,7 @@ Here are some common things we look for:
 - Modern C++ structures and patterns are used whenever possible.
 - No memory or file descriptor leaks, please check all early-return and destructors.
 - No explicit casting, such as `return (int)my_var`, instead use `static_cast`.
-- The minimal ammount of includes are used, only include what you use.
+- The minimal amount of includes are used, only include what you use.
 - Comments for methods, structures, and classes follow our common patterns.
 - `Status` and `LOG(N)` messages do not use punctuation or contractions.
 - Support for both CMake and BUCK (we are happy to help).
