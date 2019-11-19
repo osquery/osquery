@@ -151,7 +151,6 @@ function(generateTestsIntegrationTablesTestsTest)
       intel_me_info.cpp
       iptables.cpp
       kernel_info.cpp
-      kernel_integrity.cpp
       kernel_modules.cpp
       md_devices.cpp
       md_drives.cpp
