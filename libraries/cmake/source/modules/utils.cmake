@@ -30,7 +30,7 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
     if(GIT_VERSION_STRING VERSION_GREATER_EQUAL "2.14.0")
       set(optional_depth_arg "--depth=1")
     else()
-      message(WARNING "Git version greater than or equal to version 2.14.0 required to do shallow clone. You have ${GIT_VERSION_STRING}, falling back to full clones. Please upgrade if possible.")
+      message(WARNING "Git version >=2.14.0 is required to perform shallow clones, detected version ${GIT_VERSION_STRING}, falling back to full clones (slower).")
     endif()
   endif()
 
