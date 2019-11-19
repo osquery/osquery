@@ -40,8 +40,9 @@ TEST_F(DebPackages, test_sanity) {
     for (const auto& row : rows) {
       auto pckg_name = row.at("name");
       all_packages.insert(pckg_name);
-      if (pckg_name == "dpkg")
+      if (pckg_name == "dpkg") {
         break;
+      }
     }
 
     ASSERT_EQ(all_packages.count("dpkg"), 1u);

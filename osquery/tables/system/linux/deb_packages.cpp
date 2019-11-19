@@ -149,6 +149,11 @@ void extractDebPackageInfo(const struct pkginfo *pkg, QueryData &results) {
   }
   varbuf_destroy(&vb);
 
+  if (r.find("size") == r.end()) {
+    // Possible meta-package without an installed-size.
+    r["size"] = "0";
+  }
+
   results.push_back(r);
 }
 
