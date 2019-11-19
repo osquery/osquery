@@ -79,7 +79,7 @@ QueryData genCurl(QueryContext& context) {
 
     auto status = processRequest(r);
     if (!status.ok()) {
-      LOG(WARNING) << status.getMessage();
+      LOG(WARNING) << "Error making request: " << status.getMessage();
     }
 
     results.push_back(r);

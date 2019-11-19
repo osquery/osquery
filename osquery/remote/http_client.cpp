@@ -377,10 +377,11 @@ Response Client::sendHTTPRequest(Request& req) {
         boost::posix_time::seconds(client_options_.timeout_));
   }
 
-  bool retry_connect = false;
+  size_t redirect_attempts = 0;
+  bool init_request = true;
   do {
     bool create_connection = true;
-    if (!retry_connect) {
+    if (init_request) {
       create_connection = initHTTPRequest(req);
     }
 
@@ -412,14 +413,35 @@ Response Client::sendHTTPRequest(Request& req) {
           return Response(resp.release());
         }
 
+        if (redirect_attempts++ >= 10) {
+          throw std::runtime_error("Exceeded max of 10 redirects");
+        }
+
         std::string redir_url = Response(resp.release()).headers()["Location"];
         if (!redir_url.size()) {
           throw std::runtime_error(
               "Location header missing in redirect response");
         }
 
-        req.uri(redir_url);
         VLOG(1) << "HTTP(S) request re-directed to: " << redir_url;
+        if (redir_url[0] == '/') {
+          // Relative URI.
+          if (req.remotePort()) {
+            redir_url.insert(0, *req.remotePort());
+            redir_url.insert(0, ":");
+          }
+          if (req.remoteHost()) {
+            redir_url.insert(0, *req.remoteHost());
+          }
+          if (req.protocol()) {
+            redir_url.insert(0, "://");
+            redir_url.insert(0, *req.protocol());
+          }
+        } else {
+          // Absolute URI.
+          init_request = true;
+        }
+        req.uri(redir_url);
         break;
       }
       default:
@@ -427,8 +449,8 @@ Response Client::sendHTTPRequest(Request& req) {
       }
     } catch (std::exception const& /* e */) {
       closeSocket();
-      if (!retry_connect && ec_ != boost::asio::error::timed_out) {
-        retry_connect = true;
+      if (init_request && ec_ != boost::asio::error::timed_out) {
+        init_request = false;
       } else {
         ec_.clear();
         throw;
