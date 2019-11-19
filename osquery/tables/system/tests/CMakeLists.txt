@@ -7,46 +7,34 @@
 function(osqueryTablesSystemTestsMain)
 
   if(DEFINED PLATFORM_LINUX)
-    generateOsqueryTablesSystemTestsMdtablestestsTest()
-    generateOsqueryTablesSystemTestsPcidevicestestsTest()
-    generateOsqueryTablesSystemTestsPcidbtestsTest()
-    generateOsqueryTablesSystemTestsPortagetestsTest()
+    generateOsqueryTablesSystemLinuxTests()
   endif()
 
   if(DEFINED PLATFORM_POSIX)
-    generateOsqueryTablesSystemTestsKnownhoststestsTest()
-    generateOsqueryTablesSystemTestsShellhistorytestsTest()
-    generateOsqueryTablesSystemTestsSudoerstestsTest()
-    generateOsqueryTablesSystemTestsYumsourcestestsTest()
+    generateOsqueryTablesSystemPosixTests()
     generateOsqueryTablesSystemTestsAugeasTestsTest()
   endif()
 
   generateOsqueryTablesSystemTestsSystemtablestestsTest()
 
   if(DEFINED PLATFORM_MACOS)
-    generateOsqueryTablesSystemTestsAppstestsTest()
-    generateOsqueryTablesSystemTestsAsltestsTest()
-    generateOsqueryTablesSystemTestsMacOsCertificatestestsTest()
-    generateOsqueryTablesSystemTestsExtendedattributestestsTest()
-    generateOsqueryTablesSystemTestsFirewalltestsTest()
-    generateOsqueryTablesSystemTestsLaunchdtestsTest()
-    generateOsqueryTablesSystemTestsMdfindtestsTest()
-    generateOsqueryTablesSystemTestsProcessestestsTest()
-    generateOsqueryTablesSystemTestsSmctestsTest()
-    generateOsqueryTablesSystemTestsStartupitemstestsTest()
-    generateOsqueryTablesSystemTestsSignaturetestsTest()
+    generateOsqueryTablesSystemDarwinTests()
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
-    generateOsqueryTablesSystemTestsWindowsCertificatestestsTest()
-    generateOsqueryTablesSystemTestsRegistrytestsTest()
+    generateOsqueryTablesSystemWindowsTests()
   endif()
 endfunction()
 
-function(generateOsqueryTablesSystemTestsMdtablestestsTest)
-  add_osquery_executable(osquery_tables_system_tests_mdtablestests-test linux/md_tables_tests.cpp)
+function(generateOsqueryTablesSystemLinuxTests)
+  add_osquery_executable(osquery_tables_system_linux_tests-test
+    linux/md_tables_tests.cpp
+    linux/pci_devices_tests.cpp
+    linux/pcidb_tests.cpp
+    linux/portage_tests.cpp
+  )
 
-  target_link_libraries(osquery_tables_system_tests_mdtablestests-test PRIVATE
+  target_link_libraries(osquery_tables_system_linux_tests-test PRIVATE
     osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
@@ -62,124 +50,16 @@ function(generateOsqueryTablesSystemTestsMdtablestestsTest)
   )
 endfunction()
 
-function(generateOsqueryTablesSystemTestsPcidevicestestsTest)
-  add_osquery_executable(osquery_tables_system_tests_pcidevicestests-test linux/pci_devices_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_pcidevicestests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
+function(generateOsqueryTablesSystemPosixTests)
+  add_osquery_executable(osquery_tables_system_posix_tests-test
+    posix/apt_sources_tests.cpp
+    posix/known_hosts_tests.cpp
+    posix/shell_history_tests.cpp
+    posix/sudoers_tests.cpp
+    posix/yum_sources_tests.cpp
   )
-endfunction()
 
-function(generateOsqueryTablesSystemTestsPcidbtestsTest)
-  add_osquery_executable(osquery_tables_system_tests_pcidbtests-test linux/pcidb_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_pcidbtests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsPortagetestsTest)
-  add_osquery_executable(osquery_tables_system_tests_portagetests-test linux/portage_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_portagetests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsKnownhoststestsTest)
-  add_osquery_executable(osquery_tables_system_tests_knownhoststests-test posix/known_hosts_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_knownhoststests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsShellhistorytestsTest)
-  add_osquery_executable(osquery_tables_system_tests_shellhistorytests-test posix/shell_history_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_shellhistorytests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsSudoerstestsTest)
-  add_osquery_executable(osquery_tables_system_tests_sudoerstests-test posix/sudoers_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_sudoerstests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsYumsourcestestsTest)
-  add_osquery_executable(osquery_tables_system_tests_yumsourcestests-test posix/yum_sources_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_yumsourcestests-test PRIVATE
+  target_link_libraries(osquery_tables_system_posix_tests-test PRIVATE
     osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
@@ -196,7 +76,9 @@ function(generateOsqueryTablesSystemTestsYumsourcestestsTest)
 endfunction()
 
 function(generateOsqueryTablesSystemTestsSystemtablestestsTest)
-  add_osquery_executable(osquery_tables_system_tests_systemtablestests-test system_tables_tests.cpp)
+  add_osquery_executable(osquery_tables_system_tests_systemtablestests-test
+    system_tables_tests.cpp
+  )
 
   target_link_libraries(osquery_tables_system_tests_systemtablestests-test PRIVATE
     osquery_cxx_settings
@@ -214,10 +96,22 @@ function(generateOsqueryTablesSystemTestsSystemtablestestsTest)
   )
 endfunction()
 
-function(generateOsqueryTablesSystemTestsAppstestsTest)
-  add_osquery_executable(osquery_tables_system_tests_appstests-test darwin/apps_tests.cpp)
+function(generateOsqueryTablesSystemDarwinTests)
+  add_osquery_executable(osquery_tables_system_darwin_tests-test
+    darwin/apps_tests.cpp
+    darwin/asl_tests.cpp
+    darwin/certificates_tests.cpp
+    darwin/extended_attributes_tests.cpp
+    darwin/firewall_tests.cpp
+    darwin/launchd_tests.cpp
+    darwin/mdfind_tests.cpp
+    darwin/processes_tests.cpp
+    darwin/smc_tests.cpp
+    darwin/startup_items_tests.cpp
+    darwin/signature_tests.mm
+  )
 
-  target_link_libraries(osquery_tables_system_tests_appstests-test PRIVATE
+  target_link_libraries(osquery_tables_system_darwin_tests-test PRIVATE
     osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
@@ -231,32 +125,17 @@ function(generateOsqueryTablesSystemTestsAppstestsTest)
     plugins_database_ephemeral
     thirdparty_googletest
     osquery_tools_tests_plistfiles
+    osquery_tools_tests_testfiles
   )
 endfunction()
 
-function(generateOsqueryTablesSystemTestsAsltestsTest)
-  add_osquery_executable(osquery_tables_system_tests_asltests-test darwin/asl_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_asltests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
+function(generateOsqueryTablesSystemWindowsTests)
+  add_osquery_executable(osquery_tables_system_windows_tests-test
+    windows/certificates_tests.cpp
+    windows/registry_tests.cpp
   )
-endfunction()
 
-function(generateOsqueryTablesSystemTestsMacOsCertificatestestsTest)
-  add_osquery_executable(osquery_tables_system_tests_certificatestests-test darwin/certificates_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_certificatestests-test PRIVATE
+  target_link_libraries(osquery_tables_system_windows_tests-test PRIVATE
     osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
@@ -270,203 +149,13 @@ function(generateOsqueryTablesSystemTestsMacOsCertificatestestsTest)
     plugins_database_ephemeral
     thirdparty_googletest
     osquery_tools_tests_testfiles
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsExtendedattributestestsTest)
-  add_osquery_executable(osquery_tables_system_tests_extendedattributestests-test darwin/extended_attributes_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_extendedattributestests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-    osquery_tools_tests_testfiles
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsFirewalltestsTest)
-  add_osquery_executable(osquery_tables_system_tests_firewalltests-test darwin/firewall_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_firewalltests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-    osquery_tools_tests_plistfiles
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsLaunchdtestsTest)
-  add_osquery_executable(osquery_tables_system_tests_launchdtests-test darwin/launchd_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_launchdtests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-    osquery_tools_tests_plistfiles
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsMdfindtestsTest)
-  add_osquery_executable(osquery_tables_system_tests_mdfindtests-test darwin/mdfind_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_mdfindtests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsProcessestestsTest)
-  add_osquery_executable(osquery_tables_system_tests_processestests-test darwin/processes_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_processestests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsSmctestsTest)
-  add_osquery_executable(osquery_tables_system_tests_smctests-test darwin/smc_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_smctests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsStartupitemstestsTest)
-  add_osquery_executable(osquery_tables_system_tests_startupitemstests-test darwin/startup_items_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_startupitemstests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-    osquery_tools_tests_plistfiles
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsSignaturetestsTest)
-  add_osquery_executable(osquery_tables_system_tests_signaturetests-test darwin/signature_tests.mm)
-
-  target_link_libraries(osquery_tables_system_tests_signaturetests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsWindowsCertificatestestsTest)
-  add_osquery_executable(osquery_tables_system_tests_certificatestests-test windows/certificates_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_certificatestests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryTablesSystemTestsRegistrytestsTest)
-  add_osquery_executable(osquery_tables_system_tests_registrytests-test windows/registry_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_registrytests-test PRIVATE
-    osquery_cxx_settings
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_headers
-    osquery_remote_enroll_tlsenroll
-    osquery_tables_system_systemtable
-    plugins_database_ephemeral
-    tests_helper
-    thirdparty_boost
-    thirdparty_googletest
   )
 endfunction()
 
 function(generateOsqueryTablesSystemTestsAugeasTestsTest)
-  add_osquery_executable(osquery_tables_system_tests_augeastests-test posix/augeas_tests.cpp)
+  add_osquery_executable(osquery_tables_system_tests_augeastests-test
+    posix/augeas_tests.cpp
+  )
 
   target_link_libraries(osquery_tables_system_tests_augeastests-test PRIVATE
     osquery_cxx_settings
