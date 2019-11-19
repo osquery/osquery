@@ -196,6 +196,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/users.cpp
       windows/video_info.cpp
       windows/windows_crashes.cpp
+      windows/windows_optional_features.cpp
       windows/windows_security_products.cpp
       windows/wmi_bios_info.cpp
       windows/wmi_cli_event_consumers.cpp

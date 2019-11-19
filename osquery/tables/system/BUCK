@@ -285,6 +285,7 @@ osquery_cxx_library(
                 "windows/users.cpp",
                 "windows/video_info.cpp",
                 "windows/windows_crashes.cpp",
+                "windows/windows_optional_features.cpp",
                 "windows/wmi_bios_info.cpp",
                 "windows/wmi_cli_event_consumers.cpp",
                 "windows/wmi_event_filters.cpp",
