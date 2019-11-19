@@ -9,16 +9,16 @@ function(osqueryMainHarnesses)
     message( FATAL_ERROR "If fuzzing is enabled, a sanitizer must be chosen. (Currently only OSQUERY_ENABLE_ADDRESS_SANITIZER is available.)" )
   endif()
 
-  if(OSQUERY_ENABLE_FUZZER_SANITIZERS AND (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Release" AND NOT "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
+  if(OSQUERY_ENABLE_FUZZER_SANITIZERS AND
+      (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Release" AND NOT "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
     message( FATAL_ERROR "If fuzzing is enabled, it must be built in Release or RelWithDebInfo" )
   endif()
 
-  generateOsqueryFuzzHarnesses()
+  add_osquery_library(osquery_harnesses EXCLUDE_FROM_ALL
+    fuzz_utils.cpp
+  )
 
-endfunction()
-
-function(generateOsqueryFuzzHarnesses)
-  set(fuzzing_libraries
+  target_link_libraries(osquery_harnesses PUBLIC
     osquery_cxx_settings
     osquery_headers
     osquery_core
@@ -55,15 +55,21 @@ function(generateOsqueryFuzzHarnesses)
     specs_tables
   )
 
-  add_osquery_executable(osqueryfuzz-config fuzz_config.cpp)
-  set_target_properties(osqueryfuzz-config PROPERTIES POSITION_INDEPENDENT_CODE true)
-  target_link_libraries(osqueryfuzz-config PRIVATE ${fuzzing_libraries})
-  target_link_options(osqueryfuzz-config PRIVATE -fsanitize=fuzzer)
+  set(public_header_files
+    fuzz_utils.h
+  )
 
-  add_osquery_executable(osqueryfuzz-sqlquery fuzz_sqlquery.cpp)
-  set_target_properties(osqueryfuzz-sqlquery PROPERTIES POSITION_INDEPENDENT_CODE true)
-  target_link_libraries(osqueryfuzz-sqlquery PRIVATE ${fuzzing_libraries})
-  target_link_options(osqueryfuzz-sqlquery PRIVATE -fsanitize=fuzzer)
+  generateIncludeNamespace(osquery_harnesses "osquery/main/harnesses" "FILE_ONLY" ${public_header_files})
+
+  generateOsqueryFuzzHarness(osqueryfuzz-config fuzz_config.cpp)
+  generateOsqueryFuzzHarness(osqueryfuzz-sqlquery fuzz_sqlquery.cpp)
+endfunction()
+
+function(generateOsqueryFuzzHarness harness_name source_files)
+  add_osquery_executable(${harness_name} ${source_files})
+  set_target_properties(${harness_name} PROPERTIES POSITION_INDEPENDENT_CODE true)
+  target_link_libraries(${harness_name} PRIVATE osquery_harnesses)
+  target_link_options(${harness_name} PRIVATE -fsanitize=fuzzer)
 endfunction()
 
 osqueryMainHarnesses()
