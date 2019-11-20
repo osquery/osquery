@@ -21,8 +21,8 @@ TEST_F(DarwinBsdFlags, testAllFlags) {
                SF_ARCHIVED | SF_IMMUTABLE | SF_APPEND;
 
   std::string expected_description =
-      "SF_APPEND, SF_IMMUTABLE, ARCHIVED, HIDDEN, OPAQUE, UF_APPEND, "
-      "UF_IMMUTABLE, NODUMP";
+      "NODUMP, UF_IMMUTABLE, UF_APPEND, OPAQUE, HIDDEN, ARCHIVED, "
+      "SF_IMMUTABLE, SF_APPEND";
 
   // The function should return true when there are no undocumented bits
   // set inside the `flags` value

@@ -7,7 +7,7 @@
  */
 
 #include <iomanip>
-#include <unordered_map>
+#include <map>
 
 #include <boost/algorithm/string/join.hpp>
 
@@ -18,7 +18,7 @@
 namespace osquery {
 namespace {
 /// The list of supported flags, as documented in `man 2 chflags`
-const std::unordered_map<std::uint32_t, std::string> kBsdFlagMap = {
+const std::map<std::uint32_t, std::string> kBsdFlagMap = {
     {UF_NODUMP, "NODUMP"},
     {UF_IMMUTABLE, "UF_IMMUTABLE"},
     {UF_APPEND, "UF_APPEND"},
