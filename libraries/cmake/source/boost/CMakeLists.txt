@@ -693,8 +693,6 @@ function(generateBoostContext)
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
-    enable_language(ASM_MASM)
-
     target_sources(thirdparty_boost_context PRIVATE
       "${library_root}/src/windows/stack_traits.cpp"
     )

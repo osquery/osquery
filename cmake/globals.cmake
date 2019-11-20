@@ -56,3 +56,7 @@ set(PACKAGING_SYSTEM "" CACHE STRING "Packaging system to generate when building
 if(DEFINED PLATFORM_WINDOWS)
   set(WIX_ROOT_FOLDER_PATH "" CACHE STRING "Root folder of the WIX installation")
 endif()
+
+if(DEFINED PLATFORM_WINDOWS)
+  enable_language(ASM_MASM)
+endif()
