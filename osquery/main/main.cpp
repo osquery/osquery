@@ -138,7 +138,7 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
     retcode = profile(argc, argv);
   }
   // Finally shutdown.
-  runner.requestShutdown();
+  runner.requestShutdown(retcode);
   return retcode;
 }
 
