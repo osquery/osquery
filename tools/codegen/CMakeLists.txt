@@ -9,6 +9,17 @@ function(toolsCodegenMain)
   generateGentable()
 endfunction()
 
+# figure out the codegen dependencies
+file(GLOB codegen_template_list "${CMAKE_SOURCE_DIR}/tools/codegen/templates/*")
+#set(codegen_template_list
+#  "${CMAKE_SOURCE_DIR}/tools/codegen/templates/amalgamation.cpp.in"
+#  "${CMAKE_SOURCE_DIR}/tools/codegen/templates/blacklist.cpp.in"
+#  "${CMAKE_SOURCE_DIR}/tools/codegen/templates/default.cpp.in"
+#  "${CMAKE_SOURCE_DIR}/tools/codegen/templates/foreign.cpp.in"
+#  "${CMAKE_SOURCE_DIR}/tools/codegen/templates/typed_row.h.in"
+#)
+
+
 # Generates a runnable gentable.py script; unfortunately, upstream has scattered
 # the required files around, so we need to piece them together
 function(generateGentable)
@@ -138,7 +149,7 @@ function(generateTables category)
       COMMAND "${CMAKE_COMMAND}" -E make_directory "${source_code_intermediate_directories}"
       COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${gentable_working_directory}${env_path_separator}${PYTHON_PATH}" "${EX_TOOL_PYTHON3_EXECUTABLE_PATH}" "${gentable_file_path}" --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${optional_foreign_parameter} "${table_spec}" "${generated_source_code}"
       WORKING_DIRECTORY "${gentable_working_directory}"
-      DEPENDS codegen_gentable "${table_spec}"
+      DEPENDS codegen_gentable "${table_spec}" ${codegen_template_list}
       COMMENT "Generating code for table ${category}/${table_name}..."
       VERBATIM
     )
@@ -148,7 +159,7 @@ function(generateTables category)
       COMMAND "${CMAKE_COMMAND}" -E make_directory "${generated_headers_folder}"
       COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${gentable_working_directory}${env_path_separator}${PYTHON_PATH}" "${EX_TOOL_PYTHON3_EXECUTABLE_PATH}" "${gentable_file_path}" --header --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${optional_foreign_parameter} "${table_spec}" "${generated_header_code}"
       WORKING_DIRECTORY "${gentable_working_directory}"
-      DEPENDS codegen_gentable "${table_spec}"
+      DEPENDS codegen_gentable "${table_spec}" ${codegen_template_list}
       COMMENT "Generating header for table ${category}/${table_name}..."
       VERBATIM
     )
@@ -199,7 +210,7 @@ function(generateTableCategoryAmalgamation category_name)
     OUTPUT "${amalgamation_file}"
     COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${PYTHON_PATH}" "${EX_TOOL_PYTHON3_EXECUTABLE_PATH}" "${CMAKE_SOURCE_DIR}/tools/codegen/amalgamate.py" --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${amalgamation_type} --sources "${generateTables_output}" --output "${amalgamation_file}"
     COMMENT "Generating amalgamation file for the ${category_name} tables..."
-    DEPENDS "${category_spec_files}" ${generateTables_targetList} "thirdparty_python_modules"
+    DEPENDS "${category_spec_files}" ${generateTables_targetList} ${codegen_template_list} "thirdparty_python_modules"
   )
 
   # Build the library
