@@ -77,6 +77,7 @@ class PlatformProcess : private boost::noncopyable {
   virtual ~PlatformProcess();
 
   PlatformProcess& operator=(const PlatformProcess& process) = delete;
+  PlatformProcess& operator=(PlatformProcess&& process) noexcept;
   bool operator==(const PlatformProcess& process) const;
   bool operator!=(const PlatformProcess& process) const;
 

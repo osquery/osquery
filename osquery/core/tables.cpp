@@ -86,28 +86,11 @@ QueryContext TablePlugin::getContextFromRequest(
 
   auto doc = JSON::newObject();
   doc.fromString(request.at("context"));
-  if (doc.doc().HasMember("colsUsed")) {
-    UsedColumns colsUsed;
-    for (const auto& columnName : doc.doc()["colsUsed"].GetArray()) {
-      colsUsed.insert(columnName.GetString());
-    }
-    context.colsUsed = colsUsed;
-  }
-  if (doc.doc().HasMember("colsUsedBitset")) {
-    context.colsUsedBitset = doc.doc()["colsUsedBitset"].GetUint64();
-  } else if (context.colsUsed) {
+
+  deserializeQueryContextJSON(doc, context);
+
+  if (!doc.doc().HasMember("colsUsedBitset") && context.colsUsed) {
     context.colsUsedBitset = usedColumnsToBitset(*context.colsUsed);
-  }
-
-  if (!doc.doc().HasMember("constraints") ||
-      !doc.doc()["constraints"].IsArray()) {
-    return context;
-  }
-
-  // Set the context limit and deserialize each column constraint list.
-  for (const auto& constraint : doc.doc()["constraints"].GetArray()) {
-    auto column_name = constraint["name"].GetString();
-    context.constraints[column_name].deserialize(constraint);
   }
 
   return context;
@@ -117,8 +100,8 @@ UsedColumnsBitset TablePlugin::usedColumnsToBitset(
     const UsedColumns usedColumns) const {
   UsedColumnsBitset result;
 
-  const auto columns = this->columns();
-  const auto aliases = this->aliasedColumns();
+  const auto& columns = this->columns();
+  const auto& aliases = this->aliasedColumns();
   for (size_t i = 0; i < columns.size(); i++) {
     auto column_name = std::get<0>(columns[i]);
     const auto& aliased_name = aliases.find(column_name);
@@ -568,4 +551,67 @@ Status QueryContext::expandConstraints(
   }
   return Status(0);
 }
+
+Status deserializeQueryContextJSON(const JSON& json_helper,
+                                   QueryContext& context) {
+  const auto& rapidjson_doc = json_helper.doc();
+
+  if (rapidjson_doc.HasMember("colsUsed")) {
+    UsedColumns cols_used;
+    for (const auto& column_name : rapidjson_doc["colsUsed"].GetArray()) {
+      cols_used.insert(column_name.GetString());
+    }
+    context.colsUsed = cols_used;
+  }
+
+  if (rapidjson_doc.HasMember("colsUsedBitset")) {
+    context.colsUsedBitset = rapidjson_doc["colsUsedBitset"].GetUint64();
+  }
+
+  if (!rapidjson_doc.HasMember("constraints")) {
+    return Status::failure(1, "Missing contraints field in JSON");
+  }
+
+  if (!rapidjson_doc["constraints"].IsArray()) {
+    return Status::failure(1, "contraints field not a JSON array");
+  }
+
+  // Set the context limit and deserialize each column constraint list.
+  for (const auto& constraint : rapidjson_doc["constraints"].GetArray()) {
+    auto column_name = constraint["name"].GetString();
+    context.constraints[column_name].deserialize(constraint);
+  }
+
+  return Status::success();
+}
+
+void serializeQueryContextJSON(const QueryContext& context, JSON& json_helper) {
+  json_helper = JSON::newObject();
+  auto constraints = json_helper.getArray();
+
+  // The QueryContext contains a constraint map from column to type information
+  // and the list of operand/expression constraints applied to that column from
+  // the query given.
+  for (const auto& constraint : context.constraints) {
+    auto child = json_helper.getObject();
+    json_helper.addRef("name", constraint.first, child);
+    constraint.second.serialize(json_helper, child);
+    json_helper.push(child, constraints);
+  }
+
+  json_helper.add("constraints", constraints);
+
+  if (context.colsUsed) {
+    auto cols_used = json_helper.getArray();
+    for (const auto& column_name : *context.colsUsed) {
+      json_helper.pushCopy(column_name, cols_used);
+    }
+    json_helper.add("colsUsed", cols_used);
+  }
+
+  if (context.colsUsedBitset) {
+    json_helper.add("colsUsedBitset", context.colsUsedBitset->to_ullong());
+  }
+}
+
 } // namespace osquery

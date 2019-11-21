@@ -30,6 +30,7 @@ function(osqueryMain)
   add_subdirectory("ev2")
   add_subdirectory("experimental")
   add_subdirectory("system")
+  add_subdirectory("worker")
 
   generateOsqueryHeaders()
   generateOsqueryd()

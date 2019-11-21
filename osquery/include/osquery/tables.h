@@ -653,9 +653,6 @@ struct QueryContext {
   friend class TablePlugin;
 };
 
-using QueryContext = struct QueryContext;
-using Constraint = struct Constraint;
-
 /**
  * @brief The TablePlugin defines the name, types, and column information.
  *
@@ -930,4 +927,8 @@ inline const std::string& columnTypeName(ColumnType type) {
 
 /// Get the column type from the string representation.
 ColumnType columnTypeName(const std::string& type);
+
+Status deserializeQueryContextJSON(const JSON& json_helper,
+                                   QueryContext& context);
+void serializeQueryContextJSON(const QueryContext& context, JSON& json_helper);
 } // namespace osquery

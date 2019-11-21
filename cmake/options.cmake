@@ -68,6 +68,7 @@ option(ADD_HEADERS_AS_SOURCES "Whether to add headers as sources of a target or 
 option(OSQUERY_NO_DEBUG_SYMBOLS "Whether to build without debug symbols or not, even if a build type that normally have them has been selected")
 
 option(OSQUERY_BUILD_TESTS "Whether to enable and build tests or not")
+option(OSQUERY_BUILD_ROOT_TESTS "Whether to enable and build tests that require root access")
 
 option(OSQUERY_ENABLE_FUZZER_SANITIZERS "Whether to build fuzzing harnesses")
 option(OSQUERY_ENABLE_ADDRESS_SANITIZER "Whether to enable Address Sanitizer")

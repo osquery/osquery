@@ -51,8 +51,8 @@ PlatformProcess::PlatformProcess(pid_t pid) {
 }
 
 PlatformProcess::PlatformProcess(PlatformProcess&& src) noexcept {
-  id_ = kInvalidPid;
-  std::swap(id_, src.id_);
+  id_ = src.id_;
+  src.id_ = kInvalidPid;
 }
 
 PlatformProcess::~PlatformProcess() {
@@ -60,6 +60,13 @@ PlatformProcess::~PlatformProcess() {
     ::CloseHandle(id_);
     id_ = kInvalidPid;
   }
+}
+
+PlatformProcess& PlatformProcess::operator=(
+    PlatformProcess&& process) noexcept {
+  id_ = process.id_;
+  process.id_ = kInvalidPid;
+  return *this;
 }
 
 bool PlatformProcess::operator==(const PlatformProcess& process) const {
