@@ -30,6 +30,10 @@ extern char** environ;
 namespace osquery {
 
 PlatformProcess::PlatformProcess(PlatformPidType id) : id_(id) {}
+PlatformProcess::PlatformProcess(PlatformProcess&& src) noexcept {
+  id_ = src.id_;
+  src.id_ = kInvalidPid;
+}
 
 bool PlatformProcess::operator==(const PlatformProcess& process) const {
   return (nativeHandle() == process.nativeHandle());
@@ -40,6 +44,13 @@ bool PlatformProcess::operator!=(const PlatformProcess& process) const {
 }
 
 PlatformProcess::~PlatformProcess() {}
+
+PlatformProcess& PlatformProcess::operator=(
+    PlatformProcess&& process) noexcept {
+  id_ = process.id_;
+  process.id_ = kInvalidPid;
+  return *this;
+}
 
 int PlatformProcess::pid() const {
   return id_;
@@ -82,7 +93,7 @@ ProcessState PlatformProcess::checkStatus(int& status) const {
     return PROCESS_STILL_ALIVE;
   }
 
-  if (WIFEXITED(process_status)) {
+  if (WIFEXITED(process_status) || WIFSIGNALED(process_status)) {
     status = WEXITSTATUS(process_status);
     return PROCESS_EXITED;
   }

@@ -54,6 +54,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
           -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain
           -DOSQUERY_BUILD_TESTS=ON
+          -DOSQUERY_BUILD_ROOT_TESTS=ON
           $(EXTRA_CMAKE_ARGS)
           $(Build.SourcesDirectory)
 
@@ -88,8 +89,13 @@ jobs:
         cmakeArgs: --build . --target cppcheck
 
     - script: |
-        ctest --build-nocmake -V
-      displayName: "Run tests"
+        ctest --build-nocmake -LE "root-required" -V
+      displayName: "Run tests with a normal user"
+      workingDirectory: $(BUILD_DIR)
+
+    - script: |
+        sudo ctest --build-nocmake -L "root-required" -V
+      displayName: "Run tests which requires root"
       workingDirectory: $(BUILD_DIR)
 
     - script: |
