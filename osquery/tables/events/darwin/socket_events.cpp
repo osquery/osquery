@@ -86,6 +86,7 @@ Status OpenBSMNetEvSubscriber::Callback(
   Row r;
   std::map<std::string, std::string>::iterator it;
   uint32_t pid = 0;
+  int error;
 
   for (const auto& tok : ec->tokens) {
     if (tok.id != AUT_SOCKUNIX) {
@@ -151,19 +152,25 @@ Status OpenBSMNetEvSubscriber::Callback(
         pid = tok.tt.subj32_ex.pid;
         break;
       case AUT_RETURN32: {
-        if (tok.tt.ret32.ret == 0) {
-          r["success"] = INTEGER(1);
-        } else {
+        if (au_bsm_to_errno(tok.tt.ret32.status, &error) == 0) {
+          if (error == 0) {
+            r["success"] = INTEGER(1);
+          } else {
+            r["success"] = INTEGER(0);
+          }
+        } else
           r["success"] = INTEGER(0);
-        }
         break;
       }
       case AUT_RETURN64: {
-        if (tok.tt.ret64.val == 0) {
-          r["success"] = INTEGER(1);
-        } else {
+        if (au_bsm_to_errno(tok.tt.ret64.err, &error) == 0) {
+          if (error == 0) {
+            r["success"] = INTEGER(1);
+          } else {
+            r["success"] = INTEGER(0);
+          }
+        } else
           r["success"] = INTEGER(0);
-        }
         break;
       }
       case AUT_SOCKINET32: {
