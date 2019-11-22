@@ -168,7 +168,7 @@ Status getDeviceProperty(const device_infoset_t& infoset,
 }
 
 std::string getDriverImagePath(const std::string& service_key) {
-  SQL sql("SELECT data FROM registry WHERE path = '" + service_key + 
+  SQL sql("SELECT data FROM registry WHERE key = '" + service_key + 
           "' AND name = 'ImagePath'");
 
   if (sql.rows().empty() || sql.rows().at(0).count("data") == 0) {
