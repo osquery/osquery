@@ -785,7 +785,7 @@ bool GetEventString(std::string& buffer, const USN_RECORD* record) {
 
   if (string_end_ptr > record_end_ptr) {
     LOG(ERROR) << "Invalid string length"
-               << "record size:" << record_length
+               << "record size: " << record_length
                << " name length: " << name_length;
 
     return false;
@@ -855,15 +855,10 @@ std::ostream& operator<<(std::ostream& stream,
   stream << "parent_ref:\"" << record.parent_ref_number.str() << "\" ";
   stream << "ref:\"" << record.node_ref_number.str() << "\" ";
 
-  {
-    std::tm local_time;
-    localtime_s(&local_time, &record.record_timestamp);
-
-    char buffer[100] = {};
-    std::strftime(buffer, sizeof(buffer), "%y-%m-%d %H:%M:%S", &local_time);
-
-    stream << "timestamp:\"" << buffer << "\" ";
-  }
+  std::tm local_time;
+  localtime_s(&local_time, &record.record_timestamp);
+  stream << "timestamp:\"" << std::put_time(&local_time, "%y-%m-%d %H:%M:%S")
+         << "\" ";
 
   stream << "attributes:\"";
 
