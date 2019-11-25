@@ -349,7 +349,7 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
       continue;
     }
 
-    frn = ((long long)file_id_info.nFileIndexHigh << 32) |
+    frn = (static_cast<DWORDLONG>(file_id_info.nFileIndexHigh) << 32) |
           file_id_info.nFileIndexLow;
 #endif
 
