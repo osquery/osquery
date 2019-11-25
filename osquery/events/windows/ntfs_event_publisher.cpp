@@ -26,6 +26,11 @@
 
 namespace osquery {
 
+FLAG(bool,
+     enable_ntfs_event_publisher,
+     false,
+     "Enables the NTFS event publisher");
+
 /// This debug flag will print the incoming events
 HIDDEN_FLAG(bool,
             ntfs_event_publisher_debug,
@@ -436,10 +441,18 @@ NTFSEventPublisher::~NTFSEventPublisher() {
 }
 
 Status NTFSEventPublisher::setUp() {
+  if (!FLAGS_enable_ntfs_event_publisher) {
+    return Status::failure("NTFS event publisher disabled via configuration");
+  }
+
   return Status::success();
 }
 
 void NTFSEventPublisher::configure() {
+  if (!FLAGS_enable_ntfs_event_publisher) {
+    return;
+  }
+
   auto configuration = readConfiguration();
   restartJournalReaderServices(configuration);
 
@@ -447,6 +460,10 @@ void NTFSEventPublisher::configure() {
 }
 
 Status NTFSEventPublisher::run() {
+  if (!FLAGS_enable_ntfs_event_publisher) {
+    return Status::failure("NTFS event publisher disabled via configuration");
+  }
+
   ReadLock lock(d_->reader_service_map_mutex);
 
   auto journal_records = acquireJournalRecords();
@@ -589,6 +606,10 @@ Status NTFSEventPublisher::run() {
 }
 
 void NTFSEventPublisher::tearDown() {
+  if (!FLAGS_enable_ntfs_event_publisher) {
+    return;
+  }
+
   releaseDriveHandleMap();
 }
 } // namespace osquery
