@@ -247,7 +247,7 @@ Status USNJournalReader::initialize() {
     error_message << "Failed to get a handle to the following volume: "
                   << d_->volume_path << ". Terminating...";
 
-    return Status(1, error_message.str());
+    return Status::failure(error_message.str());
   }
 
   // Acquire a valid USN that we will use to start querying the journal
@@ -271,7 +271,7 @@ Status USNJournalReader::initialize() {
                      "number for the following volume: "
                   << d_->volume_path << ". Terminating...";
 
-    return Status(1, error_message.str());
+    return Status::failure(error_message.str());
   }
 
   /// This is the next USN identifier, to be used when requesting the next
@@ -282,7 +282,7 @@ Status USNJournalReader::initialize() {
   // Also save the journal id
   d_->journal_id = journal_data.UsnJournalID;
 
-  return Status(0);
+  return Status::success();
 }
 
 Status USNJournalReader::acquireRecords() {
@@ -317,7 +317,7 @@ Status USNJournalReader::acquireRecords() {
     error_message << "Failed to read the journal of the following volume: "
                   << d_->volume_path << ". Terminating...";
 
-    return Status(1, error_message.str());
+    return Status::failure(error_message.str());
   }
 
   d_->bytes_received = static_cast<size_t>(bytes_received);
@@ -333,7 +333,7 @@ Status USNJournalReader::acquireRecords() {
   // the change journal?
   // See: https://github.com/osquery/osquery/pull/5371#discussion_r332122819
   d_->next_update_seq_number = *next_update_seq_number_ptr;
-  return Status(0);
+  return Status::success();
 }
 
 // V4 records are only used for range tracking; they are not useful for us since
@@ -361,7 +361,7 @@ Status USNJournalReader::processAcquiredRecords(
     const auto next_buffer_ptr =
         current_buffer_ptr + current_record->RecordLength;
     if (next_buffer_ptr > buffer_end_ptr || current_record->RecordLength <= 0) {
-      return Status(1, "Received a malformed USN_RECORD. Terminating...");
+      return Status::failure("Received a malformed USN_RECORD. Terminating...");
     }
 
     auto status =
@@ -376,7 +376,7 @@ Status USNJournalReader::processAcquiredRecords(
     current_buffer_ptr = next_buffer_ptr;
   }
 
-  return Status(0);
+  return Status::success();
 }
 
 void USNJournalReader::dispatchEventRecords(
@@ -469,7 +469,7 @@ Status USNJournalReader::DecompressRecord(
     auto new_record = base_record;
     if (!USNParsers::GetEventType(
             new_record.type, reason_bit, base_record.attributes)) {
-      return Status(1, "Failed to get the event type");
+      return Status::failure("Failed to get the event type");
     }
 
     bool emit_record = true;
@@ -503,7 +503,7 @@ Status USNJournalReader::DecompressRecord(
     }
   }
 
-  return Status(0);
+  return Status::success();
 }
 
 // TODO: Needs tests; see https://github.com/osquery/osquery/issues/5847
@@ -514,7 +514,7 @@ Status USNJournalReader::ProcessAndAppendUSNRecord(
     char drive_letter) {
   // We don't care about range tracking records
   if (record->MajorVersion == 4U) {
-    return Status(0);
+    return Status::success();
   }
 
   USNJournalEventRecord base_event_record = {};
@@ -525,36 +525,36 @@ Status USNJournalReader::ProcessAndAppendUSNRecord(
 
   if (!USNParsers::GetUpdateSequenceNumber(
           base_event_record.update_sequence_number, record)) {
-    return Status(1,
-                  "Failed to get the update sequence number from the record");
+    return Status::failure(
+        "Failed to get the update sequence number from the record");
   }
 
   if (!USNParsers::GetFileReferenceNumber(base_event_record.node_ref_number,
                                           record)) {
-    return Status(1, "Failed to get the file reference number");
+    return Status::failure("Failed to get the file reference number");
   }
 
   if (!USNParsers::GetParentFileReferenceNumber(
           base_event_record.parent_ref_number, record)) {
-    return Status(1, "Failed to get the parent reference number");
+    return Status::failure("Failed to get the parent reference number");
   }
 
   if (!USNParsers::GetTimeStamp(base_event_record.record_timestamp, record)) {
-    return Status(1, "Failed to get the timestamp");
+    return Status::failure("Failed to get the timestamp");
   }
 
   if (!USNParsers::GetAttributes(base_event_record.attributes, record)) {
-    return Status(1, "Failed to get the file attributes");
+    return Status::failure("Failed to get the file attributes");
   }
 
   if (!USNParsers::GetEventString(base_event_record.name, record)) {
-    return Status(1, "Failed to acquire the file name");
+    return Status::failure("Failed to acquire the file name");
   }
 
   // Now decompress the record by splitting the `reason` field
   DWORD reason;
   if (!USNParsers::GetReason(reason, record)) {
-    return Status(1, "Failed to get the `reason` field from the record");
+    return Status::failure("Failed to get the `reason` field from the record");
   }
 
   auto status = DecompressRecord(
@@ -563,7 +563,7 @@ Status USNJournalReader::ProcessAndAppendUSNRecord(
     return status;
   }
 
-  return Status(0);
+  return Status::success();
 }
 
 void GetNativeFileIdFromUSNReference(FILE_ID_DESCRIPTOR& file_id,

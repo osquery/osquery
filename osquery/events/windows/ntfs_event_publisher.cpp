@@ -189,7 +189,7 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
     path.push_back(drive_letter);
     path.append(":\\");
 
-    return Status(0);
+    return Status::success();
   }
 
   // Convert the reference number to the native Windows structure
@@ -215,7 +215,7 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
     }
 
     message << description;
-    return Status(1, message.str());
+    return Status::failure(message.str());
   }
 
   auto required_bytes = static_cast<size_t>(::GetFinalPathNameByHandle(
@@ -235,7 +235,7 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
     }
 
     message << description;
-    return Status(1, message.str());
+    return Status::failure(message.str());
   }
 
   // We are going to add an additional byte, as we may or may not have the null
@@ -269,14 +269,14 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
     }
 
     message << description;
-    return Status(1, message.str());
+    return Status::failure(message.str());
   }
 
   // Paths follow this form: \\?\C:\\path\\to\\folder; skip the prefix
   path = buffer.c_str() + 4;
   buffer.clear();
 
-  return Status(0);
+  return Status::success();
 }
 
 Status NTFSEventPublisher::getPathFromParentFRN(
@@ -301,7 +301,7 @@ Status NTFSEventPublisher::getPathFromParentFRN(
 
   path.append("\\" + basename);
 
-  return Status(0);
+  return Status::success();
 }
 
 Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
@@ -312,7 +312,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
     auto it = d_->volume_data_map.find(drive_letter);
     if (it != d_->volume_data_map.end()) {
       volume = it->second;
-      return Status(0);
+      return Status::success();
     }
   }
 
@@ -342,7 +342,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
     }
 
     message << description;
-    return Status(1, message.str());
+    return Status::failure(message.str());
   }
 
   // Get the root folder reference number
@@ -373,7 +373,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
     }
 
     message << description;
-    return Status(1, message.str());
+    return Status::failure(message.str());
   }
 
   std::uint8_t buffer[2048] = {};
@@ -402,7 +402,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
     }
 
     message << description;
-    return Status(1, message.str());
+    return Status::failure(message.str());
   }
 
   auto usn_record = reinterpret_cast<USN_RECORD*>(buffer);
@@ -410,11 +410,11 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
     ::CloseHandle(volume_data.volume_handle);
     ::CloseHandle(volume_data.root_folder_handle);
 
-    return Status(1, "Failed to parse the root USN record");
+    return Status::failure("Failed to parse the root USN record");
   }
 
   d_->volume_data_map.insert({drive_letter, volume_data});
-  return Status(0);
+  return Status::success();
 }
 
 void NTFSEventPublisher::releaseDriveHandleMap() {
@@ -436,7 +436,7 @@ NTFSEventPublisher::~NTFSEventPublisher() {
 }
 
 Status NTFSEventPublisher::setUp() {
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void NTFSEventPublisher::configure() {
@@ -451,7 +451,7 @@ Status NTFSEventPublisher::run() {
 
   auto journal_records = acquireJournalRecords();
   if (journal_records.empty()) {
-    return Status(0);
+    return Status::success();
   }
 
   auto event_context = createEventContext();
@@ -585,7 +585,7 @@ Status NTFSEventPublisher::run() {
 
   fire(event_context);
 
-  return Status(0);
+  return Status::success();
 }
 
 void NTFSEventPublisher::tearDown() {

@@ -204,7 +204,7 @@ NTFSEventSubscriber::NTFSEventSubscriber() {}
 NTFSEventSubscriber::~NTFSEventSubscriber() {}
 
 Status NTFSEventSubscriber::init() {
-  return Status(0);
+  return Status::success();
 }
 
 void NTFSEventSubscriber::configure() {
@@ -269,7 +269,7 @@ Status NTFSEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
   addBatch(emitted_row_list);
 
-  return Status(0);
+  return Status::success();
 }
 
 void processConfiguration(const NTFSEventSubscriptionContextRef context,
