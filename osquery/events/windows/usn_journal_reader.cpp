@@ -326,7 +326,7 @@ Status USNJournalReader::acquireRecords() {
   auto next_update_seq_number_ptr =
       reinterpret_cast<USN*>(d_->read_buffer.data());
 
-  // NOTE(ww): It's worth investigating whether we can use gaps
+  // NOTE(woodruffw): It's worth investigating whether we can use gaps
   // in the sequence number here to detect whether or not
   // we're missing events on a busy system. Does NTFS guarantee
   // strictly sequential USNs? What about other FSes that implement
@@ -350,7 +350,7 @@ Status USNJournalReader::processAcquiredRecords(
 
   auto current_buffer_ptr = d_->read_buffer.data() + sizeof(USN);
 
-  // NOTE(ww): According to MSDN, all DeviceIoControl ops that work with
+  // NOTE(woodruffw): According to MSDN, all DeviceIoControl ops that work with
   // USN_RECORD_V2 and USN_RECORD_V3 return buffers where the records
   // are 64 bits aligned from the buffer start. Experimentally that hasn't
   // been a problem yet, but we're not doing that check + correction below.
@@ -577,7 +577,7 @@ void GetNativeFileIdFromUSNReference(FILE_ID_DESCRIPTOR& file_id,
               ref.data.end(),
               reinterpret_cast<std::uint8_t*>(&file_id.FileId.QuadPart));
   } else {
-    /* NOTE(ww): osquery retains Windows 7 compatibility,
+    /* NOTE(woodruffw): osquery retains Windows 7 compatibility,
        which means that we don't have access to the FILE_ID_128
        member of FILE_ID_DESCRIPTOR's id union. We use GUID instead,
        since it's the same width and the actual typing probably won't
@@ -742,7 +742,7 @@ bool GetEventString(std::string& buffer, const USN_RECORD* record) {
   size_t name_length = 0U;
   size_t record_length = 0U;
 
-  // NOTE(ww): I think this could be simplified: both V2 and V3 records
+  // NOTE(woodruffw): I think this could be simplified: both V2 and V3 records
   // contain a direct pointer to the filename that's guaranteed to be valid
   // under the FSCTL_* constants we're using, so we might not need to muck
   // with the offset at all.

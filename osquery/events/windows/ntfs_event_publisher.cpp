@@ -514,7 +514,7 @@ Status NTFSEventPublisher::run() {
     // Generate the new event
     NTFSEventRecord event(journal_record);
 
-    // TODO(ww): This is failing occasionally for files that do exist
+    // TODO(woodruffw): This is failing occasionally for files that do exist
     // on disk, but only on the first call to look them up. I'm not
     // sure why yet, but falling back on the parent FRN cache and
     // building the path from it works for now.
@@ -560,7 +560,7 @@ Status NTFSEventPublisher::run() {
   }
 
   // Put a limit on the size of the caches we are using
-  // NOTE(ww): We could also try to incrementally free up
+  // NOTE(woodruffw): We could also try to incrementally free up
   // the parent FRN cache by tracking DirectoryDeletions.
   for (auto& p : d_->reader_service_map) {
     auto& service_instance = p.second;

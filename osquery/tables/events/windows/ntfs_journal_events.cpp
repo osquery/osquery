@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-/* NOTE(ww): osquery targets Windows 7, but we do feature-testing below
+/* NOTE(woodruffw): osquery targets Windows 7, but we do feature-testing below
  * to support journal events on later versions of Windows.
  */
 #undef _WIN32_WINNT
@@ -63,7 +63,7 @@ bool NTFSEventSubscriber::shouldEmit(const SCRef& sc,
   auto& write_frns = sc->write_frns;
   auto& access_frns = sc->access_frns;
 
-  // TODO(ww): Should we look for FileDeletion events and remove the FRN when
+  // TODO(woodruffw): Should we look for FileDeletion events and remove the FRN when
   // we encounter them? Does NTFS recycle FRNs? Does it matter in terms of
   // memory consumption?
   if (isWriteOperation(event.type)) {
@@ -79,7 +79,7 @@ bool NTFSEventSubscriber::shouldEmit(const SCRef& sc,
 
     // If this event has a parent FRN we've marked for monitoring,
     // we mark it for monitoring as well and emit it.
-    // NOTE(ww): This might cause unintuitive behavior when the user specifies
+    // NOTE(woodruffw): This might cause unintuitive behavior when the user specifies
     // a directory to monitor and a file within that directory to exclude --
     // we'll end up monitoring that file anyways, since we're tracking its
     // parent FRN. Maybe just track all excluded files by pathname (at the cost
@@ -119,7 +119,7 @@ bool NTFSEventSubscriber::shouldEmit(const SCRef& sc,
 
     return false;
   } else {
-    // TODO(ww): Why assert here? Does NTFS guarantee that non-write events
+    // TODO(woodruffw): Why assert here? Does NTFS guarantee that non-write events
     // will never contain an old path?
     assert(event.old_path.empty());
 
@@ -152,7 +152,7 @@ Row NTFSEventSubscriber::generateRowFromEvent(const NTFSEventRecord& event) {
   row["path"] = TEXT(event.path);
   row["partial"] = INTEGER(event.partial);
 
-  // NOTE(ww): These are emitted in decimal, not hex.
+  // NOTE(woodruffw): These are emitted in decimal, not hex.
   // There's no good reason for this, other than that
   // boost's mp type doesn't handle std::hex and other
   // ios formatting directives correctly.
@@ -169,7 +169,7 @@ Row NTFSEventSubscriber::generateRowFromEvent(const NTFSEventRecord& event) {
            << event.update_sequence_number;
     row["record_usn"] = TEXT(buffer.str());
 
-    // NOTE(ww): Maybe comma-separate here? Pipes make it clear
+    // NOTE(woodruffw): Maybe comma-separate here? Pipes make it clear
     // that these are flags, but CSV is easier to parse and is
     // used by other tables.
     buffer.str("");
@@ -226,7 +226,7 @@ void NTFSEventSubscriber::configure() {
           const std::string& category, const std::vector<std::string>& files) {
         StringList include_path_list = {};
         for (auto file : files) {
-          // NOTE(ww): This will remove nonexistent paths, even if
+          // NOTE(woodruffw): This will remove nonexistent paths, even if
           // they aren't patterns. For example, C:\foo\bar won't
           // be monitored if it doesn't already exist at table/event
           // creation time. Is that what we want?
@@ -299,7 +299,7 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
   std::unordered_set<USNFileReferenceNumber> frn_set;
 
   // Build the FRN set from the now-filtered paths.
-  // NOTE(ww): path can be either a file or a directory,
+  // NOTE(woodruffw): path can be either a file or a directory,
   // so we need to pass FILE_FLAG_BACKUP_SEMANTICS rather
   // than FILE_ATTRIBUTE_NORMAL.
   for (const auto& path : include_paths) {
@@ -318,7 +318,7 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
       continue;
     }
 
-    // NOTE(ww): This shouldn't fail once we have a valid handle, but there's
+    // NOTE(woodruffw): This shouldn't fail once we have a valid handle, but there's
     // another TOCTOU here: another process could delete the file before we
     // get its information. We don't want to lock the file, though, since it
     // could be something imporant used by another process.
