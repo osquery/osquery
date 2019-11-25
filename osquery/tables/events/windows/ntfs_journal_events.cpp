@@ -63,8 +63,8 @@ bool NTFSEventSubscriber::shouldEmit(const SCRef& sc,
   auto& write_frns = sc->write_frns;
   auto& access_frns = sc->access_frns;
 
-  // TODO(woodruffw): Should we look for FileDeletion events and remove the FRN when
-  // we encounter them? Does NTFS recycle FRNs? Does it matter in terms of
+  // TODO(woodruffw): Should we look for FileDeletion events and remove the FRN
+  // when we encounter them? Does NTFS recycle FRNs? Does it matter in terms of
   // memory consumption?
   if (isWriteOperation(event.type)) {
     bool frn_found =
@@ -79,11 +79,11 @@ bool NTFSEventSubscriber::shouldEmit(const SCRef& sc,
 
     // If this event has a parent FRN we've marked for monitoring,
     // we mark it for monitoring as well and emit it.
-    // NOTE(woodruffw): This might cause unintuitive behavior when the user specifies
-    // a directory to monitor and a file within that directory to exclude --
-    // we'll end up monitoring that file anyways, since we're tracking its
-    // parent FRN. Maybe just track all excluded files by pathname (at the cost
-    // of more memory), and only check that set here?
+    // NOTE(woodruffw): This might cause unintuitive behavior when the user
+    // specifies a directory to monitor and a file within that directory to
+    // exclude -- we'll end up monitoring that file anyways, since we're
+    // tracking its parent FRN. Maybe just track all excluded files by pathname
+    // (at the cost of more memory), and only check that set here?
     if (write_frns.find(event.parent_ref_number) != write_frns.end()) {
       write_frns.insert(event.node_ref_number);
       return true;
@@ -119,8 +119,8 @@ bool NTFSEventSubscriber::shouldEmit(const SCRef& sc,
 
     return false;
   } else {
-    // TODO(woodruffw): Why assert here? Does NTFS guarantee that non-write events
-    // will never contain an old path?
+    // TODO(woodruffw): Why assert here? Does NTFS guarantee that non-write
+    // events will never contain an old path?
     assert(event.old_path.empty());
 
     if (access_frns.find(event.node_ref_number) != access_frns.end()) {
@@ -213,10 +213,14 @@ void NTFSEventSubscriber::configure() {
   const auto& json_document = json.doc();
 
   StringList access_categories;
-  if (json_document.HasMember("file_accesses")) {
+  if (json_document.HasMember("file_accesses") &&
+      json_document["file_accesses"].IsArray()) {
     auto& json_file_accesses = json_document["file_accesses"].GetArray();
 
     for (const auto& item : json_file_accesses) {
+      if (!item.IsString()) {
+        continue;
+      }
       access_categories.push_back(item.GetString());
     }
   }
@@ -225,7 +229,7 @@ void NTFSEventSubscriber::configure() {
       [this, &json_document, &access_categories](
           const std::string& category, const std::vector<std::string>& files) {
         StringList include_path_list = {};
-        for (auto file : files) {
+        for (const auto& file : files) {
           // NOTE(woodruffw): This will remove nonexistent paths, even if
           // they aren't patterns. For example, C:\foo\bar won't
           // be monitored if it doesn't already exist at table/event
@@ -240,6 +244,9 @@ void NTFSEventSubscriber::configure() {
           const auto& excludes =
               json_document["exclude_paths"][category].GetArray();
           for (const auto& exclude : excludes) {
+            if (!exclude.IsString()) {
+              continue;
+            }
             resolveFilePattern(exclude.GetString(), exclude_path_list);
           }
         }
@@ -318,9 +325,9 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
       continue;
     }
 
-    // NOTE(woodruffw): This shouldn't fail once we have a valid handle, but there's
-    // another TOCTOU here: another process could delete the file before we
-    // get its information. We don't want to lock the file, though, since it
+    // NOTE(woodruffw): This shouldn't fail once we have a valid handle, but
+    // there's another TOCTOU here: another process could delete the file before
+    // we get its information. We don't want to lock the file, though, since it
     // could be something imporant used by another process.
     USNFileReferenceNumber frn = 0;
 
