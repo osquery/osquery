@@ -833,7 +833,7 @@ std::ostream& operator<<(std::ostream& stream,
     stream << std::setw(8) << object_id.Data1;
     stream << std::setw(4) << object_id.Data2;
     stream << std::setw(4) << object_id.Data3;
-    for (int i = 0; i < 8; ++i) {
+    for (auto i = 0; i < 8; ++i) {
       stream << std::setw(2) << object_id.Data4[i];
     }
     break;
