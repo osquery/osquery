@@ -100,17 +100,7 @@ function(enableLinkWholeArchive target_name)
 endfunction()
 
 function(findPythonExecutablePath)
-  find_package(Python2 COMPONENTS Interpreter REQUIRED)
-  set(EX_TOOL_PYTHON2_EXECUTABLE_PATH "${Python2_EXECUTABLE}" PARENT_SCOPE)
-
-  find_package(Python3 3.7 EXACT COMPONENTS Interpreter)
-
-  if(NOT Python3_FOUND)
-    find_package(Python3 3.6 EXACT COMPONENTS Interpreter)
-    if(NOT Python3_FOUND)
-      message(FATAL_ERROR "Could not find a suitable Python 3 version. Please install a version >= 3.6 but < 3.8")
-    endif()
-  endif()
+  find_package(Python3 3.5 COMPONENTS Interpreter REQUIRED)
 
   set(EX_TOOL_PYTHON3_EXECUTABLE_PATH "${Python3_EXECUTABLE}" PARENT_SCOPE)
 endfunction()
