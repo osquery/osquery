@@ -9,6 +9,8 @@
 #include <osquery/tables/applications/browser_utils.h>
 #include <osquery/utils/info/platform_type.h>
 
+using namespace std;
+
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -30,7 +32,30 @@ QueryData genChromeExtensions(QueryContext& context) {
     chromePath = "/.config/google-chrome/%/Extensions/";
   }
 
-  return genChromeBasedExtensions(context, chromePath);
+  fs::path bravePath;
+
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    bravePath = "\\AppData\\Roaming\\brave\\Extensions\\";
+  } else if (isPlatform(PlatformType::TYPE_OSX)) {
+    bravePath = "/Library/Application Support/BraveSoftware/Brave-Browser/%/Extensions/";
+  } else {
+    bravePath = "/.config/BraveSoftware/Brave-Browser/%/Extensions/";
+  }
+
+  fs::path chromiumPath;
+
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    chromiumPath = "\\AppData\\Local\\Chromium\\Extensions\\";
+  } else if (isPlatform(PlatformType::TYPE_OSX)) {
+    chromiumPath = "/Library/Application Support/Chromium/%/Extensions/";
+  } else {
+    chromiumPath = "/.config/chromium/%/Extensions/";
+  }
+
+  std::vector<fs::path> chromePaths{chromePath, bravePath, chromiumPath};
+
+  return genChromeBasedExtensions(context, chromePaths);
 }
+
 }
 }
