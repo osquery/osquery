@@ -18,7 +18,7 @@ END_LINE = "/// END[GENTABLE]"
 
 
 def genTableData(filename):
-    with open(filename, "rU") as fh:
+    with open(filename, "r") as fh:
         data = fh.read()
     begin_table = False
     table_data = []
@@ -50,7 +50,7 @@ def main(argc, argv):
     tables = []
     # Discover the output template, usually a black cpp file with includes.
     template = os.path.join(args.templates, TEMPLATE_NAME)
-    with open(template, "rU") as fh:
+    with open(template, "r") as fh:
         template_data = fh.read()
 
     for base, _, filenames in os.walk(args.sources):
