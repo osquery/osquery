@@ -62,5 +62,5 @@ QueryData genEc2InstanceTags(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
