@@ -14,6 +14,7 @@ cmake_policy(SET CMP0083 NEW)
 include(cmake/utilities.cmake)
 include(cmake/toolchain.cmake)
 
+
 project(osquery)
 
 if(OSQUERY_BUILD_TESTS)
