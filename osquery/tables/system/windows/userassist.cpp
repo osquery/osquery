@@ -7,6 +7,7 @@
  */
 
 #include <osquery/core.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/tables/system/windows/registry.h>
@@ -23,7 +24,7 @@ constexpr auto kFullRegPath =
     "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist";
 
 // Decode ROT13 sub key value
-std::string rot_decode(std::string& value_key_reg) {
+std::string rotDecode(std::string& value_key_reg) {
   std::string decoded_value_key;
 
   for (std::size_t i = 0; i < value_key_reg.size(); i++) {
@@ -45,16 +46,16 @@ std::string rot_decode(std::string& value_key_reg) {
 }
 
 // Get last exeution time
-auto last_execute(std::string& assist_data) {
+auto lastExecute(std::string& assist_data) {
   if (assist_data.length() <= 136) {
     LOG(WARNING) << "Userassist last execute Timestamp format is incorrect";
-    return std::string();
+    return 1LL;
   }
   std::string last_run_string = assist_data.substr(120, 16);
 
   // If timestamp is zero dont convert to UNIX Time
   if (last_run_string == "0000000000000000") {
-    return std::string();
+    return 1LL;
   } else {
     // swap endianess
     std::reverse(last_run_string.begin(), last_run_string.end());
@@ -66,28 +67,25 @@ auto last_execute(std::string& assist_data) {
     }
 
     // Convert Windows FILETIME to UNIX Time
-    // unsigned long long last_run = std::stoull(last_run_string.c_str(), 0,
-    // 16);
     unsigned long long last_run =
         tryTo<unsigned long long>(last_run_string, 16).takeOr(0ull);
     if (last_run == 0ull) {
       LOG(WARNING) << "Failed to convert FILETIME to UNIX time.";
-      return std::string();
+      return 1LL;
     }
-    last_run = (last_run / 10000000) - 11644473600;
 
-    std::time_t last_run_time = last_run;
-
-    struct tm tm;
-    gmtime_s(&tm, &last_run_time);
-
-    auto time_str = platformAsctime(&tm);
-    return time_str;
+    FILETIME file_time;
+    ULARGE_INTEGER large_time;
+    large_time.QuadPart = last_run;
+    file_time.dwHighDateTime = large_time.HighPart;
+    file_time.dwLowDateTime = large_time.LowPart;
+    auto last_time = filetimeToUnixtime(file_time);
+    return last_time;
   }
 }
 
 // Get execution count
-int execution_num(std::string& assist_data) {
+int executionNum(std::string& assist_data) {
   if (assist_data.length() <= 16) {
     LOG(WARNING) << "Userassist execution count format is incorrect";
     return -1;
@@ -135,7 +133,6 @@ QueryData genUserAssist(QueryContext& context) {
       if (keyType == rKey.end() || keyPath == rKey.end()) {
         continue;
       }
-
       std::string full_path_key = keyPath->second + "\\Count";
 
       QueryData assist_results;
@@ -145,12 +142,11 @@ QueryData genUserAssist(QueryContext& context) {
         std::string subkey = aKey.at("path");
 
         // split reg path by \Count\ to get Key values
-        std::size_t count_key = subkey.find("Count\\");
-        std::string value_key = subkey.substr(count_key);
-        std::string value_key_reg = value_key.substr(6, std::string::npos);
+        auto count_key = subkey.find("Count\\");
+        auto value_key = subkey.substr(count_key);
+        auto value_key_reg = value_key.substr(6, std::string::npos);
 
-        std::string decoded_value_key = rot_decode(value_key_reg);
-
+        std::string decoded_value_key = rotDecode(value_key_reg);
         Row r;
 
         // set UEME_CTLCUACount:ctor and UEME_CTLSESSION values to blank they
@@ -164,19 +160,18 @@ QueryData genUserAssist(QueryContext& context) {
           results.push_back(r);
         } else {
           std::string assist_data = aKey.at("data");
-
-          auto count = execution_num(assist_data);
-          auto time_str = last_execute(assist_data);
-
+          auto time_str = lastExecute(assist_data);
           r["path"] = decoded_value_key;
-          r["last_execution_time"] = time_str;
-          if (time_str == "") {
+
+          if (time_str == 1LL) {
             r["count"] = "";
+            r["last_execution_time"] = "";
           } else {
+            r["last_execution_time"] = INTEGER(time_str);
+            auto count = executionNum(assist_data);
             r["count"] = INTEGER(count);
           }
           r["sid"] = uKey.at("name");
-
           results.push_back(r);
         }
       }
