@@ -17,6 +17,7 @@ include(cmake/toolchain.cmake)
 
 
 
+
 project(osquery)
 
 if(OSQUERY_BUILD_TESTS)
