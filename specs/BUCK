@@ -803,6 +803,7 @@ osquery_gentable_cxx_library(
         (
             "windows/userassist.table",
             "windows",
+        ),
         (
             "yara/yara_events.table",
             "linux,macos",
