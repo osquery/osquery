@@ -13,6 +13,6 @@
 namespace osquery {
 namespace tables {
 
-std::string rot_decode(std::string& value_key_reg);
+std::string rotDecode(std::string& value_key_reg);
 } // namespace tables
 } // namespace osquery
