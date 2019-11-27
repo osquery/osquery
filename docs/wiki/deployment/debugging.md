@@ -145,16 +145,6 @@ If you start the shell using `osqueryi --disable_events=0` you will no longer ge
 
 On Linux and MacOS the `hardware_events` table is enabled for-free, so try to plug in a USB and run `select * from hardware_events`.
 
-### Missing event subscribers
-
-If you see:
-
-```shell
-Error registering subscriber: process_file_events: No kernel event publisher
-```
-
-This is an informational message with mis-categorized severity. The message indicates that a requested companion kernel extension does not exist and the associated `process_file_events` subscriber on macOS cannot start. It is safe to ignore.
-
 ### Testing event subscribers
 
 Each event subscriber, tables that end with `_events`, includes a `HIDDEN` column called `eid`. This is an internal incrementing ID assigned by osquery to every event row added to a subscriber table. Each table maintains its own counter. The `eid` can be used to check for drops and duplicates occurring via an optimization or indexing bug.

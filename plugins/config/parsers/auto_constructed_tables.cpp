@@ -6,7 +6,6 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <plugins/config/parsers/auto_constructed_tables.h>
 #include <osquery/config/config.h>
 #include <osquery/database.h>
 #include <osquery/filesystem/filesystem.h>
@@ -17,6 +16,7 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/join.h>
+#include <plugins/config/parsers/auto_constructed_tables.h>
 
 namespace rj = rapidjson;
 
@@ -105,11 +105,11 @@ Status ATCConfigParserPlugin::setUp() {
 Status ATCConfigParserPlugin::update(const std::string& source,
                                      const ParserConfig& config) {
   auto cv = config.find(kParserKey);
-  if (cv == config.end()) {
-    return Status(1, "No configuration for ATC (Auto Table Construction)");
+  if (cv == config.end() || !cv->second.doc().IsObject()) {
+    return Status::success();
   }
-  auto obj = data_.getObject();
 
+  auto obj = data_.getObject();
   data_.copyFrom(cv->second.doc(), obj);
   data_.add(kParserKey, obj);
 
@@ -118,6 +118,11 @@ Status ATCConfigParserPlugin::update(const std::string& source,
   auto registered = registeredATCTables();
 
   for (const auto& ac_table : ac_tables.GetObject()) {
+    if (!ac_table.name.IsString() || !ac_table.value.IsObject()) {
+      // This entry is not formatted correctly.
+      continue;
+    }
+
     std::string table_name{ac_table.name.GetString()};
     auto params = ac_table.value.GetObject();
 
@@ -133,7 +138,8 @@ Status ATCConfigParserPlugin::update(const std::string& source,
                              : ""};
 
     if (query.empty() || path.empty()) {
-      LOG(WARNING) << "ATC Table: " << table_name << " is misconfigured";
+      LOG(WARNING) << "ATC Table: " << table_name
+                   << " is misconfigured (no query or path)";
       continue;
     }
 
@@ -147,10 +153,18 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     std::string columns_value;
     columns_value.reserve(256);
 
+    if (!params.HasMember("columns") || !params["columns"].IsArray()) {
+      LOG(WARNING) << "ATC Table: " << table_name
+                   << " is misconfigured (no columns)";
+    }
+
     for (const auto& column : params["columns"].GetArray()) {
-      columns.push_back(make_tuple(
-          std::string(column.GetString()), TEXT_TYPE, ColumnOptions::DEFAULT));
-      columns_value += std::string(column.GetString()) + ",";
+      if (column.IsString()) {
+        columns.push_back(make_tuple(std::string(column.GetString()),
+                                     TEXT_TYPE,
+                                     ColumnOptions::DEFAULT));
+        columns_value += std::string(column.GetString()) + ",";
+      }
     }
 
     registered.erase(table_name);
@@ -173,7 +187,6 @@ Status ATCConfigParserPlugin::update(const std::string& source,
 
     s = setDatabaseValue(
         kPersistentSettings, kDatabaseKeyPrefix + table_name, table_settings);
-
     if (!s.ok()) {
       LOG(WARNING) << "Could not write to database";
       continue;
@@ -181,7 +194,6 @@ Status ATCConfigParserPlugin::update(const std::string& source,
 
     s = tables->add(
         table_name, std::make_shared<ATCPlugin>(path, columns, query), true);
-
     if (!s.ok()) {
       LOG(WARNING) << s.getMessage();
       deleteDatabaseValue(kPersistentSettings, kDatabaseKeyPrefix + table_name);

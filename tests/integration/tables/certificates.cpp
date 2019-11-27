@@ -11,6 +11,8 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
+#include <osquery/utils/info/platform_type.h>
+
 namespace osquery {
 namespace table_tests {
 
@@ -22,35 +24,38 @@ class certificates : public testing::Test {
 };
 
 TEST_F(certificates, test_sanity) {
-  // 1. Query data
   auto const data = execute_query("select * from certificates");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"common_name", NormalType}
-  //      {"subject", NormalType}
-  //      {"issuer", NormalType}
-  //      {"ca", IntType}
-  //      {"self_signed", IntType}
-  //      {"not_valid_before", NormalType}
-  //      {"not_valid_after", NormalType}
-  //      {"signing_algorithm", NormalType}
-  //      {"key_algorithm", NormalType}
-  //      {"key_strength", NormalType}
-  //      {"key_usage", NormalType}
-  //      {"subject_key_id", NormalType}
-  //      {"authority_key_id", NormalType}
-  //      {"sha1", NormalType}
-  //      {"path", NormalType}
-  //      {"serial", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+
+  ASSERT_GE(data.size(), 1ul);
+
+  ValidationMap row_map = {
+      {"common_name", NormalType},
+      {"subject", NormalType},
+      {"issuer", NormalType},
+      {"ca", IntType},
+      {"self_signed", IntType},
+      {"not_valid_before", NormalType},
+      {"not_valid_after", NormalType},
+      {"signing_algorithm", NormalType},
+      {"key_algorithm", NormalType},
+      {"key_strength", NormalType},
+      {"key_usage", NormalType},
+      {"subject_key_id", NormalType},
+      {"authority_key_id", NormalType},
+      {"sha1", NormalType},
+      {"path", NormalType},
+      {"serial", NormalType},
+  };
+
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    row_map["sid"] = NormalType;
+    row_map["store_location"] = NormalType;
+    row_map["store"] = NormalType;
+    row_map["username"] = NormalType;
+    row_map["store_id"] = NormalType;
+  }
+
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

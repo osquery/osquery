@@ -131,10 +131,11 @@ class Initializer : private boost::noncopyable {
   /**
    * @brief Cleanly wait for all services and components to shutdown.
    *
-   * Enter a join of all services followed by a sync wait for event loops.
-   * If the main thread is out of actions it can call #waitForShutdown.
+   * Enter a join of all services followed by a sync wait for event loops,
+   * then it shuts down all the components.
+   * If the main thread is out of actions it can call #waitThenShutdown.
    */
-  static void waitForShutdown();
+  static void waitThenShutdown();
 
   /**
    * @brief Initialize any platform dependent libraries or objects

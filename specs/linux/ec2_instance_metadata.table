@@ -1,7 +1,7 @@
 table_name("ec2_instance_metadata")
 description("EC2 instance metadata.")
 schema([
-    Column("instance_id", TEXT, "EC2 instance ID", index=True),
+    Column("instance_id", TEXT, "EC2 instance ID"),
     Column("instance_type", TEXT, "EC2 instance type"),
     Column("architecture", TEXT, "Hardware architecture of this EC2 instance"),
     Column("region", TEXT, "AWS region in which this instance launched"),

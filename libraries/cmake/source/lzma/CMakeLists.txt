@@ -79,7 +79,6 @@ function(lzmaMain)
     "${library_root}/src/liblzma/simple/x86.c"
   )
 
-  # todo(alessandro): macOS and Windows support
   target_compile_definitions(thirdparty_lzma PRIVATE
     HAVE_CONFIG_H
     TUKLIB_GETTEXT=0
@@ -106,9 +105,18 @@ function(lzmaMain)
     "${library_root}/src/liblzma/lzma"
     "${library_root}/src/liblzma/rangecoder"
     "${library_root}/src/liblzma/simple"
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
     "${library_root}/src/liblzma/api"
   )
+
+  if(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_lzma PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_lzma PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+    )
+  endif()
 
   target_include_directories(thirdparty_lzma SYSTEM INTERFACE
     "${library_root}/src/liblzma/api"

@@ -55,8 +55,16 @@ void genKeychainItem(const SecKeychainItemRef& item, QueryData& results) {
   // Any tag that does not exist for the item will prevent the entire result.
   for (const auto& attr_tag : kKeychainItemAttrs) {
     tags[0] = attr_tag.first;
-    SecKeychainItemCopyAttributesAndData(
+    auto os_status = SecKeychainItemCopyAttributesAndData(
         item, &info, &item_class, &attr_list, 0, nullptr);
+
+    if (os_status == errSecNoSuchAttr) {
+      // This attr does not exist, skip it.
+      continue;
+    } else if (os_status != errSecSuccess) {
+      // If this keychain item is not valid then don't add it to results.
+      return;
+    }
 
     if (attr_list != nullptr) {
       // Expect each specific tag to return string data.

@@ -23,7 +23,6 @@
 #include <osquery/flagalias.h>
 #include <osquery/flags.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
@@ -356,6 +355,11 @@ void Config::addPack(const std::string& name,
     // "name": {pack-content} response similar to embedded pack content
     // within the configuration.
     for (const auto& pack : obj.GetObject()) {
+      if (!pack.value.IsObject()) {
+        LOG(WARNING) << "Error parsing pack: " << pack.name.GetString()
+                     << ": the value should be an object";
+        continue;
+      }
       addSinglePack(pack.name.GetString(), pack.value);
     }
   } else {
@@ -471,19 +475,15 @@ Status Config::refresh() {
     }
 
     loaded_ = true;
-    if (Killswitch::get().isConfigBackupEnabled()) {
-      if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
-        const auto result = restoreConfigBackup();
-        if (!result) {
-          return Status::failure(result.getError().getMessage());
-        } else {
-          update(*result);
-        }
+    if (FLAGS_config_enable_backup && is_first_time_refresh.exchange(false)) {
+      LOG(INFO) << "Backing up configuration";
+      const auto result = restoreConfigBackup();
+      if (!result) {
+        return Status::failure(result.getError().getMessage());
+      } else {
+        update(*result);
       }
-    } else {
-      LOG(INFO) << "Config backup is disabled by the killswitch";
     }
-
     return status;
   } else if (getRefresh() != FLAGS_config_refresh) {
     VLOG(1) << "Normal configuration delay restored";
@@ -700,19 +700,9 @@ void Config::applyParsers(const std::string& source,
                           bool pack) {
   assert(obj.IsObject());
 
-  // Iterate each parser.
-  RecursiveLock lock(config_schedule_mutex_);
-  for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {
-    std::shared_ptr<ConfigParserPlugin> parser = nullptr;
-    try {
-      parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
-    } catch (const std::bad_cast& /* e */) {
-      LOG(ERROR) << "Error casting config parser plugin: " << plugin.first;
-    }
-    if (parser == nullptr || parser.get() == nullptr) {
-      continue;
-    }
-
+  auto applyParser = [=](const std::shared_ptr<ConfigParserPlugin>& parser,
+                         const std::string& source,
+                         const rj::Value& obj) {
     // For each key requested by the parser, add a property tree reference.
     std::map<std::string, JSON> parser_config;
     for (const auto& key : parser->keys()) {
@@ -731,6 +721,39 @@ void Config::applyParsers(const std::string& source,
     // each top-level-config key. The parser may choose to update the config's
     // internal state
     parser->update(source, parser_config);
+  };
+
+  auto getParser = [=](const PluginRef& plugin, const std::string& name) {
+    std::shared_ptr<ConfigParserPlugin> parser = nullptr;
+    try {
+      parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin);
+    } catch (const std::bad_cast& /* e */) {
+      LOG(ERROR) << "Error casting config parser plugin: " << name;
+    }
+    return parser;
+  };
+
+  RecursiveLock lock(config_schedule_mutex_);
+  auto plugins = RegistryFactory::get().plugins("config_parser");
+
+  // Always apply the options parser first, others may depend on flags/options.
+  auto options_plugin = plugins.find("options");
+  if (options_plugin != plugins.end()) {
+    auto parser = getParser(options_plugin->second, options_plugin->first);
+    if (parser != nullptr && parser.get() != nullptr) {
+      applyParser(parser, source, obj);
+    }
+  }
+
+  // Iterate each parser.
+  for (const auto& plugin : plugins) {
+    if (plugin.first == "options") {
+      continue;
+    }
+    auto parser = getParser(plugin.second, plugin.first);
+    if (parser != nullptr && parser.get() != nullptr) {
+      applyParser(parser, source, obj);
+    }
   }
 }
 
@@ -1118,4 +1141,4 @@ void ConfigRefreshRunner::start() {
     Config::get().refresh();
   }
 }
-}
+} // namespace osquery

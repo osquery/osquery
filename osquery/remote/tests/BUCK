@@ -28,7 +28,6 @@ osquery_cxx_library(
         osquery_target("osquery/utils/info:info"),
         osquery_target("plugins/config:tls_config"),
         osquery_target("plugins/database:ephemeral"),
-        osquery_target("plugins/killswitch:killswitch_filesystem"),
         osquery_target("tests:helper"),
     ],
 )
@@ -51,7 +50,6 @@ osquery_cxx_test(
         osquery_target("osquery/utils/info:info"),
         osquery_target("plugins/config:tls_config"),
         osquery_target("plugins/database:ephemeral"),
-        osquery_target("plugins/killswitch:killswitch_filesystem"),
         osquery_target("tests:helper"),
     ],
 )

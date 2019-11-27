@@ -1,0 +1,12 @@
+table_name("azure_instance_tags")
+description("Azure instance tags.")
+schema([
+    Column("vm_id", TEXT, "Unique identifier for the VM"),
+    Column("key", TEXT, "The tag key"),
+    Column("value", TEXT, "The tag value"),
+])
+attributes(cacheable=True)
+implementation("cloud/azure_metadata@genAzureTags")
+examples([
+    "select * from ec2_instance_tags"
+])

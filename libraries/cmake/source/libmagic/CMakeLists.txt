@@ -7,11 +7,10 @@
 function(libmagicMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-  add_library(thirdparty_libmagic
+  set(source_files
     "${library_root}/src/cdf_time.c"
     "${library_root}/src/is_tar.c"
     "${library_root}/src/encoding.c"
-    "${library_root}/src/strlcpy.c"
     "${library_root}/src/readcdf.c"
     "${library_root}/src/der.c"
     "${library_root}/src/readelf.c"
@@ -23,11 +22,19 @@ function(libmagicMain)
     "${library_root}/src/compress.c"
     "${library_root}/src/magic.c"
     "${library_root}/src/softmagic.c"
-    "${library_root}/src/strlcat.c"
     "${library_root}/src/apptype.c"
     "${library_root}/src/funcs.c"
     "${library_root}/src/ascmagic.c"
   )
+
+  if(DEFINED PLATFORM_LINUX)
+    list(APPEND source_files
+      "${library_root}/src/strlcpy.c"
+      "${library_root}/src/strlcat.c"
+    )
+  endif()
+
+  add_library(thirdparty_libmagic ${source_files})
 
   target_compile_definitions(thirdparty_libmagic PRIVATE
     HAVE_CONFIG_H
@@ -49,8 +56,17 @@ function(libmagicMain)
   target_include_directories(thirdparty_libmagic PRIVATE
     "${library_root}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
   )
+
+  if(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_libmagic PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_libmagic PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+    )
+  endif()
 
   target_include_directories(thirdparty_libmagic SYSTEM INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"

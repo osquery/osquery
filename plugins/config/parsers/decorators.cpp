@@ -182,28 +182,39 @@ void DecoratorsConfigParserPlugin::updateDecorations(const std::string& source,
 
   // Check if intervals are defined.
   auto& interval_key = kDecorationPointKeys.at(DECORATE_INTERVAL);
-  if (doc.doc().HasMember(interval_key)) {
-    const auto& interval = doc.doc()[interval_key];
-    if (interval.IsObject()) {
-      for (const auto& item : interval.GetObject()) {
-        auto rate = doc.valueToSize(item.name);
-        //      size_t rate = std::stoll(item.name.GetString());
-        if (rate % 60 != 0) {
-          LOG(WARNING) << "Invalid decorator interval rate " << rate
-                       << " in config source: " << source;
-          continue;
-        }
+  if (!doc.doc().HasMember(interval_key)) {
+    return;
+  }
 
-        // This is a valid interval, update the set of intervals to include
-        // this value. When intervals are checked this set is scanned, if a
-        // match is found, then the associated config data is executed.
-        if (item.value.IsArray()) {
-          for (const auto& interval_query : item.value.GetArray()) {
-            if (interval_query.IsString()) {
-              intervals_[source][rate].push_back(interval_query.GetString());
-            }
-          }
-        }
+  const auto& interval = doc.doc()[interval_key];
+  if (!interval.IsObject()) {
+    LOG(WARNING)
+        << "Invalid decorator interval configuration in config source: "
+        << source;
+    return;
+  }
+
+  for (const auto& item : interval.GetObject()) {
+    auto rate = doc.valueToSize(item.name);
+    //      size_t rate = std::stoll(item.name.GetString());
+    if (rate % 60 != 0) {
+      LOG(WARNING) << "Invalid decorator interval rate " << rate
+                   << " in config source: " << source;
+      continue;
+    }
+
+    if (!item.value.IsArray()) {
+      LOG(WARNING) << "Invalid decorator interval rate " << rate
+                   << " configuration in config source: " << source;
+      continue;
+    }
+
+    // This is a valid interval, update the set of intervals to include
+    // this value. When intervals are checked this set is scanned, if a
+    // match is found, then the associated config data is executed.
+    for (const auto& interval_query : item.value.GetArray()) {
+      if (interval_query.IsString()) {
+        intervals_[source][rate].push_back(interval_query.GetString());
       }
     }
   }

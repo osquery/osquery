@@ -25,8 +25,24 @@ include(cmake/options.cmake)
 include(cmake/flags.cmake)
 include(cmake/packaging.cmake)
 
-if (OSQUERY_TOOLCHAIN_SYSROOT AND NOT DEFINED PLATFORM_LINUX)
+if(OSQUERY_TOOLCHAIN_SYSROOT AND NOT DEFINED PLATFORM_LINUX)
   message(FATAL_ERROR "The custom toolchain can only be used with Linux, undefine OSQUERY_TOOLCHAIN_SYSROOT and specify a compiler to use")
+endif()
+
+# clang-tidy needs to be initialized in global scope, before any
+# target is created
+if(OSQUERY_ENABLE_CLANG_TIDY)
+  find_package(clang-tidy)
+  if(TARGET clang-tidy::clang-tidy)
+    foreach(language C CXX)
+      set("CMAKE_${language}_CLANG_TIDY"
+        "${CLANG-TIDY_EXECUTABLE};${OSQUERY_CLANG_TIDY_CHECKS}"
+      )
+    endforeach()
+
+  else()
+    message(WARNING "clang-tidy: Disabled because it was not found")
+  endif()
 endif()
 
 function(main)
@@ -55,10 +71,8 @@ function(main)
   add_subdirectory("plugins")
   add_subdirectory("tools")
   add_subdirectory("specs")
-
-  if(OSQUERY_BUILD_TESTS)
-    add_subdirectory("tests")
-  endif()
+  add_subdirectory("external")
+  add_subdirectory("tests")
 
   identifyPackagingSystem()
   generateInstallTargets()
@@ -77,7 +91,6 @@ function(importLibraries)
     "Linux,Darwin,Windows:boost"
     "Linux,Darwin,Windows:bzip2"
     "Linux,Darwin,Windows:gflags"
-    "Linux,Darwin:glibc"
     "Linux,Darwin,Windows:glog"
     "Linux,Darwin,Windows:googletest"
     "Linux,Darwin,Windows:libarchive"
@@ -96,7 +109,7 @@ function(importLibraries)
     "Linux,Darwin:libxml2"
     "Linux,Darwin,Windows:linenoise-ng"
     "Linux,Darwin:lldpd"
-    "Linux:lzma"
+    "Linux,Darwin:lzma"
     "Linux,Darwin:popt"
     "Linux,Darwin,Windows:rapidjson"
     "Linux,Darwin,Windows:rocksdb"
@@ -166,7 +179,7 @@ function(importLibraries)
       endif()
 
     else()
-      message(FATAL_ERROR "The '${library}' was found but it couldn't be imported correctly")
+      message(FATAL_ERROR "The '${library}' library was found but it couldn't be imported correctly")
     endif()
   endforeach()
 endfunction()

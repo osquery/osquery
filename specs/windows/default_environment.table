@@ -1,0 +1,8 @@
+table_name("default_environment")
+description("Default environment variables and values.")
+schema([
+    Column("variable", TEXT, "Name of the environment variable"),
+    Column("value", TEXT, "Value of the environment variable"),
+    Column("expand", INTEGER, "1 if the variable needs expanding, 0 otherwise"),
+])
+implementation("system/windows/default_environment@genDefaultEnvironment")

@@ -202,7 +202,7 @@ def gen_api(tables_path, profile={}):
             name = spec_file.split(".table", 1)[0]
             if platform not in categories.keys():
                 categories[platform] = {"name": platform_name, "tables": []}
-            with open(os.path.join(base, spec_file), "rU") as fh:
+            with open(os.path.join(base, spec_file), "r") as fh:
                 tree = ast.parse(fh.read())
                 table_spec = gen_spec(tree)
                 table_profile = profile.get("%s.%s" % (platform, name), {})

@@ -8,27 +8,6 @@ cmake_minimum_required(VERSION 3.14.6)
 
 option(OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS "This option can be enable to show all warnings in the source modules. Not recommended" OFF)
 
-function(getGitExecutableName output_variable)
-  set(output "git")
-  if(DEFINED PLATFORM_WINDOWS)
-    set(output "${output}.exe")
-  endif()
-
-  set("${output_variable}" "${output}" PARENT_SCOPE)
-endfunction()
-
-function(locateGitExecutable output_variable)
-  getGitExecutableName(git_executable_name)
-
-  find_program(git_path "${git_executable_name}")
-  if("${git_path}" STREQUAL "git_path-NOTFOUND")
-    set("${output_variable}" "git_path-NOTFOUND" PARENT_SCOPE)
-
-  else()
-    set("${output_variable}" "${git_path}" PARENT_SCOPE)
-  endif()
-endfunction()
-
 function(initializeGitSubmodule submodule_path no_recursive shallow)
   file(GLOB submodule_folder_contents "${submodule_path}/*")
 
@@ -46,16 +25,28 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
     set(optional_recursive_arg "--recursive")
   endif()
 
+  set(optional_depth_arg "")
   if(shallow)
-    set(optional_depth_arg "--depth=1")
-  else()
-    set(optional_depth_arg "")
+    if(GIT_VERSION_STRING VERSION_GREATER_EQUAL "2.14.0")
+      set(optional_depth_arg "--depth=1")
+    else()
+      message(WARNING "Git version >=2.14.0 is required to perform shallow clones, detected version ${GIT_VERSION_STRING}, falling back to full clones (slower).")
+    endif()
   endif()
+
+  # In git versions >= 2.18.0 we need to explicitly set the protocol
+  # in order to do a shallow clone without error.
+  if(GIT_VERSION_STRING VERSION_EQUAL "2.18.0" OR GIT_VERSION_STRING VERSION_GREATER "2.18.0")
+    set(optional_protocol_arg -c protocol.version=2)
+  else()
+    set(optional_protocol_arg "")
+  endif()
+
 
   get_filename_component(working_directory "${submodule_path}" DIRECTORY)
 
   execute_process(
-    COMMAND "${GIT_EXECUTABLE}" submodule update --init ${optional_recursive_arg} ${optional_depth_arg} "${submodule_path}"
+    COMMAND "${GIT_EXECUTABLE}" ${optional_protocol_arg} submodule update --init ${optional_recursive_arg} ${optional_depth_arg} "${submodule_path}"
     RESULT_VARIABLE process_exit_code
     WORKING_DIRECTORY "${working_directory}"
   )
@@ -67,7 +58,14 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
   set(initializeGitSubmodule_IsAlreadyCloned FALSE PARENT_SCOPE)
 endfunction()
 
-function(patchSubmoduleSourceCode patches_dir source_dir apply_to_dir)
+function(patchSubmoduleSourceCode library_name patches_dir source_dir apply_to_dir)
+
+  # We need to "patch" Thrift by avoiding to copy its tutorial folder,
+  # because on Windows it contains a symlink that CMake is not able to copy.
+  if(DEFINED PLATFORM_WINDOWS AND "${library_name}" STREQUAL "thrift")
+    set(exclude_filter ".*/thrift/src/tutorial/.*")
+  endif()
+
   file(GLOB submodule_patches "${patches_dir}/*.patch")
 
   list(LENGTH submodule_patches patches_num)
@@ -77,6 +75,7 @@ function(patchSubmoduleSourceCode patches_dir source_dir apply_to_dir)
     return()
   endif()
 
+  find_package(Git REQUIRED)
 
   # We patch the submodule before moving it to the binary folder
   # because if git apply working directory is inside a repository or submodule
@@ -90,16 +89,30 @@ function(patchSubmoduleSourceCode patches_dir source_dir apply_to_dir)
     )
 
     if(NOT ${process_exit_code} EQUAL 0)
-      message(FATAL_ERROR "Failed to patch the following git submodule: \"${apply_to_dir}\"")
+      message(FATAL_ERROR "Failed to patch the following git submodule: \"${source_dir}\"")
     endif()
   endforeach()
 
-  # Move the patched sources to another location because some submodules
-  # have symbolic link loops which cannot be correctly copied.
   get_filename_component(parent_dir "${apply_to_dir}" DIRECTORY)
 
-  execute_process(COMMAND "${CMAKE_COMMAND}" -E make_directory "${parent_dir}")
-  execute_process(COMMAND "${CMAKE_COMMAND}" -E rename "${source_dir}" "${apply_to_dir}")
+  file(MAKE_DIRECTORY "${parent_dir}")
+
+  if(exclude_filter)
+    file(COPY "${source_dir}" DESTINATION "${parent_dir}" REGEX "${exclude_filter}" EXCLUDE)
+  else()
+    file(COPY "${source_dir}" DESTINATION "${parent_dir}")
+  endif()
+
+  # We need to restore the source code to its original state, pre patch
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" reset --hard HEAD
+    RESULT_VARIABLE process_exit_code
+    WORKING_DIRECTORY "${source_dir}"
+  )
+
+  if(NOT ${process_exit_code} EQUAL 0)
+    message(FATAL_ERROR "Failed to git reset the following submodule: \"${source_dir}\"")
+  endif()
 
   set(patchSubmoduleSourceCode_Patched TRUE PARENT_SCOPE)
 endfunction()
@@ -151,21 +164,11 @@ function(importSourceSubmodule)
 
     if(NOT EXISTS "${patched_source_dir}")
       patchSubmoduleSourceCode(
+        "${ARGS_NAME}"
         "${directory_path}/patches/${submodule_to_patch}"
         "${directory_path}/${submodule_to_patch}"
         "${patched_source_dir}"
       )
-
-      if(patchSubmoduleSourceCode_Patched)
-        list(FIND ARGS_SHALLOW_SUBMODULES "${submodule_to_patch}" shallow_clone)
-        if(${shallow_clone} EQUAL -1)
-          set(shallow_clone false)
-        else()
-          set(shallow_clone true)
-        endif()
-
-        initializeGitSubmodule("${directory_path}/${submodule_to_patch}" ${ARGS_NO_RECURSIVE} ${shallow_clone})
-      endif()
     endif()
   endforeach()
 
@@ -186,6 +189,10 @@ function(importSourceSubmodule)
       )
     endif()
   endif()
+
+  # Make sure we don't run clang-tidy on the source modules
+  unset(CMAKE_C_CLANG_TIDY)
+  unset(CMAKE_CXX_CLANG_TIDY)
 
   add_subdirectory(
     "${directory_path}"

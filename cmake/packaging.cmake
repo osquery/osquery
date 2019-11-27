@@ -69,9 +69,11 @@ function(identifyPackagingSystemFromPlatform)
     elseif("${lsb_release_id_short}" IN_LIST rpm_distros)
       set(platform_packaging_system "RPM")
     else()
+      set(platform_packaging_system "TGZ")
       message(WARNING
         "Failed to identify Linux flavor, either lsb_release is missing or we couldn't identify your distro.\n"
-        "If you want to generate packages, please either install lsb_release or set the CMake variable PACKAGING_SYSTEM to DEB or RPM depending on your distro."
+        "The package target will now generate TGZ, if you want to generate native packages please install lsb_release, "
+        "or choose a different packaging system through the CMake variable PACKAGING_SYSTEM; available values are DEB, RPM"
       )
     endif()
   elseif(DEFINED PLATFORM_WINDOWS)
@@ -128,44 +130,52 @@ function(generateInstallTargets)
     endif()
 
     # bin
-    install(TARGETS osqueryd DESTINATION bin)
-    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink osqueryd osqueryi)")
-    install(FILES "${CMAKE_BINARY_DIR}/osqueryi" DESTINATION bin)
+    install(TARGETS osqueryd DESTINATION bin COMPONENT osquery)
+    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink osqueryd osqueryi)" COMPONENT osquery)
+    install(FILES "${CMAKE_BINARY_DIR}/osqueryi" DESTINATION bin COMPONENT osquery)
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryctl" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
-    install(PROGRAMS "${CMAKE_BINARY_DIR}/package/linux/osqueryctl" DESTINATION bin)
+    install(PROGRAMS "${CMAKE_BINARY_DIR}/package/linux/osqueryctl" DESTINATION bin COMPONENT osquery)
 
     # lib
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.service" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
-    install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" DESTINATION lib/systemd/system)
+    install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" DESTINATION lib/systemd/system COMPONENT osquery)
 
     # share
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
-    install(FILES "${CMAKE_BINARY_DIR}/package/linux/osquery.example.conf" DESTINATION share/osquery)
+    install(FILES "${CMAKE_BINARY_DIR}/package/linux/osquery.example.conf" DESTINATION share/osquery COMPONENT osquery)
 
     install(DIRECTORY "${augeas_lenses_path}/"
             DESTINATION share/osquery/lenses
+            COMPONENT osquery
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)
+    install(FILES "${augeas_lenses_path}/../COPYING" DESTINATION share/osquery/lenses COMPONENT osquery)
+
+    if("${PACKAGING_SYSTEM}" STREQUAL "DEB")
+      file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/copyright.debian" DESTINATION "${CMAKE_BINARY_DIR}/package/deb")
+      file(RENAME "${CMAKE_BINARY_DIR}/package/deb/copyright.debian" "${CMAKE_BINARY_DIR}/package/deb/copyright")
+      install(FILES "${CMAKE_BINARY_DIR}/package/deb/copyright" DESTINATION share/doc/osquery COMPONENT osquery)
+    endif()
 
     file(COPY "${CMAKE_SOURCE_DIR}/packs" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
-    install(DIRECTORY "${CMAKE_BINARY_DIR}/package/linux/packs" DESTINATION share/osquery)
+    install(DIRECTORY "${CMAKE_BINARY_DIR}/package/linux/packs" DESTINATION share/osquery COMPONENT osquery)
 
-    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION share/osquery/certs)
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" DESTINATION share/osquery/certs COMPONENT osquery)
 
     # etc
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.sysconfig" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
-      install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/default RENAME osqueryd)
+      install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/default RENAME osqueryd COMPONENT osquery)
     else()
-      install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/sysconfig RENAME osqueryd)
+      install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/sysconfig RENAME osqueryd COMPONENT osquery)
     endif()
 
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.initd" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
-    install(PROGRAMS "${CMAKE_BINARY_DIR}/package/linux/osqueryd.initd" DESTINATION /etc/init.d RENAME "osqueryd")
-    install(DIRECTORY DESTINATION /etc/osquery)
+    install(PROGRAMS "${CMAKE_BINARY_DIR}/package/linux/osqueryd.initd" DESTINATION /etc/init.d RENAME "osqueryd" COMPONENT osquery)
+    install(DIRECTORY DESTINATION /etc/osquery COMPONENT osquery)
     # var
-    install(DIRECTORY DESTINATION /var/log/osquery)
-    install(DIRECTORY DESTINATION /var/osquery)
+    install(DIRECTORY DESTINATION /var/log/osquery COMPONENT osquery)
+    install(DIRECTORY DESTINATION /var/osquery COMPONENT osquery)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     # .
@@ -238,78 +248,102 @@ function(generateInstallTargets)
   file(RENAME "${CMAKE_BINARY_DIR}/package/LICENSE" "${CMAKE_BINARY_DIR}/package/LICENSE.txt")
 endfunction()
 
+macro(cleanupVersionComponent version_component output_var)
+  string(REGEX MATCH "^[0-9]+" ${output_var} "${version_component}")
+endmacro()
+
 function(generatePackageTarget)
 
-list(GET OSQUERY_VERSION_COMPONENTS 0 CPACK_PACKAGE_VERSION_MAJOR)
-list(GET OSQUERY_VERSION_COMPONENTS 1 CPACK_PACKAGE_VERSION_MINOR)
-list(GET OSQUERY_VERSION_COMPONENTS 2 CPACK_PACKAGE_VERSION_PATCH)
+  list(GET OSQUERY_VERSION_COMPONENTS 0 CPACK_PACKAGE_VERSION_MAJOR)
+  list(GET OSQUERY_VERSION_COMPONENTS 1 CPACK_PACKAGE_VERSION_MINOR)
+  list(GET OSQUERY_VERSION_COMPONENTS 2 CPACK_PACKAGE_VERSION_PATCH)
 
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
-set(CPACK_PACKAGE_NAME "osquery")
-set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
-set(CPACK_PACKAGE_VENDOR "osquery")
-set(CPACK_PACKAGE_CONTACT "osquery@osquery.io")
-set(CPACK_PACKAGE_HOMEPAGE_URL "https://osquery.io")
-set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_BINARY_DIR}/package/CPackConfig.cmake")
-set(CPACK_PACKAGE_RELOCATABLE ON)
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/package/LICENSE.txt")
-set(CPACK_STRIP_FILES ON)
+  if(PLATFORM_WINDOWS)
+    cleanupVersionComponent("${CPACK_PACKAGE_VERSION_PATCH}" "CPACK_PACKAGE_VERSION_PATCH")
+  endif()
 
-configure_file(cmake/CPackConfig.cmake.in package/CPackConfig.cmake @ONLY)
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
+  set(CPACK_COMPONENT_OSQUERY_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION_SUMMARY})
+  set(CPACK_PACKAGE_NAME "osquery")
+  set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
+  set(CPACK_PACKAGE_VENDOR "osquery")
+  set(CPACK_PACKAGE_CONTACT "osquery@osquery.io")
+  set(CPACK_PACKAGE_HOMEPAGE_URL "https://osquery.io")
+  set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_BINARY_DIR}/package/CPackConfig.cmake")
+  set(CPACK_PACKAGE_RELOCATABLE ON)
+  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/package/LICENSE.txt")
+  if(DEFINED PLATFORM_MACOS OR DEFINED PLATFORM_LINUX)
+    set(CPACK_COMPONENTS_ALL osquery)
+  endif()
 
-set(CPACK_GENERATOR "${PACKAGING_SYSTEM}")
+  configure_file(cmake/CPackConfig.cmake.in package/CPackConfig.cmake @ONLY)
 
-if(DEFINED PLATFORM_LINUX)
-  set(OSQUERY_PACKAGE_RELEASE "1.linux")
+  set(CPACK_GENERATOR "${PACKAGING_SYSTEM}")
+
+  # Set this on by default and off for DEB/RPM
+  if(NOT CPACK_GENERATOR STREQUAL "DEB" AND NOT CPACK_GENERATOR STREQUAL "RPM")
+    set(CPACK_STRIP_FILES ON)
+  endif()
 
   if(CPACK_GENERATOR STREQUAL "TGZ")
-    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${OSQUERY_PACKAGE_RELEASE}.x86_64")
     set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY 0)
     set(CPACK_SET_DESTDIR ON)
   endif()
 
-  if(CPACK_GENERATOR STREQUAL "DEB")
-    set(CPACK_DEBIAN_PACKAGE_RELEASE "${OSQUERY_PACKAGE_RELEASE}")
-    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${OSQUERY_PACKAGE_RELEASE}.amd64")
-    set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
-    set(CPACK_DEBIAN_PACKAGE_SECTION "default")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>=2.12), zlib1g")
-    set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${CPACK_PACKAGE_HOMEPAGE_URL}")
+  if(DEFINED PLATFORM_LINUX)
+    set(OSQUERY_PACKAGE_RELEASE "1.linux")
 
-  elseif(CPACK_GENERATOR STREQUAL "RPM")
-    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${OSQUERY_PACKAGE_RELEASE}.x86_64")
-    set(CPACK_RPM_PACKAGE_DESCRIPTION "osquery is an operating system instrumentation toolchain.")
-    set(CPACK_RPM_PACKAGE_GROUP "default")
-    set(CPACK_RPM_PACKAGE_LICENSE "Apache 2.0 or GPL 2.0")
-    set(CPACK_RPM_PACKAGE_REQUIRES "glibc >= 2.12, zlib")
-    list(APPEND CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
-      /etc/sysconfig
-      /var
-      /var/log
-      /usr/lib/systemd
-      /usr/lib/systemd/system
-    )
+    if(CPACK_GENERATOR STREQUAL "TGZ")
+      set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${OSQUERY_PACKAGE_RELEASE}.x86_64")
+    elseif(CPACK_GENERATOR STREQUAL "DEB")
+      set(CPACK_DEBIAN_OSQUERY_PACKAGE_NAME ${CPACK_PACKAGE_NAME})
+      set(CPACK_DEBIAN_PACKAGE_RELEASE "${OSQUERY_PACKAGE_RELEASE}")
+      set(CPACK_DEBIAN_OSQUERY_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${OSQUERY_PACKAGE_RELEASE}.amd64.deb")
+      set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
+      set(CPACK_DEBIAN_PACKAGE_SECTION "default")
+      set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>=2.12), zlib1g")
+      set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${CPACK_PACKAGE_HOMEPAGE_URL}")
+      set(CPACK_DEB_COMPONENT_INSTALL ON)
+      set(CPACK_DEBIAN_DEBUGINFO_PACKAGE ON)
+    elseif(CPACK_GENERATOR STREQUAL "RPM")
+      set(CPACK_RPM_PACKAGE_RELEASE_DIST "${OSQUERY_PACKAGE_RELEASE}")
+      set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${OSQUERY_PACKAGE_RELEASE}.x86_64")
+      set(CPACK_RPM_PACKAGE_DESCRIPTION "osquery is an operating system instrumentation toolchain.")
+      set(CPACK_RPM_PACKAGE_GROUP "default")
+      set(CPACK_RPM_PACKAGE_LICENSE "Apache 2.0 or GPL 2.0")
+      set(CPACK_RPM_PACKAGE_REQUIRES "glibc >= 2.12, zlib")
+      list(APPEND CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
+        /etc/sysconfig
+        /var
+        /var/log
+        /usr/lib/systemd
+        /usr/lib/systemd/system
+      )
+      set(CPACK_RPM_DEBUGINFO_PACKAGE ON)
+      set(CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX /usr/src/debug/osquery)
+    endif()
+  elseif(DEFINED PLATFORM_MACOS)
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+    set(CPACK_COMMAND_PRODUCTBUILD "${CMAKE_SOURCE_DIR}/tools/deployment/productbuild.sh")
+    set(CPACK_COMMAND_PKGBUILD "${CMAKE_SOURCE_DIR}/tools/deployment/productbuild.sh")
+  elseif(DEFINED PLATFORM_WINDOWS)
+    file(COPY "${CMAKE_SOURCE_DIR}/tools/osquery.ico" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
+    file(COPY "${CMAKE_SOURCE_DIR}/cmake/wix_patches/osquery_wix_patch.xml" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+    set(CPACK_WIX_PRODUCT_ICON "${CMAKE_BINARY_DIR}/package/wix/osquery.ico")
+    set(CPACK_WIX_UPGRADE_GUID "ea6c7327-461e-4033-847c-acdf2b85dede")
+    set(CPACK_WIX_PATCH_FILE "${CMAKE_BINARY_DIR}/package/wix/osquery_wix_patch.xml" )
+    set(CPACK_WIX_SKIP_PROGRAM_FOLDER True)
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "C:/Program Files/osquery")
+    set(CPACK_WIX_EXTENSIONS "WixUtilExtension")
+  elseif(DEFINED PLATFORM_FREEBSD)
+  else()
+    message(FATAL_ERROR "Unsupported platform")
   endif()
-elseif(DEFINED PLATFORM_MACOS)
-  set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
-elseif(DEFINED PLATFORM_WINDOWS)
-  file(COPY "${CMAKE_SOURCE_DIR}/tools/osquery.ico" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
-  file(COPY "${CMAKE_SOURCE_DIR}/cmake/wix_patches/osquery_wix_patch.xml" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
-  set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
-  set(CPACK_WIX_PRODUCT_ICON "${CMAKE_BINARY_DIR}/package/wix/osquery.ico")
-  set(CPACK_WIX_UPGRADE_GUID "ea6c7327-461e-4033-847c-acdf2b85dede")
-  set(CPACK_WIX_PATCH_FILE "${CMAKE_BINARY_DIR}/package/wix/osquery_wix_patch.xml" )
-  set(CPACK_WIX_SKIP_PROGRAM_FOLDER True)
-  set(CPACK_PACKAGE_INSTALL_DIRECTORY "C:/Program Files/osquery")
-  set(CPACK_WIX_EXTENSIONS "WixUtilExtension")
-elseif(DEFINED PLATFORM_FREEBSD)
-else()
-  message(FATAL_ERROR "Unsupported platform")
-endif()
 
-include(CPack)
+  include(CPack)
 
-if(DEFINED PLATFORM_MACOS)
-  cpack_add_component(osquery REQUIRED)
-endif()
+  if(DEFINED PLATFORM_MACOS OR DEFINED PLATFORM_LINUX)
+    cpack_add_component(osquery REQUIRED)
+  endif()
 endfunction()

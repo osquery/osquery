@@ -49,10 +49,6 @@ function(zstdMain)
     )
   endif()
 
-  target_link_libraries(thirdparty_zstd PUBLIC
-    thirdparty_glibc
-  )
-
   target_link_libraries(thirdparty_zstd PRIVATE
     thirdparty_c_settings
   )

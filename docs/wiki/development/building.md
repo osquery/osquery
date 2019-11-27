@@ -6,7 +6,7 @@ The supported compilers are: the osquery toolchain (LLVM/Clang 8.0.1) on Linux, 
 
 # Building with CMake
 
-Git, CMake (>= 3.14.6), Python 2, and Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
+Git (>= 2.14.0), CMake (>= 3.14.6), Python 2, and Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
 
 The default build type is `RelWithDebInfo` (optimizations active + debug symbols) and can be changed in the CMake configure phase by setting the `CMAKE_BUILD_TYPE` flag to `Release` or `Debug`.
 
@@ -16,7 +16,7 @@ Note: the recommended system memory for building osquery is at least 8GB, or Cla
 
 ## Linux
 
-The root folder is assumed to be `/home/<user>`
+The root folder is assumed to be `/home/<user>`.
 
 **Ubuntu 18.04/18.10**
 
@@ -59,6 +59,8 @@ brew install git cmake python@2 python
 
 **Step 2: Download and build**
 
+A macOS 10.11 deployment target is selected in this example.
+
 ```bash
 # Download source
 git clone https://github.com/osquery/osquery
@@ -66,7 +68,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake ..
+cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 ..
 
 # Build
 cmake --build .
@@ -74,7 +76,9 @@ cmake --build .
 
 ## Windows 10
 
-The root folder is assumed to be `C:\Users\<user>`
+The root folder is assumed to be `C:\`
+
+Note: The intention here is to reduce the length of the prefix of the osquery folder, since Windows and msbuild have a 255 characters max path limit.
 
 **Step 1: Install the prerequisites**
 
@@ -88,6 +92,8 @@ Note: It may be easier to install these prerequisites using [Chocolatey](https:/
 - [Python 2](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Wix Toolset](https://wixtoolset.org/releases/)
+- [Strawberry Perl](http://strawberryperl.com/) for the OpenSSL formula. It is recommended to install it to the default destination path.
+- [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
 
 **Step 2: Download and build**
 
@@ -99,7 +105,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -A x64 -T v141 ..
+cmake -G "Visual Studio 16 2019" -A x64 -T v141 ..
 
 # Build
 cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel
@@ -157,6 +163,37 @@ A "single" test case often still involves dozens or hundreds of unit tests. To r
 ```bash
 GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory tests under the <testName> set.
 ```
+
+## Running clang-format (Linux and MacOS only)
+
+Note that on Linux the `clang-format` executable is shipped along with the osquery toolchain, and it is the recommended way to run it.
+
+```bash
+cmake --build . --target format_check
+```
+
+## Running Cppcheck (Linux only)
+
+1. Install it from the distro repository: `apt install cppcheck`
+2. Build the **cppcheck** target `cmake --build . --target cppcheck`
+
+## Running clang-tidy (Linux only)
+
+The `clang-tidy` executable is shipped along with the osquery toolchain, and it is the recommended way to run it. It is however possible to use the system one, provided it's accessible from the PATH environment variable.
+
+1. When configuring, pass `-DOSQUERY_ENABLE_CLANG_TIDY=ON` to CMake
+2. Configure the checks: `-DOSQUERY_CLANG_TIDY_CHECKS=check1,check2` **(optional)**
+3. Build osquery
+
+By default, the following checks are enabled:
+
+1. cert-*
+2. cppcoreguidelines-*
+3. performance-*
+4. portability-*
+5. readability-*
+6. modernize-*
+7. bugprone-*
 
 # Building with Buck
 
