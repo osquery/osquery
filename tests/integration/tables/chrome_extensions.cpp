@@ -21,7 +21,6 @@ class chromeExtensions : public testing::Test {
     }
 };
 
-
 TEST_F(chromeExtensions, test_sanity) {
   // 1. Query data
   auto const data = execute_query("select * from chrome_extensions");
@@ -50,5 +49,5 @@ TEST_F(chromeExtensions, test_sanity) {
   // validate_rows(data, row_map);
 }
 
-}  // namespace table_tests
-}  // namespace osquery
+} // namespace table_tests
+} // namespace osquery
