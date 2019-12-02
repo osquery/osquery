@@ -78,7 +78,6 @@ function(generateOsqueryUtilsConversions)
   endif()
 
   add_test(NAME osquery_utils_conversions_conversionstests-test COMMAND osquery_utils_conversions_conversionstests-test)
-
 endfunction()
 
 function(generateOsqueryUtilsConversionsTo)
@@ -96,12 +95,21 @@ function(generateOsqueryUtilsConversionsTo)
 endfunction()
 
 function(generateOsqueryUtilsConversionsConversionstestsTest)
-
   set(source_files
     tests/join.cpp
     tests/split.cpp
     tests/tryto.cpp
   )
+
+  if(DEFINED PLATFORM_MACOS)
+    list(APPEND source_files
+      darwin/tests/cfstring.cpp
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    list(APPEND source_files
+      windows/tests/strings.cpp
+    )
+  endif()
 
   add_osquery_executable(osquery_utils_conversions_conversionstests-test ${source_files})
 
