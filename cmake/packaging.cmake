@@ -231,14 +231,10 @@ function(generateInstallTargets)
     install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem" COMPONENT osquery DESTINATION /private/var/osquery/certs)
 
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
-    file(RENAME "${CMAKE_BINARY_DIR}/package/pkg/com.facebook.osqueryd.conf" "${CMAKE_BINARY_DIR}/package/pkg/com.osquery.osqueryd.conf")
-    install(FILES "${CMAKE_BINARY_DIR}/package/pkg/com.osquery.osqueryd.conf" DESTINATION /private/var/osquery COMPONENT osquery)
+    install(FILES "${CMAKE_BINARY_DIR}/package/pkg/com.facebook.osqueryd.conf" DESTINATION /private/var/osquery COMPONENT osquery)
 
-    file(READ "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.plist" osquery_service_plist)
-    string(REPLACE "com.facebook.osqueryd" "com.osquery.osqueryd" osquery_service_plist "${osquery_service_plist}")
-    file(WRITE "${CMAKE_BINARY_DIR}/package/productbuild/com.osquery.osqueryd.plist" "${osquery_service_plist}")
-
-    install(FILES "${CMAKE_BINARY_DIR}/package/productbuild/com.osquery.osqueryd.plist" DESTINATION /private/var/osquery COMPONENT osquery)
+    file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.plist" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
+    install(FILES "${CMAKE_BINARY_DIR}/package/pkg/com.facebook.osqueryd.plist" DESTINATION /private/var/osquery COMPONENT osquery)
 
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf" DESTINATION "${CMAKE_BINARY_DIR}/package/pkg")
     install(FILES "${CMAKE_BINARY_DIR}/package/pkg/osquery.example.conf" DESTINATION /private/var/osquery COMPONENT osquery)
