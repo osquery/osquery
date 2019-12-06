@@ -253,13 +253,6 @@ class TableState(Singleton):
                                     column.name, self.table_name))))
                 exit(1)
 
-        if "ADDITIONAL" in all_options and "INDEX" not in all_options:
-            if "no_pkey" not in self.attributes:
-                print(lightred(
-                    "Table cannot have 'additional' columns without an index: %s" %(
-                    path)))
-                exit(1)
-
         path_bits = path.split("/")
         for i in range(1, len(path_bits)):
             dir_path = ""
