@@ -14,29 +14,30 @@
 namespace osquery {
 namespace table_tests {
 
-class mdfind : public testing::Test {
+class Mdfind : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(mdfind, test_sanity) {
-  // 1. Query data
-  auto const data = execute_query("select * from mdfind");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"path", NormalType}
-  //      {"query", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+TEST_F(Mdfind, test_sanity) {
+  QueryData rows = execute_query(
+      "select * from mdfind where query = 'kMDItemFSName = \"hosts.equiv\"';");
+  if (rows.empty()) {
+    // Spotlight may be disabled.
+    QueryData sl_check = execute_query(
+        "select pid from processes where path = "
+        "'/System/Library/CoreServices/Spotlight.app/Contents/MacOS/"
+        "Spotlight'");
+    ASSERT_TRUE(sl_check.empty());
+  }
+
+  ValidationMap row_map = {
+      {"path", NonEmptyString},
+      {"query", NonEmptyString},
+  };
+  validate_rows(rows, row_map);
 }
 
 } // namespace table_tests
