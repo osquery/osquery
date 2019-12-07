@@ -22,28 +22,20 @@ class crashes : public testing::Test {
 };
 
 TEST_F(crashes, test_sanity) {
-   ValidationMap row_map = {
-	{"type", NormalType}
-	{"pid", IntType}
-	{"path", NormalType}
-	{"crash_path", NormalType}
-	{"identifier", NormalType}
-	{"version", NormalType}
-	{"parent", IntType}
-	{"responsible", NormalType}
-	{"uid", IntType}
-	{"datetime", NormalType}
-	{"crashed_thread", IntType}
-	{"stack_trace", NormalType}
-	{"exception_type", NormalType}
-	{"exception_codes", NormalType}
-	{"exception_notes", NormalType}
-	{"registers", NormalType}
-  }
+  ValidationMap row_map =
+  { {"type", NormalType} {"pid", IntType} {"path", NormalType} {
+      "crash_path", NormalType} {"identifier", NormalType} {
+      "version", NormalType} {"parent", IntType} {"responsible", NormalType} {
+      "uid", IntType} {"datetime", NormalType} {"crashed_thread", IntType} {
+      "stack_trace", NormalType} {"exception_type", NormalType} {
+      "exception_codes", NormalType} {"exception_notes", NormalType} {
+      "registers", NormalType} }
 
-     auto const data = execute_query("select users.username, crashes.* from users CROSS JOIN crashes USING(uid);");
-   ASSERT_GE(data.size(), 1ul);
-   validate_rows(data, row_map);
+  auto const data = execute_query(
+      "select users.username, crashes.* from users CROSS JOIN crashes "
+      "USING(uid);");
+  ASSERT_GE(data.size(), 1ul);
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

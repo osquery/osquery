@@ -22,27 +22,20 @@ class browserPlugins : public testing::Test {
 };
 
 TEST_F(browserPlugins, test_sanity) {
-   ValidationMap row_map = {
-	{"uid", IntType}
-	{"name", NormalType}
-	{"identifier", NormalType}
-	{"version", NormalType}
-	{"sdk", NormalType}
-	{"description", NormalType}
-	{"development_region", NormalType}
-	{"native", IntType}
-	{"path", NormalType}
-	{"disabled", IntType}
-  }
+  ValidationMap row_map =
+  { {"uid", IntType} {"name", NormalType} {"identifier", NormalType} {
+      "version", NormalType} {"sdk", NormalType} {"description", NormalType} {
+      "development_region", NormalType} {"native", IntType} {
+      "path", NormalType} {"disabled", IntType} }
 
-   auto const data = execute_query("select * from browser_plugins");
-   ASSERT_GE(data.size(), 1ul);
-   validate_rows(data, row_map);
+  auto const data = execute_query("select * from browser_plugins");
+  ASSERT_GE(data.size(), 1ul);
+  validate_rows(data, row_map);
 
-   auto const datauser = execute_query("select * from browser_plugins where uid=0");
-   ASSERT_GE(datauser.size(), 1ul);
-   validate_rows(datauser, row_map);
-
+  auto const datauser =
+      execute_query("select * from browser_plugins where uid=0");
+  ASSERT_GE(datauser.size(), 1ul);
+  validate_rows(datauser, row_map);
 }
 
 } // namespace table_tests

@@ -22,15 +22,10 @@ class pythonPackages : public testing::Test {
 };
 
 TEST_F(pythonPackages, test_sanity) {
-   ValidationMap row_map = {
-	{"name", NormalType}
-	{"version", NormalType}
-	{"summary", NormalType}
-	{"author", NormalType}
-	{"license", NormalType}
-	{"path", NormalType}
-	{"directory", NormalType}
-  }
+  ValidationMap row_map =
+  { {"name", NormalType} {"version", NormalType} {"summary", NormalType} {
+      "author", NormalType} {"license", NormalType} {"path", NormalType} {
+      "directory", NormalType} }
 
   auto const data = execute_query("select * from python_packages");
   ASSERT_GE(data.size(), 1ul);

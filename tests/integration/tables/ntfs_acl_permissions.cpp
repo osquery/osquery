@@ -22,15 +22,12 @@ class ntfsAclPermissions : public testing::Test {
 };
 
 TEST_F(ntfsAclPermissions, test_sanity) {
-   ValidationMap row_map = {
-	{"path", NormalType}
-	{"type", NormalType}
-	{"principal", NormalType}
-	{"access", NormalType}
-	{"inherited_from", NormalType}
-  }
+  ValidationMap row_map =
+  { {"path", NormalType} {"type", NormalType} {"principal", NormalType} {
+      "access", NormalType} {"inherited_from", NormalType} }
 
-  auto const data = execute_query("select * from ntfs_acl_permissions where path = '\'");
+  auto const data =
+      execute_query("select * from ntfs_acl_permissions where path = '\'");
   ASSERT_GE(data.size(), 1ul);
   validate_rows(data, row_map);
 }
