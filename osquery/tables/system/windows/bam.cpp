@@ -13,6 +13,7 @@
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/time.h>
+#include <osquery/filesystem/fileops.h>
 #include <string>
 
 namespace osquery {
@@ -43,14 +44,13 @@ auto last_execute_time(std::string& assist_data) {
       LOG(WARNING) << "Failed to convert FILETIME to UNIX time.";
       return std::string();
     }
-    last_run = (last_run / 10000000) - 11644473600;
-    std::time_t last_run_time = last_run;
-
-    struct tm tm;
-    gmtime_s(&tm, &last_run_time);
-
-    auto time_str = platformAsctime(&tm);
-    return time_str;
+    FILETIME file_time;
+    ULARGE_INTEGER large_time;
+    large_time.QuadPart = last_run;
+    file_time.dwHighDateTime = large_time.HighPart;
+    file_time.dwLowDateTime = large_time.LowPart;
+    auto last_time = filetimeToUnixtime(file_time);
+    return last_time;
   } else {
     LOG(WARNING) << "Timestamp format is incorrect. Reported length is: "
                  << last_run_string.length();

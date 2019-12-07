@@ -2,7 +2,7 @@ table_name("bam")
 description("Background Activities Moderator (BAM) tracks application execution.")
 schema([
 	Column("path", TEXT, "Application file path."),
-	Column("last_execution_time", TEXT, "Most recent time application was executed."),
+	Column("last_execution_time", INTEGER, "Most recent time application was executed."),
 	Column("sid", TEXT, "User SID."),
 ])
 implementation("bam@genBam")
