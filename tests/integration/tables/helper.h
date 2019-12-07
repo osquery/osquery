@@ -71,9 +71,12 @@ enum {
   SHA256 = 1 << 9,
   SHA1 = 1 << 10,
   Bool = 1 << 11,
+  EmptyOk = 1 << 12,
+  NullOk = 1 << 13,
   NonNegativeInt = IntType | NonEmpty | NonNull | (1 << 12),
   NonNegativeOrErrorInt = IntType | NonEmpty | NonNull | (1 << 13),
   NonEmptyString = NonEmpty | NormalType | NonNull,
+  IntOrEmpty = IntType | EmptyOk | NullOk,
 };
 
 using CustomCheckerType = std::function<bool(const std::string&)>;
