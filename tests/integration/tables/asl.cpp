@@ -22,21 +22,25 @@ class asl : public testing::Test {
 };
 
 TEST_F(asl, test_sanity) {
-  {"message", NormalType} {"ref_pid", IntType} {"ref_proc", NormalType} {
-    "extra", NormalType
-  }
-}
-"gid", IntType
-} // namespace table_tests
-{"uid", IntType} {"level", IntType} {"message", NormalType} {
-    "ref_pid", IntType} {"ref_proc", NormalType} {
-  "extra", NormalType
-}
-} // namespace osquery
+   ValidationMap row_map = {
+	{"time", IntType}
+	{"time_nano_sec", IntType}
+	{"host", NormalType}
+	{"sender", NormalType}
+	{"facility", NormalType}
+	{"pid", IntType}
+	{"gid", IntType}
+	{"uid", IntType}
+	{"level", IntType}
+	{"message", NormalType}
+	{"ref_pid", IntType}
+	{"ref_proc", NormalType}
+	{"extra", NormalType}
+   }
 
-auto const data = execute_query("select * from asl limit 5");
-ASSERT_GT(data.size(), 1ul);
-validate_rows(data, row_map);
+   auto const data = execute_query("select * from asl limit 5");
+   ASSERT_GT(data.size(), 1ul);
+   validate_rows(data, row_map);
 }
 
 } // namespace table_tests

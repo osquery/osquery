@@ -52,10 +52,11 @@ TEST_F(RoutesTest, test_sanity) {
   ASSERT_GE(data.size(), 1ul);
   validate_rows(data, row_map);
 
-  auto const datatype =
-      execute_query("select * from routes where type = 'local'");
+  auto const datatype = execute_query("select * from routes where type = 'local'");
   ASSERT_GE(datatype.size(), 1ul);
   validate_rows(datatype, row_map);
+
+
 }
 
 } // namespace table_tests
