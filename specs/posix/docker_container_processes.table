@@ -3,7 +3,7 @@ description("Docker container processes.")
 schema([
     Column("id", TEXT, "Container ID", index=True, required=True),
     Column("pid", BIGINT, "Process ID"),
-    Column("name", TEXT, "The process path or shorthand argv[0]"),
+    Column("name", TEXT, "The process path or shorthand argv[0]", index=True),
     Column("cmdline", TEXT, "Complete argv"),
     Column("state", TEXT, "Process state"),
     Column("uid", BIGINT, "User ID"),

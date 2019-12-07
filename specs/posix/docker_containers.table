@@ -2,7 +2,7 @@ table_name("docker_containers")
 description("Docker containers information.")
 schema([
     Column("id", TEXT, "Container ID", index=True),
-    Column("name", TEXT, "Container name"),
+    Column("name", TEXT, "Container name", index=True),
     Column("image", TEXT, "Docker image (name) used to launch this container"),
     Column("image_id", TEXT, "Docker image ID"),
     Column("command", TEXT, "Command with arguments"),
