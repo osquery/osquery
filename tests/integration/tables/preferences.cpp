@@ -22,23 +22,25 @@ class preferences : public testing::Test {
 };
 
 TEST_F(preferences, test_sanity) {
-     ValidationMap row_map = {
-			      {"domain", NormalType}
-			      {"key", NormalType}
-			      {"subkey", NormalType}
-			      {"value", NormalType}
-			      {"forced", IntType}
-			      {"username", NormalType}
-			      {"host", NormalType}
-     }
+  ValidationMap row_map = {
+      {"domain", NormalType},
+      {"key", NormalType},
+      {"subkey", NormalType},
+      {"value", NormalType},
+      {"forced", IntType},
+      {"username", NormalType},
+      {"host", NormalType},
+  };
 
-     auto const data = execute_query("select * from preferences");
-     ASSERT_GE(data.size(), 1ul);
-     validate_rows(data, row_map);
+  auto const data = execute_query("select * from preferences");
+  ASSERT_GE(data.size(), 1ul);
+  validate_rows(data, row_map);
 
-     auto const datajoin = execute_query("select users.username, preferences.* from users CROSS JOIN preferences USING(username) where preferences.domain = 'com.apple.Preferences';");
-     ASSERT_GE(datajoin.size(), 1ul);
-     validate_rows(datajoin, row_map);
+  auto const datajoin = execute_query(
+      "select users.username, preferences.* from users CROSS JOIN preferences "
+      "USING(username) where preferences.domain = 'com.apple.Preferences';");
+  ASSERT_GE(datajoin.size(), 1ul);
+  validate_rows(datajoin, row_map);
 }
 
 } // namespace table_tests
