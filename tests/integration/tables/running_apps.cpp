@@ -27,7 +27,7 @@ TEST_F(runningApps, test_sanity) {
   QueryData specific_query_data =
       execute_query("select * from running_apps where is_active = 1");
   // 2. Check size before validation
-  ASSERT_GT(general_query_data.size(), 0ul);
+  ASSERT_GT(general_query_data.size(), 1ul);
   ASSERT_EQ(general_query_data[0].size(), 3ul);
 
   ASSERT_EQ(specific_query_data.size(), 1ul);
