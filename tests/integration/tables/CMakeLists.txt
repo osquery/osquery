@@ -211,7 +211,7 @@ function(generateTestsIntegrationTablesTestsTest)
       kernel_extensions.cpp
       kernel_info.cpp
       kernel_panics.cpp
-      # keychain_acls.cpp # TODO: This test takes too much time to run and may require some additional permissions, which makes it flaky.
+      keychain_acls.cpp
       keychain_items.cpp
       launchd.cpp
       launchd_overrides.cpp
