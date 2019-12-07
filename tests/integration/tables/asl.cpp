@@ -33,7 +33,7 @@ TEST_F(asl, test_sanity) {
       {"uid", IntType},
       {"level", IntType},
       {"message", NormalType},
-      {"ref_pid", IntType},
+      {"ref_pid", IntOrEmpty},
       {"ref_proc", NormalType},
       {"extra", NormalType},
   };

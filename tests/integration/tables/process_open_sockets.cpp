@@ -24,8 +24,8 @@ class processOpenSockets : public testing::Test {
 TEST_F(processOpenSockets, test_sanity) {
   ValidationMap row_map = {
       {"pid", IntType},
-      {"fd", IntType},
-      {"socket", IntType},
+      {"fd", IntOrEmpty},
+      {"socket", IntOrEmpty},
       {"family", IntType},
       {"protocol", IntType},
       {"local_address", NormalType},
@@ -34,7 +34,6 @@ TEST_F(processOpenSockets, test_sanity) {
       {"remote_port", IntType},
       {"path", NormalType},
       {"state", NormalType},
-      {"net_namespace", NormalType},
   };
 
   auto const data = execute_query("select * from process_open_sockets");

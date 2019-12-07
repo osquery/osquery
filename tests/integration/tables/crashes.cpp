@@ -42,8 +42,8 @@ TEST_F(crashes, test_sanity) {
   };
 
   auto const data = execute_query(
-      "select users.username, crashes.* from users CROSS JOIN crashes "
-      "USING(uid);");
+      "select crashes.* from users CROSS JOIN crashes "
+      "USING(uid)");
   ASSERT_GE(data.size(), 1ul);
   validate_rows(data, row_map);
 }

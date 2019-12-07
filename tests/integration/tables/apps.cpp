@@ -49,17 +49,10 @@ TEST_F(apps, test_sanity) {
   validate_rows(data, row_map);
 
   // Not totally sure what apps we expect on the VMs used by CI.
-  auto const data1 =
-      execute_query("select '/Applications/Preview.app' from apps");
-  ASSERT_EQ(data.size(), 1ul);
-  validate_rows(data, row_map);
-
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // 4. Perform validation
+  auto const data1 = execute_query(
+      "select * from apps where path = '/Applications/Preview.app'");
+  ASSERT_EQ(data1.size(), 1ul);
+  validate_rows(data1, row_map);
 }
 
 } // namespace table_tests
