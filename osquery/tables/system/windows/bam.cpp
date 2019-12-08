@@ -24,7 +24,6 @@ constexpr auto kBamRegPath =
 
 // Get last exeution time
 auto lastExecute(std::string& time_data) {
-
   // Timestamp should always by 16 chars in length
   if (time_data.length() == 16) {
     // swap endianess
