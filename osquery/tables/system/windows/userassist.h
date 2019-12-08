@@ -17,6 +17,6 @@ namespace tables {
 std::string rotDecode(std::string& value_key_reg);
 
 // Get Epoch time from Windows FILETIME
-std::string lastExecute(std::string& time_data);
+auto lastExecute(std::string& time_data);
 } // namespace tables
 } // namespace osquery

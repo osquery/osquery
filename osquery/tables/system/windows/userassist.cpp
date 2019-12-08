@@ -154,13 +154,13 @@ QueryData genUserAssist(QueryContext& context) {
           results.push_back(r);
         } else {
           std::string assist_data = aKey.at("data");
+          auto time_str = 1LL;
           if (assist_data.length() <= 136) {
             LOG(WARNING)
                 << "Userassist last execute Timestamp format is incorrect";
-            auto time_str = 1LL;
           } else {
             std::string time_data = assist_data.substr(120, 16);
-            auto time_str = lastExecute(time_data);
+            time_str = lastExecute(time_data);
           }
 
           r["path"] = decoded_value_key;
