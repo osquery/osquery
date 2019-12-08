@@ -7,13 +7,13 @@
  */
 
 #include <osquery/core.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/tables/system/windows/registry.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/time.h>
-#include <osquery/filesystem/fileops.h>
 #include <string>
 
 namespace osquery {
@@ -23,26 +23,25 @@ constexpr auto kBamRegPath =
     "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\bam\\%%\\%%";
 
 // Get last exeution time
-auto last_execute_time(std::string& assist_data) {
-  std::string last_run_string = assist_data.substr(0, 16);
+auto lastExecute(std::string& time_data) {
 
   // Timestamp should always by 16 chars in length
-  if (last_run_string.length() == 16) {
+  if (time_data.length() == 16) {
     // swap endianess
-    std::reverse(last_run_string.begin(), last_run_string.end());
+    std::reverse(time_data.begin(), time_data.end());
 
-    for (std::size_t i = 0; i < last_run_string.length(); i += 2) {
-      char temp = last_run_string[i];
-      last_run_string[i] = last_run_string[i + 1];
-      last_run_string[i + 1] = temp;
+    for (std::size_t i = 0; i < time_data.length(); i += 2) {
+      char temp = time_data[i];
+      time_data[i] = time_data[i + 1];
+      time_data[i + 1] = temp;
     }
 
-    // Convert Windows FILETIME to UNIX Time
+    // Convert string to long long
     unsigned long long last_run =
-        tryTo<unsigned long long>(last_run_string, 16).takeOr(0ull);
+        tryTo<unsigned long long>(time_data, 16).takeOr(0ull);
     if (last_run == 0ull) {
-      LOG(WARNING) << "Failed to convert FILETIME to UNIX time.";
-      return std::string();
+      LOG(WARNING) << "Failed to convert timestamp string to long long.";
+      return 1LL;
     }
     FILETIME file_time;
     ULARGE_INTEGER large_time;
@@ -53,8 +52,8 @@ auto last_execute_time(std::string& assist_data) {
     return last_time;
   } else {
     LOG(WARNING) << "Timestamp format is incorrect. Reported length is: "
-                 << last_run_string.length();
-    return std::string();
+                 << time_data.length();
+    return 1LL;
   }
 }
 
@@ -83,7 +82,12 @@ QueryData genBam(QueryContext& context) {
           r["last_execution_time"] = "";
           r["sid"] = sid;
         } else {
-          r["last_execution_time"] = last_execute_time(last_run);
+          std::string time_data = last_run.substr(0, 16);
+          auto time_str = lastExecute(time_data);
+          if (time_str == 1LL) {
+            r["last_execution_time"] = "";
+          }
+          r["last_execution_time"] = INTEGER(time_str);
           r["sid"] = sid;
         }
 
