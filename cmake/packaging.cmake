@@ -124,8 +124,8 @@ function(generateInstallTargets)
 
   if(DEFINED PLATFORM_LINUX)
     # .
-    file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/linux_postinstall.sh" DESTINATION "${CMAKE_BINARY_DIR}/package/deb")
-    file(RENAME "${CMAKE_BINARY_DIR}/package/deb/linux_postinstall.sh" "${CMAKE_BINARY_DIR}/package/deb/postinst")
+    file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/linux_postinstall.sh" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
+    file(RENAME "${CMAKE_BINARY_DIR}/package/linux/linux_postinstall.sh" "${CMAKE_BINARY_DIR}/package/linux/postinst")
 
     # bin
     install(TARGETS osqueryd DESTINATION bin COMPONENT osquery)
@@ -298,7 +298,7 @@ function(generatePackageTarget)
       set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${CPACK_PACKAGE_HOMEPAGE_URL}")
       set(CPACK_DEB_COMPONENT_INSTALL ON)
       set(CPACK_DEBIAN_DEBUGINFO_PACKAGE ON)
-      set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "@CMAKE_BINARY_DIR@/package/deb/conffiles;@CMAKE_BINARY_DIR@/package/deb/postinst")
+      set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_BINARY_DIR}/package/linux/conffiles;${CMAKE_BINARY_DIR}/package/linux/postinst")
     elseif(CPACK_GENERATOR STREQUAL "RPM")
       set(CPACK_RPM_PACKAGE_RELEASE_DIST "${OSQUERY_PACKAGE_RELEASE}")
       set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${OSQUERY_PACKAGE_RELEASE}.x86_64")
