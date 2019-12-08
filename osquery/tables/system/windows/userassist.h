@@ -13,6 +13,10 @@
 namespace osquery {
 namespace tables {
 
+// Decode ROT13 data
 std::string rotDecode(std::string& value_key_reg);
+
+// Get Epoch time from Windows FILETIME
+std::string lastExecute(std::string& time_data);
 } // namespace tables
 } // namespace osquery

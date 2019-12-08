@@ -46,31 +46,25 @@ std::string rotDecode(std::string& value_key_reg) {
 }
 
 // Get last exeution time
-auto lastExecute(std::string& assist_data) {
-  if (assist_data.length() <= 136) {
-    LOG(WARNING) << "Userassist last execute Timestamp format is incorrect";
-    return 1LL;
-  }
-  std::string last_run_string = assist_data.substr(120, 16);
-
+auto lastExecute(std::string& time_data) {
   // If timestamp is zero dont convert to UNIX Time
-  if (last_run_string == "0000000000000000") {
+  if (time_data == "0000000000000000") {
     return 1LL;
   } else {
     // swap endianess
-    std::reverse(last_run_string.begin(), last_run_string.end());
+    std::reverse(time_data.begin(), time_data.end());
 
-    for (std::size_t i = 0; i < last_run_string.length(); i += 2) {
-      char temp = last_run_string[i];
-      last_run_string[i] = last_run_string[i + 1];
-      last_run_string[i + 1] = temp;
+    for (std::size_t i = 0; i < time_data.length(); i += 2) {
+      char temp = time_data[i];
+      time_data[i] = time_data[i + 1];
+      time_data[i + 1] = temp;
     }
 
-    // Convert Windows FILETIME to UNIX Time
+    // Convert string to long long
     unsigned long long last_run =
-        tryTo<unsigned long long>(last_run_string, 16).takeOr(0ull);
+        tryTo<unsigned long long>(time_data, 16).takeOr(0ull);
     if (last_run == 0ull) {
-      LOG(WARNING) << "Failed to convert FILETIME to UNIX time.";
+      LOG(WARNING) << "Failed to convert string to long long.";
       return 1LL;
     }
 
@@ -155,12 +149,20 @@ QueryData genUserAssist(QueryContext& context) {
             decoded_value_key == "UEME_CTLSESSION") {
           r["path"] = decoded_value_key;
           r["last_execution_time"] = "";
-          r["count"] = INTEGER("");
+          r["count"] = "";
           r["sid"] = uKey.at("name");
           results.push_back(r);
         } else {
           std::string assist_data = aKey.at("data");
-          auto time_str = lastExecute(assist_data);
+          if (assist_data.length() <= 136) {
+            LOG(WARNING)
+                << "Userassist last execute Timestamp format is incorrect";
+            auto time_str = 1LL;
+          } else {
+            std::string time_data = assist_data.substr(120, 16);
+            auto time_str = lastExecute(time_data);
+          }
+
           r["path"] = decoded_value_key;
 
           if (time_str == 1LL) {
