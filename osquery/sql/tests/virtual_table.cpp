@@ -205,7 +205,8 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
       "sample", columnDefinition(response, false, false), dbc, false);
   EXPECT_EQ(status.getCode(), SQLITE_OK);
 
-  std::string const q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
+  std::string const q =
+      "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
   QueryData results;
   status = queryInternal(q, results, dbc);
   EXPECT_EQ(
@@ -299,12 +300,12 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   std::vector<std::pair<std::string, QueryData>> constraint_tests = {
       MP("select k.x from p, k", makeResult("x", {"1", "2", "1", "2"})),
       MP("select k.x from (select * from k) k2, p, k where k.x = p.x",
-         makeResult("x", {"1", "1", "2", "2"})),
+         makeResult("x", {"1", "2", "1", "2"})),
       MP("select k.x from (select * from k where z = 1) k2, p, k where k.x = "
          "p.x",
          makeResult("x", {"1", "2"})),
       MP("select k.x from k k1, (select * from p) p1, k where k.x = p1.x",
-         makeResult("x", {"1", "1", "2", "2"})),
+         makeResult("x", {"1", "2", "1", "2"})),
       MP("select k.x from (select * from p) p1, k, (select * from k) k2 where "
          "k.x = p1.x",
          makeResult("x", {"1", "1", "2", "2"})),
@@ -326,7 +327,8 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   for (const auto& test : constraint_tests) {
     QueryData results;
     queryInternal(test.first, results, dbc);
-    EXPECT_EQ(results, test.second) << "Unexpected result for the query: " << test.first;
+    EXPECT_EQ(results, test.second)
+        << "Unexpected result for the query: " << test.first;
   }
 
   std::vector<QueryData> union_results = {
@@ -1006,4 +1008,57 @@ TEST_F(VirtualTableTests, test_used_columns_bitset_with_alias) {
   EXPECT_EQ(results[0].find("col3"), results[0].end());
   EXPECT_EQ(results[0]["aliasToCol2"], "value2");
 }
+
+/*
+ * Query this with
+ *  "SELECT * FROM table WHERE name IN ('alpha','beta','charlie','delta')"
+ * No index columns are defined.  So if constraints are right, there
+ * should be a single table scan (generate call) with no constraints passed.
+ */
+struct NoConstraintTestTablePlugin : public TablePlugin {
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("straints", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+  TableRows generate(QueryContext& context) override {
+    scans++;
+
+    TableRows tr;
+    auto indexes = context.constraints["name"].getAll<int>(EQUALS);
+
+    tr.push_back(make_table_row({{"name", "alpha"}, {"straints", "-1"}}));
+    tr.push_back(make_table_row(
+        {{"name", "beta"}, {"straints", INTEGER(indexes.size())}}));
+    return tr;
+  }
+
+  // Here the goal is to expect/assume the number of scans.
+  size_t scans{0};
+  // add friend so test can call protected columnDefinition()
+  FRIEND_TEST(VirtualTableTests, test_noindex_constraints);
+};
+
+TEST_F(VirtualTableTests, test_noindex_constraints) {
+  auto dbc = SQLiteDBManager::getUnique();
+  auto table_registry = RegistryFactory::get().registry("table");
+
+  auto tablePlugin = std::make_shared<NoConstraintTestTablePlugin>();
+  table_registry->add("noco", tablePlugin);
+  attachTableInternal("noco", tablePlugin->columnDefinition(false), dbc, false);
+
+  QueryData results;
+  queryInternal(
+      "SELECT * from noco WHERE name IN ('alpha','beta','charlie','delta')",
+      results,
+      dbc);
+  dbc->clearAffectedTables();
+
+  ASSERT_EQ(1U, tablePlugin->scans);
+  ASSERT_EQ(2U, results.size());
+  ASSERT_EQ("0", results[1]["straints"]);
+}
+
 } // namespace osquery

@@ -1,2 +1,0 @@
-interceptor_via_fun:google::SetArgv
-interceptor_via_lib:gflags

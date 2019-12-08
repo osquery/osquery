@@ -11,14 +11,17 @@ load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 osquery_cxx_library(
     name = "cloud",
     srcs = [
-        "ec2_instance_metadata.cpp",
-        "ec2_instance_tags.cpp",
+        "aws/ec2_instance_metadata.cpp",
+        "aws/ec2_instance_tags.cpp",
+        "azure/azure_instance_metadata.cpp",
+        "azure/azure_instance_tags.cpp",
     ],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery:headers"),
         osquery_target("osquery/logger:logger"),
         osquery_target("osquery/utils/aws:aws"),
+        osquery_target("osquery/utils/azure:azure"),
         osquery_tp_target("boost"),
     ],
 )

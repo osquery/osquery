@@ -71,7 +71,7 @@ class TLSTransport : public Transport {
   /**
    * @brief Class destructor
    */
-  virtual ~TLSTransport() {}
+  virtual ~TLSTransport() = default;
 
  public:
   TLSTransport();
@@ -107,7 +107,7 @@ class TLSTransport : public Transport {
   std::string server_certificate_file_;
 
   /// Testing-only, disable peer verification.
-  bool verify_peer_;
+  bool verify_peer_{true};
 
  protected:
   /**
@@ -130,6 +130,5 @@ class TLSTransport : public Transport {
   FRIEND_TEST(TLSTransportsTests, test_call_http);
 
   friend class TestDistributedPlugin;
-
 };
-}
+} // namespace osquery

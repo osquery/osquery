@@ -143,9 +143,3 @@ File accesses on Linux using inotify may induce unexpected and unwanted performa
 The above configuration snippet will enable file integrity monitoring for 'homes', 'etc', and 'tmp' but only enable access monitoring for the 'homes' and 'etc' directories.
 
 > NOTICE: The hashes of files will not be calculated to avoid generating additional access events.
-
-### Process File Accesses on macOS
-
-It is possible to monitor for file accesses by process using the osquery macOS kernel module. File accesses induce a LOT of stress on the system and are more or less useless giving the context from userland monitoring systems (aka, not having the process that caused the modification).
-
-If the macOS kernel extension is running, the `process_file_events` table will be populated using the same **file_paths** key in the osquery config. This implementation of access monitoring includes process PIDs and should not cause CPU or memory latency outside of the normal kernel extension/module guarantees. See [../development/kernel.md](Kernel) for more information.

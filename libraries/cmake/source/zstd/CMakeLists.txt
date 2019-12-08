@@ -14,7 +14,6 @@ function(zstdMain)
     "${library_root}/common/pool.c"
     "${library_root}/common/zstd_common.c"
     "${library_root}/common/error_private.c"
-    "${library_root}/common/xxhash.c"
     "${library_root}/compress/hist.c"
     "${library_root}/compress/fse_compress.c"
     "${library_root}/compress/huf_compress.c"
@@ -40,6 +39,8 @@ function(zstdMain)
 
   target_compile_definitions(thirdparty_zstd PRIVATE
     ZSTD_MULTITHREAD
+    XXH_NAMESPACE=zstd_
+    XXH_PRIVATE_API
   )
 
   if(DEFINED PLATFORM_WINDOWS)
@@ -48,10 +49,6 @@ function(zstdMain)
       _CRT_SECURE_NO_WARNINGS
     )
   endif()
-
-  target_link_libraries(thirdparty_zstd PUBLIC
-    thirdparty_glibc
-  )
 
   target_link_libraries(thirdparty_zstd PRIVATE
     thirdparty_c_settings

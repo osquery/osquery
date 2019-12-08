@@ -5,9 +5,12 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(testsMain)
-  add_subdirectory("integration/tables")
+  add_subdirectory("cppcheck")
 
-  generateTestsHelper()
+  if(OSQUERY_BUILD_TESTS)
+    add_subdirectory("integration/tables")
+    generateTestsHelper()
+  endif()
 endfunction()
 
 function(generateTestsHelper)

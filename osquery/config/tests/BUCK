@@ -14,7 +14,7 @@ osquery_cxx_test(
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:conf_files"),
+            osquery_target("tools/tests/configs:conf_files"),
         ),
     },
     visibility = ["PUBLIC"],
@@ -25,7 +25,6 @@ osquery_cxx_test(
         osquery_target("osquery/extensions:extensions"),
         osquery_target("osquery/extensions:impl_thrift"),
         osquery_target("osquery/filesystem:mock_file_structure"),
-        osquery_target("osquery/killswitch:killswitch"),
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/system:time"),
@@ -43,7 +42,7 @@ osquery_cxx_test(
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:conf_files"),
+            osquery_target("tools/tests/configs:conf_files"),
         ),
     },
     visibility = ["PUBLIC"],
@@ -54,7 +53,6 @@ osquery_cxx_test(
         osquery_target("osquery/extensions:extensions"),
         osquery_target("osquery/extensions:impl_thrift"),
         osquery_target("osquery/filesystem:mock_file_structure"),
-        osquery_target("osquery/killswitch:killswitch"),
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/remote/enroll:tls_enroll"),
         osquery_target("osquery/utils/system:time"),

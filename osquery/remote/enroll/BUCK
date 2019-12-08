@@ -41,7 +41,7 @@ osquery_cxx_test(
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:test_files"),
+            osquery_target("tools/tests/configs:test_files"),
         ),
     },
     platform_srcs = [
@@ -64,7 +64,6 @@ osquery_cxx_test(
         osquery_target("osquery/utils/info:info"),
         osquery_target("plugins/config:tls_config"),
         osquery_target("plugins/database:ephemeral"),
-        osquery_target("plugins/killswitch:killswitch_filesystem"),
         osquery_target("tests:helper"),
     ],
 )

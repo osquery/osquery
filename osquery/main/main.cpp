@@ -109,7 +109,7 @@ int startDaemon(Initializer& runner) {
   osquery::events::init_syscall_tracing();
 
   // Finally wait for a signal / interrupt to shutdown.
-  runner.waitForShutdown();
+  runner.waitThenShutdown();
   return 0;
 }
 
@@ -138,7 +138,7 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
     retcode = profile(argc, argv);
   }
   // Finally shutdown.
-  runner.requestShutdown();
+  runner.requestShutdown(retcode);
   return retcode;
 }
 

@@ -69,7 +69,11 @@ option(OSQUERY_NO_DEBUG_SYMBOLS "Whether to build without debug symbols or not, 
 
 option(OSQUERY_BUILD_TESTS "Whether to enable and build tests or not")
 
-option(OSQUERY_FUZZ "Whether to build fuzzing harnesses")
+option(OSQUERY_ENABLE_FUZZER_SANITIZERS "Whether to build fuzzing harnesses")
+option(OSQUERY_ENABLE_ADDRESS_SANITIZER "Whether to enable Address Sanitizer")
+
+option(OSQUERY_ENABLE_CLANG_TIDY "Enables clang-tidy support")
+set(OSQUERY_CLANG_TIDY_CHECKS "-checks=cert-*,cppcoreguidelines-*,performance-*,portability-*,readability-*,modernize-*,bugprone-*" CACHE STRING "List of checks performed by clang-tidy")
 
 # Unfortunately, due glog always enabling BUILD_TESTING, we have to force it off, so that tests won't be built
 overwrite_cache_variable("BUILD_TESTING" "BOOL" "OFF")
@@ -82,6 +86,7 @@ else()
   set(third_party_source_list "source_migration;facebook")
 endif()
 
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" CACHE STRING "A list of paths containing CMake module files")
 set(OSQUERY_THIRD_PARTY_SOURCE "${third_party_source_list}" CACHE STRING "Sources used to acquire third-party dependencies")
 
 # This is the default S3 storage used by Facebook to store 3rd party dependencies; it

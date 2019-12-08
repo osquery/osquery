@@ -5,7 +5,7 @@
 #  root directory of this source tree.
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
-load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target", "osquery_version")
 
 osquery_cxx_library(
     name = "info",
@@ -21,13 +21,9 @@ osquery_cxx_library(
         "version.h",
     ],
     exported_preprocessor_flags = [
-        "-DOSQUERY_VERSION={}".format(read_config("osquery", "version")),
-        "-DOSQUERY_BUILD_VERSION={}".format(
-            read_config("osquery", "version"),
-        ),
-        "-DOSQUERY_BUILD_SDK_VERSION={}".format(
-            read_config("osquery", "version"),
-        ),
+        "-DOSQUERY_VERSION={}".format(osquery_version()),
+        "-DOSQUERY_BUILD_VERSION={}".format(osquery_version()),
+        "-DOSQUERY_BUILD_SDK_VERSION={}".format(osquery_version()),
     ],
     visibility = ["PUBLIC"],
     deps = [

@@ -19,7 +19,7 @@ endif()
 
 # This is the destination for the remotely imported Python modules, used when
 # setting up the PYTHONPATH folder
-set(PYTHON_PATH "${CMAKE_BINARY_DIR}/python_path")
+set(OSQUERY_PYTHON_PATH "${CMAKE_BINARY_DIR}/python_path")
 
 # TODO(alessandro): Add missing defines: PLATFORM_FREEBSD
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
@@ -42,6 +42,7 @@ if(DEFINED PLATFORM_POSIX)
   if(NOT "${ccache_command}" STREQUAL "ccache_command-NOTFOUND")
     message(STATUS "Found ccache: ${ccache_command}")
     set(CMAKE_CXX_COMPILER_LAUNCHER "${ccache_command}" CACHE FILEPATH "")
+    set(CMAKE_C_COMPILER_LAUNCHER "${ccache_command}" CACHE FILEPATH "")
   else()
     message(STATUS "Not found: ccache. Install it and put it into the PATH if you want to speed up partial builds.")
   endif()
@@ -54,4 +55,8 @@ set(TEST_CONFIGS_DIR "${CMAKE_BINARY_DIR}/test_configs")
 set(PACKAGING_SYSTEM "" CACHE STRING "Packaging system to generate when building packages")
 if(DEFINED PLATFORM_WINDOWS)
   set(WIX_ROOT_FOLDER_PATH "" CACHE STRING "Root folder of the WIX installation")
+endif()
+
+if(DEFINED PLATFORM_WINDOWS)
+  enable_language(ASM_MASM)
 endif()

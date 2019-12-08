@@ -39,31 +39,38 @@ function(importFormula library_name)
     endif()
 
     # We need to configure the project to capture its metadata
-    if(DEFINED PLATFORM_WINDOWS)
+    if(NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
       set(toolset_option -T "${CMAKE_GENERATOR_TOOLSET}")
     endif()
 
     if(DEFINED PLATFORM_POSIX)
       # Most of the third party libraries will use makefiles and won't support Ninja
-      set(generator_option "Unix Makefiles")
-    else()
-      set(generator_option "${CMAKE_GENERATOR}")
+      set(generator_option -G "Unix Makefiles")
+    elseif(NOT "${CMAKE_GENERATOR}" STREQUAL "")
+      set(generator_option -G "${CMAKE_GENERATOR}")
+    endif()
+
+    if(DEFINED PLATFORM_MACOS)
+      set(optional_osx_sysroot_setting
+        "-DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}"
+      )
     endif()
 
     execute_process(
       COMMAND "${CMAKE_COMMAND}"
-      -G ${generator_option}
-      ${toolset_option}
-      "-DCMAKE_SYSROOT:PATH=${CMAKE_SYSROOT}"
-      "-DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}"
-      "-DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}"
-      "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
-      "-DCMAKE_INSTALL_PREFIX:STRING=${install_prefix}"
-      "${project_directory_path}"
-      WORKING_DIRECTORY "${build_directory_path}"
-      RESULT_VARIABLE error
-      OUTPUT_VARIABLE std_output
-      ERROR_VARIABLE std_error
+        ${generator_option}
+        ${toolset_option}
+        ${optional_osx_sysroot_setting}
+        "-DCMAKE_SYSROOT:PATH=${CMAKE_SYSROOT}"
+        "-DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}"
+        "-DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}"
+        "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
+        "-DCMAKE_INSTALL_PREFIX:PATH=${install_prefix}"
+        "${project_directory_path}"
+        WORKING_DIRECTORY "${build_directory_path}"
+        RESULT_VARIABLE error
+        OUTPUT_VARIABLE std_output
+        ERROR_VARIABLE std_error
     )
 
     if(NOT ${error} EQUAL 0)

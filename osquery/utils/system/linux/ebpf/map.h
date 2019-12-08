@@ -79,6 +79,8 @@ class Map final {
     }
     std::swap(fd_, from.fd_);
     std::swap(size_, from.size_);
+
+    return *this;
   }
 
   Expected<ValueType, MapError> lookupElement(KeyType const& key) const {

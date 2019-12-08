@@ -38,7 +38,6 @@ function(generateOsqueryConfigTestsTest)
     osquery_extensions
     osquery_extensions_implthrift
     osquery_filesystem_mockfilestructure
-    osquery_killswitch
     osquery_registry
     osquery_remote_enroll_tlsenroll
     osquery_utils_system_time
@@ -46,7 +45,6 @@ function(generateOsqueryConfigTestsTest)
     plugins_database_ephemeral
     specs_tables
     osquery_config_tests_testutils
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
 
@@ -63,7 +61,6 @@ function(generateOsqueryConfigTestsPacksTest)
     osquery_extensions
     osquery_extensions_implthrift
     osquery_filesystem_mockfilestructure
-    osquery_killswitch
     osquery_registry
     osquery_remote_enroll_tlsenroll
     osquery_utils_system_time
@@ -71,7 +68,6 @@ function(generateOsqueryConfigTestsPacksTest)
     plugins_database_ephemeral
     specs_tables
     osquery_config_tests_testutils
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
 

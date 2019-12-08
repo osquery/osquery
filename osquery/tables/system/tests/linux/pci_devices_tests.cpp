@@ -16,102 +16,179 @@ using namespace testing;
 namespace osquery {
 namespace tables {
 
-class PciDBTest : public ::testing::Test {};
+class PciDevicesTest : public ::testing::Test {
+ protected:
+  PciDevicesTest() {}
 
-TEST_F(PciDBTest, basic_db_format) {
-  std::istringstream raw_db(
-      "# Some Test Comment\n"
-      "8002  Fake Vendor, Inc.\n"
-      "\t1312  Foobar\n"
-      "\t1313  Foobar [Some R7 Rapidfire]\n"
-      "\t1314  Wrestler HDMI Audio\n"
-      "\t\t174b 1001  90K Diffusion Mini\n"
-      "\t1315  Foobar [Some R5 Rapidfire]\n"
-      "\t1316  Foobar [Some R5 Rapidfire]\n"
-      "\t1317  Foobar\n"
-      "\t1318  Foobar [Some R5 Rapidfire]\n"
-      "\t131b  Foobar [Some R4 Rapidfire]\n"
-      "\t131c  Foobar [Some R7 Rapidfire]\n"
-      "\t131d  Foobar [Some R6 Rapidfire]\n"
-      "\t1714  BeaverCreek HDMI Audio [Some HD 6500D and 6400G-6600G series]\n"
-      "\t\t103c 168b  ProBook 4535s\n"
-      "\t3150  RV380/M24 [Loops Some X600]\n"
-      "\t\t103c 0934  nx8220\n"
-      "\t3151  RV380 GL [IcyhotMV 2400]\n"
-      "\t3152  RV370/M22 [Loops Some X300]\n"
-      "\t3154  RV380/M24 GL [Loops IcyhotGL V3200]\n"
-      "\t3155  RV380 GL [IcyhotMV 2400]\n"
-      "\t3171  RV380 GL [IcyhotMV 2400] (Secondary)\n"
-      "\t3e50  RV380 [Some X600]\n"
-      "\t3e54  RV380 GL [IcyhotGL V3200]\n"
-      "\t3e70  RV380 [Some X600] (Secondary)\n"
-      "\t4136  RS100 [Loops ABC 320M]\n"
-      "ffff  Illegal Vendor ID\n" // Device class information below.
-      "\n\n"
-      "# List of known device classes, subclasses and programming interfaces\n"
-      "\n"
-      "# Syntax:\n"
-      "# C class	class_name\n"
-      "#	subclass	subclass_name  		<-- single tab\n"
-      "#		prog-if  prog-if_name  	<-- two tabs\n"
-      "\n"
-      "C 00  Unclassified device\n"
-      "\t00  Non-VGA unclassified device\n"
-      "\t01  VGA compatible unclassified device\n"
-      "C 01  Mass storage controller\n"
-      "\t00  SCSI storage controller\n"
-      "\t01  IDE interface\n");
+  static void SetUpTestCase() {
+    std::istringstream test_db_stream(
+        "# Some Test Comment\n"
+        "8002  Fake Vendor, Inc.\n"
+        "\t1312  Foobar\n"
+        "\t1313  Foobar [Some R7 Rapidfire]\n"
+        "\t131b  Wrestler HDMI Audio\n"
+        "\t\t174b 1001  90K Diffusion Mini\n"
+        "174b  Fake Vendor, LLC.\n"
+        "ffff  Illegal Vendor ID\n" // Device class information below.
 
-  PciDB parsed_db(raw_db);
+    );
 
-  std::string got;
+    pcidb_ = new PciDB(test_db_stream);
+  }
 
-  // Happy Path Tests
-  parsed_db.getVendorName("8002", got);
-  EXPECT_EQ("Fake Vendor, Inc.", got);
+  static void TearDownTestCase() {
+    delete pcidb_;
+    pcidb_ = nullptr;
+  }
 
-  parsed_db.getModel("8002", "1313", got);
-  EXPECT_EQ("Foobar [Some R7 Rapidfire]", got);
+  static PciDB* pcidb_;
+};
 
-  parsed_db.getModel("8002", "1314", got);
-  EXPECT_EQ("Wrestler HDMI Audio", got);
+PciDB* PciDevicesTest::pcidb_ = nullptr;
 
-  parsed_db.getModel("8002", "4136", got);
-  EXPECT_EQ("RS100 [Loops ABC 320M]", got);
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_all_fields_exists) {
+  Row expected = {
+      {"vendor_id", "0x8002"},
+      {"model_id", "0x131b"},
+      {"vendor", "Fake Vendor, Inc."},
+      {"model", "Wrestler HDMI Audio"},
+      {"subsystem_vendor_id", "0x174b"},
+      {"subsystem_model_id", "0x1001"},
+      {"subsystem_vendor", "Fake Vendor, LLC."},
+      {"subsystem_model", "90K Diffusion Mini"},
+  };
 
-  parsed_db.getSubsystemInfo("8002", "1314", "174b", "1001", got);
-  EXPECT_EQ("90K Diffusion Mini", got);
-
-  parsed_db.getSubsystemInfo("8002", "3150", "103c", "0934", got);
-  EXPECT_EQ("nx8220", got);
-
-  parsed_db.getSubsystemInfo("8002", "1714", "103c", "168b", got);
-  EXPECT_EQ("ProBook 4535s", got);
-
-  // Negative Tests
-  got = "";
-
-  parsed_db.getVendorName("8086", got);
-  EXPECT_EQ("", got);
-
-  parsed_db.getModel("8002", "1388", got);
-  EXPECT_EQ("", got);
-
-  parsed_db.getSubsystemInfo("8002", "1714", "103c", "168c", got);
-  EXPECT_EQ("", got);
-
-  // Things below 'ffff' should not be retrievable.
-  parsed_db.getVendorName("ffff", got);
-  EXPECT_EQ("", got);
-
-  parsed_db.getVendorName("C 00", got);
-  EXPECT_EQ("", got);
-
-  parsed_db.getVendorName("C 01", got);
-  EXPECT_EQ("", got);
-
-  parsed_db.getModel("C 00", "00", got);
-  EXPECT_EQ("", got);
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "8002:131B", "174B:1001", *PciDevicesTest::pcidb_);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(expected, got);
 }
+
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_missing_subsystem_info) {
+  Row expected = {
+      {"vendor_id", "0x8002"},
+      {"model_id", "0x131b"},
+      {"vendor", "Fake Vendor, Inc."},
+      {"model", "Wrestler HDMI Audio"},
+      {"subsystem_vendor_id", "0x174c"},
+      {"subsystem_model_id", "0x1003"},
+  };
+
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "8002:131B", "174C:1003", *PciDevicesTest::pcidb_);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(expected, got);
+}
+
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_missing_all_info) {
+  Row expected = {
+      {"vendor_id", "0x8005"},
+      {"model_id", "0x1311"},
+      {"subsystem_vendor_id", "0x174c"},
+      {"subsystem_model_id", "0x1003"},
+  };
+
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "8005:1311", "174C:1003", *PciDevicesTest::pcidb_);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(expected, got);
+}
+
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_bad_pci_id) {
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "blahblah", "174C:1003", *PciDevicesTest::pcidb_);
+  EXPECT_FALSE(status.ok());
+}
+
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_bad_subsys_id) {
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "8005:1311", "blahblah", *PciDevicesTest::pcidb_);
+  EXPECT_FALSE(status.ok());
+}
+
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_3_pci_ids) {
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "8005:1311:1533", "174C:1003", *PciDevicesTest::pcidb_);
+  EXPECT_FALSE(status.ok());
+}
+
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_empty_pci_id) {
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "", "174C:1003", *PciDevicesTest::pcidb_);
+  EXPECT_FALSE(status.ok());
+}
+
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_3_subsys_ids) {
+  Row expected = {
+      {"vendor_id", "0x8005"},
+      {"model_id", "0x1311"},
+  };
+
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "8005:1311", "174C:1003:1B33", *PciDevicesTest::pcidb_);
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(expected, got);
+}
+
+TEST_F(PciDevicesTest,
+       extract_pci_vendor_model_info_from_pcidb_negative_empty_subsys_ids) {
+  Row expected = {
+      {"vendor_id", "0x8005"},
+      {"model_id", "0x1311"},
+  };
+
+  Row got;
+  auto status = extractVendorModelFromPciDBIfPresent(
+      got, "8005:1311", "", *PciDevicesTest::pcidb_);
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(expected, got);
+}
+
+TEST_F(PciDevicesTest, extract_pci_class_ids_single_digit_class_id) {
+  Row expected = {
+      {"pci_class_id", "0x08"},
+      {"pci_subclass_id", "0x1c"},
+  };
+
+  Row got;
+  auto status = extractPCIClassIDAttrs(got, "81C00");
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(expected, got);
+}
+
+TEST_F(PciDevicesTest, extract_pci_class_ids_double_digit_class_id) {
+  Row expected = {
+      {"pci_class_id", "0x1d"},
+      {"pci_subclass_id", "0x1c"},
+  };
+
+  Row got;
+  auto status = extractPCIClassIDAttrs(got, "1D1C00");
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(expected, got);
+}
+
+TEST_F(PciDevicesTest, extract_pci_class_ids_negative_bad_length) {
+  Row got;
+  auto status = extractPCIClassIDAttrs(got, "FDD1D1C00");
+  EXPECT_FALSE(status.ok());
+}
+
 } // namespace tables
 } // namespace osquery

@@ -26,12 +26,17 @@ function(zlibMain)
   )
 
   target_compile_definitions(thirdparty_zlib PRIVATE
-    _LARGEFILE64_SOURCE=1
-    HAVE_HIDDEN
     PIC
-    HAVE_UNISTD_H
-    HAVE_STDARG_H
   )
+
+  if(DEFINED PLATFORM_POSIX)
+    target_compile_definitions(thirdparty_zlib PRIVATE
+      _LARGEFILE64_SOURCE=1
+      HAVE_HIDDEN
+      HAVE_UNISTD_H
+      HAVE_STDARG_H
+    )
+  endif()
 
   target_link_libraries(thirdparty_zlib PRIVATE
     thirdparty_c_settings

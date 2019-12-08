@@ -83,4 +83,10 @@ importSourceSubmodule(
     "src/libs/serialization"
     "src/libs/random"
     "src/libs/config"
+    "src/libs/process"
+    "src/libs/circular_buffer"
+    "src/libs/winapi"
+    "src/libs/iostreams"
+    "src/libs/scope_exit"
+    "src/libs/typeof"
 )

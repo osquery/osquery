@@ -25,7 +25,7 @@ function(generateAwsCcommonTarget)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/aws-c-common_src")
   set(binary_root "${CMAKE_CURRENT_BINARY_DIR}/aws-c-common")
 
-  add_library(thirdparty_aws_c_common STATIC
+  add_library(thirdparty_aws_c_common STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/array_list.c"
     "${library_root}/source/assert.c"
     "${library_root}/source/byte_buf.c"
@@ -51,8 +51,7 @@ function(generateAwsCcommonTarget)
     "${library_root}/source/uuid.c"
   )
 
-  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin" OR
-     "${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+  if(DEFINED PLATFORM_POSIX)
     set(additional_source_file_list
       "${library_root}/source/posix/clock.c"
       "${library_root}/source/posix/condition_variable.c"
@@ -65,7 +64,7 @@ function(generateAwsCcommonTarget)
       "${library_root}/source/posix/time.c"
     )
 
-  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  elseif(DEFINED PLATFORM_WINDOWS)
     set(additional_source_file_list
       "${library_root}/source/windows/clock.c"
       "${library_root}/source/windows/condition_variable.c"
@@ -110,13 +109,31 @@ endfunction()
 function(generateAwsChecksumsTarget)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/aws-checksums_src")
 
-  add_library(thirdparty_aws_checksums STATIC
+  add_library(thirdparty_aws_checksums STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/cpuid_generic.c"
     "${library_root}/source/crc.c"
     "${library_root}/source/crc_jni.c"
     "${library_root}/source/crc_sw.c"
-    "${library_root}/source/intel/cpuid.c"
-    "${library_root}/source/intel/crc32c_sse42_asm.c"
+  )
+
+  if(DEFINED PLATFORM_POSIX)
+    set(additional_source_file_list
+      "${library_root}/source/intel/cpuid.c"
+      "${library_root}/source/intel/crc32c_sse42_asm.c"
+    )
+
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(additional_source_file_list
+      "${library_root}/source/visualc/visualc_cpuid.c"
+      "${library_root}/source/visualc/visualc_crc32c_sse42.c"
+    )
+
+  else()
+    message(FATAL_ERROR "Unsupported operating system")
+  endif()
+
+  target_sources(thirdparty_aws_checksums PRIVATE
+    ${additional_source_file_list}
   )
 
   target_include_directories(thirdparty_aws_checksums SYSTEM PUBLIC
@@ -131,7 +148,7 @@ endfunction()
 function(generateAwsCeventStreamTarget)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/aws-c-event-stream_src")
 
-  add_library(thirdparty_aws_c_event_stream STATIC
+  add_library(thirdparty_aws_c_event_stream STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/event_stream.c"
   )
 
@@ -189,11 +206,11 @@ function(generateAwsCore)
   set(USE_AWS_MEMORY_MANAGEMENT ${OSQUERY_USE_AWS_MEMORY_MANAGEMENT})
 
   configure_file(
-    "${library_root}/include/aws/core/SDKConfig.h.in" 
+    "${library_root}/include/aws/core/SDKConfig.h.in"
     "${binary_root}/include/aws/core/SDKConfig.h"
    )
 
-  add_library(thirdparty_aws_core STATIC
+  add_library(thirdparty_aws_core STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/AmazonSerializableWebServiceRequest.cpp"
     "${library_root}/source/AmazonStreamingWebServiceRequest.cpp"
     "${library_root}/source/AmazonWebServiceRequest.cpp"
@@ -227,13 +244,6 @@ function(generateAwsCore)
     "${library_root}/source/monitoring/DefaultMonitoring.cpp"
     "${library_root}/source/monitoring/HttpClientMetrics.cpp"
     "${library_root}/source/monitoring/MonitoringManager.cpp"
-    "${library_root}/source/net/linux-shared/Net.cpp"
-    "${library_root}/source/net/linux-shared/SimpleUDP.cpp"
-    "${library_root}/source/platform/linux-shared/Environment.cpp"
-    "${library_root}/source/platform/linux-shared/FileSystem.cpp"
-    "${library_root}/source/platform/linux-shared/OSVersionInfo.cpp"
-    "${library_root}/source/platform/linux-shared/Security.cpp"
-    "${library_root}/source/platform/linux-shared/Time.cpp"
     "${library_root}/source/utils/Array.cpp"
     "${library_root}/source/utils/DNS.cpp"
     "${library_root}/source/utils/DateTimeCommon.cpp"
@@ -285,6 +295,36 @@ function(generateAwsCore)
     "${library_root}/source/utils/xml/XmlSerializer.cpp"
   )
 
+  if(DEFINED PLATFORM_POSIX)
+    set(additional_source_file_list
+      "${library_root}/source/net/linux-shared/Net.cpp"
+      "${library_root}/source/net/linux-shared/SimpleUDP.cpp"
+      "${library_root}/source/platform/linux-shared/Environment.cpp"
+      "${library_root}/source/platform/linux-shared/FileSystem.cpp"
+      "${library_root}/source/platform/linux-shared/OSVersionInfo.cpp"
+      "${library_root}/source/platform/linux-shared/Security.cpp"
+      "${library_root}/source/platform/linux-shared/Time.cpp"
+    )
+
+  elseif(DEFINED PLATFORM_WINDOWS)
+    set(additional_source_file_list
+      "${library_root}/source/net/windows/Net.cpp"
+      "${library_root}/source/net/windows/SimpleUDP.cpp"
+      "${library_root}/source/platform/windows/Environment.cpp"
+      "${library_root}/source/platform/windows/FileSystem.cpp"
+      "${library_root}/source/platform/windows/OSVersionInfo.cpp"
+      "${library_root}/source/platform/windows/Security.cpp"
+      "${library_root}/source/platform/windows/Time.cpp"
+    )
+
+  else()
+    message(FATAL_ERROR "Unsupported operating system")
+  endif()
+
+  target_sources(thirdparty_aws_core PRIVATE
+    ${additional_source_file_list}
+  )
+
   target_link_libraries(thirdparty_aws_core PUBLIC
     thirdparty_openssl
     thirdparty_tinyxml2
@@ -312,7 +352,7 @@ endfunction()
 function(generateAwsFirehose)
   set(library_root "${AWS_SDK_CPP_ROOT}/aws-cpp-sdk-firehose")
 
-  add_library(thirdparty_aws_firehose STATIC
+  add_library(thirdparty_aws_firehose STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/FirehoseClient.cpp"
     "${library_root}/source/FirehoseEndpoint.cpp"
     "${library_root}/source/FirehoseErrorMarshaller.cpp"
@@ -422,7 +462,7 @@ endfunction()
 function(generateAwsKinesis)
   set(library_root "${AWS_SDK_CPP_ROOT}/aws-cpp-sdk-kinesis")
 
-  add_library(thirdparty_aws_kinesis STATIC
+  add_library(thirdparty_aws_kinesis STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/KinesisClient.cpp"
     "${library_root}/source/KinesisEndpoint.cpp"
     "${library_root}/source/KinesisErrorMarshaller.cpp"
@@ -510,7 +550,7 @@ endfunction()
 function(generateAwsEc2)
   set(library_root "${AWS_SDK_CPP_ROOT}/aws-cpp-sdk-ec2")
 
-  add_library(thirdparty_aws_ec2 STATIC
+  add_library(thirdparty_aws_ec2 STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/EC2Client.cpp"
     "${library_root}/source/EC2Endpoint.cpp"
     "${library_root}/source/EC2ErrorMarshaller.cpp"
@@ -1730,7 +1770,7 @@ endfunction()
 function(generateAwsSts)
   set(library_root "${AWS_SDK_CPP_ROOT}/aws-cpp-sdk-sts")
 
-  add_library(thirdparty_aws_sts STATIC
+  add_library(thirdparty_aws_sts STATIC EXCLUDE_FROM_ALL
     "${library_root}/source/STSClient.cpp"
     "${library_root}/source/STSEndpoint.cpp"
     "${library_root}/source/STSErrorMarshaller.cpp"

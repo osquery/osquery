@@ -12,7 +12,7 @@ ExecStart=/usr/bin/osqueryd \
   --flagfile $FLAG_FILE \
   --config_path $CONFIG_FILE
 Restart=on-failure
-KillMode=process
+KillMode=control-group
 KillSignal=SIGTERM
 
 [Install]

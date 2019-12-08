@@ -39,7 +39,6 @@ function(generateOsqueryLoggerDatalogger)
     osquery_core_plugins
     osquery_database
     osquery_filesystem
-    osquery_killswitch
     osquery_numericmonitoring
     osquery_registry
     osquery_utils_conversions

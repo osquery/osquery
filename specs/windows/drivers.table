@@ -1,7 +1,7 @@
 table_name("drivers")
 description("Details for in-use Windows device drivers. This does not display installed but unused drivers.")
 schema([
-    Column("device_id", TEXT, "Device ID", index=True),
+    Column("device_id", TEXT, "Device ID"),
     Column("device_name", TEXT, "Device name"),
     Column("image", TEXT, "Path to driver image file"),
     Column("description", TEXT, "Driver description"),

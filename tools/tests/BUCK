@@ -4,7 +4,6 @@
 #  This source code is licensed as defined on the LICENSE file found in the
 #  root directory of this source tree.
 
-load("//tools/build_defs/oss/osquery:native.bzl", "osquery_filegroup")
 load("//tools/build_defs/oss/osquery:python.bzl", "osquery_python_library")
 
 osquery_python_library(
@@ -12,46 +11,6 @@ osquery_python_library(
     srcs = [
         "utils.py",
     ],
-    base_module = "osquery.tools.tests",
-    visibility = ["PUBLIC"],
-)
-
-osquery_filegroup(
-    name = "conf_files",
-    srcs = glob([
-        "*.conf",
-    ]),
-    visibility = ["PUBLIC"],
-)
-
-osquery_filegroup(
-    name = "config_files",
-    srcs = glob([
-        "*.config",
-    ]),
-    visibility = ["PUBLIC"],
-)
-
-osquery_filegroup(
-    name = "plist_files",
-    srcs = glob([
-        "*.plist",
-    ]),
-    visibility = ["PUBLIC"],
-)
-
-osquery_filegroup(
-    name = "test_files",
-    srcs = glob([
-        "*",
-    ]),
-    visibility = ["PUBLIC"],
-)
-
-osquery_filegroup(
-    name = "aws_files",
-    srcs = glob([
-        "aws/*",
-    ]),
+    base_module = "osquery_tests.tools.tests",
     visibility = ["PUBLIC"],
 )

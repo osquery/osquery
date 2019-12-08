@@ -83,12 +83,6 @@ function(generateOsqueryTablesNetworking)
     thirdparty_boost
   )
 
-  if(NOT DEFINED PLATFORM_WINDOWS)
-    target_link_libraries(osquery_tables_networking PUBLIC
-      thirdparty_glibc_resolv
-    )
-  endif()
-
   if(DEFINED PLATFORM_LINUX)
     list(APPEND platform_deps
       thirdparty_libiptables

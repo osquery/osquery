@@ -11,9 +11,9 @@
 #include <chrono>
 #include <osquery/core.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/utils/info/version.h>
-#include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/config/default_paths.h>
+#include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/info/version.h>
 
 #include <boost/filesystem.hpp>
 
@@ -73,7 +73,7 @@ HIDDEN_FLAG(bool, tls_node_api, false, "Use node key as TLS endpoints");
 
 DECLARE_bool(verbose);
 
-TLSTransport::TLSTransport() : verify_peer_(true) {
+TLSTransport::TLSTransport() {
   if (FLAGS_tls_server_certs.size() > 0) {
     server_certificate_file_ = FLAGS_tls_server_certs;
   }
@@ -109,7 +109,7 @@ http::Client::Options TLSTransport::getOptions() {
                    << server_certificate_file_;
     } else {
       // There is a non-default server certificate set.
-      boost_system::error_code ec;
+      boost::system::error_code ec;
 
       auto status = fs::status(server_certificate_file_, ec);
 
@@ -277,4 +277,4 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
   }
   return response_status_;
 }
-}
+} // namespace osquery

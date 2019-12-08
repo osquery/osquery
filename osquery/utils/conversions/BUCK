@@ -62,6 +62,7 @@ osquery_cxx_library(
     visibility = ["PUBLIC"],
     deps = [
         ":to",
+        osquery_target("osquery/logger:logger"),
         osquery_target("osquery/utils/expected:expected"),
         osquery_tp_target("boost"),
         osquery_tp_target("glog"),
@@ -87,6 +88,20 @@ osquery_cxx_test(
         "tests/join.cpp",
         "tests/split.cpp",
         "tests/tryto.cpp",
+    ],
+    platform_srcs = [
+        (
+            MACOSX,
+            [
+                "darwin/tests/cfstring.cpp",
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                "windows/tests/strings.cpp",
+            ],
+        ),
     ],
     visibility = ["PUBLIC"],
     deps = [

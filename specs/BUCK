@@ -397,10 +397,6 @@ osquery_gentable_cxx_library(
             "linux",
         ),
         (
-            "linux/kernel_integrity.table",
-            "linux",
-        ),
-        (
             "linux/elf_sections.table",
             "linux",
         ),
@@ -801,6 +797,10 @@ osquery_gentable_cxx_library(
             "windows",
         ),
         (
+            "windows/default_environment.table",
+            "windows",
+        ),
+        (
             "windows/bam.table",
             "windows",
         ),
@@ -818,6 +818,8 @@ osquery_gentable_cxx_library(
         ),
     ],
     spec_files = [
+        "azure_instance_metadata.table",
+        "azure_instance_tags.table",
         "carbon_black_info.table",
         "carves.table",
         "chrome_extensions.table",

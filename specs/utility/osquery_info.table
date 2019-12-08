@@ -11,7 +11,8 @@ schema([
     Column("build_platform", TEXT, "osquery toolkit build platform"),
     Column("build_distro", TEXT, "osquery toolkit platform distribution name (os version)"),
     Column("start_time", INTEGER, "UNIX time in seconds when the process started"),
-    Column("watcher", INTEGER, "Process (or thread/handle) ID of optional watcher process")
+    Column("watcher", INTEGER, "Process (or thread/handle) ID of optional watcher process"),
+    Column("platform_mask", INTEGER, "The osquery platform bitmask"),
 ])
 attributes(utility=True)
 implementation("osquery@genOsqueryInfo")

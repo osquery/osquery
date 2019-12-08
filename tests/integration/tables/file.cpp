@@ -72,6 +72,10 @@ TEST_F(FileTests, test_sanity) {
   row_map["product_version"] = NormalType;
 #endif
 
+#ifdef __APPLE__
+  row_map["bsd_flags"] = NormalType;
+#endif
+
   validate_rows(data, row_map);
   ASSERT_EQ(data[0]["path"], filepath.string());
   ASSERT_EQ(data[0]["directory"], filepath.parent_path().string());

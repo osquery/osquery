@@ -78,7 +78,6 @@ There are several attributes that help with table documentation and optimization
 - **user_data=True**: This tells the caller that they should provide a `uid` in the query predicate. By default the table will inspect the current user's content, but may be asked to include results from others.
 - **cacheable=True**: The results from the table can be cached within the query schedule. If this table generates a lot of data it is best to cache the results so that queries needing access in the schedule with a shorter interval can simply copy the already generated structures.
 - **utility=True**: This table will be included in the osquery SDK, it is considered a core/non-platform specific utility.
-- **kernel_required=True**: This is rare, but tells the caller that results are only available if the osquery kernel extension is running.
 
 Specs may also include an **extended_schema** for a specific platform. They are the same as **schema** but the first argument is a function returning a bool. If true the columns are added and not marked hidden, otherwise they are all appended with `hidden=True`. This allows tables to keep a consistent set of columns and types while providing a good user experience for default selects.
 

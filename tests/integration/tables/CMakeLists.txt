@@ -151,7 +151,6 @@ function(generateTestsIntegrationTablesTestsTest)
       intel_me_info.cpp
       iptables.cpp
       kernel_info.cpp
-      kernel_integrity.cpp
       kernel_modules.cpp
       md_devices.cpp
       md_drives.cpp
@@ -263,6 +262,7 @@ function(generateTestsIntegrationTablesTestsTest)
       connectivity.cpp
       chocolatey_packages.cpp
       cpu_info.cpp
+      default_environment.cpp
       disk_info.cpp
       drivers.cpp
       ie_extensions.cpp

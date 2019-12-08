@@ -6,6 +6,7 @@
 
 function(osqueryUtilsMain)
   add_subdirectory("aws")
+  add_subdirectory("azure")
   add_subdirectory("caches")
   add_subdirectory("system")
   add_subdirectory("status")
