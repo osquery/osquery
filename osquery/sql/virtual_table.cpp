@@ -1003,7 +1003,14 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     PluginRequest request = {{"action", "generate"}};
     TablePlugin::setRequestFromContext(context, request);
     QueryData qd;
-    Registry::call("table", pVtab->content->name, request, qd);
+    auto status =
+        Registry::call("table", pVtab->content->name, request, qd);
+    if (!status.ok()) {
+      VLOG(1) << "Invalid response from the extension table. Error "
+              << status.getCode() << ": " << status.getMessage();
+      setTableErrorMessage(pVtabCursor->pVtab, status.getMessage());
+      return SQLITE_ERROR;
+    }
     pCur->rows = tableRowsFromQueryData(std::move(qd));
   }
 
