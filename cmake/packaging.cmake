@@ -126,6 +126,12 @@ function(generateInstallTargets)
     # .
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/linux_postinstall.sh" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     file(RENAME "${CMAKE_BINARY_DIR}/package/linux/linux_postinstall.sh" "${CMAKE_BINARY_DIR}/package/linux/postinst")
+    if("${PACKAGING_SYSTEM}" STREQUAL "DEB")
+      file(WRITE "${CMAKE_BINARY_DIR}/package/linux/conffiles"
+        "/etc/init.d/osqueryd\n"
+        "/etc/default/osqueryd\n"
+      )
+    endif()
 
     # bin
     install(TARGETS osqueryd DESTINATION bin COMPONENT osquery)
@@ -163,14 +169,25 @@ function(generateInstallTargets)
     # etc
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.sysconfig" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
+      # Patch the EnvironmentFile in the systemd unit
+      file(READ "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" osqueryd_service_file)
+      string(REPLACE "/etc/sysconfig/osqueryd" "/etc/default/osqueryd" osqueryd_service_file "${osqueryd_service_file}")
+      file(WRITE "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" "${osqueryd_service_file}")
       install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/default RENAME osqueryd COMPONENT osquery)
     else()
       install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/sysconfig RENAME osqueryd COMPONENT osquery)
     endif()
 
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.initd" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
+    if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
+      # Patch /etc/sysconfig to /etc/default in the initd script
+      file(READ "${CMAKE_BINARY_DIR}/package/linux/osqueryd.initd" osqueryd_initd_file)
+      string(REPLACE "/etc/sysconfig" "/etc/default" osqueryd_initd_file "${osqueryd_initd_file}")
+      file(WRITE "${CMAKE_BINARY_DIR}/package/linux/osqueryd.initd" "${osqueryd_initd_file}")
+    endif()
     install(PROGRAMS "${CMAKE_BINARY_DIR}/package/linux/osqueryd.initd" DESTINATION /etc/init.d RENAME "osqueryd" COMPONENT osquery)
     install(DIRECTORY DESTINATION /etc/osquery COMPONENT osquery)
+
     # var
     install(DIRECTORY DESTINATION /var/log/osquery COMPONENT osquery)
     install(DIRECTORY DESTINATION /var/osquery COMPONENT osquery)
@@ -278,16 +295,12 @@ function(generatePackageTarget)
     set(CPACK_STRIP_FILES ON)
   endif()
 
-  if(CPACK_GENERATOR STREQUAL "TGZ")
-    set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY 0)
-    set(CPACK_SET_DESTDIR ON)
-  endif()
-
   if(DEFINED PLATFORM_LINUX)
     set(OSQUERY_PACKAGE_RELEASE "1.linux")
-
     if(CPACK_GENERATOR STREQUAL "TGZ")
       set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${OSQUERY_PACKAGE_RELEASE}_x86_64")
+      set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY 0)
+      set(CPACK_SET_DESTDIR ON)
     elseif(CPACK_GENERATOR STREQUAL "DEB")
       set(CPACK_DEBIAN_OSQUERY_PACKAGE_NAME ${CPACK_PACKAGE_NAME})
       set(CPACK_DEBIAN_PACKAGE_RELEASE "${OSQUERY_PACKAGE_RELEASE}")
@@ -321,6 +334,7 @@ function(generatePackageTarget)
     set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
     set(CPACK_COMMAND_PRODUCTBUILD "${CMAKE_SOURCE_DIR}/tools/deployment/productbuild.sh")
     set(CPACK_COMMAND_PKGBUILD "${CMAKE_SOURCE_DIR}/tools/deployment/productbuild.sh")
+    set(CPACK_SET_DESTDIR ON)
   elseif(DEFINED PLATFORM_WINDOWS)
     file(COPY "${CMAKE_SOURCE_DIR}/tools/osquery.ico" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
     file(COPY "${CMAKE_SOURCE_DIR}/cmake/wix_patches/osquery_wix_patch.xml" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
