@@ -117,6 +117,33 @@ TEST_F(VirtualTableTests, test_tableplugin_moreoptions) {
   EXPECT_EQ(expected_statement, columnDefinition(response, true, false));
 }
 
+class additionalOnlyTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("id", INTEGER_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("username", TEXT_TYPE, ColumnOptions::ADDITIONAL),
+        std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_tableplugin_additionalonly);
+};
+
+TEST_F(VirtualTableTests, test_tableplugin_additionalonly) {
+  auto table = std::make_shared<additionalOnlyTablePlugin>();
+
+  PluginResponse response;
+  PluginRequest request = {{"action", "columns"}};
+  EXPECT_TRUE(table->call(request, response).ok());
+
+  std::string expected_statement =
+      "(`id` INTEGER, `username` TEXT, `name` TEXT, PRIMARY KEY (`id`, "
+      "`username`, `name`)) WITHOUT ROWID";
+  EXPECT_EQ(expected_statement, columnDefinition(response, true, false));
+}
+
 class aliasesTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const override {
