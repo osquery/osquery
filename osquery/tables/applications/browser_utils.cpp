@@ -32,6 +32,7 @@ const std::map<std::string, std::string> kExtensionKeys = {
     {"background.persistent", "persistent"}};
 
 const std::string kExtensionPermissionKey = "permissions";
+const std::string kExtensionOptionalPermissionKey = "optional_permissions";
 const std::string kProfilePreferencesFile = "Preferences";
 const std::string kProfilePreferenceKey = "profile";
 
@@ -137,10 +138,37 @@ void genExtension(const std::string& uid,
     permission_list = boost::algorithm::join(perm_vector, ", ");
   }
 
+  // Fetch the optional permission array from the manifest file
+  std::string optional_permission_list;
+
+  const auto& optional_perm_array_obj =
+      tree.get_child_optional(kExtensionOptionalPermissionKey);
+  if (optional_perm_array_obj) {
+    const auto& optional_perm_array_contents = optional_perm_array_obj.get();
+
+    std::vector<std::string> optional_perm_vector;
+    optional_perm_vector.reserve(optional_perm_array_contents.size());
+
+    for (auto it = optional_perm_array_contents.begin();
+         it != optional_perm_array_contents.end();
+         ++it) {
+      const auto& optional_perm_obj = *it;
+      const auto& optional_permission =
+          optional_perm_obj.second.get_value_optional<std::string>();
+      if (optional_permission) {
+        optional_perm_vector.emplace_back(*optional_permission);
+      }
+    }
+
+    optional_permission_list =
+        boost::algorithm::join(optional_perm_vector, ", ");
+  }
+
   std::string localized_prefix = "__MSG_";
   Row r;
   r["uid"] = uid;
   r[kExtensionPermissionKey] = permission_list;
+  r[kExtensionOptionalPermissionKey] = optional_permission_list;
   r["profile"] = profile_name;
   // Most of the keys are in the top-level JSON dictionary.
   for (const auto& it : kExtensionKeys) {
