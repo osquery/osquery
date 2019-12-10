@@ -142,6 +142,12 @@ function(generateInstallTargets)
 
     # lib
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.service" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
+    if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
+      # Patch the EnvironmentFile in the systemd unit
+      file(READ "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" osqueryd_service_file)
+      string(REPLACE "/etc/sysconfig/osqueryd" "/etc/default/osqueryd" osqueryd_service_file "${osqueryd_service_file}")
+      file(WRITE "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" "${osqueryd_service_file}")
+    endif()
     install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" DESTINATION lib/systemd/system COMPONENT osquery)
 
     # share
@@ -169,10 +175,6 @@ function(generateInstallTargets)
     # etc
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.sysconfig" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
     if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
-      # Patch the EnvironmentFile in the systemd unit
-      file(READ "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" osqueryd_service_file)
-      string(REPLACE "/etc/sysconfig/osqueryd" "/etc/default/osqueryd" osqueryd_service_file "${osqueryd_service_file}")
-      file(WRITE "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" "${osqueryd_service_file}")
       install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/default RENAME osqueryd COMPONENT osquery)
     else()
       install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.sysconfig" DESTINATION /etc/sysconfig RENAME osqueryd COMPONENT osquery)
