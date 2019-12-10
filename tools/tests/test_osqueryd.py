@@ -150,7 +150,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
     @test_base.flaky
     def test_6_logger_mode(self):
         logger_path = test_base.getTestDirectory(test_base.CONFIG_DIR)
-        test_mode = 0754  # Strange mode that should never exist
+        test_mode = 0o754  # Strange mode that should never exist
         daemon = self._run_daemon(
             {
                 "disable_watchdog": True,
@@ -187,7 +187,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
             # TODO: Add ACL checks for Windows logs
             if pth.find('.log') > 0 and os.name != "nt":
                 rpath = os.path.realpath(pth)
-                mode = os.stat(rpath).st_mode & 0777
+                mode = os.stat(rpath).st_mode & 0o777
                 self.assertEqual(mode, test_mode)
 
         daemon.kill()

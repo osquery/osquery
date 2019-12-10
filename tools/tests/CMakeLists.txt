@@ -58,10 +58,15 @@ function(preparePythonTestsEnvironment)
   add_dependencies(osquery_tools_tests_pythontests osquery_tools_codegen_scripts)
   add_dependencies(osquery_tools_tests_pythontests specs_table_files)
   add_dependencies(osquery_tools_tests_pythontests codegen_gentable_utils_dependency)
+  add_dependencies(osquery_tools_tests_pythontests create_osqueryi)
 endfunction()
 
 function(generatePythonTests)
+
   preparePythonTestsEnvironment()
+
+  # Tests
+  addPythonTest(NAME tools_tests_testosqueryd SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_osqueryd.py")
 endfunction()
 
 osqueryToolsTestsMain()
