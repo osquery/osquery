@@ -24,6 +24,8 @@ CREATE_LAZY_REGISTRY(TablePlugin, "table");
 size_t TablePlugin::kCacheInterval = 0;
 size_t TablePlugin::kCacheStep = 0;
 
+#define kDisableRowId "WITHOUT ROWID"
+
 Status TablePlugin::addExternal(const std::string& name,
                                 const PluginResponse& response) {
   // Attach the table.
@@ -263,12 +265,12 @@ std::string columnDefinition(const TableColumns& columns, bool is_extension) {
     statement +=
         '`' + std::get<0>(column) + "` " + columnTypeName(std::get<1>(column));
     auto& options = std::get<2>(column);
+    if (options & ColumnOptions::INDEX) {
+      indexed = true;
+    }
     if (options & (ColumnOptions::INDEX | ColumnOptions::ADDITIONAL)) {
-      if (options & ColumnOptions::INDEX) {
-        indexed = true;
-      }
       pkeys.push_back(std::get<0>(column));
-      epilog["WITHOUT ROWID"] = true;
+      epilog[kDisableRowId] = true;
     }
     if (options & ColumnOptions::HIDDEN) {
       statement += " HIDDEN";
@@ -278,10 +280,13 @@ std::string columnDefinition(const TableColumns& columns, bool is_extension) {
     }
   }
 
-  // If there are only 'additional' columns (rare), do not attempt a pkey.
-  if (!indexed) {
-    epilog["WITHOUT ROWID"] = false;
+  // If there are only 'additional' columns (rare), pkey is the 'unique row'.
+  // Otherwise an additional constraint will create duplicate rowids.
+  if (!indexed && epilog[kDisableRowId]) {
     pkeys.clear();
+    for (const auto& column : columns) {
+      pkeys.push_back(std::get<0>(column));
+    }
   }
 
   // Append the primary keys, if any were defined.
@@ -300,7 +305,7 @@ std::string columnDefinition(const TableColumns& columns, bool is_extension) {
   // keep the rowid column, as we need it to reference rows when handling UPDATE
   // and DELETE queries
   if (is_extension) {
-    epilog["WITHOUT ROWID"] = false;
+    epilog[kDisableRowId] = false;
   }
 
   statement += ')';
