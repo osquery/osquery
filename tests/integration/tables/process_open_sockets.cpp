@@ -10,6 +10,7 @@
 // Spec file: specs/process_open_sockets.table
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
 namespace table_tests {
@@ -35,6 +36,10 @@ TEST_F(processOpenSockets, test_sanity) {
       {"path", NormalType},
       {"state", NormalType},
   };
+
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    row_map["net_namespace"] = IntType;
+  }
 
   auto const data = execute_query("select * from process_open_sockets");
   ASSERT_FALSE(data.empty());
