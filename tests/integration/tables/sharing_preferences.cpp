@@ -22,21 +22,21 @@ class sharingPreferences : public testing::Test {
 };
 
 TEST_F(sharingPreferences, test_sanity) {
-     ValidationMap row_map = {
-			    {"screen_sharing", Bool},
-			    {"file_sharing", Bool},
-			    {"printer_sharing", Bool},
-			    {"remote_login", Bool},
-			    {"remote_management", Bool},
-			    {"remote_apple_events", Bool},
-			    {"internet_sharing", Bool},
-			    {"bluetooth_sharing", Bool},
-			    {"disc_sharing", Bool},
-			    {"content_caching", Bool},
-   };
+  ValidationMap row_map = {
+      {"screen_sharing", Bool},
+      {"file_sharing", Bool},
+      {"printer_sharing", Bool},
+      {"remote_login", Bool},
+      {"remote_management", Bool},
+      {"remote_apple_events", Bool},
+      {"internet_sharing", Bool},
+      {"bluetooth_sharing", Bool},
+      {"disc_sharing", Bool},
+      {"content_caching", Bool},
+  };
 
   auto const data = execute_query("select * from sharing_preferences");
-  ASSERT_EQ(data.size(), 1ul);
+  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 }
 

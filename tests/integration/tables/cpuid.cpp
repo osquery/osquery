@@ -22,16 +22,16 @@ class cpuid : public testing::Test {
 };
 
 TEST_F(cpuid, test_sanity) {
-   ValidationMap row_map = {
-			    {"feature", NormalType},
-			    {"value", NormalType},
-			    {"output_register", NormalType},
-			    {"output_bit", IntType},
-			    {"input_eax", NormalType},
-   };
+  ValidationMap row_map = {
+      {"feature", NormalType},
+      {"value", NormalType},
+      {"output_register", NormalType},
+      {"output_bit", IntType},
+      {"input_eax", NormalType},
+  };
 
   auto const data = execute_query("select * from cpuid");
-  ASSERT_EQ(data.size(), 1ul);
+  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 }
 

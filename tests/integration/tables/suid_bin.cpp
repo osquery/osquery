@@ -22,20 +22,21 @@ class suidBin : public testing::Test {
 };
 
 TEST_F(suidBin, test_sanity) {
-   ValidationMap row_map = {
-			    {"path", NormalType},
-			    {"username", NormalType},
-			    {"groupname", NormalType},
-			    {"permissions", NormalType},
-   }
+  ValidationMap row_map =
+  { {"path", NormalType},
+    {"username", NormalType},
+    {"groupname", NormalType},
+    {"permissions", NormalType},
+  }
 
-     auto const data = execute_query("select * from suid_bin");
-   ASSERT_GE(data.size(), 1ul);
-   validate_rows(data, row_map);
+  auto const data = execute_query("select * from suid_bin");
+  ASSERT_FALSE(data.empty());
+  validate_rows(data, row_map);
 
-   auto const dataps = execute_query("select * from suid_bin where path = '/bin/ps'");
-   ASSERT_EQ(dataps.size(), 1ul);
-   validate_rows(dataps, row_map);
+  auto const dataps =
+      execute_query("select * from suid_bin where path = '/bin/ps'");
+  ASSERT_FALSE(dataps.empty());
+  validate_rows(dataps, row_map);
 }
 
 } // namespace table_tests
