@@ -101,6 +101,8 @@ endfunction()
 
 function(findPythonExecutablePath)
   find_package(Python3 3.5 COMPONENTS Interpreter REQUIRED)
+
+  set(OSQUERY_PYTHON_EXECUTABLE "${Python3_EXECUTABLE}" CACHE INTERNAL "" FORCE)
 endfunction()
 
 function(generateBuildTimeSourceFile file_path content)
@@ -274,12 +276,12 @@ function(generateSpecialTargets)
   endif()
 
   add_custom_target(format_check
-    COMMAND ${command_prefix} "${Python3_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/tools/formatting/format-check.py --exclude-folders ${excluded_folders} origin/master
+    COMMAND ${command_prefix} "${OSQUERY_PYTHON_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/tools/formatting/format-check.py --exclude-folders ${excluded_folders} origin/master
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
   )
   add_custom_target(format
-    COMMAND ${command_prefix} "${Python3_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py --exclude-folders ${excluded_folders} -f --style=file
+    COMMAND ${command_prefix} "${OSQUERY_PYTHON_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py --exclude-folders ${excluded_folders} -f --style=file
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
   )
