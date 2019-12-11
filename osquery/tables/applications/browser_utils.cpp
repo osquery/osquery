@@ -72,7 +72,7 @@ Status getChromeProfileName(std::string& name, const fs::path& path) {
 } // namespace
 
 const std::string genPermissions(const std::string& permissionTypeKey,
-                                 pt::ptree tree) {
+                                 const pt::ptree& tree) {
   std::string permission_list;
 
   const auto& perm_array_obj = tree.get_child_optional(permissionTypeKey);
