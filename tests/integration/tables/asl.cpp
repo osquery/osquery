@@ -38,8 +38,8 @@ TEST_F(asl, test_sanity) {
       {"extra", NormalType},
   };
 
-  auto const data = execute_query("select * from asl limit 5");
-  ASSERT_GT(data.size(), 1ul);
+  auto const data = execute_query("select * from asl limit 1");
+  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 }
 

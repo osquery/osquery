@@ -33,13 +33,13 @@ TEST_F(preferences, test_sanity) {
   };
 
   auto const data = execute_query("select * from preferences");
-  ASSERT_GE(data.size(), 1ul);
+  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 
   auto const datajoin = execute_query(
       "select users.username, preferences.* from users CROSS JOIN preferences "
       "USING(username) where preferences.domain = 'com.apple.Preferences';");
-  ASSERT_GE(datajoin.size(), 1ul);
+  ASSERT_FALSE(datajoin.empty());
   validate_rows(datajoin, row_map);
 }
 

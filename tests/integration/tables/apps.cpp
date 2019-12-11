@@ -45,7 +45,7 @@ TEST_F(apps, test_sanity) {
   };
 
   auto const data = execute_query("select * from apps");
-  ASSERT_GE(data.size(), 1ul);
+  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 
   // Not totally sure what apps we expect on the VMs used by CI.

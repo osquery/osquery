@@ -49,12 +49,12 @@ TEST_F(RoutesTest, test_sanity) {
   };
 
   auto const data = execute_query("select * from routes");
-  ASSERT_GE(data.size(), 1ul);
+  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 
   auto const datatype =
       execute_query("select * from routes where type = 'local'");
-  ASSERT_GE(datatype.size(), 1ul);
+  ASSERT_FALSE(datatype.empty());
   validate_rows(datatype, row_map);
 }
 

@@ -37,7 +37,7 @@ TEST_F(processOpenSockets, test_sanity) {
   };
 
   auto const data = execute_query("select * from process_open_sockets");
-  ASSERT_GE(data.size(), 1ul);
+  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 }
 

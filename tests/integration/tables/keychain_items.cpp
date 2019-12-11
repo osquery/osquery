@@ -22,8 +22,6 @@ class KeychainItemsTest : public testing::Test {
 };
 
 TEST_F(KeychainItemsTest, test_sanity) {
-  auto const data = execute_query("select * from keychain_items");
-  ASSERT_GT(data.size(), 1ul);
   ValidationMap row_map = {
       {"label", NormalType},
       {"description", NormalType},
@@ -38,6 +36,9 @@ TEST_F(KeychainItemsTest, test_sanity) {
                            "private key"}},
       {"path", NonEmptyString},
   };
+
+  auto const data = execute_query("select * from keychain_items");
+  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 }
 
