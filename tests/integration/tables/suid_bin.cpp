@@ -33,10 +33,10 @@ TEST_F(suidBin, test_sanity) {
   ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 
-  auto const dataps =
-      execute_query("select * from suid_bin where path = '/bin/ps'");
-  ASSERT_FALSE(dataps.empty());
-  validate_rows(dataps, row_map);
+  auto const data_newgrp =
+      execute_query("select * from suid_bin where path = '/usr/bin/newgrp'");
+  ASSERT_FALSE(data_newgrp.empty());
+  validate_rows(data_newgrp, row_map);
 }
 
 } // namespace table_tests
