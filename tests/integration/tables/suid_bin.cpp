@@ -22,12 +22,12 @@ class suidBin : public testing::Test {
 };
 
 TEST_F(suidBin, test_sanity) {
-  ValidationMap row_map =
-  { {"path", NormalType},
-    {"username", NormalType},
-    {"groupname", NormalType},
-    {"permissions", NormalType},
-  }
+  ValidationMap row_map = {
+      {"path", NormalType},
+      {"username", NormalType},
+      {"groupname", NormalType},
+      {"permissions", NormalType},
+  };
 
   auto const data = execute_query("select * from suid_bin");
   ASSERT_FALSE(data.empty());
