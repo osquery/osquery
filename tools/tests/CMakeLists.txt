@@ -23,7 +23,7 @@ function(addPythonTest)
 
   set(python_test_command
     "${CMAKE_COMMAND}" -E env "PYTHONPATH=${OSQUERY_PYTHON_PATH}"
-    "${Python3_EXECUTABLE}" -u ${script_name}
+    "${OSQUERY_PYTHON_EXECUTABLE}" -u ${script_name}
     --verbose --build "${CMAKE_BINARY_DIR}"
     --test-configs-dir "${TEST_CONFIGS_DIR}"
     "${osquery_test_EXTRA_ARGS}"
