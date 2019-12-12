@@ -485,8 +485,4 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
   status_ = Status(0);
 }
-
-WmiRequest::~WmiRequest() {
-  results_.clear();
-}
 } // namespace osquery
