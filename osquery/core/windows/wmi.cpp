@@ -39,7 +39,7 @@ Status WmiMethodArgs::Put<unsigned int>(const std::string& name,
   var.ulVal = value;
 
   arguments.insert(std::pair<std::string, VARIANT>(name, var));
-  return Status(0);
+  return Status::success();
 }
 
 template <>
@@ -55,7 +55,7 @@ Status WmiMethodArgs::Put<std::string>(const std::string& name,
   }
 
   arguments.insert(std::pair<std::string, VARIANT>(name, var));
-  return Status(0);
+  return Status::success();
 }
 
 /// Utility function to help turn a property value into BSTR
@@ -102,7 +102,7 @@ Status WmiResultItem::GetBool(const std::string& name, bool& ret) const {
   }
   ret = value.boolVal == VARIANT_TRUE ? true : false;
   VariantClear(&value);
-  return Status(0);
+  return Status::success();
 }
 
 Status WmiResultItem::GetDateTime(const std::string& name,
@@ -153,7 +153,7 @@ Status WmiResultItem::GetDateTime(const std::string& name,
   SysFreeString(filetime_str);
   dt->Release();
 
-  return Status(0);
+  return Status::success();
 }
 
 Status WmiResultItem::GetUChar(const std::string& name,
@@ -170,7 +170,7 @@ Status WmiResultItem::GetUChar(const std::string& name,
   }
   ret = value.bVal;
   VariantClear(&value);
-  return Status(0);
+  return Status::success();
 }
 
 Status WmiResultItem::GetUnsignedShort(const std::string& name,
@@ -188,7 +188,7 @@ Status WmiResultItem::GetUnsignedShort(const std::string& name,
   }
   ret = value.uiVal;
   VariantClear(&value);
-  return Status(0);
+  return Status::success();
 }
 
 Status WmiResultItem::GetUnsignedInt32(const std::string& name,
@@ -206,7 +206,7 @@ Status WmiResultItem::GetUnsignedInt32(const std::string& name,
   }
   ret = value.uiVal;
   VariantClear(&value);
-  return Status(0);
+  return Status::success();
 }
 
 Status WmiResultItem::GetLong(const std::string& name, long& ret) const {
@@ -222,7 +222,7 @@ Status WmiResultItem::GetLong(const std::string& name, long& ret) const {
   }
   ret = value.lVal;
   VariantClear(&value);
-  return Status(0);
+  return Status::success();
 }
 
 Status WmiResultItem::GetUnsignedLong(const std::string& name,
@@ -239,7 +239,7 @@ Status WmiResultItem::GetUnsignedLong(const std::string& name,
   }
   ret = value.lVal;
   VariantClear(&value);
-  return Status(0);
+  return Status::success();
 }
 
 Status WmiResultItem::GetLongLong(const std::string& name,
@@ -256,7 +256,7 @@ Status WmiResultItem::GetLongLong(const std::string& name,
   }
   ret = value.lVal;
   VariantClear(&value);
-  return Status(0);
+  return Status::success();
 }
 
 Status WmiResultItem::GetUnsignedLongLong(const std::string& name,
@@ -273,7 +273,7 @@ Status WmiResultItem::GetUnsignedLongLong(const std::string& name,
   }
   ret = value.lVal;
   VariantClear(&value);
-  return Status(0);
+  return Status::success();
 }
 
 Status WmiResultItem::GetString(const std::string& name,
@@ -292,7 +292,7 @@ Status WmiResultItem::GetString(const std::string& name,
   }
   ret = bstrToString(value.bstrVal);
   VariantClear(&value);
-  return Status(0);
+  return Status::success();
 }
 
 Status WmiResultItem::GetVectorOfStrings(const std::string& name,
@@ -320,7 +320,7 @@ Status WmiResultItem::GetVectorOfStrings(const std::string& name,
   }
   SafeArrayUnaccessData(value.parray);
   VariantClear(&value);
-  return Status(0);
+  return Status::success();
 }
 
 Status WmiResultItem::ExecMethod(const std::string& method,
@@ -421,7 +421,7 @@ Status WmiResultItem::ExecMethod(const std::string& method,
   out_result.result_.reset(out_params);
   out_result.services_ = services_;
 
-  return Status(0);
+  return Status::success();
 }
 
 WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
