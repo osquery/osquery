@@ -79,6 +79,8 @@ class WmiMethodArgs {
  */
 class WmiResultItem {
  public:
+  explicit WmiResultItem() {}
+
   explicit WmiResultItem(IWbemClassObject* result,
                          std::shared_ptr<IWbemServices> services)
       : services_(services) {
