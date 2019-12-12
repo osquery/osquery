@@ -253,23 +253,31 @@ Status USNJournalReader::initialize() {
   // Acquire a valid USN that we will use to start querying the journal
   USN_JOURNAL_DATA_V2 journal_data = {};
   DWORD bytes_received = 0U;
+  auto status = ::DeviceIoControl(d_->volume_handle,
+                                  FSCTL_QUERY_USN_JOURNAL,
+                                  nullptr,
+                                  0,
+                                  &journal_data,
+                                  sizeof(journal_data),
+                                  &bytes_received,
+                                  nullptr);
 
-  if (!::DeviceIoControl(d_->volume_handle,
-                         FSCTL_QUERY_USN_JOURNAL,
-                         nullptr,
-                         0,
-                         &journal_data,
-                         sizeof(journal_data),
-                         &bytes_received,
-                         nullptr) ||
-      bytes_received != sizeof(journal_data)) {
+  if (!status || bytes_received != sizeof(journal_data)) {
+    auto error_code = ::GetLastError();
+
     ::CloseHandle(d_->volume_handle);
     d_->volume_handle = INVALID_HANDLE_VALUE;
 
     std::stringstream error_message;
     error_message << "Failed to acquire the initial journal ID and sequence "
                      "number for the following volume: "
-                  << d_->volume_path << ". Terminating...";
+                  << d_->volume_path << ". Error message: ";
+
+    std::string description;
+    if (!getWindowsErrorDescription(description, error_code)) {
+      description = "Unknown error";
+    }
+    error_message << description;
 
     return Status::failure(error_message.str());
   }
@@ -304,18 +312,25 @@ Status USNJournalReader::acquireRecords() {
   read_data_command.StartUsn = d_->next_update_seq_number;
 
   DWORD bytes_received = 0U;
-  if (!::DeviceIoControl(d_->volume_handle,
-                         FSCTL_READ_USN_JOURNAL,
-                         &read_data_command,
-                         sizeof(read_data_command),
-                         d_->read_buffer.data(),
-                         static_cast<DWORD>(d_->read_buffer.size()),
-                         &bytes_received,
-                         nullptr) ||
-      bytes_received < sizeof(USN)) {
+  auto status = ::DeviceIoControl(d_->volume_handle,
+                                  FSCTL_READ_USN_JOURNAL,
+                                  &read_data_command,
+                                  sizeof(read_data_command),
+                                  d_->read_buffer.data(),
+                                  static_cast<DWORD>(d_->read_buffer.size()),
+                                  &bytes_received,
+                                  nullptr);
+
+  if (!status || bytes_received < sizeof(USN)) {
     std::stringstream error_message;
     error_message << "Failed to read the journal of the following volume: "
-                  << d_->volume_path << ". Terminating...";
+                  << d_->volume_path << ". Error message: ";
+
+    std::string description;
+    if (!getWindowsErrorDescription(description, ::GetLastError())) {
+      description = "Unknown error"
+    }
+    error_message << description;
 
     return Status::failure(error_message.str());
   }
