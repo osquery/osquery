@@ -20,8 +20,6 @@
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/tryto.h>
 
-using namespace std;
-
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -29,9 +27,6 @@ namespace tables {
 
 QueryData genChromeBasedExtensions(QueryContext& context,
                                    const std::vector<fs::path>& chrome_paths);
-
-QueryData genOperaBasedExtensions(QueryContext& context,
-                                  const fs::path& sub_dir);
 
 /// A helper check to rename bool-type values as 1 or 0.
 inline void jsonBoolAsInt(std::string& s) {

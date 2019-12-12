@@ -11,12 +11,6 @@
 
 namespace fs = boost::filesystem;
 
-namespace {
-fs::path chrome_path;
-fs::path chromium_path;
-fs::path brave_path;
-} // namespace
-
 namespace osquery {
 namespace tables {
 
@@ -27,6 +21,7 @@ namespace tables {
 QueryData genChromeExtensions(QueryContext& context) {
 
   /// Each home directory will include custom extensions.
+  fs::path chrome_path;
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     chrome_path =
         "\\AppData\\Local\\Google\\Chrome\\User Data\\%\\Extensions\\";
@@ -35,7 +30,7 @@ QueryData genChromeExtensions(QueryContext& context) {
   } else {
     chrome_path = "/.config/google-chrome/%/Extensions/";
   }
-
+  fs::path brave_path;
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     brave_path = "\\AppData\\Roaming\\brave\\Extensions\\";
   } else if (isPlatform(PlatformType::TYPE_OSX)) {
@@ -45,7 +40,7 @@ QueryData genChromeExtensions(QueryContext& context) {
   } else {
     brave_path = "/.config/BraveSoftware/Brave-Browser/%/Extensions/";
   }
-
+  fs::path chromium_path;
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     chromium_path = "\\AppData\\Local\\Chromium\\Extensions\\";
   } else if (isPlatform(PlatformType::TYPE_OSX)) {
@@ -54,9 +49,8 @@ QueryData genChromeExtensions(QueryContext& context) {
     chromium_path = "/.config/chromium/%/Extensions/";
   }
 
-  std::vector<fs::path> chrome_paths{chrome_path, brave_path, chromium_path};
-
-  return genChromeBasedExtensions(context, chrome_paths);
+  return genChromeBasedExtensions(context,
+                                  {chrome_path, brave_path, chromium_path});
 }
 }
 }

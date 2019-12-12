@@ -221,54 +221,5 @@ QueryData genChromeBasedExtensions(QueryContext& context,
 
   return results;
 }
-
-QueryData genOperaBasedExtensions(QueryContext& context,
-                                  const fs::path& sub_dir) {
-  QueryData results;
-
-  auto users = usersFromContext(context);
-  for (const auto& row : users) {
-    if (row.count("uid") > 0 && row.count("directory") > 0) {
-      // For each user, enumerate all of their chrome profiles.
-      std::vector<std::string> profiles;
-      fs::path extension_path = row.at("directory") / sub_dir;
-      if (!resolveFilePattern(extension_path, profiles, GLOB_FOLDERS).ok()) {
-        continue;
-      }
-
-      // For each profile list each extension in the Extensions directory.
-      for (const auto& profile : profiles) {
-        std::vector<std::string> extensions = {};
-        listDirectoriesInDirectory(profile, extensions);
-
-        if (extensions.empty()) {
-          continue;
-        }
-
-        auto profile_path = fs::path(profile).parent_path().parent_path();
-
-        std::string profile_name;
-        auto status = getChromeProfileName(profile_name, profile_path);
-        if (!status.ok()) {
-          LOG(WARNING) << "Getting Chrome profile name failed: "
-                       << status.getMessage();
-        }
-
-        // Generate an addons list from their extensions JSON.
-        std::vector<std::string> versions;
-        for (const auto& extension : extensions) {
-          listDirectoriesInDirectory(extension, versions);
-        }
-
-        // Extensions use /<EXTENSION>/<VERSION>/manifest.json.
-        for (const auto& version : versions) {
-          genExtension(row.at("uid"), version, profile_name, results);
-        }
-      }
-    }
-  }
-
-  return results;
-}
 }
 }

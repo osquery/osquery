@@ -22,7 +22,7 @@ namespace tables {
 #define kOperaExtensionsPath "Extensions/"
 
 QueryData genOperaExtensions(QueryContext& context) {
-  return genOperaBasedExtensions(context, (kOperaPath kOperaExtensionsPath));
+  return genChromeBasedExtensions(context, {(kOperaPath kOperaExtensionsPath)});
 }
 }
 }

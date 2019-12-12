@@ -33,7 +33,7 @@ TEST_F(chromeExtensions, test_sanity) {
   // Or use custom DataCheck object
   // ValidationMap row_map = {
   //      {"uid", IntType},
-  //	  {"name", NonEmptyString},
+  //      {"name", NonEmptyString},
   //      {"identifier", NonEmptyString},
   //      {"version", NonEmptyString},
   //      {"description", NormalType},
@@ -42,9 +42,8 @@ TEST_F(chromeExtensions, test_sanity) {
   //      {"author", NormalType},
   //      {"persistent", IntType},
   //      {"path", NonEmptyString},
-  //	  {"permissions", NormalType},
-  //	  {"profile", NonEmptyString}
-  // };
+  //      {"permissions", NormalType},
+  //      {"profile", NonEmptyString}};
   // 4. Perform validation
   // validate_rows(data, row_map);
 }
