@@ -330,7 +330,7 @@ Status USNJournalReader::acquireRecords() {
 
     std::string description;
     if (!getWindowsErrorDescription(description, ::GetLastError())) {
-      description = "Unknown error"
+      description = "Unknown error";
     }
     error_message << description;
 
@@ -689,7 +689,7 @@ bool GetTimeStamp(std::time_t& record_timestamp, const USN_RECORD* record) {
     return false;
   }
 
-  record_timestamp = longIntToUnixTime(update_timestamp);
+  record_timestamp = longIntToUnixtime(update_timestamp);
   return true;
 }
 
