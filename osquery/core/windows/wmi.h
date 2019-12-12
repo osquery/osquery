@@ -216,7 +216,6 @@ class WmiRequest {
   explicit WmiRequest(const std::string& query,
                       BSTR nspace = (BSTR)L"ROOT\\CIMV2");
   WmiRequest(WmiRequest&& src) = default;
-  ~WmiRequest();
 
   const std::vector<WmiResultItem>& results() const {
     return results_;
