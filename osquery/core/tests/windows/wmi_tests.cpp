@@ -64,7 +64,7 @@ TEST_F(WmiTests, test_methodcall_inparams) {
 
   bool retval = false;
 
-  // The reutnr value is stored in the ReturnValue key within the out-parameter
+  // The return value is stored in the ReturnValue key within the out-parameter
   // object
   status = out.GetBool("ReturnValue", retval);
 
