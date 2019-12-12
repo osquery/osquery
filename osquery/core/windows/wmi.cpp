@@ -94,11 +94,11 @@ Status WmiResultItem::GetBool(const std::string& name, bool& ret) const {
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
 
   if (hr != S_OK) {
-    return Status(-1, "Error retrieving data from WMI query.");
+    return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != VT_BOOL) {
     VariantClear(&value);
-    return Status(-1, "Invalid data type returned.");
+    return Status::failure("Invalid data type returned.");
   }
   ret = value.boolVal == VARIANT_TRUE ? true : false;
   VariantClear(&value);
@@ -113,12 +113,12 @@ Status WmiResultItem::GetDateTime(const std::string& name,
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
-    return Status(-1, "Error retrieving datetime from WMI query result.");
+    return Status::failure("Error retrieving datetime from WMI query result.");
   }
 
   if (value.vt != VT_BSTR) {
     VariantClear(&value);
-    return Status(-1, "Expected VT_BSTR, got something else.");
+    return Status::failure("Expected VT_BSTR, got something else.");
   }
 
   ISWbemDateTime* dt = nullptr;
@@ -126,7 +126,7 @@ Status WmiResultItem::GetDateTime(const std::string& name,
       CLSID_SWbemDateTime, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dt));
   if (!SUCCEEDED(hr)) {
     VariantClear(&value);
-    return Status(-1, "Failed to create SWbemDateTime object.");
+    return Status::failure("Failed to create SWbemDateTime object.");
   }
 
   hr = dt->put_Value(value.bstrVal);
@@ -134,14 +134,14 @@ Status WmiResultItem::GetDateTime(const std::string& name,
 
   if (!SUCCEEDED(hr)) {
     dt->Release();
-    return Status(-1, "Failed to set SWbemDateTime value.");
+    return Status::failure("Failed to set SWbemDateTime value.");
   }
 
   BSTR filetime_str = {0};
   hr = dt->GetFileTime(is_local ? VARIANT_TRUE : VARIANT_FALSE, &filetime_str);
   if (!SUCCEEDED(hr)) {
     dt->Release();
-    return Status(-1, "GetFileTime failed.");
+    return Status::failure("GetFileTime failed.");
   }
 
   ULARGE_INTEGER ui = {};
@@ -162,11 +162,11 @@ Status WmiResultItem::GetUChar(const std::string& name,
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
-    return Status(-1, "Error retrieving data from WMI query.");
+    return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != VT_UI1) {
     VariantClear(&value);
-    return Status(-1, "Invalid data type returned.");
+    return Status::failure("Invalid data type returned.");
   }
   ret = value.bVal;
   VariantClear(&value);
@@ -180,11 +180,11 @@ Status WmiResultItem::GetUnsignedShort(const std::string& name,
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
 
   if (hr != S_OK) {
-    return Status(-1, "Error retrieving data from WMI query.");
+    return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != VT_UI2) {
     VariantClear(&value);
-    return Status(-1, "Invalid data type returned.");
+    return Status::failure("Invalid data type returned.");
   }
   ret = value.uiVal;
   VariantClear(&value);
@@ -198,11 +198,11 @@ Status WmiResultItem::GetUnsignedInt32(const std::string& name,
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
 
   if (hr != S_OK) {
-    return Status(-1, "Error retrieving data from WMI query.");
+    return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != VT_UINT) {
     VariantClear(&value);
-    return Status(-1, "Invalid data type returned.");
+    return Status::failure("Invalid data type returned.");
   }
   ret = value.uiVal;
   VariantClear(&value);
@@ -214,11 +214,11 @@ Status WmiResultItem::GetLong(const std::string& name, long& ret) const {
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
-    return Status(-1, "Error retrieving data from WMI query.");
+    return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != VT_I4) {
     VariantClear(&value);
-    return Status(-1, "Invalid data type returned.");
+    return Status::failure("Invalid data type returned.");
   }
   ret = value.lVal;
   VariantClear(&value);
@@ -231,11 +231,11 @@ Status WmiResultItem::GetUnsignedLong(const std::string& name,
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
-    return Status(-1, "Error retrieving data from WMI query.");
+    return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != VT_UI4) {
     VariantClear(&value);
-    return Status(-1, "Invalid data type returned.");
+    return Status::failure("Invalid data type returned.");
   }
   ret = value.lVal;
   VariantClear(&value);
@@ -248,11 +248,11 @@ Status WmiResultItem::GetLongLong(const std::string& name,
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
-    return Status(-1, "Error retrieving data from WMI query.");
+    return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != VT_I8) {
     VariantClear(&value);
-    return Status(-1, "Invalid data type returned.");
+    return Status::failure("Invalid data type returned.");
   }
   ret = value.lVal;
   VariantClear(&value);
@@ -265,11 +265,11 @@ Status WmiResultItem::GetUnsignedLongLong(const std::string& name,
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
-    return Status(-1, "Error retrieving data from WMI query.");
+    return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != VT_UI8) {
     VariantClear(&value);
-    return Status(-1, "Invalid data type returned.");
+    return Status::failure("Invalid data type returned.");
   }
   ret = value.lVal;
   VariantClear(&value);
@@ -283,12 +283,12 @@ Status WmiResultItem::GetString(const std::string& name,
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
     ret = "";
-    return Status(-1, "Error retrieving data from WMI query.");
+    return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != VT_BSTR) {
     ret = "";
     VariantClear(&value);
-    return Status(-1, "Invalid data type returned.");
+    return Status::failure("Invalid data type returned.");
   }
   ret = bstrToString(value.bstrVal);
   VariantClear(&value);
@@ -301,11 +301,11 @@ Status WmiResultItem::GetVectorOfStrings(const std::string& name,
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
-    return Status(-1, "Error retrieving data from WMI query.");
+    return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != (VT_BSTR | VT_ARRAY)) {
     VariantClear(&value);
-    return Status(-1, "Invalid data type returned.");
+    return Status::failure("Invalid data type returned.");
   }
   long lbound, ubound;
   SafeArrayGetLBound(value.parray, 1, &lbound);
@@ -337,7 +337,7 @@ Status WmiResultItem::ExecMethod(const std::string& method,
 
   BSTR wmi_class_name = WbemClassObjectPropToBSTR(*this, "__CLASS");
   if (wmi_class_name == nullptr) {
-    return Status(-1, "Class name out of memory");
+    return Status::failure("Class name out of memory");
   }
 
   // GetObject obtains a CIM Class definition object
@@ -345,7 +345,7 @@ Status WmiResultItem::ExecMethod(const std::string& method,
   SysFreeString(wmi_class_name);
 
   if (FAILED(hr)) {
-    return Status(-1, "Failed to GetObject");
+    return Status::failure("Failed to GetObject");
   }
 
   class_obj.reset(raw);
@@ -355,7 +355,7 @@ Status WmiResultItem::ExecMethod(const std::string& method,
   // we don't use result_
   hr = class_obj->GetMethod(property_name.c_str(), 0, &raw, nullptr);
   if (FAILED(hr)) {
-    return Status(-1, "Failed to GetMethod");
+    return Status::failure("Failed to GetMethod");
   }
 
   in_def.reset(raw);
@@ -368,7 +368,7 @@ Status WmiResultItem::ExecMethod(const std::string& method,
   if (in_def != nullptr) {
     hr = in_def->SpawnInstance(0, &raw);
     if (FAILED(hr)) {
-      return Status(-1, "Failed to SpawnInstance");
+      return Status::failure("Failed to SpawnInstance");
     }
     args_inst.reset(raw);
 
@@ -381,7 +381,7 @@ Status WmiResultItem::ExecMethod(const std::string& method,
 
       hr = args_inst->Put(args_name.c_str(), 0, &pVal, 0);
       if (FAILED(hr)) {
-        return Status(-1, "Failed to Put arguments");
+        return Status::failure("Failed to Put arguments");
       }
     }
   }
@@ -392,13 +392,13 @@ Status WmiResultItem::ExecMethod(const std::string& method,
 
   auto wmi_meth_name = SysAllocString(property_name.c_str());
   if (wmi_meth_name == nullptr) {
-    return Status(-1, "Out of memory");
+    return Status::failure("Out of memory");
   }
 
   auto wmi_obj_path = WbemClassObjectPropToBSTR(*this, "__PATH");
   if (wmi_obj_path == nullptr) {
     SysFreeString(wmi_meth_name);
-    return Status(-1, "Out of memory");
+    return Status::failure("Out of memory");
   }
 
   // Execute the WMI method, the return value and out-params all exist in
@@ -415,7 +415,7 @@ Status WmiResultItem::ExecMethod(const std::string& method,
   SysFreeString(wmi_obj_path);
 
   if (FAILED(hr)) {
-    return Status(-1, "Failed to ExecMethod");
+    return Status::failure("Failed to ExecMethod");
   }
 
   out_result.result_.reset(out_params);
