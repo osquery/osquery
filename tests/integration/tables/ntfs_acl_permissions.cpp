@@ -31,7 +31,7 @@ TEST_F(ntfsAclPermissions, test_sanity) {
   };
 
   auto const data =
-      execute_query("select * from ntfs_acl_permissions where path = '\'");
+      execute_query("select * from ntfs_acl_permissions where path = 'C:\\'");
   ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 }
