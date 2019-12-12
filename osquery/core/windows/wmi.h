@@ -26,7 +26,11 @@ using WmiMethodArgsMap = std::unordered_map<std::string, VARIANT>;
 
 namespace impl {
 
-const auto wmiObjectDeleter = [](auto* ptr) { ptr->Release(); };
+const auto wmiObjectDeleter = [](auto* ptr) {
+  if (ptr != nullptr) {
+    ptr->Release();
+  }
+};
 
 } // namespace impl
 
