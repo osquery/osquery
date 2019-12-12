@@ -24,8 +24,8 @@
 #include <osquery/utils/system/errno.h>
 
 #include "osquery/core/windows/wmi.h"
-#include "osquery/filesystem/fileops.h"
 #include "osquery/events/windows/usn_journal_reader.h"
+#include "osquery/filesystem/fileops.h"
 
 #ifndef FILE_ATTRIBUTE_RECALL_ON_OPEN
 #define FILE_ATTRIBUTE_RECALL_ON_OPEN 0x00040000
