@@ -687,12 +687,7 @@ bool GetTimeStamp(std::time_t& record_timestamp, const USN_RECORD* record) {
     return false;
   }
 
-  // Convert the timestamp to seconds and rebase it (from 1601 to the epoch
-  // time)
-  record_timestamp =
-      static_cast<std::time_t>(update_timestamp.QuadPart / 10000000ULL) -
-      11644473600ULL;
-
+  record_timestamp = longIntToUnixTime(update_timestamp);
   return true;
 }
 
