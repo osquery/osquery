@@ -83,10 +83,9 @@ class WmiResultItem {
 
   explicit WmiResultItem(IWbemClassObject* result,
                          std::shared_ptr<IWbemLocator> locator,
-                         std::shared_ptr<IWbemServices> services) {
+                         std::shared_ptr<IWbemServices> services)
+      : locator_(locator), services_(services) {
     result_.reset(result);
-    locator_ = locator;
-    services_ = services;
   }
 
   WmiResultItem(WmiResultItem&& src) = default;
