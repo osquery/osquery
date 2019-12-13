@@ -29,6 +29,7 @@ namespace impl {
 const auto wmiObjectDeleter = [](auto* ptr) {
   if (ptr != nullptr) {
     ptr->Release();
+    delete ptr;
   }
 };
 
