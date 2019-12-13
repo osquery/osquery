@@ -203,8 +203,7 @@ class WmiResultItem {
  private:
   std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> result_{
       nullptr, impl::wmiObjectDeleter};
-  std::shared_ptr<IWbemServices> services_{static_cast<IWbemServices*>(nullptr),
-                                           impl::wmiObjectDeleter};
+  std::shared_ptr<IWbemServices> services_{nullptr, impl::wmiObjectDeleter};
 };
 
 /**
@@ -240,7 +239,6 @@ class WmiRequest {
       nullptr, impl::wmiObjectDeleter};
   std::unique_ptr<IEnumWbemClassObject, decltype(impl::wmiObjectDeleter)> enum_{
       nullptr, impl::wmiObjectDeleter};
-  std::shared_ptr<IWbemServices> services_{static_cast<IWbemServices*>(nullptr),
-                                           impl::wmiObjectDeleter};
+  std::shared_ptr<IWbemServices> services_{nullptr, impl::wmiObjectDeleter};
 };
 } // namespace osquery
