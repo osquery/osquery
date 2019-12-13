@@ -78,4 +78,8 @@ function(generateOsqueryd)
   add_dependencies(create_osqueryi osqueryd)
 endfunction()
 
+function(enableOsqueryWEL)
+  target_sources(osqueryd PRIVATE "${TOOLS_WEL_FILES_ROOT_DIR}/windows_resources.rc")
+endfunction()
+
 osqueryMain()
