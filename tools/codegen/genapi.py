@@ -16,10 +16,10 @@ import uuid
 import subprocess
 
 from gentable import *
-from utils import platform
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(SCRIPT_DIR + "/../tests")
+
+from osquery_tests.tools.tests import utils
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -192,7 +192,7 @@ def gen_api(tables_path, profile={}):
             if spec_file[0] == '.' or spec_file.find("example") == 0:
                 continue
             # Exclude blacklist specific file
-            if spec_file == 'blacklist':
+            if spec_file == 'blacklist' or spec_file == 'CMakeLists.txt' or spec_file == 'BUCK':
                 continue
             platform = os.path.basename(base)
             # Exclude kernel tables
