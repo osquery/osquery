@@ -448,7 +448,6 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
   if (hr != S_OK) {
     return;
   }
-
   locator_.reset(locator);
 
   IWbemServices* services = nullptr;
@@ -457,7 +456,6 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
   if (hr != S_OK) {
     return;
   }
-
   services_.reset(services);
 
   IEnumWbemClassObject* wbem_enum = nullptr;
@@ -480,7 +478,7 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
     hr = enum_->Next(WBEM_INFINITE, 1, &result, &result_count);
     if (SUCCEEDED(hr) && result_count > 0) {
-      results_.push_back(WmiResultItem(result, locator_, services_));
+      results_.emplace_back(WmiResultItem(result, locator_, services_));
     }
   }
 
