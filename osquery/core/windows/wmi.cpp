@@ -419,7 +419,7 @@ Status WmiResultItem::ExecMethod(const std::string& method,
   }
 
   out_result.result_.reset(out_params);
-  out_result.services_.reset(services_);
+  out_result.services_ = services_;
 
   return Status::success();
 }
