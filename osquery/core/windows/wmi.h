@@ -82,8 +82,9 @@ class WmiResultItem {
   explicit WmiResultItem() {}
 
   explicit WmiResultItem(IWbemClassObject* result,
+                         std::shared_ptr<IWbemLocator> locator,
                          std::shared_ptr<IWbemServices> services)
-      : services_(services) {
+      : locator_(locator), services_(services) {
     result_.reset(result);
   }
 
@@ -203,6 +204,8 @@ class WmiResultItem {
  private:
   std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> result_{
       nullptr, impl::wmiObjectDeleter};
+  std::shared_ptr<IWbemLocator> locator_{static_cast<IWbemLocator*>(nullptr),
+                                         impl::wmiObjectDeleter};
   std::shared_ptr<IWbemServices> services_{static_cast<IWbemServices*>(nullptr),
                                            impl::wmiObjectDeleter};
 };
@@ -236,10 +239,10 @@ class WmiRequest {
   Status status_;
   std::vector<WmiResultItem> results_;
 
-  std::unique_ptr<IWbemLocator, decltype(impl::wmiObjectDeleter)> locator_{
-      nullptr, impl::wmiObjectDeleter};
   std::unique_ptr<IEnumWbemClassObject, decltype(impl::wmiObjectDeleter)> enum_{
       nullptr, impl::wmiObjectDeleter};
+  std::shared_ptr<IWbemLocator> locator_{static_cast<IWbemLocator*>(nullptr),
+                                         impl::wmiObjectDeleter};
   std::shared_ptr<IWbemServices> services_{static_cast<IWbemServices*>(nullptr),
                                            impl::wmiObjectDeleter};
 };

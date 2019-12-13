@@ -419,6 +419,7 @@ Status WmiResultItem::ExecMethod(const std::string& method,
   }
 
   out_result.result_.reset(out_params);
+  out_result.locator_ = locator_;
   out_result.services_ = services_;
 
   return Status::success();
@@ -479,7 +480,7 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
     hr = enum_->Next(WBEM_INFINITE, 1, &result, &result_count);
     if (SUCCEEDED(hr) && result_count > 0) {
-      results_.push_back(WmiResultItem(result, services_));
+      results_.push_back(WmiResultItem(result, locator_, services_));
     }
   }
 
