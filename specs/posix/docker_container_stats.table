@@ -2,7 +2,7 @@ table_name("docker_container_stats")
 description("Docker container statistics. Queries on this table take at least one second.")
 schema([
     Column("id", TEXT, "Container ID", index=True, required=True),
-    Column("name", TEXT, "Container name"),
+    Column("name", TEXT, "Container name", index=True),
     Column("pids", INTEGER, "Number of processes"),
     Column("read", BIGINT, "UNIX time when stats were read"),
     Column("preread", BIGINT, "UNIX time when stats were last read"),

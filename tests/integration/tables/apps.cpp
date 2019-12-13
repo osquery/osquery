@@ -22,38 +22,37 @@ class apps : public testing::Test {
 };
 
 TEST_F(apps, test_sanity) {
-  // 1. Query data
+  ValidationMap row_map = {
+      {"name", NormalType},
+      {"path", NormalType},
+      {"bundle_executable", NormalType},
+      {"bundle_identifier", NormalType},
+      {"bundle_name", NormalType},
+      {"bundle_short_version", NormalType},
+      {"bundle_version", NormalType},
+      {"bundle_package_type", NormalType},
+      {"environment", NormalType},
+      {"element", NormalType},
+      {"compiler", NormalType},
+      {"development_region", NormalType},
+      {"display_name", NormalType},
+      {"info_string", NormalType},
+      {"minimum_system_version", NormalType},
+      {"category", NormalType},
+      {"applescript_enabled", NormalType},
+      {"copyright", NormalType},
+      {"last_opened_time", NormalType},
+  };
+
   auto const data = execute_query("select * from apps");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"name", NormalType}
-  //      {"path", NormalType}
-  //      {"bundle_executable", NormalType}
-  //      {"bundle_identifier", NormalType}
-  //      {"bundle_name", NormalType}
-  //      {"bundle_short_version", NormalType}
-  //      {"bundle_version", NormalType}
-  //      {"bundle_package_type", NormalType}
-  //      {"environment", NormalType}
-  //      {"element", NormalType}
-  //      {"compiler", NormalType}
-  //      {"development_region", NormalType}
-  //      {"display_name", NormalType}
-  //      {"info_string", NormalType}
-  //      {"minimum_system_version", NormalType}
-  //      {"category", NormalType}
-  //      {"applescript_enabled", NormalType}
-  //      {"copyright", NormalType}
-  //      {"last_opened_time", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_FALSE(data.empty());
+  validate_rows(data, row_map);
+
+  // Not totally sure what apps we expect on the VMs used by CI.
+  auto const data1 = execute_query(
+      "select * from apps where path = '/Applications/Preview.app'");
+  ASSERT_EQ(data1.size(), 1ul);
+  validate_rows(data1, row_map);
 }
 
 } // namespace table_tests

@@ -22,24 +22,17 @@ class runningApps : public testing::Test {
 };
 
 TEST_F(runningApps, test_sanity) {
-  // 1. Query data
-  QueryData general_query_data = execute_query("select * from running_apps");
-  QueryData specific_query_data =
-      execute_query("select * from running_apps where is_active = 1");
-  // 2. Check size before validation
-  ASSERT_GT(general_query_data.size(), 0ul);
-  ASSERT_EQ(general_query_data[0].size(), 3ul);
-
-  ASSERT_EQ(specific_query_data.size(), 1ul);
-  ASSERT_EQ(specific_query_data[0].size(), 3ul);
-  // 3. Build validation map
-  // See IntegrationTableTest.cpp for avaialbe flags
-  // Or use custom DataCheck object
   ValidationMap row_map = {{"pid", IntType},
                            {"bundle_identifier", NormalType},
                            {"is_active", IntType}};
-  // 4. Perform validation
+
+  QueryData general_query_data = execute_query("select * from running_apps");
+  ASSERT_FALSE(general_query_data.empty());
   validate_rows(general_query_data, row_map);
+
+  QueryData specific_query_data =
+      execute_query("select * from running_apps where is_active = 1");
+  ASSERT_EQ(specific_query_data.size(), 1ul);
   validate_rows(specific_query_data, row_map);
 }
 

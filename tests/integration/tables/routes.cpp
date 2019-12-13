@@ -22,8 +22,6 @@ class RoutesTest : public testing::Test {
 };
 
 TEST_F(RoutesTest, test_sanity) {
-  QueryData const data = execute_query("select * from routes");
-
   auto const row_map = ValidationMap{
       {"destination", verifyIpAddress},
       {"netmask", IntMinMaxCheck(0, 128)},
@@ -49,7 +47,15 @@ TEST_F(RoutesTest, test_sanity) {
       {"hopcount", IntMinMaxCheck(0, 255)},
 #endif
   };
+
+  auto const data = execute_query("select * from routes");
+  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
+
+  auto const datatype =
+      execute_query("select * from routes where type = 'local'");
+  ASSERT_FALSE(datatype.empty());
+  validate_rows(datatype, row_map);
 }
 
 } // namespace table_tests

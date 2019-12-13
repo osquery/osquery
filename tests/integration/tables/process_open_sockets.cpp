@@ -10,6 +10,7 @@
 // Spec file: specs/process_open_sockets.table
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
 namespace table_tests {
@@ -22,31 +23,27 @@ class processOpenSockets : public testing::Test {
 };
 
 TEST_F(processOpenSockets, test_sanity) {
-  // 1. Query data
+  ValidationMap row_map = {
+      {"pid", IntType},
+      {"fd", IntOrEmpty},
+      {"socket", IntOrEmpty},
+      {"family", IntType},
+      {"protocol", IntType},
+      {"local_address", NormalType},
+      {"remote_address", NormalType},
+      {"local_port", IntType},
+      {"remote_port", IntType},
+      {"path", NormalType},
+      {"state", NormalType},
+  };
+
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    row_map["net_namespace"] = IntType;
+  }
+
   auto const data = execute_query("select * from process_open_sockets");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"pid", IntType}
-  //      {"fd", IntType}
-  //      {"socket", IntType}
-  //      {"family", IntType}
-  //      {"protocol", IntType}
-  //      {"local_address", NormalType}
-  //      {"remote_address", NormalType}
-  //      {"local_port", IntType}
-  //      {"remote_port", IntType}
-  //      {"path", NormalType}
-  //      {"state", NormalType}
-  //      {"net_namespace", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_FALSE(data.empty());
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
