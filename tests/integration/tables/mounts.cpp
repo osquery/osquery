@@ -22,30 +22,23 @@ class mounts : public testing::Test {
 };
 
 TEST_F(mounts, test_sanity) {
-  // 1. Query data
+  ValidationMap row_map = {
+      {"device", NormalType},
+      {"device_alias", NormalType},
+      {"path", NormalType},
+      {"type", NormalType},
+      {"blocks_size", IntType},
+      {"blocks", IntType},
+      {"blocks_free", IntType},
+      {"blocks_available", IntType},
+      {"inodes", IntType},
+      {"inodes_free", IntType},
+      {"flags", NormalType},
+  };
+
   auto const data = execute_query("select * from mounts");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"device", NormalType}
-  //      {"device_alias", NormalType}
-  //      {"path", NormalType}
-  //      {"type", NormalType}
-  //      {"blocks_size", IntType}
-  //      {"blocks", IntType}
-  //      {"blocks_free", IntType}
-  //      {"blocks_available", IntType}
-  //      {"inodes", IntType}
-  //      {"inodes_free", IntType}
-  //      {"flags", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_FALSE(data.empty());
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
