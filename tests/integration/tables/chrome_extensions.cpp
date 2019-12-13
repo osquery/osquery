@@ -32,17 +32,18 @@ TEST_F(chromeExtensions, test_sanity) {
   // See helper.h for avaialbe flags
   // Or use custom DataCheck object
   // ValidationMap row_map = {
-  //      {"uid", IntType}
-  //      {"name", NormalType}
-  //      {"identifier", NormalType}
-  //      {"version", NormalType}
-  //      {"description", NormalType}
-  //      {"locale", NormalType}
-  //      {"update_url", NormalType}
-  //      {"author", NormalType}
-  //      {"persistent", IntType}
-  //      {"path", NormalType}
-  //}
+  //      {"uid", IntType},
+  //      {"name", NonEmptyString},
+  //      {"identifier", NonEmptyString},
+  //      {"version", NonEmptyString},
+  //      {"description", NormalType},
+  //      {"locale", NormalType},
+  //      {"update_url", NonEmptyString},
+  //      {"author", NormalType},
+  //      {"persistent", IntType},
+  //      {"path", NonEmptyString},
+  //      {"permissions", NormalType},
+  //      {"profile", NonEmptyString}};
   // 4. Perform validation
   // validate_rows(data, row_map);
 }
