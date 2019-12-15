@@ -1,3 +1,33 @@
+<a name="4.1.2"></a>
+## [4.1.2](https://github.com/osquery/osquery/releases/tag/4.1.2)
+
+[Git Commits](https://github.com/osquery/osquery/compare/4.1.1...4.1.2)
+
+### New Features / Under the Hood improvements
+
+- Add more tests throughout the codebase ([#5908](https://github.com/osquery/osquery/pull/5908)), ([#6071](https://github.com/osquery/osquery/pull/6071)), ([#6126](https://github.com/osquery/osquery/pull/6126))
+- The `chrome_extensions` table now supports Chromium and Brave ([#6126](https://github.com/osquery/osquery/pull/6126))
+
+### Build
+
+- Require Python 3.5 and greater ([#6081](https://github.com/osquery/osquery/pull/6081)), ([#6120](https://github.com/osquery/osquery/pull/6120))
+- Prepare Python tests for CI (lots of effort!) ([#6068](https://github.com/osquery/osquery/pull/6068))
+- Restore osqueryd integration test ([#6116](https://github.com/osquery/osquery/pull/6116))
+
+### Bug Fixes
+
+- Continue to use `com.facebook.osquery.plist` for Launch Daemon configuration ([#6093](https://github.com/osquery/osquery/pull/6093))
+- Update systemd service to use KillMode=control-group ([#6096](https://github.com/osquery/osquery/pull/6096))
+- RPM and DEB packages both have post-install scripts to reload systemd ([#6097](https://github.com/osquery/osquery/pull/6097))
+- Update Windows package build script to include cert bundle ([#6114](https://github.com/osquery/osquery/pull/6114))
+- Update table specs to fix constraints passing ([#6103](https://github.com/osquery/osquery/pull/6103)), ([#6104](https://github.com/osquery/osquery/pull/6104)), ([#6105](https://github.com/osquery/osquery/pull/6105)), ([#6106](https://github.com/osquery/osquery/pull/6106)), ([#6122](https://github.com/osquery/osquery/pull/6122))
+
+### Table Changes
+
+- Added table `azure_instance_tags` and `azure_instance_metadata to Linux and Microsoft Windows ([#5434](https://github.com/osquery/osquery/pull/5434))
+- Added column `install_time` (`INTEGER_TYPE`) to table `rpm_packages` ([#6113](https://github.com/osquery/osquery/pull/6113))
+- Added column `bsd_flags` (`TEST_TYPE`) to table `file` on Darwin ([#5981](https://github.com/osquery/osquery/pull/5981))
+
 <a name="4.1.1"></a>
 ## [4.1.1](https://github.com/osquery/osquery/releases/tag/4.1.1)
 
@@ -15,8 +45,6 @@
 - Migrate several libraries to the CMake source layer ([#5902](https://github.com/osquery/osquery/pull/5902)), ([#6023](https://github.com/osquery/osquery/pull/6023))
 - Update SQLite from 3.29.0-3 to 3.30.1-1 ([#6020](https://github.com/osquery/osquery/pull/6020))
 - Recommend building with MacOS 10.11 SDK ([#6000](https://github.com/osquery/osquery/pull/6000))
-
-### Hardening
 
 ### Bug Fixes
 
