@@ -24,7 +24,7 @@
 
 ### Table Changes
 
-- Added table `azure_instance_tags` and `azure_instance_metadata to Linux and Microsoft Windows ([#5434](https://github.com/osquery/osquery/pull/5434))
+- Added tables `azure_instance_tags` and `azure_instance_metadata` to Linux and Microsoft Windows ([#5434](https://github.com/osquery/osquery/pull/5434))
 - Added column `install_time` (`INTEGER_TYPE`) to table `rpm_packages` ([#6113](https://github.com/osquery/osquery/pull/6113))
 - Added column `bsd_flags` (`TEST_TYPE`) to table `file` on Darwin ([#5981](https://github.com/osquery/osquery/pull/5981))
 
