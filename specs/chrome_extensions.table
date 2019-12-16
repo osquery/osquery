@@ -16,6 +16,8 @@ schema([
     Column("path", TEXT, "Path to extension folder"),
     Column("permissions", TEXT, "The permissions required by the extension"),
     Column("optional_permissions", TEXT, "The permissions optionally required by the extensions"),
+    Column("script", TEXT, "The content script used by the extensions"),
+    Column("match", TEXT, "The URL associated with the content script."),
     ForeignKey(column="uid", table="users"),
 ])
 attributes(user_data=True)

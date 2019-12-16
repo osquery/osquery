@@ -35,6 +35,8 @@ const std::string kExtensionPermissionKey = "permissions";
 const std::string kExtensionOptionalPermissionKey = "optional_permissions";
 const std::string kProfilePreferencesFile = "Preferences";
 const std::string kProfilePreferenceKey = "profile";
+const std::string kScriptKey = "js";
+const std::string kMatchesKey = "matches";
 
 Status getChromeProfileName(std::string& name, const fs::path& path) {
   name.clear();
@@ -95,6 +97,47 @@ const std::string genPermissions(const std::string& permissionTypeKey,
     permission_list = boost::algorithm::join(perm_vector, ", ");
   }
   return permission_list;
+}
+
+const std::vector<std::vector<std::string>> genContentScriptDetail(
+    const std::string& permissionTypeKey, const pt::ptree& tree) {
+  std::vector<std::vector<std::string>> details_list;
+
+  const auto& script_array_obj = tree.get_child_optional("content_scripts");
+  if (script_array_obj) {
+    const auto& script_array_contents = script_array_obj.get();
+
+    std::vector<std::string> script_vector;
+    script_vector.reserve(script_array_contents.size());
+
+    for (auto it = script_array_contents.begin();
+         it != script_array_contents.end();
+         ++it) {
+      const auto& script_obj = *it;
+      const auto& detail_array_obj =
+          script_obj.second.get_child_optional(permissionTypeKey);
+      if (detail_array_obj) {
+        const auto& detail_array_contents = detail_array_obj.get();
+        std::vector<std::string> details;
+
+        for (auto m = detail_array_contents.begin();
+             m != detail_array_contents.end();
+             ++m) {
+          const auto& detail_obj = *m;
+          const auto& detail =
+              detail_obj.second.get_value_optional<std::string>();
+
+          if (detail) {
+            details.push_back(*detail);
+          }
+        }
+        details_list.push_back(details);
+      }
+    }
+  } else {
+    details_list = {{""}};
+  }
+  return details_list;
 }
 
 void genExtension(const std::string& uid,
@@ -174,7 +217,22 @@ void genExtension(const std::string& uid,
 
   r["identifier"] = fs::path(path).parent_path().parent_path().leaf().string();
   r["path"] = path;
-  results.push_back(r);
+  r["profile"] = profile_name;
+
+  const std::vector<std::vector<std::string>> script_list =
+      genContentScriptDetail(kScriptKey, tree);
+  const std::vector<std::vector<std::string>> matches_list =
+      genContentScriptDetail(kMatchesKey, tree);
+
+  for (int i = 0; i < script_list.size(); i++) {
+    for (const auto& script : script_list[i]) {
+      for (const auto& match : matches_list[i]) {
+        r["script"] = script;
+        r["match"] = match;
+        results.push_back(r);
+      }
+    }
+  }
 }
 
 QueryData genChromeBasedExtensions(QueryContext& context,
@@ -227,5 +285,5 @@ QueryData genChromeBasedExtensions(QueryContext& context,
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
