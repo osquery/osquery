@@ -124,9 +124,13 @@ function(generateInstallTargets)
 
   if(DEFINED PLATFORM_LINUX)
     # .
+    file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/linux_postinstall.sh" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
+    file(RENAME "${CMAKE_BINARY_DIR}/package/linux/linux_postinstall.sh" "${CMAKE_BINARY_DIR}/package/linux/postinst")
     if("${PACKAGING_SYSTEM}" STREQUAL "DEB")
-      file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/linux_postinstall.sh" DESTINATION "${CMAKE_BINARY_DIR}/package/deb")
-      file(RENAME "${CMAKE_BINARY_DIR}/package/deb/linux_postinstall.sh" "${CMAKE_BINARY_DIR}/package/deb/postinst")
+      file(WRITE "${CMAKE_BINARY_DIR}/package/linux/conffiles"
+        "/etc/init.d/osqueryd\n"
+        "/etc/default/osqueryd\n"
+      )
     endif()
 
     # bin
@@ -138,6 +142,12 @@ function(generateInstallTargets)
 
     # lib
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.service" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
+    if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
+      # Patch the EnvironmentFile in the systemd unit
+      file(READ "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" osqueryd_service_file)
+      string(REPLACE "/etc/sysconfig/osqueryd" "/etc/default/osqueryd" osqueryd_service_file "${osqueryd_service_file}")
+      file(WRITE "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" "${osqueryd_service_file}")
+    endif()
     install(FILES "${CMAKE_BINARY_DIR}/package/linux/osqueryd.service" DESTINATION lib/systemd/system COMPONENT osquery)
 
     # share
@@ -171,12 +181,18 @@ function(generateInstallTargets)
     endif()
 
     file(COPY "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.initd" DESTINATION "${CMAKE_BINARY_DIR}/package/linux")
+    if("${PACKAGING_SYSTEM}"  STREQUAL "DEB")
+      # Patch /etc/sysconfig to /etc/default in the initd script
+      file(READ "${CMAKE_BINARY_DIR}/package/linux/osqueryd.initd" osqueryd_initd_file)
+      string(REPLACE "/etc/sysconfig" "/etc/default" osqueryd_initd_file "${osqueryd_initd_file}")
+      file(WRITE "${CMAKE_BINARY_DIR}/package/linux/osqueryd.initd" "${osqueryd_initd_file}")
+    endif()
     install(PROGRAMS "${CMAKE_BINARY_DIR}/package/linux/osqueryd.initd" DESTINATION /etc/init.d RENAME "osqueryd" COMPONENT osquery)
     install(DIRECTORY DESTINATION /etc/osquery COMPONENT osquery)
+
     # var
     install(DIRECTORY DESTINATION /var/log/osquery COMPONENT osquery)
     install(DIRECTORY DESTINATION /var/osquery COMPONENT osquery)
-
   elseif(DEFINED PLATFORM_WINDOWS)
     # .
     install(PROGRAMS "$<TARGET_FILE:osqueryd>" DESTINATION . RENAME osqueryi.exe)
@@ -281,16 +297,12 @@ function(generatePackageTarget)
     set(CPACK_STRIP_FILES ON)
   endif()
 
-  if(CPACK_GENERATOR STREQUAL "TGZ")
-    set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY 0)
-    set(CPACK_SET_DESTDIR ON)
-  endif()
-
   if(DEFINED PLATFORM_LINUX)
     set(OSQUERY_PACKAGE_RELEASE "1.linux")
-
     if(CPACK_GENERATOR STREQUAL "TGZ")
-      set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${OSQUERY_PACKAGE_RELEASE}.x86_64")
+      set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${OSQUERY_PACKAGE_RELEASE}_x86_64")
+      set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY 0)
+      set(CPACK_SET_DESTDIR ON)
     elseif(CPACK_GENERATOR STREQUAL "DEB")
       set(CPACK_DEBIAN_OSQUERY_PACKAGE_NAME ${CPACK_PACKAGE_NAME})
       set(CPACK_DEBIAN_PACKAGE_RELEASE "${OSQUERY_PACKAGE_RELEASE}")
@@ -301,6 +313,7 @@ function(generatePackageTarget)
       set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${CPACK_PACKAGE_HOMEPAGE_URL}")
       set(CPACK_DEB_COMPONENT_INSTALL ON)
       set(CPACK_DEBIAN_DEBUGINFO_PACKAGE ON)
+      set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_BINARY_DIR}/package/linux/conffiles;${CMAKE_BINARY_DIR}/package/linux/postinst")
     elseif(CPACK_GENERATOR STREQUAL "RPM")
       set(CPACK_RPM_PACKAGE_RELEASE_DIST "${OSQUERY_PACKAGE_RELEASE}")
       set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${OSQUERY_PACKAGE_RELEASE}.x86_64")
@@ -308,6 +321,7 @@ function(generatePackageTarget)
       set(CPACK_RPM_PACKAGE_GROUP "default")
       set(CPACK_RPM_PACKAGE_LICENSE "Apache 2.0 or GPL 2.0")
       set(CPACK_RPM_PACKAGE_REQUIRES "glibc >= 2.12, zlib")
+      set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${CMAKE_BINARY_DIR}/package/linux/postinst")
       list(APPEND CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
         /etc/sysconfig
         /var
@@ -322,6 +336,7 @@ function(generatePackageTarget)
     set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
     set(CPACK_COMMAND_PRODUCTBUILD "${CMAKE_SOURCE_DIR}/tools/deployment/productbuild.sh")
     set(CPACK_COMMAND_PKGBUILD "${CMAKE_SOURCE_DIR}/tools/deployment/productbuild.sh")
+    set(CPACK_SET_DESTDIR ON)
   elseif(DEFINED PLATFORM_WINDOWS)
     file(COPY "${CMAKE_SOURCE_DIR}/tools/osquery.ico" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")
     file(COPY "${CMAKE_SOURCE_DIR}/cmake/wix_patches/osquery_wix_patch.xml" DESTINATION "${CMAKE_BINARY_DIR}/package/wix")

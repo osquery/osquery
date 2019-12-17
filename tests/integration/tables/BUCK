@@ -6,7 +6,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
-load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "POSIX", "WINDOWS")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD", "LINUX", "MACOSX", "POSIX", "WINDOWS")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
@@ -105,6 +105,13 @@ osquery_cxx_test(
                 "socket_events.cpp",
                 "syslog_events.cpp",
                 "yara_events.cpp",
+            ],
+        ),
+       (
+            FREEBSD,
+            [
+                "fbsd_kmods.cpp",
+                "pkg_packages.cpp",
             ],
         ),
         (
@@ -209,7 +216,7 @@ osquery_cxx_test(
                 "kernel_extensions.cpp",
                 "kernel_info.cpp",
                 "kernel_panics.cpp",
-                # "keychain_acls.cpp", # TODO: This test takes too much time to run and may require some additional permissions, which makes it flaky.
+                "keychain_acls.cpp",
                 "keychain_items.cpp",
                 "launchd.cpp",
                 "launchd_overrides.cpp",
@@ -255,6 +262,7 @@ osquery_cxx_test(
                 "arp_cache.cpp",
                 "authenticode.cpp",
                 "autoexec.cpp",
+                "bitlocker_info.cpp",
                 "bam.cpp",
                 "certificates.cpp",
                 "chocolatey_packages.cpp",
@@ -268,6 +276,7 @@ osquery_cxx_test(
                 "kernel_info.cpp",
                 "kva_speculative_info.cpp",
                 "logical_drives.cpp",
+                "logon_sessions.cpp",
                 "ntdomains.cpp",
                 "ntfs_acl_permissions.cpp",
                 "patches.cpp",

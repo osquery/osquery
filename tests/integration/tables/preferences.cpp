@@ -22,26 +22,25 @@ class preferences : public testing::Test {
 };
 
 TEST_F(preferences, test_sanity) {
-  // 1. Query data
+  ValidationMap row_map = {
+      {"domain", NormalType},
+      {"key", NormalType},
+      {"subkey", NormalType},
+      {"value", NormalType},
+      {"forced", IntType},
+      {"username", NormalType},
+      {"host", NormalType},
+  };
+
   auto const data = execute_query("select * from preferences");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"domain", NormalType}
-  //      {"key", NormalType}
-  //      {"subkey", NormalType}
-  //      {"value", NormalType}
-  //      {"forced", IntType}
-  //      {"username", NormalType}
-  //      {"host", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_FALSE(data.empty());
+  validate_rows(data, row_map);
+
+  auto const datajoin = execute_query(
+      "select users.username, preferences.* from users CROSS JOIN preferences "
+      "USING(username) where preferences.domain = 'com.apple.Preferences';");
+  ASSERT_FALSE(datajoin.empty());
+  validate_rows(datajoin, row_map);
 }
 
 } // namespace table_tests

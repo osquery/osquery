@@ -9,7 +9,7 @@ schema([
     Column("interface", TEXT, "Route local interface"),
     Column("mtu", INTEGER, "Maximum Transmission Unit for the route"),
     Column("metric", INTEGER, "Cost of route. Lowest is preferred"),
-    Column("type", TEXT, "Type of route"),
+    Column("type", TEXT, "Type of route", additional=True),
 ])
 
 extended_schema(POSIX, [

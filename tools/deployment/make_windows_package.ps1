@@ -664,7 +664,7 @@ function Main() {
   if ($InstallType.ToLower() -eq 'msi') {
     Write-Host '[*] Building osquery MSI' -ForegroundColor Cyan
     $chocoPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
-    $certs = $(Join-Path $chocoPath 'lib\openssl\local\certs')
+    $certs = $(Join-Path $osqRoot 'tools\deployment\certs.pem')
     if ($ConfigFilePath -eq '') {
       $ConfigFilePath = $(Join-Path $osqRoot 'tools\deployment\osquery.example.conf')
     }

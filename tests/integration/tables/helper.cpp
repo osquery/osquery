@@ -203,6 +203,20 @@ bool is_valid_hex(const std::string& value) {
 }
 
 bool validate_value_using_flags(const std::string& value, int flags) {
+  // Early return on EmptyOk
+  if ((flags & EmptyOk) > 0) {
+    if (value.length() == 0) {
+      return true;
+    }
+  }
+
+  // Early return on NullOk
+  if ((flags & NullOk)) {
+    if (value == "null") {
+      return true;
+    }
+  }
+
   if ((flags & NonEmpty) > 0) {
     if (value.length() == 0) {
       return false;

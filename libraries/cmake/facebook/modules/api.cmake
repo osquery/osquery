@@ -10,11 +10,11 @@ function(downloadRemoteFile identifier base_url file_name hash)
   set(destination "${CMAKE_CURRENT_BINARY_DIR}/${file_name}")
   set(url "${base_url}/${file_name}")
 
-  set(command_prefix "${Python3_EXECUTABLE}")
+  set(command_prefix "${OSQUERY_PYTHON_EXECUTABLE}")
 
   add_custom_command(
     OUTPUT "${destination}"
-    COMMAND ${command_prefix} "${CMAKE_SOURCE_DIR}/tools/cmake/downloader.py" "${base_url}/${file_name}" "${destination}" "${hash}"
+    COMMAND "${command_prefix}" "${CMAKE_SOURCE_DIR}/tools/cmake/downloader.py" "${base_url}/${file_name}" "${destination}" "${hash}"
     COMMENT "Downloading: ${url}"
     VERBATIM
   )

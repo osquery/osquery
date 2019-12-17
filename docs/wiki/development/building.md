@@ -364,6 +364,7 @@ vagrant ssh aws-amazon2015.03
 Package creation is facilitated by CPack.
 
 The package will include several components:
+
 - The executables: `osqueryd`, `osqueryi`, and small management script `osqueryctl`
 - An osquery systemd unit on Linux (with initd script wrapper)
 - An osquery LaunchDaemon on macOS
@@ -377,7 +378,7 @@ You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the 
 
 ```sh
 cmake -DPACKAGING_SYSTEM=RPM ..
-make package
+cmake --build . --target package
 ```
 
 On macOS the `package` target will create a `.pkg`, and on Windows it will create a `.msi`.

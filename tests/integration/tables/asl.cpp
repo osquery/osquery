@@ -22,32 +22,25 @@ class asl : public testing::Test {
 };
 
 TEST_F(asl, test_sanity) {
-  // 1. Query data
-  auto const data = execute_query("select * from asl");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"time", IntType}
-  //      {"time_nano_sec", IntType}
-  //      {"host", NormalType}
-  //      {"sender", NormalType}
-  //      {"facility", NormalType}
-  //      {"pid", IntType}
-  //      {"gid", IntType}
-  //      {"uid", IntType}
-  //      {"level", IntType}
-  //      {"message", NormalType}
-  //      {"ref_pid", IntType}
-  //      {"ref_proc", NormalType}
-  //      {"extra", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ValidationMap row_map = {
+      {"time", IntType},
+      {"time_nano_sec", IntType},
+      {"host", NormalType},
+      {"sender", NormalType},
+      {"facility", NormalType},
+      {"pid", IntType},
+      {"gid", IntType},
+      {"uid", IntType},
+      {"level", IntType},
+      {"message", NormalType},
+      {"ref_pid", IntOrEmpty},
+      {"ref_proc", NormalType},
+      {"extra", NormalType},
+  };
+
+  auto const data = execute_query("select * from asl limit 1");
+  ASSERT_FALSE(data.empty());
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

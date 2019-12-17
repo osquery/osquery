@@ -22,24 +22,18 @@ class ntfsAclPermissions : public testing::Test {
 };
 
 TEST_F(ntfsAclPermissions, test_sanity) {
-  // 1. Query data
-  auto const data = execute_query("select * from ntfs_acl_permissions");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"path", NormalType}
-  //      {"type", NormalType}
-  //      {"principal", NormalType}
-  //      {"access", NormalType}
-  //      {"inherited_from", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ValidationMap row_map = {
+      {"path", NormalType},
+      {"type", NormalType},
+      {"principal", NormalType},
+      {"access", NormalType},
+      {"inherited_from", NormalType},
+  };
+
+  auto const data =
+      execute_query("select * from ntfs_acl_permissions where path = 'C:\\'");
+  ASSERT_FALSE(data.empty());
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

@@ -130,7 +130,7 @@ class OsqueryWrapper(REPLWrapper):
     CONTINUATION_PROMPT = u'    ...> '
     ERROR_PREFIX = u'Error:'
 
-    def __init__(self, command='../osqueryi', args={}, env={}):
+    def __init__(self, command='../osqueryi', args={}, env=None):
         global CONFIG_NAME, CONFIG
         options = copy.deepcopy(CONFIG)["options"]
         for option in args.keys():

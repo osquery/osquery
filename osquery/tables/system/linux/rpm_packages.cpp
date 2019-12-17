@@ -156,6 +156,8 @@ QueryData genRpmPackages(QueryContext& context) {
     r["sha1"] = getRpmAttribute(header, RPMTAG_SHA1HEADER, td);
     r["arch"] = getRpmAttribute(header, RPMTAG_ARCH, td);
     r["epoch"] = INTEGER(getRpmAttribute(header, RPMTAG_EPOCH, td));
+    r["install_time"] =
+        INTEGER(getRpmAttribute(header, RPMTAG_INSTALLTIME, td));
 
     rpmtdFree(td);
     results.push_back(r);

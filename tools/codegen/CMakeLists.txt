@@ -131,7 +131,7 @@ function(generateTables category)
     add_custom_command(
       OUTPUT "${generated_source_code}"
       COMMAND "${CMAKE_COMMAND}" -E make_directory "${source_code_intermediate_directories}"
-      COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${OSQUERY_PYTHON_PATH}" "${Python3_EXECUTABLE}" "${gentable_file_path}" --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${optional_foreign_parameter} "${table_spec}" "${generated_source_code}"
+      COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${OSQUERY_PYTHON_PATH}" "${OSQUERY_PYTHON_EXECUTABLE}" "${gentable_file_path}" --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${optional_foreign_parameter} "${table_spec}" "${generated_source_code}"
       WORKING_DIRECTORY "${gentable_working_directory}"
       DEPENDS codegen_gentable "${table_spec}"
       COMMENT "Generating code for table ${category}/${table_name}..."
@@ -141,7 +141,7 @@ function(generateTables category)
     add_custom_command(
       OUTPUT "${generated_header_code}"
       COMMAND "${CMAKE_COMMAND}" -E make_directory "${generated_headers_folder}"
-      COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${OSQUERY_PYTHON_PATH}" "${Python3_EXECUTABLE}" "${gentable_file_path}" --header --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${optional_foreign_parameter} "${table_spec}" "${generated_header_code}"
+      COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${OSQUERY_PYTHON_PATH}" "${OSQUERY_PYTHON_EXECUTABLE}" "${gentable_file_path}" --header --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${optional_foreign_parameter} "${table_spec}" "${generated_header_code}"
       WORKING_DIRECTORY "${gentable_working_directory}"
       DEPENDS codegen_gentable "${table_spec}"
       COMMENT "Generating header for table ${category}/${table_name}..."
@@ -192,7 +192,7 @@ function(generateTableCategoryAmalgamation category_name)
 
   add_custom_command(
     OUTPUT "${amalgamation_file}"
-    COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${OSQUERY_PYTHON_PATH}" "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/codegen/amalgamate.py" --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${amalgamation_type} --sources "${generateTables_output}" --output "${amalgamation_file}"
+    COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${OSQUERY_PYTHON_PATH}" "${OSQUERY_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/codegen/amalgamate.py" --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${amalgamation_type} --sources "${generateTables_output}" --output "${amalgamation_file}"
     COMMENT "Generating amalgamation file for the ${category_name} tables..."
     DEPENDS "${category_spec_files}" ${generateTables_targetList} "thirdparty_python_modules"
   )

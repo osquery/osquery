@@ -59,9 +59,10 @@ static const std::unordered_map<unsigned long, std::string> kInheritanceToStr =
     {{CONTAINER_INHERIT_ACE, "Container Inherit Ace"},
      {INHERIT_NO_PROPAGATE, "Inherit No Propagate"},
      {INHERIT_ONLY, "Inherit Only"},
+     {NO_INHERITANCE, "No Inheritance"},
      {OBJECT_INHERIT_ACE, "Object Inherit Ace"},
-     {SUB_CONTAINERS_AND_OBJECTS_INHERIT, "Sub containers and Objects Inherit"},
-     {NO_INHERITANCE, "No Inheritance"}};
+     {SUB_CONTAINERS_AND_OBJECTS_INHERIT,
+      "Sub containers and Objects Inherit"}};
 
 // helper function to build access string from permission bit mask
 std::string accessPermsToStr(const unsigned long pmask) {
@@ -164,9 +165,17 @@ QueryData genNtfsAclPerms(QueryContext& context) {
       Row r;
 
       auto perms = accessPermsToStr(aceItem->grfAccessPermissions);
-      auto accessMode = kAccessModeToStr.find(aceItem->grfAccessMode)->second;
-      auto inheritedFrom =
-          kInheritanceToStr.find(aceItem->grfInheritance)->second;
+
+      // TODO(6129): Determine the best way to report unknown values.
+      // Investigate the documentation for correct grfInheritance usage.
+      auto accessModeIter = kAccessModeToStr.find(aceItem->grfAccessMode);
+      auto accessMode = (accessModeIter != kAccessModeToStr.end())
+                            ? accessModeIter->second
+                            : "Unknown";
+      auto interitedFromiter = kInheritanceToStr.find(aceItem->grfInheritance);
+      auto inheritedFrom = (interitedFromiter != kInheritanceToStr.end())
+                               ? interitedFromiter->second
+                               : "Unknown";
       auto trusteeName = trusteeToStr(aceItem->Trustee);
 
       r["path"] = TEXT(pathString);
@@ -176,6 +185,8 @@ QueryData genNtfsAclPerms(QueryContext& context) {
       r["inherited_from"] = TEXT(inheritedFrom);
       results.push_back(std::move(r));
     }
+
+    LocalFree(aceList);
   }
 
   return results;
