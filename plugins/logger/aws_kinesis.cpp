@@ -43,6 +43,11 @@ FLAG(bool,
      false,
      "Enable random kinesis partition keys");
 
+FLAG(bool,
+     aws_kinesis_disable_log_status,
+     false,
+     "Disable status logs processing");
+
 Status KinesisLoggerPlugin::setUp() {
   initAwsSdk();
   forwarder_ = std::make_shared<KinesisLogForwarder>(
@@ -67,6 +72,10 @@ Status KinesisLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
 void KinesisLoggerPlugin::init(const std::string& name,
                                const std::vector<StatusLogLine>& log) {
   logStatus(log);
+}
+
+bool KinesisLoggerPlugin::usesLogStatus() {
+  return !FLAGS_aws_kinesis_disable_log_status;
 }
 
 Status KinesisLogForwarder::internalSetup() {
