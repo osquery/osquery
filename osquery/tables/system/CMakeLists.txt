@@ -194,6 +194,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/scheduled_tasks.cpp
       windows/services.cpp
       windows/shared_resources.cpp
+      windows/shimcache.cpp
       windows/smbios_tables.cpp
       windows/startup_items.cpp
       windows/system_info.cpp
