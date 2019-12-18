@@ -12,9 +12,29 @@ schema([
     Column("valid_from", TEXT, "Period of validity start date"),
     Column("valid_to", TEXT, "Period of validity end date"),
     Column("sha256_fingerprint", TEXT, "SHA-256 fingerprint"),
-    Column("sha1_fingerprint", TEXT, "SHA1 fingerprint")
+    Column("sha1_fingerprint", TEXT, "SHA1 fingerprint"),
+    Column("ssl_cert_version", INTEGER, "Version Number"),
+    Column("ssl_signature_algorithm", TEXT, "Signature Algorithm"),
+    Column("ssl_signature", TEXT, "Signature"),
+    Column("ssl_subject_key_identifier", TEXT, "Subject Key Identifier"),
+    Column("ssl_authority_key_identifier", TEXT, "Authority Key Identifier"),
+    Column("ssl_key_usage", TEXT, "Usage of key in certificate"),
+    Column("ssl_extended_key_usage", TEXT, "Extended usage of key in certificate"),
+    Column("ssl_certificate_policies", TEXT, "Certificate Policies"),
+    Column("ssl_subject_alternative_names", TEXT, "Subject Alternative Name"),
+    Column("ssl_issuer_alternative_names", TEXT, "Issuer Alternative Name"),
+    Column("ssl_info_access", TEXT, "Authority Information Access"),
+    Column("ssl_subject_info_access", TEXT, "Subject Information Access"),
+    Column("ssl_policy_mappings", TEXT, "Policy Mappings"),
+    Column("ssl_has_expired", INTEGER, "Boolean value if certificate expired"),
+    Column("basic_constraint", TEXT, "Basic Constraints"),
+    Column("name_constraints", TEXT, "Name Constraints"),
+    Column("policy_constraints", TEXT, "Policy Constraints"),
+    Column("dump_certificate", INTEGER, "Set this value to '1' to dump certificate", additional=True, hidden=True),
+    Column("ssl_cert_pem", TEXT, "Certificate PEM format")
 ])
 implementation("curl_certificate@genTLSCertificate")
 examples([
   "select * from curl_certificate where hostname = 'osquery.io'"
+  "select * from curl_certificate where hostname = 'osquery.io' and dump_certificate = 1"
 ])
