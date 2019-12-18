@@ -20,7 +20,7 @@ function main() {
     exit 1
   fi
 
-  zip -j $1 $SCRIPT_DIR/../tests/*.conf
+  zip -j $1 $SCRIPT_DIR/../tests/configs/*.conf
 }
 
 main $@
