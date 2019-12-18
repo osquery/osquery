@@ -16,10 +16,8 @@ import uuid
 import subprocess
 
 from gentable import *
-
-SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-
 from osquery_tests.tools.tests import utils
+
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -298,5 +296,4 @@ def main(argc, argv):
 
 
 if __name__ == "__main__":
-    SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
     main(len(sys.argv), sys.argv)
