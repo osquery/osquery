@@ -157,6 +157,7 @@ osquery_cxx_library(
                 "linux/process_open_files.cpp",
                 "linux/processes.cpp",
                 "linux/rpm_packages.cpp",
+                "linux/selinux_settings.cpp",
                 "linux/shadow.cpp",
                 "linux/shared_memory.cpp",
                 "linux/smbios_tables.cpp",

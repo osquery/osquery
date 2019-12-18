@@ -18,6 +18,7 @@ osquery_cxx_test(
                 "linux/pci_devices_tests.cpp",
                 "linux/pcidb_tests.cpp",
                 "linux/portage_tests.cpp",
+                "linux/selinux_settings_tests.cpp"
             ],
         ),
     ],

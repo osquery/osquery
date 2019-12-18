@@ -162,6 +162,7 @@ function(generateNativeTables)
     "linux/elf_dynamic.table:linux"
     "linux/ec2_instance_metadata.table:linux"
     "linux/elf_sections.table:linux"
+    "linux/selinux_settings.table:linux"
     "linwin/intel_me_info.table:linux,windows"
     "lldpd/lldp_neighbors.table:linux,macos,freebsd"
     "kernel_info.table:linux,macos,windows"
