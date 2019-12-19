@@ -70,7 +70,10 @@ CLI_FLAG(bool,
          false,
          "Check the format of an osquery config and exit");
 
-CLI_FLAG(bool, config_dump, false, "Dump the contents of the configuration, then exit");
+CLI_FLAG(bool,
+         config_dump,
+         false,
+         "Dump the contents of the configuration, then exit");
 
 CLI_FLAG(uint64,
          config_refresh,
