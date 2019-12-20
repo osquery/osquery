@@ -26,6 +26,7 @@ class ProcessOpenPipesTest : public testing::Test {
   std::string dir_path;
   std::string test_type;
   int fd[2];
+  int fd_signal[2];
 
   void SetUp() override {
     setUpEnvironment();
@@ -37,6 +38,8 @@ class ProcessOpenPipesTest : public testing::Test {
     pipe_path = dir_path + "/test_pipe";
     if (mkfifo(pipe_path.c_str(), 0600))
       dir_path = std::string();
+    if (pipe(fd_signal) == -1)
+      LOG(ERROR) << "Error creating signal pipe\n";
   }
 
   void TearDown() override {
@@ -44,7 +47,13 @@ class ProcessOpenPipesTest : public testing::Test {
     rmdir(dir_path.c_str());
   }
 
+  void signal_parent() {
+    char buf = '1';
+    write(fd_signal[1], &buf, 1);
+  }
+
   int setup_writer() {
+    close(fd_signal[0]);
     if (test_type == "named_pipe") {
       int fd = open(pipe_path.c_str(), O_WRONLY);
       if (fd == -1)
@@ -58,6 +67,7 @@ class ProcessOpenPipesTest : public testing::Test {
   }
 
   int setup_reader() {
+    close(fd_signal[0]);
     if (test_type == "named_pipe") {
       int fd = open(pipe_path.c_str(), O_RDONLY);
       if (fd == -1)
@@ -76,14 +86,16 @@ class ProcessOpenPipesTest : public testing::Test {
     printf("writer pid: %d\n", pid);
 
     int fd = setup_writer();
-    if (fd == -1)
+    if (fd == -1) {
+      signal_parent();
       return;
+    }
 
-    printf("writer pid: %d\n", pid);
-    if (write(fd, "test", sizeof(buf)) == -1)
+    if (write(fd, "test", sizeof(buf)) == -1) {
+      signal_parent();
       return;
+    }
 
-    printf("writer pid: %d\n", pid);
     while (1) {
     }
   }
@@ -94,15 +106,17 @@ class ProcessOpenPipesTest : public testing::Test {
     printf("reader pid: %d\n", pid);
 
     int fd = setup_reader();
-    if (fd == -1)
+    if (fd == -1) {
+      signal_parent();
       return;
+    }
 
-    printf("reader pid: %d\n", pid);
-    if (read(fd, buf, 10) == -1)
+    if (read(fd, buf, 10) == -1) {
+      signal_parent();
       return;
+    }
 
-    printf("reader pid: %d\n", pid);
-    printf("%s\n", buf);
+    signal_parent();
     while (1) {
     }
   }
@@ -125,15 +139,16 @@ class ProcessOpenPipesTest : public testing::Test {
     return ret;
   }
 
+  void wait_child_signal() {
+    char buf;
+    read(fd_signal[0], &buf, 1);
+  }
+
   void do_query(int writer_pid, int reader_pid) {
-    /*
     QueryData data =
         execute_query("select * from process_open_pipes where pid = " +
                       std::to_string(writer_pid) +
                       " and partner_pid = " + std::to_string(reader_pid));
-    */
-    QueryData data =
-        execute_query("select * from process_open_pipes limit 10;");
     ASSERT_GT(data.size(), 0ul);
     ValidationMap row_map = {
         {"pid", NonNegativeInt},
@@ -169,6 +184,7 @@ class ProcessOpenPipesTest : public testing::Test {
       return;
     }
 
+    wait_child_signal();
     do_query(writer_pid, reader_pid);
     kill_children(writer_pid, reader_pid);
   }
