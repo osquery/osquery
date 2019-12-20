@@ -211,6 +211,7 @@ function(generateNativeTables)
     "posix/process_envs.table:linux,macos,freebsd"
     "posix/process_events.table:linux,macos,freebsd"
     "posix/process_open_files.table:linux,macos,freebsd"
+    "posix/process_open_pipes.table:linux"
     "posix/prometheus_metrics.table:linux,macos,freebsd"
     "posix/shell_history.table:linux,macos,freebsd"
     "posix/smbios_tables.table:linux,macos"
