@@ -23,16 +23,6 @@ namespace osquery {
 
 class Status;
 
-/**
- * @brief The requested exit code.
- *
- * Use Initializer::shutdown to request shutdown in most cases.
- * This will raise a signal to the main thread requesting the dispatcher to
- * interrupt all services. There is a thread requesting a join of all services
- * that will continue the shutdown process.
- */
-extern volatile std::sig_atomic_t kExitCode;
-
 using ModuleHandle = void*;
 
 class Initializer : private boost::noncopyable {
@@ -88,14 +78,6 @@ class Initializer : private boost::noncopyable {
    */
   void initWorkerWatcher(const std::string& name = "") const;
 
-  /**
-   * @brief Move a function callable into the initializer to be called.
-   *
-   * Install an optional platform method to call when waiting for shutdown.
-   * This exists for Windows when the daemon must wait for the service to stop.
-   */
-  void installShutdown(std::function<void()>& handler);
-
   /// Assume initialization finished, start work.
   void start() const;
 
@@ -126,7 +108,7 @@ class Initializer : private boost::noncopyable {
   static void requestShutdown(int retcode, const std::string& system_log);
 
   /// Exit immediately without requesting the dispatcher to stop.
-  static void shutdown(int retcode = EXIT_SUCCESS);
+  static void shutdownNow(int retcode = EXIT_SUCCESS);
 
   /**
    * @brief Cleanly wait for all services and components to shutdown.
@@ -135,7 +117,14 @@ class Initializer : private boost::noncopyable {
    * then it shuts down all the components.
    * If the main thread is out of actions it can call #waitThenShutdown.
    */
-  static void waitThenShutdown();
+  static int waitThenShutdown(int retcode);
+
+  /**
+   * @brief Attempt to join all services.
+   *
+   * If the main thread is out of actions it can call #waitThenShutdown.
+   */
+  static void waitForShutdown();
 
   /**
    * @brief Initialize any platform dependent libraries or objects
@@ -204,12 +193,6 @@ class Initializer : private boost::noncopyable {
 
   /// The deduced program name determined by executing path.
   std::string binary_;
-
-  /// A platform specific callback to wait for shutdown.
-  static std::function<void()> shutdown_;
-
-  /// Mutex to protect use of the shutdown callable.
-  static RecursiveMutex shutdown_mutex_;
 };
 
 /**

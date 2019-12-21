@@ -30,7 +30,5 @@ Status installService(const std::string& path);
 Status uninstallService();
 
 /// Begin the platform-agnostic shell and daemon initialization.
-int startOsquery(int argc,
-                 char* argv[],
-                 std::function<void()> shutdown = nullptr);
+int startOsquery(int argc, char* argv[]);
 } // namespace osquery
