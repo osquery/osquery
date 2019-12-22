@@ -85,6 +85,11 @@ Status Dispatcher::addService(InternalRunnableRef service) {
   return Status::success();
 }
 
+void Dispatcher::resetStopping() {
+  WriteLock lock(mutex_);
+  stopping_ = false;
+}
+
 void Dispatcher::removeService(const InternalRunnable* service) {
   auto& self = Dispatcher::instance();
   WriteLock lock(self.mutex_);
@@ -137,7 +142,6 @@ void Dispatcher::joinServices() {
     }
   }
 
-  self.stopping_ = false;
   DLOG(INFO) << "Services and threads have been cleared";
 }
 

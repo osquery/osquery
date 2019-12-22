@@ -37,7 +37,6 @@
 #include <thread>
 #include <vector>
 
-
 namespace osquery {
 
 DECLARE_uint64(config_refresh);
@@ -80,6 +79,13 @@ class ConfigTests : public testing::Test {
   void TearDown() {
     fs::remove_all(fake_directory_);
     FLAGS_config_refresh = refresh_;
+  }
+
+  void resetDispatcher() {
+    auto& dispatcher = Dispatcher::instance();
+    dispatcher.stopServices();
+    dispatcher.joinServices();
+    dispatcher.resetStopping();
   }
 
  protected:
@@ -560,8 +566,7 @@ TEST_F(ConfigTests, test_config_refresh) {
   get().reset();
 
   // Stop the existing refresh runner thread.
-  Dispatcher::stopServices();
-  Dispatcher::joinServices();
+  resetDispatcher();
 
   // Set a config_refresh value to convince the Config to start the thread.
   FLAGS_config_refresh = 2;
@@ -603,8 +608,7 @@ TEST_F(ConfigTests, test_config_refresh) {
   EXPECT_EQ(get().getRefresh(), FLAGS_config_refresh);
 
   // Stop the new refresh runner thread.
-  Dispatcher::stopServices();
-  Dispatcher::joinServices();
+  resetDispatcher();
 
   FLAGS_config_refresh = refresh;
   FLAGS_config_accelerated_refresh = refresh_acceleratred;
