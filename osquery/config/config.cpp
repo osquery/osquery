@@ -504,7 +504,7 @@ Status Config::refresh() {
                 content.first.c_str(),
                 content.second.c_str());
       }
-      LOG(INFO) << "Requesting shutdown after dumping config";
+      VLOG(1) << "Requesting shutdown after dumping config";
       // Don't force because the config plugin may have started services.
       Initializer::requestShutdown();
       return Status::success();
