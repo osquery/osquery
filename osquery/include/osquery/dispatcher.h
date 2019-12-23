@@ -161,9 +161,7 @@ class Dispatcher : private boost::noncopyable {
 
  private:
   /// For testing only, reset the stopping status for unittests.
-  void resetStopping() {
-    stopping_ = false;
-  }
+  void resetStopping();
 
  private:
   /// The set of shared osquery service threads.
@@ -187,11 +185,14 @@ class Dispatcher : private boost::noncopyable {
    * A future join will be requested AFTER all services were expected to have
    * been interrupted.
    */
-  std::atomic<bool> stopping_{false};
+  bool stopping_{false};
 
  private:
   friend class InternalRunnable;
-  friend class ExtensionsTests;
+
+  // Tests
+  friend class ConfigTests;
   friend class DispatcherTests;
+  friend class ExtensionsTest;
 };
 } // namespace osquery
