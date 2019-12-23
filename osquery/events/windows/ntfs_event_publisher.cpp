@@ -384,14 +384,15 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
   std::uint8_t buffer[2048] = {};
   DWORD bytes_read = 0U;
 
-  if (!DeviceIoControl(volume_data.root_folder_handle,
-                       FSCTL_READ_FILE_USN_DATA,
-                       nullptr,
-                       0,
-                       buffer,
-                       sizeof(buffer),
-                       &bytes_read,
-                       nullptr)) {
+  auto status = ::DeviceIoControl(volume_data.root_folder_handle,
+                                  FSCTL_READ_FILE_USN_DATA,
+                                  nullptr,
+                                  0,
+                                  buffer,
+                                  sizeof(buffer),
+                                  &bytes_read,
+                                  nullptr);
+  if (!status) {
     auto error_code = ::GetLastError();
 
     ::CloseHandle(volume_data.volume_handle);
