@@ -323,108 +323,6 @@ Status WmiResultItem::GetVectorOfStrings(const std::string& name,
   return Status::success();
 }
 
-Status WmiResultItem::ExecMethod(const std::string& method,
-                                 const WmiMethodArgs& args,
-                                 WmiResultItem& out_result) const {
-  std::wstring property_name = stringToWstring(method);
-
-  IWbemClassObject* raw = nullptr;
-
-  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> in_def{
-      nullptr, impl::wmiObjectDeleter};
-  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> class_obj{
-      nullptr, impl::wmiObjectDeleter};
-
-  BSTR wmi_class_name = WbemClassObjectPropToBSTR(*this, "__CLASS");
-  if (wmi_class_name == nullptr) {
-    return Status::failure("Class name out of memory");
-  }
-
-  // GetObject obtains a CIM Class definition object
-  HRESULT hr = services_->GetObject(wmi_class_name, 0, nullptr, &raw, nullptr);
-  SysFreeString(wmi_class_name);
-
-  if (FAILED(hr)) {
-    return Status::failure("Failed to GetObject");
-  }
-
-  class_obj.reset(raw);
-  raw = nullptr;
-
-  // GetMethod only works on CIM class definition objects. This is why
-  // we don't use result_
-  hr = class_obj->GetMethod(property_name.c_str(), 0, &raw, nullptr);
-  if (FAILED(hr)) {
-    return Status::failure("Failed to GetMethod");
-  }
-
-  in_def.reset(raw);
-  raw = nullptr;
-
-  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> args_inst{
-      nullptr, impl::wmiObjectDeleter};
-
-  // in_def can be nullptr if the chosen method has no in-parameters
-  if (in_def != nullptr) {
-    hr = in_def->SpawnInstance(0, &raw);
-    if (FAILED(hr)) {
-      return Status::failure("Failed to SpawnInstance");
-    }
-    args_inst.reset(raw);
-
-    // Build up the WMI method call arguments
-    for (const auto& p : args.GetArguments()) {
-      const auto& name = p.first;
-      auto pVal = p.second;
-
-      auto args_name = stringToWstring(name);
-
-      hr = args_inst->Put(args_name.c_str(), 0, &pVal, 0);
-      if (FAILED(hr)) {
-        return Status::failure("Failed to Put arguments");
-      }
-    }
-  }
-
-  // In order to execute a WMI method, we need to know the specific object name
-  // and method name
-  IWbemClassObject* out_params = nullptr;
-
-  auto wmi_meth_name = SysAllocString(property_name.c_str());
-  if (wmi_meth_name == nullptr) {
-    return Status::failure("Out of memory");
-  }
-
-  auto wmi_obj_path = WbemClassObjectPropToBSTR(*this, "__PATH");
-  if (wmi_obj_path == nullptr) {
-    SysFreeString(wmi_meth_name);
-    return Status::failure("Out of memory");
-  }
-
-  // Execute the WMI method, the return value and out-params all exist in
-  // out_params
-  hr = services_->ExecMethod(wmi_obj_path,
-                             wmi_meth_name,
-                             0,
-                             nullptr,
-                             args_inst.get(),
-                             &out_params,
-                             nullptr);
-
-  SysFreeString(wmi_meth_name);
-  SysFreeString(wmi_obj_path);
-
-  if (FAILED(hr)) {
-    return Status::failure("Failed to ExecMethod");
-  }
-
-  out_result.result_.reset(out_params);
-  out_result.locator_ = locator_;
-  out_result.services_ = services_;
-
-  return Status::success();
-}
-
 WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
   std::wstring wql = stringToWstring(query);
 
@@ -478,10 +376,109 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
     hr = enum_->Next(WBEM_INFINITE, 1, &result, &result_count);
     if (SUCCEEDED(hr) && result_count > 0) {
-      results_.emplace_back(result, locator_, services_);
+      results_.emplace_back(result);
     }
   }
 
   status_ = Status(0);
 }
+
+Status WmiRequest::ExecMethod(const WmiResultItem& object,
+                              const std::string& method,
+                              const WmiMethodArgs& args,
+                              WmiResultItem& out_result) const {
+  std::wstring property_name = stringToWstring(method);
+
+  IWbemClassObject* raw = nullptr;
+
+  std::unique_ptr<IWbemClassObject, impl::WmiObjectDeleter> in_def{nullptr};
+  std::unique_ptr<IWbemClassObject, impl::WmiObjectDeleter> class_obj{nullptr};
+
+  BSTR wmi_class_name = WbemClassObjectPropToBSTR(object, "__CLASS");
+  if (wmi_class_name == nullptr) {
+    return Status::failure("Class name out of memory");
+  }
+
+  // GetObject obtains a CIM Class definition object
+  HRESULT hr = services_->GetObject(wmi_class_name, 0, nullptr, &raw, nullptr);
+  SysFreeString(wmi_class_name);
+
+  if (FAILED(hr)) {
+    return Status::failure("Failed to GetObject");
+  }
+
+  class_obj.reset(raw);
+  raw = nullptr;
+
+  // GetMethod only works on CIM class definition objects. This is why
+  // we don't use result_
+  hr = class_obj->GetMethod(property_name.c_str(), 0, &raw, nullptr);
+  if (FAILED(hr)) {
+    return Status::failure("Failed to GetMethod");
+  }
+
+  in_def.reset(raw);
+  raw = nullptr;
+
+  std::unique_ptr<IWbemClassObject, impl::WmiObjectDeleter> args_inst{nullptr};
+
+  // in_def can be nullptr if the chosen method has no in-parameters
+  if (in_def != nullptr) {
+    hr = in_def->SpawnInstance(0, &raw);
+    if (FAILED(hr)) {
+      return Status::failure("Failed to SpawnInstance");
+    }
+    args_inst.reset(raw);
+
+    // Build up the WMI method call arguments
+    for (const auto& p : args.GetArguments()) {
+      const auto& name = p.first;
+      auto pVal = p.second;
+
+      auto args_name = stringToWstring(name);
+
+      hr = args_inst->Put(args_name.c_str(), 0, &pVal, 0);
+      if (FAILED(hr)) {
+        return Status::failure("Failed to Put arguments");
+      }
+    }
+  }
+
+  // In order to execute a WMI method, we need to know the specific object name
+  // and method name
+  IWbemClassObject* out_params = nullptr;
+
+  auto wmi_meth_name = SysAllocString(property_name.c_str());
+  if (wmi_meth_name == nullptr) {
+    return Status::failure("Out of memory");
+  }
+
+  auto wmi_obj_path = WbemClassObjectPropToBSTR(object, "__PATH");
+  if (wmi_obj_path == nullptr) {
+    SysFreeString(wmi_meth_name);
+    return Status::failure("Out of memory");
+  }
+
+  // Execute the WMI method, the return value and out-params all exist in
+  // out_params
+  hr = services_->ExecMethod(wmi_obj_path,
+                             wmi_meth_name,
+                             0,
+                             nullptr,
+                             args_inst.get(),
+                             &out_params,
+                             nullptr);
+
+  SysFreeString(wmi_meth_name);
+  SysFreeString(wmi_obj_path);
+
+  if (FAILED(hr)) {
+    return Status::failure("Failed to ExecMethod");
+  }
+
+  out_result = std::move(WmiResultItem(out_params));
+
+  return Status::success();
+}
+
 } // namespace osquery

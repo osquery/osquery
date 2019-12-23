@@ -57,7 +57,7 @@ TEST_F(WmiTests, test_methodcall_inparams) {
 
   // Get the first item off the result vector since we should only have one.
   auto& resultItem = wmiResults.front();
-  auto status = resultItem.ExecMethod("GetEffectivePermission", args, out);
+  auto status = req.ExecMethod(resultItem, "GetEffectivePermission", args, out);
 
   EXPECT_EQ(status.getMessage(), "OK");
   EXPECT_TRUE(status.ok());
@@ -88,7 +88,7 @@ TEST_F(WmiTests, test_methodcall_outparams) {
 
   // Get the first item off the result vector since we should only have one.
   auto& resultItem = wmiResults.front();
-  auto status = resultItem.ExecMethod("GetOwner", args, out);
+  auto status = req.ExecMethod(resultItem, "GetOwner", args, out);
 
   // We use this check to make debugging errors faster
   EXPECT_EQ(status.getMessage(), "OK");
