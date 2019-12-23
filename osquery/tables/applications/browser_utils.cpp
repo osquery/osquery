@@ -32,6 +32,7 @@ const std::map<std::string, std::string> kExtensionKeys = {
     {"background.persistent", "persistent"}};
 
 const std::string kExtensionPermissionKey = "permissions";
+const std::string kExtensionOptionalPermissionKey = "optional_permissions";
 const std::string kProfilePreferencesFile = "Preferences";
 const std::string kProfilePreferenceKey = "profile";
 
@@ -69,6 +70,32 @@ Status getChromeProfileName(std::string& name, const fs::path& path) {
   return Status::success();
 }
 } // namespace
+
+const std::string genPermissions(const std::string& permissionTypeKey,
+                                 const pt::ptree& tree) {
+  std::string permission_list;
+
+  const auto& perm_array_obj = tree.get_child_optional(permissionTypeKey);
+  if (perm_array_obj) {
+    const auto& perm_array_contents = perm_array_obj.get();
+
+    std::vector<std::string> perm_vector;
+    perm_vector.reserve(perm_array_contents.size());
+
+    for (auto it = perm_array_contents.begin(); it != perm_array_contents.end();
+         ++it) {
+      const auto& perm_obj = *it;
+      const auto& permission =
+          perm_obj.second.get_value_optional<std::string>();
+      if (permission) {
+        perm_vector.emplace_back(*permission);
+      }
+    }
+
+    permission_list = boost::algorithm::join(perm_vector, ", ");
+  }
+  return permission_list;
+}
 
 void genExtension(const std::string& uid,
                   const std::string& path,
@@ -114,33 +141,12 @@ void genExtension(const std::string& uid,
     }
   }
 
-  // Fetch the permission array from the manifest file
-  std::string permission_list;
-
-  const auto& perm_array_obj = tree.get_child_optional(kExtensionPermissionKey);
-  if (perm_array_obj) {
-    const auto& perm_array_contents = perm_array_obj.get();
-
-    std::vector<std::string> perm_vector;
-    perm_vector.reserve(perm_array_contents.size());
-
-    for (auto it = perm_array_contents.begin(); it != perm_array_contents.end();
-         ++it) {
-      const auto& perm_obj = *it;
-      const auto& permission =
-          perm_obj.second.get_value_optional<std::string>();
-      if (permission) {
-        perm_vector.emplace_back(*permission);
-      }
-    }
-
-    permission_list = boost::algorithm::join(perm_vector, ", ");
-  }
-
   std::string localized_prefix = "__MSG_";
   Row r;
   r["uid"] = uid;
-  r[kExtensionPermissionKey] = permission_list;
+  r[kExtensionPermissionKey] = genPermissions(kExtensionPermissionKey, tree);
+  r[kExtensionOptionalPermissionKey] =
+      genPermissions(kExtensionOptionalPermissionKey, tree);
   r["profile"] = profile_name;
   // Most of the keys are in the top-level JSON dictionary.
   for (const auto& it : kExtensionKeys) {
