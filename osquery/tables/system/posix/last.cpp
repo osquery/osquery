@@ -35,7 +35,7 @@ QueryData genLastAccess(QueryContext& context) {
   while ((ut = getutxent()) != nullptr) {
 #endif
 
-    if (ut->ut_type == USER_PROCESS) {
+    if (ut->ut_type == USER_PROCESS || ut->ut_type == DEAD_PROCESS) {
       Row r;
       r["username"] = TEXT(ut->ut_user);
       r["tty"] = TEXT(ut->ut_line);
