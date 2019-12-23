@@ -478,7 +478,7 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
     hr = enum_->Next(WBEM_INFINITE, 1, &result, &result_count);
     if (SUCCEEDED(hr) && result_count > 0) {
-      results_.emplace_back(WmiResultItem(result, locator_, services_));
+      results_.emplace_back(result, locator_, services_);
     }
   }
 
