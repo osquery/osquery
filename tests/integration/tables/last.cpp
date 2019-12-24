@@ -27,9 +27,14 @@ TEST_F(last, test_sanity) {
   // 2. Check size before validation
   ASSERT_FALSE(data.empty());
   // 3. Build validation map
-  ValidationMap row_map = {{"username", NormalType} {"tty", NormalType} {
-      "pid", NonNegativeInt} {"type", IntMinMaxCheck(7, 8)} {
-      "time", NonNegativeInt} {"host", verifyEmptyStringOrIpAddress}};
+  ValidationMap row_map = {
+    {"username", NormalType},
+    {"tty", NormalType},
+    {"pid", NonNegativeInt},
+    {"type", IntMinMaxCheck(7, 8)},
+    {"time", NonNegativeInt},
+    {"host", verifyEmptyStringOrIpAddress}
+  };
   // 4. Perform validation
   validate_rows(data, row_map);
 }
