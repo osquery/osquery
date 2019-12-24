@@ -10,6 +10,7 @@
 // Spec file: specs/posix/last.table
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/logger.h>
 
 namespace osquery {
 namespace table_tests {
@@ -25,15 +26,18 @@ TEST_F(last, test_sanity) {
   // 1. Query data
   auto const data = execute_query("select * from last");
   // 2. Check size before validation
-  ASSERT_FALSE(data.empty());
+  if (data.empty()) {
+    LOG(WARNING) << "No entries in wtmp, skipping test";
+    return;
+  }
   // 3. Build validation map
   ValidationMap row_map = {
-    {"username", NormalType},
-    {"tty", NormalType},
-    {"pid", NonNegativeInt},
-    {"type", IntMinMaxCheck(7, 8)},
-    {"time", NonNegativeInt},
-    {"host", verifyEmptyStringOrIpAddress},
+      {"username", NormalType},
+      {"tty", NormalType},
+      {"pid", NonNegativeInt},
+      {"type", IntMinMaxCheck(7, 8)},
+      {"time", NonNegativeInt},
+      {"host", verifyEmptyStringOrIpAddress},
   };
   // 4. Perform validation
   validate_rows(data, row_map);

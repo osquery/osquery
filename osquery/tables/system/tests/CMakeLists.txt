@@ -57,6 +57,7 @@ function(generateOsqueryTablesSystemPosixTests)
     posix/shell_history_tests.cpp
     posix/sudoers_tests.cpp
     posix/yum_sources_tests.cpp
+    posix/last_tests.cpp
   )
 
   target_link_libraries(osquery_tables_system_posix_tests-test PRIVATE
