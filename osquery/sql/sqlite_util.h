@@ -196,6 +196,17 @@ class SQLiteDBManager : private boost::noncopyable {
    */
   static bool isDisabled(const std::string& table_name);
 
+  /**
+   * @brief Check if `table_name` is enabled.
+   *
+   * Check if `table_name` is in the list of tables passed in to the
+   * `--enable_tables` flag.
+   *
+   * @param The name of the Table to check.
+   * @return If `table_name` is enabled.
+   */
+  static bool isEnabled(const std::string& table_name);
+
  protected:
   SQLiteDBManager();
   virtual ~SQLiteDBManager();
@@ -220,8 +231,14 @@ class SQLiteDBManager : private boost::noncopyable {
   /// Member variable to hold set of disabled tables.
   std::unordered_set<std::string> disabled_tables_;
 
+  /// Member variable to hold set of enabled tables.
+  std::unordered_set<std::string> enabled_tables_;
+
   /// Parse a comma-delimited set of tables names, passed in as a flag.
   void setDisabledTables(const std::string& s);
+
+  /// Parse a comma-delimited set of tables names, passed in as a flag.
+  void setEnabledTables(const std::string& s);
 
   /// Request a connection, optionally request the primary connection.
   static SQLiteDBInstanceRef getConnection(bool primary = false);

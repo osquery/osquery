@@ -1059,7 +1059,7 @@ Status attachTableInternal(const std::string& name,
                            const std::string& statement,
                            const SQLiteDBInstanceRef& instance,
                            bool is_extension) {
-  if (SQLiteDBManager::isDisabled(name)) {
+  if (SQLiteDBManager::isDisabled(name) or !SQLiteDBManager::isEnabled(name)) {
     VLOG(1) << "Table " << name << " is disabled, not attaching";
     return Status(0, getStringForSQLiteReturnCode(0));
   }

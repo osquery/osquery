@@ -30,6 +30,11 @@ FLAG(string,
      "Not Specified",
      "Comma-delimited list of table names to be disabled");
 
+FLAG(string,
+     enable_tables,
+     "Not Specified",
+     "Comma-delimited list of table names to be enabled");
+
 FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
 
 using OpReg = QueryPlanner::Opcode::Register;
@@ -361,11 +366,22 @@ SQLiteDBInstance::~SQLiteDBInstance() {
 SQLiteDBManager::SQLiteDBManager() : db_(nullptr) {
   sqlite3_soft_heap_limit64(1);
   setDisabledTables(Flag::getValue("disable_tables"));
+  setEnabledTables(Flag::getValue("enable_tables"));
 }
 
 bool SQLiteDBManager::isDisabled(const std::string& table_name) {
   const auto& element = instance().disabled_tables_.find(table_name);
   return (element != instance().disabled_tables_.end());
+}
+
+bool SQLiteDBManager::isEnabled(const std::string& table_name) {
+  if (instance().enabled_tables_.find("Not Specified") !=
+      instance().enabled_tables_.end()) {
+    // we should totally return true if no whitlist have been specified
+    return true;
+  }
+  const auto& element = instance().enabled_tables_.find(table_name);
+  return (element != instance().enabled_tables_.end());
 }
 
 void SQLiteDBManager::resetPrimary() {
@@ -384,6 +400,12 @@ void SQLiteDBManager::resetPrimary() {
 void SQLiteDBManager::setDisabledTables(const std::string& list) {
   const auto& tables = split(list, ",");
   disabled_tables_ =
+      std::unordered_set<std::string>(tables.begin(), tables.end());
+}
+
+void SQLiteDBManager::setEnabledTables(const std::string& list) {
+  const auto& tables = split(list, ",");
+  enabled_tables_ =
       std::unordered_set<std::string>(tables.begin(), tables.end());
 }
 
