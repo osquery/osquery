@@ -6,8 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/utils/system/system.h>
 #include <osquery/utils/system/env.h>
+#include <osquery/utils/system/system.h>
 
 #include <Winsvc.h>
 

@@ -8,10 +8,9 @@
 
 #pragma once
 
+#include <boost/optional.hpp>
 #include <string>
 #include <vector>
-#include <boost/optional.hpp>
-
 
 namespace osquery {
 
@@ -37,7 +36,8 @@ boost::optional<std::string> getEnvVar(const std::string& name);
 boost::optional<std::string> expandEnvString(const std::string& input);
 
 /**
- * Splits the input into command line arguments, according to the system's rules.
+ * Splits the input into command line arguments, according to the system's
+ * rules.
  *
  * Returns boost::none on failure.
  */

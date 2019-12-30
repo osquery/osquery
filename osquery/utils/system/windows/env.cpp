@@ -6,15 +6,18 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/utils/system/env.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/system/env.h>
 
 #include <string>
 #include <vector>
 
 #include <boost/optional.hpp>
 
+// clang-format off
 #include <windows.h>
+#include <shellapi.h>
+// clang-format on
 
 namespace osquery {
 
@@ -65,7 +68,8 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
     return boost::none;
   }
 
-  auto len = ::ExpandEnvironmentStrings(input.c_str(), buf.data(), kInitialBufferSize);
+  auto len =
+      ::ExpandEnvironmentStrings(input.c_str(), buf.data(), kInitialBufferSize);
   if (len == 0) {
     return boost::none;
   }
@@ -79,13 +83,15 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
     return boost::none;
   }
 
-  return std::string(buf.data(), len);
+  // Unlike GetEnvironmentVariableA, the length returned by
+  // ExpandEnvironmentStrings does include the terminating null.
+  return std::string(buf.data(), len - 1);
 }
 
 boost::optional<std::vector<std::string>> splitArgs(const std::string& args) {
   int argc = 0;
 
-  auto argv = CommandLineToArgvW(stringToWstring(args).c_str(), &argc);
+  auto argv = ::CommandLineToArgvW(stringToWstring(args).c_str(), &argc);
   if (argv == nullptr) {
     return boost::none;
   }

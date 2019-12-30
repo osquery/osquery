@@ -43,6 +43,7 @@ function(generateOsqueryUtilsSystemEnv)
   target_link_libraries(osquery_utils_system_env PUBLIC
     osquery_cxx_settings
     thirdparty_boost
+    osquery_utils_conversions
   )
 
   set(public_header_files
