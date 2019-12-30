@@ -965,6 +965,76 @@ QueryData genVolumeLabels(QueryContext& context) {
 }
 
 /**
+ * @brief Image layer extractor for docker_image_layers table
+ */
+std::vector<std::string> getImageLayers(std::string image_name) {
+  pt::ptree tree;
+  std::vector<std::string> layers;
+
+  Status s = dockerApi("/images/" + image_name + "/json", tree);
+  if (!s.ok()) {
+    VLOG(1) << "Error getting docker images layers: " << s.what();
+    return layers;
+  }
+
+  try {
+    for (const auto& layer : tree.get_child("RootFS.Layers")) {
+      std::string layer_hash = layer.second.data();
+      if (boost::starts_with(layer_hash, "sha256:")) {
+        layer_hash.erase(0, 7);
+      }
+      layers.push_back(layer_hash);
+    }
+  } catch (const pt::ptree_error& e) {
+    VLOG(1) << "Error getting docker image layers details: " << e.what();
+  }
+  return layers;
+}
+
+/**
+ * @brief Entry point for docker_image_layers table.
+ */
+QueryData genImageLayers(QueryContext& context) {
+  QueryData results;
+  pt::ptree tree;
+  std::vector<std::string> layers;
+
+  Status s = dockerApi("/images/json", tree);
+  if (!s.ok()) {
+    VLOG(1) << "Error getting docker images: " << s.what();
+    return results;
+  }
+
+  for (const auto& entry : tree) {
+    try {
+      const pt::ptree& node = entry.second;
+      Row r;
+
+      r["id"] = node.get<std::string>("Id", "");
+      if (boost::starts_with(r["id"], "sha256:")) {
+        r["id"].erase(0, 7);
+      }
+
+      layers = getImageLayers(r["id"]);
+      if (layers.empty()) {
+        results.push_back(r);
+        continue;
+      }
+
+      for (int index = 0; index < layers.size(); index++) {
+        r["layer_order"] = std::to_string(index + 1);
+        r["layer_id"] = layers[index];
+        results.push_back(r);
+      }
+    } catch (const pt::ptree_error& e) {
+      VLOG(1) << "Error getting docker image details: " << e.what();
+    }
+  }
+
+  return results;
+}
+
+/**
  * @brief Entry point for docker_images table.
  */
 QueryData genImages(QueryContext& context) {

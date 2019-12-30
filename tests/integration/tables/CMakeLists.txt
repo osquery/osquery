@@ -90,6 +90,7 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_container_stats.cpp
       docker_containers.cpp
       docker_image_labels.cpp
+      docker_image_layers.cpp
       docker_images.cpp
       docker_info.cpp
       docker_network_labels.cpp
