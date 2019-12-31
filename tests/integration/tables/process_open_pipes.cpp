@@ -47,6 +47,10 @@ class ProcessOpenPipesTest : public testing::Test {
     rmdir(dir_path.c_str());
   }
 
+  void runForever() {
+    while (true) {
+    }
+  }
   void signal_parent() {
     char buf = '1';
     write(fd_signal[1], &buf, 1);
@@ -82,8 +86,6 @@ class ProcessOpenPipesTest : public testing::Test {
 
   void do_writer() {
     char buf[] = "test";
-    pid_t pid = getpid();
-    printf("writer pid: %d\n", pid);
 
     int fd = setup_writer();
     if (fd == -1) {
@@ -96,14 +98,11 @@ class ProcessOpenPipesTest : public testing::Test {
       return;
     }
 
-    while (1) {
-    }
+    runForever();
   }
 
   void do_reader() {
-    char buf[10];
-    pid_t pid = getpid();
-    printf("reader pid: %d\n", pid);
+    std::array<char, 10> buf;
 
     int fd = setup_reader();
     if (fd == -1) {
@@ -111,14 +110,13 @@ class ProcessOpenPipesTest : public testing::Test {
       return;
     }
 
-    if (read(fd, buf, 10) == -1) {
+    if (read(fd, buf.data(), 10) == -1) {
       signal_parent();
       return;
     }
 
     signal_parent();
-    while (1) {
-    }
+    runForever();
   }
 
   int create_child(std::string child_type) {

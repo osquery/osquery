@@ -23,56 +23,67 @@ struct pipe_info {
   ino_t inode;
   std::string type;
   pipe_info(pid_t pid, int fd, std::string mode, ino_t inode, std::string type)
-      : pid(pid), fd(fd), mode(mode), inode(inode), type(type) {}
+      : pid(pid),
+        fd(fd),
+        mode(std::move(mode)),
+        inode(std::move(inode)),
+        type(type) {}
 };
 
-using PidToPipesMap = std::map<pid_t, std::vector<pipe_info*>>;
-using InodeToPipesMap = std::map<ino_t, std::vector<pipe_info*>>;
+using PipeInfoRef = std::reference_wrapper<pipe_info>;
+using PidToPipesMap = std::map<pid_t, std::vector<PipeInfoRef>>;
+using InodeToPipesMap = std::map<ino_t, std::vector<PipeInfoRef>>;
 
-bool isSamePipe(const pipe_info* p1, const pipe_info* p2) {
-  return (p1->pid == p2->pid && p1->inode == p2->inode && p1->fd == p2->fd &&
-          p1->mode == p2->mode);
+bool isSamePipe(const PipeInfoRef p1, const PipeInfoRef p2) {
+  return (p1.get().pid == p2.get().pid && p1.get().inode == p2.get().inode &&
+          p1.get().fd == p2.get().fd && p1.get().mode == p2.get().mode);
 }
 
-bool isReaderWriterPair(const pipe_info* p1, const pipe_info* p2) {
+bool isReaderWriterPair(const PipeInfoRef p1, const PipeInfoRef p2) {
   // Assumption: p1 and p2 have same inode
-  return ((p1->mode != p2->mode) || (p1->mode == "rw"));
+  return ((p1.get().mode != p2.get().mode) || (p1.get().mode == "rw"));
 }
 
 bool isUnconnectedPipe(ino_t inode, const InodeToPipesMap& pipe_partners) {
-  if (pipe_partners.at(inode).size() == 1)
-    return true;
-  return false;
+  return (pipe_partners.at(inode).size() == 1);
 }
 
 int parseInode(const std::string& pipe_str) {
   std::smatch match;
-  if (std::regex_search(pipe_str, match, std::regex("\\d+")))
+  if (std::regex_search(pipe_str, match, std::regex("\\d+"))) {
     return std::stoi(match[0]);
-  else
+  } else {
     return 0;
+  }
 }
 
 std::string getMode(const std::string& pid, const std::string& fd) {
   std::string mode = "";
   struct stat file_stat;
   std::string filename = std::string("/proc/") + pid + "/fd/" + fd;
-  if (lstat(filename.c_str(), &file_stat))
+  if (lstat(filename.c_str(), &file_stat)) {
     return "-";
+  }
   if (file_stat.st_mode & S_IRUSR || file_stat.st_mode & S_IRGRP ||
-      file_stat.st_mode & S_IROTH)
-    mode += "r";
+      file_stat.st_mode & S_IROTH) {
+    mode += 'r';
+  }
   if (file_stat.st_mode & S_IWUSR || file_stat.st_mode & S_IWGRP ||
-      file_stat.st_mode & S_IWOTH)
-    mode += "w";
+      file_stat.st_mode & S_IWOTH) {
+    mode += 'w';
+  }
   return mode;
 }
 
-std::unique_ptr<pipe_info> createPipeInfoStruct(
-    pid_t pid, int fd, std::string mode, ino_t inode, std::string type) {
+std::unique_ptr<pipe_info> createPipeInfoStruct(pid_t pid,
+                                                int fd,
+                                                const std::string& mode,
+                                                ino_t inode,
+                                                const std::string& type) {
   auto ps = std::make_unique<pipe_info>(pid, fd, mode, inode, type);
-  if (!ps)
-    LOG(ERROR) << "Error creating pipe_info for pid:" << pid << "\n";
+  if (!ps) {
+    LOG(ERROR) << "Error creating pipe_info for pid: " << pid;
+  }
   return ps;
 }
 
@@ -80,13 +91,14 @@ std::unique_ptr<pipe_info> getNamedPipeInfo(
     const std::string& process,
     const std::pair<std::string, std::string>& desc) {
   if (desc.second.find("socket:") != std::string::npos ||
-      desc.second.find("anon_inode:") != std::string::npos)
+      desc.second.find("anon_inode:") != std::string::npos) {
     return nullptr;
-
+  }
   struct stat file_stat;
   if (stat(desc.second.c_str(), &file_stat) || // lstat on file path
-      !S_ISFIFO(file_stat.st_mode)) // not a pipe
+      !S_ISFIFO(file_stat.st_mode)) { // not a pipe
     return nullptr;
+  }
   return createPipeInfoStruct(std::stoi(process),
                               std::stoi(desc.first),
                               getMode(process, desc.first),
@@ -97,14 +109,15 @@ std::unique_ptr<pipe_info> getNamedPipeInfo(
 std::unique_ptr<pipe_info> getPipeInfo(
     const std::string& process,
     const std::pair<std::string, std::string>& desc) {
-  if (desc.second.find("pipe:") != std::string::npos) // found unnamed pipe
+  if (desc.second.find("pipe:") != std::string::npos) { // found unnamed pipe
     return createPipeInfoStruct(std::stoi(process),
                                 std::stoi(desc.first),
                                 getMode(process, desc.first),
                                 parseInode(desc.second),
                                 "anonymous");
-  else // check for potential named pipe
+  } else { // check for potential named pipe
     return getNamedPipeInfo(process, desc);
+  }
 }
 
 void genPipePartners(const std::string& process,
@@ -115,32 +128,42 @@ void genPipePartners(const std::string& process,
   std::unique_ptr<pipe_info> ps;
   for (const auto& desc : descriptors) {
     ps = getPipeInfo(process, desc);
-    if (!ps)
+    if (!ps) {
       continue;
-    pipe_desc[ps->pid].push_back(ps.get());
-    pipe_partners[ps->inode].push_back(ps.get());
+    }
+    pipe_desc[ps->pid].push_back(*ps);
+    pipe_partners[ps->inode].push_back(*ps);
     pipe_structs.push_back(std::move(ps));
   }
 }
 
+void populatePartialRow(const std::string& process,
+                        const PipeInfoRef ps,
+                        Row& r) {
+  r["pid"] = process;
+  r["fd"] = std::to_string(ps.get().fd);
+  r["mode"] = ps.get().mode;
+  r["inode"] = std::to_string(ps.get().inode);
+  r["type"] = ps.get().type;
+}
+
 void createRow(const std::string& process,
-               const pipe_info* ps,
-               const pipe_info* partner_ps,
+               const PipeInfoRef ps,
+               const PipeInfoRef partner_ps,
                QueryData& results) {
   Row r;
+  populatePartialRow(process, ps, r);
+  r["partner_pid"] = std::to_string(partner_ps.get().pid);
+  r["partner_fd"] = std::to_string(partner_ps.get().fd);
+  r["partner_mode"] = partner_ps.get().mode;
+  results.push_back(r);
+}
 
-  r["pid"] = process;
-  r["fd"] = std::to_string(ps->fd);
-  r["mode"] = ps->mode;
-  r["inode"] = std::to_string(ps->inode);
-  r["type"] = ps->type;
-
-  if (partner_ps) {
-    r["partner_pid"] = std::to_string(partner_ps->pid);
-    r["partner_fd"] = std::to_string(partner_ps->fd);
-    r["partner_mode"] = partner_ps->mode;
-  }
-
+void createRow(const std::string& process,
+               const PipeInfoRef ps,
+               QueryData& results) {
+  Row r;
+  populatePartialRow(process, ps, r);
   results.push_back(r);
 }
 
@@ -149,19 +172,21 @@ void genResults(const std::string& process,
                 const InodeToPipesMap& pipe_partners,
                 QueryData& results) {
   auto pipe_desc_iter = pipe_desc.find((std::stoi(process)));
-  if (pipe_desc_iter == pipe_desc.end())
+  if (pipe_desc_iter == pipe_desc.end()) {
     return;
+  }
 
   for (const auto& ps :
        pipe_desc_iter->second) { // iterate over vector of pipe_info
-    for (const auto& partner_ps : pipe_partners.at(ps->inode)) {
-      if (isUnconnectedPipe(ps->inode, pipe_partners))
-        createRow(process, ps, nullptr, results);
-      else if (isSamePipe(ps, partner_ps) ||
-               !isReaderWriterPair(ps, partner_ps))
+    for (const auto& partner_ps : pipe_partners.at(ps.get().inode)) {
+      if (isUnconnectedPipe(ps.get().inode, pipe_partners)) {
+        createRow(process, ps, results);
+      } else if (isSamePipe(ps, partner_ps) ||
+                 !isReaderWriterPair(ps, partner_ps)) {
         continue;
-      else
+      } else {
         createRow(process, ps, partner_ps, results);
+      }
     }
   }
 }
