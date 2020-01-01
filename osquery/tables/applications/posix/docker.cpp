@@ -967,14 +967,14 @@ QueryData genVolumeLabels(QueryContext& context) {
 /**
  * @brief Image layer extractor for docker_image_layers table
  */
-std::vector<std::string> getImageLayers(std::string image_name) {
+void getImageLayers(std::string image_id, QueryData& results) {
   pt::ptree tree;
   std::vector<std::string> layers;
 
-  Status s = dockerApi("/images/" + image_name + "/json", tree);
+  Status s = dockerApi("/images/" + image_id + "/json", tree);
   if (!s.ok()) {
     VLOG(1) << "Error getting docker images layers: " << s.what();
-    return layers;
+    return;
   }
 
   try {
@@ -987,8 +987,44 @@ std::vector<std::string> getImageLayers(std::string image_name) {
     }
   } catch (const pt::ptree_error& e) {
     VLOG(1) << "Error getting docker image layers details: " << e.what();
+    return;
   }
-  return layers;
+
+  if (layers.empty()) {
+    return;
+  }
+
+  Row r;
+  for (int index = 0; index < layers.size(); index++) {
+    r["id"] = image_id;
+    r["layer_order"] = std::to_string(index + 1);
+    r["layer_id"] = layers[index];
+    results.push_back(r);
+  }
+}
+
+/**
+ * @brief Calls layer extractor for all images for docker_image_layers table
+ */
+void getImageLayersAll(QueryData& results) {
+  pt::ptree tree;
+  Status s = dockerApi("/images/json", tree);
+  if (!s.ok()) {
+    VLOG(1) << "Error getting docker images: " << s.what();
+    return;
+  }
+  for (const auto& entry : tree) {
+    try {
+      const pt::ptree& node = entry.second;
+      std::string id = node.get<std::string>("Id", "");
+      if (boost::starts_with(id, "sha256:")) {
+        id.erase(0, 7);
+      }
+      getImageLayers(id, results);
+    } catch (const pt::ptree_error& e) {
+      VLOG(1) << "Error getting docker image details: " << e.what();
+    }
+  }
 }
 
 /**
@@ -999,38 +1035,17 @@ QueryData genImageLayers(QueryContext& context) {
   pt::ptree tree;
   std::vector<std::string> layers;
 
-  Status s = dockerApi("/images/json", tree);
-  if (!s.ok()) {
-    VLOG(1) << "Error getting docker images: " << s.what();
-    return results;
-  }
-
-  for (const auto& entry : tree) {
-    try {
-      const pt::ptree& node = entry.second;
-      Row r;
-
-      r["id"] = node.get<std::string>("Id", "");
-      if (boost::starts_with(r["id"], "sha256:")) {
-        r["id"].erase(0, 7);
-      }
-
-      layers = getImageLayers(r["id"]);
-      if (layers.empty()) {
-        results.push_back(r);
+  if (context.constraints["id"].exists(
+          EQUALS)) { // get layers for specific image
+    for (const auto& id : context.constraints["id"].getAll(EQUALS)) {
+      if (!checkConstraintValue(id)) {
         continue;
       }
-
-      for (int index = 0; index < layers.size(); index++) {
-        r["layer_order"] = std::to_string(index + 1);
-        r["layer_id"] = layers[index];
-        results.push_back(r);
-      }
-    } catch (const pt::ptree_error& e) {
-      VLOG(1) << "Error getting docker image details: " << e.what();
+      getImageLayers(id, results);
     }
+  } else { // get layers for all images
+    getImageLayersAll(results);
   }
-
   return results;
 }
 
