@@ -11,6 +11,10 @@ function(osqueryCoreTestsMain)
   generateOsqueryCoreTestsWatcherpermissionstestsTest()
   generateOsqueryCoreTestsQuerytestsTest()
   generateOsqueryCoreTestsProcesstestsTest()
+
+  if(DEFINED PLATFORM_WINDOWS)
+    generateOsqueryCoreTestsWmitestsTest()
+  endif()
 endfunction()
 
 function(generateOsqueryCoreTestsFlagstestsTest)
@@ -135,6 +139,21 @@ function(generateOsqueryCoreTestsQuerytestsTest)
     osquery_utils_info
     plugins_config_tlsconfig
     specs_tables
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryCoreTestsWmitestsTest)
+  add_osquery_executable(osquery_core_tests_wmitests-test windows/wmi_tests.cpp)
+
+  target_link_libraries(osquery_core_tests_wmitests-test PRIVATE
+    osquery_cxx_settings
+    osquery_core
+    osquery_config_tests_testutils
+    osquery_remote_enroll_tlsenroll
+    osquery_sql_tests_sqltestutils
+    osquery_utils_info
+    tests_helper
     thirdparty_googletest
   )
 endfunction()
