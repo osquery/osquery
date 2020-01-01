@@ -25,15 +25,14 @@ class AppsTest : public testing::Test {
 TEST_F(AppsTest, test_sanity) {
   auto const data = execute_query("select * from apps");
 
-  auto verify_zero_one_or_empty = [](std::string const& value) {
+  auto verify_bool_or_empty = [](std::string const& value) {
     if (value.empty()) {
       return true;
     }
-    auto cast_result = tryTo<int64_t>(value);
-    if (!cast_result) {
+    if (value != "1" && value != "0") {
       return false;
     }
-    return ((cast_result.get() == 0) || (cast_result.get() == 1));
+    return true;
   };
 
   ASSERT_GE(data.size(), 1ul);
@@ -47,14 +46,14 @@ TEST_F(AppsTest, test_sanity) {
       {"bundle_version", NormalType},
       {"bundle_package_type", NormalType},
       {"environment", NormalType},
-      {"element", verify_zero_one_or_empty},
+      {"element", verify_bool_or_empty},
       {"compiler", NormalType},
       {"development_region", NormalType},
       {"display_name", NormalType},
       {"info_string", NormalType},
       {"minimum_system_version", NormalType},
       {"category", NormalType},
-      {"applescript_enabled", verify_zero_one_or_empty},
+      {"applescript_enabled", verify_bool_or_empty},
       {"copyright", NormalType},
       {"last_opened_time", NormalType},
   };
