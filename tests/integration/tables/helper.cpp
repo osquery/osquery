@@ -39,6 +39,21 @@ namespace table_tests {
 
 namespace fs = boost::filesystem;
 
+std::string rowToString(const Row& x) {
+  std::stringstream o;
+  o << '{';
+  for (Row::const_iterator i = x.begin(); i != x.end(); i++) {
+    if (i != x.begin()) {
+      o << ", ";
+    }
+    o << i->first;
+    o << ": ";
+    o << boost::io::quoted(i->second);
+  }
+  o << '}';
+  return o.str();
+}
+
 bool CronValuesCheck::operator()(const std::string& string) const {
   // Fast asterisk check, its most common
   if (string == "*") {
@@ -159,11 +174,15 @@ void validate_row(const Row& row, const ValidationMap& validation_map) {
       int flags = boost::get<int>(validator);
       ASSERT_TRUE(validate_value_using_flags(value, flags))
           << "Standard validator of the column " << boost::io::quoted(key)
-          << " with value " << boost::io::quoted(value) << " failed";
+          << " with value " << boost::io::quoted(value) << " failed"
+          << std::endl
+          << "Row: " << rowToString(row);
     } else {
       ASSERT_TRUE(boost::get<CustomCheckerType>(validator)(value))
           << "Custom validator of the column " << boost::io::quoted(key)
-          << " with value " << boost::io::quoted(value) << " failed";
+          << " with value " << boost::io::quoted(value) << " failed"
+          << std::endl
+          << "Row: " << rowToString(row);
     }
   }
 }
@@ -183,8 +202,21 @@ bool is_valid_hex(const std::string& value) {
   return true;
 }
 
-bool validate_value_using_flags(const std::string& value,
-                                                      int flags) {
+bool validate_value_using_flags(const std::string& value, int flags) {
+  // Early return on EmptyOk
+  if ((flags & EmptyOk) > 0) {
+    if (value.length() == 0) {
+      return true;
+    }
+  }
+
+  // Early return on NullOk
+  if ((flags & NullOk)) {
+    if (value == "null") {
+      return true;
+    }
+  }
+
   if ((flags & NonEmpty) > 0) {
     if (value.length() == 0) {
       return false;

@@ -72,7 +72,6 @@ function(generateLibrdkafka)
     "${library_root}/snappy.c"
     "${library_root}/rdhdrhistogram.c"
     "${library_root}/rdkafka_lz4.c"
-    "${library_root}/xxhash.c"
     "${library_root}/lz4.c"
     "${library_root}/lz4frame.c"
     "${library_root}/lz4hc.c"
@@ -88,6 +87,8 @@ function(generateLibrdkafka)
 
   target_compile_definitions(thirdparty_librdkafka_c PRIVATE
     LIBRDKAFKA_GIT_VERSION=\"v1.0.1\"
+    XXH_NAMESPACE=rdkafka_
+    XXH_PRIVATE_API
   )
 
   target_link_libraries(thirdparty_librdkafka_c PUBLIC

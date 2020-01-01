@@ -65,11 +65,18 @@ class ExtensionsTest : public testing::Test {
   }
 
   void TearDown() override {
-    Dispatcher::stopServices();
-    Dispatcher::joinServices();
+    resetDispatcher();
+
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
       fs::remove(fs::path(socket_path));
     }
+  }
+
+  void resetDispatcher() {
+    auto& dispatcher = Dispatcher::instance();
+    dispatcher.stopServices();
+    dispatcher.joinServices();
+    dispatcher.resetStopping();
   }
 
   bool ping(int attempts = 3) {

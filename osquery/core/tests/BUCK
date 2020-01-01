@@ -6,7 +6,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
-load("//tools/build_defs/oss/osquery:platforms.bzl", "POSIX")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "POSIX", "WINDOWS")
 
 osquery_cxx_test(
     name = "flags_tests",
@@ -135,5 +135,26 @@ osquery_cxx_test(
         osquery_target("plugins/config:tls_config"),
         osquery_target("tests:helper"),
         osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "wmi_tests",
+    platform_srcs = [
+        (
+            WINDOWS,
+            [
+                "windows/wmi_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("osquery/sql/tests:sql_test_utils"),
+        osquery_target("osquery/utils/info:info"),
+        osquery_target("tests:helper"),
     ],
 )

@@ -52,16 +52,12 @@ function(generateOsqueryExtensionGroup)
   set_property(TARGET "${OSQUERY_EXTENSION_GROUP_NAME}" PROPERTY INCLUDE_DIRECTORIES "")
   target_compile_options("${OSQUERY_EXTENSION_GROUP_NAME}" PRIVATE ${extension_cxx_flags})
 
-  target_link_libraries("${OSQUERY_EXTENSION_GROUP_NAME}" PUBLIC
-    osquery_sdk_pluginsdk
-    osquery_extensions_implthrift
-    thirdparty_boost
-    osquery_cxx_settings
+  target_link_libraries("${OSQUERY_EXTENSION_GROUP_NAME}" PRIVATE
     external_options
   )
   
   if(DEFINED PLATFORM_LINUX)
-    target_link_libraries("${OSQUERY_EXTENSION_GROUP_NAME}" PUBLIC
+    target_link_libraries("${OSQUERY_EXTENSION_GROUP_NAME}" PRIVATE
       thirdparty_libiptc
     )
   endif()
@@ -78,7 +74,7 @@ function(generateOsqueryExtensionGroup)
   # Apply the user (extension) settings
   get_property(library_list GLOBAL PROPERTY OSQUERY_EXTENSION_GROUP_LIBRARIES)
   if(NOT "${library_list}" STREQUAL "")
-    target_link_libraries("${OSQUERY_EXTENSION_GROUP_NAME}" PUBLIC ${library_list})
+    target_link_libraries("${OSQUERY_EXTENSION_GROUP_NAME}" PRIVATE ${library_list})
   endif()
 endfunction()
 
@@ -163,11 +159,7 @@ endfunction()
 function(addOsqueryExtension TARGET)
   add_executable(${TARGET} ${ARGN})
   set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "${TARGET}.ext")
-  target_compile_options(${TARGET} PRIVATE -DOSQUERY_EXTERNAL)
-endfunction()
-
-function(addOsqueryModule TARGET)
-  add_library(${TARGET} STATIC ${ARGN})
-  set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME ${TARGET})
-  target_compile_options(${TARGET} PRIVATE -DOSQUERY_EXTERNAL)
+  target_link_libraries(${TARGET} PRIVATE
+    external_options
+  )
 endfunction()

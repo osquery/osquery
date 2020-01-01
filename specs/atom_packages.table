@@ -7,7 +7,10 @@ schema([
     Column("path", TEXT, "Package's package.json path"),
     Column("license", TEXT, "License for package"),
     Column("homepage", TEXT, "Package supplied homepage"),
+    Column("uid", BIGINT, "The local user that owns the plugin",
+      index=True),
 ])
+attributes(user_data=True)
 implementation("applications/atom_packages@genAtomPackages")
 examples([
   "select * from atom_packages",

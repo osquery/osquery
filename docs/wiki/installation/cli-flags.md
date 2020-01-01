@@ -175,6 +175,10 @@ Extensions are loaded as processes. They are expected to start a thrift service 
 
 Optional comma-delimited set of extension names to require before **osqueryi** or **osqueryd** will start. The tool will fail if the extension has not started according to the interval and timeout.
 
+`--extensions_default_index=true`
+
+Enable INDEX (and thereby constraints) on all extension table columns.  Provides backwards compatiblity for extensions (or SDKs) that don't correctly define indexes in column options. See issue 6006 for more details.
+
 ### Remote settings flags (optional)
 
 When using non-default [remote](../deployment/remote.md) plugins such as the **tls** config, logger and distributed plugins, there are process-wide settings applied to every plugin.
@@ -264,6 +268,13 @@ The total number of attempts that will be made to the remote distributed query s
 Percent to splay config times.
 The query schedule often includes several queries with the same interval.
 It is often not the intention of the schedule author to run these queries together at that interval. But rather, each query should run at about the interval. A default schedule splay of 10% is applied to each query when the configuration is loaded.
+
+`--schedule_max_drift=60`
+
+Max time drift in seconds.
+The scheduler tries to compensate the splay drift until the delta exceeds this value.
+If the max drift is exceeded the splay will be reseted to zero and the compensation process will start from the beginning.
+This is needed to avoid the problem of endless compensation (which is CPU greedy) after a long SIGSTOP/SIGCONT pause or something similar. Set it to zero to disable drift compensation.
 
 `--pack_refresh_interval=3600`
 

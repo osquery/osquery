@@ -28,6 +28,12 @@ osquery_cxx_library(
                 "linux/socket_events.h",
             ],
         ),
+        (
+            WINDOWS,
+            [
+                "windows/ntfs_journal_events.h",
+            ],
+        ),
     ],
     link_whole = True,
     platform_linker_flags = [
@@ -67,6 +73,7 @@ osquery_cxx_library(
             [
                 "windows/powershell_events.cpp",
                 "windows/windows_events.cpp",
+                "windows/ntfs_journal_events.cpp",
             ],
         ),
     ],
@@ -84,6 +91,7 @@ osquery_cxx_library(
         osquery_target("osquery/registry:registry"),
         osquery_target("osquery/utils/system:uptime"),
         osquery_target("plugins/config/parsers:parsers"),
+        osquery_target("osquery/utils/json:json"),
         osquery_tp_target("boost"),
     ],
 )

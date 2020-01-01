@@ -76,7 +76,7 @@ def url_for_spec(path):
 def generate_table_metadata(full_path):
     """This function generates a dictionary of table metadata for a spec file
     found at a given path."""
-    with open(full_path, "rU") as file_handle:
+    with open(full_path, "r") as file_handle:
         # Each osquery table specification is a syntactically correct python file
         # because we imported `from gentable import *`, we imported all of the
         # functions that you use in an osquery specification. a global "table"

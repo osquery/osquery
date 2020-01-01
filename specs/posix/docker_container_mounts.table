@@ -3,7 +3,7 @@ description("Docker container mounts.")
 schema([
     Column("id", TEXT, "Container ID", index=True),
     Column("type", TEXT, "Type of mount (bind, volume)"),
-    Column("name", TEXT, "Optional mount name"),
+    Column("name", TEXT, "Optional mount name", index=True),
     Column("source", TEXT, "Source path on host"),
     Column("destination", TEXT, "Destination path inside container"),
     Column("driver", TEXT, "Driver providing the mount"),

@@ -151,7 +151,6 @@ function(generateTestsIntegrationTablesTestsTest)
       intel_me_info.cpp
       iptables.cpp
       kernel_info.cpp
-      kernel_integrity.cpp
       kernel_modules.cpp
       md_devices.cpp
       md_drives.cpp
@@ -212,7 +211,7 @@ function(generateTestsIntegrationTablesTestsTest)
       kernel_extensions.cpp
       kernel_info.cpp
       kernel_panics.cpp
-      # keychain_acls.cpp # TODO: This test takes too much time to run and may require some additional permissions, which makes it flaky.
+      keychain_acls.cpp
       keychain_items.cpp
       launchd.cpp
       launchd_overrides.cpp
@@ -258,6 +257,7 @@ function(generateTestsIntegrationTablesTestsTest)
       arp_cache.cpp
       authenticode.cpp
       autoexec.cpp
+      bitlocker_info.cpp
       certificates.cpp
       connectivity.cpp
       chocolatey_packages.cpp
@@ -267,6 +267,7 @@ function(generateTestsIntegrationTablesTestsTest)
       drivers.cpp
       ie_extensions.cpp
       intel_me_info.cpp
+      logon_sessions.cpp
       kernel_info.cpp
       kva_speculative_info.cpp
       logical_drives.cpp
@@ -295,6 +296,14 @@ function(generateTestsIntegrationTablesTestsTest)
     )
 
     list(APPEND source_files ${platform_source_files})
+  elseif(DEFINED PLATFORM_FREEBSD)
+    set(platform_source_files
+      fbsd_kmods.cpp
+      pkg_packages.cpp
+    )
+
+    list(APPEND source_files ${platform_source_files})
+
   endif()
 
   add_osquery_executable(tests_integration_tables-test ${source_files})

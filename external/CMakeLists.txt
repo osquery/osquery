@@ -17,6 +17,11 @@ set(EXTERNALS_DIR "${CMAKE_SOURCE_DIR}/external")
 
 add_library(external_options INTERFACE)
 target_compile_options(external_options INTERFACE -DOSQUERY_EXTERNAL)
+target_link_libraries(external_options INTERFACE
+  osquery_cxx_settings
+  osquery_sdk_pluginsdk
+  osquery_extensions_implthrift
+)
 
 function(subdirlist output path)
   file(GLOB children RELATIVE ${path} "${path}/*")

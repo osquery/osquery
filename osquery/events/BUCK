@@ -45,6 +45,8 @@ osquery_cxx_library(
             WINDOWS,
             [
                 "windows/windows_event_log.h",
+                "windows/usn_journal_reader.h",
+                "windows/ntfs_event_publisher.h",
             ],
         ),
     ],
@@ -56,6 +58,12 @@ osquery_cxx_library(
                 osquery_tp_target("libaudit"),
                 osquery_tp_target("libudev"),
                 osquery_tp_target("util-linux"),
+            ],
+        ),
+        (
+            WINDOWS,
+            [
+                osquery_target("osquery/utils/system:errno"),
             ],
         ),
     ],
@@ -85,6 +93,8 @@ osquery_cxx_library(
             WINDOWS,
             [
                 "windows/windows_event_log.cpp",
+                "windows/usn_journal_reader.cpp",
+                "windows/ntfs_event_publisher.cpp",
             ],
         ),
     ],
@@ -95,6 +105,7 @@ osquery_cxx_library(
         osquery_target("osquery/events/tests:events_database_tests"),
         osquery_target("osquery/events/tests:fsevents_tests"),
         osquery_target("osquery/events/tests:inotify_tests"),
+        osquery_target("osquery/events/tests:usn_journal_reader_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [

@@ -22,8 +22,7 @@ class AppsTest : public testing::Test {
   }
 };
 
-TEST_F(AppsTest, test_sanity) {
-  auto const data = execute_query("select * from apps");
+TEST_F(apps, test_sanity) {
 
   auto verify_bool_or_empty = [](std::string const& value) {
     if (value.empty()) {
@@ -35,10 +34,9 @@ TEST_F(AppsTest, test_sanity) {
     return true;
   };
 
-  ASSERT_GE(data.size(), 1ul);
   ValidationMap row_map = {
-      {"name", NonEmptyString},
-      {"path", DirectoryOnDisk},
+      {"name", NormalType},
+      {"path", NormalType},
       {"bundle_executable", NormalType},
       {"bundle_identifier", NormalType},
       {"bundle_name", NormalType},
@@ -46,18 +44,27 @@ TEST_F(AppsTest, test_sanity) {
       {"bundle_version", NormalType},
       {"bundle_package_type", NormalType},
       {"environment", NormalType},
-      {"element", verify_bool_or_empty},
+      {"element", NormalType},
       {"compiler", NormalType},
       {"development_region", NormalType},
       {"display_name", NormalType},
       {"info_string", NormalType},
       {"minimum_system_version", NormalType},
       {"category", NormalType},
-      {"applescript_enabled", verify_bool_or_empty},
+      {"applescript_enabled", NormalType},
       {"copyright", NormalType},
       {"last_opened_time", NormalType},
   };
+
+  auto const data = execute_query("select * from apps");
+  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
+
+  // Not totally sure what apps we expect on the VMs used by CI.
+  auto const data1 = execute_query(
+      "select * from apps where path = '/Applications/Preview.app'");
+  ASSERT_EQ(data1.size(), 1ul);
+  validate_rows(data1, row_map);
 }
 
 } // namespace table_tests

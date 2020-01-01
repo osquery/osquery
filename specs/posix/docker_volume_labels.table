@@ -2,7 +2,7 @@ table_name("docker_volume_labels")
 description("Docker volume labels.")
 schema([
     Column("name", TEXT, "Volume name", index=True),
-    Column("key", TEXT, "Label key"),
+    Column("key", TEXT, "Label key", index=True),
     Column("value", TEXT, "Optional label value")
 ])
 implementation("applications/docker@genVolumeLabels")

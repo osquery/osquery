@@ -22,35 +22,32 @@ class crashes : public testing::Test {
 };
 
 TEST_F(crashes, test_sanity) {
-  // 1. Query data
-  auto const data = execute_query("select * from crashes");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"type", NormalType}
-  //      {"pid", IntType}
-  //      {"path", NormalType}
-  //      {"crash_path", NormalType}
-  //      {"identifier", NormalType}
-  //      {"version", NormalType}
-  //      {"parent", IntType}
-  //      {"responsible", NormalType}
-  //      {"uid", IntType}
-  //      {"datetime", NormalType}
-  //      {"crashed_thread", IntType}
-  //      {"stack_trace", NormalType}
-  //      {"exception_type", NormalType}
-  //      {"exception_codes", NormalType}
-  //      {"exception_notes", NormalType}
-  //      {"registers", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ValidationMap row_map = {
+      {"type", NormalType},
+      {"pid", IntType},
+      {"path", NormalType},
+      {"crash_path", NormalType},
+      {"identifier", NormalType},
+      {"version", NormalType},
+      {"parent", IntType},
+      {"responsible", NormalType},
+      {"uid", IntType},
+      {"datetime", NormalType},
+      {"crashed_thread", IntType},
+      {"stack_trace", NormalType},
+      {"exception_type", NormalType},
+      {"exception_codes", NormalType},
+      {"exception_notes", NormalType},
+      {"registers", NormalType},
+  };
+
+  auto const data = execute_query(
+      "select crashes.* from users CROSS JOIN crashes "
+      "USING(uid)");
+  if (!data.empty()) {
+    // Lets not assume there are crashes on the host.
+    validate_rows(data, row_map);
+  }
 }
 
 } // namespace table_tests

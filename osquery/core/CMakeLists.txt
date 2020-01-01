@@ -63,10 +63,6 @@ function(generateOsqueryCore)
     thirdparty_sqlite
   )
 
-  if(DEFINED PLATFORM_POSIX)
-    list(APPEND dependencies thirdparty_glibc_pthread)
-  endif()
-
   if(DEFINED PLATFORM_LINUX)
     list(APPEND dependencies thirdparty_util-linux)
   endif()
@@ -100,6 +96,9 @@ function(generateOsqueryCore)
   add_test(NAME osquery_core_tests_querytests-test COMMAND osquery_core_tests_querytests-test)
   add_test(NAME osquery_core_tests_processtests-test COMMAND osquery_core_tests_processtests-test)
 
+  if(DEFINED PLATFORM_WINDOWS)
+    add_test(NAME osquery_core_tests_wmitests-test COMMAND osquery_core_tests_wmitests-test)
+  endif()
 endfunction()
 
 osqueryCoreMain()

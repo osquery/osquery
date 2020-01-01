@@ -26,7 +26,6 @@ function(generateOsqueryUtilsAwsTestsTest)
     plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
-    osquery_tools_tests_awsfiles
   )
 endfunction()
 

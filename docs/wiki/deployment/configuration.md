@@ -445,6 +445,10 @@ SELECT * FROM kernel_hashes WHERE kernel_binary NOT LIKE "%apple%";
 
 There are two tables that provide EC2 instance related information. On non-EC2 instances these tables return empty results. `ec2_instance_metadata` table contains instance meta data information. `ec2_instance_tags` returns tags for the EC2 instance osquery is running on. Retrieving tags for EC2 instance requires authentication and appropriate permission. There are multiple ways credentials can be provided to osquery. See [AWS logging configuration](../deployment/aws-logging.md#configuration) for configuring credentials. AWS region (`--aws_region`) argument is not required and will be ignored by `ec2_instance_tags` implementation. The credentials configured should have permission to perform `ec2:DescribeTags` action.
 
+### Azure
+
+Like EC2, there are two tables that provide Azure instance related information. These tables query a REST endpoint that may or may not exist outside of Azure, so querying them outside of Azure is not recommended. The `azure_instance_metadata` table contains general metadata for the instance. The `azure_instance_tags` table contains tags for the Azure instance that osquery is running on. These tables don't require any special Azure permissions or credentials.
+
 ### Decorator queries
 
 Decorator queries exist in osquery versions 1.7.3+ and are used to add additional "decorations" to results and snapshot logs. There are three types of decorator queries based on when and how you want the decoration data.

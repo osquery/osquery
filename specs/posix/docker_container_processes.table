@@ -2,7 +2,7 @@ table_name("docker_container_processes")
 description("Docker container processes.")
 schema([
     Column("id", TEXT, "Container ID", index=True, required=True),
-    Column("pid", BIGINT, "Process ID"),
+    Column("pid", BIGINT, "Process ID", index=True),
     Column("name", TEXT, "The process path or shorthand argv[0]"),
     Column("cmdline", TEXT, "Complete argv"),
     Column("state", TEXT, "Process state"),

@@ -22,23 +22,21 @@ class suidBin : public testing::Test {
 };
 
 TEST_F(suidBin, test_sanity) {
-  // 1. Query data
+  ValidationMap row_map = {
+      {"path", NormalType},
+      {"username", NormalType},
+      {"groupname", NormalType},
+      {"permissions", NormalType},
+  };
+
   auto const data = execute_query("select * from suid_bin");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"path", NormalType}
-  //      {"username", NormalType}
-  //      {"groupname", NormalType}
-  //      {"permissions", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_FALSE(data.empty());
+  validate_rows(data, row_map);
+
+  auto const data_newgrp =
+      execute_query("select * from suid_bin where path = '/usr/bin/newgrp'");
+  ASSERT_FALSE(data_newgrp.empty());
+  validate_rows(data_newgrp, row_map);
 }
 
 } // namespace table_tests

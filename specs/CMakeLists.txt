@@ -19,6 +19,8 @@ function(specsMain)
   endforeach()
 
   target_link_libraries(specs_tables INTERFACE ${table_target_list})
+
+  generateCopyFileTarget("specs_table_files" "" "REGEX" "*.table" "${TEST_CONFIGS_DIR}/specs")
 endfunction()
 
 function(generateForeignTables spec_file_list)
@@ -159,7 +161,6 @@ function(generateNativeTables)
     "linux/deb_packages.table:linux"
     "linux/elf_dynamic.table:linux"
     "linux/ec2_instance_metadata.table:linux"
-    "linux/kernel_integrity.table:linux"
     "linux/elf_sections.table:linux"
     "linwin/intel_me_info.table:linux,windows"
     "lldpd/lldp_neighbors.table:linux,macos,freebsd"
@@ -251,6 +252,7 @@ function(generateNativeTables)
     "windows/wmi_event_filters.table:windows"
     "windows/windows_events.table:windows"
     "windows/appcompat_shims.table:windows"
+    "windows/ntfs_journal_events.table:windows"
     "windows/powershell_events.table:windows"
     "windows/winbaseobj.table:windows"
     "windows/cpu_info.table:windows"

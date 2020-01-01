@@ -87,35 +87,22 @@ function(opensslMain)
     )
 
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-    unset(perl_executable_path CACHE)
-    find_program(perl_executable_path "perl.exe"
-      PATHS "C:\\Strawberry\\perl\\bin"
-    )
-
-    if("${perl_executable_path}" STREQUAL "perl_executable_path-NOTFOUND")
-      message(FATAL_ERROR "The perl.exe executable could not be found. Please install Strawberry Perl")
-    endif()
-
-    unset(nasm_executable_path CACHE)
-    find_program(nasm_executable_path "nasm.exe"
-      PATHS "C:\\Program Files\\NASM"
-    )
-
-    if("${nasm_executable_path}" STREQUAL "nasm_executable_path-NOTFOUND")
-      message(FATAL_ERROR "The nasm.exe executable could not be found. Please install NASM")
-    endif()
+    set(CMAKE_PREFIX_PATH "C:\\Strawberry\\perl\\bin")
+    find_package(Perl REQUIRED)
 
     set(configure_command
       "${CMAKE_COMMAND}" -E env
-      "${perl_executable_path}" Configure VC-WIN64A
-        ${common_options}
+      "${PERL_EXECUTABLE}" Configure VC-WIN64A
+      ${common_options}
     )
 
-    get_filename_component(perl_bin_path "${perl_executable_path}" DIRECTORY)
+    get_filename_component(perl_bin_path "${PERL_EXECUTABLE}" DIRECTORY)
+
+    string(REPLACE "/" "\\\\" perl_executable_path "${PERL_EXECUTABLE}")
 
     set(build_command
       cmake -E env "PATH=${perl_bin_path}" "cmd.exe" "/C" "ms\\do_nt.bat" &&
-      "cmd.exe" "/C" "nmake /f ms\\nt.mak"
+      "cmd.exe" "/C" "nmake /f ms\\nt.mak PERL=${perl_executable_path}"
     )
 
     set(install_command

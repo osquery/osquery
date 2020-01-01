@@ -20,7 +20,7 @@ clang-format on the changes in current files or a specific commit.
 For further details, run:
 git clang-format -h
 
-Requires Python 2.7
+Requires Python 3
 """
 
 import argparse
@@ -247,7 +247,10 @@ def get_object_type(value):
     """Returns a string description of an object's type, or None if it is not
     a valid git object."""
     cmd = ['git', 'cat-file', '-t', value]
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         encoding='utf8')
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         return None
@@ -274,7 +277,10 @@ def compute_diff(commit, files):
     (if non-empty).  Zero context lines are used in the patch."""
     cmd = ['git', 'diff-index', '-p', '-U0', commit, '--']
     cmd.extend(files)
-    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    p = subprocess.Popen(cmd,
+                         stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                         encoding='utf8')
     p.stdin.close()
     return p
 
@@ -311,7 +317,7 @@ def filter_by_extension(dictionary, allowed_extensions):
     `allowed_extensions` must be a collection of lowercase file extensions,
     excluding the period."""
     allowed_extensions = frozenset(allowed_extensions)
-    for filename in dictionary.keys():
+    for filename in list(dictionary.keys()):
         base_ext = filename.rsplit('.', 1)
         if len(base_ext) == 1 or base_ext[1].lower() not in allowed_extensions:
             del dictionary[filename]
@@ -321,7 +327,7 @@ def filter_by_path(dictionary, exclude_folders):
 
     exclude_folders_abs = list(map(os.path.abspath, exclude_folders))
     exclude_folders_abs = frozenset(exclude_folders_abs)
-    for filename in dictionary.keys():
+    for filename in list(dictionary.keys()):
         file_path = os.path.abspath(filename)
         for excluded_folder in exclude_folders_abs:
             if file_path.startswith(excluded_folder):
@@ -349,7 +355,7 @@ def run_clang_format_and_save_to_tree(changed_lines, binary='clang-format',
     Returns the object ID (SHA-1) of the created tree."""
     def index_info_generator():
         for filename, line_ranges in changed_lines.items():
-            mode = oct(os.stat(filename).st_mode)
+            mode = format(os.stat(filename).st_mode, 'o')
             blob_id = clang_format_to_blob(filename, line_ranges, binary=binary,
                                            style=style)
             yield '%s %s\t%s' % (mode, blob_id, filename)
@@ -366,7 +372,7 @@ def create_tree(input_lines, mode):
     assert mode in ('--stdin', '--index-info')
     cmd = ['git', 'update-index', '--add', '-z', mode]
     with temporary_index_file():
-        p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdin=subprocess.PIPE, encoding='utf8')
         for line in input_lines:
             p.stdin.write('%s\0' % line)
         p.stdin.close()
@@ -388,8 +394,10 @@ def clang_format_to_blob(filename, line_ranges, binary='clang-format',
         '-lines=%s:%s' % (start_line, start_line + line_count - 1)
         for start_line, line_count in line_ranges])
     try:
-        clang_format = subprocess.Popen(clang_format_cmd, stdin=subprocess.PIPE,
-                                        stdout=subprocess.PIPE)
+        clang_format = subprocess.Popen(clang_format_cmd,
+                                        stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE,
+                                        encoding='utf8')
     except OSError as e:
         if e.errno == errno.ENOENT:
             die('cannot find executable "%s"' % binary)
@@ -398,8 +406,10 @@ def clang_format_to_blob(filename, line_ranges, binary='clang-format',
     clang_format.stdin.close()
     hash_object_cmd = ['git', 'hash-object',
                        '-w', '--path=' + filename, '--stdin']
-    hash_object = subprocess.Popen(hash_object_cmd, stdin=clang_format.stdout,
-                                   stdout=subprocess.PIPE)
+    hash_object = subprocess.Popen(hash_object_cmd,
+                                   stdin=clang_format.stdout,
+                                   stdout=subprocess.PIPE,
+                                   encoding='utf8')
     clang_format.stdout.close()
     stdout = hash_object.communicate()[0]
     if hash_object.returncode != 0:
@@ -458,10 +468,10 @@ def apply_changes(old_tree, new_tree, force=False, patch_mode=False):
         unstaged_files = run('git', 'diff-files',
                              '--name-status', *changed_files)
         if unstaged_files:
-            print >>sys.stderr, ('The following files would be modified but '
-                                 'have unstaged changes:')
-            print >>sys.stderr, unstaged_files
-            print >>sys.stderr, 'Please commit, stage, or stash them first.'
+            print('The following files would be modified but '
+                                 'have unstaged changes:', file=sys.stderr)
+            print(unstaged_files, file=sys.stderr)
+            print('Please commit, stage, or stash them first.', file=sys.stderr)
             sys.exit(2)
     if patch_mode:
         # In patch mode, we could just as well create an index from the new tree
@@ -486,25 +496,25 @@ def run(*args, **kwargs):
     for name in kwargs:
         raise TypeError("run() got an unexpected keyword argument '%s'" % name)
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                         stdin=subprocess.PIPE)
+                         stdin=subprocess.PIPE, encoding='utf8')
     stdout, stderr = p.communicate(input=stdin)
     if p.returncode == 0:
         if stderr:
             if verbose:
-                print >>sys.stderr, '`%s` printed to stderr:' % ' '.join(args)
-            print >>sys.stderr, stderr.rstrip()
+                print('`%s` printed to stderr:' % ' '.join(args), file=sys.stderr)
+            print(stderr.rstrip(), file=sys.stderr)
         if strip:
             stdout = stdout.rstrip('\r\n')
         return stdout
     if verbose:
-        print >>sys.stderr, '`%s` returned %s' % (' '.join(args), p.returncode)
+        print('`%s` returned %s' % (' '.join(args), p.returncode), file=sys.stderr)
     if stderr:
-        print >>sys.stderr, stderr.rstrip()
+        print(stderr.rstrip(), file=sys.stderr)
     sys.exit(2)
 
 
 def die(message):
-    print >>sys.stderr, 'error:', message
+    print('error:', message, file=sys.stderr)
     sys.exit(2)
 
 

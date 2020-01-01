@@ -10,11 +10,11 @@ function(downloadRemoteFile identifier base_url file_name hash)
   set(destination "${CMAKE_CURRENT_BINARY_DIR}/${file_name}")
   set(url "${base_url}/${file_name}")
 
-  set(command_prefix "${EX_TOOL_PYTHON3_EXECUTABLE_PATH}")
+  set(command_prefix "${OSQUERY_PYTHON_EXECUTABLE}")
 
   add_custom_command(
     OUTPUT "${destination}"
-    COMMAND ${command_prefix} "${CMAKE_SOURCE_DIR}/tools/cmake/downloader.py" "${base_url}/${file_name}" "${destination}" "${hash}"
+    COMMAND "${command_prefix}" "${CMAKE_SOURCE_DIR}/tools/cmake/downloader.py" "${base_url}/${file_name}" "${destination}" "${hash}"
     COMMENT "Downloading: ${url}"
     VERBATIM
   )
@@ -161,15 +161,17 @@ function(importThirdPartyHeaderOnlyLibrary library_type name version hash anchor
 endfunction()
 
 # Initializes the PYTHONPATH folder in the binary directory, used to run the codegen scripts
-function(initializePythonPathFolder)  
-  add_custom_command(
-    OUTPUT "${PYTHON_PATH}"
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "${PYTHON_PATH}"
-    COMMENT "Initializing custom PYTHONPATH: ${PYTHON_PATH}"
-  )
+function(initializePythonPathFolder)
+  if(NOT TARGET thirdparty_python_modules)
+    add_custom_command(
+      OUTPUT "${OSQUERY_PYTHON_PATH}"
+      COMMAND "${CMAKE_COMMAND}" -E make_directory "${OSQUERY_PYTHON_PATH}"
+      COMMENT "Initializing custom PYTHONPATH: ${OSQUERY_PYTHON_PATH}"
+    )
 
-  add_custom_target(thirdparty_pythonpath DEPENDS "${PYTHON_PATH}")
-  add_custom_target(thirdparty_python_modules)
+    add_custom_target(thirdparty_pythonpath DEPENDS "${OSQUERY_PYTHON_PATH}")
+    add_custom_target(thirdparty_python_modules)
+  endif()
 endfunction()
 
 # Imports a remote Python module inside the PYTHONPATH folder (previously initialized
@@ -178,7 +180,7 @@ function(importRemotePythonModule identifier base_url file_name hash)
   set(target_name "thirdparty_pythonmodule_${identifier}")
   downloadRemoteFile("${target_name}" "${base_url}" "${file_name}" "${hash}")
 
-  extractLocalArchive("${target_name}" "${PYTHON_PATH}/${identifier}" "${downloadRemoteFile_destination}" "${PYTHON_PATH}")
+  extractLocalArchive("${target_name}" "${OSQUERY_PYTHON_PATH}/${identifier}" "${downloadRemoteFile_destination}" "${OSQUERY_PYTHON_PATH}")
   add_dependencies("${target_name}_extractor" thirdparty_pythonpath)
 
   add_osquery_library("${target_name}" INTERFACE)
@@ -199,15 +201,13 @@ function(importFacebookLibrary library_name)
 endfunction()
 
 # Make sure that globals.cmake and options.cmake have been included
-if("${PYTHON_PATH}" STREQUAL "")
-  message(FATAL_ERROR "The PYTHON_PATH variable was not found. Has globals.cmake been included?")
+if("${OSQUERY_PYTHON_PATH}" STREQUAL "")
+  message(FATAL_ERROR "The OSQUERY_PYTHON_PATH variable was not found. Has globals.cmake been included?")
 endif()
 
 if("${THIRD_PARTY_REPOSITORY_URL}" STREQUAL "")
   message(FATAL_ERROR "The THIRD_PARTY_REPOSITORY_URL variable was not found. Has options.cmake been included?")
 endif()
 
-if(NOT PYTHON_PATH_FOLDER_INITIALIZED)
-  initializePythonPathFolder()
-  set(PYTHON_PATH_FOLDER_INITIALIZED true)
-endif()
+initializePythonPathFolder()
+

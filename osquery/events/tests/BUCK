@@ -6,7 +6,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
-load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX", "WINDOWS")
 
 osquery_cxx_test(
     name = "events_tests",
@@ -186,6 +186,33 @@ osquery_cxx_test(
         osquery_target("osquery/remote/tests:remote_test_utils"),
         osquery_target("osquery/tables/system:system_table"),
         osquery_target("plugins/database:ephemeral"),
+        osquery_target("specs:tables"),
+    ],
+)
+
+osquery_cxx_test(
+    name = "usn_journal_reader_tests",
+    platform_srcs = [
+        (
+            WINDOWS,
+            [
+                "windows/usn_journal_reader_tests.cpp",
+            ],
+        ),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/tables/system:system_table"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/events:events"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        osquery_target("osquery/config/tests:test_utils"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/database:database"),
+        osquery_target("plugins/database:ephemeral"),
+        osquery_target("osquery/core/sql:core_sql"),
         osquery_target("specs:tables"),
     ],
 )

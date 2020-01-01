@@ -80,6 +80,9 @@ osquery_cxx_library(
             ],
         ),
     ],
+    deps = [
+        osquery_target("osquery/utils/status:status"),
+    ],
     tests = [
         ":errno_tests",
     ],
@@ -176,6 +179,7 @@ osquery_cxx_library(
     ],
     visibility = ["PUBLIC"],
     deps = [
+        osquery_target("osquery/utils/status:status"),
         osquery_tp_target("boost"),
     ],
 )

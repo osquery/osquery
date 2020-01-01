@@ -16,7 +16,7 @@ import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-from osquery.tools.tests import utils
+from osquery_tests.tools.tests import utils
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -79,7 +79,7 @@ TABLE_ATTRIBUTES = {
     "user_data": "USER_BASED",
     "cacheable": "CACHEABLE",
     "utility": "UTILITY",
-    "kernel_required": "KERNEL_REQUIRED",
+    "kernel_required": "KERNEL_REQUIRED", # Deprecated
 }
 
 
@@ -251,13 +251,6 @@ class TableState(Singleton):
                 print(lightred(("Cannot use column name: %s in table: %s "
                                 "(the column name is reserved)" % (
                                     column.name, self.table_name))))
-                exit(1)
-
-        if "ADDITIONAL" in all_options and "INDEX" not in all_options:
-            if "no_pkey" not in self.attributes:
-                print(lightred(
-                    "Table cannot have 'additional' columns without an index: %s" %(
-                    path)))
                 exit(1)
 
         path_bits = path.split("/")

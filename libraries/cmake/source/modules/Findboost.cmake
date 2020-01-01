@@ -87,4 +87,6 @@ importSourceSubmodule(
     "src/libs/circular_buffer"
     "src/libs/winapi"
     "src/libs/iostreams"
+    "src/libs/scope_exit"
+    "src/libs/typeof"
 )

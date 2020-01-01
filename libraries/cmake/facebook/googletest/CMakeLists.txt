@@ -58,10 +58,6 @@ function(googletestMain)
     thirdparty_googlemock_headers
   )
 
-  if(DEFINED PLATFORM_POSIX)
-    target_link_libraries(thirdparty_googletest PUBLIC thirdparty_glibc_pthread)
-  endif()
-
   if(DEFINED PLATFORM_WINDOWS)
     target_compile_options(thirdparty_googletest PRIVATE /EHsc)
   endif()

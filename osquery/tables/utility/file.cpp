@@ -97,6 +97,17 @@ void genFileInfo(const fs::path& path,
     r["type"] = "unknown";
   }
 
+#if defined(__APPLE__)
+  std::string bsd_file_flags_description;
+  if (!describeBSDFileFlags(bsd_file_flags_description, file_stat.st_flags)) {
+    VLOG(1)
+        << "The following file had undocumented BSD file flags (chflags) set: "
+        << path;
+  }
+
+  r["bsd_flags"] = bsd_file_flags_description;
+#endif
+
 #else
 
   WINDOWS_STAT file_stat;

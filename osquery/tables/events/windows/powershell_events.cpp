@@ -106,6 +106,22 @@ void PowershellEventSubscriber::addScriptResult(Row& results) {
     return;
   }
 
+  const auto& doc = parser->getData().doc();
+  if (!doc.IsObject() || !doc.HasMember("feature_vectors") ||
+      !doc["feature_vectors"].HasMember("character_frequencies") ||
+      !doc["feature_vectors"]["character_frequencies"].IsArray()) {
+    VLOG(1) << "No character frequency map found, skipping computation";
+    add(r);
+    return;
+  }
+
+  const auto& cf = doc["feature_vectors"]["character_frequencies"];
+  if (cf.Empty() || cf.Size() != kCharFreqVectorLen) {
+    VLOG(1) << "Invalid character frequency map found, skipping computation";
+    add(r);
+    return;
+  }
+
   // Get the reassembled powershell scripts character frequency vector
   std::vector<double> freqs(kCharFreqVectorLen, 0.0);
   for (const auto chr : r["script_text"]) {
@@ -114,17 +130,11 @@ void PowershellEventSubscriber::addScriptResult(Row& results) {
     }
   }
 
-  const auto& cf =
-      parser->getData().doc()["feature_vectors"]["character_frequencies"];
-  if (cf.Empty() || cf.Size() != kCharFreqVectorLen) {
-    VLOG(1) << "Invalid character frequency map found, skipping computation";
-    add(r);
-    return;
-  }
-
   std::vector<double> cfg_freqs(kCharFreqVectorLen, 0.0);
   for (unsigned int i = 0; i < cf.Size(); i++) {
-    cfg_freqs[i] = cf[i].GetDouble();
+    if (cf[i].IsDouble()) {
+      cfg_freqs[i] = cf[i].GetDouble();
+    }
   }
   r["cosine_similarity"] = DOUBLE(cosineSimilarity(freqs, cfg_freqs));
   add(r);

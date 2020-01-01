@@ -152,7 +152,9 @@ void Pack::initialize(const std::string& name,
   discovery_queries_.clear();
   if (obj.HasMember("discovery") && obj["discovery"].IsArray()) {
     for (const auto& item : obj["discovery"].GetArray()) {
-      discovery_queries_.push_back(item.GetString());
+      if (item.IsString()) {
+        discovery_queries_.push_back(item.GetString());
+      }
     }
   }
 
@@ -174,8 +176,8 @@ void Pack::initialize(const std::string& name,
 
   // Iterate the queries (or schedule) and check platform/version/sanity.
   for (const auto& q : obj["queries"].GetObject()) {
-    if (!q.value.IsObject()) {
-      VLOG(1) << "The pack " << name << " must contain a dictionary of queries";
+    if (!q.value.IsObject() || !q.name.IsString()) {
+      VLOG(1) << "The pack " << name << " contains an invalid query";
       continue;
     }
 

@@ -26,7 +26,7 @@ namespace osquery {
 namespace tables {
 
 QueryData genChromeBasedExtensions(QueryContext& context,
-                                   const fs::path& sub_dir);
+                                   const std::vector<fs::path>& chrome_paths);
 
 /// A helper check to rename bool-type values as 1 or 0.
 inline void jsonBoolAsInt(std::string& s) {

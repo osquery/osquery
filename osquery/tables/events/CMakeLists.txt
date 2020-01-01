@@ -41,6 +41,7 @@ function(generateOsqueryTablesEventsEventstable)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
+      windows/ntfs_journal_events.cpp
       windows/powershell_events.cpp
       windows/windows_events.cpp
     )
@@ -68,6 +69,10 @@ function(generateOsqueryTablesEventsEventstable)
     target_link_libraries(osquery_tables_events_eventstable PUBLIC bsm)
   endif()
 
+  if(DEFINED PLATFORM_WINDOWS)
+    target_link_libraries(osquery_tables_events_eventstable PUBLIC osquery_utils_json)
+  endif()
+
   set(public_header_files
     event_utils.h
   )
@@ -86,6 +91,14 @@ function(generateOsqueryTablesEventsEventstable)
 
     add_test(NAME osquery_tables_events_tests_selinuxeventstests-test COMMAND osquery_tables_events_tests_selinuxeventstests-test)
     add_test(NAME osquery_tables_events_tests_processeventstests-test COMMAND osquery_tables_events_tests_processeventstests-test)
+  endif()
+
+  if(DEFINED PLATFORM_WINDOWS)
+    set(platform_public_header_files
+      windows/ntfs_journal_events.h
+    )
+
+    generateIncludeNamespace(osquery_tables_events_eventstable "osquery/tables/events" "FULL_PATH" ${platform_public_header_files})
   endif()
 
   add_test(NAME osquery_tables_events_tests_fileeventstests-test COMMAND osquery_tables_events_tests_fileeventstests-test)

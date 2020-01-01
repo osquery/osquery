@@ -39,10 +39,6 @@ if os.name == "nt":
 else:
     import pexpect
 
-# While this path can be variable, in practice is lives statically.
-OSQUERY_DEPENDENCIES = os.getenv("OSQUERY_DEPS", "/usr/local/osquery")
-sys.path = [OSQUERY_DEPENDENCIES + "/lib/python2.7/site-packages"] + sys.path
-
 if os.name != "nt":
     try:
         from pexpect.replwrap import REPLWrapper
@@ -134,7 +130,7 @@ class OsqueryWrapper(REPLWrapper):
     CONTINUATION_PROMPT = u'    ...> '
     ERROR_PREFIX = u'Error:'
 
-    def __init__(self, command='../osqueryi', args={}, env={}):
+    def __init__(self, command='../osqueryi', args={}, env=None):
         global CONFIG_NAME, CONFIG
         options = copy.deepcopy(CONFIG)["options"]
         for option in args.keys():
@@ -143,9 +139,9 @@ class OsqueryWrapper(REPLWrapper):
         command = command + " " + " ".join(
             ["--%s=%s" % (k, v) for k, v in options.items()])
         if os.name == "nt":
-            proc = WinExpectSpawn(command, env=env)
+            proc = WinExpectSpawn(command, env=env, cwd=TEST_CONFIGS_DIR)
         else:
-            proc = pexpect.spawn(command, env=env)
+            proc = pexpect.spawn(command, env=env, cwd=TEST_CONFIGS_DIR)
 
         super().__init__(
             proc,
@@ -161,6 +157,7 @@ class OsqueryWrapper(REPLWrapper):
         '''
         query = query + ';'  # Extra semicolon causes no harm
         result = self.run_command(query)
+        result = result.decode("utf-8")
         # On Mac, the query appears first in the string. Remove it if so.
         result = re.sub(re.escape(query), '', result).strip()
         result_lines = result.splitlines()
@@ -201,7 +198,7 @@ class ProcRunner(object):
     this class wrapper.
     '''
 
-    def __init__(self, name, path, _args=[], interval=0.02, silent=False):
+    def __init__(self, name, path, _args=[], interval=1, silent=False):
         self.started = False
         self.proc = None
         self.name = name
@@ -233,34 +230,33 @@ class ProcRunner(object):
         try:
             while self.proc.poll() is None:
                 self.started = True
-                time.sleep(self.interval)
+                time.sleep(0.1)
             self.started = True
             self.retcode = -1 if self.proc is None else self.proc.poll()
             self.proc = None
         except Exception as e:
             return
 
-    def requireStarted(self, timeout=2):
+    def requireStarted(self, attempts=5):
         delay = 0
-        while delay < timeout:
+        for i in range(attempts):
             if self.started is True:
                 break
-            time.sleep(self.interval * 10)
-            delay += self.interval * 10
+            time.sleep(self.interval)
 
-    def getChildren(self, timeout=1):
+    def getChildren(self, attempts=5):
         '''Get the child pids.'''
         self.requireStarted()
         if not self.proc:
             return []
         try:
             proc = psutil.Process(pid=self.proc.pid)
-            delay = 0
+            attempt = 0
             while len(proc.children()) == 0:
-                if delay > timeout:
+                if attempt > attempts:
                     return []
+                attempt += 1
                 time.sleep(self.interval)
-                delay += self.interval
             return [p.pid for p in proc.children()]
         except:
             pass
@@ -288,24 +284,25 @@ class ProcRunner(object):
         if self.proc:
             try:
                 os.kill(self.pid, sig)
+                self.proc.wait()   # == -sig.value on posix
             except:
                 pass
         self.proc = None
 
-    def isAlive(self, timeout=3):
+    def isAlive(self, attempts=10):
         self.requireStarted()
         '''Check if the process is alive.'''
-        delay = 0
+        attempt = 0
         while self.proc is None:
-            if delay > timeout:
+            if attempt > attempts:
                 break
             time.sleep(self.interval)
-            delay += self.interval
+            attempt += 1
         if self.proc is None:
             return False
         return self.proc.poll() is None
 
-    def isDead(self, pid, timeout=5):
+    def isDead(self, pid, attempts=10):
         self.requireStarted()
         '''Check if the process was killed.
 
@@ -318,35 +315,43 @@ class ProcRunner(object):
         except psutil.NoSuchProcess as e:
             return True
         delay = 0
-        while delay < timeout:
+        for i in range(attempts):
             if not proc.is_running():
                 return True
             time.sleep(self.interval)
-            delay += self.interval
+
         return False
 
 
 def getLatestOsqueryBinary(binary):
-    if os.name == "posix":
-        return os.path.join(ARGS.build, "osquery", binary)
 
-    release_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "Release", "{}.exe".format(binary)))
-    relwithdebinfo_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "{}.exe".format(binary)))
+    if os.name == "nt":
+        normal_release_path = os.path.abspath(os.path.join(BUILD_DIR, "osquery", "{}.exe".format(binary)))
 
-    if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
-        if os.stat(release_path).st_mtime > os.stat(
-                relwithdebinfo_path).st_mtime:
-            return release_path
-        else:
-            return relwithdebinfo_path
-    elif os.path.exists(release_path):
-        return release_path
-    elif os.path.exists(relwithdebinfo_path):
-        return relwithdebinfo_path
+        if os.path.exists(normal_release_path):
+            return normal_release_path
+
+        msbuild_release_path = os.path.abspath(
+        os.path.join(BUILD_DIR, "osquery", "Release", "{}.exe".format(binary)))
+        msbuild_relwithdebinfo_path = os.path.abspath(
+            os.path.join(BUILD_DIR, "osquery", "RelWithDebInfo", "{}.exe".format(binary)))
+
+        if os.path.exists(msbuild_release_path) and os.path.exists(msbuild_relwithdebinfo_path):
+            if os.stat(msbuild_release_path).st_mtime > os.stat(
+                    msbuild_relwithdebinfo_path).st_mtime:
+                return msbuild_release_path
+            else:
+                return msbuild_relwithdebinfo_path
+        elif os.path.exists(msbuild_release_path):
+            return msbuild_release_path
+        elif os.path.exists(msbuild_relwithdebinfo_path):
+            return msbuild_relwithdebinfo_path
     else:
-        return None
+        normal_release_path = os.path.abspath(os.path.join(BUILD_DIR, "osquery", binary))
+        if os.path.exists(normal_release_path):
+            return normal_release_path
+
+    return None
 
 
 class ProcessGenerator(object):
@@ -384,11 +389,11 @@ class ProcessGenerator(object):
 
     def _run_extension(self, timeout=0, path=None, silent=False):
         '''Spawn an osquery extension (example_extension)'''
-        global ARGS, CONFIG
+        global CONFIG, BUILD_DIR
         config = copy.deepcopy(CONFIG)
         config["options"]["extensions_socket"] += str(
             random.randint(1000, 9999))
-        binary = os.path.join(ARGS.build, "osquery", "example_extension.ext")
+        binary = os.path.join(BUILD_DIR, "osquery", "examples", "example_extension.ext")
         if path is not None:
             config["options"]["extensions_socket"] = path
         extension = ProcRunner(
@@ -452,23 +457,23 @@ class EXClient(object):
         if self.transport:
             self.transport.close()
 
-    def try_open(self, timeout=0.1, interval=0.01):
+    def try_open(self, attempts=10, interval=0.5):
         '''Try to open, on success, close the UNIX domain socket.'''
-        did_open = self.open(timeout, interval)
+        did_open = self.open(attempts, interval)
         if did_open:
             self.close()
         return did_open
 
-    def open(self, timeout=0.1, interval=0.01):
+    def open(self, attempts=10, interval=0.5):
         '''Attempt to open the UNIX domain socket.'''
         delay = 0
-        while delay < timeout:
+        for i in range(0, attempts):
             try:
                 self.transport.open()
                 return True
             except Exception as e:
                 pass
-            delay += interval
+
             time.sleep(interval)
         return False
 
@@ -535,7 +540,7 @@ def flaky(gen):
         i = 1
         for exc in exceptions:
             print("Test (attempt %d) %s::%s failed: %s" %
-                  (i, this.__class__.__name__, gen.__name__, str(exc[0])))
+                  (i, this.__class__.__name__, gen.__name__, str(exc)))
             i += 1
         if len(exceptions) > 0:
             raise exceptions[0]
@@ -546,14 +551,22 @@ def flaky(gen):
 
 class Tester(object):
     def __init__(self):
-        global ARGS, CONFIG, CONFIG_DIR
+        global ARGS, CONFIG, CONFIG_DIR, TEST_CONFIGS_DIR, BUILD_DIR
         parser = argparse.ArgumentParser(
             description=("osquery python integration testing."))
+
+        parser.add_argument(
+            "--test-configs-dir",
+            required=True,
+            help="Directory where the config files the test may use are"
+        )
+
         parser.add_argument(
             "--config",
             metavar="FILE",
             default=None,
             help="Use special options from a config.")
+
         parser.add_argument(
             "--verbose",
             default=False,
@@ -578,6 +591,8 @@ class Tester(object):
 
         utils.reset_dir(CONFIG_DIR)
         CONFIG = read_config(ARGS.config) if ARGS.config else DEFAULT_CONFIG
+        TEST_CONFIGS_DIR = ARGS.test_configs_dir
+        BUILD_DIR = ARGS.build
 
     @timeout_decorator.timeout(20 * 60)
     def run(self):
@@ -611,7 +626,7 @@ def expect(functional, expected, interval=0.01, timeout=4):
 
 class QueryTester(ProcessGenerator, unittest.TestCase):
     def setUp(self):
-        self.binary = os.path.join(ARGS.build, "osquery", "osqueryi")
+        self.binary = getLatestOsqueryBinary("osqueryi")
         self.daemon = self._run_daemon({
             # The set of queries will hammer the daemon process.
             "disable_watchdog": True,
@@ -624,7 +639,7 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
 
         # The sets of example tests will use the extensions APIs.
         self.client = EXClient(self.daemon.options["extensions_socket"])
-        expectTrue(self.client.try_open)
+        expectTrue(self.client.try_open, attempts=2, interval=5)
         self.assertTrue(self.client.open())
         self.em = self.client.getEM()
 
@@ -671,14 +686,13 @@ class CleanChildProcesses:
             pass
 
 
-def expectTrue(functional, interval=0.01, timeout=8):
+def expectTrue(functional, interval=1, attempts=10):
     """Helper function to run a function with expected latency"""
     delay = 0
-    while delay < timeout:
+    for i in range(0, attempts):
         if functional():
             return True
         time.sleep(interval)
-        delay += interval
     return False
 
 
@@ -711,14 +725,11 @@ def getLatestInfoLog(base):
 
 
 def loadThriftFromBuild(build_dir):
-    '''Find and import the thrift-generated python interface.'''
-    thrift_path = build_dir + "/generated/gen-py"
+    '''Import the thrift-generated python interface.'''
     try:
-        sys.path = [thrift_path, thrift_path + "/osquery"] + sys.path
-        from osquery import ExtensionManager, Extension
+        from osquery.extensions import ExtensionManager, Extension
         EXClient.setUp(ExtensionManager, Extension)
     except ImportError as e:
-        print("Cannot import osquery thrift API from %s" % (thrift_path))
+        print("Cannot import osquery thrift API")
         print("Exception: %s" % (str(e)))
-        print("You must first run: make")
         exit(1)

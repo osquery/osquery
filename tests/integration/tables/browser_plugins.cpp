@@ -22,29 +22,27 @@ class browserPlugins : public testing::Test {
 };
 
 TEST_F(browserPlugins, test_sanity) {
-  // 1. Query data
+  ValidationMap row_map = {
+      {"uid", IntType},
+      {"name", NormalType},
+      {"identifier", NormalType},
+      {"version", NormalType},
+      {"sdk", NormalType},
+      {"description", NormalType},
+      {"development_region", NormalType},
+      {"native", IntType},
+      {"path", NormalType},
+      {"disabled", IntType},
+  };
+
   auto const data = execute_query("select * from browser_plugins");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"uid", IntType}
-  //      {"name", NormalType}
-  //      {"identifier", NormalType}
-  //      {"version", NormalType}
-  //      {"sdk", NormalType}
-  //      {"description", NormalType}
-  //      {"development_region", NormalType}
-  //      {"native", IntType}
-  //      {"path", NormalType}
-  //      {"disabled", IntType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_FALSE(data.empty());
+  validate_rows(data, row_map);
+
+  auto const datauser =
+      execute_query("select * from browser_plugins where uid = 0");
+  ASSERT_FALSE(datauser.empty());
+  validate_rows(datauser, row_map);
 }
 
 } // namespace table_tests

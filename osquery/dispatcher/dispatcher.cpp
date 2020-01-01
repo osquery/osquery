@@ -65,25 +65,29 @@ Status Dispatcher::addService(InternalRunnableRef service) {
   }
 
   auto& self = instance();
-  if (self.stopping_) {
-    // Cannot add a service while the dispatcher is stopping and no joins
-    // have been requested.
-    return Status(1, "Cannot add service, dispatcher is stopping");
-  }
-
-  auto thread = std::make_unique<std::thread>(
-      std::bind(&InternalRunnable::run, &*service));
-
-  DLOG(INFO) << "Adding new service: " << service->name() << " ("
-             << service.get() << ") to thread: " << thread->get_id() << " ("
-             << thread.get() << ") in process " << platformGetPid();
   {
     WriteLock lock(self.mutex_);
+    if (self.stopping_) {
+      // Cannot add a service while the dispatcher is stopping and no joins
+      // have been requested.
+      return Status(1, "Cannot add service, dispatcher is stopping");
+    }
+
+    auto thread = std::make_unique<std::thread>(
+        std::bind(&InternalRunnable::run, &*service));
+    DLOG(INFO) << "Adding new service: " << service->name() << " ("
+               << service.get() << ") to thread: " << thread->get_id() << " ("
+               << thread.get() << ") in process " << platformGetPid();
 
     self.service_threads_.push_back(std::move(thread));
     self.services_.push_back(std::move(service));
   }
   return Status::success();
+}
+
+void Dispatcher::resetStopping() {
+  WriteLock lock(mutex_);
+  stopping_ = false;
 }
 
 void Dispatcher::removeService(const InternalRunnable* service) {
@@ -138,17 +142,16 @@ void Dispatcher::joinServices() {
     }
   }
 
-  self.stopping_ = false;
   DLOG(INFO) << "Services and threads have been cleared";
 }
 
 void Dispatcher::stopServices() {
   auto& self = instance();
-  self.stopping_ = true;
-
-  WriteLock lock(self.mutex_);
   DLOG(INFO) << "Thread: " << std::this_thread::get_id()
              << " requesting a stop";
+
+  WriteLock lock(self.mutex_);
+  self.stopping_ = true;
   for (const auto& service : self.services_) {
     assureRun(service);
     service->interrupt();

@@ -29,15 +29,15 @@ namespace tables {
 /// Number of fields when splitting metadata and info.
 const size_t kNumFields = 2;
 const std::set<std::string> kPythonPath = {
-    "/usr/local/lib/python2.7/dist-packages/",
-    "/usr/local/lib/python2.7/site-packages/",
-    "/usr/lib/python2.7/dist-packages/",
-    "/usr/lib/python2.7/site-packages/",
-    "/Library/Python/2.7/site-packages/",
+    "/usr/local/lib/python%/dist-packages",
+    "/usr/local/lib/python%/site-packages",
+    "/usr/lib/python%/dist-packages",
+    "/usr/lib/python%/site-packages",
+    "/Library/Python/%/site-packages",
 };
 
 const std::set<std::string> kDarwinPythonPath = {
-    "/System/Library/Frameworks/Python.framework/Versions/",
+    "/System/Library/Frameworks/Python.framework/Versions",
 };
 
 const std::string kWinPythonInstallKey =
@@ -127,7 +127,13 @@ QueryData genPythonPackages(QueryContext& context) {
       context.constraints.at("directory").exists(EQUALS)) {
     paths = context.constraints["directory"].getAll(EQUALS);
   } else {
-    paths = kPythonPath;
+    for (const auto& path : kPythonPath) {
+      std::vector<std::string> sites;
+      resolveFilePattern(path, sites);
+      for (const auto& site : sites) {
+        paths.insert(site);
+      }
+    }
   }
   for (const auto& key : paths) {
     genSiteDirectories(key, results);
@@ -148,7 +154,7 @@ QueryData genPythonPackages(QueryContext& context) {
         }
 
         auto complete = version + "lib/python" +
-                        version_path.filename().string() + "/site-packages/";
+                        version_path.filename().string() + "/site-packages";
         genSiteDirectories(complete, results);
       }
     }
