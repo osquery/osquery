@@ -2,7 +2,7 @@ table_name("plist")
 description("Read and parse a plist file.")
 schema([
     Column("key", TEXT, "Preference top-level key"),
-    Column("subkey", TEXT, "Intemediate key path, includes lists/dicts"),
+    Column("subkey", TEXT, "Intermediate key path, includes lists/dicts"),
     Column("value", TEXT, "String value of most CF types"),
     Column("path", TEXT, "(required) read preferences from a plist",
       required=True),
