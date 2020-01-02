@@ -9,12 +9,11 @@
 // Sanity check integration test for process_open_pipes
 // Spec file: specs/posix/process_open_pipes.table
 
-#include <fcntl.h>
 #include <osquery/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
-#include <osquery/utils/info/platform_type.h>
+
+#include <fcntl.h>
 #include <signal.h>
-#include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -32,19 +31,26 @@ class ProcessOpenPipesTest : public testing::Test {
     setUpEnvironment();
     dir_path = std::string();
     char dir_template[] = "/tmp/tmpdir.XXXXXX";
-    if (!mkdtemp(dir_template))
+    if (!mkdtemp(dir_template)) {
       return;
+    }
     dir_path = std::string(dir_template);
     pipe_path = dir_path + "/test_pipe";
-    if (mkfifo(pipe_path.c_str(), 0600))
+    if (mkfifo(pipe_path.c_str(), 0600)) {
       dir_path = std::string();
-    if (pipe(fd_signal) == -1)
+    }
+    if (pipe(fd_signal) == -1) {
       LOG(ERROR) << "Error creating signal pipe\n";
+    }
   }
 
   void TearDown() override {
     remove(pipe_path.c_str());
     rmdir(dir_path.c_str());
+    close(fd[0]);
+    close(fd[1]);
+    close(fd_signal[0]);
+    close(fd_signal[1]);
   }
 
   void runForever() {
@@ -60,11 +66,11 @@ class ProcessOpenPipesTest : public testing::Test {
     close(fd_signal[0]);
     if (test_type == "named_pipe") {
       int fd = open(pipe_path.c_str(), O_WRONLY);
-      if (fd == -1)
-        perror("open");
+      if (fd == -1) {
+        LOG(ERROR) << "Error in opening named pipe";
+      }
       return fd;
-    } else // unnamed_pipe
-    {
+    } else { // unnamed_pipe
       close(fd[0]);
       return fd[1];
     }
@@ -74,11 +80,11 @@ class ProcessOpenPipesTest : public testing::Test {
     close(fd_signal[0]);
     if (test_type == "named_pipe") {
       int fd = open(pipe_path.c_str(), O_RDONLY);
-      if (fd == -1)
-        perror("open");
+      if (fd == -1) {
+        LOG(ERROR) << "Error in opening named pipe";
+      }
       return fd;
-    } else // unnamed_pipe
-    {
+    } else { // unnamed_pipe
       close(fd[1]);
       return fd[0];
     }
@@ -123,13 +129,14 @@ class ProcessOpenPipesTest : public testing::Test {
     int ret = fork();
     switch (ret) {
     case -1:
-      perror("fork");
+      LOG(ERROR) << "Error in fork()";
       break;
     case 0: // child
-      if (child_type == "reader")
+      if (child_type == "reader") {
         do_reader();
-      else
+      } else {
         do_writer();
+      }
       break;
     default: // parent
       break;
@@ -172,13 +179,13 @@ class ProcessOpenPipesTest : public testing::Test {
   void do_children() {
     int writer_pid = create_child("writer");
     if (writer_pid <= 0) {
-      LOG(ERROR) << "Error creating writer child\n";
+      LOG(ERROR) << "Error creating writer child";
       return;
     }
 
     int reader_pid = create_child("reader");
     if (reader_pid <= 0) {
-      LOG(ERROR) << "Error creating writer child\n";
+      LOG(ERROR) << "Error creating writer child";
       return;
     }
 
@@ -195,7 +202,7 @@ class ProcessOpenPipesTest : public testing::Test {
     test_result = 0;
 
     if (dir_path.empty()) {
-      LOG(ERROR) << "Error creating tmp dir for test\n";
+      LOG(ERROR) << "Error creating tmp dir for test";
       return;
     }
 
@@ -207,7 +214,7 @@ class ProcessOpenPipesTest : public testing::Test {
     test_result = 0;
 
     if (pipe(fd) == -1) {
-      LOG(ERROR) << "Error creating unnamed pipe\n";
+      LOG(ERROR) << "Error creating unnamed pipe";
       return;
     }
 
