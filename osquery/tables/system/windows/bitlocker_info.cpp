@@ -19,12 +19,13 @@ namespace tables {
 
 static void fetchMethodResultLong(std::string& result,
                                   const WmiRequest& req,
+                                  const WmiResultItem& object,
                                   const std::string& method,
                                   const std::string& param) {
   WmiMethodArgs args;
   WmiResultItem out;
 
-  auto status = req.ExecMethod(method, args, out);
+  auto status = req.ExecMethod(object, method, args, out);
   if (status.ok()) {
     long value = -1;
     status = out.GetLong(param, value);
@@ -80,13 +81,15 @@ QueryData genBitlockerInfo(QueryContext& context) {
     }
     r["encryption_method"] = emethod_str;
 
-    fetchMethodResultLong(r["version"], data, "GetVersion", "Version");
+    fetchMethodResultLong(
+        r["version"], wmiSystemReq, data, "GetVersion", "Version");
     fetchMethodResultLong(r["percentage_encrypted"],
+                          wmiSystemReq,
                           data,
                           "GetConversionStatus",
                           "EncryptionPercentage");
     fetchMethodResultLong(
-        r["lock_status"], data, "GetLockStatus", "LockStatus");
+        r["lock_status"], wmiSystemReq, data, "GetLockStatus", "LockStatus");
 
     results.push_back(r);
   }
