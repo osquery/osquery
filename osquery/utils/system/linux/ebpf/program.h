@@ -11,6 +11,11 @@
 #include <osquery/utils/expected/expected.h>
 
 #include <linux/bpf.h>
+#include <linux/version.h>
+
+#if defined(LINUX_VERSION_CODE) && LINUX_VERSION_CODE < 263946
+#define BPF_PROG_TYPE_TRACEPOINT (bpf_prog_type)(BPF_PROG_TYPE_SCHED_ACT + 1)
+#endif
 
 namespace osquery {
 namespace ebpf {

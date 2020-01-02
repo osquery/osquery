@@ -17,6 +17,8 @@
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
 
+#include <mutex>
+
 namespace http = osquery::http;
 namespace fs = boost::filesystem;
 
