@@ -6,16 +6,12 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <fstream>
-
-#include <boost/filesystem.hpp>
+#include <string>
 #include <gtest/gtest.h>
 
 #include <osquery/tables/system/posix/last.h>
-#include <osquery/utils/scope_guard.h>
 
 #include <utmp.h>
-#include <pwd.h>
 
 namespace osquery {
 namespace tables {
@@ -28,16 +24,16 @@ TEST_F(LastImplTests, gen_row_from_utmpx) {
   struct utmpx ut_badtype;
   struct utmpx ut_logout;
 
-  ut_login.ut_user = "osquery";
-  ut_login.ut_line = "line";
+  strcpy(ut_login.ut_user, "osquery");
+  strcpy(ut_login.ut_line, "line");
   ut_login.ut_type = USER_PROCESS;
   ut_login.ut_pid = 1337;
   ut_login.ut_tv.tv_sec = 1577836800;
-  ut_login.ut_host = "test_host";
+  strcpy(ut_login.ut_host,"test_host");
 
   ut_badtype.ut_type = INIT_PROCESS;
 
-  ut_logout.ut_line = "line";
+  strcpy(ut_logout.ut_line, "line");
   ut_logout.ut_type = DEAD_PROCESS;
   ut_logout.ut_pid = 1337;
   ut_logout.ut_tv.tv_sec = 1577836900;
@@ -50,16 +46,16 @@ TEST_F(LastImplTests, gen_row_from_utmpx) {
 
   const auto& first_row = results[0];
   EXPECT_EQ(first_row.at("username"), ut_login.ut_user);
-  EXPECT_EQ(first_row.at("tty"), ut_login.ut_user);
-  EXPECT_EQ(first_row.at("pid"), ut_login.ut_pid);
-  EXPECT_EQ(first_row.at("type"), ut_login.ut_type);
+  EXPECT_EQ(first_row.at("tty"), ut_login.ut_line);
+  ASSERT_EQ(std::stoi(first_row.at("pid")), ut_login.ut_pid);
+  ASSERT_EQ(std::stoi(first_row.at("type")), ut_login.ut_type);
   EXPECT_EQ(first_row.at("host"), ut_login.ut_host);
 
   const auto& second_row = results[1];
   EXPECT_EQ(second_row.at("username"), "");
-  EXPECT_EQ(second_row.at("tty"), ut_logout.ut_user);
-  EXPECT_EQ(second_row.at("pid"), ut_logout.ut_pid);
-  EXPECT_EQ(second_row.at("type"), ut_logout.ut_type);
+  EXPECT_EQ(second_row.at("tty"), ut_logout.ut_line);
+  ASSERT_EQ(std::stoi(second_row.at("pid")), ut_logout.ut_pid);
+  EXPECT_EQ(std::stoi(second_row.at("type")), ut_logout.ut_type);
   EXPECT_EQ(second_row.at("host"), "");
 }
 
