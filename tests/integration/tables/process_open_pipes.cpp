@@ -21,77 +21,79 @@ namespace osquery {
 namespace table_tests {
 
 class ProcessOpenPipesTest : public testing::Test {
-  std::string pipe_path;
-  std::string dir_path;
-  std::string test_type;
-  int fd[2];
-  int fd_signal[2];
+ private:
+  std::string pipe_path_;
+  std::string dir_path_;
+  std::string test_type_;
+  int fd_[2] = {-1};
+  int fd_signal_[2] = {-1};
 
   void SetUp() override {
     setUpEnvironment();
-    dir_path = std::string();
+    dir_path_ = std::string();
     char dir_template[] = "/tmp/tmpdir.XXXXXX";
     if (!mkdtemp(dir_template)) {
       return;
     }
-    dir_path = std::string(dir_template);
-    pipe_path = dir_path + "/test_pipe";
-    if (mkfifo(pipe_path.c_str(), 0600)) {
-      dir_path = std::string();
+    dir_path_ = std::string(dir_template);
+    pipe_path_ = dir_path_ + "/test_pipe";
+    if (mkfifo(pipe_path_.c_str(), 0600)) {
+      dir_path_ = std::string();
     }
-    if (pipe(fd_signal) == -1) {
+    if (pipe(fd_signal_) == -1) {
       LOG(ERROR) << "Error creating signal pipe\n";
     }
   }
 
   void TearDown() override {
-    remove(pipe_path.c_str());
-    rmdir(dir_path.c_str());
-    close(fd[0]);
-    close(fd[1]);
-    close(fd_signal[0]);
-    close(fd_signal[1]);
+    remove(pipe_path_.c_str());
+    rmdir(dir_path_.c_str());
+    close(fd_[0]);
+    close(fd_[1]);
+    close(fd_signal_[0]);
+    close(fd_signal_[1]);
   }
 
   void runForever() {
     while (true) {
     }
   }
+
   void signal_parent() {
     char buf = '1';
-    write(fd_signal[1], &buf, 1);
+    write(fd_signal_[1], &buf, 1);
   }
 
   int setup_writer() {
-    close(fd_signal[0]);
-    if (test_type == "named_pipe") {
-      int fd = open(pipe_path.c_str(), O_WRONLY);
+    close(fd_signal_[0]);
+    if (test_type_ == "named_pipe") {
+      int fd = open(pipe_path_.c_str(), O_WRONLY);
       if (fd == -1) {
         LOG(ERROR) << "Error in opening named pipe";
       }
       return fd;
     } else { // unnamed_pipe
-      close(fd[0]);
-      return fd[1];
+      close(fd_[0]);
+      return fd_[1];
     }
   }
 
   int setup_reader() {
-    close(fd_signal[0]);
-    if (test_type == "named_pipe") {
-      int fd = open(pipe_path.c_str(), O_RDONLY);
+    close(fd_signal_[0]);
+    if (test_type_ == "named_pipe") {
+      int fd = open(pipe_path_.c_str(), O_RDONLY);
       if (fd == -1) {
         LOG(ERROR) << "Error in opening named pipe";
       }
       return fd;
     } else { // unnamed_pipe
-      close(fd[1]);
-      return fd[0];
+      close(fd_[1]);
+      return fd_[0];
     }
   }
 
   void do_writer() {
-    char buf[] = "test";
+    std::string buf = "test";
 
     int fd = setup_writer();
     if (fd == -1) {
@@ -99,7 +101,7 @@ class ProcessOpenPipesTest : public testing::Test {
       return;
     }
 
-    if (write(fd, "test", sizeof(buf)) == -1) {
+    if (write(fd, buf.c_str(), buf.length()) == -1) {
       signal_parent();
       return;
     }
@@ -146,7 +148,7 @@ class ProcessOpenPipesTest : public testing::Test {
 
   void wait_child_signal() {
     char buf;
-    read(fd_signal[0], &buf, 1);
+    read(fd_signal_[0], &buf, 1);
   }
 
   void do_query(int writer_pid, int reader_pid) {
@@ -172,8 +174,8 @@ class ProcessOpenPipesTest : public testing::Test {
   void kill_children(int writer_pid, int reader_pid) {
     kill(writer_pid, SIGKILL);
     kill(reader_pid, SIGKILL);
-    waitpid(writer_pid, NULL, 0);
-    waitpid(reader_pid, NULL, 0);
+    waitpid(writer_pid, nullptr, 0);
+    waitpid(reader_pid, nullptr, 0);
   }
 
   void do_children() {
@@ -198,10 +200,10 @@ class ProcessOpenPipesTest : public testing::Test {
   int test_result;
 
   void test_named_pipe() {
-    test_type = "named_pipe";
+    test_type_ = "named_pipe";
     test_result = 0;
 
-    if (dir_path.empty()) {
+    if (dir_path_.empty()) {
       LOG(ERROR) << "Error creating tmp dir for test";
       return;
     }
@@ -210,10 +212,10 @@ class ProcessOpenPipesTest : public testing::Test {
   }
 
   void test_unnamed_pipe() {
-    test_type = "unnamed_pipe";
+    test_type_ = "unnamed_pipe";
     test_result = 0;
 
-    if (pipe(fd) == -1) {
+    if (pipe(fd_) == -1) {
       LOG(ERROR) << "Error creating unnamed pipe";
       return;
     }
