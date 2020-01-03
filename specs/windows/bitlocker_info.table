@@ -8,5 +8,8 @@ schema([
   Column("conversion_status", INTEGER, "The bitlocker conversion status of the drive."),
   Column("protection_status", INTEGER, "The bitlocker protection status of the drive."),
   Column("encryption_method", TEXT, "The encryption type of the device."),
+  Column("version", INTEGER, "The FVE metadata version of the drive."),
+  Column("percentage_encrypted", INTEGER, "The percentage of the drive that is encrypted."),
+  Column("lock_status", INTEGER, "The accessibility status of the drive from Windows."),
 ])
 implementation("bitlocker_info@genBitlockerInfo")
