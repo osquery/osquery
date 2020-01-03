@@ -9,8 +9,8 @@
 // Sanity check integration test for last
 // Spec file: specs/posix/last.table
 
-#include <osquery/tests/integration/tables/helper.h>
 #include <osquery/logger.h>
+#include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
 namespace table_tests {

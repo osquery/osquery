@@ -6,8 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <string>
 #include <gtest/gtest.h>
+#include <string>
 
 #include <osquery/tables/system/posix/last.h>
 
@@ -29,7 +29,7 @@ TEST_F(LastImplTests, gen_row_from_utmpx) {
   ut_login.ut_type = USER_PROCESS;
   ut_login.ut_pid = 1337;
   ut_login.ut_tv.tv_sec = 1577836800;
-  strcpy(ut_login.ut_host,"test_host");
+  strcpy(ut_login.ut_host, "test_host");
 
   ut_badtype.ut_type = INIT_PROCESS;
 
@@ -38,7 +38,7 @@ TEST_F(LastImplTests, gen_row_from_utmpx) {
   ut_logout.ut_type = DEAD_PROCESS;
   ut_logout.ut_pid = 1337;
   ut_logout.ut_tv.tv_sec = 1577836900;
-  strcpy(ut_logout.ut_host,"");
+  strcpy(ut_logout.ut_host, "");
 
   impl::genLastAccessForRow(&ut_login, results);
   impl::genLastAccessForRow(&ut_badtype, results);
