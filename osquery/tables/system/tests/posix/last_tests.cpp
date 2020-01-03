@@ -11,7 +11,7 @@
 
 #include <osquery/tables/system/posix/last.h>
 
-#include <utmp.h>
+#include <utmpx.h>
 
 namespace osquery {
 namespace tables {
@@ -20,9 +20,9 @@ class LastImplTests : public testing::Test {};
 
 TEST_F(LastImplTests, gen_row_from_utmpx) {
   QueryData results;
-  struct utmpx ut_login;
-  struct utmpx ut_badtype;
-  struct utmpx ut_logout;
+  struct utmpx ut_login{};
+  struct utmpx ut_badtype{};
+  struct utmpx ut_logout{};
 
   strcpy(ut_login.ut_user, "osquery");
   strcpy(ut_login.ut_line, "line");
@@ -33,12 +33,10 @@ TEST_F(LastImplTests, gen_row_from_utmpx) {
 
   ut_badtype.ut_type = INIT_PROCESS;
 
-  strcpy(ut_logout.ut_user, "");
   strcpy(ut_logout.ut_line, "line");
   ut_logout.ut_type = DEAD_PROCESS;
   ut_logout.ut_pid = 1337;
   ut_logout.ut_tv.tv_sec = 1577836900;
-  strcpy(ut_logout.ut_host, "");
 
   impl::genLastAccessForRow(&ut_login, results);
   impl::genLastAccessForRow(&ut_badtype, results);

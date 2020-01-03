@@ -18,7 +18,7 @@ QueryData genLastAccess(QueryContext& context);
 
 namespace impl {
 
-void genLastAccessForRow(utmpx* ut, QueryData& results);
+void genLastAccessForRow(const utmpx* ut, QueryData& results);
 
 } // namespace impl
 
