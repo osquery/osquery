@@ -37,7 +37,7 @@ TEST_F(last, test_sanity) {
       {"pid", NonNegativeInt},
       {"type", IntMinMaxCheck(7, 8)},
       {"time", NonNegativeInt},
-      {"host", verifyEmptyStringOrIpAddress},
+      {"host", NormalType},
   };
   // 4. Perform validation
   validate_rows(data, row_map);
