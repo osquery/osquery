@@ -30,18 +30,17 @@ struct pipe_info {
         type(type) {}
 };
 
-using PipeInfoRef = std::reference_wrapper<pipe_info>;
-using PidToPipesMap = std::map<pid_t, std::vector<PipeInfoRef>>;
-using InodeToPipesMap = std::map<ino_t, std::vector<PipeInfoRef>>;
+using PidToPipesMap = std::map<pid_t, std::vector<std::reference_wrapper<pipe_info>>>;
+using InodeToPipesMap = std::map<ino_t, std::vector<std::reference_wrapper<pipe_info>>>;
 
-bool isSamePipe(const PipeInfoRef p1, const PipeInfoRef p2) {
-  return (p1.get().pid == p2.get().pid && p1.get().inode == p2.get().inode &&
-          p1.get().fd == p2.get().fd && p1.get().mode == p2.get().mode);
+bool isSamePipe(const pipe_info& p1, const pipe_info& p2) {
+  return (p1.pid == p2.pid && p1.inode == p2.inode &&
+          p1.fd == p2.fd && p1.mode == p2.mode);
 }
 
-bool isReaderWriterPair(const PipeInfoRef p1, const PipeInfoRef p2) {
+bool isReaderWriterPair(const pipe_info& p1, const pipe_info& p2) {
   // Assumption: p1 and p2 have same inode
-  return ((p1.get().mode != p2.get().mode) || (p1.get().mode == "rw"));
+  return ((p1.mode != p2.mode) || (p1.mode == "rw"));
 }
 
 bool isUnconnectedPipe(ino_t inode, const InodeToPipesMap& pipe_partners) {
@@ -138,29 +137,29 @@ void genPipePartners(const std::string& process,
 }
 
 void populatePartialRow(const std::string& process,
-                        const PipeInfoRef ps,
+                        const pipe_info& ps,
                         Row& r) {
   r["pid"] = process;
-  r["fd"] = std::to_string(ps.get().fd);
-  r["mode"] = ps.get().mode;
-  r["inode"] = std::to_string(ps.get().inode);
-  r["type"] = ps.get().type;
+  r["fd"] = std::to_string(ps.fd);
+  r["mode"] = ps.mode;
+  r["inode"] = std::to_string(ps.inode);
+  r["type"] = ps.type;
 }
 
 void createRow(const std::string& process,
-               const PipeInfoRef ps,
-               const PipeInfoRef partner_ps,
+               const pipe_info& ps,
+               const pipe_info& partner_ps,
                QueryData& results) {
   Row r;
   populatePartialRow(process, ps, r);
-  r["partner_pid"] = std::to_string(partner_ps.get().pid);
-  r["partner_fd"] = std::to_string(partner_ps.get().fd);
-  r["partner_mode"] = partner_ps.get().mode;
+  r["partner_pid"] = std::to_string(partner_ps.pid);
+  r["partner_fd"] = std::to_string(partner_ps.fd);
+  r["partner_mode"] = partner_ps.mode;
   results.push_back(r);
 }
 
 void createRow(const std::string& process,
-               const PipeInfoRef ps,
+               const pipe_info& ps,
                QueryData& results) {
   Row r;
   populatePartialRow(process, ps, r);

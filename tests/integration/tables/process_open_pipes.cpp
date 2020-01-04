@@ -168,7 +168,7 @@ class ProcessOpenPipesTest : public testing::Test {
         {"partner_mode", NonEmptyString},
     };
     validate_rows(data, row_map);
-    test_result = data.size();
+    test_result_ = data.size();
   }
 
   void kill_children(int writer_pid, int reader_pid) {
@@ -197,11 +197,11 @@ class ProcessOpenPipesTest : public testing::Test {
   }
 
  public:
-  int test_result;
+  int test_result_;
 
   void test_named_pipe() {
     test_type_ = "named_pipe";
-    test_result = 0;
+    test_result_ = 0;
 
     if (dir_path_.empty()) {
       LOG(ERROR) << "Error creating tmp dir for test";
@@ -213,7 +213,7 @@ class ProcessOpenPipesTest : public testing::Test {
 
   void test_unnamed_pipe() {
     test_type_ = "unnamed_pipe";
-    test_result = 0;
+    test_result_ = 0;
 
     if (pipe(fd_) == -1) {
       LOG(ERROR) << "Error creating unnamed pipe";
@@ -226,9 +226,9 @@ class ProcessOpenPipesTest : public testing::Test {
 
 TEST_F(ProcessOpenPipesTest, test_sanity) {
   test_named_pipe();
-  ASSERT_GT(test_result, 0);
+  ASSERT_GT(test_result_, 0);
   test_unnamed_pipe();
-  ASSERT_GT(test_result, 0);
+  ASSERT_GT(test_result_, 0);
 }
 
 } // namespace table_tests
