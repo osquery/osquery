@@ -990,12 +990,8 @@ void getImageLayers(std::string image_id, QueryData& results) {
     return;
   }
 
-  if (layers.empty()) {
-    return;
-  }
-
-  Row r;
-  for (int index = 0; index < layers.size(); index++) {
+  for (size_t index = 0; index < layers.size(); index++) {
+    Row r;
     r["id"] = image_id;
     r["layer_order"] = std::to_string(index + 1);
     r["layer_id"] = layers[index];
