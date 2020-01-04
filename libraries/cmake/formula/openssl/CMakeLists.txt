@@ -44,7 +44,7 @@ function(opensslMain)
 
         -fPIC
         --sysroot=${CMAKE_SYSROOT}
-        -l:libunwind.a
+        -lunwind
         -lpthread
     )
 

@@ -58,6 +58,7 @@ function(setupBuildFlags)
       -Woverloaded-virtual
       -Wnon-virtual-dtor
       -Weffc++
+      -stdlib=libc++
     )
 
     set(posix_cxx_link_options
@@ -108,7 +109,7 @@ function(setupBuildFlags)
       )
 
       set(linux_cxx_link_libraries
-        libc++abi.a
+        c++abi
         rt
         dl
       )
@@ -131,7 +132,6 @@ function(setupBuildFlags)
         -x objective-c++
         -fobjc-arc
         -Wabi-tag
-        -stdlib=libc++
       )
 
       set(macos_cxx_link_options
