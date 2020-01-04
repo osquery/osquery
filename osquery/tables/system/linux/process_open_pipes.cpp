@@ -30,12 +30,14 @@ struct pipe_info {
         type(type) {}
 };
 
-using PidToPipesMap = std::map<pid_t, std::vector<std::reference_wrapper<pipe_info>>>;
-using InodeToPipesMap = std::map<ino_t, std::vector<std::reference_wrapper<pipe_info>>>;
+using PidToPipesMap =
+    std::map<pid_t, std::vector<std::reference_wrapper<pipe_info>>>;
+using InodeToPipesMap =
+    std::map<ino_t, std::vector<std::reference_wrapper<pipe_info>>>;
 
 bool isSamePipe(const pipe_info& p1, const pipe_info& p2) {
-  return (p1.pid == p2.pid && p1.inode == p2.inode &&
-          p1.fd == p2.fd && p1.mode == p2.mode);
+  return (p1.pid == p2.pid && p1.inode == p2.inode && p1.fd == p2.fd &&
+          p1.mode == p2.mode);
 }
 
 bool isReaderWriterPair(const pipe_info& p1, const pipe_info& p2) {
