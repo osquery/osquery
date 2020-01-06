@@ -47,7 +47,7 @@ QueryData genLastAccess(QueryContext& context) {
 
   while ((ut = getutxent()) != nullptr) {
 #endif
-    impl::genLastAccessForRow(ut, results);
+    impl::genLastAccessForRow(*ut, results);
   }
 
 #ifdef __APPLE__
