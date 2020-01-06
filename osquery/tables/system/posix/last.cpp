@@ -17,14 +17,14 @@ namespace tables {
 namespace impl {
 
 void genLastAccessForRow(const utmpx& ut, QueryData& results) {
-  if (ut->ut_type == USER_PROCESS || ut->ut_type == DEAD_PROCESS) {
+  if (ut.ut_type == USER_PROCESS || ut.ut_type == DEAD_PROCESS) {
     Row r;
-    r["username"] = TEXT(ut->ut_user);
-    r["tty"] = TEXT(ut->ut_line);
-    r["pid"] = INTEGER(ut->ut_pid);
-    r["type"] = INTEGER(ut->ut_type);
-    r["time"] = INTEGER(ut->ut_tv.tv_sec);
-    r["host"] = TEXT(ut->ut_host);
+    r["username"] = TEXT(ut.ut_user);
+    r["tty"] = TEXT(ut.ut_line);
+    r["pid"] = INTEGER(ut.ut_pid);
+    r["type"] = INTEGER(ut.ut_type);
+    r["time"] = INTEGER(ut.ut_tv.tv_sec);
+    r["host"] = TEXT(ut.ut_host);
     results.push_back(r);
   }
 }
