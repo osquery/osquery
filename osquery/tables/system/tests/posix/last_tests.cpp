@@ -20,9 +20,9 @@ class LastImplTests : public testing::Test {};
 
 TEST_F(LastImplTests, gen_row_from_utmpx) {
   QueryData results;
-  struct utmpx ut_login{};
-  struct utmpx ut_badtype{};
-  struct utmpx ut_logout{};
+  struct utmpx ut_login {};
+  struct utmpx ut_badtype {};
+  struct utmpx ut_logout {};
 
   strcpy(ut_login.ut_user, "osquery");
   strcpy(ut_login.ut_line, "line");

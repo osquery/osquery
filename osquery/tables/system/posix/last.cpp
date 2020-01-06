@@ -16,7 +16,7 @@ namespace tables {
 
 namespace impl {
 
-void genLastAccessForRow(const utmpx* ut, QueryData& results) {
+void genLastAccessForRow(const utmpx& ut, QueryData& results) {
   if (ut->ut_type == USER_PROCESS || ut->ut_type == DEAD_PROCESS) {
     Row r;
     r["username"] = TEXT(ut->ut_user);
