@@ -39,7 +39,7 @@ TEST_F(LastImplTests, gen_row_from_utmpx) {
   ut_logout.ut_tv.tv_sec = 1577836900;
 
   impl::genLastAccessForRow(&ut_login, results);
-  impl::genLastAccessForRow(&ut_badtype, results);
+  impl::genLastAccessForRow(ut_badtype, results);
   impl::genLastAccessForRow(&ut_logout, results);
 
   ASSERT_EQ(results.size(), 2);
