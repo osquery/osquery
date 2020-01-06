@@ -40,7 +40,7 @@ TEST_F(LastImplTests, gen_row_from_utmpx) {
 
   impl::genLastAccessForRow(ut_login, results);
   impl::genLastAccessForRow(ut_badtype, results);
-  impl::genLastAccessForRow(&ut_logout, results);
+  impl::genLastAccessForRow(ut_logout, results);
 
   ASSERT_EQ(results.size(), 2);
 
