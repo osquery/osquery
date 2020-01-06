@@ -11,11 +11,33 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
-#include <osquery/utils/conversions/tryto.h>
 #include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
+
+static void fetchMethodResultLong(std::string& result,
+                                  const WmiRequest& req,
+                                  const WmiResultItem& object,
+                                  const std::string& method,
+                                  const std::string& param) {
+  WmiMethodArgs args;
+  WmiResultItem out;
+
+  auto status = req.ExecMethod(object, method, args, out);
+  if (status.ok()) {
+    long value = -1;
+    status = out.GetLong(param, value);
+    if (status.ok()) {
+      result = INTEGER(value);
+    } else {
+      result = INTEGER(-1);
+    }
+  } else {
+    result = INTEGER(-1);
+  }
+}
 
 QueryData genBitlockerInfo(QueryContext& context) {
   Row r;
@@ -58,6 +80,17 @@ QueryData genBitlockerInfo(QueryContext& context) {
       emethod_str = "UNKNOWN";
     }
     r["encryption_method"] = emethod_str;
+
+    fetchMethodResultLong(
+        r["version"], wmiSystemReq, data, "GetVersion", "Version");
+    fetchMethodResultLong(r["percentage_encrypted"],
+                          wmiSystemReq,
+                          data,
+                          "GetConversionStatus",
+                          "EncryptionPercentage");
+    fetchMethodResultLong(
+        r["lock_status"], wmiSystemReq, data, "GetLockStatus", "LockStatus");
+
     results.push_back(r);
   }
 
