@@ -52,8 +52,10 @@ function(generateNativeTables)
     processes.table
     python_packages.table
     routes.table
+    ssh_configs.table
     system_info.table
     uptime.table
+    user_ssh_keys.table
     users.table
     utility/file.table
     utility/osquery_events.table

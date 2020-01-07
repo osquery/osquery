@@ -18,6 +18,8 @@ function(generateOsqueryTablesSystemSystemtable)
     cpuid.cpp
     hash.cpp
     python_packages.cpp
+    ssh_keys.cpp
+    ssh_configs.cpp
     system_utils.cpp
     uptime.cpp
   )
@@ -35,7 +37,6 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/magic.cpp
       posix/shell_history.cpp
       posix/smbios_utils.cpp
-      posix/ssh_configs.cpp
       posix/ssh_keys.cpp
       posix/sudoers.cpp
       posix/suid_bin.cpp

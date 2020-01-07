@@ -844,6 +844,7 @@ osquery_gentable_cxx_library(
         "routes.table",
         "system_info.table",
         "uptime.table",
+        "user_ssh_keys.table",
         "users.table",
         "utility/file.table",
         "utility/osquery_events.table",
