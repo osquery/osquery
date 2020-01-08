@@ -28,7 +28,8 @@ namespace tables {
 
 const std::string kUserSshConfig = ".ssh/config";
 const std::string kSystemwideSshConfig = "/etc/ssh/ssh_config";
-const std::string kWindowsSystemwideSshConfig = "\\ProgramData\\ssh\\ssh_config";
+const std::string kWindowsSystemwideSshConfig =
+    "\\ProgramData\\ssh\\ssh_config";
 
 void genSshConfig(const std::string& uid,
                   const std::string& gid,
@@ -89,7 +90,7 @@ QueryData getSshConfigs(QueryContext& context) {
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     genSshConfig("0", "0", kWindowsSystemwideSshConfig, results);
   } else {
-      genSshConfig("0", "0", kSystemwideSshConfig, results);
+    genSshConfig("0", "0", kSystemwideSshConfig, results);
   }
   return results;
 }
