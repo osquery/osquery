@@ -216,7 +216,6 @@ function(generateNativeTables)
     "posix/prometheus_metrics.table:linux,macos,freebsd"
     "posix/shell_history.table:linux,macos,freebsd"
     "posix/smbios_tables.table:linux,macos"
-    "posix/ssh_configs.table:linux,macos,freebsd"
     "posix/sudoers.table:linux,macos,freebsd"
     "posix/suid_bin.table:linux,macos,freebsd"
     "posix/system_controls.table:linux,macos,freebsd"
