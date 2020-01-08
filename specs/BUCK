@@ -633,10 +633,6 @@ osquery_gentable_cxx_library(
             "linux,macos,freebsd",
         ),
         (
-            "posix/user_ssh_keys.table",
-            "linux,macos,freebsd",
-        ),
-        (
             "posix/yum_sources.table",
             "linux,macos,freebsd",
         ),

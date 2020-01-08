@@ -222,7 +222,6 @@ function(generateNativeTables)
     "posix/ulimit_info.table:linux,macos,freebsd"
     "posix/usb_devices.table:linux,macos"
     "posix/user_events.table:linux,macos,freebsd"
-    "posix/user_ssh_keys.table:linux,macos,freebsd"
     "posix/yum_sources.table:linux,macos,freebsd"
     "sleuthkit/device_file.table:linux,macos,freebsd"
     "sleuthkit/device_hash.table:linux,macos,freebsd"
