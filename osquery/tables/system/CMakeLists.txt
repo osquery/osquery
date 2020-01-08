@@ -37,7 +37,6 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/magic.cpp
       posix/shell_history.cpp
       posix/smbios_utils.cpp
-      posix/ssh_keys.cpp
       posix/sudoers.cpp
       posix/suid_bin.cpp
       posix/system_controls.cpp
