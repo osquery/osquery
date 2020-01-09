@@ -370,18 +370,41 @@ SQLiteDBManager::SQLiteDBManager() : db_(nullptr) {
 }
 
 bool SQLiteDBManager::isDisabled(const std::string& table_name) {
-  const auto& element = instance().disabled_tables_.find(table_name);
-  return (element != instance().disabled_tables_.end());
-}
+  bool disabled_set = !(instance().disabled_tables_.find("Not Specified") !=
+                        instance().disabled_tables_.end());
+  bool enabled_set = !(instance().enabled_tables_.find("Not Specified") !=
+                       instance().enabled_tables_.end());
+  if (!disabled_set && !enabled_set) {
+    // We have zero enabled tables and zero disabled tables.
+    // As a result, no tables are disabled.
+    return false;
+  }
+  const auto& element_disabled = instance().disabled_tables_.find(table_name);
+  const auto& element_enabled = instance().enabled_tables_.find(table_name);
+  bool table_disabled = (element_disabled != instance().disabled_tables_.end());
+  bool table_enabled = (element_enabled != instance().enabled_tables_.end());
 
-bool SQLiteDBManager::isEnabled(const std::string& table_name) {
-  if (instance().enabled_tables_.find("Not Specified") !=
-      instance().enabled_tables_.end()) {
-    // we should totally return true if no whitlist have been specified
+  if (table_disabled) {
     return true;
   }
-  const auto& element = instance().enabled_tables_.find(table_name);
-  return (element != instance().enabled_tables_.end());
+
+  if (table_enabled && disabled_set && !table_disabled) {
+    return false;
+  }
+
+  if (table_enabled && !disabled_set) {
+    return false;
+  }
+
+  if (enabled_set && !table_enabled) {
+    return true;
+  }
+
+  if (disabled_set && !table_disabled) {
+    return false;
+  }
+
+  return true;
 }
 
 void SQLiteDBManager::resetPrimary() {

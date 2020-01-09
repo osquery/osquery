@@ -188,24 +188,14 @@ class SQLiteDBManager : private boost::noncopyable {
   /**
    * @brief Check if `table_name` is disabled.
    *
-   * Check if `table_name` is in the list of tables passed in to the
-   * `--disable_tables` flag.
+   * `table_name` is disabled if it's in the list of tables passed in to the
+   * `--disable_tables` flag or if the `--enable_tables` flag is set and
+   * `table_name` is not specified.
    *
    * @param The name of the Table to check.
    * @return If `table_name` is disabled.
    */
   static bool isDisabled(const std::string& table_name);
-
-  /**
-   * @brief Check if `table_name` is enabled.
-   *
-   * Check if `table_name` is in the list of tables passed in to the
-   * `--enable_tables` flag.
-   *
-   * @param The name of the Table to check.
-   * @return If `table_name` is enabled.
-   */
-  static bool isEnabled(const std::string& table_name);
 
  protected:
   SQLiteDBManager();
