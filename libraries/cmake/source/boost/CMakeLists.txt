@@ -275,20 +275,18 @@ endfunction()
 function(generateBoostWinapi)
   add_library(thirdparty_boost_winapi INTERFACE)
 
-  if(NOT DEFINED PLATFORM_WINDOWS)
-    return()
-  endif()
-
   set(library_root "${BOOST_ROOT}/libs/winapi")
 
   target_include_directories(thirdparty_boost_winapi SYSTEM INTERFACE
     "${library_root}/include"
   )
 
-  target_compile_definitions(thirdparty_boost_winapi INTERFACE
-    BOOST_USE_WINDOWS_H
-    NOMINMAX
-  )
+  if(DEFINED PLATFORM_WINDOWS)
+    target_compile_definitions(thirdparty_boost_winapi INTERFACE
+      BOOST_USE_WINDOWS_H
+      NOMINMAX
+    )
+  endif()
 
   target_link_libraries(thirdparty_boost_winapi INTERFACE
     thirdparty_boost_config
