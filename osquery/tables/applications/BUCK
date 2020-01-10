@@ -13,6 +13,7 @@ osquery_cxx_library(
     name = "applications",
     srcs = [
         "browser_chrome.cpp",
+        "browser_firefox.cpp",
         "browser_utils.cpp",
     ],
     header_namespace = "osquery/tables/applications",
@@ -31,7 +32,6 @@ osquery_cxx_library(
         (
             POSIX,
             [
-                "posix/browser_firefox.cpp",
                 "posix/browser_opera.cpp",
                 "posix/carbon_black.cpp",
                 "posix/docker.cpp",
