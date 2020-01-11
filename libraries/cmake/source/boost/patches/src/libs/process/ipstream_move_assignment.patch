@@ -1,0 +1,37 @@
+diff --git a/include/boost/process/pipe.hpp b/include/boost/process/pipe.hpp
+index dd4af09..a44a910 100644
+--- a/include/boost/process/pipe.hpp
++++ b/include/boost/process/pipe.hpp
+@@ -295,8 +295,9 @@ public:
+     basic_ipstream& operator=(basic_ipstream && lhs)
+     {
+         std::basic_istream<CharT, Traits>::operator=(std::move(lhs));
+-        _buf = std::move(lhs);
++        _buf = std::move(lhs._buf);
+         std::basic_istream<CharT, Traits>::rdbuf(&_buf);
++        return *this;
+     };
+     ///Move assignment of a pipe.
+     basic_ipstream& operator=(pipe_type && p)
+@@ -376,8 +377,9 @@ public:
+     basic_opstream& operator=(basic_opstream && lhs)
+     {
+         std::basic_ostream<CharT, Traits>::operator=(std::move(lhs));
+-        _buf = std::move(lhs);
++        _buf = std::move(lhs._buf);
+         std::basic_ostream<CharT, Traits>::rdbuf(&_buf);
++        return *this;
+     };
+ 
+     ///Move assignment of a pipe.
+@@ -459,8 +461,9 @@ public:
+     basic_pstream& operator=(basic_pstream && lhs)
+     {
+         std::basic_istream<CharT, Traits>::operator=(std::move(lhs));
+-        _buf = std::move(lhs);
++        _buf = std::move(lhs._buf);
+         std::basic_iostream<CharT, Traits>::rdbuf(&_buf);
++        return *this;
+     };
+     ///Move assignment of a pipe.
+     basic_pstream& operator=(pipe_type && p)
