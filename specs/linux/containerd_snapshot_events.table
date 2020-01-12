@@ -1,0 +1,14 @@
+table_name("containerd_snapshot_events")
+description("Track containerd snapshot events.")
+schema([
+    Column("time", BIGINT, "When the event has been fired by the event framework"),
+    Column("timestamp", TEXT, "Time of when the event happened"),
+    Column("namespace", TEXT, "Namespace where the container is in"),
+    Column("topic", TEXT, "Specific type of the event"),
+    Column("key", TEXT, "Key of the snapshot"),
+    Column("parent", TEXT, "Parent key of the snapshot"),
+    Column("name", TEXT, "Snapshot name"),
+])
+
+attributes(event_subscriber=True)
+implementation("containerd_snapshot_events@containerd_snapshot_events::genTable")

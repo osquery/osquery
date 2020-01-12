@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package containerd.events;
+
+message NamespaceCreate {
+	string name = 1;
+	map<string, string> labels  = 2;
+}
+
+message NamespaceUpdate {
+	string name = 1;
+	map<string, string> labels  = 2;
+}
+
+message NamespaceDelete {
+	string name = 1;
+}

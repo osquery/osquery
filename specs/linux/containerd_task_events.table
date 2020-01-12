@@ -1,0 +1,26 @@
+table_name("containerd_task_events")
+description("Track containerd task events.")
+schema([
+    Column("time", BIGINT, "When the event has been fired by the event framework"),
+    Column("timestamp", TEXT, "Time of when the event happened"),
+    Column("namespace", TEXT, "Namespace where the container is in"),
+    Column("topic", TEXT, "Specific type of the event"),
+    Column("container_id", TEXT, "Container ID"),
+    Column("bundle", TEXT, "OCI bundle"),
+    Column("rootfs_type", TEXT, "Mount type"),
+    Column("rootfs_source", TEXT, "Device or filesystem path used as a mount source"),
+    Column("rootfs_target", TEXT, "Filesystem path as a mount destination"),
+    Column("rootfs_options", TEXT, "Mount options"),
+    Column("io_stdin", TEXT, "Path to the stdin file"),
+    Column("io_stdout", TEXT, "Path to the stdout file"),
+    Column("io_stderr", TEXT, "Path to the stderr file"),
+    Column("io_terminal", INTEGER, "TODO"),
+    Column("checkpoint", TEXT, "TODO"),
+    Column("pid", INTEGER, "Pid of the task process"),
+    Column("exit_status", INTEGER, "Exit status of the task process"),
+    Column("exited_at", TEXT, "Exit timestamp of the task"),
+    Column("exec_id", TEXT, "Task execution id")
+])
+
+attributes(event_subscriber=True)
+implementation("containerd_task_events@containerd_task_events::genTable")

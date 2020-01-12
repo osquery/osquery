@@ -1,0 +1,13 @@
+table_name("containerd_image_events")
+description("Track containerd image events.")
+schema([
+    Column("time", BIGINT, "When the event has been fired by the event framework"),
+    Column("timestamp", TEXT, "Time of when the event happened"),
+    Column("namespace", TEXT, "Namespace where the container is in"),
+    Column("topic", TEXT, "Specific type of the event"),
+    Column("name", TEXT, "Name of the image"),
+    Column("labels", TEXT, "Labels set to the image")
+])
+
+attributes(event_subscriber=True)
+implementation("containerd_image_events@containerd_image_events::genTable")

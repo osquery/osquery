@@ -16,16 +16,75 @@ endfunction()
 
 function(generateOsqueryEvents)
   if(DEFINED PLATFORM_LINUX)
+
+    add_custom_command(
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/containerd/osquery/events/containerd
+      COMMAND cmake -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/containerd/osquery/events/containerd
+    )
+
+    set(containerd_proto_files
+      events
+      container
+      runc
+      content
+      image
+      namespace
+      snapshot
+      task
+      mount
+    )
+
+    foreach(proto_file_name ${containerd_proto_files})
+      add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.h
+               ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.cc
+               ${CMAKE_CURRENT_BINARY_DIR}/containerd/osquery/events/containerd/${proto_file_name}.pb.h
+        COMMAND ${PROTOC_PATH}/protoc -I ${CMAKE_CURRENT_SOURCE_DIR}/containerd/proto
+                -I ${CMAKE_SOURCE_DIR}/libraries/cmake/source/grpc/src/third_party/protobuf/src --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/containerd
+                ${CMAKE_CURRENT_SOURCE_DIR}/containerd/proto/${proto_file_name}.proto
+        COMMAND cmake -E create_symlink ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.h
+                ${CMAKE_CURRENT_BINARY_DIR}/containerd/osquery/events/containerd/${proto_file_name}.pb.h
+        DEPENDS protobuf::protoc
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/containerd/osquery/events/containerd
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/containerd/proto/${proto_file_name}.proto
+      )
+
+      add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.grpc.pb.h
+               ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.grpc.pb.cc
+               ${CMAKE_CURRENT_BINARY_DIR}/containerd/osquery/events/containerd/${proto_file_name}.grpc.pb.h
+        COMMAND ${PROTOC_PATH}/protoc -I ${CMAKE_CURRENT_SOURCE_DIR}/containerd/proto
+                -I ${CMAKE_SOURCE_DIR}/libraries/cmake/source/grpc/src/third_party/protobuf/src --grpc_out=${CMAKE_CURRENT_BINARY_DIR}/containerd
+                --plugin=protoc-gen-grpc=${PROTOC_PATH}/grpc_cpp_plugin  ${CMAKE_CURRENT_SOURCE_DIR}/containerd/proto/${proto_file_name}.proto
+        COMMAND cmake -E create_symlink ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.grpc.pb.h
+                ${CMAKE_CURRENT_BINARY_DIR}/containerd/osquery/events/containerd/${proto_file_name}.grpc.pb.h
+        DEPENDS protobuf::protoc
+        DEPENDS grpc_cpp_plugin
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/containerd/osquery/events/containerd
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/containerd/proto/${proto_file_name}.proto
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.h
+      )
+    endforeach()
+
     list(APPEND source_files
       audit_flags.cpp
       file_events_flags.cpp
       linux/auditdnetlink.cpp
       linux/auditeventpublisher.cpp
+      linux/containereventpublisher.cpp
       linux/inotify.cpp
       linux/syslog.cpp
       linux/udev.cpp
       linux/socket_events.cpp
+      containerd/containerd_client.cpp
     )
+
+    foreach(proto_file_name ${containerd_proto_files})
+      list(APPEND source_files
+        ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.grpc.pb.cc
+      )
+    endforeach()
 
     if(OSQUERY_BUILD_BPF)
       list(APPEND source_files
@@ -89,6 +148,7 @@ function(generateOsqueryEvents)
       thirdparty_libaudit
       thirdparty_libudev
       thirdparty_util-linux
+      thirdparty_grpc
     )
 
     if(OSQUERY_BUILD_BPF)
@@ -113,6 +173,7 @@ function(generateOsqueryEvents)
     set(platform_public_header_files
       linux/auditdnetlink.h
       linux/auditeventpublisher.h
+      linux/containereventpublisher.h
       linux/inotify.h
       linux/process_events.h
       linux/process_file_events.h
@@ -121,6 +182,11 @@ function(generateOsqueryEvents)
       linux/socket_events.h
       linux/syslog.h
       linux/udev.h
+      containerd/client_interface.h
+    )
+
+    target_include_directories(osquery_events PUBLIC
+      ${CMAKE_CURRENT_BINARY_DIR}/containerd
     )
 
     if(OSQUERY_BUILD_BPF)

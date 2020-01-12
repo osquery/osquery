@@ -62,4 +62,8 @@ SpacesInSquareBrackets: false
 ContinuationIndentWidth: 4
 CommentPragmas:  '^ IWYU pragma:'
 ForEachMacros:   [ foreach, Q_FOREACH, BOOST_FOREACH ]
+---
+Language: Proto
+# Don't format .proto files.
+DisableFormat: true
 ...

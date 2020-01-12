@@ -92,6 +92,7 @@ function(importLibraries)
     "Linux,Darwin,Windows:gflags"
     "Linux,Darwin,Windows:glog"
     "Linux,Darwin,Windows:googletest"
+    "Linux:grpc"
     "Linux,Darwin,Windows:libarchive"
     "Linux:libaudit"
     "Linux:libcryptsetup"

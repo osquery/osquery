@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package containerd.services.images.v1;
+
+message ImageCreate {
+	string name = 1;
+	map<string, string> labels = 2;
+}
+
+message ImageUpdate {
+	string name = 1;
+	map<string, string> labels = 2;
+}
+
+message ImageDelete {
+	string name = 1;
+}

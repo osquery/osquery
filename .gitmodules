@@ -148,3 +148,6 @@
 [submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-sdk-cpp"]
 	path = libraries/cmake/source/aws-sdk-cpp/src/aws-sdk-cpp
 	url = https://github.com/aws/aws-sdk-cpp
+[submodule "libraries/cmake/source/grpc/src"]
+	path = libraries/cmake/source/grpc/src
+	url = https://github.com/grpc/grpc.git
