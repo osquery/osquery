@@ -1,0 +1,13 @@
+table_name("docker_image_layers")
+description("Docker image layers information.")
+schema([
+    Column("id", TEXT, "Image ID", index=True),
+    Column("layer_id", TEXT, "Layer ID"),
+    Column("layer_order", INTEGER, "Layer Order (1 = base layer)")
+])
+implementation("applications/docker@genImageLayers")
+examples([
+  "select * from docker_images",
+  "select * from docker_images where id = '6a2f32de169d'",
+  "select * from docker_images where id = '6a2f32de169d14e6f8a84538eaa28f2629872d7d4f580a303b296c60db36fbd7'"
+])

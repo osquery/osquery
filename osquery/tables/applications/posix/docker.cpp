@@ -965,6 +965,87 @@ QueryData genVolumeLabels(QueryContext& context) {
 }
 
 /**
+ * @brief Image layer extractor for docker_image_layers table
+ */
+void getImageLayers(std::string image_id, QueryData& results) {
+  pt::ptree tree;
+  std::vector<std::string> layers;
+
+  Status s = dockerApi("/images/" + image_id + "/json", tree);
+  if (!s.ok()) {
+    VLOG(1) << "Error getting docker images layers: " << s.what();
+    return;
+  }
+
+  try {
+    for (const auto& layer : tree.get_child("RootFS.Layers")) {
+      std::string layer_hash = layer.second.data();
+      if (boost::starts_with(layer_hash, "sha256:")) {
+        layer_hash.erase(0, 7);
+      }
+      layers.push_back(layer_hash);
+    }
+  } catch (const pt::ptree_error& e) {
+    VLOG(1) << "Error getting docker image layers details: " << e.what();
+    return;
+  }
+
+  for (size_t index = 0; index < layers.size(); index++) {
+    Row r;
+    r["id"] = image_id;
+    r["layer_order"] = std::to_string(index + 1);
+    r["layer_id"] = layers[index];
+    results.push_back(r);
+  }
+}
+
+/**
+ * @brief Calls layer extractor for all images for docker_image_layers table
+ */
+void getImageLayersAll(QueryData& results) {
+  pt::ptree tree;
+  Status s = dockerApi("/images/json", tree);
+  if (!s.ok()) {
+    VLOG(1) << "Error getting docker images: " << s.what();
+    return;
+  }
+  for (const auto& entry : tree) {
+    try {
+      const pt::ptree& node = entry.second;
+      std::string id = node.get<std::string>("Id", "");
+      if (boost::starts_with(id, "sha256:")) {
+        id.erase(0, 7);
+      }
+      getImageLayers(id, results);
+    } catch (const pt::ptree_error& e) {
+      VLOG(1) << "Error getting docker image details: " << e.what();
+    }
+  }
+}
+
+/**
+ * @brief Entry point for docker_image_layers table.
+ */
+QueryData genImageLayers(QueryContext& context) {
+  QueryData results;
+  pt::ptree tree;
+  std::vector<std::string> layers;
+
+  if (context.constraints["id"].exists(
+          EQUALS)) { // get layers for specific image
+    for (const auto& id : context.constraints["id"].getAll(EQUALS)) {
+      if (!checkConstraintValue(id)) {
+        continue;
+      }
+      getImageLayers(id, results);
+    }
+  } else { // get layers for all images
+    getImageLayersAll(results);
+  }
+  return results;
+}
+
+/**
  * @brief Entry point for docker_images table.
  */
 QueryData genImages(QueryContext& context) {
