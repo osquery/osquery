@@ -62,7 +62,7 @@ def url_for_spec(path):
     to the specification on GitHub.
     """
     full_path = os.path.abspath(path)
-    url = "https://github.com/facebook/osquery/blob/master"
+    url = "https://github.com/osquery/osquery/blob/master"
     osquery_found = False
     for part in full_path.split("/"):
         if osquery_found:
