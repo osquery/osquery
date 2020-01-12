@@ -70,7 +70,10 @@ CLI_FLAG(bool,
          false,
          "Check the format of an osquery config and exit");
 
-CLI_FLAG(bool, config_dump, false, "Dump the contents of the configuration");
+CLI_FLAG(bool,
+         config_dump,
+         false,
+         "Dump the contents of the configuration, then exit");
 
 CLI_FLAG(uint64,
          config_refresh,
@@ -501,6 +504,7 @@ Status Config::refresh() {
                 content.first.c_str(),
                 content.second.c_str());
       }
+      VLOG(1) << "Requesting shutdown after dumping config";
       // Don't force because the config plugin may have started services.
       Initializer::requestShutdown();
       return Status::success();

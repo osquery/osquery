@@ -67,6 +67,8 @@ osqueryi --config_path ./build/testing/invalid_osquery.conf --config_dump
 }
 ```
 
+Osqueryd will exit after printing the config.
+
 This example contains a C-style comment which was allowed in boost 1.58, but is deprecated and removed in 1.59. To be future-proof, stick to the JSON specification and do not include comments.
 
 ### Scheduled query failures and the watchdog

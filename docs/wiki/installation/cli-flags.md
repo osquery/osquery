@@ -65,7 +65,7 @@ Check the format of an osquery config and exit. Arbitrary config plugins may be 
 
 `--config_dump=false`
 
-Request that the configuration JSON be printed to standard out before it is updated. In this case "updated" means applied to the active config. When osquery starts it performs an initial update from the config plugin. To quickly debug the content retrieved by custom config plugins use this in tandem with `--config_check`.
+Request that the configuration JSON be printed to standard out before it is updated, then exit the process. In this case "updated" means applied to the active config. When osquery starts it performs an initial update from the config plugin. To quickly debug the content retrieved by custom config plugins use this in tandem with `--config_check`.
 
 ### Daemon control flags
 
