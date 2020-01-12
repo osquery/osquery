@@ -89,4 +89,7 @@ importSourceSubmodule(
     "src/libs/iostreams"
     "src/libs/scope_exit"
     "src/libs/typeof"
+
+  PATCH
+    "src/libs/process"
 )

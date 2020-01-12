@@ -171,7 +171,11 @@ function(generateBoostRandom)
 endfunction()
 
 function(importBoostInterfaceLibrary folder_name)
-  set(library_root "${BOOST_ROOT}/libs/${folder_name}")
+  if(folder_name STREQUAL "process")
+    set(library_root "${OSQUERY_boost_src_libs_process_ROOT_DIR}")
+  else()
+    set(library_root "${BOOST_ROOT}/libs/${folder_name}")
+  endif()
 
   string(REPLACE "_" "" target_name "${folder_name}")
   set(target_name "thirdparty_boost_${target_name}")
