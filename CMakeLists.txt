@@ -74,6 +74,10 @@ function(main)
   add_subdirectory("external")
   add_subdirectory("tests")
 
+  if(DEFINED PLATFORM_WINDOWS)
+    enableOsqueryWEL()
+  endif()
+
   identifyPackagingSystem()
   generateInstallTargets()
   generatePackageTarget()
