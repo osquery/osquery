@@ -8,6 +8,7 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/filesystem/linux/mounts.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -15,13 +16,41 @@
 
 namespace osquery {
 namespace tables {
-Status keyNameFromFilePath(std::string& key_name, const std::string& file_path);
+Status keyNameFromFilePath(std::string& key_name,
+                           const std::string& selinuxfs_path,
+                           const std::string& file_path);
 
 Status translateBooleanKeyValue(std::string& value,
                                 const std::string& raw_value);
 
 namespace {
-const std::string kSELinuxSysPath{"/sys/fs/selinux"};
+Status getSelinuxfsMountPath(std::string& path) {
+  path = {};
+
+  MountedFilesystemMap mounted_fs_map{};
+  auto status = getMountedFilesystemMap(mounted_fs_map);
+  if (!status.ok()) {
+    return status;
+  }
+
+  // clang-format off
+  auto selinuxfs_info_it = std::find_if(
+    mounted_fs_map.begin(),
+    mounted_fs_map.end(),
+
+    [](const std::pair<std::string, MountInformation> &p) -> bool {
+      const auto &fs_type = p.second.type;
+      return (fs_type == "selinuxfs");
+    }
+  );
+  // clang-format on
+
+  if (selinuxfs_info_it != mounted_fs_map.end()) {
+    path = selinuxfs_info_it->second.path;
+  }
+
+  return Status::success();
+}
 
 const std::vector<std::string> kRootKeyList = {"checkreqprot",
                                                "deny_unknown",
@@ -35,12 +64,14 @@ const std::vector<std::string> kScopeList = {
 
 Status generateScopeKey(Row& row,
                         const std::string& scope,
-                        const std::string& key,
-                        const std::string& path) {
+                        const std::string& selinuxfs_path,
+                        const std::string& key) {
   row = {};
 
   row["scope"] = scope;
   row["key"] = key;
+
+  auto path = selinuxfs_path + "/" + scope + "/" + key;
 
   std::string raw_value;
   auto status = readFile(path, raw_value);
@@ -65,8 +96,10 @@ Status generateScopeKey(Row& row,
   return Status::success();
 }
 
-Status generateScope(QueryData& row_list, const std::string& scope) {
-  auto scope_directory_path = kSELinuxSysPath + "/" + scope;
+Status generateScope(QueryData& row_list,
+                     const std::string& selinuxfs_path,
+                     const std::string& scope) {
+  auto scope_directory_path = selinuxfs_path + "/" + scope;
 
   std::vector<std::string> path_list;
   auto status = listFilesInDirectory(scope_directory_path, path_list, true);
@@ -81,7 +114,7 @@ Status generateScope(QueryData& row_list, const std::string& scope) {
     }
 
     std::string key_name = {};
-    status = keyNameFromFilePath(key_name, path);
+    status = keyNameFromFilePath(key_name, selinuxfs_path, path);
     if (!status.ok()) {
       LOG(ERROR) << "Invalid SELinux key path '" + path
                  << "'. Error: " << status.getMessage();
@@ -89,7 +122,7 @@ Status generateScope(QueryData& row_list, const std::string& scope) {
     }
 
     Row row;
-    status = generateScopeKey(row, scope, key_name, path);
+    status = generateScopeKey(row, scope, selinuxfs_path, key_name);
     if (!status.ok()) {
       LOG(ERROR) << status.getMessage();
       continue;
@@ -101,8 +134,8 @@ Status generateScope(QueryData& row_list, const std::string& scope) {
   return Status::success();
 }
 
-Status generateClasses(QueryData& row_list) {
-  auto class_root_path = kSELinuxSysPath + "/class";
+Status generateClasses(QueryData& row_list, const std::string& selinuxfs_path) {
+  auto class_root_path = selinuxfs_path + "/class";
 
   std::vector<std::string> path_list;
   auto status = listFilesInDirectory(class_root_path, path_list, true);
@@ -149,14 +182,15 @@ Status generateClasses(QueryData& row_list) {
 } // namespace
 
 Status keyNameFromFilePath(std::string& key_name,
+                           const std::string& selinuxfs_path,
                            const std::string& file_path) {
   // This limit only applies to this specific case and not to the
   // items in the 'class' scope
-  static const std::size_t kMinimumPathSize = kSELinuxSysPath.size() + 2U;
+  static const std::size_t kMinimumPathSize = selinuxfs_path.size() + 2U;
 
   key_name = {};
 
-  if (file_path.find(kSELinuxSysPath) != 0) {
+  if (file_path.find(selinuxfs_path) != 0) {
     return Status::failure("The given path is outside the SELinux folder");
   }
 
@@ -198,17 +232,22 @@ Status translateBooleanKeyValue(std::string& value,
 }
 
 QueryData genSELinuxSettings(QueryContext& context) {
+  std::string selinuxfs_path;
+  auto status = getSelinuxfsMountPath(selinuxfs_path);
+  if (!status.ok()) {
+    LOG(ERROR) << "Failed to acquire the SELinux FS path"
+               << status.getMessage();
+    return {};
+  }
+
+  if (selinuxfs_path.empty()) {
+    return {};
+  }
+
   QueryData row_list;
-
   for (const auto& root_key : kRootKeyList) {
-    auto path = kSELinuxSysPath + "/" + root_key;
-
-    if (!pathExists(path).ok()) {
-      continue;
-    }
-
     Row row;
-    auto status = generateScopeKey(row, "", root_key, path);
+    status = generateScopeKey(row, "", selinuxfs_path, root_key);
     if (!status.ok()) {
       LOG(ERROR) << "Failed to generate SELinux root key: "
                  << status.getMessage();
@@ -218,13 +257,13 @@ QueryData genSELinuxSettings(QueryContext& context) {
   }
 
   for (const auto& scope : kScopeList) {
-    auto status = generateScope(row_list, scope);
+    status = generateScope(row_list, selinuxfs_path, scope);
     if (!status.ok()) {
       LOG(ERROR) << "Failed to generate SELinux scope: " << status.getMessage();
     }
   }
 
-  auto status = generateClasses(row_list);
+  status = generateClasses(row_list, selinuxfs_path);
   if (!status.ok()) {
     LOG(ERROR) << "failed to bla bla";
   }

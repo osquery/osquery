@@ -17,7 +17,9 @@
 
 namespace osquery {
 namespace tables {
-Status keyNameFromFilePath(std::string& key_name, const std::string& file_path);
+Status keyNameFromFilePath(std::string& key_name,
+                           const std::string& selinuxfs_path,
+                           const std::string& file_path);
 
 bool isBooleanKey(const std::string& key_name);
 
@@ -27,6 +29,8 @@ Status translateBooleanKeyValue(std::string& value,
 class SELinuxSettingsTests : public testing::Test {};
 
 TEST_F(SELinuxSettingsTests, keyNameFromFilePath) {
+  static const std::string kSelinuxFsPath{"/sys/fs/selinux"};
+
   struct TestCase final {
     bool expected_status{false};
     std::string expected_key_name;
@@ -34,17 +38,18 @@ TEST_F(SELinuxSettingsTests, keyNameFromFilePath) {
   };
 
   const std::vector<TestCase> test_case_list = {
-      {false, "", "/sys/fs/selinux"},
-      {false, "", "/sys/fs/selinux/"},
-      {true, "devnull", "/sys/fs/selinux/initial_contexts/devnull"},
-      {true, "name_bind", "/sys/fs/selinux/class/smc_socket/perms/name_bind"},
+      {false, "", kSelinuxFsPath},
+      {false, "", kSelinuxFsPath + "/"},
+      {true, "devnull", kSelinuxFsPath + "/initial_contexts/devnull"},
+      {true, "name_bind", kSelinuxFsPath + "/class/smc_socket/perms/name_bind"},
       {true,
        "nnp_nosuid_transition",
-       "/sys/fs/selinux/policy_capabilities/nnp_nosuid_transition"}};
+       kSelinuxFsPath + "/policy_capabilities/nnp_nosuid_transition"}};
 
   for (const auto& test_case : test_case_list) {
     std::string key_name;
-    auto status = keyNameFromFilePath(key_name, test_case.file_path);
+    auto status =
+        keyNameFromFilePath(key_name, kSelinuxFsPath, test_case.file_path);
 
     CHECK_EQ(key_name, test_case.expected_key_name);
     ASSERT_EQ(status.ok(), test_case.expected_status);
