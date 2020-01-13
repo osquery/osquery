@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/core.h>
+#include <osquery/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/env.h>
 #include <osquery/utils/system/errno.h>

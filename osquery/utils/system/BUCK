@@ -82,6 +82,7 @@ osquery_cxx_library(
         ),
     ],
     deps = [
+        osquery_target("osquery/logger:logger"),
         osquery_target("osquery/utils/status:status"),
     ],
     tests = [
