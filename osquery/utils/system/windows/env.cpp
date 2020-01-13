@@ -6,8 +6,10 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/core.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/env.h>
+#include <osquery/utils/system/errno.h>
 
 #include <string>
 #include <vector>
@@ -22,6 +24,11 @@
 namespace osquery {
 
 const auto kInitialBufferSize = 1024;
+
+// NOTE: ExpandEnvironmentStrings doesn't support inputs larger than 32k.
+// The MSDN documentation refers to this limit as the size of the buffer, so
+// we assume that the null terminator is counted and subtract it here.
+const auto kEnvironmentExpansionMax = 32767;
 
 bool setEnvVar(const std::string& name, const std::string& value) {
   return (::SetEnvironmentVariableA(name.c_str(), value.c_str()) == TRUE);
@@ -63,14 +70,21 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
   std::vector<char> buf;
   buf.assign(kInitialBufferSize, '\0');
 
-  // ExpandEnvironmentStrings doesn't support inputs larger than 32k.
-  if (input.size() > 32768) {
+  if (input.size() > kEnvironmentExpansionMax) {
+    VLOG(1) << "Not expanding environment string larger than "
+            << kEnvironmentExpansionMax << " bytes";
     return boost::none;
   }
 
   auto len =
       ::ExpandEnvironmentStrings(input.c_str(), buf.data(), kInitialBufferSize);
   if (len == 0) {
+    std::string description;
+    if (!getWindowsErrorDescription(description, ::GetLastError())) {
+      description = "Unknown error";
+    }
+    VLOG(1) << "Failed to expand environment string: " << description;
+
     return boost::none;
   }
 
@@ -80,6 +94,12 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
   }
 
   if (len == 0) {
+    std::string description;
+    if (!getWindowsErrorDescription(description, ::GetLastError())) {
+      description = "Unknown error";
+    }
+    VLOG(1) << "Failed to expand environment string: " << description;
+
     return boost::none;
   }
 
