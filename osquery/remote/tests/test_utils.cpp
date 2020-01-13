@@ -32,28 +32,33 @@ DECLARE_string(tls_server_certs);
 DECLARE_string(enroll_secret_path);
 DECLARE_bool(disable_caching);
 
-void TLSServerRunner::start() {
+bool TLSServerRunner::start() {
   auto& self = instance();
   if (self.server_ != nullptr) {
-    return;
+    return true;
   }
 
   // Pick a port in an ephemeral range at random.
   self.port_ = std::to_string(getUnixTime() % 10000 + 20000);
 
   // Fork then exec a shell.
-  auto python_server = (getTestConfigDirectory() / "test_http_server.py")
-                           .make_preferred()
-                           .string() +
-                       " --tls " + self.port_;
-  self.server_ = PlatformProcess::launchTestPythonScript(python_server);
+  auto python_server_path =
+      (getTestHelperScriptsDirectory() / "test_http_server.py");
+  auto test_config_dir = getTestConfigDirectory();
+  const auto python_server_cmd = python_server_path.make_preferred().string() +
+                                 " --tls --verbose " + " --test-configs-dir " +
+                                 test_config_dir.make_preferred().string() +
+                                 " " + self.port_;
+  bool started = false;
+  self.server_ = PlatformProcess::launchTestPythonScript(python_server_cmd);
   if (self.server_ == nullptr) {
-    return;
+    return started;
   }
 
   size_t delay = 0;
   std::string query =
       "select pid from listening_ports where port = '" + self.port_ + "'";
+
   while (delay < 2 * 1000) {
     auto caching = FLAGS_disable_caching;
     FLAGS_disable_caching = true;
@@ -62,12 +67,16 @@ void TLSServerRunner::start() {
     if (!results.rows().empty()) {
       self.server_.reset(
           new PlatformProcess(std::atoi(results.rows()[0].at("pid").c_str())));
+
+      started = true;
       break;
     }
 
     sleepFor(100);
     delay += 100;
   }
+
+  return started;
 }
 
 void TLSServerRunner::setClientConfig() {

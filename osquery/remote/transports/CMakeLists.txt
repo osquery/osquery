@@ -37,9 +37,15 @@ function(generateOsqueryRemoteTransportsTransportstls)
   if(DEFINED PLATFORM_POSIX)
     add_test(NAME osquery_remote_transports_remotetransportstlstests-test COMMAND osquery_remote_transports_remotetransportstlstests-test)
 
+    set(remotetransportstlstests-test_env
+      "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
+      "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
+    )
+
     set_tests_properties(
       osquery_remote_transports_remotetransportstlstests-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      PROPERTIES ENVIRONMENT "${remotetransportstlstests-test_env}"
     )
   endif()
 endfunction()

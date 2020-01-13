@@ -18,6 +18,7 @@
 namespace osquery {
 
 boost::filesystem::path const& getTestConfigDirectory();
+boost::filesystem::path const& getTestHelperScriptsDirectory();
 
 // Get an example generate config with one static source name to JSON content.
 std::map<std::string, std::string> getTestConfigMap(const std::string& file);

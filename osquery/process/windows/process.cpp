@@ -321,16 +321,12 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
   mutable_argv.push_back('\0');
   si.cb = sizeof(si);
 
-  auto pythonEnv = getEnvVar("OSQUERY_PYTHON_PATH");
-  std::string pythonPath;
-  if (pythonEnv.is_initialized()) {
-    pythonPath = *pythonEnv;
+  const auto pythonEnv = getEnvVar("OSQUERY_PYTHON_INTERPRETER_PATH");
+  if (!pythonEnv.is_initialized()) {
+    return nullptr;
   }
 
-  // Python is installed at this location if the provisioning script is used.
-  // This path should work regardless of the existence of the SystemDrive
-  // environment variable.
-  pythonPath += "\\python.exe";
+  auto pythonPath = *pythonEnv;
 
   std::shared_ptr<PlatformProcess> process;
   if (::CreateProcessA(pythonPath.c_str(),

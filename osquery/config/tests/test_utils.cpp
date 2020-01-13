@@ -31,6 +31,14 @@ fs::path getConfDirPathImpl() {
   return fs::path(value_opt.get());
 }
 
+fs::path getTestHelperScriptsDirectoryImpl() {
+  char const* kEnvVarName = "TEST_HELPER_SCRIPTS_DIR";
+  auto const value_opt = osquery::getEnvVar(kEnvVarName);
+  EXPECT_TRUE(static_cast<bool>(value_opt))
+      << "Env var " << boost::io::quoted(kEnvVarName) << " was not found, "
+      << " looks like cxx_test argument 'env' is not set up.";
+  return fs::path(value_opt.get());
+}
 }
 
 namespace osquery {
@@ -38,6 +46,11 @@ namespace osquery {
 fs::path const& getTestConfigDirectory() {
     static auto const path = getConfDirPathImpl();
     return path;
+}
+
+fs::path const& getTestHelperScriptsDirectory() {
+  static auto const path = getTestHelperScriptsDirectoryImpl();
+  return path;
 }
 
 std::map<std::string, std::string> getTestConfigMap(const std::string& file) {

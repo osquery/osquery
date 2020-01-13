@@ -177,17 +177,13 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
     const std::string& args) {
-  std::string osquery_path;
-  auto osquery_path_option = getEnvVar("OSQUERY_DEPS");
-  if (osquery_path_option) {
-    osquery_path = *osquery_path_option;
-  } else {
-    if (!isPlatform(PlatformType::TYPE_FREEBSD)) {
-      osquery_path = "/usr/bin/env python";
-    } else {
-      osquery_path = "/usr/local/bin/python";
-    }
+  const auto osquery_path_option = getEnvVar("OSQUERY_PYTHON_INTERPRETER_PATH");
+
+  if (!osquery_path_option.is_initialized()) {
+    return nullptr;
   }
+
+  auto osquery_path = *osquery_path_option;
 
   // The whole-string, space-delimited, python process arguments.
   auto argv = osquery_path + " " + args;
