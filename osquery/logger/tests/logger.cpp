@@ -191,7 +191,7 @@ TEST_F(LoggerTests, test_logger_log_status) {
   EXPECT_EQ(O_WARNING, LoggerTests::last_status.severity);
   EXPECT_GT(LoggerTests::last_status.line, 0U);
   EXPECT_EQ(warning, LoggerTests::last_status.message);
-  EXPECT_GE(now, LoggerTests::last_status.time);
+  EXPECT_GE(LoggerTests::last_status.time, now);
   EXPECT_EQ(getHostIdentifier(), LoggerTests::last_status.identifier);
 }
 
