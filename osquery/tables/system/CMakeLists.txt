@@ -275,6 +275,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/shell_history.h
       posix/sudoers.h
       posix/sysctl_utils.h
+      posix/last.h
     )
   endif()
 

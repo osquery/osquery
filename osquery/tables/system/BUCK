@@ -35,6 +35,7 @@ osquery_cxx_library(
                 "posix/shell_history.h",
                 "posix/sudoers.h",
                 "posix/sysctl_utils.h",
+                "posix/last.h",
             ],
         ),
         (
