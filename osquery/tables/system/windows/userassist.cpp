@@ -64,7 +64,7 @@ auto lastExecute(std::string& time_data) {
     unsigned long long last_run =
         tryTo<unsigned long long>(time_data, 16).takeOr(0ull);
     if (last_run == 0ull) {
-      LOG(WARNING) << "Failed to convert string to long long.";
+      LOG(WARNING) << "Failed to convert string to long long: " << time_data;
       return 1LL;
     }
 
@@ -79,7 +79,7 @@ auto lastExecute(std::string& time_data) {
 }
 
 // Get execution count
-int executionNum(std::string& assist_data) {
+int executionNum(const std::string& assist_data) {
   if (assist_data.length() <= 16) {
     LOG(WARNING) << "Userassist execution count format is incorrect";
     return -1;
