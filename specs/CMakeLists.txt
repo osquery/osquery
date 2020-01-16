@@ -183,6 +183,7 @@ function(generateNativeTables)
     "posix/docker_container_networks.table:linux,macos,freebsd"
     "posix/docker_container_ports.table:linux,macos,freebsd"
     "posix/docker_container_processes.table:linux,macos,freebsd"
+    "posix/docker_container_fs_changes.table:linux,macos,freebsd"
     "posix/docker_container_stats.table:linux,macos,freebsd"
     "posix/docker_containers.table:linux,macos,freebsd"
     "posix/docker_image_labels.table:linux,macos,freebsd"
