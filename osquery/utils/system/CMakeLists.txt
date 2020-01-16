@@ -44,6 +44,7 @@ function(generateOsqueryUtilsSystemEnv)
     osquery_cxx_settings
     thirdparty_boost
     osquery_utils_conversions
+    osquery_utils_system_errno
   )
 
   set(public_header_files
