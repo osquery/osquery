@@ -350,7 +350,7 @@ WmiRequest::WmiRequest(const std::string& query, std::wstring nspace) {
 
   IWbemServices* services = nullptr;
   BSTR nspace_str = SysAllocString(nspace.c_str());
-  if (NULL == nspace_str) {
+  if (nullptr == nspace_str) {
     return;
   }
 
@@ -366,12 +366,13 @@ WmiRequest::WmiRequest(const std::string& query, std::wstring nspace) {
   IEnumWbemClassObject* wbem_enum = nullptr;
 
   BSTR language_str = SysAllocString(L"WQL");
-  if (NULL == language_str) {
+  if (nullptr == language_str) {
     return;
   }
 
   BSTR wql_str = SysAllocString(wql.c_str());
-  if (NULL == wql_str) {
+  if (nullptr == wql_str) {
+    SysFreeString(language_str);
     return;
   }
 
