@@ -209,7 +209,7 @@ class WmiResultItem {
 class WmiRequest {
  public:
   explicit WmiRequest(const std::string& query,
-                      BSTR nspace = (BSTR)L"ROOT\\CIMV2");
+                      std::wstring nspace = L"ROOT\\CIMV2");
   WmiRequest(WmiRequest&& src) = default;
 
   const std::vector<WmiResultItem>& results() const {
