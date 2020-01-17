@@ -924,6 +924,7 @@ void Config::reset() {
       continue;
     }
     parser->reset();
+    parser->setUp();
   }
 }
 
@@ -1086,7 +1087,7 @@ Status ConfigPlugin::call(const PluginRequest& request,
   }
 
   if (action->second == "genConfig") {
-    std::map<std::string, std::string> config;
+    ConfigMap config;
     auto stat = genConfig(config);
     response.push_back(config);
     return stat;
