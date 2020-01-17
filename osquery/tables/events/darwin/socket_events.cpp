@@ -63,7 +63,7 @@ class OpenBSMNetEvSubscriber : public EventSubscriber<OpenBSMEventPublisher> {
 REGISTER(OpenBSMNetEvSubscriber, "event_subscriber", "socket_events");
 
 Status OpenBSMNetEvSubscriber::init() {
-  if (!FLAGS_audit_allow_sockets && FLAGS_disable_audit) {
+  if (!FLAGS_audit_allow_sockets || FLAGS_disable_audit) {
     return Status::failure("Subscriber disabled via configuration");
   }
   return Status::success();
