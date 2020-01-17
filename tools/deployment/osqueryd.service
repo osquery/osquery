@@ -5,6 +5,7 @@ After=network.service syslog.service
 [Service]
 TimeoutStartSec=0
 EnvironmentFile=/etc/sysconfig/osqueryd
+UMask 0002
 ExecStartPre=/bin/sh -c "if [ ! -f $CONFIG_FILE ]; then echo {} > $CONFIG_FILE; fi"
 ExecStartPre=/bin/sh -c "if [ ! -f $FLAG_FILE ]; then touch $FLAG_FILE; fi"
 ExecStartPre=/bin/sh -c "if [ -f $LOCAL_PIDFILE ]; then mv $LOCAL_PIDFILE $PIDFILE; fi"
