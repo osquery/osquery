@@ -323,7 +323,7 @@ Status WmiResultItem::GetVectorOfStrings(const std::string& name,
   return Status::success();
 }
 
-WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
+WmiRequest::WmiRequest(const std::string& query, std::wstring nspace) {
   std::wstring wql = stringToWstring(query);
 
   HRESULT hr = E_FAIL;
@@ -349,8 +349,15 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
   locator_.reset(locator);
 
   IWbemServices* services = nullptr;
+  BSTR nspace_str = SysAllocString(nspace.c_str());
+  if (nullptr == nspace_str) {
+    return;
+  }
+
   hr = locator_->ConnectServer(
-      nspace, nullptr, nullptr, nullptr, 0, nullptr, nullptr, &services);
+      nspace_str, nullptr, nullptr, nullptr, 0, nullptr, nullptr, &services);
+  SysFreeString(nspace_str);
+
   if (hr != S_OK) {
     return;
   }
@@ -358,11 +365,22 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
   IEnumWbemClassObject* wbem_enum = nullptr;
 
-  hr = services_->ExecQuery((BSTR)L"WQL",
-                            (BSTR)wql.c_str(),
-                            WBEM_FLAG_FORWARD_ONLY,
-                            nullptr,
-                            &wbem_enum);
+  BSTR language_str = SysAllocString(L"WQL");
+  if (nullptr == language_str) {
+    return;
+  }
+
+  BSTR wql_str = SysAllocString(wql.c_str());
+  if (nullptr == wql_str) {
+    SysFreeString(language_str);
+    return;
+  }
+
+  hr = services_->ExecQuery(
+      language_str, wql_str, WBEM_FLAG_FORWARD_ONLY, nullptr, &wbem_enum);
+
+  SysFreeString(wql_str);
+  SysFreeString(language_str);
   if (hr != S_OK) {
     return;
   }
