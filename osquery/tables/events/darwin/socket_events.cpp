@@ -5,31 +5,29 @@
  *  This source code is licensed in accordance with the terms specified in
  *  the LICENSE file found in the root directory of this source tree.
  */
-#include <arpa/inet.h>
 
 #include <bsm/audit_kevents.h>
 #include <bsm/libbsm.h>
 
-#include <iostream>
 #include <libproc.h>
 #include <stdio.h>
+#include <arpa/inet.h>
+
+#include <iostream>
 
 #include <osquery/events.h>
 #include <osquery/events/darwin/openbsm.h>
 #include <osquery/flags.h>
-#include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/utils/system/uptime.h>
 
 namespace osquery {
 
-FLAG(bool,
-     audit_allow_sockets,
-     false,
-     "Allow the audit publisher to install socket-related rules");
+DECLARE_bool(audit_allow_sockets);
+DECLARE_bool(disable_audit);
 
 static std::string getIpFromToken(const tokenstr_t& tok) {
-  char ip_str[INET6_ADDRSTRLEN];
+  char ip_str[INET6_ADDRSTRLEN] = {0};
   if (tok.tt.sockinet_ex32.family == 2) {
     struct in_addr ipv4;
     ipv4.s_addr = static_cast<in_addr_t>(*tok.tt.sockinet_ex32.addr);
@@ -42,12 +40,11 @@ static std::string getIpFromToken(const tokenstr_t& tok) {
 }
 
 static std::string getPathFromPid(int pid) {
-  int ret;
-  char pathbuf[PROC_PIDPATHINFO_MAXSIZE];
+  char pathbuf[PROC_PIDPATHINFO_MAXSIZE] = {0};
 
-  ret = proc_pidpath(pid, pathbuf, sizeof(pathbuf));
+  int ret = proc_pidpath(pid, pathbuf, sizeof(pathbuf));
   if (ret > 0) {
-    return (std::string)pathbuf;
+    return std::string(pathbuf);
   } else {
     return "";
   }
@@ -55,22 +52,22 @@ static std::string getPathFromPid(int pid) {
 
 class OpenBSMNetEvSubscriber : public EventSubscriber<OpenBSMEventPublisher> {
  public:
-  Status init() override {
-    if (!FLAGS_audit_allow_sockets) {
-      return Status(1, "Subscriber disabled via configuration");
-    }
-    return Status(0);
-  }
+  Status init() override;
 
   void configure() override;
 
   Status Callback(const OpenBSMEventContextRef& ec,
                   const OpenBSMSubscriptionContextRef& sc);
-
-  std::unordered_map<uint32_t, uint32_t> ppid_map;
 };
 
 REGISTER(OpenBSMNetEvSubscriber, "event_subscriber", "socket_events");
+
+Status OpenBSMNetEvSubscriber::init() {
+  if (!FLAGS_audit_allow_sockets && FLAGS_disable_audit) {
+    return Status::failure("Subscriber disabled via configuration");
+  }
+  return Status::success();
+}
 
 void OpenBSMNetEvSubscriber::configure() {
   std::vector<size_t> event_ids{AUE_CONNECT, AUE_BIND};
@@ -84,9 +81,7 @@ void OpenBSMNetEvSubscriber::configure() {
 Status OpenBSMNetEvSubscriber::Callback(
     const OpenBSMEventContextRef& ec, const OpenBSMSubscriptionContextRef& sc) {
   Row r;
-  std::map<std::string, std::string>::iterator it;
   uint32_t pid = 0;
-  int error;
 
   for (const auto& tok : ec->tokens) {
     if (tok.id != AUT_SOCKUNIX) {
@@ -152,6 +147,7 @@ Status OpenBSMNetEvSubscriber::Callback(
         pid = tok.tt.subj32_ex.pid;
         break;
       case AUT_RETURN32: {
+        int error = 0;
         if (au_bsm_to_errno(tok.tt.ret32.status, &error) == 0) {
           if (error == 0) {
             r["success"] = INTEGER(1);
@@ -163,6 +159,7 @@ Status OpenBSMNetEvSubscriber::Callback(
         break;
       }
       case AUT_RETURN64: {
+        int error = 0;
         if (au_bsm_to_errno(tok.tt.ret64.err, &error) == 0) {
           if (error == 0) {
             r["success"] = INTEGER(1);
@@ -219,14 +216,14 @@ Status OpenBSMNetEvSubscriber::Callback(
     }
   }
 
-  it = r.find("remote_address");
-  if (it != r.end()) {
+  auto remote_address = r.find("remote_address");
+  if (remote_address != r.end()) {
     r["uptime"] = INTEGER(getUptime());
     r["path"] = getPathFromPid(pid);
     add(r);
   }
 
-  return Status(0);
+  return Status::success();
 }
 
 } // namespace osquery
