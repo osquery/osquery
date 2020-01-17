@@ -1,0 +1,16 @@
+table_name("process_open_pipes")
+description("Pipes and partner processes for each process.")
+schema([
+    Column("pid", BIGINT, "Process ID"),
+    Column("fd", BIGINT, "File descriptor"),
+    Column("mode", TEXT, "Pipe open mode (r/w)"),
+    Column("inode", BIGINT, "Pipe inode number"),
+    Column("type", TEXT, "Pipe Type: named vs unnamed/anonymous"),
+    Column("partner_pid", BIGINT, "Process ID of partner process sharing a particular pipe"),
+    Column("partner_fd", BIGINT, "File descriptor of shared pipe at partner's end"),
+    Column("partner_mode", TEXT, "Mode of shared pipe at partner's end"),
+])
+implementation("system/process_open_pipes@genPipes")
+examples([
+  "select * from process_open_pipes",
+])

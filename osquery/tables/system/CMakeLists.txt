@@ -67,6 +67,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/pci_devices.cpp
       linux/portage.cpp
       linux/process_open_files.cpp
+      linux/process_open_pipes.cpp
       linux/processes.cpp
       linux/rpm_packages.cpp
       linux/shadow.cpp
