@@ -27,12 +27,12 @@ namespace osquery {
 
 FLAG(string,
      disable_tables,
-     "Not Specified",
+     "",
      "Comma-delimited list of table names to be disabled");
 
 FLAG(string,
      enable_tables,
-     "Not Specified",
+     "",
      "Comma-delimited list of table names to be enabled");
 
 FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
@@ -370,10 +370,8 @@ SQLiteDBManager::SQLiteDBManager() : db_(nullptr) {
 }
 
 bool SQLiteDBManager::isDisabled(const std::string& table_name) {
-  bool disabled_set = !(instance().disabled_tables_.find("Not Specified") !=
-                        instance().disabled_tables_.end());
-  bool enabled_set = !(instance().enabled_tables_.find("Not Specified") !=
-                       instance().enabled_tables_.end());
+  bool disabled_set = !Flag::isDefault("disable_tables");
+  bool enabled_set = !Flag::isDefault("enable_tables");
   if (!disabled_set && !enabled_set) {
     // We have zero enabled tables and zero disabled tables.
     // As a result, no tables are disabled.
