@@ -376,11 +376,8 @@ WmiRequest::WmiRequest(const std::string& query, std::wstring nspace) {
     return;
   }
 
-  hr = services_->ExecQuery(language_str,
-                            wql_str,
-                            WBEM_FLAG_FORWARD_ONLY,
-                            nullptr,
-                            &wbem_enum);
+  hr = services_->ExecQuery(
+      language_str, wql_str, WBEM_FLAG_FORWARD_ONLY, nullptr, &wbem_enum);
 
   SysFreeString(wql_str);
   SysFreeString(language_str);
