@@ -15,7 +15,7 @@ import sys
 def check(base_commit, exclude_folders):
     try:
         cmd = [
-          "python3",
+          sys.executable,
           os.path.join(os.path.dirname(os.path.abspath(__file__)), "git-clang-format.py"),
           "--style=file",
           "--diff",
@@ -56,7 +56,7 @@ def get_base_commit(base_branch):
     try:
         return subprocess.check_output(
                 ["git", "merge-base", "HEAD", base_branch]
-                ).strip()
+                ).decode().strip()
     except OSError as e:
         print("{}\n\n{}".format("Failed to execut git", str(e)))
     except subprocess.CalledProcessError as e:
