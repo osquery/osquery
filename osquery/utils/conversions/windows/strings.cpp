@@ -33,8 +33,13 @@ struct utf_converter {
     std::string result;
     if (str.length() > 0) {
       result.resize(str.length() * 4);
-      auto count = WideCharToMultiByte(
-          CP_UTF8, 0, str.c_str(), -1, &result[0], str.length() * 4, NULL, NULL);
+      auto count = WideCharToMultiByte(CP_UTF8,
+                                       0,
+                                       str.c_str(),
+                                       -1, &result[0],
+                                       str.length() * 4,
+                                       NULL,
+                                       NULL);
       result.resize(count - 1);
     }
 

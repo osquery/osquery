@@ -58,10 +58,10 @@ QueryData genLoggedInUsers(QueryContext& context) {
     LPWSTR sessionInfo = nullptr;
     DWORD bytesRet = 0;
     res = WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE,
-                                     pSessionInfo[i].SessionId,
-                                     WTSSessionInfo,
-                                     &sessionInfo,
-                                     &bytesRet);
+                                      pSessionInfo[i].SessionId,
+                                      WTSSessionInfo,
+                                      &sessionInfo,
+                                      &bytesRet);
     if (res == 0 || sessionInfo == nullptr) {
       VLOG(1) << "Error querying WTS session information (" << GetLastError()
               << ")";
@@ -118,8 +118,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
       wtsClient = nullptr;
     }
 
-    const auto sidBuf =
-        getSidFromUsername(wtsSession->UserName);
+    const auto sidBuf = getSidFromUsername(wtsSession->UserName);
 
     if (sessionInfo != nullptr) {
       WTSFreeMemory(sessionInfo);
