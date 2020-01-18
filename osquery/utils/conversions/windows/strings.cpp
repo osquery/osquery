@@ -36,7 +36,8 @@ struct utf_converter {
       auto count = WideCharToMultiByte(CP_UTF8,
                                        0,
                                        str.c_str(),
-                                       -1, &result[0],
+                                       -1,
+                                       &result[0],
                                        str.length() * 4,
                                        NULL,
                                        NULL);
