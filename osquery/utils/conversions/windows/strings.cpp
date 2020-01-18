@@ -23,7 +23,7 @@ struct utf_converter {
       result.resize(str.length() * 2);
       int count = MultiByteToWideChar(
           CP_UTF8, 0, str.c_str(), -1, &result[0], str.length() * 2);
-      result.resize(count-1);
+      result.resize(count - 1);
     }
 
     return result;
@@ -35,7 +35,7 @@ struct utf_converter {
       result.resize(str.length() * 4);
       int count = WideCharToMultiByte(
           CP_ACP, 0, str.c_str(), -1, &result[0], str.length() * 4, NULL, NULL);
-      result.resize(count-1);
+      result.resize(count - 1);
     }
 
     return result;
