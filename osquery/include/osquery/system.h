@@ -82,18 +82,31 @@ class Initializer : private boost::noncopyable {
   void start() const;
 
   /**
-   * @brief Cleanly wait for all services and components to shutdown.
+   * @brief Cleanly shutdown all services and components to shutdown.
    *
-   * Enter a join of all services followed by a sync wait for event loops,
-   * then it shuts down all the components.
+   * Issue interrupt/stop requests to all service threads, join them, then
+   * stop the eventing system, database usage, and run any platform-specific
+   * teardown logic.
+   *
+   * If a request to shutdown stored a non-0 return code, that will override
+   * the input return code if the input is 0. If the caller assumes success
+   * and something else indicated failure we return with the failure code.
+   *
    * If the main thread is out of actions it can call #shutdown.
+   *
+   * @param retcode Caller (main thread's) request return code.
+   * @return The most appropriate return code.
    */
   int shutdown(int retcode) const;
 
   /**
-   * @brief Attempt to join all services.
+   * @brief Wait until a #requestShutdown is issued.
    *
-   * If the main thread is out of actions it can call #waitThenShutdown.
+   * The #requestShutdown method is called in a signal handler or service
+   * stop event. It may also be called by osquery internal components if an
+   * unrecoverable error occurs.
+   *
+   * This method should be called before #shutdown.
    */
   void waitForShutdown() const;
 
