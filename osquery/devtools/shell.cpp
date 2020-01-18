@@ -1769,6 +1769,10 @@ int launchIntoShell(int argc, char** argv) {
   } else {
     // Run commands received from standard input
     if (stdin_is_interactive) {
+#ifdef WIN32
+      SetConsoleCP(CP_UTF8);
+      SetConsoleOutputCP(CP_UTF8);
+#endif // WIN32
       printf("Using a ");
       print_bold("virtual database");
       printf(". Need help, type '.help'\n");
