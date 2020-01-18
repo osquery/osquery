@@ -185,6 +185,6 @@ int startOsquery(int argc, char* argv[]) {
     }
   }
 
-  return runner.waitThenShutdown(retcode);
+  return runner.shutdown(retcode);
 }
 } // namespace osquery

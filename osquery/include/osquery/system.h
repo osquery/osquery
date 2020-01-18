@@ -81,6 +81,22 @@ class Initializer : private boost::noncopyable {
   /// Assume initialization finished, start work.
   void start() const;
 
+  /**
+   * @brief Cleanly wait for all services and components to shutdown.
+   *
+   * Enter a join of all services followed by a sync wait for event loops,
+   * then it shuts down all the components.
+   * If the main thread is out of actions it can call #shutdown.
+   */
+  int shutdown(int retcode) const;
+
+  /**
+   * @brief Attempt to join all services.
+   *
+   * If the main thread is out of actions it can call #waitThenShutdown.
+   */
+  void waitForShutdown() const;
+
  public:
   /**
    * @brief Forcefully request the application to stop.
@@ -109,22 +125,6 @@ class Initializer : private boost::noncopyable {
 
   /// Exit immediately without requesting the dispatcher to stop.
   static void shutdownNow(int retcode = EXIT_SUCCESS);
-
-  /**
-   * @brief Cleanly wait for all services and components to shutdown.
-   *
-   * Enter a join of all services followed by a sync wait for event loops,
-   * then it shuts down all the components.
-   * If the main thread is out of actions it can call #waitThenShutdown.
-   */
-  static int waitThenShutdown(int retcode);
-
-  /**
-   * @brief Attempt to join all services.
-   *
-   * If the main thread is out of actions it can call #waitThenShutdown.
-   */
-  static void waitForShutdown();
 
   /**
    * @brief Initialize any platform dependent libraries or objects

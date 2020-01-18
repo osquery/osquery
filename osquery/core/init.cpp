@@ -119,8 +119,7 @@ ToolType kToolType{ToolType::UNKNOWN};
  *
  * Use Initializer::requestShutdown to request shutdown in most cases.
  * This will notify the main thread requesting the dispatcher to
- * interrupt all services. There is a thread requesting a join of all services
- * that will continue the shutdown process.
+ * interrupt all services.
  */
 std::sig_atomic_t kExitCode{0};
 
@@ -436,10 +435,9 @@ void Initializer::initWatcher() const {
   }
 
   if (isWatcher()) {
-    // If there are no autoloaded extensions, the watcher service will end,
-    // otherwise it will continue as a background thread and respawn them.
-    // If the watcher is also a worker watchdog it will do nothing but monitor
-    // the extensions and worker process.
+    // If this process is a watchdog it will do nothing but monitor the
+    // extensions and worker process. This is its main thread and it should
+    // wait until shutdown.
     waitForShutdown();
 
     // Do not start new workers.
@@ -632,7 +630,7 @@ class AlarmRunnable : public InterruptableRunnable {
       std::this_thread::sleep_for(std::chrono::milliseconds(200));
       waited += 200;
       if (waited > FLAGS_alarm_timeout * 1000) {
-        _Exit(EXIT_CATASTROPHIC);
+        Initializer::shutdownNow(EXIT_CATASTROPHIC);
       }
     }
   }
@@ -642,19 +640,18 @@ class AlarmRunnable : public InterruptableRunnable {
   void stop() {}
 };
 
-/// Graceful shutdown request mutex.
-std::mutex kShutdownRequestMutex;
-
 /// Graceful shutdown request conditional var.
 std::condition_variable kShutdownRequestCV;
 
-void Initializer::waitForShutdown() {
+void Initializer::waitForShutdown() const {
+  std::mutex shutdown_request_mutex;
+
   // Attempt to be the only place in code where a join is attempted.
-  std::unique_lock<std::mutex> lock(kShutdownRequestMutex);
+  std::unique_lock<std::mutex> lock(shutdown_request_mutex);
   kShutdownRequestCV.wait(lock);
 }
 
-int Initializer::waitThenShutdown(int retcode) {
+int Initializer::shutdown(int retcode) const {
   // Should only be called from main thread.
   auto current_thread_id = std::this_thread::get_id();
   if (current_thread_id != kMainThreadId) {
@@ -678,11 +675,11 @@ int Initializer::waitThenShutdown(int retcode) {
   GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
   DatabasePlugin::shutdown();
 
-  platformTeardown();
-
   // Cancel the alarm.
   alarm_runnable.interrupt();
   alarm_thread->join();
+
+  platformTeardown();
 
   // Allow the retcode to override a stored request for shutdown.
   return (retcode == 0) ? kExitCode : retcode;
@@ -704,6 +701,6 @@ void Initializer::requestShutdown(int retcode, const std::string& system_log) {
 
 void Initializer::shutdownNow(int retcode) {
   platformTeardown();
-  ::exit(retcode);
+  _Exit(retcode);
 }
 }
