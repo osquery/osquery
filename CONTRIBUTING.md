@@ -71,7 +71,9 @@ body of work. If your work requires a bug-fix, submit that first on a separate P
 refactors. If you can split your work into multiple smaller PRs please also do so. This is of utmost
 importance to allow fast reviews and to simplify regression tracking, reverts and references.
 
-Start by developing your feature on a [feature branch](https://guides.github.com/introduction/flow/) and when ready submit a pull request against the osquery master branch. The initial PR should preferably **contain a single commit**.
+Start by developing your feature on a [feature branch](https://guides.github.com/introduction/flow/),
+possibly formatting your code before each commit, and when ready submit a pull request against the osquery master branch.
+The initial PR should preferably **contain a single commit**.
 If you are unfamiliar with GitHub or how pull requests work, GitHub has a very easy to follow guide
 that teaches you [how to fork the project and submit your first PR]
 (https://guides.github.com/activities/forking/).
@@ -80,8 +82,9 @@ It is helpful if you tag the GitHub issues you are addressing on the body of you
 is intended to close an issue keywords (like `fixes` or `closes`) as defined on [GitHub
 Help](https://help.github.com/articles/closing-issues-using-keywords/).
 
-Once you submit your PR, the core team will review it and continuous integration tests will be triggered on in the  CI systems for
-the multiple platforms we support. If the tests fail or the reviewer requests changes, please submit
+Once you submit your PR, a formatting check and continuous integration tests will be triggered on the CI systems for
+the multiple platforms we support. If all the required checks and tests are successful the core team will review your PR.
+If the tests fail or the reviewer requests changes, please submit
 those changes by **appending new commits** to your feature branch. **Avoid amending old commits** as
 that makes it harder for the reviewer to track your updates. If you need to keep your PR up-to-date
 with master the preferred way is to [rebase your branch](https://help.github.com/en/articles/about-git-rebase)

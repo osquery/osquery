@@ -58,7 +58,7 @@ Please ensure [Homebrew](https://brew.sh/) has been installed, first. Then do th
 ```bash
 # Install prerequisites
 xcode-select --install
-brew install git cmake python
+brew install git cmake python clang-format
 
 # Optional: install python tests prerequisites
 pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
@@ -93,8 +93,8 @@ Note: It may be easier to install these prerequisites using [Chocolatey](https:/
 
 - [CMake](https://cmake.org/) (>= 3.14.6): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!  Do not install CMake using the Visual Studio Installer, because it contains an older version than required.
 - Visual Studio 2019 (2 options)
-  1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", and "Windows 10 SDK".
-  2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", and "Windows 10 SDK".
+  1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
+  2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest): Select "checkout as-is, commit as-is". Later check "Enable symbolic links" support.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Wix Toolset](https://wixtoolset.org/releases/)
@@ -102,6 +102,7 @@ Note: It may be easier to install these prerequisites using [Chocolatey](https:/
 - [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
 
 **Optional: Install python tests prerequisites**
+
 Python 3 is assumed to be installed in `C:\Program Files\Python37`
 
 ```PowerShell
@@ -178,13 +179,33 @@ A "single" test case often still involves dozens or hundreds of unit tests. To r
 GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory tests under the <testName> set.
 ```
 
-## Running clang-format (Linux and MacOS only)
+## Formatting the code
 
-Note that on Linux the `clang-format` executable is shipped along with the osquery toolchain, and it is the recommended way to run it.
+Osquery uses `clang-format` to format its code, but it's not run on the whole project or files each time; it's run only on the modified lines instead,
+using custom scripts.
+
+On Linux the `clang-format` executable is shipped along with the osquery toolchain, and it is the recommended way to run it.  
+For the other platforms please refer to their **Install the prerequisites** section if you haven't already.
+
+On Windows remember to update the PATH environment variable with the `clang-format` root folder, so that the scripts can find it.  
+You should be able to find `clang-format` folder in the path where you installed either the Build Tools or the full Visual Studio, and from there `VC\Tools\Llvm\bin`.
+
+To verify that all the commits that are present on the branch but not on master are properly formatted, run the following command from the build folder:
 
 ```bash
 cmake --build . --target format_check
 ```
+This is the same command the CI runs to verify formatting.
+
+If the code is not formatted, you can do so with the following command run from the build folder,
+but the code has to be unstaged if it was already committed:
+
+```bash
+cmake --build . --target format
+```
+
+To avoid having to unstage each time, remember to format the code before committing.
+
 
 ## Running Cppcheck (Linux only)
 
