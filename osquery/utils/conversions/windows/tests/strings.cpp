@@ -29,4 +29,19 @@ TEST_F(ConversionsTests, test_wstring_to_string) {
   std::string expected{"The quick brown fox jumps over the lazy dog"};
   EXPECT_EQ(narrowString, expected);
 }
+
+TEST_F(ConversionsTests, test_string_to_wstring_extended) {
+  std::string narrowString{"fr\xc3\xb8tz-jorn"};
+  auto wideString = stringToWstring(narrowString.c_str());
+  std::wstring expected{L"fr\x00f8tz-jorn"};
+  EXPECT_EQ(wideString, expected);
+}
+
+TEST_F(ConversionsTests, test_wstring_to_string_extended) {
+  std::wstring wideString{L"fr\x00f8tz-jorn"};
+  auto narrowString = wstringToString(wideString.c_str());
+  std::string expected{"fr\xc3\xb8tz-jorn"};
+  EXPECT_EQ(narrowString, expected);
+}
+
 } // namespace osquery
