@@ -9,8 +9,8 @@
 // Sanity check integration test for hash
 // Spec file: specs/hash.table
 
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tests/integration/tables/helper.h>
-
 #include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
@@ -23,10 +23,12 @@ class Hash : public testing::Test {
   void SetUp() override {
     setUpEnvironment();
     path = fs::temp_directory_path() /
-           fs::unique_path("osquery.tests.file.hashes");
+           fs::unique_path("osquery.tests.file.hashes.%%%%.%%%%.%%%%.%%%%");
 
-    auto fout = std::ofstream(path.native(), std::ios::out | std::ios::binary);
-    fout << "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
+    EXPECT_TRUE(
+        writeTextFile(
+            path, "Lorem ipsum dolor sit amet, consectetur adipiscing elit.")
+            .ok());
   }
 
   void TearDown() override {
