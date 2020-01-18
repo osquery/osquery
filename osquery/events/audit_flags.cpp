@@ -10,7 +10,11 @@
 
 namespace osquery {
 
-/// The OpenBSM subsystem may have a performance impact on the system.
+/**
+ * The Auditd/OpenBSM subsystem may have a performance impact on the system.
+ *
+ * This flag controls Auditd on Linux and OpenBSM on macOS.
+ */
 FLAG(bool,
      disable_audit,
      true,

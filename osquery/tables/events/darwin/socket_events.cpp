@@ -9,9 +9,9 @@
 #include <bsm/audit_kevents.h>
 #include <bsm/libbsm.h>
 
+#include <arpa/inet.h>
 #include <libproc.h>
 #include <stdio.h>
-#include <arpa/inet.h>
 
 #include <iostream>
 

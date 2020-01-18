@@ -16,13 +16,9 @@
 #include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
-/// The audit subsystem may have a performance impact on the system.
-FLAG(bool,
-     disable_audit,
-     true,
-     "Disable receiving events from the audit subsystem");
 
 // External flags; they are used to determine whether we should run or not
+DECLARE_bool(disable_audit);
 DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
