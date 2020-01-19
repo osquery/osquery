@@ -236,13 +236,13 @@ Status USNJournalReader::initialize() {
       std::string("\\\\.\\") + d_->journal_reader_context->drive_letter + ":";
 
   d_->volume_handle =
-      ::CreateFile(d_->volume_path.c_str(),
-                   FILE_GENERIC_READ,
-                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                   nullptr,
-                   OPEN_EXISTING,
-                   0,
-                   nullptr);
+      ::CreateFileW(stringToWstring(d_->volume_path).c_str(),
+                    FILE_GENERIC_READ,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    nullptr,
+                    OPEN_EXISTING,
+                    0,
+                    nullptr);
 
   if (d_->volume_handle == INVALID_HANDLE_VALUE) {
     std::stringstream error_message;
@@ -275,11 +275,11 @@ Status USNJournalReader::initialize() {
                      "number for the following volume: "
                   << d_->volume_path << ". Error message: ";
 
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, error_code)) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
-    error_message << description;
+    error_message << wstringToString(description.c_str());
 
     return Status::failure(error_message.str());
   }
@@ -328,11 +328,11 @@ Status USNJournalReader::acquireRecords() {
     error_message << "Failed to read the journal of the following volume: "
                   << d_->volume_path << ". Error message: ";
 
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, ::GetLastError())) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
-    error_message << description;
+    error_message << wstringToString(description.c_str());
 
     return Status::failure(error_message.str());
   }

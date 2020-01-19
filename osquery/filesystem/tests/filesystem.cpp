@@ -22,6 +22,7 @@
 #include <osquery/process/process.h>
 #include <osquery/system.h>
 
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/info/platform_type.h>
 
 #include <osquery/filesystem/mock_file_structure.h>
@@ -55,8 +56,11 @@ class FilesystemTests : public testing::Test {
       tmp_path_ = fs::temp_directory_path().string();
       line_ending_ = "\r\n";
 
-      auto raw_drive = getEnvVar("SystemDrive");
-      system_root_ = (raw_drive.is_initialized() ? *raw_drive : "") + "\\";
+      auto raw_drive = getEnvVar(L"SystemDrive");
+      system_root_ =
+          (raw_drive.is_initialized() ? wstringToString(raw_drive.get().c_str())
+                                      : "") +
+          "\\";
     } else {
       etc_hosts_path_ = "/etc/hosts";
       etc_path_ = "/etc";

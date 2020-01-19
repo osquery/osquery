@@ -153,20 +153,20 @@ TEST_F(ProcessTests, test_getpid) {
 }
 
 TEST_F(ProcessTests, test_envVar) {
-  auto val = getEnvVar("GTEST_OSQUERY");
+  auto val = getEnvVar(L"GTEST_OSQUERY");
   EXPECT_FALSE(val);
   EXPECT_FALSE(val.is_initialized());
 
-  EXPECT_TRUE(setEnvVar("GTEST_OSQUERY", "true"));
+  EXPECT_TRUE(setEnvVar(L"GTEST_OSQUERY", L"true"));
 
-  val = getEnvVar("GTEST_OSQUERY");
+  val = getEnvVar(L"GTEST_OSQUERY");
   EXPECT_FALSE(!val);
   EXPECT_TRUE(val.is_initialized());
-  EXPECT_EQ(*val, "true");
+  EXPECT_EQ(*val, L"true");
 
-  EXPECT_TRUE(unsetEnvVar("GTEST_OSQUERY"));
+  EXPECT_TRUE(unsetEnvVar(L"GTEST_OSQUERY"));
 
-  val = getEnvVar("GTEST_OSQUERY");
+  val = getEnvVar(L"GTEST_OSQUERY");
   EXPECT_FALSE(val);
   EXPECT_FALSE(val.is_initialized());
 }
@@ -302,9 +302,9 @@ int main(int argc, char* argv[]) {
   osquery::kExpectedExtensionArgs[0] = argv[0];
   osquery::kExpectedWorkerArgs[0] = argv[0];
 
-  if (auto val = osquery::getEnvVar("OSQUERY_WORKER")) {
+  if (auto val = osquery::getEnvVar(L"OSQUERY_WORKER")) {
     return workerMain(argc, argv);
-  } else if ((val = osquery::getEnvVar("OSQUERY_EXTENSION"))) {
+  } else if ((val = osquery::getEnvVar(L"OSQUERY_EXTENSION"))) {
     return extensionMain(argc, argv);
   }
 

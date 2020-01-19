@@ -17,21 +17,21 @@
 
 namespace osquery {
 
-bool setEnvVar(const std::string& name, const std::string& value) {
-  return (::SetEnvironmentVariableA(name.c_str(), value.c_str()) == TRUE);
+bool setEnvVar(const std::wstring& name, const std::wstring& value) {
+  return (::SetEnvironmentVariableW(name.c_str(), value.c_str()) == TRUE);
 }
 
-bool unsetEnvVar(const std::string& name) {
-  return (::SetEnvironmentVariableA(name.c_str(), nullptr) == TRUE);
+bool unsetEnvVar(const std::wstring& name) {
+  return (::SetEnvironmentVariableW(name.c_str(), nullptr) == TRUE);
 }
 
-boost::optional<std::string> getEnvVar(const std::string& name) {
+boost::optional<std::wstring> getEnvVar(const std::wstring& name) {
   const auto kInitialBufferSize = 1024;
-  std::vector<char> buf;
+  std::vector<WCHAR> buf;
   buf.assign(kInitialBufferSize, '\0');
 
   auto value_len =
-      ::GetEnvironmentVariableA(name.c_str(), buf.data(), kInitialBufferSize);
+      ::GetEnvironmentVariableW(name.c_str(), buf.data(), kInitialBufferSize);
   if (value_len == 0) {
     return boost::none;
   }
@@ -42,7 +42,7 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
   // returned size is greater than what we expect.
   if (value_len > kInitialBufferSize) {
     buf.assign(value_len, '\0');
-    value_len = ::GetEnvironmentVariableA(name.c_str(), buf.data(), value_len);
+    value_len = ::GetEnvironmentVariableW(name.c_str(), buf.data(), value_len);
     if (value_len == 0 || value_len > buf.size()) {
       // The size returned is greater than the size we expected. Currently, we
       // will not deal with this scenario and just return as if an error has
@@ -51,7 +51,7 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
     }
   }
 
-  return std::string(buf.data(), value_len);
+  return std::wstring(buf.data(), value_len);
 }
 
 } // namespace osquery

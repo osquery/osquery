@@ -20,6 +20,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/errno.h>
 
 #include "osquery/events/windows/ntfs_event_publisher.h"
@@ -214,19 +215,19 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
     message << "Failed to open the file in volume " << drive_letter
             << ":\\. Error: ";
 
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, ::GetLastError())) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
 
-    message << description;
+    message << wstringToString(description.c_str());
     return Status::failure(message.str());
   }
 
-  auto required_bytes = static_cast<size_t>(::GetFinalPathNameByHandle(
+  auto required_characters = static_cast<size_t>(::GetFinalPathNameByHandleW(
       handle, nullptr, 0, FILE_NAME_NORMALIZED | VOLUME_NAME_DOS));
 
-  if (required_bytes == 0U) {
+  if (required_characters == 0U) {
     auto error_code = ::GetLastError();
     ::CloseHandle(handle);
 
@@ -234,31 +235,31 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
     message << "Failed to determine the path size for the file in volume "
             << drive_letter << ":\\. Error: ";
 
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, error_code)) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
 
-    message << description;
+    message << wstringToString(description.c_str());
     return Status::failure(message.str());
   }
 
   // We are going to add an additional byte, as we may or may not have the null
   // terminator already included depending on the operating system version
-  std::string buffer;
-  required_bytes += 1U;
+  std::wstring buffer;
+  required_characters += 1U;
 
-  buffer.resize(required_bytes);
-  if (buffer.size() != required_bytes) {
+  buffer.resize(required_characters);
+  if (buffer.size() != required_characters) {
     ::CloseHandle(handle);
     throw std::bad_alloc();
   }
 
   auto bytes_returned = static_cast<size_t>(
-      ::GetFinalPathNameByHandle(handle,
-                                 &buffer[0],
-                                 static_cast<DWORD>(buffer.size()),
-                                 FILE_NAME_NORMALIZED | VOLUME_NAME_DOS));
+      ::GetFinalPathNameByHandleW(handle,
+                                  &buffer[0],
+                                  static_cast<DWORD>(buffer.size()),
+                                  FILE_NAME_NORMALIZED | VOLUME_NAME_DOS));
 
   auto error_code = ::GetLastError();
   ::CloseHandle(handle);
@@ -268,17 +269,17 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
     message << "Failed to acquire the path for the file in volume "
             << drive_letter << ":\\. Error: ";
 
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, error_code)) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
 
-    message << description;
+    message << wstringToString(description.c_str());
     return Status::failure(message.str());
   }
 
   // Paths follow this form: \\?\C:\\path\\to\\folder; skip the prefix
-  path = buffer.c_str() + 4;
+  path = wstringToString(buffer.c_str() + 4);
   buffer.clear();
 
   return Status::success();
@@ -328,25 +329,25 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
 
   VolumeData volume_data = {};
   volume_data.volume_handle =
-      ::CreateFile(volume_path.c_str(),
-                   GENERIC_READ,
-                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                   nullptr,
-                   OPEN_EXISTING,
-                   FILE_FLAG_BACKUP_SEMANTICS,
-                   nullptr);
+      ::CreateFileW(stringToWstring(volume_path).c_str(),
+                    GENERIC_READ,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    nullptr,
+                    OPEN_EXISTING,
+                    FILE_FLAG_BACKUP_SEMANTICS,
+                    nullptr);
 
   if (volume_data.volume_handle == INVALID_HANDLE_VALUE) {
     std::stringstream message;
     message << "Failed to open the following drive: " << volume_path
             << " due to the following error: ";
 
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, ::GetLastError())) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
 
-    message << description;
+    message << wstringToString(description.c_str());
     return Status::failure(message.str());
   }
 
@@ -356,13 +357,13 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
   root_folder_path.append(":\\");
 
   volume_data.root_folder_handle =
-      ::CreateFile(root_folder_path.c_str(),
-                   GENERIC_READ,
-                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                   nullptr,
-                   OPEN_EXISTING,
-                   FILE_FLAG_BACKUP_SEMANTICS,
-                   nullptr);
+      ::CreateFileW(stringToWstring(root_folder_path).c_str(),
+                    GENERIC_READ,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    nullptr,
+                    OPEN_EXISTING,
+                    FILE_FLAG_BACKUP_SEMANTICS,
+                    nullptr);
 
   if (volume_data.root_folder_handle == INVALID_HANDLE_VALUE) {
     auto error_code = ::GetLastError();
@@ -372,12 +373,12 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
     message << "Failed to get the root folder handle for volume '"
             << drive_letter << "'. Error: ";
 
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, error_code)) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
 
-    message << description;
+    message << wstringToString(description.c_str());
     return Status::failure(message.str());
   }
 
@@ -402,12 +403,12 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
     message << "Failed to get the root reference number for volume '"
             << drive_letter << "'. Error: ";
 
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, error_code)) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
 
-    message << description;
+    message << wstringToString(description.c_str());
     return Status::failure(message.str());
   }
 

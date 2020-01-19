@@ -10,6 +10,7 @@
 
 #include <osquery/filesystem/filesystem.h>
 
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/env.h>
 
 #include <gtest/gtest.h>
@@ -23,10 +24,12 @@ namespace {
 namespace fs = boost::filesystem;
 
 fs::path getConfDirPathImpl() {
-  char const* kEnvVarName = "TEST_CONF_FILES_DIR";
+  std::wstring kEnvVarName = L"TEST_CONF_FILES_DIR";
   auto const value_opt = osquery::getEnvVar(kEnvVarName);
   EXPECT_TRUE(static_cast<bool>(value_opt))
-      << "Env var " << boost::io::quoted(kEnvVarName) << " was not found, "
+      << "Env var "
+      << boost::io::quoted(osquery::wstringToString(kEnvVarName.c_str()))
+      << " was not found, "
       << " looks like cxx_test argument 'env' is not set up.";
   return fs::path(value_opt.get());
 }

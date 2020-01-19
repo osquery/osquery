@@ -16,6 +16,7 @@
 #include <osquery/process/process.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/time.h>
 
 namespace osquery {
@@ -97,9 +98,11 @@ const std::string getEnrollSecret() {
     readFile(FLAGS_enroll_secret_path, enrollment_secret);
     boost::trim(enrollment_secret);
   } else {
-    auto env_secret = getEnvVar(FLAGS_enroll_secret_env);
+    std::wstring wFLAGS_enroll_secret_env =
+        stringToWstring(FLAGS_enroll_secret_env);
+    auto env_secret = getEnvVar(wFLAGS_enroll_secret_env);
     if (env_secret.is_initialized()) {
-      enrollment_secret = *env_secret;
+      enrollment_secret = wstringToString(env_secret.get().c_str());
     }
   }
 

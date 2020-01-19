@@ -60,9 +60,9 @@ static inline void parseStartupPath(const std::string& path, Row& r) {
   if (path.find('\"') == std::string::npos) {
     r["path"] = path;
   } else {
-    boost::tokenizer<boost::escaped_list_separator<TCHAR>> tokens(
+    boost::tokenizer<boost::escaped_list_separator<CHAR>> tokens(
         path,
-        boost::escaped_list_separator<TCHAR>(
+        boost::escaped_list_separator<CHAR>(
             std::string(""), std::string(" "), std::string("\"\'")));
     for (auto&& tok = tokens.begin(); tok != tokens.end(); ++tok) {
       if (tok == tokens.begin()) {

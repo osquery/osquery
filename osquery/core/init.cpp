@@ -97,7 +97,7 @@ CLI_FLAG(bool,
 namespace {
 extern "C" {
 static inline bool hasWorkerVariable() {
-  return ::osquery::getEnvVar("OSQUERY_WORKER").is_initialized();
+  return ::osquery::getEnvVar(L"OSQUERY_WORKER").is_initialized();
 }
 
 volatile std::sig_atomic_t kHandledSignal{0};

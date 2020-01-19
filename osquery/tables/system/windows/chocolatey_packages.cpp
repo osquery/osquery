@@ -53,7 +53,7 @@ Status genPackage(const fs::path& nuspec, Row& r) {
 QueryData genChocolateyPackages(QueryContext& context) {
   QueryData results;
 
-  auto chocoEnvInstall = getEnvVar("ChocolateyInstall");
+  auto chocoEnvInstall = getEnvVar(L"ChocolateyInstall");
 
   fs::path chocoInstallPath;
   if (chocoEnvInstall.is_initialized()) {

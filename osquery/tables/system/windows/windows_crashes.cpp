@@ -622,8 +622,10 @@ QueryData genCrashLogs(QueryContext& context) {
   if (!dumpFolderResults.rows().empty()) {
     dumpFolderLocation = dumpFolderResults.rows()[0].at("data");
   } else {
-    auto tempDumpLoc = getEnvVar("TMP");
-    dumpFolderLocation = tempDumpLoc.is_initialized() ? *tempDumpLoc : "";
+    auto tempDumpLoc = getEnvVar(L"TMP");
+    dumpFolderLocation = tempDumpLoc.is_initialized()
+                             ? wstringToString(tempDumpLoc.get().c_str())
+                             : "";
   }
 
   if (!fs::exists(dumpFolderLocation) ||

@@ -9,6 +9,7 @@
 #include <AccCtrl.h>
 #include <Aclapi.h>
 
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/system.h>
 
 #include <boost/algorithm/string/join.hpp>
@@ -78,30 +79,30 @@ std::string accessPermsToStr(const unsigned long pmask) {
 }
 
 // helper function to get account/group name from trustee
-std::string trusteeToStr(const TRUSTEE& trustee) {
+std::string trusteeToStr(const TRUSTEEW& trustee) {
   // Max username length for Windows
   const unsigned long maxBuffSize = 256;
   unsigned long sizeOut = maxBuffSize;
-  char name[maxBuffSize];
-  char domain[maxBuffSize];
+  WCHAR name[maxBuffSize];
+  WCHAR domain[maxBuffSize];
   SID_NAME_USE accountType;
 
   switch (trustee.TrusteeForm) {
   case TRUSTEE_IS_SID: {
     // get the name from the SID
     PSID psid = trustee.ptstrName;
-    auto r = LookupAccountSid(
+    auto r = LookupAccountSidW(
         nullptr, psid, name, &sizeOut, domain, &sizeOut, &accountType);
     if (r == FALSE) {
       VLOG(1) << "LookupAccountSid error: " << GetLastError();
       return "";
     } else {
-      return name;
+      return wstringToString(name);
     }
   }
   case TRUSTEE_IS_NAME:
     // get the name from ptstrName
-    return trustee.ptstrName;
+    return wstringToString(trustee.ptstrName);
   case TRUSTEE_BAD_FORM:
     // Indicates a trustee form that is not valid.
     // https://msdn.microsoft.com/en-us/library/windows/desktop/aa379638(v=vs.85).aspx
@@ -109,18 +110,19 @@ std::string trusteeToStr(const TRUSTEE& trustee) {
   case TRUSTEE_IS_OBJECTS_AND_SID: {
     // ptstrName member is a pointer to an OBJECTS_AND_SID struct
     auto psid = reinterpret_cast<POBJECTS_AND_SID>(trustee.ptstrName)->pSid;
-    auto r = LookupAccountSid(
+    auto r = LookupAccountSidW(
         nullptr, psid, name, &sizeOut, domain, &sizeOut, &accountType);
     if (r == FALSE) {
       VLOG(1) << "LookupAccountSid error: " << GetLastError();
       return "";
     } else {
-      return name;
+      return wstringToString(name);
     }
   }
   case TRUSTEE_IS_OBJECTS_AND_NAME:
     // ptstrName member is a pointer to an OBJECTS_AND_NAME struct
-    return reinterpret_cast<OBJECTS_AND_NAME_*>(trustee.ptstrName)->ptstrName;
+    return wstringToString(
+        reinterpret_cast<OBJECTS_AND_NAME_W*>(trustee.ptstrName)->ptstrName);
   default:
     return "";
   }
@@ -136,14 +138,14 @@ QueryData genNtfsAclPerms(QueryContext& context) {
     }
     // Get a pointer to the existing DACL.
     PACL dacl = nullptr;
-    auto result = GetNamedSecurityInfo(pathString.c_str(),
-                                       SE_FILE_OBJECT,
-                                       DACL_SECURITY_INFORMATION,
-                                       nullptr,
-                                       nullptr,
-                                       &dacl,
-                                       nullptr,
-                                       nullptr);
+    auto result = GetNamedSecurityInfoW(stringToWstring(pathString).c_str(),
+                                        SE_FILE_OBJECT,
+                                        DACL_SECURITY_INFORMATION,
+                                        nullptr,
+                                        nullptr,
+                                        &dacl,
+                                        nullptr,
+                                        nullptr);
     if (ERROR_SUCCESS != result) {
       VLOG(1) << "GetExplicitEnteriesFromAcl Error " << result;
       continue;
@@ -151,8 +153,8 @@ QueryData genNtfsAclPerms(QueryContext& context) {
 
     // get list of ACEs from DACL pointer
     unsigned long aceCount = 0;
-    PEXPLICIT_ACCESS aceList = nullptr;
-    result = GetExplicitEntriesFromAcl(dacl, &aceCount, &aceList);
+    PEXPLICIT_ACCESSW aceList = nullptr;
+    result = GetExplicitEntriesFromAclW(dacl, &aceCount, &aceList);
     if (ERROR_SUCCESS != result) {
       VLOG(1) << "GetExplicitEnteriesFromAcl Error " << result;
       continue;
@@ -178,11 +180,11 @@ QueryData genNtfsAclPerms(QueryContext& context) {
                                : "Unknown";
       auto trusteeName = trusteeToStr(aceItem->Trustee);
 
-      r["path"] = TEXT(pathString);
-      r["type"] = TEXT(accessMode);
-      r["principal"] = TEXT(trusteeName);
-      r["access"] = TEXT(perms);
-      r["inherited_from"] = TEXT(inheritedFrom);
+      r["path"] = pathString;
+      r["type"] = accessMode;
+      r["principal"] = trusteeName;
+      r["access"] = perms;
+      r["inherited_from"] = inheritedFrom;
       results.push_back(std::move(r));
     }
 
