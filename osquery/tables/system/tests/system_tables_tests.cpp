@@ -144,11 +144,11 @@ TEST_F(SystemsTablesTests, test_processes_memory_cpu) {
 
   // Now we expect the running test to use over 1M of RSS.
   bytes = bytes / (1024 * 1024);
-  EXPECT_GT(bytes, 1U);
+  EXPECT_GE(bytes, 1U);
 
   bytes = std::stoll(results.rows()[0].at("total_size"), 0, 0);
   bytes = bytes / (1024 * 1024);
-  EXPECT_GT(bytes, 1U);
+  EXPECT_GE(bytes, 1U);
 
   // Make sure user/system time are in seconds, pray we haven't actually used
   // more than 100 seconds of CPU.
