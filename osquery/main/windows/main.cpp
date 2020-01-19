@@ -60,8 +60,8 @@ static void UpdateServiceStatus(unsigned long controls,
   kServiceStatus.dwWaitHint = wait_hint;
 
   if (!::SetServiceStatus(kStatusHandle, &kServiceStatus)) {
-    SLOG("SetServiceStatus failed (lasterror=" +
-         std::to_string(GetLastError()) + ")");
+    auto le = GetLastError();
+    SLOG("SetServiceStatus failed (lasterror=" + std::to_string(le) + ")");
   }
 }
 
@@ -170,8 +170,8 @@ static void setupServiceRecovery(SC_HANDLE schService) {
 
   if (!ChangeServiceConfig2(
           schService, SERVICE_CONFIG_FAILURE_ACTIONS, &failureActions)) {
-    SLOG("ChangeServiceConfig2 failed (lasterror=" +
-         std::to_string(GetLastError()) + ")");
+    auto le = GetLastError();
+    SLOG("ChangeServiceConfig2 failed (lasterror=" + std::to_string(le) + ")");
   }
 }
 
@@ -301,8 +301,9 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
       WaitForSingleObjectEx(thread, INFINITE, FALSE);
       CloseHandle(thread);
     } else {
+      auto le = GetLastError();
       SLOG("Failed to open handle to main thread of execution with " +
-           std::to_string(GetLastError()));
+           std::to_string(le));
     }
 
     UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
@@ -333,8 +334,9 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
       osquery::startOsquery(parser.count(), parser.arguments());
     }
   } else {
-    SLOG("RegisterServiceCtrlHandlerA failed (lasterror=" +
-         std::to_string(GetLastError()) + ")");
+    auto le = GetLastError();
+    SLOG("RegisterServiceCtrlHandlerA failed (lasterror=" + std::to_string(le) +
+         ")");
   }
 
   UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
@@ -349,8 +351,8 @@ int main(int argc, char* argv[]) {
 
   int retcode = 0;
   if (!StartServiceCtrlDispatcherA(serviceTable)) {
-    DWORD last_error = ::GetLastError();
-    if (last_error == ERROR_FAILED_SERVICE_CONTROLLER_CONNECT) {
+    auto le = ::GetLastError();
+    if (le == ERROR_FAILED_SERVICE_CONTROLLER_CONNECT) {
       // Failing to start the service control dispatcher with this error
       // usually indicates that the process was not started as a service.
       // Therefore, it must've been started from the commandline or as a child
@@ -359,7 +361,7 @@ int main(int argc, char* argv[]) {
     } else {
       // An actual error has occurred at this point
       SLOG("StartServiceCtrlDispatcherA error (lasterror=" +
-           std::to_string(last_error) + ")");
+           std::to_string(le) + ")");
     }
   }
   return retcode;
