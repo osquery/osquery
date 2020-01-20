@@ -17,7 +17,6 @@
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core.h>
 #include <osquery/system.h>
-#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/env.h>
 
 #include "osquery/core/windows/wmi.h"
@@ -36,8 +35,7 @@ TEST_F(WmiTests, test_methodcall_inparams) {
   EXPECT_TRUE(windir);
 
   std::stringstream ss;
-  ss << "SELECT * FROM Win32_Directory WHERE Name = \""
-     << *windir << "\"";
+  ss << "SELECT * FROM Win32_Directory WHERE Name = \"" << *windir << "\"";
 
   auto query = ss.str();
 

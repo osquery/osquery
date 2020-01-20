@@ -182,7 +182,7 @@ bool Watcher::hasManagedExtensions() const {
   // Setting this counter to 0 will prevent the worker from waiting for missing
   // dependent config plugins. Otherwise, its existence, will cause a worker to
   // wait for missing plugins to broadcast from managed extensions.
-  return getEnvVar(L"OSQUERY_EXTENSIONS").is_initialized();
+  return getEnvVar("OSQUERY_EXTENSIONS").is_initialized();
 }
 
 bool WatcherRunner::ok() const {
@@ -551,7 +551,7 @@ void WatcherRunner::createWorker() {
   // Set an environment signaling to potential plugin-dependent workers to wait
   // for extensions to broadcast.
   if (watcher.hasManagedExtensions()) {
-    setEnvVar(L"OSQUERY_EXTENSIONS", L"true");
+    setEnvVar("OSQUERY_EXTENSIONS", "true");
   }
 
   // Get the complete path of the osquery process binary.

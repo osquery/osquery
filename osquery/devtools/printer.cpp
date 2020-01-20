@@ -29,7 +29,7 @@ std::string generateToken(const std::map<std::string, size_t>& lengths,
   std::string out = "+";
   for (const auto& col : columns) {
     size_t size = tryTakeCopy(lengths, col).takeOr(col.size()) + 2;
-    if (getEnvVar(L"ENHANCE").is_initialized()) {
+    if (getEnvVar("ENHANCE").is_initialized()) {
       std::string e = "\xF0\x9F\x90\x8C";
       e[2] += kOffset[1];
       e[3] += kOffset[0];
@@ -58,7 +58,7 @@ std::string generateToken(const std::map<std::string, size_t>& lengths,
 
 std::string generateHeader(const std::map<std::string, size_t>& lengths,
                            const std::vector<std::string>& columns) {
-  if (getEnvVar(L"ENHANCE").is_initialized()) {
+  if (getEnvVar("ENHANCE").is_initialized()) {
     kToken = "\xF0\x9F\x91\x8D";
   }
   std::string out = kToken;
