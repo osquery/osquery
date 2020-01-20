@@ -106,7 +106,7 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
                         buf.data(),
                         -1,
                         narrowvalue.data(),
-                        value_len + 1 * 4,
+                        (value_len + 1) * 4,
                         0,
                         nullptr);
 
