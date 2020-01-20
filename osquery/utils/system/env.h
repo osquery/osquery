@@ -15,16 +15,16 @@
 namespace osquery {
 
 /// Set the environment variable name with value value.
-bool setEnvVar(const std::wstring& name, const std::wstring& value);
+bool setEnvVar(const std::string& name, const std::string& value);
 
 /// Unsets the environment variable specified by name.
-bool unsetEnvVar(const std::wstring& name);
+bool unsetEnvVar(const std::string& name);
 
 /**
  * @brief Returns the value of the specified environment variable name.
  *
  * If the environment variable does not exist, boost::none is returned.
  */
-boost::optional<std::wstring> getEnvVar(const std::wstring& name);
+boost::optional<std::string> getEnvVar(const std::string& name);
 
 } // namespace osquery

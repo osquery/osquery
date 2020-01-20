@@ -16,7 +16,6 @@
 #include <osquery/process/process.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
-#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/time.h>
 
 namespace osquery {

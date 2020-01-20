@@ -22,7 +22,6 @@
 #include <osquery/process/process.h>
 #include <osquery/system.h>
 
-#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/info/platform_type.h>
 
 #include <osquery/filesystem/mock_file_structure.h>

@@ -15,7 +15,6 @@
 
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/utils/aws/aws_util.h>
-#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
