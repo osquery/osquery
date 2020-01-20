@@ -101,16 +101,16 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
     }
 
     narrowvalue.assign((value_len + 1) * 4, '\0');
-    WideCharToMultiByte(CP_UTF8,
-                        0,
-                        buf.data(),
-                        -1,
-                        narrowvalue.data(),
-                        (value_len + 1) * 4,
-                        0,
-                        nullptr);
-
-    return narrowvalue.data();
+    if (0 != WideCharToMultiByte(CP_UTF8,
+                                 0,
+                                 buf.data(),
+                                 -1,
+                                 narrowvalue.data(),
+                                 (value_len + 1) * 4,
+                                 0,
+                                 nullptr)) {
+      return narrowvalue.data();
+    }
   }
 
   return std::string();
