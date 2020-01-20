@@ -198,11 +198,11 @@ QueryData genScheduledTasks(QueryContext& context) {
   enumerateTasksForFolder("\\", results);
 
   // We attempt to derive the location of the tasks folder
-  auto sysRoot = getEnvVar(L"SystemRoot");
+  auto sysRoot = getEnvVar("SystemRoot");
   if (!sysRoot.is_initialized()) {
     return results;
   }
-  auto sysTaskPath = *sysRoot + L"\\System32\\Tasks";
+  auto sysTaskPath = *sysRoot + "\\System32\\Tasks";
 
   // Then process all tasks in subsequent folders
   std::vector<std::string> taskPaths;
