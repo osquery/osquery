@@ -311,7 +311,7 @@ void getProcessPathInfo(HANDLE& proc,
   if (ret != TRUE) {
     LOG(ERROR) << "Failed to lookup path information for process " << pid;
   } else {
-    r["path"] = wstringToString(path.data());
+    r["path"] = SQL_TEXT(wstringToString(path.data()));
   }
 
   {
@@ -331,7 +331,7 @@ void getProcessPathInfo(HANDLE& proc,
   if (ret == FALSE) {
     LOG(ERROR) << "Failed to get cwd for " << pid << " with " << GetLastError();
   } else {
-    r["cwd"] = wstringToString(path.data());
+    r["cwd"] = SQL_TEXT(wstringToString(path.data()));
   }
   r["root"] = r["cwd"];
 }
@@ -473,7 +473,7 @@ TableRows genProcesses(QueryContext& context) {
     auto r = make_table_row();
     r["pid"] = BIGINT(pid);
     r["parent"] = BIGINT(proc.th32ParentProcessID);
-    r["name"] = wstringToString(proc.szExeFile);
+    r["name"] = SQL_TEXT(wstringToString(proc.szExeFile));
     r["threads"] = INTEGER(proc.cntThreads);
 
     // Set default values for columns, in the event opening the process fails

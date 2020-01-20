@@ -1641,9 +1641,9 @@ static void main_init(struct callback_data* data) {
   sqlite3_config(SQLITE_CONFIG_URI, 1);
   sqlite3_config(SQLITE_CONFIG_LOG, shellLog, data);
 
-  auto term = osquery::getEnvVar(L"TERM");
+  auto term = osquery::getEnvVar("TERM");
   if (term.is_initialized() &&
-      (*term).find(L"xterm-256color") != std::wstring::npos) {
+      (*term).find("xterm-256color") != std::wstring::npos) {
     sqlite3_snprintf(
         sizeof(mainPrompt), mainPrompt, "\033[38;5;147mosquery> \033[0m");
     sqlite3_snprintf(sizeof(continuePrompt),

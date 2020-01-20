@@ -123,7 +123,7 @@ int PlatformProcess::getCurrentPid() {
 }
 
 std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
-  auto launcher_handle = getEnvVar(L"OSQUERY_LAUNCHER");
+  auto launcher_handle = getEnvVar("OSQUERY_LAUNCHER");
   if (!launcher_handle) {
     return std::make_shared<PlatformProcess>();
   }
@@ -184,8 +184,8 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   // OSQUERY_LAUNCHER. OSQUERY_LAUNCHER stores the string form of a HANDLE to
   // the current process. This is mostly used for detecting the death of the
   // launcher process in WatcherWatcherRunner::start
-  if (!setEnvVar(L"OSQUERY_WORKER", L"1") ||
-      !setEnvVar(L"OSQUERY_LAUNCHER", stringToWstring(handle))) {
+  if (!setEnvVar("OSQUERY_WORKER", "1") ||
+      !setEnvVar("OSQUERY_LAUNCHER", handle)) {
     ::CloseHandle(hLauncherProcess);
 
     return std::shared_ptr<PlatformProcess>();
@@ -229,8 +229,8 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
                                  nullptr,
                                  &si,
                                  &pi);
-  unsetEnvVar(L"OSQUERY_WORKER");
-  unsetEnvVar(L"OSQUERY_LAUNCHER");
+  unsetEnvVar("OSQUERY_WORKER");
+  unsetEnvVar("OSQUERY_LAUNCHER");
   ::CloseHandle(hLauncherProcess);
 
   if (!status) {
@@ -277,7 +277,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   // In POSIX, this environment variable is set to the child's process ID. But
   // that is not easily accomplishable on Windows and provides no value since
   // this is never used elsewhere in the core.
-  if (!setEnvVar(L"OSQUERY_EXTENSION", L"1")) {
+  if (!setEnvVar("OSQUERY_EXTENSION", "1")) {
     return std::shared_ptr<PlatformProcess>();
   }
 
@@ -298,7 +298,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
                                    nullptr,
                                    &si,
                                    &pi);
-    unsetEnvVar(L"OSQUERY_EXTENSION");
+    unsetEnvVar("OSQUERY_EXTENSION");
 
     if (!status) {
       return std::shared_ptr<PlatformProcess>();
@@ -317,13 +317,13 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
   STARTUPINFOW si = {0};
   PROCESS_INFORMATION pi = {nullptr};
 
-  auto argv = L"python " + stringToWstring(args);
+  auto argv = "python " + args;
   std::vector<WCHAR> mutable_argv(argv.begin(), argv.end());
-  mutable_argv.push_back(L'\0');
+  mutable_argv.push_back('\0');
   si.cb = sizeof(si);
 
-  auto pythonEnv = getEnvVar(L"OSQUERY_PYTHON_PATH");
-  std::wstring pythonPath;
+  auto pythonEnv = getEnvVar("OSQUERY_PYTHON_PATH");
+  std::string pythonPath;
   if (pythonEnv.is_initialized()) {
     pythonPath = *pythonEnv;
   }
@@ -331,10 +331,10 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
   // Python is installed at this location if the provisioning script is used.
   // This path should work regardless of the existence of the SystemDrive
   // environment variable.
-  pythonPath += L"\\python.exe";
+  pythonPath += "\\python.exe";
 
   std::shared_ptr<PlatformProcess> process;
-  if (::CreateProcessW(pythonPath.c_str(),
+  if (::CreateProcessW(stringToWstring(pythonPath).c_str(),
                        mutable_argv.data(),
                        nullptr,
                        nullptr,

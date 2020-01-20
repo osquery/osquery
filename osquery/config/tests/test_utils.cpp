@@ -24,12 +24,10 @@ namespace {
 namespace fs = boost::filesystem;
 
 fs::path getConfDirPathImpl() {
-  std::wstring kEnvVarName = L"TEST_CONF_FILES_DIR";
+  std::string kEnvVarName = "TEST_CONF_FILES_DIR";
   auto const value_opt = osquery::getEnvVar(kEnvVarName);
   EXPECT_TRUE(static_cast<bool>(value_opt))
-      << "Env var "
-      << boost::io::quoted(osquery::wstringToString(kEnvVarName.c_str()))
-      << " was not found, "
+      << "Env var " << boost::io::quoted(kEnvVarName) << " was not found, "
       << " looks like cxx_test argument 'env' is not set up.";
   return fs::path(value_opt.get());
 }

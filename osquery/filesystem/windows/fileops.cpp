@@ -1306,10 +1306,9 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
    */
   if (find_path.size() >= 2 && find_path[0] == '~' &&
       (find_path[1] == '/' || find_path[1] == '\\')) {
-    auto homedir = getEnvVar(L"USERPROFILE");
+    auto homedir = getEnvVar("USERPROFILE");
     if (homedir.is_initialized()) {
-      std::wstring whomedir = *homedir;
-      full_path = fs::path(wstringToString(whomedir.c_str())) / find_path.substr(2);
+      full_path = fs::path(*homedir) / find_path.substr(2);
     }
   }
 
@@ -1423,9 +1422,9 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
 
 boost::optional<std::string> getHomeDirectory() {
   std::vector<WCHAR> profile(MAX_PATH);
-  auto value = getEnvVar(L"USERPROFILE");
+  auto value = getEnvVar("USERPROFILE");
   if (value.is_initialized()) {
-    return wstringToString(value.get().c_str());
+    return *value;
   } else if (SUCCEEDED(::SHGetFolderPathW(
                  nullptr, CSIDL_PROFILE, nullptr, 0, profile.data()))) {
     return wstringToString(profile.data());

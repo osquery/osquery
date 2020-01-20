@@ -32,12 +32,12 @@ class WmiTests : public testing::Test {
 };
 
 TEST_F(WmiTests, test_methodcall_inparams) {
-  auto windir = getEnvVar(L"WINDIR");
+  auto windir = getEnvVar("WINDIR");
   EXPECT_TRUE(windir);
 
   std::stringstream ss;
   ss << "SELECT * FROM Win32_Directory WHERE Name = \""
-     << wstringToString(windir.get().c_str()) << "\"";
+     << *windir << "\"";
 
   auto query = ss.str();
 

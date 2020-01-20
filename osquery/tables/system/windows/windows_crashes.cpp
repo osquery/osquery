@@ -622,9 +622,9 @@ QueryData genCrashLogs(QueryContext& context) {
   if (!dumpFolderResults.rows().empty()) {
     dumpFolderLocation = dumpFolderResults.rows()[0].at("data");
   } else {
-    auto tempDumpLoc = getEnvVar(L"TMP");
+    auto tempDumpLoc = getEnvVar("TMP");
     dumpFolderLocation = tempDumpLoc.is_initialized()
-                             ? wstringToString(tempDumpLoc.get().c_str())
+                             ? *tempDumpLoc
                              : "";
   }
 

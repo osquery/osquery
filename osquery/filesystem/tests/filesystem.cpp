@@ -56,11 +56,8 @@ class FilesystemTests : public testing::Test {
       tmp_path_ = fs::temp_directory_path().string();
       line_ending_ = "\r\n";
 
-      auto raw_drive = getEnvVar(L"SystemDrive");
-      system_root_ =
-          (raw_drive.is_initialized() ? wstringToString(raw_drive.get().c_str())
-                                      : "") +
-          "\\";
+      auto raw_drive = getEnvVar("SystemDrive");
+      system_root_ = (raw_drive.is_initialized() ? *raw_drive : "") + "\\";
     } else {
       etc_hosts_path_ = "/etc/hosts";
       etc_path_ = "/etc";

@@ -98,11 +98,9 @@ const std::string getEnrollSecret() {
     readFile(FLAGS_enroll_secret_path, enrollment_secret);
     boost::trim(enrollment_secret);
   } else {
-    std::wstring wFLAGS_enroll_secret_env =
-        stringToWstring(FLAGS_enroll_secret_env);
-    auto env_secret = getEnvVar(wFLAGS_enroll_secret_env);
+    auto env_secret = getEnvVar(FLAGS_enroll_secret_env);
     if (env_secret.is_initialized()) {
-      enrollment_secret = wstringToString(env_secret.get().c_str());
+      enrollment_secret = *env_secret;
     }
   }
 

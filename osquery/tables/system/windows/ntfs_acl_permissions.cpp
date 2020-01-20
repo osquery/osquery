@@ -180,11 +180,11 @@ QueryData genNtfsAclPerms(QueryContext& context) {
                                : "Unknown";
       auto trusteeName = trusteeToStr(aceItem->Trustee);
 
-      r["path"] = pathString;
-      r["type"] = accessMode;
-      r["principal"] = trusteeName;
-      r["access"] = perms;
-      r["inherited_from"] = inheritedFrom;
+      r["path"] = SQL_TEXT(pathString);
+      r["type"] = SQL_TEXT(accessMode);
+      r["principal"] = SQL_TEXT(trusteeName);
+      r["access"] = SQL_TEXT(perms);
+      r["inherited_from"] = SQL_TEXT(inheritedFrom);
       results.push_back(std::move(r));
     }
 
