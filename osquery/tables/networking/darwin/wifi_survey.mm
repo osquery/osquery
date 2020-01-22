@@ -42,6 +42,7 @@ QueryData genWifiScan(QueryContext& context) {
         if (country_code != nil) {
           r["country_code"] = [country_code UTF8String];
         }
+        r["security_type"] = getSecurityName([network security]);
         r["rssi"] = INTEGER([network rssiValue]);
         r["noise"] = INTEGER([network noiseMeasurement]);
         CWChannel* cwc = [network wlanChannel];
