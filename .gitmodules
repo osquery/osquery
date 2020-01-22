@@ -133,3 +133,6 @@
 [submodule "libraries/cmake/source/expat/src"]
 	path = libraries/cmake/source/expat/src
 	url = https://github.com/libexpat/libexpat
+[submodule "libraries/cmake/source/libcap/src"]
+	path = libraries/cmake/source/libcap/src
+	url = https://git.kernel.org/pub/scm/libs/libcap/libcap.git

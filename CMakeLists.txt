@@ -128,6 +128,7 @@ function(importLibraries)
     "Linux:ebpfpub"
     "Linux:expat"
     "Linux:dbus"
+    "Linux:libcap"
   )
 
   foreach(library_descriptor ${library_descriptor_list})
