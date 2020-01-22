@@ -20,6 +20,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include <algorithm>
 #include <iomanip>
 #include <string>
 
@@ -43,7 +44,7 @@ static int certversion(X509* cert) {
 static std::string signature_algorithm(X509* cert) {
   auto sign_nid = X509_get_signature_nid(cert);
   if (sign_nid != NID_undef) {
-    return std::string(OBJ_nid2ln(sign_nid));
+    return std::string(OBJ_nid2sn(sign_nid));
   }
   return std::string(LN_undef);
 }
@@ -76,27 +77,42 @@ static std::string certificate_extensions(X509* cert, int nid) {
     return std::string("");
   }
 
-  auto bio_out = BIO_new(BIO_s_mem());
-  auto ident = std::string("");
   for (auto i = 0; i < sk_X509_EXTENSION_num(ci->extensions); i++) {
-    auto ex = (X509_EXTENSION*)sk_X509_EXTENSION_value(ci->extensions, i);
-    if (OBJ_obj2nid(ex->object) == nid) {
-      if (!X509V3_EXT_print(bio_out, ex, 0, 0)) {
-        M_ASN1_OCTET_STRING_print(bio_out, ex->value);
+    auto ext_value =
+        (X509_EXTENSION*)sk_X509_EXTENSION_value(ci->extensions, i);
+    if (!ext_value) {
+      break;
+    }
+
+    if (OBJ_obj2nid(ext_value->object) == nid) {
+      auto bio_out = BIO_new(BIO_s_mem());
+      if (!X509V3_EXT_print(bio_out, ext_value, 0, 0)) {
+        M_ASN1_OCTET_STRING_print(bio_out, ext_value->value);
       }
 
       BUF_MEM* bio_buf = nullptr;
       BIO_get_mem_ptr(bio_out, &bio_buf);
+
+      // remove the ending newline from the extension value
       auto length = bio_buf->length;
-      if (bio_buf->data[length - 1] == '\n') {
-        length = bio_buf->length - 1;
+      if (bio_buf->data[length - 1] == '\n' ||
+          bio_buf->data[length - 1] == '\r') {
+        bio_buf->data[length - 1] = (char)0;
       }
-      ident = std::string(bio_buf->data, length);
+
+      if (bio_buf->data[length] == '\n' || bio_buf->data[length] == '\r') {
+        bio_buf->data[length] = (char)0;
+      }
+      auto ident = std::string(bio_buf->data, bio_buf->length);
+
+      // Replace the newline character with the comma
+      std::replace(ident.begin(), ident.end(), '\n', ';');
+      BIO_free(bio_out);
+      return ident;
     }
   }
 
-  BIO_free(bio_out);
-  return ident;
+  return std::string("");
 }
 
 bool has_cert_expired(X509* cert) {
@@ -206,32 +222,32 @@ static void fillRow(Row& r, X509* cert, int dump_certificate) {
     r["sha1_fingerprint"] = ss.str();
   }
 
-  r["ssl_cert_version"] = INTEGER(certversion(cert));
-  r["ssl_signature_algorithm"] = signature_algorithm(cert);
-  r["ssl_signature"] = signature(cert);
+  r["certificate_version"] = INTEGER(certversion(cert));
+  r["signature_algorithm"] = signature_algorithm(cert);
+  r["signature"] = signature(cert);
 
   // get the authority and subject key identifier
   // It will be same for self-signed certificate
-  r["ssl_subject_key_identifier"] =
+  r["subject_key_identifier"] =
       certificate_extensions(cert, NID_subject_key_identifier);
-  r["ssl_authority_key_identifier"] =
+  r["authority_key_identifier"] =
       certificate_extensions(cert, NID_authority_key_identifier);
 
-  r["ssl_key_usage"] = certificate_extensions(cert, NID_key_usage);
-  r["ssl_extended_key_usage"] = certificate_extensions(cert, NID_ext_key_usage);
-  r["ssl_certificate_policies"] =
+  r["key_usage"] = certificate_extensions(cert, NID_key_usage);
+  r["extended_key_usage"] = certificate_extensions(cert, NID_ext_key_usage);
+  r["certificate_policies"] =
       certificate_extensions(cert, NID_certificate_policies);
 
-  r["ssl_subject_alternative_names"] =
+  r["subject_alternative_names"] =
       certificate_extensions(cert, NID_subject_alt_name);
-  r["ssl_issuer_alternative_names"] =
+  r["issuer_alternative_names"] =
       certificate_extensions(cert, NID_issuer_alt_name);
 
-  r["ssl_info_access"] = certificate_extensions(cert, NID_info_access);
-  r["ssl_subject_info_access"] = certificate_extensions(cert, NID_sinfo_access);
-  r["ssl_policy_mappings"] = certificate_extensions(cert, NID_policy_mappings);
+  r["info_access"] = certificate_extensions(cert, NID_info_access);
+  r["subject_info_access"] = certificate_extensions(cert, NID_sinfo_access);
+  r["policy_mappings"] = certificate_extensions(cert, NID_policy_mappings);
 
-  r["ssl_has_expired"] = INTEGER(has_cert_expired(cert));
+  r["has_expired"] = INTEGER(has_cert_expired(cert));
 
   r["basic_constraint"] = certificate_extensions(cert, NID_basic_constraints);
   r["name_constraints"] = certificate_extensions(cert, NID_name_constraints);
@@ -243,7 +259,7 @@ static void fillRow(Row& r, X509* cert, int dump_certificate) {
 
   // check the dump_certificate flag and dump the certificate in PEM format
   if (dump_certificate) {
-    r["ssl_cert_pem"] = pem(cert);
+    r["certificate_pem"] = pem(cert);
   }
 }
 
