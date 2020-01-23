@@ -10,16 +10,16 @@
 namespace osquery {
 namespace tables {
 
-std::vector<std::string> vbs_methods = {"VBS_NOT_ENABLED",
-                                        "VBS_ENABLED_AND_NOT_RUNNING",
-                                        "VBS_ENABLED_AND_RUNNING"};
-
-std::vector<std::string> enforcement_methods = {
-    "OFF", "AUDIT_MODE", "ENFORCED_MODE"};
-
 QueryData genHVCIStatus(QueryContext& context) {
   Row r;
   QueryData results;
+  
+  std::vector<std::string> vbs_methods = {"VBS_NOT_ENABLED",
+                                        "VBS_ENABLED_AND_NOT_RUNNING",
+                                        "VBS_ENABLED_AND_RUNNING"};
+
+  std::vector<std::string> enforcement_methods = {
+    "OFF", "AUDIT_MODE", "ENFORCED_MODE"};
 
   const WmiRequest wmiSystemReq("SELECT * FROM Win32_DeviceGuard",
                                 (BSTR)L"ROOT\\MICROSOFT\\WINDOWS\\DEVICEGUARD");
