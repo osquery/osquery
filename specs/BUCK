@@ -749,7 +749,7 @@ osquery_gentable_cxx_library(
             "windows",
         ),        
         (
-            _SPECS_LOCATION + "/windows/pipes.table",
+            "/windows/pipes.table",
             "windows",
         ),
         (
