@@ -745,7 +745,7 @@ osquery_gentable_cxx_library(
             "windows",
         ),
         (
-            _SPECS_LOCATION + "/windows/hvci_status.table",
+            "windows/hvci_status.table",
             "windows",
         ),        
         (
