@@ -24,6 +24,7 @@ function(boostMain)
   generateBoostException()
   generateBoostSerialization()
   generateBoostRandom()
+  generateBoostIostream()
   generateBoostWinapi()
 
   add_library(thirdparty_boost INTERFACE)
@@ -255,7 +256,6 @@ function(importBoostInterfaceLibraries)
     "tuple:config"
     "process:config"
     "circular_buffer:config"
-    "iostreams:config"
     "scope_exit:typeof,config"
     "typeof:config"
   )
@@ -913,6 +913,53 @@ function(generateBoostThread)
   )
 
   target_link_libraries(thirdparty_boost_thread PRIVATE
+    thirdparty_cxx_settings
+  )
+endfunction()
+
+function(generateBoostIostream)
+  set(library_root "${BOOST_ROOT}/libs/iostreams")
+
+  add_library(thirdparty_boost_iostreams STATIC
+    "${library_root}/src/zlib.cpp"
+    "${library_root}/src/gzip.cpp"
+    "${library_root}/src/zstd.cpp"
+    "${library_root}/src/bzip2.cpp"
+  )
+
+  if(DEFINED PLATFORM_POSIX)
+    target_sources(thirdparty_boost_iostreams PRIVATE
+      "${library_root}/src/lzma.cpp"
+    )
+  endif()
+
+  target_include_directories(thirdparty_boost_iostreams SYSTEM PUBLIC
+    "${library_root}/include"
+  )
+
+  target_link_libraries(thirdparty_boost_iostreams PUBLIC
+    thirdparty_boost_assert
+    thirdparty_boost_throwexception
+    thirdparty_boost_smartptr
+    thirdparty_boost_core
+    thirdparty_boost_mpl
+    thirdparty_boost_typetraits
+    thirdparty_boost_integer
+    thirdparty_boost_containerhash
+    thirdparty_boost_range
+    thirdparty_boost_utility
+    thirdparty_zlib
+    thirdparty_zstd
+    thirdparty_bzip2
+  )
+
+  if(DEFINED PLATFORM_POSIX)
+    target_link_libraries(thirdparty_boost_iostreams PRIVATE
+      thirdparty_lzma
+    )
+  endif()
+
+  target_link_libraries(thirdparty_boost_iostreams PRIVATE
     thirdparty_cxx_settings
   )
 endfunction()
