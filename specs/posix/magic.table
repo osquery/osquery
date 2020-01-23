@@ -1,7 +1,8 @@
 table_name("magic")
 description("Magic number recognition library table.")
 schema([
-    Column("path", TEXT, "Absolute path to target file", required=True),
+    Column("path", TEXT, "Absolute path to target file", required=True, index=True),
+    Column("magic_db_files", TEXT, "Colon(:) separated list of files where the magic db file can be found. By default one of the following is used: /usr/share/file/magic/magic, /usr/share/misc/magic or /usr/share/misc/magic.mgc", additional=True),
     Column("data", TEXT, "Magic number data from libmagic"),
     Column("mime_type", TEXT, "MIME type data from libmagic"),
     Column("mime_encoding", TEXT, "MIME encoding data from libmagic"),

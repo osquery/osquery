@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <pwd.h>
@@ -67,7 +67,7 @@ Status genBin(const fs::path& path, int perms, QueryData& results) {
   }
 
   results.push_back(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 bool isSuidBin(const fs::path& path, int perms) {

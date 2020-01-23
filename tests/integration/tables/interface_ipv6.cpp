@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // Sanity check integration test for interface_ipv6
@@ -21,7 +21,7 @@ class InterfaceIpv6Test : public testing::Test {
   }
 };
 
-TEST_F(InterfaceIpv6Test, sanity) {
+TEST_F(InterfaceIpv6Test, test_sanity) {
   QueryData const rows = execute_query("select * from interface_ipv6");
   auto const row_map = ValidatatioMap{
       {"interface", NonEmptyString},

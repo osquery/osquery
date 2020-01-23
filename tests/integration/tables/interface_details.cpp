@@ -3,8 +3,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // Sanity check integration test for interface_details
@@ -25,7 +25,7 @@ class InterfaceDetailsTest : public testing::Test {
     }
 };
 
-TEST_F(InterfaceDetailsTest, sanity) {
+TEST_F(InterfaceDetailsTest, test_sanity) {
   QueryData const rows = execute_query("select * from interface_details");
   auto verify_non_negative_or_empty = [](std::string const& value) {
     if (value.empty()) {
@@ -43,6 +43,7 @@ TEST_F(InterfaceDetailsTest, sanity) {
     }
     return true;
   };
+#ifdef OSQUERY_WINDOWS
   auto verify_int_or_empty_on_win = [](std::string const& value) {
     if (value.empty()) {
       return isPlatform(PlatformType::TYPE_WINDOWS);
@@ -62,6 +63,7 @@ TEST_F(InterfaceDetailsTest, sanity) {
     }
     return true;
   };
+#endif
   auto const row_map = ValidatatioMap{
       {"interface", NonEmptyString},
       {"mac", verify_non_empty_string_or_empty_on_win},

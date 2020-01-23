@@ -2,13 +2,14 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,15 @@
 
 namespace osquery {
 
+namespace impl{
+
+const auto wmiObjectDeleter = [](auto *ptr) {
+  ptr->Release();
+};
+
+} // namespace impl
+
+
 /**
 * @brief Helper class to hold 1 result object from a WMI request
 *
@@ -29,16 +39,13 @@ namespace osquery {
 */
 class WmiResultItem {
  public:
-  explicit WmiResultItem(IWbemClassObject* result) : result_(result){};
-  WmiResultItem(WmiResultItem&& src);
+  explicit WmiResultItem() {}
 
-  /**
-  * @brief Destructor for our WMI Wrapper
-  *
-  * This destructor ensures to free the various pointers used
-  * to keep track of IWbem Objects needed for WMI queries.
-  */
-  ~WmiResultItem();
+  explicit WmiResultItem(IWbemClassObject* result) {
+    result_.reset(result);
+  }
+
+  WmiResultItem(WmiResultItem&& src) = default;
 
   /**
   * @brief Windows WMI Helper function to print the type associated with results
@@ -51,7 +58,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve a bool result from a WMI
   * query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetBool(const std::string& name, bool& ret) const;
 
@@ -85,7 +92,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve an unsigned 32 bit integer
   * from a WMI query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetUnsignedInt32(const std::string& name, unsigned int& ret) const;
 
@@ -93,7 +100,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve a Long result from a WMI
   * query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetLong(const std::string& name, long& ret) const;
 
@@ -101,7 +108,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve an unsigned Long result from
   * a WMI query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetUnsignedLong(const std::string& name, unsigned long& ret) const;
 
@@ -109,7 +116,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve a Long Long result from a WMI
   * query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetLongLong(const std::string& name, long long& ret) const;
 
@@ -117,7 +124,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve an Unsigned Long Long result
   * from a WMI query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetUnsignedLongLong(const std::string& name,
                              unsigned long long& ret) const;
@@ -126,7 +133,7 @@ class WmiResultItem {
   * @brief Windows WMI Helper function to retrieve a String result from a WMI
   * query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetString(const std::string& name, std::string& ret) const;
 
@@ -135,13 +142,14 @@ class WmiResultItem {
   * from
   * a WMI query
   *
-  * @returns Status indiciating the success of the query
+  * @returns Status indicating the success of the query
   */
   Status GetVectorOfStrings(const std::string& name,
                             std::vector<std::string>& ret) const;
 
  private:
-  IWbemClassObject* result_{nullptr};
+
+  std::unique_ptr<IWbemClassObject, decltype(impl::wmiObjectDeleter)> result_{nullptr, impl::wmiObjectDeleter};
 };
 
 /**
@@ -154,7 +162,7 @@ class WmiRequest {
  public:
   explicit WmiRequest(const std::string& query,
                       BSTR nspace = (BSTR)L"ROOT\\CIMV2");
-  WmiRequest(WmiRequest&& src);
+  WmiRequest(WmiRequest&& src) = default;
   ~WmiRequest();
 
   const std::vector<WmiResultItem>& results() const {
@@ -173,8 +181,9 @@ class WmiRequest {
  private:
   Status status_;
   std::vector<WmiResultItem> results_;
-  IWbemLocator* locator_{nullptr};
-  IWbemServices* services_{nullptr};
-  IEnumWbemClassObject* enum_{nullptr};
+
+  std::unique_ptr<IWbemLocator, decltype(impl::wmiObjectDeleter)> locator_{nullptr, impl::wmiObjectDeleter};
+  std::unique_ptr<IEnumWbemClassObject, decltype(impl::wmiObjectDeleter)> enum_{nullptr, impl::wmiObjectDeleter};
+  std::unique_ptr<IWbemServices, decltype(impl::wmiObjectDeleter)> services_{nullptr, impl::wmiObjectDeleter};
 };
 }

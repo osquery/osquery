@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <fcntl.h>
@@ -96,7 +96,7 @@ Status SyslogEventPublisher::setUp() {
   VLOG(1) << "Successfully opened pipe for syslog ingestion: "
           << FLAGS_syslog_pipe_path;
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status SyslogEventPublisher::createPipe(const std::string& path) {
@@ -115,14 +115,14 @@ Status SyslogEventPublisher::createPipe(const std::string& path) {
   if (group == nullptr) {
     VLOG(1) << "No group " << kPipeGroupName
             << " found. Not changing group for the pipe.";
-    return Status(0, "OK");
+    return Status::success();
   }
   if (chown(FLAGS_syslog_pipe_path.c_str(), -1, group->gr_gid) == -1) {
     return Status(1,
                   "Error in chown to group " + kPipeGroupName + ": " +
                       std::string(strerror(errno)));
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status SyslogEventPublisher::lockPipe(const std::string& path) {
@@ -132,11 +132,12 @@ Status SyslogEventPublisher::lockPipe(const std::string& path) {
         1, "Error in open for locking pipe: " + std::string(strerror(errno)));
   }
   if (flock(lockFd_, LOCK_EX | LOCK_NB) != 0) {
+    close(lockFd_);
     lockFd_ = -1;
     return Status(
         1, "Unable to acquire pipe lock: " + std::string(strerror(errno)));
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void SyslogEventPublisher::unlockPipe() {
@@ -144,6 +145,8 @@ void SyslogEventPublisher::unlockPipe() {
     if (flock(lockFd_, LOCK_UN) != 0) {
       LOG(WARNING) << "Error unlocking pipe: " << std::string(strerror(errno));
     }
+    close(lockFd_);
+    lockFd_ = -1;
   }
 }
 
@@ -157,7 +160,7 @@ Status SyslogEventPublisher::run() {
       // If there is no pending data, we have flushed everything and can wait
       // until the next time EventFactory calls run(). This also allows the
       // thread to join when it is stopped by EventFactory.
-      return Status(0, "OK");
+      return Status::success();
     }
     std::string line;
     std::getline(readStream_, line);
@@ -176,7 +179,7 @@ Status SyslogEventPublisher::run() {
       }
     }
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void SyslogEventPublisher::tearDown() {
@@ -205,7 +208,7 @@ Status SyslogEventPublisher::populateEventContext(const std::string& line,
   }
 
   if (key == kCsvFields.end()) {
-    return Status(0, "OK");
+    return Status::success();
   } else {
     return Status(1, "Received fewer fields than expected");
   }

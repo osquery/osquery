@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -120,7 +120,7 @@ Status DatabasePlugin::scan(const std::string& domain,
                             std::vector<std::string>& results,
                             const std::string& prefix,
                             size_t max) const {
-  return Status(0, "Not used");
+  return Status::success();
 }
 
 Status DatabasePlugin::call(const PluginRequest& request,
@@ -481,7 +481,7 @@ Status ptreeToRapidJSON(const std::string& in, std::string& out) {
 
   json.toString(out);
 
-  return Status();
+  return Status::success();
 }
 
 static Status migrateV0V1(void) {
@@ -519,7 +519,7 @@ static Status migrateV0V1(void) {
     }
   }
 
-  return Status();
+  return Status::success();
 }
 
 static Status migrateV1V2(void) {
@@ -629,6 +629,6 @@ Status upgradeDatabase(int to_version) {
     db_version++;
   }
 
-  return Status();
+  return Status::success();
 }
 } // namespace osquery

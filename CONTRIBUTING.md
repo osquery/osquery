@@ -8,9 +8,10 @@ your code is under review and give you the basics of how to get started.
 ## Contributing 101
 
 All contributions from the community are submitted via pull requests open against the osquery's
-[master](https://github.com/facebook/osquery/tree/master) branch on GitHub. After reviewed by the
+[master](https://github.com/facebook/osquery/tree/master) branch on GitHub. After
+being reviewed by the
 core team and tested by TravisCI the code will be imported to Phabricator, Facebook's code
-management system, will go through additional testing, and if all is well finally be pushed to
+management system. Pull requests will then go through additional testing and, if all is well, be pushed to
 master and the corresponding PR closed. The core team submits contributions directly through
 Phabricator, but a corresponding PR will be opened on GitHub providing transparency onto our
 development and an opportunity for the community to comment on the PR before it is merged.
@@ -38,7 +39,7 @@ allow both the core team and the community to discuss whether a certain change i
 be accepted, and identify possible problems with the implementation before it even starts.
 
 There aren't strict guidelines on when a blueprint is needed or not, so you should use your best
-judgement or just ping the osquery team on our `core` channel on Slack, but to help you out here are
+judgement or just ping the osquery team on our `core` channel on Slack. Here are
 some examples of changes which **would** benefit from a blueprint:
 
 * Change the basic functioning of the query scheduler
@@ -68,14 +69,14 @@ Start by developing your feature on your feature branch and when ready submit a 
 the osquery master branch. The initial PR should preferably **contain a single commit**.
 
 If you're unfamiliar with GitHub or how pull requests work, GitHub has a very easy to follow guide
-that teaches you how to fork the project and submit your first PR. You can follow it
-[here](https://guides.github.com/activities/forking/).
+that teaches you [how to fork the project and submit your first PR]
+(https://guides.github.com/activities/forking/).
 
 Don't forget to tag the issues you're addressing on the body of your PR description. If your PR
 is intended to close an issue keywords (like `fixes` or `closes`) as defined on [GitHub
 Help](https://help.github.com/articles/closing-issues-using-keywords/).
 
-Once you submit your PR the core team will review it and CI tests will be triggered on TravisCI for
+Once you submit your PR the core team will review it and continuous integration tests will be triggered on TravisCI for
 the multiple platforms we support. If the tests fail or the reviewer requests changes, please submit
 those changes by **appending new commits** to your feature branch. **Avoid amending old commits** as
 that makes it harder for the reviewer to track your updates. If you need to keep your PR up-to-date
@@ -130,8 +131,9 @@ Request](https://github.com/facebook/osquery/issues/new?template=Feature_Request
 
 **Please only use issues for bug reports or feature requests**. If you have deployment questions or
 issues or a general question about osquery hit our Slack instead as you'll have better support
-there. To improve the chances you have a quicker answer search through the available channels and
-choose the most appropriate one and fallback to general as a last resort.
+there. For the fastest result, you should search the available channels and choose
+the most appropriate one for your question. You should post in the general channel
+as a last resort.
 
 **If you're using a vendor please use the appropriate channel as we won't be able to support vendor
 deployments on the non-vendor channels.**
@@ -169,15 +171,16 @@ Belongs in an extension:
 * Integrates with a proprietary or esoteric tool that is not widely applicable
 
 
-## Contributor License Agreement ("CLA")
+## Contributor License Agreement
 
-In order to accept your pull request, we need you to submit a CLA. You only need to do this once to
-work on any of Facebook's open source projects.
+You must submit a Facebook Contributor License Agreement (CLA) before we can
+accept any of your pull requests. You only need to submit one CLA for any of
+Facebook's open source projects.
 
-Complete your CLA at https://code.facebook.com/cla.
+You can complete your CLA at https://code.facebook.com/cla.
 
 
 ## License
 
-By contributing to osquery you agree that your contributions will be licensed as defined on the
-[LICENSE](LICENSE) file.
+By contributing to osquery you agree that your contributions will be licensed
+in accordance with the terms specified in the [LICENSE](LICENSE) file.

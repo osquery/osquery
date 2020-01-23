@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/utils/system/linux/tracing/native_event.h>
@@ -30,7 +30,7 @@ NativeEvent::~NativeEvent() {
   auto const exp = enable(false);
   if (exp.isError()) {
     LOG(WARNING) << "Disabling system event " << event_path_
-                 << " failed: " << exp.getError().getFullMessage();
+                 << " failed: " << exp.getError().getMessage();
   }
 }
 
@@ -74,14 +74,14 @@ Expected<int, NativeEvent::Error> extractIdFromTheSystem(
     id_in >> id_str;
   }
   if (!id_in.is_open() || id_in.fail()) {
-    return createError(NativeEvent::Error::System,
-                       "Could not open linux event id file ")
+    return createError(NativeEvent::Error::System)
+           << "Could not open linux event id file "
            << boost::io::quoted(id_path.string());
   }
   auto id_exp = tryTo<SystemEventId>(id_str);
   if (id_exp.isError()) {
-    return createError(NativeEvent::Error::System,
-                       "Could not parse linux event id from the string ")
+    return createError(NativeEvent::Error::System)
+           << "Could not parse linux event id from the string "
            << boost::io::quoted(id_str);
   }
   return id_exp.get();
@@ -108,16 +108,16 @@ ExpectedSuccess<NativeEvent::Error> NativeEvent::enable(bool do_enable) {
   }
   if (!event_enable_out.is_open() || event_enable_out.fail()) {
     auto const action = do_enable ? "enable" : "disable";
-    return createError(Error::System, "Could not ")
-           << action << " system event, not sufficient rights to modify file "
+    return createError(Error::System)
+           << "Could not " << action
+           << " system event, not sufficient rights to modify file "
            << boost::io::quoted(event_enable_path.string());
   }
   if (do_enable) {
     auto id_exp = extractIdFromTheSystem(full_event_path);
     if (id_exp.isError()) {
-      return createError(Error::System,
-                         "Could not retrieve event id from the system",
-                         id_exp.takeError());
+      return createError(Error::System, id_exp.takeError())
+             << "Could not retrieve event id from the system";
     }
     id_ = id_exp.take();
   } else {

@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/filesystem.hpp>
@@ -38,22 +38,12 @@ std::string genGuid() {
 
 class CarverTests : public testing::Test {
  public:
-  CarverTests() {
-    fs::create_directories(fs::temp_directory_path() / "files_to_carve/");
-    writeTextFile(fs::temp_directory_path() / "files_to_carve/secrets.txt",
-                  "This is a message I'd rather no one saw.");
-    writeTextFile(fs::temp_directory_path() / "files_to_carve/evil.exe",
-                  "MZP\x00\x02\x00\x00\x00\x04\x00\x0f\x00\xff\xff");
-
-    auto paths =
-        platformGlob((fs::temp_directory_path() / "files_to_carve/*").string());
-    for (const auto& p : paths) {
-      carvePaths.insert(p);
-    }
-  }
-
   std::set<std::string>& getCarvePaths() {
     return carvePaths;
+  }
+
+  fs::path const& getWorkingDir() const {
+    return working_dir_;
   }
 
  protected:
@@ -65,12 +55,34 @@ class CarverTests : public testing::Test {
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);
     DatabasePlugin::initPlugin();
+
+    working_dir_ =
+        fs::temp_directory_path() /
+        fs::unique_path("osquery.carver_tests.working_dir.%%%%.%%%%");
+    fs::create_directories(working_dir_);
+
+    files_to_carve_dir_ = working_dir_ / "files_to_carve";
+    fs::create_directories(files_to_carve_dir_);
+
+    writeTextFile(files_to_carve_dir_ / "secrets.txt",
+                  "This is a message I'd rather no one saw.");
+    writeTextFile(files_to_carve_dir_ / "evil.exe",
+                  "MZP\x00\x02\x00\x00\x00\x04\x00\x0f\x00\xff\xff");
+
+    auto paths = platformGlob((files_to_carve_dir_ / "*").string());
+    for (const auto& p : paths) {
+      carvePaths.insert(p);
+    }
   }
+
   void TearDown() override {
-    fs::remove_all(fs::temp_directory_path() / "/files_to_carve/");
+    fs::remove_all(files_to_carve_dir_);
+    fs::remove_all(working_dir_);
   }
 
  private:
+  fs::path working_dir_;
+  fs::path files_to_carve_dir_;
   std::set<std::string> carvePaths;
 };
 
@@ -104,25 +116,31 @@ TEST_F(CarverTests, test_carve_files_locally) {
   EXPECT_GT(tar.size(), 0U);
 }
 
-TEST_F(CarverTests, test_compression) {
-  auto s = osquery::compress(getTestConfigDirectory() / "test.config",
-                             fs::temp_directory_path() / fs::path("test.zst"));
-  EXPECT_TRUE(s.ok());
-}
+TEST_F(CarverTests, test_compression_decompression) {
+  auto const test_data_file = getWorkingDir() / "test.data";
+  writeTextFile(test_data_file, R"raw_text(
+2TItVMSvAY8OFlbYnx1O1NSsuehfNhNiV4Qw4IPP6exA47HVzAlEXZI3blanlAd2
+JSxCUr+3boxWMwsgW2jJPzypSKvfXB9EDbFKiDjVueniBfiAepwta57pZ9tQDnJA
+uRioApcqYSWL14OJrnPQFHel5FpXylmVdIkiz()cT82JsOPZmh56vDn62Kk/mU7V
+RltGAYEpKmi8e71fuB8d/S6Lau{}AmL1153X7E+4d1G1UfiQa7Q02uVjxLLE5FEj
+JTDjVqIQNhi50Pt4J4RVopYzy1AZGwPHLhwFVIPH0s/LmzVW+xbT8/V2UMSzK4XB
+oqADd9Ckcdtplx3k7bcLU[U04j8WWUtUccmB+4e2KS]i3x7WDKviPY/sWy9xFapv
+)raw_text");
+  {
+    auto s = osquery::compress(test_data_file,
+                               getWorkingDir() / fs::path("test.zst"));
+    ASSERT_TRUE(s.ok()) << s.what();
+  }
+  {
+    auto s =
+        osquery::decompress(getWorkingDir() / fs::path("test.zst"),
+                            getWorkingDir() / fs::path("test.data.extract"));
+    ASSERT_TRUE(s.ok()) << s.what();
+  }
 
-TEST_F(CarverTests, test_decompression) {
-  std::cout << fs::temp_directory_path() << "\n";
-  std::cout << (getTestConfigDirectory() / "test.config") << "\n";
-  auto s = osquery::decompress(
-      fs::temp_directory_path() / fs::path("test.zst"),
-      fs::temp_directory_path() / fs::path("test.config.extract"));
-  EXPECT_TRUE(s.ok());
   EXPECT_EQ(
       hashFromFile(HashType::HASH_TYPE_SHA256,
-                   (fs::temp_directory_path() / fs::path("test.config.extract"))
-                       .string()),
-      hashFromFile(
-          HashType::HASH_TYPE_SHA256,
-          (getTestConfigDirectory() / fs::path("test.config")).string()));
+                   (getWorkingDir() / fs::path("test.data.extract")).string()),
+      hashFromFile(HashType::HASH_TYPE_SHA256, test_data_file.string()));
 }
 } // namespace osquery

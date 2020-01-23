@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <gtest/gtest.h>
@@ -63,7 +63,7 @@ class HouseCat : public CatPlugin {
   Status setUp() {
     // Make sure the Plugin implementation's init is called.
     some_value_ = 9000;
-    return Status(0, "OK");
+    return Status::success();
   }
 };
 
@@ -196,7 +196,7 @@ Status SpecialWidget::call(const PluginRequest& request,
   response.push_back(request);
   response[0]["from"] = name_;
   response[0]["secret_power"] = secretPower(request);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 #define UNUSED(x) (void)(x)

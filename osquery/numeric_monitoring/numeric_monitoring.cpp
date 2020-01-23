@@ -2,13 +2,13 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <unordered_map>
 
-#include <boost/format.hpp>
+#include <boost/io/detail/quoted_manip.hpp>
 
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
@@ -17,6 +17,8 @@
 #include <osquery/numeric_monitoring/plugin_interface.h>
 #include <osquery/numeric_monitoring/pre_aggregation_cache.h>
 #include <osquery/registry_factory.h>
+
+#include <osquery/utils/enum_class_hash.h>
 
 namespace osquery {
 
@@ -45,18 +47,6 @@ inline auto reverseMap(
   }
   return reversed;
 }
-
-/**
- * This is just a ad-hoc fix up to handle libc++ and libstdc++ bug:
- * http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-defects.html#2148
- * Eventually it will be removed.
- */
-struct EnumClassHash {
-  template <typename EnumClassType>
-  std::size_t operator()(EnumClassType t) const {
-    return static_cast<std::size_t>(t);
-  }
-};
 
 const auto& getAggregationTypeToStringTable() {
   const auto static table =
@@ -99,12 +89,9 @@ Expected<monitoring::PreAggregationType, ConversionError>
 tryTo<monitoring::PreAggregationType>(const std::string& from) {
   auto it = getStringToAggregationTypeTable().find(from);
   if (it == getStringToAggregationTypeTable().end()) {
-    return createError(
-        ConversionError::InvalidArgument,
-        boost::str(
-            boost::format(
-                "Wrong string representation of `PreAggregationType`: \"%s\"") %
-            from));
+    return createError(ConversionError::InvalidArgument)
+           << "Wrong string representation of `PreAggregationType`: "
+           << boost::io::quoted(from);
   }
   return it->second;
 }

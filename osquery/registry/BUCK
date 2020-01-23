@@ -15,7 +15,7 @@ osquery_cxx_library(
         "registry_interface.cpp",
     ],
     tests = [
-        osquery_target("osquery/registry/tests:registry"),
+        osquery_target("osquery/registry/tests:registry_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [

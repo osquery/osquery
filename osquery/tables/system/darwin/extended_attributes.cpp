@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <CoreServices/CoreServices.h>
@@ -80,6 +80,7 @@ std::vector<std::string> parseExtendedAttributeList(const std::string& path) {
 
   ssize_t ret = listxattr(path.c_str(), content, value, 0);
   if (ret == 0) {
+    free(content);
     return attributes;
   }
 

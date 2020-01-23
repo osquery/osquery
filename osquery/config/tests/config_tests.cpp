@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/config/config.h>
@@ -123,7 +123,7 @@ class TestConfigPlugin : public ConfigPlugin {
                  std::string& pack) override {
     gen_pack_count_++;
     getUnrestrictedPack().toString(pack);
-    return Status();
+    return Status::success();
   }
 
  public:
@@ -299,7 +299,7 @@ TEST_F(ConfigTests, test_content_update) {
   // Update, then clear, packs should have been cleared.
   get().update(config_data);
   auto source_hash = get().getHash(source);
-  EXPECT_EQ("29d117ea900322c88e85e349db01ee386727a484", source_hash);
+  EXPECT_EQ("fb0973b39c70db16655effbca532d4aa93381e59", source_hash);
 
   size_t count = 0;
   auto packCounter = [&count](const Pack& pack) { count++; };
@@ -411,7 +411,7 @@ class TestConfigParserPlugin : public ConfigParserPlugin {
     auto obj2 = data_.getObject();
     data_.addRef("key2", "value2", obj2);
     data_.add("dictionary3", obj2, data_.doc());
-    return Status();
+    return Status::success();
   }
 
   // Flag tracking that the update method was called.
@@ -452,7 +452,7 @@ class PlaceboConfigParserPlugin : public ConfigParserPlugin {
     return {};
   }
   Status update(const std::string&, const ParserConfig&) override {
-    return Status();
+    return Status::success();
   }
 
   /// Make sure configure is called.

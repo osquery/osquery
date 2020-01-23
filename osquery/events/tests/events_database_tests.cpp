@@ -2,9 +2,11 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
+
+#include <memory>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -27,7 +29,7 @@ namespace osquery {
 DECLARE_bool(disable_database);
 
 static TableRows genRows(EventSubscriberPlugin* sub) {
-  auto vtc = new VirtualTableContent();
+  auto vtc = std::make_shared<VirtualTableContent>();
   QueryContext context(vtc);
   RowGenerator::pull_type generator(std::bind(&EventSubscriberPlugin::genTable,
                                               sub,
@@ -36,7 +38,6 @@ static TableRows genRows(EventSubscriberPlugin* sub) {
 
   TableRows results;
   if (!generator) {
-    delete vtc;
     return results;
   }
 
@@ -44,7 +45,6 @@ static TableRows genRows(EventSubscriberPlugin* sub) {
     results.push_back(generator.get());
     generator();
   }
-  delete vtc;
   return results;
 }
 

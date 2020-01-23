@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/utils/json/json.h>
@@ -161,7 +161,7 @@ Status TablePlugin::call(const PluginRequest& request,
     return Status(1, "Unknown table plugin action: " + action);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string TablePlugin::columnDefinition(bool is_extension) const {

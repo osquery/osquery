@@ -2,8 +2,8 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -78,7 +78,7 @@ inline typename std::enable_if<impl::IsMap<MapType>::value,
 tryTake(MapType& table, const KeyType& key) {
   auto it = table.find(key);
   if (it == table.end()) {
-    return createError(MapTakeError::NoSuchKey, "no such key in the table");
+    return createError(MapTakeError::NoSuchKey) << "no such key in the table";
   }
   auto item = std::move(it->second);
   table.erase(it);
@@ -102,7 +102,7 @@ inline typename std::enable_if<impl::IsMap<MapType>::value,
 tryTakeCopy(MapType const& from, KeyType const& key) {
   auto const it = from.find(key);
   if (it == from.end()) {
-    return createError(MapTakeError::NoSuchKey, "no such key in the table");
+    return createError(MapTakeError::NoSuchKey) << "no such key in the table";
   }
   return it->second;
 }

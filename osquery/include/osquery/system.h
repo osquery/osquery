@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -47,8 +47,13 @@ class Initializer : private boost::noncopyable {
    * @param argc the number of elements in argv
    * @param argv the command-line arguments passed to `main()`
    * @param tool the type of osquery main (daemon, shell, test, extension).
+   * @param init_glog whether to start google logging module (it can be
+   * initialized at most once)
    */
-  Initializer(int& argc, char**& argv, ToolType tool = ToolType::TEST);
+  Initializer(int& argc,
+              char**& argv,
+              ToolType tool = ToolType::TEST,
+              bool init_glog = true);
 
   /**
    * @brief Sets up the process as an osquery daemon.

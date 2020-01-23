@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <chrono>
@@ -119,7 +119,7 @@ Status ExtensionManagerInterface::registerExtension(
 
   WriteLock lock(extensions_mutex_);
   extensions_[uuid] = info;
-  return Status();
+  return Status::success();
 }
 
 Status ExtensionManagerInterface::query(const std::string& sql, QueryData& qd) {
@@ -139,7 +139,7 @@ Status ExtensionManagerInterface::deregisterExtension(RouteUUID uuid) {
 
   WriteLock lock(extensions_mutex_);
   extensions_.erase(uuid);
-  return Status();
+  return Status::success();
 }
 
 Status ExtensionManagerInterface::getQueryColumns(const std::string& sql,

@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <cstring>
@@ -36,6 +36,10 @@ static void hashSqliteValue(sqlite3_context* ctx,
   // Parse and verify the split input parameters.
   const char* input =
       reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
+  if (input == nullptr) {
+    sqlite3_result_null(ctx);
+    return;
+  }
 
   auto result = hashFromBuffer(ht, input, strlen(input));
   sqlite3_result_text(

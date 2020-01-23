@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/process/windows/process_ops.h>
@@ -43,8 +43,7 @@ int getUidFromSid(PSID sid) {
 
   if (uid_exp.isError()) {
     LocalFree(sidString);
-    VLOG(1) << "failed to parse PSID "
-            << uid_exp.getError().getFullMessageRecursive();
+    VLOG(1) << "failed to parse PSID " << uid_exp.getError().getMessage();
     return uid_default;
   }
 

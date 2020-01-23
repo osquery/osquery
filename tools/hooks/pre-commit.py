@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
 import os
 import subprocess
@@ -10,7 +11,7 @@ def main():
     my_env["PATH"] = "/urs/local/osquery/bin/" + os.pathsep + my_env["PATH"]
     cmd = ["python", "tools/formatting/git-clang-format.py", "--diff", "--commit", "master", "--style=file"]
     p = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env=my_env)
-    out, err = p.communicate() 
+    out, err = p.communicate()
 
     if not (out.startswith("no modified files to format") or
             out.startswith("clang-format did not modify any files")):

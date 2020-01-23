@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <linux/limits.h>
@@ -54,7 +54,7 @@ Status procGetNamespaceInode(ino_t& inode,
     return Status(1, "Invalid inode value in descriptor for namespace " + path);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status procGetProcessNamespaces(const std::string& process_id,
@@ -79,7 +79,7 @@ Status procGetProcessNamespaces(const std::string& process_id,
     namespace_list[namespace_name] = namespace_inode;
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string procDecodeAddressFromHex(const std::string& encoded_address,

@@ -1,3 +1,8 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+#
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
+
 _S3_BASE_URL = "https://s3.amazonaws.com/osquery-packages"
 
 _S3_BASE_DIR = "third-party"

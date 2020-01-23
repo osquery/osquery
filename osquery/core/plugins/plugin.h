@@ -2,8 +2,8 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 #pragma once
 
@@ -44,7 +44,7 @@ class Plugin : private boost::noncopyable {
  public:
   /// The plugin may perform some initialization, not required.
   virtual Status setUp() {
-    return Status(0, "Not used");
+    return Status::success();
   }
 
   /// The plugin may perform some tear down, release, not required.
@@ -97,7 +97,7 @@ class Plugin : private boost::noncopyable {
                             const PluginResponse& info) {
     (void)name;
     (void)info;
-    return Status(0, "Not used");
+    return Status::success();
   }
 
   /// Allow a specialized plugin type to act when an external plugin is removed.

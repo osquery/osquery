@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // Include system.h before openssl, because windows.h should be included in
@@ -201,7 +201,7 @@ Status getTLSCertificate(std::string hostname, QueryData& results) {
   r["hostname"] = hostname;
   fillRow(r, cert.get());
   results.push_back(r);
-  return Status();
+  return Status::success();
 }
 
 QueryData genTLSCertificate(QueryContext& context) {

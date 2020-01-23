@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <asm/unistd_64.h>
@@ -32,7 +32,7 @@ Status AuditProcessEventSubscriber::init() {
   auto sc = createSubscriptionContext();
   subscribe(&AuditProcessEventSubscriber::Callback, sc);
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
@@ -43,7 +43,7 @@ Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   }
 
   addBatch(emitted_row_list);
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 Status AuditProcessEventSubscriber::ProcessEvents(
@@ -165,7 +165,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     emitted_row_list.push_back(row);
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 const std::set<int>& AuditProcessEventSubscriber::GetSyscallSet() noexcept {

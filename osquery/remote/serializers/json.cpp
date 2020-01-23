@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include "json.h"
@@ -22,7 +22,7 @@ Status JSONSerializer::deserialize(const std::string& serialized, JSON& json) {
     // payload, but doesn't respond with anything. This has been seen in the
     // wild, for example with Sumo Logic.
     json = JSON();
-    return Status(0, "OK");
+    return Status::success();
   }
 
   return json.fromString(serialized);

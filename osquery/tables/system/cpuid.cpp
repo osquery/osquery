@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #ifdef WIN32
@@ -177,7 +177,7 @@ inline Status genStrings(QueryData& results) {
   r["input_eax"] = "1,3";
   results.push_back(r);
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 inline void genFamily(QueryData& results) {

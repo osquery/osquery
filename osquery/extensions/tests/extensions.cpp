@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #ifdef GTEST_HAS_TR1_TUPLE
@@ -186,7 +186,7 @@ class ExtensionPlugin : public Plugin {
     for (const auto& request_item : request) {
       response.push_back({{request_item.first, request_item.second}});
     }
-    return Status(0, "Test success");
+    return Status::success();
   }
 };
 

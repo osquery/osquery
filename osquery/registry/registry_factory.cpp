@@ -2,8 +2,8 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/core.h>
@@ -136,7 +136,7 @@ Status RegistryFactory::removeBroadcast(const RouteUUID& uuid) {
 
   WriteLock lock(mutex_);
   extensions_.erase(uuid);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 /// Adds an alias for an internal registry item. This registry will only

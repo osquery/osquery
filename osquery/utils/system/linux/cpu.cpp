@@ -2,8 +2,8 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/algorithm/string.hpp>
@@ -22,7 +22,8 @@ namespace {
 Expected<std::string, Error> readSysCpuFile(char const* path) {
   std::ifstream fin(path, std::ios_base::in | std::ios_base::binary);
   if (fin.fail() || fin.bad()) {
-    return createError(Error::IOError, "No access to the system file ") << path;
+    return createError(Error::IOError)
+           << "No access to the system file " << path;
   }
   auto data = std::string{};
   fin >> data;
@@ -32,7 +33,7 @@ Expected<std::string, Error> readSysCpuFile(char const* path) {
 Expected<std::size_t, Error> decodeCpuNumber(const std::string& str) {
   auto exp = tryTo<std::size_t>(str);
   if (exp.isError()) {
-    return createError(Error::IncorrectRange, "", exp.takeError())
+    return createError(Error::IncorrectRange, exp.takeError())
            << "Incorrect CPU number representation " << boost::io::quoted(str);
   }
   return exp.take();
@@ -60,7 +61,7 @@ Expected<Mask, Error> decodeMaskFromString(const std::string& encoded_str) {
       if (num_exp.get() < mask.size()) {
         mask.set(num_exp.get());
       } else {
-        return createError(Error::IncorrectRange, "")
+        return createError(Error::IncorrectRange)
                << "CPU number " << num_exp.get() << " out of bound [0,"
                << mask.size() << ")";
       }
@@ -74,12 +75,12 @@ Expected<Mask, Error> decodeMaskFromString(const std::string& encoded_str) {
         return to_exp.takeError();
       }
       if (to_exp.get() < from_exp.get()) {
-        return createError(Error::IncorrectRange,
-                           "Incorrect CPU number interval ")
+        return createError(Error::IncorrectRange)
+               << "Incorrect CPU number interval "
                << boost::io::quoted(interval);
       }
       if (to_exp.get() >= mask.size()) {
-        return createError(Error::IncorrectRange, "")
+        return createError(Error::IncorrectRange)
                << "CPU number " << to_exp.get() << " out of bound [0,"
                << mask.size() << ")";
       }

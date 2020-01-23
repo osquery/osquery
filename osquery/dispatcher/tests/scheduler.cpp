@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <gtest/gtest.h>
@@ -55,12 +55,12 @@ TEST_F(SchedulerTests, test_monitor) {
   ASSERT_TRUE(timestamp.empty());
 
   // Fill in a scheduled query and execute it via the query monitor wrapper.
-  ScheduledQuery query;
+  ScheduledQuery query("time_pack", "time", "select * from time");
   query.interval = 10;
   query.splayed_interval = 11;
-  query.query = "select * from time";
+
   auto results = monitor(name, query);
-  EXPECT_EQ(results.rows().size(), 1U);
+  EXPECT_EQ(results.rowsTyped().size(), 1U);
 
   // Ask the config instance for the monitored performance.
   QueryPerformance perf;

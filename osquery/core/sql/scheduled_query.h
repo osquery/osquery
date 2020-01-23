@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -22,9 +22,17 @@ namespace osquery {
  * attributes. Those attributes are represented in this data structure.
  */
 struct ScheduledQuery : private only_movable {
- public:
+  /// Name of the pack containing query
+  std::string pack_name;
+
+  /// Name of the query
+  std::string name;
+
   /// The SQL query.
   std::string query;
+
+  /// Owner of the query
+  std::string oncall;
 
   /// How often the query should be executed, in second.
   size_t interval{0};
@@ -44,6 +52,10 @@ struct ScheduledQuery : private only_movable {
   /// Set of query options.
   std::map<std::string, bool> options;
 
+  ScheduledQuery(const std::string& pack_name,
+                 const std::string& name,
+                 const std::string& query)
+      : pack_name(pack_name), name(name), query(query) {}
   ScheduledQuery() = default;
   ScheduledQuery(ScheduledQuery&&) = default;
   ScheduledQuery& operator=(ScheduledQuery&&) = default;

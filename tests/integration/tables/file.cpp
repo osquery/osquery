@@ -3,8 +3,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // Sanity check integration test for file
@@ -70,6 +70,7 @@ TEST_F(FileTests, test_sanity) {
   row_map["attributes"] = NormalType;
   row_map["volume_serial"] = NormalType;
   row_map["file_id"] = NormalType;
+  row_map["product_version"] = NormalType;
 #endif
 
   validate_rows(data, row_map);

@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <sstream>
@@ -121,7 +121,7 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
   }
 
   acls.push_back(acl_data);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status parseKeychainItemACL(SecAccessRef access,
@@ -147,7 +147,7 @@ Status parseKeychainItemACL(SecAccessRef access,
   }
 
   CFRelease(acl_list);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 static std::string attributeBufferToString(const void* data, UInt32 length) {
@@ -263,7 +263,7 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
     }
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status genKeychainACLApps(const std::string& path, QueryData& results) {
@@ -307,7 +307,7 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
 
   CFRelease(keychain);
   CFRelease(search);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 QueryData genKeychainACLApps(QueryContext& context) {

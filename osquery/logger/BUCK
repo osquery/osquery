@@ -13,7 +13,7 @@ osquery_cxx_library(
     srcs = ["logger.cpp"],
     header_namespace = "osquery/logger",
     tests = [
-        osquery_target("osquery/logger/tests:logger"),
+        osquery_target("osquery/logger/tests:logger_tests"),
     ],
     visibility = ["PUBLIC"],
     deps = [

@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -23,10 +23,10 @@ namespace osquery {
 struct DiffResults : private only_movable {
  public:
   /// vector of added rows
-  QueryData added;
+  QueryDataTyped added;
 
   /// vector of removed rows
-  QueryData removed;
+  QueryDataTyped removed;
 
   DiffResults() {}
   DiffResults(DiffResults&&) = default;
@@ -43,33 +43,35 @@ struct DiffResults : private only_movable {
   }
 };
 
-
 /**
  * @brief Serialize a DiffResults object into a JSON object.
  *
  * The object JSON will contain two new keys: added and removed.
  *
  * @param d the DiffResults to serialize.
- * @param cols the TableColumn vector indicating column order.
  * @param doc the managed JSON document.
  * @param obj [output] the output JSON object.
+ * @param asNumeric true iff numeric values are serialized as such
  *
  * @return Status indicating the success or failure of the operation.
  */
 Status serializeDiffResults(const DiffResults& d,
-                            const ColumnNames& cols,
                             JSON& doc,
-                            rapidjson::Document& obj);
+                            rapidjson::Document& obj,
+                            bool asNumeric);
 
 /**
  * @brief Serialize a DiffResults object into a JSON string.
  *
  * @param d the DiffResults to serialize.
  * @param json [output] the output JSON string.
+ * @param asNumeric true iff numeric values are serialized as such
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeDiffResultsJSON(const DiffResults& d, std::string& json);
+Status serializeDiffResultsJSON(const DiffResults& d,
+                                std::string& json,
+                                bool asNumeric);
 
 /**
  * @brief Diff QueryDataSet object and QueryData object
@@ -82,6 +84,6 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json);
  *
  * @see DiffResults
  */
-DiffResults diff(QueryDataSet& old_, QueryData& new_);
+DiffResults diff(QueryDataSet& old_, QueryDataTyped& new_);
 
 } // namespace osquery

@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/core.h>
@@ -82,7 +82,7 @@ Status genCsrConfigFromNvram(uint32_t& config) {
   } else {
     CFRelease(properties);
     // The case where csr-active-config is cleared or not set is not an error
-    return Status(0, "csr-active-config key not found");
+    return Status::success();
   }
 }
 

@@ -17,6 +17,7 @@ osquery_cxx_library(
     ],
     header_namespace = "osquery/utils/conversions",
     exported_headers = [
+        "castvariant.h",
         "join.h",
         "split.h",
         "tryto.h",
@@ -60,9 +61,23 @@ osquery_cxx_library(
     tests = [":conversions_tests"],
     visibility = ["PUBLIC"],
     deps = [
+        ":to",
         osquery_target("osquery/utils/expected:expected"),
         osquery_tp_target("boost"),
         osquery_tp_target("glog"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "to",
+    header_namespace = "osquery/utils/conversions",
+    exported_headers = [
+        "to.h",
+    ],
+    tests = [":conversions_tests"],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_tp_target("boost"),
     ],
 )
 
@@ -76,5 +91,16 @@ osquery_cxx_test(
     visibility = ["PUBLIC"],
     deps = [
         ":conversions",
+    ],
+)
+
+osquery_cxx_test(
+    name = "to_tests",
+    srcs = [
+        "tests/to.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":to",
     ],
 )

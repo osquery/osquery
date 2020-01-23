@@ -12,12 +12,26 @@ osquery_cxx_library(
     name = "extensions",
     srcs = [
         "extensions.cpp",
-        "impl_thrift.cpp",
-        "interface.cpp",
     ],
     header_namespace = "osquery/extensions",
-    exported_headers = [
-        "interface.h",
+    link_whole = True,
+    tests = [
+        osquery_target("osquery/extensions/tests:extensions_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        ":extensions_interface",
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/process:process"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/conversions:conversions"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "impl_thrift",
+    srcs = [
+        "impl_thrift.cpp",
     ],
     exported_post_platform_linker_flags = [
         (
@@ -27,15 +41,31 @@ osquery_cxx_library(
             ],
         ),
     ],
-    tests = [
-        osquery_target("osquery/extensions/tests:extensions"),
-    ],
+    link_whole = True,
     visibility = ["PUBLIC"],
     deps = [
+        ":extensions_interface",
         osquery_target("osquery/core:core"),
         osquery_target("osquery/extensions/thrift:osquery-cpp2"),
         osquery_target("osquery/process:process"),
         osquery_target("osquery/utils:utils"),
         osquery_target("osquery/utils/conversions:conversions"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "extensions_interface",
+    srcs = [
+        "interface.cpp",
+    ],
+    header_namespace = "osquery/extensions",
+    exported_headers = [
+        "interface.h",
+    ],
+    link_whole = True,
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery:headers"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
     ],
 )

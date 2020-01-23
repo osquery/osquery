@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/filesystem/operations.hpp>
@@ -227,7 +227,7 @@ class TestFSEventsEventSubscriber
 
   Status init() override {
     callback_count_ = 0;
-    return Status(0, "OK");
+    return Status::success();
   }
 
   SCRef GetSubscription(const std::string& path, uint32_t mask = 0) {
@@ -240,7 +240,7 @@ class TestFSEventsEventSubscriber
   Status SimpleCallback(const ECRef& ec, const SCRef& sc) {
     WriteLock lock(mutex_);
     callback_count_ += 1;
-    return Status(0, "OK");
+    return Status::success();
   }
 
   Status Callback(const ECRef& ec, const SCRef& sc) {
@@ -253,7 +253,7 @@ class TestFSEventsEventSubscriber
     WriteLock lock(mutex_);
     actions_.push_back(ec->action);
     callback_count_ += 1;
-    return Status(0, "OK");
+    return Status::success();
   }
 
   void WaitForEvents(int max, int initial = 0) {

@@ -57,4 +57,5 @@ osquery_tp_prebuilt_cxx_library(
     ],
     version = "1.4.55",
     build = "0",
+    visibility = ["PUBLIC"],
 )

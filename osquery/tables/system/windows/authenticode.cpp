@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <codecvt>
@@ -205,7 +205,7 @@ Status verifySignature(SignatureInformation::Result& result,
     return Status(1, "Failed to verify the file signature");
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 Status getOriginalProgramName(SignatureInformation& signature_info,
@@ -256,7 +256,7 @@ Status getOriginalProgramName(SignatureInformation& signature_info,
         wstringToString(publisher_info_blob_ptr->pwszProgramName);
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 Status getCertificateInformation(SignatureInformation& signature_info,
@@ -309,10 +309,10 @@ Status getCertificateInformation(SignatureInformation& signature_info,
 
   if (!L_GetCertificateDetail(
           signature_info.subject_name, certificate_context, 0)) {
-    return Status(1, "Failed to retrieve the subkect name");
+    return Status::failure("Failed to retrieve the subject name");
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 Status getSignatureInformation(SignatureInformation& signature_info,
@@ -395,7 +395,7 @@ Status getSignatureInformation(SignatureInformation& signature_info,
     return status;
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 Status querySignatureInformation(SignatureInformation& signature_info,
@@ -415,7 +415,7 @@ Status querySignatureInformation(SignatureInformation& signature_info,
   }
 
   if (signature_info.result == SignatureInformation::Result::Missing) {
-    return Status(0, "Ok");
+    return Status::success();
   }
 
   status = getSignatureInformation(signature_info, utf16_path);
@@ -423,7 +423,7 @@ Status querySignatureInformation(SignatureInformation& signature_info,
     return status;
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 namespace tables {
@@ -442,7 +442,7 @@ Status generateRow(Row& r, const std::string& path) {
   }
 
   generateRow(r, signature_info);
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 QueryData genAuthenticode(QueryContext& context) {

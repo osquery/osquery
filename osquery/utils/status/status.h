@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -55,8 +55,7 @@ class Status {
    */
   Status(int c, std::string m) : code_(c), message_(std::move(m)) {}
 
-  Status(const ErrorBase& error)
-      : code_(1), message_(error.getFullMessageRecursive()) {}
+  Status(const ErrorBase& error) : code_(1), message_(error.getMessage()) {}
 
  public:
   /**
@@ -165,9 +164,8 @@ template <typename ToType, typename ValueType, typename ErrorCodeEnumType>
 inline
     typename std::enable_if<std::is_same<ToType, Status>::value, Status>::type
     to(const Expected<ValueType, ErrorCodeEnumType>& expected) {
-  return expected
-             ? Status::success()
-             : Status::failure(expected.getError().getFullMessageRecursive());
+  return expected ? Status::success()
+                  : Status::failure(expected.getError().getMessage());
 }
 
 } // namespace osquery

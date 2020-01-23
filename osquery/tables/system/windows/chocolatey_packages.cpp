@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/filesystem.hpp>
@@ -47,7 +47,7 @@ Status genPackage(const fs::path& nuspec, Row& r) {
   r["author"] = propTree.get("package.metadata.authors", "");
   r["license"] = propTree.get("package.metadata.licenseUrl", "");
 
-  return Status();
+  return Status::success();
 }
 
 QueryData genChocolateyPackages(QueryContext& context) {

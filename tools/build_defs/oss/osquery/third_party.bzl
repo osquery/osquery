@@ -1,3 +1,8 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+#
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
+
 load(
     "//tools/build_defs/oss/osquery:cxx.bzl",
     _osquery_cxx_library = "osquery_cxx_library",
@@ -6,8 +11,8 @@ load(
 )
 load(
     "//tools/build_defs/oss/osquery:defaults.bzl",
-    _OSQUERY_THIRD_PARTY_PATH = "OSQUERY_THIRD_PARTY_PATH",
     _OSQUERY_CELL_NAME = "OSQUERY_CELL_NAME",
+    _OSQUERY_THIRD_PARTY_PATH = "OSQUERY_THIRD_PARTY_PATH",
 )
 load(
     "//tools/build_defs/oss/osquery:native.bzl",
@@ -153,7 +158,7 @@ def _static_lib_group(
             "-Wl,--start-group",
         ] + [
             "$(lib {})".format(i)
-            for i in range(0, len(static_lib_targets))
+            for i in range(len(static_lib_targets))
         ] + [
             "-Wl,--end-group",
         ] + linker_flags,
@@ -231,9 +236,8 @@ def osquery_tp_prebuilt_cxx_library(
         static_libs = None,
         platform_static_libs = None,
         linker_flags = None,
-        deps = None):
-    platform_prebuilt_library_targets = []
-
+        deps = None,
+        **kwargs):
     for platform in platforms:
         archive_target = _osquery_tp_prebuilt_cxx_archive(
             name = name,
@@ -296,8 +300,11 @@ def osquery_tp_prebuilt_cxx_library(
             static_lib_targets,
         )
 
+        if "platform_deps" not in kwargs:
+            kwargs["platform_deps"] = []
+
         for effective_platform in _PLATFORM_MAP[platform]:
-            platform_prebuilt_library_targets.append((
+            kwargs["platform_deps"].append((
                 effective_platform,
                 [":{}".format(prebuilt_library_target)],
             ))
@@ -305,8 +312,7 @@ def osquery_tp_prebuilt_cxx_library(
     _osquery_cxx_library(
         name = name,
         external = True,
-        platform_deps = platform_prebuilt_library_targets,
-        visibility = ["PUBLIC"],
+        **kwargs
     )
 
 def osquery_tp_prebuilt_python_library(

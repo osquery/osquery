@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <algorithm>
@@ -134,6 +134,13 @@ void Pack::initialize(const std::string& name,
     version_ = obj["version"].GetString();
   }
 
+  std::string oncall;
+  if (obj.HasMember("oncall") && obj["oncall"].IsString()) {
+    oncall = obj["oncall"].GetString();
+  } else {
+    oncall = "unknown";
+  }
+
   // Apply the shard, platform, and version checking.
   // It is important to set each value such that the packs meta-table can report
   // each of the restrictions.
@@ -196,13 +203,17 @@ void Pack::initialize(const std::string& name,
       continue;
     }
 
-    ScheduledQuery query;
-    query.query = q.value["query"].GetString();
+    ScheduledQuery query(
+        name_, q.name.GetString(), q.value["query"].GetString());
+
+    query.oncall = oncall;
+
     if (!q.value.HasMember("interval")) {
       query.interval = FLAGS_schedule_default_interval;
     } else {
       query.interval = JSON::valueToSize(q.value["interval"]);
     }
+
     if (query.interval <= 0 || query.query.empty() ||
         query.interval > kMaxQueryInterval) {
       // Invalid pack query.
@@ -270,10 +281,6 @@ const std::string& Pack::getName() const {
 
 const std::string& Pack::getSource() const {
   return source_;
-}
-
-void Pack::setName(const std::string& name) {
-  name_ = name;
 }
 
 bool Pack::checkPlatform() const {

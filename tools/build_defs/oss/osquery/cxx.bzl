@@ -1,3 +1,8 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+#
+# This source code is licensed in accordance with the terms specified in
+# the LICENSE file found in the root directory of this source tree.
+
 load(
     "//tools/build_defs/oss/osquery:native_functions.bzl",
     _osquery_custom_set_generic_kwargs = "osquery_custom_set_generic_kwargs",
@@ -7,6 +12,7 @@ load(
     _osquery_native = "osquery_native",
     _osquery_prebuilt_cxx_library = "osquery_prebuilt_cxx_library",
     _osquery_prebuilt_cxx_library_group = "osquery_prebuilt_cxx_library_group",
+    _osquery_read_config = "osquery_read_config",
 )
 load(
     "//tools/build_defs/oss/osquery:platforms.bzl",
@@ -19,13 +25,6 @@ load(
     ":defaults.bzl",
     _LABELS = "OSQUERY_LABELS",
 )
-
-# for osquery targets only
-_OSQUERY_PREPROCESSOR_FLAGS = [
-    "-DOSQUERY_VERSION=3.3.0",
-    "-DOSQUERY_BUILD_VERSION=3.3.0",
-    "-DOSQUERY_BUILD_SDK_VERSION=3.3.0",
-]
 
 # for osquery targets only
 _OSQUERY_PLATFORM_PREPROCESSOR_FLAGS = [
@@ -94,18 +93,35 @@ def _osquery_set_generic_kwargs(kwargs):
 
 def _osquery_set_preprocessor_kwargs(kwargs, external):
     kwargs.setdefault("preprocessor_flags", [])
-    if not external:
-        kwargs["preprocessor_flags"] += _OSQUERY_PREPROCESSOR_FLAGS
-
     kwargs.setdefault("platform_preprocessor_flags", [])
     kwargs["platform_preprocessor_flags"] += _GLOBAL_PLATFORM_PREPROCESSOR_FLAGS
     if not external:
         kwargs["platform_preprocessor_flags"] += _OSQUERY_PLATFORM_PREPROCESSOR_FLAGS
 
+def _is_target_ignored(target):
+    if _osquery_read_config("osquery", "disable_ignore_lists", False):
+        return False
+    ignore_list = _osquery_read_config("osquery", "target_ignore_list", [])
+    return target in ignore_list
+
 def osquery_cxx_library(external = False, **kwargs):
-    _osquery_set_generic_kwargs(kwargs)
-    _osquery_set_preprocessor_kwargs(kwargs, external)
-    _osquery_cxx_library(**kwargs)
+    if _is_target_ignored(kwargs["name"]):
+        _osquery_cxx_library(name = kwargs["name"], visibility = kwargs.get("visibility", []))
+    else:
+        _osquery_set_generic_kwargs(kwargs)
+        _osquery_set_preprocessor_kwargs(kwargs, external)
+
+        #TODO remove after T39415423 is done
+        # platform_deps is ignored in xcode project generation
+        # so we need to move osx platform_deps to regular deps
+        if _osquery_read_config("osquery", "xcode", False):
+            platform_deps = kwargs.get("platform_deps", [])
+            deps = kwargs.get("deps", [])
+            for (platform, new_deps) in platform_deps:
+                if "macos" in platform:
+                    deps += new_deps
+            kwargs["deps"] = deps
+        _osquery_cxx_library(**kwargs)
 
 def osquery_prebuilt_cxx_library(**kwargs):
     _osquery_set_generic_kwargs(kwargs)
@@ -132,4 +148,18 @@ def osquery_cxx_test(external = False, **kwargs):
     _ignore = [external]
     _osquery_set_generic_kwargs(kwargs)
     _osquery_set_preprocessor_kwargs(kwargs, external)
+
+    kwargs.setdefault("platform_preprocessor_flags", [])
+    kwargs["platform_preprocessor_flags"].append(
+        (
+            _MACOSX,
+            [
+                # osquery tests have lots of ASSERT_/EXPECT_ to compare signed
+                # const with unsigned value. It requires some effort to fix it
+                # with small value, because it is just tests.
+                "-Wno-sign-compare",
+            ],
+        ),
+    )
+
     _osquery_cxx_test(**kwargs)

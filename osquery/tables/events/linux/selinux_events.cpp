@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/algorithm/string.hpp>
@@ -32,7 +32,7 @@ Status SELinuxEventSubscriber::init() {
   auto sc = createSubscriptionContext();
   subscribe(&SELinuxEventSubscriber::Callback, sc);
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status SELinuxEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
@@ -46,7 +46,7 @@ Status SELinuxEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     add(row);
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 Status SELinuxEventSubscriber::ProcessEvents(
@@ -75,7 +75,7 @@ Status SELinuxEventSubscriber::ProcessEvents(
     }
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 }
 
 const std::set<int>& SELinuxEventSubscriber::GetEventSet() noexcept {

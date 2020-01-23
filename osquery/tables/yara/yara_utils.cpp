@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <map>
@@ -97,7 +97,7 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
     compiler = nullptr;
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 /**
@@ -193,7 +193,7 @@ Status handleRuleFiles(const std::string& category,
     compiler = nullptr;
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 /**
@@ -252,14 +252,14 @@ Status YARAConfigParserPlugin::setUp() {
     return Status(1, "Unable to initialize YARA");
   }
 
-  return Status();
+  return Status::success();
 }
 
 Status YARAConfigParserPlugin::update(const std::string& source,
                                       const ParserConfig& config) {
   // The YARA config parser requested the "yara" top-level key in the config.
   if (config.count("yara") == 0) {
-    return Status(0, "No Yara Configuration");
+    return Status::success();
   }
   const auto& yara_config = config.at("yara").doc();
 
@@ -305,7 +305,7 @@ Status YARAConfigParserPlugin::update(const std::string& source,
       VLOG(1) << "YARA file_paths key is invalid";
     }
   }
-  return Status();
+  return Status::success();
 }
 
 /// Call the simple YARA ConfigParserPlugin "yara".

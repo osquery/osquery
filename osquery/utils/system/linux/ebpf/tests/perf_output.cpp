@@ -141,7 +141,7 @@ TEST_F(PerfOutputTests,
           buf.size() + sizeof(WrappedMessage),
           buf.size(),
           dst);
-  ASSERT_FALSE(status.isError()) << status.getError().getFullMessageRecursive();
+  ASSERT_FALSE(status.isError()) << status.getError().getMessage();
   ASSERT_EQ(dst.size(), test_size);
   for (std::size_t i = 0; i < test_size; ++i) {
     EXPECT_EQ(dst[i].c_, 'y') << i;
@@ -194,7 +194,7 @@ TEST_F(PerfOutputTests,
   auto status =
       ebpf::impl::consumeWrappedMessagesFromCircularBuffer<WrappedMessage>(
           &buf[0], tail, head, buf.size(), dst);
-  ASSERT_FALSE(status.isError()) << status.getError().getFullMessageRecursive();
+  ASSERT_FALSE(status.isError()) << status.getError().getMessage();
   ASSERT_EQ(dst.size(), test_size);
   for (std::size_t i = 0; i < test_size; ++i) {
     EXPECT_EQ(dst[i].c_, 't');

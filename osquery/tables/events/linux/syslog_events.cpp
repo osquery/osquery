@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <string>
@@ -33,7 +33,7 @@ class SyslogEventSubscriber : public EventSubscriber<SyslogEventPublisher> {
   Status init() override {
     SyslogSubscriptionContextRef sc = createSubscriptionContext();
     subscribe(&SyslogEventSubscriber::Callback, sc);
-    return Status(0, "OK");
+    return Status::success();
   }
 
   size_t getEventsExpiry() override {
@@ -52,6 +52,6 @@ REGISTER(SyslogEventSubscriber, "event_subscriber", "syslog_events");
 Status SyslogEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r(ec->fields);
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

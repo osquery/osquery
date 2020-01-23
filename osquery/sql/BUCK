@@ -76,7 +76,7 @@ osquery_cxx_library(
         osquery_target("osquery/utils/system:errno"),
         osquery_tp_target("boost"),
         osquery_tp_target("gflags"),
-        osquery_tp_target("googletest", "gtest"),
+        osquery_tp_target("googletest", "gtest_headers"),
         osquery_tp_target("sqlite"),
         osquery_tp_target("ssdeep-cpp"),
     ],

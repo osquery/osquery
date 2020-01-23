@@ -3,8 +3,6 @@
 --config-file
 //tools/buckconfigs/windows-x86_64/type/release.bcfg
 --config-file
-tools/buckconfigs/windows-x86_64/python/default.bcfg
---config-file
 //tools/buckconfigs/windows-x86_64/base.bcfg
 --config-file
 //tools/buckconfigs/base.bcfg

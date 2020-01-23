@@ -2,11 +2,13 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
+
+#include <memory>
 
 #include <boost/noncopyable.hpp>
 
@@ -68,7 +70,7 @@ struct VirtualTable : private boost::noncopyable {
   sqlite3_vtab base;
 
   /// Added structure: A content structure with metadata about the table.
-  VirtualTableContent* content{nullptr};
+  std::shared_ptr<VirtualTableContent> content;
 
   /// Added structure: The thread-local DB instance associated with the query.
   SQLiteDBInstance* instance{nullptr};

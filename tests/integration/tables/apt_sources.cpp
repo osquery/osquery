@@ -3,8 +3,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // Sanity check integration test for apt_sources
@@ -24,7 +24,7 @@ class AptSourcesTest : public testing::Test {
   }
 };
 
-TEST_F(AptSourcesTest, sanity) {
+TEST_F(AptSourcesTest, test_sanity) {
   QueryData data = execute_query("select * from apt_sources");
   if (data.empty()) {
     LOG(WARNING) << "select from \"apt_sources\" table returned no results and "

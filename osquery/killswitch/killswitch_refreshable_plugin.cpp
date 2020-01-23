@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <chrono>
@@ -59,7 +59,7 @@ Status KillswitchRefreshablePlugin::call(const PluginRequest& request,
     if (result) {
       return Status::success();
     } else {
-      return Status::failure(result.getError().getFullMessageRecursive());
+      return Status::failure(result.getError().getMessage());
     }
   } else {
     return KillswitchPlugin::call(request, response);

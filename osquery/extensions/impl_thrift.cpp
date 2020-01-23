@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/core.h>
@@ -436,7 +436,7 @@ Status ExtensionManagerClient::query(const std::string& sql, QueryData& qd) {
     qd.push_back(row);
   }
 
-  return Status();
+  return Status::success();
 }
 
 Status ExtensionManagerClient::getQueryColumns(const std::string& sql,

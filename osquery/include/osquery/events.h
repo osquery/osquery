@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -239,7 +239,7 @@ class EventPublisherPlugin : public Plugin,
    * started, immediately following registration.
    */
   Status setUp() override {
-    return Status(0, "Not used");
+    return Status::success();
   }
 
   /**
@@ -641,7 +641,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
 
  private:
   Status setUp() override {
-    return Status(0, "Setup never used");
+    return Status::success();
   }
 
  private:

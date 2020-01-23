@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/core.h>
@@ -65,7 +65,7 @@ Status genSqliteTableRow(sqlite3_stmt* stmt,
     r["path"] = sqlite_db.string();
   }
   qd.push_back(std::move(r));
-  return Status();
+  return Status::success();
 }
 
 Status genTableRowsForSqliteTable(const fs::path& sqlite_db,

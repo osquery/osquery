@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // clang-format off
@@ -232,7 +232,7 @@ Status Carver::carve(const boost::filesystem::path& path) {
     }
   }
 
-  return Status(0, "Ok");
+  return Status::success();
 };
 
 Status Carver::postCarve(const boost::filesystem::path& path) {
@@ -305,7 +305,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   }
 
   updateCarveValue(carveGuid_, "status", "SUCCESS");
-  return Status(0, "Ok");
+  return Status::success();
 };
 
 Status carvePaths(const std::set<std::string>& paths) {

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""Generate a new website version metadata file based on a new release version
+"""
+Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+
+Generate a new website version metadata file based on a new release version
 
 Usage:
     python tools/codegen/genwebsitemetadata.py --file=~/osquery-site/src/data/osquery_metadata.json
@@ -8,8 +11,8 @@ Usage:
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed as defined on the LICENSE file found in the
-#  root directory of this source tree.
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
 
 from __future__ import absolute_import
 from __future__ import division

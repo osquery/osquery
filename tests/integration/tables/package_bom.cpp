@@ -3,8 +3,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // Sanity check integration test for package_bom
@@ -24,7 +24,7 @@ class packageBom : public testing::Test {
 
 TEST_F(packageBom, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from package_bom");
+  auto const data = execute_query("select * from package_bom where path = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);

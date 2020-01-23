@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/sdk.h>
@@ -80,7 +80,7 @@ class WritableTable : public TablePlugin {
     const auto& rowid = row.at("rowid");
     rowid_to_primary_key.insert({rowid, primary_key});
 
-    return Status(0, "OK");
+    return Status::success();
   }
 
   /// Expands a value list returned by osquery into a Row (without the rowid
@@ -102,7 +102,7 @@ class WritableTable : public TablePlugin {
     row["integer"] =
         std::to_string(document[1].IsNull() ? 0 : document[1].GetInt());
 
-    return Status(0, "OK");
+    return Status::success();
   }
 
  public:

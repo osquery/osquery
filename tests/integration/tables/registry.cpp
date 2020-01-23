@@ -3,8 +3,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // Sanity check integration test for registry
@@ -23,7 +23,7 @@ class RegistryTest : public testing::Test {
   }
 };
 
-TEST_F(RegistryTest, sanity) {
+TEST_F(RegistryTest, test_sanity) {
   QueryData const rows = execute_query("select * from registry");
   ASSERT_GT(rows.size(), 0ul);
   auto const row_map = ValidatatioMap{

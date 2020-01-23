@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/utils/system/system.h>
@@ -132,7 +132,7 @@ Status queryMultipleRegistryKeys(const std::vector<std::string>& regexes,
     return Status(1,
                   "Failed to finalize statement with " + std::to_string(ret));
   }
-  return Status();
+  return Status::success();
 }
 
 Status getClassName(const std::string& clsId, std::string& rClsName) {
@@ -155,7 +155,7 @@ Status getClassName(const std::string& clsId, std::string& rClsName) {
   for (const auto& row : regQueryResults) {
     if (!row.at("data").empty()) {
       rClsName = row.at("data");
-      return Status();
+      return Status::success();
     }
   }
 
@@ -185,7 +185,7 @@ Status getClassExecutables(const std::string& clsId,
       results.push_back(r.at("data"));
     }
   }
-  return Status();
+  return Status::success();
 }
 
 Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
@@ -220,7 +220,7 @@ Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
       rUsername = std::move(wstringToString(accntName));
     }
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 inline void explodeRegistryPath(const std::string& path,
@@ -239,7 +239,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
   explodeRegistryPath(keyPath, hive, key);
 
   if (kRegistryHives.count(hive) != 1) {
-    return Status();
+    return Status::success();
   }
 
   HKEY hkey;
@@ -304,7 +304,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
   }
 
   if (cValues <= 0) {
-    return Status();
+    return Status::success();
   }
 
   DWORD cchValue = maxKeyLength;
@@ -425,7 +425,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
     }
     results.push_back(r);
   }
-  return Status();
+  return Status::success();
 }
 
 static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
@@ -453,7 +453,7 @@ static inline Status populateSubkeys(std::set<std::string>& rKeys,
     }
   }
   rKeys = std::move(newKeys);
-  return Status();
+  return Status::success();
 }
 
 static inline void appendSubkeyToKeys(const std::string& subkey,
@@ -485,14 +485,14 @@ static inline Status populateAllKeysRecursive(
     }
   }
 
-  return Status();
+  return Status::success();
 }
 
 Status expandRegistryGlobs(const std::string& pattern,
                            std::set<std::string>& results) {
   auto pathElems = osquery::split(pattern, kRegSep);
   if (pathElems.size() == 0) {
-    return Status();
+    return Status::success();
   }
 
   /*
@@ -530,7 +530,7 @@ Status expandRegistryGlobs(const std::string& pattern,
       appendSubkeyToKeys(*elem, results);
     }
   }
-  return Status();
+  return Status::success();
 }
 
 static inline void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {

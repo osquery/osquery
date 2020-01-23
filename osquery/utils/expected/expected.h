@@ -2,8 +2,8 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -33,7 +33,7 @@
  *    if (first_error) {
  *      return Error<TestError>(TestError::SomeError, "some error message");
  *    } else {
- *      return createError(TestError::SomeError, "one more error message");
+ *      return createError(TestError::SomeError) << "one more error message";
  *    }
  *   }
  * }
@@ -43,7 +43,7 @@
  *   if (test) {
  *    return std::make_unique<PlatformProcess>(pid);
  *   } else {
- *    return createError(TestError::AnotherError, "something wrong");
+ *    return createError(TestError::AnotherError) << "something wrong";
  *   }
  * }
  *
@@ -60,7 +60,7 @@
  *        break;
  *   }
  * }
- * @see osquery/core/tests/exptected_tests.cpp for more examples
+ * @see osquery/utils/exptected/tests/expected.cpp for more examples.
  *
  * Rvalue ref-qualified methods of unconditional access value or error are
  * explicitly deleted. As far as `osquery` does not have an exceptions we
@@ -155,6 +155,10 @@ class Expected final {
   bool isError() const noexcept {
     errorChecked_.set(true);
     return object_.which() == kErrorType_;
+  }
+
+  void ignoreResult() const noexcept {
+    errorChecked_.set(true);
   }
 
   bool isValue() const noexcept {

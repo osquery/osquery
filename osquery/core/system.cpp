@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <fcntl.h>
@@ -241,7 +241,7 @@ Status getEphemeralUUID(std::string& ident) {
   if (ident.size() == 0) {
     ident = osquery::generateNewUUID();
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status getHostUUID(std::string& ident) {
@@ -260,7 +260,7 @@ Status getSpecifiedUUID(std::string& ident) {
     return Status(1, "No specified identifier for host");
   }
   ident = FLAGS_specified_identifier;
-  return Status(0, "OK");
+  return Status::success();
 }
 
 std::string getHostIdentifier() {
@@ -297,7 +297,7 @@ Status checkStalePid(const std::string& content) {
   try {
     pid = boost::lexical_cast<int>(content);
   } catch (const boost::bad_lexical_cast& /* e */) {
-    return Status(0, "Could not parse pid from existing pidfile");
+    return Status::success();
   }
 
   PlatformProcess target(pid);
@@ -330,7 +330,7 @@ Status checkStalePid(const std::string& content) {
     VLOG(1) << "Found stale process for osqueryd (" << content << ")";
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status createPidFile() {
@@ -578,6 +578,9 @@ bool checkPlatform(const std::string& platform) {
     return true;
   }
 
+  // Technically "centos" and "ubuntu" are no longer supported. We have never
+  // differentiated between Linux distributions, but rather execute all Linux
+  // based queries on any Linux system.
   auto linux_type = (platform.find("linux") != std::string::npos ||
                      platform.find("ubuntu") != std::string::npos ||
                      platform.find("centos") != std::string::npos);

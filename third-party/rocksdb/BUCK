@@ -43,4 +43,8 @@ osquery_tp_prebuilt_cxx_library(
     ],
     version = "5.7.2",
     build = "0",
+    visibility = ["PUBLIC"],
+    exported_preprocessor_flags = [
+        "-DROCKSDB_LITE=1",
+    ],
 )

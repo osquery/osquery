@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <fstream>
@@ -54,7 +54,7 @@ void DiskArbitrationEventPublisher::restart() {
 Status DiskArbitrationEventPublisher::run() {
   restart();
   CFRunLoopRun();
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void DiskArbitrationEventPublisher::stop() {

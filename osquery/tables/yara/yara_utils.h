@@ -1,9 +1,8 @@
-/*
- *  Copyright (c) 2015, Welsey Shields
- *  All rights reserved.
+/**
+ *  Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once

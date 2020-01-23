@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <sstream>
@@ -91,14 +91,6 @@ void escapeNonPrintableBytesEx(std::string& data) {
   return escapeNonPrintableBytes(data);
 }
 
-void SQL::escapeResults() {
-  for (auto& row : results_) {
-    for (auto& column : row) {
-      escapeNonPrintableBytes(column.second);
-    }
-  }
-}
-
 QueryData SQL::selectAllFrom(const std::string& table) {
   PluginResponse response;
   Registry::call("table", table, {{"action", "generate"}}, response);
@@ -168,7 +160,7 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
     return this->attach(request.at("table"));
   } else if (request.at("action") == "detach") {
     this->detach(request.at("table"));
-    return Status(0, "OK");
+    return Status::success();
   } else if (request.at("action") == "tables") {
     std::vector<std::string> tables;
     auto status = this->getQueryTables(request.at("query"), tables);

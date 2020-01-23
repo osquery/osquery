@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <sstream>
@@ -47,7 +47,7 @@ Status DistributedPlugin::call(const PluginRequest& request,
     std::string queries;
     getQueries(queries);
     response.push_back({{"results", queries}});
-    return Status(0, "OK");
+    return Status::success();
   } else if (action == "writeResults") {
     if (request.count("results") == 0) {
       return Status(1, "Missing results field");
@@ -75,7 +75,7 @@ Status Distributed::pullUpdates() {
     return acceptWork(response[0]["results"]);
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 size_t Distributed::getPendingQueryCount() {
@@ -135,7 +135,7 @@ Status Distributed::runQueries() {
 
 Status Distributed::flushCompleted() {
   if (getCompletedCount() == 0) {
-    return Status(0, "OK");
+    return Status::success();
   }
 
   auto distributed_plugin = RegistryFactory::get().getActive("distributed");
@@ -229,7 +229,7 @@ Status Distributed::acceptWork(const std::string& work) {
       VLOG(1) << "Falied to Accelerate: Timeframe is not an integer";
     }
   }
-  return Status();
+  return Status::success();
 }
 
 DistributedQueryRequest Distributed::popRequest() {
@@ -260,7 +260,7 @@ Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
   assert(obj.IsObject());
   doc.addCopy("query", r.query, obj);
   doc.addCopy("id", r.id, obj);
-  return Status();
+  return Status::success();
 }
 
 Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
@@ -283,7 +283,7 @@ Status deserializeDistributedQueryRequest(const rj::Value& obj,
 
   r.query = obj["query"].GetString();
   r.id = obj["id"].GetString();
-  return Status();
+  return Status::success();
 }
 
 Status deserializeDistributedQueryRequestJSON(const std::string& json,
@@ -312,7 +312,7 @@ Status serializeDistributedQueryResult(const DistributedQueryResult& r,
 
   doc.add("request", request_obj);
   doc.add("results", results_arr);
-  return Status();
+  return Status::success();
 }
 
 Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
@@ -343,7 +343,7 @@ Status deserializeDistributedQueryResult(const rj::Value& obj,
   r.request = request;
   r.results = results;
 
-  return Status();
+  return Status::success();
 }
 
 Status deserializeDistributedQueryResultJSON(const std::string& json,

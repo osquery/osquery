@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <mach/mach.h>
@@ -67,6 +67,13 @@ static inline void genHardwareInfo(Row& r) {
   r["hardware_vendor"] = getIOKitProperty(properties, "manufacturer");
   r["hardware_model"] = getIOKitProperty(properties, "product-name");
   r["hardware_serial"] = getIOKitProperty(properties, "IOPlatformSerialNumber");
+
+  // version, manufacturer, and product-name have a trailing space
+  boost::trim(r["hardware_version"]);
+  boost::trim(r["hardware_vendor"]);
+  boost::trim(r["hardware_model"]);
+  boost::trim(r["hardware_serial"]);
+
   CFRelease(properties);
 }
 

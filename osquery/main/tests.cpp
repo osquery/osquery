@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #ifdef WIN32
@@ -15,10 +15,6 @@
 #include <memory>
 
 #include <gtest/gtest.h>
-
-#ifdef FBTHRIFT
-#include <folly/init/Init.h>
-#endif
 
 #include <osquery/logger.h>
 #include <osquery/process/process.h>
@@ -126,10 +122,6 @@ int main(int argc, char* argv[]) {
   osquery::kProcessTestExecPath = argv[0];
   osquery::kExpectedExtensionArgs[0] = argv[0];
   osquery::kExpectedWorkerArgs[0] = argv[0];
-
-#ifdef FBTHRIFT
-  ::folly::init(&argc, &argv, false);
-#endif
 
   if (auto val = osquery::getEnvVar("OSQUERY_WORKER")) {
     return workerMain(argc, argv);

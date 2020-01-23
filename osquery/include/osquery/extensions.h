@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -53,7 +53,7 @@ class ExternalSQLPlugin : public SQLPlugin {
                         std::vector<std::string>& tables) const override {
     static_cast<void>(query);
     static_cast<void>(tables);
-    return Status(0, "Not used");
+    return Status::success();
   }
 
   Status getQueryColumns(const std::string& query,

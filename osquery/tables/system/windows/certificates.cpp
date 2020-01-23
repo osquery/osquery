@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/utils/system/system.h>
@@ -185,7 +185,7 @@ void enumerateCertStore(const HCERTSTORE& certStore,
 
     r["key_usage"] = getKeyUsage(certContext->pCertInfo);
 
-    r["key_strength"] = INTEGER(certContext->cbCertEncoded);
+    r["key_strength"] = INTEGER((certContext->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData) * 8);
 
     certBuff.clear();
     getCertCtxProp(certContext, CERT_KEY_IDENTIFIER_PROP_ID, certBuff);

@@ -4,7 +4,7 @@
 #  This source code is licensed as defined on the LICENSE file found in the
 #  root directory of this source tree.
 
-load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
@@ -21,36 +21,12 @@ osquery_cxx_library(
         "killswitch_refreshable_plugin.h",
     ],
     link_whole = True,
-    tests = [":killswitch_tests"],
+    tests = [
+        osquery_target("osquery/killswitch/tests:killswitch_tests"),
+    ],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/core:core"),
-        osquery_tp_target("googletest", "gtest"),
-    ],
-)
-
-osquery_cxx_test(
-    name = "killswitch_tests",
-    srcs = [
-        "tests/killswitch_tests.cpp",
-    ],
-    env = {
-        "TEST_CONF_FILES_DIR": "$(location {})".format(
-            osquery_target("tools/tests:conf_files"),
-        ),
-    },
-    visibility = ["PUBLIC"],
-    deps = [
-        osquery_target("osquery/config/tests:test_utils"),
-        osquery_target("osquery/config/plugins:tls_config"),
-        osquery_target("osquery/database:database"),
-        osquery_target("osquery/database/plugins:ephemeral"),
-        osquery_target("osquery/events:events"),
-        osquery_target("osquery/extensions:extensions"),
-        osquery_target("osquery/remote/enroll:tls_enroll"),
-        osquery_target("osquery/utils/conversions:conversions"),
-        osquery_target("osquery/utils/info:info"),
-        osquery_target("osquery/killswitch/plugins:killswitch_filesystem"),
-        osquery_target("tests:helper"),
+        osquery_tp_target("googletest", "gtest_headers"),
     ],
 )

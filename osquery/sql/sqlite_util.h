@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -66,13 +66,13 @@ class SQLiteDBInstance : private boost::noncopyable {
   }
 
   /// Allow a virtual table implementation to record use/access of a table.
-  void addAffectedTable(VirtualTableContent* table);
+  void addAffectedTable(std::shared_ptr<VirtualTableContent> table);
 
   /// Clear per-query state of a table affected by the use of this instance.
   void clearAffectedTables();
 
   /// Check if a virtual table had been called already.
-  bool tableCalled(VirtualTableContent* table);
+  bool tableCalled(VirtualTableContent const& table);
 
   /// Request that virtual tables use a warm cache for their results.
   void useCache(bool use_cache);
@@ -126,7 +126,7 @@ class SQLiteDBInstance : private boost::noncopyable {
   static RecursiveMutex kPrimaryAttachMutex;
 
   /// Vector of tables that need their constraints cleared after execution.
-  std::map<std::string, VirtualTableContent*> affected_tables_;
+  std::map<std::string, std::shared_ptr<VirtualTableContent>> affected_tables_;
 
  private:
   friend class SQLiteDBManager;
@@ -356,9 +356,10 @@ Status getQueryColumnsInternal(const std::string& q,
                                const SQLiteDBInstanceRef& instance);
 
 /**
- * @brief SQLInternal: SQL, but backed by internal calls.
+ * @brief SQLInternal: like SQL, but backed by internal calls, and deals
+ * with QueryDataTyped results.
  */
-class SQLInternal : public SQL {
+class SQLInternal : private only_movable {
  public:
   /**
    * @brief Instantiate an instance of the class with an internal query.
@@ -369,6 +370,15 @@ class SQLInternal : public SQL {
   explicit SQLInternal(const std::string& query, bool use_cache = false);
 
  public:
+  /**
+   * @brief Const accessor for the rows returned by the query.
+   *
+   * @return A QueryDataTyped object of the query results.
+   */
+  QueryDataTyped& rowsTyped();
+
+  const Status& getStatus() const;
+
   /**
    * @brief Check if the SQL query's results use event-based tables.
    *
@@ -382,7 +392,15 @@ class SQLInternal : public SQL {
    */
   bool eventBased() const;
 
+  /// ASCII escape the results of the query.
+  void escapeResults();
+
  private:
+  /// The internal member which holds the typed results of the query.
+  QueryDataTyped resultsTyped_;
+
+  /// The internal member which holds the status of the query.
+  Status status_;
   /// Before completing the execution, store a check for EVENT_BASED.
   bool event_based_{false};
 };

@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <algorithm>
@@ -20,13 +20,13 @@
 #include <osquery/killswitch.h>
 #include <osquery/numeric_monitoring.h>
 #include <osquery/process/process.h>
-#include <osquery/profiler/profiler.h>
+#include <osquery/profiler/code_profiler.h>
 #include <osquery/query.h>
 #include <osquery/utils/system/time.h>
 
-#include "osquery/config/parsers/decorators.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/sql/sqlite_util.h"
+#include "plugins/config/parsers/decorators.h"
 
 namespace osquery {
 
@@ -49,8 +49,6 @@ FLAG(uint64,
 
 FLAG(uint64, schedule_epoch, 0, "Epoch for scheduled queries");
 
-HIDDEN_FLAG(bool, enable_monitor, true, "Enable the schedule monitor");
-
 HIDDEN_FLAG(bool,
             schedule_reload_sql,
             false,
@@ -58,30 +56,48 @@ HIDDEN_FLAG(bool,
 
 /// Used to bypass (optimize-out) the set-differential of query results.
 DECLARE_bool(events_optimize);
+DECLARE_bool(enable_numeric_monitoring);
 
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
-  // Snapshot the performance and times for the worker before running.
-  auto pid = std::to_string(PlatformProcess::getCurrentPid());
-  auto r0 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
-                            "processes",
-                            "pid",
-                            EQUALS,
-                            pid);
-  auto t0 = getUnixTime();
-  Config::get().recordQueryStart(name);
-  SQLInternal sql(query.query, true);
-  // Snapshot the performance after, and compare.
-  auto t1 = getUnixTime();
-  auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
-                            "processes",
-                            "pid",
-                            EQUALS,
-                            pid);
-  if (r0.size() > 0 && r1.size() > 0) {
-    // Always called while processes table is working.
-    Config::get().recordQueryPerformance(name, t1 - t0, r0[0], r1[0]);
+  if (FLAGS_enable_numeric_monitoring) {
+    CodeProfiler profiler(
+        {(boost::format("scheduler.pack.%s") % query.pack_name).str(),
+         (boost::format("scheduler.global.query.%s.%s") % query.pack_name %
+          query.name)
+             .str(),
+         (boost::format("scheduler.assigned.query.%s.%s.%s") % query.oncall %
+          query.pack_name % query.name)
+             .str(),
+         (boost::format("scheduler.owners.%s") % query.oncall).str(),
+         (boost::format("scheduler.query.%s.%s.%s") %
+          monitoring::hostIdentifierKeys().scheme % query.pack_name %
+          query.name)
+             .str()});
+    return SQLInternal(query.query, true);
+  } else {
+    // Snapshot the performance and times for the worker before running.
+    auto pid = std::to_string(PlatformProcess::getCurrentPid());
+    auto r0 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                              "processes",
+                              "pid",
+                              EQUALS,
+                              pid);
+    auto t0 = getUnixTime();
+    Config::get().recordQueryStart(name);
+    SQLInternal sql(query.query, true);
+    // Snapshot the performance after, and compare.
+    auto t1 = getUnixTime();
+    auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                              "processes",
+                              "pid",
+                              EQUALS,
+                              pid);
+    if (r0.size() > 0 && r1.size() > 0) {
+      // Always called while processes table is working.
+      Config::get().recordQueryPerformance(name, t1 - t0, r0[0], r1[0]);
+    }
+    return sql;
   }
-  return sql;
 }
 
 Status launchQuery(const std::string& name, const ScheduledQuery& query) {
@@ -90,9 +106,9 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   runDecorators(DECORATE_ALWAYS);
 
   auto sql = monitor(name, query);
-  if (!sql.ok()) {
+  if (!sql.getStatus().ok()) {
     LOG(ERROR) << "Error executing scheduled query " << name << ": "
-               << sql.getMessageString();
+               << sql.getStatus().toString();
     return Status::failure("Error executing scheduled query");
   }
 
@@ -104,7 +120,6 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   QueryLogItem item;
   item.name = name;
   item.identifier = ident;
-  item.columns = sql.columns();
   item.time = osquery::getUnixTime();
   item.epoch = FLAGS_schedule_epoch;
   item.calendar_time = osquery::getAsciiTime();
@@ -112,7 +127,7 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
 
   if (query.options.count("snapshot") && query.options.at("snapshot")) {
     // This is a snapshot query, emit results with a differential or state.
-    item.snapshot_results = std::move(sql.rows());
+    item.snapshot_results = std::move(sql.rowsTyped());
     logSnapshotQuery(item);
     return Status::success();
   }
@@ -121,7 +136,6 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   auto dbQuery = Query(name, query);
   // Comparisons and stores must include escaped data.
   sql.escapeResults();
-
   Status status;
   DiffResults& diff_results = item.results;
   // Add this execution's set of results to the database-tracked named query.
@@ -129,7 +143,7 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   // was executed by exact matching each row.
   if (!FLAGS_events_optimize || !sql.eventBased()) {
     status = dbQuery.addNewResults(
-        std::move(sql.rows()), item.epoch, item.counter, diff_results);
+        std::move(sql.rowsTyped()), item.epoch, item.counter, diff_results);
     if (!status.ok()) {
       std::string line = "Error adding new results to database for query " +
                          name + ": " + status.what();
@@ -139,7 +153,7 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
       Initializer::requestShutdown(EXIT_CATASTROPHIC, line);
     }
   } else {
-    diff_results.added = std::move(sql.rows());
+    diff_results.added = std::move(sql.rowsTyped());
   }
 
   if (query.options.count("removed") && !query.options.at("removed")) {
@@ -170,16 +184,19 @@ void SchedulerRunner::start() {
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
     auto start_time_point = std::chrono::steady_clock::now();
     Config::get().scheduledQueries(
-        ([&i](std::string name, const ScheduledQuery& query) {
+        ([&i](const std::string& name, const ScheduledQuery& query) {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
             TablePlugin::kCacheInterval = query.splayed_interval;
             TablePlugin::kCacheStep = i;
-            {
-              CodeProfiler codeProfiler(
-                  (boost::format("scheduler.executing_query.%s") % name).str());
-              const auto status = launchQuery(name, query);
-              codeProfiler.appendName(status.ok() ? ".success" : ".failure");
-            };
+            const auto status = launchQuery(name, query);
+            monitoring::record(
+                (boost::format("scheduler.query.%s.%s.status.%s") %
+                 query.pack_name % query.name %
+                 (status.ok() ? "success" : "failure"))
+                    .str(),
+                1,
+                monitoring::PreAggregationType::Sum,
+                true);
           }
         }));
     // Configuration decorators run on 60 second intervals only.

@@ -3,8 +3,8 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed as defined on the LICENSE file found in the
-#  root directory of this source tree.
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
 
 # 1: Path to install brew into
 # 2: Linux or Darwin
@@ -65,7 +65,7 @@ function setup_brew() {
   export HOMEBREW_BOTTLE_ARCH=core2
   export BREW="$DEPS/bin/brew"
 
-  log "dissabling brew analytics"
+  log "disabling brew analytics"
   $DEPS/bin/brew analytics off
 
   # Grab full clone to perform a pin

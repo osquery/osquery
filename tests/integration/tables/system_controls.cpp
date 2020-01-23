@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // Sanity check integration test for system_controls
@@ -22,7 +22,7 @@ class SystemControlsTest : public testing::Test {
   }
 };
 
-TEST_F(SystemControlsTest, sanity) {
+TEST_F(SystemControlsTest, test_sanity) {
   auto const rows = execute_query("select * from system_controls");
   auto const row_map = ValidatatioMap{
       {"name", NonEmptyString},

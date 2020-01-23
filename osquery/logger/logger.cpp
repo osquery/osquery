@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #ifndef WIN32
@@ -215,7 +215,14 @@ void setVerboseLevel() {
     FLAGS_alsologtostderr = true;
     FLAGS_v = 1;
   } else {
-    FLAGS_minloglevel = Flag::getInt32Value("logger_min_status");
+    /* We use a different default for the log level if running as a daemon or if
+     * running as a shell. If the flag was set we just use that in both cases.
+     */
+    if (Flag::isDefault("logger_min_status") && Initializer::isShell()) {
+      FLAGS_minloglevel = google::GLOG_WARNING;
+    } else {
+      FLAGS_minloglevel = Flag::getInt32Value("logger_min_status");
+    }
     FLAGS_stderrthreshold = Flag::getInt32Value("logger_min_stderr");
   }
 
@@ -228,10 +235,6 @@ void setVerboseLevel() {
 }
 
 void initStatusLogger(const std::string& name, bool init_glog) {
-#ifndef FBTHRIFT
-  // No color available when using fbthrift.
-  FLAGS_colorlogtostderr = true;
-#endif
   FLAGS_logbufsecs = 0;
   FLAGS_stop_logging_if_full_disk = true;
   // The max size for individual log file is 10MB.
@@ -375,7 +378,7 @@ Status logString(const std::string& message,
                  const std::string& category,
                  const std::string& receiver) {
   if (FLAGS_disable_logging) {
-    return Status(0, "Logging disabled");
+    return Status::success();
   }
 
   Status status;
@@ -403,7 +406,7 @@ Status logQueryLogItem(const QueryLogItem& results) {
 Status logQueryLogItem(const QueryLogItem& results,
                        const std::string& receiver) {
   if (FLAGS_disable_logging) {
-    return Status(0, "Logging disabled");
+    return Status::success();
   }
 
   if (Killswitch::get().isTotalQueryCounterMonitorEnabled()) {
@@ -432,7 +435,7 @@ Status logQueryLogItem(const QueryLogItem& results,
 
 Status logSnapshotQuery(const QueryLogItem& item) {
   if (FLAGS_disable_logging) {
-    return Status(0, "Logging disabled");
+    return Status::success();
   }
 
   if (Killswitch::get().isTotalQueryCounterMonitorEnabled()) {

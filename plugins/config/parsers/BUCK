@@ -1,0 +1,54 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+
+osquery_cxx_library(
+    name = "parsers",
+    srcs = [
+        "auto_constructed_tables.cpp",
+        "decorators.cpp",
+        "events_parser.cpp",
+        "feature_vectors.cpp",
+        "file_paths.cpp",
+        "kafka_topics.cpp",
+        "logger.cpp",
+        "options.cpp",
+        "prometheus_targets.cpp",
+        "views.cpp",
+    ],
+    header_namespace = "plugins/config/parsers",
+    exported_headers = [
+        "auto_constructed_tables.h",
+        "decorators.h",
+        "feature_vectors.h",
+        "kafka_topics.h",
+        "logger.h",
+        "prometheus_targets.h",
+    ],
+    link_whole = True,
+    tests = [
+        osquery_target("plugins/config/parsers/tests:decorators_tests"),
+        osquery_target("plugins/config/parsers/tests:events_parser_tests"),
+        osquery_target("plugins/config/parsers/tests:file_paths_tests"),
+        osquery_target("plugins/config/parsers/tests:options_tests"),
+        osquery_target("plugins/config/parsers/tests:views_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery:headers"),
+        osquery_target("osquery/config:config"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/filesystem:osquery_filesystem"),
+        osquery_target("osquery/logger:data_logger"),
+        osquery_target("osquery/registry:registry"),
+        osquery_target("osquery/sql:sql"),
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/json:json"),
+    ],
+)

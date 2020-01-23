@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <sys/socket.h>
@@ -104,7 +104,7 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
            static_cast<pid_t>(nl_hdr->nlmsg_pid) != getpid());
 
   *size = message_size;
-  return Status(0, "OK");
+  return Status::success();
 }
 
 void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {

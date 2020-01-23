@@ -1,8 +1,9 @@
 @echo off & setlocal
+REM Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 REM command chcp returns string: "Active code page: ..."
 for /F "tokens=*"  %%i in ('chcp') do SET t=%%i
 
-REM Get the last substring (codepage) from "t" and assign it to "CodePage" 
+REM Get the last substring (codepage) from "t" and assign it to "CodePage"
 :loop
 for /f "tokens=1*" %%a in ("%t%") do (
     set CodePage=%%a

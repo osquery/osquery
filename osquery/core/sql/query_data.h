@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -36,7 +36,7 @@ using QueryDataTyped = std::vector<RowTyped>;
  *
  * QueryDataSet -  It's set of Rows for fast search of a specific row.
  */
-using QueryDataSet = std::multiset<Row>;
+using QueryDataSet = std::multiset<RowTyped>;
 
 /**
  * @brief Serialize a QueryData object into a JSON array.
@@ -54,6 +54,22 @@ Status serializeQueryData(const QueryData& q,
                           rapidjson::Document& arr);
 
 /**
+ * @brief Serialize a QueryDataTyped object into a JSON array.
+ *
+ * @param q the QueryDataTyped to serialize.
+ * @param cols the TableColumn vector indicating column order.
+ * @param doc the managed JSON document.
+ * @param arr [output] the output JSON array.
+ * @param asNumeric true iff numeric values are serialized as such
+ *
+ * @return Status indicating the success or failure of the operation.
+ */
+Status serializeQueryData(const QueryDataTyped& q,
+                          JSON& doc,
+                          rapidjson::Document& arr,
+                          bool asNumeric);
+
+/**
  * @brief Serialize a QueryData object into a JSON string.
  *
  * @param q the QueryData to serialize.
@@ -63,8 +79,24 @@ Status serializeQueryData(const QueryData& q,
  */
 Status serializeQueryDataJSON(const QueryData& q, std::string& json);
 
+/**
+ * @brief Serialize a QueryDataTyped object into a JSON string.
+ *
+ * @param q the QueryDataTyped to serialize.
+ * @param json [output] the output JSON string.
+ * @param asNumeric true iff numeric values are serialized as such
+ *
+ * @return Status indicating the success or failure of the operation.
+ */
+Status serializeQueryDataJSON(const QueryDataTyped& q,
+                              std::string& json,
+                              bool asNumeric);
+
 /// Inverse of serializeQueryData, convert JSON to QueryData.
 Status deserializeQueryData(const rapidjson::Value& arr, QueryData& qd);
+
+/// Inverse of serializeQueryData, convert JSON to QueryDataTyped.
+Status deserializeQueryData(const rapidjson::Value& arr, QueryDataTyped& qd);
 
 /// Inverse of serializeQueryData, convert JSON to QueryDataSet.
 Status deserializeQueryData(const rapidjson::Value& arr, QueryDataSet& qd);
@@ -84,11 +116,11 @@ Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd);
  * overhead for most use-cases, but it's worth keeping in mind before you use
  * this in it's current state.
  *
- * @param q the QueryData list to append to
- * @param r the Row to add to q
+ * @param q the QueryDataTyped list to append to
+ * @param r the RowTyped to add to q
  *
  * @return true if the Row was added to the QueryData, false if it was not
  */
-bool addUniqueRowToQueryData(QueryData& q, const Row& r);
+bool addUniqueRowToQueryData(QueryDataTyped& q, const RowTyped& r);
 
 } // namespace osquery

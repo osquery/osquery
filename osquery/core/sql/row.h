@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/lexical_cast.hpp>
 #include <boost/variant.hpp>
 
 #include <osquery/utils/json/json.h>
@@ -68,6 +69,21 @@ Status serializeRow(const Row& r,
                     rapidjson::Value& obj);
 
 /**
+ * @brief Serialize a RowTyped into a JSON document.
+ *
+ * @param r the RowTyped to serialize.
+ * @param doc the managed JSON document.
+ * @param obj [output] the JSON object to assign values.
+ * @param asNumeric true iff numeric values are serialized as such
+ *
+ * @return Status indicating the success or failure of the operation.
+ */
+Status serializeRow(const RowTyped& r,
+                    JSON& doc,
+                    rapidjson::Value& obj,
+                    bool asNumeric);
+
+/**
  * @brief Serialize a Row object into a JSON string.
  *
  * @param r the Row to serialize.
@@ -76,6 +92,17 @@ Status serializeRow(const Row& r,
  * @return Status indicating the success or failure of the operation.
  */
 Status serializeRowJSON(const Row& r, std::string& json);
+
+/**
+ * @brief Serialize a RowTyped object into a JSON string.
+ *
+ * @param r the Row to serialize.
+ * @param json [output] the output JSON string.
+ * @param asNumeric true iff numeric values are serialized as such
+ *
+ * @return Status indicating the success or failure of the operation.
+ */
+Status serializeRowJSON(const RowTyped& r, std::string& json, bool asNumeric);
 
 /**
  * @brief Deserialize a Row object from JSON object.
@@ -88,6 +115,16 @@ Status serializeRowJSON(const Row& r, std::string& json);
 Status deserializeRow(const rapidjson::Value& obj, Row& r);
 
 /**
+ * @brief Deserialize a RowTyped object from JSON object.
+ *
+ * @param obj the input JSON value (should be an object).
+ * @param r [output] the output Row structure.
+ *
+ * @return Status indicating the success or failure of the operation.
+ */
+Status deserializeRow(const rapidjson::Value& obj, RowTyped& r);
+
+/**
  * @brief Deserialize a Row object from a JSON string.
  *
  * @param json the input JSON string.
@@ -96,5 +133,15 @@ Status deserializeRow(const rapidjson::Value& obj, Row& r);
  * @return Status indicating the success or failure of the operation
  */
 Status deserializeRowJSON(const std::string& json, Row& r);
+
+/**
+ * @brief Deserialize a RowTyped object from a JSON string.
+ *
+ * @param json the input JSON string.
+ * @param r [output] the output Row structure.
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status deserializeRowJSON(const std::string& json, RowTyped& r);
 
 } // namespace osquery

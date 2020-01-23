@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/utils/system/linux/ebpf/map.h>
@@ -31,8 +31,8 @@ Expected<int, MapError> mapCreate(enum bpf_map_type map_type,
   attr.max_entries = static_cast<std::uint32_t>(max_entries);
   auto exp_bpf = syscall(BPF_MAP_CREATE, &attr);
   if (exp_bpf.isError()) {
-    return createError(
-        MapError::Unknown, "Creating eBPF map failed", exp_bpf.takeError());
+    return createError(MapError::Unknown, exp_bpf.takeError())
+           << "Creating eBPF map failed";
   }
   return exp_bpf.take();
 }
@@ -49,9 +49,8 @@ ExpectedSuccess<MapError> mapUpdateElement(const int fd,
   attr.flags = flags;
   auto exp_bpf = syscall(BPF_MAP_UPDATE_ELEM, &attr);
   if (exp_bpf.isError()) {
-    return createError(MapError::Unknown,
-                       "Updating value in eBPF map failed",
-                       exp_bpf.takeError());
+    return createError(MapError::Unknown, exp_bpf.takeError())
+           << "Updating value in eBPF map failed";
   }
   return Success{};
 }
@@ -67,12 +66,11 @@ ExpectedSuccess<MapError> mapLookupElement(const int fd,
   auto exp_bpf = syscall(BPF_MAP_LOOKUP_ELEM, &attr);
   if (exp_bpf.isError()) {
     if (exp_bpf.getErrorCode() == PosixError::NOENT) {
-      return createError(MapError::NoSuchKey,
-                         "No such key in the eBPF map",
-                         exp_bpf.takeError());
+      return createError(MapError::NoSuchKey, exp_bpf.takeError())
+             << "No such key in the eBPF map";
     }
-    return createError(
-        MapError::Unknown, "Look up in eBPF map failed", exp_bpf.takeError());
+    return createError(MapError::Unknown, exp_bpf.takeError())
+           << "Look up in eBPF map failed";
   }
   return Success{};
 }
@@ -85,13 +83,11 @@ ExpectedSuccess<MapError> mapDeleteElement(const int fd, void const* key) {
   auto exp_bpf = syscall(BPF_MAP_DELETE_ELEM, &attr);
   if (exp_bpf.isError()) {
     if (exp_bpf.getErrorCode() == PosixError::NOENT) {
-      return createError(MapError::NoSuchKey,
-                         "No such key in the eBPF map",
-                         exp_bpf.takeError());
+      return createError(MapError::NoSuchKey, exp_bpf.takeError())
+             << "No such key in the eBPF map";
     }
-    return createError(MapError::Unknown,
-                       "Deleting element from eBPF map failed",
-                       exp_bpf.takeError());
+    return createError(MapError::Unknown, exp_bpf.takeError())
+           << "Deleting element from eBPF map failed";
   }
   return Success{};
 }

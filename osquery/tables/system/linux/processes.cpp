@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <map>
@@ -24,7 +24,11 @@
 #include <osquery/logger.h>
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/tables.h>
+
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/system/uptime.h>
+
+#include <ctime>
 
 namespace osquery {
 namespace tables {
@@ -110,7 +114,7 @@ Status deletedMatchesInode(const std::string& path, const std::string& pid) {
 
   // If the inodes match, the binary name actually ends with " (deleted)"
   if (std::to_string(st.st_ino) == inode) {
-    return Status(0, "Inodes match");
+    return Status::success();
   } else {
     return Status(1, "Inodes do not match");
   }
@@ -248,8 +252,7 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
     this->system_time = details.at(12);
     this->nice = details.at(16);
     this->threads = details.at(17);
-    auto st = tryTo<long>(details.at(19));
-    this->start_time = INTEGER((st) ? st.take() / 100 : -1);
+    this->start_time = details.at(19);
   }
 
   // /proc/N/status may be not available, or readable by this user.
@@ -388,7 +391,9 @@ int getOnDisk(const std::string& pid, std::string& path) {
   }
 }
 
-void genProcess(const std::string& pid, TableRows& results) {
+void genProcess(const std::string& pid,
+                long system_boot_time,
+                TableRows& results) {
   // Parse the process stat and status.
   SimpleProcStat proc_stat(pid);
   // Parse the process io
@@ -431,7 +436,14 @@ void genProcess(const std::string& pid, TableRows& results) {
   r["user_time"] = std::to_string(usr_time * kMSIn1CLKTCK);
   auto sys_time = std::strtoull(proc_stat.system_time.data(), nullptr, 10);
   r["system_time"] = std::to_string(sys_time * kMSIn1CLKTCK);
-  r["start_time"] = proc_stat.start_time;
+
+  auto proc_start_time_exp = tryTo<long>(proc_stat.start_time);
+  if (proc_start_time_exp.isValue() && system_boot_time > 0) {
+    r["start_time"] = INTEGER(system_boot_time + proc_start_time_exp.take() /
+                                                     sysconf(_SC_CLK_TCK));
+  } else {
+    r["start_time"] = "-1";
+  }
 
   if (!proc_io.status.ok()) {
     // /proc/<pid>/io can require root to access, so don't fail if we can't
@@ -469,10 +481,14 @@ void genNamespaces(const std::string& pid, QueryData& results) {
 
 TableRows genProcesses(QueryContext& context) {
   TableRows results;
+  auto system_boot_time = getUptime();
+  if (system_boot_time > 0) {
+    system_boot_time = std::time(nullptr) - system_boot_time;
+  }
 
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
-    genProcess(pid, results);
+    genProcess(pid, system_boot_time, results);
   }
 
   return results;

@@ -11,9 +11,6 @@ load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
     name = "events",
-    srcs = [
-        "events.cpp",
-    ],
     header_namespace = "osquery/events",
     exported_headers = [
         "pathset.h",
@@ -101,6 +98,7 @@ osquery_cxx_library(
     ],
     visibility = ["PUBLIC"],
     deps = [
+        ":events_registry",
         osquery_target("osquery:headers"),
         osquery_target("osquery/core:core"),
         osquery_target("osquery/config:config"),
@@ -110,5 +108,24 @@ osquery_cxx_library(
         osquery_target("osquery/utils/expected:expected"),
         osquery_target("osquery/utils/system:time"),
         osquery_tp_target("boost"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "events_registry",
+    srcs = [
+        "events.cpp",
+    ],
+    header_namespace = "osquery/events",
+    link_whole = True,
+    tests = [
+        osquery_target("osquery/events/tests:events_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/dispatcher:dispatcher"),
+        osquery_target("osquery/sql:sql"),
+        osquery_target("osquery:headers"),
     ],
 )

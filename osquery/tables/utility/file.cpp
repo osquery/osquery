@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #if !defined(WIN32)
@@ -124,6 +124,7 @@ void genFileInfo(const fs::path& path,
   r["attributes"] = TEXT(file_stat.attributes);
   r["file_id"] = TEXT(file_stat.file_id);
   r["volume_serial"] = TEXT(file_stat.volume_serial);
+  r["product_version"] = TEXT(file_stat.product_version);
 
 #endif
 

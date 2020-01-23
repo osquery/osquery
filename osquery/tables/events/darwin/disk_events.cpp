@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/lexical_cast.hpp>
@@ -33,7 +33,7 @@ Status DiskEventSubscriber::init() {
   subscription->physical_disks = false;
 
   subscribe(&DiskEventSubscriber::Callback, subscription);
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status DiskEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
@@ -60,6 +60,6 @@ Status DiskEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   }
 
   add(r);
-  return Status(0, "OK");
+  return Status::success();
 }
 }

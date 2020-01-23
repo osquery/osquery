@@ -2,8 +2,8 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <boost/algorithm/string.hpp>
@@ -52,7 +52,7 @@ GTEST_TEST(ExpectedTest, failure_error_str_contructor_initialization) {
   EXPECT_FALSE(expected);
   EXPECT_TRUE(expected.isError());
   EXPECT_EQ(expected.getErrorCode(), TestError::Some);
-  auto fullMsg = expected.getError().getFullMessage();
+  auto fullMsg = expected.getError().getMessage();
   EXPECT_PRED2(stringContains, fullMsg, msg);
 }
 
@@ -101,8 +101,8 @@ GTEST_TEST(ExpectedTest, createError_example) {
     if (valid) {
       return 50011971;
     }
-    return createError(TestError::Logical,
-                       "an error message is supposed to be here");
+    return createError(TestError::Logical)
+           << "an error message is supposed to be here";
   };
   auto v = giveMeDozen(true);
   EXPECT_TRUE(v);
@@ -135,24 +135,24 @@ GTEST_TEST(ExpectedTest, ExpectedSuccess_example) {
 GTEST_TEST(ExpectedTest, nested_errors_example) {
   const auto msg = std::string{"Write a good error message"};
   auto firstFailureSource = [&msg]() -> Expected<std::vector<int>, TestError> {
-    return createError(TestError::Semantic, msg);
+    return createError(TestError::Semantic) << msg;
   };
   auto giveMeNestedError = [&]() -> Expected<std::vector<int>, TestError> {
     auto ret = firstFailureSource();
     ret.isError();
-    return createError(TestError::Runtime, msg, ret.takeError());
+    return createError(TestError::Runtime, ret.takeError()) << msg;
   };
   auto ret = giveMeNestedError();
   EXPECT_FALSE(ret);
   ASSERT_TRUE(ret.isError());
   EXPECT_EQ(ret.getErrorCode(), TestError::Runtime);
   ASSERT_TRUE(ret.getError().hasUnderlyingError());
-  EXPECT_PRED2(stringContains, ret.getError().getFullMessage(), msg);
+  EXPECT_PRED2(stringContains, ret.getError().getMessage(), msg);
 }
 
 GTEST_TEST(ExpectedTest, error_handling_example) {
   auto failureSource = []() -> Expected<std::vector<int>, TestError> {
-    return createError(TestError::Runtime, "Test error message ()*+,-.");
+    return createError(TestError::Runtime) << "Test error message ()*+,-.";
   };
   auto ret = failureSource();
   if (ret.isError()) {
@@ -292,7 +292,7 @@ GTEST_TEST(ExpectedTest, error__takeOr_with_user_defined_class) {
     std::string text;
   };
   auto callable = []() -> Expected<SomeTestClass, TestError> {
-    return createError(TestError::Semantic, "error message");
+    return createError(TestError::Semantic) << "error message";
   };
   EXPECT_EQ(callable().takeOr(SomeTestClass("427 BC", "347 BC")).text,
             "427 BC - 347 BC");
@@ -308,7 +308,7 @@ GTEST_TEST(ExpectedTest, value_takeOr_with_rvalue_as_an_argument) {
 GTEST_TEST(ExpectedTest, error_takeOr_with_rvalue_as_an_argument) {
   auto value = int{312};
   auto callable = []() -> Expected<int, TestError> {
-    return createError(TestError::Logical, "error message");
+    return createError(TestError::Logical) << "error message";
   };
   value = callable().takeOr(value);
   EXPECT_EQ(value, 312);

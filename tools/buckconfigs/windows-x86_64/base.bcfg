@@ -5,6 +5,7 @@
   preprocess_mode = combined
   sandbox_sources = true
   use_arg_file = true
+  filepath_length_limited = true
 
 [cxx_base]
   cppflags = \
@@ -33,6 +34,8 @@
     /SUBSYSTEM:CONSOLE \
     /LTCG \
     ntdll.lib \
+    ole32.lib \
+    oleaut32.lib \
     ws2_32.lib \
     iphlpapi.lib \
     netapi32.lib \

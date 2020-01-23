@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // Sanity check integration test for process_open_files
@@ -50,12 +50,7 @@ bool checkProcessOpenFilePath(std::string const& value){
       return true;
     }
     auto const path = boost::filesystem::path(value);
-    // On macosx unlinked pathnames is not marked
-    if (isPlatform(PlatformType::TYPE_OSX)) {
-      return !path.empty() && path.is_absolute();
-    }
-    auto const status = boost::filesystem::status(path);
-    return boost::filesystem::exists(status);
+    return !path.empty() && path.is_absolute();
 }
 
 }

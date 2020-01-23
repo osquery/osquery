@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // clang-format off
@@ -15,7 +15,7 @@
 #include <sstream>
 
 #include <osquery/config/config.h>
-#include <osquery/config/parsers/prometheus_targets.h>
+#include <plugins/config/parsers/prometheus_targets.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/tables/applications/posix/prometheus_metrics.h>

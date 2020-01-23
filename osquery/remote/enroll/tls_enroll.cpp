@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // clang-format off
@@ -30,7 +30,12 @@ namespace osquery {
 
 DECLARE_string(enroll_secret_path);
 DECLARE_bool(disable_enrollment);
-DECLARE_uint64(config_tls_max_attempts);
+
+CLI_FLAG(uint64,
+         tls_enroll_max_attempts,
+         3,
+         "Number of attempts to retry a TLS enroll request, it used to be the "
+         "same as [config_tls_max_attempts]");
 
 /// Enrollment TLS endpoint (path) using TLS hostname.
 CLI_FLAG(string,
@@ -50,8 +55,6 @@ HIDDEN_FLAG(string,
             "enroll_secret",
             "Override the TLS enroll secret key name");
 
-REGISTER(TLSEnrollPlugin, "enroll", "tls");
-
 std::string TLSEnrollPlugin::enroll() {
   // If no node secret has been negotiated, try a TLS request.
   auto uri = "https://" + FLAGS_tls_hostname + FLAGS_enroll_tls_endpoint;
@@ -62,9 +65,9 @@ std::string TLSEnrollPlugin::enroll() {
 
   std::string node_key;
   VLOG(1) << "TLSEnrollPlugin requesting a node enroll key from: " << uri;
-  for (size_t i = 1; i <= FLAGS_config_tls_max_attempts; i++) {
+  for (size_t i = 1; i <= FLAGS_tls_enroll_max_attempts; i++) {
     auto status = requestKey(uri, node_key);
-    if (status.ok() || i == FLAGS_config_tls_max_attempts) {
+    if (status.ok() || i == FLAGS_tls_enroll_max_attempts) {
       break;
     }
 
@@ -117,6 +120,6 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
   if (node_key.empty()) {
     return Status(1, "No node key returned from TLS enroll plugin");
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 }

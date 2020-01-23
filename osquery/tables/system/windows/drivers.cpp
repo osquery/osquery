@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <string>
@@ -111,7 +111,7 @@ Status getDeviceList(const device_infoset_t& infoset,
     return Status::failure("Failed to enumerate installed devices with " +
                            std::to_string(GetLastError()));
   }
-  return Status();
+  return Status::success();
 }
 
 Status getDeviceProperty(const device_infoset_t& infoset,
@@ -124,7 +124,7 @@ Status getDeviceProperty(const device_infoset_t& infoset,
       infoset.get(), &device, &prop, &dev_prop_type, nullptr, 0, &buff_size, 0);
   auto err = GetLastError();
   if (err == ERROR_NOT_FOUND) {
-    return Status();
+    return Status::success();
   }
   if (err != ERROR_INSUFFICIENT_BUFFER) {
     return Status::failure(
@@ -164,7 +164,7 @@ Status getDeviceProperty(const device_infoset_t& infoset,
                            std::to_string(dev_prop_type));
   }
 
-  return Status();
+  return Status::success();
 }
 
 std::string getDriverImagePath(const std::string& service_key) {
@@ -202,7 +202,7 @@ Status genServiceKeyMap(
     }
     services_image_map[key_it->second] = kNormalizeImage(data_it->second);
   }
-  return Status();
+  return Status::success();
 }
 
 QueryData genDrivers(QueryContext& context) {

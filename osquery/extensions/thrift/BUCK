@@ -5,6 +5,7 @@
 #  root directory of this source tree.
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_filegroup")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
@@ -26,4 +27,12 @@ osquery_cxx_library(
     deps = [
         osquery_tp_target("thrift"),
     ],
+)
+
+osquery_filegroup(
+    name = "thrift_file",
+    srcs = [
+        "osquery.thrift",
+    ],
+    visibility = ["PUBLIC"],
 )

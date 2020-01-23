@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <atomic>
@@ -321,7 +321,6 @@ int xEof(sqlite3_vtab_cursor* cur) {
 
 int xDestroy(sqlite3_vtab* p) {
   auto* pVtab = (VirtualTable*)p;
-  delete pVtab->content;
   delete pVtab;
   return SQLITE_OK;
 }
@@ -360,7 +359,7 @@ int xUpdate(sqlite3_vtab* p,
   auto argument_count = static_cast<size_t>(argc);
   auto* pVtab = (VirtualTable*)p;
 
-  auto* content = pVtab->content;
+  auto content = pVtab->content;
   const auto& columnDescriptors = content->columns;
 
   std::string table_name = pVtab->content->name;
@@ -543,7 +542,7 @@ int xCreate(sqlite3* db,
   }
 
   memset(pVtab, 0, sizeof(VirtualTable));
-  pVtab->content = new VirtualTableContent;
+  pVtab->content = std::make_shared<VirtualTableContent>();
   pVtab->instance = (SQLiteDBInstance*)pAux;
 
   // Create a TablePlugin Registry call, expect column details as the response.
@@ -555,7 +554,6 @@ int xCreate(sqlite3* db,
   auto status =
       Registry::call("table", name, {{"action", "columns"}}, response);
   if (!status.ok() || response.size() == 0) {
-    delete pVtab->content;
     delete pVtab;
     return SQLITE_ERROR;
   }
@@ -575,7 +573,6 @@ int xCreate(sqlite3* db,
                << "): " << getStringForSQLiteReturnCode(rc);
 
     VLOG(1) << "Cannot create virtual table using: " << statement;
-    delete pVtab->content;
     delete pVtab;
     return (rc != SQLITE_OK) ? rc : SQLITE_ERROR;
   }
@@ -762,10 +759,9 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   // Check the table for a required column.
   for (const auto& column : columns) {
     auto& options = std::get<2>(column);
-    if (options & ColumnOptions::REQUIRED && !required_satisfied) {
+    if ((options & ColumnOptions::REQUIRED) && !required_satisfied) {
       // A column is marked required, but no constraint satisfies.
-      cost += 1e10;
-      break;
+      return SQLITE_CONSTRAINT;
     }
   }
 
@@ -819,8 +815,8 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
                    sqlite3_value** argv) {
   BaseCursor* pCur = (BaseCursor*)pVtabCursor;
   auto* pVtab = (VirtualTable*)pVtabCursor->pVtab;
-  auto* content = pVtab->content;
-  if (FLAGS_table_delay > 0 && pVtab->instance->tableCalled(content)) {
+  auto content = pVtab->content;
+  if (FLAGS_table_delay > 0 && pVtab->instance->tableCalled(*content)) {
     // Apply an optional sleep between table calls.
     sleepFor(FLAGS_table_delay);
   }

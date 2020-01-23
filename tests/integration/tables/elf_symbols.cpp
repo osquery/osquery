@@ -3,8 +3,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 // Sanity check integration test for elf_symbols
@@ -24,7 +24,7 @@ class elfSymbols : public testing::Test {
 
 TEST_F(elfSymbols, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from elf_symbols");
+  auto const data = execute_query("select * from elf_symbols where path = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);

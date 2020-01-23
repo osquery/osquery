@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <chrono>
@@ -127,14 +127,18 @@ void shutdownTesting() {
 }
 
 ScheduledQuery getOsqueryScheduledQuery() {
-  ScheduledQuery sq;
-  sq.query = "SELECT filename FROM fs WHERE path = '/bin' ORDER BY filename";
+  ScheduledQuery sq(
+      "path_pack",
+      "bin",
+      "SELECT filename FROM fs WHERE path = '/bin' ORDER BY filename");
+
   sq.interval = 5;
+
   return sq;
 }
 
 TableRows genRows(EventSubscriberPlugin* sub) {
-  auto vtc = new VirtualTableContent();
+  auto vtc = std::make_shared<VirtualTableContent>();
   QueryContext context(vtc);
   RowGenerator::pull_type generator(std::bind(&EventSubscriberPlugin::genTable,
                                               sub,
@@ -143,7 +147,6 @@ TableRows genRows(EventSubscriberPlugin* sub) {
 
   TableRows results;
   if (!generator) {
-    delete vtc;
     return results;
   }
 
@@ -151,7 +154,6 @@ TableRows genRows(EventSubscriberPlugin* sub) {
     results.push_back(generator.get());
     generator();
   }
-  delete vtc;
   return results;
 }
 

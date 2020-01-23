@@ -1,0 +1,46 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+
+osquery_cxx_library(
+    name = "killswitch_filesystem",
+    srcs = [
+        "killswitch_filesystem.cpp",
+    ],
+    header_namespace = "osquery/killswitch/plugins",
+    exported_headers = [
+        "killswitch_filesystem.h",
+    ],
+    link_whole = True,
+    tests = [
+        osquery_target("plugins/killswitch/tests:killswitch_filesystem_plugin_tests"),
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/killswitch:killswitch"),
+        osquery_target("osquery/utils/config:utils_config"),
+    ],
+)
+
+osquery_cxx_library(
+    name = "killswitch_tls",
+    srcs = [
+        "killswitch_tls.cpp",
+    ],
+    header_namespace = "osquery/killswitch/plugins",
+    exported_headers = [
+        "killswitch_tls.h",
+    ],
+    link_whole = True,
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/killswitch:killswitch"),
+        osquery_target("osquery/remote:utility"),
+        osquery_target("osquery/remote/serializers:serializer_json"),
+    ],
+)

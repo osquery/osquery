@@ -2,13 +2,15 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/config/tests/test_utils.h>
 
 #include <osquery/filesystem/filesystem.h>
+
+#include <osquery/utils/system/env.h>
 
 #include <gtest/gtest.h>
 
@@ -22,11 +24,11 @@ namespace fs = boost::filesystem;
 
 fs::path getConfDirPathImpl() {
   char const* kEnvVarName = "TEST_CONF_FILES_DIR";
-  auto const value = std::getenv(kEnvVarName);
-  EXPECT_NE(value, nullptr)
+  auto const value_opt = osquery::getEnvVar(kEnvVarName);
+  EXPECT_TRUE(static_cast<bool>(value_opt))
       << "Env var " << boost::io::quoted(kEnvVarName) << " was not found, "
       << " looks like cxx_test argument 'env' is not set up.";
-  return fs::path(value);
+  return fs::path(value_opt.get());
 }
 
 }

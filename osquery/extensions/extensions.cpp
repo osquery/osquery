@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <map>
@@ -168,7 +168,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
         // Create a client with a 10-second receive timeout.
         ExtensionManagerClient client(path, 10 * 1000);
         auto status = client.ping();
-        return Status(0, "OK");
+        return Status::success();
       } catch (const std::exception& /* e */) {
         // Path might exist without a connected extension or extension manager.
       }
@@ -430,7 +430,7 @@ Status loadExtensions(const std::string& loadfile) {
     // forking and executing the extension binary.
     Watcher::get().addExtensionPath(binary);
   }
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status startExtension(const std::string& name, const std::string& version) {
@@ -626,7 +626,7 @@ Status getExtensions(const std::string& manager_path,
                              ext.second.sdk_version};
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status callExtension(const RouteUUID uuid,
@@ -674,7 +674,7 @@ Status startExtensionWatcher(const std::string& manager_path,
   // Start a extension watcher, if the manager dies, so should we.
   Dispatcher::addService(
       std::make_shared<ExtensionWatcher>(manager_path, interval, fatal));
-  return Status(0, "OK");
+  return Status::success();
 }
 
 Status startExtensionManager() {
@@ -733,6 +733,6 @@ Status startExtensionManager(const std::string& manager_path) {
     }
   }
 
-  return Status(0, "OK");
+  return Status::success();
 }
 } // namespace osquery

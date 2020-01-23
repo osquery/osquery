@@ -2,8 +2,8 @@
  *  Copyright (c) 2018-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #include <osquery/core/database/database.h>
@@ -19,9 +19,8 @@ Expected<int32_t, DatabaseError> Database::getInt32(const std::string& domain,
     if (value) {
       return *value;
     } else {
-      return createError(DatabaseError::FailToReadData,
-                         "Failed to convert string to int",
-                         value.takeError());
+      return createError(DatabaseError::FailToReadData, value.takeError())
+             << "Failed to convert string to int";
     }
   } else {
     return string_value.takeError();

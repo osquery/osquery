@@ -3,8 +3,8 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed as defined on the LICENSE file found in the
-#  root directory of this source tree.
+#  This source code is licensed in accordance with the terms specified in
+#  the LICENSE file found in the root directory of this source tree.
 
 from __future__ import absolute_import
 from __future__ import division
@@ -50,7 +50,7 @@ TLS_SERVER_ARGS = {
 CONFIG_FILE = """
 {
   "options": {
-    
+
   },
 
   "schedule": {
@@ -67,7 +67,6 @@ FLAGS_FILE = """
 --config_plugin=tls
 --config_tls_endpoint=/config
 --config_tls_refresh=180
---enable_monitor
 --enable_mouse_events
 --enroll_secret_path={3}
 --enroll_tls_endpoint=/enroll
@@ -184,7 +183,7 @@ def startService(name, *argv):
     start_ = sc('start', name, *argv)
     test_base.expectTrue(serviceAlive)
     return start_[0]
-    
+
 
 def stopService(name):
     stop_ = sc('stop', name)
@@ -204,17 +203,17 @@ def killOsqueryProcesses():
         for p in procs:
             os.kill(p, SIGTERM)
 
-# Before running this test, we should ensure that no residual 
-# processes exist on the system. We do so by getting any service 
+# Before running this test, we should ensure that no residual
+# processes exist on the system. We do so by getting any service
 # that matches our regex, stopping it, and then deleting the service
 def cleanOsqueryServices():
     service_args = POWERSHELL_ARGS + ['$(Get-Service osqueryd_test_*).Name']
     services = subprocess.check_output(service_args).split()
-    
+
     # No services found on the system
     if len(services) == 0:
         return
-    
+
     for service in services:
         stopService(service)
         # Local workaround as we need the service name

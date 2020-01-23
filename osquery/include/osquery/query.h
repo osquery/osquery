@@ -2,8 +2,8 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed as defined on the LICENSE file found in the
- *  root directory of this source tree.
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
  */
 
 #pragma once
@@ -18,57 +18,12 @@
 
 #include <osquery/core.h>
 #include <osquery/core/sql/diff_results.h>
+#include <osquery/core/sql/scheduled_query.h>
 #include <osquery/utils/json/json.h>
 
 namespace osquery {
 
 class Status;
-
-
-
-/**
- * @brief Represents the relevant parameters of a scheduled query.
- *
- * Within the context of osqueryd, a scheduled query may have many relevant
- * attributes. Those attributes are represented in this data structure.
- */
-struct ScheduledQuery : private only_movable {
- public:
-  /// The SQL query.
-  std::string query;
-
-  /// How often the query should be executed, in second.
-  size_t interval{0};
-
-  /// A temporary splayed internal.
-  size_t splayed_interval{0};
-
-  /**
-   * @brief Queries are blacklisted based on logic in the configuration.
-   *
-   * Most calls to inspect scheduled queries will abstract away the blacklisting
-   * concept and only return non-blacklisted queries. The config may be asked
-   * to return all queries, thus it is important to capture this optional data.
-   */
-  bool blacklisted{false};
-
-  /// Set of query options.
-  std::map<std::string, bool> options;
-
-  ScheduledQuery() = default;
-  ScheduledQuery(ScheduledQuery&&) = default;
-  ScheduledQuery& operator=(ScheduledQuery&&) = default;
-
-  /// equals operator
-  bool operator==(const ScheduledQuery& comp) const {
-    return (comp.query == query) && (comp.interval == interval);
-  }
-
-  /// not equals operator
-  bool operator!=(const ScheduledQuery& comp) const {
-    return !(*this == comp);
-  }
-};
 
 /**
  * @brief Query results from a schedule, snapshot, or ad-hoc execution.
@@ -83,7 +38,7 @@ struct QueryLogItem {
   DiffResults results;
 
   /// Optional snapshot results, no differential applied.
-  QueryData snapshot_results;
+  QueryDataTyped snapshot_results;
 
   /// The name of the scheduled query.
   std::string name;
@@ -105,9 +60,6 @@ struct QueryLogItem {
 
   /// A set of additional fields to emit with the log line.
   std::map<std::string, std::string> decorations;
-
-  /// The ordered map of columns from the query.
-  ColumnNames columns;
 
   /// equals operator
   bool operator==(const QueryLogItem& comp) const {
@@ -139,12 +91,6 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc);
  * @return Status indicating the success or failure of the operation.
  */
 Status serializeQueryLogItemJSON(const QueryLogItem& item, std::string& json);
-
-/// Inverse of serializeQueryLogItem, convert JSON to QueryLogItem.
-Status deserializeQueryLogItem(const JSON& doc, QueryLogItem& item);
-
-/// Inverse of serializeQueryLogItem, convert a JSON string to QueryLogItem.
-Status deserializeQueryLogItemJSON(const std::string& json, QueryLogItem& item);
 
 /**
  * @brief Serialize a QueryLogItem object into a JSON document containing
@@ -241,13 +187,15 @@ class Query {
    * Given the results of the execution of a scheduled query, add the results
    * to the database using addNewResults.
    *
-   * @param qd the QueryData object, which has the results of the query.
+   * @param qd the QueryDataTyped object, which has the results of the query.
    * @param epoch the epoch associated with QueryData
    * @param counter [output] the output that holds the query execution counter.
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(QueryData qd, uint64_t epoch, uint64_t& counter) const;
+  Status addNewResults(QueryDataTyped qd,
+                       uint64_t epoch,
+                       uint64_t& counter) const;
 
   /**
    * @brief Add a new set of results to the persistent storage and get back
@@ -257,7 +205,7 @@ class Query {
    * to the database using addNewResults and get back a data structure
    * indicating what rows in the query's results have changed.
    *
-   * @param qd the QueryData object containing query results to store.
+   * @param qd the QueryDataTyped object containing query results to store.
    * @param epoch the epoch associated with QueryData
    * @param counter the output that holds the query execution counter.
    * @param dr an output to a DiffResults object populated based on last run.
@@ -265,7 +213,7 @@ class Query {
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(QueryData qd,
+  Status addNewResults(QueryDataTyped qd,
                        uint64_t epoch,
                        uint64_t& counter,
                        DiffResults& dr,
