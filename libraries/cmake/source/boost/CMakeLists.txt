@@ -954,7 +954,7 @@ function(generateBoostIostream)
   )
 
   if(DEFINED PLATFORM_POSIX)
-    target_link_libraries(thirdparty_boost_iostreams PRIVATE
+    target_link_libraries(thirdparty_boost_iostreams PUBLIC
       thirdparty_lzma
     )
   endif()
