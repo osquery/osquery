@@ -745,6 +745,10 @@ osquery_gentable_cxx_library(
             "windows",
         ),
         (
+            "windows/hvci_status.table",
+            "windows",
+        ),        
+        (
             "windows/pipes.table",
             "windows",
         ),

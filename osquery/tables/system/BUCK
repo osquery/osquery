@@ -259,6 +259,7 @@ osquery_cxx_library(
                 "windows/disk_info.cpp",
                 "windows/drivers.cpp",
                 "windows/groups.cpp",
+                "windows/hvci_status.cpp",
                 "windows/ie_extensions.cpp",
                 "windows/intel_me.cpp",
                 "windows/kernel_info.cpp",
