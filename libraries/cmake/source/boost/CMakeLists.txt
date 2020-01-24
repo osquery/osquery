@@ -24,7 +24,7 @@ function(boostMain)
   generateBoostException()
   generateBoostSerialization()
   generateBoostRandom()
-  generateBoostIostream()
+  generateBoostIostreams()
   generateBoostWinapi()
 
   add_library(thirdparty_boost INTERFACE)
@@ -917,7 +917,7 @@ function(generateBoostThread)
   )
 endfunction()
 
-function(generateBoostIostream)
+function(generateBoostIostreams)
   set(library_root "${BOOST_ROOT}/libs/iostreams")
 
   add_library(thirdparty_boost_iostreams STATIC
