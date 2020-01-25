@@ -103,6 +103,7 @@ function(generateNativeTables)
     "darwin/launchd_overrides.table:macos"
     "darwin/managed_policies.table:macos"
     "darwin/mdfind.table:macos"
+    "darwin/mdls.table:macos"
     "darwin/nfs_shares.table:macos"
     "darwin/nvram.table:macos"
     "darwin/package_bom.table:macos"
