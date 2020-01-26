@@ -4,8 +4,9 @@ To submit a PR please make sure to follow the next steps:
 
 - [ ] Read the `CONTRIBUTING.md` guide on the root of the repo.
 - [ ] Ensure the code is formatted building the `format_check` target,  
-      if not unstage your commit, build the `format` target to format,  
-      re-commit. More information is available on the wiki.
+      if not move the committed files to the stage area,
+      build the `format` target to format, then re-commit.
+      More information is available on the wiki.
 - [ ] Ensure your PR contains a single logical change.
 - [ ] Ensure your PR contains tests for the changes you're submitting.
 - [ ] Describe your changes with as much detail as you can.

@@ -198,13 +198,13 @@ cmake --build . --target format_check
 This is the same command the CI runs to verify formatting.
 
 If the code is not formatted, you can do so with the following command run from the build folder,
-but the code has to be unstaged if it was already committed:
+but the code has to be put in the stage area first if it was already committed:
 
 ```bash
 cmake --build . --target format
 ```
 
-To avoid having to unstage each time, remember to format the code before committing.
+To avoid having to move the committed files to the stage area and back each time, remember to format the code before committing.
 
 
 ## Running Cppcheck (Linux only)
