@@ -1424,7 +1424,7 @@ boost::optional<std::string> getHomeDirectory() {
   std::vector<WCHAR> profile(MAX_PATH);
   auto value = getEnvVar("USERPROFILE");
   if (value.is_initialized()) {
-    return *value;
+    return value;
   } else if (SUCCEEDED(::SHGetFolderPathW(
                  nullptr, CSIDL_PROFILE, nullptr, 0, profile.data()))) {
     return wstringToString(profile.data());

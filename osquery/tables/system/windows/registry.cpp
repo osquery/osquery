@@ -367,15 +367,15 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
     if (bpDataBuff != nullptr) {
       /// REG_LINK is a Unicode string, which in Windows is wchar_t
       std::string regLinkStr;
-      // std::make_unique<char[]>(cbMaxValueData);
       if (lpType == REG_LINK) {
-        regLinkStr = wstringToString((wchar_t*)bpDataBuff.get());
+        regLinkStr =
+            wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
       }
 
       std::vector<char> regBinary;
       std::string data;
       std::vector<std::string> multiSzStrs;
-      auto p = (wchar_t*)bpDataBuff.get();
+      auto p = reinterpret_cast<wchar_t*>(bpDataBuff.get());
 
       switch (lpType) {
       case REG_FULL_RESOURCE_DESCRIPTOR:
@@ -395,7 +395,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff.get())));
         break;
       case REG_EXPAND_SZ:
-        r["data"] = wstringToString((wchar_t*)bpDataBuff.get());
+        r["data"] = wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
         break;
       case REG_LINK:
         r["data"] = regLinkStr;
@@ -415,7 +415,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = std::to_string(*((unsigned long long*)bpDataBuff.get()));
         break;
       case REG_SZ:
-        r["data"] = wstringToString((wchar_t*)bpDataBuff.get());
+        r["data"] = wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
         break;
       default:
         r["data"] = "";
