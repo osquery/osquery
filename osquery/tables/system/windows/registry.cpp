@@ -395,7 +395,8 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff.get())));
         break;
       case REG_EXPAND_SZ:
-        r["data"] = wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
+        r["data"] =
+            wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
         break;
       case REG_LINK:
         r["data"] = regLinkStr;
@@ -415,7 +416,8 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = std::to_string(*((unsigned long long*)bpDataBuff.get()));
         break;
       case REG_SZ:
-        r["data"] = wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
+        r["data"] =
+            wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
         break;
       default:
         r["data"] = "";
