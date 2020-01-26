@@ -1488,10 +1488,6 @@ static std::string normalizeDirPath(const fs::path& path) {
   }
 
   // NTFS is case insensitive, to normalize, make everything uppercase
-  // TODO: the above comment is incorrect:
-  // 1. NTFS is actually case-sensitive.
-  // 2. OS might have case-sensitivity turned on, which will
-  //    produce false-positives here.
   ::CharUpperW(final_path.data());
 
   boost::system::error_code ec;
