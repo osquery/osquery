@@ -78,6 +78,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/usb_devices.cpp
       linux/user_groups.cpp
       linux/users.cpp
+      linux/selinux_settings.cpp
     )
 
   elseif(DEFINED PLATFORM_MACOS)

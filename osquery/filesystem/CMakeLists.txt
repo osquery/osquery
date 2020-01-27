@@ -36,6 +36,7 @@ function(generateOsqueryFilesystem)
     list(APPEND source_files
       linux/mem.cpp
       linux/proc.cpp
+      linux/mounts.cpp
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
@@ -55,6 +56,7 @@ function(generateOsqueryFilesystem)
     osquery_utils_conversions
     osquery_utils_status
     osquery_utils_system_env
+    osquery_utils_system_filepath
     thirdparty_boost
     thirdparty_libarchive
     thirdparty_zstd
@@ -68,6 +70,7 @@ function(generateOsqueryFilesystem)
   if(DEFINED PLATFORM_LINUX)
     list(APPEND public_header_files
       linux/proc.h
+      linux/mounts.h
     )
   endif()
 
