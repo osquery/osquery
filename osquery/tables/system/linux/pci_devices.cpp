@@ -32,8 +32,8 @@ const std::string kPCIClassID = "PCI_CLASS";
 const std::string kPCIKeyDriver = "DRIVER";
 const std::string kPCISubsysID = "PCI_SUBSYS_ID";
 
-const std::vector<std::string> kPciidsPathList{
-  "/usr/share/misc/pci.ids", "/usr/share/hwdata/pci.ids"};
+const std::vector<std::string> kPciidsPathList{"/usr/share/misc/pci.ids",
+                                               "/usr/share/hwdata/pci.ids"};
 const std::string kPciidsDeviceClassStartIndicator = "ffff";
 const std::string kPciidsValidHexChars = "0123456789abcdef";
 const char kPciidsCommentChar = '#';
@@ -400,11 +400,11 @@ QueryData genPCIDevices(QueryContext& context) {
     if (raw) {
       break;
     }
-    if (! all_path.empty()) all_path.append(" ");
+    if (!all_path.empty())
+      all_path.append(" ");
     all_path.append(kPciidsPath);
   }
-  if (raw.fail())
-  {
+  if (raw.fail()) {
     LOG(ERROR) << "Unexpected error attempting to read pci.ids at path: "
                << all_path;
     return results;
