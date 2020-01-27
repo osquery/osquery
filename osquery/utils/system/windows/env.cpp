@@ -19,14 +19,14 @@
 namespace osquery {
 
 bool setEnvVar(const std::string& name, const std::string& value) {
-  std::wstring widename = stringToWstring(name);
-  std::wstring widevalue = stringToWstring(value);
+  const std::wstring widename = stringToWstring(name);
+  const std::wstring widevalue = stringToWstring(value);
 
   return ::SetEnvironmentVariableW(widename.c_str(), widevalue.c_str()) == TRUE;
 }
 
 bool unsetEnvVar(const std::string& name) {
-  std::wstring widename = stringToWstring(name);
+  const std::wstring widename = stringToWstring(name);
   return ::SetEnvironmentVariableW(widename.c_str(), nullptr) == TRUE;
 }
 
@@ -35,7 +35,7 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
   std::vector<WCHAR> buf;
   buf.assign(kInitialBufferSize, L'\0');
 
-  std::wstring widename = stringToWstring(name);
+  const std::wstring widename = stringToWstring(name);
 
   auto value_len = ::GetEnvironmentVariableW(
       widename.c_str(), buf.data(), kInitialBufferSize);
