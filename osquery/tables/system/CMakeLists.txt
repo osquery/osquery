@@ -234,6 +234,7 @@ function(generateOsqueryTablesSystemSystemtable)
     osquery_utils_system_systemutils
     osquery_utils_system_time
     osquery_utils_system_uptime
+    osquery_worker_ipc_platformtablecontaineripc
     thirdparty_boost
     osquery_rows_processes_header
   )
