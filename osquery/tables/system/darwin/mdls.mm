@@ -16,8 +16,8 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/darwin/cfdata.h>
-#include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/conversions/darwin/cfnumber.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
 
 namespace osquery {
 namespace tables {
@@ -75,7 +75,7 @@ void genResults(const std::string& path, QueryData& results) {
   CFArrayRef al = MDItemCopyAttributeNames(mdi);
   CFDictionaryRef d = MDItemCopyAttributes(mdi, al);
   for (int j = 0; j < CFArrayGetCount(al); ++j) {
-    //Do not release key or value, they are released when the dict is released
+    // Do not release key or value, they are released when the dict is released
     CFTypeRef key = CFArrayGetValueAtIndex(al, j);
     CFTypeRef value = CFDictionaryGetValue(d, key);
     std::string rvalue{"null"};
@@ -101,7 +101,6 @@ void genResults(const std::string& path, QueryData& results) {
   CFRelease(cs);
 }
 
-//Some comment
 QueryData genMdlsResults(QueryContext& context) {
   QueryData results;
   // Resolve file paths for EQUALS and LIKE operations.
