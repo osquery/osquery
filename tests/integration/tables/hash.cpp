@@ -68,6 +68,11 @@ TEST_F(Hash, test_sanity) {
     ASSERT_EQ(data[0]["ssdeep"], "3:f4oo8MRwRJFGW1gC64:f4kPvtHF");
   }
 
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    row_map["pid_with_namespace"] = IntType;
+    row_map["mount_namespace_id"] = NormalType;
+  }
+
   validate_rows(data, row_map);
 }
 
