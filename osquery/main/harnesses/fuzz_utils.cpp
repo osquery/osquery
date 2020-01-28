@@ -28,7 +28,7 @@ int osqueryFuzzerInitialize(int* argc, char*** argv) {
   auto* db = osquery::SQLiteDBManager::instance().get()->db();
 
   // See https://www.sqlite.org/src/artifact/18af635f about limiting what
-  // effects the fuzzer triaggers.
+  // effects the fuzzer triggers.
   sqlite3_limit(db, SQLITE_LIMIT_VDBE_OP, 25000);
   sqlite3_limit(db, SQLITE_LIMIT_LENGTH, 50000);
 
