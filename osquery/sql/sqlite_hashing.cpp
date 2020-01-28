@@ -90,10 +90,6 @@ static void sqliteCommunityIDv1(sqlite3_context* context,
                                 sqlite3_value** argv) {
   // Implemented as defined in https://github.com/corelight/community-id-spec
 
-
-
-
-
   boost::endian::big_int16_buf_t seed(0);
   if (argc == 6) {
     if(sqlite3_value_type(argv[5]) != SQLITE_INTEGER) {
@@ -118,12 +114,12 @@ static void sqliteCommunityIDv1(sqlite3_context* context,
   const char* daddr_str = reinterpret_cast<const char*>(sqlite3_value_text(argv[1]));
 
   boost::system::error_code ec;
-  const ip::address saddr = ip::make_address(saddr_str, ec);
+  ip::address saddr = ip::make_address(saddr_str, ec);
   if (ec.value() != errc::success) {
     sqlite3_result_error(context, "Community ID saddr cannot be parsed as IP", -1);
     return;
   }
-  const ip::address daddr = ip::make_address(daddr_str, ec);
+  ip::address daddr = ip::make_address(daddr_str, ec);
   if (ec.value() != errc::success) {
     sqlite3_result_error(context, "Community ID daddr cannot be parsed as IP", -1);
     return;
@@ -156,6 +152,17 @@ static void sqliteCommunityIDv1(sqlite3_context* context,
   uint8_t proto = proto64;
 
   std::stringstream bytes;
+
+  // Ensure ordering
+  if (!(saddr < daddr || (saddr == daddr && sport64 < dport64))) {
+    auto temp_addr = saddr;
+    saddr = daddr;
+    daddr = temp_addr;
+
+    auto temp_port = sport;
+    sport = dport;
+    dport = temp_port;
+  }
 
   // seed . saddr . daddr . proto . 0 . sport . dport
   size_t bufLen = 8;
