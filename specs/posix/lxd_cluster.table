@@ -1,0 +1,15 @@
+table_name("lxd_cluster")
+description("LXD cluster information.")
+schema([
+    Column("server_name", TEXT, "Name of the LXD server node"),
+    Column("enabled", INTEGER, "Whether clustering enabled (1) or not (0) on this node"),
+    Column("member_config_entity", TEXT, "Type of configuration parameter for this node"),
+    Column("member_config_name", TEXT, "Name of configuration parameter"),
+    Column("member_config_key", TEXT, "Config key"),
+    Column("member_config_value", TEXT, "Config value"),
+    Column("member_config_description", TEXT, "Config description")
+])
+implementation("applications/lxd@genLxdCluster")
+examples([
+  "select * from lxd_cluster" 
+])

@@ -25,6 +25,7 @@ function(generateOsqueryTablesApplications)
       posix/browser_opera.cpp
       posix/carbon_black.cpp
       posix/docker.cpp
+      posix/lxd.cpp
       posix/prometheus_metrics.cpp
     )
   endif()

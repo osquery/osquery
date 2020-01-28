@@ -1,0 +1,20 @@
+table_name("lxd_instances")
+description("LXD instances information.")
+schema([
+    Column("name", TEXT, "Instance name", index=True),
+    Column("status", TEXT, "Instance state (running, stopped, etc.)"),
+    Column("stateful", INTEGER, "Whether the instance is stateful(1) or not(0)"),
+    Column("ephemeral", INTEGER, "Whether the instance is ephemeral(1) or not(0)"),
+    Column("created_at", TEXT, "ISO time of creation"),
+    Column("base_image", TEXT, "ID of image used to launch this instance"),
+    Column("architecture", TEXT, "Instance architecture"),
+    Column("os", TEXT, "The OS of this instance"),
+    Column("description", TEXT, "Instance description"),
+    Column("pid", INTEGER, "Instance's process ID"),
+    Column("processes", INTEGER, "Number of processes running inside this instance")
+])
+implementation("applications/lxd@genLxdInstances")
+examples([
+  "select * from lxd_instances", 
+  "select * from lxd_instances where name = 'hello'"
+])

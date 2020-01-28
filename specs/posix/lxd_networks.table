@@ -1,0 +1,21 @@
+table_name("lxd_networks")
+description("LXD network information.")
+schema([
+    Column("name", TEXT, "Name of the network"),
+    Column("type", TEXT, "Type of network"),
+    Column("managed", INTEGER, "1 if network created by LXD, 0 otherwise"),
+    Column("ipv4_address", TEXT, "IPv4 address"),
+    Column("ipv6_address", TEXT, "IPv6 address"),
+    Column("used_by", TEXT, "URLs for containers using this network"),
+    Column("bytes_received", BIGINT, "Number of bytes received on this network"),
+    Column("bytes_sent", BIGINT, "Number of bytes sent on this network"),
+    Column("packets_received", BIGINT, "Number of packets received on this network"),
+    Column("packets_sent", BIGINT, "Number of packets sent on this network"),
+    Column("hwaddr", TEXT, "Hardware address for this network"),
+    Column("state", TEXT, "Network status"),
+    Column("mtu", INTEGER, "MTU size")
+])
+implementation("applications/lxd@genLxdNetworks")
+examples([
+  "select * from lxd_networks" 
+])

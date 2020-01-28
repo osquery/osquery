@@ -1,0 +1,11 @@
+table_name("lxd_instance_config")
+description("LXD instance configuration information.")
+schema([
+    Column("name", TEXT, "Instance name", index=True, required=True),
+    Column("key", TEXT, "Configuration parameter name"),
+    Column("value", TEXT, "Configuration parameter value")
+])
+implementation("applications/lxd@genLxdInstanceConfig")
+examples([
+  "select * from lxd_instance_config where name = 'hello'"
+])
