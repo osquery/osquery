@@ -149,6 +149,11 @@ function(generatePluginsLoggerKafkaproducer)
     add_osquery_library(plugins_logger_kafkaproducer EXCLUDE_FROM_ALL
       kafka_producer.cpp
     )
+  if(DEFINED PLATFORM_WINDOWS)
+    add_osquery_library(plugins_logger_kafkaproducer EXCLUDE_FROM_ALL
+      kafka_producer.cpp
+    )
+  endif()
 
     enableLinkWholeArchive(plugins_logger_kafkaproducer)
 

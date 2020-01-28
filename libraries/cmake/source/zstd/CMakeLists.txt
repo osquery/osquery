@@ -61,6 +61,7 @@ function(zstdMain)
 
   target_include_directories(thirdparty_zstd SYSTEM INTERFACE
     "${library_root}"
+    "${library_root}/common"
   )
 endfunction()
 

@@ -3,6 +3,7 @@
 #
 # This source code is licensed in accordance with the terms specified in
 # the LICENSE file found in the root directory of this source tree.
+# The cmake build mode is experimental and not officially supported.
 
 function(librdkafkaMain)
   generateLibrdkafka()
@@ -79,6 +80,16 @@ function(generateLibrdkafka)
     "${library_root}/rdkafka_plugin.c"
   )
 
+  if(DEFINED PLATFORM_WINDOWS)
+    target_sources(thirdparty_librdkafka_c PUBLIC
+	"${library_root}/rdkafka_sasl_win32.c"
+	"${library_root}/rdkafka_sasl_scram.c"
+	"${library_root}/regexp.c"
+	"${library_root}/rdgz.c"
+	"${library_root}/rdkafka_zstd.c"
+    )
+  endif()
+
   configure_file(
     "${library_root}/rdkafka.h"
     "${CMAKE_CURRENT_BINARY_DIR}/include/librdkafka/rdkafka.h"
@@ -90,6 +101,28 @@ function(generateLibrdkafka)
     XXH_NAMESPACE=rdkafka_
     XXH_PRIVATE_API
   )
+    if(DEFINED PLATFORM_WINDOWS)
+    target_compile_definitions(thirdparty_librdkafka_c PRIVATE
+	  LIBRDKAFKA_STATICLIB
+	  WITH_ZSTD
+	  WITH_ZSTD_STATIC
+	  WITH_BUNDLED_ZSTD
+	  WITH_SSL
+	  WITH_ZLIB
+	  WITH_PLUGINS
+	  WITH_SASL_SCRAM
+	  WITH_HDRHISTOGRAM
+    )
+    target_link_libraries(thirdparty_librdkafka_c PUBLIC
+      thirdparty_zlib
+      thirdparty_zstd
+	)
+
+    target_include_directories(thirdparty_librdkafka_c PRIVATE
+      "${CMAKE_CURRENT_BINARY_DIR}/include/librdkafka/"
+    )
+  endif()
+
 
   target_link_libraries(thirdparty_librdkafka_c PUBLIC
     thirdparty_openssl
@@ -141,6 +174,12 @@ function(generateLibrdkafkaxx)
     "${CMAKE_CURRENT_SOURCE_DIR}/config/dummy"
     "${library_root}"
   )
+  if(DEFINED PLATFORM_WINDOWS)
+    target_compile_definitions(thirdparty_librdkafka_cxx PUBLIC
+    LIBRDKAFKA_STATICLIB
+    )
+  endif()
+
 
   target_include_directories(thirdparty_librdkafka_cxx SYSTEM INTERFACE
     "${CMAKE_CURRENT_BINARY_DIR}/include"
