@@ -25,6 +25,7 @@ function(boostMain)
   generateBoostSerialization()
   generateBoostRandom()
   generateBoostWinapi()
+  generateBoostEndian()
 
   add_library(thirdparty_boost INTERFACE)
 
@@ -46,6 +47,7 @@ function(boostMain)
     thirdparty_boost_iostreams
     thirdparty_boost_winapi
     thirdparty_boost_circularbuffer
+    thirdparty_boost_endian
   )
 
   find_package(icu REQUIRED)
@@ -145,6 +147,20 @@ function(generateBoostNumericConversion)
   target_link_libraries(thirdparty_boost_numericconversion INTERFACE
     thirdparty_boost_config
   )
+endfunction()
+
+function(generateBoostEndian)
+  set(library_root "${BOOST_ROOT}/libs/endian")
+
+  add_library(thirdparty_boost_endian INTERFACE)
+
+  target_include_directories(thirdparty_boost_endian SYSTEM INTERFACE
+    "${library_root}/include"
+    )
+
+  target_link_libraries(thirdparty_boost_endian INTERFACE
+    thirdparty_boost_config
+    )
 endfunction()
 
 function(generateBoostRandom)

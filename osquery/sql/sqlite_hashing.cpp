@@ -13,10 +13,15 @@
 #include <osquery/hashing/hashing.h>
 
 #include <sqlite3.h>
+#include <boost/asio.hpp>
+#include <boost/endian/buffers.hpp>
 
 #ifdef OSQUERY_POSIX
 #include <fuzzy.h>
 #endif
+
+namespace errc = boost::system::errc;
+namespace ip = boost::asio::ip;
 
 namespace osquery {
 
@@ -80,6 +85,114 @@ static void sqliteSsdeepCompareFunc(sqlite3_context* context,
 }
 #endif
 
+static void sqliteCommunityIDv1(sqlite3_context* context,
+                                int argc,
+                                sqlite3_value** argv) {
+  // Implemented as defined in https://github.com/corelight/community-id-spec
+
+
+
+
+
+  boost::endian::big_int16_buf_t seed(0);
+  if (argc == 6) {
+    if(sqlite3_value_type(argv[5]) != SQLITE_INTEGER) {
+      sqlite3_result_error(context, "Community ID seed must be an integer", -1);
+      return;
+    }
+    const int64_t seed64 = reinterpret_cast<int64_t>(sqlite3_value_int64(argv[5]));
+    if (seed64 < INT16_MIN || seed64 > INT16_MAX) {
+      sqlite3_result_error(context, "Community ID seed must fit in 2 bytes", -1);
+      return;
+    }
+    seed = seed64;
+  }
+
+  if (sqlite3_value_type(argv[0]) != SQLITE_TEXT ||
+      sqlite3_value_type(argv[1]) != SQLITE_TEXT) {
+    sqlite3_result_error(
+      context, "Community ID IPs must be strings", -1);
+    return;
+  }
+  const char* saddr_str = reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
+  const char* daddr_str = reinterpret_cast<const char*>(sqlite3_value_text(argv[1]));
+
+  boost::system::error_code ec;
+  const ip::address saddr = ip::make_address(saddr_str, ec);
+  if (ec.value() != errc::success) {
+    sqlite3_result_error(context, "Community ID saddr cannot be parsed as IP", -1);
+    return;
+  }
+  const ip::address daddr = ip::make_address(daddr_str, ec);
+  if (ec.value() != errc::success) {
+    sqlite3_result_error(context, "Community ID daddr cannot be parsed as IP", -1);
+    return;
+  }
+
+  if(sqlite3_value_type(argv[2]) != SQLITE_INTEGER ||
+     sqlite3_value_type(argv[3]) != SQLITE_INTEGER) {
+    sqlite3_result_error(context, "Community ID ports must be integers", -1);
+    return;
+  }
+  const int64_t sport64 = reinterpret_cast<int64_t>(sqlite3_value_int64(argv[2]));
+  const int64_t dport64 = reinterpret_cast<int64_t>(sqlite3_value_int64(argv[3]));
+  if (sport64 < 0 || sport64 > UINT16_MAX ||
+      dport64 < 0 || dport64 > UINT16_MAX) {
+    sqlite3_result_error(context, "Community ID ports must fit in 2 bytes", -1);
+    return;
+  }
+  boost::endian::big_uint16_buf_t sport(sport64);
+  boost::endian::big_uint16_buf_t dport(dport64);
+
+  if(sqlite3_value_type(argv[4]) != SQLITE_INTEGER) {
+    sqlite3_result_error(context, "Community ID protocol must be an integer", -1);
+    return;
+  }
+  const int64_t proto64 = reinterpret_cast<int64_t>(sqlite3_value_int64(argv[4]));
+  if (proto64 < 0 || proto64 > UINT8_MAX) {
+    sqlite3_result_error(context, "Community ID protocol must fit in 1 byte", -1);
+    return;
+  }
+  uint8_t proto = proto64;
+
+  std::stringstream bytes;
+
+  // seed . saddr . daddr . proto . 0 . sport . dport
+  size_t bufLen = 8;
+  bytes.write(seed.data(), 2);
+  if (saddr.is_v4()) {
+    bytes.write(reinterpret_cast<const char*>(saddr.to_v4().to_bytes().data()), 4);
+    bufLen += 4;
+  } else {
+    bytes.write(reinterpret_cast<const char*>(saddr.to_v6().to_bytes().data()), 16);
+    bufLen += 16;
+  }
+  if (daddr.is_v4()) {
+    bytes.write(reinterpret_cast<const char*>(daddr.to_v4().to_bytes().data()), 4);
+    bufLen += 4;
+  } else {
+    bytes.write(reinterpret_cast<const char*>(daddr.to_v6().to_bytes().data()), 16);
+    bufLen += 16;
+  }
+  bytes.write(reinterpret_cast<const char*>(&proto), 1);
+  bytes.put(0);
+  bytes.write(sport.data(), 2);
+  bytes.write(dport.data(), 2);
+
+  auto res = bytes.str();
+
+  for (size_t i = 0; i < res.length(); i++) {
+    fprintf(stderr, "%02hhx ", res[i]);
+  }
+
+  fprintf(stderr, "\n");
+
+  auto result = hashFromBuffer(HASH_TYPE_SHA1, res.c_str(), bufLen);
+  sqlite3_result_text(
+      context, result.c_str(), static_cast<int>(result.size()), SQLITE_TRANSIENT);
+}
+
+
 void registerHashingExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "md5",
@@ -115,5 +228,22 @@ void registerHashingExtensions(sqlite3* db) {
                           nullptr,
                           nullptr);
 #endif
+  sqlite3_create_function(db,
+                          "community_id_v1",
+                          5,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          sqliteCommunityIDv1,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "community_id_v1",
+                          6, // with seed
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          sqliteCommunityIDv1,
+                          nullptr,
+                          nullptr);
+
 }
 } // namespace osquery
