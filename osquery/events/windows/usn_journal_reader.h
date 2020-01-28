@@ -35,8 +35,8 @@ namespace osquery {
 struct USNFileReferenceNumber {
   std::vector<std::uint8_t> data;
 
-  USNFileReferenceNumber() : data() {}
-  USNFileReferenceNumber(std::uint64_t val) {
+  explicit USNFileReferenceNumber() : data() {}
+  explicit USNFileReferenceNumber(std::uint64_t val) {
     data.resize(sizeof(val));
     std::memcpy(data.data(), &val, sizeof(val));
   }
