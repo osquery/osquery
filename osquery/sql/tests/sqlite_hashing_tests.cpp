@@ -143,13 +143,15 @@ TEST_F(SQLiteHashingTests, test_community_id_v1_udp) {
 }
 
 TEST_F(SQLiteHashingTests, test_community_id_v1_strict) {
-  SQL sql = SQL(
-      "SELECT community_id_v1_strict('192.168.1.52', 'foo', 10, 53, 17, 0) AS hash");
+  SQL sql =
+      SQL("SELECT community_id_v1_strict('192.168.1.52', 'foo', 10, 53, 17, 0) "
+          "AS hash");
   EXPECT_FALSE(sql.ok());
   EXPECT_EQ(sql.rows().size(), 0U);
 
   sql =
-      SQL("SELECT community_id_v1_strict('192.168.1.52', '192.168.1.1', 10, 53, 17, "
+      SQL("SELECT community_id_v1_strict('192.168.1.52', '192.168.1.1', 10, "
+          "53, 17, "
           "100000000) AS hash");
   EXPECT_FALSE(sql.ok());
   EXPECT_EQ(sql.rows().size(), 0U);
