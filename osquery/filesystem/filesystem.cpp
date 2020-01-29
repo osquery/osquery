@@ -568,7 +568,7 @@ std::string lsperms(int mode) {
 
 Status parseJSON(const fs::path& path, pt::ptree& tree) {
   try {
-	pt::read_json(path.string(), tree);
+    pt::read_json(path.string(), tree);
   } catch (const pt::json_parser::json_parser_error& e) {
     return Status(1, "Could not parse JSON from file");
   }
