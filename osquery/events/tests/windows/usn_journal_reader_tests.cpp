@@ -15,7 +15,7 @@ namespace osquery {
 class UsnJournalReaderTests : public testing::Test {};
 
 TEST_F(UsnJournalReaderTests, test_get_native_file_id) {
-  USNFileReferenceNumber usn_file_ref = 0x00BBFF66;
+  USNFileReferenceNumber usn_file_ref{0x00BBFF66};
   FILE_ID_DESCRIPTOR file_id;
   GetNativeFileIdFromUSNReference(file_id, usn_file_ref);
   ASSERT_TRUE(file_id.Type == ObjectIdType || file_id.Type == FileIdType);
