@@ -100,7 +100,7 @@ static void sqliteCommunityIDv1(sqlite3_context* context,
       return;
     }
     const int64_t seed64 =
-        reinterpret_cast<int64_t>(sqlite3_value_int64(argv[seed_idx]));
+        static_cast<int64_t>(sqlite3_value_int64(argv[seed_idx]));
     if (seed64 < INT16_MIN || seed64 > INT16_MAX) {
       sqlite3_result_error(
           context, "Community ID seed must fit in 2 bytes", -1);
@@ -139,9 +139,9 @@ static void sqliteCommunityIDv1(sqlite3_context* context,
     return;
   }
   const int64_t sport64 =
-      reinterpret_cast<int64_t>(sqlite3_value_int64(argv[sport_idx]));
+      static_cast<int64_t>(sqlite3_value_int64(argv[sport_idx]));
   const int64_t dport64 =
-      reinterpret_cast<int64_t>(sqlite3_value_int64(argv[dport_idx]));
+      static_cast<int64_t>(sqlite3_value_int64(argv[dport_idx]));
   if (sport64 < 0 || sport64 > UINT16_MAX || dport64 < 0 ||
       dport64 > UINT16_MAX) {
     sqlite3_result_error(context, "Community ID ports must fit in 2 bytes", -1);
@@ -156,7 +156,7 @@ static void sqliteCommunityIDv1(sqlite3_context* context,
     return;
   }
   const int64_t proto64 =
-      reinterpret_cast<int64_t>(sqlite3_value_int64(argv[proto_idx]));
+      static_cast<int64_t>(sqlite3_value_int64(argv[proto_idx]));
   if (proto64 < 0 || proto64 > UINT8_MAX) {
     sqlite3_result_error(
         context, "Community ID protocol must fit in 1 byte", -1);
