@@ -141,4 +141,35 @@ TEST_F(SQLiteHashingTests, test_community_id_v1_udp) {
   EXPECT_EQ(sql.rows().size(), 1U);
   EXPECT_EQ(sql.rows()[0], r);
 }
+
+TEST_F(SQLiteHashingTests, test_community_id_v1_strict) {
+  SQL sql = SQL(
+      "SELECT community_id_v1_strict('192.168.1.52', 'foo', 10, 53, 17, 0) AS hash");
+  EXPECT_FALSE(sql.ok());
+  EXPECT_EQ(sql.rows().size(), 0U);
+
+  sql =
+      SQL("SELECT community_id_v1_strict('192.168.1.52', '192.168.1.1', 10, 53, 17, "
+          "100000000) AS hash");
+  EXPECT_FALSE(sql.ok());
+  EXPECT_EQ(sql.rows().size(), 0U);
+}
+
+TEST_F(SQLiteHashingTests, test_community_id_v1_nulls) {
+  Row r;
+  r["hash"] = "";
+
+  SQL sql = SQL(
+      "SELECT community_id_v1('192.168.1.52', 'foo', 10, 53, 17, 0) AS hash");
+  EXPECT_TRUE(sql.ok());
+  EXPECT_EQ(sql.rows().size(), 1U);
+  EXPECT_EQ(sql.rows()[0], r);
+
+  sql =
+      SQL("SELECT community_id_v1('192.168.1.52', '192.168.1.1', 10, 53, 17, "
+          "100000000) AS hash");
+  EXPECT_TRUE(sql.ok());
+  EXPECT_EQ(sql.rows().size(), 1U);
+  EXPECT_EQ(sql.rows()[0], r);
+}
 } // namespace osquery
