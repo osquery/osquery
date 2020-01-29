@@ -76,7 +76,7 @@ osquery> SELECT * FROM osquery_info;
           uuid = 4892E1C6-F800-5F8E-92B1-BC2216C29D4F
    instance_id = 94c004b0-49e5-4ece-93e6-96c1939c0f83
        version = 2.4.6
-   config_hash = 
+   config_hash =
   config_valid = 0
     extensions = active
 build_platform = darwin
@@ -366,6 +366,25 @@ We have added `sha1`, `sha256`, and `md5` functions that take a single argument 
 
 </p>
 </details>
+
+- `community_id_v1(SOURCE_ADDR, DEST_ADDR, SOURCE_PORT, DEST_PORT, PROTOCOL, SEED)`: returns the [Community ID v1 hash](https://github.com/corelight/community-id-spec) of the network connection. `SEED` is optional and will be set to `0` if omitted.
+
+    <details>
+    <summary>Community ID v1 Example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> select community_id_v1('66.35.250.204', '128.232.110.120', 80, 34855, 6) AS community_id;
+      community_id = 1:LQU9qZlK+B5F3KDmev6m5PMibrg=
+      osquery> select community_id_v1('66.35.250.204', '2001:0:3238:DFE1:63::FEFB', 80, 2347, 6) AS community_id;
+      community_id = 1:rxU6O+b2d9kbSWjRmVDoBbowx6g=
+      osquery> select community_id_v1('66.35.250.204', '2001:0:3238:DFE1:63::FEFB', 80, 2347, 6, 37) AS community_id;
+      community_id = 1:jmJ2ORP31di4mtsQPIKzyoEb3yo=
+
+    </p>
+    </details>
+
 
 **Encoding functions**
 
