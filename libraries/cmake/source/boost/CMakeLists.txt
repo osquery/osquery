@@ -192,11 +192,18 @@ function(importBoostInterfaceLibrary folder_name)
   endif()
 
   foreach(additional_dependency ${ARGN})
-    string(REPLACE "_" "" additional_dependency "${additional_dependency}")
 
-    target_link_libraries("${target_name}" INTERFACE
-      "thirdparty_boost_${additional_dependency}"
-    )
+    if(additional_dependency MATCHES "^thirdparty_")
+      target_link_libraries("${target_name}" INTERFACE
+        "${additional_dependency}"
+      )
+    else()
+      string(REPLACE "_" "" additional_dependency "${additional_dependency}")
+
+      target_link_libraries("${target_name}" INTERFACE
+        "thirdparty_boost_${additional_dependency}"
+      )
+    endif()
   endforeach()
 endfunction()
 
@@ -213,7 +220,7 @@ function(importBoostInterfaceLibraries)
     "function_types:config"
     "tti:function_types"
     "uuid:random,tti"
-    "asio:config"
+    "asio:config,thirdparty_openssl"
     "any:config"
     "foreach:config"
     "multi_index:foreach"
