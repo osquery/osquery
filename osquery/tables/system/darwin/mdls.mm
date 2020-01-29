@@ -67,6 +67,7 @@ void genResults(const std::string& path, QueryData& results) {
   CFTypeRef tr = MDItemCopyAttribute(mdi, CFSTR("kMDItemPath"));
   CFArrayRef al = MDItemCopyAttributeNames(mdi);
   CFDictionaryRef d = MDItemCopyAttributes(mdi, al);
+  CFRelease(mdi);
   for (int j = 0; j < CFArrayGetCount(al); ++j) {
     // Do not release key or value, they are released when the dict is released
     CFTypeRef key = CFArrayGetValueAtIndex(al, j);
