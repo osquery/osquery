@@ -180,11 +180,6 @@ static void sqliteCommunityIDv1(sqlite3_context* context,
 
   std::string res = bytes.str();
 
-  /* for (size_t i = 0; i < res.length(); i++) { */
-  /*   fprintf(stderr, "%02hhx ", res[i]); */
-  /* } */
-  /* fprintf(stderr, "\n"); */
-
   Hash hash(HASH_TYPE_SHA1, HASH_ENCODING_TYPE_BASE64);
   hash.update(res.c_str(), res.size());
   auto result = "1:" + hash.digest();
