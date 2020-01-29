@@ -31,10 +31,9 @@ enum HashType {
  * These are usually used as a constructor argument to osquery::Hash
  */
 enum HashEncodingType {
-    HASH_ENCODING_TYPE_HEX = 2,
-    HASH_ENCODING_TYPE_BASE64 = 4,
+  HASH_ENCODING_TYPE_HEX = 2,
+  HASH_ENCODING_TYPE_BASE64 = 4,
 };
-
 
 /// A result structure for multiple hash requests.
 struct MultiHashes {

@@ -17,9 +17,9 @@
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/hashing/hashing.h>
+#include <osquery/utils/base64.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/status/status.h>
-#include <osquery/utils/base64.h>
 
 namespace osquery {
 
@@ -32,9 +32,11 @@ Hash::~Hash() {
   }
 }
 
-Hash::Hash(HashType algorithm) : Hash::Hash(algorithm, HASH_ENCODING_TYPE_HEX) {}
+Hash::Hash(HashType algorithm)
+    : Hash::Hash(algorithm, HASH_ENCODING_TYPE_HEX) {}
 
-Hash::Hash(HashType algorithm, HashEncodingType encoding) : algorithm_(algorithm), encoding_(encoding) {
+Hash::Hash(HashType algorithm, HashEncodingType encoding)
+    : algorithm_(algorithm), encoding_(encoding) {
   if (algorithm_ == HASH_TYPE_MD5) {
     length_ = MD5_DIGEST_LENGTH;
     ctx_ = static_cast<MD5_CTX*>(malloc(sizeof(MD5_CTX)));
