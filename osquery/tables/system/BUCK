@@ -137,6 +137,7 @@ osquery_cxx_library(
             [
                 "freenux/cpu_time.cpp",
                 "linux/acpi_tables.cpp",
+                "linux/apparmor_profiles.cpp",
                 "linux/block_devices.cpp",
                 "linux/deb_packages.cpp",
                 "linux/disk_encryption.cpp",

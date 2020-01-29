@@ -79,6 +79,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/user_groups.cpp
       linux/users.cpp
       linux/selinux_settings.cpp
+      linux/apparmor_profiles.cpp
     )
 
   elseif(DEFINED PLATFORM_MACOS)
