@@ -37,7 +37,7 @@ std::string getStringOfValue(CFTypeRef value, int depth) {
                      kCFAbsoluteTimeIntervalSince1970;
     rvalue = INTEGER(std::llround(unix_time));
   } else if (CFGetTypeID(value) == CFArrayGetTypeID()) {
-    for (int i = 0; i < CFArrayGetCount(static_cast<CFArrayRef>(value)); ++i) {
+    for (auto i = 0; i < CFArrayGetCount(static_cast<CFArrayRef>(value)); ++i) {
       CFTypeRef b = CFArrayGetValueAtIndex(static_cast<CFArrayRef>(value), i);
       if (i == 0) {
         rvalue = getStringOfValue(b, depth + 1);
@@ -53,14 +53,7 @@ std::string getStringOfValue(CFTypeRef value, int depth) {
       rvalue = "false";
     }
   } else if (CFGetTypeID(value) == CFStringGetTypeID()) {
-    // might be able to just stringFromCFString after #4778
-    CFDataRef df =
-        CFStringCreateExternalRepresentation(kCFAllocatorDefault,
-                                             static_cast<CFStringRef>(value),
-                                             kCFStringEncodingASCII,
-                                             '?');
-    rvalue = stringFromCFData(df);
-    CFRelease(df);
+    rvalue = stringFromCFString(static_cast<CFStringRef>(value));
   } else {
     rvalue = "null";
   }
