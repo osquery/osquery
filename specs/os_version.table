@@ -14,6 +14,10 @@ schema([
 extended_schema(WINDOWS, [
     Column("install_date", TEXT, "The install date of the OS."),
 ])
+extended_schema(LINUX, [
+    Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True),
+    Column("mount_namespace_id", TEXT, "Mount namespace id"),
+])
 implementation("system/os_version@genOSVersion")
 fuzz_paths([
     "/System/Library/CoreServices/SystemVersion.plist",
