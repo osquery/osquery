@@ -24,6 +24,9 @@
 #include <osquery/process/process.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/env.h>
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
@@ -57,21 +60,31 @@ const std::set<std::string> kStartupStatusRegKeys = {
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
 static inline void parseStartupPath(const std::string& path, Row& r) {
-  if (path.find('\"') == std::string::npos) {
-    r["path"] = path;
+  std::string expandedPath = path;
+
+  // NOTE(ww): This is a pretty dumb expansion test, but the query that feeds
+  // us these paths doesn't pass us REG_EXPAND_SZ or any other hint
+  // that we could use instead.
+  if (path.find('%') != std::string::npos) {
+    if (const auto expanded = expandEnvString(path)) {
+      expandedPath = *expanded;
+    }
+  }
+
+  if (pathExists(fs::path(expandedPath)).ok()) {
+    r["path"] = expandedPath;
   } else {
-    boost::tokenizer<boost::escaped_list_separator<TCHAR>> tokens(
-        path,
-        boost::escaped_list_separator<TCHAR>(
-            std::string(""), std::string(" "), std::string("\"\'")));
-    for (auto&& tok = tokens.begin(); tok != tokens.end(); ++tok) {
-      if (tok == tokens.begin()) {
-        r["path"] = *tok;
-      } else if (r.count("args") == 0) {
-        r["args"] = *tok;
-      } else {
-        r["args"].append(" " + *tok);
+    if (const auto argsp = splitArgs(expandedPath)) {
+      auto args = *argsp;
+
+      r["path"] = args[0];
+
+      if (args.size() > 1) {
+        args.erase(args.begin());
+        r["args"] = boost::join(args, " ");
       }
+    } else {
+      r["path"] = expandedPath;
     }
   }
 }
