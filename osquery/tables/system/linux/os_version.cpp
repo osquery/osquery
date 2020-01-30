@@ -19,6 +19,8 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace osquery {
 namespace tables {
@@ -81,7 +83,7 @@ void genOSRelease(Row& r) {
   return;
 }
 
-QueryData genOSVersion(QueryContext& context) {
+QueryData genOSVersionImpl(QueryContext& context, Logger& logger) {
   Row r;
 
   // Set defaults if we cannot determine the version.
@@ -90,6 +92,7 @@ QueryData genOSVersion(QueryContext& context) {
   r["minor"] = "0";
   r["patch"] = "0";
   r["platform"] = "posix";
+  r["pid_with_namespace"] = "0";
 
   if (isReadable(kOSRelease)) {
     boost::system::error_code ec;
@@ -143,5 +146,15 @@ QueryData genOSVersion(QueryContext& context) {
 
   return {r};
 }
+
+QueryData genOSVersion(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "osversion", genOSVersionImpl);
+  } else {
+    GLOGLogger logger;
+    return genOSVersionImpl(context, logger);
+  }
+}
+
 } // namespace tables
 } // namespace osquery
