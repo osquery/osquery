@@ -9,9 +9,9 @@
 // Sanity check integration test for deb_packages
 // Spec file: specs/linux/deb_packages.table
 
-#include <osquery/tests/integration/tables/helper.h>
-
 #include <osquery/logger.h>
+#include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
 namespace table_tests {
@@ -33,6 +33,12 @@ TEST_F(DebPackages, test_sanity) {
                              {"arch", NonEmptyString},
                              {"revision", NormalType},
                              {"status", NonEmptyString}};
+
+    if (isPlatform(PlatformType::TYPE_LINUX)) {
+      row_map["pid_with_namespace"] = IntType;
+      row_map["mount_namespace_id"] = NormalType;
+    }
+
     validate_rows(rows, row_map);
 
     auto all_packages = std::unordered_set<std::string>{};

@@ -22,6 +22,8 @@ extern "C" {
 #include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace osquery {
 namespace tables {
@@ -156,14 +158,16 @@ void extractDebPackageInfo(const struct pkginfo* pkg, QueryData& results) {
     r["size"] = "0";
   }
 
+  r["pid_with_namespace"] = "0";
+
   results.push_back(r);
 }
 
-QueryData genDebPackages(QueryContext& context) {
+QueryData genDebPackagesImpl(QueryContext& context, Logger& logger) {
   QueryData results;
 
   if (!osquery::isDirectory(kDPKGPath)) {
-    TLOG << "Cannot find DPKG database: " << kDPKGPath;
+    logger.vlog(1, "Cannot find DPKG database: " + kDPKGPath);
     return results;
   }
 
@@ -187,6 +191,15 @@ QueryData genDebPackages(QueryContext& context) {
 
   dpkg_teardown(&packages);
   return results;
+}
+
+QueryData genDebPackages(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "deb_packages", genDebPackagesImpl);
+  } else {
+    GLOGLogger logger;
+    return genDebPackagesImpl(context, logger);
+  }
 }
 } // namespace tables
 } // namespace osquery

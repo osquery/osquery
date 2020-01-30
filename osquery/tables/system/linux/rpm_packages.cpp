@@ -21,6 +21,8 @@
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 // librpm may be configured and compiled with glibc < 2.17.
 #if defined(__GLIBC__) && __GLIBC_MINOR__ > 17
@@ -52,11 +54,12 @@ namespace tables {
  */
 static std::string getRpmAttribute(const Header& header,
                                    rpmTag tag,
-                                   const rpmtd& td) {
+                                   const rpmtd& td,
+                                   Logger& logger) {
   std::string result;
   if (headerGet(header, tag, td, HEADERGET_DEFAULT) == 0) {
     // Intentional check for a 0 = failure.
-    TLOG << "Could not get RPM header flag.";
+    logger.vlog(1, "Could not get RPM header flag.");
     return result;
   }
 
@@ -75,13 +78,14 @@ static std::string getRpmAttribute(const Header& header,
 
 class RpmEnvironmentManager : public boost::noncopyable {
  public:
-  RpmEnvironmentManager() : config_(getEnvVar("RPM_CONFIGDIR")) {
+  RpmEnvironmentManager(Logger& logger)
+      : config_(getEnvVar("RPM_CONFIGDIR")), logger_(&logger) {
     // Honor a caller's environment
     if (!config_.is_initialized()) {
       setEnvVar("RPM_CONFIGDIR", "/usr/lib/rpm");
     }
 
-    callback_ = rpmlogSetCallback(&RpmEnvironmentManager::Callback, nullptr);
+    callback_ = rpmlogSetCallback(&RpmEnvironmentManager::Callback, logger_);
   }
 
   ~RpmEnvironmentManager() {
@@ -96,13 +100,15 @@ class RpmEnvironmentManager : public boost::noncopyable {
     }
   }
 
-  static int Callback(rpmlogRec rec, rpmlogCallbackData) {
+  static int Callback(rpmlogRec rec, rpmlogCallbackData data) {
     static std::string last_message;
+
+    Logger* logger = reinterpret_cast<Logger*>(data);
 
     if (rpmlogRecMessage(rec) != nullptr) {
       if (last_message != rpmlogRecMessage(rec)) {
         last_message = rpmlogRecMessage(rec);
-        VLOG(1) << "RPM notice: " << last_message;
+        logger->vlog(1, "RPM notice: " + last_message);
       }
     }
     return 0;
@@ -114,24 +120,26 @@ class RpmEnvironmentManager : public boost::noncopyable {
 
   // Previous callback function.
   rpmlogCallback callback_{nullptr};
+
+  Logger* logger_;
 };
 
-QueryData genRpmPackages(QueryContext& context) {
+QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
   QueryData results;
 
   auto dropper = DropPrivileges::get();
   if (!dropper->dropTo("nobody") && isUserAdmin()) {
-    LOG(WARNING) << "Cannot drop privileges for rpm_packages";
+    logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
     return results;
   }
 
   // Isolate RPM/package inspection to the canonical: /usr/lib/rpm.
-  RpmEnvironmentManager env_manager;
+  RpmEnvironmentManager env_manager(logger);
 
   // The following implementation uses http://rpm.org/api/4.11.1/
   rpmInitCrypto();
   if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
-    TLOG << "Cannot read RPM configuration files";
+    logger.vlog(1, "Cannot read RPM configuration files");
     return results;
   }
 
@@ -148,16 +156,17 @@ QueryData genRpmPackages(QueryContext& context) {
   while ((header = rpmdbNextIterator(matches)) != nullptr) {
     Row r;
     rpmtd td = rpmtdNew();
-    r["name"] = getRpmAttribute(header, RPMTAG_NAME, td);
-    r["version"] = getRpmAttribute(header, RPMTAG_VERSION, td);
-    r["release"] = getRpmAttribute(header, RPMTAG_RELEASE, td);
-    r["source"] = getRpmAttribute(header, RPMTAG_SOURCERPM, td);
-    r["size"] = getRpmAttribute(header, RPMTAG_SIZE, td);
-    r["sha1"] = getRpmAttribute(header, RPMTAG_SHA1HEADER, td);
-    r["arch"] = getRpmAttribute(header, RPMTAG_ARCH, td);
-    r["epoch"] = INTEGER(getRpmAttribute(header, RPMTAG_EPOCH, td));
+    r["name"] = getRpmAttribute(header, RPMTAG_NAME, td, logger);
+    r["version"] = getRpmAttribute(header, RPMTAG_VERSION, td, logger);
+    r["release"] = getRpmAttribute(header, RPMTAG_RELEASE, td, logger);
+    r["source"] = getRpmAttribute(header, RPMTAG_SOURCERPM, td, logger);
+    r["size"] = getRpmAttribute(header, RPMTAG_SIZE, td, logger);
+    r["sha1"] = getRpmAttribute(header, RPMTAG_SHA1HEADER, td, logger);
+    r["arch"] = getRpmAttribute(header, RPMTAG_ARCH, td, logger);
+    r["epoch"] = INTEGER(getRpmAttribute(header, RPMTAG_EPOCH, td, logger));
     r["install_time"] =
-        INTEGER(getRpmAttribute(header, RPMTAG_INSTALLTIME, td));
+        INTEGER(getRpmAttribute(header, RPMTAG_INSTALLTIME, td, logger));
+    r["pid_with_namespace"] = "0";
 
     rpmtdFree(td);
     results.push_back(r);
@@ -171,18 +180,29 @@ QueryData genRpmPackages(QueryContext& context) {
   return results;
 }
 
+QueryData genRpmPackages(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "rpm_packages", genRpmPackagesImpl);
+  } else {
+    GLOGLogger logger;
+    return genRpmPackagesImpl(context, logger);
+  }
+}
+
 void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
+  GLOGLogger logger;
   auto dropper = DropPrivileges::get();
   if (!dropper->dropTo("nobody") && isUserAdmin()) {
-    LOG(WARNING) << "Cannot drop privileges for rpm_package_files";
+    logger.log(google::GLOG_WARNING,
+               "Cannot drop privileges for rpm_packages_files");
     return;
   }
 
   // Isolate RPM/package inspection to the canonical: /usr/lib/rpm.
-  RpmEnvironmentManager env_manager;
+  RpmEnvironmentManager env_manager(logger);
 
   if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
-    TLOG << "Cannot read RPM configuration files";
+    logger.vlog(1, "Cannot read RPM configuration files");
     return;
   }
 
@@ -199,16 +219,17 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   while ((header = rpmdbNextIterator(matches)) != nullptr) {
     rpmtd td = rpmtdNew();
     rpmfi fi = rpmfiNew(ts, header, RPMTAG_BASENAMES, RPMFI_NOHEADER);
-    std::string package_name = getRpmAttribute(header, RPMTAG_NAME, td);
+    std::string package_name = getRpmAttribute(header, RPMTAG_NAME, td, logger);
 
     auto file_count = rpmfiFC(fi);
     if (file_count <= 0) {
-      VLOG(1) << "RPM package " << package_name << " contains 0 files";
+      logger.vlog(1, "RPM package " + package_name + " contains 0 files");
       rpmfiFree(fi);
       continue;
     } else if (file_count > MAX_RPM_FILES) {
-      VLOG(1) << "RPM package " << package_name << " contains over "
-              << MAX_RPM_FILES << " files";
+      logger.vlog(1,
+                  "RPM package " + package_name + " contains over " +
+                      std::to_string(MAX_RPM_FILES) + " files");
       rpmfiFree(fi);
       continue;
     }
@@ -243,5 +264,5 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   rpmtsFree(ts);
   rpmFreeRpmrc();
 }
-}
-}
+} // namespace tables
+} // namespace osquery

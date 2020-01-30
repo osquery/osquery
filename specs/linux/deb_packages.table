@@ -9,6 +9,10 @@ schema([
     Column("revision", TEXT, "Package revision"),
     Column("status", TEXT, "Package status")
 ])
+extended_schema(LINUX, [
+    Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True),
+    Column("mount_namespace_id", TEXT, "Mount namespace id"),
+])
 attributes(cacheable=True)
 implementation("system/deb_packages@genDebPackages")
 fuzz_paths([

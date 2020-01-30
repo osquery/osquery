@@ -10,6 +10,7 @@
 // Spec file: specs/linux/npm_packages.table
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
 namespace table_tests {
@@ -33,6 +34,12 @@ TEST_F(NpmPackagesTest, test_sanity) {
       {"path", NonEmptyString},
       {"directory", NonEmptyString},
   };
+
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    row_map["pid_with_namespace"] = IntType;
+    row_map["mount_namespace_id"] = NormalType;
+  }
+
   validate_rows(data, row_map);
 }
 
