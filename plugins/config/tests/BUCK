@@ -9,9 +9,9 @@ load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 load("//tools/build_defs/oss/osquery:native_functions.bzl", "osquery_read_config")
 
 osquery_cxx_test(
-    name = "distributed_tests",
+    name = "tls_config_tests",
     srcs = [
-        "distributed_tests.cpp",
+        "tls_config_tests.cpp"
     ],
     env = {
         "TEST_CONF_FILES_DIR": "$(location {})".format(
@@ -22,24 +22,19 @@ osquery_cxx_test(
         ),
         "OSQUERY_PYTHON_INTERPRETER_PATH": osquery_read_config("python#py3", "interpreter"),
     },
-    visibility = ["PUBLIC"],
     deps = [
+        osquery_target("osquery/config:config"),
         osquery_target("osquery/core:core"),
-        osquery_target("osquery/core/plugins:plugins"),
-        osquery_target("osquery/distributed:distributed"),
-        osquery_target("osquery/extensions:extensions"),
-        osquery_target("osquery/extensions:impl_thrift"),
-        osquery_target("osquery/logger:logger"),
-        osquery_target("osquery/registry:registry"),
-        osquery_target("osquery/remote/enroll:tls_enroll"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/dispatcher:dispatcher"),
+        osquery_target("osquery:headers"),
+        osquery_target("osquery/remote:requests"),
+        osquery_target("osquery/remote/serializers:serializer_json"),
         osquery_target("osquery/remote/tests:remote_test_utils"),
-        osquery_target("osquery/utils/conversions:conversions"),
-        osquery_target("osquery/utils/info:info"),
+        osquery_target("osquery/remote/transports:transports_tls"),
+        osquery_target("osquery/sql:sql"),
         osquery_target("osquery/utils/system:time"),
         osquery_target("plugins/config:tls_config"),
         osquery_target("plugins/database:ephemeral"),
-        osquery_target("plugins/distributed:tls_distributed"),
-        osquery_target("plugins/remote/enroll:tls_enroll_plugin"),
-        osquery_target("specs:tables"),
     ],
 )
