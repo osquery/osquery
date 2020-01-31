@@ -567,22 +567,21 @@ std::string lsperms(int mode) {
 }
 
 Status parseJSON(const fs::path& path, pt::ptree& tree) {
-  std::string json_data;
-  if (!readFile(path, json_data).ok()) {
-    return Status(1, "Could not read JSON from file");
+  try {
+    pt::read_json(path.string(), tree);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1, "Could not parse JSON from file");
   }
-
-  return parseJSONContent(json_data, tree);
+  return Status::success();
 }
 
 Status parseJSONContent(const std::string& content, pt::ptree& tree) {
   // Read the extensions data into a JSON blob, then property tree.
   try {
-    if (!readFile(path, json_data).ok()) {
-      pt::read_json(path.string(), tree);
-      return Status(1, "Could not read JSON from file");
-    }
-  } catch (const pt::json_parser::json_parser_error& e) {
+    std::stringstream json_stream;
+    json_stream << content;
+    pt::read_json(json_stream, tree);
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     return Status(1, "Could not parse JSON from file");
   }
   return Status::success();
