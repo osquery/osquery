@@ -17,11 +17,11 @@ function(generateOsqueryTablesApplications)
   set(source_files
     browser_chrome.cpp
     browser_utils.cpp
+    browser_firefox.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
-      posix/browser_firefox.cpp
       posix/browser_opera.cpp
       posix/carbon_black.cpp
       posix/docker.cpp

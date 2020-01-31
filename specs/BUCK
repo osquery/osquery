@@ -521,10 +521,6 @@ osquery_gentable_cxx_library(
             "linux,macos",
         ),
         (
-            "posix/firefox_addons.table",
-            "linux,macos,freebsd",
-        ),
-        (
             "posix/hardware_events.table",
             "linux,macos",
         ),
@@ -829,6 +825,7 @@ osquery_gentable_cxx_library(
         "etc_hosts.table",
         "etc_protocols.table",
         "etc_services.table",
+        "firefox_addons.table",
         "groups.table",
         "hash.table",
         "interface_addresses.table",

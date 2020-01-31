@@ -21,10 +21,12 @@ namespace osquery {
 namespace tables {
 
 /// Each home directory will include custom extensions.
-#ifdef __APPLE__
+#if defined(__APPLE__)
 #define kFirefoxPath "/Library/Application Support/Firefox/Profiles/"
-#else
+#elif defined(__linux__)
 #define kFirefoxPath "/.mozilla/firefox/"
+#elif defined(WIN32)
+#define kFirefoxPath "\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles"
 #endif
 
 #define kFirefoxExtensionsFile "/extensions.json"
@@ -104,5 +106,5 @@ QueryData genFirefoxAddons(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

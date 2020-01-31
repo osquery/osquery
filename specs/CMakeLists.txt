@@ -40,6 +40,7 @@ function(generateNativeTables)
     etc_protocols.table
     etc_services.table
     groups.table
+    firefox_addons.table
     hash.table
     interface_addresses.table
     interface_details.table
@@ -193,7 +194,6 @@ function(generateNativeTables)
     "posix/docker_volume_labels.table:linux,macos,freebsd"
     "posix/docker_volumes.table:linux,macos,freebsd"
     "posix/file_events.table:linux,macos"
-    "posix/firefox_addons.table:linux,macos,freebsd"
     "posix/hardware_events.table:linux,macos"
     "posix/interface_ipv6.table:linux,macos,freebsd"
     "posix/known_hosts.table:linux,macos,freebsd"
