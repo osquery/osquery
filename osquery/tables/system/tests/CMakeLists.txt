@@ -133,6 +133,7 @@ function(generateOsqueryTablesSystemWindowsTests)
   add_osquery_executable(osquery_tables_system_windows_tests-test
     windows/certificates_tests.cpp
     windows/registry_tests.cpp
+    windows/windows_optional_features_tests.cpp
   )
 
   target_link_libraries(osquery_tables_system_windows_tests-test PRIVATE

@@ -267,6 +267,7 @@ function(generateNativeTables)
     "windows/autoexec.table:windows"
     "windows/default_environment.table:windows"
     "windows/windows_security_products.table:windows"
+    "windows/windows_optional_features.table:windows"
     "windows/connectivity.table:windows"
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd"
