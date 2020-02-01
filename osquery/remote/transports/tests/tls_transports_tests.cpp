@@ -19,6 +19,7 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/registry_factory.h>
+#include <osquery/utils/info/platform_type.h>
 
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
@@ -135,13 +136,14 @@ TEST_F(TLSTransportsTests, test_call_verify_peer) {
   ASSERT_NO_THROW(status = r.call());
   ASSERT_FALSE(status.ok());
 
-#if OSQUERY_WINDOWS
-  if (!nameError(status)) {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    if (!nameError(status)) {
+      EXPECT_EQ(status.getMessage(),
+                "Request error: certificate verify failed");
+    }
+  } else {
     EXPECT_EQ(status.getMessage(), "Request error: certificate verify failed");
   }
-#else
-  EXPECT_EQ(status.getMessage(), "Request error: certificate verify failed");
-#endif
 }
 
 TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {
