@@ -55,6 +55,8 @@ HIDDEN_FLAG(string,
             "enroll_secret",
             "Override the TLS enroll secret key name");
 
+REGISTER_INTERNAL(TLSEnrollPlugin, "enroll", "tls");
+
 std::string TLSEnrollPlugin::enroll() {
   // If no node secret has been negotiated, try a TLS request.
   auto uri = "https://" + FLAGS_tls_hostname + FLAGS_enroll_tls_endpoint;
@@ -122,4 +124,4 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
   }
   return Status::success();
 }
-}
+} // namespace osquery

@@ -6,6 +6,7 @@
 
 function(pluginsConfigMain)
   add_subdirectory("parsers")
+  add_subdirectory("tests")
 
   generatePluginsConfigFilesystemconfig()
   generatePluginsConfigTlsconfig()
@@ -46,6 +47,20 @@ function(generatePluginsConfigTlsconfig)
   )
 
   generateIncludeNamespace(plugins_config_tlsconfig "plugins/config" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME plugins_config_tests_tlsconfigtests-test COMMAND plugins_config_tests_tlsconfigtests-test)
+
+  set(tlsconfigtests-test_env
+    "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
+    "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
+  )
+
+  set_tests_properties(
+    plugins_config_tests_tlsconfigtests-test
+    PROPERTIES ENVIRONMENT "${tlsconfigtests-test_env}"
+  )
+
 endfunction()
 
 function(generatePluginsConfigUpdateconfigplugin)

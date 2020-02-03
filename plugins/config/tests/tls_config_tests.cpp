@@ -12,34 +12,37 @@
 
 #include <osquery/config/config.h>
 #include <osquery/database.h>
+#include <osquery/dispatcher/scheduler.h>
 #include <osquery/flags.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
+#include <osquery/remote/requests.h>
+#include <osquery/remote/serializers/json.h>
+#include <osquery/remote/tests/test_utils.h>
+#include <osquery/remote/transports/tls.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/config/plugins/tls_config.h"
-#include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
-#include "osquery/dispatcher/scheduler.h"
-#include "osquery/remote/requests.h"
-#include "osquery/remote/serializers/json.h"
-#include "osquery/remote/transports/tls.h"
-#include "osquery/remote/utility.h"
-
-#include "osquery/tests/test_additional_util.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/utils/system/time.h>
+#include <plugins/config/tls_config.h>
 
 namespace osquery {
 
 DECLARE_string(tls_hostname);
 DECLARE_bool(enroll_always);
 DECLARE_uint64(config_refresh);
+DECLARE_bool(disable_database);
 
 class TLSConfigTests : public testing::Test {
  public:
   void SetUp() override {
-    TLSServerRunner::start();
+    Initializer::platformSetup();
+    registryAndPluginInit();
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+
+    ASSERT_TRUE(TLSServerRunner::start());
     TLSServerRunner::setClientConfig();
 
     active_ = Registry::get().getActive("config");
@@ -83,7 +86,11 @@ TEST_F(TLSConfigTests, test_retrieve_config) {
   Config c;
   c.load();
 
-  EXPECT_EQ("6f1980704cb3fd0c902a8a1107f65c59016c5dd2",
+  // clang-format off
+  // Hash for:
+  // {"schedule":{"tls_proc":{"query":"select * from processes","interval":1}},"node_invalid":false,"node":true}
+  // clang-format on
+  EXPECT_EQ("1c70dc4608ed9f8d8e24d23359a46e8739a93558",
             c.getHash("tls_plugin"));
 
   // Configure the plugin to use the node API.
@@ -109,9 +116,10 @@ TEST_F(TLSConfigTests, test_runner_and_scheduler) {
 
   // Start a scheduler runner for 3 seconds.
   auto t = static_cast<unsigned long int>(getUnixTime());
-  Dispatcher::addService(std::make_shared<SchedulerRunner>(t + 1, 1));
+  ASSERT_TRUE(
+      Dispatcher::addService(std::make_shared<SchedulerRunner>(t + 1, 1)).ok());
   // Reload our instance config.
-  Config::get().load();
+  ASSERT_TRUE(Config::get().load().ok());
 
   Dispatcher::joinServices();
 }
@@ -192,4 +200,4 @@ TEST_F(TLSConfigTests, test_setup) {
   db_value = obj["command"].GetString();
   EXPECT_STREQ(db_value.c_str(), "enroll");
 }
-}
+} // namespace osquery

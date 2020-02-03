@@ -8,6 +8,7 @@ load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 load("//tools/build_defs/oss/osquery:platforms.bzl", "LINUX", "MACOSX")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+load("//tools/build_defs/oss/osquery:native_functions.bzl", "osquery_read_config")
 
 osquery_cxx_test(
     name = "networking_tables_tests",
@@ -18,6 +19,10 @@ osquery_cxx_test(
         "TEST_CONF_FILES_DIR": "$(location {})".format(
             osquery_target("tools/tests/configs:test_files"),
         ),
+        "TEST_HELPER_SCRIPTS_DIR": "$(location {})".format(
+            osquery_target("tools/tests:python_script_files"),
+        ),
+        "OSQUERY_PYTHON_INTERPRETER_PATH": osquery_read_config("python#py3", "interpreter"),
     },
     visibility = ["PUBLIC"],
     deps = [
