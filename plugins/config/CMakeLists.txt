@@ -6,7 +6,9 @@
 
 function(pluginsConfigMain)
   add_subdirectory("parsers")
-  add_subdirectory("tests")
+  if(OSQUERY_BUILD_TESTS)
+    add_subdirectory("tests")
+  endif()
 
   generatePluginsConfigFilesystemconfig()
   generatePluginsConfigTlsconfig()
