@@ -21,6 +21,7 @@ function(generateOsqueryEvents)
       linux/auditdnetlink.cpp
       linux/auditeventpublisher.cpp
       linux/inotify.cpp
+      linux/processdnseventspublisher.cpp
       linux/syslog.cpp
       linux/udev.cpp
     )
@@ -61,6 +62,7 @@ function(generateOsqueryEvents)
     osquery_utils_expected
     osquery_utils_system_time
     thirdparty_boost
+    thirdparty_ebpfpub
   )
 
   if(DEFINED PLATFORM_LINUX)
@@ -84,6 +86,7 @@ function(generateOsqueryEvents)
       linux/inotify.h
       linux/process_events.h
       linux/process_file_events.h
+      linux/processdnseventspublisher.h
       linux/selinux_events.h
       linux/socket_events.h
       linux/syslog.h

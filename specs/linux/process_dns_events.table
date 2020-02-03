@@ -1,0 +1,16 @@
+table_name("process_dns_events")
+description("Track dns events.")
+schema([
+    Column("timestamp", BIGINT, "Event timestamp"),
+    Column("user_id", BIGINT, "User id"),
+    Column("group_id", BIGINT, "Group id"),
+    Column("process_id", BIGINT, "Process id"),
+    Column("thread_id", BIGINT, "Thread id"),
+    Column("node", TEXT, "Node"),
+    Column("service", TEXT, "Service"),
+    Column("exit_code", BIGINT, "Exit code"),
+    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("process_dns_events@process_dns_events::genTable")
