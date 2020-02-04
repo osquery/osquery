@@ -18,6 +18,7 @@
 #include <osquery/utils/conversions/darwin/cfdata.h>
 #include <osquery/utils/conversions/darwin/cfnumber.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/utils/scope_guard.h>
 
 namespace osquery {
 namespace tables {
@@ -60,25 +61,56 @@ std::string getStringOfValue(CFTypeRef value, int depth) {
 
   return rvalue;
 }
+
 void genResults(const std::string& path, QueryData& results) {
   CFStringRef cs = CFStringCreateWithCString(
       kCFAllocatorDefault, path.c_str(), kCFStringEncodingASCII);
+  auto const cs_guard = scope_guard::create([cs]() { CFRelease(cs); });
+  if (cs == nullptr) {
+    return;
+  }
+
   MDItemRef mdi = MDItemCreate(kCFAllocatorDefault, cs);
+  auto const mdi_guard = scope_guard::create([mdi]() { CFRelease(mdi); });
+  if (mdi == nullptr) {
+    return;
+  }
+
   CFTypeRef tr = MDItemCopyAttribute(mdi, CFSTR("kMDItemPath"));
+  auto const tr_guard = scope_guard::create([tr]() { CFRelease(tr); });
+  if (tr == nullptr) {
+    return;
+  }
+
   CFArrayRef al = MDItemCopyAttributeNames(mdi);
+  auto const al_guard = scope_guard::create([al]() { CFRelease(al); });
+  if (al == nullptr) {
+    return;
+  }
+
   CFDictionaryRef d = MDItemCopyAttributes(mdi, al);
-  CFRelease(mdi);
+  auto const d_guard = scope_guard::create([d]() { CFRelease(d); });
+  if (d == nullptr) {
+    return;
+  }
+
   for (int j = 0; j < CFArrayGetCount(al); ++j) {
     // Do not release key or value, they are released when the dict is released
     CFTypeRef key = CFArrayGetValueAtIndex(al, j);
     CFTypeRef value = CFDictionaryGetValue(d, key);
     std::string rvalue{"null"};
 
-    if (tr == nullptr || key == nullptr || value == nullptr) {
+    if (key == nullptr || value == nullptr) {
       continue;
     }
 
     CFStringRef valuetype = CFCopyTypeIDDescription(CFGetTypeID(value));
+    auto const guard =
+        scope_guard::create([valuetype]() { CFRelease(valuetype); });
+    if (valuetype == nullptr) {
+      return;
+    }
+
     rvalue = getStringOfValue(value, 0);
 
     Row r;
@@ -87,12 +119,7 @@ void genResults(const std::string& path, QueryData& results) {
     r["value"] = rvalue;
     r["valuetype"] = stringFromCFString(static_cast<CFStringRef>(valuetype));
     results.push_back(r);
-    CFRelease(valuetype);
   }
-  CFRelease(tr);
-  CFRelease(al);
-  CFRelease(d);
-  CFRelease(cs);
 }
 
 QueryData genMdlsResults(QueryContext& context) {
