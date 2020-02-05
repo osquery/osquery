@@ -616,7 +616,7 @@ void Initializer::start() const {
  * This is a small interruptable thread implementation.
  *
  * The goal is to wait until interrupted or an alarm timeout. If the timeout
- * occures then osquery is stuck shutting and and we force-terminate.
+ * occurs then osquery is stuck shutting and we force-terminate.
  */
 class AlarmRunnable : public InterruptableRunnable {
  public:
@@ -646,9 +646,8 @@ std::mutex kShutdownRequestMutex;
 bool kShutdownRequested{false};
 
 void Initializer::waitForShutdown() const {
-  // Attempt to be the only place in code where a join is attempted.
   std::unique_lock<std::mutex> lock(kShutdownRequestMutex);
-  kShutdownRequestCV.wait(lock, []{ return kShutdownRequested; });
+  kShutdownRequestCV.wait(lock, [] { return kShutdownRequested; });
 }
 
 int Initializer::shutdown(int retcode) const {

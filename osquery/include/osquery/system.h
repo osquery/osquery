@@ -82,7 +82,7 @@ class Initializer : private boost::noncopyable {
   void start() const;
 
   /**
-   * @brief Cleanly shutdown all services and components to shutdown.
+   * @brief Cleanly shutdown all services and components.
    *
    * Issue interrupt/stop requests to all service threads, join them, then
    * stop the eventing system, database usage, and run any platform-specific
