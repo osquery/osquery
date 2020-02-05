@@ -15,11 +15,9 @@
 #endif
 
 #include <functional>
+#include <regex>
 #include <string>
 #include <vector>
-
-#include <boost/algorithm/string/regex.hpp>
-#include <boost/regex.hpp>
 
 #include <osquery/logger.h>
 #include <osquery/utils/conversions/split.h>
@@ -71,7 +69,12 @@ static SplitResult regexSplit(const std::string& input,
   // Split using the token as a regex to support multi-character tokens.
   // Exceptions are caught by the caller, as that's where the sql context is
   std::vector<std::string> result;
-  boost::algorithm::split_regex(result, input, boost::regex(token));
+  std::regex pattern = std::regex(token);
+  std::sregex_token_iterator iter_begin(
+      input.begin(), input.end(), pattern, -1);
+  std::sregex_token_iterator iter_end;
+  std::copy(iter_begin, iter_end, std::back_inserter(result));
+
   return result;
 }
 
@@ -124,7 +127,7 @@ static void regexStringSplitFunc(sqlite3_context* context,
                                  sqlite3_value** argv) {
   try {
     callStringSplitFunc(context, argc, argv, regexSplit);
-  } catch (const boost::regex_error& e) {
+  } catch (const std::regex_error& e) {
     LOG(INFO) << "Invalid regex: " << e.what();
     sqlite3_result_error(context, "Invalid regex", -1);
   }
@@ -147,17 +150,14 @@ static void regexStringMatchFunc(sqlite3_context* context,
 
   // parse and verify input parameters
   std::string input((char*)sqlite3_value_text(argv[0]));
-  boost::smatch results;
+  std::smatch results;
   auto index = static_cast<size_t>(sqlite3_value_int(argv[2]));
   bool isMatchFound = false;
 
   try {
-    isMatchFound =
-        boost::regex_search(input,
-                            results,
-                            boost::regex((char*)sqlite3_value_text(argv[1]),
-                                         boost::regex::extended));
-  } catch (const boost::regex_error& e) {
+    isMatchFound = std::regex_search(
+        input, results, std::regex((char*)sqlite3_value_text(argv[1])));
+  } catch (const std::regex_error& e) {
     LOG(INFO) << "Invalid regex: " << e.what();
     sqlite3_result_error(context, "Invalid regex", -1);
     return;
