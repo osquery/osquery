@@ -46,6 +46,10 @@ class CarverTests : public testing::Test {
     return working_dir_;
   }
 
+  fs::path const& getFilesToCarveDir() const {
+    return files_to_carve_dir_;
+  }
+
  protected:
   void SetUp() override {
     Initializer::platformSetup();
@@ -116,7 +120,6 @@ TEST_F(CarverTests, test_carve_files_not_exists) {
   auto guid_ = genGuid();
   std::string requestId = "";
   const std::set<std::string> notExistsCarvePaths = {
-      getFilesToCarveDir().string(),
       (getFilesToCarveDir() / "not_exists").string()};
   Carver carve(notExistsCarvePaths, guid_, requestId);
 
