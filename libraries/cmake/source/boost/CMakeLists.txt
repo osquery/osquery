@@ -192,6 +192,14 @@ function(importBoostInterfaceLibrary folder_name)
       BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX)
   endif()
 
+  if(DEFINED PLATFORM_WINDOWS)
+    if("${folder_name}" STREQUAL "asio")
+      target_compile_definitions(${target_name} INTERFACE
+        BOOST_ASIO_WINDOWS
+      )
+    endif()
+  endif()
+
   foreach(additional_dependency ${ARGN})
 
     if(additional_dependency MATCHES "^thirdparty_")
