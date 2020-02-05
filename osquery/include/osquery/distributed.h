@@ -275,6 +275,6 @@ class Distributed {
 
  private:
   friend class DistributedTests;
-  FRIEND_TEST(DistributedTests, DISABLED_test_workflow);
+  FRIEND_TEST(DistributedTests, test_workflow);
 };
 }

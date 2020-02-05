@@ -70,6 +70,7 @@ function(generateOsqueryRemoteUtility)
     osquery_remote_transports_transportstls
     osquery_remote_httpclient
     osquery_remote_requests
+    plugins_remote_enroll_tlsenroll
   )
 
   set(public_header_files

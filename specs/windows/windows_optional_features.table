@@ -6,7 +6,7 @@ schema([
   Column("state", INTEGER, "Installation state value. 1 == Enabled, 2 == Disabled, 3 == Absent"),
   Column("statename", TEXT, "Installation state name. 'Enabled','Disabled','Absent'"),
 ])
-implementation("windows_optional_features@genWinOptionalFeatures")
+implementation("system/windows/windows_optional_features@genWinOptionalFeatures")
 examples([
   "select * from windows_optional_features",
   "select * from windows_optional_features where name = 'SMB1Protocol' AND state = 1",

@@ -284,7 +284,7 @@ String parsing functions are always helpful, some help within subqueries so they
     </p>
     </details>
 
-- `regex_split(COLUMN, PATTERN, INDEX)`: similar to split, but instead of `TOKENS`, apply the POSIX regex `PATTERN` (as interpreted by boost::regex).
+- `regex_split(COLUMN, PATTERN, INDEX)`: similar to split, but instead of `TOKENS`, apply the POSIX regex `PATTERN` (as interpreted by std::regex).
 
     <details>
     <summary>Regex Split function example:</summary>

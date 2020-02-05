@@ -7,7 +7,7 @@
  */
 
 // Sanity check integration test for firefox_addons
-// Spec file: specs/posix/firefox_addons.table
+// Spec file: specs/firefox_addons.table
 
 #include <osquery/tests/integration/tables/helper.h>
 

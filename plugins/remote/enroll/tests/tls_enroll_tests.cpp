@@ -28,7 +28,7 @@
 #include <osquery/remote/tests/test_utils.h>
 #include "osquery/tests/test_util.h"
 
-#include <osquery/remote/enroll/tls_enroll.h>
+#include <plugins/remote/enroll/tls_enroll.h>
 
 namespace osquery {
 
@@ -54,7 +54,7 @@ void TLSEnrollTests::SetUp() {
   DatabasePlugin::initPlugin();
 
   // Start a server.
-  TLSServerRunner::start();
+  ASSERT_TRUE(TLSServerRunner::start());
   TLSServerRunner::setClientConfig();
   clearNodeKey();
 
@@ -80,8 +80,10 @@ Status TLSEnrollTests::testReadRequests(JSON& response_tree) {
   return status;
 }
 
-TEST_F(TLSEnrollTests, DISABLED_test_tls_enroll) {
+TEST_F(TLSEnrollTests, test_tls_enroll) {
   auto node_key = getNodeKey("tls");
+
+  ASSERT_FALSE(node_key.empty());
 
   JSON response;
   std::string value;
@@ -115,4 +117,4 @@ TEST_F(TLSEnrollTests, DISABLED_test_tls_enroll) {
   value = obj["host_details"]["osquery_info"]["uuid"].GetString();
   EXPECT_EQ(osquery_info[0]["uuid"], value);
 }
-}
+} // namespace osquery

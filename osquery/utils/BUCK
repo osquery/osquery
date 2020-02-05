@@ -6,7 +6,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
-load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD", "MACOSX")
+load("//tools/build_defs/oss/osquery:platforms.bzl", "FREEBSD", "MACOSX", "WINDOWS")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
 
 osquery_cxx_library(
@@ -75,9 +75,18 @@ osquery_cxx_test(
         "tests/map_take.cpp",
         "tests/scope_guard.cpp",
     ],
+    platform_srcs = [
+        (
+            WINDOWS,
+            [
+                "tests/windows/env.cpp",
+            ],
+        ),
+    ],
     visibility = ["PUBLIC"],
     deps = [
-        ":utils",
+        osquery_target("osquery/utils:utils"),
+        osquery_target("osquery/utils/system:env"),
     ],
 )
 

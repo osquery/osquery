@@ -40,6 +40,7 @@ function(generateNativeTables)
     etc_protocols.table
     etc_services.table
     groups.table
+    firefox_addons.table
     hash.table
     interface_addresses.table
     interface_details.table
@@ -52,8 +53,10 @@ function(generateNativeTables)
     processes.table
     python_packages.table
     routes.table
+    ssh_configs.table
     system_info.table
     uptime.table
+    user_ssh_keys.table
     users.table
     utility/file.table
     utility/osquery_events.table
@@ -162,6 +165,8 @@ function(generateNativeTables)
     "linux/elf_dynamic.table:linux"
     "linux/ec2_instance_metadata.table:linux"
     "linux/elf_sections.table:linux"
+    "linux/selinux_settings.table:linux"
+    "linux/apparmor_profiles.table:linux"
     "linwin/intel_me_info.table:linux,windows"
     "lldpd/lldp_neighbors.table:linux,macos,freebsd"
     "kernel_info.table:linux,macos,windows"
@@ -193,7 +198,6 @@ function(generateNativeTables)
     "posix/docker_volume_labels.table:linux,macos,freebsd"
     "posix/docker_volumes.table:linux,macos,freebsd"
     "posix/file_events.table:linux,macos"
-    "posix/firefox_addons.table:linux,macos,freebsd"
     "posix/hardware_events.table:linux,macos"
     "posix/interface_ipv6.table:linux,macos,freebsd"
     "posix/known_hosts.table:linux,macos,freebsd"
@@ -216,14 +220,12 @@ function(generateNativeTables)
     "posix/prometheus_metrics.table:linux,macos,freebsd"
     "posix/shell_history.table:linux,macos,freebsd"
     "posix/smbios_tables.table:linux,macos"
-    "posix/ssh_configs.table:linux,macos,freebsd"
     "posix/sudoers.table:linux,macos,freebsd"
     "posix/suid_bin.table:linux,macos,freebsd"
     "posix/system_controls.table:linux,macos,freebsd"
     "posix/ulimit_info.table:linux,macos,freebsd"
     "posix/usb_devices.table:linux,macos"
     "posix/user_events.table:linux,macos,freebsd"
-    "posix/user_ssh_keys.table:linux,macos,freebsd"
     "posix/yum_sources.table:linux,macos,freebsd"
     "sleuthkit/device_file.table:linux,macos,freebsd"
     "sleuthkit/device_hash.table:linux,macos,freebsd"
@@ -265,6 +267,7 @@ function(generateNativeTables)
     "windows/autoexec.table:windows"
     "windows/default_environment.table:windows"
     "windows/windows_security_products.table:windows"
+    "windows/windows_optional_features.table:windows"
     "windows/connectivity.table:windows"
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd"

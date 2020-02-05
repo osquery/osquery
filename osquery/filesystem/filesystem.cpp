@@ -567,12 +567,12 @@ std::string lsperms(int mode) {
 }
 
 Status parseJSON(const fs::path& path, pt::ptree& tree) {
-  std::string json_data;
-  if (!readFile(path, json_data).ok()) {
-    return Status(1, "Could not read JSON from file");
+  try {
+    pt::read_json(path.string(), tree);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1, "Could not parse JSON from file");
   }
-
-  return parseJSONContent(json_data, tree);
+  return Status::success();
 }
 
 Status parseJSONContent(const std::string& content, pt::ptree& tree) {

@@ -41,6 +41,7 @@ function(generateTestsIntegrationTablesTestsTest)
     etc_protocols.cpp
     etc_services.cpp
     file.cpp
+    firefox_addons.cpp
     groups.cpp
     hash.cpp
     interface_addresses.cpp
@@ -66,6 +67,8 @@ function(generateTestsIntegrationTablesTestsTest)
     uptime.cpp
     user_groups.cpp
     users.cpp
+    ssh_configs.cpp
+    user_ssh_keys.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
@@ -99,7 +102,6 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_volume_labels.cpp
       docker_volumes.cpp
       file_events.cpp
-      firefox_addons.cpp
       hardware_events.cpp
       interface_ipv6.cpp
       known_hosts.cpp
@@ -122,14 +124,12 @@ function(generateTestsIntegrationTablesTestsTest)
       prometheus_metrics.cpp
       shell_history.cpp
       smbios_tables.cpp
-      ssh_configs.cpp
       sudoers.cpp
       suid_bin.cpp
       system_controls.cpp
       ulimit_info.cpp
       usb_devices.cpp
       user_events.cpp
-      user_ssh_keys.cpp
       yara.cpp
       yum_sources.cpp
     )

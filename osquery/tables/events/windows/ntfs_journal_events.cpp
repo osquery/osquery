@@ -329,7 +329,7 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
     // there's another TOCTOU here: another process could delete the file before
     // we get its information. We don't want to lock the file, though, since it
     // could be something imporant used by another process.
-    USNFileReferenceNumber frn = 0;
+    USNFileReferenceNumber frn{};
 
 #if _WIN32_WINNT > _WIN32_WINNT_WIN7
     FILE_ID_INFO file_id_info;

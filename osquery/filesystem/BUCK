@@ -25,6 +25,7 @@ osquery_cxx_library(
             LINUX,
             [
                 "linux/proc.h",
+                "linux/mounts.h",
             ],
         ),
     ],
@@ -55,6 +56,7 @@ osquery_cxx_library(
             [
                 "linux/mem.cpp",
                 "linux/proc.cpp",
+                "linux/mounts.cpp",
             ],
         ),
         (
@@ -74,6 +76,7 @@ osquery_cxx_library(
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_target("osquery/utils/status:status"),
         osquery_target("osquery/utils/system:env"),
+        osquery_target("osquery/utils/system:filepath"),
         osquery_tp_target("boost"),
         osquery_tp_target("libarchive"),
         osquery_tp_target("zstd"),

@@ -99,11 +99,18 @@ function(generateOsqueryUtilsUtilstestsTest)
     tests/scope_guard.cpp
   )
 
+  if(DEFINED PLATFORM_WINDOWS)
+    list(APPEND source_files
+      tests/windows/env.cpp
+    )
+  endif()
+
   add_osquery_executable(osquery_utils_utilstests-test ${source_files})
 
   target_link_libraries(osquery_utils_utilstests-test PRIVATE
     osquery_cxx_settings
     osquery_utils
+    osquery_utils_system_env
     thirdparty_googletest
   )
 endfunction()

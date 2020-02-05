@@ -18,6 +18,8 @@ function(generateOsqueryTablesSystemSystemtable)
     cpuid.cpp
     hash.cpp
     python_packages.cpp
+    ssh_keys.cpp
+    ssh_configs.cpp
     system_utils.cpp
     uptime.cpp
   )
@@ -35,8 +37,6 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/magic.cpp
       posix/shell_history.cpp
       posix/smbios_utils.cpp
-      posix/ssh_configs.cpp
-      posix/ssh_keys.cpp
       posix/sudoers.cpp
       posix/suid_bin.cpp
       posix/system_controls.cpp
@@ -78,6 +78,8 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/usb_devices.cpp
       linux/user_groups.cpp
       linux/users.cpp
+      linux/selinux_settings.cpp
+      linux/apparmor_profiles.cpp
     )
 
   elseif(DEFINED PLATFORM_MACOS)
@@ -222,6 +224,7 @@ function(generateOsqueryTablesSystemSystemtable)
     osquery_utils
     osquery_utils_conversions
     osquery_utils_expected
+    osquery_utils_system_env
     osquery_utils_system_filepath
     osquery_utils_system_systemutils
     osquery_utils_system_time

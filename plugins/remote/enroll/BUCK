@@ -10,7 +10,14 @@ load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 osquery_cxx_library(
     name = "tls_enroll_plugin",
     srcs = [
-        "tls_enroll_plugin.cpp",
+        "tls_enroll.cpp",
+    ],
+    header_namespace = "plugins/remote/enroll",
+    exported_headers = [
+        "tls_enroll.h",
+    ],
+    tests = [
+        osquery_target("plugins/remote/enroll/tests:tls_enroll_tests"),
     ],
     link_whole = True,
     visibility = ["PUBLIC"],

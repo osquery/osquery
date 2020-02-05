@@ -30,6 +30,9 @@ osquery_cxx_library(
     exported_headers = [
         "tls_config.h",
     ],
+    tests = [
+        osquery_target("plugins/config/tests:tls_config_tests"),
+    ],
     link_whole = True,
     visibility = ["PUBLIC"],
     deps = [

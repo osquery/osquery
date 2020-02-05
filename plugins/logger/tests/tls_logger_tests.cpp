@@ -37,7 +37,7 @@ class TLSLoggerTests : public testing::Test {
 
 TEST_F(TLSLoggerTests, test_database) {
   // Start a server.
-  TLSServerRunner::start();
+  ASSERT_TRUE(TLSServerRunner::start());
   TLSServerRunner::setClientConfig();
 
   auto forwarder = std::make_shared<TLSLogForwarder>();
@@ -69,7 +69,7 @@ TEST_F(TLSLoggerTests, test_database) {
 
 TEST_F(TLSLoggerTests, test_send) {
   // Start a server.
-  TLSServerRunner::start();
+  ASSERT_TRUE(TLSServerRunner::start());
   TLSServerRunner::setClientConfig();
 
   auto forwarder = std::make_shared<TLSLogForwarder>();
