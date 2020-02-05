@@ -67,6 +67,8 @@ function(generateTestsIntegrationTablesTestsTest)
     uptime.cpp
     user_groups.cpp
     users.cpp
+    ssh_configs.cpp
+    user_ssh_keys.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
@@ -122,14 +124,12 @@ function(generateTestsIntegrationTablesTestsTest)
       prometheus_metrics.cpp
       shell_history.cpp
       smbios_tables.cpp
-      ssh_configs.cpp
       sudoers.cpp
       suid_bin.cpp
       system_controls.cpp
       ulimit_info.cpp
       usb_devices.cpp
       user_events.cpp
-      user_ssh_keys.cpp
       yara.cpp
       yum_sources.cpp
     )

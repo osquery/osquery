@@ -605,10 +605,6 @@ osquery_gentable_cxx_library(
             "linux,macos",
         ),
         (
-            "posix/ssh_configs.table",
-            "linux,macos,freebsd",
-        ),
-        (
             "posix/sudoers.table",
             "linux,macos,freebsd",
         ),
@@ -630,10 +626,6 @@ osquery_gentable_cxx_library(
         ),
         (
             "posix/user_events.table",
-            "linux,macos,freebsd",
-        ),
-        (
-            "posix/user_ssh_keys.table",
             "linux,macos,freebsd",
         ),
         (
@@ -847,8 +839,10 @@ osquery_gentable_cxx_library(
         "processes.table",
         "python_packages.table",
         "routes.table",
+        "ssh_configs.table",
         "system_info.table",
         "uptime.table",
+        "user_ssh_keys.table",
         "users.table",
         "utility/file.table",
         "utility/osquery_events.table",

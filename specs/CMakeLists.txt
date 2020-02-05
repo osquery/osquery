@@ -53,8 +53,10 @@ function(generateNativeTables)
     processes.table
     python_packages.table
     routes.table
+    ssh_configs.table
     system_info.table
     uptime.table
+    user_ssh_keys.table
     users.table
     utility/file.table
     utility/osquery_events.table
@@ -218,14 +220,12 @@ function(generateNativeTables)
     "posix/prometheus_metrics.table:linux,macos,freebsd"
     "posix/shell_history.table:linux,macos,freebsd"
     "posix/smbios_tables.table:linux,macos"
-    "posix/ssh_configs.table:linux,macos,freebsd"
     "posix/sudoers.table:linux,macos,freebsd"
     "posix/suid_bin.table:linux,macos,freebsd"
     "posix/system_controls.table:linux,macos,freebsd"
     "posix/ulimit_info.table:linux,macos,freebsd"
     "posix/usb_devices.table:linux,macos"
     "posix/user_events.table:linux,macos,freebsd"
-    "posix/user_ssh_keys.table:linux,macos,freebsd"
     "posix/yum_sources.table:linux,macos,freebsd"
     "sleuthkit/device_file.table:linux,macos,freebsd"
     "sleuthkit/device_hash.table:linux,macos,freebsd"
