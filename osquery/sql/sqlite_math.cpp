@@ -67,7 +67,7 @@ static void callDoubleFunc(sqlite3_context* context,
     if (errno == 0) {
       sqlite3_result_double(context, val);
     } else {
-      sqlite3_result_error(context, platformStrerr(errno).c_str(), errno);
+      sqlite3_result_error(context, platformStrerr(errno).c_str(), -1);
     }
     break;
   }
@@ -139,7 +139,7 @@ static void powerFunc(sqlite3_context* context,
     if (errno == 0) {
       sqlite3_result_double(context, val);
     } else {
-      sqlite3_result_error(context, platformStrerr(errno).c_str(), errno);
+      sqlite3_result_error(context, platformStrerr(errno).c_str(), -1);
     }
   }
 }
