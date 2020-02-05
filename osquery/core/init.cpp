@@ -642,13 +642,13 @@ class AlarmRunnable : public InterruptableRunnable {
 
 /// Graceful shutdown request conditional var.
 std::condition_variable kShutdownRequestCV;
+std::mutex kShutdownRequestMutex;
+bool kShutdownRequested{false};
 
 void Initializer::waitForShutdown() const {
-  std::mutex shutdown_request_mutex;
-
   // Attempt to be the only place in code where a join is attempted.
-  std::unique_lock<std::mutex> lock(shutdown_request_mutex);
-  kShutdownRequestCV.wait(lock);
+  std::unique_lock<std::mutex> lock(kShutdownRequestMutex);
+  kShutdownRequestCV.wait(lock, []{ return kShutdownRequested; });
 }
 
 int Initializer::shutdown(int retcode) const {
@@ -689,7 +689,10 @@ void Initializer::requestShutdown(int retcode) {
   static std::once_flag thrown;
   std::call_once(thrown, [&retcode]() {
     // Can be called from any thread, attempt a graceful shutdown.
+    std::unique_lock<std::mutex> lock(kShutdownRequestMutex);
+
     kExitCode = retcode;
+    kShutdownRequested = true;
     kShutdownRequestCV.notify_one();
   });
 }
