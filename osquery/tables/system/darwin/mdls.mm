@@ -65,34 +65,34 @@ std::string getStringOfValue(CFTypeRef value, int depth) {
 void genResults(const std::string& path, QueryData& results) {
   CFStringRef cs = CFStringCreateWithCString(
       kCFAllocatorDefault, path.c_str(), kCFStringEncodingASCII);
-  auto const cs_guard = scope_guard::create([cs]() { CFRelease(cs); });
   if (cs == nullptr) {
     return;
   }
+  auto const cs_guard = scope_guard::create([&cs]() { CFRelease(cs); });
 
   MDItemRef mdi = MDItemCreate(kCFAllocatorDefault, cs);
-  auto const mdi_guard = scope_guard::create([mdi]() { CFRelease(mdi); });
   if (mdi == nullptr) {
     return;
   }
+  auto const mdi_guard = scope_guard::create([&mdi]() { CFRelease(mdi); });
 
   CFTypeRef tr = MDItemCopyAttribute(mdi, CFSTR("kMDItemPath"));
-  auto const tr_guard = scope_guard::create([tr]() { CFRelease(tr); });
   if (tr == nullptr) {
     return;
   }
+  auto const tr_guard = scope_guard::create([&tr]() { CFRelease(tr); });
 
   CFArrayRef al = MDItemCopyAttributeNames(mdi);
-  auto const al_guard = scope_guard::create([al]() { CFRelease(al); });
   if (al == nullptr) {
     return;
   }
+  auto const al_guard = scope_guard::create([&al]() { CFRelease(al); });
 
   CFDictionaryRef d = MDItemCopyAttributes(mdi, al);
-  auto const d_guard = scope_guard::create([d]() { CFRelease(d); });
   if (d == nullptr) {
     return;
   }
+  auto const d_guard = scope_guard::create([&d]() { CFRelease(d); });
 
   for (int j = 0; j < CFArrayGetCount(al); ++j) {
     // Do not release key or value, they are released when the dict is released
@@ -105,11 +105,11 @@ void genResults(const std::string& path, QueryData& results) {
     }
 
     CFStringRef valuetype = CFCopyTypeIDDescription(CFGetTypeID(value));
-    auto const guard =
-        scope_guard::create([valuetype]() { CFRelease(valuetype); });
     if (valuetype == nullptr) {
       return;
     }
+    auto const guard =
+        scope_guard::create([&valuetype]() { CFRelease(valuetype); });
 
     rvalue = getStringOfValue(value, 0);
 
