@@ -41,6 +41,7 @@ function(generateTestsIntegrationTablesTestsTest)
     etc_protocols.cpp
     etc_services.cpp
     file.cpp
+    firefox_addons.cpp
     groups.cpp
     hash.cpp
     interface_addresses.cpp
@@ -99,7 +100,6 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_volume_labels.cpp
       docker_volumes.cpp
       file_events.cpp
-      firefox_addons.cpp
       hardware_events.cpp
       interface_ipv6.cpp
       known_hosts.cpp
