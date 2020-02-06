@@ -203,9 +203,13 @@ void Client::createConnection() {
 
 void Client::encryptConnection() {
   boost::asio::ssl::context ctx{boost::asio::ssl::context::sslv23};
+  const auto remote_hostname = *client_options_.remote_hostname_;
+
+  bool verify_hostname = false;
 
   if (client_options_.always_verify_peer_) {
     ctx.set_verify_mode(boost::asio::ssl::verify_peer);
+    verify_hostname = true;
   } else {
     ctx.set_verify_mode(boost::asio::ssl::verify_none);
   }
@@ -213,11 +217,13 @@ void Client::encryptConnection() {
   if (client_options_.server_certificate_) {
     ctx.set_verify_mode(boost::asio::ssl::verify_peer);
     ctx.load_verify_file(*client_options_.server_certificate_);
+    verify_hostname = true;
   }
 
   if (client_options_.verify_path_) {
     ctx.set_verify_mode(boost::asio::ssl::verify_peer);
     ctx.add_verify_path(*client_options_.verify_path_);
+    verify_hostname = true;
   }
 
   if (client_options_.ciphers_) {
@@ -241,7 +247,12 @@ void Client::encryptConnection() {
 
   ssl_sock_ = std::make_shared<ssl_stream>(sock_, ctx);
   ::SSL_set_tlsext_host_name(ssl_sock_->native_handle(),
-                             client_options_.remote_hostname_->c_str());
+                             remote_hostname.c_str());
+
+  if (verify_hostname) {
+    ssl_sock_->set_verify_callback(
+        boost::asio::ssl::rfc2818_verification(remote_hostname));
+  }
 
   callNetworkOperation([&]() {
     ssl_sock_->async_handshake(

@@ -57,10 +57,12 @@ class TLSTransportsTests : public testing::Test {
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);
     DatabasePlugin::initPlugin();
+  }
 
+  void startServer(const std::string& server_cert = {}) {
     certs_ = FLAGS_tls_server_certs;
     FLAGS_tls_server_certs = "";
-    ASSERT_TRUE(TLSServerRunner::start());
+    ASSERT_TRUE(TLSServerRunner::start(server_cert));
     port_ = TLSServerRunner::port();
   }
 
@@ -75,6 +77,8 @@ class TLSTransportsTests : public testing::Test {
 };
 
 TEST_F(TLSTransportsTests, test_call) {
+  startServer();
+
   // Create a transport and use a testing-only 'disableVerifyPeer' call.
   // This allows our client to complete TLS without verifying the fake
   // commonName or fake CA used by the testing server.
@@ -97,6 +101,8 @@ TEST_F(TLSTransportsTests, test_call) {
 }
 
 TEST_F(TLSTransportsTests, test_call_with_params) {
+  startServer();
+
   // Again, use a fake server/CA/commonName certificate.
   auto t = std::make_shared<TLSTransport>();
   t->disableVerifyPeer();
@@ -126,6 +132,8 @@ TEST_F(TLSTransportsTests, test_call_with_params) {
 }
 
 TEST_F(TLSTransportsTests, test_call_verify_peer) {
+  startServer();
+
   // Create a default request without a transport that accepts invalid peers.
   auto url = "https://localhost:" + port_;
   Request<TLSTransport, JSONSerializer> r(url);
@@ -147,10 +155,13 @@ TEST_F(TLSTransportsTests, test_call_verify_peer) {
 }
 
 TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {
+  startServer();
+
   // Require verification but include the server's certificate that includes
   // an unknown signing CA and wrong commonName.
   auto t = std::make_shared<TLSTransport>();
-  t->setPeerCertificate((getTestConfigDirectory() / "test_server_ca.pem").string());
+  t->setPeerCertificate(
+      (getTestConfigDirectory() / "test_server_ca.pem").string());
 
   auto url = "https://localhost:" + port_;
   Request<TLSTransport, JSONSerializer> r1(url, t);
@@ -169,10 +180,14 @@ TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {
 }
 
 TEST_F(TLSTransportsTests, test_call_client_auth) {
+  startServer();
+
   auto t = std::make_shared<TLSTransport>();
-  t->setPeerCertificate((getTestConfigDirectory() / "test_server_ca.pem").string());
-  t->setClientCertificate((getTestConfigDirectory() / "test_client.pem").string(),
-                          (getTestConfigDirectory() / "test_client.key").string());
+  t->setPeerCertificate(
+      (getTestConfigDirectory() / "test_server_ca.pem").string());
+  t->setClientCertificate(
+      (getTestConfigDirectory() / "test_client.pem").string(),
+      (getTestConfigDirectory() / "test_client.key").string());
 
   auto url = "https://localhost:" + port_;
   Request<TLSTransport, JSONSerializer> r(url, t);
@@ -181,4 +196,23 @@ TEST_F(TLSTransportsTests, test_call_client_auth) {
   ASSERT_NO_THROW(status = r.call());
   EXPECT_TRUE(status.ok()) << getTLSError(status);
 }
+
+TEST_F(TLSTransportsTests, test_wrong_hostname) {
+  startServer(
+      (getTestConfigDirectory() / "test_server_wrong_hostname.pem").string());
+
+  auto t = std::make_shared<TLSTransport>();
+  t->setPeerCertificate(
+      (getTestConfigDirectory() / "test_server_ca.pem").string());
+  t->setClientCertificate(
+      (getTestConfigDirectory() / "test_client.pem").string(),
+      (getTestConfigDirectory() / "test_client.key").string());
+
+  auto url = "https://localhost:" + port_;
+  Request<TLSTransport, JSONSerializer> r(url, t);
+
+  Status status;
+  ASSERT_NO_THROW(status = r.call());
+  EXPECT_FALSE(status.ok());
 }
+} // namespace osquery

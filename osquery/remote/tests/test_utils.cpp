@@ -32,7 +32,7 @@ DECLARE_string(tls_server_certs);
 DECLARE_string(enroll_secret_path);
 DECLARE_bool(disable_caching);
 
-bool TLSServerRunner::start() {
+bool TLSServerRunner::start(const std::string& server_cert) {
   auto& self = instance();
   if (self.server_ != nullptr) {
     return true;
@@ -51,10 +51,15 @@ bool TLSServerRunner::start() {
     auto python_server_path =
         (getTestHelperScriptsDirectory() / "test_http_server.py");
     auto test_config_dir = getTestConfigDirectory();
-    const auto python_server_cmd =
-        python_server_path.make_preferred().string() + " --tls --verbose " +
-        " --test-configs-dir " + test_config_dir.make_preferred().string() +
-        " " + self.port_;
+    auto python_server_cmd = python_server_path.make_preferred().string() +
+                             " --tls --verbose " + " --test-configs-dir " +
+                             test_config_dir.make_preferred().string();
+
+    if (!server_cert.empty()) {
+      python_server_cmd += " --cert " + server_cert;
+    }
+
+    python_server_cmd += " " + self.port_;
 
     self.server_ = PlatformProcess::launchTestPythonScript(python_server_cmd);
     if (self.server_ == nullptr) {
