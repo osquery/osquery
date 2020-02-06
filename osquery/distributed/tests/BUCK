@@ -6,6 +6,7 @@
 
 load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:native_functions.bzl", "osquery_read_config")
 
 osquery_cxx_test(
     name = "distributed_tests",
@@ -16,6 +17,10 @@ osquery_cxx_test(
         "TEST_CONF_FILES_DIR": "$(location {})".format(
             osquery_target("tools/tests/configs:test_files"),
         ),
+        "TEST_HELPER_SCRIPTS_DIR": "$(location {})".format(
+            osquery_target("tools/tests:python_script_files"),
+        ),
+        "OSQUERY_PYTHON_INTERPRETER_PATH": osquery_read_config("python#py3", "interpreter"),
     },
     visibility = ["PUBLIC"],
     deps = [
@@ -33,6 +38,8 @@ osquery_cxx_test(
         osquery_target("osquery/utils/system:time"),
         osquery_target("plugins/config:tls_config"),
         osquery_target("plugins/database:ephemeral"),
+        osquery_target("plugins/distributed:tls_distributed"),
+        osquery_target("plugins/remote/enroll:tls_enroll_plugin"),
         osquery_target("specs:tables"),
     ],
 )

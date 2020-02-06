@@ -8,18 +8,17 @@ load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_library", "osquery_c
 load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
 load("//tools/build_defs/oss/osquery:platforms.bzl", "MACOSX")
 load("//tools/build_defs/oss/osquery:third_party.bzl", "osquery_tp_target")
+load("//tools/build_defs/oss/osquery:native_functions.bzl", "osquery_read_config")
 
 osquery_cxx_library(
     name = "tls_enroll",
     srcs = [
         "enroll.cpp",
-        "tls_enroll.cpp",
-    ],
-    header_namespace = "osquery/remote/enroll",
-    exported_headers = [
-        "tls_enroll.h",
     ],
     link_whole = True,
+    tests = [
+        ":remote_enroll_tests"
+    ],
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/core:core"),
@@ -43,13 +42,11 @@ osquery_cxx_test(
         "TEST_CONF_FILES_DIR": "$(location {})".format(
             osquery_target("tools/tests/configs:test_files"),
         ),
-    },
-    platform_srcs = [
-        (
-            MACOSX,
-            ["tests/plugins/tls_enroll_tests.cpp"],
+        "TEST_HELPER_SCRIPTS_DIR": "$(location {})".format(
+            osquery_target("tools/tests:python_script_files"),
         ),
-    ],
+        "OSQUERY_PYTHON_INTERPRETER_PATH": osquery_read_config("python#py3", "interpreter"),
+    },
     visibility = ["PUBLIC"],
     deps = [
         osquery_target("osquery/config/tests:test_utils"),

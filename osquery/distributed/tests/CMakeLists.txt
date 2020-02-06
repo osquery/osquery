@@ -27,6 +27,8 @@ function(generateOsqueryDistributedTestsTest)
     osquery_utils_system_time
     plugins_config_tlsconfig
     plugins_database_ephemeral
+    plugins_distributed_tls_distributedtls
+    plugins_remote_enroll_tlsenroll
     specs_tables
     thirdparty_googletest
   )

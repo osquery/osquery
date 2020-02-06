@@ -1,0 +1,40 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed as defined on the LICENSE file found in the
+#  root directory of this source tree.
+
+load("//tools/build_defs/oss/osquery:cxx.bzl", "osquery_cxx_test")
+load("//tools/build_defs/oss/osquery:native.bzl", "osquery_target")
+load("//tools/build_defs/oss/osquery:native_functions.bzl", "osquery_read_config")
+
+osquery_cxx_test(
+    name = "tls_config_tests",
+    srcs = [
+        "tls_config_tests.cpp"
+    ],
+    env = {
+        "TEST_CONF_FILES_DIR": "$(location {})".format(
+            osquery_target("tools/tests/configs:test_files"),
+        ),
+        "TEST_HELPER_SCRIPTS_DIR": "$(location {})".format(
+            osquery_target("tools/tests:python_script_files"),
+        ),
+        "OSQUERY_PYTHON_INTERPRETER_PATH": osquery_read_config("python#py3", "interpreter"),
+    },
+    deps = [
+        osquery_target("osquery/config:config"),
+        osquery_target("osquery/core:core"),
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/dispatcher:dispatcher"),
+        osquery_target("osquery:headers"),
+        osquery_target("osquery/remote:requests"),
+        osquery_target("osquery/remote/serializers:serializer_json"),
+        osquery_target("osquery/remote/tests:remote_test_utils"),
+        osquery_target("osquery/remote/transports:transports_tls"),
+        osquery_target("osquery/sql:sql"),
+        osquery_target("osquery/utils/system:time"),
+        osquery_target("plugins/config:tls_config"),
+        osquery_target("plugins/database:ephemeral"),
+    ],
+)

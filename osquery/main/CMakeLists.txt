@@ -65,7 +65,7 @@ function(generateOsqueryMain)
     plugins_logger_syslog
     plugins_logger_tlslogger
     plugins_numericmonitoring_filesystem
-    plugins_remote_enroll_tlsenrollplugin
+    plugins_remote_enroll_tlsenroll
     specs_tables
     thirdparty_boost
   )

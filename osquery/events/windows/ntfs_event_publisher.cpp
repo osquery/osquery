@@ -559,7 +559,7 @@ Status NTFSEventPublisher::run() {
       }
     }
 
-    if (old_name_record.node_ref_number != 0U) {
+    if (old_name_record.drive_letter != 0U) {
       status = getPathFromParentFRN(event.old_path,
                                     parent_frn_cache,
                                     old_name_record.drive_letter,

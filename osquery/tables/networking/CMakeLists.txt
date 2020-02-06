@@ -121,9 +121,15 @@ function(generateOsqueryTablesNetworking)
 
   add_test(NAME osquery_tables_networking_tests_networkingtablestests-test COMMAND osquery_tables_networking_tests_networkingtablestests-test)
 
+  set(networkingtablestests-test_env
+    "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
+    "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
+  )
+
   set_tests_properties(
     osquery_tables_networking_tests_networkingtablestests-test
-    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    PROPERTIES ENVIRONMENT "${networkingtablestests-test_env}"
   )
 
   if(DEFINED PLATFORM_MACOS)

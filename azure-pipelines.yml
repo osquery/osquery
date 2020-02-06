@@ -38,6 +38,13 @@ jobs:
     - script: mkdir -p $(BUILD_DIR)
       displayName: "Create build folder"
 
+    - task: CacheBeta@2
+      inputs:
+        key: submodules | Linux | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
+        restoreKeys: submodules | Linux | $(SubmoduleCacheVersion)
+        path: $(Build.SourcesDirectory)/.git/modules
+      displayName: submodule_cache
+
     - task: CMake@1
       displayName: "Configure osquery"
       inputs:
@@ -60,7 +67,7 @@ jobs:
         workingDirectory: $(BUILD_DIR)
         cmakeArgs: --build . --target format_check
 
-    - task: CacheBeta@0
+    - task: CacheBeta@2
       inputs:
         key: ccache | Linux$(BUILD_TYPE)CMake | $(CacheVersion) | $(Build.SourceVersion)
         restoreKeys: ccache | Linux$(BUILD_TYPE)CMake | $(CacheVersion)
@@ -208,13 +215,20 @@ jobs:
     - script: mkdir $(Build.BinariesDirectory)/build
       displayName: "Create build folder"
 
+    - task: CacheBeta@2
+      inputs:
+        key: submodules | macOS | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
+        restoreKeys: submodules | macOS | $(SubmoduleCacheVersion)
+        path: $(Build.SourcesDirectory)/.git/modules
+      displayName: submodule_cache
+
     - task: CMake@1
       displayName: "Configure osquery"
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DOSQUERY_BUILD_TESTS=ON $(EXTRA_CMAKE_ARGS) $(Build.SourcesDirectory)
 
-    - task: CacheBeta@0
+    - task: CacheBeta@2
       inputs:
         key: ccache | macOS$(BUILD_TYPE)CMake | $(CacheVersion) | $(Build.SourceVersion)
         restoreKeys: ccache | macOS$(BUILD_TYPE)CMake | $(CacheVersion)
@@ -345,6 +359,13 @@ jobs:
         tools\ci\scripts\install_openssl_formula_dependencies.ps1
       displayName: "Installing: Strawberry Perl"
       workingDirectory: $(Build.SourcesDirectory)
+
+    - task: CacheBeta@2
+      inputs:
+        key: submodules | Windows | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
+        restoreKeys: submodules | Windows | $(SubmoduleCacheVersion)
+        path: $(Build.SourcesDirectory)/.git/modules
+      displayName: submodule_cache
 
     - task: CMake@1
       displayName: "Configure osquery"

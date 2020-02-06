@@ -262,7 +262,7 @@ function(generateSpecialTargets)
   add_custom_target(prepare_for_ide)
 
   set(excluded_folders
-    "libraries/cmake/source"
+    "libraries"
   )
 
   set(command_prefix)

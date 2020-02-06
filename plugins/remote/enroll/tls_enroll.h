@@ -24,4 +24,4 @@ class TLSEnrollPlugin : public EnrollPlugin {
  private:
   friend class TLSEnrollTests;
 };
-}
+} // namespace osquery

@@ -33,6 +33,8 @@ osquery_cxx_library(
     deps = [
         osquery_target("osquery/utils/conversions:conversions"),
         osquery_tp_target("boost"),
+        osquery_target("osquery/utils/conversions:conversions"),
+        ":errno",
     ],
 )
 
@@ -82,6 +84,7 @@ osquery_cxx_library(
         ),
     ],
     deps = [
+        osquery_target("osquery/logger:logger"),
         osquery_target("osquery/utils/status:status"),
     ],
     tests = [

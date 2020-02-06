@@ -73,6 +73,7 @@ osquery_cxx_library(
     deps = [
         osquery_target("osquery/process:process"),
         osquery_target("osquery/remote/transports:transports_tls"),
+        osquery_target("plugins/remote/enroll:tls_enroll_plugin"),
         ":http_client",
         ":requests",
     ],

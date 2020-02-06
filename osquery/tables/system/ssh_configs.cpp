@@ -18,6 +18,7 @@
 #include <osquery/tables.h>
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/system/system.h>
 
 namespace fs = boost::filesystem;
@@ -27,6 +28,8 @@ namespace tables {
 
 const std::string kUserSshConfig = ".ssh/config";
 const std::string kSystemwideSshConfig = "/etc/ssh/ssh_config";
+const std::string kWindowsSystemwideSshConfig =
+    "\\ProgramData\\ssh\\ssh_config";
 
 void genSshConfig(const std::string& uid,
                   const std::string& gid,
@@ -83,7 +86,12 @@ QueryData getSshConfigs(QueryContext& context) {
       genSshConfigForUser(uid->second, gid->second, directory->second, results);
     }
   }
-  genSshConfig("0", "0", kSystemwideSshConfig, results);
+
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    genSshConfig("0", "0", kWindowsSystemwideSshConfig, results);
+  } else {
+    genSshConfig("0", "0", kSystemwideSshConfig, results);
+  }
   return results;
 }
 } // namespace tables
