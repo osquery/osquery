@@ -88,11 +88,12 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
   auto len =
       ::ExpandEnvironmentStrings(input.c_str(), buf.data(), kInitialBufferSize);
   if (len == 0) {
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, ::GetLastError())) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
-    VLOG(1) << "Failed to expand environment string: " << description;
+    VLOG(1) << "Failed to expand environment string: "
+            << wstringToString(description);
 
     return boost::none;
   }
@@ -103,11 +104,12 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
   }
 
   if (len == 0) {
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, ::GetLastError())) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
-    VLOG(1) << "Failed to expand environment string: " << description;
+    VLOG(1) << "Failed to expand environment string: "
+            << wstringToString(description);
 
     return boost::none;
   }
