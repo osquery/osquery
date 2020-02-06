@@ -43,7 +43,7 @@ jobs:
         key: submodules | Linux | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
         restoreKeys: submodules | Linux | $(SubmoduleCacheVersion)
         path: $(Build.SourcesDirectory)/.git/modules
-      displayName: submodule_cache
+      displayName: Submodule cache
 
     - task: CMake@1
       displayName: "Configure osquery"
@@ -220,7 +220,7 @@ jobs:
         key: submodules | macOS | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
         restoreKeys: submodules | macOS | $(SubmoduleCacheVersion)
         path: $(Build.SourcesDirectory)/.git/modules
-      displayName: submodule_cache
+      displayName: Submodule cache
 
     - task: CMake@1
       displayName: "Configure osquery"
@@ -370,7 +370,7 @@ jobs:
         key: submodules | Windows | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
         restoreKeys: submodules | Windows | $(SubmoduleCacheVersion)
         path: $(Build.SourcesDirectory)/.git/modules
-      displayName: submodule_cache
+      displayName: Submodule cache
 
     - powershell: |
         (New-Object System.Net.WebClient).DownloadFile(`
@@ -435,6 +435,9 @@ jobs:
         cmakeArgs: --build . --target package --config Release -j 3
 
     - powershell: |
+        # .artifactignore has to be copied in the cached folder, otherwise the CacheBeta task won't see it
+        cp $(Build.SourcesDirectory)\.artifactignore $(Build.SourcesDirectory)\.git\modules
+
         echo "##vso[task.setvariable variable=Status;isOutput=true]1"
       name: JobResult
 
