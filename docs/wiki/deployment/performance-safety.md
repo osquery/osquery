@@ -84,7 +84,7 @@ Duration is calculated by taking the subtracting `start_time` - 2 from the curre
 
 **Memory (M)**: Uses the `memory_info_ex()` function which is deprecated. psutils documentation suggests using `memory_info()` instead. The function returns a named tuple and the script uses the `rss` value in the tuple. RSS stands for resident set size and is the non-swapped physical memory used by the process. This should match the RES column in `top`.
 
-** Profile.py Simple Thresholds**
+**Profile.py Simple Thresholds**
 
 The numbers next to the stats in the script output are determined by the `RANGES` dictionary in `profile.py`
 
