@@ -59,6 +59,10 @@ Profiling query: SELECT DISTINCT process.name, listening.port, listening.protoco
  D:2  C:1  M:0  F:0  U:2  processes_binding_to_ports (1/1): duration: 1.02116107941 cpu_time: 0.668809664 memory: 6340608 fds: 5 utilization: 44.3
 ```
 
+The results (utilization=2) suggest running `processes_binding_to_ports` less often.
+
+To estimate how often these should run you should evaluate what a differential in the information means from your visibility requirement's perspective (how meaningful is a change vs. how often you check for the change). Then weigh that value against the performance impact of running the query.
+
 ### Understanding the output from profile.py
 The osquery `profile.py` script uses `utils.py` in `tools/tests/` which uses python’s `psutil` library to collect process stats for osqueryi as its running given queries. 
 
@@ -84,9 +88,10 @@ Duration is calculated by taking the subtracting `start_time` - 2 from the curre
 
 **Memory (M)**: Uses the `memory_info_ex()` function which is deprecated. psutils documentation suggests using `memory_info()` instead. The function returns a named tuple and the script uses the `rss` value in the tuple. RSS stands for resident set size and is the non-swapped physical memory used by the process. This should match the RES column in `top`.
 
-**Profile.py Simple Thresholds**
 
-The numbers next to the stats in the script output are determined by the `RANGES` dictionary in `profile.py`
+### Understanding Profile.py Categories
+
+The numbers next to the stats in the script output (categories) are determined by the `RANGES` dictionary in `profile.py`
 
 ```
 KB = 1024 * 1024
@@ -100,13 +105,10 @@ RANGES = {
 }
 ```
 
-The script will take the value of the stat and compare it with the tuple at the corresponding stat's key in `RANGES`. If the value is less than the value in the tuple then the index for the value in the tuple is what appears in the script output. If the value for the stat is greater than all values of the tuple, then the length of the tuple is what appears in the script output. For example, if `cpu_time` for a query is 0.2, then you'll see `C: 0` in the script output. If `cpu_time` is 11, then you'll see `C:3` in the script output. 
-
-The results (utilization=2) suggest running `processes_binding_to_ports` less often.
-
-To estimate how often these should run you should evaluate what a differential in the information means from your visibility requirement's perspective (how meaningful is a change vs. how often you check for the change). Then weigh that value against the performance impact of running the query.
+The script will take the value of the stat and compare it with the tuple at the corresponding stat's key in `RANGES`. If the value is less than the value in the tuple then the index for the value in the tuple is what appears in the script output. If the value for the stat is greater than all values of the tuple, then the length of the tuple is what appears in the script output. For example, if `cpu_time` for a query is 0.2, then you'll see `C: 0` in the script output. If `cpu_time` is 11, then you'll see `C:3` in the script output.
 
 Queries that fail to execute (for example, due to a non-existent table) will return the highest category result '3' and the value '-1' for all statistics. 
+
 
 ## Continuous Build
 
