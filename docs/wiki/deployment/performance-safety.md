@@ -63,7 +63,51 @@ The results (utilization=2) suggest running `processes_binding_to_ports` less of
 
 To estimate how often these should run you should evaluate what a differential in the information means from your visibility requirement's perspective (how meaningful is a change vs. how often you check for the change). Then weigh that value against the performance impact of running the query.
 
+### Understanding the output from profile.py
+The osquery `profile.py` script uses `utils.py` in `tools/tests/` which uses python’s `psutil` library to collect process stats for osqueryi as its running given queries. 
+
+The script returns 5 stats:
+
+**Utilization (U)**: Utilization is calculated by taking the average of non-0 results of the cpu_percent(interval=1) function in `psutils.Process()`. This value can be greater than 100% for processes with threads running across different CPUs. The script sets an interval of 1 meaning that the function compares process time to system CPU times elapsed before and after the 1 second interval. This is a blocking call. 
+
+**CPU time (C)**: CPU time uses the `psutils.Process()`'s `cpu_times()` function. It returns a named tuple containing user, system, children_user, system_user, and iowait
+
+- user: time spent in user mode.
+- system: time spent in kernel mode.
+- children_user: user time of all child processes (always 0 on Windows and macOS).
+- system_user: user time of all child processes (always 0 on Windows and macOS).
+- iowait: (Linux) time spent waiting for blocking I/O to complete. This value is excluded from user and system times count (because the CPU is not doing any work).
+
+The profile script adds user and system together for the CPU 
+Time output.
+
+**Duration (D)**:
+Duration is calculated by taking the subtracting `start_time` - 2 from the current time. The start time is set before the script starts the `osqueryi` process to run the query. The `start_time` - 2 comes from the `--profile_delay` flag used by the profile.py script. This flag causes osquery to wait before and after running the code under test. The 2 is to make up for this wait time. 
+
+**fds (F)**: Uses the `num_fds()` function and returns the file descriptors used by the `osqueryi` process during query execution
+
+**Memory (M)**: Uses the `memory_info_ex()` function which is deprecated. psutils documentation suggests using `memory_info()` instead. The function returns a named tuple and the script uses the `rss` value in the tuple. RSS stands for resident set size and is the non-swapped physical memory used by the process. This should match the RES column in `top`.
+
+### Understanding Profile.py Categories
+
+The numbers next to the stats in the script output (categories) are determined by the `RANGES` dictionary in `profile.py`
+
+```
+KB = 1024 * 1024
+RANGES = {
+    "colors": (utils.blue, utils.green, utils.yellow, utils.red),
+    "utilization": (8, 20, 50),
+    "cpu_time": (0.4, 1, 10),
+    "memory": (8 * KB, 12 * KB, 24 * KB),
+    "fds": (10, 20, 50),
+    "duration": (0.8, 1, 3),
+}
+```
+
+The script will take the value of the stat and compare it with the tuple at the corresponding stat's key in `RANGES`. If the value is less than the value in the tuple then the index for the value in the tuple is what appears in the script output. If the value for the stat is greater than all values of the tuple, then the length of the tuple is what appears in the script output. For example, if `cpu_time` for a query is 0.2, then you'll see `C: 0` in the script output. If `cpu_time` is 11, then you'll see `C:3` in the script output.
+
 Queries that fail to execute (for example, due to a non-existent table) will return the highest category result '3' and the value '-1' for all statistics. 
+
 
 ## Continuous Build
 
