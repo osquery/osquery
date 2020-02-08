@@ -70,6 +70,19 @@ osquery_cxx_test(
     ],
 )
 
+osquery_cxx_test(
+    name = "sqlite_hashing_tests",
+    srcs = [
+        "sqlite_hashing_tests.cpp",
+    ],
+    visibility = ["PUBLIC"],
+    deps = [
+        osquery_target("osquery/database:database"),
+        osquery_target("osquery/sql:sql"),
+        osquery_target("osquery/sql/tests:sql_test_utils"),
+    ],
+)
+
 osquery_cxx_library(
     name = "sql_test_utils",
     srcs = [

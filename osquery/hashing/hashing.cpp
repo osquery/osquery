@@ -17,6 +17,7 @@
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/hashing/hashing.h>
+#include <osquery/utils/base64.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/status/status.h>
 
@@ -31,7 +32,11 @@ Hash::~Hash() {
   }
 }
 
-Hash::Hash(HashType algorithm) : algorithm_(algorithm) {
+Hash::Hash(HashType algorithm)
+    : Hash::Hash(algorithm, HASH_ENCODING_TYPE_HEX) {}
+
+Hash::Hash(HashType algorithm, HashEncodingType encoding)
+    : algorithm_(algorithm), encoding_(encoding) {
   if (algorithm_ == HASH_TYPE_MD5) {
     length_ = MD5_DIGEST_LENGTH;
     ctx_ = static_cast<MD5_CTX*>(malloc(sizeof(MD5_CTX)));
@@ -71,13 +76,21 @@ std::string Hash::digest() {
     SHA256_Final(hash.data(), static_cast<SHA256_CTX*>(ctx_));
   }
 
-  // The hash value is only relevant as a hex digest.
-  std::stringstream digest;
-  for (size_t i = 0; i < length_; i++) {
-    digest << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+  if (encoding_ == HASH_ENCODING_TYPE_HEX) {
+    std::stringstream digest;
+    for (size_t i = 0; i < length_; i++) {
+      digest << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+    }
+    return digest.str();
+  } else if (encoding_ == HASH_ENCODING_TYPE_BASE64) {
+    std::stringstream digest;
+    for (size_t i = 0; i < length_; i++) {
+      digest << hash[i];
+    }
+    return base64::encode(digest.str());
   }
 
-  return digest.str();
+  return "";
 }
 
 std::string hashFromBuffer(HashType hash_type,

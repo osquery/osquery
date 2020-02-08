@@ -9,6 +9,7 @@ function(osquerySqlMain)
   generateOsquerySqlTestsTest()
   generateOsquerySqlTestsVirtualtableTestsTest()
   generateOsquerySqlTestsSqliteutiltestsTest()
+  generateOsquerySqlTestsSqlitehashingtestsTest()
 endfunction()
 
 function(generateOsquerySqlTestsSqltestutils)
@@ -94,6 +95,18 @@ function(generateOsquerySqlTestsSqliteutiltestsTest)
     specs_tables
     thirdparty_googletest
   )
+endfunction()
+
+function(generateOsquerySqlTestsSqlitehashingtestsTest)
+  add_osquery_executable(osquery_sql_tests_sqlitehashingtests-test sqlite_hashing_tests.cpp)
+
+  target_link_libraries(osquery_sql_tests_sqlitehashingtests-test PRIVATE
+    osquery_cxx_settings
+    osquery_database
+    osquery_sql
+    osquery_sql_tests_sqltestutils
+    thirdparty_googletest
+    )
 endfunction()
 
 osquerySqlMain()
