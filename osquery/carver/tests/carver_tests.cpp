@@ -46,6 +46,10 @@ class CarverTests : public testing::Test {
     return working_dir_;
   }
 
+  fs::path const& getFilesToCarveDir() const {
+    return files_to_carve_dir_;
+  }
+
  protected:
   void SetUp() override {
     Initializer::platformSetup();
@@ -69,10 +73,17 @@ class CarverTests : public testing::Test {
     writeTextFile(files_to_carve_dir_ / "evil.exe",
                   "MZP\x00\x02\x00\x00\x00\x04\x00\x0f\x00\xff\xff");
 
-    auto paths = platformGlob((files_to_carve_dir_ / "*").string());
-    for (const auto& p : paths) {
-      carvePaths.insert(p);
-    }
+    writeTextFileToCarve(files_to_carve_dir_ / "secrets.txt",
+                         "This is a message I'd rather no one saw.");
+    writeTextFileToCarve(files_to_carve_dir_ / ".hidden.bashrc",
+                         "This is a hidden file");
+    writeTextFileToCarve(files_to_carve_dir_ / "evil.exe",
+                         "MZP\x00\x02\x00\x00\x00\x04\x00\x0f\x00\xff\xff");
+  }
+
+  void writeTextFileToCarve(const fs::path& path, const std::string& content) {
+    EXPECT_TRUE(writeTextFile(path, content).ok());
+    carvePaths.insert(path.string());
   }
 
   void TearDown() override {
@@ -92,28 +103,28 @@ TEST_F(CarverTests, test_carve_files_locally) {
   std::string requestId = "";
   Carver carve(getCarvePaths(), guid_, requestId);
 
-  Status s;
-  for (const auto& p : paths_) {
-    s = carve.carve(fs::path(p));
-    EXPECT_TRUE(s.ok());
-  }
+  const auto carves = carve.carveAll();
+  EXPECT_EQ(carves.size(), 3U);
 
-  std::string carveFSPath = carve.getCarveDir().string();
-  auto paths = platformGlob(carveFSPath + "/*");
-  std::set<fs::path> carves;
-  for (const auto& p : paths) {
-    carves.insert(fs::path(p));
-  }
-
-  EXPECT_EQ(carves.size(), 2U);
-  s = archive(carves,
-              carveFSPath + "/" + kTestCarveNamePrefix + guid_ + ".tar");
+  const auto carveFSPath = carve.getCarveDir();
+  const auto tarPath = carveFSPath / (kTestCarveNamePrefix + guid_ + ".tar");
+  const auto s = archive(carves, tarPath);
   EXPECT_TRUE(s.ok());
 
-  auto tarPath = carveFSPath + "/" + kTestCarveNamePrefix + guid_ + ".tar";
   PlatformFile tar(tarPath, PF_OPEN_EXISTING | PF_READ);
   EXPECT_TRUE(tar.isValid());
   EXPECT_GT(tar.size(), 0U);
+}
+
+TEST_F(CarverTests, test_carve_files_not_exists) {
+  auto guid_ = genGuid();
+  std::string requestId = "";
+  const std::set<std::string> notExistsCarvePaths = {
+      (getFilesToCarveDir() / "not_exists").string()};
+  Carver carve(notExistsCarvePaths, guid_, requestId);
+
+  const auto carves = carve.carveAll();
+  EXPECT_TRUE(carves.empty());
 }
 
 TEST_F(CarverTests, test_compression_decompression) {

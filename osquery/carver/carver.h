@@ -48,12 +48,20 @@ class Carver : public InternalRunnable {
 
  private:
   /*
-   * @brief A helper function to 'carve' files from disk
+   * @brief A helper function that 'carves' all files from disk
    *
-   * This function performs a "forensic carve" of a specified path to the
-   * users tmp directory
+   * This function copies all source files to a temporary directory and returns
+   * a list of all destination files.
    */
-  Status carve(const boost::filesystem::path& path);
+  std::set<boost::filesystem::path> carveAll();
+
+  /*
+   * @brief A helper function that does a blockwise copy from src to dst
+   *
+   * This function copies the source file to the destination file, doing so
+   * by blocks specified with FLAGS_carver_block_size (defaults to 8K)
+   */
+  Status blockwiseCopy(PlatformFile& src, PlatformFile& dst);
 
   /*
    * @brief Helper function to POST a carve to the graph endpoint.
@@ -141,6 +149,7 @@ class Carver : public InternalRunnable {
  private:
   friend class CarverTests;
   FRIEND_TEST(CarverTests, test_carve_files_locally);
+  FRIEND_TEST(CarverTests, test_carve_files_not_exists);
 };
 
 /**
