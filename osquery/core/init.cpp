@@ -624,7 +624,7 @@ void Initializer::start() const {
  * This is a small interruptable thread implementation.
  *
  * The goal is to wait until interrupted or an alarm timeout. If the timeout
- * occurs then osquery is stuck shutting and we force-terminate.
+ * occurs then osquery is stuck shutting down and we force-terminate.
  */
 class AlarmRunnable : public InterruptableRunnable {
  public:
