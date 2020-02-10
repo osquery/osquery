@@ -73,7 +73,7 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
 
   return wstringToString(buf.data());
 
-} // namespace osquery
+}
 
 boost::optional<std::string> expandEnvString(const std::string& input) {
   std::vector<char> buf;
