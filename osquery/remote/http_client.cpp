@@ -240,10 +240,8 @@ void Client::encryptConnection() {
   }
 
   ssl_sock_ = std::make_shared<ssl_stream>(sock_, ctx);
-  if (client_options_.sni_hostname_) {
-    ::SSL_set_tlsext_host_name(ssl_sock_->native_handle(),
-                               client_options_.sni_hostname_->c_str());
-  }
+  ::SSL_set_tlsext_host_name(ssl_sock_->native_handle(),
+                             client_options_.remote_hostname_->c_str());
 
   callNetworkOperation([&]() {
     ssl_sock_->async_handshake(
