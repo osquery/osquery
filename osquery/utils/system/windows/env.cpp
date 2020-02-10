@@ -72,7 +72,6 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
   }
 
   return wstringToString(buf.data());
-
 }
 
 boost::optional<std::string> expandEnvString(const std::string& input) {
