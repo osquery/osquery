@@ -158,7 +158,15 @@ void initWorkDirectories() {
 }
 
 void signalHandler(int num) {
-  Initializer::requestShutdown(128 + num);
+  int rc = 0;
+
+  // Expect SIGTERM and SIGINT to gracefully shutdown.
+  // Other signals are unexpected.
+  if (num != SIGTERM && num != SIGINT) {
+    rc = 128 + num;
+  }
+
+  Initializer::requestShutdown(rc);
 }
 } // namespace
 
