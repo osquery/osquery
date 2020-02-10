@@ -692,7 +692,7 @@ void Initializer::requestShutdown(int retcode) {
 
     kExitCode = retcode;
     kShutdownRequested = true;
-    kShutdownRequestCV.notify_one();
+    kShutdownRequestCV.notify_all();
   });
 }
 

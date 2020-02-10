@@ -305,9 +305,6 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
       SLOG("Failed to open handle to main thread of execution with " +
            std::to_string(le));
     }
-
-    UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
-
     break;
   }
   default:
