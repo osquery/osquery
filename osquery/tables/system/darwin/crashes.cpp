@@ -67,7 +67,7 @@ void readCrashDump(const std::string& app_log, Row& r) {
   // Variables for capturing the stack trace
   std::regex rx_spaces("\\s+");
   std::regex rx_spaces_colon(":\\s+");
-  std::format crashed_thread_format("Thread %1% Crashed");
+  boost::format crashed_thread_format("Thread %1% Crashed");
   auto crashed_thread_seen = false;
 
   auto lines = split(content, "\n");
