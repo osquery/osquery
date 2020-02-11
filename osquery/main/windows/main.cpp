@@ -37,12 +37,6 @@ static SERVICE_STATUS kServiceStatus = {0};
 
 const unsigned long kServiceShutdownWait{100};
 
-/*
- * This event is set when a SERVICE_CONTROL_STOP or SERVICE_CONTROL_SHUTDOWN
- * message is received in the ServiceControlHandler
- */
-static const std::string kStopEventName{"osqueryd-service-stop-event"};
-
 /// Logging for when we need to debug this service
 #define SLOG(s) ::osquery::DebugPrintf(s)
 
@@ -52,32 +46,6 @@ void DebugPrintf(const std::string& s) {
     ::OutputDebugStringA(dbgString.c_str());
   }
   LOG(ERROR) << s;
-}
-
-// A helper function to return a HANDLE to the named Stop Event for child
-// processes
-HANDLE getStopEvent() {
-  auto stopEvent = ::OpenEventA(
-      SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, osquery::kStopEventName.c_str());
-
-  if (stopEvent == nullptr) {
-    return stopEvent;
-  }
-
-  auto ret = WaitForSingleObject(stopEvent, 0);
-
-  // The object has already been signaled
-  if (ret == WAIT_OBJECT_0) {
-    return nullptr;
-  }
-
-  // ERROR_FILE_NOT_FOUND indicates the event was never created.
-  // Likely the process running as the daemon at the command line.
-  if (stopEvent == nullptr && GetLastError() != ERROR_FILE_NOT_FOUND) {
-    SLOG("OpenEventA failed for event name " + osquery::kStopEventName +
-         " (lasterror=" + std::to_string(GetLastError()) + ")");
-  }
-  return stopEvent;
 }
 
 static void UpdateServiceStatus(unsigned long controls,
@@ -92,33 +60,10 @@ static void UpdateServiceStatus(unsigned long controls,
   kServiceStatus.dwWaitHint = wait_hint;
 
   if (!::SetServiceStatus(kStatusHandle, &kServiceStatus)) {
-    SLOG("SetServiceStatus failed (lasterror=" +
-         std::to_string(GetLastError()) + ")");
+    auto le = GetLastError();
+    SLOG("SetServiceStatus failed (lasterror=" + std::to_string(le) + ")");
   }
 }
-
-static auto kShutdownCallable = ([]() {
-  // To prevent invalid access to the stop event, we return if running as shell
-  if (Initializer::isShell()) {
-    return;
-  }
-  // The event only gets initialized in the entry point of the service. Child
-  // processes and those run from the commandline will not have a stop event.
-  auto stopEvent = osquery::getStopEvent();
-  if (stopEvent != nullptr) {
-    // Wait forever, until the service handler signals us
-    ::WaitForSingleObject(stopEvent, INFINITE);
-
-    // Interrupt the worker service threads before joining
-    Dispatcher::stopServices();
-
-    auto ret = ::CloseHandle(stopEvent);
-    if (ret != TRUE) {
-      SLOG("kShutdownCallable failed to call CloseHandle with (" +
-           std::to_string(GetLastError()) + ")");
-    }
-  }
-});
 
 /*
  * Parses arguments for the Windows service. Arguments to the Windows service
@@ -225,8 +170,8 @@ static void setupServiceRecovery(SC_HANDLE schService) {
 
   if (!ChangeServiceConfig2(
           schService, SERVICE_CONFIG_FAILURE_ACTIONS, &failureActions)) {
-    SLOG("ChangeServiceConfig2 failed (lasterror=" +
-         std::to_string(GetLastError()) + ")");
+    auto le = GetLastError();
+    SLOG("ChangeServiceConfig2 failed (lasterror=" + std::to_string(le) + ")");
   }
 }
 
@@ -342,35 +287,26 @@ Status uninstallService() {
 void WINAPI ServiceControlHandler(DWORD control_code) {
   switch (control_code) {
   case SERVICE_CONTROL_STOP:
-  case SERVICE_CONTROL_SHUTDOWN:
+  case SERVICE_CONTROL_SHUTDOWN: {
     if (kServiceStatus.dwCurrentState != SERVICE_RUNNING) {
       break;
     }
 
     // Give the main thread a chance to shutdown gracefully before exiting
     UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3, kServiceShutdownWait);
-    {
-      auto stopEvent = osquery::getStopEvent();
-      if (stopEvent != nullptr) {
-        auto ret = SetEvent(stopEvent);
-        if (ret != TRUE) {
-          SLOG("SetEvent failed (lasterror=" + std::to_string(GetLastError()) +
-               ")");
-        }
-        CloseHandle(stopEvent);
-      }
-      auto thread = OpenThread(SYNCHRONIZE, false, kLegacyThreadId);
-      if (thread != nullptr) {
-        WaitForSingleObjectEx(thread, INFINITE, FALSE);
-        CloseHandle(thread);
-      } else {
-        SLOG("Failed to open handle to main thread of execution with " +
-             std::to_string(GetLastError()));
-      }
-    }
-    UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
 
+    Initializer::requestShutdown();
+    auto thread = OpenThread(SYNCHRONIZE, false, kLegacyThreadId);
+    if (thread != nullptr) {
+      WaitForSingleObjectEx(thread, INFINITE, FALSE);
+      CloseHandle(thread);
+    } else {
+      auto le = GetLastError();
+      SLOG("Failed to open handle to main thread of execution with " +
+           std::to_string(le));
+    }
     break;
+  }
   default:
     break;
   }
@@ -384,30 +320,20 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
     kServiceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     kServiceStatus.dwServiceSpecificExitCode = 0;
     UpdateServiceStatus(0, SERVICE_START_PENDING, 0, 0);
+    UpdateServiceStatus(
+        SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN, SERVICE_RUNNING, 0, 0);
 
-    auto stopEvent =
-        ::CreateEventA(nullptr, TRUE, FALSE, kStopEventName.c_str());
-    if (stopEvent != nullptr) {
-      UpdateServiceStatus(
-          SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN, SERVICE_RUNNING, 0, 0);
-
-      ServiceArgumentParser parser(argc, argv);
-      if (parser.count() == 0) {
-        SLOG("ServiceArgumentParser failed (cmdline=" +
-             std::string(GetCommandLineA()) + ")");
-      } else {
-        osquery::startOsquery(
-            parser.count(), parser.arguments(), kShutdownCallable);
-      }
-
-      ::CloseHandle(stopEvent);
+    ServiceArgumentParser parser(argc, argv);
+    if (parser.count() == 0) {
+      SLOG("ServiceArgumentParser failed (cmdline=" +
+           std::string(GetCommandLineA()) + ")");
     } else {
-      SLOG("CreateEventA failed (lasterror=" + std::to_string(GetLastError()) +
-           ")");
+      osquery::startOsquery(parser.count(), parser.arguments());
     }
   } else {
-    SLOG("RegisterServiceCtrlHandlerA failed (lasterror=" +
-         std::to_string(GetLastError()) + ")");
+    auto le = GetLastError();
+    SLOG("RegisterServiceCtrlHandlerA failed (lasterror=" + std::to_string(le) +
+         ")");
   }
 
   UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
@@ -420,19 +346,20 @@ int main(int argc, char* argv[]) {
        static_cast<LPSERVICE_MAIN_FUNCTION>(osquery::ServiceMain)},
       {nullptr, nullptr}};
 
+  int retcode = 0;
   if (!StartServiceCtrlDispatcherA(serviceTable)) {
-    DWORD last_error = ::GetLastError();
-    if (last_error == ERROR_FAILED_SERVICE_CONTROLLER_CONNECT) {
+    auto le = ::GetLastError();
+    if (le == ERROR_FAILED_SERVICE_CONTROLLER_CONNECT) {
       // Failing to start the service control dispatcher with this error
       // usually indicates that the process was not started as a service.
       // Therefore, it must've been started from the commandline or as a child
       // process
-      osquery::startOsquery(argc, argv, osquery::kShutdownCallable);
+      retcode = osquery::startOsquery(argc, argv);
     } else {
       // An actual error has occurred at this point
       SLOG("StartServiceCtrlDispatcherA error (lasterror=" +
-           std::to_string(last_error) + ")");
+           std::to_string(le) + ")");
     }
   }
-  return 0;
+  return retcode;
 }
