@@ -44,7 +44,7 @@ void keyEnumPrograms(const std::string& key,
     std::string identifyingNumber;
     std::smatch matches;
     std::regex expression(
-        "({[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+})"
+        "(\\{[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+})"
         "$");
     if (std::regex_search(fullProgramName, matches, expression)) {
       identifyingNumber = matches[0];
