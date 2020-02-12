@@ -1,3 +1,7 @@
+path_classifiers:
+  library:
+    exclude: "libraries/**/*"
+
 extraction:
   cpp:
     after_prepare:
