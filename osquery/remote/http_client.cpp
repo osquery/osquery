@@ -243,6 +243,9 @@ void Client::encryptConnection() {
   ::SSL_set_tlsext_host_name(ssl_sock_->native_handle(),
                              client_options_.remote_hostname_->c_str());
 
+  ssl_sock_->set_verify_callback(boost::asio::ssl::rfc2818_verification(
+      *client_options_.remote_hostname_));
+
   callNetworkOperation([&]() {
     ssl_sock_->async_handshake(
         boost::asio::ssl::stream_base::client,
