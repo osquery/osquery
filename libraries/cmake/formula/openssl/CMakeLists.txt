@@ -1,13 +1,7 @@
 cmake_minimum_required(VERSION 3.14.6)
 project(thirdparty_openssl)
 
-# NOTE: Updating to 1.1.1d should be easy:
-# 1. Increase the OPENSSL_VERSION value
-# 2. Update the 'sed' patching in macOS to update CFLAGS (rather than CFLAG)
-# 3. Remove the call to the do_nt.bat script
-# 4. Update the Windows library names to libssl/libcrypto
-
-set(OPENSSL_VERSION "1.0.2t")
+set(OPENSSL_VERSION "1.1.1d")
 
 include(ExternalProject)
 
@@ -76,7 +70,7 @@ function(opensslMain)
     # other way.
     # see https://wiki.openssl.org/index.php/Compilation_and_Installation#Modifying_Build_Settings
     set(build_command
-      /usr/bin/sed -i ".bak" "s+^CFLAG=+CFLAG=-isysroot ${CMAKE_OSX_SYSROOT} +g" "Makefile" &&
+      /usr/bin/sed -i ".bak" "s+^CFLAGS=+CFLAGS=-isysroot ${CMAKE_OSX_SYSROOT} +g" "Makefile" &&
         "${CMAKE_COMMAND}" -E make_directory "${CMAKE_INSTALL_PREFIX}/etc/openssl" &&
         make depend &&
         make
@@ -101,16 +95,18 @@ function(opensslMain)
     string(REPLACE "/" "\\\\" perl_executable_path "${PERL_EXECUTABLE}")
 
     set(build_command
-      cmake -E env "PATH=${perl_bin_path}" "cmd.exe" "/C" "ms\\do_nt.bat" &&
-      "cmd.exe" "/C" "nmake /f ms\\nt.mak PERL=${perl_executable_path}"
+      cmake -E env "cmd.exe" "/C" "nmake PERL=${perl_executable_path}"
     )
 
     set(install_command
       "${CMAKE_COMMAND}" -E make_directory "${CMAKE_INSTALL_PREFIX}/lib" &&
-      "${CMAKE_COMMAND}" -E copy "out32/libeay32.lib" "${CMAKE_INSTALL_PREFIX}/lib" &&
-      "${CMAKE_COMMAND}" -E copy "out32/ssleay32.lib" "${CMAKE_INSTALL_PREFIX}/lib" &&
+      "${CMAKE_COMMAND}" -E copy "./libssl.lib" "${CMAKE_INSTALL_PREFIX}/lib" &&
+      "${CMAKE_COMMAND}" -E copy "./libcrypto.lib" "${CMAKE_INSTALL_PREFIX}/lib" &&
       "${CMAKE_COMMAND}" -E make_directory "${CMAKE_INSTALL_PREFIX}/include" &&
-      "${CMAKE_COMMAND}" -E copy_directory "inc32/openssl" "${CMAKE_INSTALL_PREFIX}/include/openssl"
+      "${CMAKE_COMMAND}" -E copy_directory "./include/openssl" "${CMAKE_INSTALL_PREFIX}/include/openssl" &&
+      "${CMAKE_COMMAND}" -E remove "${CMAKE_INSTALL_PREFIX}/include/openssl/__DECC_INCLUDE_PROLOGUE.h"
+                                   "${CMAKE_INSTALL_PREFIX}/include/openssl/__DECC_INCLUDE_EPILOGUE.h"
+                                   "${CMAKE_INSTALL_PREFIX}/include/openssl/opensslconf.h.in"
     )
 
   else()
@@ -136,10 +132,9 @@ function(generateMetadataTargets)
 
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(metadata_libraries
-      "lib/libeay32.lib"
-      "lib/ssleay32.lib"
+      "lib/libssl.lib"
+      "lib/libcrypto.lib"
     )
-
   else()
     set(metadata_libraries
       "lib/libssl.a"

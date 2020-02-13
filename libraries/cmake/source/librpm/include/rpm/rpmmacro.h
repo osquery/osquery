@@ -153,6 +153,21 @@ int	rpmExpandNumeric (const char * arg);
  */
 const char *rpmConfigDir(void);
 
+/** \ingroup rpmmacro
+ * Evaluate boolean expression.
+ * @param expr		expression to parse
+ * @return
+ */
+int rpmExprBool(const char * expr);
+
+/** \ingroup rpmmacro
+ * Evaluate string expression.
+ * @param expr		expression to parse
+ * @return
+ */
+char * rpmExprStr(const char * expr);
+
+
 #ifdef __cplusplus
 }
 #endif

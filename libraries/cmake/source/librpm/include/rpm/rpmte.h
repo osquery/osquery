@@ -18,7 +18,8 @@ extern "C" {
  */
 typedef enum rpmElementType_e {
     TR_ADDED		= (1 << 0),	/*!< Package will be installed. */
-    TR_REMOVED		= (1 << 1)	/*!< Package will be removed. */
+    TR_REMOVED		= (1 << 1),	/*!< Package will be removed. */
+    TR_RPMDB		= (1 << 2),	/*!< Package from the rpmdb. */
 } rpmElementType;
 
 typedef rpmFlags rpmElementTypes;
@@ -167,23 +168,23 @@ void rpmteCleanProblems(rpmte te);
 void rpmteCleanDS(rpmte te);
 
 /** \ingroup rpmte
- * Set dependent element of TR_REMOVED transaction element.
+ * Set dependent element of transaction element.
  * @param te		transaction element
  * @param depends       dependent transaction element
  */
 void rpmteSetDependsOn(rpmte te, rpmte depends);
 
 /** \ingroup rpmte
- * Retrieve dependent element of TR_REMOVED transaction element.
+ * Retrieve dependent element of transaction element.
  * @param te		transaction element
  * @return		dependent transaction element
  */
 rpmte rpmteDependsOn(rpmte te);
 
 /** \ingroup rpmte
- * Retrieve rpmdb instance of TR_REMOVED transaction element.
+ * Retrieve rpmdb instance of transaction element.
  * @param te		transaction element
- * @return		rpmdb instance
+ * @return		rpmdb instance (0 if not installed))
  */
 int rpmteDBOffset(rpmte te);
 
@@ -246,6 +247,16 @@ rpmfiles rpmteFiles(rpmte te);
  * @return		file info tag set
  */
 rpmfi rpmteFI(rpmte te);
+
+/** \ingroup rpmte
+ * Retrieve verification status from transaction element.
+ * Returns RPMSIG_UNVERIFIED_TYPE if no verify has been attempted,
+ * otherwise RPMSIG_SIGNATURE_TYPE and RPMSIG_DIGEST_TYPE bits will
+ * be set if that type of verification was successfully performed.
+ * @param te		transaction element
+ * @return 		verification status
+ */
+int rpmteVerified(rpmte te);
 
 #ifdef __cplusplus
 }

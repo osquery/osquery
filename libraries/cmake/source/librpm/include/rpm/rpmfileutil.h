@@ -37,11 +37,9 @@ typedef enum rpmCompressedMagic_e {
  * @param fn		file name
  * @param asAscii	return digest as ascii string?
  * @retval digest	address of calculated digest
- * @retval *fsizep	file size pointer (or NULL)
  * @return		0 on success, 1 on error
  */
-int rpmDoDigest(int algo, const char * fn,int asAscii,
-		  unsigned char * digest, rpm_loff_t * fsizep);
+int rpmDoDigest(int algo, const char * fn,int asAscii, unsigned char * digest);
 
 /** \ingroup rpmfileutil
  * Thin wrapper for mkstemp(3). 

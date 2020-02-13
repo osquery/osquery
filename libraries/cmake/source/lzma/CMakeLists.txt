@@ -85,8 +85,8 @@ function(lzmaMain)
     LZMADEC
   )
 
-  target_compile_options(thirdparty_lzma PRIVATE
-    -include config.h
+  target_compile_definitions(thirdparty_lzma PUBLIC
+    LZMA_API_STATIC
   )
 
   target_link_libraries(thirdparty_lzma PRIVATE
@@ -115,6 +115,10 @@ function(lzmaMain)
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_lzma PRIVATE
       "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    target_include_directories(thirdparty_lzma PRIVATE
+      "${library_root}/windows"
     )
   endif()
 

@@ -35,12 +35,12 @@ typedef const struct FDIO_s * FDIO_t;
 const char * Fstrerror(FD_t fd);
 
 /** \ingroup rpmio
- * fread(3) clone.
+ * Like fread(3) but with read(3)-style return values.
  */
 ssize_t Fread(void * buf, size_t size, size_t nmemb, FD_t fd);
 
 /** \ingroup rpmio
- * fwrite(3) clone.
+ * Like fwrite(3) but with write(3)-style return values.
  */
 ssize_t Fwrite(const void * buf, size_t size, size_t nmemb, FD_t fd);
 

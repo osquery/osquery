@@ -8,6 +8,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include <rpm/rpmutil.h>
 
@@ -143,6 +144,11 @@ int rstrncasecmp(const char *s1, const char * s2, size_t n)	;
  * asprintf() clone
  */
 int rasprintf(char **strp, const char *fmt, ...) RPM_GNUC_PRINTF(2, 3);
+
+/** \ingroup rpmstring
+ * vasprintf() clone
+ */
+int rvasprintf(char **strp, const char *fmt, va_list ap);
 
 /** \ingroup rpmstring
  * Concatenate two strings with dynamically (re)allocated memory.

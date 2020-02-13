@@ -65,7 +65,6 @@ function(yaraMain)
     message(FATAL_ERROR "Unsupported platform")
   endif()
 
-  # todo(alessandro): macOS and Windows support
   target_compile_definitions(thirdparty_yara PRIVATE
     PACKAGE_NAME=\"yara\"
     PACKAGE_TARNAME=\"yara\"
@@ -89,15 +88,31 @@ function(yaraMain)
     HAVE_DLFCN_H=1
     LT_OBJDIR=\".libs/\"
     HAVE_LIBM=1
-    HAVE_LIBM=1
     HAVE_MEMMEM=1
     HAVE_TIMEGM=1
     HAVE_STDBOOL_H=1
     HAVE_CLOCK_GETTIME=1
     HAVE_SCAN_PROC_IMPL=1
-    USE_LINUX_PROC
     HAVE_LIBCRYPTO=1
+    HAVE_OPENSSL_MD5_H=1
+    HAVE_OPENSSL_SHA_H=1
+    HAVE_OPENSSL_ASN1_H=1
+    HAVE_OPENSSL_CRYPTO_H=1
+    HAVE_OPENSSL_BIO_H=1
+    HAVE_OPENSSL_PKCS7_H=1
+    HAVE_OPENSSL_X509_H=1
+    HAVE_OPENSSL_SAFESTACK_H=1
   )
+
+  if(DEFINED PLATFORM_LINUX)
+    target_compile_definitions(thirdparty_yara PRIVATE
+      USE_LINUX_PROC
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_compile_definitions(thirdparty_yara PRIVATE
+      USE_MACH_PROC
+    )
+  endif()
 
   target_link_libraries(thirdparty_yara PUBLIC
     thirdparty_openssl
