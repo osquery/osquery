@@ -14,7 +14,7 @@ extraction:
       - "export PATH=$TMPDIR/cmake-3.14.6-Linux-x86_64/bin:$PATH"
     configure:
       command:
-      - "cmake -DOSQUERY_TOOLCHAIN_SYSROOT=$TMPDIR/osquery-toolchain/ ."
+      - "cmake -DCMAKE_BUILD_TYPE=Release -DOSQUERY_NO_OPTIMIZATIONS=ON -DOSQUERY_TOOLCHAIN_SYSROOT=$TMPDIR/osquery-toolchain/ ."
     index:
       build_command: "cmake --build . -j 4"
 

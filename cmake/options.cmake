@@ -66,6 +66,7 @@ option(BUILD_SHARED_LIBS "Whether to build shared libraries (like *.dll or *.so)
 option(ADD_HEADERS_AS_SOURCES "Whether to add headers as sources of a target or not. This is needed for some IDEs which wouldn't detect headers properly otherwise")
 
 option(OSQUERY_NO_DEBUG_SYMBOLS "Whether to build without debug symbols or not, even if a build type that normally have them has been selected")
+option(OSQUERY_NO_OPTIMIZATIONS "Whether to build without compiler optimizations or not, even if a build type that normally have them has been selected")
 
 option(OSQUERY_BUILD_TESTS "Whether to enable and build tests or not")
 

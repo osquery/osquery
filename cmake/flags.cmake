@@ -41,7 +41,8 @@ function(setupBuildFlags)
       -pedantic
     )
 
-    if(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    if(NOT OSQUERY_NO_OPTIMIZATIONS AND
+       NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
       list(APPEND posix_common_compile_options INTERFACE -Oz)
     endif()
 
@@ -180,11 +181,14 @@ function(setupBuildFlags)
       message(FATAL_ERROR "Platform not supported!")
     endif()
 
-    if(OSQUERY_NO_DEBUG_SYMBOLS AND
-      ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR
-       "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
+    if(OSQUERY_NO_DEBUG_SYMBOLS)
       target_compile_options(cxx_settings INTERFACE -g0)
       target_compile_options(c_settings INTERFACE -g0)
+    endif()
+
+    if(OSQUERY_NO_OPTIMIZATIONS)
+      target_compile_options(cxx_settings INTERFACE -O0)
+      target_compile_options(c_settings INTERFACE -O0)
     endif()
 
     if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
@@ -203,10 +207,15 @@ function(setupBuildFlags)
       )
     endif()
   elseif(DEFINED PLATFORM_WINDOWS)
+    if(OSQUERY_NO_OPTIMIZATIONS)
+      set(windows_optimization_flags "/Od")
+    else()
+      set(windows_optimization_flags "$<$<CONFIG:Debug>:/Od;/UNDEBUG>$<$<NOT:$<CONFIG:Debug>>:/Ot>")
+    endif()
 
     set(windows_common_compile_options
       "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Z7;/Gs;/GS>"
-      "$<$<CONFIG:Debug>:/Od;/UNDEBUG>$<$<NOT:$<CONFIG:Debug>>:/Ot>"
+      "${windows_optimization_flags}"
       /MT
       /EHs
       /W3
@@ -304,6 +313,13 @@ function(setupBuildFlags)
 
       # This must be removed, because passing /EHs doesn't override it
       string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+      if(OSQUERY_NO_OPTIMIZATIONS)
+        string(REGEX REPLACE "/O.+ " "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+        string(REGEX REPLACE "/O.+ " "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+        string(REGEX REPLACE "/O.+ " "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+        string(REGEX REPLACE "/O.+ " "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+      endif()
 
       overwrite_cache_variable("CMAKE_C_FLAGS_RELEASE" STRING "${CMAKE_C_FLAGS_RELEASE}")
       overwrite_cache_variable("CMAKE_C_FLAGS_RELWITHDEBINFO" STRING "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
