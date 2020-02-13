@@ -14,6 +14,11 @@ extraction:
       - "export PATH=$TMPDIR/cmake-3.14.6-Linux-x86_64/bin:$PATH"
     configure:
       command:
-      - "cmake -DOSQUERY_TOOLCHAIN_SYSROOT=$TMPDIR/osquery-toolchain/ -DOSQUERY_BUILD_TESTS=ON ."
+      - "cmake -DOSQUERY_TOOLCHAIN_SYSROOT=$TMPDIR/osquery-toolchain/ ."
     index:
       build_command: "cmake --build . -j 4"
+
+  python:
+    python_setup: 
+      version: 3
+      setup_py: false
