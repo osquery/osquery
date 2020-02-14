@@ -128,6 +128,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/quicklook_cache.cpp
       darwin/running_apps.mm
       darwin/sandboxes.cpp
+      darwin/screenlock.mm
       darwin/shared_folders.mm
       darwin/sharing_preferences.cpp
       darwin/signature.mm
