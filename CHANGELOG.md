@@ -6,6 +6,7 @@
 ### New Features / Under the Hood improvements
 - TLS Testing infrastructure has been overhauled ([#6170](https://github.com/osquery/osquery/pull/6170))
 - Boost regex has been replaced with std ([#6236](https://github.com/osquery/osquery/pull/6236))
+- `community_id_v1` added as a SQL function ([#6211](https://github.com/osquery/osquery/pull/6211))
 
 ### Build
 - Fix format checking on Windows ([#6188](https://github.com/osquery/osquery/pull/6188))
