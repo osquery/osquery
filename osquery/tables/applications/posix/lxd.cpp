@@ -36,7 +36,7 @@ namespace osquery {
  */
 FLAG(string,
      lxd_socket,
-     "/var/snap/lxd/common/lxd/unix.socket",
+     "/var/lib/lxd/unix.socket",
      "LXD UNIX domain socket path");
 
 namespace tables {
@@ -175,7 +175,7 @@ void getLxdInstance(const std::string& url, QueryData& results) {
  */
 void getLxdInstances(QueryData& results) {
   pt::ptree tree;
-  Status s = lxdApi("/1.0/instances", tree);
+  Status s = lxdApi("/1.0/containers", tree);
   if (!s.ok()) {
     VLOG(1) << "Error getting LXD instances: " << s.what();
     return;
@@ -195,7 +195,8 @@ QueryData genLxdInstances(QueryContext& context) {
 
   if (context.constraints["name"].exists(EQUALS)) {
     for (const auto& name : context.constraints["name"].getAll(EQUALS)) {
-      std::string url = "/1.0/instances/" + name;
+      std::string url = "/1.0/containers/" + name;
+      // using /containers instead of /instances for backward compatibility
       getLxdInstance(url, results);
     }
   } else {
@@ -210,7 +211,7 @@ QueryData genLxdInstances(QueryContext& context) {
  */
 void getLxdInstanceConfig(const std::string& name, QueryData& results) {
   pt::ptree tree;
-  Status s = lxdApi("/1.0/instances/" + name, tree);
+  Status s = lxdApi("/1.0/containers/" + name, tree);
   if (!s.ok()) {
     VLOG(1) << "Error getting LXD instance " << name << ": " << s.what();
     return;
@@ -274,7 +275,7 @@ void getLxdInstanceDevice(const std::string& dev_name,
  */
 void getLxdInstanceDevices(const std::string& name, QueryData& results) {
   pt::ptree tree;
-  Status s = lxdApi("/1.0/instances/" + name, tree);
+  Status s = lxdApi("/1.0/containers/" + name, tree);
   if (!s.ok()) {
     VLOG(1) << "Error getting LXD instance " << name << ": " << s.what();
     return;
@@ -479,7 +480,9 @@ void getLxdNetworkUsers(const pt::ptree& users_node, Row& row) {
         users.append(",");
       }
       std::string user = node.second.data();
-      if (boost::starts_with(user, "/1.0/instances/")) {
+      if (boost::starts_with(user, "/1.0/containers/")) {
+        user.erase(0, 16);
+      } else if (boost::starts_with(user, "/1.0/instances/")) {
         user.erase(0, 15);
       }
       users.append(user);
