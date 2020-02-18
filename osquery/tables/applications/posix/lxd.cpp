@@ -31,8 +31,8 @@ namespace osquery {
 /**
  * @brief LXD UNIX domain socket path.
  * Usual suspects: /var/lib/lxd/unix.socket,
- * /var/snap/lxd/common/lxd/unix.socket If using a different path, specify that
- * path.
+ *      /var/snap/lxd/common/lxd/unix.socket
+ * If using a different path, specify that path.
  */
 FLAG(string,
      lxd_socket,
