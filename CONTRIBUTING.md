@@ -223,6 +223,26 @@ any of osquery's open source projects.
 This is managed through the Linux Foundations's EasyCLA. It will
 comment appropriately on your PR.
 
+## Technical Steering Committee
+
+As defined by the [the osquery
+charter](https://github.com/osquery/foundation/blob/master/CHARTER.md),
+the Technical Steering Committee (or TSC for short) is responsible for
+oversight of the osquery project.
+
+The [GitHub
+Team](https://github.com/orgs/osquery/teams/technical-steering-committee)
+is the authoritative source, though we maintain the list here as well.
+
+Current Members (in alphabetical order):
+
+* Alessandro -- [@alessandrogario](https://github.com/alessandrogario)
+* Nick -- [@muffins](https://github.com/muffins)
+* seph -- [@directionless](https://github.com/directionless)
+* Teddy -- [@theopolis](https://github.com/theopolis)
+* Victor -- [@groob](https://github.com/groob)
+* Zach -- [@zwass](https://github.com/zwass)
+
 ## License
 
 By contributing to osquery you agree that your contributions will be licensed
