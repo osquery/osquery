@@ -57,7 +57,7 @@ QueryData gen_wsc(QueryContext& context) {
   r["user_account_control"] =
       resolveProductHealthOrError(WSC_SECURITY_PROVIDER_USER_ACCOUNT_CONTROL);
   r["windows_security_center_service"] =
-      resolveProductHealthOrError(WSC_SECURITY_PROVIDER_USER_ACCOUNT_CONTROL);
+      resolveProductHealthOrError(WSC_SECURITY_PROVIDER_SERVICE);
 
   results.push_back(r);
   return results;
