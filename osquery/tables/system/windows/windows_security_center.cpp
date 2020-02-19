@@ -10,13 +10,10 @@
 #include <wscapi.h>
 
 #include <osquery/core.h>
-#include <osquery/core/windows/wmi.h>
-#include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/map_take.h>
-#include <osquery/utils/scope_guard.h>
 
 namespace osquery {
 namespace tables {
@@ -29,6 +26,9 @@ const auto kSecurityProviderStates = std::unordered_map<int, std::string>{
 };
 
 std::string resolveProductHealthOrError(int productName) {
+  // Attempt a runtime link to the DLL containing these functions,
+  // since linking the library was causing a crash on some Windows
+  // machines (like the CI server).
   typedef HRESULT(WINAPI * pWscGetSecurityProviderHealth)(
       _In_ DWORD Providers, _Out_ PWSC_SECURITY_PROVIDER_HEALTH);
   pWscGetSecurityProviderHealth WscGetSecurityProviderHealth;
@@ -73,9 +73,10 @@ bool windowsUpdateServicesEnabled() {
   return true;
 }
 
-// In our testing, the Windows Update health check shows good, even if essential
-// services are disabled If the the standard API call is good we verify these
-// services are NOT disabled before we let the table return the "Good" result
+// In our testing, the autoupdate health check shows "Good", even if essential
+// services are disabled. If the the standard API call is "Good". we verify
+// these services are NOT disabled before we let the table return the "Good"
+// result
 std::string genWindowsUpdateHealth() {
   std::string productHealth =
       resolveProductHealthOrError(WSC_SECURITY_PROVIDER_AUTOUPDATE_SETTINGS);
