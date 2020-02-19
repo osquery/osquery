@@ -19,12 +19,19 @@
 #include <string>
 #include <vector>
 
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/utils/conversions/split.h>
 
 #include <sqlite3.h>
 
 namespace osquery {
+
+FLAG(uint32,
+     regex_max_size,
+     4096,
+     "Defines the maximum size in bytes of a regex that can be used with the "
+     "regex_match and regex_split functions");
 
 using SplitResult = std::vector<std::string>;
 using StringSplitFunction = std::function<SplitResult(
@@ -69,6 +76,11 @@ static SplitResult regexSplit(const std::string& input,
   // Split using the token as a regex to support multi-character tokens.
   // Exceptions are caught by the caller, as that's where the sql context is
   std::vector<std::string> result;
+
+  if (token.size() > FLAGS_regex_max_size) {
+    throw std::regex_error(std::regex_constants::error_complexity);
+  }
+
   std::regex pattern = std::regex(token);
   std::sregex_token_iterator iter_begin(
       input.begin(), input.end(), pattern, -1);
@@ -148,15 +160,32 @@ static void regexStringMatchFunc(sqlite3_context* context,
     return;
   }
 
+  const char* regex =
+      reinterpret_cast<const char*>(sqlite3_value_text(argv[1]));
+
+  if (regex == nullptr) {
+    sqlite3_result_null(context);
+    return;
+  }
+
   // parse and verify input parameters
-  std::string input((char*)sqlite3_value_text(argv[0]));
+  const std::string input(
+      reinterpret_cast<const char*>(sqlite3_value_text(argv[0])));
   std::smatch results;
   auto index = static_cast<size_t>(sqlite3_value_int(argv[2]));
   bool isMatchFound = false;
 
+  if (strnlen(regex, FLAGS_regex_max_size) == FLAGS_regex_max_size &&
+      regex[FLAGS_regex_max_size] != '\0') {
+    std::string error = "Invalid regex: too big, max size is " +
+                        std::to_string(FLAGS_regex_max_size) + " bytes";
+    LOG(INFO) << error;
+    sqlite3_result_error(context, error.c_str(), -1);
+    return;
+  }
+
   try {
-    isMatchFound = std::regex_search(
-        input, results, std::regex((char*)sqlite3_value_text(argv[1])));
+    isMatchFound = std::regex_search(input, results, std::regex(regex));
   } catch (const std::regex_error& e) {
     LOG(INFO) << "Invalid regex: " << e.what();
     sqlite3_result_error(context, "Invalid regex", -1);
