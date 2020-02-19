@@ -12,6 +12,7 @@
 #include <osquery/core.h>
 #include <osquery/core/windows/wmi.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/map_take.h>
@@ -28,17 +29,61 @@ const auto kSecurityProviderStates = std::unordered_map<int, std::string>{
 };
 
 std::string resolveProductHealthOrError(int productName) {
-  HRESULT result;
-  WSC_SECURITY_PROVIDER_HEALTH health;
+  typedef HRESULT(WINAPI * pWscGetSecurityProviderHealth)(
+      _In_ DWORD Providers, _Out_ PWSC_SECURITY_PROVIDER_HEALTH);
+  pWscGetSecurityProviderHealth WscGetSecurityProviderHealth;
+  HMODULE hDLL = LoadLibrary(TEXT("wscapi.dll"));
 
-  result = WscGetSecurityProviderHealth(productName, &health);
-
-  if (result == S_OK) {
-    return tryTakeCopy(kSecurityProviderStates, health)
-        .takeOr(std::string("Unknown"));
+  if (hDLL) {
+    HRESULT result = E_UNEXPECTED;
+    WSC_SECURITY_PROVIDER_HEALTH health;
+    WscGetSecurityProviderHealth =
+        (pWscGetSecurityProviderHealth)GetProcAddress(
+            hDLL, "WscGetSecurityProviderHealth");
+    if (WscGetSecurityProviderHealth != NULL) {
+      result = WscGetSecurityProviderHealth(productName, &health);
+      if (result == S_OK) {
+        return tryTakeCopy(kSecurityProviderStates, health)
+            .takeOr(std::string("Unknown"));
+      }
+      return "Error";
+    }
   }
 
   return "Error";
+}
+
+bool windowsUpdateServicesEnabled() {
+  auto wuauservResult =
+      SQL::selectAllFrom("services", "name", EQUALS, "wuauserv");
+  auto usosvcResult = SQL::selectAllFrom("services", "name", EQUALS, "UsoSvc");
+
+  if (wuauservResult.empty() || usosvcResult.empty()) {
+    return false;
+  }
+
+  auto& wuauservRow = wuauservResult.at(0);
+  auto& usosvcRow = usosvcResult.at(0);
+
+  if (wuauservRow.at("start_type") == "DISABLED" ||
+      usosvcRow.at("start_type") == "DISABLED") {
+    return false;
+  }
+
+  return true;
+}
+
+// In our testing, the Windows Update health check shows good, even if essential
+// services are disabled If the the standard API call is good we verify these
+// services are NOT disabled before we let the table return the "Good" result
+std::string genWindowsUpdateHealth() {
+  std::string productHealth =
+      resolveProductHealthOrError(WSC_SECURITY_PROVIDER_AUTOUPDATE_SETTINGS);
+  if (productHealth == "Good" && !windowsUpdateServicesEnabled()) {
+    return "Poor";
+  }
+
+  return productHealth;
 }
 
 QueryData gen_wsc(QueryContext& context) {
@@ -48,8 +93,7 @@ QueryData gen_wsc(QueryContext& context) {
   r["global_state"] = resolveProductHealthOrError(WSC_SECURITY_PROVIDER_ALL);
   r["firewall"] = resolveProductHealthOrError(WSC_SECURITY_PROVIDER_FIREWALL);
   r["antivirus"] = resolveProductHealthOrError(WSC_SECURITY_PROVIDER_ANTIVIRUS);
-  r["autoupdate"] =
-      resolveProductHealthOrError(WSC_SECURITY_PROVIDER_AUTOUPDATE_SETTINGS);
+  r["autoupdate"] = genWindowsUpdateHealth();
   r["antispyware"] =
       resolveProductHealthOrError(WSC_SECURITY_PROVIDER_ANTISPYWARE);
   r["internet_settings"] =

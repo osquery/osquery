@@ -59,5 +59,4 @@
     wevtapi.lib \
     shell32.lib \
     gdi32.lib \
-    user32.lib \
-    wscapi.lib
+    user32.lib

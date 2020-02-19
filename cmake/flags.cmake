@@ -241,7 +241,6 @@ function(setupBuildFlags)
       wevtapi.lib
       shell32.lib
       gdi32.lib
-      wscapi.lib
     )
 
     set(osquery_windows_common_defines
