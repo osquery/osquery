@@ -58,11 +58,22 @@ QueryData genScreenlock(QueryContext& context) {
     return results;
   }
 
-  NSDictionary* durationDict;
-
   // MKBDeviceGetGracePeriod requires an empty dictionary as the sole argument
-  durationDict = MKBDeviceGetGracePeriod(@{});
-  int duration = [durationDict[@"GracePeriod"] integerValue];
+  NSDictionary* durationDict = MKBDeviceGetGracePeriod(@{});
+  if (![durationDict isKindOfClass:[NSDictionary class]]) {
+    VLOG(1) << "MKBDeviceGetGracePeriod did not return an NSDictionary";
+    CFRelease(bundle);
+    return results;
+  }
+
+  NSNumber* durationNumber = durationDict[@"GracePeriod"];
+  if (![durationNumber isKindOfClass:[NSNumber class]]) {
+    VLOG(1) << "GracePeriod did not contain an NSNumber";
+    CFRelease(bundle);
+    return results;
+  }
+
+  int duration = durationNumber.integerValue;
   // A value of INT_MAX indicates that the lock is disabled
   int enabled = (duration == INT_MAX) ? 0 : 1;
   // Return -1 for grace_period when the lock is not set
