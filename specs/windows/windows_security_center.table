@@ -1,5 +1,5 @@
 table_name("windows_security_center")
-description("The health status of Window Security features. Health values can be \"Good\", \"Poor\". \"Snoozed\", \"Not Monitored\", and \"Error\"")
+description("The health status of Window Security features. Health values can be \"Good\", \"Poor\". \"Snoozed\", \"Not Monitored\", and \"Error\".")
 schema([
     Column("global_state", TEXT, "The overall health of the Windows Security Center"),
     Column("firewall", TEXT, "The health of the monitored Firewall (see windows_security_products)"),
