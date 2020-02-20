@@ -134,7 +134,7 @@ def get_stats(p, interval=1):
         "counters": p.io_counters() if platform() != "darwin" else None,
         "fds": p.num_fds(),
         "cpu_times": p.cpu_times(),
-        "memory": p.memory_info_ex(),
+        "memory": p.memory_info(),
     }
 
 
