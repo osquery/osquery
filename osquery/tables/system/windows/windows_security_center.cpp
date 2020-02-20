@@ -10,6 +10,7 @@
 #include <wscapi.h>
 
 #include <osquery/core.h>
+#include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/windows/strings.h>
@@ -32,25 +33,29 @@ std::string resolveProductHealthOrError(int productName) {
   typedef HRESULT(WINAPI * pWscGetSecurityProviderHealth)(
       _In_ DWORD Providers, _Out_ PWSC_SECURITY_PROVIDER_HEALTH);
   pWscGetSecurityProviderHealth WscGetSecurityProviderHealth;
-  HMODULE hDLL = LoadLibrary(TEXT("wscapi.dll"));
-
-  if (hDLL) {
-    HRESULT result = E_UNEXPECTED;
-    WSC_SECURITY_PROVIDER_HEALTH health;
-    WscGetSecurityProviderHealth =
-        (pWscGetSecurityProviderHealth)GetProcAddress(
-            hDLL, "WscGetSecurityProviderHealth");
-    if (WscGetSecurityProviderHealth != NULL) {
-      result = WscGetSecurityProviderHealth(productName, &health);
-      if (result == S_OK) {
-        return tryTakeCopy(kSecurityProviderStates, health)
-            .takeOr(std::string("Unknown"));
-      }
-      return "Error";
-    }
+  static HMODULE hDLL = LoadLibrary(TEXT("wscapi.dll"));
+  if (hDLL == NULL) {
+    VLOG(1) << "Could not dynamically load 'wscapi.dll'";
+    return "Error";
   }
 
-  return "Error";
+  HRESULT result = E_UNEXPECTED;
+  WSC_SECURITY_PROVIDER_HEALTH health;
+  WscGetSecurityProviderHealth = (pWscGetSecurityProviderHealth)GetProcAddress(
+      hDLL, "WscGetSecurityProviderHealth");
+  if (WscGetSecurityProviderHealth == NULL) {
+    VLOG(1) << "Could not load function WscGetSecurityProviderHealth";
+    return "Error";
+  }
+
+  result = WscGetSecurityProviderHealth(productName, &health);
+  if (result != S_OK) {
+    VLOG(1) << "Error returned from function WscGetSecurityProviderHealth";
+    return "Error";
+  }
+
+  return tryTakeCopy(kSecurityProviderStates, health)
+      .takeOr(std::string("Unknown"));
 }
 
 bool windowsUpdateServicesEnabled() {
@@ -64,6 +69,15 @@ bool windowsUpdateServicesEnabled() {
 
   auto& wuauservRow = wuauservResult.at(0);
   auto& usosvcRow = usosvcResult.at(0);
+
+  // If the column changed or doesn't exist, we should just fall through and
+  // and let the API report accurately.
+  if (wuauservRow.count("start_type") == 0 ||
+      usosvcRow.count("start_type") == 0) {
+    VLOG(1)
+        << "The 'services' virtual table results are missing key 'start_type'";
+    return true;
+  }
 
   if (wuauservRow.at("start_type") == "DISABLED" ||
       usosvcRow.at("start_type") == "DISABLED") {
@@ -91,7 +105,6 @@ QueryData gen_wsc(QueryContext& context) {
   QueryData results;
   Row r;
 
-  r["global_state"] = resolveProductHealthOrError(WSC_SECURITY_PROVIDER_ALL);
   r["firewall"] = resolveProductHealthOrError(WSC_SECURITY_PROVIDER_FIREWALL);
   r["antivirus"] = resolveProductHealthOrError(WSC_SECURITY_PROVIDER_ANTIVIRUS);
   r["autoupdate"] = genWindowsUpdateHealth();
