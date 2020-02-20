@@ -251,8 +251,4 @@ int platformGetPid() {
 uint64_t platformGetTid() {
   return GetCurrentThreadId();
 }
-
-void platformMainThreadExit(int excode) {
-  ExitThread(static_cast<DWORD>(excode));
-}
 }

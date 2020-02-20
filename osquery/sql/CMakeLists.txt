@@ -71,6 +71,7 @@ function(generateOsquerySql)
   add_test(NAME osquery_sql_tests-test COMMAND osquery_sql_tests-test)
   add_test(NAME osquery_sql_tests_virtualtabletests-test COMMAND osquery_sql_tests_virtualtabletests-test)
   add_test(NAME osquery_sql_tests_sqliteutilstests-test COMMAND osquery_sql_tests_sqliteutilstests-test)
+  add_test(NAME osquery_sql_tests_sqlitehashingstests-test COMMAND osquery_sql_tests_sqlitehashingtests-test)
 endfunction()
 
 osquerySqlMain()

@@ -152,11 +152,6 @@ class Client {
       return *this;
     }
 
-    Options& openssl_sni_hostname(std::string const& sni_h) {
-      sni_hostname_ = sni_h;
-      return *this;
-    }
-
     Options& proxy_hostname(std::string const& prxy_h) {
       proxy_hostname_ = prxy_h;
       return *this;
@@ -178,7 +173,6 @@ class Client {
              (client_certificate_file_ == ropts.client_certificate_file_) &&
              (client_private_key_file_ == ropts.client_private_key_file_) &&
              (ciphers_ == ropts.ciphers_) &&
-             (sni_hostname_ == ropts.sni_hostname_) &&
              (proxy_hostname_ == ropts.proxy_hostname_) &&
              (remote_hostname_ == ropts.remote_hostname_) &&
              (remote_port_ == ropts.remote_port_) &&
@@ -196,7 +190,6 @@ class Client {
     boost::optional<std::string> client_certificate_file_;
     boost::optional<std::string> client_private_key_file_;
     boost::optional<std::string> ciphers_;
-    boost::optional<std::string> sni_hostname_;
     boost::optional<std::string> proxy_hostname_;
     boost::optional<std::string> remote_hostname_;
     boost::optional<std::string> remote_port_;

@@ -10,6 +10,7 @@ There are several types of issues that do not include a CVE or reporter. If you 
 
 If you are editing this document please feel encouraged to change this format to provide more details. This is intended to be a helpful resource so please keep content valuable and concise.
 
+- #6197 osquery does not validate TLS SNI hostname - CVE-2020-1887 - 4.2.0 - Timothy Britton of Apple
 - #3786 Migrate from `boost::regex` to `re2` - unresolved - Ruslan Habalov and Felix Wilhelm of the Google Security Team
 - #3785 `ie_extensions` susceptible to SQL injection - CVE-2017-15026 - 2.9.0 - Ruslan Habalov and Felix Wilhelm of the Google Security Team
 - #3783/#3782 `safari_extensions` should not use parent paths for privilege dropping - CVE-2017-15027 - 2.9.0 - Ruslan Habalov and Felix Wilhelm of the Google Security Team

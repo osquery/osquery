@@ -25,6 +25,16 @@ enum HashType {
   HASH_TYPE_SHA256 = 8,
 };
 
+/**
+ * @brief The supported hashing algorithms in osquery
+ *
+ * These are usually used as a constructor argument to osquery::Hash
+ */
+enum HashEncodingType {
+  HASH_ENCODING_TYPE_HEX = 2,
+  HASH_ENCODING_TYPE_BASE64 = 4,
+};
+
 /// A result structure for multiple hash requests.
 struct MultiHashes {
   int mask;
@@ -49,12 +59,23 @@ class Hash : private boost::noncopyable {
    * @brief Hash constructor
    *
    * The hash class should be initialized with one of osquery::HashType as a
-   * constructor argument.
+   * constructor argument. The Hash will be initialized with hex encoding.
    *
    * @param algorithm The hashing algorithm which will be used to compute the
    * hash
    */
   explicit Hash(HashType algorithm);
+
+  /**
+   * @brief Hash constructor
+   *
+   * Initialize the Hash class with a HashType and HashEncodingType.
+   *
+   * @param algorithm The hashing algorithm which will be used to compute the
+   * hash
+   * @param encoding The encoding that will be used to render the hash digest.
+   */
+  explicit Hash(HashType algorithm, HashEncodingType encoding);
 
   /**
    * @brief Hash destructor
@@ -90,6 +111,9 @@ class Hash : private boost::noncopyable {
  private:
   /// The hashing algorithm which is used to compute the hash
   HashType algorithm_;
+
+  /// The encoding type used to encode the digest.
+  HashEncodingType encoding_;
 
   /// The buffer used to maintain the context and state of the hashing
   /// operations

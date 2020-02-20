@@ -6,13 +6,14 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <regex>
+
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/format.hpp>
-#include <boost/regex.hpp>
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
@@ -64,8 +65,8 @@ void readCrashDump(const std::string& app_log, Row& r) {
   }
 
   // Variables for capturing the stack trace
-  boost::regex rx_spaces("\\s+");
-  boost::regex rx_spaces_colon(":\\s+");
+  std::regex rx_spaces("\\s+");
+  std::regex rx_spaces_colon(":\\s+");
   boost::format crashed_thread_format("Thread %1% Crashed");
   auto crashed_thread_seen = false;
 
@@ -84,7 +85,7 @@ void readCrashDump(const std::string& app_log, Row& r) {
       auto nextLine = std::next(it);
       if (nextLine != lines.end()) {
         auto trace = std::string(*nextLine);
-        auto cleanedTrace = boost::regex_replace(trace, rx_spaces, " ");
+        auto cleanedTrace = std::regex_replace(trace, rx_spaces, " ");
         r["stack_trace"] = cleanedTrace;
       }
       crashed_thread_seen = false;
@@ -99,8 +100,8 @@ void readCrashDump(const std::string& app_log, Row& r) {
     if (kRegisters.count(toks[0]) > 0) {
       boost::trim(line);
 
-      line = boost::regex_replace(line, rx_spaces, " ");
-      line = boost::regex_replace(line, rx_spaces_colon, ":");
+      line = std::regex_replace(line, rx_spaces, " ");
+      line = std::regex_replace(line, rx_spaces_colon, ":");
 
       r["registers"] +=
           (r["registers"].empty()) ? std::move(line) : " " + std::move(line);
@@ -127,9 +128,9 @@ void readCrashDump(const std::string& app_log, Row& r) {
       crashed_thread_seen = true;
     } else if (toks[0] == "Process" || toks[0] == "Parent Process") {
       // Use a regex to extract out the PID value
-      const boost::regex e{"\\[\\d+\\]"};
-      boost::smatch results;
-      if (boost::regex_search(line, results, e)) {
+      const std::regex e{"\\[\\d+\\]"};
+      std::smatch results;
+      if (std::regex_search(line, results, e)) {
         auto pid_str = std::string(results[0].first, results[0].second);
         boost::erase_all(pid_str, "[");
         boost::erase_all(pid_str, "]");
