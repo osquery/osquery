@@ -33,6 +33,7 @@ function(generateNativeTables)
     carbon_black_info.table
     carves.table
     chrome_extensions.table
+    chrome_extension_content_scripts.table
     cpuid.table
     curl.table
     curl_certificate.table
