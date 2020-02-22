@@ -24,6 +24,10 @@ constexpr auto kFullRegPath =
     "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist";
 
 // Decode ROT13 sub key value
+/**
+ * NOTE: If NoEncrypt is a DWORD set to 1 under the UserAssist registry key, new values are saved in plain text.
+ * This value (NoEncrypt) has to be manually added to the UserAssist registry key.
+ */
 std::string rotDecode(std::string& value_key_reg) {
   std::string decoded_value_key;
 
