@@ -2,6 +2,11 @@ path_classifiers:
   library:
     exclude: "libraries/**/*"
 
+queries:
+  - include: "*"
+  - exclude:
+      severity: "recommendation"
+
 extraction:
   cpp:
     after_prepare:
