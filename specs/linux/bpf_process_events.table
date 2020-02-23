@@ -1,0 +1,18 @@
+table_name("bpf_process_events")
+description("Tracks process executions.")
+schema([
+    Column("timestamp", BIGINT, "Time of execution, in nanoseconds from the system boot"),
+    Column("pid", BIGINT, "Process id"),
+    Column("tid", BIGINT, "Thread id"),
+    Column("uid", BIGINT, "User id"),
+    Column("gid", BIGINT, "Group id"),
+    Column("exit", BIGINT, "Exit code"),
+    Column("probe_error", BIGINT, "Set to 1 in case an internal BPF error has occurred"),
+    Column("executable", TEXT, "Path of the executable being started"),
+    Column("cmdline", TEXT, "Command line parameters"),
+    Column("syscall", TEXT, "Syscall name"),
+    Column("time", BIGINT, "Eventing framework timestamp. Do not use", hidden=True),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("bpf_process_events@bpf_process_events::genTable")

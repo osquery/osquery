@@ -24,6 +24,7 @@ function(generateOsqueryTablesEventsEventstable)
       linux/hardware_events.cpp
       linux/process_events.cpp
       linux/process_file_events.cpp
+      linux/bpf_process_events.cpp
       linux/selinux_events.cpp
       linux/socket_events.cpp
       linux/syslog_events.cpp
@@ -84,6 +85,7 @@ function(generateOsqueryTablesEventsEventstable)
     set(platform_public_header_files
       linux/process_events.h
       linux/process_file_events.h
+      linux/bpf_process_events.h
       linux/selinux_events.h
       linux/socket_events.h
     )
