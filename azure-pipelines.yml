@@ -20,8 +20,8 @@ jobs:
       vmImage: 'Ubuntu-16.04'
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v6
-      options: --privileged --init
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-v7
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     timeoutInMinutes: 120
 
