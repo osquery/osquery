@@ -27,11 +27,12 @@
 
 namespace osquery {
 
-FLAG(uint32,
-     regex_max_size,
-     4096,
-     "Defines the maximum size in bytes of a regex that can be used with the "
-     "regex_match and regex_split functions");
+HIDDEN_FLAG(
+    uint32,
+    regex_max_size,
+    256,
+    "Defines the maximum size in bytes of a regex that can be used with the "
+    "regex_match and regex_split functions");
 
 using SplitResult = std::vector<std::string>;
 using StringSplitFunction = std::function<SplitResult(
