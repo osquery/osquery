@@ -3,7 +3,6 @@
 #
 # This source code is licensed in accordance with the terms specified in
 # the LICENSE file found in the root directory of this source tree.
-# The cmake build mode is experimental and not officially supported.
 
 function(librdkafkaMain)
   generateLibrdkafka()
@@ -174,11 +173,7 @@ function(generateLibrdkafkaxx)
     "${CMAKE_CURRENT_SOURCE_DIR}/config/dummy"
     "${library_root}"
   )
-  if(DEFINED PLATFORM_WINDOWS)
-    target_compile_definitions(thirdparty_librdkafka_cxx PUBLIC
-    LIBRDKAFKA_STATICLIB
-    )
-  endif()
+
 
 
   target_include_directories(thirdparty_librdkafka_cxx SYSTEM INTERFACE
