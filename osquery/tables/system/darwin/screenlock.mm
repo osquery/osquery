@@ -15,8 +15,10 @@
 namespace osquery {
 namespace tables {
 
-void logUnsupportedError() {
+void logUnsupportedError(std::string vlogMessage) {
   LOG(ERROR) << "This table is not supported on this version of macOS";
+  VLOG(1) << vlogMessage;
+
   return;
 }
 
@@ -31,8 +33,7 @@ QueryData genScreenlock(QueryContext& context) {
       true);
 
   if (bundle_url == nullptr) {
-    logUnsupportedError();
-    VLOG(1) << "Error parsing MobileKeyBag bundle URL";
+    logUnsupportedError("Error parsing MobileKeyBag bundle URL");
 
     return results;
   }
@@ -41,8 +42,7 @@ QueryData genScreenlock(QueryContext& context) {
   CFRelease(bundle_url);
 
   if (bundle == nullptr) {
-    logUnsupportedError();
-    VLOG(1) << "Error opening MobileKeyBag bundle";
+    logUnsupportedError("Error opening MobileKeyBag bundle");
 
     return results;
   }
@@ -51,8 +51,7 @@ QueryData genScreenlock(QueryContext& context) {
       (NSDictionary * (*)(NSDictionary*)) CFBundleGetFunctionPointerForName(
           bundle, CFSTR("MKBDeviceGetGracePeriod"));
   if (MKBDeviceGetGracePeriod == nullptr) {
-    logUnsupportedError();
-    VLOG(1) << "MKBDeviceGetGracePeriod returned null";
+    logUnsupportedError("MKBDeviceGetGracePeriod returned null");
     CFRelease(bundle);
 
     return results;
