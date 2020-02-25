@@ -93,7 +93,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
 
 Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
-  LOG(INFO) << "Executing scheduled query " << name << ": " << query.query;
+  VLOG(1) << "Executing scheduled query " << name << ": " << query.query;
   runDecorators(DECORATE_ALWAYS);
 
   auto sql = monitor(name, query);
