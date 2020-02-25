@@ -174,7 +174,9 @@ function(generateLibrdkafkaxx)
     "${library_root}"
   )
 
-
+  target_compile_definitions(thirdparty_librdkafka_cxx PUBLIC
+    LIBRDKAFKA_STATICLIB
+  )
 
   target_include_directories(thirdparty_librdkafka_cxx SYSTEM INTERFACE
     "${CMAKE_CURRENT_BINARY_DIR}/include"
