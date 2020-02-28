@@ -56,8 +56,8 @@ Status lxdApi(const std::string& uri, pt::ptree& tree) {
     local::stream_protocol::endpoint ep(FLAGS_lxd_socket);
     local::stream_protocol::iostream stream(ep);
     if (!stream) {
-      return Status(
-          1, "Error connecting to LXD sock: " + stream.error().message());
+      return Status::failure("Error connecting to LXD sock: " +
+                             stream.error().message());
     }
 
     stream << "GET " << uri
@@ -65,7 +65,7 @@ Status lxdApi(const std::string& uri, pt::ptree& tree) {
            << std::flush;
     if (stream.eof()) {
       stream.close();
-      return Status(1, "Empty LXD API response for: " + uri);
+      return Status::failure("Empty LXD API response for: " + uri);
     }
 
     std::string str;
@@ -74,7 +74,8 @@ Status lxdApi(const std::string& uri, pt::ptree& tree) {
     std::smatch match;
     if (!std::regex_match(str, match, httpOkRegex)) {
       stream.close();
-      return Status(1, "Invalid LXD API response for " + uri + ": " + str);
+      return Status::failure("Invalid LXD API response for " + uri + ": " +
+                             str);
     }
 
     // Skip empty line between header and body
@@ -86,16 +87,16 @@ Status lxdApi(const std::string& uri, pt::ptree& tree) {
       pt::read_json(stream, tree);
     } catch (const pt::ptree_error& e) {
       stream.close();
-      return Status(
-          1, "Error reading LXD API response for " + uri + ": " + e.what());
+      return Status::failure("Error reading LXD API response for " + uri +
+                             ": " + e.what());
     }
 
     stream.close();
   } catch (const std::exception& e) {
-    return Status(1, std::string("Error calling LXD API: ") + e.what());
+    return Status::failure(std::string("Error calling LXD API: ") + e.what());
   }
 
-  return Status(0);
+  return Status::success();
 }
 
 /**
