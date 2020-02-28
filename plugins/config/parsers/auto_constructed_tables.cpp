@@ -152,7 +152,11 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     TableColumns columns;
     std::string columns_value;
     columns_value.reserve(256);
-    bool has_path_column = false;
+
+    // Always add the implicit path column
+    columns.push_back(
+        make_tuple(std::string("path"), TEXT_TYPE, ColumnOptions::DEFAULT));
+    columns_value += "path,";
 
     if (!params.HasMember("columns") || !params["columns"].IsArray()) {
       LOG(WARNING) << "ATC Table: " << table_name
@@ -166,17 +170,14 @@ Status ATCConfigParserPlugin::update(const std::string& source,
         continue;
       }
 
+      if (std::string(column.GetString()) == std::string("path")) {
+        LOG(WARNING) << "ATC Table: Includes `path`, which is implicit";
+        continue;
+      }
+
       columns.push_back(make_tuple(
           std::string(column.GetString()), TEXT_TYPE, ColumnOptions::DEFAULT));
       columns_value += std::string(column.GetString()) + ",";
-      if (std::string(column.GetString()) == std::string("path")) {
-        has_path_column = true;
-      }
-    }
-    if (!has_path_column) {
-      columns.push_back(
-          make_tuple(std::string("path"), TEXT_TYPE, ColumnOptions::DEFAULT));
-      columns_value += "path,";
     }
 
     registered.erase(table_name);
