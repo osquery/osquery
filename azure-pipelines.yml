@@ -415,6 +415,7 @@ jobs:
     - script: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=14.1
         cmake --build . -j 3
+        if %errorlevel% neq 0 exit /b %errorlevel%
         sccache.exe --stop-server
       displayName: "Build osquery"
       workingDirectory: $(Build.BinariesDirectory)\build
