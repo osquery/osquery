@@ -55,7 +55,7 @@ std::vector<ChromeUserExtensions> chromeExtensionPathsByUser(
 
   for (const auto& row : users) {
     if (row.count("uid") == 0 || row.count("directory") == 0) {
-      break;
+      continue;
     }
 
     // For each user, enumerate all of their chrome profiles.
