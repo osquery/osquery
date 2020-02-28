@@ -809,6 +809,10 @@ osquery_gentable_cxx_library(
             "windows",
         ),
         (
+            "windows/windows_security_center.table",
+            "windows",
+        ),
+        (
             "windows/windows_optional_features.table",
             "windows",
         ),
