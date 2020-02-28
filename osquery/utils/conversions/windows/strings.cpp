@@ -61,6 +61,11 @@ std::wstring stringToWstring(const std::string& src) {
   return utf16le_str;
 }
 
+std::string wstringToString(const std::wstring& src) {
+  std::string utf8_str = converter.to_bytes(src);
+  return utf8_str;
+}
+
 std::string wstringToString(const wchar_t* src) {
   if (src == nullptr) {
     return std::string("");

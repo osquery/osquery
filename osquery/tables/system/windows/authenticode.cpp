@@ -275,29 +275,29 @@ Status getCertificateInformation(SignatureInformation& signature_info,
   auto L_GetCertificateDetail = [](std::string& value,
                                    PCCERT_CONTEXT certificate_context,
                                    DWORD detail) -> bool {
-    DWORD value_size = CertGetNameString(certificate_context,
-                                         CERT_NAME_SIMPLE_DISPLAY_TYPE,
-                                         detail,
-                                         nullptr,
-                                         nullptr,
-                                         0);
+    DWORD value_size = CertGetNameStringW(certificate_context,
+                                          CERT_NAME_SIMPLE_DISPLAY_TYPE,
+                                          detail,
+                                          nullptr,
+                                          nullptr,
+                                          0);
     if (value_size == 0U || value_size >= 10000) {
       VLOG(1) << "Invalid certificate field size: " << value_size;
       return false;
     }
 
-    std::string buffer(static_cast<std::size_t>(value_size), 0);
+    std::wstring buffer(static_cast<std::size_t>(value_size), 0);
 
-    if (!CertGetNameString(certificate_context,
-                           CERT_NAME_SIMPLE_DISPLAY_TYPE,
-                           detail,
-                           nullptr,
-                           &buffer[0],
-                           value_size)) {
+    if (!CertGetNameStringW(certificate_context,
+                            CERT_NAME_SIMPLE_DISPLAY_TYPE,
+                            detail,
+                            nullptr,
+                            &buffer[0],
+                            value_size)) {
       return false;
     }
 
-    value = std::move(buffer);
+    value = wstringToString(buffer.c_str());
     return true;
   };
 

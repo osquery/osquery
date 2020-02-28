@@ -55,10 +55,10 @@ QueryData parseEtcProtocolsContent(const std::string& content) {
     }
 
     Row r;
-    r["name"] = TEXT(protocol_fields[0]);
+    r["name"] = SQL_TEXT(protocol_fields[0]);
     r["number"] = INTEGER(protocol_fields[1]);
     if (protocol_fields.size() > 2) {
-      r["alias"] = TEXT(protocol_fields[2]);
+      r["alias"] = SQL_TEXT(protocol_fields[2]);
     }
 
     // If there is a comment for the service.
@@ -66,7 +66,7 @@ QueryData parseEtcProtocolsContent(const std::string& content) {
       // Removes everything except the comment (parts of the comment).
       protocol_comment.erase(protocol_comment.begin(),
                              protocol_comment.begin() + 1);
-      r["comment"] = TEXT(boost::algorithm::join(protocol_comment, " # "));
+      r["comment"] = SQL_TEXT(boost::algorithm::join(protocol_comment, " # "));
     }
     results.push_back(r);
   }

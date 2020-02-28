@@ -27,6 +27,13 @@ std::wstring stringToWstring(const std::string& src);
  *
  * @returns A narrow string, constructed from a wide string
  */
+std::string wstringToString(const std::wstring& src);
+
+/**
+ * @brief Windows helper function for converting wide C-strings to narrow
+ *
+ * @returns A narrow string, constructed from a wide C-string
+ */
 std::string wstringToString(const wchar_t* src);
 
 /**

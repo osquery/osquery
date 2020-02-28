@@ -244,9 +244,9 @@ Status uninstallService() {
   }
 
   SC_HANDLE schService =
-      OpenService(schSCManager,
-                  kServiceName.c_str(),
-                  SERVICE_STOP | SERVICE_QUERY_STATUS | DELETE);
+      OpenServiceA(schSCManager,
+                   kServiceName.c_str(),
+                   SERVICE_STOP | SERVICE_QUERY_STATUS | DELETE);
 
   if (schService == nullptr) {
     CloseServiceHandle(schService);
@@ -343,7 +343,7 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
 int main(int argc, char* argv[]) {
   SERVICE_TABLE_ENTRYA serviceTable[] = {
       {const_cast<CHAR*>(osquery::kServiceName.c_str()),
-       static_cast<LPSERVICE_MAIN_FUNCTION>(osquery::ServiceMain)},
+       static_cast<LPSERVICE_MAIN_FUNCTIONA>(osquery::ServiceMain)},
       {nullptr, nullptr}};
 
   int retcode = 0;

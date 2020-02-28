@@ -31,19 +31,25 @@ const auto kInitialBufferSize = 1024;
 const auto kEnvironmentExpansionMax = 32767;
 
 bool setEnvVar(const std::string& name, const std::string& value) {
-  return (::SetEnvironmentVariableA(name.c_str(), value.c_str()) == TRUE);
+  const std::wstring widename = stringToWstring(name);
+  const std::wstring widevalue = stringToWstring(value);
+
+  return ::SetEnvironmentVariableW(widename.c_str(), widevalue.c_str()) == TRUE;
 }
 
 bool unsetEnvVar(const std::string& name) {
-  return (::SetEnvironmentVariableA(name.c_str(), nullptr) == TRUE);
+  const std::wstring widename = stringToWstring(name);
+  return ::SetEnvironmentVariableW(widename.c_str(), nullptr) == TRUE;
 }
 
 boost::optional<std::string> getEnvVar(const std::string& name) {
-  std::vector<char> buf;
-  buf.assign(kInitialBufferSize, '\0');
+  std::vector<WCHAR> buf;
+  buf.assign(kInitialBufferSize, L'\0');
 
-  auto value_len =
-      ::GetEnvironmentVariableA(name.c_str(), buf.data(), kInitialBufferSize);
+  const std::wstring widename = stringToWstring(name);
+
+  auto value_len = ::GetEnvironmentVariableW(
+      widename.c_str(), buf.data(), kInitialBufferSize);
   if (value_len == 0) {
     return boost::none;
   }
@@ -54,16 +60,18 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
   // returned size is greater than what we expect.
   if (value_len > kInitialBufferSize) {
     buf.assign(value_len, '\0');
-    value_len = ::GetEnvironmentVariableA(name.c_str(), buf.data(), value_len);
-    if (value_len == 0 || value_len > buf.size()) {
-      // The size returned is greater than the size we expected. Currently, we
-      // will not deal with this scenario and just return as if an error has
-      // occurred.
-      return boost::none;
-    }
+    value_len =
+        ::GetEnvironmentVariableW(widename.c_str(), buf.data(), value_len);
   }
 
-  return std::string(buf.data(), value_len);
+  if (value_len == 0 || value_len > buf.size()) {
+    // The size returned is greater than the size we expected. Currently, we
+    // will not deal with this scenario and just return as if an error has
+    // occurred.
+    return boost::none;
+  }
+
+  return wstringToString(buf.data());
 }
 
 boost::optional<std::string> expandEnvString(const std::string& input) {
@@ -79,11 +87,12 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
   auto len =
       ::ExpandEnvironmentStrings(input.c_str(), buf.data(), kInitialBufferSize);
   if (len == 0) {
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, ::GetLastError())) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
-    VLOG(1) << "Failed to expand environment string: " << description;
+    VLOG(1) << "Failed to expand environment string: "
+            << wstringToString(description);
 
     return boost::none;
   }
@@ -94,11 +103,12 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
   }
 
   if (len == 0) {
-    std::string description;
+    std::wstring description;
     if (!getWindowsErrorDescription(description, ::GetLastError())) {
-      description = "Unknown error";
+      description = L"Unknown error";
     }
-    VLOG(1) << "Failed to expand environment string: " << description;
+    VLOG(1) << "Failed to expand environment string: "
+            << wstringToString(description);
 
     return boost::none;
   }

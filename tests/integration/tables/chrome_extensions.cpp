@@ -32,6 +32,7 @@ TEST_F(chromeExtensions, test_sanity) {
                            {"locale", NormalType},
                            {"update_url", NonEmptyString},
                            {"author", NormalType},
+                           {"optional_permissions", NormalType},
                            {"persistent", IntType},
                            {"path", NonEmptyString},
                            {"permissions", NormalType},
