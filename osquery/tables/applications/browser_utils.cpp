@@ -54,32 +54,33 @@ std::vector<ChromeUserExtensions> chromeExtensionPathsByUser(
   std::vector<ChromeUserExtensions> extensionPathsByUser;
 
   for (const auto& row : users) {
-    if (row.count("uid") > 0 && row.count("directory") > 0) {
-      // For each user, enumerate all of their chrome profiles.
+    if (row.count("uid") == 0 || row.count("directory") == 0) {
+      break;
+    }
+
+    // For each user, enumerate all of their chrome profiles.
+    for (const auto& chromePath : chromePaths) {
       std::vector<std::string> profiles;
-      for (const auto& chromePath : chromePaths) {
-        fs::path extension_path = row.at("directory") / chromePath;
-        if (!resolveFilePattern(extension_path, profiles, GLOB_FOLDERS).ok()) {
+      fs::path extension_path = row.at("directory") / chromePath;
+      if (!resolveFilePattern(extension_path, profiles, GLOB_FOLDERS).ok()) {
+        continue;
+      }
+
+      // For each profile list each extension in the Extensions directory.
+      for (const auto& profile : profiles) {
+        std::vector<std::string> unversionedExtensions = {};
+        listDirectoriesInDirectory(profile, unversionedExtensions);
+
+        if (unversionedExtensions.empty()) {
           continue;
         }
-
-        // For each profile list each extension in the Extensions directory.
-        for (const auto& profile : profiles) {
-          std::vector<std::string> unversionedExtensions = {};
-          listDirectoriesInDirectory(profile, unversionedExtensions);
-
-          if (unversionedExtensions.empty()) {
-            continue;
-          }
-
-          std::vector<std::string> extensionPaths;
-          for (const auto& unversionedExtension : unversionedExtensions) {
-            listDirectoriesInDirectory(unversionedExtension, extensionPaths);
-          }
-
-          extensionPathsByUser.push_back(
-              std::make_tuple(row.at("uid"), extensionPaths));
+        std::vector<std::string> extensionPaths;
+        for (const auto& unversionedExtension : unversionedExtensions) {
+          listDirectoriesInDirectory(unversionedExtension, extensionPaths);
         }
+
+        extensionPathsByUser.push_back(
+            std::make_tuple(row.at("uid"), extensionPaths));
       }
     }
   }
