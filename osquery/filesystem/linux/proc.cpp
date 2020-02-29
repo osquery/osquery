@@ -335,7 +335,7 @@ Status procReadDescriptor(const std::string& process,
     result = std::string(result_path);
     return Status(0);
   } else {
-    return Status(1, "Could not read path");
+    return Status(1, "Could not call readlink: " + kLinuxProcPath);
   }
 }
 

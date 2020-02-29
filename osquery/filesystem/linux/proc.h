@@ -200,8 +200,9 @@ Status procEnumerateProcessDescriptors(const std::string& pid,
       std::string link;
       Status status = procReadDescriptor(pid, fd, link);
       if (!status.ok()) {
-        VLOG(1) << "Failed to read the link for file descriptor " << fd
-                << " of pid " << pid << ". Data might be incomplete.";
+        // Likely because the file descriptor was closed before readlink.
+        VLOG(1) << status.getMessage();
+        continue;
       }
 
       bool ret = callback(pid, fd, link, user_data);
