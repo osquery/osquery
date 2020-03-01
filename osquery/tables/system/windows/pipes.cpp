@@ -6,6 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/system.h>
 
 #include <osquery/core.h>
@@ -17,11 +18,11 @@ namespace tables {
 
 QueryData genPipes(QueryContext& context) {
   QueryData results;
-  WIN32_FIND_DATA findFileData;
+  WIN32_FIND_DATAW findFileData;
 
-  std::string pipeSearch = "\\\\.\\pipe\\*";
+  std::wstring pipeSearch = L"\\\\.\\pipe\\*";
   memset(&findFileData, 0, sizeof(findFileData));
-  auto findHandle = FindFirstFileA(pipeSearch.c_str(), &findFileData);
+  auto findHandle = FindFirstFileW(pipeSearch.c_str(), &findFileData);
 
   if (findHandle == INVALID_HANDLE_VALUE) {
     LOG(INFO) << "Failed to enumerate system pipes";
@@ -31,11 +32,11 @@ QueryData genPipes(QueryContext& context) {
   do {
     Row r;
 
-    r["name"] = findFileData.cFileName;
+    r["name"] = wstringToString(findFileData.cFileName);
 
     unsigned long pid = 0;
-    auto pipePath = "\\\\.\\pipe\\" + r["name"];
-    auto pipeHandle = CreateFile(
+    auto pipePath = L"\\\\.\\pipe\\" + std::wstring(findFileData.cFileName);
+    auto pipeHandle = CreateFileW(
         pipePath.c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, 0, nullptr);
     if (pipeHandle == INVALID_HANDLE_VALUE) {
       results.push_back(r);
@@ -69,7 +70,7 @@ QueryData genPipes(QueryContext& context) {
 
     results.push_back(r);
     CloseHandle(pipeHandle);
-  } while (FindNextFile(findHandle, &findFileData));
+  } while (FindNextFileW(findHandle, &findFileData));
 
   FindClose(findHandle);
   return results;

@@ -115,6 +115,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/launchd.cpp
       darwin/managed_policies.cpp
       darwin/mdfind.mm
+      darwin/mdls.mm
       darwin/mounts.cpp
       darwin/nfs_shares.cpp
       darwin/nvram.cpp
@@ -200,6 +201,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/windows_crashes.cpp
       windows/windows_optional_features.cpp
       windows/windows_security_products.cpp
+      windows/windows_security_center.cpp
       windows/wmi_bios_info.cpp
       windows/wmi_cli_event_consumers.cpp
       windows/wmi_event_filters.cpp

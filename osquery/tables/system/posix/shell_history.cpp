@@ -6,10 +6,9 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <regex>
 #include <string>
 #include <vector>
-
-#include <boost/xpressive/xpressive.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem/filesystem.h>
@@ -19,8 +18,6 @@
 #include <osquery/tables/system/posix/shell_history.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/system/system.h>
-
-namespace xp = boost::xpressive;
 
 namespace osquery {
 namespace tables {
@@ -34,18 +31,17 @@ void genShellHistoryFromFile(const std::string& uid,
                              QueryData& results) {
   std::string history_content;
   if (forensicReadFile(history_file, history_content).ok()) {
-    auto bash_timestamp_rx = xp::sregex::compile("^#(?P<timestamp>[0-9]+)$");
-    auto zsh_timestamp_rx = xp::sregex::compile(
-        "^: {0,10}(?P<timestamp>[0-9]{1,11}):[0-9]+;(?P<command>.*)$");
+    std::regex bash_timestamp_rx("^#([0-9]+)$");
+    std::regex zsh_timestamp_rx("^: {0,10}([0-9]{1,11}):[0-9]+;(.*)$");
 
     std::string prev_bash_timestamp;
     for (const auto& line : split(history_content, "\n")) {
-      xp::smatch bash_timestamp_matches;
-      xp::smatch zsh_timestamp_matches;
+      std::smatch bash_timestamp_matches;
+      std::smatch zsh_timestamp_matches;
 
       if (prev_bash_timestamp.empty() &&
-          xp::regex_search(line, bash_timestamp_matches, bash_timestamp_rx)) {
-        prev_bash_timestamp = bash_timestamp_matches["timestamp"];
+          std::regex_search(line, bash_timestamp_matches, bash_timestamp_rx)) {
+        prev_bash_timestamp = bash_timestamp_matches[1];
         continue;
       }
 
@@ -55,11 +51,11 @@ void genShellHistoryFromFile(const std::string& uid,
         r["time"] = INTEGER(prev_bash_timestamp);
         r["command"] = line;
         prev_bash_timestamp.clear();
-      } else if (xp::regex_search(
+      } else if (std::regex_search(
                      line, zsh_timestamp_matches, zsh_timestamp_rx)) {
-        std::string timestamp = zsh_timestamp_matches["timestamp"];
+        std::string timestamp = zsh_timestamp_matches[1];
         r["time"] = INTEGER(timestamp);
-        r["command"] = zsh_timestamp_matches["command"];
+        r["command"] = zsh_timestamp_matches[2];
       } else {
         r["time"] = INTEGER(0);
         r["command"] = line;

@@ -114,16 +114,16 @@ QueryData genRoutes(QueryContext& context) {
       auto ipAddress = currentRow.DestinationPrefix.Prefix.Ipv6.sin6_addr;
       auto gateway = currentRow.NextHop.Ipv6.sin6_addr;
 
-      InetNtop(addrFamily, (PVOID)&ipAddress, buffer.data(), buffer.size());
+      InetNtopA(addrFamily, (PVOID)&ipAddress, buffer.data(), buffer.size());
       r["destination"] = SQL_TEXT(buffer.data());
-      InetNtop(addrFamily, (PVOID)&gateway, buffer.data(), buffer.size());
+      InetNtopA(addrFamily, (PVOID)&gateway, buffer.data(), buffer.size());
       r["gateway"] = SQL_TEXT(buffer.data());
     } else if (addrFamily == AF_INET) {
       std::vector<char> buffer(INET_ADDRSTRLEN);
       auto ipAddress = currentRow.DestinationPrefix.Prefix.Ipv4.sin_addr;
       auto gateway = currentRow.NextHop.Ipv4.sin_addr;
 
-      InetNtop(addrFamily, (PVOID)&ipAddress, buffer.data(), buffer.size());
+      InetNtopA(addrFamily, (PVOID)&ipAddress, buffer.data(), buffer.size());
       r["destination"] = SQL_TEXT(buffer.data());
       buffer.clear();
 
@@ -142,7 +142,7 @@ QueryData genRoutes(QueryContext& context) {
         }
       } else {
         interfaceIpAddress = "127.0.0.1";
-        InetNtop(addrFamily, (PVOID)&gateway, buffer.data(), buffer.size());
+        InetNtopA(addrFamily, (PVOID)&gateway, buffer.data(), buffer.size());
         r["gateway"] = SQL_TEXT(buffer.data());
         buffer.clear();
       }

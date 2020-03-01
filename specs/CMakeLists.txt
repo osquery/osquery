@@ -33,6 +33,7 @@ function(generateNativeTables)
     carbon_black_info.table
     carves.table
     chrome_extensions.table
+    chrome_extension_content_scripts.table
     cpuid.table
     curl.table
     curl_certificate.table
@@ -106,6 +107,7 @@ function(generateNativeTables)
     "darwin/launchd_overrides.table:macos"
     "darwin/managed_policies.table:macos"
     "darwin/mdfind.table:macos"
+    "darwin/mdls.table:macos"
     "darwin/nfs_shares.table:macos"
     "darwin/nvram.table:macos"
     "darwin/package_bom.table:macos"
@@ -186,6 +188,7 @@ function(generateNativeTables)
     "posix/docker_container_networks.table:linux,macos,freebsd"
     "posix/docker_container_ports.table:linux,macos,freebsd"
     "posix/docker_container_processes.table:linux,macos,freebsd"
+    "posix/docker_container_fs_changes.table:linux,macos,freebsd"
     "posix/docker_container_stats.table:linux,macos,freebsd"
     "posix/docker_containers.table:linux,macos,freebsd"
     "posix/docker_image_labels.table:linux,macos,freebsd"
@@ -267,6 +270,7 @@ function(generateNativeTables)
     "windows/autoexec.table:windows"
     "windows/default_environment.table:windows"
     "windows/windows_security_products.table:windows"
+    "windows/windows_security_center.table:windows"
     "windows/windows_optional_features.table:windows"
     "windows/connectivity.table:windows"
     "yara/yara_events.table:linux,macos"

@@ -27,7 +27,7 @@ RUN apt update -q -y && apt upgrade -q -y && apt install -q -y --no-install-reco
   python3-wheel \
 && dpkg -i linux-base_1.0_all.deb linux-firmware_1.0_all.deb linux-generic_1.0_all.deb \
 && apt clean && rm -rf /var/lib/apt/lists/* \
-&& sudo pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
+&& sudo pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3 docker
 RUN cd ~ && wget https://github.com/Kitware/CMake/releases/download/v3.14.6/cmake-3.14.6-Linux-x86_64.tar.gz \
 && sudo tar xvf cmake-3.14.6-Linux-x86_64.tar.gz -C /usr/local --strip 1 && rm cmake-3.14.6-Linux-x86_64.tar.gz \
 && wget https://github.com/osquery/osquery-toolchain/releases/download/1.0.0/osquery-toolchain-1.0.0.tar.xz \

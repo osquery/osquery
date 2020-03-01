@@ -574,7 +574,7 @@ void WatcherRunner::createWorker() {
   if (worker == nullptr) {
     // Unrecoverable error, cannot create a worker process.
     LOG(ERROR) << "osqueryd could not create a worker process";
-    Initializer::shutdown(EXIT_FAILURE);
+    Initializer::shutdownNow(EXIT_FAILURE);
     return;
   }
 
@@ -621,7 +621,7 @@ void WatcherRunner::createExtension(const std::string& extension) {
   if (ext_process == nullptr) {
     // Unrecoverable error, cannot create an extension process.
     LOG(ERROR) << "Cannot create extension process: " << extension;
-    Initializer::shutdown(EXIT_FAILURE);
+    Initializer::shutdownNow(EXIT_FAILURE);
   }
 
   watcher.setExtension(extension, ext_process);

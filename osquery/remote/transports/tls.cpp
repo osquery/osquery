@@ -92,16 +92,8 @@ void TLSTransport::decorateRequest(http::Request& r) {
 
 http::Client::Options TLSTransport::getOptions() {
   http::Client::Options options;
+
   options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
-
-  options.keep_alive(FLAGS_tls_session_reuse);
-
-  if (FLAGS_proxy_hostname.size() > 0) {
-    options.proxy_hostname(FLAGS_proxy_hostname);
-  }
-
-  options.openssl_ciphers(kTLSCiphers);
-  options.openssl_options(SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2 | SSL_OP_ALL);
 
   if (server_certificate_file_.size() > 0) {
     if (!osquery::isReadable(server_certificate_file_).ok()) {
@@ -140,6 +132,28 @@ http::Client::Options TLSTransport::getOptions() {
     }
   }
 
+#ifndef NDEBUG
+  // Configuration may allow unsafe TLS testing if compiled as a debug target.
+  if (FLAGS_tls_allow_unsafe) {
+    options.always_verify_peer(false);
+  }
+#endif
+
+  return options;
+}
+
+http::Client::Options TLSTransport::getInternalOptions() {
+  auto options = getOptions();
+
+  options.keep_alive(FLAGS_tls_session_reuse);
+
+  if (FLAGS_proxy_hostname.size() > 0) {
+    options.proxy_hostname(FLAGS_proxy_hostname);
+  }
+
+  options.openssl_ciphers(kTLSCiphers);
+  options.openssl_options(SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2 | SSL_OP_ALL);
+
   if (client_certificate_file_.size() > 0) {
     if (!osquery::isReadable(client_certificate_file_).ok()) {
       LOG(WARNING) << "Cannot read TLS client certificate: "
@@ -152,20 +166,6 @@ http::Client::Options TLSTransport::getOptions() {
       options.openssl_private_key_file(client_private_key_file_);
     }
   }
-
-  // 'Optionally', though all TLS plugins should set a hostname, supply an SNI
-  // hostname. This will reveal the requested domain.
-  auto it = options_.doc().FindMember("hostname");
-  if (it != options_.doc().MemberEnd() && it->value.IsString()) {
-    options.openssl_sni_hostname(it->value.GetString());
-  }
-
-#ifndef NDEBUG
-  // Configuration may allow unsafe TLS testing if compiled as a debug target.
-  if (FLAGS_tls_allow_unsafe) {
-    options.always_verify_peer(false);
-  }
-#endif
 
   return options;
 }
@@ -214,7 +214,7 @@ Status TLSTransport::sendRequest() {
   try {
     std::shared_ptr<http::Client> client = getClient();
 
-    client->setOptions(getOptions());
+    client->setOptions(getInternalOptions());
     response_ = client->get(r);
 
     const auto& response_body = response_.body();
@@ -258,7 +258,7 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
 
   try {
     std::shared_ptr<http::Client> client = getClient();
-    client->setOptions(getOptions());
+    client->setOptions(getInternalOptions());
 
     if (verb == HTTP_POST) {
       response_ = client->post(r, (compress) ? compressString(params) : params);

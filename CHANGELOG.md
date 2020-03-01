@@ -1,3 +1,52 @@
+<a name="4.2.0"></a>
+## [4.2.0](https://github.com/osquery/osquery/releases/tag/4.2.0)
+
+[Git Commits](https://github.com/osquery/osquery/compare/4.1.2...4.2.0)
+
+### New Features / Under the Hood improvements
+- TLS Testing infrastructure has been overhauled ([#6170](https://github.com/osquery/osquery/pull/6170))
+- Boost regex has been replaced with std ([#6236](https://github.com/osquery/osquery/pull/6236))
+- `community_id_v1` added as a SQL function ([#6211](https://github.com/osquery/osquery/pull/6211))
+
+### Build
+- Fix format checking on Windows ([#6188](https://github.com/osquery/osquery/pull/6188))
+- Fix format folder exclusions for build checks ([#6201](https://github.com/osquery/osquery/pull/6201))
+- Fix the linking for extensions in build ([#6219](https://github.com/osquery/osquery/pull/6219))
+- Fix build to include windows optional features table ([#6207](https://github.com/osquery/osquery/pull/6207))
+
+### Security Issues
+- [CVE-2020-1887] osquery does not properly verify the SNI hostname ([#6197](https://github.com/osquery/osquery/pull/6197))
+
+### Bug Fixes
+- Carver no longer returns empty carves for hidden files ([#6183](https://github.com/osquery/osquery/pull/6183))
+- Address a race in the Dispatcher logic ([#6145](https://github.com/osquery/osquery/pull/6145))
+- Fix validation in 'last' table ([#6147](https://github.com/osquery/osquery/pull/6147))
+- Fix flaky logger testing ([#6171](https://github.com/osquery/osquery/pull/6171))
+- Fix JSON format assumptions in file_paths parsing ([#6159](https://github.com/osquery/osquery/pull/6159))
+- Fix windows WMI BSTR to be wstrings ([#6175](https://github.com/osquery/osquery/pull/6175))
+- Fix windows string <-> wstring conversion functions ([#6187](https://github.com/osquery/osquery/pull/6187))
+- Enable more intelligent path expansion on Windows ([#6153](https://github.com/osquery/osquery/pull/6153))
+- Fix heap buffer overflow in callDoubleFunc and powerFunc ([#6225](https://github.com/osquery/osquery/pull/6225))
+
+### Table Changes
+- Added table `firefox_addons` to All Platforms ([#6200](https://github.com/osquery/osquery/pull/6200))
+- Added table `ssh_configs` to All Platforms ([#6161](https://github.com/osquery/osquery/pull/6161))
+- Added table `user_ssh_keys` to All Platforms ([#6161](https://github.com/osquery/osquery/pull/6161))
+- Added table `mdls` to Darwin (Apple OS X) ([#4825](https://github.com/osquery/osquery/pull/4825))
+- Added table `hvci_status` to Microsoft Windows ([#5426](https://github.com/osquery/osquery/pull/5426))
+- Added table `ntfs_journal_events` to Microsoft Windows ([#5371](https://github.com/osquery/osquery/pull/5371))
+- Added table `docker_image_layers` to POSIX-compatible Plaforms ([#6154](https://github.com/osquery/osquery/pull/6154))
+- Added table `process_open_pipes` to POSIX-compatible Plaforms ([#6142](https://github.com/osquery/osquery/pull/6142))
+- Added table `apparmor_profiles` to Ubuntu, CentOS ([#6138](https://github.com/osquery/osquery/pull/6138))
+- Added table `selinux_settings` to Ubuntu, CentOS ([#6118](https://github.com/osquery/osquery/pull/6118))
+- Added column `lock_status` (`INTEGER_TYPE`) to table `bitlocker_info` ([#6155](https://github.com/osquery/osquery/pull/6155))
+- Added column `percentage_encrypted` (`INTEGER_TYPE`) to table `bitlocker_info` ([#6155](https://github.com/osquery/osquery/pull/6155))
+- Added column `version` (`INTEGER_TYPE`) to table `bitlocker_info` ([#6155](https://github.com/osquery/osquery/pull/6155))
+- Added column `optional_permissions` (`TEXT_TYPE`) to table `chrome_extensions` ([#6115](https://github.com/osquery/osquery/pull/6115))
+- Removed table `firefox_addons` from POSIX-compatible Plaforms ([#6200](https://github.com/osquery/osquery/pull/6200))
+- Removed table `ssh_configs` from POSIX-compatible Plaforms ([#6161](https://github.com/osquery/osquery/pull/6161))
+- Removed table `user_ssh_keys` from POSIX-compatible Plaforms ([#6161](https://github.com/osquery/osquery/pull/6161))
+
 <a name="4.1.2"></a>
 ## [4.1.2](https://github.com/osquery/osquery/releases/tag/4.1.2)
 

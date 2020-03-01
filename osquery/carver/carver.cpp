@@ -150,24 +150,7 @@ void Carver::start() {
     LOG(WARNING) << "Carver has not been properly constructed";
     return;
   }
-  for (const auto& p : carvePaths_) {
-    // Ensure the file is a flat file on disk before carving
-    PlatformFile pFile(p, PF_OPEN_EXISTING | PF_READ);
-    if (!pFile.isValid() || isDirectory(p)) {
-      VLOG(1) << "File does not exist on disk or is subdirectory: " << p;
-      continue;
-    }
-    Status s = carve(p);
-    if (!s.ok()) {
-      VLOG(1) << "Failed to carve file " << p << " " << s.getMessage();
-    }
-  }
-
-  std::set<fs::path> carvedFiles;
-  for (const auto& p : platformGlob((carveDir_ / "*").string())) {
-    carvedFiles.insert(fs::path(p));
-  }
-
+  const auto carvedFiles = carveAll();
   auto s = archive(carvedFiles, archivePath_, FLAGS_carver_block_size);
   if (!s.ok()) {
     VLOG(1) << "Failed to create carve archive: " << s.getMessage();
@@ -209,14 +192,33 @@ void Carver::start() {
   }
 };
 
-Status Carver::carve(const boost::filesystem::path& path) {
-  PlatformFile src(path, PF_OPEN_EXISTING | PF_READ);
-  PlatformFile dst(carveDir_ / path.leaf(), PF_CREATE_NEW | PF_WRITE);
-
-  if (!dst.isValid()) {
-    return Status(1, "Destination tmp FS is not valid.");
+std::set<fs::path> Carver::carveAll() {
+  std::set<fs::path> carvedFiles;
+  for (const auto& srcPath : carvePaths_) {
+    // Ensure the file is a flat file on disk before carving
+    PlatformFile src(srcPath, PF_OPEN_EXISTING | PF_READ);
+    if (!src.isValid() || isDirectory(srcPath)) {
+      VLOG(1) << "File does not exist on disk or is subdirectory: " << srcPath;
+      continue;
+    }
+    const auto dstPath = carveDir_ / srcPath.leaf();
+    PlatformFile dst(dstPath, PF_CREATE_NEW | PF_WRITE);
+    if (!dst.isValid()) {
+      VLOG(1) << "Destination temporary file is invalid: " << dstPath;
+      continue;
+    }
+    Status s = blockwiseCopy(src, dst);
+    if (s.ok()) {
+      carvedFiles.insert(dstPath);
+    } else {
+      VLOG(1) << "Failed to copy file from " << srcPath << " to " << dstPath
+              << " " << s.getMessage();
+    }
   }
+  return carvedFiles;
+}
 
+Status Carver::blockwiseCopy(PlatformFile& src, PlatformFile& dst) {
   auto blkCount = ceil(static_cast<double>(src.size()) /
                        static_cast<double>(FLAGS_carver_block_size));
 

@@ -31,6 +31,7 @@ osquery_cxx_library(
     ],
     visibility = ["PUBLIC"],
     deps = [
+        osquery_target("osquery/utils/conversions:conversions"),
         osquery_tp_target("boost"),
         osquery_target("osquery/utils/conversions:conversions"),
         ":errno",

@@ -23,16 +23,6 @@ namespace osquery {
 
 class Status;
 
-/**
- * @brief The requested exit code.
- *
- * Use Initializer::shutdown to request shutdown in most cases.
- * This will raise a signal to the main thread requesting the dispatcher to
- * interrupt all services. There is a thread requesting a join of all services
- * that will continue the shutdown process.
- */
-extern volatile std::sig_atomic_t kExitCode;
-
 using ModuleHandle = void*;
 
 class Initializer : private boost::noncopyable {
@@ -88,16 +78,37 @@ class Initializer : private boost::noncopyable {
    */
   void initWorkerWatcher(const std::string& name = "") const;
 
-  /**
-   * @brief Move a function callable into the initializer to be called.
-   *
-   * Install an optional platform method to call when waiting for shutdown.
-   * This exists for Windows when the daemon must wait for the service to stop.
-   */
-  void installShutdown(std::function<void()>& handler);
-
   /// Assume initialization finished, start work.
   void start() const;
+
+  /**
+   * @brief Cleanly shutdown all services and components.
+   *
+   * Issue interrupt/stop requests to all service threads, join them, then
+   * stop the eventing system, database usage, and run any platform-specific
+   * teardown logic.
+   *
+   * If a request to shutdown stored a non-0 return code, that will override
+   * the input return code if the input is 0. If the caller assumes success
+   * and something else indicated failure we return with the failure code.
+   *
+   * If the main thread is out of actions it can call #shutdown.
+   *
+   * @param retcode Caller (main thread's) request return code.
+   * @return The most appropriate return code.
+   */
+  int shutdown(int retcode) const;
+
+  /**
+   * @brief Wait until a #requestShutdown is issued.
+   *
+   * The #requestShutdown method is called in a signal handler or service
+   * stop event. It may also be called by osquery internal components if an
+   * unrecoverable error occurs.
+   *
+   * This method should be called before #shutdown.
+   */
+  void waitForShutdown() const;
 
  public:
   /**
@@ -126,16 +137,7 @@ class Initializer : private boost::noncopyable {
   static void requestShutdown(int retcode, const std::string& system_log);
 
   /// Exit immediately without requesting the dispatcher to stop.
-  static void shutdown(int retcode = EXIT_SUCCESS);
-
-  /**
-   * @brief Cleanly wait for all services and components to shutdown.
-   *
-   * Enter a join of all services followed by a sync wait for event loops,
-   * then it shuts down all the components.
-   * If the main thread is out of actions it can call #waitThenShutdown.
-   */
-  static void waitThenShutdown();
+  static void shutdownNow(int retcode = EXIT_SUCCESS);
 
   /**
    * @brief Initialize any platform dependent libraries or objects
@@ -204,12 +206,6 @@ class Initializer : private boost::noncopyable {
 
   /// The deduced program name determined by executing path.
   std::string binary_;
-
-  /// A platform specific callback to wait for shutdown.
-  static std::function<void()> shutdown_;
-
-  /// Mutex to protect use of the shutdown callable.
-  static RecursiveMutex shutdown_mutex_;
 };
 
 /**

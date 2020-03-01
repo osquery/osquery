@@ -32,10 +32,13 @@ TEST_F(chromeExtensions, test_sanity) {
                            {"locale", NormalType},
                            {"update_url", NonEmptyString},
                            {"author", NormalType},
+                           {"optional_permissions", NormalType},
                            {"persistent", IntType},
                            {"path", NonEmptyString},
                            {"permissions", NormalType},
-                           {"profile", NonEmptyString}};
+                           {"profile", NormalType},
+                           {"script", NormalType},
+                           {"match", NormalType}};
   validate_rows(data, row_map);
 }
 

@@ -14,7 +14,7 @@
 namespace osquery {
 
 std::string psidToString(PSID sid) {
-  LPTSTR sidOut = nullptr;
+  LPSTR sidOut = nullptr;
   auto ret = ConvertSidToStringSidA(sid, &sidOut);
   if (ret == 0) {
     VLOG(1) << "ConvertSidToString failed with " << GetLastError();
@@ -25,8 +25,8 @@ std::string psidToString(PSID sid) {
 
 uint32_t getUidFromSid(PSID sid) {
   auto const uid_default = static_cast<uint32_t>(-1);
-  LPTSTR sidString;
-  if (ConvertSidToStringSid(sid, &sidString) == 0) {
+  LPSTR sidString;
+  if (ConvertSidToStringSidA(sid, &sidString) == 0) {
     VLOG(1) << "getUidFromSid failed ConvertSidToStringSid error " +
                    std::to_string(GetLastError());
     LocalFree(sidString);
@@ -80,8 +80,8 @@ uint32_t getGidFromSid(PSID sid) {
   auto ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
 
   if (ret == NERR_UserNotFound) {
-    LPTSTR sidString;
-    ConvertSidToStringSid(sid, &sidString);
+    LPSTR sidString;
+    ConvertSidToStringSidA(sid, &sidString);
     auto toks = osquery::split(sidString, "-");
     gid = tryTo<uint32_t>(toks.at(toks.size() - 1), 10).takeOr(gid);
     LocalFree(sidString);
@@ -200,7 +200,7 @@ bool isLauncherProcessDead(PlatformProcess& launcher) {
 }
 
 ModuleHandle platformModuleOpen(const std::string& path) {
-  return ::LoadLibraryA(path.c_str());
+  return ::LoadLibraryW(stringToWstring(path).c_str());
 }
 
 void* platformModuleGetSymbol(ModuleHandle module, const std::string& symbol) {
@@ -250,9 +250,5 @@ int platformGetPid() {
 
 uint64_t platformGetTid() {
   return GetCurrentThreadId();
-}
-
-void platformMainThreadExit(int excode) {
-  ExitThread(static_cast<DWORD>(excode));
 }
 }

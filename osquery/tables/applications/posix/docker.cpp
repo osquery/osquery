@@ -689,6 +689,62 @@ QueryData genContainerProcesses(QueryContext& context) {
 }
 
 /**
+ * @brief Helper function to convert fs change type to char code
+ */
+char getFsChangeType(int type_id) {
+  switch (type_id) {
+  case 0:
+    return 'C';
+  case 1:
+    return 'A';
+  case 2:
+    return 'D';
+  default:
+    return ' ';
+  }
+}
+
+/**
+ * @brief Entry point for docker_container_fs_changes table.
+ */
+QueryData genContainerFsChanges(QueryContext& context) {
+  QueryData results;
+
+  for (const auto& id : context.constraints["id"].getAll(EQUALS)) {
+    if (!checkConstraintValue(id)) {
+      continue;
+    }
+
+    pt::ptree tree;
+    auto s = dockerApi("/containers/" + id + "/changes", tree);
+    if (!s.ok()) {
+      VLOG(1) << "Error getting docker container fs changes" << id << ": "
+              << s.what();
+      continue;
+    }
+
+    for (const auto& entry : tree) {
+      try {
+        const pt::ptree& node = entry.second;
+        char change_type = getFsChangeType(node.get<int>("Kind"));
+        if (change_type == ' ') {
+          continue;
+        }
+        Row r;
+        r["id"] = id;
+        r["path"] = node.get<std::string>("Path");
+        r["change_type"] = change_type;
+        results.push_back(r);
+      } catch (const pt::ptree_error& e) {
+        VLOG(1) << "Error getting docker container fs changes details: "
+                << e.what();
+      }
+    }
+  }
+  return results;
+}
+
+/**
  * @brief Parses provided date string and return time in seconds since epoch.
  *
  * @param iso_8601 Date string in format: 2017-05-01T16:08:43

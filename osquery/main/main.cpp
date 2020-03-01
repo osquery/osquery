@@ -94,7 +94,7 @@ int profile(int argc, char* argv[]) {
   return 0;
 }
 
-int startDaemon(Initializer& runner) {
+void startDaemon(Initializer& runner) {
   runner.start();
 
   // Conditionally begin the distributed query service
@@ -108,9 +108,7 @@ int startDaemon(Initializer& runner) {
 
   osquery::events::init_syscall_tracing();
 
-  // Finally wait for a signal / interrupt to shutdown.
-  runner.waitThenShutdown();
-  return 0;
+  runner.waitForShutdown();
 }
 
 int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
@@ -137,12 +135,10 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
   } else {
     retcode = profile(argc, argv);
   }
-  // Finally shutdown.
-  runner.requestShutdown(retcode);
   return retcode;
 }
 
-int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
+int startOsquery(int argc, char* argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.
   osquery::Initializer runner(argc, argv, osquery::ToolType::SHELL_DAEMON);
 
@@ -173,16 +169,22 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
     }
   }
 
-  runner.installShutdown(shutdown);
+  int retcode = 0;
   runner.initDaemon();
 
   // When a watchdog is used, the current daemon will fork/exec into a worker.
   // In either case the watcher may start optionally loaded extensions.
   runner.initWorkerWatcher(kWatcherWorkerName);
 
-  if (runner.isDaemon()) {
-    return startDaemon(runner);
+  // Only worker processes should start a daemon or shell.
+  if (!runner.isWatcher()) {
+    if (runner.isDaemon()) {
+      startDaemon(runner);
+    } else {
+      retcode = startShell(runner, argc, argv);
+    }
   }
-  return startShell(runner, argc, argv);
+
+  return runner.shutdown(retcode);
 }
 } // namespace osquery

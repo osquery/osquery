@@ -15,6 +15,7 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/process/process.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace fs = boost::filesystem;
 
@@ -313,11 +314,11 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
     const std::string& args) {
-  STARTUPINFOA si = {0};
+  STARTUPINFOW si = {0};
   PROCESS_INFORMATION pi = {nullptr};
 
   auto argv = "python " + args;
-  std::vector<char> mutable_argv(argv.begin(), argv.end());
+  std::vector<WCHAR> mutable_argv(argv.begin(), argv.end());
   mutable_argv.push_back('\0');
   si.cb = sizeof(si);
 
@@ -329,7 +330,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
   auto pythonPath = *pythonEnv;
 
   std::shared_ptr<PlatformProcess> process;
-  if (::CreateProcessA(pythonPath.c_str(),
+  if (::CreateProcessW(stringToWstring(pythonPath).c_str(),
                        mutable_argv.data(),
                        nullptr,
                        nullptr,

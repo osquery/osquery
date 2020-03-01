@@ -20,6 +20,17 @@ namespace osquery {
 namespace tables {
 namespace {
 
+using ChromeExtensionContentScriptMap =
+    std::map<std::tuple<std::string, std::string>,
+             std::set<std::tuple<std::string, std::string>>>;
+
+using ChromeContentScriptDetails =
+    std::vector<std::map<std::string, std::vector<std::string>>>;
+
+using ChromeUserExtensions =
+    std::tuple<std::string /* uid */,
+               std::vector<std::string> /* extension_paths*/>;
+
 #define kManifestFile "/manifest.json"
 
 const std::map<std::string, std::string> kExtensionKeys = {
@@ -35,6 +46,47 @@ const std::string kExtensionPermissionKey = "permissions";
 const std::string kExtensionOptionalPermissionKey = "optional_permissions";
 const std::string kProfilePreferencesFile = "Preferences";
 const std::string kProfilePreferenceKey = "profile";
+const std::string kScriptKey = "js";
+const std::string kMatchesKey = "matches";
+
+std::vector<ChromeUserExtensions> chromeExtensionPathsByUser(
+    const QueryData& users, const std::vector<fs::path>& chromePaths) {
+  std::vector<ChromeUserExtensions> extensionPathsByUser;
+
+  for (const auto& row : users) {
+    if (row.count("uid") == 0 || row.count("directory") == 0) {
+      continue;
+    }
+
+    // For each user, enumerate all of their chrome profiles.
+    for (const auto& chromePath : chromePaths) {
+      std::vector<std::string> profiles;
+      fs::path extension_path = row.at("directory") / chromePath;
+      if (!resolveFilePattern(extension_path, profiles, GLOB_FOLDERS).ok()) {
+        continue;
+      }
+
+      // For each profile list each extension in the Extensions directory.
+      for (const auto& profile : profiles) {
+        std::vector<std::string> unversionedExtensions = {};
+        listDirectoriesInDirectory(profile, unversionedExtensions);
+
+        if (unversionedExtensions.empty()) {
+          continue;
+        }
+        std::vector<std::string> extensionPaths;
+        for (const auto& unversionedExtension : unversionedExtensions) {
+          listDirectoriesInDirectory(unversionedExtension, extensionPaths);
+        }
+
+        extensionPathsByUser.push_back(
+            std::make_tuple(row.at("uid"), extensionPaths));
+      }
+    }
+  }
+
+  return extensionPathsByUser;
+}
 
 Status getChromeProfileName(std::string& name, const fs::path& path) {
   name.clear();
@@ -95,6 +147,41 @@ const std::string genPermissions(const std::string& permissionTypeKey,
     permission_list = boost::algorithm::join(perm_vector, ", ");
   }
   return permission_list;
+}
+
+ChromeContentScriptDetails genContentScriptDetail(const pt::ptree& tree) {
+  ChromeContentScriptDetails details;
+
+  if (const auto& content_script_array =
+          tree.get_child_optional("content_scripts")) {
+    for (const auto& content_script : content_script_array.get()) {
+      std::map<std::string, std::vector<std::string>> detail;
+
+      if (const auto& js_script_array =
+              content_script.second.get_child_optional(kScriptKey)) {
+        for (const auto& js_script : js_script_array.get()) {
+          if (const auto& js_script_value =
+                  js_script.second.get_value_optional<std::string>()) {
+            detail[kScriptKey].push_back(js_script_value.get());
+          }
+        }
+      }
+
+      if (const auto& match_array =
+              content_script.second.get_child_optional(kMatchesKey)) {
+        for (const auto& match : match_array.get()) {
+          if (const auto& match_value =
+                  match.second.get_value_optional<std::string>()) {
+            detail[kMatchesKey].push_back(match_value.get());
+          }
+        }
+      }
+
+      details.push_back(detail);
+    }
+  }
+
+  return details;
 }
 
 void genExtension(const std::string& uid,
@@ -174,58 +261,116 @@ void genExtension(const std::string& uid,
 
   r["identifier"] = fs::path(path).parent_path().parent_path().leaf().string();
   r["path"] = path;
+
   results.push_back(r);
+}
+
+void genExtensionContentScripts(
+    const std::string& path,
+    ChromeExtensionContentScriptMap& contentScriptMap) {
+  std::string json_data;
+  if (!forensicReadFile(path + kManifestFile, json_data).ok()) {
+    VLOG(1) << "Could not read file: " << path + kManifestFile;
+    return;
+  }
+
+  // Read the extension metadata into a JSON blob, then property tree.
+  pt::ptree tree;
+  try {
+    std::stringstream json_stream;
+    json_stream << json_data;
+    pt::read_json(json_stream, tree);
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
+    VLOG(1) << "Could not parse JSON from: " << path + kManifestFile;
+    return;
+  }
+
+  const std::string& version = tree.get<std::string>("version", "");
+  auto& scriptMatchPairs = contentScriptMap[std::make_tuple(
+      fs::path(path).parent_path().parent_path().leaf().string(), version)];
+
+  auto contentScriptDetail = genContentScriptDetail(tree);
+  for (auto& contentScript : contentScriptDetail) {
+    for (auto& script : contentScript[kScriptKey]) {
+      if (contentScript[kMatchesKey].empty()) {
+        scriptMatchPairs.insert(std::make_tuple(script, ""));
+      } else {
+        for (auto& match : contentScript[kMatchesKey]) {
+          scriptMatchPairs.insert(std::make_tuple(script, match));
+        }
+      }
+    }
+  }
 }
 
 QueryData genChromeBasedExtensions(QueryContext& context,
                                    const std::vector<fs::path>& chromePaths) {
   QueryData results;
 
-  auto users = usersFromContext(context);
-  for (const auto& row : users) {
-    if (row.count("uid") > 0 && row.count("directory") > 0) {
-      // For each user, enumerate all of their chrome profiles.
-      std::vector<std::string> profiles;
-      for (const auto& chromePath : chromePaths) {
-        fs::path extension_path = row.at("directory") / chromePath;
-        if (!resolveFilePattern(extension_path, profiles, GLOB_FOLDERS).ok()) {
-          continue;
-        }
+  const auto& extensionPathsByUser =
+      chromeExtensionPathsByUser(usersFromContext(context), chromePaths);
 
-        // For each profile list each extension in the Extensions directory.
-        for (const auto& profile : profiles) {
-          std::vector<std::string> extensions = {};
-          listDirectoriesInDirectory(profile, extensions);
+  for (const auto& userExtensionPaths : extensionPathsByUser) {
+    const auto& uid = std::get<0>(userExtensionPaths);
+    std::map<fs::path, std::string> profileNameMap;
 
-          if (extensions.empty()) {
-            continue;
-          }
+    for (const auto& version : std::get<1>(userExtensionPaths)) {
+      const auto& profile_path = fs::path(version)
+                                     .parent_path()
+                                     .parent_path()
+                                     .parent_path()
+                                     .parent_path();
 
-          auto profile_path = fs::path(profile).parent_path().parent_path();
-
-          std::string profile_name;
-          auto status = getChromeProfileName(profile_name, profile_path);
-          if (!status.ok()) {
-            LOG(WARNING) << "Getting Chrome profile name failed: "
-                         << status.getMessage();
-          }
-
-          // Generate an addons list from their extensions JSON.
-          std::vector<std::string> versions;
-          for (const auto& extension : extensions) {
-            listDirectoriesInDirectory(extension, versions);
-          }
-
-          // Extensions use /<EXTENSION>/<VERSION>/manifest.json.
-          for (const auto& version : versions) {
-            genExtension(row.at("uid"), version, profile_name, results);
-          }
+      auto it = profileNameMap.find(profile_path);
+      if (it == profileNameMap.end()) {
+        auto status =
+            getChromeProfileName(profileNameMap[profile_path], profile_path);
+        if (!status.ok()) {
+          LOG(WARNING) << "Getting Chrome profile name failed: "
+                       << status.getMessage();
         }
       }
+
+      genExtension(uid, version, profileNameMap[profile_path], results);
     }
   }
 
   return results;
 }
+
+QueryData genChromeBasedExtensionContentScripts(
+    QueryContext& context, const std::vector<fs::path>& chromePaths) {
+  QueryData results;
+
+  // Extensions are frequently duplicated across profiles and
+  // Chrome installations, so we construct a map of
+  // (extension_id, version) -> {(script, match)}
+  // for deduplication purposes.
+  ChromeExtensionContentScriptMap contentScriptMap;
+
+  const auto& extensionPathsByUser =
+      chromeExtensionPathsByUser(usersFromContext(context), chromePaths);
+  for (const auto& userExtensionPaths : extensionPathsByUser) {
+    for (const auto& version : std::get<1>(userExtensionPaths)) {
+      genExtensionContentScripts(version, contentScriptMap);
+    }
+  }
+
+  for (const auto& it : contentScriptMap) {
+    Row r;
+
+    r["identifier"] = std::get<0>(it.first);
+    r["version"] = std::get<1>(it.first);
+
+    for (const auto& scriptMatchPair : it.second) {
+      r["script"] = std::get<0>(scriptMatchPair);
+      r["match"] = std::get<1>(scriptMatchPair);
+      results.push_back(r);
+    }
+  }
+
+  return results;
 }
-}
+
+} // namespace tables
+} // namespace osquery
