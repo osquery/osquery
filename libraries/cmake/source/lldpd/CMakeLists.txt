@@ -107,7 +107,7 @@ function(generateLiblldpd)
   )
 
   target_include_directories(thirdparty_lldpd PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/liblldpd"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/liblldpd/${CMAKE_SYSTEM_PROCESSOR}"
 
     "${library_root}"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/include"

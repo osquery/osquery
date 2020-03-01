@@ -116,10 +116,16 @@ function(generateAwsChecksumsTarget)
     "${library_root}/source/crc_sw.c"
   )
 
-  if(DEFINED PLATFORM_POSIX)
+  if(DEFINED PLATFORM_POSIX AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
     set(additional_source_file_list
       "${library_root}/source/intel/cpuid.c"
       "${library_root}/source/intel/crc32c_sse42_asm.c"
+    )
+
+  elseif(DEFINED PLATFORM_POSIX AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+    set(additional_source_file_list
+      "${library_root}/source/arm/cpuid_arm.c"
+      "${library_root}/source/arm/crc32c_arm.c"
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)

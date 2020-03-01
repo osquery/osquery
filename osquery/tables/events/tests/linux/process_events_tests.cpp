@@ -110,6 +110,7 @@ TEST_F(ProcessEventsTests, syscall_name_label) {
 }
 
 TEST_F(ProcessEventsTests, exec_event_processing) {
+#if defined(__x86_64__)
   // clang-format off
   const RawAuditEvent kSampleExecveEvent = {
     { 1300, "audit(1502125323.756:6): arch=c000003e syscall=59 success=yes exit=0 a0=23eb8e0 a1=23ebbc0 a2=23c9860 a3=7ffe18d32ed0 items=2 ppid=6882 pid=7841 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=2 comm=\"sh\" exe=\"/usr/bin/bash\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)" },
@@ -143,6 +144,42 @@ TEST_F(ProcessEventsTests, exec_event_processing) {
       {"mode", "0100755"},
       {"owner_uid", "0"},
       {"owner_gid", "0"}};
+#else
+  // clang-format off
+  const RawAuditEvent kSampleExecveEvent = {
+    { 1300, "audit(1583299940.591:2908): arch=c00000b7 syscall=221 success=yes exit=0 a0=aaaae00419d0 a1=ffffeaa51d90 a2=aaaadff53500 a3=ffffeaa51d98 items=2 ppid=4444 pid=7146 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=1 comm=\"bash\" exe=\"/bin/bash\" key=(null)" },
+    { 1309, "audit(1583299940.591:2908): argc=1 a0=\"-bash\"" },
+    { 1307, "audit(1583299940.591:2908): cwd=\"/home/ubuntu/osquery\"" },
+    { 1302, "audit(1583299940.591:2908): item=0 name=\"/bin/bash\" inode=13 dev=103:01 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0000000000000000 cap_fi=0000000000000000 cap_fe=0 cap_fver=0" },
+    { 1302, "audit(1583299940.591:2908): item=1 name=\"/lib/ld-linux-aarch64.so.1\" inode=2031 dev=103:01 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0000000000000000 cap_fi=0000000000000000 cap_fe=0 cap_fver=0" },
+    { 1327, "audit(1583299940.591:2908): proctitle=\"-bash\"" },
+    { 1320, "audit(1583299940.591:2908): " }
+  };
+  // clang-format on
+
+  Row event_row;
+  GenerateEventRow(event_row, kSampleExecveEvent);
+
+  const std::vector<std::string> kExpectedFields = {
+      "uptime", "overflows", "env", "env_size", "env_count"};
+
+  const std::unordered_map<std::string, std::string> kExpectedFieldMap = {
+      {"auid", "1000"},
+      {"pid", "7146"},
+      {"uid", "1000"},
+      {"euid", "1000"},
+      {"gid", "1000"},
+      {"egid", "1000"},
+      {"syscall", "execve"},
+      {"parent", "4444"},
+      {"path", "/bin/bash"},
+      {"cwd", "\"/home/ubuntu/osquery\""},
+      {"cmdline", "-bash"},
+      {"cmdline_size", "5"},
+      {"mode", "0100755"},
+      {"owner_uid", "0"},
+      {"owner_gid", "0"}};
+ #endif
 
   for (const auto& key : kExpectedFields) {
     EXPECT_TRUE(event_row.find(key) != event_row.end());
@@ -240,6 +277,8 @@ TEST_F(ProcessEventsTests, process_id_acquisition) {
   std::uint64_t parent_process_id{0U};
   std::uint64_t process_id{0U};
 
+  // AArch64 does not have fork or vfork syscalls
+#if !defined(__aarch64__)
   for (int syscall_nr : {__NR_fork, __NR_vfork}) {
     auto status = AuditProcessEventSubscriber::GetProcessIDs(
         parent_process_id, process_id, syscall_nr, event_record);
@@ -248,6 +287,7 @@ TEST_F(ProcessEventsTests, process_id_acquisition) {
     EXPECT_EQ(parent_process_id, 15929U);
     EXPECT_EQ(process_id, 33);
   }
+#endif
 
   // Normal process creation, with clone (a0 does not have the CLONE_PARENT bit
   // set)

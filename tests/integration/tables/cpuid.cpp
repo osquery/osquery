@@ -31,7 +31,10 @@ TEST_F(cpuid, test_sanity) {
   };
 
   auto const data = execute_query("select * from cpuid");
+#if defined(__x86_64__)
+  // Not impltemented on AArch64
   ASSERT_FALSE(data.empty());
+#endif
   validate_rows(data, row_map);
 }
 

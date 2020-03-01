@@ -35,7 +35,7 @@ function(opensslMain)
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set(configure_command
       "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
-      perl ./Configure linux-x86_64
+      perl ./Configure "linux-${CMAKE_SYSTEM_PROCESSOR}"
         ${common_options}
         ${C_FLAGS}
 

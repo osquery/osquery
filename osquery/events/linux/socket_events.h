@@ -7,8 +7,11 @@
  */
 
 #pragma once
-
+#ifdef __x86_64__
 #include <asm/unistd_64.h>
+#else
+#include <asm/unistd.h>
+#endif
 
 #include <set>
 

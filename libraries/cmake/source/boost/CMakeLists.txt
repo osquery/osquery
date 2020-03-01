@@ -681,11 +681,17 @@ endfunction()
 function(generateBoostContext)
   set(library_root "${BOOST_ROOT}/libs/context")
 
-  if(DEFINED PLATFORM_LINUX)
+  if(DEFINED PLATFORM_LINUX AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
     set(asm_source_file_list
       "${library_root}/src/asm/jump_x86_64_sysv_elf_gas.S"
       "${library_root}/src/asm/make_x86_64_sysv_elf_gas.S"
       "${library_root}/src/asm/ontop_x86_64_sysv_elf_gas.S"
+    )
+  elseif(DEFINED PLATFORM_LINUX AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+    set(asm_source_file_list
+      "${library_root}/src/asm/jump_arm64_aapcs_elf_gas.S"
+      "${library_root}/src/asm/make_arm64_aapcs_elf_gas.S"
+      "${library_root}/src/asm/ontop_arm64_aapcs_elf_gas.S"
     )
   elseif(DEFINED PLATFORM_MACOS)
     set(asm_source_file_list

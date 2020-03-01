@@ -33,13 +33,13 @@ function(libgpgerrorMain)
   )
 
   target_include_directories(thirdparty_libgpg-error PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${CMAKE_SYSTEM_PROCESSOR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated/${CMAKE_SYSTEM_PROCESSOR}"
     "${library_root}"
   )
 
   target_include_directories(thirdparty_libgpg-error SYSTEM INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated/${CMAKE_SYSTEM_PROCESSOR}"
   )
 endfunction()
 

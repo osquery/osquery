@@ -8,7 +8,11 @@
 
 #pragma once
 
+#ifdef __x86_64__
 #include <asm/unistd_64.h>
+#else
+#include <asm/unistd.h>
+#endif
 
 #include <set>
 
@@ -16,5 +20,8 @@ namespace osquery {
 const std::set<int> kExecProcessEventsSyscalls = {__NR_execve, __NR_execveat};
 
 const std::set<int> kForkProcessEventsSyscalls = {
-    __NR_fork, __NR_vfork, __NR_clone};
+#ifndef __aarch64__
+    __NR_fork, __NR_vfork,
+#endif
+    __NR_clone};
 } // namespace osquery

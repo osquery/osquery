@@ -158,7 +158,7 @@
 #define VERSION "2.4.3"
 
 /* Define if you want to enable Aarch64 processor support. */
-/* #undef WITH_AARCH64 */
+#define WITH_AARCH64 1
 
 /* Define if you want to enable Alpha processor support. */
 /* #undef WITH_ALPHA */
@@ -167,7 +167,7 @@
 /* #undef WITH_APPARMOR */
 
 /* Define if you want to enable Arm eabi processor support. */
-/* #undef WITH_ARM */
+#define WITH_ARM 1
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */

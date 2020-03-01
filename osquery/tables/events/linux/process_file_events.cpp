@@ -5,8 +5,12 @@
  *  This source code is licensed in accordance with the terms specified in
  *  the LICENSE file found in the root directory of this source tree.
  */
-
+#ifdef __x86_64__
 #include <asm/unistd_64.h>
+#else
+#include <asm/unistd.h>
+#endif
+
 #include <fcntl.h>
 #include <sys/mman.h>
 
@@ -704,6 +708,7 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
   // written.
   bool is_truncate = false;
 
+#ifdef __x86_64__
   if (syscall_context.syscall_number == __NR_open) {
     std::uint64_t open_flags;
     GetIntegerFieldFromMap(open_flags,
@@ -713,7 +718,9 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
                            static_cast<std::uint64_t>(O_TRUNC));
     is_truncate = ((open_flags & O_TRUNC) != 0);
 
-  } else if (syscall_context.syscall_number == __NR_openat ||
+  } else
+#endif
+  if (syscall_context.syscall_number == __NR_openat ||
              syscall_context.syscall_number == __NR_open_by_handle_at) {
     std::uint64_t open_flags;
     GetIntegerFieldFromMap(open_flags,
@@ -768,8 +775,10 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
   std::string normalized_path;
 
   switch (syscall_context.syscall_number) {
+#ifdef __x86_64__
   case __NR_creat:
   case __NR_mknod:
+#endif
   case __NR_mknodat: {
     if (syscall_context.path_record_map.size() != 2) {
       wrong_record_count = true;
@@ -783,9 +792,10 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
 
     break;
   }
-
-  case __NR_openat:
-  case __NR_open: {
+#ifdef __x86_64__
+  case __NR_open:
+#endif
+  case __NR_openat: {
     if (syscall_context.path_record_map.size() == 1) {
       input_path_working_dir = syscall_context.cwd;
       raw_input_path = syscall_context.path_record_map[0].path;
@@ -875,8 +885,12 @@ bool HandleLinkAndSymlinkSyscallRecord(
     AuditdFimContext& fim_context,
     AuditdFimSyscallContext& syscall_context,
     const AuditEventRecord& record) noexcept {
+#ifdef __x86_64__
   if (syscall_context.syscall_number == __NR_symlink ||
       syscall_context.syscall_number == __NR_symlinkat) {
+#else
+  if (syscall_context.syscall_number == __NR_symlinkat) {
+#endif
     syscall_context.type = AuditdFimSyscallContext::Type::Symlink;
   } else {
     syscall_context.type = AuditdFimSyscallContext::Type::Link;
@@ -922,8 +936,13 @@ bool HandleLinkAndSymlinkSyscallRecord(
       AuditdFimInodeDescriptor::Type::File;
 
   auto source_path = syscall_context.path_record_map[0];
+
+#ifdef __x86_64_
   if (syscall_context.syscall_number == __NR_link ||
       syscall_context.syscall_number == __NR_linkat) {
+#else
+  if (syscall_context.syscall_number == __NR_linkat) {
+#endif
     source_type = AuditdFimInodeDescriptor::Type::File;
     source_path.inode = syscall_context.path_record_map[2].inode;
 
@@ -1038,8 +1057,10 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
   switch (syscall_context.syscall_number) {
   // The following syscalls are only handled to duplicate and/or create the fd
   // map
+#ifdef __x86_64__
   case __NR_fork:
   case __NR_vfork:
+#endif
   case __NR_clone: {
     skip_row_emission = true;
     syscall_context.type = AuditdFimSyscallContext::Type::CloneOrFork;
@@ -1049,9 +1070,11 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
         static_cast<pid_t>(syscall_context.return_value));
   }
 
+#ifdef __x86_x64__
   case __NR_link:
-  case __NR_linkat:
   case __NR_symlink:
+#endif
+  case __NR_linkat:
   case __NR_symlinkat: {
     return HandleLinkAndSymlinkSyscallRecord(
         fim_context, syscall_context, record);
@@ -1064,21 +1087,27 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
         fim_context, syscall_context, record);
   }
 
+#ifdef __x86_64__
   case __NR_rename:
+#endif
   case __NR_renameat:
   case __NR_renameat2: {
     return HandleRenameSyscallRecord(fim_context, syscall_context, record);
   }
 
+#ifdef __x86_64__
   case __NR_unlink:
+#endif
   case __NR_unlinkat: {
     return HandleUnlinkSyscallRecord(fim_context, syscall_context, record);
   }
 
+#ifdef __x86_64__
   case __NR_creat:
   case __NR_mknod:
-  case __NR_mknodat:
   case __NR_open:
+#endif
+  case __NR_mknodat:
   case __NR_openat:
   case __NR_open_by_handle_at: {
     return HandleOpenOrCreateSyscallRecord(
@@ -1090,7 +1119,9 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
   }
 
   case __NR_dup:
+#ifdef __x86_64__
   case __NR_dup2:
+#endif
   case __NR_dup3: {
     skip_row_emission = true;
     return HandleDupSyscallRecord(fim_context, syscall_context, record);

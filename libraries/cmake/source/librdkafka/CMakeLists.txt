@@ -100,7 +100,7 @@ function(generateLibrdkafka)
   )
 
   target_include_directories(thirdparty_librdkafka_c PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/dummy"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${CMAKE_SYSTEM_PROCESSOR}/dummy"
     "${library_root}"
   )
 
@@ -138,7 +138,7 @@ function(generateLibrdkafkaxx)
   )
 
   target_include_directories(thirdparty_librdkafka_cxx PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/dummy"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${CMAKE_SYSTEM_PROCESSOR}/dummy"
     "${library_root}"
   )
 

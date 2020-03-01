@@ -24,6 +24,8 @@
 #define __NR_perf_event_open 336
 #elif defined(__x86_64__)
 #define __NR_perf_event_open 298
+#elif defined(__aarch64__)
+#define __NR_perf_event_open 364
 #else
 #error __NR_perf_event_open must be defined
 #endif

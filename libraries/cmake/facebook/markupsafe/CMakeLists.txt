@@ -9,9 +9,13 @@ function(markupsafeMain)
   set(base_url "https://s3.amazonaws.com/osquery-packages/third-party/pre-built/linux-x86_64")
   set(file_name "MarkupSafe-1.1.0-cp37-cp37m-manylinux1_x86_64.whl")
 
-  if(DEFINED PLATFORM_LINUX)
+  if(DEFINED PLATFORM_LINUX AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
     # Original SHA1 was 17ad72c7ce71a33144455048af1a5a3538ca1750
     set(hash "d9ac82be533394d341b41d78aca7ed0e0f4ba5a2231602e2f05aa87f25c51672")
+  elseif(DEFINED PLATFORM_LINUX AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+    set(hash "9d6dbe40f7719383f263c3a1af27dd93f42ad07bcd4898a54f02542667706300")
+    set(base_url "https://artem.ist/osquery")	# TODO: get someone else to host this
+    set(file_name "MarkupSafe-1.1.0-cp36-cp36m-linux_aarch64.whl")
   elseif(DEFINED PLATFORM_MACOS)
     # Original SHA1 was eb3e78cf203e2cd0eaa406ccf157cb613f9f28d8
     set(hash "1f19ef5d3908110e1e891deefb5586aae1b49a7440db952454b4e281b41620cd")

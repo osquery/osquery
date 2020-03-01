@@ -6,7 +6,11 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#ifdef __x86_64__
 #include <asm/unistd_64.h>
+#else
+#include <asm/unistd.h>
+#endif
 
 #include <osquery/events/linux/process_events.h>
 #include <osquery/logger.h>
@@ -20,8 +24,10 @@ namespace {
 const std::unordered_map<int, std::string> kSyscallNameMap = {
     {__NR_execve, "execve"},
     {__NR_execveat, "execveat"},
+#ifdef __x86_64__
     {__NR_fork, "fork"},
     {__NR_vfork, "vfork"},
+#endif
     {__NR_clone, "clone"}};
 }
 
@@ -287,11 +293,15 @@ Status AuditProcessEventSubscriber::GetProcessIDs(
     return Status::failure("Invalid record type");
   }
 
+#ifdef __x86_64__
   if (syscall_nr == __NR_fork || syscall_nr == __NR_vfork) {
     GetIntegerFieldFromMap(parent_process_id, syscall_record.fields, "pid");
     GetIntegerFieldFromMap(process_id, syscall_record.fields, "exit");
 
   } else if (syscall_nr == __NR_clone) {
+#else
+  if (syscall_nr == __NR_clone) {
+#endif
     GetIntegerFieldFromMap(process_id, syscall_record.fields, "exit");
 
     std::uint64_t clone_flags{0U};

@@ -82,13 +82,13 @@ function(smartmontoolsMain)
   )
 
   target_include_directories(thirdparty_smartmontools PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${CMAKE_SYSTEM_PROCESSOR}"
     "${CMAKE_CURRENT_BINARY_DIR}"
     "${library_root}"
   )
 
   target_include_directories(thirdparty_smartmontools SYSTEM INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${CMAKE_SYSTEM_PROCESSOR}"
     "${CMAKE_CURRENT_BINARY_DIR}"
     "${library_root}"
   )
