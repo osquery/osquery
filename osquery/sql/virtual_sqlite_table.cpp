@@ -62,7 +62,8 @@ Status genSqliteTableRow(sqlite3_stmt* stmt,
     }
   }
   if (r.count("path") > 0) {
-    LOG(WARNING) << "Row contains a path key, refusing to overwrite";
+    LOG(WARNING) << "ATC Table: Row contains a defined path key, omitting the "
+                    "implicit one";
   } else {
     r["path"] = sqlite_db.string();
   }
