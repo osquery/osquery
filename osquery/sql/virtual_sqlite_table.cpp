@@ -98,7 +98,7 @@ Status genTableRowsForSqliteTable(const fs::path& sqlite_db,
   rc = sqlite3_prepare_v2(db, sqlite_query.c_str(), -1, &stmt, nullptr);
   if (rc != SQLITE_OK) {
     sqlite3_close(db);
-    VLOG(1) << "Could not prepare database at path: " << sqlite_db;
+    VLOG(1) << "ATC table: Could not prepare database at path: " << sqlite_db;
     return Status(rc, "Could not prepare database");
   }
 

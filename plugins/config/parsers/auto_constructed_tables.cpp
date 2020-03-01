@@ -36,7 +36,7 @@ TableRows ATCPlugin::generate(QueryContext& context) {
     if (!s.ok()) {
       VLOG(1) << "ATC Table: Unable to detect journal mode, applying default "
                  "locking policy"
-              << " for path " << path_;
+              << " for path " << path;
     } else {
       preserve_locking = s.getMessage() == "wal";
     }
