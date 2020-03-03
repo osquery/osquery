@@ -15,16 +15,10 @@
 namespace osquery {
 namespace tables {
 
-
 void logUnsupportedError(const std::string& reason) {
   LOG(ERROR)
       << "The screenlock table is not supported on this version of macOS: "
       << reason;
-}
-  LOG(ERROR) << "This table is not supported on this version of macOS";
-  VLOG(1) << vlogMessage;
-
-  return;
 }
 
 QueryData genScreenlock(QueryContext& context) {
