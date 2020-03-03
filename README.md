@@ -86,34 +86,47 @@ These queries can be:
 
 ## Download & Install
 
-To download the latest stable builds and for repository information and installation instructions
-visit [https://osquery.io/downloads](https://osquery.io/downloads/).
+To download the latest stable builds and for repository information
+and installation instructions visit
+[https://osquery.io/downloads](https://osquery.io/downloads/).
 
 ## Build from source
 
-Building osquery from source is encouraged! Check out our [build guide](https://osquery.readthedocs.io/en/latest/development/building/). Also check out our [contributing guide](CONTRIBUTING.md) and join the community on [Slack](https://slack.osquery.io).
+Building osquery from source is encouraged! Check out our [build
+guide](https://osquery.readthedocs.io/en/latest/development/building/). Also
+check out our [contributing guide](CONTRIBUTING.md) and join the
+community on [Slack](https://slack.osquery.io).
 
 ## License
 
-By contributing to osquery you agree that your contributions will be licensed as defined on the
-LICENSE file.
+By contributing to osquery you agree that your contributions will be
+licensed as defined on the LICENSE file.
 
 ## Vulnerabilities
 
-We keep track of security announcements in our tagged version release notes on GitHub. We aggregate
-these into [SECURITY.md](SECURITY.md) too.
+We keep track of security announcements in our tagged version release
+notes on GitHub. We aggregate these into [SECURITY.md](SECURITY.md)
+too.
 
-Facebook has a [bug bounty](https://www.facebook.com/whitehat/) program that includes osquery. If
-you find a security vulnerability in osquery, please submit it via the process outlined on that page
-and **do not file a public issue**. For more information on finding vulnerabilities in osquery, see
-our blog post [Bug Hunting
+Facebook has a [bug bounty](https://www.facebook.com/whitehat/)
+program that includes osquery. If you find a security vulnerability in
+osquery, please submit it via the process outlined on that page and
+**do not file a public issue**. For more information on finding
+vulnerabilities in osquery, see our blog post [Bug Hunting
 osquery](https://www.facebook.com/notes/facebook-bug-bounty/bug-hunting-osquery/954850014529225).
 
 ## Learn more
 
-If you're interested in learning more about osquery read the [launch blog
-post](https://code.facebook.com/posts/844436395567983/introducing-osquery/) for background on the
-project, visit the [users guide](https://osquery.readthedocs.org/).
+The osquery documentation is available
+[online](https://osquery.readthedocs.org). Documentation for older
+releases can be found by version number, [as
+well](https://readthedocs.org/projects/osquery/).
 
-Development and usage discussion is happening in the osquery Slack, grab an invite automatically
+If you're interested in learning more about osquery read the [launch
+blog
+post](https://code.facebook.com/posts/844436395567983/introducing-osquery/)
+for background on the project, visit the [users
+guide](https://osquery.readthedocs.org/).
+
+Development and usage discussion is happening in the osquery Slack, grab an invite
 [here](https://slack.osquery.io)!
