@@ -260,8 +260,6 @@ Status SQLiteDatabasePlugin::remove(const std::string& domain,
   return Status(0);
 }
 
-void SQLiteDatabasePlugin::dumpDatabase() const {}
-
 Status SQLiteDatabasePlugin::removeRange(const std::string& domain,
                                          const std::string& low,
                                          const std::string& high) {

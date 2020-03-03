@@ -53,8 +53,6 @@ class EphemeralDatabasePlugin : public DatabasePlugin {
   Status putBatch(const std::string& domain,
                   const DatabaseStringValueList& data) override;
 
-  void dumpDatabase() const override;
-
   /// Data removal method.
   Status remove(const std::string& domain, const std::string& k) override;
 
