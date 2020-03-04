@@ -262,7 +262,7 @@
 /* #undef _EVENT_HAVE_STRUCT_SOCKADDR_STORAGE___SS_FAMILY */
 
 /* Define to 1 if you have the `sysctl' function. */
-#define _EVENT_HAVE_SYSCTL 1
+/* #undef _EVENT_HAVE_SYSCTL */
 
 /* Define to 1 if you have the <sys/devpoll.h> header file. */
 /* #undef _EVENT_HAVE_SYS_DEVPOLL_H */

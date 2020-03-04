@@ -179,7 +179,7 @@ TEST_F(ProcessEventsTests, exec_event_processing) {
       {"mode", "0100755"},
       {"owner_uid", "0"},
       {"owner_gid", "0"}};
- #endif
+#endif
 
   for (const auto& key : kExpectedFields) {
     EXPECT_TRUE(event_row.find(key) != event_row.end());

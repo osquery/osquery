@@ -720,8 +720,8 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
 
   } else
 #endif
-  if (syscall_context.syscall_number == __NR_openat ||
-             syscall_context.syscall_number == __NR_open_by_handle_at) {
+      if (syscall_context.syscall_number == __NR_openat ||
+          syscall_context.syscall_number == __NR_open_by_handle_at) {
     std::uint64_t open_flags;
     GetIntegerFieldFromMap(open_flags,
                            record.fields,

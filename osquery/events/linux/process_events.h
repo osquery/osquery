@@ -21,7 +21,8 @@ const std::set<int> kExecProcessEventsSyscalls = {__NR_execve, __NR_execveat};
 
 const std::set<int> kForkProcessEventsSyscalls = {
 #ifndef __aarch64__
-    __NR_fork, __NR_vfork,
+    __NR_fork,
+    __NR_vfork,
 #endif
     __NR_clone};
 } // namespace osquery
