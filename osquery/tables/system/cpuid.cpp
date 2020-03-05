@@ -206,6 +206,7 @@ inline void genFamily(QueryData& results) {
 QueryData genCPUID(QueryContext& context) {
   QueryData results;
 
+#ifdef __x86_64__
   if (!genStrings(results).ok()) {
     return results;
   }
@@ -277,6 +278,7 @@ QueryData genCPUID(QueryContext& context) {
     r["input_eax"] = std::to_string(0x12) + ",1";
     results.push_back(r);
   }
+#endif // __x86_64__
 
   return results;
 }
