@@ -70,7 +70,7 @@ function(generateTestsIntegrationTablesTestsTest)
     user_ssh_keys.cpp
   )
 
-  if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+  if(TARGET_PROCESSOR STREQUAL "x86_64")
     list(APPEND source_files cpuid.cpp)
   endif()
 

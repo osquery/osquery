@@ -28,8 +28,8 @@ function(libauditMain)
   )
 
   target_include_directories(thirdparty_libaudit PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/${CMAKE_SYSTEM_PROCESSOR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/${CMAKE_SYSTEM_PROCESSOR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated/${TARGET_PROCESSOR}"
     "${library_root}"
     "${library_root}/auparse"
     "${library_root}/lib"

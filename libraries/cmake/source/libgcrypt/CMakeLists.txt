@@ -6,7 +6,7 @@
 
 function(libgcryptMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
-  set(generated_root "${CMAKE_CURRENT_SOURCE_DIR}/generated/${CMAKE_SYSTEM_PROCESSOR}")
+  set(generated_root "${CMAKE_CURRENT_SOURCE_DIR}/generated/${TARGET_PROCESSOR}")
 
   add_library(thirdparty_libgcrypt
     "${library_root}/cipher/cipher-ctr.c"
@@ -119,7 +119,7 @@ function(libgcryptMain)
     "${generated_root}/mpi/mpih-rshift.c"
   )
 
-  if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+  if(TARGET_PROCESSOR STREQUAL "aarch64")
     target_sources(thirdparty_libgcrypt PRIVATE
       "${library_root}/src/hwf-arm.c"
       "${library_root}/cipher/rijndael-armv8-ce.c")
@@ -144,7 +144,7 @@ function(libgcryptMain)
   # were not enough! Make sure all the AVX/AVX2 options are off when re-generating
   # a new config file!
 
-  if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+  if(TARGET_PROCESSOR STREQUAL "aarch64")
     set(asm_source_list
       "${library_root}/cipher/rijndael-aarch64.S"
       "${library_root}/cipher/rijndael-armv8-aarch64-ce.S"
@@ -195,7 +195,7 @@ function(libgcryptMain)
 
     add_custom_command(
       OUTPUT "${asm_object}"
-      COMMAND ${CMAKE_C_COMPILER} -fno-integrated-as -DHAVE_CONFIG_H -O2 -g -DNDEBUG -fPIC -std=gnu11 -o "${asm_object}" -c "${asm_source}" "-I${CMAKE_CURRENT_SOURCE_DIR}/config/${CMAKE_SYSTEM_PROCESSOR}"
+      COMMAND ${CMAKE_C_COMPILER} -fno-integrated-as -DHAVE_CONFIG_H -O2 -g -DNDEBUG -fPIC -std=gnu11 -o "${asm_object}" -c "${asm_source}" "-I${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}"
       DEPENDS "${asm_source}"
       COMMENT "Assembling: ${asm_source}"
       VERBATIM
@@ -229,7 +229,7 @@ function(libgcryptMain)
   )
 
   target_include_directories(thirdparty_libgcrypt PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/${CMAKE_SYSTEM_PROCESSOR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}"
 
     "${library_root}/src"
     "${library_root}/mpi"
