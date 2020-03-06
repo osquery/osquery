@@ -10,7 +10,8 @@
 [cxx_base]
   cppflags = \
     /DBOOST_ALL_NO_LIB \
-    /DBOOST_ALL_STATIC_LINK
+    /DBOOST_ALL_STATIC_LINK \
+    /D__x86_64__
 
   cflags = \
     /std:c11 \
@@ -22,7 +23,8 @@
 
   cxxppflags = \
     /DBOOST_ALL_NO_LIB \
-    /DBOOST_ALL_STATIC_LINK
+    /DBOOST_ALL_STATIC_LINK \
+    /D__x86_64__
 
   cxxflags = \
     /std:c++14 \
