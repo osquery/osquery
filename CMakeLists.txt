@@ -107,7 +107,7 @@ function(importLibraries)
     "Linux:libgpg-error"
     "Linux:libiptables"
     "Linux,Darwin:libmagic"
-    "Linux,Darwin:librdkafka"
+    "Linux,Darwin,Windows:librdkafka"
     "Linux:librpm"
     "Linux:libudev"
     "Linux,Darwin:libxml2"
