@@ -316,8 +316,6 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
   return putBatch(domain, {std::make_pair(key, std::to_string(value))});
 }
 
-void RocksDBDatabasePlugin::dumpDatabase() const {}
-
 Status RocksDBDatabasePlugin::remove(const std::string& domain,
                                      const std::string& key) {
   if (read_only_) {
