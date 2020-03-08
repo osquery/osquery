@@ -27,6 +27,9 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
+#if WIN32
+#include <osquery/utils/conversions/windows/strings.h>
+#endif
 #include <osquery/utils/system/system.h>
 
 #include <osquery/utils/json/json.h>
@@ -59,7 +62,12 @@ Status writeTextFile(const fs::path& path,
 
   // If the file existed with different permissions before our open
   // they must be restricted.
-  if (!platformChmod(path.string(), permissions)) {
+#if WIN32
+  const std::string p = wstringToString(path.wstring());
+#else
+  const std::string p = path.string();
+#endif
+  if (!platformChmod(p, permissions)) {
     // Could not change the file to the requested permissions.
     return Status(1, "Failed to change permissions for file: " + path.string());
   }

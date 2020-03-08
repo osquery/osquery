@@ -9,14 +9,13 @@
 #include <osquery/filesystem/fileops.h>
 
 #include <osquery/filesystem/mock_file_structure.h>
-
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/scope_guard.h>
 
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
-
 
 namespace fs = boost::filesystem;
 
@@ -47,7 +46,8 @@ class FileOpsTests : public testing::Test {
     }
 
     for (auto res : expected) {
-      const auto loc = results_set.find(res.make_preferred().string());
+      const auto loc =
+          results_set.find(wstringToString(res.make_preferred().wstring()));
       // Unable to find element (something is in expected but not results)
       if (loc == results_set.end()) {
         return false;
@@ -150,7 +150,7 @@ std::unique_ptr<PlatformFile> openRWSharedFile(const std::string& path,
     creation_disposition = OPEN_ALWAYS;
   }
 
-  HANDLE handle = ::CreateFileA(path.c_str(),
+  HANDLE handle = ::CreateFileW(stringToWstring(path).c_str(),
                                 access_mask,
                                 FILE_SHARE_READ | FILE_SHARE_WRITE,
                                 nullptr,
@@ -667,6 +667,8 @@ TEST_F(FileOpsTests, test_glob) {
     std::vector<fs::path> expected{fake_directory_ / "door.txt",
                                    fake_directory_ / "root.txt",
                                    fake_directory_ / "root2.txt",
+                                   fs::path(fake_directory_.wstring()) /
+                                       L"\x65b0\x5efa\x6587\x4ef6\x5939.txt",
                                    fake_directory_ / "roto.txt"};
     auto result = platformGlob((fake_directory_ / "*.txt").string());
     EXPECT_TRUE(globResultsMatch(result, expected));
@@ -678,6 +680,8 @@ TEST_F(FileOpsTests, test_glob) {
                                    fake_directory_ / "door.txt",
                                    fake_directory_ / "root.txt",
                                    fake_directory_ / "root2.txt",
+                                   fs::path(fake_directory_.wstring()) /
+                                       L"\x65b0\x5efa\x6587\x4ef6\x5939.txt",
                                    fake_directory_ / "roto.txt",
                                    fake_directory_ / "toplevel/"};
     auto result = platformGlob((fake_directory_ / "*").string());

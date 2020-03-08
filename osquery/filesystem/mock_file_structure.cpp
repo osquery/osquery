@@ -38,6 +38,9 @@ fs::path createMockFileStructure() {
 
 #ifdef WIN32
   writeTextFile(root_dir / "root2.txt", "l1");
+  writeTextFile(
+      fs::path(root_dir.wstring()) / L"\x65b0\x5efa\x6587\x4ef6\x5939.txt",
+      "l2");
 #else
   boost::system::error_code ec;
   fs::create_symlink(

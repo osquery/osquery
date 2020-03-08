@@ -258,7 +258,7 @@ TEST_F(FilesystemTests, test_simple_globs) {
   // Test the shell '*', we will support SQL's '%' too.
   auto status = resolveFilePattern(fake_directory_  / "*", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 7U);
+  EXPECT_EQ(results.size(), 8U);
 
   // Test the csh-style bracket syntax: {}.
   results.clear();
@@ -278,7 +278,7 @@ TEST_F(FilesystemTests, test_wildcard_single_all) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(fake_directory_ / "%", results, GLOB_ALL);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 7U);
+  EXPECT_EQ(results.size(), 8U);
   EXPECT_TRUE(contains(
       results,
       fs::path(fake_directory_ / "roto.txt").make_preferred().string()));
@@ -291,7 +291,7 @@ TEST_F(FilesystemTests, test_wildcard_single_files) {
   // Now list again with a restriction to only files.
   std::vector<std::string> results;
   resolveFilePattern(fake_directory_ / "%", results, GLOB_FILES);
-  EXPECT_EQ(results.size(), 4U);
+  EXPECT_EQ(results.size(), 5U);
   EXPECT_TRUE(contains(
       results,
       fs::path(fake_directory_ / "roto.txt").make_preferred().string()));
@@ -322,7 +322,7 @@ TEST_F(FilesystemTests, test_wildcard_double) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(fake_directory_ / "%%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 20U);
+  EXPECT_EQ(results.size(), 21U);
   EXPECT_TRUE(contains(results,
                        fs::path(fake_directory_ / "deep1/deep2/level2.txt")
                            .make_preferred()
@@ -389,7 +389,7 @@ TEST_F(FilesystemTests, test_wildcard_dotdot_files) {
   auto status = resolveFilePattern(
       fake_directory_ / "deep11/deep2/../../%", results, GLOB_FILES);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 4U);
+  EXPECT_EQ(results.size(), 5U);
 
   // The response list will contain canonicalized versions: /tmp/<tests>/...
   std::string door_path =
