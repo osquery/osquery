@@ -52,8 +52,7 @@ class FileOpsTests : public testing::Test {
       const auto loc =
           results_set.find(wstringToString(res.make_preferred().wstring()));
 #else
-      const auto loc = const auto loc =
-          results_set.find(res.make_preferred().string());
+      const auto loc = results_set.find(res.make_preferred().string());
 #endif
       // Unable to find element (something is in expected but not results)
       if (loc == results_set.end()) {
