@@ -9,7 +9,9 @@
 #include <osquery/filesystem/fileops.h>
 
 #include <osquery/filesystem/mock_file_structure.h>
+#if WIN32
 #include <osquery/utils/conversions/windows/strings.h>
+#endif
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/scope_guard.h>
 
