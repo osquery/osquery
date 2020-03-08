@@ -48,8 +48,13 @@ class FileOpsTests : public testing::Test {
     }
 
     for (auto res : expected) {
+#ifdef WIN32
       const auto loc =
           results_set.find(wstringToString(res.make_preferred().wstring()));
+#else
+      const auto loc = const auto loc =
+          results_set.find(res.make_preferred().string());
+#endif
       // Unable to find element (something is in expected but not results)
       if (loc == results_set.end()) {
         return false;
