@@ -7,6 +7,8 @@
  */
 
 #include <osquery/core.h>
+#include <osquery/database.h>
+#include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/registry_interface.h>
 #include <osquery/sql.h>
@@ -21,11 +23,16 @@
 #include <boost/variant.hpp>
 
 namespace osquery {
+DECLARE_bool(disable_database);
+
 class SQLiteUtilTests : public testing::Test {
  public:
   void SetUp() override {
     Initializer::platformSetup();
     registryAndPluginInit();
+    FLAGS_disable_database = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
     Flag::updateValue("enable_tables",
                       "test_table,time,process_events,osquery_info,file,users,"
                       "curl,fake_table");
@@ -183,8 +190,39 @@ TEST_F(SQLiteUtilTests, test_affected_tables) {
   EXPECT_EQ(dbc->affected_tables_.size(), 0U);
 }
 
+class FakeEventPublisher
+    : public EventPublisher<SubscriptionContext, EventContext> {
+  DECLARE_PUBLISHER("FakePublisher");
+  void doFire() {
+    auto ec = createEventContext();
+    fire(ec, 0);
+  }
+};
+
+class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
+ public:
+  FakeEventSubscriber() {
+    setName("process_events");
+  }
+
+  Status Callback(const ECRef& ec, const SCRef& sc) {
+    return Status::success();
+  }
+
+  void lateInit() {
+    auto sc = createSubscriptionContext();
+    subscribe(&FakeEventSubscriber::Callback, sc);
+  }
+};
+
 TEST_F(SQLiteUtilTests, test_table_attributes_event_based) {
   {
+    auto pub = std::make_shared<FakeEventPublisher>();
+    EventFactory::registerEventPublisher(pub);
+    auto sub = std::make_shared<FakeEventSubscriber>();
+    EventFactory::registerEventSubscriber(sub);
+    sub->lateInit();
+    pub->doFire();
     SQLInternal sql_internal("select * from process_events");
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
       EXPECT_TRUE(sql_internal.getStatus().ok());
