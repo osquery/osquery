@@ -10,6 +10,7 @@
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
+#include <osquery/registry_factory.h>
 #include <osquery/registry_interface.h>
 #include <osquery/sql.h>
 #include <osquery/sql/sqlite_util.h>
@@ -37,6 +38,7 @@ class SQLiteUtilTests : public testing::Test {
                       "test_table,time,process_events,osquery_info,file,users,"
                       "curl,fake_table");
     Flag::updateValue("disable_tables", "fake_table");
+    RegistryFactory::get().registry("config_parser")->setUp();
   }
 };
 
