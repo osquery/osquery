@@ -80,10 +80,6 @@ jobs:
         workingDirectory: $(BUILD_DIR)
         cmakeArgs: --build . -j 3
 
-    - script: cat $(BUILD_DIR)/formula_logs/openssl.txt
-      displayName: "OpenSSL formula output"
-      condition: always()
-
     - task: CMake@1
       displayName: "Run cppcheck"
       inputs:
@@ -244,10 +240,6 @@ jobs:
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
         cmakeArgs: --build . -j 3
-
-    - script: cat $(Build.BinariesDirectory)/build/formula_logs/openssl.txt
-      displayName: "OpenSSL formula output"
-      condition: always()
 
     - script: |
         ctest --build-nocmake -V
@@ -427,10 +419,6 @@ jobs:
         sccache.exe --stop-server
       displayName: "Build osquery"
       workingDirectory: $(Build.BinariesDirectory)\build
-
-    - script: cmd /C type $(Build.BinariesDirectory)\build\formula_logs\openssl.txt
-      displayName: "OpenSSL formula output"
-      condition: always()
 
     - powershell: |
         ctest --build-nocmake -C Release -V
