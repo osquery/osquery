@@ -26,7 +26,7 @@ schema([
     Column("info_access", TEXT, "Authority Information Access"),
     Column("subject_info_access", TEXT, "Subject Information Access"),
     Column("policy_mappings", TEXT, "Policy Mappings"),
-    Column("certificate_has_expired", INTEGER, "Boolean value if certificate expired"),
+    Column("certificate_has_expired", INTEGER, "1 if the certificate has expired, 0 otherwise"),
     Column("basic_constraint", TEXT, "Basic Constraints"),
     Column("name_constraints", TEXT, "Name Constraints"),
     Column("policy_constraints", TEXT, "Policy Constraints"),

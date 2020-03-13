@@ -44,17 +44,16 @@ static int certversion(X509* cert) {
 static std::string signature_algorithm(X509* cert) {
   auto sign_nid = X509_get_signature_nid(cert);
   if (sign_nid != NID_undef) {
-    return std::string(OBJ_nid2sn(sign_nid));
+    return OBJ_nid2sn(sign_nid);
   }
-  return std::string(LN_undef);
+  return LN_undef;
 }
 
 static std::string signature(X509* cert) {
-  X509_ALGOR* algo;
   ASN1_BIT_STRING* sign = nullptr;
-  auto signature = std::string("");
+  std::string signature;
 
-  X509_get0_signature(&sign, &algo, cert);
+  X509_get0_signature(&sign, nullptr, cert);
   auto sig_nid = OBJ_obj2nid(cert->sig_alg->algorithm);
   if (sig_nid != NID_undef) {
     auto n = sign->length;
@@ -74,7 +73,7 @@ static std::string signature(X509* cert) {
 static std::string certificate_extensions(X509* cert, int nid) {
   auto ci = cert->cert_info;
   if (sk_X509_EXTENSION_num(ci->extensions) <= 0) {
-    return std::string("");
+    return {};
   }
 
   for (auto i = 0; i < sk_X509_EXTENSION_num(ci->extensions); i++) {
@@ -97,11 +96,11 @@ static std::string certificate_extensions(X509* cert, int nid) {
       auto length = bio_buf->length;
       if (bio_buf->data[length - 1] == '\n' ||
           bio_buf->data[length - 1] == '\r') {
-        bio_buf->data[length - 1] = (char)0;
+        bio_buf->data[length - 1] = '\0';
       }
 
       if (bio_buf->data[length] == '\n' || bio_buf->data[length] == '\r') {
-        bio_buf->data[length] = (char)0;
+        bio_buf->data[length] = '\0';
       }
       auto ident = std::string(bio_buf->data, bio_buf->length);
 
@@ -112,8 +111,8 @@ static std::string certificate_extensions(X509* cert, int nid) {
     }
   }
 
-  return std::string("");
-}
+  return {};
+} // namespace tables
 
 bool has_cert_expired(X509* cert) {
   return X509_cmp_current_time(X509_get_notAfter(cert)) <= 0;
@@ -263,28 +262,28 @@ static void fillRow(Row& r, X509* cert, int dump_certificate) {
   }
 }
 
-Status getTLSCertificate(std::string hostname,
+Status getTLSCertificate(const std::string& hostname,
                          QueryData& results,
                          int dump_certificate) {
   SSL_library_init();
 
   const auto method = TLSv1_method();
   if (method == nullptr) {
-    return Status(1, "Failed to create OpenSSL method object");
+    return Status::failure("Failed to create OpenSSL method object");
   }
 
   auto delCTX = [](SSL_CTX* ctx) { SSL_CTX_free(ctx); };
   auto ctx =
       std::unique_ptr<SSL_CTX, decltype(delCTX)>(SSL_CTX_new(method), delCTX);
   if (ctx == nullptr) {
-    return Status(1, "Failed to create OpenSSL CTX object");
+    return Status::failure("Failed to create OpenSSL CTX object");
   }
 
   auto delBIO = [](BIO* bio) { BIO_free_all(bio); };
   auto server = std::unique_ptr<BIO, decltype(delBIO)>(
       BIO_new_ssl_connect(ctx.get()), delBIO);
   if (server == nullptr) {
-    return Status(1, "Failed to create OpenSSL BIO object");
+    return Status::failure("Failed to create OpenSSL BIO object");
   }
 
   std::string port = ":443";
@@ -299,38 +298,39 @@ Status getTLSCertificate(std::string hostname,
 
   auto ret = BIO_set_conn_hostname(server.get(), conn_hostname.c_str());
   if (ret != 1) {
-    return Status(1, "Failed to set OpenSSL hostname: " + std::to_string(ret));
+    return Status::failure("Failed to set OpenSSL hostname: " +
+                           std::to_string(ret));
   }
 
   SSL* ssl = nullptr;
   BIO_get_ssl(server.get(), &ssl);
   if (ssl == nullptr) {
-    return Status(1, "Failed to retrieve OpenSSL object");
+    return Status::failure("Failed to retrieve OpenSSL object");
   }
 
   ret = SSL_set_tlsext_host_name(ssl, ext_hostname.c_str());
   if (ret != 1) {
-    return Status(1,
-                  "Failed to set OpenSSL server name: " + std::to_string(ret));
+    return Status::failure("Failed to set OpenSSL server name: " +
+                           std::to_string(ret));
   }
 
   ret = BIO_do_connect(server.get());
   if (ret != 1) {
-    return Status(1,
-                  "Failed to establish TLS connection: " + std::to_string(ret));
+    return Status::failure("Failed to establish TLS connection: " +
+                           std::to_string(ret));
   }
 
   ret = BIO_do_handshake(server.get());
   if (ret != 1) {
-    return Status(1,
-                  "Failed to complete TLS handshake: " + std::to_string(ret));
+    return Status::failure("Failed to complete TLS handshake: " +
+                           std::to_string(ret));
   }
 
   auto delX509 = [](X509* cert) { X509_free(cert); };
   auto cert = std::unique_ptr<X509, decltype(delX509)>(
       SSL_get_peer_certificate(ssl), delX509);
   if (cert == nullptr) {
-    return Status(1, "No certificate");
+    return Status::failure("No certificate");
   }
 
   Row r;
@@ -359,5 +359,5 @@ QueryData genTLSCertificate(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
