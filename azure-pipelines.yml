@@ -31,6 +31,9 @@ jobs:
       BUILD_DIR: $(Build.BinariesDirectory)/usr/src/debug/osquery/build
 
     steps:
+    - script: |
+        df -h
+
     - checkout: self
       # See BUILD_DIR.
       path: s/usr/src/debug/osquery
@@ -117,6 +120,8 @@ jobs:
         echo "##vso[task.setvariable variable=Status;isOutput=true]1"
       name: JobResult
 
+    - script: |
+        df -h
 
   - job: LinuxBuck
     displayName: "LinuxBuck Release"
