@@ -3,6 +3,7 @@ trigger:
 
 jobs:
 
+  # TEST
 # LINUX
 
   - job: LinuxCMake
