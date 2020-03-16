@@ -1,0 +1,16 @@
+table_name("lxd_storage_pools")
+description("LXD storage pool information.")
+schema([
+    Column("name", TEXT, "Name of the storage pool"),
+    Column("driver", TEXT, "Storage driver"),
+    Column("source", TEXT, "Storage pool source"),
+    Column("size", TEXT, "Size of the storage pool"),
+    Column("space_used", BIGINT, "Storgae space used in bytes"),
+    Column("space_total", BIGINT, "Total available storage space in bytes for this storage pool"),
+    Column("inodes_used", BIGINT, "Number of inodes used"),
+    Column("inodes_total", BIGINT, "Total number of inodes available in this storage pool")
+])
+implementation("applications/lxd@genLxdStoragePools")
+examples([
+  "select * from lxd_storage_pools" 
+])
