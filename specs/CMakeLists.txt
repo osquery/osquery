@@ -120,6 +120,7 @@ function(generateNativeTables)
     "darwin/running_apps.table:macos"
     "darwin/safari_extensions.table:macos"
     "darwin/sandboxes.table:macos"
+    "darwin/screenlock.table:macos"
     "darwin/shared_folders.table:macos"
     "darwin/sharing_preferences.table:macos"
     "darwin/signature.table:macos"

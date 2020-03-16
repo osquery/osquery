@@ -213,6 +213,10 @@ osquery_gentable_cxx_library(
             "macos",
         ),
         (
+            "darwin/screenlock.table",
+            "macos",
+        ),
+        (
             "darwin/shared_folders.table",
             "macos",
         ),
@@ -735,7 +739,7 @@ osquery_gentable_cxx_library(
         (
             "windows/hvci_status.table",
             "windows",
-        ),        
+        ),
         (
             "windows/pipes.table",
             "windows",
