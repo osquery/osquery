@@ -18,6 +18,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/tables/system/linux/pci_devices.h>
+#include <osquery/utils/conversions/join.h>
 
 namespace osquery {
 namespace tables {
@@ -32,7 +33,9 @@ const std::string kPCIClassID = "PCI_CLASS";
 const std::string kPCIKeyDriver = "DRIVER";
 const std::string kPCISubsysID = "PCI_SUBSYS_ID";
 
-const std::string kPciidsPath = "/usr/share/misc/pci.ids";
+const std::vector<std::string> kPciidsPathList{"/usr/share/misc/pci.ids",
+                                               "/usr/share/hwdata/pci.ids",
+                                               "/usr/share/pci.ids"};
 const std::string kPciidsDeviceClassStartIndicator = "ffff";
 const std::string kPciidsValidHexChars = "0123456789abcdef";
 const char kPciidsCommentChar = '#';
@@ -392,10 +395,19 @@ QueryData genPCIDevices(QueryContext& context) {
     return results;
   }
 
-  std::ifstream raw(kPciidsPath);
-  if (raw.fail()) {
+  // Check pci.ids path
+  std::ifstream raw;
+  for (const std::string& pci_ids_path : kPciidsPathList) {
+    if (pathExists(pci_ids_path)) {
+      raw.open(pci_ids_path);
+      if (raw) {
+        break;
+      }
+    }
+  }
+  if (!raw.is_open()) {
     LOG(ERROR) << "Unexpected error attempting to read pci.ids at path: "
-               << kPciidsPath;
+               << osquery::join(kPciidsPathList, " ");
     return results;
   }
 
