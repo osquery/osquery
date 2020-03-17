@@ -18,6 +18,7 @@ function(generateOsqueryUtilsConversions)
   set(source_files
     split.cpp
     tryto.cpp
+    trim.cpp
   )
 
   if(DEFINED PLATFORM_MACOS)
@@ -52,6 +53,7 @@ function(generateOsqueryUtilsConversions)
     castvariant.h
     join.h
     split.h
+    trim.h
     tryto.h
   )
 

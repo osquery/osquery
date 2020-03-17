@@ -20,6 +20,7 @@
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/trim.h>
 
 #include <osquery/filesystem/fileops.h>
 #include <osquery/process/process.h>
@@ -112,8 +113,19 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
 
     HRESULT lastTaskRun = E_FAIL;
     pRegisteredTask->get_LastTaskResult(&lastTaskRun);
-    _com_error err(lastTaskRun);
-    r["last_run_message"] = err.ErrorMessage();
+    LPWSTR messageBuffer = nullptr;
+    auto size = ::FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                                     FORMAT_MESSAGE_FROM_SYSTEM |
+                                     FORMAT_MESSAGE_IGNORE_INSERTS,
+                                 nullptr,
+                                 lastTaskRun,
+                                 MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+                                 reinterpret_cast<LPWSTR>(&messageBuffer),
+                                 0,
+                                 nullptr);
+    std::wstring message(messageBuffer, size);
+    LocalFree(messageBuffer);
+    r["last_run_message"] = trim(wstringToString(message));
     r["last_run_code"] = INTEGER(lastTaskRun);
 
     // We conver the COM Date type to a unix epoch timestamp
