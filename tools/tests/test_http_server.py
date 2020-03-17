@@ -145,6 +145,7 @@ ENROLL_RESET = {
     "max": 3,
 }
 
+TIMEOUT_TIMER = None
 
 class RealSimpleHandler(BaseHTTPRequestHandler):
     def _set_headers(self):
@@ -153,6 +154,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
 
     def do_GET(self):
+        reset_timeout()
         debug("RealSimpleHandler::get %s" % self.path)
         self._set_headers()
         if self.path == '/config':
@@ -161,12 +163,14 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             self._reply(TEST_GET_RESPONSE)
 
     def do_HEAD(self):
+        reset_timeout()
         debug("RealSimpleHandler::head %s" % self.path)
         self._set_headers()
         self.send_header('Content-Length', 0)
         self.end_headers()
 
     def do_POST(self):
+        reset_timeout()
         debug("RealSimpleHandler::post %s" % self.path)
         self._set_headers()
         content_len = int(self.headers.get('content-length', 0))
@@ -351,6 +355,15 @@ def handler():
           (ARGS['timeout']))
     _thread.interrupt_main()
 
+def reset_timeout():
+    global TIMEOUT_TIMER
+
+    if TIMEOUT_TIMER:
+        TIMEOUT_TIMER.cancel()
+
+    TIMEOUT_TIMER = threading.Timer(ARGS['timeout'], handler)
+    TIMEOUT_TIMER.start()
+
 
 def run_http_server(bind_port=80, **kwargs):
     global HTTP_SERVER_ENROLL_SECRET
@@ -365,8 +378,7 @@ def run_http_server(bind_port=80, **kwargs):
             exit(1)
 
     if not ARGS['persist']:
-        timer = threading.Timer(ARGS['timeout'], handler)
-        timer.start()
+        reset_timeout()
 
     httpd = HTTPServer(('localhost', bind_port), RealSimpleHandler)
     if ARGS['tls']:
