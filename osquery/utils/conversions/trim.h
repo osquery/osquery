@@ -10,8 +10,7 @@
 
 #include <string>
 
-namespace osquery
-{
+namespace osquery {
 /**
  * @brief Remove whitespace either end of a string
  *
@@ -20,4 +19,4 @@ namespace osquery
  * @return trimmed string.
  */
 std::string trim(const std::string& s);
-}
+} // namespace osquery

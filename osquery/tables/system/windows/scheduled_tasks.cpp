@@ -19,8 +19,8 @@
 
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
-#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/trim.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 #include <osquery/filesystem/fileops.h>
 #include <osquery/process/process.h>
