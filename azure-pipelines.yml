@@ -464,12 +464,7 @@ jobs:
       workingDirectory: $(Build.BinariesDirectory)
 
     - powershell: |
-        $python2_path = (Get-Item C:\Python27amd64).FullName
-
-        if (-not $python2_path) {
-          $python2_path = ((Get-Item C:\hostedtoolcache\windows\Python\2*\x64) | Sort-Object -Descending)[0].FullName
-        }
-
+        $python2_path = ((Get-Item C:\hostedtoolcache\windows\Python\2*\x64) | Sort-Object -Descending)[0].FullName
         $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\x64) | Sort-Object -Descending)[0].FullName
 
         echo "##vso[task.setvariable variable=python2]$python2_path"
