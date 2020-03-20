@@ -6,13 +6,13 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <plugins/config/parsers/decorators.h>
 #include <osquery/config/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 #include <osquery/utils/json/json.h>
+#include <plugins/config/parsers/decorators.h>
 
 namespace osquery {
 
@@ -99,7 +99,7 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
   /// Protect the configuration controlled content.
   static Mutex kDecorationsConfigMutex;
 };
-}
+} // namespace
 
 DecorationStore DecoratorsConfigParserPlugin::kDecorations;
 Mutex DecoratorsConfigParserPlugin::kDecorationsMutex;
@@ -117,6 +117,16 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
   clearDecorations(source);
   auto decorations = config.find(kDecorationsName);
   if (decorations != config.end()) {
+    if (!decorations->second.doc().IsObject()) {
+      const auto error_message =
+          "Invalid format for decorators configuration, decorators value "
+          "must be a JSON "
+          "object";
+      LOG(WARNING) << error_message;
+
+      return Status::failure(error_message);
+    }
+
     // Each of these methods acquires the decorator lock separately.
     // The run decorators method is designed to have call sites throughout
     // the code base.
@@ -310,4 +320,4 @@ void getDecorations(std::map<std::string, std::string>& results) {
 REGISTER_INTERNAL(DecoratorsConfigParserPlugin,
                   "config_parser",
                   kDecorationsName.c_str());
-}
+} // namespace osquery
