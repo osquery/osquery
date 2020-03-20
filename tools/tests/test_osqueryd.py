@@ -145,7 +145,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         os.kill(daemon.pid, signal.SIGINT)
         self.assertTrue(daemon.isDead(daemon.pid, 10))
         if os.name != "nt":
-            self.assertTrue(daemon.retcode in [0])
+            self.assertEqual(daemon.retcode, 0)
 
     @test_base.flaky
     def test_6_logger_mode(self):
