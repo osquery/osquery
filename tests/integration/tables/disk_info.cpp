@@ -26,18 +26,17 @@ TEST_F(diskInfo, test_sanity) {
   ASSERT_GE(data.size(), 1ul);
 
   ValidationMap row_map = {
-       {"partitions", NonNegativeInt},
-       {"disk_index", NonNegativeInt},
-       {"type", SpecificValuesCheck{"SCSI", "HDC", "IDE", "USB", "1394"}},
-       {"id", NonEmptyString},
-       {"pnp_device_id", NonEmptyString},
-       {"disk_size", NonNegativeInt | NonZero},
-       {"manufacturer", NormalType},
-       {"hardware_model", NormalType},
-       {"name", NormalType},
-       {"serial", NormalType},
-       {"description", NormalType}
-  };
+      {"partitions", NonNegativeInt},
+      {"disk_index", NonNegativeInt},
+      {"type", SpecificValuesCheck{"SCSI", "HDC", "IDE", "USB", "1394"}},
+      {"id", NonEmptyString},
+      {"pnp_device_id", NonEmptyString},
+      {"disk_size", NonNegativeInt | NonZero},
+      {"manufacturer", NormalType},
+      {"hardware_model", NormalType},
+      {"name", NormalType},
+      {"serial", NormalType},
+      {"description", NormalType}};
 
   validate_rows(data, row_map);
 }
