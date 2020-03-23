@@ -134,11 +134,11 @@ function(generateLibrdkafka)
 
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_librdkafka_c PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/dummy"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/linux/dummy"
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_librdkafka_c PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/dummy"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/macos/dummy"
     )
   endif()
 
@@ -181,11 +181,11 @@ function(generateLibrdkafkaxx)
 
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_librdkafka_cxx PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/dummy"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/linux/dummy"
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_librdkafka_cxx PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/dummy"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/macos/dummy"
     )
   endif()
 

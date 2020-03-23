@@ -80,6 +80,7 @@ std::map<size_t, std::vector<FeatureDef>> kCPUFeatures{
      }}};
 
 static inline void cpuid(size_t eax, size_t ecx, int regs[4]) {
+#if defined(__x86_64__)
 #if defined(WIN32)
   __cpuidex(
       static_cast<int*>(regs), static_cast<int>(eax), static_cast<int>(ecx));
@@ -87,6 +88,9 @@ static inline void cpuid(size_t eax, size_t ecx, int regs[4]) {
   asm volatile("cpuid"
                : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
                : "a"(eax), "c"(ecx));
+#endif
+#else
+  memset(regs, 0, sizeof(int) * 4);
 #endif
 }
 
@@ -202,6 +206,7 @@ inline void genFamily(QueryData& results) {
 QueryData genCPUID(QueryContext& context) {
   QueryData results;
 
+#ifdef __x86_64__
   if (!genStrings(results).ok()) {
     return results;
   }
@@ -273,6 +278,7 @@ QueryData genCPUID(QueryContext& context) {
     r["input_eax"] = std::to_string(0x12) + ",1";
     results.push_back(r);
   }
+#endif // __x86_64__
 
   return results;
 }

@@ -6,7 +6,11 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#ifdef __x86_64__
 #include <asm/unistd_64.h>
+#else
+#include <asm/unistd.h>
+#endif
 
 #include <boost/algorithm/string.hpp>
 

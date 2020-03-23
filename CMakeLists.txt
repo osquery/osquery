@@ -45,6 +45,22 @@ if(OSQUERY_ENABLE_CLANG_TIDY)
   endif()
 endif()
 
+# We need to figure out the architecture and set the normalized variable
+# before any targets are created
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
+  # Windows x86_64
+  add_compile_definitions(__x86_64__)
+  set(TARGET_PROCESSOR "x86_64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+  # *nix x86_64
+  set(TARGET_PROCESSOR "x86_64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+  # *nix AArch64
+  set(TARGET_PROCESSOR "aarch64")
+else()
+  message(FATAL_ERROR "Unsupported architecture ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
 function(main)
   message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
   message(STATUS "Shared libraries: ${BUILD_SHARED_LIBS}")
