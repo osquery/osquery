@@ -107,7 +107,7 @@ int DynamicTableRow::get_column(sqlite3_context* ctx,
     sqlite3_result_null(ctx);
   } else if (type == TEXT_TYPE || type == BLOB_TYPE) {
     sqlite3_result_text(
-        ctx, value.c_str(), static_cast<int>(value.size()), SQLITE_STATIC);
+        ctx, value.c_str(), static_cast<int>(value.size()), SQLITE_TRANSIENT);
   } else if (type == INTEGER_TYPE) {
     auto afinite = tryTo<long>(value, 0);
     if (afinite.isError()) {
