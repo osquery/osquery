@@ -406,6 +406,10 @@ Status loadExtensions(const std::string& loadfile) {
     // This is a shell-only development flag for quickly loading/using a single
     // extension. It bypasses the safety check.
     Watcher::get().addExtensionPath(FLAGS_extension);
+    VLOG(1) << "Successfully loaded extension specified in --extension. Skipped autoloads";
+    return Status(0,
+                  "Successfully loaded extension specified in --extension "
+                  "flag. Ignored autoloaded extensions");
   }
 
   std::string autoload_paths;
