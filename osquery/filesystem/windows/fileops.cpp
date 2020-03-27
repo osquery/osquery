@@ -54,8 +54,7 @@ using AclObject = std::unique_ptr<unsigned char[]>;
 class WindowsFindFiles {
  public:
   explicit WindowsFindFiles(const fs::path& path) : path_(path) {
-    handle_ = ::FindFirstFileW(
-        stringToWstring(path_.make_preferred().string()).c_str(), &fd_);
+    handle_ = ::FindFirstFileW(path_.make_preferred().wstring().c_str(), &fd_);
   }
 
   ~WindowsFindFiles() {
@@ -70,8 +69,8 @@ class WindowsFindFiles {
 
     if (handle_ != INVALID_HANDLE_VALUE) {
       do {
-        std::string component = wstringToString(fd_.cFileName);
-        if (component != "." && component != "..") {
+        const std::wstring component = fd_.cFileName;
+        if (component != L"." && component != L"..") {
           if (path_.has_parent_path()) {
             results.push_back(path_.parent_path() / component);
           } else {
@@ -146,7 +145,7 @@ Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
   return Status::success();
 }
 
-static bool hasGlobBraces(const std::string& glob) {
+static bool hasGlobBraces(const std::wstring& glob) {
   int brace_depth = 0;
   bool has_brace = false;
 
@@ -177,50 +176,50 @@ AsyncEvent::~AsyncEvent() {
 }
 
 // Inspired by glob-to-regexp node package
-static std::string globToRegex(const std::string& glob) {
+static std::wstring globToRegex(const std::wstring& glob) {
   bool in_group = false;
-  std::string regex("^");
+  std::wstring regex(L"^");
 
   for (size_t i = 0; i < glob.size(); i++) {
     char c = glob[i];
 
     switch (c) {
-    case '?':
-      regex += '.';
+    case L'?':
+      regex += L'.';
       break;
-    case '{':
+    case L'{':
       in_group = true;
-      regex += '(';
+      regex += L'(';
       break;
-    case '}':
+    case L'}':
       in_group = false;
-      regex += ')';
+      regex += L')';
       break;
-    case ',':
-      regex += '|';
+    case L',':
+      regex += L'|';
       break;
-    case '*':
-      regex += ".*";
+    case L'*':
+      regex += L".*";
       break;
-    case '\\':
-    case '/':
-    case '$':
-    case '^':
-    case '+':
-    case '.':
-    case '(':
-    case ')':
-    case '=':
-    case '!':
-    case '|':
-      regex += '\\';
+    case L'\\':
+    case L'/':
+    case L'$':
+    case L'^':
+    case L'+':
+    case L'.':
+    case L'(':
+    case L')':
+    case L'=':
+    case L'!':
+    case L'|':
+      regex += L'\\';
     default:
       regex += c;
       break;
     }
   }
 
-  return regex + "$";
+  return regex + L"$";
 }
 
 static DWORD getNewAclSize(PACL dacl,
@@ -598,7 +597,7 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     // TODO(#2001): set up a security descriptor based off the perms
   }
 
-  handle_ = ::CreateFileW(stringToWstring(fname_.string()).c_str(),
+  handle_ = ::CreateFileW(fname_.wstring().c_str(),
                           access_mask,
                           FILE_SHARE_READ,
                           security_attrs.get(),
@@ -1297,7 +1296,7 @@ bool platformChmod(const std::string& path, mode_t perms) {
 }
 
 std::vector<std::string> platformGlob(const std::string& find_path) {
-  fs::path full_path(find_path);
+  fs::path full_path(stringToWstring(find_path));
 
   /*
    * This is a naive implementation of GLOB_TILDE. If the first two characters
@@ -1308,15 +1307,16 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
       (find_path[1] == '/' || find_path[1] == '\\')) {
     auto homedir = getEnvVar("USERPROFILE");
     if (homedir.is_initialized()) {
-      full_path = fs::path(*homedir) / find_path.substr(2);
+      full_path = fs::path(stringToWstring(*homedir)) /
+                  stringToWstring(find_path.substr(2));
     }
   }
 
-  std::regex pattern(".*[*\?].*");
+  std::wregex pattern(L".*[*\?].*");
 
   // This vector will contain all the valid paths at each stage of the
   std::vector<fs::path> valid_paths;
-  valid_paths.push_back(fs::path(""));
+  valid_paths.push_back(fs::path(L""));
 
   if (full_path.has_parent_path()) {
     /*
@@ -1332,25 +1332,25 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
        * for directories matching the specified glob pattern.
        */
       for (auto const& valid_path : valid_paths) {
-        if (hasGlobBraces(component.string())) {
+        if (hasGlobBraces(component.wstring())) {
           /*
            * If the component contains braces, we convert the component into a
            * regex, enumerate through all the directories in the current
            * directory and only mark the ones fitting the regex pattern as
            * valid.
            */
-          std::regex component_pattern(globToRegex(component.string()));
-          WindowsFindFiles wf(valid_path / "*");
+          std::wregex component_pattern(globToRegex(component.wstring()));
+          WindowsFindFiles wf(valid_path / L"*");
           for (auto const& file_path : wf.getDirectories()) {
-            if (std::regex_match(file_path.filename().string(),
+            if (std::regex_match(file_path.filename().wstring(),
                                  component_pattern)) {
               tmp_valid_paths.push_back(file_path);
             }
           }
-        } else if (std::regex_match(component.string(), pattern)) {
+        } else if (std::regex_match(component.wstring(), pattern)) {
           /*
            * If the component contains wildcard characters such as * or ?, we
-           * pass the pattern into the Windows FindFirstFileA function to get a
+           * pass the pattern into the Windows FindFirstFileW function to get a
            * list of valid directories.
            */
           WindowsFindFiles wf(valid_path / component);
@@ -1366,8 +1366,9 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
           boost::system::error_code ec;
           if (fs::exists(valid_path / component, ec) &&
               ec.value() == errc::success) {
-            fs::path tmp_vpath =
-                component.string() != "." ? valid_path / component : valid_path;
+            fs::path tmp_vpath = component.wstring() != L"."
+                                     ? valid_path / component
+                                     : valid_path;
             tmp_valid_paths.push_back(tmp_vpath);
           }
         }
@@ -1385,34 +1386,35 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
    * valid paths are return the list.
    */
   for (auto const& valid_path : valid_paths) {
-    if (hasGlobBraces(full_path.filename().string())) {
-      std::regex component_pattern(globToRegex(full_path.filename().string()));
-      WindowsFindFiles wf(valid_path / "*");
+    if (hasGlobBraces(full_path.filename().wstring())) {
+      std::wregex component_pattern(
+          globToRegex(full_path.filename().wstring()));
+      WindowsFindFiles wf(valid_path / L"*");
       for (auto& result : wf.get()) {
-        if (std::regex_match(result.filename().string(), component_pattern)) {
-          auto result_path = result.make_preferred().string();
+        if (std::regex_match(result.filename().wstring(), component_pattern)) {
+          auto result_path = result.make_preferred().wstring();
 
           boost::system::error_code ec;
           if (fs::is_directory(result, ec) && ec.value() == errc::success) {
-            result_path += "\\";
+            result_path += L"\\";
           }
-          results.push_back(result_path);
+          results.push_back(wstringToString(result_path));
         }
       }
     } else {
-      fs::path glob_path = full_path.filename() == "."
+      fs::path glob_path = full_path.filename() == L"."
                                ? valid_path
                                : valid_path / full_path.filename();
 
       WindowsFindFiles wf(glob_path);
       for (auto& result : wf.get()) {
-        auto result_path = result.make_preferred().string();
+        auto result_path = result.make_preferred().wstring();
 
         boost::system::error_code ec;
         if (fs::is_directory(result, ec) && ec.value() == errc::success) {
-          result_path += "\\";
+          result_path += L"\\";
         }
-        results.push_back(result_path);
+        results.push_back(wstringToString(result_path));
       }
     }
   }
@@ -1444,7 +1446,7 @@ int platformAccess(const std::string& path, mode_t mode) {
 }
 
 static std::string normalizeDirPath(const fs::path& path) {
-  std::regex pattern(".*[*?\"|<>].*");
+  std::wregex pattern(L".*[*?\"|<>].*");
 
   std::vector<WCHAR> full_path(MAX_PATH + 1);
   std::vector<WCHAR> final_path(MAX_PATH + 1);
@@ -1453,15 +1455,13 @@ static std::string normalizeDirPath(const fs::path& path) {
   final_path.assign(MAX_PATH + 1, L'\0');
 
   // Fail if illegal characters are detected in the path
-  if (std::regex_match(path.string(), pattern)) {
+  if (std::regex_match(path.wstring(), pattern)) {
     return std::string();
   }
 
   // Obtain the full path of the fs::path object
-  DWORD nret = ::GetFullPathNameW(stringToWstring(path.string()).c_str(),
-                                  MAX_PATH,
-                                  full_path.data(),
-                                  nullptr);
+  DWORD nret = ::GetFullPathNameW(
+      path.wstring().c_str(), MAX_PATH, full_path.data(), nullptr);
   if (nret == 0) {
     return std::string();
   }
@@ -1554,7 +1554,7 @@ boost::optional<FILE*> platformFopen(const std::string& filename,
  */
 Status socketExists(const fs::path& path, bool remove_socket) {
   DWORD timeout = (remove_socket) ? 0 : 500;
-  if (::WaitNamedPipeW(stringToWstring(path.string()).c_str(), timeout) == 0) {
+  if (::WaitNamedPipeW(path.wstring().c_str(), timeout) == 0) {
     DWORD error = ::GetLastError();
     if (error == ERROR_BAD_PATHNAME) {
       return Status(1, "Named pipe path is invalid");
@@ -1675,8 +1675,11 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
                               FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_OFFLINE |
                               FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_SYSTEM |
                               FILE_ATTRIBUTE_TEMPORARY;
-  boost::system::error_code ec;
-  if (fs::is_directory(path, ec) && ec.value() == errc::success) {
+  // NOTE: cannot call path.wstring(), in the event path was constructed from an
+  // std::string, in which case, internal fs::path conversion to wstring will be
+  // performed incorrectly.
+
+  if (PathIsDirectoryW(stringToWstring(path.string()).c_str())) {
     FLAGS_AND_ATTRIBUTES |= FILE_FLAG_BACKUP_SEMANTICS;
   }
 
@@ -1785,7 +1788,9 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
                                                 : wfile_stat->type = "socket";
     break;
   }
-  default: { wfile_stat->type = "unknown"; }
+  default: {
+    wfile_stat->type = "unknown";
+  }
   }
 
   wfile_stat->attributes = getFileAttribStr(file_info.dwFileAttributes);
@@ -1803,8 +1808,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
                                          : wfile_stat->size = li.QuadPart;
 
   const char* drive_letter = nullptr;
-  auto drive_letter_index =
-      PathGetDriveNumberW(stringToWstring(path.string()).c_str());
+  auto drive_letter_index = PathGetDriveNumberW(path.wstring().c_str());
 
   if (drive_letter_index != -1 && kDriveLetters.count(drive_letter_index)) {
     drive_letter = kDriveLetters.at(drive_letter_index).c_str();
@@ -1840,7 +1844,8 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   (!ret) ? wfile_stat->ctime = -1
          : wfile_stat->ctime = longIntToUnixtime(basic_info.ChangeTime);
 
-  windowsGetFileVersion(path.string(), wfile_stat->product_version);
+  windowsGetFileVersion(wstringToString(path.wstring()),
+                        wfile_stat->product_version);
 
   CloseHandle(file_handle);
 
