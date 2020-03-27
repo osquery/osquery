@@ -241,6 +241,48 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
         daemon.kill()
 
+    def test_config_check_exits(self):
+        daemon = self._run_daemon({
+            "config_check": True,
+            "disable_extensions": True,
+            "disable_logging": False,
+            "disable_database": True,
+            "logger_plugin": "stdout",
+            "verbose": True,
+        })
+
+        self.assertTrue(daemon.isDead(daemon.pid, 10))
+        if os.name != "nt":
+            self.assertEqual(daemon.retcode, 0)
+
+    def test_config_dump_exits(self):
+        daemon = self._run_daemon({
+            "config_dump": True,
+            "disable_extensions": True,
+            "disable_logging": False,
+            "disable_database": True,
+            "logger_plugin": "stdout",
+            "verbose": True,
+        })
+
+        self.assertTrue(daemon.isDead(daemon.pid, 10))
+        if os.name != "nt":
+            self.assertEqual(daemon.retcode, 0)
+
+    def test_database_dump_exits(self):
+        daemon = self._run_daemon({
+            "database_dump": True,
+            "disable_extensions": True,
+            "disable_logging": False,
+            "disable_database": True,
+            "logger_plugin": "stdout",
+            "verbose": True,
+        })
+
+        self.assertTrue(daemon.isDead(daemon.pid, 10))
+        if os.name != "nt":
+            self.assertEqual(daemon.retcode, 0)
+
 if __name__ == '__main__':
     with test_base.CleanChildProcesses():
         test_base.Tester().run()
