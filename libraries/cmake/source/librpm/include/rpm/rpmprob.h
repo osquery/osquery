@@ -28,7 +28,8 @@ enum rpmprobFilterFlags_e {
     RPMPROB_FILTER_REPLACEOLDFILES= (1 << 5),	/*!< from --replacefiles */
     RPMPROB_FILTER_OLDPACKAGE	= (1 << 6),	/*!< from --oldpackage */
     RPMPROB_FILTER_DISKSPACE	= (1 << 7),	/*!< from --ignoresize */
-    RPMPROB_FILTER_DISKNODES	= (1 << 8)	/*!< from --ignoresize */
+    RPMPROB_FILTER_DISKNODES	= (1 << 8),	/*!< from --ignoresize */
+    RPMPROB_FILTER_VERIFY	= (1 << 9),	/*!< from --noverify */
 };
 
 typedef rpmFlags rpmprobFilterFlags;
@@ -49,6 +50,7 @@ typedef enum rpmProblemType_e {
     RPMPROB_DISKSPACE,	/*!< installing package ... needs ... on the ... filesystem */
     RPMPROB_DISKNODES,	/*!< installing package ... needs ... on the ... filesystem */
     RPMPROB_OBSOLETES,	/*!< package ... is obsoleted by ... */
+    RPMPROB_VERIFY,	/*!< package did not pass verification */
  } rpmProblemType;
 
 /** \ingroup rpmprob

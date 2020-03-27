@@ -110,10 +110,10 @@ function(importLibraries)
     "Linux,Darwin,Windows:librdkafka"
     "Linux:librpm"
     "Linux:libudev"
-    "Linux,Darwin:libxml2"
+    "Linux,Darwin,Windows:libxml2"
     "Linux,Darwin,Windows:linenoise-ng"
     "Linux,Darwin:lldpd"
-    "Linux,Darwin:lzma"
+    "Linux,Darwin,Windows:lzma"
     "Linux,Darwin:popt"
     "Linux,Darwin,Windows:rapidjson"
     "Linux,Darwin,Windows:rocksdb"
@@ -128,6 +128,7 @@ function(importLibraries)
     "Linux,Darwin,Windows:zstd"
     "Linux,Darwin,Windows:openssl"
     "Linux,Darwin,Windows:aws-sdk-cpp"
+    "Linux,Darwin,Windows:icu"
   )
 
   foreach(python_module ${python_module_list})

@@ -50,11 +50,6 @@ function(boostMain)
     thirdparty_boost_circularbuffer
     thirdparty_boost_endian
   )
-
-  find_package(icu REQUIRED)
-  target_link_libraries(thirdparty_boost INTERFACE
-    thirdparty_icu
-  )
 endfunction()
 
 function(generateBoostSerialization)

@@ -77,15 +77,15 @@ function(generateLibrdkafka)
     "${library_root}/lz4hc.c"
     "${library_root}/rddl.c"
     "${library_root}/rdkafka_plugin.c"
+    "${library_root}/rdkafka_zstd.c"
+    "${library_root}/rdkafka_sasl_scram.c"
+    "${library_root}/rdgz.c"
   )
 
   if(DEFINED PLATFORM_WINDOWS)
-    target_sources(thirdparty_librdkafka_c PUBLIC
+    target_sources(thirdparty_librdkafka_c PRIVATE
       "${library_root}/rdkafka_sasl_win32.c"
-      "${library_root}/rdkafka_sasl_scram.c"
       "${library_root}/regexp.c"
-      "${library_root}/rdgz.c"
-      "${library_root}/rdkafka_zstd.c"
     )
   endif()
 
@@ -93,6 +93,10 @@ function(generateLibrdkafka)
     "${library_root}/rdkafka.h"
     "${CMAKE_CURRENT_BINARY_DIR}/include/librdkafka/rdkafka.h"
     COPYONLY
+  )
+
+  target_include_directories(thirdparty_librdkafka_c PRIVATE
+    "${CMAKE_CURRENT_BINARY_DIR}/include/librdkafka"
   )
 
   target_compile_definitions(thirdparty_librdkafka_c PRIVATE
@@ -103,30 +107,21 @@ function(generateLibrdkafka)
   
   if(DEFINED PLATFORM_WINDOWS)
     target_compile_definitions(thirdparty_librdkafka_c PRIVATE
-      LIBRDKAFKA_STATICLIB
       WITH_ZSTD
       WITH_ZSTD_STATIC
-      WITH_BUNDLED_ZSTD
       WITH_SSL
       WITH_ZLIB
       WITH_PLUGINS
       WITH_SASL_SCRAM
       WITH_HDRHISTOGRAM
     )
-
-    target_link_libraries(thirdparty_librdkafka_c PUBLIC
-      thirdparty_zlib
-      thirdparty_zstd
-    )
-
-    target_include_directories(thirdparty_librdkafka_c PRIVATE
-      "${CMAKE_CURRENT_BINARY_DIR}/include/librdkafka"
-    )
   endif()
 
 
   target_link_libraries(thirdparty_librdkafka_c PUBLIC
     thirdparty_openssl
+    thirdparty_zlib
+    thirdparty_zstd
   )
 
   target_link_libraries(thirdparty_librdkafka_c PRIVATE
@@ -134,9 +129,18 @@ function(generateLibrdkafka)
   )
 
   target_include_directories(thirdparty_librdkafka_c PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/dummy"
     "${library_root}"
   )
+
+  if(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_librdkafka_c PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/dummy"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_librdkafka_c PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/dummy"
+    )
+  endif()
 
   target_include_directories(thirdparty_librdkafka_c SYSTEM INTERFACE
     "${CMAKE_CURRENT_BINARY_DIR}/include"
@@ -172,9 +176,18 @@ function(generateLibrdkafkaxx)
   )
 
   target_include_directories(thirdparty_librdkafka_cxx PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/dummy"
     "${library_root}"
   )
+
+  if(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_librdkafka_cxx PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/dummy"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_librdkafka_cxx PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/dummy"
+    )
+  endif()
 
   target_compile_definitions(thirdparty_librdkafka_cxx PUBLIC
     LIBRDKAFKA_STATICLIB

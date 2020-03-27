@@ -13,6 +13,7 @@
 #include <openssl/asn1.h>
 #include <openssl/bio.h>
 #include <openssl/bn.h>
+#include <openssl/opensslv.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 
@@ -132,7 +133,12 @@ static void fillRow(Row& r, X509* cert) {
 Status getTLSCertificate(std::string hostname, QueryData& results) {
   SSL_library_init();
 
+// Temporary workaround for Buck compiling with an older openssl version
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
   const auto method = TLSv1_method();
+#else
+  const auto method = TLS_method();
+#endif
   if (method == nullptr) {
     return Status(1, "Failed to create OpenSSL method object");
   }

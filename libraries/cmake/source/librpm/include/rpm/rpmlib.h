@@ -8,8 +8,6 @@
  *
  */
 
-#include <popt.h>
-
 #include <rpm/rpmio.h>
 #include <rpm/header.h>
 #include <rpm/rpmtag.h>
@@ -17,7 +15,7 @@
 #include <rpm/rpmpgp.h>
 
 #ifdef _RPM_4_4_COMPAT
-#warning RPM 4.4.x compatibility layer has been removed in RPM >= 4.14
+#error RPM 4.4.x compatibility layer has been removed in RPM >= 4.14
 #endif
 
 #ifdef __cplusplus

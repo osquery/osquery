@@ -80,10 +80,13 @@ typedef rpmFlags rpmsenseFlags;
     _notpre(RPMSENSE_SCRIPT_PRE|RPMSENSE_SCRIPT_POST|RPMSENSE_RPMLIB|RPMSENSE_KEYRING|RPMSENSE_PRETRANS|RPMSENSE_POSTTRANS)
 #define	_ERASE_ONLY_MASK  \
     _notpre(RPMSENSE_SCRIPT_PREUN|RPMSENSE_SCRIPT_POSTUN)
+#define _UNORDERED_ONLY_MASK \
+    _notpre(RPMSENSE_RPMLIB|RPMSENSE_CONFIG|RPMSENSE_PRETRANS|RPMSENSE_POSTTRANS|RPMSENSE_SCRIPT_VERIFY)
 
 #define	isLegacyPreReq(_x)  (((_x) & _ALL_REQUIRES_MASK) == RPMSENSE_PREREQ)
 #define	isInstallPreReq(_x)	((_x) & _INSTALL_ONLY_MASK)
 #define	isErasePreReq(_x)	((_x) & _ERASE_ONLY_MASK)
+#define	isUnorderedReq(_x)	((_x) & _UNORDERED_ONLY_MASK)
 
 
 
@@ -274,6 +277,20 @@ rpmTagVal rpmdsTagTi(const rpmds ds);
  * @return		header instance of dependency (0 for not installed)
  */
 unsigned int rpmdsInstance(rpmds ds);
+
+/** \ingroup rpmds
+ * Return whether dependency is weak
+ * @param ds		dependency set
+ * @return		1 if weak, 0 if not
+ */
+int rpmdsIsWeak(rpmds ds);
+
+/** \ingroup rpmds
+ * Return whether dependency is reversed
+ * @param ds		dependency set
+ * @return		1 if reversed, 0 if not
+ */
+int rpmdsIsReverse(rpmds ds);
 
 /** \ingroup rpmds
  * Return current "Don't promote Epoch:" flag.

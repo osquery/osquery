@@ -7,12 +7,18 @@
 /* Build with dmalloc support? */
 /* #undef DMALLOC */
 
+/* Build with systemd inhibit plugin? */
+#define ENABLE_INHIBIT_PLUGIN 1
+
 /* Enable new rpm database format? */
 /* #undef ENABLE_NDB */
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
 /* #undef ENABLE_NLS */
+
+/* Enable multithreading support? */
+/* #undef ENABLE_OPENMP */
 
 /* Build with plugin support? */
 /* #undef ENABLE_PLUGINS */
@@ -27,7 +33,7 @@
 /* #undef HAVE_BEECRYPT_API_H */
 
 /* Define to 1 if OpenSSL has BN_bn2binpad */
-/* #undef HAVE_BN2BINPAD */
+#define HAVE_BN2BINPAD 1
 
 /* Define to 1 if you have the <bzlib.h> header file. */
 /* #undef HAVE_BZLIB_H */
@@ -47,7 +53,7 @@
 #define HAVE_DB_H 1
 
 /* Define if the GNU dcgettext() function is already present or preinstalled.
-   */
+  */
 /* #undef HAVE_DCGETTEXT */
 
 /* Define to 1 if you have the declaration of `fdatasync', and to 0 if you
@@ -55,7 +61,7 @@
 #define HAVE_DECL_FDATASYNC 1
 
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
-   */
+  */
 #define HAVE_DIRENT_H 1
 
 /* Define to 1 if you have the `dirname' function. */
@@ -65,22 +71,25 @@
 #define HAVE_DLFCN_H 1
 
 /* Define to 1 if OpenSSL has DSA_set0_key */
-/* #undef HAVE_DSA_SET0_KEY 1
+#define HAVE_DSA_SET0_KEY 1
 
 /* Define to 1 if OpenSSL has DSA_set0_pqg */
-/* #undef HAVE_DSA_SET0_PQG */
+#define HAVE_DSA_SET0_PQG 1
 
 /* Define to 1 if OpenSSL has DSA_SIG_set0 */
-/* #undef HAVE_DSA_SIG_SET0 */
+#define HAVE_DSA_SIG_SET0 1
 
 /* Define to 1 if you have the <dwarf.h> header file. */
 /* #undef HAVE_DWARF_H */
+
+/* Have dwelf_elf_begin? */
+/* #undef HAVE_DWELF_ELF_BEGIN */
 
 /* Define to 1 if you have the <elfutils/libdwelf.h> header file. */
 /* #undef HAVE_ELFUTILS_LIBDWELF_H */
 
 /* Define to 1 if OpenSSL has EVP_MD_CTX_new */
-/* #undef HAVE_EVP_MD_CTX_NEW */
+#define HAVE_EVP_MD_CTX_NEW 1
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #define HAVE_FCNTL_H 1
@@ -90,6 +99,9 @@
 
 /* Define to 1 if you have the <gelf.h> header file. */
 /* #undef HAVE_GELF_H */
+
+/* Define to 1 if you have the `getauxval' function. */
+/* #undef HAVE_GETAUXVAL */
 
 /* Define to 1 if you have the `getcwd' function. */
 #define HAVE_GETCWD 1
@@ -146,7 +158,7 @@
 #define HAVE_LUTIMES 1
 
 /* Define to 1 if you have the <lzma.h> header file. */
-/* #undef HAVE_LZMA_H */
+#define HAVE_LZMA_H 1
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
@@ -175,9 +187,6 @@
 /* Define to 1 if NSS has NSS_InitContext */
 /* #undef HAVE_NSS_INITCONTEXT */
 
-/* Define if the patch call you'll be using is 2.1 or older */
-/* #undef HAVE_OLDPATCH_21 */
-
 /* Define to 1 if you have the <openssl/dsa.h> header file. */
 #define HAVE_OPENSSL_DSA_H 1
 
@@ -200,13 +209,16 @@
 #define HAVE_REGCOMP 1
 
 /* Define to 1 if OpenSSL has RSA_set0_key */
-/* #undef HAVE_RSA_SET0_KEY */
+#define HAVE_RSA_SET0_KEY 1
+
+/* Define to 1 if you have the `sched_getaffinity' function. */
+#define HAVE_SCHED_GETAFFINITY 1
 
 /* Define to 1 if you have the <sechash.h> header file. */
 /* #undef HAVE_SECHASH_H */
 
 /* Define to 1 if you have the `secure_getenv' function. */
-#define HAVE_SECURE_GETENV 0
+/* #undef HAVE_SECURE_GETENV */
 
 /* Define to 1 if you have the `setenv' function. */
 #define HAVE_SETENV 1
@@ -238,15 +250,18 @@
 /* Define to 1 if `d_type' is a member of `struct dirent'. */
 #define HAVE_STRUCT_DIRENT_D_TYPE 1
 
+/* Define to 1 if you have the `syncfs' function. */
+/* #undef HAVE_SYNCFS */
+
 /* Define to 1 if you have the <sys/auxv.h> header file. */
 /* #undef HAVE_SYS_AUXV_H */
 
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
-   */
+  */
 /* #undef HAVE_SYS_DIR_H */
 
 /* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
-   */
+  */
 /* #undef HAVE_SYS_NDIR_H */
 
 /* Define to 1 if you have the <sys/param.h> header file. */
@@ -270,6 +285,9 @@
 /* Define to 1 if you have the `unsetenv' function. */
 #define HAVE_UNSETENV 1
 
+/* Define to 1 if you have the `unshare' function. */
+#define HAVE_UNSHARE 1
+
 /* Define to 1 if you have the `utimes' function. */
 #define HAVE_UTIMES 1
 
@@ -277,27 +295,28 @@
 #define HAVE_ZLIB_H 1
 
 /* Define if libzstd is available */
-/* #undef HAVE_ZSTD */
+#define HAVE_ZSTD 1
 
 /* Define if __progname is defined */
 #define HAVE___PROGNAME 1
 
 /* Define to 1 if you have the `__secure_getenv' function. */
-/* #undef HAVE___SECURE_GETENV */
+#define HAVE___SECURE_GETENV 1
 
 /* Define as const if the declaration of iconv() needs const. */
-#define ICONV_CONST 
+#define ICONV_CONST
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+ */
 #define LT_OBJDIR ".libs/"
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
-   */
+  */
 /* #undef MAJOR_IN_MKDEV */
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in
    <sysmacros.h>. */
-#define MAJOR_IN_SYSMACROS 1
+/* #undef MAJOR_IN_SYSMACROS */
 
 /* Name of package */
 #define PACKAGE "rpm"
@@ -309,7 +328,7 @@
 #define PACKAGE_NAME "rpm"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "rpm 4.14.1"
+#define PACKAGE_STRING "rpm 4.15.1"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "rpm"
@@ -318,10 +337,10 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.14.1"
+#define PACKAGE_VERSION "4.15.1"
 
 /* canonical vendor */
-#define RPMCANONVENDOR "pc"
+#define RPMCANONVENDOR "unknown"
 
 /* run-time variable directory */
 #define RUNDIR "/run"
@@ -371,12 +390,17 @@
 # define __EXTENSIONS__ 1
 #endif
 
-
 /* Version number of package */
-#define VERSION "4.14.1"
+#define VERSION "4.15.1"
 
 /* Build with acl support? */
 /* #undef WITH_ACL */
+
+/* libaudit support */
+/* #undef WITH_AUDIT */
+
+/* Define if BDB is available */
+#define WITH_BDB 1
 
 /* Build with beecrypt instead of nss3 support? */
 /* #undef WITH_BEECRYPT */
@@ -419,7 +443,7 @@
 
 /* A full path to a program, possibly with arguments, that will create a
    directory and all necessary parent directories, ala 'mkdir -p' */
-#define __MKDIR_P "/bin/mkdir -p"
+#define __MKDIR_P "/usr/bin/mkdir -p"
 
 /* Define to `int' if <sys/types.h> does not define. */
 /* #undef mode_t */

@@ -372,7 +372,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_BSDXML_H */
 
 /* Define to 1 if you have the <bzlib.h> header file. */
-/* #undef HAVE_BZLIB_H */
+#define HAVE_BZLIB_H 1
 
 /* Define to 1 if you have the `chflags' function. */
 /* #undef HAVE_CHFLAGS */
@@ -687,7 +687,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LIBCRYPTO */
 
 /* Define to 1 if you have the `expat' library (-lexpat). */
-#define HAVE_LIBEXPAT 1
+/* #undef HAVE_LIBEXPAT */
 
 /* Define to 1 if you have the `gcc' library (-lgcc). */
 /* #undef HAVE_LIBGCC */
@@ -796,7 +796,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LZMADEC_H */
 
 /* Define to 1 if you have the <lzma.h> header file. */
-/* #undef HAVE_LZMA_H */
+#define HAVE_LZMA_H 1
 
 /* Define to 1 if you have a working `lzma_stream_encoder_mt' function. */
 /* #undef HAVE_LZMA_STREAM_ENCODER_MT */

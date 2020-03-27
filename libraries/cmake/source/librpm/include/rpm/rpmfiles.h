@@ -10,7 +10,6 @@
 #include <unistd.h>
 
 #include <rpm/rpmtypes.h>
-#include <rpm/rpmvf.h>
 #include <rpm/rpmpgp.h>
 
 /** \ingroup rpmfiles
@@ -66,6 +65,38 @@ enum rpmfileAttrs_e {
 typedef rpmFlags rpmfileAttrs;
 
 #define	RPMFILE_ALL	~(RPMFILE_NONE)
+
+/** \ingroup rpmvf
+ * Exported file verify attributes (ie RPMTAG_FILEVERIFYFLAGS) +
+ * bits used for reporting failures.
+ */
+enum rpmVerifyAttrs_e {
+    RPMVERIFY_NONE	= 0,		/*!< */
+    RPMVERIFY_MD5	= (1 << 0),	/*!< from %verify(md5) - obsolete */
+    RPMVERIFY_FILEDIGEST= (1 << 0),	/*!< from %verify(filedigest) */
+    RPMVERIFY_FILESIZE	= (1 << 1),	/*!< from %verify(size) */
+    RPMVERIFY_LINKTO	= (1 << 2),	/*!< from %verify(link) */
+    RPMVERIFY_USER	= (1 << 3),	/*!< from %verify(user) */
+    RPMVERIFY_GROUP	= (1 << 4),	/*!< from %verify(group) */
+    RPMVERIFY_MTIME	= (1 << 5),	/*!< from %verify(mtime) */
+    RPMVERIFY_MODE	= (1 << 6),	/*!< from %verify(mode) */
+    RPMVERIFY_RDEV	= (1 << 7),	/*!< from %verify(rdev) */
+    RPMVERIFY_CAPS	= (1 << 8),	/*!< from %verify(caps) */
+	/* bits 9-14 unused, reserved for rpmVerifyAttrs */
+    RPMVERIFY_CONTEXTS	= (1 << 15),	/*!< verify: from --nocontexts */
+	/* bits 16-22 used in rpmVerifyFlags */
+	/* bits 23-27 used in rpmQueryFlags */
+    RPMVERIFY_READLINKFAIL= (1 << 28),	/*!< readlink failed */
+    RPMVERIFY_READFAIL	= (1 << 29),	/*!< file read failed */
+    RPMVERIFY_LSTATFAIL	= (1 << 30),	/*!< lstat failed */
+    RPMVERIFY_LGETFILECONFAIL	= (1 << 31)	/*!< lgetfilecon failed */
+};
+
+typedef rpmFlags rpmVerifyAttrs;
+
+#define	RPMVERIFY_ALL		~(RPMVERIFY_NONE)
+#define	RPMVERIFY_FAILURES	\
+  (RPMVERIFY_LSTATFAIL|RPMVERIFY_READFAIL|RPMVERIFY_READLINKFAIL|RPMVERIFY_LGETFILECONFAIL)
 
 /** \ingroup rpmfiles
  * File disposition(s) during package install/erase transaction.
@@ -125,7 +156,7 @@ typedef rpmFlags rpmfiFlags;
 
 #define RPMFI_FLAGS_ERASE \
     (RPMFI_NOFILECLASS | RPMFI_NOFILELANGS | \
-     RPMFI_NOFILEMTIMES | RPMFI_NOFILERDEVS | RPMFI_NOFILEINODES | \
+     RPMFI_NOFILEMTIMES | RPMFI_NOFILERDEVS | \
      RPMFI_NOFILEVERIFYFLAGS)
 
 #define RPMFI_FLAGS_INSTALL \
