@@ -286,8 +286,19 @@ Status JSON::toString(std::string& str) const {
   return Status::success();
 }
 
-Status JSON::fromString(const std::string& str) {
-  rj::ParseResult pr = doc_.Parse(str.c_str());
+Status JSON::fromString(const std::string& str, ParseMode mode) {
+  rj::ParseResult pr;
+  switch (mode) {
+  case ParseMode::Iterative: {
+    pr = doc_.Parse<rj::kParseIterativeFlag>(str.c_str());
+    break;
+  }
+  case ParseMode::Recursive: {
+    pr = doc_.Parse(str.c_str());
+    break;
+  }
+  }
+
   if (!pr) {
     std::string message{"Cannot parse JSON: "};
     message += GetParseError_En(pr.Code());
@@ -368,4 +379,4 @@ bool JSON::valueToBool(const rj::Value& value) {
   return false;
 }
 
-}
+} // namespace osquery
