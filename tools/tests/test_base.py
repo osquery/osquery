@@ -212,7 +212,6 @@ class ProcRunner(object):
         thread.start()
 
     def run(self):
-        pid = 0
         try:
             if self.silent:
                 self.proc = subprocess.Popen(
@@ -221,7 +220,6 @@ class ProcRunner(object):
                     stderr=subprocess.PIPE)
             else:
                 self.proc = subprocess.Popen([self.path] + self.args)
-            pid = self.proc.pid
             self.started = True
         except Exception as e:
             print(utils.red("Process start failed:") + " %s" % self.name)
@@ -233,13 +231,11 @@ class ProcRunner(object):
                 time.sleep(0.1)
             self.started = True
             self.retcode = -1 if self.proc is None else self.proc.poll()
-            self.proc = None
         except Exception as e:
             return
 
     def requireStarted(self, attempts=5):
-        delay = 0
-        for i in range(attempts):
+        for _ in range(attempts):
             if self.started is True:
                 break
             time.sleep(self.interval)
@@ -312,10 +308,9 @@ class ProcRunner(object):
         '''
         try:
             proc = psutil.Process(pid=pid)
-        except psutil.NoSuchProcess as e:
+        except psutil.NoSuchProcess as _:
             return True
-        delay = 0
-        for i in range(attempts):
+        for _ in range(attempts):
             if not proc.is_running():
                 return True
             time.sleep(self.interval)
