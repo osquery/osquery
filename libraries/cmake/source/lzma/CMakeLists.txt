@@ -4,6 +4,21 @@
 # This source code is licensed in accordance with the terms specified in
 # the LICENSE file found in the root directory of this source tree.
 
+
+
+#
+# Generated with the following commands:
+#
+#   export CFLAGS="--sysroot /opt/osquery-toolchain"
+#   export CXXFLAGS="${CFLAGS}"
+#   export LDFLAGS="${CFLAGS}"
+#   export CC=clang
+#
+#   ./autogen.sh
+#   ./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links \
+#               --disable-scripts --disable-doc --enable-static
+#
+
 function(lzmaMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -76,8 +91,19 @@ function(lzmaMain)
     "${library_root}/src/liblzma/simple/simple_coder.c"
     "${library_root}/src/liblzma/simple/simple_decoder.c"
     "${library_root}/src/liblzma/simple/simple_encoder.c"
-    "${library_root}/src/liblzma/simple/x86.c"
   )
+
+  if("${TARGET_PROCESSOR}" STREQUAL "aarch64")
+    target_sources(thirdparty_lzma PRIVATE
+      "${library_root}/src/liblzma/simple/armthumb.c"
+      "${library_root}/src/liblzma/simple/arm.c"
+    )
+
+  elseif("${TARGET_PROCESSOR}" STREQUAL "x86_64")
+    target_sources(thirdparty_lzma PRIVATE
+      "${library_root}/src/liblzma/simple/x86.c"
+    )
+  endif()
 
   target_compile_definitions(thirdparty_lzma PRIVATE
     HAVE_CONFIG_H
@@ -110,11 +136,11 @@ function(lzmaMain)
 
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_lzma PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/${TARGET_PROCESSOR}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/linux"
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_lzma PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/macos"
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     target_include_directories(thirdparty_lzma PRIVATE

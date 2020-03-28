@@ -71,10 +71,10 @@
 #define HAVE_DECODER_ARMTHUMB 1
 
 /* Define to 1 if delta decoder is enabled. */
-#define HAVE_DECODER_DELTA 1
+/* #undef HAVE_DECODER_DELTA */
 
 /* Define to 1 if ia64 decoder is enabled. */
-#define HAVE_DECODER_IA64 1
+/* #undef HAVE_DECODER_IA64 */
 
 /* Define to 1 if lzma1 decoder is enabled. */
 #define HAVE_DECODER_LZMA1 1
@@ -83,13 +83,13 @@
 #define HAVE_DECODER_LZMA2 1
 
 /* Define to 1 if powerpc decoder is enabled. */
-#define HAVE_DECODER_POWERPC 1
+/* #undef HAVE_DECODER_POWERPC */
 
 /* Define to 1 if sparc decoder is enabled. */
-#define HAVE_DECODER_SPARC 1
+/* #undef HAVE_DECODER_SPARC */
 
 /* Define to 1 if x86 decoder is enabled. */
-#define HAVE_DECODER_X86 1
+/* #undef HAVE_DECODER_X86 */
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1
@@ -101,10 +101,10 @@
 #define HAVE_ENCODER_ARMTHUMB 1
 
 /* Define to 1 if delta encoder is enabled. */
-#define HAVE_ENCODER_DELTA 1
+/* #undef HAVE_ENCODER_DELTA */
 
 /* Define to 1 if ia64 encoder is enabled. */
-#define HAVE_ENCODER_IA64 1
+/* #define HAVE_ENCODER_IA64 */
 
 /* Define to 1 if lzma1 encoder is enabled. */
 #define HAVE_ENCODER_LZMA1 1
@@ -113,13 +113,13 @@
 #define HAVE_ENCODER_LZMA2 1
 
 /* Define to 1 if powerpc encoder is enabled. */
-#define HAVE_ENCODER_POWERPC 1
+/* #undef HAVE_ENCODER_POWERPC */
 
 /* Define to 1 if sparc encoder is enabled. */
-#define HAVE_ENCODER_SPARC 1
+/* #undef HAVE_ENCODER_SPARC */
 
 /* Define to 1 if x86 encoder is enabled. */
-#define HAVE_ENCODER_X86 1
+/* #undef HAVE_ENCODER_X86 */
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #define HAVE_FCNTL_H 1
