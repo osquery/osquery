@@ -13,19 +13,13 @@
 #define ENABLE_REFCNT_DEBUG 0
 #define ENABLE_SHAREDPTR_DEBUG 0
 #define ENABLE_LZ4_EXT 0
-#define ENABLE_LZ4_EXT 0
-#define ENABLE_GSSAPI 0
-#define ENABLE_GSSAPI 0
-#define ENABLE_LZ4_EXT 0
 #define WITH_STATIC_LINKING 1
 #define MKL_APP_NAME "librdkafka"
 #define MKL_APP_DESC_ONELINE "The Apache Kafka C/C++ library"
-// gcc
-#define WITH_GCC 1
-// gxx
-#define WITH_GXX 1
-// pkgconfig
-#define WITH_PKGCONFIG 1
+// ccenv
+#define WITH_CC 1
+// cxxenv
+#define WITH_CXX 1
 // install
 #define WITH_INSTALL 1
 // PIC
@@ -54,12 +48,20 @@
 #define WITH_LIBDL 1
 // WITH_PLUGINS
 #define WITH_PLUGINS 1
+// zlib
+#define WITH_ZLIB 1
+// libssl
+#define WITH_SSL 1
+// zstd
+#define WITH_ZSTD 1
 // WITH_HDRHISTOGRAM
 #define WITH_HDRHISTOGRAM 1
 // WITH_SNAPPY
 #define WITH_SNAPPY 1
 // WITH_SOCKEM
 #define WITH_SOCKEM 1
+// WITH_SASL_SCRAM
+#define WITH_SASL_SCRAM 1
 // regex
 #define HAVE_REGEX 1
 // strndup
@@ -68,8 +70,6 @@
 #define HAVE_STRERROR_R 1
 // pthread_setname_gnu
 #define HAVE_PTHREAD_SETNAME_GNU 1
-// python
-#define HAVE_PYTHON 1
 // BUILT_WITH
-#define BUILT_WITH "STATIC_LINKING GCC GXX PKGCONFIG INSTALL GNULD LDS LIBDL PLUGINS HDRHISTOGRAM SNAPPY SOCKEM"
+#define BUILT_WITH "STATIC_LINKING CC CXX INSTALL GNULD LIBDL PLUGINS ZLIB HDRHISTOGRAM SNAPPY SOCKEM"
 #endif /* _CONFIG_H_ */

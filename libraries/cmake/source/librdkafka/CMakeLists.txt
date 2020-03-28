@@ -4,6 +4,22 @@
 # This source code is licensed in accordance with the terms specified in
 # the LICENSE file found in the root directory of this source tree.
 
+#
+# The configuration has been captured with the following command line arguments:
+#
+#   export CFLAGS="--sysroot /opt/osquery-toolchain"
+#   export CXXFLAGS="${CFLAGS}"
+#   export LDFLAGS="${CFLAGS}"
+#
+#   export PATH="/opt/osquery-toolchain/usr/bin:${PATH}"
+#
+#   ./configure --cc=clang --cxx=clang++ --enable-ssl --disable-gssapi --enable-sasl \
+#               --disable-lz4 --disable-lz4-ext --enable-static
+#
+# Note that you may have to manually adjust your osquery-toolchain sysroot in order
+# to actually generate some of the required definitions (i.e.: WITH_SSL)
+#
+
 function(librdkafkaMain)
   generateLibrdkafka()
   generateLibrdkafkaxx()
