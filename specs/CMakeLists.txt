@@ -283,6 +283,7 @@ function(generateNativeTables)
     "windows/windows_security_center.table:windows"
     "windows/windows_optional_features.table:windows"
     "windows/connectivity.table:windows"
+    "windows/userassist.table:windows"
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd"
   )

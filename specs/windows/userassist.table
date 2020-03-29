@@ -1,0 +1,12 @@
+table_name("userassist")
+description("UserAssist Registry Key tracks when a user executes an application from Windows Explorer.")
+schema([
+    Column("path", TEXT, "Application file path."),
+    Column("last_execution_time", INTEGER, "Most recent time application was executed."),
+    Column("count", INTEGER, "Number of times the application has been executed."),
+    Column("sid", TEXT, "User SID."),
+])
+implementation("userassist@genUserAssist")
+examples([
+  "select * from userassist;",
+])
