@@ -321,7 +321,7 @@ Initializer::Initializer(int& argc,
   std::signal(SIGINT, signalHandler);
 
   // If the caller is checking configuration, disable the watchdog/worker.
-  if (FLAGS_config_check) {
+  if (FLAGS_config_check || FLAGS_database_dump || FLAGS_config_dump) {
     FLAGS_disable_watchdog = true;
   }
 
@@ -357,7 +357,7 @@ void Initializer::initDaemon() const {
     return;
   }
 
-  if (FLAGS_config_check) {
+  if (FLAGS_config_check || FLAGS_database_dump || FLAGS_config_dump) {
     // No need to daemonize, emit log lines, or create process mutexes.
     return;
   }
@@ -516,7 +516,7 @@ void Initializer::start() const {
   // Pre-extension manager initialization options checking.
   // If the shell or daemon does not need extensions and it will exit quickly,
   // prefer to disable the extension manager.
-  if ((FLAGS_config_check || FLAGS_config_dump) &&
+  if ((FLAGS_config_check || FLAGS_config_dump || FLAGS_database_dump) &&
       !Watcher::get().hasManagedExtensions()) {
     FLAGS_disable_extensions = true;
   }
@@ -536,6 +536,7 @@ void Initializer::start() const {
                    << " initialize failed: Could not initialize database";
         auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
         requestShutdown(retcode);
+        return;
       }
 
       sleepFor(kDatabaseRetryDelay);
@@ -546,6 +547,7 @@ void Initializer::start() const {
       LOG(ERROR) << "Failed to upgrade database";
       auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
       requestShutdown(retcode);
+      return;
     }
   }
 
@@ -581,11 +583,13 @@ void Initializer::start() const {
     // A configuration check exits the application.
     // Make sure to request a shutdown as plugins may have created services.
     requestShutdown(s.getCode());
+    return;
   }
 
   if (FLAGS_database_dump) {
     dumpDatabase();
     requestShutdown();
+    return;
   }
 
   // Load the osquery config using the default/active config plugin.
