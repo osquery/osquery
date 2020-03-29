@@ -26,6 +26,8 @@
 namespace osquery {
 namespace tables {
 
+const std::string kSSHUserKeysDir = ".ssh";
+
 // parsePrivateKey returns true iff the key is valid
 bool parsePrivateKey(std::string& keys_content,
                      int* key_type,
@@ -45,8 +47,7 @@ bool parsePrivateKey(std::string& keys_content,
     return -1; // let openssl know that the passwordCallback failed
   };
 
-  EVP_PKEY* pkey;
-  pkey =
+  auto pkey =
       PEM_read_bio_PrivateKey(bio_stream, nullptr, passwordCallback, nullptr);
   *is_encrypted = encrypted;
   scope_guard::create([=]() {

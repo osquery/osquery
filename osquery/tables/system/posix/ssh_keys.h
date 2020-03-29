@@ -14,7 +14,7 @@
 namespace osquery {
 namespace tables {
 
-const std::string kSSHUserKeysDir = ".ssh/";
+extern const std::string kSSHUserKeysDir;
 
 void genSSHkeyForHosts(const std::string& uid,
                        const std::string& gid,
