@@ -255,7 +255,7 @@ TEST_F(SshKeysTests, ed25519_unencrypted) {
   EXPECT_EQ(row.at("uid"), uid);
   EXPECT_EQ(row.at("path"), fs::canonical(filepath).native());
   EXPECT_EQ(row.at("encrypted"), "0");
-  EXPECT_EQ(row.at("key_type"), "ed25519");
+  EXPECT_EQ(row.at("key_type"), "");
 }
 
 TEST_F(SshKeysTests, ed25519_encrypted) {
