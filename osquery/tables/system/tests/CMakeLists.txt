@@ -13,7 +13,6 @@ function(osqueryTablesSystemTestsMain)
 
   if(DEFINED PLATFORM_POSIX)
     generateOsqueryTablesSystemPosixTests()
-    generateOsqueryTablesSystemTestsSshkeystestsTest()
     generateOsqueryTablesSystemTestsAugeasTestsTest()
   endif()
 
@@ -56,29 +55,12 @@ function(generateOsqueryTablesSystemLinuxTests)
   )
 endfunction()
 
-function(generateOsqueryTablesSystemTestsSshkeystestsTest)
-  add_osquery_executable(osquery_tables_system_tests_sshkeystests-test posix/ssh_keys_tests.cpp)
-
-  target_link_libraries(osquery_tables_system_tests_sshkeystests-test PRIVATE
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_filesystem
-    osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    plugins_database_ephemeral
-    thirdparty_googletest
-  )
-endfunction()
-
 function(generateOsqueryTablesSystemPosixTests)
   add_osquery_executable(osquery_tables_system_posix_tests-test
     posix/apt_sources_tests.cpp
     posix/known_hosts_tests.cpp
     posix/shell_history_tests.cpp
+    posix/ssh_keys_tests.cpp
     posix/sudoers_tests.cpp
     posix/yum_sources_tests.cpp
     posix/last_tests.cpp

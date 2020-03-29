@@ -362,11 +362,6 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_POSIX)
     add_test(NAME osquery_tables_system_posix_tests-test COMMAND osquery_tables_system_posix_tests-test)
-    add_test(NAME osquery_tables_system_tests_knownhoststests-test COMMAND osquery_tables_system_tests_knownhoststests-test)
-    add_test(NAME osquery_tables_system_tests_shellhistorytests-test COMMAND osquery_tables_system_tests_shellhistorytests-test)
-    add_test(NAME osquery_tables_system_tests_sshkeystests-test COMMAND osquery_tables_system_tests_sshkeystests-test)
-    add_test(NAME osquery_tables_system_tests_sudoerstests-test COMMAND osquery_tables_system_tests_sudoerstests-test)
-    add_test(NAME osquery_tables_system_tests_yumsourcestests-test COMMAND osquery_tables_system_tests_yumsourcestests-test)
     add_test(NAME osquery_tables_system_tests_augeastests-test COMMAND osquery_tables_system_tests_augeastests-test)
     set_tests_properties(
       osquery_tables_system_tests_augeastests-test
