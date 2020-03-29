@@ -13,11 +13,7 @@ function(osqueryTablesSystemTestsMain)
 
   if(DEFINED PLATFORM_POSIX)
     generateOsqueryTablesSystemPosixTests()
-    generateOsqueryTablesSystemTestsKnownhoststestsTest()
-    generateOsqueryTablesSystemTestsShellhistorytestsTest()
     generateOsqueryTablesSystemTestsSshkeystestsTest()
-    generateOsqueryTablesSystemTestsSudoerstestsTest()
-    generateOsqueryTablesSystemTestsYumsourcestestsTest()
     generateOsqueryTablesSystemTestsAugeasTestsTest()
   endif()
 
@@ -64,7 +60,6 @@ function(generateOsqueryTablesSystemTestsSshkeystestsTest)
   add_osquery_executable(osquery_tables_system_tests_sshkeystests-test posix/ssh_keys_tests.cpp)
 
   target_link_libraries(osquery_tables_system_tests_sshkeystests-test PRIVATE
-    global_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_core_sql
