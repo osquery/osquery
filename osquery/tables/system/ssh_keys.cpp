@@ -47,7 +47,6 @@ bool isOpenSSHKey(std::string& keys_content) {
 bool isOpenSSHKeyEncrypted(std::string& keys_content) {
   const std::string prefix = keys_content.substr(
       kOpenSshHeader.size() + 1, kOpenSshUnencryptedPrefix.size());
-  printf("%s\n", prefix.c_str());
   return prefix != kOpenSshUnencryptedPrefix;
 }
 
