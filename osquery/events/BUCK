@@ -71,7 +71,7 @@ osquery_cxx_library(
         (
             LINUX,
             [
-		"audit_flags.cpp",
+                "audit_flags.cpp",
                 "linux/auditdnetlink.cpp",
                 "linux/auditeventpublisher.cpp",
                 "linux/inotify.cpp",
@@ -82,7 +82,7 @@ osquery_cxx_library(
         (
             MACOSX,
             [
-		"audit_flags.cpp",
+                "audit_flags.cpp",
                 "darwin/diskarbitration.cpp",
                 "darwin/event_taps.cpp",
                 "darwin/fsevents.cpp",
