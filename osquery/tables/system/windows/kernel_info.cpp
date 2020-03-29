@@ -6,6 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/system.h>
 
 #include <osquery/core.h>
@@ -18,8 +19,8 @@
 namespace osquery {
 namespace tables {
 
-std::string kNtKernelPath =
-    (getSystemRoot() / "System32\\ntoskrnl.exe").string();
+std::wstring kNtKernelPath =
+    (getSystemRoot() / L"System32\\ntoskrnl.exe").wstring();
 
 void GetBootArgs(Row& r) {
   QueryData regResults;
@@ -33,30 +34,30 @@ void GetBootArgs(Row& r) {
 }
 
 void GetSystemDriveGUID(Row& r) {
-  char buf[51] = {0};
-  auto sysRoot = getSystemRoot().root_name().string() + "\\";
+  WCHAR buf[51] = {0};
+  auto sysRoot = getSystemRoot().root_name().wstring() + L"\\";
   if (GetVolumeNameForVolumeMountPoint(
-          sysRoot.c_str(), static_cast<LPSTR>(buf), 50)) {
-    r["device"] = SQL_TEXT(buf);
+          sysRoot.c_str(), static_cast<LPWSTR>(buf), 50)) {
+    r["device"] = SQL_TEXT(wstringToString(buf));
   }
 }
 
 void GetKernelVersion(Row& r) {
   unsigned int size = 0;
-  auto verSize = GetFileVersionInfoSize(kNtKernelPath.c_str(), nullptr);
+  auto verSize = GetFileVersionInfoSizeW(kNtKernelPath.c_str(), nullptr);
   if (verSize == 0) {
     TLOG << "GetFileVersionInfoSize failed (" << GetLastError() << ")";
     return;
   }
 
-  auto verData = static_cast<LPSTR>(malloc(verSize));
+  auto verData = static_cast<LPWSTR>(malloc(verSize));
 
-  if (!GetFileVersionInfo(kNtKernelPath.c_str(), 0, verSize, verData)) {
+  if (!GetFileVersionInfoW(kNtKernelPath.c_str(), 0, verSize, verData)) {
     TLOG << "GetFileVersionInfo failed (" << GetLastError() << ")";
   }
 
   void* vptrVersionInfo = nullptr;
-  if (!VerQueryValue(verData, "\\", &vptrVersionInfo, &size)) {
+  if (!VerQueryValueW(verData, L"\\", &vptrVersionInfo, &size)) {
     TLOG << "GetFileVersionInfo failed (" << GetLastError() << ")";
   }
   auto lpVersionInfo = static_cast<VS_FIXEDFILEINFO*>(vptrVersionInfo);
@@ -87,7 +88,8 @@ QueryData genKernelInfo(QueryContext& context) {
   GetBootArgs(r);
   GetSystemDriveGUID(r);
 
-  r["path"] = SQL_TEXT(getSystemRoot().string() + "\\System32\\ntoskrnl.exe");
+  r["path"] = SQL_TEXT(
+      wstringToString(getSystemRoot().wstring() + L"\\System32\\ntoskrnl.exe"));
 
   return {r};
 }

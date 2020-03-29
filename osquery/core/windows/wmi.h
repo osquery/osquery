@@ -187,6 +187,14 @@ class WmiResultItem {
   Status GetString(const std::string& name, std::string& ret) const;
 
   /**
+   * @brief Windows WMI Helper function to retrieve a String result from a WMI
+   * query
+   *
+   * @returns Status indicating the success of the query
+   */
+  Status GetString(const std::wstring& name, std::wstring& ret) const;
+
+  /**
    * @brief Windows WMI Helper function to retrieve a vector of String result
    * from
    * a WMI query

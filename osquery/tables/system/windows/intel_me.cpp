@@ -14,6 +14,7 @@
 
 // clang-format off
 #include <osquery/utils/system/system.h>
+#include <osquery/utils/conversions/windows/strings.h>
 #include <SetupAPI.h>
 // clang-format on
 
@@ -331,16 +332,16 @@ osquery::Status getDeviceInterfacePath(
         std::to_string(err));
   }
 
-  std::string path;
+  std::wstring path;
   path.assign(device_details->DevicePath, buffer.size() - sizeof(DWORD));
 
-  if (std::strlen(path.c_str()) == 0U) {
+  if (std::wcslen(path.c_str()) == 0U) {
     return osquery::Status::failure(
         "Invalid path returned for the given device interface; the string is "
         "empty");
   }
 
-  dev_interface_path = std::move(path);
+  dev_interface_path = wstringToString(path);
   return osquery::Status::success();
 }
 
@@ -405,7 +406,7 @@ osquery::Status openDeviceInterface(DeviceHandle& device_handle,
                                     const std::string& dev_interface_path) {
   device_handle.reset();
 
-  auto device = CreateFile(dev_interface_path.c_str(),
+  auto device = CreateFile(stringToWstring(dev_interface_path).c_str(),
                            GENERIC_READ | GENERIC_WRITE,
                            FILE_SHARE_READ | FILE_SHARE_WRITE,
                            nullptr,

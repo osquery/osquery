@@ -279,18 +279,26 @@ Status WmiResultItem::GetUnsignedLongLong(const std::string& name,
 Status WmiResultItem::GetString(const std::string& name,
                                 std::string& ret) const {
   std::wstring property_name = stringToWstring(name);
+  std::wstring result;
+  auto status = GetString(property_name, result);
+  ret = wstringToString(result);
+  return status;
+}
+
+Status WmiResultItem::GetString(const std::wstring& name,
+                                std::wstring& ret) const {
   VARIANT value;
-  HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
+  HRESULT hr = result_->Get(name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
-    ret = "";
+    ret = L"";
     return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != VT_BSTR) {
-    ret = "";
+    ret = L"";
     VariantClear(&value);
     return Status::failure("Invalid data type returned.");
   }
-  ret = bstrToString(value.bstrVal);
+  ret = value.bstrVal;
   VariantClear(&value);
   return Status::success();
 }
