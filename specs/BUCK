@@ -604,7 +604,6 @@ osquery_gentable_cxx_library(
             "posix/smbios_tables.table",
             "linux,macos",
         ),
-        ),
         (
             "posix/socket_events.table",
             "Linux,macos",
