@@ -334,7 +334,7 @@ std::string getProcCmdline(int pid) {
 
   // Walk the \0-tokenized list of arguments until reaching the returned 'max'
   // number of arguments or the number appended to the front.
-  char* ptr = procargs;
+  char* ptr = procargs + sizeof(nargs);
   char* cmdline = nullptr;
   for (int i = 0; i < nargs && ptr < procargs + len; i++) {
     // Find the end of the arg
@@ -342,8 +342,8 @@ std::string getProcCmdline(int pid) {
       ptr += 1;
     }
 
-    // Replace the null with a space except for the final null in the cmdline
-    if (*ptr == '\0' && i < nargs - 1) {
+    // Replace the null with a space except for the final null in the cmdline.
+    while (ptr < procargs + len && *ptr == '\0' && i < nargs) {
       *ptr = ' ';
       ptr += 1;
     }
