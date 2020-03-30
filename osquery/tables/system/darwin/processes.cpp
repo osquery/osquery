@@ -315,47 +315,43 @@ void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
   }
 }
 
-std::string getProcCmdline(int pid) {
-  static const auto argmax = genMaxArgs();
-  static std::unique_ptr<char[]> pprocargs{new char[argmax]};
-  size_t len = argmax;
-  char* procargs = pprocargs.get();
-  int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
-  if (sysctl(mib, 3, procargs, &len, nullptr, 0) == -1 || len == 0) {
-    return "";
-  }
-
-  // The number of arguments is an integer in front of the result buffer.
+bool parseProcCmdline(std::string& args, size_t len) {
+  // argc is the first value.
   int nargs = 0;
-  memcpy(&nargs, procargs, sizeof(nargs));
-  if (nargs <= 1) {
-    return "";
+  if (len < sizeof(nargs)) {
+    return false;
   }
 
-  // Walk the \0-tokenized list of arguments until reaching the returned 'max'
-  // number of arguments or the number appended to the front.
-  char* ptr = procargs;
-  char* cmdline = nullptr;
-  for (int i = 0; i < nargs && ptr < procargs + len; i++) {
-    // Find the end of the arg
-    while (ptr < procargs + len && *ptr != '\0') {
-      ptr += 1;
-    }
-
-    // Replace the null with a space except for the final null in the cmdline
-    if (*ptr == '\0' && i < nargs - 1) {
-      *ptr = ' ';
-      ptr += 1;
-    }
-
-    // The command line is considered to start after the first arg (which is the
-    // exe name)
-    if (i == 0) {
-      cmdline = ptr;
-    }
+  memcpy(&nargs, args.data(), sizeof(nargs));
+  // Skip the executable path.
+  size_t start = sizeof(nargs);
+  size_t nul = args.find('\0', start);
+  if (nul == std::string::npos) {
+    return false;
   }
 
-  return cmdline;
+  start = args.find_first_not_of('\0', nul);
+  if (start == std::string::npos) {
+    return false;
+  }
+
+  // Skip argc and the executable.
+  args.erase(0, start);
+  start = 0;
+  while (nargs-- && nul != std::string::npos) {
+    nul = args.find('\0', start);
+    args[nul] = ' ';
+    start = nul + 1;
+  }
+
+  // Unhandled error.
+  if (nargs != -1) {
+    return false;
+  }
+
+  // Trim the environment data.
+  args.erase(nul);
+  return true;
 }
 
 std::map<std::string, std::string> getProcEnv(int pid, size_t argmax) {
@@ -404,9 +400,23 @@ void genProcCmdline(const QueryContext& context, int pid, ProcessesRow& r) {
     return;
   }
 
-  // The command line invocation including arguments.
-  std::string cmdline = getProcCmdline(pid);
-  r.cmdline_col = std::move(cmdline);
+  size_t len = 0;
+  int mib[] = {CTL_KERN, KERN_PROCARGS2, pid};
+  // Estimate the size.
+  if (sysctl(mib, 3, nullptr, &len, nullptr, 0) != 0) {
+    return;
+  }
+
+  len++;
+  std::string args(len, 0);
+  // Request content.
+  if (sysctl(mib, 3, &args[0], &len, nullptr, 0) != 0) {
+    return;
+  }
+
+  if (parseProcCmdline(args, len)) {
+    r.cmdline_col = std::move(args);
+  }
 }
 
 void genProcResourceUsage(const QueryContext& context,

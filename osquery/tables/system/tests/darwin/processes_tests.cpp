@@ -21,6 +21,7 @@ namespace tables {
 
 void genProcUniquePid(QueryContext& context, int pid, ProcessesRow& r);
 void genProcArch(QueryContext& context, int pid, ProcessesRow& r);
+bool parseProcCmdline(std::string& args, size_t len);
 
 class DarwinProcessesTests : public testing::Test {};
 
@@ -32,6 +33,25 @@ TEST_F(DarwinProcessesTests, test_unique_pid) {
   genProcUniquePid(ctx, 1, r);
   EXPECT_NE(r.upid_col, -1);
   EXPECT_NE(r.uppid_col, -1);
+}
+
+TEST_F(DarwinProcessesTests, test_cmdline_parsing) {
+  int argc = 2;
+  std::string cmdline("0000/bin/sh0/bin/sh0-c0PATH=/");
+  std::replace(cmdline.begin(), cmdline.end(), '0', '\0');
+  memcpy(&cmdline[0], &argc, sizeof(argc));
+  EXPECT_TRUE(parseProcCmdline(cmdline, cmdline.size()));
+  EXPECT_EQ("/bin/sh -c", cmdline);
+
+  cmdline = "0000";
+  std::replace(cmdline.begin(), cmdline.end(), '0', '\0');
+  memcpy(&cmdline[0], &argc, sizeof(argc));
+  EXPECT_FALSE(parseProcCmdline(cmdline, cmdline.size()));
+
+  cmdline = "0000/bin/sh";
+  std::replace(cmdline.begin(), cmdline.end(), '0', '\0');
+  memcpy(&cmdline[0], &argc, sizeof(argc));
+  EXPECT_FALSE(parseProcCmdline(cmdline, cmdline.size()));
 }
 
 TEST_F(DarwinProcessesTests, test_process_arch) {
