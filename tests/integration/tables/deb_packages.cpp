@@ -32,7 +32,7 @@ TEST_F(DebPackages, test_sanity) {
                              {"size", IntType},
                              {"arch", NonEmptyString},
                              {"revision", NormalType},
-                             {"source", NonEmptyString}};
+                             {"status", NonEmptyString}};
     validate_rows(rows, row_map);
 
     auto all_packages = std::unordered_set<std::string>{};
