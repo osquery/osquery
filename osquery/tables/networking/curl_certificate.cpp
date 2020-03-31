@@ -16,17 +16,110 @@
 #include <openssl/opensslv.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include <algorithm>
 #include <iomanip>
 #include <string>
 
 namespace osquery {
 namespace tables {
 
-static void fillRow(Row& r, X509* cert) {
+static std::string pem(X509* cert) {
+  auto bio_out = BIO_new(BIO_s_mem());
+  PEM_write_bio_X509(bio_out, cert);
+  BUF_MEM* bio_buf = nullptr;
+  BIO_get_mem_ptr(bio_out, &bio_buf);
+  auto pem = std::string(bio_buf->data, bio_buf->length);
+  BIO_free(bio_out);
+  return pem;
+}
+
+static int certversion(X509* cert) {
+  return X509_get_version(cert) + 1;
+}
+
+static std::string signature_algorithm(X509* cert) {
+  auto sign_nid = X509_get_signature_nid(cert);
+  if (sign_nid != NID_undef) {
+    return OBJ_nid2sn(sign_nid);
+  }
+  return LN_undef;
+}
+
+static std::string signature(X509* cert) {
+  ASN1_BIT_STRING* sign = nullptr;
+  std::string signature;
+
+  X509_get0_signature(&sign, nullptr, cert);
+  auto sig_nid = OBJ_obj2nid(cert->sig_alg->algorithm);
+  if (sig_nid != NID_undef) {
+    auto n = sign->length;
+    auto s = sign->data;
+    auto bio_out = BIO_new(BIO_s_mem());
+    for (auto i = 0; i < n; i++) {
+      BIO_printf(bio_out, "%02x%s", s[i], ((i + 1) == n) ? "" : ":");
+    }
+    BUF_MEM* bio_buf = nullptr;
+    BIO_get_mem_ptr(bio_out, &bio_buf);
+    signature = std::string(bio_buf->data, bio_buf->length);
+    BIO_free(bio_out);
+  }
+  return signature;
+}
+
+static std::string certificate_extensions(X509* cert, int nid) {
+  auto ci = cert->cert_info;
+  if (sk_X509_EXTENSION_num(ci->extensions) <= 0) {
+    return {};
+  }
+
+  for (auto i = 0; i < sk_X509_EXTENSION_num(ci->extensions); i++) {
+    auto ext_value =
+        (X509_EXTENSION*)sk_X509_EXTENSION_value(ci->extensions, i);
+    if (!ext_value) {
+      break;
+    }
+
+    if (OBJ_obj2nid(ext_value->object) == nid) {
+      auto bio_out = BIO_new(BIO_s_mem());
+      if (!X509V3_EXT_print(bio_out, ext_value, 0, 0)) {
+        M_ASN1_OCTET_STRING_print(bio_out, ext_value->value);
+      }
+
+      BUF_MEM* bio_buf = nullptr;
+      BIO_get_mem_ptr(bio_out, &bio_buf);
+
+      // remove the ending newline from the extension value
+      auto length = bio_buf->length;
+      if (bio_buf->data[length - 1] == '\n' ||
+          bio_buf->data[length - 1] == '\r') {
+        bio_buf->data[length - 1] = '\0';
+      }
+
+      if (bio_buf->data[length] == '\n' || bio_buf->data[length] == '\r') {
+        bio_buf->data[length] = '\0';
+      }
+      auto ident = std::string(bio_buf->data, bio_buf->length);
+
+      // Replace the newline character with the comma
+      std::replace(ident.begin(), ident.end(), '\n', ';');
+      BIO_free(bio_out);
+      return ident;
+    }
+  }
+
+  return {};
+} // namespace tables
+
+bool has_cert_expired(X509* cert) {
+  return X509_cmp_current_time(X509_get_notAfter(cert)) <= 0;
+}
+
+static void fillRow(Row& r, X509* cert, int dump_certificate) {
   std::vector<char> temp(256, 0x0);
   auto temp_size = static_cast<int>(temp.size());
 
@@ -128,9 +221,51 @@ static void fillRow(Row& r, X509* cert) {
 
     r["sha1_fingerprint"] = ss.str();
   }
+
+  r["certificate_version"] = INTEGER(certversion(cert));
+  r["signature_algorithm"] = signature_algorithm(cert);
+  r["signature"] = signature(cert);
+
+  // get the authority and subject key identifier
+  // It will be same for self-signed certificate
+  r["subject_key_identifier"] =
+      certificate_extensions(cert, NID_subject_key_identifier);
+  r["authority_key_identifier"] =
+      certificate_extensions(cert, NID_authority_key_identifier);
+
+  r["key_usage"] = certificate_extensions(cert, NID_key_usage);
+  r["extended_key_usage"] = certificate_extensions(cert, NID_ext_key_usage);
+  r["certificate_policies"] =
+      certificate_extensions(cert, NID_certificate_policies);
+
+  r["subject_alternative_names"] =
+      certificate_extensions(cert, NID_subject_alt_name);
+  r["issuer_alternative_names"] =
+      certificate_extensions(cert, NID_issuer_alt_name);
+
+  r["info_access"] = certificate_extensions(cert, NID_info_access);
+  r["subject_info_access"] = certificate_extensions(cert, NID_sinfo_access);
+  r["policy_mappings"] = certificate_extensions(cert, NID_policy_mappings);
+
+  r["has_expired"] = INTEGER(has_cert_expired(cert));
+
+  r["basic_constraint"] = certificate_extensions(cert, NID_basic_constraints);
+  r["name_constraints"] = certificate_extensions(cert, NID_name_constraints);
+  r["policy_constraints"] =
+      certificate_extensions(cert, NID_policy_constraints);
+
+  // set the dump_certificate flag
+  r["dump_certificate"] = INTEGER(dump_certificate);
+
+  // check the dump_certificate flag and dump the certificate in PEM format
+  if (dump_certificate) {
+    r["certificate_pem"] = pem(cert);
+  }
 }
 
-Status getTLSCertificate(std::string hostname, QueryData& results) {
+Status getTLSCertificate(const std::string& hostname,
+                         QueryData& results,
+                         int dump_certificate) {
   SSL_library_init();
 
 // Temporary workaround for Buck compiling with an older openssl version
@@ -140,21 +275,21 @@ Status getTLSCertificate(std::string hostname, QueryData& results) {
   const auto method = TLS_method();
 #endif
   if (method == nullptr) {
-    return Status(1, "Failed to create OpenSSL method object");
+    return Status::failure("Failed to create OpenSSL method object");
   }
 
   auto delCTX = [](SSL_CTX* ctx) { SSL_CTX_free(ctx); };
   auto ctx =
       std::unique_ptr<SSL_CTX, decltype(delCTX)>(SSL_CTX_new(method), delCTX);
   if (ctx == nullptr) {
-    return Status(1, "Failed to create OpenSSL CTX object");
+    return Status::failure("Failed to create OpenSSL CTX object");
   }
 
   auto delBIO = [](BIO* bio) { BIO_free_all(bio); };
   auto server = std::unique_ptr<BIO, decltype(delBIO)>(
       BIO_new_ssl_connect(ctx.get()), delBIO);
   if (server == nullptr) {
-    return Status(1, "Failed to create OpenSSL BIO object");
+    return Status::failure("Failed to create OpenSSL BIO object");
   }
 
   std::string port = ":443";
@@ -169,53 +304,59 @@ Status getTLSCertificate(std::string hostname, QueryData& results) {
 
   auto ret = BIO_set_conn_hostname(server.get(), conn_hostname.c_str());
   if (ret != 1) {
-    return Status(1, "Failed to set OpenSSL hostname: " + std::to_string(ret));
+    return Status::failure("Failed to set OpenSSL hostname: " +
+                           std::to_string(ret));
   }
 
   SSL* ssl = nullptr;
   BIO_get_ssl(server.get(), &ssl);
   if (ssl == nullptr) {
-    return Status(1, "Failed to retrieve OpenSSL object");
+    return Status::failure("Failed to retrieve OpenSSL object");
   }
 
   ret = SSL_set_tlsext_host_name(ssl, ext_hostname.c_str());
   if (ret != 1) {
-    return Status(1,
-                  "Failed to set OpenSSL server name: " + std::to_string(ret));
+    return Status::failure("Failed to set OpenSSL server name: " +
+                           std::to_string(ret));
   }
 
   ret = BIO_do_connect(server.get());
   if (ret != 1) {
-    return Status(1,
-                  "Failed to establish TLS connection: " + std::to_string(ret));
+    return Status::failure("Failed to establish TLS connection: " +
+                           std::to_string(ret));
   }
 
   ret = BIO_do_handshake(server.get());
   if (ret != 1) {
-    return Status(1,
-                  "Failed to complete TLS handshake: " + std::to_string(ret));
+    return Status::failure("Failed to complete TLS handshake: " +
+                           std::to_string(ret));
   }
 
   auto delX509 = [](X509* cert) { X509_free(cert); };
   auto cert = std::unique_ptr<X509, decltype(delX509)>(
       SSL_get_peer_certificate(ssl), delX509);
   if (cert == nullptr) {
-    return Status(1, "No certificate");
+    return Status::failure("No certificate");
   }
 
   Row r;
   r["hostname"] = hostname;
-  fillRow(r, cert.get());
+  fillRow(r, cert.get(), dump_certificate);
   results.push_back(r);
   return Status::success();
 }
 
 QueryData genTLSCertificate(QueryContext& context) {
   QueryData results;
+  auto dump_certificate = 0;
   auto hostnames = context.constraints["hostname"].getAll(EQUALS);
 
+  if (context.hasConstraint("dump_certificate", EQUALS)) {
+    dump_certificate = context.constraints["dump_certificate"].matches<int>(1);
+  }
+
   for (const auto& hostname : hostnames) {
-    auto s = getTLSCertificate(hostname, results);
+    auto s = getTLSCertificate(hostname, results, dump_certificate);
     if (!s.ok()) {
       LOG(INFO) << "Cannot get certificate for " << hostname << ": "
                 << s.getMessage();
@@ -224,5 +365,5 @@ QueryData genTLSCertificate(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
