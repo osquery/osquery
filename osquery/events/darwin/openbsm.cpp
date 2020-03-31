@@ -16,11 +16,7 @@
 
 namespace osquery {
 
-/// The OpenBSM subsystem may have a performance impact on the system.
-FLAG(bool,
-     disable_audit,
-     true,
-     "Disable receiving events from the audit subsystem");
+DECLARE_bool(disable_audit);
 
 REGISTER(OpenBSMEventPublisher, "event_publisher", "openbsm");
 
