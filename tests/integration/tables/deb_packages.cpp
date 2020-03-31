@@ -26,14 +26,13 @@ class DebPackages : public testing::Test {
 TEST_F(DebPackages, test_sanity) {
   QueryData rows = execute_query("select * from deb_packages");
   if (rows.size() > 0) {
-    ValidationMap row_map = {
-        {"name", NonEmptyString},
-        {"version", NonEmptyString},
-        {"source", NormalType},
-        {"size", IntType},
-        {"arch", NonEmptyString},
-        {"revision", NormalType},
-    };
+    ValidationMap row_map = {{"name", NonEmptyString},
+                             {"version", NonEmptyString},
+                             {"source", NormalType},
+                             {"size", IntType},
+                             {"arch", NonEmptyString},
+                             {"revision", NormalType},
+                             {"status", NonEmptyString}};
     validate_rows(rows, row_map);
 
     auto all_packages = std::unordered_set<std::string>{};
