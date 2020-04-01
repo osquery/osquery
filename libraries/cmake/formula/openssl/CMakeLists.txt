@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14.6)
 project(thirdparty_openssl)
 
-set(OPENSSL_VERSION "1.1.1d")
+set(OPENSSL_VERSION "1.1.1f")
 
 include(ExternalProject)
 
