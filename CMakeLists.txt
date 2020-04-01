@@ -129,6 +129,7 @@ function(importLibraries)
     "Linux,Darwin,Windows:openssl"
     "Linux,Darwin,Windows:aws-sdk-cpp"
     "Linux,Darwin,Windows:icu"
+    "Linux:libpcap"
   )
 
   foreach(python_module ${python_module_list})

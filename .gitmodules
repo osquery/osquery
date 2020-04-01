@@ -124,3 +124,6 @@
 [submodule "libraries/cmake/source/augeas/gnulib/src"]
 	path = libraries/cmake/source/augeas/gnulib/src
 	url = https://github.com/osquery/third-party-gnulib
+[submodule "libraries/cmake/source/libpcap/src"]
+	path = libraries/cmake/source/libpcap/src
+	url = https://github.com/the-tcpdump-group/libpcap

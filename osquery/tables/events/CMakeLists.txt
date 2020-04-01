@@ -24,6 +24,7 @@ function(generateOsqueryTablesEventsEventstable)
       linux/hardware_events.cpp
       linux/process_events.cpp
       linux/process_file_events.cpp
+      linux/http_events.cpp
       linux/selinux_events.cpp
       linux/socket_events.cpp
       linux/syslog_events.cpp

@@ -1,0 +1,21 @@
+table_name("http_events")
+description("Tracks HTTP request header.")
+schema([
+    Column("time", BIGINT, "Time of HTTP event"),
+    Column("method", TEXT, "HTTP request method GET/POST"),
+    Column("protocol", TEXT, "SSL protocol used in communication"),
+    Column("local", TEXT, "IP address of the local interface"),
+    Column("remote", TEXT, "IP address of the HTTP responder"),
+    Column("s_port", BIGINT, "Source port"),
+    Column("d_port", BIGINT, "Destination port"),
+    Column("host", TEXT, "Host name available in HTTP header"),
+    Column("port", INTEGER, "Port number from HTTP URL"),
+    Column("uri", TEXT, "URI added to HTTP host name"),
+    Column("content_type", TEXT, "Content type of HTTP request"),
+    Column("user_agent", TEXT, "Client making HTTP request"),
+    Column("ja3", TEXT, "Parameters responsible for JA3 calculation"),
+    Column("ja3_fingerprint", TEXT, "MD5 hash of ja3 string"),
+    Column("other_headers", TEXT, "Client making HTTP request")
+    ])
+attributes(event_subscriber=True)
+implementation("http_events@http_events::genTable")
