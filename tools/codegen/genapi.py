@@ -190,7 +190,7 @@ def gen_api(tables_path, profile={}):
             if spec_file[0] == '.' or spec_file.find("example") == 0:
                 continue
             # Exclude blacklist specific file
-            if spec_file == 'blacklist' or spec_file == 'CMakeLists.txt' or spec_file == 'BUCK':
+            if spec_file == 'blacklist' or spec_file == 'CMakeLists.txt':
                 continue
             platform = os.path.basename(base)
             # Exclude kernel tables

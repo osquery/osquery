@@ -25,7 +25,6 @@ Here are some common things we look for:
 - The minimal amount of includes are used, only include what you use.
 - Comments for methods, structures, and classes follow our common patterns.
 - `Status` and `LOG(N)` messages do not use punctuation or contractions.
-- Support for both CMake and BUCK (we are happy to help).
 - The code mostly looks and feels similar to the existing codebase.
 
 -->
