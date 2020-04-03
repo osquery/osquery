@@ -53,7 +53,9 @@ class SQLPlugin : public Plugin {
   }
 
   /// Tables may be detached by name.
-  virtual void detach(const std::string& /*name*/) {}
+  virtual Status detach(const std::string& /*name*/) {
+    return Status::success();
+  }
 
  public:
   Status call(const PluginRequest& request, PluginResponse& response) override;

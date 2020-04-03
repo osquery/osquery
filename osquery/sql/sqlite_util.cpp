@@ -139,7 +139,7 @@ class SQLiteSQLPlugin : public SQLPlugin {
   Status attach(const std::string& name) override;
 
   /// Detach a virtual table (DROP).
-  void detach(const std::string& name) override;
+  Status detach(const std::string& name) override;
 };
 
 /// SQL provider for osquery internal/core.
@@ -250,12 +250,12 @@ Status SQLiteSQLPlugin::attach(const std::string& name) {
   return attachTableInternal(name, statement, dbc, is_extension);
 }
 
-void SQLiteSQLPlugin::detach(const std::string& name) {
-  auto dbc = SQLiteDBManager::get();
-  if (!dbc->isPrimary()) {
-    return;
-  }
-  detachTableInternal(name, dbc);
+Status SQLiteSQLPlugin::detach(const std::string& name) {
+  // Detach requests occurring via the plugin/registry APIs must act on the
+  // primary database. To allow this, getConnection can explicitly request the
+  // primary instance and avoid the contention decisions.
+  auto dbc = SQLiteDBManager::getConnection(true);
+  return detachTableInternal(name, dbc);
 }
 
 SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, Mutex& mtx)
