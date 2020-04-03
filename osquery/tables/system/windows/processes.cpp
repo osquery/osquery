@@ -309,7 +309,7 @@ void getProcessPathInfo(HANDLE& proc,
   SecureZeroMemory(path.data(), kMaxPathSize);
   auto ret = QueryFullProcessImageNameW(proc, 0, path.data(), &out);
   if (ret != TRUE) {
-    LOG(ERROR) << "Failed to lookup path information for process " << pid;
+    LOG(INFO) << "Failed to lookup path information for process " << pid;
   } else {
     r["path"] = SQL_TEXT(wstringToString(path.data()));
   }
@@ -329,7 +329,7 @@ void getProcessPathInfo(HANDLE& proc,
   }
 
   if (ret == FALSE) {
-    LOG(ERROR) << "Failed to get cwd for " << pid << " with " << GetLastError();
+    LOG(INFO) << "Failed to get cwd for " << pid << " with " << GetLastError();
   } else {
     r["cwd"] = SQL_TEXT(wstringToString(path.data()));
   }
