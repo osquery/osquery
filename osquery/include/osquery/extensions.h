@@ -10,8 +10,8 @@
 
 #include <osquery/core.h>
 #include <osquery/flags.h>
-#include <osquery/registry_interface.h>
 #include <osquery/plugins/sql.h>
+#include <osquery/registry_interface.h>
 
 namespace osquery {
 
@@ -176,11 +176,12 @@ Status startExtension(const std::string& manager_path,
 /// Start an ExtensionWatcher thread.
 Status startExtensionWatcher(const std::string& manager_path,
                              size_t interval,
-                             bool fatal);
+                             bool fatal,
+                             RouteUUID uuid);
 
 /// Start an ExtensionManagerRunner thread.
 Status startExtensionManager();
 
 /// Internal startExtensionManager implementation.
 Status startExtensionManager(const std::string& manager_path);
-}
+} // namespace osquery
