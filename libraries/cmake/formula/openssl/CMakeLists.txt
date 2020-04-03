@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14.6)
 project(thirdparty_openssl)
 
-set(OPENSSL_VERSION "1.1.1d")
+set(OPENSSL_VERSION "1.1.1f")
 
 include(ExternalProject)
 
@@ -152,8 +152,16 @@ function(opensslMain)
   list(APPEND openssl_c_flags ${OSQUERY_FORMULA_CFLAGS})
   string(REPLACE ";" " " openssl_c_flags "${openssl_c_flags}")
 
+  string(REGEX MATCH "[0-9]\.[0-9]\.[0-9]" OPENSSL_VERSION_NO_PATCH "${OPENSSL_VERSION}")
+
+  set(openssl_urls
+    "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+    "https://www.openssl.org/source/old/${OPENSSL_VERSION_NO_PATCH}/openssl-${OPENSSL_VERSION}.tar.gz"
+  )
+
   ExternalProject_Add(openssl
-    URL "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+    URL "${openssl_urls}"
+    URL_HASH SHA256=186c6bfe6ecfba7a5b48c47f8a1673d0f3b0e5ba2e25602dd23b629975da3f35
     CONFIGURE_COMMAND ${configure_command}
     BUILD_COMMAND ${build_command}
     INSTALL_COMMAND ""
