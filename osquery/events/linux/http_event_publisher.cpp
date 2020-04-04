@@ -188,10 +188,10 @@ struct sniff_ethernet {
       "Enable the HTTP capture event publisher");
 
  FLAG(string,
-      disable_events_filters,
+      disable_http_event_filters,
       "",
       "Comma-separated list of filters(e.g. "
-      "'internal_traffic') to disable specific default http filter.");
+      "'private_ip_events') to disable specific default http filter.");
 
  Status HTTPLookupEventPublisher::setUp() {
    if (!FLAGS_enable_http_lookups) {
@@ -207,12 +207,12 @@ struct sniff_ethernet {
 
    httpFilter_.clear();
    httpFilter_ = {{"http_request", kHttpRequestFilter + kTLSTrafficFilter},
-                  {"internal_traffic", kInternalTrafficFilter}};
+                  {"private_ip_events", kInternalTrafficFilter}};
    return Status(0, "OK");
  }
 
  void HTTPLookupEventPublisher::getFilters(std::string& sFilters) {
-   for (auto& filter_name : osquery::split(FLAGS_disable_events_filters, ",")) {
+   for (auto& filter_name : osquery::split(FLAGS_disable_http_event_filters, ",")) {
      // To enforce unification we lower case all filters for matching
      std::transform(filter_name.begin(),
                     filter_name.end(),
