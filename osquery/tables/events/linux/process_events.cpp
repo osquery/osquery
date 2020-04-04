@@ -170,8 +170,12 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     CopyFieldFromMap(row, syscall_event_record->fields, "auid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "uid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "euid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "fsuid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "suid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "gid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "egid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "fsgid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "sgid", "0");
 
     if (!GetSyscallName(row["syscall"], event_data.syscall_number)) {
       row["syscall"] = std::to_string(event_data.syscall_number);

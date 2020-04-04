@@ -208,10 +208,34 @@ void AuditEventPublisher::ProcessEvents(
         continue;
       }
 
+      std::uint64_t process_auid;
+      if (!GetIntegerFieldFromMap(
+              process_auid, audit_event_record.fields, "auid")) {
+        VLOG(1) << "Missing or invalid auid field in AUDIT_SYSCALL";
+
+        continue;
+      }
+
       std::uint64_t process_euid;
       if (!GetIntegerFieldFromMap(
               process_euid, audit_event_record.fields, "euid")) {
         VLOG(1) << "Missing or invalid euid field in AUDIT_SYSCALL";
+
+        continue;
+      }
+
+      std::uint64_t process_fsuid;
+      if (!GetIntegerFieldFromMap(
+              process_fsuid, audit_event_record.fields, "fsuid")) {
+        VLOG(1) << "Missing or invalid fsuid field in AUDIT_SYSCALL";
+
+        continue;
+      }
+
+      std::uint64_t process_suid;
+      if (!GetIntegerFieldFromMap(
+              process_suid, audit_event_record.fields, "suid")) {
+        VLOG(1) << "Missing or invalid suid field in AUDIT_SYSCALL";
 
         continue;
       }
@@ -232,10 +256,31 @@ void AuditEventPublisher::ProcessEvents(
         continue;
       }
 
+      std::uint64_t process_fsgid;
+      if (!GetIntegerFieldFromMap(
+              process_fsgid, audit_event_record.fields, "fsgid")) {
+        VLOG(1) << "Missing or invalid fsgid field in AUDIT_SYSCALL";
+
+        continue;
+      }
+
+      std::uint64_t process_sgid;
+      if (!GetIntegerFieldFromMap(
+              process_sgid, audit_event_record.fields, "sgid")) {
+        VLOG(1) << "Missing or invalid sgid field in AUDIT_SYSCALL";
+
+        continue;
+      }
+
       data.process_uid = static_cast<uid_t>(process_uid);
+      data.process_auid = static_cast<uid_t>(process_auid);
       data.process_euid = static_cast<uid_t>(process_euid);
+      data.process_fsuid = static_cast<uid_t>(process_fsuid);
+      data.process_suid = static_cast<uid_t>(process_suid);
       data.process_gid = static_cast<gid_t>(process_gid);
       data.process_egid = static_cast<gid_t>(process_egid);
+      data.process_fsgid = static_cast<gid_t>(process_fsgid);
+      data.process_sgid = static_cast<gid_t>(process_sgid);
 
       audit_event.record_list.push_back(audit_event_record);
       trace_context[audit_event_record.audit_id] = std::move(audit_event);
