@@ -9,19 +9,19 @@
 // see README.api of libdpkg-dev
 #define LIBDPKG_VOLATILE_API
 
-extern "C" {
-#include <dpkg/dpkg-db.h>
-#include <dpkg/dpkg.h>
-#include <dpkg/parsedump.h>
-#include <dpkg/pkg-array.h>
-}
-
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+
+extern "C" {
+#include <dpkg/dpkg-db.h>
+#include <dpkg/dpkg.h>
+#include <dpkg/parsedump.h>
+#include <dpkg/pkg-array.h>
+}
 
 namespace osquery {
 namespace tables {
