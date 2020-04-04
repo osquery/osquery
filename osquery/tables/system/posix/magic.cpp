@@ -49,9 +49,8 @@ QueryData genMagicData(QueryContext& context) {
   }
 
   if (magic_load(magic_cookie, magic_db_files.c_str()) != 0) {
-    LOG(WARNING) << "Unable to load magic list of database: "
-                  << magic_db_files
-                  << " because: " << magic_error(magic_cookie);
+    LOG(WARNING) << "Unable to load magic list of database: " << magic_db_files
+                 << " because: " << magic_error(magic_cookie);
     magic_close(magic_cookie);
     return results;
   }
@@ -88,5 +87,5 @@ QueryData genMagicData(QueryContext& context) {
   magic_close(magic_cookie);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
