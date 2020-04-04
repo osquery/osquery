@@ -342,7 +342,7 @@ struct sniff_ethernet {
      const struct sniff_tcp *tcp;            /* The TCP header */
      const u_char *payload;                  /* Packet payload */
      
-     //HTTP header
+     //HTTP headers
      std::string method = "";
      std::string protocol = "";
      std::string host = "";
@@ -354,10 +354,8 @@ struct sniff_ethernet {
      std::string ja3_fingerprint = "";
      std::string other_headers = "";
      
-     char src_address_buffer[64];
-     char dst_address_buffer[64];
-     
-     std::string ja3CalcString;
+     char src_address_buffer[64] = "";
+     char dst_address_buffer[64] = "";
      
      long s_port = 0;
      long d_port = 0;
@@ -469,7 +467,7 @@ struct sniff_ethernet {
              case TLS_CLIENT_HELLO: {
                  static struct fingerprint *fp_packet = nullptr;
                  if(fp_packet == nullptr) {
-                     fp_packet = (fingerprint *)malloc(sizeof(struct fingerprint));
+                     fp_packet = static_cast<fingerprint *>(malloc(sizeof(struct fingerprint)));
                      if(fp_packet == nullptr) {
                          TLOG << "Malloc Error (fp_packet)";
                          return;
@@ -496,7 +494,7 @@ struct sniff_ethernet {
                          continue;
                      }
                      unsigned int x = std::stoul(buff, nullptr, 16);
-                     snprintf(decStr, sizeof(decStr), "%d", x);
+                     snprintf(decStr, sizeof(decStr), "%u", x);
                      cipherStr+=decStr;
                      cipherStr+="-";
                  }
@@ -592,27 +590,17 @@ struct sniff_ethernet {
                      
                  }
                  
-                 uint16_t extensions_malloc = 0;
                  /*
                   Extensions use offsets, etc so we can alloc those now.  Others however will just have pointers
-                  and we can malloc if it becomes a signature.  For this reason we have extensions_malloc to track
-                  the current size for easy reuse instead of consantly malloc and free'ing the space.
-                  */
-                 
-                 if(extensions_malloc == 0) {
-                     fp_packet->extensions = (uint8_t *)malloc(fp_packet->extensions_length);
-                     extensions_malloc = fp_packet->extensions_length;
-                 } else{
-                     if(fp_packet->extensions_length > extensions_malloc) {
-                         fp_packet->extensions = (uint8_t *)realloc(fp_packet->extensions, fp_packet->extensions_length);
-                         extensions_malloc = fp_packet->extensions_length;
-                     }
+                  and we can malloc if it becomes a signature. 
+                 */
+                 if(fp_packet->extensions_length) {
+                    fp_packet->extensions = (uint8_t *)malloc(fp_packet->extensions_length);                 
+                    if(fp_packet->extensions == nullptr) {
+                        TLOG <<"Malloc Error (extensions)";
+                        return;
+                    }
                  }
-                 if(fp_packet->extensions == nullptr) {
-                     TLOG <<"Malloc Error (extensions)";
-                     return;
-                 }
-                 
                  // Load up the extensions
                  int unarse = 0;
                  size_t arse;
@@ -628,19 +616,18 @@ struct sniff_ethernet {
                      for (arse = 7 ; arse <= (size_t)(server_name[0]*256 + server_name[1]) + 1 ; arse++) {
                          if (server_name[arse] > 0x20 && server_name[arse] < 0x7b) {
                              if(server_name[arse] != '\0') {
-                                 //printf( "%c", server_name[arse]);
                                  host += server_name[arse];
-                                 size_t found = host.find_first_of(":");
-                                 if (found != std::string::npos) {
-                                   host = host.substr(0, found);
-                                   auto host_exp = tryTo<std::uint64_t>(
-                                       host.substr(found, host.length()));
-                                   if (host_exp) {
-                                     host_port = host_exp.get();
-                                   }
                              }
                          }
-                         }
+                     }
+                     size_t found = host.find_last_of(":");
+                     if (found != std::string::npos) {
+                       host = host.substr(0, found);
+                       auto host_exp = tryTo<std::uint64_t>(
+                           host.substr(found + 1, host.length()));
+                       if (host_exp) {
+                         host_port = host_exp.get();
+                       }
                      }
                  } else {
                      TLOG << "Host name not present in the packet";
@@ -660,7 +647,7 @@ struct sniff_ethernet {
                      }
                      
                      unsigned int x = std::stoul(buff, nullptr, 16);
-                     snprintf(decStr, sizeof(decStr), "%d", x);
+                     snprintf(decStr, sizeof(decStr), "%u", x);
                      arse = arse + 2;
                      extensionsStr+=decStr;
                      extensionsStr+="-";
@@ -681,7 +668,7 @@ struct sniff_ethernet {
                              continue;
                          }
                          unsigned int x = std::stoul(buff, nullptr, 16);
-                         snprintf(decStr, sizeof(decStr), "%d", x);
+                         snprintf(decStr, sizeof(decStr), "%u", x);
                          curveStr+=decStr;
                          curveStr+="-";
                      }
@@ -704,7 +691,7 @@ struct sniff_ethernet {
                          }
                          
                          unsigned int x = std::stoul(buff, nullptr, 16);
-                         snprintf(decStr, sizeof(decStr), "%d", x);
+                         snprintf(decStr, sizeof(decStr), "%u", x);
                          ecPointStr+=decStr;
                          ecPointStr+="-";
                      }
@@ -761,7 +748,7 @@ struct sniff_ethernet {
      } else {
              //Packet request header starts from here
              offset = size_ip + size_tcp;
-             //Two conditions are "POST" and "GET", judge the success shows that the network frame contains a HTTP get or post link
+             //Conditions are "POST", "GET", "PUT, "OPTION" and "DELETE".
              httpparser::Request request;
              httpparser::HttpRequestParser parser;
              const char * actualHttpPacket =  (const char *)(packet + offset);
@@ -779,11 +766,11 @@ struct sniff_ethernet {
              while(iter != request.headers.end()) {
                  std::transform(iter->name.begin(), iter->name.end(), iter->name.begin(), ::tolower);
                  if (iter->name == "host") {
-                   size_t found = iter->value.find_first_of(":");
+                   size_t found = iter->value.find_last_of(":");
                    if (found != std::string::npos) {
                      host = iter->value.substr(0, found);
                      auto host_exp = tryTo<std::uint64_t>(
-                         iter->value.substr(found, iter->value.length()));
+                         iter->value.substr(found + 1, iter->value.length()));
                      if (host_exp) {
                        host_port = host_exp.get();
                      }
@@ -806,7 +793,7 @@ struct sniff_ethernet {
                              }
                      }
                  }
-                 iter++;
+                 ++iter;
              }
          
              std::string serialized;

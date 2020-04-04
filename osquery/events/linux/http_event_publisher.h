@@ -11,9 +11,7 @@
 #pragma once
 
 #include <pcap.h>
-
 #include <osquery/events.h>
-//#include <osquery/status.h>
 
 namespace osquery {
 
@@ -83,6 +81,7 @@ class HTTPLookupEventPublisher
   DECLARE_PUBLISHER("http_lookups");
 
  public:
+  HTTPLookupEventPublisher() {}
   virtual ~HTTPLookupEventPublisher() {
     stop();
   }
