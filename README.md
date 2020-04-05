@@ -97,6 +97,13 @@ guide](https://osquery.readthedocs.io/en/latest/development/building/). Also
 check out our [contributing guide](CONTRIBUTING.md) and join the
 community on [Slack](https://slack.osquery.io).
 
+## Bring osquery wherever you go through the ssh
+To bring osquery to the ssh session without installation there is a plugin in [xxh project](https://github.com/xxh/xxh):
+```bash
+xxh myhost +s osquery
+osquery>
+```
+
 ## License
 
 By contributing to osquery you agree that your contributions will be
