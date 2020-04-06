@@ -21,7 +21,9 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+#ifdef OSQUERY_WINDOWS
 #include <osquery/utils/conversions/windows/strings.h>
+#endif
 #include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
