@@ -195,8 +195,10 @@ Status OpenBSMProcEvSubscriber::handleExec(const OpenBSMEventContextRef& ec) {
   auto ppid = ppid_map.find(pid);
   if (ppid != ppid_map.end()) {
     r["parent"] = INTEGER(ppid->second);
+  } else {
+    /* If mapping doesn't exist no fork was captured. Not fatal. Ignoring. */
+    r["parent"] = INTEGER(-1);
   }
-  /* If mapping doesn't exist no fork was captured. Not fatal. Ignoring. */
 
   add(r);
   return Status::success();
