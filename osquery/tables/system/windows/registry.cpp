@@ -203,10 +203,10 @@ Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
   if (!ConvertStringSidToSidA(toks[1].c_str(), &sid)) {
     return Status(GetLastError(), "Could not convert string to sid");
   } else {
-    WCHAR accntName[UNLEN+1] = {0};
-    WCHAR domName[DNLEN+1] = {0};
-    DWORD accntNameLen = UNLEN+1;
-    DWORD domNameLen = DNLEN+1;
+    WCHAR accntName[UNLEN + 1] = {0};
+    WCHAR domName[DNLEN + 1] = {0};
+    DWORD accntNameLen = UNLEN + 1;
+    DWORD domNameLen = DNLEN + 1;
     SID_NAME_USE eUse;
     if (!LookupAccountSidW(nullptr,
                            sid,
