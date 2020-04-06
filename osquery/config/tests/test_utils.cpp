@@ -56,7 +56,7 @@ fs::path const& getTestHelperScriptsDirectory() {
 std::map<std::string, std::string> getTestConfigMap(const std::string& file) {
   std::string content;
   auto const filepath = getTestConfigDirectory() / file;
-  auto status = readFile(filepath, content);
+  auto status = readFile(filepath, content, 0, false, false, true);
   EXPECT_TRUE(status.ok())
       << "Could not read file: " << boost::io::quoted(filepath.string())
       << ", because: " << status.what();
@@ -68,7 +68,7 @@ std::map<std::string, std::string> getTestConfigMap(const std::string& file) {
 JSON getExamplePacksConfig() {
   std::string content;
   auto const filepath = getTestConfigDirectory() / "test_inline_pack.conf";
-  auto status = readFile(filepath, content);
+  auto status = readFile(filepath, content, 0, false, false, true);
   EXPECT_TRUE(status.ok())
       << "Could not read file: " << boost::io::quoted(filepath.string())
       << ", because: " << status.what();

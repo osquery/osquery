@@ -120,7 +120,11 @@ class TestConfigPlugin : public ConfigPlugin {
 
     std::string content;
     auto s = readFile(getTestConfigDirectory() / "test_noninline_packs.conf",
-                      content);
+                      content,
+                      0,
+                      false,
+                      false,
+                      true);
     config["data"] = content;
     return s;
   }
@@ -368,7 +372,12 @@ TEST_F(ConfigTests, test_content_update) {
 
   // Read config content manually.
   std::string content;
-  readFile(getTestConfigDirectory() / "test_parse_items.conf", content);
+  readFile(getTestConfigDirectory() / "test_parse_items.conf",
+           content,
+           0,
+           false,
+           false,
+           true);
 
   // Create the output of a `genConfig`.
   std::map<std::string, std::string> config_data;
