@@ -108,11 +108,16 @@ int DynamicTableRow::get_column(sqlite3_context* ctx,
   } else if (type == TEXT_TYPE || type == BLOB_TYPE) {
     sqlite3_result_text(
         ctx, value.c_str(), static_cast<int>(value.size()), SQLITE_TRANSIENT);
+  } else if (value.empty() &&
+             (type == INTEGER_TYPE || type == BIGINT_TYPE ||
+              type == UNSIGNED_BIGINT_TYPE || type == DOUBLE_TYPE)) {
+    // Don't Log a casting error for a known type if the column row is empty
+    sqlite3_result_null(ctx);
   } else if (type == INTEGER_TYPE) {
     auto afinite = tryTo<long>(value, 0);
     if (afinite.isError()) {
       VLOG(1) << "Error casting " << column_name << " (" << value
-              << ") to INTEGER";
+              << ") to INTEGER. " << afinite.getError();
       sqlite3_result_null(ctx);
     } else {
       sqlite3_result_int(ctx, afinite.take());
@@ -121,7 +126,7 @@ int DynamicTableRow::get_column(sqlite3_context* ctx,
     auto afinite = tryTo<long long>(value, 0);
     if (afinite.isError()) {
       VLOG(1) << "Error casting " << column_name << " (" << value
-              << ") to BIGINT";
+              << ") to BIGINT. " << afinite.getError();
       sqlite3_result_null(ctx);
     } else {
       sqlite3_result_int64(ctx, afinite.take());
