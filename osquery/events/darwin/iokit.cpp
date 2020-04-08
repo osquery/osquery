@@ -64,6 +64,9 @@ void IOKitEventPublisher::restart() {
     IOReturn result = kIOReturnSuccess + 1;
     {
       WriteLock lock(mutex_);
+      if (port_ == nullptr) {
+        return;
+      }
       result = IOServiceAddMatchingNotification(
           port_,
           kIOFirstMatchNotification,
@@ -144,9 +147,14 @@ void IOKitEventPublisher::deviceAttach(void* refcon, io_iterator_t iterator) {
   // The iterator may also have become invalid due to a change in the registry.
   // It is possible to reiterate devices, but that will cause duplicate events.
   while ((device = IOIteratorNext(iterator))) {
-    // Create a notification tracker.
     {
       WriteLock lock(self->mutex_);
+      if (self->port_ == nullptr) {
+        IOObjectRelease(device);
+        continue;
+      }
+
+      // Create a notification tracker.
       auto tracker = std::make_shared<struct DeviceTracker>(self);
       self->devices_.push_back(tracker);
       IOServiceAddInterestNotification(self->port_,
