@@ -387,7 +387,7 @@ jobs:
     - checkout: none
 
     - script: |
-        if [ -z "$(WindowseReleaseStatus)" ]; then
+        if [ -z "$(WindowsReleaseStatus)" ]; then
           exit 1
         fi
       displayName: "Detect Windows build status"
