@@ -82,18 +82,28 @@ Status writeTextFile(const fs::path& path,
 
 struct OpenReadableFile : private boost::noncopyable {
  public:
-  explicit OpenReadableFile(const fs::path& path, bool blocking = false) {
+  explicit OpenReadableFile(const fs::path& path, bool blocking = false)
+      : blocking_io(blocking) {
     int mode = PF_OPEN_EXISTING | PF_READ;
     if (!blocking) {
       mode |= PF_NONBLOCK;
     }
 
     // Open the file descriptor and allow caller to perform error checking.
-    fd.reset(new PlatformFile(path, mode));
+    fd = std::make_unique<PlatformFile>(path, mode);
+
+    if (!blocking && fd->isSpecialFile()) {
+      // A special file cannot be read in non-blocking mode, reopen in blocking
+      // mode
+      mode &= ~PF_NONBLOCK;
+      blocking_io = true;
+      fd = std::make_unique<PlatformFile>(path, mode);
+    }
   }
 
  public:
   std::unique_ptr<PlatformFile> fd{nullptr};
+  bool blocking_io;
 };
 
 Status readFile(const fs::path& path,
@@ -104,11 +114,13 @@ Status readFile(const fs::path& path,
                 std::function<void(std::string& buffer, size_t size)> predicate,
                 bool blocking) {
   OpenReadableFile handle(path, blocking);
+
   if (handle.fd == nullptr || !handle.fd->isValid()) {
-    return Status(1, "Cannot open file for reading: " + path.string());
+    return Status::failure("Cannot open file for reading: " + path.string());
   }
 
   off_t file_size = static_cast<off_t>(handle.fd->size());
+
   if (handle.fd->isSpecialFile() && size > 0) {
     file_size = static_cast<off_t>(size);
   }
@@ -122,7 +134,7 @@ Status readFile(const fs::path& path,
       VLOG(1) << "Cannot read " << path.string()
               << " size exceeds limit: " << file_size << " > " << read_max;
     }
-    return Status(1, "File exceeds read limits");
+    return Status::failure("File exceeds read limits");
   }
 
   if (dry_run) {
@@ -131,7 +143,7 @@ Status readFile(const fs::path& path,
     try {
       return Status(0, fs::canonical(path, ec).string());
     } catch (const boost::filesystem::filesystem_error& err) {
-      return Status(1, err.what());
+      return Status::failure(err.what());
     }
   }
 
@@ -139,7 +151,7 @@ Status readFile(const fs::path& path,
   handle.fd->getFileTimes(times);
 
   off_t total_bytes = 0;
-  if (file_size == 0 || block_size > 0) {
+  if (handle.blocking_io) {
     // Reset block size to a sane minimum.
     block_size = (block_size < 4096) ? 4096 : block_size;
     ssize_t part_bytes = 0;
@@ -150,7 +162,7 @@ Status readFile(const fs::path& path,
       if (part_bytes > 0) {
         total_bytes += static_cast<off_t>(part_bytes);
         if (total_bytes >= read_max) {
-          return Status(1, "File exceeds read limits");
+          return Status::failure("File exceeds read limits");
         }
         if (file_size > 0 && total_bytes > file_size) {
           overflow = true;
@@ -176,7 +188,7 @@ Status readFile(const fs::path& path,
     handle.fd->setFileTimes(times);
   }
   return Status::success();
-}
+} // namespace osquery
 
 Status readFile(const fs::path& path,
                 std::string& content,
