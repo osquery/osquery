@@ -175,22 +175,6 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   handle_stream << hLauncherProcess;
   auto handle = handle_stream.str();
 
-  // In the POSIX version, the environment variable OSQUERY_WORKER is set to the
-  // string form of the child process' process ID. However, this is not easily
-  // doable on Windows. Since the value does not appear to be used by the rest
-  // of osquery, we currently just set it to '1'.
-  //
-  // For the worker case, we also set another environment variable,
-  // OSQUERY_LAUNCHER. OSQUERY_LAUNCHER stores the string form of a HANDLE to
-  // the current process. This is mostly used for detecting the death of the
-  // launcher process in WatcherWatcherRunner::start
-  if (!setEnvVar("OSQUERY_WORKER", "1") ||
-      !setEnvVar("OSQUERY_LAUNCHER", handle)) {
-    ::CloseHandle(hLauncherProcess);
-
-    return std::shared_ptr<PlatformProcess>();
-  }
-
   // Since Windows does not accept a char * array for arguments, we have to
   // build one as a string. Therefore, we need to make sure that special
   // characters are not present that would obstruct the parsing of arguments.
@@ -219,18 +203,41 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   std::vector<char> mutable_argv(cmdline.begin(), cmdline.end());
   mutable_argv.push_back('\0');
 
+  LPCH retrievedEnvironment = GetEnvironmentStringsA();
+  LPTSTR currentEnvironment = (LPTSTR)retrievedEnvironment;
+  std::stringstream childEnvironment;
+  while (*currentEnvironment) {
+    childEnvironment << currentEnvironment;
+    childEnvironment << '\0';
+    currentEnvironment += lstrlen(currentEnvironment) + 1;
+  }
+
+  FreeEnvironmentStrings(retrievedEnvironment);
+
+  // In the POSIX version, the environment variable OSQUERY_WORKER is set to the
+  // string form of the child process' process ID. However, this is not easily
+  // doable on Windows. Since the value does not appear to be used by the rest
+  // of osquery, we currently just set it to '1'.
+  //
+  // For the worker case, we also set another environment variable,
+  // OSQUERY_LAUNCHER. OSQUERY_LAUNCHER stores the string form of a HANDLE to
+  // the current process. This is mostly used for detecting the death of the
+  // launcher process in WatcherWatcherRunner::start
+  childEnvironment << "OSQUERY_WORKER=1" << '\0';
+  childEnvironment << "OSQUERY_LAUNCHER=" << handle << '\0' << '\0';
+
+  std::string environmentString = childEnvironment.str();
+
   auto status = ::CreateProcessA(exec_path.c_str(),
                                  mutable_argv.data(),
                                  nullptr,
                                  nullptr,
                                  TRUE,
                                  IDLE_PRIORITY_CLASS,
-                                 nullptr,
+                                 &environmentString[0],
                                  nullptr,
                                  &si,
                                  &pi);
-  unsetEnvVar("OSQUERY_WORKER");
-  unsetEnvVar("OSQUERY_LAUNCHER");
   ::CloseHandle(hLauncherProcess);
 
   if (!status) {

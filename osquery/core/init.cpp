@@ -136,6 +136,7 @@ const std::string kBackupDefaultFlagfile{OSQUERY_HOME "osquery.flags.default"};
 
 const size_t kDatabaseMaxRetryCount{25};
 const size_t kDatabaseRetryDelay{200};
+bool Initializer::isWorker_{false};
 
 namespace {
 
@@ -209,6 +210,8 @@ Initializer::Initializer(int& argc,
       chrono_clock::now().time_since_epoch().count()));
   // The config holds the initialization time for easy access.
   Config::setStartTime(getUnixTime());
+
+  isWorker_ = hasWorkerVariable();
 
   // osquery can function as the daemon or shell depending on argv[0].
   if (tool == ToolType::SHELL_DAEMON) {
@@ -482,7 +485,7 @@ void Initializer::initWorkerWatcher(const std::string& name) const {
 }
 
 bool Initializer::isWorker() {
-  return hasWorkerVariable();
+  return isWorker_;
 }
 
 bool Initializer::isWatcher() {
