@@ -114,7 +114,7 @@ std::unique_ptr<BYTE[]> getSidFromUsername(std::wstring accountName) {
                                 &eSidType);
 
   if (ret == 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-    LOG(INFO) << "Failed to lookup accoun name "
+    LOG(INFO) << "Failed to lookup account name "
               << wstringToString(accountName.c_str()) << " with "
               << GetLastError();
     return nullptr;
@@ -134,7 +134,7 @@ std::unique_ptr<BYTE[]> getSidFromUsername(std::wstring accountName) {
                            &domainNameSize,
                            &eSidType);
   if (ret == 0) {
-    LOG(INFO) << "Failed to lookup accoun name "
+    LOG(INFO) << "Failed to lookup account name "
               << wstringToString(accountName.c_str()) << " with "
               << GetLastError();
     return nullptr;
