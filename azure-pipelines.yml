@@ -6,6 +6,7 @@ jobs:
 # LINUX
 
   - job: LinuxBuild
+    displayName: "Linux"
 
     strategy:
       matrix:
@@ -146,6 +147,7 @@ jobs:
 # MACOS
 
   - job: macOSBuild
+    displayName: "macOS"
 
     strategy:
       matrix:
