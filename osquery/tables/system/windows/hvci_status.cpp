@@ -1,11 +1,16 @@
-#include <algorithm>
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed as defined on the LICENSE file found in the
+ *  root directory of this source tree.
+ */
+
+#include <osquery/core/windows/wmi.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/windows/wmi.h"
-#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -56,4 +61,3 @@ QueryData genHVCIStatus(QueryContext& context) {
 }
 } // namespace tables
 } // namespace osquery
-// namespace osquery

@@ -209,6 +209,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/wmi_event_filters.cpp
       windows/wmi_filter_consumer_binding.cpp
       windows/wmi_script_event_consumers.cpp
+      windows/hvci_status.cpp
     )
   endif()
 

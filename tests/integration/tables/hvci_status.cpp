@@ -26,7 +26,7 @@ TEST_F(HVCIStatus, test_sanity) {
 
   ASSERT_GE(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"version", NonEmptyString},
       {"instance_identifier", NormalType},
       {"vbs_status", NonEmptyString},
