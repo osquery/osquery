@@ -708,8 +708,9 @@ void Initializer::requestShutdown(int retcode) {
   });
 }
 
-void Initializer::requestShutdown(int retcode, const std::string& system_log) {
-  systemLog(system_log);
+void Initializer::requestShutdown(int retcode, const std::string& message) {
+  LOG(ERROR) << message;
+  systemLog(message);
   requestShutdown(retcode);
 }
 

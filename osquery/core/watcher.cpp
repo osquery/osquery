@@ -215,8 +215,8 @@ void WatcherRunner::start() {
 
       auto status = watcher.getWorkerStatus();
       if (status == EXIT_CATASTROPHIC) {
-        LOG(ERROR) << "Worker returned exit status";
-        Initializer::requestShutdown(EXIT_CATASTROPHIC);
+        Initializer::requestShutdown(EXIT_CATASTROPHIC,
+                                     "Worker returned exit status");
         break;
       }
 
@@ -238,10 +238,9 @@ void WatcherRunner::start() {
     if (use_worker_) {
       auto status = isWatcherHealthy(*self, watcher_state);
       if (!status.ok()) {
-        std::string message("Watcher has become unhealthy: " +
-                            status.getMessage());
-        LOG(ERROR) << message;
-        Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
+        Initializer::requestShutdown(
+            EXIT_CATASTROPHIC,
+            "Watcher has become unhealthy: " + status.getMessage());
         break;
       }
     }
@@ -360,7 +359,6 @@ void WatcherRunner::stopChild(const PlatformProcess& child) const {
     if (!child.cleanup()) {
       auto message = std::string("Watcher cannot stop worker process (") +
                      std::to_string(child_pid) + ").";
-      LOG(ERROR) << message;
       Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
     }
   }
