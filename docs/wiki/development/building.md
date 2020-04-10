@@ -1,10 +1,10 @@
-osquery supports many flavors of Linux, FreeBSD, macOS, and Windows.
+osquery supports many flavors of Linux, macOS, and Windows.
 
 While osquery runs on a large number of operating systems, we only provide build instructions for a select few.
 
-The supported compilers are: the osquery toolchain (LLVM/Clang 8.0.1) on Linux, MSVC v141 on Windows, and AppleClang from Xcode Command Line Tools 10.2.1.
+The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v141 on Windows, and AppleClang from Xcode Command Line Tools 10.2.1.
 
-# Building with CMake
+# Prerequisites
 
 Git (>= 2.14.0), CMake (>= 3.14.6), Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
 
@@ -230,112 +230,6 @@ By default, the following checks are enabled:
 6. modernize-*
 7. bugprone-*
 
-# Building with Buck
-
-Building and testing is the same on all platforms. Each platform section below describes how to install the required tools and dependencies.
-
-## Linux (Buck)
-
-Install required tools on Ubuntu 18.04 or Ubuntu 18.10:
-
-```bash
-sudo apt install openjdk-8-jre clang libc++1 libc++-dev libc++abi1 libc++abi-dev python python3 python3-distutils
-```
-
-Install library dependencies:
-
-```bash
-sudo apt install liblzma-dev
-```
-
-Install `buck`:
-
-```bash
-wget 'https://github.com/facebook/buck/releases/download/v2018.10.29.01/buck.2018.10.29.01_all.deb'
-sudo apt install ./buck.2018.10.29.01_all.deb
-```
-
-## macOS (Buck)
-
-Install required tools using Homebrew:
-
-```bash
-xcode-select --install
-
-brew tap caskroom/cask
-brew tap caskroom/versions
-brew cask install java8
-```
-
-Install `buck` and `watchman`. Watchman isn't mandatory, but will make builds faster.
-
-```bash
-brew tap facebook/fb
-brew install buck watchman
-```
-
-## FreeBSD (Buck)
-
-Install required tools on FreeBSD 11.2:
-
-```bash
-sudo pkg install openjdk8 python3 python2 clang35
-```
-
-Install `buck`:
-
-```bash
-sudo curl --output /usr/local/bin/buck 'https://jitpack.io/com/github/facebook/buck/v2018.10.29.01/buck-v2018.10.29.01.pex'
-sudo chmod +x /usr/local/bin/buck
-```
-
-Install library dependencies:
-
-```bash
-sudo pkg install glog thrift thrift-cpp boost-libs magic rocksdb-lite rapidjson zstd linenoise-ng augeas ssdeep sleuthkit yara aws-sdk-cpp lldpd libxml++-2 smartmontools lldpd
-```
-
-## Windows 10 (Buck)
-
-You'll need to have the following software installed before you can build osquery on Windows:
-
-- Buck, this also requires the JRE 8 version
-- Visual Studio 2017 or greater
-- The Windows 10 SDK
-- Python3
-
-Once you've installed the above requirements, run `.\tools\generate_buck_config.ps1 -VsInstall '' -VcToolsVersion '' -SdkInstall '' -SdkVersion '' -Python3Path '' -BuckConfigRoot .\tools\buckconfigs\` to generate the buckconfig for building.
-
-## Building and Testing
-
-To build simply run the following command replacing `<platform>` and `<mode>`
-appropriately:
-
-```bash
-buck build @mode/<platform>/<mode> //osquery:osqueryd
-```
-
-When buck finishes find the binary at `buck-out/<mode>/gen/osquery/osqueryd`.
-
-Similarly to run tests just run:
-
-```bash
-buck test @mode/<platform>/<mode> //...
-```
-
-This will run all tests, you can replace `//...` with a specific target to run specific tests only.
-
-Supported platforms:
-
-- `linux-x86_64`
-- `macos-x86_64`
-- `windows-x86_64`
-- `freebsd-x86_64`
-
-Supported modes:
-
-- `release`
-- `debug`
 
 # Using Vagrant
 

@@ -1,6 +1,0 @@
---config-file
-//tools/buckconfigs/macos-x86_64/type/release.bcfg
---config-file
-//tools/buckconfigs/macos-x86_64/base.bcfg
---config-file
-//tools/buckconfigs/base.bcfg

@@ -206,6 +206,9 @@ class Initializer : private boost::noncopyable {
 
   /// The deduced program name determined by executing path.
   std::string binary_;
+
+  /// Is this a worker process
+  static bool isWorker_;
 };
 
 /**
