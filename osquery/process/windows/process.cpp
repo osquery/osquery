@@ -235,16 +235,17 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
 
   std::wstring environmentString = childEnvironment.str();
 
-  auto status = ::CreateProcess(NULL,
-                                mutable_argv.data(),
-                                nullptr,
-                                nullptr,
-                                TRUE,
-                                CREATE_UNICODE_ENVIRONMENT|IDLE_PRIORITY_CLASS,
-                                &environmentString[0],
-                                nullptr,
-                                &si,
-                                &pi);
+  auto status =
+      ::CreateProcess(NULL,
+                      mutable_argv.data(),
+                      nullptr,
+                      nullptr,
+                      TRUE,
+                      CREATE_UNICODE_ENVIRONMENT | IDLE_PRIORITY_CLASS,
+                      &environmentString[0],
+                      nullptr,
+                      &si,
+                      &pi);
   ::CloseHandle(hLauncherProcess);
 
   if (!status) {
@@ -305,16 +306,17 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     return launchTestPythonScript(wstringToString(
         std::wstring(mutable_argv.begin(), mutable_argv.end())));
   } else {
-    auto status = ::CreateProcess(NULL,
-                                  mutable_argv.data(),
-                                  nullptr,
-                                  nullptr,
-                                  TRUE,
-                                  CREATE_UNICODE_ENVIRONMENT|IDLE_PRIORITY_CLASS,
-                                  nullptr,
-                                  nullptr,
-                                  &si,
-                                  &pi);
+    auto status =
+        ::CreateProcess(NULL,
+                        mutable_argv.data(),
+                        nullptr,
+                        nullptr,
+                        TRUE,
+                        CREATE_UNICODE_ENVIRONMENT | IDLE_PRIORITY_CLASS,
+                        nullptr,
+                        nullptr,
+                        &si,
+                        &pi);
     unsetEnvVar("OSQUERY_EXTENSION");
 
     if (!status) {
