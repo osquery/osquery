@@ -1,12 +1,12 @@
 <a name="4.3.0"></a>
 ## [4.3.0](https://github.com/osquery/osquery/releases/tag/4.3.0)
 
-[Git Commits](https://github.com/osquery/osquery/compare/4.1.2...4.3.0)
+[Git Commits](https://github.com/osquery/osquery/compare/4.2.0...4.3.0)
 
 ### New Features / Under the Hood improvements
 
 - Change verbosity of scheduled query execution messages from INFO to verbose only ([#6271](https://github.com/osquery/osquery/pull/6271))
-- Updated the unwated-chrome-extensions queries to include all users, not the osquery process owner only ([#6265](https://github.com/osquery/osquery/pull/6265))
+- Updated the unwanted-chrome-extensions queries to include all users, not the osquery process owner only ([#6265](https://github.com/osquery/osquery/pull/6265))
 - Check for errors in the return status of the extension tables and report them ([#6108](https://github.com/osquery/osquery/pull/6108))
 - First steps to properly support UTF8 strings on Windows ([#6190](https://github.com/osquery/osquery/pull/6190))
 - Display the undelying API error string when udev monitoring fails ([#6186](https://github.com/osquery/osquery/pull/6186))
@@ -51,7 +51,7 @@
 - Fix a race condition making the watcher act as a worker on Microsoft Windows ([#6372](https://github.com/osquery/osquery/pull/6372))
 - Fix extensions tables detaching which was sometimes failing ([#6373](https://github.com/osquery/osquery/pull/6373))
 - Fix an issue with extensions re-registration ([#6374](https://github.com/osquery/osquery/pull/6374))
-- Fix a crash due to a race condition in accessing the iokit port on Darwin (Apple OS X) ([])
+- Fix a crash due to a race condition in accessing the iokit port on Darwin (Apple OS X) ([#6380](https://github.com/osquery/osquery/pull/6380))
 
 ### Hardening
 
