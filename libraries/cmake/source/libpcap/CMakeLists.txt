@@ -5,11 +5,9 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(libPcapMain)
-  execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/src/configure")
-  execute_process(COMMAND "make"
-                  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/")
-
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  execute_process(COMMAND "${library_root}/configure" WORKING_DIRECTORY "${library_root}" OUTPUT_QUIET)
+  execute_process(COMMAND "make" WORKING_DIRECTORY "${library_root}" OUTPUT_QUIET)
   add_library(thirdparty_libpcap
 	"${library_root}/bpf_dump.c"
 	"${library_root}/etherent.c"
