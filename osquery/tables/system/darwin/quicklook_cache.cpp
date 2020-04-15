@@ -44,7 +44,7 @@ void genQuicklookRow(sqlite3_stmt* stmt, Row& r) {
       }
     } else if (column_type == SQLITE_INTEGER) {
       // Handle INTEGER columns explicitly to handle the date-value offset.
-      auto value = sqlite3_column_int(stmt, i);
+      auto value = sqlite3_column_int64(stmt, i);
       if (column_name == "last_hit_date") {
         value += kReferenceDateOffset;
       }
