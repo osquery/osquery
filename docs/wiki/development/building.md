@@ -58,7 +58,7 @@ Please ensure [Homebrew](https://brew.sh/) has been installed, first. Then do th
 ```bash
 # Install prerequisites
 xcode-select --install
-brew install git cmake python clang-format
+brew install git git-lfs cmake python clang-format
 
 # Optional: install python tests prerequisites
 pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
