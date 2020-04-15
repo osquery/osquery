@@ -506,9 +506,9 @@ void Initializer::initActivePlugin(const std::string& type,
   }));
 
   if (!status.ok()) {
-    LOG(ERROR) << "Cannot activate " << name << " " << type
-               << " plugin: " << status.getMessage();
-    requestShutdown(EXIT_CATASTROPHIC);
+    std::string message = "Cannot activate " + name + " " + type +
+                          " plugin: " + status.getMessage();
+    requestShutdown(EXIT_CATASTROPHIC, message);
   }
 }
 
@@ -532,10 +532,11 @@ void Initializer::start() const {
       }
 
       if (i == kDatabaseMaxRetryCount) {
-        LOG(ERROR) << RLOG(1629) << binary_
-                   << " initialize failed: Could not initialize database";
+        std::string message =
+            RLOG(1629) + binary_ +
+            " initialize failed: Could not initialize database";
         auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
-        requestShutdown(retcode);
+        requestShutdown(retcode, message);
         return;
       }
 
@@ -544,9 +545,8 @@ void Initializer::start() const {
 
     // Ensure the database results version is up to date before proceeding
     if (!upgradeDatabase()) {
-      LOG(ERROR) << "Failed to upgrade database";
       auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
-      requestShutdown(retcode);
+      requestShutdown(retcode, "Failed to upgrade database");
       return;
     }
   }
