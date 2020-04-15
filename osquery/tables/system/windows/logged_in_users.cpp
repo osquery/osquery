@@ -53,7 +53,6 @@ QueryData genLoggedInUsers(QueryContext& context) {
   }
 
   for (size_t i = 0; i < count; i++) {
-  
     if (pSessionInfo[i].State != WTSActive || pSessionInfo[i].SessionId == 0) {
       // https://docs.microsoft.com/en-gb/windows/win32/api/wtsapi32/ne-wtsapi32-wts_connectstate_class
       // The only state for a user logged in is WTSActive and session 0 is the
