@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/tables.h>
 #include <osquery/registry_factory.h>
+#include <osquery/tables.h>
 
 #include "osquery/events/linux/http_event_publisher.h"
 
@@ -46,7 +46,7 @@ Status HTTPLookupEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   r["ja3"] = ec->ja3;
   r["ja3_fingerprint"] = ec->ja3_fingerprint;
   r["other_headers"] = ec->other_headers;
-    
+
   add(r);
   return Status(0, "OK");
 }

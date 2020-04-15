@@ -6,52 +6,47 @@
 #ifndef HTTPPARSER_REQUEST_H
 #define HTTPPARSER_REQUEST_H
 
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
 
-namespace httpparser
-{
+namespace httpparser {
 
 struct Request {
-    Request()
-        : versionMajor(0), versionMinor(0), keepAlive(false)
-    {}
-    
-    struct HeaderItem
-    {
-        std::string name;
-        std::string value;
-    };
+  Request() : versionMajor(0), versionMinor(0), keepAlive(false) {}
 
-    std::string method;
-    std::string uri;
-    int versionMajor;
-    int versionMinor;
-    std::vector<HeaderItem> headers;
-    std::vector<char> content;
-    bool keepAlive;
+  struct HeaderItem {
+    std::string name;
+    std::string value;
+  };
 
-    std::string inspect() const
-    {
-        std::stringstream stream;
-        stream << method << " " << uri << " HTTP/"
-               << versionMajor << "." << versionMinor << "\n";
+  std::string method;
+  std::string uri;
+  int versionMajor;
+  int versionMinor;
+  std::vector<HeaderItem> headers;
+  std::vector<char> content;
+  bool keepAlive;
 
-        for(std::vector<Request::HeaderItem>::const_iterator it = headers.begin();
-            it != headers.end(); ++it)
-        {
-            stream << it->name << ": " << it->value << "\n";
-        }
+  std::string inspect() const {
+    std::stringstream stream;
+    stream << method << " " << uri << " HTTP/" << versionMajor << "."
+           << versionMinor << "\n";
 
-        std::string data(content.begin(), content.end());
-        stream << data << "\n";
-        stream << "+ keep-alive: " << keepAlive << "\n";;
-        return stream.str();
+    for (std::vector<Request::HeaderItem>::const_iterator it = headers.begin();
+         it != headers.end();
+         ++it) {
+      stream << it->name << ": " << it->value << "\n";
     }
+
+    std::string data(content.begin(), content.end());
+    stream << data << "\n";
+    stream << "+ keep-alive: " << keepAlive << "\n";
+    ;
+    return stream.str();
+  }
 };
 
 } // namespace httpparser
-
 
 #endif // HTTPPARSER_REQUEST_H

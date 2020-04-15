@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <pcap.h>
 #include <osquery/events.h>
+#include <pcap.h>
 
 namespace osquery {
 
@@ -22,23 +22,21 @@ namespace osquery {
 struct HTTPLookupSubscriptionContext : public SubscriptionContext {};
 
 struct HTTPLookupEventContext : public EventContext {
-    
-  
   /// HTTP method used.
   std::string method;
-    
+
   /// SSL/TLS protocol.
   std::string protocol;
-    
+
   /// IP address of local interface.
   std::string local;
 
   /// IP address of HTTP responder.
   std::string remote;
-    
+
   /// Source port.
   long s_port;
-    
+
   /// Destination port.
   long d_port;
 
@@ -50,19 +48,19 @@ struct HTTPLookupEventContext : public EventContext {
 
   /// HTTP uri comes along with host.
   std::string uri;
-    
+
   /// Content type of the HTTP packet.
   std::string content_type;
-  
+
   /// Http header user_agent.
   std::string user_agent;
-    
+
   /// ja3 string for ja3 fingerprint calculation
   std::string ja3;
-    
+
   /// ja3 fingerprint
   std::string ja3_fingerprint;
-    
+
   /// Other http headers not included in columns .
   std::string other_headers;
 };
