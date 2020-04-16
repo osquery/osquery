@@ -100,15 +100,23 @@ QueryData genSystemInfo(QueryContext& context) {
                           uint8_t* address,
                           uint8_t* textAddrs,
                           size_t size) {
-        if (hdr->type != kSMBIOSTypeSystem || size < 0x12) {
+        if (hdr->type == kSMBIOSTypeSystem || size < 0x12) {
+          auto maxlen = size - hdr->length;
+          r["hardware_vendor"] = dmiString(textAddrs, address[0x04], maxlen);
+          r["hardware_model"] = dmiString(textAddrs, address[0x05], maxlen);
+          r["hardware_version"] = dmiString(textAddrs, address[0x06], maxlen);
+          r["hardware_serial"] = dmiString(textAddrs, address[0x07], maxlen);
           return;
         }
 
-        auto maxlen = size - hdr->length;
-        r["hardware_vendor"] = dmiString(textAddrs, address[0x04], maxlen);
-        r["hardware_model"] = dmiString(textAddrs, address[0x05], maxlen);
-        r["hardware_version"] = dmiString(textAddrs, address[0x06], maxlen);
-        r["hardware_serial"] = dmiString(textAddrs, address[0x07], maxlen);
+        if (hdr->type == kSMBIOSTypeBoard || size < 0x12) {
+          auto maxlen = size - hdr->length;
+          r["board_vendor"] = dmiString(textAddrs, address[0x04], maxlen);
+          r["board_model"] = dmiString(textAddrs, address[0x05], maxlen);
+          r["board_version"] = dmiString(textAddrs, address[0x06], maxlen);
+          r["board_serial"] = dmiString(textAddrs, address[0x07], maxlen);
+          return;
+        }        
       }));
     }
   }

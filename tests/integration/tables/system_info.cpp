@@ -37,6 +37,10 @@ TEST_F(SystemInfo, test_sanity) {
                            {"hardware_model", NormalType},
                            {"hardware_version", NormalType},
                            {"hardware_serial", NormalType},
+                           {"board_vendor", NormalType},
+                           {"board_model", NormalType},
+                           {"board_version", NormalType},
+                           {"board_serial", NormalType},
                            {"computer_name", NormalType},
                            {"local_hostname", NonEmptyString}};
   validate_rows(data, row_map);
