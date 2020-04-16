@@ -8,42 +8,104 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include "http_event_publisher.h"
 #include "httpparser/httprequestparser.h"
 #include "httpparser/httpresponseparser.h"
 #include "httpparser/request.h"
 #include "httpparser/response.h"
 #include "osquery/remote/serializers/json.h"
-#include <arpa/inet.h>
-#include <boost/range/adaptor/map.hpp>
-#include <netinet/if_ether.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/ip6.h>
 #include <osquery/flags.h>
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
-#include <set>
+
+#include <arpa/inet.h>
+#include <boost/range/adaptor/map.hpp>
+#include <netinet/if_ether.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
 #include <sys/socket.h>
+
+#include <set>
 #include <vector>
 
+#include "http_event_publisher.h"
+
 namespace osquery {
-#define IPV6_VERSION 0x60
-#define IPV4 IPVERSION
-#define IPV6 (IPV6_VERSION >> 4)
-
-typedef std::pair<std::string, std::string> LocalRemoteAddrs;
-
-static const size_t kIPv6Length = sizeof(struct ip6_hdr);
+namespace {  
+const int IPV6_VERSION = 0x60;
+const int IPV4 = IPVERSION;
+const int IPV6 = (IPV6_VERSION >> 4);
+const size_t kIPv6Length = sizeof(struct ip6_hdr);
 
 /// Maximum bytes per packet.
-static const int kSnapLength = 1518;
+const int kSnapLength = 1518;
 
 /// Avoid running pcap in a busy loop.
-static const int kPacketBufferTimeoutMs = 1000;
+const int kPacketBufferTimeoutMs = 1000;
+
+const int SSL_MIN_GOOD_VERSION = 0x002;
+const int SSL_MAX_GOOD_VERSION = 0x304;
+
+const int TLS_HANDSHAKE = 22;
+const int TLS_CLIENT_HELLO = 1;
+
+const int OFFSET_HELLO_VERSION = 9;
+const int OFFSET_SESSION_LENGTH = 43;
+const int OFFSET_CIPHER_LIST = 44;
+using LocalRemoteAddrs = std::pair<std::string, std::string>;
+
+inline bool readIPv4SourceDest(const unsigned char* packet,
+                                      const uint32_t caplen,
+                                      size_t* offset,
+                                      LocalRemoteAddrs& addrs) {
+  const size_t ipv4_len = (((struct ip*)packet)->ip_hl << 2);
+  if (caplen < (*offset + ipv4_len)) {
+    TLOG << "Invalid packet (IPv4 header). Packet length: " << caplen
+         << ". Offset: " << *offset;
+    return false;
+  }
+
+  const struct ip* ip = reinterpret_cast<const struct ip*>(packet + *offset);
+  *offset += ipv4_len;
+
+  char local[INET_ADDRSTRLEN], remote[INET_ADDRSTRLEN];
+  inet_ntop(AF_INET, &ip->ip_dst, local, INET_ADDRSTRLEN);
+  inet_ntop(AF_INET, &ip->ip_src, remote, INET_ADDRSTRLEN);
+  addrs.first = std::string(local);
+  addrs.second = std::string(remote);
+
+  return true;
+}
+
+inline bool readIPv6SourceDest(const unsigned char* packet,
+                                      const uint32_t caplen,
+                                      size_t* offset,
+                                      LocalRemoteAddrs& addrs) {
+  if (caplen < (*offset + kIPv6Length)) {
+    TLOG << "Invalid packet (IPv6 header). Packet length: " << caplen
+         << ". Offset: " << *offset;
+    return false;
+  }
+
+  const struct ip6_hdr* ip =
+      reinterpret_cast<const struct ip6_hdr*>(packet + *offset);
+  *offset += kIPv6Length;
+
+  char local[INET6_ADDRSTRLEN], remote[INET6_ADDRSTRLEN];
+  inet_ntop(AF_INET6, &ip->ip6_dst, local, INET6_ADDRSTRLEN);
+  inet_ntop(AF_INET6, &ip->ip6_src, remote, INET6_ADDRSTRLEN);
+  addrs.first = std::string(local);
+  addrs.second = std::string(remote);
+
+  return true;
+}
+
+}
+
+
 
 /// Internal traffic filter
 const std::string kInternalTrafficFilter =
@@ -61,16 +123,15 @@ const std::string kHttpRequestFilter =
                                     tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x50415443 or\
                                     tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48454144 or\
                                     tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x4f505449 or ";
-
+// PCAP has no payload[offset] field, so we need to get the payload offset
+// from the TCP header (offset 12, upper 4 bits, number of 4-byte words):
+// TLS Handshake starts with a '22' byte, version, length,
+// and then '01'/'02' for client/server hello
+// TLS Handshake starts with a '22' byte, version, length,
+// and then '01'/'02' for client/server hello
 const std::string kTLSTrafficFilter =
     "(tcp[tcp[12]/16*4]=22 and (tcp[tcp[12]/16*4+5]=1 or "
     "tcp[tcp[12]/16*4+5]=2))";
-
-/* default snap length (maximum bytes per packet to capture) */
-#define SNAP_LEN 1518
-
-/* ethernet headers are always exactly 14 bytes [1] */
-#define SIZE_ETHERNET 14
 
 #pragma pack(push, 1)
 /* Ethernet header */
@@ -127,19 +188,9 @@ struct sniff_tcp {
 };
 #pragma pack(pop)
 
-#define SSL_MIN_GOOD_VERSION 0x002
-#define SSL_MAX_GOOD_VERSION 0x304 // let's be optimistic here!
-
-#define TLS_HANDSHAKE 22
-#define TLS_CLIENT_HELLO 1
-#define TLS_SERVER_HELLO 2
-
-#define OFFSET_HELLO_VERSION 9
-#define OFFSET_SESSION_LENGTH 43
-#define OFFSET_CIPHER_LIST 44
 
 /* Grease bytes to ignore */
-std::set<std::string> greaseBytes = {"0A0A",
+const std::set<std::string> greaseBytes = {"0A0A",
                                      "1A1A",
                                      "2A2A",
                                      "3A3A",
@@ -206,56 +257,12 @@ FLAG(bool,
      false,
      "Enable the HTTP capture event publisher");
 
-FLAG(string,
-     disable_http_event_filters,
-     "",
-     "Comma-separated list of filters(e.g. "
-     "'private_ip_events') to disable specific default http filter.");
-
 Status HTTPLookupEventPublisher::setUp() {
   if (!FLAGS_enable_http_lookups) {
-    return Status(1, "HTTP lookups publisher disabled via configuration.");
+    return Status::failure("HTTP lookups publisher disabled via configuration.");
   }
-
-  // PCAP has no payload[offset] field, so we need to get the payload offset
-  // from the TCP header (offset 12, upper 4 bits, number of 4-byte words):
-  // TLS Handshake starts with a '22' byte, version, length,
-  // and then '01'/'02' for client/server hello
-  // TLS Handshake starts with a '22' byte, version, length,
-  // and then '01'/'02' for client/server hello
-
-  httpFilter_.clear();
-  httpFilter_ = {{"http_request", kHttpRequestFilter + kTLSTrafficFilter},
-                 {"private_ip_events", kInternalTrafficFilter}};
-  return Status(0, "OK");
-}
-
-void HTTPLookupEventPublisher::getFilters(std::string& sFilters) {
-  for (auto& filter_name :
-       osquery::split(FLAGS_disable_http_event_filters, ",")) {
-    // To enforce unification we lower case all filters for matching
-    std::transform(
-        filter_name.begin(), filter_name.end(), filter_name.begin(), ::tolower);
-
-    size_t pos = 0;
-    while (pos < httpFilter_.size()) {
-      if (httpFilter_.at(pos).first == filter_name) {
-        httpFilter_.erase(httpFilter_.begin() + pos);
-        VLOG(1) << "HTTP filter disabled via flag :" << filter_name;
-        break;
-      }
-      pos++;
-    }
-  }
-  // AND all the filters in the list.
-  size_t pos = 0;
-  while (pos < httpFilter_.size()) {
-    sFilters += httpFilter_.at(pos).second;
-    if (pos != httpFilter_.size() - 1) {
-      sFilters += " and ";
-    }
-    pos++;
-  }
+  httpFilter_ = kHttpRequestFilter + kTLSTrafficFilter;
+  return Status::success();
 }
 
 Status HTTPLookupEventPublisher::run() {
@@ -263,33 +270,31 @@ Status HTTPLookupEventPublisher::run() {
 
   // Open "any" devices for capture. Do not use promisc mode
   char err[PCAP_ERRBUF_SIZE];
-  std::string sFilters;
-  getFilters(sFilters);
 
   handle_ = pcap_open_live(NULL, kSnapLength, 0, kPacketBufferTimeoutMs, err);
   if (handle_ == nullptr) {
     LOG(ERROR) << "Could not open pcap capture devices: " << err;
-    return Status(1, "Could not open pcap capture devices.");
+    return Status::failure("Could not open pcap capture devices.");
   }
 
-  if (pcap_compile(handle_, &fp_, sFilters.c_str(), 0, PCAP_NETMASK_UNKNOWN) ==
+  if (pcap_compile(handle_, &fp_, httpFilter_.c_str(), 0, PCAP_NETMASK_UNKNOWN) ==
       -1) {
     LOG(ERROR) << "Could not compile filter expression";
-    return Status(1, "Could not compile filter expression.");
+    return Status::failure("Could not compile filter expression.");
   }
 
   if (pcap_setfilter(handle_, &fp_) == -1) {
     LOG(ERROR) << "Could not install filter";
-    return Status(1, "Could not install filter.");
+    return Status::failure("Could not install filter.");
   }
 
   int rc = pcap_loop(handle_, -1, processPacket, (unsigned char*)this);
   if (rc == -1) {
     LOG(ERROR) << "Error running pcap loop";
-    return Status(1, "Error running pcap loop.");
+    return Status::failure("Error running pcap loop.");
   } else {
     LOG(INFO) << "Stopping pcap loop";
-    return Status(2, "Stopping pcap loop.");
+    return Status::failure(2, "Stopping pcap loop.");
   }
 }
 
@@ -302,52 +307,6 @@ void HTTPLookupEventPublisher::stop() {
     pcap_close(handle_);
     handle_ = nullptr;
   }
-}
-
-static inline bool readIPv4SourceDest(const unsigned char* packet,
-                                      const uint32_t caplen,
-                                      size_t* offset,
-                                      LocalRemoteAddrs& addrs) {
-  const size_t ipv4_len = (((struct ip*)packet)->ip_hl << 2);
-  if (caplen < (*offset + ipv4_len)) {
-    TLOG << "Invalid packet (IPv4 header). Packet length: " << caplen
-         << ". Offset: " << *offset;
-    return false;
-  }
-
-  const struct ip* ip = reinterpret_cast<const struct ip*>(packet + *offset);
-  *offset += ipv4_len;
-
-  char local[INET_ADDRSTRLEN], remote[INET_ADDRSTRLEN];
-  inet_ntop(AF_INET, &ip->ip_dst, local, INET_ADDRSTRLEN);
-  inet_ntop(AF_INET, &ip->ip_src, remote, INET_ADDRSTRLEN);
-  addrs.first = std::string(local);
-  addrs.second = std::string(remote);
-
-  return true;
-}
-
-static inline bool readIPv6SourceDest(const unsigned char* packet,
-                                      const uint32_t caplen,
-                                      size_t* offset,
-                                      LocalRemoteAddrs& addrs) {
-  if (caplen < (*offset + kIPv6Length)) {
-    TLOG << "Invalid packet (IPv6 header). Packet length: " << caplen
-         << ". Offset: " << *offset;
-    return false;
-  }
-
-  const struct ip6_hdr* ip =
-      reinterpret_cast<const struct ip6_hdr*>(packet + *offset);
-  *offset += kIPv6Length;
-
-  char local[INET6_ADDRSTRLEN], remote[INET6_ADDRSTRLEN];
-  inet_ntop(AF_INET6, &ip->ip6_dst, local, INET6_ADDRSTRLEN);
-  inet_ntop(AF_INET6, &ip->ip6_src, remote, INET6_ADDRSTRLEN);
-  addrs.first = std::string(local);
-  addrs.second = std::string(remote);
-
-  return true;
 }
 
 void HTTPLookupEventPublisher::processPacket(unsigned char* args,

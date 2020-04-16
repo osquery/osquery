@@ -65,13 +65,12 @@ struct HTTPLookupEventContext : public EventContext {
   std::string other_headers;
 };
 
-using HTTPFilters = std::vector<std::pair<std::string, std::string>>;
 using HTTPLookupEventContextRef = std::shared_ptr<HTTPLookupEventContext>;
 using HTTPLookupSubscriptionContextRef =
     std::shared_ptr<HTTPLookupSubscriptionContext>;
 
 /**
- * @brief Event publisher for DNS lookups intercepted via libpcap.
+ * @brief Event publisher for HTTP lookups intercepted via libpcap.
  */
 class HTTPLookupEventPublisher
     : public EventPublisher<HTTPLookupSubscriptionContext,
@@ -123,9 +122,8 @@ class HTTPLookupEventPublisher
       const std::string& ja3,
       const std::string& ja3_fingerprint,
       const std::string& other_headers);
-  void getFilters(std::string& sFilters);
 
  private:
-  HTTPFilters httpFilter_;
+  std::string httpFilter_;
 };
 } // namespace osquery
