@@ -116,7 +116,7 @@ QueryData genSystemInfo(QueryContext& context) {
           r["board_version"] = dmiString(textAddrs, address[0x06], maxlen);
           r["board_serial"] = dmiString(textAddrs, address[0x07], maxlen);
           return;
-        }        
+        }
       }));
     }
   }
