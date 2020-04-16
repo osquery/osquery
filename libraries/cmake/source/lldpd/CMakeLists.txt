@@ -12,7 +12,7 @@ endfunction()
 function(generateLibevent)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/libevent")
 
-  add_library(thirdparty_libevent
+  set(sources
     "${library_root}/event.c"
     "${library_root}/evthread.c"
     "${library_root}/buffer.c"
@@ -30,11 +30,24 @@ function(generateLibevent)
     "${library_root}/strlcpy.c"
     "${library_root}/poll.c"
     "${library_root}/signal.c"
-    "${library_root}/epoll.c"
     "${library_root}/event_tagging.c"
     "${library_root}/evdns.c"
     "${library_root}/http.c"
     "${library_root}/evrpc.c"
+  )
+
+  if(DEFINED PLATFORM_LINUX)
+    list(APPEND sources
+      "${library_root}/epoll.c"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    list(APPEND sources
+      "${library_root}/kqueue.c"
+    )
+  endif()
+
+  add_library(thirdparty_libevent
+    ${sources}
   )
 
   target_compile_definitions(thirdparty_libevent PRIVATE
@@ -46,16 +59,29 @@ function(generateLibevent)
     thirdparty_c_settings
   )
 
-  target_include_directories(thirdparty_libevent PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/libevent"
+  if(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_libevent PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/libevent"
+    )
+    target_include_directories(thirdparty_libevent SYSTEM INTERFACE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/libevent"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_libevent PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/libevent"
+    )
+    target_include_directories(thirdparty_libevent SYSTEM INTERFACE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/libevent"
+    )
+  endif()
 
+  target_include_directories(thirdparty_libevent PRIVATE
     "${library_root}"
     "${library_root}/include"
     "${library_root}/compat"
   )
 
   target_include_directories(thirdparty_libevent SYSTEM INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/libevent"
     "${library_root}/include"
   )
 endfunction()
@@ -63,10 +89,7 @@ endfunction()
 function(generateLiblldpd)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/src")
 
-  add_library(thirdparty_lldpd
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/src/lib/atom-glue.c"
-
-    "${library_root}/compat/strlcpy.c"
+  set(sources
     "${library_root}/compat/empty.c"
     "${library_root}/compat/strtonum.c"
     "${library_root}/log.c"
@@ -90,6 +113,21 @@ function(generateLiblldpd)
     "${library_root}/lib/atoms/chassis.c"
   )
 
+  if(DEFINED PLATFORM_LINUX)
+    list(APPEND sources
+      "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/src/lib/atom-glue.c"
+      "${library_root}/compat/strlcpy.c"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    list(APPEND sources
+      "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/src/lib/atom-glue.c"
+    )
+  endif()
+
+  add_library(thirdparty_lldpd
+   ${sources}
+  )
+
   target_compile_definitions(thirdparty_lldpd PRIVATE
     _FORTIFY_SOURCE=2
     _GNU_SOURCE
@@ -106,9 +144,17 @@ function(generateLiblldpd)
     thirdparty_c_settings
   )
 
-  target_include_directories(thirdparty_lldpd PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/liblldpd"
+  if(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_lldpd PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/liblldpd"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_lldpd PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/liblldpd"
+    )
+  endif()
 
+  target_include_directories(thirdparty_lldpd PRIVATE
     "${library_root}"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/include"
     "${library_root}/lib"
