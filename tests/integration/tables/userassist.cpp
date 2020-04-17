@@ -26,10 +26,12 @@ TEST(Rot13Test, DecodeData) {
 
 TEST_F(UserassistTest, test_sanity) {
   QueryData const rows = execute_query("select * from userassist");
-  QueryData const specific_query_rows = execute_query(
-      "select * from userassist where path is 'Microsoft.Windows.Explorer'");
+  QueryData const specific_query_rows =
+      execute_query("select * from userassist where path is 'UEME_CTLSESSION'");
+
   ASSERT_GT(rows.size(), 0ul);
-  ASSERT_EQ(specific_query_rows.size(), 1ul);
+  ASSERT_GT(specific_query_rows.size(), 0ul);
+
   ValidationMap row_map = {
       {"path", NonEmptyString},
       {"last_execution_time", NormalType},
