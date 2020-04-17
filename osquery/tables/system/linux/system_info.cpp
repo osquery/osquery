@@ -100,7 +100,11 @@ QueryData genSystemInfo(QueryContext& context) {
                           uint8_t* address,
                           uint8_t* textAddrs,
                           size_t size) {
-        if (hdr->type == kSMBIOSTypeSystem || size < 0x12) {
+        if (size < 0x12) {
+          return;
+        }
+
+        if (hdr->type == kSMBIOSTypeSystem) {
           auto maxlen = size - hdr->length;
           r["hardware_vendor"] = dmiString(textAddrs, address[0x04], maxlen);
           r["hardware_model"] = dmiString(textAddrs, address[0x05], maxlen);
@@ -109,7 +113,7 @@ QueryData genSystemInfo(QueryContext& context) {
           return;
         }
 
-        if (hdr->type == kSMBIOSTypeBoard || size < 0x12) {
+        if (hdr->type == kSMBIOSTypeBoard) {
           auto maxlen = size - hdr->length;
           r["board_vendor"] = dmiString(textAddrs, address[0x04], maxlen);
           r["board_model"] = dmiString(textAddrs, address[0x05], maxlen);
