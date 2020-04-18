@@ -50,6 +50,7 @@ extern const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions;
 
 constexpr uint8_t kSMBIOSTypeBIOS = 0;
 constexpr uint8_t kSMBIOSTypeSystem = 1;
+constexpr uint8_t kSMBIOSTypeBoard = 2;
 constexpr uint8_t kSMBIOSTypeOEMStrings = 11;
 constexpr uint8_t kSMBIOSTypeMemoryArray = 16;
 constexpr uint8_t kSMBIOSTypeMemoryDevice = 17;
