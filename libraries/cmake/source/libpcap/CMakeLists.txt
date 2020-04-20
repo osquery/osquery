@@ -6,8 +6,6 @@
 
 function(libPcapMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
-  execute_process(COMMAND "${library_root}/configure" WORKING_DIRECTORY "${library_root}" OUTPUT_QUIET)
-  execute_process(COMMAND "make" WORKING_DIRECTORY "${library_root}" OUTPUT_QUIET)
   add_library(thirdparty_libpcap
 	"${library_root}/bpf_dump.c"
 	"${library_root}/etherent.c"
@@ -29,23 +27,16 @@ function(libPcapMain)
 	"${library_root}/optimize.c"
 	"${library_root}/pcap.c"
 	"${library_root}/sf-pcap.c"
-	"${library_root}/scanner.c"
-	"${library_root}/grammar.c"
+	"${library_root}/../generated/scanner.c"
+	"${library_root}/../generated/grammar.c"
 
   )
   target_compile_definitions(thirdparty_libpcap PRIVATE
-    PACKAGE_NAME=\"libpcap\"
-    PACKAGE_TARNAME=\"libpcap\"
-    PACKAGE_VERSION=\"1.9.1\"
-    PACKAGE_STRING=\"libpcap\ 1.9.1\"
-    PACKAGE_BUGREPORT=\"\"
-    PACKAGE_URL=\"\"
-    PACKAGE=\"libpcap\"
-    VERSION=\"1.9.1\"
     HAVE_STRLCPY
   )
   target_include_directories(thirdparty_libpcap PUBLIC
-     $<1:${library_root}>
+    $<1:${library_root}>
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated"
   )
   target_compile_options(thirdparty_libpcap PRIVATE
     -include "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/config.h"
