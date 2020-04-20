@@ -34,7 +34,7 @@
 #include "http_event_publisher.h"
 
 namespace osquery {
-namespace {  
+namespace {
 const int IPV6_VERSION = 0x60;
 const int IPV4 = IPVERSION;
 const int IPV6 = (IPV6_VERSION >> 4);
@@ -58,9 +58,9 @@ const int OFFSET_CIPHER_LIST = 44;
 using LocalRemoteAddrs = std::pair<std::string, std::string>;
 
 inline bool readIPv4SourceDest(const unsigned char* packet,
-                                      const uint32_t caplen,
-                                      size_t* offset,
-                                      LocalRemoteAddrs& addrs) {
+                               const uint32_t caplen,
+                               size_t* offset,
+                               LocalRemoteAddrs& addrs) {
   const size_t ipv4_len = (((struct ip*)packet)->ip_hl << 2);
   if (caplen < (*offset + ipv4_len)) {
     TLOG << "Invalid packet (IPv4 header). Packet length: " << caplen
@@ -81,9 +81,9 @@ inline bool readIPv4SourceDest(const unsigned char* packet,
 }
 
 inline bool readIPv6SourceDest(const unsigned char* packet,
-                                      const uint32_t caplen,
-                                      size_t* offset,
-                                      LocalRemoteAddrs& addrs) {
+                               const uint32_t caplen,
+                               size_t* offset,
+                               LocalRemoteAddrs& addrs) {
   if (caplen < (*offset + kIPv6Length)) {
     TLOG << "Invalid packet (IPv6 header). Packet length: " << caplen
          << ". Offset: " << *offset;
@@ -103,9 +103,7 @@ inline bool readIPv6SourceDest(const unsigned char* packet,
   return true;
 }
 
-}
-
-
+} // namespace
 
 /// Internal traffic filter
 const std::string kInternalTrafficFilter =
@@ -188,24 +186,23 @@ struct sniff_tcp {
 };
 #pragma pack(pop)
 
-
 /* Grease bytes to ignore */
 const std::set<std::string> greaseBytes = {"0A0A",
-                                     "1A1A",
-                                     "2A2A",
-                                     "3A3A",
-                                     "4A4A",
-                                     "5A5A",
-                                     "6A6A",
-                                     "7A7A",
-                                     "8A8A",
-                                     "9A9A",
-                                     "AAAA",
-                                     "BABA",
-                                     "CACA",
-                                     "DADA",
-                                     "EAEA",
-                                     "FAFA"};
+                                           "1A1A",
+                                           "2A2A",
+                                           "3A3A",
+                                           "4A4A",
+                                           "5A5A",
+                                           "6A6A",
+                                           "7A7A",
+                                           "8A8A",
+                                           "9A9A",
+                                           "AAAA",
+                                           "BABA",
+                                           "CACA",
+                                           "DADA",
+                                           "EAEA",
+                                           "FAFA"};
 /* Implementation of whitelisting  */
 /*
  * @brief whitelisting of headers - to be included in other_headers column
@@ -259,7 +256,8 @@ FLAG(bool,
 
 Status HTTPLookupEventPublisher::setUp() {
   if (!FLAGS_enable_http_lookups) {
-    return Status::failure("HTTP lookups publisher disabled via configuration.");
+    return Status::failure(
+        "HTTP lookups publisher disabled via configuration.");
   }
   httpFilter_ = kHttpRequestFilter + kTLSTrafficFilter;
   return Status::success();
@@ -277,8 +275,8 @@ Status HTTPLookupEventPublisher::run() {
     return Status::failure("Could not open pcap capture devices.");
   }
 
-  if (pcap_compile(handle_, &fp_, httpFilter_.c_str(), 0, PCAP_NETMASK_UNKNOWN) ==
-      -1) {
+  if (pcap_compile(
+          handle_, &fp_, httpFilter_.c_str(), 0, PCAP_NETMASK_UNKNOWN) == -1) {
     LOG(ERROR) << "Could not compile filter expression";
     return Status::failure("Could not compile filter expression.");
   }
