@@ -12,15 +12,27 @@ function(sleuthkitMain)
 
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-  add_library(thirdparty_sleuthkit
+  add_library(thirdparty_sleuthkit INTERFACE)
+
+  add_library(thirdparty_sleuthkit_cpp
     "${library_root}/tsk/auto/auto.cpp"
     "${library_root}/tsk/auto/auto_db.cpp"
     "${library_root}/tsk/auto/case_db.cpp"
-    "${library_root}/tsk/auto/db_postgresql.cpp"
     "${library_root}/tsk/auto/db_sqlite.cpp"
     "${library_root}/tsk/auto/guid.cpp"
     "${library_root}/tsk/auto/is_image_supported.cpp"
     "${library_root}/tsk/auto/tsk_db.cpp"
+    "${library_root}/tsk/base/tsk_error_win32.cpp"
+    "${library_root}/tsk/fs/fatfs_dent.cpp"
+    "${library_root}/tsk/fs/ntfs_dent.cpp"
+    "${library_root}/tsk/fs/walk_cpp.cpp"
+    "${library_root}/tsk/fs/yaffs.cpp"
+    "${library_root}/tsk/hashdb/binsrch_index.cpp"
+    "${library_root}/tsk/hashdb/sqlite_hdb.cpp"
+    "${library_root}/tsk/img/img_writer.cpp"
+  )
+
+  add_library(thirdparty_sleuthkit_c
     "${library_root}/tsk/base/XGetopt.c"
     "${library_root}/tsk/base/crc.c"
     "${library_root}/tsk/base/md5c.c"
@@ -28,7 +40,6 @@ function(sleuthkitMain)
     "${library_root}/tsk/base/sha1c.c"
     "${library_root}/tsk/base/tsk_endian.c"
     "${library_root}/tsk/base/tsk_error.c"
-    "${library_root}/tsk/base/tsk_error_win32.cpp"
     "${library_root}/tsk/base/tsk_list.c"
     "${library_root}/tsk/base/tsk_lock.c"
     "${library_root}/tsk/base/tsk_parse.c"
@@ -47,7 +58,6 @@ function(sleuthkitMain)
     "${library_root}/tsk/fs/ext2fs_dent.c"
     "${library_root}/tsk/fs/ext2fs_journal.c"
     "${library_root}/tsk/fs/fatfs.c"
-    "${library_root}/tsk/fs/fatfs_dent.cpp"
     "${library_root}/tsk/fs/fatfs_meta.c"
     "${library_root}/tsk/fs/fatfs_utils.c"
     "${library_root}/tsk/fs/fatxxfs.c"
@@ -81,29 +91,23 @@ function(sleuthkitMain)
     "${library_root}/tsk/fs/lzvn.c"
     "${library_root}/tsk/fs/nofs_misc.c"
     "${library_root}/tsk/fs/ntfs.c"
-    "${library_root}/tsk/fs/ntfs_dent.cpp"
     "${library_root}/tsk/fs/rawfs.c"
     "${library_root}/tsk/fs/swapfs.c"
     "${library_root}/tsk/fs/unix_misc.c"
     "${library_root}/tsk/fs/usn_journal.c"
     "${library_root}/tsk/fs/usnjls_lib.c"
-    "${library_root}/tsk/fs/walk_cpp.cpp"
-    "${library_root}/tsk/fs/yaffs.cpp"
-    "${library_root}/tsk/hashdb/binsrch_index.cpp"
     "${library_root}/tsk/hashdb/encase.c"
     "${library_root}/tsk/hashdb/hashkeeper.c"
     "${library_root}/tsk/hashdb/hdb_base.c"
     "${library_root}/tsk/hashdb/idxonly.c"
     "${library_root}/tsk/hashdb/md5sum.c"
     "${library_root}/tsk/hashdb/nsrl.c"
-    "${library_root}/tsk/hashdb/sqlite_hdb.cpp"
     "${library_root}/tsk/hashdb/tsk_hashdb.c"
     "${library_root}/tsk/img/aff.c"
     "${library_root}/tsk/img/ewf.c"
     "${library_root}/tsk/img/img_io.c"
     "${library_root}/tsk/img/img_open.c"
     "${library_root}/tsk/img/img_types.c"
-    "${library_root}/tsk/img/img_writer.cpp"
     "${library_root}/tsk/img/mult_files.c"
     "${library_root}/tsk/img/raw.c"
     "${library_root}/tsk/img/vhd.c"
@@ -119,33 +123,87 @@ function(sleuthkitMain)
     "${library_root}/tsk/vs/sun.c"
   )
 
-  target_compile_options(thirdparty_sleuthkit PRIVATE
-    -include tsk_config.h
-  )
-
-  target_compile_definitions(thirdparty_sleuthkit PRIVATE
+  target_compile_definitions(thirdparty_sleuthkit_c PRIVATE
     HAVE_CONFIG_H
+    _THREAD_SAFE
   )
 
-  target_link_libraries(thirdparty_sleuthkit PUBLIC
+  target_compile_definitions(thirdparty_sleuthkit_cpp PRIVATE
+    HAVE_CONFIG_H
+    _THREAD_SAFE
+  )
+
+  target_compile_options(thirdparty_sleuthkit_c PRIVATE
+    -pthread
+  )
+
+  target_compile_options(thirdparty_sleuthkit_cpp PRIVATE
+    -pthread
+  )
+
+  target_link_libraries(thirdparty_sleuthkit_c PUBLIC
     thirdparty_zlib
+  )
+
+  target_link_libraries(thirdparty_sleuthkit_cpp PUBLIC
     thirdparty_sqlite
   )
 
-  target_link_libraries(thirdparty_sleuthkit PRIVATE
-    thirdparty_cxx_settings
+  target_link_libraries(thirdparty_sleuthkit_c PRIVATE
     thirdparty_c_settings
   )
 
-  target_include_directories(thirdparty_sleuthkit PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/tsk"
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+  target_link_libraries(thirdparty_sleuthkit_cpp PRIVATE
+    thirdparty_cxx_settings
+  )
+
+  if(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_sleuthkit_c PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/tsk"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+    )
+
+    target_include_directories(thirdparty_sleuthkit_cpp PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/tsk"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_sleuthkit_c PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/tsk"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+    )
+
+    target_include_directories(thirdparty_sleuthkit_cpp PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/tsk"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+    )
+  endif()
+
+  target_include_directories(thirdparty_sleuthkit_c PRIVATE
     "${library_root}"
   )
 
-  target_include_directories(thirdparty_sleuthkit SYSTEM INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+  target_include_directories(thirdparty_sleuthkit_cpp PRIVATE
     "${library_root}"
+  )
+
+  if(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_sleuthkit SYSTEM INTERFACE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_sleuthkit SYSTEM INTERFACE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+    )
+  endif()
+
+  target_include_directories(thirdparty_sleuthkit SYSTEM INTERFACE
+    "${library_root}"
+  )
+
+  target_link_libraries(thirdparty_sleuthkit INTERFACE
+    thirdparty_sleuthkit_c
+    thirdparty_sleuthkit_cpp
   )
 endfunction()
 
