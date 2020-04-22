@@ -532,9 +532,8 @@ void Initializer::start() const {
       }
 
       if (i == kDatabaseMaxRetryCount) {
-        std::string message =
-            RLOG(1629) + binary_ +
-            " initialize failed: Could not initialize database";
+        auto message = std::string(RLOG(1629)) + binary_ +
+                       " initialize failed: Could not initialize database";
         auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
         requestShutdown(retcode, message);
         return;

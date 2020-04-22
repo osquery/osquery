@@ -566,8 +566,8 @@ void WatcherRunner::createWorker() {
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // osqueryd binary has become unsafe.
-    std::string message =
-        RLOG(1382) + "osqueryd has unsafe permissions: " + exec_path.string();
+    auto message = std::string(RLOG(1382)) +
+                   "osqueryd has unsafe permissions: " + exec_path.string();
     Initializer::requestShutdown(EXIT_FAILURE, message);
     return;
   }
