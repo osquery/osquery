@@ -17,21 +17,21 @@
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
+#include <osquery/system.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
-#include <osquery/system.h>
 
-#include <pwd.h>
 #include <arpa/inet.h>
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
+#include <pwd.h>
 #include <sys/socket.h>
 
+#include <boost/range/adaptor/map.hpp>
 #include <set>
 #include <vector>
-#include <boost/range/adaptor/map.hpp>
 
 #include "http_event_publisher.h"
 
@@ -346,14 +346,15 @@ void HTTPLookupEventPublisher::processPacket(unsigned char* args,
   if (getuid() == 0) {
     // Attempt to drop to nobody.
     auto nobody = getpwnam("nobody");
-    if( nobody == nullptr) {
-        LOG(WARNING) << "Could not get 'nobody' uid and gid";
+    if (nobody == nullptr) {
+      LOG(WARNING) << "Could not get 'nobody' uid and gid";
     }
-    if (!dropper->dropTo(nobody->pw_uid, nobody->pw_gid) && (!(geteuid() == nobody->pw_uid))) {
-        LOG(WARNING) << "Failed to drop privilege to nobody";
+    if (!dropper->dropTo(nobody->pw_uid, nobody->pw_gid) &&
+        (!(geteuid() == nobody->pw_uid))) {
+      LOG(WARNING) << "Failed to drop privilege to nobody";
     }
   } else {
-      LOG(WARNING) << "Not root, skipping privilege drop";
+    LOG(WARNING) << "Not root, skipping privilege drop";
   }
 
   /*Linux consists of 16 more bytes of Linux cooked capture header,Skipping.*/
