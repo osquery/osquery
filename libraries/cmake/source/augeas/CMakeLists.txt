@@ -43,7 +43,7 @@ function(augeasMain)
       set(BISON_EXECUTABLE "${bison_executable_path}")
     endif()
 
-    if(NOT EXISTS "${flex_executable_path}")
+    if(EXISTS "${flex_executable_path}")
       set(FLEX_EXECUTABLE "${flex_executable_path}")
     endif()
 
@@ -119,16 +119,26 @@ function(augeasMain)
     ${augeas_lexer_implementation}
   )
 
-  importSELinux()
+  importGnulibOverrides()
 
   target_link_libraries(thirdparty_augeas PUBLIC
     thirdparty_libxml2
-    thirdparty_selinux
   )
 
   target_link_libraries(thirdparty_augeas PRIVATE
     thirdparty_c_settings
+    thirdparty_gnulib
   )
+
+  if(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_augeas PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+    )
+  elseif(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_augeas PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+    )
+  endif()
 
   target_include_directories(thirdparty_augeas PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/config"
@@ -143,27 +153,82 @@ function(augeasMain)
   set_property(GLOBAL PROPERTY AUGEAS_LENSES_FOLDER_PATH "${library_root}/lenses")
 endfunction()
 
-function(importSELinux)
+function(importGnulibOverrides)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/gnulib/src")
 
-  add_library(thirdparty_selinux
-    "${library_root}/lib/getfilecon.c"
-    "${library_root}/lib/se-context.c"
-    "${library_root}/lib/se-selinux.c"
+  if(DEFINED PLATFORM_LINUX)
+    set(sources
+      "${library_root}/lib/getfilecon.c"
+      "${library_root}/lib/se-context.c"
+      "${library_root}/lib/se-selinux.c"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    set(sources
+      "${library_root}/lib/setlocale.c"
+      "${library_root}/lib/argz.c"
+      "${library_root}/lib/canonicalize-lgpl.c"
+      "${library_root}/lib/regex.c"
+      "${library_root}/lib/fnmatch.c"
+      "${library_root}/lib/malloca.c"
+      "${library_root}/lib/mempcpy.c"
+      "${library_root}/lib/strstr.c"
+    )
+  endif()
+
+  add_library(thirdparty_gnulib
+    ${sources}
   )
 
-  target_include_directories(thirdparty_selinux PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+  if(DEFINED PLATFORM_MACOS)
+    set(public_headers
+      "${library_root}/lib/regex.h"
+      "${library_root}/lib/canonicalize.h"
+      "${library_root}/lib/malloca.h"
+    )
+
+    foreach(header ${public_headers})
+      get_filename_component(filename "${header}" NAME)
+
+      add_custom_command(
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/gnulib/${filename}"
+        COMMAND cmake -E copy "${header}" "${CMAKE_CURRENT_BINARY_DIR}/gnulib/${filename}"
+      )
+
+      list(APPEND public_headers_output "${CMAKE_CURRENT_BINARY_DIR}/gnulib/${filename}")
+    endforeach()
+
+    add_custom_target(thirdparty_gnulib_copy_public_headers DEPENDS ${public_headers_output})
+    add_dependencies(thirdparty_gnulib thirdparty_gnulib_copy_public_headers)
+
+    target_include_directories(thirdparty_gnulib PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+      "${CMAKE_CURRENT_SOURCE_DIR}/gnulib/generated/macos"
+    )
+
+    target_include_directories(thirdparty_gnulib SYSTEM INTERFACE
+      "${CMAKE_CURRENT_BINARY_DIR}/gnulib"
+    )
+
+    target_include_directories(thirdparty_gnulib SYSTEM INTERFACE
+      "${CMAKE_CURRENT_SOURCE_DIR}/gnulib/generated/macos"
+    )
+  elseif(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_gnulib PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+      "${CMAKE_CURRENT_SOURCE_DIR}/gnulib/generated/linux"
+    )
+
+    target_include_directories(thirdparty_gnulib SYSTEM INTERFACE
+      "${CMAKE_CURRENT_SOURCE_DIR}/gnulib/generated/linux"
+    )
+  endif()
+
+  target_include_directories(thirdparty_gnulib PRIVATE
     "${library_root}/lib"
-    "${CMAKE_CURRENT_SOURCE_DIR}/gnulib"
   )
 
-  target_link_libraries(thirdparty_selinux PRIVATE
+  target_link_libraries(thirdparty_gnulib PRIVATE
     thirdparty_c_settings
-  )
-
-  target_include_directories(thirdparty_selinux SYSTEM INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/gnulib"
   )
 endfunction()
 
