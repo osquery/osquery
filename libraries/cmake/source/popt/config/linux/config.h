@@ -120,9 +120,6 @@
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "1.16"
 
-/* Full path to popt top_srcdir. */
-#define POPT_SOURCE_PATH "/home/alessandro/Projects/osquery/osquery/libraries/cmake/source/popt/src"
-
 /* Full path to default POPT configuration directory */
 #define POPT_SYSCONFDIR "NONE/etc"
 

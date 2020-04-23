@@ -122,9 +122,6 @@
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "1.16"
 
-/* Full path to popt top_srcdir. */
-#define POPT_SOURCE_PATH "/Users/smjert/Development/third-party-popt"
-
 /* Full path to default POPT configuration directory */
 #define POPT_SYSCONFDIR "NONE/etc"
 
