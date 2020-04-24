@@ -20,7 +20,7 @@ The default package creates the following structure:
 /usr/local/bin/osqueryi
 ```
 
-This package does NOT install a LaunchDaemon to start **osqueryd**. You may use the `osqueryctl start` script to copy the sample launch daemon job plist and associated configuration into place.
+This package does NOT install a LaunchDaemon to start **osqueryd**. You may use the `osqueryctl start` script to copy the sample launch daemon job plist and associated configuration into place. See the [Running osquery](https://github.com/osquery/osquery/blob/master/docs/wiki/installation/install-macos.md#running-osquery) section at the bottom of this document on how to do this.
 
 ### Post installation steps
 
@@ -29,11 +29,12 @@ Only applies if you have never installed and run **osqueryd** on this Mac.
 After completing the brew installation run the following commands. If you are using the chef recipe to install osquery then these steps are not necessary, the [recipe](https://osquery.readthedocs.io/en/stable/deployment/configuration/#chef-os-x) has this covered.
 
 ```
-sudo ln -s /var/osquery /usr/local/share/osquery
+sudo ln -s /usr/local/share/osquery/ /var/osquery
 sudo mkdir /var/log/osquery
-sudo chown root /usr/local/Cellar/osquery/1.7.3/bin/osqueryd
+sudo chown root /usr/local/Cellar/osquery/3.3.2_15/bin/osqueryd
 sudo cp /var/osquery/osquery.example.conf /var/osquery/osquery.conf
 ```
+Note: The path in the `chown` line above will look different for you depending on your osquery version. Please adjust accordingly.
 
 ### Removing osquery
 To remove osquery from a macOS system, run the following commands:
