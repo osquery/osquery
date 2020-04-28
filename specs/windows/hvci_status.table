@@ -1,0 +1,10 @@
+table_name("hvci_status")
+description("Retrieve HVCI info of the machine.")
+schema([
+  Column("version", TEXT, "The version number of the Device Guard build."),
+  Column("instance_identifier", TEXT, "The instance ID of Device Guard."),
+  Column("vbs_status", TEXT, "The status of the virtualization based security settings. Returns UNKNOWN if an error is encountered."),
+  Column("code_integrity_policy_enforcement_status", TEXT, "The status of the code integrity policy enforcement settings. Returns UNKNOWN if an error is encountered."),
+  Column("umci_policy_status", TEXT, "The status of the User Mode Code Integrity security settings. Returns UNKNOWN if an error is encountered."), 
+])
+implementation("system/windows/hvci_status@genHVCIStatus")

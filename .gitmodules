@@ -1,6 +1,6 @@
 [submodule "libraries/cmake/source/bzip2/src"]
 	path = libraries/cmake/source/bzip2/src
-	url = https://sourceware.org/git/bzip2.git
+	url = https://github.com/osquery/third-party-bzip2
 [submodule "libraries/cmake/source/libarchive/src"]
 	path = libraries/cmake/source/libarchive/src
 	url = https://github.com/libarchive/libarchive

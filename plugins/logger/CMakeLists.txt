@@ -244,10 +244,17 @@ function(generatePluginsLoggerTlslogger)
 
   add_test(NAME plugins_logger_tests_tlsloggertests-test COMMAND plugins_logger_tests_tlsloggertests-test)
 
+  set(tlsloggertests-test_env
+    "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
+    "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
+  )
+
   set_tests_properties(
     plugins_logger_tests_tlsloggertests-test
-    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    PROPERTIES ENVIRONMENT "${tlsloggertests-test_env}"
   )
+
 endfunction()
 
 function(generatePluginsLoggerWindowseventlog)

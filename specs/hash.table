@@ -10,6 +10,10 @@ schema([
 extended_schema(POSIX, [
     Column("ssdeep", TEXT, "ssdeep hash of provided filesystem data"),
 ])
+extended_schema(LINUX, [
+    Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True),
+    Column("mount_namespace_id", TEXT, "Mount namespace id"),
+])
 implementation("hash@genHash")
 examples([
   "select * from hash where path = '/etc/passwd'",

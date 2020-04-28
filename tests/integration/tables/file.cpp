@@ -12,6 +12,7 @@
 #include <fstream>
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/info/platform_type.h>
 
 #include <boost/filesystem.hpp>
 
@@ -75,6 +76,11 @@ TEST_F(FileTests, test_sanity) {
 #ifdef __APPLE__
   row_map["bsd_flags"] = NormalType;
 #endif
+
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    row_map["pid_with_namespace"] = IntType;
+    row_map["mount_namespace_id"] = NormalType;
+  }
 
   validate_rows(data, row_map);
   ASSERT_EQ(data[0]["path"], filepath.string());

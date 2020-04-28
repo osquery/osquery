@@ -19,6 +19,7 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/registry_factory.h>
+#include <osquery/utils/info/platform_type.h>
 
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
@@ -34,20 +35,10 @@ DECLARE_string(tls_server_certs);
 
 class TLSTransportsTests : public testing::Test {
  public:
-  bool verify(const Status& status) {
-    if (!status.ok()) {
-      LOG(ERROR) << "Could not complete TLSRequest (" << status.getCode()
-                 << "): " << status.what();
-    }
-
-    // Sometimes the best we can test is the call workflow.
-    if (status.getCode() == 1) {
-      // The socket bind failed or encountered a connection error in the test.
-      LOG(ERROR) << "Not failing TLS-based transport tests";
-      return false;
-    }
-
-    return true;
+  std::string getTLSError(const Status& status) {
+    auto error = "Could not complete TLSRequest (" +
+                 std::to_string(status.getCode()) + "): " + status.what();
+    return error;
   }
 
   bool nameError(const Status& status) {
@@ -66,10 +57,12 @@ class TLSTransportsTests : public testing::Test {
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);
     DatabasePlugin::initPlugin();
+  }
 
+  void startServer(const std::string& server_cert = {}) {
     certs_ = FLAGS_tls_server_certs;
     FLAGS_tls_server_certs = "";
-    TLSServerRunner::start();
+    ASSERT_TRUE(TLSServerRunner::start(server_cert));
     port_ = TLSServerRunner::port();
   }
 
@@ -84,6 +77,8 @@ class TLSTransportsTests : public testing::Test {
 };
 
 TEST_F(TLSTransportsTests, test_call) {
+  startServer();
+
   // Create a transport and use a testing-only 'disableVerifyPeer' call.
   // This allows our client to complete TLS without verifying the fake
   // commonName or fake CA used by the testing server.
@@ -98,14 +93,16 @@ TEST_F(TLSTransportsTests, test_call) {
   // This will use a GET for the URI given in the Request constructor.
   Status status;
   ASSERT_NO_THROW(status = r.call());
-  if (verify(status)) {
-    JSON recv;
-    status = r.getResponse(recv);
-    EXPECT_TRUE(status.ok());
-  }
+  ASSERT_TRUE(status.ok()) << getTLSError(status);
+
+  JSON recv;
+  status = r.getResponse(recv);
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(TLSTransportsTests, test_call_with_params) {
+  startServer();
+
   // Again, use a fake server/CA/commonName certificate.
   auto t = std::make_shared<TLSTransport>();
   t->disableVerifyPeer();
@@ -121,15 +118,22 @@ TEST_F(TLSTransportsTests, test_call_with_params) {
   // data into the body of the request and issue a POST to the URI.
   Status status;
   ASSERT_NO_THROW(status = r.call(params));
-  if (verify(status)) {
-    JSON recv;
-    status = r.getResponse(recv);
-    EXPECT_TRUE(status.ok());
-    EXPECT_EQ(params.doc(), recv.doc());
-  }
+  ASSERT_TRUE(status.ok()) << getTLSError(status);
+
+  JSON recv;
+  status = r.getResponse(recv);
+  ASSERT_TRUE(status.ok());
+
+  std::string json_expected, json_received;
+  params.toString(json_expected);
+  recv.toString(json_received);
+  EXPECT_EQ(params.doc(), recv.doc())
+      << "Expected: " << json_expected << "\nReceived: " << json_received;
 }
 
-TEST_F(TLSTransportsTests, DISABLED_test_call_verify_peer) {
+TEST_F(TLSTransportsTests, test_call_verify_peer) {
+  startServer();
+
   // Create a default request without a transport that accepts invalid peers.
   auto url = "https://localhost:" + port_;
   Request<TLSTransport, JSONSerializer> r(url);
@@ -138,32 +142,33 @@ TEST_F(TLSTransportsTests, DISABLED_test_call_verify_peer) {
   // to verify the fake server, CA, commonName.
   Status status;
   ASSERT_NO_THROW(status = r.call());
-  if (verify(status)) {
-    EXPECT_FALSE(status.ok());
-    // A non-1 exit code means the request failed, but not because of a socket
-    // error or request-connection problem.
-    EXPECT_EQ(status.getCode(), 2);
+  ASSERT_FALSE(status.ok());
+
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     if (!nameError(status)) {
       EXPECT_EQ(status.getMessage(),
                 "Request error: certificate verify failed");
     }
+  } else {
+    EXPECT_EQ(status.getMessage(), "Request error: certificate verify failed");
   }
 }
 
 TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {
+  startServer();
+
   // Require verification but include the server's certificate that includes
   // an unknown signing CA and wrong commonName.
   auto t = std::make_shared<TLSTransport>();
-  t->setPeerCertificate((getTestConfigDirectory() / "test_server_ca.pem").string());
+  t->setPeerCertificate(
+      (getTestConfigDirectory() / "test_server_ca.pem").string());
 
   auto url = "https://localhost:" + port_;
   Request<TLSTransport, JSONSerializer> r1(url, t);
 
   Status status;
   ASSERT_NO_THROW(status = r1.call());
-  if (verify(status)) {
-    EXPECT_TRUE(status.ok());
-  }
+  ASSERT_TRUE(status.ok()) << getTLSError(status);
 
   // Now try with a path that is not a filename.
   t = std::make_shared<TLSTransport>();
@@ -171,24 +176,43 @@ TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {
   Request<TLSTransport, JSONSerializer> r2(url, t);
 
   ASSERT_NO_THROW(status = r2.call());
-  if (verify(status)) {
-    EXPECT_FALSE(status.ok());
-  }
+  EXPECT_FALSE(status.ok());
 }
 
 TEST_F(TLSTransportsTests, test_call_client_auth) {
+  startServer();
+
   auto t = std::make_shared<TLSTransport>();
-  t->setPeerCertificate((getTestConfigDirectory() / "test_server_ca.pem").string());
-  t->setClientCertificate((getTestConfigDirectory() / "test_client.pem").string(),
-                          (getTestConfigDirectory() / "test_client.key").string());
+  t->setPeerCertificate(
+      (getTestConfigDirectory() / "test_server_ca.pem").string());
+  t->setClientCertificate(
+      (getTestConfigDirectory() / "test_client.pem").string(),
+      (getTestConfigDirectory() / "test_client.key").string());
 
   auto url = "https://localhost:" + port_;
   Request<TLSTransport, JSONSerializer> r(url, t);
 
   Status status;
   ASSERT_NO_THROW(status = r.call());
-  if (verify(status)) {
-    EXPECT_TRUE(status.ok());
-  }
+  EXPECT_TRUE(status.ok()) << getTLSError(status);
 }
+
+TEST_F(TLSTransportsTests, test_wrong_hostname) {
+  startServer(
+      (getTestConfigDirectory() / "test_server_wrong_hostname.pem").string());
+
+  auto t = std::make_shared<TLSTransport>();
+  t->setPeerCertificate(
+      (getTestConfigDirectory() / "test_server_ca.pem").string());
+  t->setClientCertificate(
+      (getTestConfigDirectory() / "test_client.pem").string(),
+      (getTestConfigDirectory() / "test_client.key").string());
+
+  auto url = "https://localhost:" + port_;
+  Request<TLSTransport, JSONSerializer> r(url, t);
+
+  Status status;
+  ASSERT_NO_THROW(status = r.call());
+  EXPECT_FALSE(status.ok());
 }
+} // namespace osquery

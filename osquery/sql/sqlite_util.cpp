@@ -27,8 +27,13 @@ namespace osquery {
 
 FLAG(string,
      disable_tables,
-     "Not Specified",
+     "",
      "Comma-delimited list of table names to be disabled");
+
+FLAG(string,
+     enable_tables,
+     "",
+     "Comma-delimited list of table names to be enabled");
 
 FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
 
@@ -134,7 +139,7 @@ class SQLiteSQLPlugin : public SQLPlugin {
   Status attach(const std::string& name) override;
 
   /// Detach a virtual table (DROP).
-  void detach(const std::string& name) override;
+  Status detach(const std::string& name) override;
 };
 
 /// SQL provider for osquery internal/core.
@@ -245,12 +250,12 @@ Status SQLiteSQLPlugin::attach(const std::string& name) {
   return attachTableInternal(name, statement, dbc, is_extension);
 }
 
-void SQLiteSQLPlugin::detach(const std::string& name) {
-  auto dbc = SQLiteDBManager::get();
-  if (!dbc->isPrimary()) {
-    return;
-  }
-  detachTableInternal(name, dbc);
+Status SQLiteSQLPlugin::detach(const std::string& name) {
+  // Detach requests occurring via the plugin/registry APIs must act on the
+  // primary database. To allow this, getConnection can explicitly request the
+  // primary instance and avoid the contention decisions.
+  auto dbc = SQLiteDBManager::getConnection(true);
+  return detachTableInternal(name, dbc);
 }
 
 SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, Mutex& mtx)
@@ -361,11 +366,43 @@ SQLiteDBInstance::~SQLiteDBInstance() {
 SQLiteDBManager::SQLiteDBManager() : db_(nullptr) {
   sqlite3_soft_heap_limit64(1);
   setDisabledTables(Flag::getValue("disable_tables"));
+  setEnabledTables(Flag::getValue("enable_tables"));
 }
 
 bool SQLiteDBManager::isDisabled(const std::string& table_name) {
-  const auto& element = instance().disabled_tables_.find(table_name);
-  return (element != instance().disabled_tables_.end());
+  bool disabled_set = !Flag::isDefault("disable_tables");
+  bool enabled_set = !Flag::isDefault("enable_tables");
+  if (!disabled_set && !enabled_set) {
+    // We have zero enabled tables and zero disabled tables.
+    // As a result, no tables are disabled.
+    return false;
+  }
+  const auto& element_disabled = instance().disabled_tables_.find(table_name);
+  const auto& element_enabled = instance().enabled_tables_.find(table_name);
+  bool table_disabled = (element_disabled != instance().disabled_tables_.end());
+  bool table_enabled = (element_enabled != instance().enabled_tables_.end());
+
+  if (table_disabled) {
+    return true;
+  }
+
+  if (table_enabled && disabled_set && !table_disabled) {
+    return false;
+  }
+
+  if (table_enabled && !disabled_set) {
+    return false;
+  }
+
+  if (enabled_set && !table_enabled) {
+    return true;
+  }
+
+  if (disabled_set && !table_disabled) {
+    return false;
+  }
+
+  return true;
 }
 
 void SQLiteDBManager::resetPrimary() {
@@ -384,6 +421,12 @@ void SQLiteDBManager::resetPrimary() {
 void SQLiteDBManager::setDisabledTables(const std::string& list) {
   const auto& tables = split(list, ",");
   disabled_tables_ =
+      std::unordered_set<std::string>(tables.begin(), tables.end());
+}
+
+void SQLiteDBManager::setEnabledTables(const std::string& list) {
+  const auto& tables = split(list, ",");
+  enabled_tables_ =
       std::unordered_set<std::string>(tables.begin(), tables.end());
 }
 

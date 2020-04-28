@@ -573,4 +573,15 @@ TEST_F(FilesystemTests, create_dir_recursive_ignore_existence) {
   fs::remove_all(tmp_root_path);
 }
 
+TEST_F(FilesystemTests, test_read_empty_file) {
+  auto test_file = test_working_dir_ / "fstests-empty";
+
+  ASSERT_TRUE(writeTextFile(test_file, "").ok());
+  ASSERT_TRUE(fs::is_empty(test_file));
+
+  std::string content;
+  ASSERT_TRUE(readFile(test_file, content));
+  ASSERT_TRUE(content.empty());
+}
+
 } // namespace osquery

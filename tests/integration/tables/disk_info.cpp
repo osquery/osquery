@@ -22,30 +22,23 @@ class diskInfo : public testing::Test {
 };
 
 TEST_F(diskInfo, test_sanity) {
-  // 1. Query data
   auto const data = execute_query("select * from disk_info");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"partitions", IntType}
-  //      {"disk_index", IntType}
-  //      {"type", NormalType}
-  //      {"id", NormalType}
-  //      {"pnp_device_id", NormalType}
-  //      {"disk_size", IntType}
-  //      {"manufacturer", NormalType}
-  //      {"hardware_model", NormalType}
-  //      {"name", NormalType}
-  //      {"serial", NormalType}
-  //      {"description", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_GE(data.size(), 1ul);
+
+  ValidationMap row_map = {
+      {"partitions", NonNegativeInt},
+      {"disk_index", NonNegativeInt},
+      {"type", SpecificValuesCheck{"SCSI", "HDC", "IDE", "USB", "1394"}},
+      {"id", NonEmptyString},
+      {"pnp_device_id", NonEmptyString},
+      {"disk_size", NonNegativeInt | NonZero},
+      {"manufacturer", NormalType},
+      {"hardware_model", NormalType},
+      {"name", NormalType},
+      {"serial", NormalType},
+      {"description", NormalType}};
+
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

@@ -19,8 +19,8 @@ build_dir=${args[1]}
 
 set -e
 
-# List all .cpp files to format, skipping all the ones inside the libraries folder, sort them and save the list on a file
-find . -type d -path ./libraries -prune -o -type f -name "*.cpp" -print | sort > $build_dir/files_to_format.txt
+# List all files to format, skipping all the ones inside the libraries folder, sort them and save the list on a file
+find . -type d -path ./libraries -prune -o -type f -regex ".*\.cpp$\|.*\.h$\|.*\.hpp$\|.*\.mm$" -print | sort > $build_dir/files_to_format.txt
 
 # Read back the list of files, modify them appending two newlines, so that the format_check.py is triggered
 while read line; do echo -e "\n\n" >> $line; done <<< `cat $build_dir/files_to_format.txt`

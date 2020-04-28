@@ -7,10 +7,9 @@
  */
 
 #include <mutex>
+#include <regex>
 
 #include <shadow.h>
-
-#include <boost/regex.hpp>
 
 #include <osquery/core.h>
 #include <osquery/tables.h>
@@ -19,7 +18,7 @@
 namespace osquery {
 namespace tables {
 
-const auto kPasswordHashAlgRegex = boost::regex("^\\$(\\w+)\\$");
+const auto kPasswordHashAlgRegex = std::regex("^\\$(\\w+)\\$");
 
 void genShadowForAccount(const struct spwd* spwd, QueryData& results) {
   Row r;
@@ -35,7 +34,7 @@ void genShadowForAccount(const struct spwd* spwd, QueryData& results) {
 
   if (spwd->sp_pwdp != nullptr) {
     std::string password = std::string(spwd->sp_pwdp);
-    boost::smatch matches;
+    std::smatch matches;
     if (password == "!!") {
       r["password_status"] = "not_set";
     } else if (password[0] == '!' || password[0] == '*' || password[0] == 'x') {
@@ -43,7 +42,7 @@ void genShadowForAccount(const struct spwd* spwd, QueryData& results) {
     } else {
       r["password_status"] = "active";
     }
-    if (boost::regex_search(password, matches, kPasswordHashAlgRegex)) {
+    if (std::regex_search(password, matches, kPasswordHashAlgRegex)) {
       r["hash_alg"] = std::string(matches[1]);
     }
   } else {

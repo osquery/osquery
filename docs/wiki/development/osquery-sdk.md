@@ -8,7 +8,7 @@ The public API and SDK headers are documented via **doxygen**. To generate web-b
 
 Extensions are separate processes that communicate over a Thrift IPC channel to osquery **core** in order to register one or more plugins or virtual tables. An extension allows you to develop independently: it may be compiled and linked using an external build system, against proprietary code. Your extension will be version-compatible with our publicly-built binary packages on [https://osquery.io/downloads](https://osquery.io/downloads).
 
-Extensions use osquery's [Thrift API](https://github.com/osquery/osquery/blob/master/osquery.thrift) to communicate between **osqueryi** or **osqueryd** and the extension process. Extensions are commonly written in C++, but can also be developed [in Python](https://github.com/osquery/osquery-python), [in Go](https://github.com/kolide/osquery-go), or in really any language that supports [Thrift](https://thrift.apache.org/).
+Extensions use osquery's [Thrift API](https://github.com/osquery/osquery/blob/master/osquery/extensions/thrift/osquery.thrift) to communicate between **osqueryi** or **osqueryd** and the extension process. Extensions are commonly written in C++, but can also be developed [in Python](https://github.com/osquery/osquery-python), [in Go](https://github.com/kolide/osquery-go), or in really any language that supports [Thrift](https://thrift.apache.org/).
 
 Only the osquery SDK provides the simple `startExtension` symbol that manages the life of your process, including the Thrift service threads and a watchdog.
 

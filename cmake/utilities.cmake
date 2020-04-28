@@ -131,11 +131,7 @@ function(generateCopyFileTarget name base_path type relative_file_paths destinat
   endif()
 
   if(type STREQUAL "REGEX")
-    if(base_path)
-      file(GLOB_RECURSE relative_file_paths RELATIVE "${base_path}" "${base_path}${relative_file_paths}")
-    else()
-      file(GLOB_RECURSE relative_file_paths "${base_path}${relative_file_paths}")
-    endif()
+    file(GLOB_RECURSE relative_file_paths RELATIVE "${base_path}" "${base_path}${relative_file_paths}")
   endif()
 
   add_custom_target("${name}")
@@ -212,8 +208,7 @@ function(add_osquery_executable)
   if(DEFINED PLATFORM_WINDOWS)
     set(OSQUERY_MANIFEST_TARGET_NAME "${osquery_exe_name}")
 
-    string(REGEX MATCH "^[0-9]+\.[0-9]+\.[0-9]+" osquery_cleaned_version "${OSQUERY_VERSION_INTERNAL}")
-    set(OSQUERY_MANIFEST_VERSION "${osquery_cleaned_version}")
+    getCleanedOsqueryVersion("OSQUERY_MANIFEST_VERSION")
 
     configure_file(
       "${CMAKE_SOURCE_DIR}/tools/osquery.manifest.in"
@@ -267,7 +262,7 @@ function(generateSpecialTargets)
   add_custom_target(prepare_for_ide)
 
   set(excluded_folders
-    "libraries/cmake/source"
+    "libraries"
   )
 
   set(command_prefix)
@@ -388,4 +383,38 @@ function(copyInterfaceTargetFlagsTo destination_target source_target mode)
   target_compile_options(${destination_target} ${mode} ${dest_compile_options_list})
   target_compile_definitions(${destination_target} ${mode} ${dest_compile_definitions_list})
   target_link_options(${destination_target} ${mode} ${dest_link_options_list})
+endfunction()
+
+# Cleans up a SemVer similar version, so that it contains only 3 components and uses only numbers
+function(toCleanedSemVer version_string)
+  string(REGEX MATCH "^[0-9]+\.[0-9]+\.[0-9]+" osquery_cleaned_version "${version_string}")
+  set(toCleanedSemVer_OUTPUT "${osquery_cleaned_version}" PARENT_SCOPE)
+endfunction()
+
+function(getCleanedOsqueryVersion version_var)
+  toCleanedSemVer("${OSQUERY_VERSION_INTERNAL}")
+  set("${version_var}" "${toCleanedSemVer_OUTPUT}" PARENT_SCOPE)
+endfunction()
+
+# Get the osquery version components each in its own user defined variable
+function(getVersionComponents components major minor patch)
+  list(GET components 0 "${major}")
+  list(GET components 1 "${minor}")
+  list(GET components 2 "${patch}")
+
+  set("${major}" "${${major}}" PARENT_SCOPE)
+  set("${minor}" "${${minor}}" PARENT_SCOPE)
+  set("${patch}" "${${patch}}" PARENT_SCOPE)
+endfunction()
+
+# Get the cleaned up version and splits it up in major, minor and patch user provided variables
+function(getCleanedOsqueryVersionComponents major minor patch)
+  getCleanedOsqueryVersion("osquery_version")
+  string(REPLACE "." ";" osquery_version_components "${osquery_version}")
+
+  getVersionComponents("${osquery_version_components}" "${major}" "${minor}" "${patch}")
+
+  set("${major}" "${${major}}" PARENT_SCOPE)
+  set("${minor}" "${${minor}}" PARENT_SCOPE)
+  set("${patch}" "${${patch}}" PARENT_SCOPE)
 endfunction()

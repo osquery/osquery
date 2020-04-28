@@ -21,6 +21,7 @@ function(osqueryEventsTestsMain)
 
   if(DEFINED PLATFORM_WINDOWS)
     generateOsqueryEventsTestsWindowseventlogtestsTest()
+    generateOsqueryEventsTestsWindowsusnjournalreadertestsTest()
   endif()
 
 endfunction()
@@ -184,6 +185,26 @@ function(generateOsqueryEventsTestsWindowseventlogtestsTest)
     osquery_extensions_implthrift
     osquery_remote_enroll_tlsenroll
     tests_helper
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryEventsTestsWindowsusnjournalreadertestsTest)
+  add_osquery_executable(osquery_events_tests_usnjournalreadertests-test windows/usn_journal_reader_tests.cpp)
+
+  target_link_libraries(osquery_events_tests_usnjournalreadertests-test PRIVATE
+    osquery_tables_system_systemtable
+    osquery_core
+    osquery_events
+    osquery_filesystem
+    osquery_utils
+    osquery_utils_conversions
+    osquery_config_tests_testutils
+    osquery_remote_tests_remotetestutils
+    osquery_database
+    plugins_database_ephemeral
+    osquery_core_sql
+    specs_tables
     thirdparty_googletest
   )
 endfunction()

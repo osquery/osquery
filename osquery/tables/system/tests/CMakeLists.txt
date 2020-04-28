@@ -32,6 +32,7 @@ function(generateOsqueryTablesSystemLinuxTests)
     linux/pci_devices_tests.cpp
     linux/pcidb_tests.cpp
     linux/portage_tests.cpp
+    linux/selinux_settings_tests.cpp
   )
 
   target_link_libraries(osquery_tables_system_linux_tests-test PRIVATE
@@ -57,6 +58,7 @@ function(generateOsqueryTablesSystemPosixTests)
     posix/shell_history_tests.cpp
     posix/sudoers_tests.cpp
     posix/yum_sources_tests.cpp
+    posix/last_tests.cpp
   )
 
   target_link_libraries(osquery_tables_system_posix_tests-test PRIVATE
@@ -131,6 +133,7 @@ function(generateOsqueryTablesSystemWindowsTests)
   add_osquery_executable(osquery_tables_system_windows_tests-test
     windows/certificates_tests.cpp
     windows/registry_tests.cpp
+    windows/windows_optional_features_tests.cpp
   )
 
   target_link_libraries(osquery_tables_system_windows_tests-test PRIVATE

@@ -7,7 +7,7 @@
 function(libarchiveMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-  add_library(thirdparty_libarchive
+  set(library_srcs
     "${library_root}/libarchive/archive_acl.c"
     "${library_root}/libarchive/archive_check_magic.c"
     "${library_root}/libarchive/archive_cmdline.c"
@@ -124,27 +124,22 @@ function(libarchiveMain)
     "${library_root}/libarchive_fe/passphrase.c"
   )
 
+  if(DEFINED PLATFORM_WINDOWS)
+    list(APPEND library_srcs
+      "${library_root}/libarchive/archive_entry_copy_bhfi.c"
+      "${library_root}/libarchive/archive_windows.c"
+      "${library_root}/libarchive/archive_write_disk_windows.c"
+      "${library_root}/libarchive/filter_fork_windows.c"
+    )
+  endif()
+
+  add_library(thirdparty_libarchive ${library_srcs})
+
   target_compile_definitions(thirdparty_libarchive PRIVATE
     HAVE_CONFIG_H
     archive_EXPORTS
     LIBARCHIVE_STATIC
     LIST_H
-  )
-
-  if("${CMAKE_BUILD_TYPE}" STREQUAL "Release" OR
-     "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-
-    target_compile_definitions(thirdparty_libarchive PRIVATE
-      NDEBUG
-    )
-  else()
-    target_compile_definitions(thirdparty_libarchive PRIVATE
-      DEBUG
-    )
-  endif()
-
-  target_compile_options(thirdparty_libarchive PRIVATE
-    -include config.h
   )
 
   target_link_libraries(thirdparty_libarchive PUBLIC
@@ -161,10 +156,23 @@ function(libarchiveMain)
 
   target_include_directories(thirdparty_libarchive PRIVATE
     "${library_root}/src"
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
     "${library_root}/libarchive_fe"
     "${library_root}/libarchive"
   )
+
+  if(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_libarchive PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_libarchive PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    target_include_directories(thirdparty_libarchive PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/windows"
+    )
+  endif()
 
   target_include_directories(thirdparty_libarchive SYSTEM INTERFACE
     "${library_root}/libarchive"

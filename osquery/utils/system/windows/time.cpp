@@ -6,17 +6,18 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/utils/status/status.h>
 #include <osquery/utils/system/time.h>
 
 #include <string.h>
 #include <vector>
 
+#include <Windows.h>
 #include <boost/algorithm/string.hpp>
 
 #define MAX_BUFFER_SIZE 256
 
 namespace osquery {
-
 std::string platformAsctime(const struct tm* timeptr) {
   std::vector<char> buffer;
   buffer.assign(MAX_BUFFER_SIZE, '\0');
@@ -30,5 +31,4 @@ std::string platformAsctime(const struct tm* timeptr) {
   boost::replace_all(time_str, "\n", "");
   return time_str;
 }
-
-}
+} // namespace osquery

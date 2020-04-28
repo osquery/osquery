@@ -15,18 +15,24 @@
 #endif
 
 #include <functional>
+#include <regex>
 #include <string>
 #include <vector>
 
-#include <boost/algorithm/string/regex.hpp>
-#include <boost/regex.hpp>
-
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/utils/conversions/split.h>
 
 #include <sqlite3.h>
 
 namespace osquery {
+
+HIDDEN_FLAG(
+    uint32,
+    regex_max_size,
+    256,
+    "Defines the maximum size in bytes of a regex that can be used with the "
+    "regex_match and regex_split functions");
 
 using SplitResult = std::vector<std::string>;
 using StringSplitFunction = std::function<SplitResult(
@@ -71,7 +77,17 @@ static SplitResult regexSplit(const std::string& input,
   // Split using the token as a regex to support multi-character tokens.
   // Exceptions are caught by the caller, as that's where the sql context is
   std::vector<std::string> result;
-  boost::algorithm::split_regex(result, input, boost::regex(token));
+
+  if (token.size() > FLAGS_regex_max_size) {
+    throw std::regex_error(std::regex_constants::error_complexity);
+  }
+
+  std::regex pattern = std::regex(token);
+  std::sregex_token_iterator iter_begin(
+      input.begin(), input.end(), pattern, -1);
+  std::sregex_token_iterator iter_end;
+  std::copy(iter_begin, iter_end, std::back_inserter(result));
+
   return result;
 }
 
@@ -124,7 +140,7 @@ static void regexStringSplitFunc(sqlite3_context* context,
                                  sqlite3_value** argv) {
   try {
     callStringSplitFunc(context, argc, argv, regexSplit);
-  } catch (const boost::regex_error& e) {
+  } catch (const std::regex_error& e) {
     LOG(INFO) << "Invalid regex: " << e.what();
     sqlite3_result_error(context, "Invalid regex", -1);
   }
@@ -145,19 +161,33 @@ static void regexStringMatchFunc(sqlite3_context* context,
     return;
   }
 
+  const char* regex =
+      reinterpret_cast<const char*>(sqlite3_value_text(argv[1]));
+
+  if (regex == nullptr) {
+    sqlite3_result_null(context);
+    return;
+  }
+
   // parse and verify input parameters
-  std::string input((char*)sqlite3_value_text(argv[0]));
-  boost::smatch results;
+  const std::string input(
+      reinterpret_cast<const char*>(sqlite3_value_text(argv[0])));
+  std::smatch results;
   auto index = static_cast<size_t>(sqlite3_value_int(argv[2]));
   bool isMatchFound = false;
 
+  if (strnlen(regex, FLAGS_regex_max_size) == FLAGS_regex_max_size &&
+      regex[FLAGS_regex_max_size] != '\0') {
+    std::string error = "Invalid regex: too big, max size is " +
+                        std::to_string(FLAGS_regex_max_size) + " bytes";
+    LOG(INFO) << error;
+    sqlite3_result_error(context, error.c_str(), -1);
+    return;
+  }
+
   try {
-    isMatchFound =
-        boost::regex_search(input,
-                            results,
-                            boost::regex((char*)sqlite3_value_text(argv[1]),
-                                         boost::regex::extended));
-  } catch (const boost::regex_error& e) {
+    isMatchFound = std::regex_search(input, results, std::regex(regex));
+  } catch (const std::regex_error& e) {
     LOG(INFO) << "Invalid regex: " << e.what();
     sqlite3_result_error(context, "Invalid regex", -1);
     return;

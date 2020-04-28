@@ -1,0 +1,7 @@
+table_name("screenlock")
+description("macOS screenlock status for the current logged in user context.")
+schema([
+    Column("enabled", INTEGER, "1 If a password is required after sleep or the screensaver begins; else 0"),
+    Column("grace_period", INTEGER, "The amount of time in seconds the screen must be asleep or the screensaver on before a password is required on-wake. 0 = immediately; -1 = no password is required on-wake"),
+])
+implementation("screenlock@genScreenlock")

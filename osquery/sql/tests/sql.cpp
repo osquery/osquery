@@ -224,7 +224,6 @@ TEST_F(SQLTests, test_regex_match_fileextract) {
 
 TEST_F(SQLTests, test_regex_match_empty) {
   QueryData d;
-
   // Empty regex gets you a null result
   query("select regex_match('hello world', '', 0) as test", d);
   ASSERT_EQ(d.size(), 1U);
@@ -245,12 +244,24 @@ TEST_F(SQLTests, test_regex_match_invalid2) {
 
 TEST_F(SQLTests, test_regex_match_invalid3) {
   QueryData d;
-  // `|` is an invalid regexp, but boost doesn't complain, and treats
-  // it much as an empty string. Encode that expection here in
-  // tests.
+  // `|` is an invalid regexp but std::basic_regex doesn't complain, and treats
+  // it much as an empty string. Encode that expection here in tests.
   query("select regex_match('foo/bar', '|', 0) as test", d);
   ASSERT_EQ(d.size(), 1U);
-  EXPECT_EQ(d[0]["test"], "");
+
+  std::string query_result;
+  ASSERT_NO_THROW(query_result = d[0].at("test"));
+  ASSERT_TRUE(query_result.empty());
+}
+
+TEST_F(SQLTests, test_regex_match_too_big) {
+  QueryData d;
+  std::string regex(100000, '|');
+  auto status = query("select regex_match('foo/bar', '" + regex + "', 0)", d);
+  ASSERT_TRUE(!status.ok());
+  std::string error_too_big = "Invalid regex: too big";
+  ASSERT_EQ(status.getMessage().compare(0, error_too_big.size(), error_too_big),
+            0);
 }
 
 /*
@@ -371,17 +382,24 @@ TEST_F(SQLTests, test_regex_split_invalid2) {
   ASSERT_EQ(d.size(), 0U);
 }
 
-/*
- * FIXME: This invalid regex hangs boost
- * See:
- *   https://github.com/boostorg/regex/issues/76
- *   https://github.com/facebook/osquery/issues/5443
-TEST_F(SQLTests, test_regex_split_invalid3) {
+TEST_F(SQLTests, test_regex_split_with_or) {
   QueryData d;
-  query("select regex_split('foo/bar', '|', 0)", d);
-  ASSERT_EQ(d.size(), 0U);
+  // `|` is an invalid regexp but std::basic_regex doesn't complain, and treats
+  // it much as an empty string. Encode that expection here in tests.
+  query("select regex_split('foo/bar', '|', 0) as test", d);
+  ASSERT_EQ(d.size(), 1U);
+
+  std::string query_result;
+  ASSERT_NO_THROW(query_result = d[0].at("test"));
+  ASSERT_TRUE(query_result.empty());
 }
-*/
+
+TEST_F(SQLTests, test_regex_split_too_big) {
+  QueryData d;
+  std::string regex(100000, '|');
+  auto status = query("select regex_split('foo/bar', '" + regex + "', 0)", d);
+  ASSERT_TRUE(!status.ok());
+}
 
 /*
  * ssdeep_compare

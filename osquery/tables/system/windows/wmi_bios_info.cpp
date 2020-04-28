@@ -6,10 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <regex>
 #include <string>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/regex.hpp>
 
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -22,7 +20,7 @@
 namespace osquery {
 namespace tables {
 
-const auto kHPBiosSettingRegex = boost::regex("\\*([\\w ]*)");
+const auto kHPBiosSettingRegex = std::regex("\\*([\\w ]*)");
 const std::vector<std::string> kHP = {
     "hp", "hewlett-packard", "hewlett packard"};
 const std::vector<std::string> kLenovo = {"lenovo"};
@@ -61,11 +59,11 @@ Row getHPBiosInfo(const WmiResultItem& item) {
   Row r;
 
   std::string value;
-  boost::smatch matches;
+  std::smatch matches;
   item.GetString("Name", r["name"]);
   item.GetString("Value", value);
 
-  if (boost::regex_search(value, matches, kHPBiosSettingRegex)) {
+  if (std::regex_search(value, matches, kHPBiosSettingRegex)) {
     r["value"] = std::string(matches[1]);
   } else {
     r["value"] = value;

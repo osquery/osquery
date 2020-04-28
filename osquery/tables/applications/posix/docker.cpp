@@ -689,6 +689,62 @@ QueryData genContainerProcesses(QueryContext& context) {
 }
 
 /**
+ * @brief Helper function to convert fs change type to char code
+ */
+char getFsChangeType(int type_id) {
+  switch (type_id) {
+  case 0:
+    return 'C';
+  case 1:
+    return 'A';
+  case 2:
+    return 'D';
+  default:
+    return ' ';
+  }
+}
+
+/**
+ * @brief Entry point for docker_container_fs_changes table.
+ */
+QueryData genContainerFsChanges(QueryContext& context) {
+  QueryData results;
+
+  for (const auto& id : context.constraints["id"].getAll(EQUALS)) {
+    if (!checkConstraintValue(id)) {
+      continue;
+    }
+
+    pt::ptree tree;
+    auto s = dockerApi("/containers/" + id + "/changes", tree);
+    if (!s.ok()) {
+      VLOG(1) << "Error getting docker container fs changes" << id << ": "
+              << s.what();
+      continue;
+    }
+
+    for (const auto& entry : tree) {
+      try {
+        const pt::ptree& node = entry.second;
+        char change_type = getFsChangeType(node.get<int>("Kind"));
+        if (change_type == ' ') {
+          continue;
+        }
+        Row r;
+        r["id"] = id;
+        r["path"] = node.get<std::string>("Path");
+        r["change_type"] = change_type;
+        results.push_back(r);
+      } catch (const pt::ptree_error& e) {
+        VLOG(1) << "Error getting docker container fs changes details: "
+                << e.what();
+      }
+    }
+  }
+  return results;
+}
+
+/**
  * @brief Parses provided date string and return time in seconds since epoch.
  *
  * @param iso_8601 Date string in format: 2017-05-01T16:08:43
@@ -962,6 +1018,87 @@ QueryData genVolumeLabels(QueryContext& context) {
                    "Volumes", // Volume array is under "Volumes" child node
                    true, // Supports "filters" in query string
                    false); // Does not supports "all" in query string
+}
+
+/**
+ * @brief Image layer extractor for docker_image_layers table
+ */
+void getImageLayers(std::string image_id, QueryData& results) {
+  pt::ptree tree;
+  std::vector<std::string> layers;
+
+  Status s = dockerApi("/images/" + image_id + "/json", tree);
+  if (!s.ok()) {
+    VLOG(1) << "Error getting docker images layers: " << s.what();
+    return;
+  }
+
+  try {
+    for (const auto& layer : tree.get_child("RootFS.Layers")) {
+      std::string layer_hash = layer.second.data();
+      if (boost::starts_with(layer_hash, "sha256:")) {
+        layer_hash.erase(0, 7);
+      }
+      layers.push_back(layer_hash);
+    }
+  } catch (const pt::ptree_error& e) {
+    VLOG(1) << "Error getting docker image layers details: " << e.what();
+    return;
+  }
+
+  for (size_t index = 0; index < layers.size(); index++) {
+    Row r;
+    r["id"] = image_id;
+    r["layer_order"] = std::to_string(index + 1);
+    r["layer_id"] = layers[index];
+    results.push_back(r);
+  }
+}
+
+/**
+ * @brief Calls layer extractor for all images for docker_image_layers table
+ */
+void getImageLayersAll(QueryData& results) {
+  pt::ptree tree;
+  Status s = dockerApi("/images/json", tree);
+  if (!s.ok()) {
+    VLOG(1) << "Error getting docker images: " << s.what();
+    return;
+  }
+  for (const auto& entry : tree) {
+    try {
+      const pt::ptree& node = entry.second;
+      std::string id = node.get<std::string>("Id", "");
+      if (boost::starts_with(id, "sha256:")) {
+        id.erase(0, 7);
+      }
+      getImageLayers(id, results);
+    } catch (const pt::ptree_error& e) {
+      VLOG(1) << "Error getting docker image details: " << e.what();
+    }
+  }
+}
+
+/**
+ * @brief Entry point for docker_image_layers table.
+ */
+QueryData genImageLayers(QueryContext& context) {
+  QueryData results;
+  pt::ptree tree;
+  std::vector<std::string> layers;
+
+  if (context.constraints["id"].exists(
+          EQUALS)) { // get layers for specific image
+    for (const auto& id : context.constraints["id"].getAll(EQUALS)) {
+      if (!checkConstraintValue(id)) {
+        continue;
+      }
+      getImageLayers(id, results);
+    }
+  } else { // get layers for all images
+    getImageLayersAll(results);
+  }
+  return results;
 }
 
 /**

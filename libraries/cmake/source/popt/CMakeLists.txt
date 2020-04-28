@@ -25,8 +25,17 @@ function(poptMain)
     _REENTRANT  
   )
 
+  if(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_popt PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_popt PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+    )
+  endif()
+
   target_include_directories(thirdparty_popt PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
     "${library_root}"
   )
 

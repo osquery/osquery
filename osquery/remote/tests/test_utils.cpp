@@ -32,42 +32,75 @@ DECLARE_string(tls_server_certs);
 DECLARE_string(enroll_secret_path);
 DECLARE_bool(disable_caching);
 
-void TLSServerRunner::start() {
+bool TLSServerRunner::start(const std::string& server_cert) {
   auto& self = instance();
   if (self.server_ != nullptr) {
-    return;
+    return true;
   }
 
-  // Pick a port in an ephemeral range at random.
-  self.port_ = std::to_string(getUnixTime() % 10000 + 20000);
+  int max_retry = 5;
+  int retry = 0;
+  bool started = false;
+  std::srand(getUnixTime());
 
-  // Fork then exec a shell.
-  auto python_server = (getTestConfigDirectory() / "test_http_server.py")
-                           .make_preferred()
-                           .string() +
-                       " --tls " + self.port_;
-  self.server_ = PlatformProcess::launchTestPythonScript(python_server);
-  if (self.server_ == nullptr) {
-    return;
-  }
+  while (retry < max_retry) {
+    // Pick a port in an ephemeral range at random.
+    self.port_ = std::to_string(std::rand() % 10000 + 20000);
 
-  size_t delay = 0;
-  std::string query =
-      "select pid from listening_ports where port = '" + self.port_ + "'";
-  while (delay < 2 * 1000) {
-    auto caching = FLAGS_disable_caching;
-    FLAGS_disable_caching = true;
-    auto results = SQL(query);
-    FLAGS_disable_caching = caching;
-    if (!results.rows().empty()) {
-      self.server_.reset(
-          new PlatformProcess(std::atoi(results.rows()[0].at("pid").c_str())));
+    // Fork then exec a shell.
+    auto python_server_path =
+        (getTestHelperScriptsDirectory() / "test_http_server.py");
+    auto test_config_dir = getTestConfigDirectory();
+    auto python_server_cmd = python_server_path.make_preferred().string() +
+                             " --tls --verbose " + " --test-configs-dir " +
+                             test_config_dir.make_preferred().string();
+
+    if (!server_cert.empty()) {
+      python_server_cmd += " --cert " + server_cert;
+    }
+
+    python_server_cmd += " " + self.port_;
+
+    self.server_ = PlatformProcess::launchTestPythonScript(python_server_cmd);
+    if (self.server_ == nullptr) {
+      return started;
+    }
+
+    size_t delay = 0;
+    std::string query =
+        "select pid from listening_ports where port = '" + self.port_ + "'";
+
+    bool port_occupied = false;
+    // Wait for the server to listen on the port
+    while (delay < 2 * 1000) {
+      auto caching = FLAGS_disable_caching;
+      FLAGS_disable_caching = true;
+      auto results = SQL(query);
+      FLAGS_disable_caching = caching;
+      if (!results.rows().empty()) {
+        const auto& first_row = results.rows()[0];
+        if (first_row.at("pid") == std::to_string(self.server_->pid())) {
+          started = true;
+        } else {
+          port_occupied = true;
+        }
+        break;
+      }
+
+      sleepFor(100);
+      delay += 100;
+    }
+
+    // We only want to retry if it's an issue of port collision
+    if (started || !port_occupied) {
       break;
     }
 
-    sleepFor(100);
-    delay += 100;
+    sleepFor(1000);
+    ++retry;
   }
+
+  return started;
 }
 
 void TLSServerRunner::setClientConfig() {

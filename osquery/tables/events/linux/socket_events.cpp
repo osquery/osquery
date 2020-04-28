@@ -21,10 +21,7 @@
 
 namespace osquery {
 
-FLAG(bool,
-     audit_allow_sockets,
-     false,
-     "Allow the audit publisher to install socket-related rules");
+DECLARE_bool(audit_allow_sockets);
 
 HIDDEN_FLAG(bool,
             audit_allow_unix,

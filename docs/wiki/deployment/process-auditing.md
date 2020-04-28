@@ -179,18 +179,18 @@ If you would like to debug the raw audit events as osqueryd sees them, use the h
 
 On Linux, a companion table called `user_events` is included that provides several authentication-based events. If you are enabling process auditing it should be trivial to also include this table.
 
-## macOS process auditing
+## macOS process & socket auditing
 
 osquery supports OpenBSM audit on macOS platforms. To enable it in osquery, you need to set `--disable_audit=false`
 
-OpenBSM is enabled on all macOS installations, but doesn't audit process execution or the root user with default settings. To start process auditing on macOS, edit the `audit_control` file in `/etc/security/`. An example configuration is provided below but the important flags are: `ex`, `pc`, `argv`, and `arge`. The `ex` flag will log `exec` events while `pc` logs `exec`, `fork`, and `exit`. If you don't need `fork` and `exit` you may leave that flag out however in future, getting parent pid may require `fork`. If you care about getting the arguments and environment variables you also need `argv` and `arge`. More about these flags can be found [on FreeBSD's man page](https://www.freebsd.org/cgi/man.cgi?apropos=0&sektion=5&query=audit_control&manpath=FreeBSD+7.0-current&format=html). Note that it might require a reboot of the system for these new flags to take effect. `audit -s` should restart the system but your mileage may vary.
+OpenBSM is enabled on all macOS installations, but doesn't audit process execution, socket events, or the root user with default settings. To start process auditing on macOS, edit the `audit_control` file in `/etc/security/`. An example configuration is provided below but the important flags are: `ex`, `pc`, `argv`, `arge`, and `nt`. The `ex` flag will log `exec` events while `pc` logs `exec`, `fork`, and `exit`. If you don't need `fork` and `exit` you may leave that flag out however in future, getting parent pid may require `fork`. If you care about getting the arguments and environment variables you also need `argv` and `arge`. The `nt` flag enables socket events, and can be left out if the `socket_events` table will not be used. More about these flags can be found [on FreeBSD's man page](https://www.freebsd.org/cgi/man.cgi?apropos=0&sektion=5&query=audit_control&manpath=FreeBSD+7.0-current&format=html). Note that it might require a reboot of the system for these new flags to take effect. `audit -s` should restart the system but your mileage may vary.
 
 ```
 #
 # $P4: //depot/projects/trustedbsd/openbsm/etc/audit_control#8 $
 #
 dir:/var/audit
-flags:ex,pc,ap,aa,lo,ad
+flags:ex,pc,ap,aa,lo,ad,nt
 minfree:5
 naflags:no
 policy:cnt,argv,arge

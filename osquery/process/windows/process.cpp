@@ -15,6 +15,7 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/process/process.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace fs = boost::filesystem;
 
@@ -50,8 +51,8 @@ PlatformProcess::PlatformProcess(pid_t pid) {
 }
 
 PlatformProcess::PlatformProcess(PlatformProcess&& src) noexcept {
-  id_ = kInvalidPid;
-  std::swap(id_, src.id_);
+  id_ = src.id_;
+  src.id_ = kInvalidPid;
 }
 
 PlatformProcess::~PlatformProcess() {
@@ -59,6 +60,13 @@ PlatformProcess::~PlatformProcess() {
     ::CloseHandle(id_);
     id_ = kInvalidPid;
   }
+}
+
+PlatformProcess& PlatformProcess::operator=(
+    PlatformProcess&& process) noexcept {
+  id_ = process.id_;
+  process.id_ = kInvalidPid;
+  return *this;
 }
 
 bool PlatformProcess::operator==(const PlatformProcess& process) const {
@@ -174,22 +182,6 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   handle_stream << hLauncherProcess;
   auto handle = handle_stream.str();
 
-  // In the POSIX version, the environment variable OSQUERY_WORKER is set to the
-  // string form of the child process' process ID. However, this is not easily
-  // doable on Windows. Since the value does not appear to be used by the rest
-  // of osquery, we currently just set it to '1'.
-  //
-  // For the worker case, we also set another environment variable,
-  // OSQUERY_LAUNCHER. OSQUERY_LAUNCHER stores the string form of a HANDLE to
-  // the current process. This is mostly used for detecting the death of the
-  // launcher process in WatcherWatcherRunner::start
-  if (!setEnvVar("OSQUERY_WORKER", "1") ||
-      !setEnvVar("OSQUERY_LAUNCHER", handle)) {
-    ::CloseHandle(hLauncherProcess);
-
-    return std::shared_ptr<PlatformProcess>();
-  }
-
   // Since Windows does not accept a char * array for arguments, we have to
   // build one as a string. Therefore, we need to make sure that special
   // characters are not present that would obstruct the parsing of arguments.
@@ -218,18 +210,41 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   std::vector<char> mutable_argv(cmdline.begin(), cmdline.end());
   mutable_argv.push_back('\0');
 
+  LPCH retrievedEnvironment = GetEnvironmentStringsA();
+  LPTSTR currentEnvironment = (LPTSTR)retrievedEnvironment;
+  std::stringstream childEnvironment;
+  while (*currentEnvironment) {
+    childEnvironment << currentEnvironment;
+    childEnvironment << '\0';
+    currentEnvironment += lstrlen(currentEnvironment) + 1;
+  }
+
+  FreeEnvironmentStrings(retrievedEnvironment);
+
+  // In the POSIX version, the environment variable OSQUERY_WORKER is set to the
+  // string form of the child process' process ID. However, this is not easily
+  // doable on Windows. Since the value does not appear to be used by the rest
+  // of osquery, we currently just set it to '1'.
+  //
+  // For the worker case, we also set another environment variable,
+  // OSQUERY_LAUNCHER. OSQUERY_LAUNCHER stores the string form of a HANDLE to
+  // the current process. This is mostly used for detecting the death of the
+  // launcher process in WatcherWatcherRunner::start
+  childEnvironment << "OSQUERY_WORKER=1" << '\0';
+  childEnvironment << "OSQUERY_LAUNCHER=" << handle << '\0' << '\0';
+
+  std::string environmentString = childEnvironment.str();
+
   auto status = ::CreateProcessA(exec_path.c_str(),
                                  mutable_argv.data(),
                                  nullptr,
                                  nullptr,
                                  TRUE,
                                  IDLE_PRIORITY_CLASS,
-                                 nullptr,
+                                 &environmentString[0],
                                  nullptr,
                                  &si,
                                  &pi);
-  unsetEnvVar("OSQUERY_WORKER");
-  unsetEnvVar("OSQUERY_LAUNCHER");
   ::CloseHandle(hLauncherProcess);
 
   if (!status) {
@@ -313,27 +328,23 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
     const std::string& args) {
-  STARTUPINFOA si = {0};
+  STARTUPINFOW si = {0};
   PROCESS_INFORMATION pi = {nullptr};
 
   auto argv = "python " + args;
-  std::vector<char> mutable_argv(argv.begin(), argv.end());
+  std::vector<WCHAR> mutable_argv(argv.begin(), argv.end());
   mutable_argv.push_back('\0');
   si.cb = sizeof(si);
 
-  auto pythonEnv = getEnvVar("OSQUERY_PYTHON_PATH");
-  std::string pythonPath;
-  if (pythonEnv.is_initialized()) {
-    pythonPath = *pythonEnv;
+  const auto pythonEnv = getEnvVar("OSQUERY_PYTHON_INTERPRETER_PATH");
+  if (!pythonEnv.is_initialized()) {
+    return nullptr;
   }
 
-  // Python is installed at this location if the provisioning script is used.
-  // This path should work regardless of the existence of the SystemDrive
-  // environment variable.
-  pythonPath += "\\python.exe";
+  auto pythonPath = *pythonEnv;
 
   std::shared_ptr<PlatformProcess> process;
-  if (::CreateProcessA(pythonPath.c_str(),
+  if (::CreateProcessW(stringToWstring(pythonPath).c_str(),
                        mutable_argv.data(),
                        nullptr,
                        nullptr,

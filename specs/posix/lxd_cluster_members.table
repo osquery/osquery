@@ -1,0 +1,13 @@
+table_name("lxd_cluster_members")
+description("LXD cluster members information.")
+schema([
+    Column("server_name", TEXT, "Name of the LXD server node"),
+    Column("url", TEXT, "URL of the node"),
+    Column("database", INTEGER, "Whether the server is a database node (1) or not (0)"),
+    Column("status", TEXT, "Status of the node (Online/Offline)"),
+    Column("message", TEXT, "Message from the node (Online/Offline)")
+])
+implementation("applications/lxd@genLxdClusterMembers")
+examples([
+  "select * from lxd_cluster_members" 
+])

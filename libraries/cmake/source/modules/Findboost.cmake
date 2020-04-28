@@ -89,4 +89,8 @@ importSourceSubmodule(
     "src/libs/iostreams"
     "src/libs/scope_exit"
     "src/libs/typeof"
+    "src/libs/endian"
+
+  PATCH
+    "src/libs/process"
 )

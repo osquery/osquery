@@ -7,6 +7,7 @@
  */
 
 #include <osquery/core.h>
+#include <osquery/flags.h>
 #include <osquery/registry_interface.h>
 #include <osquery/sql.h>
 #include <osquery/sql/sqlite_util.h>
@@ -25,6 +26,10 @@ class SQLiteUtilTests : public testing::Test {
   void SetUp() override {
     Initializer::platformSetup();
     registryAndPluginInit();
+    Flag::updateValue("enable_tables",
+                      "test_table,time,process_events,osquery_info,file,users,"
+                      "curl,fake_table");
+    Flag::updateValue("disable_tables", "fake_table");
   }
 };
 
@@ -433,4 +438,15 @@ TEST_F(SQLiteUtilTests, test_column_type_determination) {
       "from test_types_table",
       TypeMap({{"age", DOUBLE_TYPE}}));
 }
+
+TEST_F(SQLiteUtilTests, test_enable) {
+  // Shadow is not in enable_tables.
+  ASSERT_TRUE(SQLiteDBManager::isDisabled("shadow"));
+  // Users is explicitely in enable_tables.
+  ASSERT_FALSE(SQLiteDBManager::isDisabled("users"));
+  // Fake_table is explicitely in enabled_tables and
+  // disable_tables, it should be disabled.
+  ASSERT_TRUE(SQLiteDBManager::isDisabled("fake_table"));
+}
+
 } // namespace osquery

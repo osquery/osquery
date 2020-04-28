@@ -218,6 +218,14 @@ rpmdbIndexIterator rpmdbIndexIteratorFree(rpmdbIndexIterator ii);
  */
 int rpmdbCtrl(rpmdb db, rpmdbCtrlOp ctrl);
 
+/** \ingroup rpmdb
+ * Retrieve rpm database changed-cookie.
+ * Useful for eg. determining cache validity.
+ * @param db		rpm database
+ * @return 		cookie string (malloced), or NULL on error
+ */
+char *rpmdbCookie(rpmdb db);
+
 #ifdef __cplusplus
 }
 #endif

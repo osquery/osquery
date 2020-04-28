@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+#include <openssl/opensslv.h>
+
 #include <osquery/logger.h>
 
 #include <osquery/config/tests/test_utils.h>
@@ -33,7 +35,7 @@ class CACertsTests : public ::testing::Test {
 
     raw = base64::decode(getCACertificateContent());
     data =
-        CFDataCreate(nullptr, (const UInt8 *)raw.c_str(), (CFIndex)raw.size());
+        CFDataCreate(nullptr, (const UInt8*)raw.c_str(), (CFIndex)raw.size());
     cert = SecCertificateCreateWithData(nullptr, data);
     cert_der_data = SecCertificateCopyData(cert);
     auto bytes = CFDataGetBytePtr(cert_der_data);
@@ -56,7 +58,7 @@ class CACertsTests : public ::testing::Test {
 
   SecCertificateRef cert;
   CFDataRef cert_der_data;
-  X509 *x_cert;
+  X509* x_cert;
 };
 
 TEST_F(CACertsTests, test_certificate_sha1) {
@@ -72,7 +74,22 @@ TEST_F(CACertsTests, test_certificate_properties) {
   EXPECT_EQ("localhost.localdomain", common_name);
 
   X509_check_ca(x_cert);
-  auto skid = genKIDProperty(x_cert->skid->data, x_cert->skid->length);
+
+// Temporary workaround for Buck compiling with an older openssl version
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
+  const auto* subject_key_id = x_cert->skid;
+
+  ASSERT_NE(subject_key_id, nullptr);
+
+  auto skid = genKIDProperty(subject_key_id->data, subject_key_id->length);
+#else
+  const auto* subject_key_id = X509_get0_subject_key_id(x_cert);
+
+  ASSERT_NE(subject_key_id, nullptr);
+
+  auto skid = genKIDProperty(subject_key_id->data, subject_key_id->length);
+#endif
+
   EXPECT_EQ("f2b99b00e0ee60d57c426ce3e64e3fdc6f6411c0", skid);
 
   auto not_before = std::to_string(genEpoch(X509_get_notBefore(x_cert)));
@@ -81,5 +98,5 @@ TEST_F(CACertsTests, test_certificate_properties) {
   auto ca = (CertificateIsCA(x_cert)) ? "1" : "0";
   EXPECT_EQ("1", ca);
 }
-}
-}
+} // namespace tables
+} // namespace osquery

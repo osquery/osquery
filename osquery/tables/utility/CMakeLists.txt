@@ -23,6 +23,8 @@ function(generateTablesUtilityUtilitytable)
     osquery_process
     osquery_utils_macros
     osquery_utils_system_systemutils
+    osquery_worker_ipc_platformtablecontaineripc
+    osquery_worker_logging_glog_logger
     thirdparty_boost
   )
 endfunction()

@@ -1,5 +1,5 @@
 table_name("prometheus_metrics")
-description("Network interfaces and relevant metadata.")
+description("Retrieve metrics from a Prometheus server.")
 schema([
     Column("target_name", TEXT, "Address of prometheus target"),
     Column("metric_name", TEXT, "Name of collected Prometheus metric"),

@@ -268,13 +268,14 @@ class Request {
   /// options from request call (duplicated in transport)
   JSON options_;
 
-private:
+ private:
   FRIEND_TEST(TLSTransportsTests, test_call);
   FRIEND_TEST(TLSTransportsTests, test_call_with_params);
   FRIEND_TEST(TLSTransportsTests, test_call_verify_peer);
   FRIEND_TEST(TLSTransportsTests, test_call_server_cert_pinning);
   FRIEND_TEST(TLSTransportsTests, test_call_client_auth);
+  FRIEND_TEST(TLSTransportsTests, test_wrong_hostname);
 
   friend class TestDistributedPlugin;
 };
-}
+} // namespace osquery

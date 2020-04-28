@@ -30,6 +30,7 @@ function(osqueryMain)
   add_subdirectory("ev2")
   add_subdirectory("experimental")
   add_subdirectory("system")
+  add_subdirectory("worker")
 
   generateOsqueryHeaders()
   generateOsqueryd()
@@ -76,6 +77,10 @@ function(generateOsqueryd)
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:osqueryd>"
   )
   add_dependencies(create_osqueryi osqueryd)
+endfunction()
+
+function(enableOsqueryWEL)
+  target_sources(osqueryd PRIVATE "${TOOLS_WEL_FILES_ROOT_DIR}/windows_resources.rc")
 endfunction()
 
 osqueryMain()

@@ -86,17 +86,6 @@ Status EphemeralDatabasePlugin::putBatch(const std::string& domain,
   return Status::success();
 }
 
-void EphemeralDatabasePlugin::dumpDatabase() const {
-  for (const auto& domainValue : db_) {
-    const auto& domain = domainValue.first;
-    for (const auto& keyValue : domainValue.second) {
-      const auto& key = keyValue.first;
-      const auto& value = keyValue.second;
-      std::cout << domain << "[" << key << "]: " << value << std::endl;
-    }
-  }
-}
-
 Status EphemeralDatabasePlugin::remove(const std::string& domain,
                                        const std::string& k) {
   db_[domain].erase(k);

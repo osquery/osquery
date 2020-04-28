@@ -243,6 +243,8 @@ typedef enum rpmtdFormats_e {
     RPMTD_FORMAT_VFLAGS		= 17,	/* file verify flags (int types) */
     RPMTD_FORMAT_EXPAND		= 18,	/* macro expansion (string types) */
     RPMTD_FORMAT_FSTATUS	= 19,	/* file verify status (int types) */
+    RPMTD_FORMAT_HUMANSI	= 20,	/* human readable value, K = 1000 (int types) */
+    RPMTD_FORMAT_HUMANIEC	= 21,	/* human readable value, K = 1024 (int types) */
 } rpmtdFormats;
 
 /** \ingroup rpmtd

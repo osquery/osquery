@@ -38,14 +38,14 @@ namespace tables {
 QueryData genLoggedInUsers(QueryContext& context) {
   QueryData results;
 
-  PWTS_SESSION_INFO_1 pSessionInfo;
+  PWTS_SESSION_INFO_1W pSessionInfo;
   unsigned long count;
   /*
    * As per the MSDN:
    * This parameter is reserved. Always set this parameter to one.
    */
   unsigned long level = 1;
-  auto res = WTSEnumerateSessionsEx(
+  auto res = WTSEnumerateSessionsExW(
       WTS_CURRENT_SERVER_HANDLE, &level, 0, &pSessionInfo, &count);
 
   if (res == 0) {
@@ -53,26 +53,34 @@ QueryData genLoggedInUsers(QueryContext& context) {
   }
 
   for (size_t i = 0; i < count; i++) {
+    if (pSessionInfo[i].State != WTSActive || pSessionInfo[i].SessionId == 0) {
+      // https://docs.microsoft.com/en-gb/windows/win32/api/wtsapi32/ne-wtsapi32-wts_connectstate_class
+      // The only state for a user logged in is WTSActive and session 0 is the
+      // non-interactive system session
+      continue;
+    }
+
     Row r;
 
-    char* sessionInfo = nullptr;
-    unsigned long bytesRet = 0;
-    res = WTSQuerySessionInformation(WTS_CURRENT_SERVER_HANDLE,
-                                     pSessionInfo[i].SessionId,
-                                     WTSSessionInfo,
-                                     &sessionInfo,
-                                     &bytesRet);
+    LPWSTR sessionInfo = nullptr;
+    DWORD bytesRet = 0;
+    res = WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE,
+                                      pSessionInfo[i].SessionId,
+                                      WTSSessionInfo,
+                                      &sessionInfo,
+                                      &bytesRet);
     if (res == 0 || sessionInfo == nullptr) {
       VLOG(1) << "Error querying WTS session information (" << GetLastError()
               << ")";
       continue;
     }
-    const auto wtsSession = reinterpret_cast<WTSINFOA*>(sessionInfo);
-    r["user"] = SQL_TEXT(wtsSession->UserName);
+
+    const auto wtsSession = reinterpret_cast<WTSINFOW*>(sessionInfo);
+    r["user"] = SQL_TEXT(wstringToString(wtsSession->UserName));
     r["type"] = SQL_TEXT(kSessionStates.at(pSessionInfo[i].State));
     r["tty"] = pSessionInfo[i].pSessionName == nullptr
                    ? ""
-                   : pSessionInfo[i].pSessionName;
+                   : wstringToString(pSessionInfo[i].pSessionName);
 
     FILETIME utcTime = {0};
     unsigned long long unixTime = 0;
@@ -83,13 +91,13 @@ QueryData genLoggedInUsers(QueryContext& context) {
     }
     r["time"] = INTEGER(unixTime);
 
-    char* clientInfo = nullptr;
+    LPWSTR clientInfo = nullptr;
     bytesRet = 0;
-    res = WTSQuerySessionInformation(WTS_CURRENT_SERVER_HANDLE,
-                                     pSessionInfo[i].SessionId,
-                                     WTSClientInfo,
-                                     &clientInfo,
-                                     &bytesRet);
+    res = WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE,
+                                      pSessionInfo[i].SessionId,
+                                      WTSClientInfo,
+                                      &clientInfo,
+                                      &bytesRet);
     if (res == 0 || clientInfo == nullptr) {
       VLOG(1) << "Error querying WTS session information (" << GetLastError()
               << ")";
@@ -118,8 +126,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
       wtsClient = nullptr;
     }
 
-    const auto sidBuf =
-        getSidFromUsername(stringToWstring(wtsSession->UserName));
+    const auto sidBuf = getSidFromUsername(wtsSession->UserName);
 
     if (sessionInfo != nullptr) {
       WTSFreeMemory(sessionInfo);

@@ -65,11 +65,18 @@ class ExtensionsTest : public testing::Test {
   }
 
   void TearDown() override {
-    Dispatcher::stopServices();
-    Dispatcher::joinServices();
+    resetDispatcher();
+
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
       fs::remove(fs::path(socket_path));
     }
+  }
+
+  void resetDispatcher() {
+    auto& dispatcher = Dispatcher::instance();
+    dispatcher.stopServices();
+    dispatcher.joinServices();
+    dispatcher.resetStopping();
   }
 
   bool ping(int attempts = 3) {
@@ -164,8 +171,7 @@ TEST_F(ExtensionsTest, test_extension_runnable) {
   EXPECT_TRUE(ping());
 }
 
-// TODO: fix it and enable, please
-TEST_F(ExtensionsTest, DISABLED_test_extension_start) {
+TEST_F(ExtensionsTest, test_extension_start) {
   auto status = startExtensionManager(socket_path);
   EXPECT_TRUE(status.ok());
   EXPECT_TRUE(socketExistsLocal(socket_path));
@@ -209,8 +215,7 @@ class TestExtensionPlugin : public ExtensionPlugin {};
 
 CREATE_REGISTRY(ExtensionPlugin, "extension_test");
 
-// TODO: fix it and enable, please
-TEST_F(ExtensionsTest, DISABLED_test_extension_broadcast) {
+TEST_F(ExtensionsTest, test_extension_broadcast) {
   auto status = startExtensionManager(socket_path);
   EXPECT_TRUE(status.ok());
   EXPECT_TRUE(socketExistsLocal(socket_path));

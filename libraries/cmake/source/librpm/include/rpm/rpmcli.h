@@ -15,7 +15,6 @@
 #include <rpm/rpmcallback.h>
 #include <rpm/rpmts.h>
 #include <rpm/rpmfi.h>
-#include <rpm/rpmvf.h>
 #include <rpm/argv.h>
 
 #ifdef __cplusplus
@@ -100,6 +99,8 @@ enum rpmQVSources_e {
     RPMQV_WHATSUPPLEMENTS,	/*!< ... from supplements db search. */
     RPMQV_WHATENHANCES,		/*!< ... from enhances db search. */
     RPMQV_SPECBUILTRPMS,	/*!< ... from pkgs which would be built from spec */
+    RPMQV_WHATOBSOLETES,	/*!< ... from obsoletes db search. */
+    RPMQV_WHATCONFLICTS,	/*!< ... from conflicts db search. */
 };
 
 typedef rpmFlags rpmQVSources;
@@ -110,43 +111,28 @@ typedef rpmFlags rpmQVSources;
  */
 enum rpmQueryFlags_e {
     QUERY_FOR_DEFAULT	= 0,		/*!< */
-    QUERY_MD5		= (1 << 0),	/*!< from --nomd5 */
-    QUERY_FILEDIGEST	= (1 << 0),	/*!< from --nofiledigest, same as --nomd5 */
-    QUERY_SIZE		= (1 << 1),	/*!< from --nosize */
-    QUERY_LINKTO	= (1 << 2),	/*!< from --nolink */
-    QUERY_USER		= (1 << 3),	/*!< from --nouser) */
-    QUERY_GROUP		= (1 << 4),	/*!< from --nogroup) */
-    QUERY_MTIME		= (1 << 5),	/*!< from --nomtime) */
-    QUERY_MODE		= (1 << 6),	/*!< from --nomode) */
-    QUERY_RDEV		= (1 << 7),	/*!< from --nodev */
-	/* bits 8-14 unused, reserved for rpmVerifyAttrs */
-    QUERY_CONTEXTS	= (1 << 15),	/*!< verify: from --nocontexts */
-    QUERY_FILES		= (1 << 16),	/*!< verify: from --nofiles */
-    QUERY_DEPS		= (1 << 17),	/*!< verify: from --nodeps */
-    QUERY_SCRIPT	= (1 << 18),	/*!< verify: from --noscripts */
-    QUERY_DIGEST	= (1 << 19),	/*!< verify: from --nodigest */
-    QUERY_SIGNATURE	= (1 << 20),	/*!< verify: from --nosignature */
-    QUERY_PATCHES	= (1 << 21),	/*!< verify: from --nopatches */
-    QUERY_HDRCHK	= (1 << 22),	/*!< verify: from --nohdrchk */
+	/* bits 0-14 unused */
+	/* bits 15-18 reserved for rpmVerifyFlags */
+	/* bits 19-21 unused */
     QUERY_FOR_LIST	= (1 << 23),	/*!< query:  from --list */
     QUERY_FOR_STATE	= (1 << 24),	/*!< query:  from --state */
-    QUERY_FOR_DOCS	= (1 << 25),	/*!< query:  from --docfiles */
-    QUERY_FOR_CONFIG	= (1 << 26),	/*!< query:  from --configfiles */
+	/* bits 25-26 unused */
     QUERY_FOR_DUMPFILES	= (1 << 27),	/*!< query:  from --dump */
-    QUERY_FOR_LICENSE	= (1 << 28),	/*!< query:  from --licensefiles */
-    QUERY_FOR_ARTIFACT	= (1 << 29),	/*!< query:  from --artifacts */
 };
 
 typedef rpmFlags rpmQueryFlags;
 
 #define	_QUERY_FOR_BITS	\
-   (QUERY_FOR_LIST|QUERY_FOR_STATE|QUERY_FOR_DOCS|QUERY_FOR_CONFIG|\
-    QUERY_FOR_LICENSE|QUERY_FOR_DUMPFILES)
+   (QUERY_FOR_LIST|QUERY_FOR_STATE|QUERY_FOR_DUMPFILES)
 
 /** \ingroup rpmcli
  * Bit(s) from common command line options.
  */
 extern rpmQueryFlags rpmcliQueryFlags;
+
+extern rpmVSFlags rpmcliVSFlags;
+
+extern int rpmcliVfyLevelMask;
 
 /** \ingroup rpmcli
  */
@@ -179,7 +165,10 @@ struct rpmQVKArguments_s {
     rpmQVSources qva_source;	/*!< Identify CLI arg type. */
     int 	qva_sourceCount;/*!< Exclusive option check (>1 is error). */
     rpmQueryFlags qva_flags;	/*!< Bit(s) to control operation. */
-    rpmfileAttrs qva_fflags;	/*!< Bit(s) to filter on attribute. */
+    rpmfileAttrs qva_incattr;	/*!< Bit(s) to include on attribute. */
+    rpmfileAttrs qva_excattr;	/*!< Bit(s) to exclude on attribute. */
+
+    rpmVerifyAttrs qva_ofvattr; /*!< Bit(s) to omit on file verification. */
 
     QVF_t qva_showPackage;	/*!< Function to display iterator matches. */
     QSpecF_t qva_specQuery;	/*!< Function to query spec file. */
@@ -201,6 +190,10 @@ extern struct rpmQVKArguments_s rpmQVKArgs;
 /** \ingroup rpmcli
  */
 extern struct poptOption rpmQVSourcePoptTable[];
+
+/** \ingroup rpmcli
+ */
+extern struct poptOption rpmQVFilePoptTable[];
 
 /** \ingroup rpmcli
  */
@@ -256,13 +249,30 @@ int showVerifyPackage(QVA_t qva, rpmts ts, Header h);
 
 /**
  * Check package and header signatures.
- * @param qva		parsed query/verify options
+ * @param qva		unused
  * @param ts		transaction set
  * @param fd		package file handle
  * @param fn		package file name
  * @return		0 on success, 1 on failure
  */
 int rpmVerifySignatures(QVA_t qva, rpmts ts, FD_t fd, const char * fn);
+
+/** \ingroup rpmvf
+ * Bit(s) to control rpmcliVerify() operation
+ */
+enum rpmVerifyFlags_e {
+    VERIFY_DEFAULT	= 0,		/*!< */
+	/* bits 1-14 unused */
+    VERIFY_CONTEXTS	= (1 << 15),	/*!< verify: from --nocontexts */
+    VERIFY_FILES	= (1 << 16),	/*!< verify: from --nofiles */
+    VERIFY_DEPS		= (1 << 17),	/*!< verify: from --nodeps */
+    VERIFY_SCRIPT	= (1 << 18),	/*!< verify: from --noscripts */
+};
+
+typedef rpmFlags rpmVerifyFlags;
+
+#define	VERIFY_ALL	\
+  ( VERIFY_FILES | VERIFY_DEPS | VERIFY_SCRIPT )
 
 /** \ingroup rpmcli
  * Verify package install.

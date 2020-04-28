@@ -13,7 +13,11 @@
 #include <osquery/remote/transports/tls.h>
 // clang-format on
 
+#ifdef _WIN32
+#include <io.h>
+#elif defined _unix_
 #include <unistd.h>
+#endif
 
 #include <boost/algorithm/string/find.hpp>
 

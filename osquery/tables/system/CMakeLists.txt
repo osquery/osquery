@@ -18,6 +18,8 @@ function(generateOsqueryTablesSystemSystemtable)
     cpuid.cpp
     hash.cpp
     python_packages.cpp
+    ssh_keys.cpp
+    ssh_configs.cpp
     system_utils.cpp
     uptime.cpp
   )
@@ -35,8 +37,6 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/magic.cpp
       posix/shell_history.cpp
       posix/smbios_utils.cpp
-      posix/ssh_configs.cpp
-      posix/ssh_keys.cpp
       posix/sudoers.cpp
       posix/suid_bin.cpp
       posix/system_controls.cpp
@@ -67,6 +67,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/pci_devices.cpp
       linux/portage.cpp
       linux/process_open_files.cpp
+      linux/process_open_pipes.cpp
       linux/processes.cpp
       linux/rpm_packages.cpp
       linux/shadow.cpp
@@ -77,6 +78,8 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/usb_devices.cpp
       linux/user_groups.cpp
       linux/users.cpp
+      linux/selinux_settings.cpp
+      linux/apparmor_profiles.cpp
     )
 
   elseif(DEFINED PLATFORM_MACOS)
@@ -112,6 +115,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/launchd.cpp
       darwin/managed_policies.cpp
       darwin/mdfind.mm
+      darwin/mdls.mm
       darwin/mounts.cpp
       darwin/nfs_shares.cpp
       darwin/nvram.cpp
@@ -124,6 +128,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/quicklook_cache.cpp
       darwin/running_apps.mm
       darwin/sandboxes.cpp
+      darwin/screenlock.mm
       darwin/shared_folders.mm
       darwin/sharing_preferences.cpp
       darwin/signature.mm
@@ -194,15 +199,18 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/system_info.cpp
       windows/user_groups.cpp
       windows/users.cpp
+      windows/userassist.cpp
       windows/video_info.cpp
       windows/windows_crashes.cpp
       windows/windows_optional_features.cpp
       windows/windows_security_products.cpp
+      windows/windows_security_center.cpp
       windows/wmi_bios_info.cpp
       windows/wmi_cli_event_consumers.cpp
       windows/wmi_event_filters.cpp
       windows/wmi_filter_consumer_binding.cpp
       windows/wmi_script_event_consumers.cpp
+      windows/hvci_status.cpp
     )
   endif()
 
@@ -222,10 +230,12 @@ function(generateOsqueryTablesSystemSystemtable)
     osquery_utils
     osquery_utils_conversions
     osquery_utils_expected
+    osquery_utils_system_env
     osquery_utils_system_filepath
     osquery_utils_system_systemutils
     osquery_utils_system_time
     osquery_utils_system_uptime
+    osquery_worker_ipc_platformtablecontaineripc
     thirdparty_boost
     osquery_rows_processes_header
   )
@@ -276,6 +286,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/shell_history.h
       posix/sudoers.h
       posix/sysctl_utils.h
+      posix/last.h
     )
   endif()
 
@@ -305,6 +316,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.h
       windows/certificates.h
       windows/users.h
+      windows/userassist.h
     )
   endif()
 

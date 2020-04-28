@@ -9,8 +9,8 @@
 // Sanity check integration test for hash
 // Spec file: specs/hash.table
 
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tests/integration/tables/helper.h>
-
 #include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
@@ -23,10 +23,12 @@ class Hash : public testing::Test {
   void SetUp() override {
     setUpEnvironment();
     path = fs::temp_directory_path() /
-           fs::unique_path("osquery.tests.file.hashes");
+           fs::unique_path("osquery.tests.file.hashes.%%%%.%%%%.%%%%.%%%%");
 
-    auto fout = std::ofstream(path.native(), std::ios::out | std::ios::binary);
-    fout << "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
+    EXPECT_TRUE(
+        writeTextFile(
+            path, "Lorem ipsum dolor sit amet, consectetur adipiscing elit.")
+            .ok());
   }
 
   void TearDown() override {
@@ -64,6 +66,11 @@ TEST_F(Hash, test_sanity) {
             "a58dd8680234c1f8cc2ef2b325a43733605a7f16f288e072de8eae81fd8d6433");
   if (isPlatform(PlatformType::TYPE_POSIX)) {
     ASSERT_EQ(data[0]["ssdeep"], "3:f4oo8MRwRJFGW1gC64:f4kPvtHF");
+  }
+
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    row_map["pid_with_namespace"] = IntType;
+    row_map["mount_namespace_id"] = NormalType;
   }
 
   validate_rows(data, row_map);

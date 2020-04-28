@@ -42,14 +42,21 @@ Status serializeQueryData(const QueryDataTyped& q,
   return Status::success();
 }
 
-Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
-  auto doc = JSON::newArray();
-
+Status serializeQueryDataJSON(const QueryData& q, JSON& doc) {
+  doc = JSON::newArray();
   ColumnNames cols;
   auto status = serializeQueryData(q, cols, doc, doc.doc());
+  return status;
+}
+
+Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
+  JSON doc;
+  auto status = serializeQueryDataJSON(q, doc);
+
   if (!status.ok()) {
     return status;
   }
+
   return doc.toString(json);
 }
 
@@ -113,13 +120,21 @@ Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
   return Status::success();
 }
 
-Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
-  auto doc = JSON::newArray();
-  if (!doc.fromString(json) || !doc.doc().IsArray()) {
+Status deserializeQueryDataJSON(const JSON& doc, QueryData& qd) {
+  if (!doc.doc().IsArray()) {
     return Status(1, "Cannot deserializing JSON");
   }
 
   return deserializeQueryData(doc.doc(), qd);
+}
+
+Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
+  auto doc = JSON::newArray();
+  if (!doc.fromString(json)) {
+    return Status(1, "Cannot deserializing JSON");
+  }
+
+  return deserializeQueryDataJSON(doc, qd);
 }
 
 Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {

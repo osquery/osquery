@@ -1,10 +1,10 @@
-osquery supports many flavors of Linux, FreeBSD, macOS, and Windows.
+osquery supports many flavors of Linux, macOS, and Windows.
 
 While osquery runs on a large number of operating systems, we only provide build instructions for a select few.
 
-The supported compilers are: the osquery toolchain (LLVM/Clang 8.0.1) on Linux, MSVC v141 on Windows, and AppleClang from Xcode Command Line Tools 10.2.1.
+The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v141 on Windows, and AppleClang from Xcode Command Line Tools 10.2.1.
 
-# Building with CMake
+# Prerequisites
 
 Git (>= 2.14.0), CMake (>= 3.14.6), Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
 
@@ -29,8 +29,8 @@ sudo apt install --no-install-recommends python3-pip python3-setuptools python3-
 pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
 
 # Download and install the osquery toolchain
-wget https://github.com/osquery/osquery-toolchain/releases/download/1.0.0/osquery-toolchain-1.0.0.tar.xz
-sudo tar xvf osquery-toolchain-1.0.0.tar.xz -C /usr/local
+wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-x86_64.tar.xz
+sudo tar xvf osquery-toolchain-1.1.0-x86_64.tar.xz -C /usr/local
 
 # Download and install a newer CMake
 wget https://github.com/Kitware/CMake/releases/download/v3.14.6/cmake-3.14.6-Linux-x86_64.tar.gz
@@ -58,7 +58,7 @@ Please ensure [Homebrew](https://brew.sh/) has been installed, first. Then do th
 ```bash
 # Install prerequisites
 xcode-select --install
-brew install git cmake python
+brew install git git-lfs cmake python clang-format flex bison
 
 # Optional: install python tests prerequisites
 pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
@@ -93,8 +93,8 @@ Note: It may be easier to install these prerequisites using [Chocolatey](https:/
 
 - [CMake](https://cmake.org/) (>= 3.14.6): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!  Do not install CMake using the Visual Studio Installer, because it contains an older version than required.
 - Visual Studio 2019 (2 options)
-  1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", and "Windows 10 SDK".
-  2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", and "Windows 10 SDK".
+  1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
+  2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest): Select "checkout as-is, commit as-is". Later check "Enable symbolic links" support.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Wix Toolset](https://wixtoolset.org/releases/)
@@ -102,6 +102,7 @@ Note: It may be easier to install these prerequisites using [Chocolatey](https:/
 - [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
 
 **Optional: Install python tests prerequisites**
+
 Python 3 is assumed to be installed in `C:\Program Files\Python37`
 
 ```PowerShell
@@ -178,13 +179,33 @@ A "single" test case often still involves dozens or hundreds of unit tests. To r
 GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory tests under the <testName> set.
 ```
 
-## Running clang-format (Linux and MacOS only)
+## Formatting the code
 
-Note that on Linux the `clang-format` executable is shipped along with the osquery toolchain, and it is the recommended way to run it.
+Osquery uses `clang-format` to format its code, but it's not run on the whole project or files each time; it's run only on the modified lines instead,
+using custom scripts.
+
+On Linux the `clang-format` executable is shipped along with the osquery toolchain, and it is the recommended way to run it.  
+For the other platforms please refer to their **Install the prerequisites** section if you haven't already.
+
+On Windows remember to update the PATH environment variable with the `clang-format` root folder, so that the scripts can find it.  
+You should be able to find `clang-format` folder in the path where you installed either the Build Tools or the full Visual Studio, and from there `VC\Tools\Llvm\bin`.
+
+To verify that all the commits that are present on the branch but not on master are properly formatted, run the following command from the build folder:
 
 ```bash
 cmake --build . --target format_check
 ```
+This is the same command the CI runs to verify formatting.
+
+If the code is not formatted, you can do so with the following command run from the build folder,
+but the code has to be put in the stage area first if it was already committed:
+
+```bash
+cmake --build . --target format
+```
+
+To avoid having to move the committed files to the stage area and back each time, remember to format the code before committing.
+
 
 ## Running Cppcheck (Linux only)
 
@@ -209,112 +230,6 @@ By default, the following checks are enabled:
 6. modernize-*
 7. bugprone-*
 
-# Building with Buck
-
-Building and testing is the same on all platforms. Each platform section below describes how to install the required tools and dependencies.
-
-## Linux (Buck)
-
-Install required tools on Ubuntu 18.04 or Ubuntu 18.10:
-
-```bash
-sudo apt install openjdk-8-jre clang libc++1 libc++-dev libc++abi1 libc++abi-dev python python3 python3-distutils
-```
-
-Install library dependencies:
-
-```bash
-sudo apt install liblzma-dev
-```
-
-Install `buck`:
-
-```bash
-wget 'https://github.com/facebook/buck/releases/download/v2018.10.29.01/buck.2018.10.29.01_all.deb'
-sudo apt install ./buck.2018.10.29.01_all.deb
-```
-
-## macOS (Buck)
-
-Install required tools using Homebrew:
-
-```bash
-xcode-select --install
-
-brew tap caskroom/cask
-brew tap caskroom/versions
-brew cask install java8
-```
-
-Install `buck` and `watchman`. Watchman isn't mandatory, but will make builds faster.
-
-```bash
-brew tap facebook/fb
-brew install buck watchman
-```
-
-## FreeBSD (Buck)
-
-Install required tools on FreeBSD 11.2:
-
-```bash
-sudo pkg install openjdk8 python3 python2 clang35
-```
-
-Install `buck`:
-
-```bash
-sudo curl --output /usr/local/bin/buck 'https://jitpack.io/com/github/facebook/buck/v2018.10.29.01/buck-v2018.10.29.01.pex'
-sudo chmod +x /usr/local/bin/buck
-```
-
-Install library dependencies:
-
-```bash
-sudo pkg install glog thrift thrift-cpp boost-libs magic rocksdb-lite rapidjson zstd linenoise-ng augeas ssdeep sleuthkit yara aws-sdk-cpp lldpd libxml++-2 smartmontools lldpd
-```
-
-## Windows 10 (Buck)
-
-You'll need to have the following software installed before you can build osquery on Windows:
-
-- Buck, this also requires the JRE 8 version
-- Visual Studio 2017 or greater
-- The Windows 10 SDK
-- Python3
-
-Once you've installed the above requirements, run `.\tools\generate_buck_config.ps1 -VsInstall '' -VcToolsVersion '' -SdkInstall '' -SdkVersion '' -Python3Path '' -BuckConfigRoot .\tools\buckconfigs\` to generate the buckconfig for building.
-
-## Building and Testing
-
-To build simply run the following command replacing `<platform>` and `<mode>`
-appropriately:
-
-```bash
-buck build @mode/<platform>/<mode> //osquery:osqueryd
-```
-
-When buck finishes find the binary at `buck-out/<mode>/gen/osquery/osqueryd`.
-
-Similarly to run tests just run:
-
-```bash
-buck test @mode/<platform>/<mode> //...
-```
-
-This will run all tests, you can replace `//...` with a specific target to run specific tests only.
-
-Supported platforms:
-
-- `linux-x86_64`
-- `macos-x86_64`
-- `windows-x86_64`
-- `freebsd-x86_64`
-
-Supported modes:
-
-- `release`
-- `debug`
 
 # Using Vagrant
 

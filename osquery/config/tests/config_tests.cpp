@@ -6,6 +6,14 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <atomic>
+#include <chrono>
+#include <map>
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
+
 #include <osquery/config/config.h>
 
 #include <osquery/config/tests/test_utils.h>
@@ -20,6 +28,7 @@
 #include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
+#include <osquery/utils/json/json.h>
 
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
@@ -28,15 +37,6 @@
 #include <boost/filesystem/path.hpp>
 
 #include <gtest/gtest.h>
-
-#include <atomic>
-#include <chrono>
-#include <map>
-#include <memory>
-#include <string>
-#include <thread>
-#include <vector>
-
 
 namespace osquery {
 
@@ -82,6 +82,13 @@ class ConfigTests : public testing::Test {
     FLAGS_config_refresh = refresh_;
   }
 
+  void resetDispatcher() {
+    auto& dispatcher = Dispatcher::instance();
+    dispatcher.stopServices();
+    dispatcher.joinServices();
+    dispatcher.resetStopping();
+  }
+
  protected:
   Status load() {
     return Config::get().load();
@@ -113,7 +120,8 @@ class TestConfigPlugin : public ConfigPlugin {
     }
 
     std::string content;
-    auto s = readFile(getTestConfigDirectory() / "test_noninline_packs.conf", content);
+    auto s = readFile(getTestConfigDirectory() / "test_noninline_packs.conf",
+                      content);
     config["data"] = content;
     return s;
   }
@@ -177,6 +185,77 @@ TEST_F(ConfigTests, test_plugin) {
 TEST_F(ConfigTests, test_invalid_content) {
   std::string bad_json = "{\"options\": {},}";
   ASSERT_NO_THROW(get().update({{"bad_source", bad_json}}));
+}
+
+TEST_F(ConfigTests, test_config_not_an_object) {
+  std::string invalid_config = "[1]";
+  ASSERT_FALSE(get().update({{"invalid_config_source", invalid_config}}));
+}
+
+TEST_F(ConfigTests, test_config_depth) {
+  std::string invalid_config;
+
+  auto add_nested_objects = [](std::string& invalid_config) {
+    for (int i = 0; i < 100; ++i) {
+      invalid_config += "{\"1\": ";
+    }
+
+    invalid_config += "{}";
+    invalid_config += std::string(100, '}');
+  };
+
+  add_nested_objects(invalid_config);
+
+  JSON doc;
+  auto status = doc.fromString(invalid_config, JSON::ParseMode::Iterative);
+
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  ASSERT_FALSE(get().validateConfig(doc).ok());
+
+  invalid_config = "{ \"a\" : \"something\", \"b\" : ";
+  add_nested_objects(invalid_config);
+  invalid_config += "}";
+
+  status = doc.fromString(invalid_config, JSON::ParseMode::Iterative);
+
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  ASSERT_FALSE(get().validateConfig(doc).ok());
+
+  auto add_nested_arrays_and_objects = [](std::string& invalid_config) {
+    for (int i = 0; i < 100; ++i) {
+      invalid_config += "{ \"a\" : [";
+    }
+
+    for (int i = 0; i < 100; i++) {
+      invalid_config += "]}";
+    }
+  };
+
+  invalid_config.clear();
+  add_nested_arrays_and_objects(invalid_config);
+
+  status = doc.fromString(invalid_config, JSON::ParseMode::Iterative);
+
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  ASSERT_FALSE(get().validateConfig(doc).ok());
+}
+
+TEST_F(ConfigTests, test_config_too_big) {
+  std::string big_config = "{ \"data\" : [ 1";
+
+  for (int i = 0; i < 1 * 1024 * 1024; ++i) {
+    big_config += ",1";
+  }
+
+  big_config += "]}";
+
+  // It is a valid JSON document
+  JSON doc;
+  auto status = doc.fromString(big_config);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  // But it's too big for our config system
+  ASSERT_FALSE(get().update({{"big_config", big_config}}));
 }
 
 TEST_F(ConfigTests, test_strip_comments) {
@@ -299,7 +378,7 @@ TEST_F(ConfigTests, test_content_update) {
   // Update, then clear, packs should have been cleared.
   get().update(config_data);
   auto source_hash = get().getHash(source);
-  EXPECT_EQ("fb0973b39c70db16655effbca532d4aa93381e59", source_hash);
+  EXPECT_EQ("dfae832a62a3e3a51760334184364b7d66468ccc", source_hash);
 
   size_t count = 0;
   auto packCounter = [&count](const Pack& pack) { count++; };
@@ -369,7 +448,8 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
 TEST_F(ConfigTests, test_nonblacklist_query) {
   std::map<std::string, size_t> blacklist;
 
-  const std::string kConfigTestNonBlacklistQuery{"pack_unrestricted_pack_process_heartbeat"};
+  const std::string kConfigTestNonBlacklistQuery{
+      "pack_unrestricted_pack_process_heartbeat"};
 
   blacklist[kConfigTestNonBlacklistQuery] = getUnixTime() * 2;
   saveScheduleBlacklist(blacklist);
@@ -560,8 +640,7 @@ TEST_F(ConfigTests, test_config_refresh) {
   get().reset();
 
   // Stop the existing refresh runner thread.
-  Dispatcher::stopServices();
-  Dispatcher::joinServices();
+  resetDispatcher();
 
   // Set a config_refresh value to convince the Config to start the thread.
   FLAGS_config_refresh = 2;
@@ -603,8 +682,7 @@ TEST_F(ConfigTests, test_config_refresh) {
   EXPECT_EQ(get().getRefresh(), FLAGS_config_refresh);
 
   // Stop the new refresh runner thread.
-  Dispatcher::stopServices();
-  Dispatcher::joinServices();
+  resetDispatcher();
 
   FLAGS_config_refresh = refresh;
   FLAGS_config_accelerated_refresh = refresh_acceleratred;
@@ -662,4 +740,4 @@ TEST_F(ConfigTests, test_config_backup_integrate) {
 
   FLAGS_config_enable_backup = config_enable_backup_saved;
 }
-}
+} // namespace osquery

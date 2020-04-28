@@ -8,10 +8,14 @@
 
 #pragma once
 
+#include <boost/thread/condition_variable.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
 namespace osquery {
+
+/// Helper alias for definition condition variables.
+using ConditionVariable = boost::condition_variable_any;
 
 /// Helper alias for defining mutexes.
 using Mutex = boost::shared_timed_mutex;

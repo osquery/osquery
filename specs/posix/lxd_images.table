@@ -1,0 +1,29 @@
+table_name("lxd_images")
+description("LXD images information.")
+schema([
+    Column("id", TEXT, "Image ID", index=True),
+    Column("architecture", TEXT, "Target architecture for the image"),
+    Column("os", TEXT, "OS on which image is based"),
+    Column("release", TEXT, "OS release version on which the image is based"),
+    Column("description", TEXT, "Image description"),
+    Column("aliases", TEXT, "Comma-separated list of image aliases"),
+    Column("filename", TEXT, "Filename of the image file"),
+    Column("size", BIGINT, "Size of image in bytes"),
+    Column("auto_update", INTEGER, "Whether the image auto-updates (1) or not (0)"),
+    Column("cached", INTEGER, "Whether image is cached (1) or not (0)"),
+    Column("public", INTEGER, "Whether image is public (1) or not (0)"),
+    Column("created_at", TEXT, "ISO time of image creation"),
+    Column("expires_at", TEXT, "ISO time of image expiration"),
+    Column("uploaded_at", TEXT, "ISO time of image upload"),
+    Column("last_used_at", TEXT, "ISO time for the most recent use of this image in terms of container spawn"),
+    Column("update_source_server", TEXT, "Server for image update"),
+    Column("update_source_protocol", TEXT, "Protocol used for image information update and image import from source server"),
+    Column("update_source_certificate", TEXT, "Certificate for update source server"),
+    Column("update_source_alias", TEXT, "Alias of image at update source server")
+])
+implementation("applications/lxd@genLxdImages")
+examples([
+  "select * from lxd_images", 
+  "select * from lxd_images where id = '0931b693c8'",
+  "select * from lxd_images where id = '0931b693c877ef357b9e17b3195ae952a2450873923ffd2b34b60836ea730cfa'",
+])

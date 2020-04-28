@@ -41,6 +41,7 @@ function(generateTestsIntegrationTablesTestsTest)
     etc_protocols.cpp
     etc_services.cpp
     file.cpp
+    firefox_addons.cpp
     groups.cpp
     hash.cpp
     interface_addresses.cpp
@@ -66,6 +67,8 @@ function(generateTestsIntegrationTablesTestsTest)
     uptime.cpp
     user_groups.cpp
     users.cpp
+    ssh_configs.cpp
+    user_ssh_keys.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
@@ -90,6 +93,7 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_container_stats.cpp
       docker_containers.cpp
       docker_image_labels.cpp
+      docker_image_layers.cpp
       docker_images.cpp
       docker_info.cpp
       docker_network_labels.cpp
@@ -98,7 +102,6 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_volume_labels.cpp
       docker_volumes.cpp
       file_events.cpp
-      firefox_addons.cpp
       hardware_events.cpp
       interface_ipv6.cpp
       known_hosts.cpp
@@ -121,14 +124,12 @@ function(generateTestsIntegrationTablesTestsTest)
       prometheus_metrics.cpp
       shell_history.cpp
       smbios_tables.cpp
-      ssh_configs.cpp
       sudoers.cpp
       suid_bin.cpp
       system_controls.cpp
       ulimit_info.cpp
       usb_devices.cpp
       user_events.cpp
-      user_ssh_keys.cpp
       yara.cpp
       yum_sources.cpp
     )
@@ -164,6 +165,7 @@ function(generateTestsIntegrationTablesTestsTest)
       portage_use.cpp
       process_file_events.cpp
       process_namespaces.cpp
+      process_open_pipes.cpp
       rpm_package_files.cpp
       rpm_packages.cpp
       selinux_events.cpp
@@ -284,6 +286,7 @@ function(generateTestsIntegrationTablesTestsTest)
       services.cpp
       shared_resources.cpp
       startup_items.cpp
+      userassist.cpp
       video_info.cpp
       winbaseobj.cpp
       windows_crashes.cpp
@@ -294,6 +297,7 @@ function(generateTestsIntegrationTablesTestsTest)
       wmi_event_filters.cpp
       wmi_filter_consumer_binding.cpp
       wmi_script_event_consumers.cpp
+      hvci_status.cpp
     )
 
     list(APPEND source_files ${platform_source_files})

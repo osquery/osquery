@@ -10,10 +10,13 @@
 #include <sys/stat.h>
 #endif
 
+#include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
-#include <osquery/filesystem/fileops.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace fs = boost::filesystem;
 
@@ -84,6 +87,7 @@ void genFileInfo(const fs::path& path,
 #if defined(__linux__)
   // No 'birth' or create time in Linux or Windows.
   r["btime"] = "0";
+  r["pid_with_namespace"] = "0";
 #else
   r["btime"] = BIGINT(file_stat.st_birthtimespec.tv_sec);
 #endif
@@ -142,7 +146,7 @@ void genFileInfo(const fs::path& path,
   results.push_back(r);
 }
 
-QueryData genFile(QueryContext& context) {
+QueryData genFileImpl(QueryContext& context, Logger& logger) {
   QueryData results;
 
   // Resolve file paths for EQUALS and LIKE operations.
@@ -205,6 +209,15 @@ QueryData genFile(QueryContext& context) {
   }
 
   return results;
+}
+
+QueryData genFile(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "file", genFileImpl);
+  } else {
+    GLOGLogger logger;
+    return genFileImpl(context, logger);
+  }
 }
 }
 } // namespace osquery

@@ -28,8 +28,13 @@ std::string stringFromCFNumber(const CFDataRef& cf_number, CFNumberType type) {
     if (CFNumberGetValue((CFNumberRef)cf_number, type, &value)) {
       return boost::lexical_cast<std::string>(value);
     }
-  } else if (type == kCFNumberDoubleType) {
+  } else if (type == kCFNumberFloat64Type || type == kCFNumberDoubleType) {
     double value;
+    if (CFNumberGetValue((CFNumberRef)cf_number, type, &value)) {
+      return boost::lexical_cast<std::string>(value);
+    }
+  } else if (type == kCFNumberFloat32Type) {
+    float value;
     if (CFNumberGetValue((CFNumberRef)cf_number, type, &value)) {
       return boost::lexical_cast<std::string>(value);
     }

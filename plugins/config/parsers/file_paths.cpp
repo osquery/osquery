@@ -30,137 +30,192 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
   Status update(const std::string& source, const ParserConfig& config) override;
 
  private:
+  // Parse and update file_accesses top-level key.
+  void updateFileAccesses(const JSON& file_accesses, const std::string& source);
+
+  // Parse and update file_paths top-level key.
+  void updateFilePaths(const JSON& file_paths, const std::string& source);
+
+  // Parse and update file_paths_query top-level key.
+  void updateFilePathsQuery(const JSON& file_paths_query,
+                            const std::string& source);
+
+  // Parse and update exclude_paths top-level key.
+  void updateExcludePaths(const JSON& exclude_paths);
+
+ private:
   /// The access map binds source to category.
   std::map<std::string, std::vector<std::string> > access_map_;
 };
 
 Status FilePathsConfigParserPlugin::setUp() {
-  auto paths_obj = data_.getObject();
-  data_.add("file_paths", paths_obj);
-  auto paths_query_obj = data_.getObject();
-  data_.add("file_paths_query", paths_query_obj);
   auto accesses_arr = data_.getArray();
   data_.add("file_accesses", accesses_arr);
   auto exclude_obj = data_.getObject();
   data_.add("exclude_paths", exclude_obj);
-  return Status();
+
+  access_map_.clear();
+  return Status::success();
+}
+
+void FilePathsConfigParserPlugin::updateFileAccesses(
+    const JSON& file_accesses, const std::string& source) {
+  if (!file_accesses.doc().IsArray()) {
+    return;
+  }
+
+  for (const auto& category : file_accesses.doc().GetArray()) {
+    if (!category.IsString()) {
+      continue;
+    }
+    std::string path = category.GetString();
+    access_map_[source].push_back(path);
+  }
+
+  auto arr = data_.getArray();
+  std::set<std::string> valid_categories;
+  for (const auto& access_source : access_map_) {
+    for (const auto& category : access_source.second) {
+      valid_categories.insert(category);
+    }
+  }
+
+  for (const auto& category : valid_categories) {
+    data_.pushCopy(category, arr);
+  }
+  data_.add("file_accesses", arr);
+}
+
+void FilePathsConfigParserPlugin::updateFilePaths(const JSON& file_paths,
+                                                  const std::string& source) {
+  if (!file_paths.doc().IsObject()) {
+    return;
+  }
+
+  for (const auto& category : file_paths.doc().GetObject()) {
+    if (!category.value.IsArray() || !category.name.IsString()) {
+      continue;
+    }
+
+    std::string name = category.name.GetString();
+    for (const auto& path : category.value.GetArray()) {
+      if (!path.IsString()) {
+        continue;
+      }
+
+      std::string pattern = path.GetString();
+      if (pattern.empty()) {
+        continue;
+      }
+
+      replaceGlobWildcards(pattern);
+      Config::get().addFile(source, name, pattern);
+    }
+  }
+}
+
+void FilePathsConfigParserPlugin::updateFilePathsQuery(
+    const JSON& file_paths_query, const std::string& source) {
+  if (!file_paths_query.doc().IsObject()) {
+    return;
+  }
+
+  for (const auto& category : file_paths_query.doc().GetObject()) {
+    if (!category.value.IsArray() || !category.name.IsString()) {
+      continue;
+    }
+
+    std::string name = category.name.GetString();
+    for (const auto& query : category.value.GetArray()) {
+      if (!query.IsString()) {
+        continue;
+      }
+
+      auto sql = SQL(query.GetString());
+      if (!sql.ok()) {
+        LOG(ERROR) << "Could not add file_paths using file_paths_query '"
+                   << query.GetString() << "': " << sql.getMessageString();
+      } else {
+        for (const auto& row : sql.rows()) {
+          auto pathIt = row.find("path");
+          if (pathIt == row.end()) {
+            LOG(ERROR) << "Cold not find non-empty 'path' column in the "
+                          "results of file_paths_query '"
+                       << query.GetString() << "'";
+          } else {
+            std::string path = pathIt->second;
+            replaceGlobWildcards(path);
+            Config::get().addFile(source, name, path);
+          }
+        }
+      }
+    }
+  }
+}
+
+void FilePathsConfigParserPlugin::updateExcludePaths(
+    const JSON& exclude_paths) {
+  if (!exclude_paths.doc().IsObject()) {
+    return;
+  }
+
+  auto obj = data_.getObject();
+  for (const auto& category : exclude_paths.doc().GetObject()) {
+    if (!category.value.IsArray() || !category.name.IsString()) {
+      continue;
+    }
+
+    auto arr = data_.getArray();
+    std::string category_string = category.name.GetString();
+    for (const auto& path : category.value.GetArray()) {
+      if (!path.IsString()) {
+        continue;
+      }
+
+      std::string path_string = path.GetString();
+      data_.pushCopy(path_string, arr);
+    }
+    data_.add(category_string, arr, obj);
+  }
+
+  // Will attempt a merge so be careful that the key is initialized.
+  if (!data_.doc().HasMember("exclude_paths")) {
+    auto exclude_obj = data_.getObject();
+    data_.add("exclude_paths", exclude_obj);
+  }
+  data_.mergeObject(data_.doc()["exclude_paths"], obj);
 }
 
 Status FilePathsConfigParserPlugin::update(const std::string& source,
                                            const ParserConfig& config) {
   Config::get().removeFiles(source);
   access_map_.erase(source);
-  if (config.count("file_paths") == 0 &&
-      config.count("file_paths_query") == 0) {
-    return Status();
+
+  auto file_paths = config.find("file_paths");
+  auto file_paths_query = config.find("file_paths_query");
+  if (file_paths == config.end() && file_paths_query == config.end()) {
+    return Status::success();
   }
 
-  if (config.count("file_accesses") > 0) {
-    const auto& accesses = config.at("file_accesses").doc();
-    if (accesses.IsArray()) {
-      for (const auto& category : accesses.GetArray()) {
-        if (!category.IsString()) {
-          continue;
-        }
-        std::string path = category.GetString();
-        access_map_[source].push_back(path);
-      }
-    }
-
-    auto arr = data_.getArray();
-    std::set<std::string> valid_categories;
-    for (const auto& access_source : access_map_) {
-      for (const auto& category : access_source.second) {
-        valid_categories.insert(category);
-      }
-    }
-
-    for (const auto& category : valid_categories) {
-      data_.pushCopy(category, arr);
-    }
-    data_.add("file_accesses", arr);
+  if (file_paths != config.end()) {
+    updateFilePaths(file_paths->second, source);
   }
 
-  if (config.count("file_paths") > 0) {
-    // We know this top-level is an Object.
-    const auto& file_paths = config.at("file_paths").doc();
-    if (file_paths.IsObject()) {
-      for (const auto& category : file_paths.GetObject()) {
-        if (category.value.IsArray()) {
-          for (const auto& path : category.value.GetArray()) {
-            std::string pattern = path.GetString();
-            if (pattern.empty()) {
-              continue;
-            }
-
-            std::string name = category.name.GetString();
-            replaceGlobWildcards(pattern);
-            Config::get().addFile(source, name, pattern);
-          }
-        }
-      }
-    }
+  if (file_paths_query != config.end()) {
+    updateFilePathsQuery(file_paths_query->second, source);
   }
 
-  if (config.count("file_paths_query") > 0) {
-    // We know this top-level is an Object.
-    const auto& path_query_node = config.at("file_paths_query").doc();
-    if (path_query_node.IsObject()) {
-      for (const auto& category : path_query_node.GetObject()) {
-        if (category.value.IsArray()) {
-          std::string name = category.name.GetString();
-          for (const auto& query : category.value.GetArray()) {
-            auto sql = SQL(query.GetString());
-            if (!sql.ok()) {
-              LOG(ERROR) << "Could not add file_paths using file_paths_query '"
-                         << query.GetString()
-                         << "': " << sql.getMessageString();
-            } else {
-              for (const auto& row : sql.rows()) {
-                auto pathIt = row.find("path");
-                if (pathIt == row.end()) {
-                  LOG(ERROR) << "Cold not find non-empty 'path' column in the "
-                                "results of file_paths_query '"
-                             << query.GetString();
-                } else {
-                  std::string path = pathIt->second;
-                  replaceGlobWildcards(path);
-                  Config::get().addFile(source, name, path);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+  auto file_accesses = config.find("file_accesses");
+  if (file_accesses != config.end()) {
+    updateFileAccesses(file_accesses->second, source);
   }
 
-  // We know this top-level is an Object.
-  if (config.count("exclude_paths") > 0) {
-    auto obj = data_.getObject();
-    const auto& exclude_paths = config.at("exclude_paths").doc();
-    if (exclude_paths.IsObject()) {
-      for (const auto& category : exclude_paths.GetObject()) {
-        auto arr = data_.getArray();
-        if (category.value.IsArray()) {
-          std::string category_string = category.name.GetString();
-          for (const auto& path : category.value.GetArray()) {
-            std::string path_string = path.GetString();
-            data_.pushCopy(path_string, arr);
-          }
-          data_.add(category_string, arr, obj);
-        }
-      }
-    }
-
-    if (!data_.doc().HasMember("exclude_paths")) {
-      data_.add("exclude_paths", obj);
-    } else {
-      data_.mergeObject(data_.doc()["exclude_paths"], obj);
-    }
+  auto exclude_paths = config.find("exclude_paths");
+  if (exclude_paths != config.end()) {
+    updateExcludePaths(exclude_paths->second);
   }
 
-  return Status();
+  return Status::success();
 }
 
 REGISTER_INTERNAL(FilePathsConfigParserPlugin, "config_parser", "file_paths");

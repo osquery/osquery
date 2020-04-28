@@ -77,6 +77,7 @@ class PlatformProcess : private boost::noncopyable {
   virtual ~PlatformProcess();
 
   PlatformProcess& operator=(const PlatformProcess& process) = delete;
+  PlatformProcess& operator=(PlatformProcess&& process) noexcept;
   bool operator==(const PlatformProcess& process) const;
   bool operator!=(const PlatformProcess& process) const;
 
@@ -268,14 +269,4 @@ int platformGetPid();
  * and on posix platforms returns gettid()
  */
 uint64_t platformGetTid();
-
-/**
- * @brief Allows for platform specific exit logic
- *
- * On Windows this makes use of a thread specific exit APIs
- * to ensure that our main threads shutdown and notify the SCM
- * thread so we can close the service cleanly. On posix this is
- * just a stub to exit()
- */
-void platformMainThreadExit(int excode);
 } // namespace osquery

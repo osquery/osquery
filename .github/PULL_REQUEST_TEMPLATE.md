@@ -3,6 +3,10 @@
 To submit a PR please make sure to follow the next steps:
 
 - [ ] Read the `CONTRIBUTING.md` guide on the root of the repo.
+- [ ] Ensure the code is formatted building the `format_check` target,  
+      if not move the committed files to the stage area,
+      build the `format` target to format, then re-commit.
+      More information is available on the wiki.
 - [ ] Ensure your PR contains a single logical change.
 - [ ] Ensure your PR contains tests for the changes you're submitting.
 - [ ] Describe your changes with as much detail as you can.
@@ -14,7 +18,6 @@ To submit a PR please make sure to follow the next steps:
 The PR will be reviewed by an osquery committer.
 Here are some common things we look for:
 
-- The code is formatted correctly, considering using `make format_check`.
 - Common utilities within `./osquery/utils` are used where appropriate (avoid reinventions).
 - Modern C++ structures and patterns are used whenever possible.
 - No memory or file descriptor leaks, please check all early-return and destructors.
@@ -22,7 +25,6 @@ Here are some common things we look for:
 - The minimal amount of includes are used, only include what you use.
 - Comments for methods, structures, and classes follow our common patterns.
 - `Status` and `LOG(N)` messages do not use punctuation or contractions.
-- Support for both CMake and BUCK (we are happy to help).
 - The code mostly looks and feels similar to the existing codebase.
 
 -->

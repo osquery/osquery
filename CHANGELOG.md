@@ -1,3 +1,125 @@
+<a name="4.3.0"></a>
+## [4.3.0](https://github.com/osquery/osquery/releases/tag/4.3.0)
+
+[Git Commits](https://github.com/osquery/osquery/compare/4.2.0...4.3.0)
+
+### New Features / Under the Hood improvements
+
+- Change verbosity of scheduled query execution messages from INFO to verbose only ([#6271](https://github.com/osquery/osquery/pull/6271))
+- Updated the unwanted-chrome-extensions queries to include all users, not the osquery process owner only ([#6265](https://github.com/osquery/osquery/pull/6265))
+- Check for errors in the return status of the extension tables and report them ([#6108](https://github.com/osquery/osquery/pull/6108))
+- First steps to properly support UTF8 strings on Windows ([#6190](https://github.com/osquery/osquery/pull/6190))
+- Display the undelying API error string when udev monitoring fails ([#6186](https://github.com/osquery/osquery/pull/6186))
+- Add the `path` column to the ATC generate specs ([#6278](https://github.com/osquery/osquery/pull/6278))
+- Add Kafka support to Microsoft Windows ([#6095](https://github.com/osquery/osquery/pull/6095))
+- Log a warning message if osquery fails to get the service description on Microsoft Windows ([#6281](https://github.com/osquery/osquery/pull/6281))
+- Make AWS kinesis status logging configurable ([#6135](https://github.com/osquery/osquery/pull/6135))
+- Add an integration test for the `disk_info` table ([#6323](https://github.com/osquery/osquery/pull/6323))
+- Use -1 for missing `ppid` in the `process_events` table ([#6339](https://github.com/osquery/osquery/pull/6339))
+- Remove error when converting empty numeric rows ([#6371](https://github.com/osquery/osquery/pull/6371))
+- Change verbosity from ERROR to INFO of access failures to system processes on Microsoft Windows ([#6370](https://github.com/osquery/osquery/pull/6370))
+- Make possible to get verbose messages from the dispatcher service management on Microsoft Windows too ([#6369](https://github.com/osquery/osquery/pull/6369))
+
+### Build
+
+- Fix codegen template for extension group ([#6244](https://github.com/osquery/osquery/pull/6244))
+- Update SQLite from 3.30.1-1 to 3.31.1 ([#6252](https://github.com/osquery/osquery/pull/6252))
+- Update the osquery-toolchain to version 1.1.0 which uses LLVM/Clang 9.0.1 ([#6315](https://github.com/osquery/osquery/pull/6315))
+- Update openssl to version 1.1.1f ([#6302](https://github.com/osquery/osquery/pull/6302), [#6359](https://github.com/osquery/osquery/pull/6359))
+- Simplify formula-based third party libraries build ([#6303](https://github.com/osquery/osquery/pull/6303))
+- Removed the Buck build system ([#6361](https://github.com/osquery/osquery/pull/6361))
+
+### Bug Fixes
+
+- Fix CFNumber conversion when the type was a Float64/32 instead of a Double ([#6273](https://github.com/osquery/osquery/pull/6273))
+- Fix duplicate results being returned by the chrome_extensions table ([#6277](https://github.com/osquery/osquery/pull/6277))
+- Fix flaky ProcessOpenFilesTest.test_sanity ([#6185](https://github.com/osquery/osquery/pull/6185))
+- Fix the `--database_dump` flag for RocksDB not outputting anything ([#6272](https://github.com/osquery/osquery/pull/6272))
+- Fix the `pci_devices` table pci ids extraction in non-existing paths ([#6297](https://github.com/osquery/osquery/pull/6297))
+- Fix parsing an invalid decorators config ([#6317](https://github.com/osquery/osquery/pull/6317))
+- Fix flaky TLSConfigTests.test_runner_and_scheduler ([#6308](https://github.com/osquery/osquery/pull/6308))
+- Fix chromeExtensions.test_sanity ([#6324](https://github.com/osquery/osquery/pull/6324))
+- Fix broken Unicode filename searches on Microsoft Windows ([#6291](https://github.com/osquery/osquery/pull/6291))
+- Fix a use-after-free when sqlite attempts to access the entire rows data at the end of a query ([#6328](https://github.com/osquery/osquery/pull/6328))
+- Keep proc instance for test_base and test_osqueryd ([#6335](https://github.com/osquery/osquery/pull/6335))
+- Fix osquery not exiting when given check or dump requests ([#6334](https://github.com/osquery/osquery/pull/6334))
+- Fix `process` table `cmdline` parsing ([#6340](https://github.com/osquery/osquery/pull/6340))
+- Fix a crash when parsing files with libmagic ([#6363](https://github.com/osquery/osquery/pull/6363))
+- Fix a sporadic readFile API failure when using non-blocking I/O ([#6368](https://github.com/osquery/osquery/pull/6368))
+- Fix the MSI package not always installing in the system drive by default ([#6379](https://github.com/osquery/osquery/pull/6379))
+- Ensure the extensions uuid is never 0 ([#6377](https://github.com/osquery/osquery/pull/6377))
+- Fix a race condition making the watcher act as a worker on Microsoft Windows ([#6372](https://github.com/osquery/osquery/pull/6372))
+- Fix extensions tables detaching which was sometimes failing ([#6373](https://github.com/osquery/osquery/pull/6373))
+- Fix an issue with extensions re-registration ([#6374](https://github.com/osquery/osquery/pull/6374))
+- Fix a crash due to a race condition in accessing the iokit port on Darwin (Apple OS X) ([#6380](https://github.com/osquery/osquery/pull/6380))
+
+### Hardening
+
+- Limit SQL functions regex_match and regex_split regex size ([#6267](https://github.com/osquery/osquery/pull/6267))
+- Prevent a stack overflow when parsing deeply nested configs ([#6325](https://github.com/osquery/osquery/pull/6325))
+
+### Table Changes
+
+- Added table `chrome_extension_content_scripts` to All Platforms ([#6140](https://github.com/osquery/osquery/pull/6140))
+- Added table `docker_container_fs_changes` to POSIX-compatible Plaforms ([#6178](https://github.com/osquery/osquery/pull/6178))
+- Added table `windows_security_center` to Microsoft Windows ([#6256](https://github.com/osquery/osquery/pull/6256))
+- Added many new tables to Linux to query `lxd` ([#6249](https://github.com/osquery/osquery/pull/6249))
+- Added table `screenlock` to Darwin (Apple OS X) ([#6243](https://github.com/osquery/osquery/pull/6243))
+- Added table `userassist` to Microsoft Windows ([#5539](https://github.com/osquery/osquery/pull/5539))
+- Added column `status` (`TEXT`) to table `deb_packages` ([#6341](https://github.com/osquery/osquery/pull/6341))
+- Added many new columns to the `curl_certificate` table ([#6176](https://github.com/osquery/osquery/pull/6176))
+- Added table `socket_events` to Darwin (Apple OS X) ([#6028](https://github.com/osquery/osquery/pull/6028))
+- Added table `hvci_status`, previously inadvertly left out from the build, to Microsoft Windows ([6378](https://github.com/osquery/osquery/pull/6378))
+
+<a name="4.2.0"></a>
+## [4.2.0](https://github.com/osquery/osquery/releases/tag/4.2.0)
+
+[Git Commits](https://github.com/osquery/osquery/compare/4.1.2...4.2.0)
+
+### New Features / Under the Hood improvements
+- TLS Testing infrastructure has been overhauled ([#6170](https://github.com/osquery/osquery/pull/6170))
+- Boost regex has been replaced with std ([#6236](https://github.com/osquery/osquery/pull/6236))
+- `community_id_v1` added as a SQL function ([#6211](https://github.com/osquery/osquery/pull/6211))
+
+### Build
+- Fix format checking on Windows ([#6188](https://github.com/osquery/osquery/pull/6188))
+- Fix format folder exclusions for build checks ([#6201](https://github.com/osquery/osquery/pull/6201))
+- Fix the linking for extensions in build ([#6219](https://github.com/osquery/osquery/pull/6219))
+- Fix build to include windows optional features table ([#6207](https://github.com/osquery/osquery/pull/6207))
+
+### Security Issues
+- [CVE-2020-1887] osquery does not properly verify the SNI hostname ([#6197](https://github.com/osquery/osquery/pull/6197))
+
+### Bug Fixes
+- Carver no longer returns empty carves for hidden files ([#6183](https://github.com/osquery/osquery/pull/6183))
+- Address a race in the Dispatcher logic ([#6145](https://github.com/osquery/osquery/pull/6145))
+- Fix validation in 'last' table ([#6147](https://github.com/osquery/osquery/pull/6147))
+- Fix flaky logger testing ([#6171](https://github.com/osquery/osquery/pull/6171))
+- Fix JSON format assumptions in file_paths parsing ([#6159](https://github.com/osquery/osquery/pull/6159))
+- Fix windows WMI BSTR to be wstrings ([#6175](https://github.com/osquery/osquery/pull/6175))
+- Fix windows string <-> wstring conversion functions ([#6187](https://github.com/osquery/osquery/pull/6187))
+- Enable more intelligent path expansion on Windows ([#6153](https://github.com/osquery/osquery/pull/6153))
+- Fix heap buffer overflow in callDoubleFunc and powerFunc ([#6225](https://github.com/osquery/osquery/pull/6225))
+
+### Table Changes
+- Added table `firefox_addons` to All Platforms ([#6200](https://github.com/osquery/osquery/pull/6200))
+- Added table `ssh_configs` to All Platforms ([#6161](https://github.com/osquery/osquery/pull/6161))
+- Added table `user_ssh_keys` to All Platforms ([#6161](https://github.com/osquery/osquery/pull/6161))
+- Added table `mdls` to Darwin (Apple OS X) ([#4825](https://github.com/osquery/osquery/pull/4825))
+- Added table `hvci_status` to Microsoft Windows ([#5426](https://github.com/osquery/osquery/pull/5426))
+- Added table `ntfs_journal_events` to Microsoft Windows ([#5371](https://github.com/osquery/osquery/pull/5371))
+- Added table `docker_image_layers` to POSIX-compatible Plaforms ([#6154](https://github.com/osquery/osquery/pull/6154))
+- Added table `process_open_pipes` to POSIX-compatible Plaforms ([#6142](https://github.com/osquery/osquery/pull/6142))
+- Added table `apparmor_profiles` to Ubuntu, CentOS ([#6138](https://github.com/osquery/osquery/pull/6138))
+- Added table `selinux_settings` to Ubuntu, CentOS ([#6118](https://github.com/osquery/osquery/pull/6118))
+- Added column `lock_status` (`INTEGER_TYPE`) to table `bitlocker_info` ([#6155](https://github.com/osquery/osquery/pull/6155))
+- Added column `percentage_encrypted` (`INTEGER_TYPE`) to table `bitlocker_info` ([#6155](https://github.com/osquery/osquery/pull/6155))
+- Added column `version` (`INTEGER_TYPE`) to table `bitlocker_info` ([#6155](https://github.com/osquery/osquery/pull/6155))
+- Added column `optional_permissions` (`TEXT_TYPE`) to table `chrome_extensions` ([#6115](https://github.com/osquery/osquery/pull/6115))
+- Removed table `firefox_addons` from POSIX-compatible Plaforms ([#6200](https://github.com/osquery/osquery/pull/6200))
+- Removed table `ssh_configs` from POSIX-compatible Plaforms ([#6161](https://github.com/osquery/osquery/pull/6161))
+- Removed table `user_ssh_keys` from POSIX-compatible Plaforms ([#6161](https://github.com/osquery/osquery/pull/6161))
+
 <a name="4.1.2"></a>
 ## [4.1.2](https://github.com/osquery/osquery/releases/tag/4.1.2)
 

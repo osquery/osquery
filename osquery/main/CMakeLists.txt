@@ -65,7 +65,7 @@ function(generateOsqueryMain)
     plugins_logger_syslog
     plugins_logger_tlslogger
     plugins_numericmonitoring_filesystem
-    plugins_remote_enroll_tlsenrollplugin
+    plugins_remote_enroll_tlsenroll
     specs_tables
     thirdparty_boost
   )
@@ -92,6 +92,7 @@ function(generateOsqueryMain)
       plugins_logger_awskinesis
       plugins_logger_awslogforwarder
       plugins_logger_windowseventlog
+      plugins_logger_kafkaproducer
     )
   endif()
 

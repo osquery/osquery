@@ -6,7 +6,8 @@ schema([
     Column("source", TEXT, "Package source"),
     Column("size", BIGINT, "Package size in bytes"),
     Column("arch", TEXT, "Package architecture"),
-    Column("revision", TEXT, "Package revision")
+    Column("revision", TEXT, "Package revision"),
+    Column("status", TEXT, "Package status")
 ])
 attributes(cacheable=True)
 implementation("system/deb_packages@genDebPackages")

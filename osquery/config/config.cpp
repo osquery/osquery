@@ -10,6 +10,7 @@
 #include <chrono>
 #include <functional>
 #include <map>
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -38,6 +39,11 @@ namespace osquery {
 namespace {
 /// Prefix to persist config data
 const std::string kConfigPersistencePrefix{"config_persistence."};
+
+/// Max depth that the JSON document representing the configuration can have
+const int kMaxConfigDepth = 32;
+/// Max size that the configuration, stripped from its comments, can have
+const int kMaxConfigSize = 1024 * 1024;
 
 using ConfigMap = std::map<std::string, std::string>;
 
@@ -70,7 +76,10 @@ CLI_FLAG(bool,
          false,
          "Check the format of an osquery config and exit");
 
-CLI_FLAG(bool, config_dump, false, "Dump the contents of the configuration");
+CLI_FLAG(bool,
+         config_dump,
+         false,
+         "Dump the contents of the configuration, then exit");
 
 CLI_FLAG(uint64,
          config_refresh,
@@ -501,6 +510,7 @@ Status Config::refresh() {
                 content.first.c_str(),
                 content.second.c_str());
       }
+      VLOG(1) << "Requesting shutdown after dumping config";
       // Don't force because the config plugin may have started services.
       Initializer::requestShutdown();
       return Status::success();
@@ -605,6 +615,53 @@ void Config::backupConfig(const ConfigMap& config) {
   }
 }
 
+Status Config::validateConfig(const JSON& document) {
+  const auto& rapidjson_doc = document.doc();
+  if (!rapidjson_doc.IsObject()) {
+    return Status::failure(
+        "The root of the config JSON document has to be an Object");
+  }
+
+  const rapidjson::Value& root_node = rapidjson_doc;
+  std::queue<std::reference_wrapper<const rapidjson::Value>> nodes;
+  nodes.push(root_node);
+
+  std::size_t node_count = nodes.size();
+  int depth = 0;
+
+  while (node_count > 0 && depth < kMaxConfigDepth) {
+    while (node_count > 0) {
+      const auto& node = nodes.front().get();
+      nodes.pop();
+
+      if (node.IsObject()) {
+        for (rapidjson::Value::ConstMemberIterator itr = node.MemberBegin();
+             itr != node.MemberEnd();
+             ++itr) {
+          nodes.push(node[itr->name]);
+        }
+      } else if (node.IsArray()) {
+        for (size_t i = 0; i < node.Size(); ++i) {
+          nodes.push(node[i]);
+        }
+      }
+
+      --node_count;
+    }
+
+    ++depth;
+    node_count = nodes.size();
+  }
+
+  if (depth == kMaxConfigDepth && node_count != 0) {
+    return Status::failure(
+        "Configuration has too many "
+        "nesting levels!");
+  }
+
+  return Status::success();
+}
+
 Status Config::updateSource(const std::string& source,
                             const std::string& json) {
   // Compute a 'synthesized' hash using the content before it is parsed.
@@ -627,8 +684,24 @@ Status Config::updateSource(const std::string& source,
   auto clone = json;
   stripConfigComments(clone);
 
-  if (!doc.fromString(clone) || !doc.doc().IsObject()) {
-    return Status(1, "Error parsing the config JSON");
+  // Since we use iterative parsing, we limit the size of the JSON
+  // string to a sane value to avoid memory exhaustion.
+  if (clone.size() > kMaxConfigSize) {
+    return Status::failure(
+        "Error parsing the config JSON: the config size exceeds the limit "
+        "of " +
+        std::to_string(kMaxConfigSize) + " bytes");
+  }
+
+  if (!doc.fromString(clone, JSON::ParseMode::Iterative) ||
+      !doc.doc().IsObject()) {
+    return Status::failure("Error parsing the config JSON");
+  }
+
+  auto status = validateConfig(doc);
+  if (!status.ok()) {
+    return Status::failure("Error validating the config JSON: " +
+                           status.getMessage());
   }
 
   // extract the "schedule" key and store it as the main pack
@@ -714,7 +787,7 @@ void Config::applyParsers(const std::string& source,
         }
 
         auto doc = JSON::newFromValue(obj[key]);
-        parser_config.emplace(std::make_pair(key, std::move(doc)));
+        parser_config.emplace(key, std::move(doc));
       }
     }
     // The config parser plugin will receive a copy of each property tree for
@@ -920,6 +993,7 @@ void Config::reset() {
       continue;
     }
     parser->reset();
+    parser->setUp();
   }
 }
 
@@ -1082,7 +1156,7 @@ Status ConfigPlugin::call(const PluginRequest& request,
   }
 
   if (action->second == "genConfig") {
-    std::map<std::string, std::string> config;
+    ConfigMap config;
     auto stat = genConfig(config);
     response.push_back(config);
     return stat;

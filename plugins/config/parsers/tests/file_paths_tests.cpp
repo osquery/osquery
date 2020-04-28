@@ -19,6 +19,8 @@
 #include <osquery/registry_interface.h>
 #include <osquery/utils/conversions/tryto.h>
 
+#include <set>
+
 namespace osquery {
 
 DECLARE_bool(disable_database);
@@ -59,21 +61,25 @@ class FilePathsConfigParserPluginTests : public testing::Test {
 };
 
 TEST_F(FilePathsConfigParserPluginTests, test_get_files) {
-  std::vector<std::string> expected_categories = {
-      "config_files", "config_files_query", "logs", "logs"};
-  std::vector<std::string> categories;
-  std::vector<std::string> expected_values = {
-      "/dev", "/dev/zero", "/dev/urandom", "/dev/null", "/dev/random"};
-  std::vector<std::string> values;
+  std::set<std::string> expected_categories = {"config_files", "logs", "logs"};
+  std::set<std::string> expected_values = {
+      "/dev", "/dev/zero", "/dev/null", "/dev/random"};
 
+  // This tests the file_paths_query feature.
+  expected_categories.insert("config_files_query");
+  expected_values.insert("/dev/urandom");
+
+  std::set<std::string> categories;
+  std::set<std::string> values;
   Config::get().update(config_data_);
-  Config::get().files(([&categories, &values](
-      const std::string& category, const std::vector<std::string>& files) {
-    categories.push_back(category);
-    for (const auto& file : files) {
-      values.push_back(file);
-    }
-  }));
+  Config::get().files(
+      ([&categories, &values](const std::string& category,
+                              const std::vector<std::string>& files) {
+        categories.insert(category);
+        for (const auto& file : files) {
+          values.insert(file);
+        }
+      }));
 
   EXPECT_EQ(categories, expected_categories);
   EXPECT_EQ(values, expected_values);
@@ -84,12 +90,21 @@ TEST_F(FilePathsConfigParserPluginTests, test_get_file_accesses) {
   auto parser = Config::getParser("file_paths");
   const auto& doc = parser->getData();
 
-  size_t accesses = 0_sz;
-  if (doc.doc().HasMember("file_accesses") &&
-      doc.doc()["file_accesses"].IsArray()) {
-    accesses = doc.doc()["file_accesses"].Size();
-  }
-  EXPECT_EQ(accesses, 2_sz);
+  ASSERT_TRUE(doc.doc().HasMember("file_accesses"));
+  ASSERT_TRUE(doc.doc()["file_accesses"].IsArray());
+  EXPECT_EQ(doc.doc()["file_accesses"].Size(), 2_sz);
+}
+
+TEST_F(FilePathsConfigParserPluginTests, test_get_exclude_paths) {
+  Config::get().update(config_data_);
+  auto parser = Config::getParser("file_paths");
+  const auto& doc = parser->getData();
+
+  ASSERT_TRUE(doc.doc().HasMember("exclude_paths"));
+  ASSERT_TRUE(doc.doc()["exclude_paths"].IsObject());
+  ASSERT_TRUE(doc.doc()["exclude_paths"].HasMember("example"));
+  ASSERT_TRUE(doc.doc()["exclude_paths"]["example"].IsArray());
+  EXPECT_EQ(doc.doc()["exclude_paths"]["example"].Size(), 1_sz);
 }
 
 TEST_F(FilePathsConfigParserPluginTests, test_remove_source) {

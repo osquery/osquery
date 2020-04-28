@@ -68,9 +68,7 @@ class KinesisLoggerPlugin : public LoggerPlugin {
 
   Status setUp() override;
 
-  bool usesLogStatus() override {
-    return true;
-  }
+  bool usesLogStatus() override;
 
  private:
   void init(const std::string& name,

@@ -40,6 +40,12 @@ function(googleTestMain)
     target_link_libraries("${target_name}" PRIVATE
       thirdparty_cxx_settings
     )
+
+    if(DEFINED PLATFORM_WINDOWS)
+      get_target_property(target_compile_flags ${target_name} COMPILE_FLAGS)
+      string(REPLACE "-Zi" "-Z7" target_compile_flags "${target_compile_flags}")
+      set_target_properties(${target_name} PROPERTIES COMPILE_FLAGS ${target_compile_flags})
+    endif()
   endforeach()
 
   add_library(thirdparty_googletest INTERFACE)

@@ -76,6 +76,22 @@ class TLSTransport : public Transport {
  public:
   TLSTransport();
 
+  /**
+   * This returns the restrictive (best practice) set of options.
+   * They include a limited cipher suite as well as the potential client
+   * certificates.
+   *
+   * Use these options with a TLS client communicating with osquery-related
+   * infrastructure.
+   */
+  http::Client::Options getInternalOptions();
+
+  /**
+   * This returns basic/generial options.
+   *
+   * Use these options if you are communicating with AWS or generic Internet
+   * infrastrucutre.
+   */
   http::Client::Options getOptions();
 
  private:
@@ -127,7 +143,7 @@ class TLSTransport : public Transport {
   FRIEND_TEST(TLSTransportsTests, test_call_verify_peer);
   FRIEND_TEST(TLSTransportsTests, test_call_server_cert_pinning);
   FRIEND_TEST(TLSTransportsTests, test_call_client_auth);
-  FRIEND_TEST(TLSTransportsTests, test_call_http);
+  FRIEND_TEST(TLSTransportsTests, test_wrong_hostname);
 
   friend class TestDistributedPlugin;
 };

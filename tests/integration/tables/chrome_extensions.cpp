@@ -15,10 +15,10 @@ namespace osquery {
 namespace table_tests {
 
 class chromeExtensions : public testing::Test {
-  protected:
-    void SetUp() override {
-      setUpEnvironment();
-    }
+ protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
 };
 
 TEST_F(chromeExtensions, test_sanity) {
@@ -32,10 +32,11 @@ TEST_F(chromeExtensions, test_sanity) {
                            {"locale", NormalType},
                            {"update_url", NonEmptyString},
                            {"author", NormalType},
+                           {"optional_permissions", NormalType},
                            {"persistent", IntType},
                            {"path", NonEmptyString},
                            {"permissions", NormalType},
-                           {"profile", NonEmptyString}};
+                           {"profile", NormalType}};
   validate_rows(data, row_map);
 }
 

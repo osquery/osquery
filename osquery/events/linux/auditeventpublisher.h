@@ -30,10 +30,15 @@ struct SyscallAuditEventData final {
   pid_t parent_process_id;
 
   uid_t process_uid;
+  uid_t process_auid;
   uid_t process_euid;
+  uid_t process_fsuid;
+  uid_t process_suid;
 
   gid_t process_gid;
   gid_t process_egid;
+  gid_t process_fsgid;
+  gid_t process_sgid;
 
   std::string executable_path;
 };

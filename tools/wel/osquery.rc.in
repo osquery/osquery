@@ -1,0 +1,3 @@
+LANGUAGE 0x9,0x1
+1 11 "@osquery_rc_MSG@"
+1 WEVT_TEMPLATE "@osquery_rc_WEVT_TEMPLATE@"

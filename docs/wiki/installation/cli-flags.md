@@ -65,7 +65,7 @@ Check the format of an osquery config and exit. Arbitrary config plugins may be 
 
 `--config_dump=false`
 
-Request that the configuration JSON be printed to standard out before it is updated. In this case "updated" means applied to the active config. When osquery starts it performs an initial update from the config plugin. To quickly debug the content retrieved by custom config plugins use this in tandem with `--config_check`.
+Request that the configuration JSON be printed to standard out before it is updated, then exit the process. In this case "updated" means applied to the active config. When osquery starts it performs an initial update from the config plugin. To quickly debug the content retrieved by custom config plugins use this in tandem with `--config_check`.
 
 ### Daemon control flags
 
@@ -508,3 +508,14 @@ Time period in _seconds_ for numeric monitoring pre-aggreagation buffer. During 
 `--numeric_monitoring_filesystem_path=OSQUERY_LOG_HOME/numeric_monitoring.log`
 
 File to dump numeric monitoring records one per line. The format of the line is `<PATH><TAB><VALUE><TAB><TIMESTAMP>`. File will be opened in append mode.
+
+
+### Whitelisting and blacklisting flags
+
+`--disable_tables=table1,table2`
+
+Comma separated list of tables to blacklist. By default no tables are disabled.
+
+`--enable_tables=table1,table2`
+
+Comma separated list of tables to whitelist. By default every tables are enabled. If a specific table is set in both `--enable_tables` and `--disable_tables`, blacklisting take precedence and the table is disabled. If `--enable_tables` is defined and `--disable_tables` is not set, every tables but the one defined in `-enable_tables` are disabled.

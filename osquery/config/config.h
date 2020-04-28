@@ -243,6 +243,14 @@ class Config : private boost::noncopyable {
   static const std::shared_ptr<ConfigParserPlugin> getParser(
       const std::string& parser);
 
+  /**
+   * @brief Helper to generically verify that a config is valid
+   *
+   * This function checks that the config JSON document root is an Object
+   * and that the depth of the document doesn't go beyond kMaxConfigDepth.
+   */
+  Status validateConfig(const JSON& document);
+
  protected:
   /**
    * @brief Call the genConfig method of the config retriever plugin.

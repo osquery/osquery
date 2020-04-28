@@ -6,6 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/utils/system/env.h>
 #include <osquery/utils/system/system.h>
 
 #include <Winsvc.h>
@@ -79,30 +80,36 @@ static inline Status getService(const SC_HANDLE& scmHandle,
     return Status(GetLastError(), "Failed to query service config");
   }
 
-  (void)QueryServiceConfig2(
-      svcHandle.get(), SERVICE_CONFIG_DESCRIPTION, nullptr, 0, &cbBufSize);
-  err = GetLastError();
-  if (ERROR_INSUFFICIENT_BUFFER == err) {
-    svc_descr_t lpsd(static_cast<LPSERVICE_DESCRIPTION>(malloc(cbBufSize)),
-                     freePtr);
-    if (lpsd == nullptr) {
-      return Status(1, "Failed to malloc service description buffer");
+  try {
+    (void)QueryServiceConfig2(
+        svcHandle.get(), SERVICE_CONFIG_DESCRIPTION, nullptr, 0, &cbBufSize);
+    err = GetLastError();
+    if (ERROR_INSUFFICIENT_BUFFER == err) {
+      svc_descr_t lpsd(static_cast<LPSERVICE_DESCRIPTION>(malloc(cbBufSize)),
+                       freePtr);
+      if (lpsd == nullptr) {
+        throw std::runtime_error("failed to malloc service description buffer");
+      }
+      ret = QueryServiceConfig2(svcHandle.get(),
+                                SERVICE_CONFIG_DESCRIPTION,
+                                (LPBYTE)lpsd.get(),
+                                cbBufSize,
+                                &cbBufSize);
+      if (ret == 0) {
+        std::stringstream ss;
+        ss << "failed to query size of service description buffer, error: "
+           << GetLastError();
+        throw std::runtime_error(ss.str());
+      }
+      if (lpsd->lpDescription != nullptr) {
+        r["description"] = SQL_TEXT(lpsd->lpDescription);
+      }
+    } else if (ERROR_MUI_FILE_NOT_FOUND != err) {
+      // Bug in Windows 10 with CDPUserSvc_63718, just ignore description
+      throw std::runtime_error("failed to query service description");
     }
-    ret = QueryServiceConfig2(svcHandle.get(),
-                              SERVICE_CONFIG_DESCRIPTION,
-                              (LPBYTE)lpsd.get(),
-                              cbBufSize,
-                              &cbBufSize);
-    if (ret == 0) {
-      return Status(GetLastError(),
-                    "Failed to query size of service description buffer");
-    }
-    if (lpsd->lpDescription != nullptr) {
-      r["description"] = SQL_TEXT(lpsd->lpDescription);
-    }
-  } else if (ERROR_MUI_FILE_NOT_FOUND != err) {
-    // Bug in Windows 10 with CDPUserSvc_63718, just ignore description
-    return Status(err, "Failed to query service description");
+  } catch (const std::runtime_error& e) {
+    LOG(WARNING) << svc.lpServiceName << ": " << e.what();
   }
 
   r["name"] = SQL_TEXT(svc.lpServiceName);
@@ -128,7 +135,12 @@ static inline Status getService(const SC_HANDLE& scmHandle,
            regResults);
   for (const auto& aKey : regResults) {
     if (aKey.at("name") == "ServiceDll") {
-      r["module_path"] = SQL_TEXT(aKey.at("data"));
+      auto module_path = aKey.at("data");
+      if (const auto expanded_path = expandEnvString(module_path)) {
+        module_path = *expanded_path;
+      }
+
+      r["module_path"] = SQL_TEXT(module_path);
     }
   }
 
@@ -184,7 +196,7 @@ static inline Status getServices(QueryData& results) {
   for (size_t i = 0; i < serviceCount; i++) {
     auto s = getService(scmHandle.get(), lpSvcBuf[i], results);
     if (!s.ok()) {
-      return s;
+      LOG(WARNING) << s.getMessage();
     }
   }
 
@@ -195,7 +207,6 @@ QueryData genServices(QueryContext& context) {
   QueryData results;
   auto status = getServices(results);
   if (!status.ok()) {
-    // Prefer no results to incomplete results
     LOG(WARNING) << status.getMessage();
     results = QueryData();
   }

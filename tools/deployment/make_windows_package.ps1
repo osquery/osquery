@@ -17,7 +17,7 @@ The script will help make both MSI and Chocolatey install packages for Windows. 
 Allows you to specify either MSI or Chocolatety for output. Can be aliased with 'Type'
 
 .PARAMETER BuildPath
-Allows you to specify a Buck or CMake build. The default is CMake output binaries. Can be aliased with 'Build'
+Allows you to specify the output binaries path. The default is build\osquery\RelWithDebInfo. Can be aliased with 'Build'
 
 .PARAMETER ConfigFilePath
 Specify the path to find your osquery config file that you would like to include in the build. Can be aliased with 'ConfigFile'
@@ -610,11 +610,6 @@ function Main() {
   if ($BuildPath -eq '') {
     # Check the default CMake build location
     $BuildPath = Join-Path "$PSScriptRoot\..\..\..\" 'build\osquery\RelWithDebInfo'
-
-    # If that path doesn't exist, check the default Buck build location
-    if (-not (Test-Path $BuildPath)) {
-      $BuildPath = Join-Path $osqRoot 'buck-out\release\gen\osquery'
-    }
   }
 
   # Whether specified by the user or not, check that the BuildPath exists

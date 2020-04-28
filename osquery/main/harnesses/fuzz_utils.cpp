@@ -7,16 +7,30 @@
  */
 
 #include <osquery/database.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
+#include <osquery/sql/sqlite_util.h>
+
+#include <sqlite3.h>
 
 namespace osquery {
 
+DECLARE_bool(disable_database);
+
 int osqueryFuzzerInitialize(int* argc, char*** argv) {
   osquery::registryAndPluginInit();
+
+  FLAGS_disable_database = true;
   osquery::DatabasePlugin::setAllowOpen(true);
-  osquery::Registry::get().setActive("database", "ephemeral");
   osquery::DatabasePlugin::initPlugin();
+
+  auto* db = osquery::SQLiteDBManager::instance().get()->db();
+
+  // See https://www.sqlite.org/src/artifact/18af635f about limiting what
+  // effects the fuzzer triggers.
+  sqlite3_limit(db, SQLITE_LIMIT_VDBE_OP, 25000);
+  sqlite3_limit(db, SQLITE_LIMIT_LENGTH, 50000);
 
   osquery::PluginRequest r;
   r["action"] = "detach";
