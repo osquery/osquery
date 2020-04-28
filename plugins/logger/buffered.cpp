@@ -29,6 +29,8 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+DECLARE_bool(decorations_top_level);
+
 FLAG(uint64,
      buffered_log_max,
      1000000,
@@ -183,13 +185,8 @@ Status BufferedLogForwarder::logString(const std::string& s, size_t time) {
 Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log,
                                        size_t time) {
   // Append decorations to status
-  // Assemble a decorations tree to append to each status buffer line.
-  pt::ptree dtree;
   std::map<std::string, std::string> decorations;
   getDecorations(decorations);
-  for (const auto& decoration : decorations) {
-    dtree.put(decoration.first, decoration.second);
-  }
 
   for (const auto& item : log) {
     // Convert the StatusLogLine into ptree format, to convert to JSON.
@@ -202,8 +199,21 @@ Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log,
     buffer.put("line", item.line);
     buffer.put("message", item.message);
     buffer.put("version", kVersion);
+
     if (decorations.size() > 0) {
-      buffer.put_child("decorations", dtree);
+      if (!FLAGS_decorations_top_level) {
+        // Assemble a decorations tree to append to each status buffer line.
+        pt::ptree dtree;
+        for (const auto& decoration : decorations) {
+          dtree.put(decoration.first, decoration.second);
+        }
+        buffer.put_child("decorations", dtree);
+      } else {
+        // Add each decoration to the top level of each status buffer line
+        for (const auto& decoration : decorations) {
+          buffer.put(decoration.first, decoration.second);
+        }
+      }
     }
 
     // Convert to JSON, for storing a string-representation in the database.
