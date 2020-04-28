@@ -42,6 +42,7 @@ Status genSqliteTableRow(sqlite3_stmt* stmt,
     auto column_name = std::string(sqlite3_column_name(stmt, i));
     auto column_type = sqlite3_column_type(stmt, i);
     switch (column_type) {
+    case SQLITE_BLOB:
     case SQLITE_TEXT: {
       auto text_value = sqlite3_column_text(stmt, i);
       if (text_value != nullptr) {
@@ -55,7 +56,7 @@ Status genSqliteTableRow(sqlite3_stmt* stmt,
       break;
     }
     case SQLITE_INTEGER: {
-      auto int_value = sqlite3_column_int(stmt, i);
+      auto int_value = sqlite3_column_int64(stmt, i);
       r[column_name] = INTEGER(int_value);
       break;
     }
