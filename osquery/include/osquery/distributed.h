@@ -84,13 +84,15 @@ struct DistributedQueryResult {
   DistributedQueryResult(const DistributedQueryRequest& req,
                          const QueryData& res,
                          const ColumnNames& cols,
-                         const Status& s)
-      : request(req), results(res), columns(cols), status(s) {}
+                         const Status& s,
+                         const std::string& msg)
+      : request(req), results(res), columns(cols), status(s), message(msg) {}
 
   DistributedQueryRequest request;
   QueryData results;
   ColumnNames columns;
   Status status;
+  std::string message;
 };
 
 /**
