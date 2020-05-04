@@ -92,6 +92,7 @@ Status Distributed::serializeResults(std::string& json) {
   auto doc = JSON::newObject();
   auto queries_obj = doc.getObject();
   auto statuses_obj = doc.getObject();
+  auto messages_obj = doc.getObject();
   for (const auto& result : results_) {
     auto arr = doc.getArray();
     auto s = serializeQueryData(result.results, result.columns, doc, arr);
@@ -100,10 +101,12 @@ Status Distributed::serializeResults(std::string& json) {
     }
     doc.add(result.request.id, arr, queries_obj);
     doc.add(result.request.id, result.status.getCode(), statuses_obj);
+    doc.add(result.request.id, result.message, messages_obj);
   }
 
   doc.add("queries", queries_obj);
   doc.add("statuses", statuses_obj);
+  doc.add("messages", messages_obj);
   return doc.toString(json);
 }
 
@@ -121,13 +124,14 @@ Status Distributed::runQueries() {
     Distributed::setCurrentRequestId(request.id);
 
     SQL sql(request.query);
-    if (!sql.getStatus().ok()) {
+    const auto ok = sql.getStatus().ok();
+    const auto& msg = ok ? "" : sql.getMessageString();
+    if (!ok) {
       LOG(ERROR) << "Error executing distributed query: " << request.id << ": "
-                 << sql.getMessageString();
+                 << msg;
     }
-
     DistributedQueryResult result(
-        request, sql.rows(), sql.columns(), sql.getStatus());
+        request, sql.rows(), sql.columns(), sql.getStatus(), msg);
     addResult(result);
   }
   return flushCompleted();
@@ -354,4 +358,4 @@ Status deserializeDistributedQueryResultJSON(const std::string& json,
   }
   return deserializeDistributedQueryResult(doc.doc(), r);
 }
-}
+} // namespace osquery
