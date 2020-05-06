@@ -44,7 +44,7 @@ function(opensslMain)
     )
 
     set(install_command
-      make install
+      make install_sw install_ssldirs
     )
 
     set(openssl_libs
@@ -84,7 +84,7 @@ function(opensslMain)
     )
 
     set(install_command
-      make install
+      make install_sw install_ssldirs
     )
 
     set(openssl_libs
