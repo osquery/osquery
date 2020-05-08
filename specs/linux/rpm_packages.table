@@ -10,6 +10,8 @@ schema([
     Column("arch", TEXT, "Architecture(s) supported", index=True),
     Column("epoch", INTEGER, "Package epoch value", index=True),
     Column("install_time", INTEGER, "When the package was installed"),
+    Column("vendor", TEXT, "Package vendor"),
+    Column("package_group", TEXT, "Package group")
 ])
 attributes(cacheable=True)
 implementation("@genRpmPackages")
