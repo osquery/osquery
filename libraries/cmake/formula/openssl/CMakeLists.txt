@@ -7,20 +7,14 @@ include(ExternalProject)
 
 function(opensslMain)
 
-  get_target_property(zlib_library_dir_path thirdparty_zlib BINARY_DIR)
-  get_target_property(zlib_library_lib_name thirdparty_zlib OUTPUT_NAME)
-  get_target_property(zlib_library_source_dir thirdparty_zlib SOURCE_DIR)
-
   set(common_options
     no-ssl2
     no-ssl3
     no-asm
     no-shared
     no-weak-ssl-ciphers
-    zlib-dynamic
+    no-comp
     enable-cms
-    "--with-zlib-include=${zlib_library_source_dir}/src"
-    "--with-zlib-lib=${zlib_library_dir_path}/${zlib_library_lib_name}"
   )
 
   add_library(thirdparty_openssl_ssl STATIC IMPORTED GLOBAL)
