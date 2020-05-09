@@ -36,6 +36,7 @@ class OpenBSMConsumerRunner;
 class OpenBSMEventPublisher
     : public EventPublisher<OpenBSMSubscriptionContext, OpenBSMEventContext> {
   DECLARE_PUBLISHER("openbsm");
+
  public:
   Status setUp() override;
 
@@ -43,6 +44,7 @@ class OpenBSMEventPublisher
 
   void tearDown() override;
 
+  /// Poll the audit descriptor until the publisher is interrupted.
   Status run() override;
 
   OpenBSMEventPublisher(const std::string& name = "OpenBSMEventPublisher")
@@ -55,11 +57,16 @@ class OpenBSMEventPublisher
   }
 
  private:
-  FILE* audit_pipe_ = nullptr;
+  /// Dequeue from the audit descriptor when data is available.
+  void acquireMessages();
+
+  Status configureAuditPipe();
+
   /// Apply normal subscription to event matching logic.
   bool shouldFire(const OpenBSMSubscriptionContextRef& mc,
                   const OpenBSMEventContextRef& ec) const override;
 
-  Status configureAuditPipe();
+ private:
+  FILE* audit_pipe_{nullptr};
 };
 } // namespace osquery
