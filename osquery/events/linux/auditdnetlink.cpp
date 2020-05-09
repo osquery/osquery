@@ -63,6 +63,7 @@ FLAG(int32, audit_backlog_limit, 4096, "The audit backlog limit");
 DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_fork_process_events);
+DECLARE_bool(audit_allow_kill_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
 DECLARE_bool(audit_allow_selinux_events);
@@ -350,6 +351,14 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
                  "clone) table";
 
       for (int syscall : kForkProcessEventsSyscalls) {
+        monitored_syscall_list_.insert(syscall);
+      }
+    }
+
+    if (FLAGS_audit_allow_kill_process_events) {
+      VLOG(1) << "Enabling audit rules for the process_events (kill, tkill, "
+                 "tgkill) table";
+      for (int syscall : kKillProcessEventsSyscalls) {
         monitored_syscall_list_.insert(syscall);
       }
     }
