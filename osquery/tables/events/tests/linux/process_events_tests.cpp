@@ -198,7 +198,10 @@ TEST_F(ProcessEventsTests, kill_syscall_event_processing) {
       {"tty", "pts3"},
       {"ses", "5"},
       {"comm", "\"bash\""},
-      {"path", "/bin/bash"}};
+      {"path", "/bin/bash"},
+      {"ocomm", "\"python3\""},
+      {"oauid", "1000"},
+      {"oses", "5"}};
 
   for (const auto& key : kExpectedFields) {
     EXPECT_TRUE(event_row.find(key) != event_row.end());

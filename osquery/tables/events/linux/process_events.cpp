@@ -230,9 +230,15 @@ Status AuditProcessEventSubscriber::ProcessEvents(
       }
 
     } else if (is_kill_syscall) {
+      const AuditEventRecord* obj_pid_recod =
+          GetEventRecord(event, AUDIT_OBJ_PID);
+
       CopyFieldFromMap(row, syscall_event_record->fields, "tty", "");
       CopyFieldFromMap(row, syscall_event_record->fields, "ses", "-1");
       CopyFieldFromMap(row, syscall_event_record->fields, "comm", "");
+      CopyFieldFromMap(row, obj_pid_recod->fields, "ocomm", "-1");
+      CopyFieldFromMap(row, obj_pid_recod->fields, "oses", "-1");
+      CopyFieldFromMap(row, obj_pid_recod->fields, "oauid", "-1");
 
     } else {
       row["owner_uid"] = "0";
