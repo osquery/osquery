@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.14.6)
 project(thirdparty_openssl)
 
-set(OPENSSL_VERSION "1.1.1f")
+set(OPENSSL_VERSION "1.1.1g")
+set(OPENSSL_ARCHIVE_SHA256 "ddb04774f1e32f0c49751e21b67216ac87852ceb056b75209af2443400636d46")
 
 include(ExternalProject)
 
@@ -155,7 +156,7 @@ function(opensslMain)
 
   ExternalProject_Add(openssl
     URL "${openssl_urls}"
-    URL_HASH SHA256=186c6bfe6ecfba7a5b48c47f8a1673d0f3b0e5ba2e25602dd23b629975da3f35
+    URL_HASH SHA256=${OPENSSL_ARCHIVE_SHA256}
     CONFIGURE_COMMAND ${configure_command}
     BUILD_COMMAND ${build_command}
     INSTALL_COMMAND ""
