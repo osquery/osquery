@@ -9,6 +9,7 @@
 #include <bsm/libbsm.h>
 #include <security/audit/audit_ioctl.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -128,53 +129,82 @@ void OpenBSMEventPublisher::tearDown() {
   }
 }
 
-Status OpenBSMEventPublisher::run() {
-  if (audit_pipe_ == nullptr) {
-    return Status::failure("No open audit_pipe");
-  }
-  tokenstr_t tok;
-  auto reclen = 0;
-  auto bytesread = 0;
-  auto event_id = 0;
+void OpenBSMEventPublisher::acquireMessages() {
   auto buffer = static_cast<unsigned char*>(nullptr);
+  auto reclen = au_read_rec(audit_pipe_, &buffer);
+  if (reclen <= 0) {
+    return;
+  }
+
+  // We'll use these to dequeue below.
+  tokenstr_t tok;
   std::vector<tokenstr_t> tokens{};
 
-  while (!isEnding() && (reclen = au_read_rec(audit_pipe_, &buffer)) != -1) {
-    bytesread = 0;
-
-    while (bytesread < reclen) {
-      if (au_fetch_tok(&tok, buffer + bytesread, reclen - bytesread) == -1) {
-        break;
-      }
-      switch (tok.id) {
-      case AUT_HEADER32:
-        event_id = tok.tt.hdr32_ex.e_type;
-        break;
-      case AUT_HEADER32_EX:
-        event_id = tok.tt.hdr32_ex.e_type;
-        break;
-      case AUT_HEADER64:
-        event_id = tok.tt.hdr64.e_type;
-        break;
-      case AUT_HEADER64_EX:
-        event_id = tok.tt.hdr64_ex.e_type;
-        break;
-      }
-      tokens.push_back(tok);
-      bytesread += tok.len;
+  auto event_id = 0;
+  auto bytesread = 0;
+  while (bytesread < reclen) {
+    if (au_fetch_tok(&tok, buffer + bytesread, reclen - bytesread) == -1) {
+      break;
     }
-    // We probably don't need a lambda here but it's useful to put debug
-    // lines in to validate destruction.
-    std::shared_ptr<unsigned char> sp_buffer(
-        buffer, [](unsigned char* p) { delete p; });
-    auto ec = createEventContext();
-    ec->event_id = event_id;
-    ec->tokens = tokens;
-    ec->buffer = sp_buffer;
-    fire(ec);
-    tokens.clear();
-    event_id = 0;
+    switch (tok.id) {
+    case AUT_HEADER32:
+      event_id = tok.tt.hdr32_ex.e_type;
+      break;
+    case AUT_HEADER32_EX:
+      event_id = tok.tt.hdr32_ex.e_type;
+      break;
+    case AUT_HEADER64:
+      event_id = tok.tt.hdr64.e_type;
+      break;
+    case AUT_HEADER64_EX:
+      event_id = tok.tt.hdr64_ex.e_type;
+      break;
+    }
+    tokens.push_back(tok);
+    bytesread += tok.len;
   }
+
+  // We probably don't need a lambda here but it's useful to put debug
+  // lines in to validate destruction.
+  std::shared_ptr<unsigned char> sp_buffer(buffer,
+                                           [](unsigned char* p) { delete p; });
+
+  auto ec = createEventContext();
+  ec->event_id = event_id;
+  ec->tokens = tokens;
+  ec->buffer = sp_buffer;
+  fire(ec);
+}
+
+Status OpenBSMEventPublisher::run() {
+  if (audit_pipe_ == nullptr) {
+    return Status(1, "No open audit_pipe");
+  }
+
+  fd_set fdset;
+  FD_ZERO(&fdset);
+  FD_SET(fileno(audit_pipe_), &fdset);
+  struct timeval timeout;
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 0;
+  while (!interrupted()) {
+    int rc = select(FD_SETSIZE, &fdset, nullptr, nullptr, &timeout);
+    if (rc == 0) {
+      break;
+    }
+
+    if (rc < 0) {
+      if (errno != EINTR) {
+        VLOG(1) << "poll() failed with error " << errno;
+        return Status::failure("Audit pipe cannot be read");
+      }
+      break;
+    }
+
+    // Data is ready to be dequeued.
+    acquireMessages();
+  }
+
   return Status::success();
 }
 
