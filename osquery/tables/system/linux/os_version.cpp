@@ -6,6 +6,9 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <cerrno>
+#include <sys/utsname.h>
+
 #include <map>
 #include <regex>
 #include <string>
@@ -16,6 +19,7 @@
 #include <boost/filesystem/path.hpp>
 
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/split.h>
@@ -97,6 +101,14 @@ QueryData genOSVersion(QueryContext& context) {
     if (boost::filesystem::file_size(kOSRelease, ec) > 0) {
       genOSRelease(r);
     }
+  }
+
+  struct utsname uname_buf {};
+
+  if (uname(&uname_buf) == 0) {
+    r["arch"] = TEXT(uname_buf.machine);
+  } else {
+    LOG(INFO) << "Failed to determine the OS architecture, error " << errno;
   }
 
   std::string content;

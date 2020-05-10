@@ -6,8 +6,12 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <cerrno>
+#include <sys/utsname.h>
+
 #include <string>
 
+#include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/split.h>
@@ -22,6 +26,14 @@ QueryData genOSVersion(QueryContext& context) {
   Row r;
   r["platform"] = "darwin";
   r["platform_like"] = "darwin";
+
+  struct utsname uname_buf {};
+
+  if (uname(&uname_buf) == 0) {
+    r["arch"] = TEXT(uname_buf.machine);
+  } else {
+    LOG(INFO) << "Failed to determine the OS architecture, error " << errno;
+  }
 
   // The version path plist is parsed by the OS X tool: sw_vers.
   auto sw_vers = SQL::selectAllFrom("plist", "path", EQUALS, kVersionPath);

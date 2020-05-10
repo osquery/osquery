@@ -36,6 +36,7 @@ TEST_F(OsVersion, test_sanity) {
       {"platform", NonEmptyString},
       {"platform_like", NonEmptyString},
       {"codename", NormalType},
+      {"arch", NonEmptyString},
 #ifdef OSQUERY_WINDOWS
       {"install_date", NonEmptyString},
 #endif

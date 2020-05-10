@@ -10,6 +10,7 @@ schema([
     Column("platform", TEXT, "OS Platform or ID"),
     Column("platform_like", TEXT, "Closely related platforms"),
     Column("codename", TEXT, "OS version codename"),
+    Column("arch", TEXT, "OS Architecture"),
 ])
 extended_schema(WINDOWS, [
     Column("install_date", TEXT, "The install date of the OS."),

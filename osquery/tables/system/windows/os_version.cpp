@@ -21,7 +21,8 @@ QueryData genOSVersion(QueryContext& context) {
   std::string version_string;
 
   const std::string kWmiQuery =
-      "SELECT CAPTION,VERSION,INSTALLDATE FROM Win32_OperatingSystem";
+      "SELECT CAPTION,VERSION,INSTALLDATE,OSARCHITECTURE FROM "
+      "Win32_OperatingSystem";
 
   const WmiRequest wmiRequest(kWmiQuery);
   const std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
@@ -49,6 +50,8 @@ QueryData genOSVersion(QueryContext& context) {
   default:
     break;
   }
+
+  wmiResults[0].GetString("OSArchitecture", r["arch"]);
 
   r["platform"] = "windows";
   r["platform_like"] = "windows";
