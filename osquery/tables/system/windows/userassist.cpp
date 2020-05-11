@@ -51,7 +51,7 @@ std::string rotDecode(std::string& value_key_reg) {
 }
 
 // Get last exeution time
-auto lastExecute(std::string& time_data) {
+long long lastExecute(std::string& time_data) {
   // If timestamp is zero dont convert to UNIX Time
   if (time_data == "0000000000000000") {
     return 1LL;
