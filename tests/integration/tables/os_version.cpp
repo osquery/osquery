@@ -42,12 +42,18 @@ TEST_F(OsVersion, test_sanity) {
 #endif
   };
 
+  validate_rows(data, row_map);
+
+  // Query again with hidden columns too
   if (isPlatform(PlatformType::TYPE_LINUX)) {
+    data = execute_query(
+        "select *, pid_with_namespace, mount_namespace_id from os_version");
+
     row_map["pid_with_namespace"] = IntType;
     row_map["mount_namespace_id"] = NormalType;
-  }
 
-  validate_rows(data, row_map);
+    validate_rows(data, row_map);
+  }
 }
 
 } // namespace table_tests
