@@ -23,7 +23,7 @@ class NpmPackagesTest : public testing::Test {
 };
 
 TEST_F(NpmPackagesTest, test_sanity) {
-  auto const data = execute_query("select * from npm_packages");
+  auto data = execute_query("select * from npm_packages");
 
   ValidationMap row_map = {
       {"name", NonEmptyString},
@@ -35,12 +35,15 @@ TEST_F(NpmPackagesTest, test_sanity) {
       {"directory", NonEmptyString},
   };
 
+  validate_rows(data, row_map);
+
   if (isPlatform(PlatformType::TYPE_LINUX)) {
+    data = execute_query(
+        "select *, pid_with_namespace, mount_namespace_id from npm_packages");
     row_map["pid_with_namespace"] = IntType;
     row_map["mount_namespace_id"] = NormalType;
+    validate_rows(data, row_map);
   }
-
-  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

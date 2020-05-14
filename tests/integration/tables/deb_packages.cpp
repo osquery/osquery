@@ -37,11 +37,6 @@ TEST_F(DebPackages, test_sanity) {
                              {"section", NonEmptyString},
                              {"priority", NonEmptyString}};
 
-    if (isPlatform(PlatformType::TYPE_LINUX)) {
-      row_map["pid_with_namespace"] = IntType;
-      row_map["mount_namespace_id"] = NormalType;
-    }
-
     validate_rows(rows, row_map);
 
     auto all_packages = std::unordered_set<std::string>{};
@@ -54,6 +49,14 @@ TEST_F(DebPackages, test_sanity) {
     }
 
     ASSERT_EQ(all_packages.count("dpkg"), 1u);
+
+    if (isPlatform(PlatformType::TYPE_LINUX)) {
+      rows = execute_query(
+          "select *, pid_with_namespace, mount_namespace_id from deb_packages");
+      row_map["pid_with_namespace"] = IntType;
+      row_map["mount_namespace_id"] = NormalType;
+      validate_rows(rows, row_map);
+    }
 
   } else {
     LOG(WARNING) << "Empty results of query from 'deb_packages', assume there "
