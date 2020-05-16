@@ -150,18 +150,14 @@ inline std::string getMsgName(const std::string& payload) {
     } else {
         // Search for "action" key
         const bool has_action_key = payload.find("\"action\"") != std::string::npos;
-        // If no "action" key present, is batch mode, use last index in occurrences
-        if (!has_action_key) {
+        // If no "action" key present, is batch mode
+        // If "action" key's value is "snapshot", is _likely_ snapshot mode
+        // In both cases, use last index in occurrences
+        if (!has_action_key || payload.find("\"action\":\"snapshot\"") != std::string::npos) {
             fieldIndex = occurrences.back();
-        // Otherwise, is either event or snapshot mode
+        // Otherwise, is event mode, use first index in occurrences
         } else {
-            // If "action" key's value is "snapshot" then use last index in occurrences
-            if (payload.find("\"action\":\"snapshot\"") != std::string::npos) {
-                fieldIndex = occurrences.back();
-            // Otherwise, use first index in occurrences
-            } else {
-                fieldIndex = occurrences.front();
-            }
+            fieldIndex = occurrences.front();
         }
     }
 
