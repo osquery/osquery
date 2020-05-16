@@ -23,9 +23,6 @@ namespace osquery {
 /// found.
 extern const std::string kKafkaBaseTopic;
 
-/// Finds occurrences of substring in a string
-void findAllOccurrences(std::vector<size_t>& occurrences, const std::string& payload, const std::string subString);
-
 /// Retrieves log payload field "name".
 std::string getMsgName(const std::string& payload);
 

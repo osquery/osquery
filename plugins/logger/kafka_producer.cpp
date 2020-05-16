@@ -27,6 +27,7 @@
 #include <osquery/flags.h>
 #include <osquery/registry_factory.h>
 #include <osquery/system.h>
+#include <osquery/utils/json/json.h>
 
 #include <plugins/config/parsers/kafka_topics.h>
 #include <plugins/logger/kafka_producer.h>
@@ -106,73 +107,27 @@ REGISTER(KafkaProducerPlugin, "logger", "kafka_producer");
 std::once_flag KafkaProducerPlugin::shutdownFlag_;
 
 /**
- * @brief find occurrences of substring in a string
- *
- * Create a vector of all indexes at which substring
- * occurs in payload.
- */
-inline void findAllOccurrences(std::vector<size_t>& occurrences, const std::string& payload, const std::string subString) {
-    // Find first occurrence of subString in payload
-    size_t idx = payload.find(subString);
-    // Until end of string
-    while (idx != std::string::npos) {
-        // Add string index to vector
-        occurrences.push_back(idx);
-        // Find next occurrence of subString
-        idx = payload.find(subString, idx + subString.size());
-    }
-}
-
-/**
  * @brief extracts query name from result payload
  *
  * Parses the query name from snapshot, batch, and event
  * mode JSON result objects.
  */
 inline std::string getMsgName(const std::string& payload) {
-    // Searching for "name" key
-    const std::string fieldName = "\"name\"";
-    // Initialize occurrences vector
-    std::vector<size_t> occurrences;
-    // Find all occurrences of "name" key in payload
-    findAllOccurrences(occurrences, payload, fieldName);
-    // Initialize "name" key index
-    size_t fieldIndex;
+    const std::string fieldName = "name";
 
-    // If number of occurrences is 0, return base topic key
-    if (occurrences.empty()) {
+    // Parse payload as JSON
+    auto doc = JSON::newObject();
+    // If failed to parse as JSON, or JSON object doesn't have "name" top-level key, return base topic
+    if (!doc.fromString(payload, JSON::ParseMode::Iterative) || !doc.doc().HasMember(fieldName)) {
         return "";
     }
-    // If number of occurrences is 1, use that index
-    if (occurrences.size() == 1) {
-        fieldIndex = occurrences.front();
-    // Otherwise, determine result mode to choose proper "name" key
-    } else {
-        // Search for "action" key
-        const bool has_action_key = payload.find("\"action\"") != std::string::npos;
-        // If no "action" key present, is batch mode
-        // If "action" key's value is "snapshot", is _likely_ snapshot mode
-        // In both cases, use last index in occurrences
-        if (!has_action_key || payload.find("\"action\":\"snapshot\"") != std::string::npos) {
-            fieldIndex = occurrences.back();
-        // Otherwise, is event mode, use first index in occurrences
-        } else {
-            fieldIndex = occurrences.front();
-        }
-    }
-
-    // Parse value from "name" key
-    size_t first = payload.find('"', fieldIndex + 6);
-    if (first == std::string::npos) {
+    auto& name = doc.doc()[fieldName];
+    // If value for "name" isn't a String, return base topic
+    if (!name.IsString()) {
         return "";
     }
-
-    size_t last = payload.find('"', first + 1);
-    if (last == std::string::npos) {
-        return "";
-    }
-
-    return payload.substr(first + 1, last - first - 1);
+    // Otherwise, return value
+    return name.GetString();
 }
 
 /**
