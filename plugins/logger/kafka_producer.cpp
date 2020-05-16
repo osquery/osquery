@@ -105,25 +105,78 @@ REGISTER(KafkaProducerPlugin, "logger", "kafka_producer");
 /// Flag to ensure shutdown method is called only once
 std::once_flag KafkaProducerPlugin::shutdownFlag_;
 
+/**
+ * @brief find occurrences of substring in a string
+ *
+ * Create a vector of all indexes at which substring
+ * occurs in payload.
+ */
+inline void findAllOccurrences(std::vector<size_t>& occurrences, const std::string& payload, const std::string subString) {
+    // Find first occurrence of subString in payload
+    size_t idx = payload.find(subString);
+    // Until end of string
+    while (idx != std::string::npos) {
+        // Add string index to vector
+        occurrences.push_back(idx);
+        // Find next occurrence of subString
+        idx = payload.find(subString, idx + subString.size());
+    }
+}
+
+/**
+ * @brief extracts query name from result payload
+ *
+ * Parses the query name from snapshot, batch, and event
+ * mode JSON result objects.
+ */
 inline std::string getMsgName(const std::string& payload) {
-  const std::string fieldName = "\"name\"";
-  size_t ipos = payload.rfind(fieldName);
-  if (ipos == std::string::npos) {
-    // return base topic key
-    return "";
-  }
+    // Searching for "name" key
+    const std::string fieldName = "\"name\"";
+    // Initialize occurrences vector
+    std::vector<size_t> occurrences;
+    // Find all occurrences of "name" key in payload
+    findAllOccurrences(occurrences, payload, fieldName);
+    // Initialize "name" key index
+    size_t fieldIndex;
 
-  size_t first = payload.find('"', ipos + 6);
-  if (first == std::string::npos) {
-    return "";
-  }
+    // If number of occurrences is 0, return base topic key
+    if (occurrences.empty()) {
+        return "";
+    }
+    // If number of occurrences is 1, use that index
+    if (occurrences.size() == 1) {
+        fieldIndex = occurrences.front();
+    // Otherwise, determine result mode to choose proper "name" key
+    } else {
+        // Search for "action" key
+        const bool has_action_key = payload.find("\"action\"") != std::string::npos;
+        // If no "action" key present, is batch mode, use last index in occurrences
+        if (!has_action_key) {
+            fieldIndex = occurrences.back();
+        // Otherwise, is either event or snapshot mode
+        } else {
+            // If "action" key's value is "snapshot" then use last index in occurrences
+            if (payload.find("\"action\":\"snapshot\"") != std::string::npos) {
+                fieldIndex = occurrences.back();
+            // Otherwise, use first index in occurrences
+            } else {
+                fieldIndex = occurrences.front();
+            }
+        }
+    }
 
-  size_t last = payload.find('"', first + 1);
-  if (last == std::string::npos) {
-    return "";
-  }
+    // Parse value from "name" key
+    size_t first = payload.find('"', fieldIndex + 6);
+    if (first == std::string::npos) {
+        return "";
+    }
 
-  return payload.substr(first + 1, last - first - 1);
+    size_t last = payload.find('"', first + 1);
+    if (last == std::string::npos) {
+        return "";
+    }
+
+    return payload.substr(first + 1, last - first - 1);
 }
 
 /**
