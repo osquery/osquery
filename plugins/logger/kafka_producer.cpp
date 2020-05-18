@@ -117,8 +117,10 @@ inline std::string getMsgName(const std::string& payload) {
 
   // Parse payload as JSON
   auto doc = JSON::newObject();
-  // If failed to parse as JSON, or JSON object doesn't have "name" top-level key, return base topic
-  if (!doc.fromString(payload, JSON::ParseMode::Iterative) || !doc.doc().HasMember(fieldName)) {
+  // If failed to parse as JSON, or JSON object doesn't have "name" top-level
+  // key, return base topic
+  if (!doc.fromString(payload, JSON::ParseMode::Iterative) ||
+      !doc.doc().HasMember(fieldName)) {
     return "";
   }
   auto& name = doc.doc()[fieldName];
