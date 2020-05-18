@@ -29,7 +29,7 @@ DECLARE_bool(audit_allow_fim_events);
 REGISTER(OpenBSMEventPublisher, "event_publisher", "openbsm");
 
 static Status configureAuditPipe(FILE* au_pipe) {
-  auto au_fd = fileno(au_pipe)
+  auto au_fd = fileno(au_pipe);
   audit_pipe_ = nullptr;
 
   int pr_sel_mode = AUDITPIPE_PRESELECT_MODE_LOCAL;
