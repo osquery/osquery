@@ -25,4 +25,19 @@ FLAG(bool,
      false,
      "Allow the audit publisher to install socket-related rules");
 
+FLAG(bool,
+     audit_allow_process_events,
+     true,
+     "Allow the audit publisher to install process-related rules");
+
+FLAG(bool,
+     audit_allow_user_events,
+     true,
+     "Allow the audit publisher to install user-related rules");
+
+FLAG(bool,
+     audit_allow_fim_events,
+     false,
+     "Allow the audit publisher to install filesystem-related rules");
+
 } // namespace osquery
