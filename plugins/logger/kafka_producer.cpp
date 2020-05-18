@@ -113,21 +113,21 @@ std::once_flag KafkaProducerPlugin::shutdownFlag_;
  * mode JSON result objects.
  */
 inline std::string getMsgName(const std::string& payload) {
-    const std::string fieldName = "name";
+  const std::string fieldName = "name";
 
-    // Parse payload as JSON
-    auto doc = JSON::newObject();
-    // If failed to parse as JSON, or JSON object doesn't have "name" top-level key, return base topic
-    if (!doc.fromString(payload, JSON::ParseMode::Iterative) || !doc.doc().HasMember(fieldName)) {
-        return "";
-    }
-    auto& name = doc.doc()[fieldName];
-    // If value for "name" isn't a String, return base topic
-    if (!name.IsString()) {
-        return "";
-    }
-    // Otherwise, return value
-    return name.GetString();
+  // Parse payload as JSON
+  auto doc = JSON::newObject();
+  // If failed to parse as JSON, or JSON object doesn't have "name" top-level key, return base topic
+  if (!doc.fromString(payload, JSON::ParseMode::Iterative) || !doc.doc().HasMember(fieldName)) {
+    return "";
+  }
+  auto& name = doc.doc()[fieldName];
+  // If value for "name" isn't a String, return base topic
+  if (!name.IsString()) {
+    return "";
+  }
+  // Otherwise, return value
+  return name.GetString();
 }
 
 /**
