@@ -117,13 +117,9 @@ function(generateLibrdkafka)
     )
   endif()
 
-  if(BUILD_SHARED_LIBS)
-  else()
-    target_compile_definitions(thirdparty_librdkafka_c PUBLIC
-      LIBRDKAFKA_STATICLIB
-    )
-  endif()
-
+  target_compile_definitions(thirdparty_librdkafka_c PUBLIC
+    LIBRDKAFKA_STATICLIB
+  )
 
   target_link_libraries(thirdparty_librdkafka_c PUBLIC
     thirdparty_openssl
@@ -176,6 +172,10 @@ function(generateLibrdkafkaxx)
     "${library_root}/rdkafkacpp.h"
     "${CMAKE_CURRENT_BINARY_DIR}/include/librdkafka/rdkafkacpp.h"
     COPYONLY
+  )
+
+  target_compile_definitions(thirdparty_librdkafka_cxx PUBLIC
+    LIBRDKAFKA_STATICLIB
   )
 
   target_link_libraries(thirdparty_librdkafka_cxx PRIVATE
