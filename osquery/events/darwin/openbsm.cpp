@@ -65,7 +65,7 @@ Status OpenBSMEventPublisher::configureAuditPipe(FILE* au_pipe) {
     ev_classes.push_back("ad");
   }
 
-  if (true == FLAGS_audit_allow_fim_events)
+  if (true == FLAGS_audit_allow_fim_events) {
     // capture file events
     ev_classes.push_back("fc");
     ev_classes.push_back("fd");
