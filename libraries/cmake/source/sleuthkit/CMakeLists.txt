@@ -128,13 +128,15 @@ function(sleuthkitMain)
     _THREAD_SAFE
   )
 
-  target_compile_options(thirdparty_sleuthkit_c PRIVATE
-    -pthread
-  )
+  if(DEFINED PLATFORM_POSIX)
+    target_compile_options(thirdparty_sleuthkit_c PRIVATE
+      -pthread
+    )
 
-  target_compile_options(thirdparty_sleuthkit_cpp PRIVATE
-    -pthread
-  )
+    target_compile_options(thirdparty_sleuthkit_cpp PRIVATE
+      -pthread
+    )
+  endif()
 
   target_link_libraries(thirdparty_sleuthkit_c PUBLIC
     thirdparty_zlib
