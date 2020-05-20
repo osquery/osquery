@@ -28,11 +28,12 @@ DECLARE_bool(audit_allow_fim_events);
 
 REGISTER(OpenBSMEventPublisher, "event_publisher", "openbsm");
 
-static Status configureAuditPipe(FILE* au_pipe) {
+Status OpenBSMEventPublisher::configureAuditPipe(FILE* au_pipe) {
   auto au_fd = fileno(au_pipe);
+  int pr_sel_mode = AUDITPIPE_PRESELECT_MODE_LOCAL;
+
   audit_pipe_ = nullptr;
 
-  int pr_sel_mode = AUDITPIPE_PRESELECT_MODE_LOCAL;
   if (ioctl(au_fd, AUDITPIPE_SET_PRESELECT_MODE, &pr_sel_mode) == -1) {
     LOG(WARNING) << "The auditpipe:ioctl AUDITPIPE_SET_PRESELECT_MODE failed";
     fclose(au_pipe);
