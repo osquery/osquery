@@ -25,10 +25,7 @@ const std::unordered_map<int, std::string> kSyscallNameMap = {
     {__NR_clone, "clone"}};
 }
 
-FLAG(bool,
-     audit_allow_process_events,
-     true,
-     "Allow the audit publisher to install process event monitoring rules");
+DECLARE_bool(audit_allow_process_events);
 
 FLAG(bool,
      audit_allow_fork_process_events,

@@ -14,10 +14,7 @@
 
 namespace osquery {
 
-FLAG(bool,
-     audit_allow_user_events,
-     true,
-     "Allow the audit publisher to install user events-related rules");
+DECLARE_bool(audit_allow_user_events);
 
 class UserEventSubscriber final : public EventSubscriber<AuditEventPublisher> {
  public:
