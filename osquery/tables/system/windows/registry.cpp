@@ -577,8 +577,13 @@ QueryData genRegistry(QueryContext& context) {
     }
     if (context.hasConstraint("path", LIKE)) {
       for (const auto& path : context.constraints["path"].getAll(LIKE)) {
-        auto status = expandRegistryGlobs(
-            path.substr(0, path.find_last_of(kRegSep)), keys);
+        Status status;
+        if (boost::ends_with(path, kSQLGlobRecursive)) {
+          status = expandRegistryGlobs(path, keys);
+        } else {
+          status = expandRegistryGlobs(
+              path.substr(0, path.find_last_of(kRegSep)), keys);
+        }
         if (!status.ok()) {
           LOG(INFO) << "Failed to expand globs: " + status.getMessage();
         }
