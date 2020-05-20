@@ -17,31 +17,31 @@
 
 /* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
    */
-#define HAVE_ALLOCA_H 1
+/* #undef HAVE_ALLOCA_H */
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
-#define HAVE_DLFCN_H 1
+/* #undef HAVE_DLFCN_H */
 
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
 /* #undef HAVE_DOPRNT */
 
 /* Define to 1 if you have the `err' function. */
-#define HAVE_ERR 1
+/* #undef HAVE_ERR */
 
 /* Define to 1 if you have the `errx' function. */
-#define HAVE_ERRX 1
+/* #undef HAVE_ERRX */
 
 /* Define to 1 if you have the <err.h> header file. */
-#define HAVE_ERR_H 1
+/* #undef HAVE_ERR_H */
 
 /* Define to 1 if fseeko (and presumably ftello) exists and is declared. */
-#define HAVE_FSEEKO 1
+/* #undef HAVE_FSEEKO */
 
 /* Define to 1 if you have the `getline' function. */
-#define HAVE_GETLINE 1
+/* #undef HAVE_GETLINE */
 
 /* Define to 1 if you have the `getrusage' function. */
-#define HAVE_GETRUSAGE 1
+/* #undef HAVE_GETRUSAGE */
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
@@ -53,7 +53,7 @@
 /* #undef HAVE_LIBAFFLIB */
 
 /* Define to 1 if you have the `dl' library (-ldl). */
-#define HAVE_LIBDL 1
+/* #undef HAVE_LIBDL */
 
 /* Define to 1 if you have the `ewf' library (-lewf). */
 /* #undef HAVE_LIBEWF */
@@ -74,7 +74,7 @@
 #define HAVE_LIBSQLITE3 1
 
 /* Define to 1 if you have the `stdc++' library (-lstdc++). */
-#define HAVE_LIBSTDC__ 1
+/* #undef HAVE_LIBSTDC__ */
 
 /* Define to 1 if you have the `vhdi' library (-lvhdi). */
 /* #undef HAVE_LIBVHDI */
@@ -108,19 +108,19 @@
 /* #undef HAVE_POSTGRESQL_LIBPQ_FE_H */
 
 /* Define if you have POSIX threads libraries and header files. */
-#define HAVE_PTHREAD 1
+/* #undef HAVE_PTHREAD */
 
 /* Define to 1 if you have the <queue> header file. */
-/* #undef HAVE_QUEUE */
+#define HAVE_QUEUE 1
 
 /* Define to 1 if you have the <set> header file. */
-/* #undef HAVE_SET */
+#define HAVE_SET 1
 
 /* Define to 1 if you have the <sqlite3.h> header file. */
 #define HAVE_SQLITE3_H 1
 
 /* Define to 1 if you have the <stack> header file. */
-/* #undef HAVE_STACK */
+#define HAVE_STACK 1
 
 /* Define to 1 if stdbool.h conforms to C99. */
 #define HAVE_STDBOOL_H 1
@@ -132,10 +132,10 @@
 #define HAVE_STDLIB_H 1
 
 /* Define to 1 if you have the <streambuf> header file. */
-/* #undef HAVE_STREAMBUF */
+#define HAVE_STREAMBUF 1
 
 /* Define to 1 if you have the <string> header file. */
-/* #undef HAVE_STRING */
+#define HAVE_STRING 1
 
 /* Define to 1 if you have the <strings.h> header file. */
 #define HAVE_STRINGS_H 1
@@ -150,16 +150,16 @@
 /* #undef HAVE_STRLCPY */
 
 /* Define to 1 if you have the <sys/param.h> header file. */
-#define HAVE_SYS_PARAM_H 1
+/* #undef HAVE_SYS_PARAM_H */
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
-#define HAVE_SYS_RESOURCE_H 1
+/* #undef HAVE_SYS_RESOURCE_H */
 
 /* Define to 1 if you have the <sys/select.h> header file. */
-#define HAVE_SYS_SELECT_H 1
+/* #undef HAVE_SYS_SELECT_H */
 
 /* Define to 1 if you have the <sys/socket.h> header file. */
-#define HAVE_SYS_SOCKET_H 1
+/* #undef HAVE_SYS_SOCKET_H */
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #define HAVE_SYS_STAT_H 1
@@ -171,25 +171,25 @@
 /* #undef HAVE_UNISTD_H 1 */
 
 /* Define to 1 if you have the <utime.h> header file. */
-#define HAVE_UTIME_H 1
+/* #undef HAVE_UTIME_H */
 
 /* Define to 1 if `utime(file, NULL)' sets file's timestamp to the present. */
-#define HAVE_UTIME_NULL 1
+/* #undef HAVE_UTIME_NULL */
 
 /* Define to 1 if you have the `vasprintf' function. */
 #define HAVE_VASPRINTF 1
 
 /* Define to 1 if you have the <vector> header file. */
-/* #undef HAVE_VECTOR */
+#define HAVE_VECTOR 1
 
 /* Define to 1 if you have the `vprintf' function. */
 #define HAVE_VPRINTF 1
 
 /* Define to 1 if you have the `warn' function. */
-#define HAVE_WARN 1
+/* #undef HAVE_WARN */
 
 /* Define to 1 if you have the `warnx' function. */
-#define HAVE_WARNX 1
+/* #undef HAVE_WARNX */
 
 /* Define to 1 if you have the <zlib.h> header file. */
 #define HAVE_ZLIB_H 1
@@ -199,7 +199,7 @@
 
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */
-#define LSTAT_FOLLOWS_SLASHED_SYMLINK 1
+/* #undef LSTAT_FOLLOWS_SLASHED_SYMLINK */
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
@@ -253,9 +253,7 @@
 #define VERSION "4.6.1"
 
 /* Enable large inode numbers on Mac OS X 10.5.  */
-#ifndef _DARWIN_USE_64_BIT_INODE
-# define _DARWIN_USE_64_BIT_INODE 1
-#endif
+/*#undef _DARWIN_USE_64_BIT_INODE */
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 /* #undef _FILE_OFFSET_BITS */
