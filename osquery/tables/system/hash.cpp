@@ -178,6 +178,7 @@ bool FileHashCache::load(const std::string& path,
     auto hashes = hashMultiFromFile(
         HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
     entry->second.cache_access_time = time(nullptr);
+    entry->second.file_inode = st.st_ino;
     entry->second.file_mtime = st.st_mtime;
     entry->second.file_size = st.st_size;
     entry->second.hashes = std::move(hashes);
