@@ -74,7 +74,7 @@ void dpkg_setup(struct pkg_array* packages) {
   dpkg_set_progname("osquery");
   push_error_context();
 
-  dpkg_db_set_dir("/var/lib/dpkg/");
+  dpkg_db_set_dir(kDPKGPath.c_str());
   modstatdb_init();
   modstatdb_open(msdbrw_readonly);
 
@@ -101,7 +101,10 @@ const std::map<std::string, std::string> kFieldMappings = {
     {"Architecture", "arch"},
     {"Source", "source"},
     {"Revision", "revision"},
-    {"Status", "status"}};
+    {"Status", "status"},
+    {"Maintainer", "maintainer"},
+    {"Section", "section"},
+    {"Priority", "priority"}};
 
 /**
  * @brief Field names and function references to extract information.
@@ -121,6 +124,9 @@ const struct fieldinfo fieldinfos[] = {
     {FIELD("Version"), f_version, w_version, PKGIFPOFF(version)},
     {FIELD("Revision"), f_revision, w_revision, 0},
     {FIELD("Status"), f_status, w_status, 0},
+    {FIELD("Maintainer"), f_charfield, w_charfield, PKGIFPOFF(maintainer)},
+    {FIELD("Priority"), f_priority, w_priority, 0},
+    {FIELD("Section"), f_section, w_section, 0},
     {}};
 
 void extractDebPackageInfo(const struct pkginfo* pkg, QueryData& results) {
