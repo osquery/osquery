@@ -158,6 +158,8 @@ QueryData genRpmPackages(QueryContext& context) {
     r["epoch"] = INTEGER(getRpmAttribute(header, RPMTAG_EPOCH, td));
     r["install_time"] =
         INTEGER(getRpmAttribute(header, RPMTAG_INSTALLTIME, td));
+    r["vendor"] = getRpmAttribute(header, RPMTAG_VENDOR, td);
+    r["package_group"] = getRpmAttribute(header, RPMTAG_GROUP, td);
 
     rpmtdFree(td);
     results.push_back(r);
@@ -243,5 +245,5 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   rpmtsFree(ts);
   rpmFreeRpmrc();
 }
-}
-}
+} // namespace tables
+} // namespace osquery
