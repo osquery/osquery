@@ -6,3 +6,6 @@ version: 2
 # We run out of memory on the RTD builder.
 submodules:
   exclude: all
+
+mkdocs:
+  configuration: mkdocs.yml
