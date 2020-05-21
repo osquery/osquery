@@ -19,7 +19,7 @@ Available for Linux, macOS, Windows, and FreeBSD.
 - Table Schema: https://osquery.io/schema
 - Query Packs: [https://osquery.io/packs](https://github.com/facebook/osquery/tree/master/packs)
 - Slack: [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com)
-- Build Status: [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) [![Coverity Scan Build Status](https://scan.coverity.com/projects/13317/badge.svg)](https://scan.coverity.com/projects/osquery)
+- Build Status: [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) [![Coverity Scan Build Status](https://scan.coverity.com/projects/13317/badge.svg)](https://scan.coverity.com/projects/osquery) [![Documentation Status](https://readthedocs.org/projects/osquery/badge/?version=latest)](https://osquery.readthedocs.io/en/latest/?badge=latest)
 - CII Best Practices: [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125)
 
 

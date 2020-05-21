@@ -1,6 +1,8 @@
 site_name: osquery
 theme: readthedocs
 
+repo_url: https://github.com/osquery/osquery
+edit_uri: https://github.com/osquery/osquery/edit/master/docs/wiki/
 docs_dir: docs/wiki
 site_dir: build/wiki
 extra_css:
@@ -9,7 +11,7 @@ extra_css:
 markdown_extensions:
   - admonition
 
-pages:
+nav:
 - Introduction:
   - Welcome to osquery: index.md
   - osqueryi (shell): introduction/using-osqueryi.md
