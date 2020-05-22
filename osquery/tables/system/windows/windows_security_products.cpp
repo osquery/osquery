@@ -49,7 +49,8 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
   // since linking the library was causing a crash on some Windows
   // machines (like the CI server).
   CLSID* productListClassPtr = nullptr;
-  static HINSTANCE wscLib = LoadLibrary(TEXT("wscapi.dll"));
+  static HINSTANCE wscLib =
+      LoadLibraryEx(TEXT("wscapi.dll"), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
   if (wscLib != nullptr) {
     productListClassPtr = (CLSID *)GetProcAddress(wscLib, "CLSID_WSCProductList");
   }

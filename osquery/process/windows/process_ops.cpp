@@ -200,7 +200,8 @@ bool isLauncherProcessDead(PlatformProcess& launcher) {
 }
 
 ModuleHandle platformModuleOpen(const std::string& path) {
-  return ::LoadLibraryW(stringToWstring(path).c_str());
+  return ::LoadLibraryExW(
+      stringToWstring(path).c_str(), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 }
 
 void* platformModuleGetSymbol(ModuleHandle module, const std::string& symbol) {
