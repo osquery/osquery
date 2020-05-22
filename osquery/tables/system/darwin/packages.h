@@ -63,7 +63,7 @@ struct BOMVar {
 
 struct BOMVars {
   uint32_t count;
-  BOMVar* list;
+  BOMVar list[];
 } __attribute__((packed));
 
 struct BOMPathIndices {
