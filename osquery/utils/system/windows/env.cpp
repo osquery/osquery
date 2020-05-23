@@ -126,7 +126,7 @@ boost::optional<std::vector<std::string>> splitArgs(const std::string& args) {
     return boost::none;
   }
 
-  // Note: passing an empty string to CommandLineToArgW() will cause it
+  // Note: passing an empty string to CommandLineToArgvW() will cause it
   // to fill in the command line of the current process (of osquery!)
   auto argv = ::CommandLineToArgvW(stringToWstring(args).c_str(), &argc);
   if (argv == nullptr) {
