@@ -381,7 +381,7 @@ void getProcessPathInfo(HANDLE& proc,
   if (!s.ok()) {
     LOG(INFO) << "Failed to get cwd for " << pid << " with " << GetLastError();
   } else {
-    r["cwd"] = currDir;
+    r["cwd"] = SQL_TEXT(currDir);
   }
   r["root"] = r["cwd"];
 }
