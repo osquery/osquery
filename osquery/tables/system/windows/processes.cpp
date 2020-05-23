@@ -102,7 +102,7 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS {
   UNICODE_STRING CommandLine;
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
 
-  typedef struct _PEB {
+typedef struct _PEB {
   BYTE Reserved1[2];
   BYTE BeingDebugged;
   BYTE Reserved2[1];
@@ -314,8 +314,8 @@ Status getProcessCommandLine(HANDLE& proc,
 // Regardless of the Windows version, the CWD of a process is only possible to
 // retrieve by reading it from the process's PEB structure.
 Status getProcessCurrentDirectory(HANDLE proc,
-                                   std::string& out,
-                                   const unsigned long pid) {
+                                  std::string& out,
+                                  const unsigned long pid) {
   PROCESS_BASIC_INFORMATION pbi;
   unsigned long len{0};
   NTSTATUS status = NtQueryInformationProcess(
