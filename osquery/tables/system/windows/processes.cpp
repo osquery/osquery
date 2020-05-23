@@ -86,18 +86,8 @@ typedef struct {
 } UNICODE_STRING, *PUNICODE_STRING;
 
 typedef struct _RTL_USER_PROCESS_PARAMETERS {
-  ULONG MaximumLength;
-  ULONG Length;
-  ULONG Flags;
-  ULONG DebugFlags;
-  PVOID ConsoleHandle;
-  ULONG ConsoleFlags;
-  HANDLE StdInputHandle;
-  HANDLE StdOutputHandle;
-  HANDLE StdErrorHandle;
-  UNICODE_STRING CurrentDirectoryPath;
-  HANDLE CurrentDirectoryHandle;
-  UNICODE_STRING DllPath;
+  BYTE Reserved1[16];
+  PVOID Reserved2[10];
   UNICODE_STRING ImagePathName;
   UNICODE_STRING CommandLine;
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
@@ -228,10 +218,10 @@ Status getProcList(std::set<long>& pids) {
   return Status::success();
 }
 
-/// Helper function for getting the User Process Parameters from the PEB
-Status getUserProcessParameters(HANDLE proc,
-                                RTL_USER_PROCESS_PARAMETERS& out,
-                                const unsigned long pid) {
+/// For legacy systems, we retrieve the commandline from the PEB
+Status getProcessCommandLineLegacy(HANDLE proc,
+                                   std::string& out,
+                                   const unsigned long pid) {
   PROCESS_BASIC_INFORMATION pbi;
   unsigned long len{0};
   NTSTATUS status = NtQueryInformationProcess(
@@ -252,28 +242,13 @@ Status getUserProcessParameters(HANDLE proc,
                            " with " + std::to_string(status));
   }
 
+  RTL_USER_PROCESS_PARAMETERS upp;
   if (!ReadProcessMemory(
-          proc, peb.ProcessParameters, &out, sizeof(out), &bytes_read)) {
+          proc, peb.ProcessParameters, &upp, sizeof(upp), &bytes_read)) {
     return Status::failure("Reading USER_PROCESS_PARAMETERS failed for " +
                            std::to_string(pid));
   }
 
-  return Status::success();
-}
-
-/// For legacy systems, we retrieve the commandline from the PEB
-Status getProcessCommandLineLegacy(HANDLE proc,
-                                   std::string& out,
-                                   const unsigned long pid) {
-  RTL_USER_PROCESS_PARAMETERS upp;
-  auto s = getUserProcessParameters(proc, upp, pid);
-  if (!s.ok()) {
-    LOG(INFO) << "Failed to get PEB UPP for " << pid << " with "
-              << GetLastError();
-    return s;
-  }
-
-  size_t bytes_read = 0;
   std::vector<wchar_t> command_line(kMaxPathSize, 0x0);
   SecureZeroMemory(command_line.data(), kMaxPathSize);
   if (!ReadProcessMemory(proc,
@@ -326,34 +301,6 @@ Status getProcessCommandLine(HANDLE& proc,
   return Status::success();
 }
 
-// Regardless of the Windows version, the CWD of a process is only possible to
-// retrieve by reading it from the process's PEB structure.
-Status getProcessCurrentDirectory(HANDLE proc,
-                                  std::string& out,
-                                  const unsigned long pid) {
-  RTL_USER_PROCESS_PARAMETERS upp;
-  auto s = getUserProcessParameters(proc, upp, pid);
-  if (!s.ok()) {
-    LOG(INFO) << "Failed to get PEB UPP for " << pid << " with "
-              << GetLastError();
-    return s;
-  }
-
-  size_t bytes_read = 0;
-  std::vector<wchar_t> current_directory(kMaxPathSize, 0x0);
-  SecureZeroMemory(current_directory.data(), kMaxPathSize);
-  if (!ReadProcessMemory(proc,
-                         upp.CurrentDirectoryPath.Buffer,
-                         current_directory.data(),
-                         upp.CurrentDirectoryPath.Length,
-                         &bytes_read)) {
-    return Status::failure("Failed to read current working directory for " +
-                           std::to_string(pid));
-  }
-  out = wstringToString(current_directory.data());
-  return Status::success();
-}
-
 void getProcessPathInfo(HANDLE& proc,
                         const unsigned long pid,
                         DynamicTableRowHolder& r) {
@@ -373,12 +320,18 @@ void getProcessPathInfo(HANDLE& proc,
         boost_path.empty() ? -1 : osquery::pathExists(path.data()).ok());
   }
 
-  std::string currDir{""};
-  auto s = getProcessCurrentDirectory(proc, currDir, pid);
-  if (!s.ok()) {
+  path.clear();
+  path.resize(kMaxPathSize, 0x0);
+  if (pid == GetCurrentProcessId()) {
+    ret = GetModuleFileNameW(nullptr, path.data(), kMaxPathSize);
+  } else {
+    ret = GetModuleFileNameExW(proc, nullptr, path.data(), kMaxPathSize);
+  }
+
+  if (ret == FALSE) {
     LOG(INFO) << "Failed to get cwd for " << pid << " with " << GetLastError();
   } else {
-    r["cwd"] = SQL_TEXT(currDir);
+    r["cwd"] = SQL_TEXT(wstringToString(path.data()));
   }
   r["root"] = r["cwd"];
 }
