@@ -228,10 +228,10 @@ Status getProcList(std::set<long>& pids) {
   return Status::success();
 }
 
-/// For legacy systems, we retrieve the commandline from the PEB
-Status getProcessCommandLineLegacy(HANDLE proc,
-                                   std::string& out,
-                                   const unsigned long pid) {
+/// Helper function for getting the User Process Parameters from the PEB
+Status getUserProcessParameters(HANDLE proc,
+                                RTL_USER_PROCESS_PARAMETERS& out,
+                                const unsigned long pid) {
   PROCESS_BASIC_INFORMATION pbi;
   unsigned long len{0};
   NTSTATUS status = NtQueryInformationProcess(
@@ -252,13 +252,28 @@ Status getProcessCommandLineLegacy(HANDLE proc,
                            " with " + std::to_string(status));
   }
 
-  RTL_USER_PROCESS_PARAMETERS upp;
   if (!ReadProcessMemory(
-          proc, peb.ProcessParameters, &upp, sizeof(upp), &bytes_read)) {
+          proc, peb.ProcessParameters, &out, sizeof(out), &bytes_read)) {
     return Status::failure("Reading USER_PROCESS_PARAMETERS failed for " +
                            std::to_string(pid));
   }
 
+  return Status::success();
+}
+
+/// For legacy systems, we retrieve the commandline from the PEB
+Status getProcessCommandLineLegacy(HANDLE proc,
+                                   std::string& out,
+                                   const unsigned long pid) {
+  RTL_USER_PROCESS_PARAMETERS upp;
+  auto s = getUserProcessParameters(proc, upp, pid);
+  if (!s.ok()) {
+    LOG(INFO) << "Failed to get PEB UPP for " << pid << " with "
+              << GetLastError();
+    return s;
+  }
+
+  size_t bytes_read = 0;
   std::vector<wchar_t> command_line(kMaxPathSize, 0x0);
   SecureZeroMemory(command_line.data(), kMaxPathSize);
   if (!ReadProcessMemory(proc,
@@ -316,33 +331,15 @@ Status getProcessCommandLine(HANDLE& proc,
 Status getProcessCurrentDirectory(HANDLE proc,
                                   std::string& out,
                                   const unsigned long pid) {
-  PROCESS_BASIC_INFORMATION pbi;
-  unsigned long len{0};
-  NTSTATUS status = NtQueryInformationProcess(
-      proc, ProcessBasicInformation, &pbi, sizeof(pbi), &len);
-
-  SetLastError(RtlNtStatusToDosError(status));
-  if (NT_ERROR(status) || !pbi.PebBaseAddress) {
-    return Status::failure("NtQueryInformationProcess failed for " +
-                           std::to_string(pid) + " with " +
-                           std::to_string(status));
+  RTL_USER_PROCESS_PARAMETERS upp;
+  auto s = getUserProcessParameters(proc, upp, pid);
+  if (!s.ok()) {
+    LOG(INFO) << "Failed to get PEB UPP for " << pid << " with "
+              << GetLastError();
+    return s;
   }
 
   size_t bytes_read = 0;
-  PEB peb;
-  if (!ReadProcessMemory(
-          proc, pbi.PebBaseAddress, &peb, sizeof(peb), &bytes_read)) {
-    return Status::failure("Reading PEB failed for " + std::to_string(pid) +
-                           " with " + std::to_string(status));
-  }
-
-  RTL_USER_PROCESS_PARAMETERS upp;
-  if (!ReadProcessMemory(
-          proc, peb.ProcessParameters, &upp, sizeof(upp), &bytes_read)) {
-    return Status::failure("Reading USER_PROCESS_PARAMETERS failed for " +
-                           std::to_string(pid));
-  }
-
   std::vector<wchar_t> current_directory(kMaxPathSize, 0x0);
   SecureZeroMemory(current_directory.data(), kMaxPathSize);
   if (!ReadProcessMemory(proc,
