@@ -18,7 +18,7 @@ class BamTest : public testing::Test {
 };
 
 TEST_F(BamTest, test_sanity) {
-  QueryData const rows = execute_query("select * from bam;");
+  QueryData const rows = execute_query("select * from bam");
   ASSERT_GT(rows.size(), 0ul);
 
   ValidationMap row_map = {
