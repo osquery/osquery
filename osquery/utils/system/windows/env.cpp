@@ -122,7 +122,7 @@ boost::optional<std::vector<std::string>> splitArgs(const std::string& args) {
   int argc = 0;
 
   // If the string is empty, there is nothing to split.
-  if (args == "") {
+  if (args.empty()) {
     return boost::none;
   }
 
