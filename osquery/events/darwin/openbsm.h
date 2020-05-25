@@ -10,6 +10,8 @@
 
 #include <osquery/events.h>
 
+#include <set>
+
 namespace osquery {
 
 struct OpenBSMSubscriptionContext : public SubscriptionContext {
@@ -68,5 +70,8 @@ class OpenBSMEventPublisher
 
  private:
   FILE* audit_pipe_{nullptr};
+
+  /// Total set of event IDs from subscriptions.
+  std::set<size_t> event_ids_;
 };
 } // namespace osquery

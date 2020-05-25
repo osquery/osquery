@@ -48,33 +48,32 @@ Status OpenBSMEventPublisher::configureAuditPipe() {
   }
 
   au_mask_t pr_flags = {0, 0};
-  std::vector<std::string> ev_classes;
+  std::set<std::string> ev_classes;
 
   if (true == FLAGS_audit_allow_process_events) {
     // capture process events
-    ev_classes.push_back("pc");
+    ev_classes.insert("pc");
   }
 
   if (true == FLAGS_audit_allow_sockets) {
     // capture network events
-    ev_classes.push_back("nt");
+    ev_classes.insert("nt");
   }
 
   if (true == FLAGS_audit_allow_user_events) {
     // capture user (login, autherization etc...) events
-    ev_classes.push_back("lo");
-    ev_classes.push_back("aa");
-    ev_classes.push_back("ad");
+    ev_classes.insert("lo");
+    ev_classes.insert("aa");
   }
 
   if (true == FLAGS_audit_allow_fim_events) {
     // capture file events
-    ev_classes.push_back("fc");
-    ev_classes.push_back("fd");
-    ev_classes.push_back("fw");
-    ev_classes.push_back("fr");
-    ev_classes.push_back("fa");
-    ev_classes.push_back("fm");
+    ev_classes.insert("fc");
+    ev_classes.insert("fd");
+    ev_classes.insert("fw");
+    ev_classes.insert("fr");
+    ev_classes.insert("fa");
+    ev_classes.insert("fm");
   }
 
   struct au_class_ent* ace = nullptr;
@@ -120,7 +119,14 @@ Status OpenBSMEventPublisher::setUp() {
   return FLAGS_audit_allow_config ? configureAuditPipe() : Status::success();
 }
 
-void OpenBSMEventPublisher::configure() {}
+void OpenBSMEventPublisher::configure() {
+  std::set<size_t> event_ids;
+  for (const auto& sub : subscriptions_) {
+    auto sc = getSubscriptionContext(sub->context);
+    event_ids.insert(sc->event_id);
+  }
+  event_ids_ = event_ids;
+}
 
 void OpenBSMEventPublisher::tearDown() {
   if (audit_pipe_ != nullptr) {
@@ -139,6 +145,8 @@ void OpenBSMEventPublisher::acquireMessages() {
   // We'll use these to dequeue below.
   tokenstr_t tok;
   std::vector<tokenstr_t> tokens{};
+  // Predict that we usually use 6-12 tokens.
+  tokens.reserve(12);
 
   auto event_id = 0;
   auto bytesread = 0;
@@ -168,10 +176,15 @@ void OpenBSMEventPublisher::acquireMessages() {
   // lines in to validate destruction.
   std::shared_ptr<unsigned char> sp_buffer(buffer,
                                            [](unsigned char* p) { delete p; });
+  if (event_ids_.find(event_id) == event_ids_.end()) {
+    // Return early to avoid parsing / checking loud and unused event IDs.
+    return;
+  }
 
   auto ec = createEventContext();
   ec->event_id = event_id;
-  ec->tokens = tokens;
+  ec->tokens = std::move(tokens);
+  ec->tokens.shrink_to_fit();
   ec->buffer = sp_buffer;
   fire(ec);
 }
