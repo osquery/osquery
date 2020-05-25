@@ -41,7 +41,7 @@ The recommended way to set these ACLs is with PowerShell, and we've written a he
 
 ```PowerShell
 C:\Users\Thor\work\repos\osquery [master ≡]
-λ  . .\tools\provision\chocolatey\osquery_utils.ps1
+λ  . .\tools\deployment\chocolatey\tools\osquery_utils.ps1
 C:\Users\Thor\work\repos\osquery [master ≡]
 λ  Set-SafePermissions C:\Program Files\osquery\osqueryd\
 True

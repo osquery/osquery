@@ -8,7 +8,7 @@
 
 #Requires -Version 3.0
 
-. "$PSScriptRoot\\osquery_utils.ps1"
+. (Join-Path "$PSScriptRoot" "osquery_utils.ps1")
 
 # Remove the osquery path from the System PATH variable. Note: Here
 # we don't make use of our local vars, as Regex requires escaping the '\'

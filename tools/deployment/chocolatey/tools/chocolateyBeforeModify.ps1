@@ -3,11 +3,12 @@
 #
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
+
 # This library file contains constant definitions and helper functions
 
 #Requires -Version 3.0
 
-. "$PSScriptRoot\\osquery_utils.ps1"
+. (Join-Path "$PSScriptRoot" "osquery_utils.ps1")
 
 # Ensure the service is stopped and processes are not running if exists.
 if ((Get-Service $serviceName -ErrorAction SilentlyContinue) -and `

@@ -8,7 +8,7 @@
 
 #Requires -Version 3.0
 
-. "$PSScriptRoot\\osquery_utils.ps1"
+. (Join-Path "$PSScriptRoot" "osquery_utils.ps1")
 
 $packageParameters = $env:chocolateyPackageParameters
 $arguments = @{}
@@ -62,23 +62,44 @@ if ($packageParameters) {
   Write-Debug "No Package Parameters Passed in"
 }
 
-New-Item -Force -Type directory -Path $daemonFolder
-New-Item -Force -Type directory -Path $logFolder
-$packagePath = "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\\bin\\osquery.zip"
-Get-ChocolateyUnzip -FileFullPath $packagePath -Destination $targetFolder
+# Install the package
 
-# In order to run osqueryd as a service, we need to have a folder that has a
-# Deny Write ACL to everyone.
-Move-Item -Force -Path $targetDaemonBin -Destination $destDaemonBin
+# Create a log directory in case one doesn't already exist
+New-Item -Force -Type directory -Path $logFolder
+
+# Grab the primary folders
+$packageRoot = (Join-Path "$PSScriptRoot" "..")
+Copy-Item -Force -Recurse (Join-Path "$packageRoot" "certs") $targetFolder
+Copy-Item -Force -Recurse (Join-Path "$packageRoot" "osqueryd") $targetFolder
+Copy-Item -Force -Recurse (Join-Path "$packageRoot" "packs") $targetFolder
+
+# Grab the individual files
+Copy-Item -Force (Join-Path "$packageRoot" "manage-osqueryd.ps1") $targetFolder
+Copy-Item -Force (Join-Path "$packageRoot" "osquery.man") $targetFolder
+Copy-Item -Force (Join-Path "$PSScriptRoot" "osquery_utils.ps1") $targetFolder
+Copy-Item -Force (Join-Path "$packageRoot" "osqueryi.exe") $targetFolder
+
+# We intentionally do not replace configuration and flags files from previous
+# installations, as these often dictate the osquery configuration and may not
+# change through upgrades.
+$currConf = (Join-Path "$targetFolder" "osquery.conf")
+if (-not (Test-Path $currConf)) {
+  Copy-Item -Force (Join-Path "$packageRoot" "osquery.conf") $targetFolder
+}
+$currFlags = (Join-Path "$targetFolder" "osquery.flags")
+if (-not (Test-Path $currFlags)) {
+  Copy-Item -Force (Join-Path "$packageRoot" "osquery.flags") $targetFolder
+}
+
+# The osquery daemon requires no low privileged users have write access to run
 Set-SafePermissions $daemonFolder
 
 if ($installService) {
   if (-not (Get-Service $serviceName -ErrorAction SilentlyContinue)) {
     Write-Debug 'Installing osquery daemon service.'
     # If the 'install' parameter is passed, we create a Windows service with
-    # the flag file in the default location in \Program Files\osquery\
-    # the flag file in the default location in Program Files
-    $cmd = '"{0}" --flagfile="C:\Program Files\osquery\osquery.flags"' -f $destDaemonBin
+    # the flag file in the default location, 'C:\Program Files\osquery'
+    $cmd = '"{0}" --flagfile="{1}\osquery.flags"' -f $destDaemonBin, $targetFolder
 
     $svcArgs = @{
       Name = $serviceName
@@ -98,4 +119,4 @@ if ($installService) {
 }
 
 # Add osquery binary path to machines path for ease of use.
-Add-ToSystemPath $targetFolder
+Install-ChocolateyPath $targetFolder -PathType 'Machine'

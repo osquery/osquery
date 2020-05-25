@@ -69,7 +69,7 @@ param(
 
 # Import the osquery utility functions
 $osqRoot = "$PSScriptRoot\..\..\"
-. (Join-Path $osqRoot "tools\provision\chocolatey\osquery_utils.ps1")
+. (Join-Path $osqRoot "tools\deployment\chocolatey\tools\osquery_utils.ps1")
 
 function New-MsiPackage() {
   param(
@@ -423,7 +423,7 @@ function New-ChocolateyPackage() {
     <owners>osquery</owners>
     <copyright>Copyright (c) 2014-present, Facebook, Inc. All rights reserved.</copyright>
     <projectUrl>https://osquery.io</projectUrl>
-    <iconUrl>https://osquery.io/static/site/img/logo-big.png</iconUrl>
+    <iconUrl>https://github.com/osquery/osquery/blob/master/tools/osquery.ico</iconUrl>
     <licenseUrl>https://github.com/osquery/osquery/blob/master/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <projectSourceUrl>https://github.com/osquery/osquery</projectSourceUrl>
@@ -465,7 +465,6 @@ function New-ChocolateyPackage() {
   $osqueryChocoPath = "$chocoBuildPath\osquery"
   New-Item -Force -ItemType Directory -Path "$osqueryChocoPath\tools\bin"
   Copy-Item -Recurse -Force "$osqRoot\tools\deployment\chocolatey\tools" "$osqueryChocoPath"
-  Copy-Item -Recurse -Force "$osqRoot\tools\provision\chocolatey\osquery_utils.ps1" "$osqueryChocoPath\tools\osquery_utils.ps1"
 
   $binDir = "$osqRoot\build\windows10\osquery\Release\"
   $clientPath = Join-Path $binDir 'osqueryi.exe'
@@ -626,7 +625,7 @@ function Main() {
     exit 1
   }
   
-  $utils = Join-Path $osqRoot 'tools\provision\chocolatey\osquery_utils.ps1'
+  $utils = Join-Path $osqRoot 'tools\deployment\chocolatey\tools\osquery_utils.ps1'
   if (-not (Test-Path $utils)) {
     $msg = '[-] Did not find osquery utils script, check build script output.'
     Write-Host $msg -ForegroundColor Red
