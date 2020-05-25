@@ -121,6 +121,13 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
 boost::optional<std::vector<std::string>> splitArgs(const std::string& args) {
   int argc = 0;
 
+  // If the string is empty, there is nothing to split.
+  if (args.empty()) {
+    return boost::none;
+  }
+
+  // Note: passing an empty string to CommandLineToArgvW() will cause it
+  // to fill in the command line of the current process (of osquery!)
   auto argv = ::CommandLineToArgvW(stringToWstring(args).c_str(), &argc);
   if (argv == nullptr) {
     return boost::none;
