@@ -46,7 +46,6 @@ Status OpenBSMEventPublisher::configureAuditPipe() {
     LOG(INFO) << "The auditpipe:ioctl AUDITPIPE_SET_QLIMIT failed";
   }
 
-  struct au_class_ent* ace;
   au_mask_t pr_flags = {0, 0};
   std::vector<std::string> ev_classes;
 
@@ -77,6 +76,7 @@ Status OpenBSMEventPublisher::configureAuditPipe() {
     ev_classes.push_back("fm");
   }
 
+  struct au_class_ent* ace = nullptr;
   while ((ace = getauclassent()) != nullptr) {
     for (auto& cl : ev_classes) {
       if (cl == ace->ac_name) {
