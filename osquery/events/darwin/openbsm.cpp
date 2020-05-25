@@ -187,7 +187,7 @@ Status OpenBSMEventPublisher::run() {
   struct timeval timeout;
   timeout.tv_sec = 0;
   timeout.tv_usec = 0;
-  while (!interrupted()) {
+  while (!isEnding()) {
     int rc = select(FD_SETSIZE, &fdset, nullptr, nullptr, &timeout);
     if (rc == 0) {
       break;
