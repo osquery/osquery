@@ -59,5 +59,7 @@ class OpenBSMEventPublisher
   /// Apply normal subscription to event matching logic.
   bool shouldFire(const OpenBSMSubscriptionContextRef& mc,
                   const OpenBSMEventContextRef& ec) const override;
+
+  Status configureAuditPipe();
 };
 } // namespace osquery

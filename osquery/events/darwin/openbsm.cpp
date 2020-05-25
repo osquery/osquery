@@ -7,6 +7,8 @@
  */
 
 #include <bsm/libbsm.h>
+#include <security/audit/audit_ioctl.h>
+#include <sys/ioctl.h>
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -16,20 +18,105 @@
 
 namespace osquery {
 
+const int kQLimit = 512;
+
 DECLARE_bool(disable_audit);
+DECLARE_bool(audit_allow_config);
+DECLARE_bool(audit_allow_process_events);
+DECLARE_bool(audit_allow_sockets);
+DECLARE_bool(audit_allow_user_events);
+DECLARE_bool(audit_allow_fim_events);
 
 REGISTER(OpenBSMEventPublisher, "event_publisher", "openbsm");
 
+Status OpenBSMEventPublisher::configureAuditPipe() {
+  auto au_pipe = audit_pipe_;
+  auto au_fd = fileno(au_pipe);
+  int pr_sel_mode = AUDITPIPE_PRESELECT_MODE_LOCAL;
+
+  audit_pipe_ = nullptr;
+
+  if (ioctl(au_fd, AUDITPIPE_SET_PRESELECT_MODE, &pr_sel_mode) == -1) {
+    LOG(WARNING) << "The auditpipe:ioctl AUDITPIPE_SET_PRESELECT_MODE failed";
+    fclose(au_pipe);
+    return Status::failure("Failed to set AUDITPIPE_SET_PRESELECT_MODE");
+  }
+
+  if (ioctl(au_fd, AUDITPIPE_SET_QLIMIT, &kQLimit) == -1) {
+    LOG(INFO) << "The auditpipe:ioctl AUDITPIPE_SET_QLIMIT failed";
+  }
+
+  au_mask_t pr_flags = {0, 0};
+  std::vector<std::string> ev_classes;
+
+  if (true == FLAGS_audit_allow_process_events) {
+    // capture process events
+    ev_classes.push_back("pc");
+  }
+
+  if (true == FLAGS_audit_allow_sockets) {
+    // capture network events
+    ev_classes.push_back("nt");
+  }
+
+  if (true == FLAGS_audit_allow_user_events) {
+    // capture user (login, autherization etc...) events
+    ev_classes.push_back("lo");
+    ev_classes.push_back("aa");
+    ev_classes.push_back("ad");
+  }
+
+  if (true == FLAGS_audit_allow_fim_events) {
+    // capture file events
+    ev_classes.push_back("fc");
+    ev_classes.push_back("fd");
+    ev_classes.push_back("fw");
+    ev_classes.push_back("fr");
+    ev_classes.push_back("fa");
+    ev_classes.push_back("fm");
+  }
+
+  struct au_class_ent* ace = nullptr;
+  while ((ace = getauclassent()) != nullptr) {
+    for (auto& cl : ev_classes) {
+      if (cl == ace->ac_name) {
+        ADD_TO_MASK(&pr_flags, ace->ac_class, AU_PRS_BOTH);
+        break;
+      }
+    }
+  }
+  endauclass();
+
+  au_mask_t na_pr_flags = pr_flags;
+
+  if (ioctl(au_fd, AUDITPIPE_SET_PRESELECT_FLAGS, &pr_flags) == -1) {
+    LOG(WARNING) << "The auditpipe:ioctl AUDITPIPE_SET_PRESELECT_FLAGS failed";
+    fclose(au_pipe);
+    return Status::failure("Failed to set AUDITPIPE_SET_PRESELECT_FLAGS");
+  }
+
+  if (ioctl(au_fd, AUDITPIPE_SET_PRESELECT_NAFLAGS, &na_pr_flags) == -1) {
+    LOG(WARNING)
+        << "The auditpipe:ioctl AUDITPIPE_SET_PRESELECT_NAFLAGS failed";
+    fclose(au_pipe);
+    return Status::failure("Failed to set AUDITPIPE_SET_PRESELECT_NAFLAGS");
+  }
+
+  audit_pipe_ = au_pipe;
+  return Status::success();
+}
+
 Status OpenBSMEventPublisher::setUp() {
   if (FLAGS_disable_audit) {
-    return Status(1, "Publisher disabled via configuration");
+    return Status::failure("Publisher disabled via configuration");
   }
   audit_pipe_ = fopen("/dev/auditpipe", "r");
   if (audit_pipe_ == nullptr) {
     LOG(WARNING) << "The auditpipe couldn't be opened.";
-    return Status(1, "Could not open OpenBSM pipe");
+    return Status::failure("Could not open OpenBSM pipe");
   }
-  return Status(0);
+
+  return FLAGS_audit_allow_config ? configureAuditPipe() : Status::success();
 }
 
 void OpenBSMEventPublisher::configure() {}
@@ -43,7 +130,7 @@ void OpenBSMEventPublisher::tearDown() {
 
 Status OpenBSMEventPublisher::run() {
   if (audit_pipe_ == nullptr) {
-    return Status(1, "No open audit_pipe");
+    return Status::failure("No open audit_pipe");
   }
   tokenstr_t tok;
   auto reclen = 0;
@@ -88,7 +175,7 @@ Status OpenBSMEventPublisher::run() {
     tokens.clear();
     event_id = 0;
   }
-  return Status(0);
+  return Status::success();
 }
 
 bool OpenBSMEventPublisher::shouldFire(const OpenBSMSubscriptionContextRef& mc,

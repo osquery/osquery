@@ -29,10 +29,7 @@ namespace boostfs = boost::filesystem;
 namespace osquery {
 
 // Recommended configuration is just --audit_allow_fim_events=true
-FLAG(bool,
-     audit_allow_fim_events,
-     false,
-     "Allow the audit publisher to install file event monitoring rules");
+DECLARE_bool(audit_allow_fim_events);
 
 HIDDEN_FLAG(bool,
             audit_show_partial_fim_events,

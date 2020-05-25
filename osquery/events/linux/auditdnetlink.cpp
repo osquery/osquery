@@ -34,12 +34,6 @@ FLAG(bool, audit_persist, true, "Attempt to retain control of audit");
 /// Audit debugger helper
 HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
 
-/// Control the audit subsystem by allowing subscriptions to apply rules.
-FLAG(bool,
-     audit_allow_config,
-     false,
-     "Allow the audit publisher to change auditing configuration");
-
 /// Always uninstall all the audit rules that osquery uses when exiting
 FLAG(bool,
      audit_force_unconfigure,
@@ -60,6 +54,7 @@ FLAG(int32, audit_backlog_wait_time, 0, "The audit backlog wait time");
 FLAG(int32, audit_backlog_limit, 4096, "The audit backlog limit");
 
 // External flags; they are used to determine which rules need to be installed
+DECLARE_bool(audit_allow_config);
 DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_fork_process_events);
