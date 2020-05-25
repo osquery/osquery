@@ -20,6 +20,12 @@ FLAG(bool,
      true,
      "Disable receiving events from the audit subsystem");
 
+/// Control the audit subsystem by allowing subscriptions to apply rules.
+FLAG(bool,
+     audit_allow_config,
+     false,
+     "Allow the audit publisher to change auditing configuration");
+
 FLAG(bool,
      audit_allow_sockets,
      false,

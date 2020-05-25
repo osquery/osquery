@@ -60,6 +60,6 @@ class OpenBSMEventPublisher
   bool shouldFire(const OpenBSMSubscriptionContextRef& mc,
                   const OpenBSMEventContextRef& ec) const override;
 
-  Status configureAuditPipe(FILE* au_pipe);
+  Status configureAuditPipe();
 };
 } // namespace osquery

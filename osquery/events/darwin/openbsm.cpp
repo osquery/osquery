@@ -21,6 +21,7 @@ namespace osquery {
 const int kQLimit = 512;
 
 DECLARE_bool(disable_audit);
+DECLARE_bool(audit_allow_config);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
@@ -28,7 +29,8 @@ DECLARE_bool(audit_allow_fim_events);
 
 REGISTER(OpenBSMEventPublisher, "event_publisher", "openbsm");
 
-Status OpenBSMEventPublisher::configureAuditPipe(FILE* au_pipe) {
+Status OpenBSMEventPublisher::configureAuditPipe() {
+  auto au_pipe = audit_pipe_;
   auto au_fd = fileno(au_pipe);
   int pr_sel_mode = AUDITPIPE_PRESELECT_MODE_LOCAL;
 
@@ -37,7 +39,7 @@ Status OpenBSMEventPublisher::configureAuditPipe(FILE* au_pipe) {
   if (ioctl(au_fd, AUDITPIPE_SET_PRESELECT_MODE, &pr_sel_mode) == -1) {
     LOG(WARNING) << "The auditpipe:ioctl AUDITPIPE_SET_PRESELECT_MODE failed";
     fclose(au_pipe);
-    return Status(1, "Failed to set AUDITPIPE_SET_PRESELECT_MODE");
+    return Status::failure("Failed to set AUDITPIPE_SET_PRESELECT_MODE");
   }
 
   if (ioctl(au_fd, AUDITPIPE_SET_QLIMIT, &kQLimit) == -1) {
@@ -90,31 +92,31 @@ Status OpenBSMEventPublisher::configureAuditPipe(FILE* au_pipe) {
   if (ioctl(au_fd, AUDITPIPE_SET_PRESELECT_FLAGS, &pr_flags) == -1) {
     LOG(WARNING) << "The auditpipe:ioctl AUDITPIPE_SET_PRESELECT_FLAGS failed";
     fclose(au_pipe);
-    return Status(1, "Failed to set AUDITPIPE_SET_PRESELECT_FLAGS");
+    return Status::failure("Failed to set AUDITPIPE_SET_PRESELECT_FLAGS");
   }
 
   if (ioctl(au_fd, AUDITPIPE_SET_PRESELECT_NAFLAGS, &na_pr_flags) == -1) {
     LOG(WARNING)
         << "The auditpipe:ioctl AUDITPIPE_SET_PRESELECT_NAFLAGS failed";
     fclose(au_pipe);
-    return Status(1, "Failed to set AUDITPIPE_SET_PRESELECT_NAFLAGS");
+    return Status::failure("Failed to set AUDITPIPE_SET_PRESELECT_NAFLAGS");
   }
 
   audit_pipe_ = au_pipe;
-  return Status(0);
+  return Status::success();
 }
 
 Status OpenBSMEventPublisher::setUp() {
   if (FLAGS_disable_audit) {
-    return Status(1, "Publisher disabled via configuration");
+    return Status::failure("Publisher disabled via configuration");
   }
   audit_pipe_ = fopen("/dev/auditpipe", "r");
   if (audit_pipe_ == nullptr) {
     LOG(WARNING) << "The auditpipe couldn't be opened.";
-    return Status(1, "Could not open OpenBSM pipe");
+    return Status::failure("Could not open OpenBSM pipe");
   }
 
-  return configureAuditPipe(audit_pipe_);
+  return FLAGS_audit_allow_config ? configureAuditPipe() : Status::success();
 }
 
 void OpenBSMEventPublisher::configure() {}
@@ -128,7 +130,7 @@ void OpenBSMEventPublisher::tearDown() {
 
 Status OpenBSMEventPublisher::run() {
   if (audit_pipe_ == nullptr) {
-    return Status(1, "No open audit_pipe");
+    return Status::failure("No open audit_pipe");
   }
   tokenstr_t tok;
   auto reclen = 0;
@@ -173,7 +175,7 @@ Status OpenBSMEventPublisher::run() {
     tokens.clear();
     event_id = 0;
   }
-  return Status(0);
+  return Status::success();
 }
 
 bool OpenBSMEventPublisher::shouldFire(const OpenBSMSubscriptionContextRef& mc,
