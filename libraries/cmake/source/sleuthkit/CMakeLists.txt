@@ -5,11 +5,6 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(sleuthkitMain)
-  if(NOT DEFINED PLATFORM_LINUX AND NOT DEFINED PLATFORM_MACOS)
-    add_osquery_library(thirdparty_sleuthkit INTERFACE)
-    return()
-  endif()
-
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
   add_library(thirdparty_sleuthkit INTERFACE)
@@ -133,13 +128,15 @@ function(sleuthkitMain)
     _THREAD_SAFE
   )
 
-  target_compile_options(thirdparty_sleuthkit_c PRIVATE
-    -pthread
-  )
+  if(DEFINED PLATFORM_POSIX)
+    target_compile_options(thirdparty_sleuthkit_c PRIVATE
+      -pthread
+    )
 
-  target_compile_options(thirdparty_sleuthkit_cpp PRIVATE
-    -pthread
-  )
+    target_compile_options(thirdparty_sleuthkit_cpp PRIVATE
+      -pthread
+    )
+  endif()
 
   target_link_libraries(thirdparty_sleuthkit_c PUBLIC
     thirdparty_zlib
@@ -157,7 +154,17 @@ function(sleuthkitMain)
     thirdparty_cxx_settings
   )
 
-  if(DEFINED PLATFORM_LINUX)
+  if(DEFINED PLATFORM_WINDOWS)
+    target_include_directories(thirdparty_sleuthkit_c PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/windows/tsk"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/windows"
+    )
+
+    target_include_directories(thirdparty_sleuthkit_cpp PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/windows/tsk"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/windows"
+    )
+  elseif(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_sleuthkit_c PRIVATE
       "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/tsk"
       "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
@@ -187,7 +194,11 @@ function(sleuthkitMain)
     "${library_root}"
   )
 
-  if(DEFINED PLATFORM_LINUX)
+  if(DEFINED PLATFORM_WINDOWS)
+    target_include_directories(thirdparty_sleuthkit SYSTEM INTERFACE
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/windows"
+    )
+  elseif(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_sleuthkit SYSTEM INTERFACE
       "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
     )

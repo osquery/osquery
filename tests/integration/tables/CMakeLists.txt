@@ -69,6 +69,9 @@ function(generateTestsIntegrationTablesTestsTest)
     users.cpp
     ssh_configs.cpp
     user_ssh_keys.cpp
+    device_file.cpp
+    device_hash.cpp
+    device_partitions.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
@@ -80,9 +83,6 @@ function(generateTestsIntegrationTablesTestsTest)
       block_devices.cpp
       cpu_time.cpp
       crontab.cpp
-      device_file.cpp
-      device_hash.cpp
-      device_partitions.cpp
       disk_encryption.cpp
       dns_resolvers.cpp
       docker_container_labels.cpp
