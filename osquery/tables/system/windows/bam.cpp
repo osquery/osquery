@@ -50,7 +50,7 @@ QueryData genBam(QueryContext& context) {
         } else {
           std::string time_data = last_run.substr(0, 16);
           auto time_str = lastExecute(time_data);
-          if (time_str == 1LL) {
+          if (time_str == 0LL) {
             r["last_execution_time"] = "";
           }
           r["last_execution_time"] = INTEGER(time_str);
