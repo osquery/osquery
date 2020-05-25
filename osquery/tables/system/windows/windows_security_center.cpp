@@ -33,7 +33,8 @@ std::string resolveProductHealthOrError(int productName) {
   typedef HRESULT(WINAPI * pWscGetSecurityProviderHealth)(
       _In_ DWORD Providers, _Out_ PWSC_SECURITY_PROVIDER_HEALTH);
   pWscGetSecurityProviderHealth WscGetSecurityProviderHealth;
-  static HMODULE hDLL = LoadLibrary("wscapi.dll");
+  static HMODULE hDLL =
+      LoadLibraryEx("wscapi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
   if (hDLL == nullptr) {
     VLOG(1) << "Could not dynamically load 'wscapi.dll'";
     return "Error";
