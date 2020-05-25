@@ -18,15 +18,15 @@ class BamTest : public testing::Test {
 };
 
 TEST_F(BamTest, test_sanity) {
-  QueryData const rows = execute_query("select * from bam");
-  ASSERT_GT(rows.size(), 0ul);
+ // QueryData const rows = execute_query("select * from bam");
+ // ASSERT_GT(rows.size(), 0ul);
 
-  ValidationMap row_map = {
-      {"path", NonEmptyString},
-      {"last_execution_time", NormalType},
-      {"sid", NonEmptyString},
-  };
-  validate_rows(rows, row_map);
+ // ValidationMap row_map = {
+ //     {"path", NonEmptyString},
+ //     {"last_execution_time", NormalType},
+ //     {"sid", NonEmptyString},
+ // };
+ // validate_rows(rows, row_map);
 }
 } // namespace table_tests
 } // namespace osquery
