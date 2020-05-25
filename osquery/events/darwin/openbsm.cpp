@@ -114,7 +114,7 @@ Status OpenBSMEventPublisher::setUp() {
   audit_pipe_ = fopen("/dev/auditpipe", "r");
   if (audit_pipe_ == nullptr) {
     LOG(WARNING) << "The auditpipe couldn't be opened.";
-    return Status::failure("Could not open OpenBSM pipe");
+    return Status::failure("Could not open auditpipe");
   }
 
   return FLAGS_audit_allow_config ? configureAuditPipe() : Status::success();
@@ -178,27 +178,33 @@ void OpenBSMEventPublisher::acquireMessages() {
 
 Status OpenBSMEventPublisher::run() {
   if (audit_pipe_ == nullptr) {
-    return Status(1, "No open audit_pipe");
+    return Status::failure("Auditpipe is not open");
   }
 
   fd_set fdset;
-  FD_ZERO(&fdset);
-  FD_SET(fileno(audit_pipe_), &fdset);
   struct timeval timeout;
   timeout.tv_sec = 0;
-  timeout.tv_usec = 0;
+  timeout.tv_usec = 200000;
+
   while (!isEnding()) {
+    FD_ZERO(&fdset);
+    FD_SET(fileno(audit_pipe_), &fdset);
+
     int rc = select(FD_SETSIZE, &fdset, nullptr, nullptr, &timeout);
-    if (rc == 0) {
+    if (isEnding()) {
+      // Events ended while waiting, ignore any data ready to be read.
       break;
+    }
+    if (rc == 0) {
+      continue;
     }
 
     if (rc < 0) {
       if (errno != EINTR) {
         VLOG(1) << "poll() failed with error " << errno;
-        return Status::failure("Audit pipe cannot be read");
+        return Status::failure("Auditpipe cannot be read");
       }
-      break;
+      continue;
     }
 
     // Data is ready to be dequeued.
