@@ -54,7 +54,7 @@ std::string rotDecode(std::string& value_key_reg) {
 long long lastExecute(std::string& time_data) {
   // If timestamp is zero dont convert to UNIX Time
   if (time_data == "0000000000000000") {
-    return 1LL;
+    return 0LL;
   } else {
     // swap endianess
     std::reverse(time_data.begin(), time_data.end());
@@ -70,7 +70,7 @@ long long lastExecute(std::string& time_data) {
         tryTo<unsigned long long>(time_data, 16).takeOr(0ull);
     if (last_run == 0ull) {
       LOG(WARNING) << "Failed to convert string to long long: " << time_data;
-      return 1LL;
+      return 0LL;
     }
 
     FILETIME file_time;
@@ -159,7 +159,7 @@ QueryData genUserAssist(QueryContext& context) {
           results.push_back(r);
         } else {
           std::string assist_data = aKey.at("data");
-          auto time_str = 1LL;
+          auto time_str = 0LL;
           if (assist_data.length() <= 136) {
             LOG(WARNING)
                 << "Userassist last execute Timestamp format is incorrect";
@@ -170,7 +170,7 @@ QueryData genUserAssist(QueryContext& context) {
 
           r["path"] = decoded_value_key;
 
-          if (time_str == 1LL) {
+          if (time_str == 0LL) {
             r["count"] = "";
             r["last_execution_time"] = "";
           } else {
