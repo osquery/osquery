@@ -780,9 +780,11 @@ Status EventFactory::run(const std::string& type_id) {
   } else if (publisher->hasStarted()) {
     return Status(1, "Cannot restart an event publisher");
   }
+
   setThreadName(publisher->name());
   VLOG(1) << "Starting event publisher run loop: " + type_id;
   publisher->hasStarted(true);
+  publisher->state(EventState::EVENT_RUNNING);
 
   auto status = Status(0, "OK");
   while (!publisher->isEnding()) {
@@ -797,6 +799,7 @@ Status EventFactory::run(const std::string& type_id) {
     // prevents the thread from thrashing through exiting checks.
     publisher->pause(std::chrono::milliseconds(200));
   }
+
   if (!status.ok()) {
     // The runloop status is not reflective of the event type's.
     VLOG(1) << "Event publisher " << publisher->type()
@@ -1049,8 +1052,8 @@ Status EventFactory::deregisterEventSubscriber(const std::string& sub) {
   }
 
   auto& subscriber = ef.event_subs_.at(sub);
-  subscriber->state(EventState::EVENT_NONE);
   subscriber->tearDown();
+  subscriber->state(EventState::EVENT_NONE);
   ef.event_subs_.erase(sub);
   return Status(0);
 }
