@@ -33,6 +33,7 @@ function(generateOsqueryTablesEventsEventstable)
   elseif(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
       darwin/disk_events.cpp
+      darwin/es_process_events.cpp
       darwin/file_events.cpp
       darwin/hardware_events.cpp
       darwin/socket_events.cpp
@@ -68,6 +69,7 @@ function(generateOsqueryTablesEventsEventstable)
 
   if(DEFINED PLATFORM_MACOS)
     target_link_libraries(osquery_tables_events_eventstable PUBLIC bsm)
+    target_link_libraries(osquery_tables_events_eventstable PUBLIC EndpointSecurity "-Wl,-weak_library,/usr/lib/libEndpointSecurity.dylib")
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)

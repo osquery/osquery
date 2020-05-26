@@ -449,7 +449,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
                           EventTime custom_event_time) final;
 
  private:
-  /*
+  /**
    * @brief When `get`ing event results, return EventID%s from time indexes.
    *
    * Used by EventSubscriber::get to retrieve EventID, EventTime indexes. This
