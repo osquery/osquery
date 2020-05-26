@@ -9,6 +9,7 @@
 #pragma once
 
 #include <osquery/events.h>
+#include <osquery/utils/mutex.h>
 
 #include <set>
 
@@ -70,8 +71,10 @@ class OpenBSMEventPublisher
 
  private:
   FILE* audit_pipe_{nullptr};
+  Mutex audit_pipe_mutex_;
 
   /// Total set of event IDs from subscriptions.
   std::set<size_t> event_ids_;
+  Mutex event_ids_mutex_;
 };
 } // namespace osquery

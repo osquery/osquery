@@ -31,6 +31,8 @@ DECLARE_bool(audit_allow_fim_events);
 REGISTER(OpenBSMEventPublisher, "event_publisher", "openbsm");
 
 Status OpenBSMEventPublisher::configureAuditPipe() {
+  WriteLock lock(audit_pipe_mutex_);
+
   auto au_pipe = audit_pipe_;
   auto au_fd = fileno(au_pipe);
   int pr_sel_mode = AUDITPIPE_PRESELECT_MODE_LOCAL;
@@ -125,10 +127,14 @@ void OpenBSMEventPublisher::configure() {
     auto sc = getSubscriptionContext(sub->context);
     event_ids.insert(sc->event_id);
   }
-  event_ids_ = event_ids;
+
+  WriteLock lock(event_ids_mutex_);
+  event_ids_ = std::move(event_ids);
 }
 
 void OpenBSMEventPublisher::tearDown() {
+  WriteLock lock(audit_pipe_mutex_);
+
   if (audit_pipe_ != nullptr) {
     fclose(audit_pipe_);
     audit_pipe_ = nullptr;
@@ -137,7 +143,13 @@ void OpenBSMEventPublisher::tearDown() {
 
 void OpenBSMEventPublisher::acquireMessages() {
   auto buffer = static_cast<unsigned char*>(nullptr);
-  auto reclen = au_read_rec(audit_pipe_, &buffer);
+  int reclen = 0;
+
+  {
+    ReadLock lock(audit_pipe_mutex_);
+    reclen = au_read_rec(audit_pipe_, &buffer);
+  }
+
   if (reclen <= 0) {
     return;
   }
@@ -176,9 +188,12 @@ void OpenBSMEventPublisher::acquireMessages() {
   // lines in to validate destruction.
   std::shared_ptr<unsigned char> sp_buffer(buffer,
                                            [](unsigned char* p) { delete p; });
-  if (event_ids_.find(event_id) == event_ids_.end()) {
-    // Return early to avoid parsing / checking loud and unused event IDs.
-    return;
+  {
+    ReadLock lock(event_ids_mutex_);
+    if (event_ids_.find(event_id) == event_ids_.end()) {
+      // Return early to avoid parsing / checking loud and unused event IDs.
+      return;
+    }
   }
 
   auto ec = createEventContext();
@@ -190,20 +205,29 @@ void OpenBSMEventPublisher::acquireMessages() {
 }
 
 Status OpenBSMEventPublisher::run() {
-  if (audit_pipe_ == nullptr) {
-    return Status::failure("Auditpipe is not open");
+  {
+    ReadLock lock(audit_pipe_mutex_);
+    if (audit_pipe_ == nullptr) {
+      return Status::failure("Auditpipe is not open");
+    }
   }
 
+  int rc = 0;
   fd_set fdset;
   struct timeval timeout;
   timeout.tv_sec = 0;
   timeout.tv_usec = 200000;
 
   while (!isEnding()) {
-    FD_ZERO(&fdset);
-    FD_SET(fileno(audit_pipe_), &fdset);
+    {
+      ReadLock lock(audit_pipe_mutex_);
 
-    int rc = select(FD_SETSIZE, &fdset, nullptr, nullptr, &timeout);
+      FD_ZERO(&fdset);
+      FD_SET(fileno(audit_pipe_), &fdset);
+
+      rc = select(FD_SETSIZE, &fdset, nullptr, nullptr, &timeout);
+    }
+
     if (isEnding()) {
       // Events ended while waiting, ignore any data ready to be read.
       break;
