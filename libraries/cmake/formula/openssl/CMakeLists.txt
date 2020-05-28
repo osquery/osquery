@@ -71,6 +71,7 @@ function(opensslMain)
 
         enable-ec_nistp_64_gcc_128
         -fPIC
+        -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}
     )
 
     # Don't be afraid to manually patch the build scripts; for some settings, there is no
