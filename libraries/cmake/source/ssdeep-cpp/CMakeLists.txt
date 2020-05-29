@@ -34,7 +34,6 @@ function(ssdeepCppMain)
 
   target_link_libraries(thirdparty_ssdeep-cpp_cpp PRIVATE
     thirdparty_cxx_settings
-    thirdparty_c_settings
   )
 
   target_link_libraries(thirdparty_ssdeep-cpp_c PRIVATE
@@ -44,22 +43,28 @@ function(ssdeepCppMain)
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_ssdeep-cpp_cpp PRIVATE
       "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
-      "${library_root}"
     )
+
     target_include_directories(thirdparty_ssdeep-cpp_c PRIVATE
       "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
-      "${library_root}"
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_ssdeep-cpp_cpp PRIVATE
       "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
-      "${library_root}"
     )
+
     target_include_directories(thirdparty_ssdeep-cpp_c PRIVATE
       "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
-      "${library_root}"
     )
   endif()
+
+  target_include_directories(thirdparty_ssdeep-cpp_cpp PRIVATE
+    "${library_root}"
+  )
+
+  target_include_directories(thirdparty_ssdeep-cpp_c PRIVATE
+    "${library_root}"
+  )
 
   target_include_directories(thirdparty_ssdeep-cpp SYSTEM INTERFACE
     "${library_root}"
