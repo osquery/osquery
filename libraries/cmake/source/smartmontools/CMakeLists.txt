@@ -45,21 +45,14 @@ function(smartmontoolsMain)
   if(DEFINED PLATFORM_LINUX)
     target_sources(thirdparty_smartmontools PRIVATE
       "${library_root}/dev_areca.cpp"
-      "${library_root}/getopt/getopt1.c"
-      "${library_root}/getopt/getopt.c"
       "${library_root}/cciss.cpp"
       "${library_root}/os_linux.cpp"
     )
-
   elseif(DEFINED PLATFORM_MACOS)
     target_sources(thirdparty_smartmontools PRIVATE
       "${library_root}/os_darwin.cpp"
     )
   endif()
-
-  target_compile_options(thirdparty_smartmontools PRIVATE
-    -include config.h
-  )
 
   set(BUILD_INFO_DEFINITION "BUILD_INFO=\"(local build)\"")
 
@@ -77,7 +70,6 @@ function(smartmontoolsMain)
 
   target_link_libraries(thirdparty_smartmontools PRIVATE
     thirdparty_cxx_settings
-    thirdparty_c_settings
   )
 
   if(DEFINED PLATFORM_LINUX)
