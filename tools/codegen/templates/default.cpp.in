@@ -19,123 +19,123 @@ namespace osquery {
 
 /// BEGIN[GENTABLE]
 namespace tables {
-{% if class_name == "" %}\
-{% if generator %}\
-void {{function}}(RowYield& yield, QueryContext& context);
-{% elif strongly_typed_rows %}\
-osquery::TableRows {{function}}(QueryContext& context);
-{% else %}\
-osquery::QueryData {{function}}(QueryContext& context);
-{% endif %}\
-{% else %}
-class {{class_name}} {
+${ if class_name == "": }$\
+${ if generator: }$\
+void ${ function }$(RowYield& yield, QueryContext& context);
+${ :elif strongly_typed_rows: }$\
+osquery::TableRows ${ function }$(QueryContext& context);
+${ :else: }$\
+osquery::QueryData ${ function }$(QueryContext& context);
+${ :end-if }$\
+${ :else: }$
+class ${ class_name }$ {
  public:
-  void {{function}}(RowYield& yield, QueryContext& context);
+  void ${ function }$(RowYield& yield, QueryContext& context);
 };
-{% endif %}\
+${ :end-if }$\
 }
 
-class {{table_name_cc}}TablePlugin : public TablePlugin {
+class ${ table_name_cc }$TablePlugin : public TablePlugin {
  private:
   TableColumns columns() const override {
     return {
-{% for column in schema %}\
-      std::make_tuple("{{column.name}}", {{column.type.affinity}},\
-{% if column.options|length > 0 %} {{column.options_set}}\
-{% else %} ColumnOptions::DEFAULT\
-{% endif %}\
+${ for column in schema: }$\
+      std::make_tuple("${ write(column.name) }$", ${ write(column.type.affinity) }$,\
+${ if len(column.options) > 0: }$ ${ write(column.options_set) }$\
+${ :else: }$ ColumnOptions::DEFAULT\
+${ :end-if }$\
 ),
-{% endfor %}\
+${ :end-for }$\
     };
   }
-{% if aliases|length > 0 %}\
+${ if len(aliases) > 0: }$\
 
   std::vector<std::string> aliases() const override {
     return {
-{% for alias in aliases %}\
-      "{{alias}}",
-{% endfor %}\
+${ for alias in aliases: }$\
+      "${ alias }$",
+${ :end-for }$\
     };
   }
-{% endif %}\
+${ :end-if }$\
 
-{% if has_column_aliases %}\
+${ if has_column_aliases: }$\
 
   ColumnAliasSet columnAliases() const override {
     return {
-{% for column in schema %}\
-{% if column.aliases|length > 0 %}\
-      {"{{column.name}}", {% raw %}{{% endraw %}\
-{% for alias in column.aliases %}"{{alias}}"\
-{% if not loop.last %}, {% endif %}\
-{% endfor %}}},
-{% endif %}\
-{% endfor %}\
+${ for column in schema: }$\
+${ if len(column.aliases) > 0: }$\
+      {"${ write(column.name) }$", {\
+${ for i, alias in enumerate(column.aliases): }$"${ alias }$"\
+${ if i != len(column.aliases) - 1: }$, ${ :end-if }$\
+${ :end-for }$ }},
+${ :end-if }$\
+${ :end-for }$\
     };
   }
 
   AliasColumnMap aliasedColumns() const override {
     return {
-{% for column in schema %}\
-{% if column.aliases|length > 0 %}\
-{% for alias in column.aliases %}\
-      { "{{alias}}", "{{column.name}}" },
-{% endfor %}\
-{% endif %}\
-{% endfor %}\
+${ for column in schema: }$\
+${ if len(column.aliases) > 0: }$\
+${ for alias in column.aliases: }$\
+      { "${ alias }$", "${ write(column.name) }$" },
+${ :end-for }$\
+${ :end-if }$\
+${ :end-for }$\
     };
   }
-{% endif %}\
+${ :end-if }$\
 
   TableAttributes attributes() const override {
     return \
-{% for attribute in attribute_set %}\
-      TableAttributes::{{attribute}} |\
-{% endfor %}\
+${ for attribute in attribute_set: }$\
+      TableAttributes::${ attribute }$ |\
+${ :end-for }$\
       TableAttributes::NONE;
   }
 
-{% if generator %}\
+${ if generator: }$\
   bool usesGenerator() const override { return true; }
 
   void generator(RowYield& yield, QueryContext& context) override {
-{% if class_name != "" %}\
+${ if class_name != "": }$\
     if (EventFactory::exists(getName())) {
       auto subscriber = EventFactory::getEventSubscriber(getName());
-      return subscriber->{{function}}(yield, context);
+      return subscriber->${ function }$(yield, context);
     } else {
       LOG(ERROR) << "Subscriber table missing: " << getName();
     }
-{% else %}\
-    tables::{{function}}(yield, context);
-{% endif %}\
+${ :else: }$\
+    tables::${ function }$(yield, context);
+${ :end-if }$\
   }
-{% else %}\
+${ :else: }$\
   TableRows generate(QueryContext& context) override {
-{% if attributes.cacheable %}\
+${ if "cacheable" in attributes: }$\
     if (isCached(kCacheStep, context)) {
       return getCache();
     }
-{% endif %}\
-{% if attributes.strongly_typed_rows %}\
-    TableRows results = tables::{{function}}(context);
-{% else %}\
-    TableRows results = osquery::tableRowsFromQueryData(tables::{{function}}(context));
-{% endif %}
-{% if attributes.cacheable %}\
+${ :end-if }$\
+${ if "strongly_typed_rows" in attributes: }$\
+    TableRows results = tables::${ function }$(context);
+${ :else: }$\
+    TableRows results = osquery::tableRowsFromQueryData(tables::${ function }$(context));
+${ :end-if }$
+${ if "cacheable" in attributes: }$\
     setCache(kCacheStep, kCacheInterval, context, results);
-{% endif %}
+${ :end-if }$
     return results;
   }
-{% endif %}\
+${ :end-if }$\
 
 };
 
-{% if attributes.utility %}
-REGISTER_INTERNAL({{table_name_cc}}TablePlugin, "table", "{{table_name}}");
-{% else %}
-REGISTER({{table_name_cc}}TablePlugin, "table", "{{table_name}}");
-{% endif %}
+${ if "utility" in attributes: }$
+REGISTER_INTERNAL(${ table_name_cc }$TablePlugin, "table", "${ table_name }$");
+${ :else: }$
+REGISTER(${ table_name_cc }$TablePlugin, "table", "${ table_name }$");
+${ :end-if }$
 /// END[GENTABLE]
 
 }
