@@ -25,8 +25,8 @@ auto ${ table_name_cc }$Register = []() {
     TableColumns columns() const override {
       return {
 ${ for column in schema: }$\
-        std::make_tuple("${ write(column.name} }$", ${ write(column.type.affinity) }$,\
-${ :if len(column.options) > 0: }$ ${ write(column.options_set) }$\
+        std::make_tuple("${ write(column.name) }$", ${ write(column.type.affinity) }$,\
+${ if len(column.options) > 0: }$ ${ write(column.options_set) }$\
 ${ :else: }$ ColumnOptions::DEFAULT\
 ${ :end-if }$\
 ),
