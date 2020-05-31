@@ -84,11 +84,6 @@ function(main)
 endfunction()
 
 function(importLibraries)
-  set(python_module_list
-    markupsafe
-    jinja2
-  )
-
   set(library_descriptor_list
     "Linux,Darwin:augeas"
     "Linux:berkeley-db"

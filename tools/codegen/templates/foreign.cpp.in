@@ -18,55 +18,55 @@
 namespace osquery {
 namespace tables {
 
-auto {{table_name_cc}}Register = []() {
+auto ${ table_name_cc }$Register = []() {
 /// BEGIN[GENTABLE]
-  class {{table_name_cc}}TablePlugin : public TablePlugin {
+  class ${ table_name_cc }$TablePlugin : public TablePlugin {
    private:
     TableColumns columns() const override {
       return {
-{% for column in schema %}\
-        std::make_tuple("{{column.name}}", {{column.type.affinity}},\
-{% if column.options|length > 0 %} {{column.options_set}}\
-{% else %} ColumnOptions::DEFAULT\
-{% endif %}\
+${ for column in schema: }$\
+        std::make_tuple("${ write(column.name) }$", ${ write(column.type.affinity) }$,\
+${ if len(column.options) > 0: }$ ${ write(column.options_set) }$\
+${ :else: }$ ColumnOptions::DEFAULT\
+${ :end-if }$\
 ),
-{% endfor %}\
+${ :end-for }$\
       };
     }
-{% if aliases|length > 0 %}\
+${ if len(aliases) > 0: }$\
 
     std::vector<std::string> aliases() const override {
       return {
-{% for alias in aliases %}\
-        "{{alias}}",
-{% endfor %}\
+${ for alias in aliases: }$\
+        "${ alias }$",
+${ :end-for }$\
       };
     }
-{% endif %}\
+${ :end-if }$\
 
-{% if has_column_aliases %}\
+${ if has_column_aliases: }$\
 
   ColumnAliasSet columnAliases() const override {
     return {
-{% for column in schema %}\
-{% if column.aliases|length > 0 %}\
-      {"{{column.name}}", {% raw %}{{% endraw %}\
-{% for alias in column.aliases %}"{{alias}}"\
-{% if not loop.last %}, {% endif %}\
-{% endfor %}}},
-{% endif %}\
-{% endfor %}\
+${ for column in schema: }$\
+${ if len(column.aliases) > 0: }$\
+      {"${ write(column.name) }$", {\
+${ for i, alias in enumerate(column.aliases): }$"${ alias }$"\
+${ if i != len(column.aliases) - 1: }$, ${ :end-if }$\
+${ :end-for % }$ }},
+${ :end-if }$\
+${ :end-for }$\
     };
   }
-{% endif %}\
+${ :end-if }$\
 
     TableRows generate(QueryContext& request) override { return TableRows(); }
   };
 
   {
     auto registry = RegistryFactory::get().registry("table");
-    registry->add("{{table_name}}",
-      std::make_shared<{{table_name_cc}}TablePlugin>(), false);
+    registry->add("${ table_name }$",
+      std::make_shared<${ table_name_cc }$TablePlugin>(), false);
   }
 /// END[GENTABLE]
 };

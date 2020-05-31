@@ -9,10 +9,11 @@
 import argparse
 import ast
 import fnmatch
-import jinja2
 import logging
 import os
 import sys
+
+import templite
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -265,7 +266,7 @@ class TableState(Singleton):
                     # May encounter a race when using a make jobserver.
                     pass
         logging.debug("generating %s" % path)
-        self.impl_content = jinja2.Template(TEMPLATES[template]).render(
+        self.impl_content = templite.Templite(TEMPLATES[template]).render(
             table_name=self.table_name,
             table_name_cc=to_camel_case(self.table_name),
             table_name_ucc=to_upper_camel_case(self.table_name),

@@ -17,13 +17,13 @@
 #include <osquery/registry_factory.h>
 
 namespace osquery {
-{% if foreign %}
+${ if foreign: }$
 void registerForeignTables() {
-{% endif %}
-{% for table in tables %}
-{{table}}
-{% endfor %}
-{% if foreign %}
+${ :end-if }$
+${ for table in tables: }$
+${ table }$
+${ :end-for }$
+${ if foreign: }$
 }
-{% endif %}
+${ :end-if }$
 }

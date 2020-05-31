@@ -10,4 +10,4 @@
 ** This file is generated. Do not modify it manually!
 */
 
-void __blacklisted_{{table_name}}() {}
+void __blacklisted_${ table_name }$() {}
