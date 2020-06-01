@@ -227,9 +227,11 @@ inline void explodeRegistryPath(const std::string& path,
                                 std::string& rHive,
                                 std::string& rKey) {
   auto toks = osquery::split(path, kRegSep);
-  rHive = toks.front();
-  toks.erase(toks.begin());
-  rKey = osquery::join(toks, kRegSep);
+  if (!toks.empty()) {
+    rHive = toks.front();
+    toks.erase(toks.begin());
+    rKey = osquery::join(toks, kRegSep);
+  }
 }
 
 /// Microsoft helper function for getting the contents of a registry key
