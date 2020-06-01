@@ -126,10 +126,6 @@ function(importLibraries)
     "Linux,Darwin,Windows:icu"
   )
 
-  foreach(python_module ${python_module_list})
-    find_package("${python_module}" REQUIRED)
-  endforeach()
-
   foreach(library_descriptor ${library_descriptor_list})
     # Expand the library descriptor
     string(REPLACE ":" ";" library_descriptor "${library_descriptor}")
@@ -146,7 +142,7 @@ function(importLibraries)
 
     find_package("${library}" REQUIRED)
 
-    # Facebook-provided libraries always come with the thirdparty_ prefix
+    # Skip libraries which already use our internal target name
     if(TARGET "thirdparty_${library}")
       continue()
 
