@@ -145,30 +145,26 @@ endfunction()
 
 function(generatePluginsLoggerKafkaproducer)
 
-  if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_MACOS)
-    add_osquery_library(plugins_logger_kafkaproducer EXCLUDE_FROM_ALL
-      kafka_producer.cpp
-    )
+  add_osquery_library(plugins_logger_kafkaproducer EXCLUDE_FROM_ALL
+    kafka_producer.cpp
+  )
 
-    enableLinkWholeArchive(plugins_logger_kafkaproducer)
+  enableLinkWholeArchive(plugins_logger_kafkaproducer)
 
-    target_link_libraries(plugins_logger_kafkaproducer PUBLIC
-      osquery_cxx_settings
-      plugins_logger_commondeps
-      osquery_dispatcher
-      osquery_utils_config
-      thirdparty_librdkafka
-    )
+  target_link_libraries(plugins_logger_kafkaproducer PUBLIC
+    osquery_cxx_settings
+    plugins_logger_commondeps
+    osquery_dispatcher
+    osquery_utils_config
+    thirdparty_librdkafka
+  )
 
-    set(public_header_files
-      kafka_producer.h
-    )
+  set(public_header_files
+    kafka_producer.h
+  )
 
-    generateIncludeNamespace(plugins_logger_kafkaproducer "plugins/logger" "FILE_ONLY" ${public_header_files})
-    add_test(NAME plugins_logger_tests_kafkaproducerloggertests-test COMMAND plugins_logger_tests_kafkaproducerloggertests-test)
-  else()
-    add_osquery_library(plugins_logger_kafkaproducer INTERFACE)
-  endif()
+  generateIncludeNamespace(plugins_logger_kafkaproducer "plugins/logger" "FILE_ONLY" ${public_header_files})
+  add_test(NAME plugins_logger_tests_kafkaproducerloggertests-test COMMAND plugins_logger_tests_kafkaproducerloggertests-test)
 endfunction()
 
 function(generatePluginsLoggerStdout)
