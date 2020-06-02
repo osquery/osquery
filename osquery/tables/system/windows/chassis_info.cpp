@@ -32,20 +32,20 @@ QueryData genChassisInfo(QueryContext& context) {
 
   for (const auto& data : wmiResults) {
     Row r;
-    bool boolean = false;
+    auto isPresent = false;
     long number;
-    data.GetBool("AudibleAlarm", boolean);
-    r["audible_alarm"] = boolean ? "True" : "False";
+    data.GetBool("AudibleAlarm", isPresent);
+    r["audible_alarm"] = isPresent ? "True" : "False";
     data.GetString("BreachDescription", r["breach_description"]);
     data.GetLong("ChassisTypes", number);
     r["chassis_types"] = INTEGER(number);
     data.GetString("Description", r["description"]);
 
     // reset boolean to make sure there is no interference from the last call
-    boolean = false;
+    isPresent = false;
 
-    data.GetBool("LockPresent", boolean);
-    r["lock"] = boolean ? "True" : "False";
+    data.GetBool("LockPresent", isPresent);
+    r["lock"] = isPresent ? "True" : "False";
     data.GetString("Manufacturer", r["manufacturer"]);
     data.GetString("Model", r["model"]);
     data.GetLong("SecurityBreach", number);
@@ -56,16 +56,14 @@ QueryData genChassisInfo(QueryContext& context) {
     data.GetString("Status", r["status"]);
 
     // reset boolean to make sure there is no interference from the last call
-    boolean = false;
+    isPresent = false;
 
-    data.GetBool("VisibleAlarm", boolean);
-    r["visible_alarm"] = boolean ? "True" : "False";
+    data.GetBool("VisibleAlarm", isPresent);
+    r["visible_alarm"] = isPresent ? "True" : "False";
     results.push_back(std::move(r));
     return results;
   }
-
 }
-
   
 } // namespace tables
 } // namespace osquery
