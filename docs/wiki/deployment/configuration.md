@@ -551,6 +551,8 @@ Example:
 }
 ```
 
+When targeting Windows you'll need to escape the `\` character `\\Users\\%\\AppData\\Local\\foo\\Settings`.
+
 If you don't know the structure of the SQLite database you'd like to query, you'll need to do some legwork first.
 Taking the `tcc_system_entries` ATC table as an example, which controls which permissions are granted to specific macOS applications, the first step is to open the TCC database. From your terminal, open the database with `sqlite3`:
 
