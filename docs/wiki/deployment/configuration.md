@@ -525,6 +525,88 @@ Example output:
 
 The `interval` type uses a map of interval 'periods' as keys, and the set of decorator queries for each value. Each of these intervals MUST be minute-intervals. Anything not divisible by 60 will generate a warning, and will not run.
 
+### Automatic Table Construction
+
+Osquery can be configured to expose local SQLite databases as tables without having to write custom extensions. This means you can construct queries with information from like [Munki](https://github.com/munki/munki) application usage statistics at `/Library/Managed Installs/application_usage.sqlite`, TCC permissions, or quarantined files downloaded through a web browser.
+
+Example:
+
+
+```
+{
+  "auto_table_construction": {
+    "tcc_system_entries": {
+      "query": "SELECT service, client, allowed, prompt_count, last_modified FROM access;",
+      "path": "/Library/Application Support/com.apple.TCC/TCC.db",
+      "columns": [
+        "service",
+        "client",
+        "allowed",
+        "prompt_count",
+        "last_modified"
+      ],
+      "platform": "darwin"
+    }
+  }
+}
+```
+
+If you don't know the structure of the SQLite database you'd like to query, you'll need to do some legwork first.
+Taking the `tcc_system_entries` ATC table as an example, which controls which permissions are granted to specific macOS applications, the first step is to open the TCC database. From your terminal, open the database with `sqlite3`:
+
+`$ sqlite3 /Library/Application\ Support/com.apple.TCC/TCC.db`
+
+The SQLite shell might feel familiar if you're used to `osqueryi`. That's because Osquery uses syntax derived from SQLite for queries.
+
+Let's see what tables exist in our local SQLite database.
+```
+sqlite> .tables
+access            active_policy     expired         
+access_overrides  admin             policies
+```
+
+Querying those tables, you'll see the `access` table contains permissions granted to different applications, which is exactly what we want to query. Looking at the schema for the `access` table gives us the column names which we can use to define our ATC table.
+
+```
+sqlite> .schema access
+CREATE TABLE access (    service        TEXT        NOT NULL,     client         TEXT        NOT NULL,     client_type    INTEGER     NOT NULL,     allowed        INTEGER     NOT NULL,     prompt_count   INTEGER     NOT NULL,     csreq          BLOB,     policy_id      INTEGER,     indirect_object_identifier_type    INTEGER,     indirect_object_identifier         TEXT,     indirect_object_code_identity      BLOB,     flags          INTEGER,     last_modified  INTEGER     NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER)),     PRIMARY KEY (service, client, client_type, indirect_object_identifier),    FOREIGN KEY (policy_id) REFERENCES policies(id) ON DELETE CASCADE ON UPDATE CASCADE);
+```
+
+Open a text editor and create a file named `atc_tables.json` using the columns, path, and SQLite table you discovered:
+
+```
+{
+  "auto_table_construction": {
+    "tcc_system_entries": {
+      "query": "SELECT service, client, allowed, prompt_count, last_modified FROM access;",
+      "path": "/Library/Application Support/com.apple.TCC/TCC.db",
+      "columns": [
+        "service",
+        "client",
+        "allowed",
+        "prompt_count",
+        "last_modified"
+      ],
+      "platform": "darwin"
+    },
+    "tcc_user_entries": {
+      "query": "SELECT service, client, allowed, prompt_count, last_modified FROM access;",
+      "path": "/Users/%/Library/Application Support/com.apple.TCC/TCC.db",
+      "columns": [
+        "service",
+        "client",
+        "allowed",
+        "prompt_count",
+        "last_modified"
+      ],
+      "platform": "darwin"
+    }
+  }
+}
+```
+
+You can test this locally before deploying to your fleet and add more columns as necessary: `/usr/local/bin/osqueryi --verbose --config_path atc_tables.json`
+
 ## Chef Configuration
 
 Here are example chef cookbook recipes and files for macOS and Linux
