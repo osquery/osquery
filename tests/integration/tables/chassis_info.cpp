@@ -37,10 +37,11 @@ TEST_F(chassisTest, test_sanity) {
     {"smbios_tag", NormalType},
     {"sku", NormalType},
     {"status", NormalType};
-    {"visible_alarm", NonEmptyString}};
-
-  validate_rows(data, row_map);
+  {"visible_alarm", NonEmptyString};
 }
 
+validate_rows(data, row_map);
+
 } // namespace table_tests
+
 } // namespace osquery
