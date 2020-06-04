@@ -21,7 +21,7 @@ namespace tables {
 QueryData genChassisInfo(QueryContext& context) {
   QueryData results;
 
-  WmiRequest wmiSystemReq("select * from Win32_SystemEnclosure");
+  WmiRequest wmiSystemReq("SELECT * FROM Win32_SystemEnclosure");
   const auto& wmiResults = wmiSystemReq.results();
 
   // check if the results are empty and return a warning if so
@@ -61,8 +61,9 @@ QueryData genChassisInfo(QueryContext& context) {
     data.GetBool("VisibleAlarm", isPresent);
     r["visible_alarm"] = isPresent ? "True" : "False";
     results.push_back(std::move(r));
-    return results;
   }
+  
+  return results;
 }
 
 } // namespace tables
