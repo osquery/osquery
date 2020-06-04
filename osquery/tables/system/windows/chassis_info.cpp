@@ -62,7 +62,7 @@ QueryData genChassisInfo(QueryContext& context) {
     r["visible_alarm"] = isPresent ? "True" : "False";
     results.push_back(std::move(r));
   }
-  
+
   return results;
 }
 
