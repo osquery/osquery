@@ -9,9 +9,9 @@
 // Sanity check integration test for deb_packages
 // Spec file: specs/linux/deb_packages.table
 
-#include <osquery/tests/integration/tables/helper.h>
-
 #include <osquery/logger.h>
+#include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
 namespace table_tests {
@@ -36,6 +36,7 @@ TEST_F(DebPackages, test_sanity) {
                              {"maintainer", NonEmptyString},
                              {"section", NonEmptyString},
                              {"priority", NonEmptyString}};
+
     validate_rows(rows, row_map);
 
     auto all_packages = std::unordered_set<std::string>{};
@@ -48,6 +49,14 @@ TEST_F(DebPackages, test_sanity) {
     }
 
     ASSERT_EQ(all_packages.count("dpkg"), 1u);
+
+    if (isPlatform(PlatformType::TYPE_LINUX)) {
+      rows = execute_query(
+          "select *, pid_with_namespace, mount_namespace_id from deb_packages");
+      row_map["pid_with_namespace"] = IntType;
+      row_map["mount_namespace_id"] = NormalType;
+      validate_rows(rows, row_map);
+    }
 
   } else {
     LOG(WARNING) << "Empty results of query from 'deb_packages', assume there "
