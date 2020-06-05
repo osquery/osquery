@@ -531,7 +531,6 @@ Osquery can be configured to expose local SQLite databases as tables without hav
 
 Example:
 
-
 ```
 {
   "auto_table_construction": {
@@ -553,21 +552,22 @@ Example:
 
 When targeting Windows you'll need to escape the `\` character `\\Users\\%\\AppData\\Local\\foo\\Settings`.
 
-If you don't know the structure of the SQLite database you'd like to query, you'll need to do some legwork first.
+You'll need to do some legwork if you don't know the structure of the SQLite database.
 Taking the `tcc_system_entries` ATC table as an example, which controls which permissions are granted to specific macOS applications, the first step is to open the TCC database. From your terminal, open the database with `sqlite3`:
 
 `$ sqlite3 /Library/Application\ Support/com.apple.TCC/TCC.db`
 
-The SQLite shell might feel familiar if you're used to `osqueryi`. That's because Osquery uses syntax derived from SQLite for queries.
+The SQLite shell might feel familiar if you're used to `osqueryi`. That's because osquery uses syntax derived from SQLite for queries.
 
 Let's see what tables exist in our local SQLite database.
+
 ```
 sqlite> .tables
 access            active_policy     expired         
 access_overrides  admin             policies
 ```
 
-Querying those tables, you'll see the `access` table contains permissions granted to different applications, which is exactly what we want to query. Looking at the schema for the `access` table gives us the column names which we can use to define our ATC table.
+If you run `select * from access`, you'll see this table contains permissions granted to different applications, which is exactly what we want to query. Looking at the schema for the `access` table gives us the column names which we can use to define our ATC table.
 
 ```
 sqlite> .schema access
