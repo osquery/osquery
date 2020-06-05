@@ -19,15 +19,18 @@
 namespace osquery {
 namespace tables {
 
-Status parseAptSourceLine(const std::string& input_line, AptSource& apt_source) {
+Status parseAptSourceLine(const std::string& input_line,
+                          AptSource& apt_source) {
   // attempts to follow conventions in this doc
   // http://manpages.ubuntu.com/manpages/xenial/man5/sources.list.5.html
 
   // Remove everything after # from the line for comments
   auto comment_pos = input_line.find("#");
-  std::string line = input_line;
+  std::string line;
   if (comment_pos != std::string::npos) {
-    line = input_line.substr(0,comment_pos);
+    line = input_line.substr(0, comment_pos);
+  } else {
+    line = input_line;
   }
 
   // Only look for deb names (not deb-src).
@@ -35,7 +38,7 @@ Status parseAptSourceLine(const std::string& input_line, AptSource& apt_source) 
   if (deb_pos == std::string::npos) {
     return Status::failure("No deb prefix");
   }
-  line = line.substr(deb_pos+4); // for "deb " length
+  line = line.substr(deb_pos + 4); // for "deb " length
 
   // Split on whitespace
   // additional leading whitespace will get clobbered by split
@@ -76,11 +79,7 @@ Status parseAptSourceLine(const std::string& input_line, AptSource& apt_source) 
     apt_source.base_uri.pop_back();
   }
 
-  if (apt_source.base_uri.size() < host+3) {
-    return Status::failure("empty uri");
-  }
-
-  // go onto parse the suite
+  // go on to parse the suite
   offset++;
   if (offset >= tokens.size()) {
     return Status::failure("incomplete line no suite");
@@ -88,28 +87,23 @@ Status parseAptSourceLine(const std::string& input_line, AptSource& apt_source) 
   std::string suite = tokens[offset];
 
   // get the target of the uri for the name
+  if (apt_source.base_uri.size() < host + 3) {
+    return Status::failure("empty uri");
+  }
   apt_source.name = apt_source.base_uri.substr(host + 3); // remove "://"
   // include target uri in cache name
   apt_source.cache_file.push_back(apt_source.name);
 
   // Construct the source 'name' from uri and suite.
-  apt_source.name += " "+suite;
+  apt_source.name += ' ' + suite;
 
-  bool use_dists = true;
   auto suite_parts = osquery::split(suite, "/");
-  use_dists = suite_parts.size() == 1;
-  if (use_dists) {
+  if (suite_parts.size() == 1) { // this means it is a dists format
     apt_source.cache_file.push_back(suite);
+    apt_source.cache_file.insert(apt_source.cache_file.begin() + 1, "dists");
   } else {
     apt_source.cache_file.insert(
         apt_source.cache_file.end(), suite_parts.begin(), suite_parts.end());
-  }
-
-
-
-  if (use_dists) {
-    // The cache file is formatted differently.
-    apt_source.cache_file.insert(apt_source.cache_file.begin() + 1, "dists");
   }
 
   return Status::success();
@@ -186,7 +180,7 @@ static void genAptSource(const std::string& source, QueryData& results) {
 
   for (const auto& line : osquery::split(content, "\n")) {
     // Skip empty lines
-    if (line.size() == 0) {
+    if (line.empty()) {
       continue;
     }
     genAptUrl(source, line, results);
