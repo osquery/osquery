@@ -16,7 +16,7 @@ function(libelfinMain)
 endfunction()
 
 function(libelfinElf)
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/elf")
+  set(library_root "${OSQUERY_libelfin_ROOT_DIR}/elf")
 
   add_library(thirdparty_libelfin_elf
     "${library_root}/mmap_loader.cc"
@@ -42,23 +42,23 @@ function(libelfinElf)
   foreach(public_header ${public_header_list})
     configure_file(
       "${library_root}/${public_header}"
-      "${CMAKE_CURRENT_BINARY_DIR}/libelfin/elf/${public_header}"
+      "${OSQUERY_libelfin_ROOT_DIR}/libelfin/elf/${public_header}"
       COPYONLY
     )
   endforeach()
 
   target_include_directories(thirdparty_libelfin_elf PRIVATE
-    "${CMAKE_CURRENT_BINARY_DIR}"
+    "${OSQUERY_libelfin_ROOT_DIR}"
     "${library_root}"
   )
 
   target_include_directories(thirdparty_libelfin_elf SYSTEM INTERFACE
-    "${CMAKE_CURRENT_BINARY_DIR}"
+    "${OSQUERY_libelfin_ROOT_DIR}"
   )
 endfunction()
 
 function(libelfinDwarf)
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/dwarf")
+  set(library_root "${OSQUERY_libelfin_ROOT_DIR}/dwarf")
 
   add_library(thirdparty_libelfin_dwarf
     "${library_root}/cursor.cc"
@@ -93,18 +93,18 @@ function(libelfinDwarf)
   foreach(public_header ${public_header_list})
     configure_file(
       "${library_root}/${public_header}"
-      "${CMAKE_CURRENT_BINARY_DIR}/libelfin/dwarf/${public_header}"
+      "${OSQUERY_libelfin_ROOT_DIR}/libelfin/dwarf/${public_header}"
       COPYONLY
     )
   endforeach()
 
   target_include_directories(thirdparty_libelfin_dwarf PRIVATE
-    "${CMAKE_CURRENT_BINARY_DIR}"
+    "${OSQUERY_libelfin_ROOT_DIR}"
     "${library_root}"
   )
 
   target_include_directories(thirdparty_libelfin_dwarf SYSTEM INTERFACE
-    "${CMAKE_CURRENT_BINARY_DIR}"
+    "${OSQUERY_libelfin_ROOT_DIR}"
   )
 endfunction()
 
