@@ -312,7 +312,7 @@ The basic scheduled query specification includes:
 - `platform`: restrict this query to a given platform, default is 'all' platforms; you may use commas to set multiple platforms
 - `version`: only run on osquery versions greater than or equal-to this version string
 - `shard`: restrict this query to a percentage (1-100) of target hosts
-- `blacklist`: a boolean to determine if this query may be blacklisted, default true
+- `denylist`: a boolean to determine if this query may be denylisted (when stopped for excessive resource consumption), default true
 
 The `platform` key can be:
 
@@ -330,7 +330,7 @@ The schedule and associated queries generate a timeline of events through the de
 Snapshot queries, those with `snapshot: true` will not store differentials and will not emulate an event stream. Snapshots always return the entire results from the query on the given interval. See
 the next section on [logging](../deployment/logging.md) for examples of each log output.
 
-Queries may be "blacklisted" if they cause osquery to take too many system resources. A blacklisted query returns to the schedule after a cool-down period of 1 day. Some queries may be very important and you may request that they continue to run even if they are latent. Set the `blacklist: false` to prevent a query from being blacklisted.
+Queries may be "denylisted" if they cause osquery to use excessive system resources. A denylisted query returns to the schedule after a cool-down period of 1 day. Some queries may be very important and you may request that they continue to run even if they are latent. Set the `denylist: false` to prevent a query from being denylisted.
 
 ### Packs
 

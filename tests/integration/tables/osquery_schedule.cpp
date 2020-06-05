@@ -15,10 +15,10 @@ namespace osquery {
 namespace table_tests {
 
 class osquerySchedule : public testing::Test {
-  protected:
-    void SetUp() override {
-      setUpEnvironment();
-    }
+ protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
 };
 
 TEST_F(osquerySchedule, test_sanity) {
@@ -37,7 +37,7 @@ TEST_F(osquerySchedule, test_sanity) {
   //      {"interval", IntType}
   //      {"executions", IntType}
   //      {"last_executed", IntType}
-  //      {"blacklisted", IntType}
+  //      {"denylisted", IntType}
   //      {"output_size", IntType}
   //      {"wall_time", IntType}
   //      {"user_time", IntType}

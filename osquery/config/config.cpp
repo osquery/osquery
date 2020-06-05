@@ -145,7 +145,7 @@ class Schedule : private boost::noncopyable {
    *
    * This will check for previously executing queries. If any query was
    * executing it is considered in a 'dirty' state and should generate logs.
-   * The schedule may also choose to blacklist this query.
+   * The schedule may also choose to denylist this query.
    */
   Schedule();
 
@@ -194,13 +194,13 @@ class Schedule : private boost::noncopyable {
   std::string failed_query_;
 
   /**
-   * @brief List of blacklisted queries.
+   * @brief List of denylisted queries.
    *
-   * A list of queries that are blacklisted from executing due to prior
+   * A list of queries that are denylisted from executing due to prior
    * failures. If a query caused a worker to fail it will be recorded during
-   * the next execution and saved to the blacklist.
+   * the next execution and saved to the denylist.
    */
-  std::map<std::string, size_t> blacklist_;
+  std::map<std::string, size_t> denylist_;
 
  private:
   friend class Config;
@@ -281,29 +281,28 @@ class ConfigRefreshRunner : public InternalRunnable {
   friend class Config;
 };
 
-void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist) {
+void restoreScheduleDenylist(std::map<std::string, size_t>& denylist) {
   std::string content;
   getDatabaseValue(kPersistentSettings, kFailedQueries, content);
-  auto blacklist_pairs = osquery::split(content, ":");
-  if (blacklist_pairs.size() == 0 || blacklist_pairs.size() % 2 != 0) {
-    // Nothing in the blacklist, or malformed data.
+  auto denylist_pairs = osquery::split(content, ":");
+  if (denylist_pairs.size() == 0 || denylist_pairs.size() % 2 != 0) {
+    // Nothing in the denylist, or malformed data.
     return;
   }
 
   size_t current_time = getUnixTime();
-  for (size_t i = 0; i < blacklist_pairs.size() / 2; i++) {
-    // Fill in a mapping of query name to time the blacklist expires.
-    auto expire =
-        tryTo<long long>(blacklist_pairs[(i * 2) + 1], 10).takeOr(0ll);
+  for (size_t i = 0; i < denylist_pairs.size() / 2; i++) {
+    // Fill in a mapping of query name to time the denylist expires.
+    auto expire = tryTo<long long>(denylist_pairs[(i * 2) + 1], 10).takeOr(0ll);
     if (expire > 0 && current_time < (size_t)expire) {
-      blacklist[blacklist_pairs[(i * 2)]] = (size_t)expire;
+      denylist[denylist_pairs[(i * 2)]] = (size_t)expire;
     }
   }
 }
 
-void saveScheduleBlacklist(const std::map<std::string, size_t>& blacklist) {
+void saveScheduleDenylist(const std::map<std::string, size_t>& denylist) {
   std::string content;
-  for (const auto& query : blacklist) {
+  for (const auto& query : denylist) {
     if (!content.empty()) {
       content += ":";
     }
@@ -317,17 +316,17 @@ Schedule::Schedule() {
     // Extensions should not restore or save schedule details.
     return;
   }
-  // Parse the schedule's query blacklist from backing storage.
-  restoreScheduleBlacklist(blacklist_);
+  // Parse the schedule's query denylist from backing storage.
+  restoreScheduleDenylist(denylist_);
 
   // Check if any queries were executing when the tool last stopped.
   getDatabaseValue(kPersistentSettings, kExecutingQuery, failed_query_);
   if (!failed_query_.empty()) {
     LOG(WARNING) << "Scheduled query may have failed: " << failed_query_;
     setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
-    // Add this query name to the blacklist and save the blacklist.
-    blacklist_[failed_query_] = getUnixTime() + 86400;
-    saveScheduleBlacklist(blacklist_);
+    // Add this query name to the denylist and save the denylist.
+    denylist_[failed_query_] = getUnixTime() + 86400;
+    saveScheduleDenylist(denylist_);
   }
 }
 
@@ -404,24 +403,24 @@ void Config::removeFiles(const std::string& source) {
 }
 
 /**
- * @brief Return true if the failed query is no longer blacklisted.
+ * @brief Return true if the failed query is no longer denylisted.
  *
- * There are two scenarios where a blacklisted query becomes 'unblacklisted'.
- * The first is simple, the amount of time it was blacklisted for has expired.
+ * There are two scenarios where a denylisted query becomes 'undenylisted'.
+ * The first is simple, the amount of time it was denylisted for has expired.
  * The second is more complex, the query failed but the schedule has requested
- * that the query should not be blacklisted.
+ * that the query should not be denylisted.
  *
- * @param blt The time the query was originally blacklisted.
+ * @param blt The time the query was originally denylisted.
  * @param query The scheduled query and its options.
  */
-static inline bool blacklistExpired(size_t blt, const ScheduledQuery& query) {
+static inline bool denylistExpired(size_t blt, const ScheduledQuery& query) {
   if (getUnixTime() > blt) {
     return true;
   }
 
-  auto blo = query.options.find("blacklist");
+  auto blo = query.options.find("denylist");
   if (blo != query.options.end() && blo->second == false) {
-    // The schedule requested that we do not blacklist this query.
+    // The schedule requested that we do not denylist this query.
     return true;
   }
   return false;
@@ -430,7 +429,7 @@ static inline bool blacklistExpired(size_t blt, const ScheduledQuery& query) {
 void Config::scheduledQueries(
     std::function<void(std::string name, const ScheduledQuery& query)>
         predicate,
-    bool blacklisted) const {
+    bool denylisted) const {
   RecursiveLock lock(config_schedule_mutex_);
   for (PackRef& pack : *schedule_) {
     for (auto& it : pack->getSchedule()) {
@@ -441,19 +440,19 @@ void Config::scheduledQueries(
                FLAGS_pack_delimiter + it.first;
       }
 
-      // They query may have failed and been added to the schedule's blacklist.
-      auto blacklisted_query = schedule_->blacklist_.find(name);
-      if (blacklisted_query != schedule_->blacklist_.end()) {
-        if (blacklistExpired(blacklisted_query->second, it.second)) {
-          // The blacklisted query passed the expiration time (remove).
-          schedule_->blacklist_.erase(blacklisted_query);
-          saveScheduleBlacklist(schedule_->blacklist_);
-          it.second.blacklisted = false;
+      // They query may have failed and been added to the schedule's denylist.
+      auto denylisted_query = schedule_->denylist_.find(name);
+      if (denylisted_query != schedule_->denylist_.end()) {
+        if (denylistExpired(denylisted_query->second, it.second)) {
+          // The denylisted query passed the expiration time (remove).
+          schedule_->denylist_.erase(denylisted_query);
+          saveScheduleDenylist(schedule_->denylist_);
+          it.second.denylisted = false;
         } else {
-          // The query is still blacklisted.
-          it.second.blacklisted = true;
-          if (!blacklisted) {
-            // The caller does not want blacklisted queries.
+          // The query is still denylisted.
+          it.second.denylisted = true;
+          if (!denylisted) {
+            // The caller does not want denylisted queries.
             continue;
           }
         }
@@ -918,7 +917,7 @@ void Config::purge() {
   scanDatabaseKeys(kQueries, saved_queries);
 
   auto queryExists = [schedule = static_cast<const Schedule*>(schedule_.get())](
-                         const std::string& query_name) {
+      const std::string& query_name) {
     for (const auto& pack : schedule->packs_) {
       const auto& pack_queries = pack->getSchedule();
       if (pack_queries.count(query_name)) {
