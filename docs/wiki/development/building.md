@@ -305,6 +305,6 @@ Generating a virtual table should *not* impact system performance. This is easie
 Some quick features include:
 
 - Performance regression and leak detection CI guards.
-- Blacklisting performance-impacting virtual tables.
+- Denylisting performance-impacting virtual tables.
 - Scheduled query optimization and profiling.
 - Query implementation isolation options.

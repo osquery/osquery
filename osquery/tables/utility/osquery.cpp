@@ -237,7 +237,7 @@ QueryData genOsquerySchedule(QueryContext& context) {
         r["name"] = name;
         r["query"] = query.query;
         r["interval"] = INTEGER(query.interval);
-        r["blacklisted"] = (query.blacklisted) ? "1" : "0";
+        r["denylisted"] = (query.denylisted) ? "1" : "0";
         // Set default (0) values for each query if it has not yet executed.
         r["executions"] = "0";
         r["wall_time"] = "0";
