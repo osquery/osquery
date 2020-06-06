@@ -431,7 +431,7 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
   query_names.clear();
   bool denylisted = false;
   get().scheduledQueries(([&denylisted, &query_names, &query_name](
-                             std::string name, const ScheduledQuery& query) {
+                              std::string name, const ScheduledQuery& query) {
                            if (name == query_name) {
                              // Only populate the query we've denylisted.
                              query_names.push_back(std::move(name));

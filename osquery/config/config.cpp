@@ -917,7 +917,7 @@ void Config::purge() {
   scanDatabaseKeys(kQueries, saved_queries);
 
   auto queryExists = [schedule = static_cast<const Schedule*>(schedule_.get())](
-      const std::string& query_name) {
+                         const std::string& query_name) {
     for (const auto& pack : schedule->packs_) {
       const auto& pack_queries = pack->getSchedule();
       if (pack_queries.count(query_name)) {
