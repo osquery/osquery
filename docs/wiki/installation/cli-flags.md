@@ -510,12 +510,12 @@ Time period in _seconds_ for numeric monitoring pre-aggreagation buffer. During 
 File to dump numeric monitoring records one per line. The format of the line is `<PATH><TAB><VALUE><TAB><TIMESTAMP>`. File will be opened in append mode.
 
 
-### Whitelisting and blacklisting flags
+### Enable and Disable flags
 
 `--disable_tables=table1,table2`
 
-Comma separated list of tables to blacklist. By default no tables are disabled.
+Comma separated list of tables to disable. By default no tables are disabled.
 
 `--enable_tables=table1,table2`
 
-Comma separated list of tables to whitelist. By default every tables are enabled. If a specific table is set in both `--enable_tables` and `--disable_tables`, blacklisting take precedence and the table is disabled. If `--enable_tables` is defined and `--disable_tables` is not set, every tables but the one defined in `-enable_tables` are disabled.
+Comma separated list of tables to enable. By default every table is enabled. If a specific table is set in both `--enable_tables` and `--disable_tables`, disabling take precedence. If `--enable_tables` is defined and `--disable_tables` is not set, every table but the one defined in `--enable_tables` become disabled.

@@ -222,7 +222,7 @@ class RegistryInterface : private boost::noncopyable {
   /// to external items differently.
   std::map<std::string, PluginResponse> routes_;
 
-  /// Keep a lookup of registry items that are blacklisted from broadcast.
+  /// Keep a lookup of registry items that are withheld from broadcast.
   std::vector<std::string> internal_;
 
   /// Support an 'active' mode where calls without a specific item name will
