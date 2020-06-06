@@ -43,11 +43,7 @@ TEST_F(rpmPackages, test_sanity) {
     validate_rows(rows, row_map);
 
     if (isPlatform(PlatformType::TYPE_LINUX)) {
-      rows = execute_query(
-          "select *, pid_with_namespace, mount_namespace_id from rpm_packages");
-      row_map["pid_with_namespace"] = IntType;
-      row_map["mount_namespace_id"] = NormalType;
-      validate_rows(rows, row_map);
+      validate_container_rows("rpm_packages", row_map);
     }
   } else {
     LOG(WARNING) << "Empty results of query from 'rpm_packages', assume there "

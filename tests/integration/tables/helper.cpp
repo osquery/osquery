@@ -304,6 +304,15 @@ bool validate_value_using_flags(const std::string& value, int flags) {
   return true;
 }
 
+void validate_container_rows(const std::string& table_name,
+                             ValidationMap& validation_map) {
+  auto rows = execute_query(
+      "select *, pid_with_namespace, mount_namespace_id from " + table_name);
+  validation_map["pid_with_namespace"] = IntType;
+  validation_map["mount_namespace_id"] = NormalType;
+  validate_rows(rows, validation_map);
+}
+
 void setUpEnvironment() {
   Initializer::platformSetup();
   registryAndPluginInit();
