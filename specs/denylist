@@ -1,9 +1,9 @@
-# osquery/tables/specs/blacklist
+# osquery/tables/specs/denylist
 # Usage: add table spec names to this list to prevent table generation
 # Example: add tables that are not yet ready for release
 # Example: add a platform:table_name, which is not yet ready
 
-# Blacklist a ton of tables for FreeBSD:
+# Denylist a ton of tables for FreeBSD:
 freebsd:acpi_tables
 freebsd:arp_cache
 freebsd:block_devices
@@ -24,5 +24,5 @@ freebsd:memory_array_mapped_addresses
 freebsd:memory_device_mapped_addresses
 freebsd:oem_strings
 
-# Blacklisting as an example:
+# Denylisting as an example:
 example

@@ -109,7 +109,7 @@ def queries_from_tables(path, restrict):
     tables = []
     for base, _, files in os.walk(path):
         for spec in files:
-            if spec[0] == '.' or spec in ["blacklist"]:
+            if spec[0] == '.' or spec in ["denylist"]:
                 continue
             spec_platform = os.path.basename(base)
             table_name = spec.split(".table", 1)[0]
