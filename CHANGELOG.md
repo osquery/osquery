@@ -5,8 +5,8 @@
 
 ### New Features / Under the Hood improvements
 
-- Implement container access from tables on Linux ([#6209](https://github.com/osquery/osquery/pull/6209)) ([#6485](https://github.com/osquery/osquery/pull/6485))
-- Update language to use 'allow list' and 'deny list' ([#6489](https://github.com/osquery/osquery/pull/6489)) ([#6487](https://github.com/osquery/osquery/pull/6487)) ([#6488](https://github.com/osquery/osquery/pull/6488))
+- Implement container access from tables on Linux ([#6209](https://github.com/osquery/osquery/pull/6209), [#6485](https://github.com/osquery/osquery/pull/6485))
+- Update language to use 'allow list' and 'deny list' ([#6489](https://github.com/osquery/osquery/pull/6489), [#6487](https://github.com/osquery/osquery/pull/6487), [#6488](https://github.com/osquery/osquery/pull/6488))
 - macos: Automatic configuration of the OpenBSM audit rules ([#6447](https://github.com/osquery/osquery/pull/6447))
 - macos: Add polling to OpenBSM publisher ([#6436](https://github.com/osquery/osquery/pull/6436))
 - Add messages to distributed query results ([#6352](https://github.com/osquery/osquery/pull/6352))
@@ -24,7 +24,7 @@
 - Add 'arch' column to os_version ([#6444](https://github.com/osquery/osquery/pull/6444))
 - Add 'board_xxx' columns to system_info table ([#6398](https://github.com/osquery/osquery/pull/6398))
 - Windows: omit non-interactive sessions from `logged_in_users` ([#6375](https://github.com/osquery/osquery/pull/6375))
-- Fixes to package_bom table ([#6457](https://github.com/osquery/osquery/pull/6457)) ([#6461](https://github.com/osquery/osquery/pull/6461))
+- Fixes to package_bom table ([#6457](https://github.com/osquery/osquery/pull/6457), [#6461](https://github.com/osquery/osquery/pull/6461))
 
 ### Bug Fixes
 
@@ -65,14 +65,17 @@
 - Pass the minimum macOS SDK version to openssl only if explicitly set ([#6471](https://github.com/osquery/osquery/pull/6471))
 - Add git-lfs as dep for macOS build in documentation ([#6384](https://github.com/osquery/osquery/pull/6384))
 - Update openssl from 1.1.1f to 1.1.1g ([#6432](https://github.com/osquery/osquery/pull/6432))
-- Disable openssl compression support ([#6433](https://github.com/osquery/osquery/pull/6433))
 - Build openssl with the macOS SDK version taken from CMake ([#6469](https://github.com/osquery/osquery/pull/6469))
 - Do not install openssl docs ([#6441](https://github.com/osquery/osquery/pull/6441))
-- Update build configuration of ReadTheDocs ([#6434](https://github.com/osquery/osquery/pull/6434)) ([#6456](https://github.com/osquery/osquery/pull/6456))
+- Update build configuration of ReadTheDocs ([#6434](https://github.com/osquery/osquery/pull/6434), [#6456](https://github.com/osquery/osquery/pull/6456))
 - Link librdkafka on windows ([#6454](https://github.com/osquery/osquery/pull/6454))
 - build sleuthkit under windows ([#6445](https://github.com/osquery/osquery/pull/6445))
 - release: adding nupkg cpack build option, updating win deployment script ([#6262](https://github.com/osquery/osquery/pull/6262))
 - Fix rpm and deb package name format ([#6468](https://github.com/osquery/osquery/pull/6468))
+
+### Security Issues
+
+- Disable openssl compression support ([#6433](https://github.com/osquery/osquery/pull/6433))
 
 ### Hardening
 
@@ -361,7 +364,7 @@ It features a heavily reworked build system. This aims to provide flexibility an
 ### Hardening
 
 - Link binaries with Full RELRO on Linux ([#5748](https://github.com/osquery/osquery/pull/5748))
-- Remove FTS features from SQLite ([#5703](https://github.com/osquery/osquery/pull/5703)) ([#5702](https://github.com/osquery/osquery/issues/5702))
+- Remove FTS features from SQLite ([#5703](https://github.com/osquery/osquery/pull/5703), [#5702](https://github.com/osquery/osquery/issues/5702))
 - Fix SQLite API usage errors ([#5551](https://github.com/osquery/osquery/pull/5551))
 - Fix issues reported by ASAN ([#5665](https://github.com/osquery/osquery/pull/5665))
 - Handle bad FDs in `md_tables` ([#5553](https://github.com/osquery/osquery/pull/5533))
