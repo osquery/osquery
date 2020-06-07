@@ -43,10 +43,10 @@ class FileTests : public testing::Test {
 };
 
 TEST_F(FileTests, test_sanity) {
-  QueryData data = execute_query(
-      "select * from file where path like \"" +
-      (filepath.parent_path() / boost::filesystem::path("%.txt")).string() +
-      "\"");
+  std::string path_constraint =
+      (filepath.parent_path() / boost::filesystem::path("%.txt")).string();
+  QueryData data = execute_query("select * from file where path like \"" +
+                                 path_constraint + "\"");
   EXPECT_EQ(data.size(), 1ul);
 
   ValidationMap row_map = {{"path", FileOnDisk},
@@ -77,15 +77,16 @@ TEST_F(FileTests, test_sanity) {
   row_map["bsd_flags"] = NormalType;
 #endif
 
-  if (isPlatform(PlatformType::TYPE_LINUX)) {
-    row_map["pid_with_namespace"] = IntType;
-    row_map["mount_namespace_id"] = NormalType;
-  }
-
-  validate_rows(data, row_map);
   ASSERT_EQ(data[0]["path"], filepath.string());
   ASSERT_EQ(data[0]["directory"], filepath.parent_path().string());
   ASSERT_EQ(data[0]["filename"], filepath.filename().string());
+
+  validate_rows(data, row_map);
+
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    validate_container_rows(
+        "file", row_map, "path like \"" + path_constraint + "\"");
+  }
 }
 
 } // namespace table_tests
