@@ -1,3 +1,4 @@
+
 <a name="4.3.0"></a>
 ## [4.3.0](https://github.com/osquery/osquery/releases/tag/4.3.0)
 
@@ -69,7 +70,7 @@
 - Added column `status` (`TEXT`) to table `deb_packages` ([#6341](https://github.com/osquery/osquery/pull/6341))
 - Added many new columns to the `curl_certificate` table ([#6176](https://github.com/osquery/osquery/pull/6176))
 - Added table `socket_events` to Darwin (Apple OS X) ([#6028](https://github.com/osquery/osquery/pull/6028))
-- Added table `hvci_status`, previously inadvertly left out from the build, to Microsoft Windows ([6378](https://github.com/osquery/osquery/pull/6378))
+- Added table `hvci_status`, previously inadvertly left out from the build, to Microsoft Windows ([#6378](https://github.com/osquery/osquery/pull/6378))
 
 <a name="4.2.0"></a>
 ## [4.2.0](https://github.com/osquery/osquery/releases/tag/4.2.0)
@@ -274,11 +275,11 @@ It features a heavily reworked build system. This aims to provide flexibility an
 - Add Azure Pipelines support for CI/CD ([#5604](https://github.com/osquery/osquery/pull/5604), [#5632](https://github.com/osquery/osquery/pull/5632), [#5626](https://github.com/osquery/osquery/pull/5626), [#5613](https://github.com/osquery/osquery/pull/5613), [#5607](https://github.com/osquery/osquery/pull/5607), [#5673](https://github.com/osquery/osquery/pull/5673), [#5610](https://github.com/osquery/osquery/pull/5610))
 - Add Buck as a build system ([971bee44](https://github.com/osquery/osquery/commit/971bee44))
 - Use `urllib2` to automatically handle HTTP 301/302 redirections ([#5612](https://github.com/osquery/osquery/pull/5612))
-- Update MSI package to install to `Program Files` on Windows ([#5579](https://github.com/osquery/osquery/pull/54579))
+- Update MSI package to install to `Program Files` on Windows ([#5579](https://github.com/osquery/osquery/pull/5579))
 - Linux custom toolchain integration ([#5759](https://github.com/osquery/osquery/pull/5759))
 
 
-### Harderning
+### Hardening
 
 - Link binaries with Full RELRO on Linux ([#5748](https://github.com/osquery/osquery/pull/5748))
 - Remove FTS features from SQLite ([#5703](https://github.com/osquery/osquery/pull/5703)) ([#5702](https://github.com/osquery/osquery/issues/5702))
