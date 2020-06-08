@@ -167,6 +167,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/autoexec.cpp
       windows/bitlocker_info.cpp
       windows/certificates.cpp
+      windows/chassis_info.cpp
       windows/chocolatey_packages.cpp
       windows/cpu_info.cpp
       windows/default_environment.cpp
