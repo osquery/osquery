@@ -26,7 +26,7 @@ QueryData genChassisInfo(QueryContext& context) {
 
   // check if the results are empty and return a warning if so
   if (wmiResults.empty()) {
-    LOG(WARNING) << wmiSystemReq.getStatus().getMessage();
+    LOG(WARNING) << "Error retrieving information from WMI.";
     return results;
   }
 
