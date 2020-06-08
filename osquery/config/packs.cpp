@@ -7,6 +7,7 @@
  */
 
 #include <algorithm>
+#include <mutex>
 #include <random>
 
 #include <osquery/database.h>
@@ -40,6 +41,8 @@ FLAG(uint64,
      "Query interval to use if none is provided");
 
 size_t kMaxQueryInterval = 604800;
+
+std::once_flag kUseDenylist;
 
 size_t splayValue(size_t original, size_t splayPercent) {
   if (splayPercent == 0 || splayPercent > 100) {
@@ -244,9 +247,11 @@ void Pack::initialize(const std::string& name,
       query.options["denylist"] = JSON::valueToBool(q.value["denylist"]);
     } else if (q.value.HasMember("blacklist")) {
       query.options["denylist"] = JSON::valueToBool(q.value["blacklist"]);
-      LOG(WARNING)
-          << "Query uses deprecated 'blacklist' option. Use 'denylist': "
-          << q.name.GetString();
+      std::call_once(kUseDenylist, []() {
+        LOG(WARNING)
+            << "At least one query in the configuration uses deprecated "
+               "'blacklist' option, please use 'denylist'";
+      });
     }
 
     schedule_.emplace(std::make_pair(q.name.GetString(), std::move(query)));
