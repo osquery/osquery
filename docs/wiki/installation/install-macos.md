@@ -26,40 +26,39 @@ This package does NOT install a LaunchDaemon to start **osqueryd**. You may use 
 
 Only applies if you have never installed and run **osqueryd** on this Mac.
 
-After completing the brew installation run the following commands. If you are using the chef recipe to install osquery then these steps are not necessary, the [recipe](https://osquery.readthedocs.io/en/stable/deployment/configuration/#chef-os-x) has this covered.
+After completing the package installation run the following commands. Note: If you are using our example chef recipe to install osquery then these steps are not necessary, the [recipe](../deployment/configuration/#chef-os-x-macos) has this covered.
 
-```
-sudo ln -s /var/osquery /usr/local/share/osquery
-sudo mkdir /var/log/osquery
-sudo chown root /usr/local/Cellar/osquery/1.7.3/bin/osqueryd
+```sh
+# You can use the helper script:
+sudo osqueryctl start
+
+# Or, install the example config and launch daemon yourself:
 sudo cp /var/osquery/osquery.example.conf /var/osquery/osquery.conf
+sudo cp /var/osquery/com.facebook.osqueryd.plist /Library/LaunchDaemons
+sudo launchctl load /Library/LaunchDaemons/com.facebook.osqueryd.plist
 ```
 
 ### Removing osquery
+
 To remove osquery from a macOS system, run the following commands:
+
 ```sh
 # Unload and remove com.facebook.osquery.plist launchdaemon
-launchctl unload /Library/LaunchDaemons/com.facebook.osqueryd.plist
-rm /Library/LaunchDaemons/com.facebook.osqueryd.plist
+sudo launchctl unload /Library/LaunchDaemons/com.facebook.osqueryd.plist
+sudo rm /Library/LaunchDaemons/com.facebook.osqueryd.plist
 
 # Remove files/directories created by osquery installer pkg
-rm -rf /private/var/log/osquery
-rm -rf /private/var/osquery
-rm /usr/local/bin/osquery*
+sudo rm -rf /private/var/log/osquery
+sudo rm -rf /private/var/osquery
+sudo rm /usr/local/bin/osquery*
 
-pkgutil --forget com.facebook.osquery
+sudo pkgutil --forget com.facebook.osquery
 ```
 
 ## Running osquery
 
 To start a standalone osquery use: `osqueryi`. This does not need a server or service. All the table implementations are included!
 
-After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to **osqueryd**, the daemon, tool. To start the daemon as a LaunchDaemon:
-
-```
-$ sudo cp /var/osquery/osquery.example.conf /var/osquery/osquery.conf
-$ sudo cp /var/osquery/com.facebook.osqueryd.plist /Library/LaunchDaemons/
-$ sudo launchctl load /Library/LaunchDaemons/com.facebook.osqueryd.plist
-```
+After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to **osqueryd**, the daemon, tool.
 
 > NOTICE: The interactive shell and daemon do NOT communicate!
