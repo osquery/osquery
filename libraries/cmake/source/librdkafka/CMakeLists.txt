@@ -117,6 +117,9 @@ function(generateLibrdkafka)
     )
   endif()
 
+  target_compile_definitions(thirdparty_librdkafka_c PUBLIC
+    LIBRDKAFKA_STATICLIB
+  )
 
   target_link_libraries(thirdparty_librdkafka_c PUBLIC
     thirdparty_openssl
@@ -171,6 +174,10 @@ function(generateLibrdkafkaxx)
     COPYONLY
   )
 
+  target_compile_definitions(thirdparty_librdkafka_cxx PUBLIC
+    LIBRDKAFKA_STATICLIB
+  )
+
   target_link_libraries(thirdparty_librdkafka_cxx PRIVATE
     thirdparty_cxx_settings
   )
@@ -188,10 +195,6 @@ function(generateLibrdkafkaxx)
       "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/dummy"
     )
   endif()
-
-  target_compile_definitions(thirdparty_librdkafka_cxx PUBLIC
-    LIBRDKAFKA_STATICLIB
-  )
 
   target_include_directories(thirdparty_librdkafka_cxx SYSTEM INTERFACE
     "${CMAKE_CURRENT_BINARY_DIR}/include"

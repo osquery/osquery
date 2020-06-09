@@ -7,11 +7,7 @@
 function(pluginsLoggerTestsMain)
   generatePluginsLoggerTestsFilesystemloggertestsTest()
   generatePluginsLoggerTestsBufferedloggertestsTest()
-
-  if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_MACOS)
-    generatePluginsLoggerTestsKafkaproducerloggertestsTest()
-  endif()
-
+  generatePluginsLoggerTestsKafkaproducerloggertestsTest()
   generatePluginsLoggerTestsAwskinesisloggertestsTest()
   generatePluginsLoggerTestsTlsloggertestsTest()
 

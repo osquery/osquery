@@ -17,8 +17,8 @@ if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   set(CMAKE_VERBOSE_MAKEFILE true)
 endif()
 
-# This is the destination for the remotely imported Python modules, used when
-# setting up the PYTHONPATH folder
+# Destination of custom python modules/scripts used for tests and table generation.
+# Used as the PYTHONPATH folder.
 set(OSQUERY_PYTHON_PATH "${CMAKE_BINARY_DIR}/python_path")
 
 # TODO(alessandro): Add missing defines: PLATFORM_FREEBSD

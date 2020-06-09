@@ -304,6 +304,26 @@ bool validate_value_using_flags(const std::string& value, int flags) {
   return true;
 }
 
+void validate_container_rows(const std::string& table_name,
+                             ValidationMap& validation_map,
+                             const std::string& sql_constraints) {
+  std::string extra_sql;
+  if (!sql_constraints.empty()) {
+    extra_sql = " where " + sql_constraints;
+  }
+
+  std::cout << "select *, pid_with_namespace, mount_namespace_id from " +
+                   table_name + extra_sql
+            << std::endl;
+
+  auto rows =
+      execute_query("select *, pid_with_namespace, mount_namespace_id from " +
+                    table_name + extra_sql);
+  validation_map["pid_with_namespace"] = IntType;
+  validation_map["mount_namespace_id"] = NormalType;
+  validate_rows(rows, validation_map);
+}
+
 void setUpEnvironment() {
   Initializer::platformSetup();
   registryAndPluginInit();

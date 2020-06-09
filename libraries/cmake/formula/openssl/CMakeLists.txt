@@ -60,6 +60,16 @@ function(opensslMain)
     )
 
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(platform_c_flags
+      -fPIC
+    )
+
+    if(NOT "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
+      list(APPEND platform_c_flags
+        -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}
+      )
+    endif()
+
     set(configure_command
       "${CMAKE_COMMAND}" -E env "CC=${CMAKE_C_COMPILER}" "AR=${CMAKE_AR}"
       perl ./Configure darwin64-x86_64-cc
@@ -70,7 +80,7 @@ function(opensslMain)
         "--openssldir=${install_prefix}/etc/openssl"
 
         enable-ec_nistp_64_gcc_128
-        -fPIC
+        ${platform_c_flags}
     )
 
     # Don't be afraid to manually patch the build scripts; for some settings, there is no

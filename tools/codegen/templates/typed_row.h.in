@@ -15,62 +15,62 @@
 namespace osquery {
 namespace tables {
 
-class {{table_name_ucc}}Row : public TableRow {
+class ${ table_name_ucc }$Row : public TableRow {
 public:
-  {{table_name_ucc}}Row() {
+  ${ table_name_ucc }$Row() {
   }
 
-{% for column in schema %}\
-  {{column.type.type}} {{column.name}}_col;
-{% endfor %}\
+${ for column in schema: }$\
+  ${ write(column.type.type) }$ ${ write(column.name) }$_col;
+${ :end-for }$\
 
   enum Column {
-{% for column in schema %}\
-{%   if loop.index0 < 63 %}\
-    {{column.name.upper()}} = 1ULL << {{loop.index0}},
-{%   else %}\
-    {{column.name.upper()}} = 1ULL << 63,
-{%   endif %}\
-{% endfor %}\
+${ for i, column in enumerate(schema): }$\
+${   if i < 63: }$\
+    ${ write(column.name.upper()) }$ = 1ULL << ${ i }$,
+${   :else: }$\
+    ${ write(column.name.upper()) }$ = 1ULL << 63,
+${   :end-if }$\
+${ :end-for }$\
   };
 
   virtual int get_rowid(sqlite_int64 default_value, sqlite_int64* pRowid) const override {
-{% set filtered = schema|select("equalto", "rowid") %}\
-{% if filtered|list|length == 1 %}\
+${ filtered = [i for i in schema if i in ["rowid"]] }$\
+${ if len(filtered) == 1: }$\
     *pRowid = rowid_col;
-{% else %}\
+${ :else: }$\
     *pRowid = default_value;
-{% endif %}\
+${ :end-if }$\
     return SQLITE_OK;
   }
 
   virtual int get_column(sqlite3_context* ctx, sqlite3_vtab* vtab, int col) override {
     switch (col) {
-{% for column in schema %}\
-      case {{loop.index0}}:
-{%   if column.type.affinity == "TEXT_TYPE" %}\
-        sqlite3_result_text(ctx, {{column.name}}_col.c_str(), static_cast<int>({{column.name}}_col.size()), SQLITE_STATIC);
-{%   elif column.type.affinity == "INTEGER_TYPE" %}\
-        sqlite3_result_int(ctx, {{column.name}}_col);
-{%   elif column.type.affinity == "BIGINT_TYPE" or column.type.affinity == "UNSIGNED_BIGINT_TYPE" %}\
-        sqlite3_result_int64(ctx, {{column.name}}_col);
-{%   elif column.type.affinity == "DOUBLE_TYPE" %}\
-        sqlite3_result_double(ctx, {{column.name}}_col);
-{%   endif  %}\
+${ for i, column in enumerate(schema): }$\
+      case ${ i }$:
+${   if column.type.affinity == "TEXT_TYPE": }$\
+        sqlite3_result_text(ctx, ${ write(column.name) }$_col.c_str(), static_cast<int>(${ write(column.name) }$_col.size()), SQLITE_STATIC);
+${   :elif column.type.affinity == "INTEGER_TYPE": }$\
+        sqlite3_result_int(ctx, ${ write(column.name) }$_col);
+${   :elif column.type.affinity == "BIGINT_TYPE" or column.type.affinity == "UNSIGNED_BIGINT_TYPE": }$\
+        sqlite3_result_int64(ctx, ${ write(column.name) }$_col);
+${   :elif column.type.affinity == "DOUBLE_TYPE": }$\
+        sqlite3_result_double(ctx, ${ write(column.name) }$_col);
+${   :end-if  }$\
       break;
-{% endfor %}\
+${ :end-for }$\
     }
     return SQLITE_OK;
   }
 
   virtual Status serialize(JSON& doc, rapidjson::Value& obj) const override {
-{% for column in schema %}\
-{%   if column.type.affinity == "TEXT_TYPE" %}\
-    doc.addRef("{{column.name}}", {{column.name}}_col);
-{%   else %}\
-    doc.add("{{column.name}}", {{column.name}}_col);
-{%   endif  %}\
-{% endfor %}\
+${ for column in schema: }$\
+${   if column.type.affinity == "TEXT_TYPE": }$\
+    doc.addRef("${ write(column.name) }$", ${ write(column.name) }$_col);
+${   :else: }$\
+    doc.add("${ write(column.name) }$", ${ write(column.name) }$_col);
+${   :end-if  }$\
+${ :end-for }$\
 
     return Status();
   }
@@ -78,25 +78,25 @@ public:
   virtual operator Row() const override {
     Row result;
 
-{% for column in schema %}\
-{%   if column.type.affinity == "TEXT_TYPE" %}\
-    result["{{column.name}}"] = {{column.name}}_col;
-{%   elif column.type.affinity == "INTEGER_TYPE" %}\
-    result["{{column.name}}"] = INTEGER({{column.name}}_col);
-{%   elif column.type.affinity == "BIGINT_TYPE" %}\
-    result["{{column.name}}"] = BIGINT({{column.name}}_col);
-{%   elif column.type.affinity == "UNSIGNED_BIGINT_TYPE" %}\
-    result["{{column.name}}"] = UNSIGNED_BIGINT({{column.name}}_col);
-{%   elif column.type.affinity == "DOUBLE_TYPE" %}\
-    result["{{column.name}}"] = DOUBLE({{column.name}}_col);
-{%   endif  %}\
-{% endfor %}\
+${ for column in schema: }$\
+${   if column.type.affinity == "TEXT_TYPE": }$\
+    result["${ write(column.name) }$"] = ${ write(column.name) }$_col;
+${   :elif column.type.affinity == "INTEGER_TYPE": }$\
+    result["${ write(column.name) }$"] = INTEGER(${ write(column.name) }$_col);
+${   :elif column.type.affinity == "BIGINT_TYPE": }$\
+    result["${ write(column.name) }$"] = BIGINT(${ write(column.name) }$_col);
+${   :elif column.type.affinity == "UNSIGNED_BIGINT_TYPE": }$\
+    result["${ write(column.name) }$"] = UNSIGNED_BIGINT(${ write(column.name) }$_col);
+${   :elif column.type.affinity == "DOUBLE_TYPE": }$\
+    result["${ write(column.name) }$"] = DOUBLE(${ write(column.name) }$_col);
+${   :end-if  }$\
+${ :end-for }$\
 
     return result;
   }
 
   virtual TableRowHolder clone() const override {
-    return TableRowHolder(new {{table_name_ucc}}Row(*this));
+    return TableRowHolder(new ${ table_name_ucc }$Row(*this));
   }
 };
 }

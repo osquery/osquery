@@ -312,7 +312,7 @@ The basic scheduled query specification includes:
 - `platform`: restrict this query to a given platform, default is 'all' platforms; you may use commas to set multiple platforms
 - `version`: only run on osquery versions greater than or equal-to this version string
 - `shard`: restrict this query to a percentage (1-100) of target hosts
-- `blacklist`: a boolean to determine if this query may be blacklisted, default true
+- `denylist`: a boolean to determine if this query may be denylisted (when stopped for excessive resource consumption), default true
 
 The `platform` key can be:
 
@@ -330,7 +330,7 @@ The schedule and associated queries generate a timeline of events through the de
 Snapshot queries, those with `snapshot: true` will not store differentials and will not emulate an event stream. Snapshots always return the entire results from the query on the given interval. See
 the next section on [logging](../deployment/logging.md) for examples of each log output.
 
-Queries may be "blacklisted" if they cause osquery to take too many system resources. A blacklisted query returns to the schedule after a cool-down period of 1 day. Some queries may be very important and you may request that they continue to run even if they are latent. Set the `blacklist: false` to prevent a query from being blacklisted.
+Queries may be "denylisted" if they cause osquery to use excessive system resources. A denylisted query returns to the schedule after a cool-down period of 1 day. Some queries may be very important and you may request that they continue to run even if they are latent. Set the `denylist: false` to prevent a query from being denylisted.
 
 ### Packs
 
@@ -524,6 +524,90 @@ Example output:
 ````
 
 The `interval` type uses a map of interval 'periods' as keys, and the set of decorator queries for each value. Each of these intervals MUST be minute-intervals. Anything not divisible by 60 will generate a warning, and will not run.
+
+### Automatic Table Construction
+
+Osquery can be configured to expose local SQLite databases as tables without having to write custom extensions. This means you can construct queries with information from like [Munki](https://github.com/munki/munki) application usage statistics at `/Library/Managed Installs/application_usage.sqlite`, TCC permissions, or quarantined files downloaded through a web browser.
+
+Example:
+
+```
+{
+  "auto_table_construction": {
+    "tcc_system_entries": {
+      "query": "SELECT service, client, allowed, prompt_count, last_modified FROM access;",
+      "path": "/Library/Application Support/com.apple.TCC/TCC.db",
+      "columns": [
+        "service",
+        "client",
+        "allowed",
+        "prompt_count",
+        "last_modified"
+      ],
+      "platform": "darwin"
+    }
+  }
+}
+```
+
+When targeting Windows you'll need to escape the `\` character `\\Users\\%\\AppData\\Local\\foo\\Settings`.
+
+You'll need to do some legwork if you don't know the structure of the SQLite database.
+Taking the `tcc_system_entries` ATC table as an example, which controls which permissions are granted to specific macOS applications, the first step is to open the TCC database. From your terminal, open the database with `sqlite3`:
+
+`$ sqlite3 /Library/Application\ Support/com.apple.TCC/TCC.db`
+
+The SQLite shell might feel familiar if you're used to `osqueryi`. That's because osquery uses syntax derived from SQLite for queries.
+
+Let's see what tables exist in our local SQLite database.
+
+```
+sqlite> .tables
+access            active_policy     expired         
+access_overrides  admin             policies
+```
+
+If you run `select * from access`, you'll see this table contains permissions granted to different applications, which is exactly what we want to query. Looking at the schema for the `access` table gives us the column names which we can use to define our ATC table.
+
+```
+sqlite> .schema access
+CREATE TABLE access (    service        TEXT        NOT NULL,     client         TEXT        NOT NULL,     client_type    INTEGER     NOT NULL,     allowed        INTEGER     NOT NULL,     prompt_count   INTEGER     NOT NULL,     csreq          BLOB,     policy_id      INTEGER,     indirect_object_identifier_type    INTEGER,     indirect_object_identifier         TEXT,     indirect_object_code_identity      BLOB,     flags          INTEGER,     last_modified  INTEGER     NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER)),     PRIMARY KEY (service, client, client_type, indirect_object_identifier),    FOREIGN KEY (policy_id) REFERENCES policies(id) ON DELETE CASCADE ON UPDATE CASCADE);
+```
+
+Open a text editor and create a file named `atc_tables.json` using the columns, path, and SQLite table you discovered:
+
+```
+{
+  "auto_table_construction": {
+    "tcc_system_entries": {
+      "query": "SELECT service, client, allowed, prompt_count, last_modified FROM access;",
+      "path": "/Library/Application Support/com.apple.TCC/TCC.db",
+      "columns": [
+        "service",
+        "client",
+        "allowed",
+        "prompt_count",
+        "last_modified"
+      ],
+      "platform": "darwin"
+    },
+    "tcc_user_entries": {
+      "query": "SELECT service, client, allowed, prompt_count, last_modified FROM access;",
+      "path": "/Users/%/Library/Application Support/com.apple.TCC/TCC.db",
+      "columns": [
+        "service",
+        "client",
+        "allowed",
+        "prompt_count",
+        "last_modified"
+      ],
+      "platform": "darwin"
+    }
+  }
+}
+```
+
+You can test this locally before deploying to your fleet and add more columns as necessary: `/usr/local/bin/osqueryi --verbose --config_path atc_tables.json`
 
 ## Chef Configuration
 

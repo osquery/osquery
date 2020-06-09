@@ -19,51 +19,91 @@
 namespace osquery {
 namespace tables {
 
-Status parseAptSourceLine(const std::string& line, AptSource& apt_source) {
-  auto comp = osquery::split(line, " ");
-  if (comp.empty() || comp[0][0] == '#') {
-    return Status::failure("Cannot parse comment");
+Status parseAptSourceLine(const std::string& input_line,
+                          AptSource& apt_source) {
+  // attempts to follow conventions in this doc
+  // http://manpages.ubuntu.com/manpages/xenial/man5/sources.list.5.html
+
+  // Remove everything after # from the line for comments
+  auto comment_pos = input_line.find("#");
+  std::string line;
+  if (comment_pos != std::string::npos) {
+    line = input_line.substr(0, comment_pos);
+  } else {
+    line = input_line;
   }
 
-  // The source name could set [arch=ARCH].
-  size_t offset = (comp.size() > 1 && comp[0][0] == '[') ? 1 : 0;
-  // Seek to the end of the schema.
-  auto host = comp[offset].find("://");
+  // Only look for deb names (not deb-src).
+  auto deb_pos = line.find("deb ");
+  if (deb_pos == std::string::npos) {
+    return Status::failure("No deb prefix");
+  }
+  line = line.substr(deb_pos + 4); // for "deb " length
+
+  // Split on whitespace
+  // additional leading whitespace will get clobbered by split
+  auto tokens = osquery::split(line, " ");
+  if (tokens.empty()) {
+    return Status::failure("Empty line");
+  }
+  if (tokens.size() < 2) {
+    return Status::failure("not enough tokens specified");
+  }
+
+  size_t offset = 0;
+
+  // The source name could set [arch=ARCH option2=something ].
+  if (tokens[offset][0] == '[') {
+    // Seek to the end of the options
+    for (size_t i = offset; i < tokens.size(); i++) {
+      if (tokens[i].find("]") != std::string::npos) {
+        offset = i;
+        break;
+      }
+    }
+    // go to the next token after the close of options ']'
+    offset++;
+  }
+  if (offset >= tokens.size()) {
+    return Status::failure("incomplete line no suite");
+  }
+
+  auto host = tokens[offset].find("://");
   if (host == std::string::npos) {
     return Status::failure("Cannot find protocol");
   }
 
-  apt_source.base_uri = comp[offset];
-  apt_source.cache_file.push_back(comp[offset].substr(host + 3));
-  if (apt_source.cache_file[0].empty()) {
-    return Status::failure("Cache file is empty");
-  }
-
+  apt_source.base_uri = tokens[offset];
   // Cannot have trailing slashes
-  while (apt_source.cache_file.back().back() == '/') {
-    apt_source.cache_file.back().pop_back();
+  while (apt_source.base_uri.back() == '/') {
+    apt_source.base_uri.pop_back();
   }
 
-  bool use_dists = true;
-  for (size_t i = offset + 1; i < comp.size(); i++) {
-    if (comp[i][0] == '#') {
-      // Stop parsing if there is a comment.
-      break;
-    }
-    auto parts = osquery::split(comp[i], "/");
-    use_dists = parts.size() == 1;
-    apt_source.cache_file.insert(
-        apt_source.cache_file.end(), parts.begin(), parts.end());
+  // go on to parse the suite
+  offset++;
+  if (offset >= tokens.size()) {
+    return Status::failure("incomplete line no suite");
   }
+  std::string suite = tokens[offset];
 
-  // Construct the source 'name'.
-  apt_source.name = osquery::join(apt_source.cache_file, " ");
+  // get the target of the uri for the name
+  if (apt_source.base_uri.size() < host + 3) {
+    return Status::failure("empty uri");
+  }
+  apt_source.name = apt_source.base_uri.substr(host + 3); // remove "://"
+  // include target uri in cache name
+  apt_source.cache_file.push_back(apt_source.name);
 
-  if (use_dists) {
-    // The cache file is formatted differently.
+  // Construct the source 'name' from uri and suite.
+  apt_source.name += ' ' + suite;
+
+  auto suite_parts = osquery::split(suite, "/");
+  if (suite_parts.size() == 1) { // this means it is a dists format
+    apt_source.cache_file.push_back(suite);
     apt_source.cache_file.insert(apt_source.cache_file.begin() + 1, "dists");
-    // Remove the 'section'.
-    apt_source.cache_file.pop_back();
+  } else {
+    apt_source.cache_file.insert(
+        apt_source.cache_file.end(), suite_parts.begin(), suite_parts.end());
   }
 
   return Status::success();
@@ -139,16 +179,11 @@ static void genAptSource(const std::string& source, QueryData& results) {
   }
 
   for (const auto& line : osquery::split(content, "\n")) {
-    // Skip comments.
-    if (line.size() == 0 || line[0] == '#') {
+    // Skip empty lines
+    if (line.empty()) {
       continue;
     }
-
-    // Only look for deb names (not deb-src).
-    if (line.find("deb ") != 0) {
-      continue;
-    }
-    genAptUrl(source, line.substr(4), results);
+    genAptUrl(source, line, results);
   }
 }
 

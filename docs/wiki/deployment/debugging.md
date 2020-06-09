@@ -96,7 +96,7 @@ If the worker finds itself in a re-occurring error state or the watchdog continu
 osqueryd worker respawning too quickly: 1 times
 ```
 
-The watchdog implements an exponential backoff when respawning workers and the associated 'dirty' query is blacklisted from running for 24 hours.
+The watchdog implements an exponential backoff when respawning workers and the associated 'dirty' query is denylisted from running for 24 hours.
 
 ### Checking the database sanity
 

@@ -9,7 +9,9 @@
 // Sanity check integration test for rpm_packages
 // Spec file: specs/linux/rpm_packages.table
 
+#include <osquery/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/info/platform_type.h>
 
 #include <osquery/logger.h>
 
@@ -24,7 +26,7 @@ class rpmPackages : public testing::Test {
 };
 
 TEST_F(rpmPackages, test_sanity) {
-  auto const rows = execute_query("select * from rpm_packages");
+  auto rows = execute_query("select * from rpm_packages");
   if (rows.size() > 0) {
     ValidationMap row_map = {{"name", NonEmptyString},
                              {"version", NormalType},
@@ -39,6 +41,10 @@ TEST_F(rpmPackages, test_sanity) {
                              {"package_group", NonEmptyString}};
 
     validate_rows(rows, row_map);
+
+    if (isPlatform(PlatformType::TYPE_LINUX)) {
+      validate_container_rows("rpm_packages", row_map);
+    }
   } else {
     LOG(WARNING) << "Empty results of query from 'rpm_packages', assume there "
                     "is no rpm in the system";

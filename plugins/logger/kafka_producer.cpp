@@ -27,6 +27,7 @@
 #include <osquery/flags.h>
 #include <osquery/registry_factory.h>
 #include <osquery/system.h>
+#include <osquery/utils/json/json.h>
 
 #include <plugins/config/parsers/kafka_topics.h>
 #include <plugins/logger/kafka_producer.h>
@@ -105,25 +106,30 @@ REGISTER(KafkaProducerPlugin, "logger", "kafka_producer");
 /// Flag to ensure shutdown method is called only once
 std::once_flag KafkaProducerPlugin::shutdownFlag_;
 
+/**
+ * @brief extracts query name from result payload
+ *
+ * Parses the query name from snapshot, batch, and event
+ * mode JSON result objects.
+ */
 inline std::string getMsgName(const std::string& payload) {
-  const std::string fieldName = "\"name\"";
-  size_t ipos = payload.rfind(fieldName);
-  if (ipos == std::string::npos) {
-    // return base topic key
+  const std::string fieldName = "name";
+
+  // Parse payload as JSON
+  auto doc = JSON::newObject();
+  // If failed to parse as JSON, or JSON object doesn't have "name" top-level
+  // key, return base topic
+  if (!doc.fromString(payload, JSON::ParseMode::Iterative) ||
+      !doc.doc().HasMember(fieldName)) {
     return "";
   }
-
-  size_t first = payload.find('"', ipos + 6);
-  if (first == std::string::npos) {
+  auto& name = doc.doc()[fieldName];
+  // If value for "name" isn't a String, return base topic
+  if (!name.IsString()) {
     return "";
   }
-
-  size_t last = payload.find('"', first + 1);
-  if (last == std::string::npos) {
-    return "";
-  }
-
-  return payload.substr(first + 1, last - first - 1);
+  // Otherwise, return value
+  return name.GetString();
 }
 
 /**

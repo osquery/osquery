@@ -31,25 +31,50 @@ struct AptTestCase {
 
 TEST_F(AptSourcesImplTests, parse_apt_source_line) {
   std::vector<AptTestCase> test_cases = {
-      // "deb " is stripped off.
-      {"[arch=amd64] https://pkg.osquery.io/deb deb main",
+      // normal line
+      {"deb [arch=amd64] https://pkg.osquery.io/deb bionic main",
        "https://pkg.osquery.io/deb",
-       "pkg.osquery.io/deb deb main",
-       "pkg.osquery.io_deb_dists_deb"},
-      // "dists" is not used as a section.
-      {"https://pkg.osquery.io apt/source/",
+       "pkg.osquery.io/deb bionic",
+       "pkg.osquery.io_deb_dists_bionic"},
+      // extra leading spaces
+      {"      deb [arch=amd64] https://pkg.osquery.io/deb bionic main",
+       "https://pkg.osquery.io/deb",
+       "pkg.osquery.io/deb bionic",
+       "pkg.osquery.io_deb_dists_bionic"},
+      // "dists" is not used in the cache name
+      {"deb https://pkg.osquery.io apt/source/",
        "https://pkg.osquery.io",
-       "pkg.osquery.io apt source",
+       "pkg.osquery.io apt/source/",
        "pkg.osquery.io_apt_source"},
-      // trailing slashes are stripped from URI.s
-      {"https://pkg.osquery.io/// apt/source/",
-       "https://pkg.osquery.io///",
-       "pkg.osquery.io apt source",
+      // trailing slashes are stripped from URIs
+      {"deb https://pkg.osquery.io/// apt/source/",
+       "https://pkg.osquery.io",
+       "pkg.osquery.io apt/source/",
        "pkg.osquery.io_apt_source"},
       // trailing comments are ok
-      {"https://pkg.osquery.io deb main # main",
+      {"deb https://pkg.osquery.io deb main # this is a trailing comment",
        "https://pkg.osquery.io",
-       "pkg.osquery.io deb main",
+       "pkg.osquery.io deb",
+       "pkg.osquery.io_dists_deb"},
+      // components aren't required
+      {"deb https://pkg.osquery.io deb",
+       "https://pkg.osquery.io",
+       "pkg.osquery.io deb",
+       "pkg.osquery.io_dists_deb"},
+      // multiple options are ok
+      {"deb [arch=amd64 trusted=yes,no] https://pkg.osquery.io deb main",
+       "https://pkg.osquery.io",
+       "pkg.osquery.io deb",
+       "pkg.osquery.io_dists_deb"},
+      // multiple components is ok
+      {"deb https://pkg.osquery.io deb main universe multiverse restricted",
+       "https://pkg.osquery.io",
+       "pkg.osquery.io deb",
+       "pkg.osquery.io_dists_deb"},
+      // ftp repos ok
+      {"deb ftp://pkg.osquery.io deb main universe multiverse restricted",
+       "ftp://pkg.osquery.io",
+       "pkg.osquery.io deb",
        "pkg.osquery.io_dists_deb"},
   };
 
@@ -57,7 +82,8 @@ TEST_F(AptSourcesImplTests, parse_apt_source_line) {
     AptSource apt_source;
 
     auto s = parseAptSourceLine(test_case.input_line, apt_source);
-    ASSERT_TRUE(s.ok()) << "Failed with " << s.getMessage();
+    ASSERT_TRUE(s.ok()) << "Test case \"" << test_case.input_line
+                        << "\" Failed with " << s.getMessage();
 
     EXPECT_EQ(apt_source.base_uri, test_case.base_uri);
     EXPECT_EQ(apt_source.name, test_case.name);
@@ -69,17 +95,54 @@ TEST_F(AptSourcesImplTests, parse_apt_source_line) {
 
 TEST_F(AptSourcesImplTests, test_failures) {
   AptSource apt_source;
-  auto s = parseAptSourceLine("https://", apt_source);
-  EXPECT_FALSE(s.ok()) << "Protocol-only line is invalid";
 
-  s = parseAptSourceLine("pkg.osquery.io", apt_source);
-  EXPECT_FALSE(s.ok()) << "Protocol is required";
+  auto s = parseAptSourceLine(
+      "debby [arch=amd64] https://pkg.osquery.io/bionic something main",
+      apt_source);
+  EXPECT_FALSE(s.ok()) << "no deb prefix";
+
+  s = parseAptSourceLine(
+      "debby [arch=amd64] https://pkg.osquery.io/deb deb main", apt_source);
+  EXPECT_FALSE(s.ok()) << "deb elsewhere in line, no protocol found";
+
+  s = parseAptSourceLine("# this is entirely a comment line", apt_source);
+  ASSERT_FALSE(s.ok()) << "Comment line is invalid";
+
+  s = parseAptSourceLine("   # comment https://pkg.osquery.io", apt_source);
+  ASSERT_FALSE(s.ok()) << "Comment line is invalid";
 
   s = parseAptSourceLine("", apt_source);
   ASSERT_FALSE(s.ok()) << "Empty line is invalid";
 
-  s = parseAptSourceLine(" # comment https://pkg.osquery.io", apt_source);
-  ASSERT_FALSE(s.ok()) << "Comment line is invalid";
+  s = parseAptSourceLine("deb [arch=amd64] https:/pkg.osquery.io/deb deb main",
+                         apt_source);
+  EXPECT_FALSE(s.ok()) << "bad protocol";
+
+  s = parseAptSourceLine("deb pkg.osquery.io", apt_source);
+  EXPECT_FALSE(s.ok()) << "Protocol is required";
+
+  s = parseAptSourceLine("deb [some=stuff more=stuff and=more] pkg.osquery.io",
+                         apt_source);
+  EXPECT_FALSE(s.ok()) << "Protocol is required";
+
+  s = parseAptSourceLine(
+      "deb [some=stuff more=stuff and=more] https://pkg.osquery.io",
+      apt_source);
+  EXPECT_FALSE(s.ok()) << "suite is required";
+
+  s = parseAptSourceLine("deb [arch=amd64] https:// deb main", apt_source);
+  EXPECT_FALSE(s.ok()) << "empty uri";
+
+  s = parseAptSourceLine("deb https://pkg.osquery.io # deb main", apt_source);
+  ASSERT_FALSE(s.ok()) << "incomplete line no suite";
+
+  s = parseAptSourceLine("deb [option=1 options=2   ]", apt_source);
+  ASSERT_FALSE(s.ok()) << "incomplete line no protocol";
+
+  s = parseAptSourceLine(
+      "deb [arch=amd64 trusted=yes,no https://pkg.osquery.io deb main",
+      apt_source);
+  ASSERT_FALSE(s.ok()) << "incomplete line run on options:";
 }
 
 } // namespace tables

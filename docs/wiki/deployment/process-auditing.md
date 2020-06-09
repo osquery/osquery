@@ -190,7 +190,7 @@ OpenBSM is enabled on all macOS installations, but doesn't audit process executi
 # $P4: //depot/projects/trustedbsd/openbsm/etc/audit_control#8 $
 #
 dir:/var/audit
-flags:ex,pc,ap,aa,lo,ad,nt
+flags:ex,pc,ap,aa,lo,nt
 minfree:5
 naflags:no
 policy:cnt,argv,arge

@@ -31,10 +31,17 @@ function(generateGentable)
   add_custom_command(
     OUTPUT "${gentable_file_path}"
     COMMAND "${CMAKE_COMMAND}" -E create_symlink "${source_base_path}/gentable.py" "${gentable_file_path}"
-    DEPENDS "codegen_gentable_utils_dependency" "thirdparty_python_modules" "${generatePythonModulePath_rootTarget}"
+    DEPENDS "codegen_gentable_utils_dependency" "${generatePythonModulePath_rootTarget}"
   )
 
-  add_custom_target("codegen_gentable" DEPENDS "${gentable_file_path}")
+  set(templite_file_path "${gentable_working_directory}/templite.py")
+  add_custom_command(
+    OUTPUT "${templite_file_path}"
+    COMMAND "${CMAKE_COMMAND}" -E create_symlink "${source_base_path}/templite.py" "${templite_file_path}"
+    DEPENDS "codegen_gentable_utils_dependency" "${generatePythonModulePath_rootTarget}"
+  )
+
+  add_custom_target("codegen_gentable" DEPENDS "${gentable_file_path}" "${templite_file_path}")
 
   # Save the path in a property, so that we can reference it in the generateTables() function
   # when it is called from another scope
@@ -70,7 +77,7 @@ function(generatePythonModulePath base_path path identifier)
 
   set(root_target "${identifier}_generator")
   add_custom_target("${root_target}")
-  
+
   set(previous_target "${root_target}")
   list(REVERSE target_list)
 
@@ -117,7 +124,7 @@ function(generateTables category)
     # Use the file name as table name
     get_filename_component(table_name "${table_spec}" NAME_WE)
     set(generated_source_code "${output_folder}/${table_name}.cpp")
-    
+
     set(generated_headers_folder "${output_folder}/osquery/rows")
     set(generated_header_code "${generated_headers_folder}/${table_name}.h")
 
@@ -194,7 +201,7 @@ function(generateTableCategoryAmalgamation category_name)
     OUTPUT "${amalgamation_file}"
     COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${OSQUERY_PYTHON_PATH}" "${OSQUERY_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/codegen/amalgamate.py" --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${amalgamation_type} --sources "${generateTables_output}" --output "${amalgamation_file}"
     COMMENT "Generating amalgamation file for the ${category_name} tables..."
-    DEPENDS "${category_spec_files}" ${generateTables_targetList} "thirdparty_python_modules"
+    DEPENDS "${category_spec_files}" ${generateTables_targetList}
   )
 
   # Build the library

@@ -121,14 +121,14 @@ The build will run each of the support operating system platform/versions and in
 * Check performance against the latest release tag and commit to master
 * Build docs and API spec on release tag or commit to master
 
-## Virtual table blacklist
+## Virtual table denylist
 
-Performance impacting virtual tables are most likely the result of missing features/tooling in osquery. Because of their dependencies on core optimizations, there is no harm including the table generation code in master as long as the table is blacklisted when a non-developer builds the tool suite.
+Performance impacting virtual tables are most likely the result of missing features/tooling in osquery. Because of their dependencies on core optimizations, there is no harm including the table generation code in master as long as the table is denylisted when a non-developer builds the tool suite.
 
-If you are developing latent tables that would be blacklisted, please make sure you are relying on a feature with a clear issue and traction. Then add your table name (as it appears in the `.table` spec) to [`specs/blacklist`](https://github.com/osquery/osquery/blob/master/specs/blacklist) and adopt:
+If you are developing latent tables that would be denylisted, please make sure you are relying on a feature with a clear issue and traction. Then add your table name (as it appears in the `.table` spec) to [`specs/denylist`](https://github.com/osquery/osquery/blob/master/specs/denylist) and adopt:
 
 ```
-$ DISABLE_BLACKLIST=1 make
+$ DISABLE_DENYLIST=1 make
 ```
 
 For your build iteration.

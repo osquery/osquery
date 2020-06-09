@@ -89,6 +89,10 @@ void validate_row(const Row& row, const ValidationMap& validation_map);
 void validate_rows(const std::vector<Row>& rows,
                    const ValidationMap& validation_map);
 bool validate_value_using_flags(const std::string& value, int flags);
+void validate_container_rows(
+    const std::string& table_name,
+    ValidationMap& validation_map,
+    const std::string& sql_constraints = std::string());
 bool is_valid_hex(const std::string& value);
 
 void setUpEnvironment();

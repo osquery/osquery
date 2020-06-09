@@ -23,7 +23,7 @@ struct AptSource {
   std::vector<std::string> cache_file;
 };
 
-Status parseAptSourceLine(const std::string& line, AptSource& apt_source);
+Status parseAptSourceLine(const std::string& input_line, AptSource& apt_source);
 
 std::string getCacheFilename(const std::vector<std::string>& cache_file);
 
