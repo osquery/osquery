@@ -25,7 +25,12 @@
 #include <osquery/system.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/system/time.h>
+
+#if defined(__APPLE__)
+#include "darwin/endpointsecurity.h"
+#endif
 
 namespace osquery {
 
@@ -1104,9 +1109,24 @@ void EventFactory::end(bool join) {
 }
 
 void attachEvents() {
+  bool is_es_ = false;
+
   const auto& publishers = RegistryFactory::get().plugins("event_publisher");
   for (const auto& publisher : publishers) {
-    EventFactory::registerEventPublisher(publisher.second);
+    auto status = EventFactory::registerEventPublisher(publisher.second);
+
+    if (status.ok() && publisher.first == "endpointsecurity") {
+      if (isPlatform(PlatformType::TYPE_OSX)) {
+        // endpointsecurity PUB successfully registered
+        // register the corresponding SUB
+        auto sub = std::make_shared<ESProcessEventSubscriber>();
+        auto s = EventFactory::registerEventSubscriber(sub);
+
+        if (s.ok()) {
+          is_es_ = true;
+        }
+      }
+    }
   }
 
   const auto& subscribers = RegistryFactory::get().plugins("event_subscriber");
@@ -1114,6 +1134,12 @@ void attachEvents() {
     if (!boost::ends_with(subscriber.first, "_events")) {
       LOG(ERROR) << "Error registering subscriber: " << subscriber.first
                  << ": Must use a '_events' suffix";
+      continue;
+    }
+
+    // EndpointSecurity based process_events is successfully registered
+    // skip the duplicate openbsm process_events subscriber
+    if (subscriber.first == "process_events" && is_es_) {
       continue;
     }
 

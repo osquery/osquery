@@ -17,18 +17,6 @@
 
 namespace osquery {
 
-class ESProcessEventSubscriber
-    : public EventSubscriber<EndpointSecurityPublisher> {
- public:
-  Status init() override API_AVAILABLE(macos(10.15));
-
-  Status Callback(const EndpointSecurityEventContextRef& ec,
-                  const EndpointSecuritySubscriptionContextRef& sc)
-      API_AVAILABLE(macos(10.15));
-};
-
-REGISTER(ESProcessEventSubscriber, "event_subscriber", "es_process_events");
-
 Status ESProcessEventSubscriber::init() {
   if (__builtin_available(macos 10.15, *)) {
     auto sc = createSubscriptionContext();

@@ -16,6 +16,7 @@
 #include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 namespace osquery {
 
@@ -107,5 +108,17 @@ class EndpointSecurityPublisher
   es_client_t* es_client_ = nullptr;
   bool es_client_success_{false};
   bool macos_15_4_higher_{false};
+};
+
+class ESProcessEventSubscriber : public EventSubscriber<EndpointSecurityPublisher> {
+ public:
+  ESProcessEventSubscriber() {
+    setName("process_events");
+  }
+
+  Status init() override API_AVAILABLE(macos(10.15));
+  Status Callback(const EndpointSecurityEventContextRef& ec,
+                  const EndpointSecuritySubscriptionContextRef& sc)
+  API_AVAILABLE(macos(10.15));
 };
 } // namespace osquery
