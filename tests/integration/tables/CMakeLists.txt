@@ -262,6 +262,7 @@ function(generateTestsIntegrationTablesTestsTest)
       bitlocker_info.cpp
       certificates.cpp
       connectivity.cpp
+      chassis_info.cpp
       chocolatey_packages.cpp
       cpu_info.cpp
       default_environment.cpp

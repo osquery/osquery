@@ -246,6 +246,7 @@ function(generateNativeTables)
     "smart/smart_drive_info.table:linux,macos"
     "user_groups.table:linux,macos,windows"
     "windows/bitlocker_info.table:windows"
+    "windows/chassis_info.table:windows"
     "windows/logon_sessions.table:windows"
     "windows/ntfs_acl_permissions.table:windows"
     "windows/scheduled_tasks.table:windows"
