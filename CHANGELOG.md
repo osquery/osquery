@@ -11,6 +11,7 @@
 - macos: Add polling to OpenBSM publisher ([#6436](https://github.com/osquery/osquery/pull/6436))
 - Add messages to distributed query results ([#6352](https://github.com/osquery/osquery/pull/6352))
 - Drop the facebook and source_migration layers ([#6473](https://github.com/osquery/osquery/pull/6473))
+- Only emit 'denylist' warning once ([#6493](https://github.com/osquery/osquery/pull/6493))
 
 ### Table Changes
 
@@ -25,6 +26,7 @@
 - Add 'board_xxx' columns to system_info table ([#6398](https://github.com/osquery/osquery/pull/6398))
 - Windows: omit non-interactive sessions from `logged_in_users` ([#6375](https://github.com/osquery/osquery/pull/6375))
 - Fixes to package_bom table ([#6457](https://github.com/osquery/osquery/pull/6457), [#6461](https://github.com/osquery/osquery/pull/6461))
+- Add 'chassis_info' table for windows ([#5282](https://github.com/osquery/osquery/pull/5282))
 
 ### Bug Fixes
 
@@ -39,6 +41,7 @@
 - Fix the handling of empty args strings, on Windows ([#6460](https://github.com/osquery/osquery/pull/6460))
 - Refactor shutdown logging, and remove explicit syslog call ([#6376](https://github.com/osquery/osquery/pull/6376))
 - Change the windows registry LIKE path constraint to filter recursively ([#6448](https://github.com/osquery/osquery/pull/6448))
+- Use sync resolve on http table([#6490](https://github.com/osquery/osquery/pull/6490))
 
 ### Documentation
 
@@ -49,6 +52,7 @@
 - Add documentation for enabling socket_events on macOS ([#6407](https://github.com/osquery/osquery/pull/6407))
 - Update winbaseobj table description ([#6429](https://github.com/osquery/osquery/pull/6429))
 - Fixing the description of failed_login_count from account_policy_data ([#6415](https://github.com/osquery/osquery/pull/6415))
+- Remove references to brew in macOS install ([#6494](https://github.com/osquery/osquery/pull/6494))
 
 ### Build
 
