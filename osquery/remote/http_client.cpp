@@ -85,21 +85,6 @@ void Client::connectHandler(boost::system::error_code const& ec,
   cancelTimerAndSetError(ec);
 }
 
-void Client::resolveHandler(
-    boost::system::error_code const& ec,
-    boost::asio::ip::tcp::resolver::results_type results) {
-  if (!ec) {
-    boost::asio::async_connect(sock_,
-                               results,
-                               std::bind(&Client::connectHandler,
-                                         this,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2));
-  } else {
-    cancelTimerAndSetError(ec);
-  }
-}
-
 void Client::handshakeHandler(boost::system::error_code const& ec) {
   cancelTimerAndSetError(ec);
 }
@@ -130,14 +115,18 @@ void Client::createConnection() {
     connect_host = connect_host.substr(0, pos);
   }
 
-  callNetworkOperation([&]() {
-    r_.async_resolve(connect_host,
-                     port,
-                     std::bind(&Client::resolveHandler,
-                               this,
-                               std::placeholders::_1,
-                               std::placeholders::_2));
-  });
+  // We can resolve async, but there is a handle leak in Windows.
+  auto results = r_.resolve(connect_host, port, ec_);
+  if (!ec_) {
+    callNetworkOperation([&]() {
+      boost::asio::async_connect(sock_,
+                                 results,
+                                 std::bind(&Client::connectHandler,
+                                           this,
+                                           std::placeholders::_1,
+                                           std::placeholders::_2));
+    });
+  }
 
   if (ec_) {
     std::string error("Failed to connect to ");
