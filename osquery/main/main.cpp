@@ -55,7 +55,10 @@ CLI_FLAG(bool, install, false, "Install osqueryd as a service");
 CLI_FLAG(bool, uninstall, false, "Uninstall osqueryd as a service");
 
 #ifdef LINUX
-SHELL_FLAG(string, setns, "", "Linux container namespace path to use for osqueryi");
+SHELL_FLAG(string,
+           setns,
+           "",
+           "Linux container namespace path to use for osqueryi");
 #endif
 
 DECLARE_bool(disable_caching);
@@ -128,12 +131,14 @@ void check_container_namespace_flag() {
 
   if (FLAGS_logger_stderr == false || FLAGS_disable_extensions == false) {
     LOG(WARNING) << "--logger_stderr AND --disable_extensions"
-      " needed for setns to work, as the process needs to be single-threaded";
+                    " needed for setns to work, as the process needs to be "
+                    "single-threaded";
   }
 
   int fd = open(FLAGS_setns.c_str(), O_RDONLY);
   if (fd <= 0) {
-    LOG(ERROR) << "Unable to open namespace path: " << FLAGS_setns << " . Running as root?";
+    LOG(ERROR) << "Unable to open namespace path: " << FLAGS_setns
+               << " . Running as root?";
     return;
   }
 
