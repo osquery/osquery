@@ -477,6 +477,12 @@ Augeas lenses are bundled with osquery distributions. On Linux they are installe
 
 Docker information for containers, networks, volumes, images etc is available in different tables. osquery uses docker's UNIX domain socket to invoke docker API calls. Provide the path to docker's domain socket file. User running osqueryd / osqueryi should have permission to read the socket file.
 
+### Container namespace flag (Linux only)
+
+`--setns`
+
+When osquery is run in shell-mode, it will check for the setns flag at startup.  If set, it will try to call setns system call to switch to the specified container namespace.  For example, if the container is running with pid 33900, using `--setns=/proc/33900/ns/mnt` will run the queries inside that container's namespace.  Run `sudo lsns` to view container namespaces.  This only works when the following conditions are met : osquery is run with sufficient privileges (e.g. run as root), and the osquery process does not yet have multiple threads running.  Therefore, extension support must be turned off using `--disable_extensions=true`.  Other settings that may be required, and are likely default when running in shell-mode are : `-S --disable_watchdog=true --disable_events=true --logger_stderr`.
+
 ### Shell-only flags
 
 Most of the shell flags are self-explanatory and are adapted from the SQLite shell. Refer to the shell's ".help" command for details and explanations.
