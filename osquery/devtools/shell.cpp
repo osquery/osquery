@@ -1287,15 +1287,11 @@ int setLinuxNamespace(FILE *outfp, const char *cpath) {
   // if in a namespace, unmount and restore original
 
   if (!lastns.empty()) {
-    int result = static_cast<int>(syscall(SYS_unshare, CLONE_NEWNS));
-    if (result == -1) {
-      fprintf(outfp, "WARN: Unable to unshare namespace '%s'\n", lastns.c_str());
-    }
     lastns.clear();
 
     // restore original namespace
 
-    result = static_cast<int>(syscall(SYS_setns, origfd, 0));
+    int result = static_cast<int>(syscall(SYS_setns, origfd, 0));
 
     if (result == -1) {
       fprintf(outfp, "ERROR: Unable to restore original namespace\n");
