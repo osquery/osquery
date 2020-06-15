@@ -73,6 +73,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/shadow.cpp
       linux/shared_memory.cpp
       linux/smbios_tables.cpp
+      linux/startup_items.cpp
       linux/sysctl_utils.cpp
       linux/system_info.cpp
       linux/usb_devices.cpp

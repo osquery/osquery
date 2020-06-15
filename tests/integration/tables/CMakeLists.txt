@@ -173,6 +173,7 @@ function(generateTestsIntegrationTablesTestsTest)
       shared_memory.cpp
       smart_drive_info.cpp
       socket_events.cpp
+      startup_items.cpp
       syslog_events.cpp
       yara_events.cpp
     )
