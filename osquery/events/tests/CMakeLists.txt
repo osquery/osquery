@@ -20,7 +20,6 @@ function(osqueryEventsTestsMain)
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
-    generateOsqueryEventsTestsWindowseventlogtestsTest()
     generateOsqueryEventsTestsWindowsusnjournalreadertestsTest()
   endif()
 
@@ -171,20 +170,6 @@ function(generateOsqueryEventsTestsFseventstestsTest)
     osquery_utils_conversions
     plugins_database_ephemeral
     specs_tables
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryEventsTestsWindowseventlogtestsTest)
-  add_osquery_executable(osquery_events_tests_windowseventlogtests-test windows/windows_event_log_tests.cpp)
-
-  target_link_libraries(osquery_events_tests_windowseventlogtests-test PRIVATE
-    osquery_cxx_settings
-    osquery_events
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_remote_enroll_tlsenroll
-    tests_helper
     thirdparty_googletest
   )
 endfunction()
