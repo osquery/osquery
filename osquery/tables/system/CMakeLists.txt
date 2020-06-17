@@ -172,6 +172,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/cpu_info.cpp
       windows/default_environment.cpp
       windows/disk_info.cpp
+      windows/dns_cache.cpp
       windows/drivers.cpp
       windows/groups.cpp
       windows/ie_extensions.cpp
