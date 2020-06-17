@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -27,10 +26,10 @@ class InterfaceAddressesTest : public testing::Test {
 TEST_F(InterfaceAddressesTest, test_sanity) {
   QueryData const rows = execute_query("select * from interface_addresses");
 
-  auto const row_map = ValidatatioMap{
+  auto const row_map = ValidationMap{
       {"interface", NonEmptyString},
       {"address", verifyIpAddress},
-      {"mask", verifyIpAddress},
+      {"mask", verifyEmptyStringOrIpAddress},
       {"broadcast", verifyEmptyStringOrIpAddress},
       {"point_to_point", verifyEmptyStringOrIpAddress},
       {"type",

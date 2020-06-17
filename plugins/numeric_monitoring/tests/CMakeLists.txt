@@ -13,7 +13,7 @@ function(pluginsNumericmonitoringTestsFilesystemtestsTest)
   add_osquery_executable(plugins_numericmonitoring_tests_filesystem-test filesystem.cpp)
 
   target_link_libraries(plugins_numericmonitoring_tests_filesystem-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_extensions
     osquery_extensions_implthrift

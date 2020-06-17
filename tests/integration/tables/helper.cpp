@@ -39,6 +39,21 @@ namespace table_tests {
 
 namespace fs = boost::filesystem;
 
+std::string rowToString(const Row& x) {
+  std::stringstream o;
+  o << '{';
+  for (Row::const_iterator i = x.begin(); i != x.end(); i++) {
+    if (i != x.begin()) {
+      o << ", ";
+    }
+    o << i->first;
+    o << ": ";
+    o << boost::io::quoted(i->second);
+  }
+  o << '}';
+  return o.str();
+}
+
 bool CronValuesCheck::operator()(const std::string& string) const {
   // Fast asterisk check, its most common
   if (string == "*") {
@@ -142,7 +157,7 @@ QueryData execute_query(std::string query) {
   return rows;
 }
 
-void validate_row(const Row& row, const ValidatatioMap& validation_map) {
+void validate_row(const Row& row, const ValidationMap& validation_map) {
   for (auto const& rec : row) {
     EXPECT_NE(validation_map.count(rec.first), std::size_t{0})
         << "Unexpected column " << boost::io::quoted(rec.first) << " in a row";
@@ -154,21 +169,25 @@ void validate_row(const Row& row, const ValidatatioMap& validation_map) {
         << "Could not find column " << boost::io::quoted(key)
         << " in the generated columns";
     std::string value = row_data_iter->second;
-    ValidatatioDataType validator = iter.second;
+    ValidationDataType validator = iter.second;
     if (validator.type() == typeid(int)) {
       int flags = boost::get<int>(validator);
       ASSERT_TRUE(validate_value_using_flags(value, flags))
           << "Standard validator of the column " << boost::io::quoted(key)
-          << " with value " << boost::io::quoted(value) << " failed";
+          << " with value " << boost::io::quoted(value) << " failed"
+          << std::endl
+          << "Row: " << rowToString(row);
     } else {
       ASSERT_TRUE(boost::get<CustomCheckerType>(validator)(value))
           << "Custom validator of the column " << boost::io::quoted(key)
-          << " with value " << boost::io::quoted(value) << " failed";
+          << " with value " << boost::io::quoted(value) << " failed"
+          << std::endl
+          << "Row: " << rowToString(row);
     }
   }
 }
 void validate_rows(const std::vector<Row>& rows,
-                   const ValidatatioMap& validation_map) {
+                   const ValidationMap& validation_map) {
   for (auto row : rows) {
     validate_row(row, validation_map);
   }
@@ -183,8 +202,21 @@ bool is_valid_hex(const std::string& value) {
   return true;
 }
 
-bool validate_value_using_flags(const std::string& value,
-                                                      int flags) {
+bool validate_value_using_flags(const std::string& value, int flags) {
+  // Early return on EmptyOk
+  if ((flags & EmptyOk) > 0) {
+    if (value.length() == 0) {
+      return true;
+    }
+  }
+
+  // Early return on NullOk
+  if ((flags & NullOk)) {
+    if (value == "null") {
+      return true;
+    }
+  }
+
   if ((flags & NonEmpty) > 0) {
     if (value.length() == 0) {
       return false;
@@ -270,6 +302,26 @@ bool validate_value_using_flags(const std::string& value,
   }
 
   return true;
+}
+
+void validate_container_rows(const std::string& table_name,
+                             ValidationMap& validation_map,
+                             const std::string& sql_constraints) {
+  std::string extra_sql;
+  if (!sql_constraints.empty()) {
+    extra_sql = " where " + sql_constraints;
+  }
+
+  std::cout << "select *, pid_with_namespace, mount_namespace_id from " +
+                   table_name + extra_sql
+            << std::endl;
+
+  auto rows =
+      execute_query("select *, pid_with_namespace, mount_namespace_id from " +
+                    table_name + extra_sql);
+  validation_map["pid_with_namespace"] = IntType;
+  validation_map["mount_namespace_id"] = NormalType;
+  validate_rows(rows, validation_map);
 }
 
 void setUpEnvironment() {

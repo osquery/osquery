@@ -10,6 +10,7 @@
 // Keep it on top of all other includes to fix double include WinSock.h header file
 // which is windows specific boost build problem
 #include <osquery/remote/http_client.h>
+#include <osquery/remote/transports/tls.h>
 // clang-format on
 
 #include <chrono>
@@ -27,28 +28,27 @@ const std::string kOsqueryUserAgent{"osquery"};
 
 Status processRequest(Row& r) {
   try {
-    osquery::http::Client client_;
-    osquery::http::Response response_;
-    osquery::http::Request request_(r["url"]);
+    osquery::http::Client client(TLSTransport().getOptions());
+    osquery::http::Response response;
+    osquery::http::Request request(r["url"]);
 
     // Change the user-agent for the request to be osquery
-    request_ << osquery::http::Request::Header("User-Agent", r["user_agent"]);
+    request << osquery::http::Request::Header("User-Agent", r["user_agent"]);
 
     // Measure the rtt using the system clock
-    std::chrono::time_point<std::chrono::system_clock> start =
-        std::chrono::system_clock::now();
-    response_ = client_.get(request_);
-    std::chrono::time_point<std::chrono::system_clock> end =
-        std::chrono::system_clock::now();
+    auto time_start = std::chrono::system_clock::now();
+    response = client.get(request);
+    auto time_end = std::chrono::system_clock::now();
 
-    r["response_code"] = INTEGER(static_cast<int>(response_.status()));
-    r["round_trip_time"] = BIGINT(
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start)
-            .count());
-    r["result"] = response_.body();
+    r["response_code"] = INTEGER(static_cast<int>(response.status()));
+    r["round_trip_time"] =
+        BIGINT(std::chrono::duration_cast<std::chrono::microseconds>(time_end -
+                                                                     time_start)
+                   .count());
+    r["result"] = response.body();
     r["bytes"] = BIGINT(r["result"].size());
   } catch (const std::exception& e) {
-    return Status(1, e.what());
+    return Status::failure(e.what());
   }
 
   return Status::success();
@@ -79,7 +79,7 @@ QueryData genCurl(QueryContext& context) {
 
     auto status = processRequest(r);
     if (!status.ok()) {
-      LOG(WARNING) << status.getMessage();
+      LOG(WARNING) << "Error making request: " << status.getMessage();
     }
 
     results.push_back(r);

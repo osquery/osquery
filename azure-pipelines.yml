@@ -5,7 +5,8 @@ jobs:
 
 # LINUX
 
-  - job: LinuxCMake
+  - job: LinuxBuild
+    displayName: "Linux"
 
     strategy:
       matrix:
@@ -20,77 +21,108 @@ jobs:
       vmImage: 'Ubuntu-16.04'
 
     container:
-      image: trailofbits/osql-experimental:ubuntu-18.04
-      options: --privileged
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-v8
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+
+    timeoutInMinutes: 120
+
+    variables:
+      CCACHE_DIR: $(Pipeline.Workspace)/ccache
+      # Debug packages require padded source prefixes (#5936).
+      BUILD_DIR: $(Build.BinariesDirectory)/usr/src/debug/osquery/build
 
     steps:
-    - script: mkdir $(Build.BinariesDirectory)/build
+    - checkout: self
+      # See BUILD_DIR.
+      path: s/usr/src/debug/osquery
+
+    - script: mkdir -p $(BUILD_DIR)
       displayName: "Create build folder"
+
+    - task: CacheBeta@2
+      inputs:
+        key: submodules | Linux | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
+        restoreKeys: submodules | Linux | $(SubmoduleCacheVersion)
+        path: $(Build.SourcesDirectory)/.git/modules
+      displayName: Submodule cache
 
     - task: CMake@1
       displayName: "Configure osquery"
       inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
+        workingDirectory: $(BUILD_DIR)
         cmakeArgs:
           -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
-          -DCMAKE_C_COMPILER=clang
-          -DCMAKE_CXX_COMPILER=clang++
-          -DBUILD_TESTING=ON
+          -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain
+          -DOSQUERY_BUILD_TESTS=ON
+          -DOSQUERY_BUILD_ROOT_TESTS=ON
           $(EXTRA_CMAKE_ARGS)
           $(Build.SourcesDirectory)
+
+    - script: |
+        ./tools/formatting/format-test.sh --build $(BUILD_DIR)
+      displayName: "format_check.py test"
+      workingDirectory: $(Build.SourcesDirectory)
 
     - task: CMake@1
       displayName: "Check code formatting"
       inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
+        workingDirectory: $(BUILD_DIR)
         cmakeArgs: --build . --target format_check
+
+    - task: CacheBeta@2
+      inputs:
+        key: ccache | Linux$(BUILD_TYPE)CMake | $(CacheVersion) | $(Build.SourceVersion)
+        restoreKeys: ccache | Linux$(BUILD_TYPE)CMake | $(CacheVersion)
+        path: $(CCACHE_DIR)
+      displayName: ccache
 
     - task: CMake@1
       displayName: "Build osquery"
       inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
+        workingDirectory: $(BUILD_DIR)
         cmakeArgs: --build . -j 3
 
-    - script: |
-        ctest --build-nocmake -V
-      displayName: "Run tests"
-      workingDirectory: $(Build.BinariesDirectory)/build
+    - task: CMake@1
+      displayName: "Run cppcheck"
+      inputs:
+        workingDirectory: $(BUILD_DIR)
+        cmakeArgs: --build . --target cppcheck
 
     - script: |
-        echo "##vso[task.setvariable variable=Status;isOutput=true]1"
-      name: JobResult
-
-
-  - job: LinuxBuck
-    displayName: "LinuxBuck Release"
-
-    pool:
-      vmImage: 'Ubuntu-16.04'
-
-    container:
-      image: trailofbits/osql-experimental:ubuntu-18.04
-      options: --privileged
-
-    steps:
-    - script: |
-        wget https://github.com/facebook/buck/releases/download/v2019.06.17.01/buck.2019.06.17.01_all.deb
-        sudo apt update
-        sudo apt install -q -y --no-install-recommends ./buck.2019.06.17.01_all.deb openjdk-8-jre python3-distutils
-      workingDirectory: $(Build.BinariesDirectory)
+        ctest --build-nocmake -LE "root-required" -V
+      displayName: "Run tests with a normal user"
+      workingDirectory: $(BUILD_DIR)
 
     - script: |
-        export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
-        buck build @mode/linux-x86_64/release osquery:osqueryd
-      displayName: "Build osquery"
+        sudo ctest --build-nocmake -L "root-required" -V
+      displayName: "Run tests which requires root"
+      workingDirectory: $(BUILD_DIR)
 
     - script: |
-        export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
-        buck test @mode/linux-x86_64/release osquery/...
-      displayName: "Run tests"
+        cmake -DPACKAGING_SYSTEM=DEB $(Build.SourcesDirectory)
+        cmake --build . --target package -j 3
+      displayName: "Run DEB packaging"
+      workingDirectory: $(BUILD_DIR)
+
+    - script: |
+        cmake -DPACKAGING_SYSTEM=RPM $(Build.SourcesDirectory)
+        cmake --build . --target package -j 3
+      displayName: "Run RPM packaging"
+      workingDirectory: $(BUILD_DIR)
+
+    - script: |
+        cmake -DPACKAGING_SYSTEM=TGZ $(Build.SourcesDirectory)
+        cmake --build . --target package -j 3
+      displayName: "Run TGZ packaging"
+      workingDirectory: $(BUILD_DIR)
 
     - script: |
         echo "##vso[task.setvariable variable=Status;isOutput=true]1"
       name: JobResult
+
+    - script: |
+        rm -rf $(BUILD_DIR)
+      displayName: "Reclaim disk space"
 
 
   - job: Linux
@@ -101,21 +133,17 @@ jobs:
     condition: succeededOrFailed()
 
     dependsOn:
-      - LinuxCMake
-      - LinuxBuck
+      - LinuxBuild
 
     variables:
-      LinuxCMakeReleaseStatus: $[ dependencies.LinuxCMake.outputs['Release.JobResult.Status'] ]
-      LinuxCMakeDebugStatus: $[ dependencies.LinuxCMake.outputs['Debug.JobResult.Status'] ]
-      LinuxBuckReleaseStatus: $[ dependencies.LinuxBuck.outputs['JobResult.Status'] ]
+      LinuxReleaseStatus: $[ dependencies.LinuxBuild.outputs['Release.JobResult.Status'] ]
+      LinuxDebugStatus: $[ dependencies.LinuxBuild.outputs['Debug.JobResult.Status'] ]
 
     steps:
     - checkout: none
 
     - script: |
-        if [ -z "$(LinuxCMakeReleaseStatus)" ] || [ -z "$(LinuxCMakeDebugStatus)" ] || \
-           [ -z "$(LinuxBuckReleaseStatus)" ]
-        then
+        if [ -z "$(LinuxReleaseStatus)" ] || [ -z "$(LinuxDebugStatus)" ]; then
           exit 1
         fi
       displayName: "Detect Linux jobs build statuses"
@@ -124,7 +152,8 @@ jobs:
 
 # MACOS
 
-  - job: macOSCMake
+  - job: macOSBuild
+    displayName: "macOS"
 
     strategy:
       matrix:
@@ -138,21 +167,43 @@ jobs:
     pool:
       vmImage: macos-10.14
 
+    timeoutInMinutes: 120
+
+    variables:
+      CCACHE_DIR: $(Pipeline.Workspace)/ccache
+
     steps:
     - script: |
+        cmake --version
         brew upgrade
-        brew install ccache
+        brew install ccache flex bison
+        pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
+        sudo xcode-select -s /Applications/Xcode_10.3.app/Contents/Developer
       displayName: "Install Homebrew and prerequisites"
       timeoutInMinutes: 20
 
     - script: mkdir $(Build.BinariesDirectory)/build
       displayName: "Create build folder"
 
+    - task: CacheBeta@2
+      inputs:
+        key: submodules | macOS | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
+        restoreKeys: submodules | macOS | $(SubmoduleCacheVersion)
+        path: $(Build.SourcesDirectory)/.git/modules
+      displayName: Submodule cache
+
     - task: CMake@1
       displayName: "Configure osquery"
       inputs:
         workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DBUILD_TESTING=ON $(EXTRA_CMAKE_ARGS) $(Build.SourcesDirectory)
+        cmakeArgs: -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DOSQUERY_BUILD_TESTS=ON $(EXTRA_CMAKE_ARGS) $(Build.SourcesDirectory)
+
+    - task: CacheBeta@2
+      inputs:
+        key: ccache | macOS$(BUILD_TYPE)CMake | $(CacheVersion) | $(Build.SourceVersion)
+        restoreKeys: ccache | macOS$(BUILD_TYPE)CMake | $(CacheVersion)
+        path: $(CCACHE_DIR)
+      displayName: ccache
 
     - task: CMake@1
       displayName: "Build osquery"
@@ -165,39 +216,25 @@ jobs:
       displayName: "Run tests"
       workingDirectory: $(Build.BinariesDirectory)/build
 
+    - task: CMake@1
+      displayName: "Run productbuild packaging"
+      inputs:
+        workingDirectory: $(Build.BinariesDirectory)/build
+        cmakeArgs: --build . --target package -j 3
+
+    - script: |
+        cmake -DPACKAGING_SYSTEM=TGZ $(Build.SourcesDirectory)
+        cmake --build . --target package -j 3
+      displayName: "Run TGZ packaging"
+      workingDirectory: $(Build.BinariesDirectory)/build
+
     - script: |
         echo "##vso[task.setvariable variable=Status;isOutput=true]1"
       name: JobResult
 
-
-  - job: macOSBuck
-    displayName: "macOSBuck Release"
-
-    pool:
-      vmImage: macos-10.14
-
-    steps:
     - script: |
-        brew tap facebook/fb
-        brew upgrade
-        brew cask install adoptopenjdk8
-        brew install buck watchman
-      displayName: "Install Homebrew and prerequisites"
-      timeoutInMinutes: 20
-
-    - script: |
-        export JAVA_HOME="$(/usr/libexec/java_home -v 1.8)"
-        buck build @mode/macos-x86_64/release osquery:osqueryd
-      displayName: "Build osquery"
-
-    - script: |
-        export JAVA_HOME="$(/usr/libexec/java_home -v 1.8)"
-        buck test @mode/macos-x86_64/release osquery/...
-      displayName: "Run tests"
-
-    - script: |
-        echo "##vso[task.setvariable variable=Status;isOutput=true]1"
-      name: JobResult
+        rm -rf $(Build.BinariesDirectory)/build
+      displayName: "Reclaim disk space"
 
 
   - job: macOS
@@ -208,21 +245,17 @@ jobs:
     condition: succeededOrFailed()
 
     dependsOn:
-      - macOSCMake
-      - macOSBuck
+      - macOSBuild
 
     variables:
-      macOSCMakeReleaseStatus: $[ dependencies.macOSCMake.outputs['Release.JobResult.Status'] ]
-      macOSCMakeDebugStatus: $[ dependencies.macOSCMake.outputs['Debug.JobResult.Status'] ]
-      macOSBuckReleaseStatus: $[ dependencies.macOSBuck.outputs['JobResult.Status'] ]
+      macOSReleaseStatus: $[ dependencies.macOSBuild.outputs['Release.JobResult.Status'] ]
+      macOSDebugStatus: $[ dependencies.macOSBuild.outputs['Debug.JobResult.Status'] ]
 
     steps:
     - checkout: none
 
     - script: |
-        if [ -z "$(macOSCMakeReleaseStatus)" ] || [ -z "$(macOSCMakeDebugStatus)" ] || \
-           [ -z "$(macOSBuckReleaseStatus)" ]
-        then
+        if [ -z "$(macOSReleaseStatus)" ] || [ -z "$(macOSDebugStatus)" ]; then
           exit 1
         fi
       displayName: "Detect macOS jobs build statuses"
@@ -231,105 +264,117 @@ jobs:
 
 # WINDOWS
 
-  - job: WindowsCMake
-    displayName: "WindowsCMake Release"
+  - job: WindowsBuild
+    displayName: "Windows Release"
 
     pool:
       vmImage: vs2017-win2016
 
+    timeoutInMinutes: 120
+
+    variables:
+      SCCACHE_DIR: $(Pipeline.Workspace)\sccache
+      SCCACHE_CACHE_SIZE: "5G"
+      AZP_CACHING_CONTENT_FORMAT: Files
+
     steps:
     - powershell: |
         git config --global core.autocrlf false
+        git config --global core.symlinks true
 
     - checkout: self
+
+    - powershell: |
+        cmake --version
+        $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\x64) | Sort-Object -Descending)[0].FullName
+        & $python3_path\python -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
+      displayName: Install tests prerequisites
 
     - powershell: |
         mkdir $(Build.BinariesDirectory)\build
       displayName: "Create build folder"
 
-    - task: CMake@1
-      displayName: "Configure osquery"
-      inputs:
-        workingDirectory: $(Build.BinariesDirectory)\build
-        cmakeArgs: -G "Visual Studio 15 2017 Win64" -T host=x64 -DBUILD_TESTING=ON $(Build.SourcesDirectory)
+    - powershell: |
+        tools\ci\scripts\install_openssl_formula_dependencies.ps1
+      displayName: "Installing: Strawberry Perl"
+      workingDirectory: $(Build.SourcesDirectory)
 
-    - task: CMake@1
-      displayName: "Build osquery"
+    - task: CacheBeta@2
       inputs:
-        workingDirectory: $(Build.BinariesDirectory)\build
-        cmakeArgs: --build . -j 3 --config Release
+        key: submodules | Windows | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
+        restoreKeys: submodules | Windows | $(SubmoduleCacheVersion)
+        path: $(Build.SourcesDirectory)/.git/modules
+      displayName: Submodule cache
+
+    - powershell: |
+        (New-Object System.Net.WebClient).DownloadFile(`
+        "https://github.com/osquery/sccache/releases/download/0.0.1-osquery/sccache-0.0.1-windows.7z",`
+        "$env:TEMP\sccache.7z")
+
+        mkdir "C:\Program Files\sccache"
+        7z x -o"C:\Program Files\sccache" -y "$env:TEMP\sccache.7z"
+        Write-Host "##vso[task.prependpath]C:\Program Files\sccache"
+      displayName: "Install sccache"
+
+    - powershell: |
+        (New-Object System.Net.WebClient).DownloadFile(`
+        "https://github.com/ninja-build/ninja/releases/download/v1.9.0/ninja-win.zip",`
+        "$env:TEMP\ninja-win.zip")
+
+        mkdir "C:\Program Files\Ninja"
+        7z x -o"C:\Program Files\Ninja" -y "$env:TEMP\ninja-win.zip"
+        Write-Host "##vso[task.prependpath]C:\Program Files\Ninja"
+      displayName: "Install Ninja"
+
+    - script: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=14.1
+        cmake -G Ninja ^
+        -DCMAKE_C_COMPILER=cl.exe ^
+        -DCMAKE_CXX_COMPILER=cl.exe ^
+        -DCMAKE_BUILD_TYPE=Release ^
+        -DOSQUERY_BUILD_TESTS=ON ^
+        -DCMAKE_C_COMPILER_LAUNCHER="sccache.exe" ^
+        -DCMAKE_CXX_COMPILER_LAUNCHER="sccache.exe" ^
+        $(Build.SourcesDirectory)
+      displayName: "Configure osquery"
+      workingDirectory: $(Build.BinariesDirectory)\build
+
+    - task: CacheBeta@2
+      inputs:
+        key: sccache | Windows | $(CacheVersion) | $(Build.SourceVersion)
+        restoreKeys: sccache | Windows | $(CacheVersion)
+        path: $(SCCACHE_DIR)
+      displayName: sccache
+
+    - script: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=14.1
+        cmake --build . -j 3
+        if %errorlevel% neq 0 exit /b %errorlevel%
+        sccache.exe --stop-server
+      displayName: "Build osquery"
+      workingDirectory: $(Build.BinariesDirectory)\build
 
     - powershell: |
         ctest --build-nocmake -C Release -V
       displayName: "Run tests"
       workingDirectory: $(Build.BinariesDirectory)/build
 
+    - task: CMake@1
+      displayName: "Run WIX packaging"
+      inputs:
+        workingDirectory: $(Build.BinariesDirectory)/build
+        cmakeArgs: --build . --target package --config Release -j 3
+
     - powershell: |
+        # .artifactignore has to be copied in the cached folder, otherwise the CacheBeta task won't see it
+        cp $(Build.SourcesDirectory)\.artifactignore $(Build.SourcesDirectory)\.git\modules
+
         echo "##vso[task.setvariable variable=Status;isOutput=true]1"
       name: JobResult
 
-
-  - job: WindowsBuck
-    displayName: "WindowsBuck Release"
-
-    pool:
-      vmImage: vs2017-win2016
-
-    steps:
     - powershell: |
-        git config --global core.autocrlf false
-
-    - checkout: self
-
-    - powershell: |
-        choco uninstall mingw -y
-        (New-Object System.Net.WebClient).DownloadFile("https://github.com/facebook/buck/releases/download/v2019.06.17.01/buck.2019.06.17.01.nupkg", `
-        "buck.2019.06.17.01.nupkg")
-        Install-Package buck -Source . -SkipDependencies
-      displayName: "Prepare Buck environment"
-      workingDirectory: $(Build.BinariesDirectory)
-
-    - powershell: |
-        $python2_path = (Get-Item C:\Python27amd64).FullName
-
-        if (-not $python2_path) {
-          $python2_path = ((Get-Item C:\hostedtoolcache\windows\Python\2*\x64) | Sort-Object -Descending)[0].FullName
-        }
-
-        $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\x64) | Sort-Object -Descending)[0].FullName
-
-        echo "##vso[task.setvariable variable=python2]$python2_path"
-        echo "##vso[task.setvariable variable=python3]$python3_path"
-
-      displayName: "Detect python 2 and 3 installation folders"
-
-    - script: |
-        mklink /J $(Build.BinariesDirectory)\vsinstall "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise"
-
-    - powershell: |
-        $vcvers = cat $(Build.BinariesDirectory)\vsinstall\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt
-        .\tools\generate_buck_config.ps1 -VsInstall '$(Build.BinariesDirectory)\vsinstall' `
-        -VcToolsVersion "$vcvers" `
-        -SdkInstall '' `
-        -SdkVersion '' `
-        -Python3Path '$(python3)\python.exe' `
-        -BuckConfigRoot .\tools\buckconfigs\
-      displayName: "Generate Buck config"
-
-    - script: |
-        set PATH=$(python2);%PATH%
-        $(python2)\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" build @mode/windows-x86_64/release osquery:osqueryd
-      displayName: "Build osquery"
-
-    - script: |
-        set PATH=$(python2);%PATH%
-        $(python2)\python.exe "C:\Program Files\PackageManagement\NuGet\Packages\buck.2019.06.17.01\tools\buck.pex" test @mode/windows-x86_64/release osquery/...
-      displayName: "Run tests"
-
-    - powershell: |
-        echo "##vso[task.setvariable variable=Status;isOutput=true]1"
-      name: JobResult
-
+        rm -r -Force $(Build.BinariesDirectory)/build
+      displayName: "Reclaim disk space"
 
   - job: Windows
 
@@ -339,20 +384,17 @@ jobs:
     condition: succeededOrFailed()
 
     dependsOn:
-      - WindowsCMake
-      - WindowsBuck
+      - WindowsBuild
 
     variables:
-      WindowsCMakeReleaseStatus: $[ dependencies.WindowsCMake.outputs['JobResult.Status'] ]
-      WindowsBuckReleaseStatus: $[ dependencies.WindowsBuck.outputs['JobResult.Status'] ]
+      WindowsReleaseStatus: $[ dependencies.WindowsBuild.outputs['JobResult.Status'] ]
 
     steps:
     - checkout: none
 
     - script: |
-        if [ -z "$(WindowsCMakeReleaseStatus)" ] || [ -z "$(WindowsBuckReleaseStatus)" ]; then
+        if [ -z "$(WindowsReleaseStatus)" ]; then
           exit 1
         fi
-      displayName: "Detect Windows CMake and Buck build status"
-
+      displayName: "Detect Windows build status"
 # WINDOWS

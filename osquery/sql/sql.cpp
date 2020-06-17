@@ -21,7 +21,6 @@
 
 namespace osquery {
 
-FLAG(int32, value_max, 512, "Maximum returned row value size");
 
 CREATE_LAZY_REGISTRY(SQLPlugin, "sql");
 
@@ -159,8 +158,7 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
     // Attach a virtual table name using an optional included definition.
     return this->attach(request.at("table"));
   } else if (request.at("action") == "detach") {
-    this->detach(request.at("table"));
-    return Status::success();
+    return this->detach(request.at("table"));
   } else if (request.at("action") == "tables") {
     std::vector<std::string> tables;
     auto status = this->getQueryTables(request.at("query"), tables);

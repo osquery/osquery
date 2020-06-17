@@ -5,7 +5,7 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(osqueryUtilsConversionsMain)
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsConversionsConversionstestsTest()
     generateOsqueryUtilsConversionsTotestsTest()
   endif()
@@ -40,7 +40,8 @@ function(generateOsqueryUtilsConversions)
   )
 
   target_link_libraries(osquery_utils_conversions PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
+    osquery_logger
     osquery_utils_conversions_to
     osquery_utils_expected
     thirdparty_boost
@@ -77,7 +78,6 @@ function(generateOsqueryUtilsConversions)
   endif()
 
   add_test(NAME osquery_utils_conversions_conversionstests-test COMMAND osquery_utils_conversions_conversionstests-test)
-
 endfunction()
 
 function(generateOsqueryUtilsConversionsTo)
@@ -95,17 +95,26 @@ function(generateOsqueryUtilsConversionsTo)
 endfunction()
 
 function(generateOsqueryUtilsConversionsConversionstestsTest)
-
   set(source_files
     tests/join.cpp
     tests/split.cpp
     tests/tryto.cpp
   )
 
+  if(DEFINED PLATFORM_MACOS)
+    list(APPEND source_files
+      darwin/tests/cfstring.cpp
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    list(APPEND source_files
+      windows/tests/strings.cpp
+    )
+  endif()
+
   add_osquery_executable(osquery_utils_conversions_conversionstests-test ${source_files})
 
   target_link_libraries(osquery_utils_conversions_conversionstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_conversions
     thirdparty_googletest
   )
@@ -116,7 +125,7 @@ function(generateOsqueryUtilsConversionsTotestsTest)
   add_osquery_executable(osquery_utils_conversions_totests-test tests/to.cpp)
 
   target_link_libraries(osquery_utils_conversions_totests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_conversions_to
     thirdparty_googletest
   )

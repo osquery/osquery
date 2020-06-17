@@ -1,201 +1,250 @@
-## Dependencies
+osquery supports many flavors of Linux, macOS, and Windows.
 
-We include a `make deps` command to make it easier for developers to get started with the osquery project. `make deps` uses Homebrew for macOS and Linuxbrew for Linux. The following basic dependencies are need before running `make deps`:
+While osquery runs on a large number of operating systems, we only provide build instructions for a select few.
 
-- `sudo`
-- `make` (that is, GNU make)
-- `python`
-- `ruby`
-- `git`
-- `bash`
+The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v141 on Windows, and AppleClang from Xcode Command Line Tools 10.2.1.
 
-> NOTICE: This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
+# Prerequisites
 
-For our build hosts (CentOS, Ubuntu 12, 14, 16, macOS 10.12, Windows 2016) we use a `sysprep` target to update the host and install these basic dependencies. This make target is included to help set up our cont-test hosts, your mileage may vary.
+Git (>= 2.14.0), CMake (>= 3.14.6), Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
 
-```sh
-make sysprep
+The default build type is `RelWithDebInfo` (optimizations active + debug symbols) and can be changed in the CMake configure phase by setting the `CMAKE_BUILD_TYPE` flag to `Release` or `Debug`.
+
+The build type is chosen when building on Windows, through the `--config` option, not during the configure phase.
+
+Note: the recommended system memory for building osquery is at least 8GB, or Clang may crash during the compilation of third-party dependencies.
+
+## Linux
+
+The root folder is assumed to be `/home/<user>`.
+
+**Ubuntu 18.04/18.10**
+
+```bash
+# Install the prerequisites
+sudo apt install --no-install-recommends git python3 bison flex make
+
+# Optional: install python tests prerequisites
+sudo apt install --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel
+pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
+
+# Download and install the osquery toolchain
+wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-x86_64.tar.xz
+sudo tar xvf osquery-toolchain-1.1.0-x86_64.tar.xz -C /usr/local
+
+# Download and install a newer CMake
+wget https://github.com/Kitware/CMake/releases/download/v3.14.6/cmake-3.14.6-Linux-x86_64.tar.gz
+sudo tar xvf cmake-3.14.6-Linux-x86_64.tar.gz -C /usr/local --strip 1
+# Verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`
+
+# Download source
+git clone https://github.com/osquery/osquery
+cd osquery
+
+# Build osquery
+mkdir build; cd build
+cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
+cmake --build . -j10 # where 10 is the number of parallel build jobs
 ```
 
-## Building on Windows
+## macOS
 
-Building on Windows is documented at [Windows Provisioning](https://osquery.readthedocs.io/en/stable/development/windows-provisioning/)
+The root folder is assumed to be `/Users/<user>`
 
-## Building on macOS
+**Step 1: Install the prerequisites**
 
-`make deps` will take care of installing the appropriate library dependencies, but it's recommended to take a look at the Makefile, just in case something conflicts with your environment.
+Please ensure [Homebrew](https://brew.sh/) has been installed, first. Then do the following.
 
-The complete installation/build steps are as follows:
+```bash
+# Install prerequisites
+xcode-select --install
+brew install git git-lfs cmake python clang-format flex bison
 
-```sh
-$ git clone https://github.com/facebook/osquery.git
-$ cd osquery
-$ # ./tools/provision/darwin.sh # installs Xcode-Tools
-$ make deps
-$ make
+# Optional: install python tests prerequisites
+pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
 ```
 
-Once the project is built, try running the project's unit tests:
+**Step 2: Download and build**
 
-```sh
-$ make test
+A macOS 10.11 deployment target is selected in this example.
+
+```bash
+# Download source
+git clone https://github.com/osquery/osquery
+cd osquery
+
+# Configure
+mkdir build; cd build
+cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 ..
+
+# Build
+cmake --build .
 ```
 
-And the binaries are built in:
+## Windows 10
 
-```sh
-$ ls -la ./build/darwin/osquery/
+The root folder is assumed to be `C:\`
+
+Note: The intention here is to reduce the length of the prefix of the osquery folder, since Windows and msbuild have a 255 characters max path limit.
+
+**Step 1: Install the prerequisites**
+
+Note: It may be easier to install these prerequisites using [Chocolatey](https://chocolatey.org/).
+
+- [CMake](https://cmake.org/) (>= 3.14.6): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!  Do not install CMake using the Visual Studio Installer, because it contains an older version than required.
+- Visual Studio 2019 (2 options)
+  1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
+  2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
+- [Git for Windows](https://github.com/git-for-windows/git/releases/latest): Select "checkout as-is, commit as-is". Later check "Enable symbolic links" support.
+- [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
+- [Wix Toolset](https://wixtoolset.org/releases/)
+- [Strawberry Perl](http://strawberryperl.com/) for the OpenSSL formula. It is recommended to install it to the default destination path.
+- [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
+
+**Optional: Install python tests prerequisites**
+
+Python 3 is assumed to be installed in `C:\Program Files\Python37`
+
+```PowerShell
+# Using a PowerShell console
+& 'C:\Program Files\Python37\python.exe' -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
 ```
 
-## Building on Linux
+The use of an Administrator shell is recommended because the build process creates symbolic links. These [require a special permission to create on Windows](https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links), and the simplest solution is to build as Administrator. If you wish, you can instead assign just the `SeCreateSymbolicLinkPrivilege` permission to the user account. The setting can be found in "Local Security Policy" under Security Settings, Local Policies, User Rights Assignment. The user then has to log out and back in for the policy change to apply.
 
-osquery supports almost all distributions of Linux (2011+).
+**Step 2: Download and build**
 
-For some distros, we supply vagrant infrastructure for creating native operating system packages. To create a package (e.g. a deb on Ubuntu or an rpm on CentOS), simply spin up a vagrant instance.
+```PowerShell
+# Using a PowerShell console as Administrator (see note, below)
+# Download source
+git clone https://github.com/osquery/osquery
+cd osquery
 
-For example:
+# Configure
+mkdir build; cd build
+cmake -G "Visual Studio 16 2019" -A x64 -T v141 ..
 
-```sh
-$ vagrant up ubuntu14
-$ vagrant ssh ubuntu14
+# Build
+cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel
 ```
 
-By default vagrant will allocate 2 virtual CPUs to the virtual machine instance. You can override this by setting `OSQUERY_BUILD_CPUS` environment variable before spinning up an instance. To allocate the maximum number of CPUs, `OSQUERY_BUILD_CPUS` can be set as:
+## Testing
 
-```sh
-OSQUERY_BUILD_CPUS=`nproc`             # for Linux
-OSQUERY_BUILD_CPUS=`sysctl -n hw.ncpu` # for MacOS
+To build with tests active, add `-DOSQUERY_BUILD_TESTS=ON` to the osquery configure phase, then build the project. CTest will be used to run the tests and give a report.
+
+**Run tests on Windows**
+
+To run the tests and get just a summary report:
+
+```PowerShell
+cmake --build . --config <RelWithDebInfo|Release|Debug> --target run_tests
 ```
 
-Once you have logged into the vagrant box, run the following to create a package:
+To get more information when a test fails using PowerShell:
 
-```sh
-$ cd /vagrant
-$ make sysprep
-$ make deps
-$ make
-$ make test
+```PowerShell
+$Env:CTEST_OUTPUT_ON_FAILURE=1
+cmake --build . --config <RelWithDebInfo|Release|Debug> --target run_tests
 ```
 
-If you'd like to generate an RPM or DEB package, please view the [Custom Packages](#custom-packages) section.
+To run a single test, in verbose mode:
 
-The binaries are built to a distro-specific folder within *build* and symlinked in:
-
-```sh
-$ ls -la ./build/linux/osquery/
+```PowerShell
+ctest -R <test name> -C <RelWithDebInfo|Release|Debug> -V
 ```
 
-## Submitting Pull Requests
+**Run tests on Linux and macOS**
 
-Once you have made changes you'll want to submit them to Github as a Pull Request. There are tons of wonderful guides and documentation around Pull Requests, and that is just out of scope for this wiki-- but consider the following workflow:
+To run the tests and get just a summary report:
 
-```
-$ git checkout -b new_feature1
-$ # write some code!
-$ make -j 4
-$ git commit -m "New Feature: do something wonderful"
-$ git push
+```bash
+cmake --build . --target test
 ```
 
-This assumes your remote `origin` is your osquery fork, and that you receive updates from an `upstream`. It is also common to use `origin` as `facebook/osquery` then add your fork as a target named after your Github username.
+To get more information when a test fails:
 
-In that case the final push becomes `git push USERNAME`.
-
-### Testing changes
-
-Our Jenkins CI will test your changes in three steps.
-
-1. A code audit is run using `make audit`.
-2. The code is rebuilt, built again for release, then a package is generated using `./tools/build.sh` on various Linux and macOS versions.
-3. The same step is run on Windows 10.
-
-The audit step attempts to build the documentation, run code formatting checks, and a brief static code analysis. The formatting check is performed with `clang-format` (installed with `make deps` to your osquery dependencies directory). Your changes are compared against the local `master` branch. Within the build host this is always the TIP of `facebook/osquery`, but locally the branch may be behind.
-
-To speed up the format auditing process please configure your code editor to run `clang-format` on files changed. Or periodically during your development run `make format_master`. Running `make check` is also helpful, but it will use `cppcheck` which is not installed by default.
-
-## Dependencies and build internals
-
-The `make deps` command is fairly intense and serves two purposes: (1) to communicate a standard set of environment setup instructions for our build and test nodes, (2) to provide an environment for reproducing errors. There are wonderful auxiliary benefits such as controlling the compiler and compile flags for almost all of our dependencies, controlling security-related features for dependencies, allowing a "mostly" universal build for Linux that makes deployment simple. To read more about the motivation and FAQ for our dependencies environment see the [Github Reference #2253](https://github.com/facebook/osquery/issues/2253).
-
-When using `make deps` the environment the resultant binaries will have a minimum set of requirements to run:
-
-- `glibc` version 2.13 or greater
-- `libz`
-
-All other dependencies are built, compiled, and linked statically. This makes for a rather large set of output binaries (20M+ on Linux and 15M+ on macOS) but the trade-off for deployment simplicity is very worthwhile.
-
-Under the hood the `make deps` script is calling `./tools/provision.sh`, which performs the simplified set of steps:
-
-- Create a "runtime" directory or dependency home: `/usr/local/osquery`.
-- Clone a pinned version of Homebrew or Linuxbrew into that home.
-- Install a local Tap using `./tools/provision/formulas` into that home.
-- Run optional distro-specific setup scripts from `./tools/provision/DISTRO.sh`.
-- Install a list of packages from the local Tap defined in `./tools/provision.sh`.
-
-We use a minimum set of packages from Homebrew and Linuxbrew, mostly just tools. The remaining tools and C/C++ library dependencies as well as C and C++ runtimes are built from source. If we need to change compile options or variables we can bump these formula's bottle revisions.
-
-### Adding or changing dependencies
-
-If you need to bump a dependency version, change the way it is built, or add a new dependency-- use the formulas in `./tools/provision/formula/`. Let's consider a simple example:
-
-```
-require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
-
-class Libaudit < AbstractOsqueryFormula
-  desc "Linux auditing framework"
-  url "https://github.com/Distrotech/libaudit/archive/audit-2.4.2.tar.gz"
-  sha256 "63020c88b0f37a93438894e67e63ccede23d658277ecc6afb9d40e4043147d3f"
-
-  def install
-    system "./autogen.sh"
-    system "./configure", "--prefix=#{prefix}"
-    cd "lib" do
-      system "make"
-      system "make", "install"
-    end
-  end
-end
+```bash
+CTEST_OUTPUT_ON_FAILURE=1 cmake --build . --target test
 ```
 
-This looks A LOT like normal *brew formulas. For a new dependency do not add a `bottle` section. For help with writing formulas see [Homebrew's Formula Cookbook](https://github.com/Homebrew/brew/blob/master/share/doc/homebrew/Formula-Cookbook.md). Note that we use an Abstract to control the environment variables and control relocation on Linux.
+To run a single test, in verbose mode:
 
-If you want to make build changes see the Cookbook for `revision` edits. Note that committing new or edited formulas will invalidate package caches this will cause the package to be built from source on the test/build hosts.
+```bash
+ctest -R <testName> -V
+```
 
-**If this is a new dependency** then you need to add a line to `./tools/provision.sh` for Linux and or macOS at the order/time it should be installed.
+A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
 
-When a dependency is updated by a maintainer or contributor the flow should follow:
+```bash
+GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory tests under the <testName> set.
+```
 
-* Update the target formula in `./tools/provision/formula/`.
-* Run `make deps` and the dependency change should cause a rebuild from source.
-* Build and run the osquery tests, and submit the change in a pull request.
+## Formatting the code
 
-After the change is merged, a maintainer can provide a bottle/binary version:
+Osquery uses `clang-format` to format its code, but it's not run on the whole project or files each time; it's run only on the modified lines instead,
+using custom scripts.
 
-* Run `./tools/provision.sh uninstall TARGET` to remove the from-source build.
-* Run `make build_deps` to build a bottle version from source.
-* Run `./tools/provision.sh bottle TARGET` to generate the bottle.
-* Update the formula again with the SHA256 printed to stdout.
-* Upload the `/usr/local/osquery/TARGET-VERSION.tar.gz` to the S3 `bottles` folder.
-* Create a pull request with the updated SHA256.
+On Linux the `clang-format` executable is shipped along with the osquery toolchain, and it is the recommended way to run it.  
+For the other platforms please refer to their **Install the prerequisites** section if you haven't already.
 
-This post-merge process can be automated using `./tools/release/deps_release.sh TARGET`. This will update the formula files and place the bottled TAR.GZ in the osquery root. You will need to place these bottles into S3 manually.
+On Windows remember to update the PATH environment variable with the `clang-format` root folder, so that the scripts can find it.  
+You should be able to find `clang-format` folder in the path where you installed either the Build Tools or the full Visual Studio, and from there `VC\Tools\Llvm\bin`.
 
-## AWS EC2 Backed Vagrant Targets
+To verify that all the commits that are present on the branch but not on master are properly formatted, run the following command from the build folder:
+
+```bash
+cmake --build . --target format_check
+```
+This is the same command the CI runs to verify formatting.
+
+If the code is not formatted, you can do so with the following command run from the build folder,
+but the code has to be put in the stage area first if it was already committed:
+
+```bash
+cmake --build . --target format
+```
+
+To avoid having to move the committed files to the stage area and back each time, remember to format the code before committing.
+
+
+## Running Cppcheck (Linux only)
+
+1. Install it from the distro repository: `apt install cppcheck`
+2. Build the **cppcheck** target `cmake --build . --target cppcheck`
+
+## Running clang-tidy (Linux only)
+
+The `clang-tidy` executable is shipped along with the osquery toolchain, and it is the recommended way to run it. It is however possible to use the system one, provided it's accessible from the PATH environment variable.
+
+1. When configuring, pass `-DOSQUERY_ENABLE_CLANG_TIDY=ON` to CMake
+2. Configure the checks: `-DOSQUERY_CLANG_TIDY_CHECKS=check1,check2` **(optional)**
+3. Build osquery
+
+By default, the following checks are enabled:
+
+1. cert-*
+2. cppcoreguidelines-*
+3. performance-*
+4. portability-*
+5. readability-*
+6. modernize-*
+7. bugprone-*
+
+
+# Using Vagrant
+
+If you are familiar with Vagrant, there is a helpful configuration in the root directory for testing osquery.
+
+## AWS-EC2-Backed Vagrant Targets
 
 The osquery vagrant infrastructure supports leveraging AWS EC2 to run virtual machines.
 This capability is provided by the [vagrant-aws](https://github.com/mitchellh/vagrant-aws) plugin, which is installed as follows:
 
 ```sh
-$ vagrant plugin install vagrant-aws
+vagrant plugin install vagrant-aws
 ```
 
-Next, add a vagrant dummy box for AWS:
-
-```sh
-$ vagrant box add andytson/aws-dummy
-```
-
-Before launching an AWS-backed virtual machine, a few environment variables must be set:
+Before launching an AWS-backed virtual machine, set a few environment variables:
 
 ```sh
 # Required. Credentials for AWS API. vagrant-aws will error if these are unset.
@@ -203,156 +252,59 @@ export AWS_ACCESS_KEY_ID=...
 export AWS_SECRET_ACCESS_KEY=...
 # Name of AWS keypair for launching and accessing the EC2 instance.
 export AWS_KEYPAIR_NAME=my-osquery-vagrant-security-group
+# Path to local private key for SSH authentication
 export AWS_SSH_PRIVATE_KEY_PATH=/path/to/keypair.pem
 # Name of AWS security group that allows TCP/22 from vagrant host.
+# Leaving this unset may work in some AWS/EC2 configurations.
 # If using a non-default VPC use the security group ID instead.
 export AWS_SECURITY_GROUP=my-osquery-vagrant-security-group
 # Set this to the AWS region, "us-east-1" (default) or "us-west-1".
 export AWS_DEFAULT_REGION=...
-# Set this to the AWS instance type. If unset, m3.medium is used.
-export AWS_INSTANCE_TYPE=m3.large
+# Set this to the AWS instance type. If unset, m3.large is used.
+export AWS_INSTANCE_TYPE=m3.medium
 # (Optional) Set this to the VPC subnet ID.
 # (Optional) Make sure your subnet assigns public IPs and there is a route.
 export AWS_SUBNET_ID=...
 ```
 
-Spin up a VM in EC2 and SSH in (remember to suspect/destroy when finished):
+Spin up a VM in EC2 and SSH in (remember to suspend/destroy when finished):
 
 ```sh
-$ vagrant up aws-amazon2015.03 --provider=aws
-$ vagrant ssh aws-amazon2015.03
+vagrant up aws-amazon2015.03 --provider=aws
+vagrant ssh aws-amazon2015.03
 ```
 
-## Debug Builds, formatting, and more
+# Custom Packages
 
-To generate a non-optimized debug build use `make debug`.
+Package creation is facilitated by CPack.
 
-CMake regenerates build information every time `make [all]` is run. To avoid the "configure" and project setup use `make build`.
+The package will include several components:
 
-make building and testing macros:
+- The executables: `osqueryd`, `osqueryi`, and small management script `osqueryctl`
+- An osquery systemd unit on Linux (with initd script wrapper)
+- An osquery LaunchDaemon on macOS
+- The lenses provided by our Augeas third-party dependency
+- A default, or fall-back, OpenSSL certificate store (found within the repository)
+- The example query packs from the repository
+- Folder structures required for logging
+
+To create a DEB, RPM, or TGZ on Linux, CPack will attempt to auto-detect the appropriate package type.
+You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
 
 ```sh
-make # Default optimized configure/build
-make test # Test the default build
-make debug # Configure and build non-optimized with debuginfo
-make test_debug # Test the debug build
-make build # Skip the CMake project configure (compile only)
-make debug_build # Same as build, but applied to the debug target
-make test_debug_build # Take a guess ;)
-make clean # Clean the CMake project configuration
-make distclean # Clean all cached information and build dependencies
-make deps # Install the osquery dependency environment into /usr/local/osquery
-make depsclean # Remove the dependency environment
-make docs # Build the Doxygen and mkdocs wiki
+cmake -DPACKAGING_SYSTEM=RPM ..
+cmake --build . --target package
 ```
 
-There are several additional code testing and formatting macros:
+On macOS the `package` target will create a `.pkg`, and on Windows it will create a `.msi`.
 
-```sh
-make format_master # Format everything changed from the local master branch
-make format_all # Not recommended but formats the entire code base
-make format # Apply clang-format using osquery's format spec*
-make analyze # Run clean first, then rebuild with the LLVM static analyzer
-make sanitize # Run clean first, then rebuild with sanitations
-make fuzz # Run basic fuzz tests, as defined in each table spec
-make audit # The clang-format and other PR-blocking checks
-make check # Run cpp-check and output style/performance/error warnings
-```
+# Build Performance
 
-Generating the osquery SDK or sync:
-
-```sh
-make sdk # Build only the osquery SDK (libosquery.a)
-make sync # Create a tarball for building the SDK externally
-```
-
-Finally, subtle changes to the build are mostly controlled through environment
-variables. When making these changes it is best to removed your build cache
-by removing the `./build/` or `./build/{platform}/` directory.
-
-```sh
-OSQUERY_BUILD_LINK_SHARED=True # Prefer linking against shared libraries
-OSQUERY_BUILD_SHARED=True # Build and link a shared libosquery.
-OSQUERY_BUILD_DEPS=True # Install dependencies from source when using make deps
-OSQUERY_BUILD_BOTTLES=True # Create bottles from installed dependencies
-OSQUERY_BUILD_VERSION=9.9.9 # Set a wacky version string
-OSQUERY_PLATFORM=custom_linux;1.0 # Set a wacky platform/distro name
-OSQUERY_DEPS=/usr/local/osquery # Set alternative dependency path
-OSQUERY_NOSUDO=True # If sudo is not available to user building osquery
-SDK_VERSION=9.9.9 # Set a wacky SDK-version string.
-OSX_VERSION_MIN=10.11 # Override the native minimum macOS version ABI
-OSX_VERSION_NATIVE=True # Set the macOS version ABI to the build system ABI
-FAST=True # Build and link as quick as possible.
-SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
-SANITIZE_UNDEFINED=True # Add -fsanitize=undefined when using "make sanitize"
-OPTIMIZED=True # Enable specific CPU optimizations (not recommended)
-SQLITE_DEBUG=True # Enable SQLite query debugging (very verbose!)
-```
-
-There are various features that can be disabled with a customized build. These are also controlled by environment variables to be as cross-platform as possible and take the form: `SKIP_*`. These are converted into CMake variables within the root `CMakeLists.txt`.
-
-```sh
-SKIP_DEPS=True # Skip adding the header and linking options from make deps
-SKIP_AWS=True # Skip the various AWS integrations
-SKIP_TSK=True # Skip SleuthKit integrations
-SKIP_LLDPD=True # Skip LLDP tables
-SKIP_YARA=True # Skip Yara integrations, both events and the virtual tables
-SKIP_KAFKA=True # Skip support for Kafka logger plugins
-SKIP_CARVER=True # Skip support for file carving
-SKIP_TESTS=True # Skip unit test building (very very not recommended!)
-SKIP_INTEGRATION_TESTS=True # Skip python tests when using "make test"
-SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets
-SKIP_TABLES=True # Build platform without any table implementations or specs
-SKIP_DISTRO_MAIN=False # Run the sysprep update/install within make deps
-SKIP_SMART=True # Skip SMART drive tables
-```
-
-## Custom Packages
-
-Building osquery on macOS or Linux requires a significant number of dependencies, which are not needed when deploying. It does not make sense to install osquery on your build hosts. See the [Custom Packages](../installation/custom-packages.md) guide for generating PKGs, debs or RPMs.
-
-Debug and from-source package building is not recommended but supported. You may generate several packages including devel, debuginfo, and additional sets of tools:
-
-```sh
-make package # Generate an osquery package for the build target
-make packages # Generate optional/additional packages
-```
-
-These targets set the environment variable `PACKAGE=1` and the CMake variable `OSQUERY_BUILD_RELEASE` that enables allows build and CMake logic to make compile and linking decisions. This may enable additional compile defines or remove sources from targets.
-
-The osquery package build hosts run a series of additional unit and integration tests. This involves building targets with debug routines, testing, building the same targets ready for packaging, testing, and running a final set of "sanity" and deployment tests.
-
-To mimic and follow the same build/release testing workflow use:
-
-```
-export RUN_BUILD_DEPS=1
-export RUN_RELEASE_TESTS=1
-./tools/build.sh
-```
-
-Pay attention to the environment variable `RUN_RELEASE_TESTS=1`, which enables the deployment sanity tests. If you are building an optimized or distribution package manager target this will most likely fail. The `RUN_BUILD_DEPS` variable tells the build to begin with a `make deps`.
-
-## Notes and FAQ
-
-When trying to make, if you encounter:
-```
-Requested dependencies may have changed, run: make deps
-```
-
-You must run `make deps` to make sure you are pulling in the most-recent dependency assumptions. This error typically means a new virtual table has been added that includes new third-party development libraries.
-
-`make deps` will take care of installing everything you need to compile osquery. However, to properly develop and contribute code, you'll need to install some additional programs. If you write C++ often, you likely already have these programs installed. We don't bundle these tools with osquery because many programmers are quite fond of their personal installations of LLVM utilities, debuggers, etc.
-
-- clang-format: we use clang-format to format all code in osquery. After staging your commit changes, run `make format` (requires clang-format).
-- valgrind: performance is a top priority for osquery, so all code should be thoroughly tested with valgrind or instruments. After building your code use `./tools/analysis/profile.py --leaks` to run all queries and test for memory leaks.
-
-## Build Performance
-
-Generating a virtual table should NOT impact system performance. This is easier said than done as some tables may _seem_ inherently latent such as `SELECT * from suid_bin;` if your expectation is a complete filesystem traversal looking for binaries with suid permissions. Please read the osquery features and guide on [performance safety](../deployment/performance-safety.md).
+Generating a virtual table should *not* impact system performance. This is easier said than done, as some tables may _seem_ inherently latent (if you expect to run queries like `SELECT * from suid_bin;` which performs a complete filesystem traversal looking for binaries with suid permissions). Please read the osquery features and guide on [performance safety](../deployment/performance-safety.md).
 
 Some quick features include:
 
-* Performance regression and leak detection CI guards.
-* Blacklisting performance-impacting virtual tables.
-* Scheduled query optimization and profiling.
-* Query implementation isolation options.
+- Performance regression and leak detection CI guards.
+- Denylisting performance-impacting virtual tables.
+- Scheduled query optimization and profiling.
+- Query implementation isolation options.

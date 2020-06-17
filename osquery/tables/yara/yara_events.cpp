@@ -119,7 +119,7 @@ void YARAEventSubscriber::configure() {
       sc->recursive = 0;
       sc->path = file;
       sc->mask = FILE_CHANGE_MASK;
-      sc->category = std::move(category);
+      sc->category = category;
       subscribe(&YARAEventSubscriber::Callback, sc);
     }
   }

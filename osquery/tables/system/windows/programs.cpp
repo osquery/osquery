@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <boost/regex.hpp>
+#include <regex>
 
 #include <osquery/core.h>
 #include <osquery/filesystem/filesystem.h>
@@ -42,11 +42,11 @@ void keyEnumPrograms(const std::string& key,
 
     // Attempt to derive the program identifying GUID
     std::string identifyingNumber;
-    boost::smatch matches;
-    boost::regex expression(
-        "({[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+})"
-        "$");
-    if (boost::regex_search(fullProgramName, matches, expression)) {
+    std::smatch matches;
+    std::regex expression(
+        "(\\{[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+"
+        "\\})$");
+    if (std::regex_search(fullProgramName, matches, expression)) {
       identifyingNumber = matches[0];
       r["identifying_number"] = identifyingNumber;
     }
@@ -81,7 +81,9 @@ void keyEnumPrograms(const std::string& key,
         r["install_date"] = aKey.at("data");
       }
     }
-    results.push_back(r);
+    if (!r.empty()) {
+      results.push_back(r);
+    }
   }
 }
 

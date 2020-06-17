@@ -7,6 +7,7 @@
  */
 
 #include <map>
+#include <regex>
 #include <string>
 
 #include <stdlib.h>
@@ -16,7 +17,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/regex.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem/filesystem.h>
@@ -99,9 +99,9 @@ Status deletedMatchesInode(const std::string& path, const std::string& pid) {
   }
 
   // Extract the expected inode of the binary file from /proc/%pid/maps
-  boost::smatch what;
-  boost::regex expression("([0-9]+)\\h+\\Q" + path + "\\E");
-  if (!boost::regex_search(maps_contents, what, expression)) {
+  std::smatch what;
+  std::regex expression("([0-9]+)\\h+\\Q" + path + "\\E");
+  if (!std::regex_search(maps_contents, what, expression)) {
     return Status(-1, "Could not find binary inode in maps file: " + maps_path);
   }
   std::string inode = what[1];

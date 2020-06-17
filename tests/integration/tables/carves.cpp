@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -24,7 +23,7 @@ class carves : public testing::Test {
 
 TEST_F(carves, test_sanity) {
   // 1. Query data
-  auto const data = execute_query("select * from carves");
+  auto const data = execute_query("select * from carves where path = ''");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);
@@ -32,7 +31,7 @@ TEST_F(carves, test_sanity) {
   // 3. Build validation map
   // See helper.h for avaialbe flags
   // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
+  // ValidationMap row_map = {
   //      {"time", IntType}
   //      {"sha256", NormalType}
   //      {"size", IntType}

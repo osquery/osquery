@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -23,8 +22,11 @@ class keychainAcls : public testing::Test {
 };
 
 TEST_F(keychainAcls, test_sanity) {
+  // TODO: This test takes too much time to run and may require some
+  // additional permissions, which makes it flaky.
+
   // 1. Query data
-  auto const data = execute_query("select * from keychain_acls");
+  // auto const data = execute_query("select * from keychain_acls");
   // 2. Check size before validation
   // ASSERT_GE(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);
@@ -32,7 +34,7 @@ TEST_F(keychainAcls, test_sanity) {
   // 3. Build validation map
   // See helper.h for avaialbe flags
   // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
+  // ValidationMap row_map = {
   //      {"keychain_path", NormalType}
   //      {"authorizations", NormalType}
   //      {"path", NormalType}

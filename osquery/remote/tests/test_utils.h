@@ -38,7 +38,7 @@ class TLSServerRunner : private boost::noncopyable {
   }
 
   /// Start the server if it hasn't started already.
-  static void start();
+  static bool start(const std::string& server_cert = {});
 
   /// Stop the service when the process exits.
   static void stop();

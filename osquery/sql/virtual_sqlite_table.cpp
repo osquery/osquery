@@ -42,6 +42,7 @@ Status genSqliteTableRow(sqlite3_stmt* stmt,
     auto column_name = std::string(sqlite3_column_name(stmt, i));
     auto column_type = sqlite3_column_type(stmt, i);
     switch (column_type) {
+    case SQLITE_BLOB:
     case SQLITE_TEXT: {
       auto text_value = sqlite3_column_text(stmt, i);
       if (text_value != nullptr) {
@@ -55,14 +56,15 @@ Status genSqliteTableRow(sqlite3_stmt* stmt,
       break;
     }
     case SQLITE_INTEGER: {
-      auto int_value = sqlite3_column_int(stmt, i);
+      auto int_value = sqlite3_column_int64(stmt, i);
       r[column_name] = INTEGER(int_value);
       break;
     }
     }
   }
   if (r.count("path") > 0) {
-    LOG(WARNING) << "Row contains a path key, refusing to overwrite";
+    LOG(WARNING) << "ATC Table: Row contains a defined path key, omitting the "
+                    "implicit one";
   } else {
     r["path"] = sqlite_db.string();
   }
@@ -97,7 +99,7 @@ Status genTableRowsForSqliteTable(const fs::path& sqlite_db,
   rc = sqlite3_prepare_v2(db, sqlite_query.c_str(), -1, &stmt, nullptr);
   if (rc != SQLITE_OK) {
     sqlite3_close(db);
-    VLOG(1) << "Could not prepare database at path: " << sqlite_db;
+    VLOG(1) << "ATC table: Could not prepare database at path: " << sqlite_db;
     return Status(rc, "Could not prepare database");
   }
 

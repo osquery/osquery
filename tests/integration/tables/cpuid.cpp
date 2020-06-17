@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -23,24 +22,17 @@ class cpuid : public testing::Test {
 };
 
 TEST_F(cpuid, test_sanity) {
-  // 1. Query data
+  ValidationMap row_map = {
+      {"feature", NormalType},
+      {"value", NormalType},
+      {"output_register", NormalType},
+      {"output_bit", IntType},
+      {"input_eax", NormalType},
+  };
+
   auto const data = execute_query("select * from cpuid");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"feature", NormalType}
-  //      {"value", NormalType}
-  //      {"output_register", NormalType}
-  //      {"output_bit", IntType}
-  //      {"input_eax", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_FALSE(data.empty());
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

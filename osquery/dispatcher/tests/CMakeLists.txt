@@ -13,7 +13,7 @@ function(generateOsqueryDispatcherTestsTest)
   add_osquery_executable(osquery_dispatcher_tests-test dispatcher.cpp)
 
   target_link_libraries(osquery_dispatcher_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_distributed
     osquery_events
@@ -32,7 +32,7 @@ function(generateOsqueryDispatcherTestsSchedulerTest)
   add_osquery_executable(osquery_dispatcher_tests_scheduler-test scheduler.cpp)
 
     target_link_libraries(osquery_dispatcher_tests_scheduler-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_distributed
     osquery_events

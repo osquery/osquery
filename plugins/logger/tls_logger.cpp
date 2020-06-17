@@ -18,6 +18,7 @@
 
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
+#include <osquery/flagalias.h>
 #include <osquery/registry.h>
 
 #include <osquery/remote/serializers/json.h>
@@ -27,7 +28,10 @@
 
 namespace osquery {
 
-constexpr size_t kTLSMaxLogLines = 1024;
+FLAG(uint64,
+     logger_tls_max_lines,
+     1024,
+     "Max number of logs to send per period");
 
 FLAG(string, logger_tls_endpoint, "", "TLS/HTTPS endpoint for results logging");
 
@@ -37,9 +41,12 @@ FLAG(uint64,
      "Seconds between flushing logs over TLS/HTTPS");
 
 FLAG(uint64,
-     logger_tls_max,
+     logger_tls_max_linesize,
      1 * 1024 * 1024,
      "Max size in bytes allowed per log line");
+
+// The flag name logger_tls_max is deprecated.
+FLAG_ALIAS(google::uint64, logger_tls_max, logger_tls_max_linesize);
 
 FLAG(bool, logger_tls_compress, false, "GZip compress TLS/HTTPS request body");
 
@@ -49,7 +56,7 @@ TLSLogForwarder::TLSLogForwarder()
     : BufferedLogForwarder("TLSLogForwarder",
                            "tls",
                            std::chrono::seconds(FLAGS_logger_tls_period),
-                           kTLSMaxLogLines) {
+                           FLAGS_logger_tls_max_lines) {
   uri_ = TLSRequestHelper::makeURI(FLAGS_logger_tls_endpoint);
 }
 
@@ -98,8 +105,9 @@ Status TLSLogForwarder::send(std::vector<std::string>& log_data,
     auto children = params.newArray();
     iterate(log_data, ([&params, &children](std::string& item) {
               // Enforce a max log line size for TLS logging.
-              if (item.size() > FLAGS_logger_tls_max) {
-                LOG(WARNING) << "Line exceeds TLS logger max: " << item.size();
+              if (item.size() > FLAGS_logger_tls_max_linesize) {
+                LOG(WARNING)
+                    << "Linesize exceeds TLS logger maximum: " << item.size();
                 return;
               }
 
@@ -123,4 +131,4 @@ Status TLSLogForwarder::send(std::vector<std::string>& log_data,
   }
   return TLSRequestHelper::go<JSONSerializer>(uri_, params, response);
 }
-}
+} // namespace osquery

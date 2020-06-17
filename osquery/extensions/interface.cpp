@@ -104,7 +104,7 @@ Status ExtensionManagerInterface::registerExtension(
         chrono_clock::now().time_since_epoch().count()));
   }
   // Every call to registerExtension is assigned a new RouteUUID.
-  uuid = static_cast<uint16_t>(rand());
+  uuid = static_cast<uint16_t>(rand() + 1);
   LOG(INFO) << "Registering extension (" << info.name << ", " << uuid
             << ", version=" << info.version << ", sdk=" << info.sdk_version
             << ")";

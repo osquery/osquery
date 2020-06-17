@@ -124,8 +124,6 @@ class DatabasePlugin : public Plugin {
   virtual Status putBatch(const std::string& domain,
                           const DatabaseStringValueList& data) = 0;
 
-  virtual void dumpDatabase() const = 0;
-
   /// Data removal method.
   virtual Status remove(const std::string& domain, const std::string& k) = 0;
 

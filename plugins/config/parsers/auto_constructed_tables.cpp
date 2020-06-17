@@ -6,7 +6,6 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <plugins/config/parsers/auto_constructed_tables.h>
 #include <osquery/config/config.h>
 #include <osquery/database.h>
 #include <osquery/filesystem/filesystem.h>
@@ -17,6 +16,7 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/join.h>
+#include <plugins/config/parsers/auto_constructed_tables.h>
 
 namespace rj = rapidjson;
 
@@ -27,22 +27,25 @@ TableRows ATCPlugin::generate(QueryContext& context) {
   std::vector<std::string> paths;
   auto s = resolveFilePattern(path_, paths);
   if (!s.ok()) {
-    LOG(WARNING) << "Could not glob: " << path_;
+    LOG(WARNING) << "ATC Table: Could not glob: " << path_ << " skipping";
+    return result;
   }
   for (const auto& path : paths) {
     s = getSqliteJournalMode(path);
     bool preserve_locking = false;
     if (!s.ok()) {
-      VLOG(1)
-          << "Unable to detect journal mode, applying default locking policy";
+      VLOG(1) << "ATC Table: Unable to detect journal mode, applying default "
+                 "locking policy"
+              << " for path " << path;
     } else {
       preserve_locking = s.getMessage() == "wal";
     }
     s = genTableRowsForSqliteTable(
         path, sqlite_query_, result, preserve_locking);
     if (!s.ok()) {
-      LOG(WARNING) << "Error Code: " << s.getCode()
-                   << " Could not generate data: " << s.getMessage();
+      LOG(WARNING) << "ATC Table: Error Code: " << s.getCode()
+                   << " Could not generate data: " << s.getMessage()
+                   << " for path " << path_;
     }
   }
   return result;
@@ -63,7 +66,7 @@ Status ATCConfigParserPlugin::removeATCTables(
         PluginResponse resp;
         Registry::call(
             "sql", "sql", {{"action", "detatch"}, {"table", table}}, resp);
-        LOG(INFO) << "Removed ATC table: " << table;
+        VLOG(1) << "ATC table: " << table << " Removed";
       } else {
         failed_tables.insert(table);
       }
@@ -96,7 +99,8 @@ Status ATCConfigParserPlugin::setUp() {
   for (const auto& key : keys) {
     auto s = deleteDatabaseValue(kPersistentSettings, key);
     if (!s.ok()) {
-      LOG(INFO) << "Could not clear ATC key " << key << "from database";
+      LOG(INFO) << "ATC table: Could not clear ATC key " << key
+                << "from database";
     }
   }
   return Status();
@@ -105,11 +109,11 @@ Status ATCConfigParserPlugin::setUp() {
 Status ATCConfigParserPlugin::update(const std::string& source,
                                      const ParserConfig& config) {
   auto cv = config.find(kParserKey);
-  if (cv == config.end()) {
-    return Status(1, "No configuration for ATC (Auto Table Construction)");
+  if (cv == config.end() || !cv->second.doc().IsObject()) {
+    return Status::success();
   }
-  auto obj = data_.getObject();
 
+  auto obj = data_.getObject();
   data_.copyFrom(cv->second.doc(), obj);
   data_.add(kParserKey, obj);
 
@@ -118,6 +122,11 @@ Status ATCConfigParserPlugin::update(const std::string& source,
   auto registered = registeredATCTables();
 
   for (const auto& ac_table : ac_tables.GetObject()) {
+    if (!ac_table.name.IsString() || !ac_table.value.IsObject()) {
+      // This entry is not formatted correctly.
+      continue;
+    }
+
     std::string table_name{ac_table.name.GetString()};
     auto params = ac_table.value.GetObject();
 
@@ -133,12 +142,13 @@ Status ATCConfigParserPlugin::update(const std::string& source,
                              : ""};
 
     if (query.empty() || path.empty()) {
-      LOG(WARNING) << "ATC Table: " << table_name << " is misconfigured";
+      LOG(WARNING) << "ATC Table: Skipping " << table_name
+                   << " because it is misconfigured (missing query or path)";
       continue;
     }
 
     if (!checkPlatform(platform)) {
-      VLOG(1) << "Skipping ATC table: " << table_name
+      VLOG(1) << "ATC table: Skipping " << table_name
               << " because platform doesn't match";
       continue;
     }
@@ -147,7 +157,30 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     std::string columns_value;
     columns_value.reserve(256);
 
+    // Always add the implicit path column
+    columns.push_back(
+        make_tuple(std::string("path"), TEXT_TYPE, ColumnOptions::DEFAULT));
+    columns_value += "path,";
+
+    if (!params.HasMember("columns") || !params["columns"].IsArray()) {
+      LOG(WARNING) << "ATC Table: " << table_name
+                   << " is misconfigured (no columns)";
+    }
+
     for (const auto& column : params["columns"].GetArray()) {
+      if (!column.IsString()) {
+        LOG(WARNING) << "ATC Table: " << table_name
+                     << " is misconfigured. (non-string column)";
+        continue;
+      }
+
+      if (std::string(column.GetString()) == std::string("path")) {
+        LOG(WARNING) << "ATC Table: " << table_name
+                     << " is misconfigured. The configuration include `path`,"
+                     << " which is a reserved column";
+        continue;
+      }
+
       columns.push_back(make_tuple(
           std::string(column.GetString()), TEXT_TYPE, ColumnOptions::DEFAULT));
       columns_value += std::string(column.GetString()) + ",";
@@ -167,23 +200,23 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     // Remove the old table to replace with the new one
     s = removeATCTables({table_name});
     if (!s.ok()) {
-      LOG(WARNING) << "ATC table overrides core table; Refusing registration";
+      LOG(WARNING) << "ATC Table: " << table_name
+                   << " overrides core table; Refusing registration";
       continue;
     }
 
     s = setDatabaseValue(
         kPersistentSettings, kDatabaseKeyPrefix + table_name, table_settings);
-
     if (!s.ok()) {
-      LOG(WARNING) << "Could not write to database";
+      LOG(WARNING) << "ATC Table: " << table_name
+                   << " could not write to database";
       continue;
     }
 
     s = tables->add(
         table_name, std::make_shared<ATCPlugin>(path, columns, query), true);
-
     if (!s.ok()) {
-      LOG(WARNING) << s.getMessage();
+      LOG(WARNING) << "ATC Table: " << table_name << ": " << s.getMessage();
       deleteDatabaseValue(kPersistentSettings, kDatabaseKeyPrefix + table_name);
       continue;
     }
@@ -191,7 +224,7 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     PluginResponse resp;
     Registry::call(
         "sql", "sql", {{"action", "attach"}, {"table", table_name}}, resp);
-    LOG(INFO) << "Registered ATC table: " << table_name;
+    LOG(INFO) << "ATC table: " << table_name << " Registered";
   }
 
   if (registered.size() > 0) {

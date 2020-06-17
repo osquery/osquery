@@ -2,15 +2,15 @@ table_name("browser_plugins")
 description("All C/NPAPI browser plugin details for all users.")
 schema([
     Column("uid", BIGINT, "The local user that owns the plugin",
-      additional=True),
+      index=True),
     Column("name", TEXT, "Plugin display name"),
-    Column("identifier", TEXT, "Plugin identifier", index=True),
+    Column("identifier", TEXT, "Plugin identifier"),
     Column("version", TEXT, "Plugin short version"),
     Column("sdk", TEXT, "Build SDK used to compile plugin"),
     Column("description", TEXT, "Plugin description text"),
     Column("development_region", TEXT, "Plugin language-localization"),
     Column("native", INTEGER, "Plugin requires native execution"),
-    Column("path", TEXT, "Path to plugin bundle"),
+    Column("path", TEXT, "Path to plugin bundle", index=True),
     Column("disabled", INTEGER, "Is the plugin disabled. 1 = Disabled"),
     ForeignKey(column="uid", table="users")
 ])

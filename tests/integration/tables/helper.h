@@ -71,22 +71,28 @@ enum {
   SHA256 = 1 << 9,
   SHA1 = 1 << 10,
   Bool = 1 << 11,
+  EmptyOk = 1 << 12,
+  NullOk = 1 << 13,
   NonNegativeInt = IntType | NonEmpty | NonNull | (1 << 12),
   NonNegativeOrErrorInt = IntType | NonEmpty | NonNull | (1 << 13),
   NonEmptyString = NonEmpty | NormalType | NonNull,
+  IntOrEmpty = IntType | EmptyOk | NullOk,
 };
 
 using CustomCheckerType = std::function<bool(const std::string&)>;
-using ValidatatioDataType = boost::variant<int, CustomCheckerType>;
-using ValidatatioMap = std::unordered_map<std::string, ValidatatioDataType>;
+using ValidationDataType = boost::variant<int, CustomCheckerType>;
+using ValidationMap = std::unordered_map<std::string, ValidationDataType>;
 
 QueryData execute_query(std::string query);
 
-void validate_row(const Row& row,
-                  const ValidatatioMap& validation_map);
+void validate_row(const Row& row, const ValidationMap& validation_map);
 void validate_rows(const std::vector<Row>& rows,
-                   const ValidatatioMap& validation_map);
+                   const ValidationMap& validation_map);
 bool validate_value_using_flags(const std::string& value, int flags);
+void validate_container_rows(
+    const std::string& table_name,
+    ValidationMap& validation_map,
+    const std::string& sql_constraints = std::string());
 bool is_valid_hex(const std::string& value);
 
 void setUpEnvironment();

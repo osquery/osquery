@@ -9,8 +9,8 @@
 // Sanity check integration test for hash
 // Spec file: specs/hash.table
 
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tests/integration/tables/helper.h>
-
 #include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
@@ -23,10 +23,12 @@ class Hash : public testing::Test {
   void SetUp() override {
     setUpEnvironment();
     path = fs::temp_directory_path() /
-           fs::unique_path("osquery.tests.file.hashes");
+           fs::unique_path("osquery.tests.file.hashes.%%%%.%%%%.%%%%.%%%%");
 
-    auto fout = std::ofstream(path.native(), std::ios::out | std::ios::binary);
-    fout << "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
+    EXPECT_TRUE(
+        writeTextFile(
+            path, "Lorem ipsum dolor sit amet, consectetur adipiscing elit.")
+            .ok());
   }
 
   void TearDown() override {
@@ -37,14 +39,14 @@ class Hash : public testing::Test {
 };
 
 TEST_F(Hash, test_sanity) {
-  const std::string query = std::string{"select * from hash where path = '"} +
-                            path.string() + std::string{"'"};
+  const std::string query =
+      "select * from hash where path = '" + path.string() + "'";
 
   QueryData data = execute_query(query);
 
   ASSERT_EQ(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"path", NonEmptyString},
       {"directory", NonEmptyString},
       {"md5", NonEmptyString},
@@ -67,6 +69,10 @@ TEST_F(Hash, test_sanity) {
   }
 
   validate_rows(data, row_map);
+
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    validate_container_rows("hash", row_map, "path = '" + path.string() + "'");
+  }
 }
 
 } // namespace table_tests

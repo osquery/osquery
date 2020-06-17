@@ -7,6 +7,7 @@
  */
 
 #include <algorithm>
+#include <mutex>
 #include <random>
 
 #include <osquery/database.h>
@@ -40,6 +41,8 @@ FLAG(uint64,
      "Query interval to use if none is provided");
 
 size_t kMaxQueryInterval = 604800;
+
+std::once_flag kUseDenylist;
 
 size_t splayValue(size_t original, size_t splayPercent) {
   if (splayPercent == 0 || splayPercent > 100) {
@@ -152,7 +155,9 @@ void Pack::initialize(const std::string& name,
   discovery_queries_.clear();
   if (obj.HasMember("discovery") && obj["discovery"].IsArray()) {
     for (const auto& item : obj["discovery"].GetArray()) {
-      discovery_queries_.push_back(item.GetString());
+      if (item.IsString()) {
+        discovery_queries_.push_back(item.GetString());
+      }
     }
   }
 
@@ -174,8 +179,8 @@ void Pack::initialize(const std::string& name,
 
   // Iterate the queries (or schedule) and check platform/version/sanity.
   for (const auto& q : obj["queries"].GetObject()) {
-    if (!q.value.IsObject()) {
-      VLOG(1) << "The pack " << name << " must contain a dictionary of queries";
+    if (!q.value.IsObject() || !q.name.IsString()) {
+      VLOG(1) << "The pack " << name << " contains an invalid query";
       continue;
     }
 
@@ -237,9 +242,16 @@ void Pack::initialize(const std::string& name,
       query.options["removed"] = JSON::valueToBool(q.value["removed"]);
     }
 
-    query.options["blacklist"] = true;
-    if (q.value.HasMember("blacklist")) {
-      query.options["blacklist"] = JSON::valueToBool(q.value["blacklist"]);
+    query.options["denylist"] = true;
+    if (q.value.HasMember("denylist")) {
+      query.options["denylist"] = JSON::valueToBool(q.value["denylist"]);
+    } else if (q.value.HasMember("blacklist")) {
+      query.options["denylist"] = JSON::valueToBool(q.value["blacklist"]);
+      std::call_once(kUseDenylist, []() {
+        LOG(WARNING)
+            << "At least one query in the configuration uses deprecated "
+               "'blacklist' option, please use 'denylist'";
+      });
     }
 
     schedule_.emplace(std::make_pair(q.name.GetString(), std::move(query)));

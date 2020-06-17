@@ -6,13 +6,13 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <plugins/config/parsers/decorators.h>
 #include <osquery/config/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 #include <osquery/utils/json/json.h>
+#include <plugins/config/parsers/decorators.h>
 
 namespace osquery {
 
@@ -99,7 +99,7 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
   /// Protect the configuration controlled content.
   static Mutex kDecorationsConfigMutex;
 };
-}
+} // namespace
 
 DecorationStore DecoratorsConfigParserPlugin::kDecorations;
 Mutex DecoratorsConfigParserPlugin::kDecorationsMutex;
@@ -117,6 +117,16 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
   clearDecorations(source);
   auto decorations = config.find(kDecorationsName);
   if (decorations != config.end()) {
+    if (!decorations->second.doc().IsObject()) {
+      const auto error_message =
+          "Invalid format for decorators configuration, decorators value "
+          "must be a JSON "
+          "object";
+      LOG(WARNING) << error_message;
+
+      return Status::failure(error_message);
+    }
+
     // Each of these methods acquires the decorator lock separately.
     // The run decorators method is designed to have call sites throughout
     // the code base.
@@ -182,28 +192,39 @@ void DecoratorsConfigParserPlugin::updateDecorations(const std::string& source,
 
   // Check if intervals are defined.
   auto& interval_key = kDecorationPointKeys.at(DECORATE_INTERVAL);
-  if (doc.doc().HasMember(interval_key)) {
-    const auto& interval = doc.doc()[interval_key];
-    if (interval.IsObject()) {
-      for (const auto& item : interval.GetObject()) {
-        auto rate = doc.valueToSize(item.name);
-        //      size_t rate = std::stoll(item.name.GetString());
-        if (rate % 60 != 0) {
-          LOG(WARNING) << "Invalid decorator interval rate " << rate
-                       << " in config source: " << source;
-          continue;
-        }
+  if (!doc.doc().HasMember(interval_key)) {
+    return;
+  }
 
-        // This is a valid interval, update the set of intervals to include
-        // this value. When intervals are checked this set is scanned, if a
-        // match is found, then the associated config data is executed.
-        if (item.value.IsArray()) {
-          for (const auto& interval_query : item.value.GetArray()) {
-            if (interval_query.IsString()) {
-              intervals_[source][rate].push_back(interval_query.GetString());
-            }
-          }
-        }
+  const auto& interval = doc.doc()[interval_key];
+  if (!interval.IsObject()) {
+    LOG(WARNING)
+        << "Invalid decorator interval configuration in config source: "
+        << source;
+    return;
+  }
+
+  for (const auto& item : interval.GetObject()) {
+    auto rate = doc.valueToSize(item.name);
+    //      size_t rate = std::stoll(item.name.GetString());
+    if (rate % 60 != 0) {
+      LOG(WARNING) << "Invalid decorator interval rate " << rate
+                   << " in config source: " << source;
+      continue;
+    }
+
+    if (!item.value.IsArray()) {
+      LOG(WARNING) << "Invalid decorator interval rate " << rate
+                   << " configuration in config source: " << source;
+      continue;
+    }
+
+    // This is a valid interval, update the set of intervals to include
+    // this value. When intervals are checked this set is scanned, if a
+    // match is found, then the associated config data is executed.
+    for (const auto& interval_query : item.value.GetArray()) {
+      if (interval_query.IsString()) {
+        intervals_[source][rate].push_back(interval_query.GetString());
       }
     }
   }
@@ -299,4 +320,4 @@ void getDecorations(std::map<std::string, std::string>& results) {
 REGISTER_INTERNAL(DecoratorsConfigParserPlugin,
                   "config_parser",
                   kDecorationsName.c_str());
-}
+} // namespace osquery

@@ -5,9 +5,12 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(testsMain)
-  add_subdirectory("integration/tables")
+  add_subdirectory("cppcheck")
 
-  generateTestsHelper()
+  if(OSQUERY_BUILD_TESTS)
+    add_subdirectory("integration/tables")
+    generateTestsHelper()
+  endif()
 endfunction()
 
 function(generateTestsHelper)
@@ -20,7 +23,7 @@ function(generateTestsHelper)
   generateIncludeNamespace(tests_helper "osquery/tests" "FILE_ONLY" ${public_header_files})
 
   target_link_libraries(tests_helper PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_filesystem
     osquery_process

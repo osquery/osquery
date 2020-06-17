@@ -2,7 +2,7 @@ table_name("docker_container_networks")
 description("Docker container networks.")
 schema([
     Column("id", TEXT, "Container ID", index=True),
-    Column("name", TEXT, "Network name"),
+    Column("name", TEXT, "Network name", index=True),
     Column("network_id", TEXT, "Network ID"),
     Column("endpoint_id", TEXT, "Endpoint ID"),
     Column("gateway", TEXT, "Gateway"),

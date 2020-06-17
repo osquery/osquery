@@ -80,263 +80,6 @@ function(generateIncludeNamespace target_name namespace_path mode)
   target_include_directories("${target_name}" ${target_mode} "${target_namespace_root_directory}")
 endfunction()
 
-# Generates the global_c_settings, global_cxx_settings targets and the respective thirdparty variant
-function(generateGlobalSettingsTargets)
-
-  if(NOT DEFINED PLATFORM_WINDOWS)
-    if("${CMAKE_BUILD_TYPE}" STREQUAL "")
-      message(SEND_ERROR "The CMAKE_BUILD_TYPE variabile is empty! Make sure to include globals.cmake before utilities.cmake!")
-      return()
-    endif()
-  endif()
-
-  # Common settings
-  add_library(global_settings INTERFACE)
-
-  if(DEFINED PLATFORM_WINDOWS)
-    target_compile_options(global_settings INTERFACE
-      "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Z7;/Gs;/GS>"
-    )
-
-    target_compile_options(global_settings INTERFACE
-      "$<$<CONFIG:Debug>:/Od;/UNDEBUG>$<$<NOT:$<CONFIG:Debug>>:/Ot>"
-    )
-    target_compile_definitions(global_settings INTERFACE "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>")
-
-    target_link_options(global_settings INTERFACE
-      /SUBSYSTEM:CONSOLE
-      /LTCG
-      ntdll.lib
-      ole32.lib
-      oleaut32.lib
-      ws2_32.lib
-      iphlpapi.lib
-      netapi32.lib
-      rpcrt4.lib
-      shlwapi.lib
-      version.lib
-      wtsapi32.lib
-      wbemuuid.lib
-      secur32.lib
-      taskschd.lib
-      dbghelp.lib
-      dbgeng.lib
-      bcrypt.lib
-      crypt32.lib
-      wintrust.lib
-      setupapi.lib
-      advapi32.lib
-      userenv.lib
-      wevtapi.lib
-      shell32.lib
-      gdi32.lib
-    )
-  else()
-    if(OSQUERY_NO_DEBUG_SYMBOLS)
-      set(debug_level -g0)
-    else()
-      set(debug_level -g)
-    endif()
-
-    if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-      target_compile_options(global_settings INTERFACE ${debug_level})
-    endif()
-
-    if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-      target_compile_options(global_settings INTERFACE -O0)
-    else()
-      target_compile_options(global_settings INTERFACE -Oz)
-      target_compile_definitions(global_settings INTERFACE "NDEBUG")
-    endif()
-  endif()
-
-  set_target_properties(global_settings PROPERTIES
-    INTERFACE_POSITION_INDEPENDENT_CODE ON
-  )
-
-  if(DEFINED PLATFORM_LINUX)
-    target_link_options(global_settings INTERFACE --no-undefined)
-  endif()
-
-  if(DEFINED PLATFORM_LINUX)
-    target_compile_definitions(global_settings INTERFACE
-      LINUX=1
-      POSIX=1
-      OSQUERY_LINUX=1
-      OSQUERY_POSIX=1
-      OSQUERY_BUILD_PLATFORM=linux
-      OSQUERY_BUILD_DISTRO=centos7
-    )
-
-  elseif(DEFINED PLATFORM_MACOS)
-    target_compile_definitions(global_settings INTERFACE
-      APPLE=1
-      DARWIN=1
-      BSD=1
-      POSIX=1
-      OSQUERY_POSIX=1
-      OSQUERY_BUILD_PLATFORM=darwin
-      OSQUERY_BUILD_DISTRO=10.12
-    )
-  elseif(DEFINED PLATFORM_WINDOWS)
-    target_compile_definitions(global_settings INTERFACE
-      WIN32=1
-      WINDOWS=1
-      OSQUERY_WINDOWS=1
-      OSQUERY_BUILD_PLATFORM=windows
-      OSQUERY_BUILD_DISTRO=10
-      BOOST_ALL_NO_LIB
-      BOOST_ALL_STATIC_LINK
-      _WIN32_WINNT=_WIN32_WINNT_WIN7
-      NTDDI_VERSION=NTDDI_WIN7
-    )
-  else()
-    message(FATAL_ERROR "This platform is not yet supported")
-  endif()
-
-  add_library(c_settings INTERFACE)
-  add_library(cxx_settings INTERFACE)
-
-  # C++ settings
-  if(DEFINED PLATFORM_WINDOWS)
-    target_compile_options(cxx_settings INTERFACE
-      /MT
-      /EHs
-      /W3
-      /guard:cf
-      /bigobj
-      /Zc:inline-
-    )
-  else()
-    target_compile_options(cxx_settings INTERFACE
-      -Qunused-arguments
-      -Wno-shadow-field
-      -Wall
-      -Wextra
-      -Wno-unused-local-typedef
-      -Wno-deprecated-register
-      -Wno-unknown-warning-option
-      -Wstrict-aliasing
-      -Wno-missing-field-initializers
-      -Wnon-virtual-dtor
-      -Wchar-subscripts
-      -Wpointer-arith
-      -Woverloaded-virtual
-      -Wformat
-      -Wformat-security
-      -Werror=format-security
-      -Wuseless-cast
-      -Wno-c++11-extensions
-      -Wno-zero-length-array
-      -Wno-unused-parameter
-      -Wno-gnu-case-range
-      -Weffc++
-      -fpermissive
-      -fstack-protector-all
-      -fdata-sections
-      -ffunction-sections
-      -fvisibility=hidden
-      -fvisibility-inlines-hidden
-      -fno-limit-debug-info
-      -pipe
-      -pedantic
-      -stdlib=libc++
-    )
-
-    target_link_options(cxx_settings INTERFACE
-      -stdlib=libc++
-    )
-
-    if(DEFINED PLATFORM_MACOS)
-      target_compile_options(cxx_settings INTERFACE
-        -x objective-c++
-        -fobjc-arc
-        -Wabi-tag
-      )
-
-      target_link_options(cxx_settings INTERFACE
-        "SHELL:-framework AppKit"
-        "SHELL:-framework Foundation"
-        "SHELL:-framework CoreServices"
-        "SHELL:-framework CoreFoundation"
-        "SHELL:-framework CoreWLAN"
-        "SHELL:-framework CoreGraphics"
-        "SHELL:-framework DiskArbitration"
-        "SHELL:-framework IOKit"
-        "SHELL:-framework OpenDirectory"
-        "SHELL:-framework Security"
-        "SHELL:-framework ServiceManagement"
-        "SHELL:-framework SystemConfiguration"
-      )
-
-      target_link_libraries(cxx_settings INTERFACE
-        iconv
-        cups
-        bsm
-        xar
-      )
-    endif()
-
-    target_link_libraries(cxx_settings INTERFACE c++ c++abi)
-  endif()
-
-  target_compile_features(cxx_settings INTERFACE cxx_std_14)
-
-  # C settings
-  if(DEFINED PLATFORM_WINDOWS)
-    target_compile_options(c_settings INTERFACE
-      /std:c11
-      /MT
-      /EHs
-      /W3
-      /guard:cf
-      /bigobj
-    )
-  else()
-    target_compile_options(c_settings INTERFACE
-      -std=gnu11
-      -Qunused-arguments
-      -Wno-shadow-field
-      -Wall
-      -Wextra
-      -Wno-unused-local-typedef
-      -Wno-deprecated-register
-      -Wno-unknown-warning-option
-      -Wstrict-aliasing
-      -Wno-missing-field-initializers
-      -Wnon-virtual-dtor
-      -Wchar-subscripts
-      -Wpointer-arith
-      -Woverloaded-virtual
-      -Wformat
-      -Wformat-security
-      -Werror=format-security
-      -Wuseless-cast
-      -Wno-c99-extensions
-      -Wno-zero-length-array
-      -Wno-unused-parameter
-      -Wno-gnu-case-range
-      -Weffc++
-      -fpermissive
-      -fstack-protector-all
-      -fdata-sections
-      -ffunction-sections
-      -fvisibility=hidden
-      -fvisibility-inlines-hidden
-      -fno-limit-debug-info
-      -pipe
-      -pedantic
-    )
-  endif()
-
-  add_library(global_c_settings INTERFACE)
-  target_link_libraries(global_c_settings INTERFACE c_settings global_settings)
-
-  add_library(global_cxx_settings INTERFACE)
-  target_link_libraries(global_cxx_settings INTERFACE cxx_settings global_settings)
-
-endfunction()
-
 # Marks the specified target to enable link whole archive
 function(enableLinkWholeArchive target_name)
   if(DEFINED PLATFORM_LINUX)
@@ -357,11 +100,9 @@ function(enableLinkWholeArchive target_name)
 endfunction()
 
 function(findPythonExecutablePath)
-  find_package(Python2 COMPONENTS Interpreter REQUIRED)
-  find_package(Python3 COMPONENTS Interpreter REQUIRED)
+  find_package(Python3 3.5 COMPONENTS Interpreter REQUIRED)
 
-  set(EX_TOOL_PYTHON2_EXECUTABLE_PATH "${Python2_EXECUTABLE}" PARENT_SCOPE)
-  set(EX_TOOL_PYTHON3_EXECUTABLE_PATH "${Python3_EXECUTABLE}" PARENT_SCOPE)
+  set(OSQUERY_PYTHON_EXECUTABLE "${Python3_EXECUTABLE}" CACHE INTERNAL "" FORCE)
 endfunction()
 
 function(generateBuildTimeSourceFile file_path content)
@@ -381,15 +122,19 @@ function(generateUnsupportedPlatformSourceFile)
   set(unsupported_platform_source_file "${source_file}" PARENT_SCOPE)
 endfunction()
 
-function(generateCopyFileTarget name type relative_file_paths destination)
+function(generateCopyFileTarget name base_path type relative_file_paths destination)
 
-  set(source_base_path "${CMAKE_CURRENT_SOURCE_DIR}")
-
-  if(type STREQUAL "REGEX")
-    file(GLOB_RECURSE relative_file_paths RELATIVE "${source_base_path}" "${source_base_path}/${relative_file_paths}")
+  if(base_path)
+    set(base_path "${base_path}/")
+  else()
+    set(base_path "${CMAKE_CURRENT_SOURCE_DIR}/")
   endif()
 
-  add_library("${name}" INTERFACE)
+  if(type STREQUAL "REGEX")
+    file(GLOB_RECURSE relative_file_paths RELATIVE "${base_path}" "${base_path}${relative_file_paths}")
+  endif()
+
+  add_custom_target("${name}")
 
   foreach(file ${relative_file_paths})
     get_filename_component(intermediate_directory "${file}" DIRECTORY)
@@ -406,7 +151,16 @@ function(generateCopyFileTarget name type relative_file_paths destination)
     list(APPEND created_directories "${destination}/${directory}")
   endforeach()
 
-  add_custom_target("${name}_create_dirs" DEPENDS "${created_directories}")
+  list(APPEND "create_dirs_deps"
+    "${created_directories}"
+    "${destination}"
+  )
+
+  add_custom_target("${name}_create_dirs" DEPENDS "${create_dirs_deps}")
+  add_custom_command(
+    OUTPUT "${destination}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${destination}"
+  )
 
   foreach(file ${relative_file_paths})
 
@@ -418,17 +172,18 @@ function(generateCopyFileTarget name type relative_file_paths destination)
 
     add_custom_command(
       OUTPUT "${destination}/${file}"
-      COMMAND "${CMAKE_COMMAND}" -E copy "${source_base_path}/${file}" "${destination}/${file}"
+      COMMAND "${CMAKE_COMMAND}" -E copy "${base_path}${file}" "${destination}/${file}"
+      DEPENDS "${base_path}${file}"
     )
     list(APPEND copied_files "${destination}/${file}")
   endforeach()
 
-  add_custom_target("${name}_copy_files" DEPENDS "${name}_create_dirs" "${copied_files}")
+  add_custom_target("${name}_copy_files" DEPENDS "${copied_files}")
 
+  add_dependencies("${name}_copy_files" "${name}_create_dirs")
   add_dependencies("${name}" "${name}_copy_files")
 
-  set_target_properties("${name}" PROPERTIES INTERFACE_BINARY_DIR "${destination}")
-
+  set_target_properties("${name}" PROPERTIES FILES_DESTINATION_DIR "${destination}")
 endfunction()
 
 function(add_osquery_executable)
@@ -450,8 +205,25 @@ function(add_osquery_executable)
 
   add_executable(${osquery_exe_name} ${osquery_exe_args})
 
-  if("${osquery_exe_name}" MATCHES "-test$" AND DEFINED PLATFORM_POSIX)
-    target_link_options("${osquery_exe_name}" PRIVATE -Wno-sign-compare)
+  if(DEFINED PLATFORM_WINDOWS)
+    set(OSQUERY_MANIFEST_TARGET_NAME "${osquery_exe_name}")
+
+    getCleanedOsqueryVersion("OSQUERY_MANIFEST_VERSION")
+
+    configure_file(
+      "${CMAKE_SOURCE_DIR}/tools/osquery.manifest.in"
+      "${osquery_exe_name}.manifest"
+      @ONLY NEWLINE_STYLE WIN32
+    )
+    target_sources(${osquery_exe_name} PRIVATE "${osquery_exe_name}.manifest")
+  endif()
+
+  if("${osquery_exe_name}" MATCHES "-test$")
+    if(DEFINED PLATFORM_POSIX)
+      target_link_options("${osquery_exe_name}" PRIVATE -Wno-sign-compare)
+    endif()
+
+    add_dependencies("${osquery_exe_name}" osquery_tools_tests_configfiles)
   endif()
 endfunction()
 
@@ -478,6 +250,9 @@ endfunction()
 # This function modifies an existing cache variable but without changing its description
 function(overwrite_cache_variable variable_name type value)
   get_property(current_help_string CACHE "${variable_name}" PROPERTY HELPSTRING)
+  if(NOT DEFINED current_help_string)
+    set(current_help_string "No description")
+  endif()
   list(APPEND cache_args "CACHE" "${type}" "${current_help_string}")
   set("${variable_name}" "${value}" ${cache_args} FORCE)
 endfunction()
@@ -486,13 +261,160 @@ function(generateSpecialTargets)
   # Used to generate all the files necessary to have a complete view of the project in the IDE
   add_custom_target(prepare_for_ide)
 
+  set(excluded_folders
+    "libraries"
+  )
+
+  set(command_prefix)
+  if(OSQUERY_TOOLCHAIN_SYSROOT)
+    set(command_prefix "${CMAKE_COMMAND}" -E env "PATH=${OSQUERY_TOOLCHAIN_SYSROOT}/usr/bin:$ENV{PATH}")
+  endif()
+
   add_custom_target(format_check
-    COMMAND ${EX_TOOL_PYTHON2_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/formatting/format-check.py origin/master
+    COMMAND ${command_prefix} "${OSQUERY_PYTHON_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/tools/formatting/format-check.py --exclude-folders ${excluded_folders} origin/master
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
   )
   add_custom_target(format
-    COMMAND ${EX_TOOL_PYTHON2_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py -f --style=file
+    COMMAND ${command_prefix} "${OSQUERY_PYTHON_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py --exclude-folders ${excluded_folders} -f --style=file
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    VERBATIM)
+    VERBATIM
+  )
+endfunction()
+
+function(collectInterfaceOptionsFromTarget)
+  set(oneValueArgs TARGET COMPILE DEFINES LINK)
+  cmake_parse_arguments(PARSE_ARGV 0 osquery "" "${oneValueArgs}" "")
+
+  if(NOT osquery_TARGET OR NOT TARGET ${osquery_TARGET})
+    message(FATAL_ERROR "A valid target has to be provided")
+  endif()
+
+  set(target_list ${osquery_TARGET})
+  set(target_list_length 1)
+
+  while(${target_list_length} GREATER 0)
+    foreach(target ${target_list})
+
+      if(NOT TARGET ${target})
+        continue()
+      endif()
+
+      get_target_property(target_type ${target} TYPE)
+
+      if(NOT "${target_type}" STREQUAL "INTERFACE_LIBRARY")
+        continue()
+      endif()
+
+      get_target_property(dependencies ${target} INTERFACE_LINK_LIBRARIES)
+
+      if(NOT "${dependencies}" STREQUAL "dependencies-NOTFOUND")
+        list(APPEND new_target_list ${dependencies})
+      endif()
+
+      get_target_property(compile_options ${target} INTERFACE_COMPILE_OPTIONS)
+      get_target_property(compile_definitions ${target} INTERFACE_COMPILE_DEFINITIONS)
+      get_target_property(link_options ${target} INTERFACE_LINK_OPTIONS)
+
+      if(osquery_COMPILE AND NOT "${compile_options}" STREQUAL "compile_options-NOTFOUND")
+        list(APPEND compile_options_list ${compile_options})
+      endif()
+
+      if(osquery_DEFINES AND NOT "${compile_definitions}" STREQUAL "compile_definitions-NOTFOUND")
+        list(APPEND compile_definitions_list ${compile_definitions})
+      endif()
+
+      if(osquery_LINK AND NOT "${link_options}" STREQUAL "link_options-NOTFOUND")
+        list(APPEND link_options_list ${link_options})
+      endif()
+    endforeach()
+
+    set(target_list ${new_target_list})
+    list(LENGTH target_list target_list_length)
+    unset(new_target_list)
+  endwhile()
+
+  list(REMOVE_DUPLICATES compile_options_list)
+  list(REMOVE_DUPLICATES compile_definitions_list)
+  list(REMOVE_DUPLICATES link_options_list)
+
+  if(osquery_COMPILE)
+    set(${osquery_COMPILE} ${compile_options_list} PARENT_SCOPE)
+  endif()
+
+  if(osquery_LINK_OPTIONS)
+    set(${osquery_LINK_OPTIONS} ${link_options_list} PARENT_SCOPE)
+  endif()
+
+  if(osquery_DEFINES)
+    set(${osquery_DEFINES} ${compile_definitions_list} PARENT_SCOPE)
+  endif()
+
+endfunction()
+
+function(copyInterfaceTargetFlagsTo destination_target source_target mode)
+
+  collectInterfaceOptionsFromTarget(TARGET ${source_target}
+    COMPILE compile_options_list
+    LINK link_options_list
+    DEFINES compile_definitions_list
+  )
+
+  get_target_property(dest_compile_options_list ${destination_target} INTERFACE_COMPILE_OPTIONS)
+  get_target_property(dest_compile_definitions_list ${destination_target} INTERFACE_COMPILE_DEFINITIONS)
+  get_target_property(dest_link_options_list ${destination_target} INTERFACE_LINK_OPTIONS)
+
+  if("${dest_compile_options_list}" STREQUAL "dest_compile_options_list-NOTFOUND")
+    unset(dest_compile_options_list)
+  endif()
+
+  if("${dest_compile_definitions_list}" STREQUAL "dest_compile_definitions_list-NOTFOUND")
+    unset(dest_compile_definitions_list)
+  endif()
+
+  if("${dest_link_options_list}" STREQUAL "dest_link_options_list-NOTFOUND")
+    unset(dest_link_options_list)
+  endif()
+
+  list(APPEND dest_compile_options_list ${compile_options_list})
+  list(APPEND dest_compile_definitions_list ${compile_definitions_list})
+  list(APPEND dest_link_options_list ${link_options_list})
+
+  target_compile_options(${destination_target} ${mode} ${dest_compile_options_list})
+  target_compile_definitions(${destination_target} ${mode} ${dest_compile_definitions_list})
+  target_link_options(${destination_target} ${mode} ${dest_link_options_list})
+endfunction()
+
+# Cleans up a SemVer similar version, so that it contains only 3 components and uses only numbers
+function(toCleanedSemVer version_string)
+  string(REGEX MATCH "^[0-9]+\.[0-9]+\.[0-9]+" osquery_cleaned_version "${version_string}")
+  set(toCleanedSemVer_OUTPUT "${osquery_cleaned_version}" PARENT_SCOPE)
+endfunction()
+
+function(getCleanedOsqueryVersion version_var)
+  toCleanedSemVer("${OSQUERY_VERSION_INTERNAL}")
+  set("${version_var}" "${toCleanedSemVer_OUTPUT}" PARENT_SCOPE)
+endfunction()
+
+# Get the osquery version components each in its own user defined variable
+function(getVersionComponents components major minor patch)
+  list(GET components 0 "${major}")
+  list(GET components 1 "${minor}")
+  list(GET components 2 "${patch}")
+
+  set("${major}" "${${major}}" PARENT_SCOPE)
+  set("${minor}" "${${minor}}" PARENT_SCOPE)
+  set("${patch}" "${${patch}}" PARENT_SCOPE)
+endfunction()
+
+# Get the cleaned up version and splits it up in major, minor and patch user provided variables
+function(getCleanedOsqueryVersionComponents major minor patch)
+  getCleanedOsqueryVersion("osquery_version")
+  string(REPLACE "." ";" osquery_version_components "${osquery_version}")
+
+  getVersionComponents("${osquery_version_components}" "${major}" "${minor}" "${patch}")
+
+  set("${major}" "${${major}}" PARENT_SCOPE)
+  set("${minor}" "${${minor}}" PARENT_SCOPE)
+  set("${patch}" "${${patch}}" PARENT_SCOPE)
 endfunction()

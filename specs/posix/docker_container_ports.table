@@ -1,7 +1,7 @@
 table_name("docker_container_ports")
 description("Docker container ports.")
 schema([
-    Column("id", TEXT, "Container ID", index=True),
+    Column("id", TEXT, "Container ID", additional=True),
     Column("type", TEXT, "Protocol (tcp, udp)"),
     Column("port", INTEGER, "Port inside the container"),
     Column("host_ip", TEXT, "Host IP address on which public port is listening"),

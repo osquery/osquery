@@ -67,7 +67,9 @@ osqueryi --config_path ./build/testing/invalid_osquery.conf --config_dump
 }
 ```
 
-In this example, I've added a C-style comment which [used](https://github.com/facebook/osquery/issues/1689) to be allowed in boost 1.58, but was deprecated and removed in 1.59. To be future-proof, stick to the JSON specification and do not include comments.
+Osqueryd will exit after printing the config.
+
+This example contains a C-style comment which was allowed in boost 1.58, but is deprecated and removed in 1.59. To be future-proof, stick to the JSON specification and do not include comments.
 
 ### Scheduled query failures and the watchdog
 
@@ -94,7 +96,7 @@ If the worker finds itself in a re-occurring error state or the watchdog continu
 osqueryd worker respawning too quickly: 1 times
 ```
 
-The watchdog implements an exponential backoff when respawning workers and the associated 'dirty' query is blacklisted from running for 24 hours.
+The watchdog implements an exponential backoff when respawning workers and the associated 'dirty' query is denylisted from running for 24 hours.
 
 ### Checking the database sanity
 
@@ -144,16 +146,6 @@ virtual_table.cpp:549] Please see the table documentation: https://osquery.io/sc
 If you start the shell using `osqueryi --disable_events=0` you will no longer get this warning. BUT! It is most likely the case that the events you are trying to inspect require future configuration. `file_events` requires a [file integrity monitoring](file-integrity-monitoring.md) configurations, `process_events` requires either additional flags or OpenBSM configuration, these situations are described in [process auditing](process-auditing.md).
 
 On Linux and MacOS the `hardware_events` table is enabled for-free, so try to plug in a USB and run `select * from hardware_events`.
-
-### Missing event subscribers
-
-If you see:
-
-```shell
-Error registering subscriber: process_file_events: No kernel event publisher
-```
-
-This is an informational message with mis-categorized severity. The message indicates that a requested companion kernel extension does not exist and the associated `process_file_events` subscriber on macOS cannot start. It is safe to ignore.
 
 ### Testing event subscribers
 

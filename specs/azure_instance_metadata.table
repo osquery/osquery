@@ -1,0 +1,25 @@
+table_name("azure_instance_metadata")
+description("Azure instance metadata.")
+schema([
+    Column("location", TEXT, "Azure Region the VM is running in"),
+    Column("name", TEXT, "Name of the VM"),
+    Column("offer", TEXT, "Offer information for the VM image (Azure image gallery VMs only)"),
+    Column("publisher", TEXT, "Publisher of the VM image"),
+    Column("sku", TEXT, "SKU for the VM image"),
+    Column("version", TEXT, "Version of the VM image"),
+    Column("os_type", TEXT, "Linux or Windows"),
+    Column("platform_update_domain", TEXT, "Update domain the VM is running in"),
+    Column("platform_fault_domain", TEXT, "Fault domain the VM is running in"),
+    Column("vm_id", TEXT, "Unique identifier for the VM", index=True),
+    Column("vm_size", TEXT, "VM size"),
+    Column("subscription_id", TEXT, "Azure subscription for the VM"),
+    Column("resource_group_name", TEXT, "Resource group for the VM"),
+    Column("placement_group_id", TEXT, "Placement group for the VM scale set"),
+    Column("vm_scale_set_name", TEXT, "VM scale set name"),
+    Column("zone", TEXT, "Availability zone of the VM"),
+])
+attributes(cacheable=True)
+implementation("cloud/azure_metadata@genAzureMetadata")
+examples([
+    "select * from ec2_instance_metadata"
+])

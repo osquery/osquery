@@ -20,7 +20,7 @@ function(generateTestsIntegrationTablesIntegrationtestshelper)
   generateIncludeNamespace(tests_integration_tables_integrationtestshelper "osquery/tests/integration/tables" "FILE_ONLY" ${public_headers})
 
   target_link_libraries(tests_integration_tables_integrationtestshelper PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_sql
     osquery_utils
     plugins_database_ephemeral
@@ -41,6 +41,7 @@ function(generateTestsIntegrationTablesTestsTest)
     etc_protocols.cpp
     etc_services.cpp
     file.cpp
+    firefox_addons.cpp
     groups.cpp
     hash.cpp
     interface_addresses.cpp
@@ -66,6 +67,11 @@ function(generateTestsIntegrationTablesTestsTest)
     uptime.cpp
     user_groups.cpp
     users.cpp
+    ssh_configs.cpp
+    user_ssh_keys.cpp
+    device_file.cpp
+    device_hash.cpp
+    device_partitions.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
@@ -77,9 +83,6 @@ function(generateTestsIntegrationTablesTestsTest)
       block_devices.cpp
       cpu_time.cpp
       crontab.cpp
-      device_file.cpp
-      device_hash.cpp
-      device_partitions.cpp
       disk_encryption.cpp
       dns_resolvers.cpp
       docker_container_labels.cpp
@@ -90,6 +93,7 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_container_stats.cpp
       docker_containers.cpp
       docker_image_labels.cpp
+      docker_image_layers.cpp
       docker_images.cpp
       docker_info.cpp
       docker_network_labels.cpp
@@ -98,7 +102,6 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_volume_labels.cpp
       docker_volumes.cpp
       file_events.cpp
-      firefox_addons.cpp
       hardware_events.cpp
       interface_ipv6.cpp
       known_hosts.cpp
@@ -121,14 +124,12 @@ function(generateTestsIntegrationTablesTestsTest)
       prometheus_metrics.cpp
       shell_history.cpp
       smbios_tables.cpp
-      ssh_configs.cpp
       sudoers.cpp
       suid_bin.cpp
       system_controls.cpp
       ulimit_info.cpp
       usb_devices.cpp
       user_events.cpp
-      user_ssh_keys.cpp
       yara.cpp
       yum_sources.cpp
     )
@@ -151,7 +152,6 @@ function(generateTestsIntegrationTablesTestsTest)
       intel_me_info.cpp
       iptables.cpp
       kernel_info.cpp
-      kernel_integrity.cpp
       kernel_modules.cpp
       md_devices.cpp
       md_drives.cpp
@@ -165,6 +165,7 @@ function(generateTestsIntegrationTablesTestsTest)
       portage_use.cpp
       process_file_events.cpp
       process_namespaces.cpp
+      process_open_pipes.cpp
       rpm_package_files.cpp
       rpm_packages.cpp
       selinux_events.cpp
@@ -213,7 +214,7 @@ function(generateTestsIntegrationTablesTestsTest)
       kernel_extensions.cpp
       kernel_info.cpp
       kernel_panics.cpp
-      # keychain_acls.cpp # TODO: This test takes too much time to run and may require some additional permissions, which makes it flaky.
+      keychain_acls.cpp
       keychain_items.cpp
       launchd.cpp
       launchd_overrides.cpp
@@ -259,13 +260,18 @@ function(generateTestsIntegrationTablesTestsTest)
       arp_cache.cpp
       authenticode.cpp
       autoexec.cpp
+      bitlocker_info.cpp
       certificates.cpp
+      connectivity.cpp
+      chassis_info.cpp
       chocolatey_packages.cpp
       cpu_info.cpp
+      default_environment.cpp
       disk_info.cpp
       drivers.cpp
       ie_extensions.cpp
       intel_me_info.cpp
+      logon_sessions.cpp
       kernel_info.cpp
       kva_speculative_info.cpp
       logical_drives.cpp
@@ -281,24 +287,35 @@ function(generateTestsIntegrationTablesTestsTest)
       services.cpp
       shared_resources.cpp
       startup_items.cpp
+      userassist.cpp
       video_info.cpp
       winbaseobj.cpp
       windows_crashes.cpp
       windows_events.cpp
+      windows_security_products.cpp
       wmi_bios_info.cpp
       wmi_cli_event_consumers.cpp
       wmi_event_filters.cpp
       wmi_filter_consumer_binding.cpp
       wmi_script_event_consumers.cpp
+      hvci_status.cpp
     )
 
     list(APPEND source_files ${platform_source_files})
+  elseif(DEFINED PLATFORM_FREEBSD)
+    set(platform_source_files
+      fbsd_kmods.cpp
+      pkg_packages.cpp
+    )
+
+    list(APPEND source_files ${platform_source_files})
+
   endif()
 
   add_osquery_executable(tests_integration_tables-test ${source_files})
 
   target_link_libraries(tests_integration_tables-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_events
     osquery_extensions

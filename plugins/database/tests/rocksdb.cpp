@@ -39,9 +39,7 @@ TEST_F(RocksDBDatabasePluginTests, test_corruption) {
 
   // Mark the database as corrupted
   RocksDBDatabasePlugin::setCorrupted();
-  printf("set corrupt\n");
   resetDatabase();
-  printf("did reset\n");
 
   EXPECT_TRUE(pathExists(path_ + ".backup"));
 

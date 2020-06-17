@@ -1,0 +1,860 @@
+/* Output of mkstrtable.awk.  DO NOT EDIT.  */
+
+/* err-codes.h - List of error codes and their description.
+   Copyright (C) 2003, 2004 g10 Code GmbH
+
+   This file is part of libgpg-error.
+
+   libgpg-error is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public License
+   as published by the Free Software Foundation; either version 2.1 of
+   the License, or (at your option) any later version.
+
+   libgpg-error is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with libgpg-error; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.  */
+
+
+/* The purpose of this complex string table is to produce
+   optimal code with a minimum of relocations.  */
+
+static const char msgstr[] = 
+  "GPG_ERR_NO_ERROR" "\0"
+  "GPG_ERR_GENERAL" "\0"
+  "GPG_ERR_UNKNOWN_PACKET" "\0"
+  "GPG_ERR_UNKNOWN_VERSION" "\0"
+  "GPG_ERR_PUBKEY_ALGO" "\0"
+  "GPG_ERR_DIGEST_ALGO" "\0"
+  "GPG_ERR_BAD_PUBKEY" "\0"
+  "GPG_ERR_BAD_SECKEY" "\0"
+  "GPG_ERR_BAD_SIGNATURE" "\0"
+  "GPG_ERR_NO_PUBKEY" "\0"
+  "GPG_ERR_CHECKSUM" "\0"
+  "GPG_ERR_BAD_PASSPHRASE" "\0"
+  "GPG_ERR_CIPHER_ALGO" "\0"
+  "GPG_ERR_KEYRING_OPEN" "\0"
+  "GPG_ERR_INV_PACKET" "\0"
+  "GPG_ERR_INV_ARMOR" "\0"
+  "GPG_ERR_NO_USER_ID" "\0"
+  "GPG_ERR_NO_SECKEY" "\0"
+  "GPG_ERR_WRONG_SECKEY" "\0"
+  "GPG_ERR_BAD_KEY" "\0"
+  "GPG_ERR_COMPR_ALGO" "\0"
+  "GPG_ERR_NO_PRIME" "\0"
+  "GPG_ERR_NO_ENCODING_METHOD" "\0"
+  "GPG_ERR_NO_ENCRYPTION_SCHEME" "\0"
+  "GPG_ERR_NO_SIGNATURE_SCHEME" "\0"
+  "GPG_ERR_INV_ATTR" "\0"
+  "GPG_ERR_NO_VALUE" "\0"
+  "GPG_ERR_NOT_FOUND" "\0"
+  "GPG_ERR_VALUE_NOT_FOUND" "\0"
+  "GPG_ERR_SYNTAX" "\0"
+  "GPG_ERR_BAD_MPI" "\0"
+  "GPG_ERR_INV_PASSPHRASE" "\0"
+  "GPG_ERR_SIG_CLASS" "\0"
+  "GPG_ERR_RESOURCE_LIMIT" "\0"
+  "GPG_ERR_INV_KEYRING" "\0"
+  "GPG_ERR_TRUSTDB" "\0"
+  "GPG_ERR_BAD_CERT" "\0"
+  "GPG_ERR_INV_USER_ID" "\0"
+  "GPG_ERR_UNEXPECTED" "\0"
+  "GPG_ERR_TIME_CONFLICT" "\0"
+  "GPG_ERR_KEYSERVER" "\0"
+  "GPG_ERR_WRONG_PUBKEY_ALGO" "\0"
+  "GPG_ERR_TRIBUTE_TO_D_A" "\0"
+  "GPG_ERR_WEAK_KEY" "\0"
+  "GPG_ERR_INV_KEYLEN" "\0"
+  "GPG_ERR_INV_ARG" "\0"
+  "GPG_ERR_BAD_URI" "\0"
+  "GPG_ERR_INV_URI" "\0"
+  "GPG_ERR_NETWORK" "\0"
+  "GPG_ERR_UNKNOWN_HOST" "\0"
+  "GPG_ERR_SELFTEST_FAILED" "\0"
+  "GPG_ERR_NOT_ENCRYPTED" "\0"
+  "GPG_ERR_NOT_PROCESSED" "\0"
+  "GPG_ERR_UNUSABLE_PUBKEY" "\0"
+  "GPG_ERR_UNUSABLE_SECKEY" "\0"
+  "GPG_ERR_INV_VALUE" "\0"
+  "GPG_ERR_BAD_CERT_CHAIN" "\0"
+  "GPG_ERR_MISSING_CERT" "\0"
+  "GPG_ERR_NO_DATA" "\0"
+  "GPG_ERR_BUG" "\0"
+  "GPG_ERR_NOT_SUPPORTED" "\0"
+  "GPG_ERR_INV_OP" "\0"
+  "GPG_ERR_TIMEOUT" "\0"
+  "GPG_ERR_INTERNAL" "\0"
+  "GPG_ERR_EOF_GCRYPT" "\0"
+  "GPG_ERR_INV_OBJ" "\0"
+  "GPG_ERR_TOO_SHORT" "\0"
+  "GPG_ERR_TOO_LARGE" "\0"
+  "GPG_ERR_NO_OBJ" "\0"
+  "GPG_ERR_NOT_IMPLEMENTED" "\0"
+  "GPG_ERR_CONFLICT" "\0"
+  "GPG_ERR_INV_CIPHER_MODE" "\0"
+  "GPG_ERR_INV_FLAG" "\0"
+  "GPG_ERR_INV_HANDLE" "\0"
+  "GPG_ERR_TRUNCATED" "\0"
+  "GPG_ERR_INCOMPLETE_LINE" "\0"
+  "GPG_ERR_INV_RESPONSE" "\0"
+  "GPG_ERR_NO_AGENT" "\0"
+  "GPG_ERR_AGENT" "\0"
+  "GPG_ERR_INV_DATA" "\0"
+  "GPG_ERR_ASSUAN_SERVER_FAULT" "\0"
+  "GPG_ERR_ASSUAN" "\0"
+  "GPG_ERR_INV_SESSION_KEY" "\0"
+  "GPG_ERR_INV_SEXP" "\0"
+  "GPG_ERR_UNSUPPORTED_ALGORITHM" "\0"
+  "GPG_ERR_NO_PIN_ENTRY" "\0"
+  "GPG_ERR_PIN_ENTRY" "\0"
+  "GPG_ERR_BAD_PIN" "\0"
+  "GPG_ERR_INV_NAME" "\0"
+  "GPG_ERR_BAD_DATA" "\0"
+  "GPG_ERR_INV_PARAMETER" "\0"
+  "GPG_ERR_WRONG_CARD" "\0"
+  "GPG_ERR_NO_DIRMNGR" "\0"
+  "GPG_ERR_DIRMNGR" "\0"
+  "GPG_ERR_CERT_REVOKED" "\0"
+  "GPG_ERR_NO_CRL_KNOWN" "\0"
+  "GPG_ERR_CRL_TOO_OLD" "\0"
+  "GPG_ERR_LINE_TOO_LONG" "\0"
+  "GPG_ERR_NOT_TRUSTED" "\0"
+  "GPG_ERR_CANCELED" "\0"
+  "GPG_ERR_BAD_CA_CERT" "\0"
+  "GPG_ERR_CERT_EXPIRED" "\0"
+  "GPG_ERR_CERT_TOO_YOUNG" "\0"
+  "GPG_ERR_UNSUPPORTED_CERT" "\0"
+  "GPG_ERR_UNKNOWN_SEXP" "\0"
+  "GPG_ERR_UNSUPPORTED_PROTECTION" "\0"
+  "GPG_ERR_CORRUPTED_PROTECTION" "\0"
+  "GPG_ERR_AMBIGUOUS_NAME" "\0"
+  "GPG_ERR_CARD" "\0"
+  "GPG_ERR_CARD_RESET" "\0"
+  "GPG_ERR_CARD_REMOVED" "\0"
+  "GPG_ERR_INV_CARD" "\0"
+  "GPG_ERR_CARD_NOT_PRESENT" "\0"
+  "GPG_ERR_NO_PKCS15_APP" "\0"
+  "GPG_ERR_NOT_CONFIRMED" "\0"
+  "GPG_ERR_CONFIGURATION" "\0"
+  "GPG_ERR_NO_POLICY_MATCH" "\0"
+  "GPG_ERR_INV_INDEX" "\0"
+  "GPG_ERR_INV_ID" "\0"
+  "GPG_ERR_NO_SCDAEMON" "\0"
+  "GPG_ERR_SCDAEMON" "\0"
+  "GPG_ERR_UNSUPPORTED_PROTOCOL" "\0"
+  "GPG_ERR_BAD_PIN_METHOD" "\0"
+  "GPG_ERR_CARD_NOT_INITIALIZED" "\0"
+  "GPG_ERR_UNSUPPORTED_OPERATION" "\0"
+  "GPG_ERR_WRONG_KEY_USAGE" "\0"
+  "GPG_ERR_NOTHING_FOUND" "\0"
+  "GPG_ERR_WRONG_BLOB_TYPE" "\0"
+  "GPG_ERR_MISSING_VALUE" "\0"
+  "GPG_ERR_HARDWARE" "\0"
+  "GPG_ERR_PIN_BLOCKED" "\0"
+  "GPG_ERR_USE_CONDITIONS" "\0"
+  "GPG_ERR_PIN_NOT_SYNCED" "\0"
+  "GPG_ERR_INV_CRL" "\0"
+  "GPG_ERR_BAD_BER" "\0"
+  "GPG_ERR_INV_BER" "\0"
+  "GPG_ERR_ELEMENT_NOT_FOUND" "\0"
+  "GPG_ERR_IDENTIFIER_NOT_FOUND" "\0"
+  "GPG_ERR_INV_TAG" "\0"
+  "GPG_ERR_INV_LENGTH" "\0"
+  "GPG_ERR_INV_KEYINFO" "\0"
+  "GPG_ERR_UNEXPECTED_TAG" "\0"
+  "GPG_ERR_NOT_DER_ENCODED" "\0"
+  "GPG_ERR_NO_CMS_OBJ" "\0"
+  "GPG_ERR_INV_CMS_OBJ" "\0"
+  "GPG_ERR_UNKNOWN_CMS_OBJ" "\0"
+  "GPG_ERR_UNSUPPORTED_CMS_OBJ" "\0"
+  "GPG_ERR_UNSUPPORTED_ENCODING" "\0"
+  "GPG_ERR_UNSUPPORTED_CMS_VERSION" "\0"
+  "GPG_ERR_UNKNOWN_ALGORITHM" "\0"
+  "GPG_ERR_INV_ENGINE" "\0"
+  "GPG_ERR_PUBKEY_NOT_TRUSTED" "\0"
+  "GPG_ERR_DECRYPT_FAILED" "\0"
+  "GPG_ERR_KEY_EXPIRED" "\0"
+  "GPG_ERR_SIG_EXPIRED" "\0"
+  "GPG_ERR_ENCODING_PROBLEM" "\0"
+  "GPG_ERR_INV_STATE" "\0"
+  "GPG_ERR_DUP_VALUE" "\0"
+  "GPG_ERR_MISSING_ACTION" "\0"
+  "GPG_ERR_MODULE_NOT_FOUND" "\0"
+  "GPG_ERR_INV_OID_STRING" "\0"
+  "GPG_ERR_INV_TIME" "\0"
+  "GPG_ERR_INV_CRL_OBJ" "\0"
+  "GPG_ERR_UNSUPPORTED_CRL_VERSION" "\0"
+  "GPG_ERR_INV_CERT_OBJ" "\0"
+  "GPG_ERR_UNKNOWN_NAME" "\0"
+  "GPG_ERR_LOCALE_PROBLEM" "\0"
+  "GPG_ERR_NOT_LOCKED" "\0"
+  "GPG_ERR_PROTOCOL_VIOLATION" "\0"
+  "GPG_ERR_INV_MAC" "\0"
+  "GPG_ERR_INV_REQUEST" "\0"
+  "GPG_ERR_UNKNOWN_EXTN" "\0"
+  "GPG_ERR_UNKNOWN_CRIT_EXTN" "\0"
+  "GPG_ERR_LOCKED" "\0"
+  "GPG_ERR_UNKNOWN_OPTION" "\0"
+  "GPG_ERR_UNKNOWN_COMMAND" "\0"
+  "GPG_ERR_NOT_OPERATIONAL" "\0"
+  "GPG_ERR_NO_PASSPHRASE" "\0"
+  "GPG_ERR_NO_PIN" "\0"
+  "GPG_ERR_NOT_ENABLED" "\0"
+  "GPG_ERR_NO_ENGINE" "\0"
+  "GPG_ERR_MISSING_KEY" "\0"
+  "GPG_ERR_TOO_MANY" "\0"
+  "GPG_ERR_LIMIT_REACHED" "\0"
+  "GPG_ERR_NOT_INITIALIZED" "\0"
+  "GPG_ERR_MISSING_ISSUER_CERT" "\0"
+  "GPG_ERR_NO_KEYSERVER" "\0"
+  "GPG_ERR_INV_CURVE" "\0"
+  "GPG_ERR_UNKNOWN_CURVE" "\0"
+  "GPG_ERR_DUP_KEY" "\0"
+  "GPG_ERR_AMBIGUOUS" "\0"
+  "GPG_ERR_NO_CRYPT_CTX" "\0"
+  "GPG_ERR_WRONG_CRYPT_CTX" "\0"
+  "GPG_ERR_BAD_CRYPT_CTX" "\0"
+  "GPG_ERR_CRYPT_CTX_CONFLICT" "\0"
+  "GPG_ERR_BROKEN_PUBKEY" "\0"
+  "GPG_ERR_BROKEN_SECKEY" "\0"
+  "GPG_ERR_MAC_ALGO" "\0"
+  "GPG_ERR_FULLY_CANCELED" "\0"
+  "GPG_ERR_UNFINISHED" "\0"
+  "GPG_ERR_BUFFER_TOO_SHORT" "\0"
+  "GPG_ERR_SEXP_INV_LEN_SPEC" "\0"
+  "GPG_ERR_SEXP_STRING_TOO_LONG" "\0"
+  "GPG_ERR_SEXP_UNMATCHED_PAREN" "\0"
+  "GPG_ERR_SEXP_NOT_CANONICAL" "\0"
+  "GPG_ERR_SEXP_BAD_CHARACTER" "\0"
+  "GPG_ERR_SEXP_BAD_QUOTATION" "\0"
+  "GPG_ERR_SEXP_ZERO_PREFIX" "\0"
+  "GPG_ERR_SEXP_NESTED_DH" "\0"
+  "GPG_ERR_SEXP_UNMATCHED_DH" "\0"
+  "GPG_ERR_SEXP_UNEXPECTED_PUNC" "\0"
+  "GPG_ERR_SEXP_BAD_HEX_CHAR" "\0"
+  "GPG_ERR_SEXP_ODD_HEX_NUMBERS" "\0"
+  "GPG_ERR_SEXP_BAD_OCT_CHAR" "\0"
+  "GPG_ERR_SUBKEYS_EXP_OR_REV" "\0"
+  "GPG_ERR_DB_CORRUPTED" "\0"
+  "GPG_ERR_SERVER_FAILED" "\0"
+  "GPG_ERR_NO_NAME" "\0"
+  "GPG_ERR_NO_KEY" "\0"
+  "GPG_ERR_LEGACY_KEY" "\0"
+  "GPG_ERR_REQUEST_TOO_SHORT" "\0"
+  "GPG_ERR_REQUEST_TOO_LONG" "\0"
+  "GPG_ERR_OBJ_TERM_STATE" "\0"
+  "GPG_ERR_NO_CERT_CHAIN" "\0"
+  "GPG_ERR_CERT_TOO_LARGE" "\0"
+  "GPG_ERR_INV_RECORD" "\0"
+  "GPG_ERR_BAD_MAC" "\0"
+  "GPG_ERR_UNEXPECTED_MSG" "\0"
+  "GPG_ERR_COMPR_FAILED" "\0"
+  "GPG_ERR_WOULD_WRAP" "\0"
+  "GPG_ERR_FATAL_ALERT" "\0"
+  "GPG_ERR_NO_CIPHER" "\0"
+  "GPG_ERR_MISSING_CLIENT_CERT" "\0"
+  "GPG_ERR_CLOSE_NOTIFY" "\0"
+  "GPG_ERR_TICKET_EXPIRED" "\0"
+  "GPG_ERR_BAD_TICKET" "\0"
+  "GPG_ERR_UNKNOWN_IDENTITY" "\0"
+  "GPG_ERR_BAD_HS_CERT" "\0"
+  "GPG_ERR_BAD_HS_CERT_REQ" "\0"
+  "GPG_ERR_BAD_HS_CERT_VER" "\0"
+  "GPG_ERR_BAD_HS_CHANGE_CIPHER" "\0"
+  "GPG_ERR_BAD_HS_CLIENT_HELLO" "\0"
+  "GPG_ERR_BAD_HS_SERVER_HELLO" "\0"
+  "GPG_ERR_BAD_HS_SERVER_HELLO_DONE" "\0"
+  "GPG_ERR_BAD_HS_FINISHED" "\0"
+  "GPG_ERR_BAD_HS_SERVER_KEX" "\0"
+  "GPG_ERR_BAD_HS_CLIENT_KEX" "\0"
+  "GPG_ERR_BOGUS_STRING" "\0"
+  "GPG_ERR_FORBIDDEN" "\0"
+  "GPG_ERR_KEY_DISABLED" "\0"
+  "GPG_ERR_KEY_ON_CARD" "\0"
+  "GPG_ERR_INV_LOCK_OBJ" "\0"
+  "GPG_ERR_TRUE" "\0"
+  "GPG_ERR_FALSE" "\0"
+  "GPG_ERR_ASS_GENERAL" "\0"
+  "GPG_ERR_ASS_ACCEPT_FAILED" "\0"
+  "GPG_ERR_ASS_CONNECT_FAILED" "\0"
+  "GPG_ERR_ASS_INV_RESPONSE" "\0"
+  "GPG_ERR_ASS_INV_VALUE" "\0"
+  "GPG_ERR_ASS_INCOMPLETE_LINE" "\0"
+  "GPG_ERR_ASS_LINE_TOO_LONG" "\0"
+  "GPG_ERR_ASS_NESTED_COMMANDS" "\0"
+  "GPG_ERR_ASS_NO_DATA_CB" "\0"
+  "GPG_ERR_ASS_NO_INQUIRE_CB" "\0"
+  "GPG_ERR_ASS_NOT_A_SERVER" "\0"
+  "GPG_ERR_ASS_NOT_A_CLIENT" "\0"
+  "GPG_ERR_ASS_SERVER_START" "\0"
+  "GPG_ERR_ASS_READ_ERROR" "\0"
+  "GPG_ERR_ASS_WRITE_ERROR" "\0"
+  "GPG_ERR_ASS_TOO_MUCH_DATA" "\0"
+  "GPG_ERR_ASS_UNEXPECTED_CMD" "\0"
+  "GPG_ERR_ASS_UNKNOWN_CMD" "\0"
+  "GPG_ERR_ASS_SYNTAX" "\0"
+  "GPG_ERR_ASS_CANCELED" "\0"
+  "GPG_ERR_ASS_NO_INPUT" "\0"
+  "GPG_ERR_ASS_NO_OUTPUT" "\0"
+  "GPG_ERR_ASS_PARAMETER" "\0"
+  "GPG_ERR_ASS_UNKNOWN_INQUIRE" "\0"
+  "GPG_ERR_ENGINE_TOO_OLD" "\0"
+  "GPG_ERR_WINDOW_TOO_SMALL" "\0"
+  "GPG_ERR_WINDOW_TOO_LARGE" "\0"
+  "GPG_ERR_MISSING_ENVVAR" "\0"
+  "GPG_ERR_USER_ID_EXISTS" "\0"
+  "GPG_ERR_NAME_EXISTS" "\0"
+  "GPG_ERR_DUP_NAME" "\0"
+  "GPG_ERR_TOO_YOUNG" "\0"
+  "GPG_ERR_TOO_OLD" "\0"
+  "GPG_ERR_UNKNOWN_FLAG" "\0"
+  "GPG_ERR_INV_ORDER" "\0"
+  "GPG_ERR_ALREADY_FETCHED" "\0"
+  "GPG_ERR_TRY_LATER" "\0"
+  "GPG_ERR_WRONG_NAME" "\0"
+  "GPG_ERR_SYSTEM_BUG" "\0"
+  "GPG_ERR_DNS_UNKNOWN" "\0"
+  "GPG_ERR_DNS_SECTION" "\0"
+  "GPG_ERR_DNS_ADDRESS" "\0"
+  "GPG_ERR_DNS_NO_QUERY" "\0"
+  "GPG_ERR_DNS_NO_ANSWER" "\0"
+  "GPG_ERR_DNS_CLOSED" "\0"
+  "GPG_ERR_DNS_VERIFY" "\0"
+  "GPG_ERR_DNS_TIMEOUT" "\0"
+  "GPG_ERR_LDAP_GENERAL" "\0"
+  "GPG_ERR_LDAP_ATTR_GENERAL" "\0"
+  "GPG_ERR_LDAP_NAME_GENERAL" "\0"
+  "GPG_ERR_LDAP_SECURITY_GENERAL" "\0"
+  "GPG_ERR_LDAP_SERVICE_GENERAL" "\0"
+  "GPG_ERR_LDAP_UPDATE_GENERAL" "\0"
+  "GPG_ERR_LDAP_E_GENERAL" "\0"
+  "GPG_ERR_LDAP_X_GENERAL" "\0"
+  "GPG_ERR_LDAP_OTHER_GENERAL" "\0"
+  "GPG_ERR_LDAP_X_CONNECTING" "\0"
+  "GPG_ERR_LDAP_REFERRAL_LIMIT" "\0"
+  "GPG_ERR_LDAP_CLIENT_LOOP" "\0"
+  "GPG_ERR_LDAP_NO_RESULTS" "\0"
+  "GPG_ERR_LDAP_CONTROL_NOT_FOUND" "\0"
+  "GPG_ERR_LDAP_NOT_SUPPORTED" "\0"
+  "GPG_ERR_LDAP_CONNECT" "\0"
+  "GPG_ERR_LDAP_NO_MEMORY" "\0"
+  "GPG_ERR_LDAP_PARAM" "\0"
+  "GPG_ERR_LDAP_USER_CANCELLED" "\0"
+  "GPG_ERR_LDAP_FILTER" "\0"
+  "GPG_ERR_LDAP_AUTH_UNKNOWN" "\0"
+  "GPG_ERR_LDAP_TIMEOUT" "\0"
+  "GPG_ERR_LDAP_DECODING" "\0"
+  "GPG_ERR_LDAP_ENCODING" "\0"
+  "GPG_ERR_LDAP_LOCAL" "\0"
+  "GPG_ERR_LDAP_SERVER_DOWN" "\0"
+  "GPG_ERR_LDAP_SUCCESS" "\0"
+  "GPG_ERR_LDAP_OPERATIONS" "\0"
+  "GPG_ERR_LDAP_PROTOCOL" "\0"
+  "GPG_ERR_LDAP_TIMELIMIT" "\0"
+  "GPG_ERR_LDAP_SIZELIMIT" "\0"
+  "GPG_ERR_LDAP_COMPARE_FALSE" "\0"
+  "GPG_ERR_LDAP_COMPARE_TRUE" "\0"
+  "GPG_ERR_LDAP_UNSUPPORTED_AUTH" "\0"
+  "GPG_ERR_LDAP_STRONG_AUTH_RQRD" "\0"
+  "GPG_ERR_LDAP_PARTIAL_RESULTS" "\0"
+  "GPG_ERR_LDAP_REFERRAL" "\0"
+  "GPG_ERR_LDAP_ADMINLIMIT" "\0"
+  "GPG_ERR_LDAP_UNAVAIL_CRIT_EXTN" "\0"
+  "GPG_ERR_LDAP_CONFIDENT_RQRD" "\0"
+  "GPG_ERR_LDAP_SASL_BIND_INPROG" "\0"
+  "GPG_ERR_LDAP_NO_SUCH_ATTRIBUTE" "\0"
+  "GPG_ERR_LDAP_UNDEFINED_TYPE" "\0"
+  "GPG_ERR_LDAP_BAD_MATCHING" "\0"
+  "GPG_ERR_LDAP_CONST_VIOLATION" "\0"
+  "GPG_ERR_LDAP_TYPE_VALUE_EXISTS" "\0"
+  "GPG_ERR_LDAP_INV_SYNTAX" "\0"
+  "GPG_ERR_LDAP_NO_SUCH_OBJ" "\0"
+  "GPG_ERR_LDAP_ALIAS_PROBLEM" "\0"
+  "GPG_ERR_LDAP_INV_DN_SYNTAX" "\0"
+  "GPG_ERR_LDAP_IS_LEAF" "\0"
+  "GPG_ERR_LDAP_ALIAS_DEREF" "\0"
+  "GPG_ERR_LDAP_X_PROXY_AUTH_FAIL" "\0"
+  "GPG_ERR_LDAP_BAD_AUTH" "\0"
+  "GPG_ERR_LDAP_INV_CREDENTIALS" "\0"
+  "GPG_ERR_LDAP_INSUFFICIENT_ACC" "\0"
+  "GPG_ERR_LDAP_BUSY" "\0"
+  "GPG_ERR_LDAP_UNAVAILABLE" "\0"
+  "GPG_ERR_LDAP_UNWILL_TO_PERFORM" "\0"
+  "GPG_ERR_LDAP_LOOP_DETECT" "\0"
+  "GPG_ERR_LDAP_NAMING_VIOLATION" "\0"
+  "GPG_ERR_LDAP_OBJ_CLS_VIOLATION" "\0"
+  "GPG_ERR_LDAP_NOT_ALLOW_NONLEAF" "\0"
+  "GPG_ERR_LDAP_NOT_ALLOW_ON_RDN" "\0"
+  "GPG_ERR_LDAP_ALREADY_EXISTS" "\0"
+  "GPG_ERR_LDAP_NO_OBJ_CLASS_MODS" "\0"
+  "GPG_ERR_LDAP_RESULTS_TOO_LARGE" "\0"
+  "GPG_ERR_LDAP_AFFECTS_MULT_DSAS" "\0"
+  "GPG_ERR_LDAP_VLV" "\0"
+  "GPG_ERR_LDAP_OTHER" "\0"
+  "GPG_ERR_LDAP_CUP_RESOURCE_LIMIT" "\0"
+  "GPG_ERR_LDAP_CUP_SEC_VIOLATION" "\0"
+  "GPG_ERR_LDAP_CUP_INV_DATA" "\0"
+  "GPG_ERR_LDAP_CUP_UNSUP_SCHEME" "\0"
+  "GPG_ERR_LDAP_CUP_RELOAD" "\0"
+  "GPG_ERR_LDAP_CANCELLED" "\0"
+  "GPG_ERR_LDAP_NO_SUCH_OPERATION" "\0"
+  "GPG_ERR_LDAP_TOO_LATE" "\0"
+  "GPG_ERR_LDAP_CANNOT_CANCEL" "\0"
+  "GPG_ERR_LDAP_ASSERTION_FAILED" "\0"
+  "GPG_ERR_LDAP_PROX_AUTH_DENIED" "\0"
+  "GPG_ERR_USER_1" "\0"
+  "GPG_ERR_USER_2" "\0"
+  "GPG_ERR_USER_3" "\0"
+  "GPG_ERR_USER_4" "\0"
+  "GPG_ERR_USER_5" "\0"
+  "GPG_ERR_USER_6" "\0"
+  "GPG_ERR_USER_7" "\0"
+  "GPG_ERR_USER_8" "\0"
+  "GPG_ERR_USER_9" "\0"
+  "GPG_ERR_USER_10" "\0"
+  "GPG_ERR_USER_11" "\0"
+  "GPG_ERR_USER_12" "\0"
+  "GPG_ERR_USER_13" "\0"
+  "GPG_ERR_USER_14" "\0"
+  "GPG_ERR_USER_15" "\0"
+  "GPG_ERR_USER_16" "\0"
+  "GPG_ERR_MISSING_ERRNO" "\0"
+  "GPG_ERR_UNKNOWN_ERRNO" "\0"
+  "GPG_ERR_EOF" "\0"
+  "GPG_ERR_CODE_DIM";
+
+static const int msgidx[] =
+  {
+    0,
+    17,
+    33,
+    56,
+    80,
+    100,
+    120,
+    139,
+    158,
+    180,
+    198,
+    215,
+    238,
+    258,
+    279,
+    298,
+    316,
+    335,
+    353,
+    374,
+    390,
+    409,
+    426,
+    453,
+    482,
+    510,
+    527,
+    544,
+    562,
+    586,
+    601,
+    617,
+    640,
+    658,
+    681,
+    701,
+    717,
+    734,
+    754,
+    773,
+    795,
+    813,
+    839,
+    862,
+    879,
+    898,
+    914,
+    930,
+    946,
+    962,
+    983,
+    1007,
+    1029,
+    1051,
+    1075,
+    1099,
+    1117,
+    1140,
+    1161,
+    1177,
+    1189,
+    1211,
+    1226,
+    1242,
+    1259,
+    1278,
+    1294,
+    1312,
+    1330,
+    1345,
+    1369,
+    1386,
+    1410,
+    1427,
+    1446,
+    1464,
+    1488,
+    1509,
+    1526,
+    1540,
+    1557,
+    1585,
+    1600,
+    1624,
+    1641,
+    1671,
+    1692,
+    1710,
+    1726,
+    1743,
+    1760,
+    1782,
+    1801,
+    1820,
+    1836,
+    1857,
+    1878,
+    1898,
+    1920,
+    1940,
+    1957,
+    1977,
+    1998,
+    2021,
+    2046,
+    2067,
+    2098,
+    2127,
+    2150,
+    2163,
+    2182,
+    2203,
+    2220,
+    2245,
+    2267,
+    2289,
+    2311,
+    2335,
+    2353,
+    2368,
+    2388,
+    2405,
+    2434,
+    2457,
+    2486,
+    2516,
+    2540,
+    2562,
+    2586,
+    2608,
+    2625,
+    2645,
+    2668,
+    2691,
+    2707,
+    2723,
+    2739,
+    2765,
+    2794,
+    2810,
+    2829,
+    2849,
+    2872,
+    2896,
+    2915,
+    2935,
+    2959,
+    2987,
+    3016,
+    3048,
+    3074,
+    3093,
+    3120,
+    3143,
+    3163,
+    3183,
+    3208,
+    3226,
+    3244,
+    3267,
+    3292,
+    3315,
+    3332,
+    3352,
+    3384,
+    3405,
+    3426,
+    3449,
+    3468,
+    3495,
+    3511,
+    3531,
+    3552,
+    3578,
+    3593,
+    3616,
+    3640,
+    3664,
+    3686,
+    3701,
+    3721,
+    3739,
+    3759,
+    3776,
+    3798,
+    3822,
+    3850,
+    3871,
+    3889,
+    3911,
+    3927,
+    3945,
+    3966,
+    3990,
+    4012,
+    4039,
+    4061,
+    4083,
+    4100,
+    4123,
+    4142,
+    4167,
+    4193,
+    4222,
+    4251,
+    4278,
+    4305,
+    4332,
+    4357,
+    4380,
+    4406,
+    4435,
+    4461,
+    4490,
+    4516,
+    4543,
+    4564,
+    4586,
+    4602,
+    4617,
+    4636,
+    4662,
+    4687,
+    4710,
+    4732,
+    4755,
+    4774,
+    4790,
+    4813,
+    4834,
+    4853,
+    4873,
+    4891,
+    4919,
+    4940,
+    4963,
+    4982,
+    5007,
+    5027,
+    5051,
+    5075,
+    5104,
+    5132,
+    5160,
+    5193,
+    5217,
+    5243,
+    5269,
+    5290,
+    5308,
+    5329,
+    5349,
+    5370,
+    5383,
+    5397,
+    5417,
+    5443,
+    5470,
+    5495,
+    5517,
+    5545,
+    5571,
+    5599,
+    5622,
+    5648,
+    5673,
+    5698,
+    5723,
+    5746,
+    5770,
+    5796,
+    5823,
+    5847,
+    5866,
+    5887,
+    5908,
+    5930,
+    5952,
+    5980,
+    6003,
+    6028,
+    6053,
+    6076,
+    6099,
+    6119,
+    6136,
+    6154,
+    6170,
+    6191,
+    6209,
+    6233,
+    6251,
+    6270,
+    6289,
+    6309,
+    6329,
+    6349,
+    6370,
+    6392,
+    6411,
+    6430,
+    6450,
+    6471,
+    6497,
+    6523,
+    6553,
+    6582,
+    6610,
+    6633,
+    6656,
+    6683,
+    6709,
+    6737,
+    6762,
+    6786,
+    6817,
+    6844,
+    6865,
+    6888,
+    6907,
+    6935,
+    6955,
+    6981,
+    7002,
+    7024,
+    7046,
+    7065,
+    7090,
+    7111,
+    7135,
+    7157,
+    7180,
+    7203,
+    7230,
+    7256,
+    7286,
+    7316,
+    7345,
+    7367,
+    7391,
+    7422,
+    7450,
+    7480,
+    7511,
+    7539,
+    7565,
+    7594,
+    7625,
+    7649,
+    7674,
+    7701,
+    7728,
+    7749,
+    7774,
+    7805,
+    7827,
+    7856,
+    7886,
+    7904,
+    7929,
+    7960,
+    7985,
+    8015,
+    8046,
+    8077,
+    8107,
+    8135,
+    8166,
+    8197,
+    8228,
+    8245,
+    8264,
+    8296,
+    8327,
+    8353,
+    8383,
+    8407,
+    8430,
+    8461,
+    8483,
+    8510,
+    8540,
+    8570,
+    8585,
+    8600,
+    8615,
+    8630,
+    8645,
+    8660,
+    8675,
+    8690,
+    8705,
+    8721,
+    8737,
+    8753,
+    8769,
+    8785,
+    8801,
+    8817,
+    8839,
+    8861,
+    8873
+  };
+
+static GPG_ERR_INLINE int
+msgidxof (int code)
+{
+  return (0 ? 0
+  : ((code >= 0) && (code <= 213)) ? (code - 0)
+  : ((code >= 217) && (code <= 271)) ? (code - 3)
+  : ((code >= 273) && (code <= 281)) ? (code - 4)
+  : ((code >= 300) && (code <= 313)) ? (code - 22)
+  : ((code >= 666) && (code <= 666)) ? (code - 374)
+  : ((code >= 711) && (code <= 718)) ? (code - 418)
+  : ((code >= 721) && (code <= 729)) ? (code - 420)
+  : ((code >= 750) && (code <= 752)) ? (code - 440)
+  : ((code >= 754) && (code <= 782)) ? (code - 441)
+  : ((code >= 784) && (code <= 789)) ? (code - 442)
+  : ((code >= 800) && (code <= 804)) ? (code - 452)
+  : ((code >= 815) && (code <= 822)) ? (code - 462)
+  : ((code >= 832) && (code <= 839)) ? (code - 471)
+  : ((code >= 844) && (code <= 844)) ? (code - 475)
+  : ((code >= 848) && (code <= 848)) ? (code - 478)
+  : ((code >= 881) && (code <= 891)) ? (code - 510)
+  : ((code >= 1024) && (code <= 1039)) ? (code - 642)
+  : ((code >= 16381) && (code <= 16383)) ? (code - 15983)
+  : 16384 - 15983);
+}

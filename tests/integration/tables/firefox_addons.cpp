@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -8,7 +7,7 @@
  */
 
 // Sanity check integration test for firefox_addons
-// Spec file: specs/posix/firefox_addons.table
+// Spec file: specs/firefox_addons.table
 
 #include <osquery/tests/integration/tables/helper.h>
 
@@ -32,7 +31,7 @@ TEST_F(firefoxAddons, test_sanity) {
   // 3. Build validation map
   // See helper.h for avaialbe flags
   // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
+  // ValidationMap row_map = {
   //      {"uid", IntType}
   //      {"name", NormalType}
   //      {"identifier", NormalType}

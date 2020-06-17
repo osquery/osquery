@@ -8,7 +8,7 @@ function(osqueryCoreMain)
   add_subdirectory("plugins")
   add_subdirectory("sql")
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -61,7 +61,6 @@ function(generateOsqueryCore)
     thirdparty_glog
     thirdparty_openssl
     thirdparty_sqlite
-    thirdparty_glibc_pthread
   )
 
   if(DEFINED PLATFORM_LINUX)
@@ -69,7 +68,7 @@ function(generateOsqueryCore)
   endif()
 
   target_link_libraries(osquery_core PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
 
     ${dependencies}
   )
@@ -97,6 +96,9 @@ function(generateOsqueryCore)
   add_test(NAME osquery_core_tests_querytests-test COMMAND osquery_core_tests_querytests-test)
   add_test(NAME osquery_core_tests_processtests-test COMMAND osquery_core_tests_processtests-test)
 
+  if(DEFINED PLATFORM_WINDOWS)
+    add_test(NAME osquery_core_tests_wmitests-test COMMAND osquery_core_tests_wmitests-test)
+  endif()
 endfunction()
 
 osqueryCoreMain()

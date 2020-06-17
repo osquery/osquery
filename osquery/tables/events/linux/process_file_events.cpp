@@ -29,10 +29,7 @@ namespace boostfs = boost::filesystem;
 namespace osquery {
 
 // Recommended configuration is just --audit_allow_fim_events=true
-FLAG(bool,
-     audit_allow_fim_events,
-     false,
-     "Allow the audit publisher to install file event monitoring rules");
+DECLARE_bool(audit_allow_fim_events);
 
 HIDDEN_FLAG(bool,
             audit_show_partial_fim_events,
@@ -347,14 +344,29 @@ bool EmitRowFromSyscallContext(
   row["uid"] =
       std::to_string(static_cast<std::uint64_t>(syscall_context.process_uid));
 
+  row["auid"] =
+      std::to_string(static_cast<std::uint64_t>(syscall_context.process_auid));
+
   row["euid"] =
       std::to_string(static_cast<std::uint64_t>(syscall_context.process_euid));
+
+  row["fsuid"] =
+      std::to_string(static_cast<std::uint64_t>(syscall_context.process_fsuid));
+
+  row["suid"] =
+      std::to_string(static_cast<std::uint64_t>(syscall_context.process_suid));
 
   row["gid"] =
       std::to_string(static_cast<std::uint64_t>(syscall_context.process_gid));
 
   row["egid"] =
       std::to_string(static_cast<std::uint64_t>(syscall_context.process_egid));
+
+  row["fsgid"] =
+      std::to_string(static_cast<std::uint64_t>(syscall_context.process_fsgid));
+
+  row["sgid"] =
+      std::to_string(static_cast<std::uint64_t>(syscall_context.process_sgid));
 
   row["executable"] = syscall_context.executable_path;
   row["partial"] = (syscall_context.partial ? "true" : "false");
@@ -1202,8 +1214,13 @@ Status ProcessFileEventSubscriber::ProcessEvents(
     syscall_context.parent_process_id = event_data.parent_process_id;
     syscall_context.process_uid = event_data.process_uid;
     syscall_context.process_gid = event_data.process_gid;
+    syscall_context.process_auid = event_data.process_auid;
     syscall_context.process_euid = event_data.process_euid;
     syscall_context.process_egid = event_data.process_egid;
+    syscall_context.process_fsuid = event_data.process_fsuid;
+    syscall_context.process_fsgid = event_data.process_fsgid;
+    syscall_context.process_suid = event_data.process_suid;
+    syscall_context.process_sgid = event_data.process_sgid;
     syscall_context.executable_path = event_data.executable_path;
 
     const AuditEventRecord* syscall_record = nullptr;

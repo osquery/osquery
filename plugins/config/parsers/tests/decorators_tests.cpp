@@ -21,7 +21,7 @@ namespace osquery {
 DECLARE_bool(disable_decorators);
 DECLARE_bool(decorations_top_level);
 DECLARE_bool(disable_database);
-DECLARE_bool(log_numerics_as_numbers);
+DECLARE_bool(logger_numerics);
 
 class DecoratorsConfigParserPluginTests : public testing::Test {
  public:
@@ -60,7 +60,9 @@ class DecoratorsConfigParserPluginTests : public testing::Test {
 
 TEST_F(DecoratorsConfigParserPluginTests, test_decorators_list) {
   // Assume the decorators are disabled.
-  Config::get().update(config_data_);
+  auto status = Config::get().update(config_data_);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
   auto parser = Config::getParser("decorators");
   EXPECT_NE(parser, nullptr);
 
@@ -74,7 +76,8 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load) {
   // Re-enable the decorators, then update the config.
   // The 'load' decorator set should run every time the config is updated.
   FLAGS_disable_decorators = false;
-  Config::get().update(config_data_);
+  auto status = Config::get().update(config_data_);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
 
   QueryLogItem item;
   getDecorations(item.decorations);
@@ -85,7 +88,8 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load) {
 TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_interval) {
   // Prevent loads from executing.
   FLAGS_disable_decorators = true;
-  Config::get().update(config_data_);
+  auto status = Config::get().update(config_data_);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
 
   // Mimic the schedule's execution.
   FLAGS_disable_decorators = false;
@@ -103,8 +107,8 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_interval) {
   std::string expected =
       "{\"snapshot\":[],\"action\":\"snapshot\",\"name\":\"\","
       "\"hostIdentifier\":\"\",\"calendarTime\":\"\",\"unixTime\":0,"
-      "\"epoch\":0,\"counter\":0,\"logNumericsAsNumbers\":" +
-      std::string(FLAGS_log_numerics_as_numbers ? "true" : "false") +
+      "\"epoch\":0,\"counter\":0,\"numerics\":" +
+      std::string(FLAGS_logger_numerics ? "true" : "false") +
       ",\"decorations\":{\"internal_60_test\":\"test\",\"one\":\"1\"}}";
   EXPECT_EQ(log_line, expected);
 
@@ -123,7 +127,8 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load_top_level) {
   FLAGS_disable_decorators = false;
   // enable top level decorations for the test
   FLAGS_decorations_top_level = true;
-  Config::get().update(config_data_);
+  auto status = Config::get().update(config_data_);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
 
   // make sure decorations object still exists
   QueryLogItem item;
@@ -133,12 +138,31 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load_top_level) {
 
   // serialize the QueryLogItem and make sure decorations go top level
   auto doc = JSON::newObject();
-  auto status = serializeQueryLogItem(item, doc);
+  status = serializeQueryLogItem(item, doc);
   std::string expected = "test";
   std::string result = doc.doc()["load_test"].GetString();
   EXPECT_EQ(result, expected);
 
   // disable top level decorations
   FLAGS_decorations_top_level = false;
+}
+TEST_F(DecoratorsConfigParserPluginTests, test_invalid_decorators) {
+  // Prevent loads from executing.
+  FLAGS_disable_decorators = true;
+
+  std::map<std::string, std::string> decorators_as_array = {
+      {"decorators", "[1,2,3]"}};
+  auto status = Config::get().update(decorators_as_array);
+  ASSERT_FALSE(status.ok());
+
+  std::map<std::string, std::string> decorators_as_string = {
+      {"decorators", "abc"}};
+  status = Config::get().update(decorators_as_string);
+  ASSERT_FALSE(status.ok());
+
+  std::map<std::string, std::string> decorators_as_number = {
+      {"decorators", "1"}};
+  status = Config::get().update(decorators_as_number);
+  ASSERT_FALSE(status.ok());
 }
 } // namespace osquery

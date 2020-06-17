@@ -19,6 +19,8 @@
 #include <osquery/system.h>
 #include <osquery/utils/info/platform_type.h>
 
+#include <boost/algorithm/string.hpp>
+
 #ifndef NSIG
 #define NSIG 32
 #endif
@@ -28,6 +30,10 @@ extern char** environ;
 namespace osquery {
 
 PlatformProcess::PlatformProcess(PlatformPidType id) : id_(id) {}
+PlatformProcess::PlatformProcess(PlatformProcess&& src) noexcept {
+  id_ = src.id_;
+  src.id_ = kInvalidPid;
+}
 
 bool PlatformProcess::operator==(const PlatformProcess& process) const {
   return (nativeHandle() == process.nativeHandle());
@@ -38,6 +44,13 @@ bool PlatformProcess::operator!=(const PlatformProcess& process) const {
 }
 
 PlatformProcess::~PlatformProcess() {}
+
+PlatformProcess& PlatformProcess::operator=(
+    PlatformProcess&& process) noexcept {
+  id_ = process.id_;
+  process.id_ = kInvalidPid;
+  return *this;
+}
 
 int PlatformProcess::pid() const {
   return id_;
@@ -80,7 +93,7 @@ ProcessState PlatformProcess::checkStatus(int& status) const {
     return PROCESS_STILL_ALIVE;
   }
 
-  if (WIFEXITED(process_status)) {
+  if (WIFEXITED(process_status) || WIFSIGNALED(process_status)) {
     status = WEXITSTATUS(process_status);
     return PROCESS_EXITED;
   }
@@ -177,26 +190,38 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
     const std::string& args) {
-  std::string osquery_path;
-  auto osquery_path_option = getEnvVar("OSQUERY_DEPS");
-  if (osquery_path_option) {
-    osquery_path = *osquery_path_option;
-  } else {
-    if (!isPlatform(PlatformType::TYPE_FREEBSD)) {
-      osquery_path = "/usr/bin/env python";
-    } else {
-      osquery_path = "/usr/local/bin/python";
-    }
+  const auto osquery_python_path_option =
+      getEnvVar("OSQUERY_PYTHON_INTERPRETER_PATH");
+
+  if (!osquery_python_path_option.is_initialized()) {
+    return nullptr;
   }
 
-  // The whole-string, space-delimited, python process arguments.
-  auto argv = osquery_path + " " + args;
+  auto osquery_python_path = *osquery_python_path_option;
+
+  std::vector<std::string> args_array;
+  boost::split(args_array, args, boost::is_any_of(" "));
+
+  if (args_array.empty())
+    return nullptr;
+
+  args_array.insert(args_array.begin(), osquery_python_path);
+
+  std::vector<const char*> argv_array;
+
+  for (const auto& arg : args_array) {
+    if (!arg.empty()) {
+      argv_array.push_back(arg.c_str());
+    }
+  }
+  argv_array.push_back(nullptr);
+  char* const* argv = const_cast<char* const*>(&argv_array[0]);
 
   std::shared_ptr<PlatformProcess> process;
   int process_pid = ::fork();
   if (process_pid == 0) {
     // Start a Python script
-    ::execlp("sh", "sh", "-c", argv.c_str(), nullptr);
+    ::execvp(osquery_python_path.c_str(), argv);
     ::exit(0);
   } else if (process_pid > 0) {
     process.reset(new PlatformProcess(process_pid));

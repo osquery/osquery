@@ -12,7 +12,7 @@ function(generateOsqueryDevtoolsTestsPrintertestsTest)
   add_osquery_executable(osquery_devtools_tests_printertests-test printer_tests.cpp)
 
   target_link_libraries(osquery_devtools_tests_printertests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_distributed
     osquery_events

@@ -26,7 +26,10 @@ namespace osquery {
 namespace tables {
 
 QueryData genChromeBasedExtensions(QueryContext& context,
-                                   const fs::path& sub_dir);
+                                   const std::vector<fs::path>& chrome_paths);
+
+QueryData genChromeBasedExtensionContentScripts(
+    QueryContext& context, const std::vector<fs::path>& chrome_paths);
 
 /// A helper check to rename bool-type values as 1 or 0.
 inline void jsonBoolAsInt(std::string& s) {
@@ -35,5 +38,5 @@ inline void jsonBoolAsInt(std::string& s) {
     s = expected.get() ? "1" : "0";
   }
 }
-}
-}
+} // namespace tables
+} // namespace osquery

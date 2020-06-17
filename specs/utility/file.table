@@ -25,6 +25,13 @@ extended_schema(WINDOWS, [
     Column("file_id", TEXT, "file ID"),
     Column("product_version", TEXT, "File product version"),
 ])
+extended_schema(DARWIN, [
+    Column("bsd_flags", TEXT, "The BSD file flags (chflags). Possible values: NODUMP, UF_IMMUTABLE, UF_APPEND, OPAQUE, HIDDEN, ARCHIVED, SF_IMMUTABLE, SF_APPEND")
+])
+extended_schema(LINUX, [
+    Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
+    Column("mount_namespace_id", TEXT, "Mount namespace id", hidden=True),
+])
 attributes(utility=True)
 implementation("utility/file@genFile")
 examples([

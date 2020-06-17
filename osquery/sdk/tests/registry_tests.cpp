@@ -37,7 +37,6 @@ auto const mandatory_registries_ = std::vector<std::string>{
     "enroll",
     "event_publisher",
     "event_subscriber",
-    "killswitch",
     "logger",
     "numeric_monitoring",
     "sql",

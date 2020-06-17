@@ -5,7 +5,7 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(osqueryRemoteEnrollTlsenrollMain)
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryRemoteenrolltestsTest()
   endif()
 
@@ -15,11 +15,10 @@ endfunction()
 function(generateOsqueryRemoteEnrollTlsenroll)
   add_osquery_library(osquery_remote_enroll_tlsenroll EXCLUDE_FROM_ALL
     enroll.cpp
-    tls_enroll.cpp
   )
 
   target_link_libraries(osquery_remote_enroll_tlsenroll PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_process
     osquery_remote_httpclient
@@ -33,17 +32,18 @@ function(generateOsqueryRemoteEnrollTlsenroll)
 
   enableLinkWholeArchive(osquery_remote_enroll_tlsenroll)
 
-  set(public_header_files
-    tls_enroll.h
-  )
-
-  generateIncludeNamespace(osquery_remote_enroll_tlsenroll "osquery/remote/enroll" "FILE_ONLY" ${public_header_files})
-
   add_test(NAME osquery_remote_enroll_remoteenrolltests-test COMMAND osquery_remote_enroll_remoteenrolltests-test)
+
+
+  set(remoteenrolltests-test_env
+    "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
+    "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
+  )
 
   set_tests_properties(
     osquery_remote_enroll_remoteenrolltests-test
-    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    PROPERTIES ENVIRONMENT "${remoteenrolltests-test_env}"
   )
 endfunction()
 
@@ -53,14 +53,10 @@ function(generateOsqueryRemoteenrolltestsTest)
     tests/enroll_tests.cpp
   )
 
-  if(DEFINED PLATFORM_MACOS)
-    list(APPEND source_files tests/plugins/tls_enroll_tests.cpp)
-  endif()
-
   add_osquery_executable(osquery_remote_enroll_remoteenrolltests-test ${source_files})
 
   target_link_libraries(osquery_remote_enroll_remoteenrolltests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_database
     osquery_events
@@ -73,10 +69,8 @@ function(generateOsqueryRemoteenrolltestsTest)
     osquery_utils_info
     plugins_config_tlsconfig
     plugins_database_ephemeral
-    plugins_killswitch_killswitchfilesystem
     tests_helper
     thirdparty_googletest
-    osquery_tools_tests_testfiles
   )
 endfunction()
 

@@ -86,8 +86,18 @@ typedef struct {
 } UNICODE_STRING, *PUNICODE_STRING;
 
 typedef struct _RTL_USER_PROCESS_PARAMETERS {
-  BYTE Reserved1[16];
-  PVOID Reserved2[10];
+  ULONG MaximumLength;
+  ULONG Length;
+  ULONG Flags;
+  ULONG DebugFlags;
+  PVOID ConsoleHandle;
+  ULONG ConsoleFlags;
+  HANDLE StdInputHandle;
+  HANDLE StdOutputHandle;
+  HANDLE StdErrorHandle;
+  UNICODE_STRING CurrentDirectoryPath;
+  HANDLE CurrentDirectoryHandle;
+  UNICODE_STRING DllPath;
   UNICODE_STRING ImagePathName;
   UNICODE_STRING CommandLine;
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
@@ -158,10 +168,10 @@ Status genMemoryMap(unsigned long pid, QueryData& results) {
     return osquery::join(perms, " | ");
   };
 
-  MODULEENTRY32 me;
+  MODULEENTRY32W me;
   MEMORY_BASIC_INFORMATION mInfo;
-  me.dwSize = sizeof(MODULEENTRY32);
-  auto ret = Module32First(modSnap, &me);
+  me.dwSize = sizeof(MODULEENTRY32W);
+  auto ret = Module32FirstW(modSnap, &me);
   while (ret != FALSE) {
     for (auto p = me.modBaseAddr;
          VirtualQueryEx(proc, p, &mInfo, sizeof(mInfo)) == sizeof(mInfo) &&
@@ -182,11 +192,11 @@ Status genMemoryMap(unsigned long pid, QueryData& results) {
           BIGINT(reinterpret_cast<unsigned long long>(mInfo.AllocationBase));
       r["device"] = "-1";
       r["inode"] = INTEGER(-1);
-      r["path"] = me.szExePath;
+      r["path"] = wstringToString(me.szExePath);
       r["pseudo"] = INTEGER(-1);
       results.push_back(r);
     }
-    ret = Module32Next(modSnap, &me);
+    ret = Module32NextW(modSnap, &me);
   }
   CloseHandle(proc);
   CloseHandle(modSnap);
@@ -200,9 +210,9 @@ Status getProcList(std::set<long>& pids) {
     return Status::failure("Failed to open process snapshot");
   }
 
-  PROCESSENTRY32 procEntry;
-  procEntry.dwSize = sizeof(PROCESSENTRY32);
-  auto ret = Process32First(procSnap, &procEntry);
+  PROCESSENTRY32W procEntry;
+  procEntry.dwSize = sizeof(PROCESSENTRY32W);
+  auto ret = Process32FirstW(procSnap, &procEntry);
 
   if (ret == FALSE) {
     CloseHandle(procSnap);
@@ -211,17 +221,17 @@ Status getProcList(std::set<long>& pids) {
 
   while (ret != FALSE) {
     pids.insert(procEntry.th32ProcessID);
-    ret = Process32Next(procSnap, &procEntry);
+    ret = Process32NextW(procSnap, &procEntry);
   }
 
   CloseHandle(procSnap);
   return Status::success();
 }
 
-/// For legacy systems, we retrieve the commandline from the PEB
-Status getProcessCommandLineLegacy(HANDLE proc,
-                                   std::string& out,
-                                   const unsigned long pid) {
+/// Helper function for getting the User Process Parameters from the PEB
+Status getUserProcessParameters(HANDLE proc,
+                                RTL_USER_PROCESS_PARAMETERS& out,
+                                const unsigned long pid) {
   PROCESS_BASIC_INFORMATION pbi;
   unsigned long len{0};
   NTSTATUS status = NtQueryInformationProcess(
@@ -242,13 +252,28 @@ Status getProcessCommandLineLegacy(HANDLE proc,
                            " with " + std::to_string(status));
   }
 
-  RTL_USER_PROCESS_PARAMETERS upp;
   if (!ReadProcessMemory(
-          proc, peb.ProcessParameters, &upp, sizeof(upp), &bytes_read)) {
+          proc, peb.ProcessParameters, &out, sizeof(out), &bytes_read)) {
     return Status::failure("Reading USER_PROCESS_PARAMETERS failed for " +
                            std::to_string(pid));
   }
 
+  return Status::success();
+}
+
+/// For legacy systems, we retrieve the commandline from the PEB
+Status getProcessCommandLineLegacy(HANDLE proc,
+                                   std::string& out,
+                                   const unsigned long pid) {
+  RTL_USER_PROCESS_PARAMETERS upp;
+  auto s = getUserProcessParameters(proc, upp, pid);
+  if (!s.ok()) {
+    LOG(INFO) << "Failed to get PEB UPP for " << pid << " with "
+              << GetLastError();
+    return s;
+  }
+
+  size_t bytes_read = 0;
   std::vector<wchar_t> command_line(kMaxPathSize, 0x0);
   SecureZeroMemory(command_line.data(), kMaxPathSize);
   if (!ReadProcessMemory(proc,
@@ -301,17 +326,45 @@ Status getProcessCommandLine(HANDLE& proc,
   return Status::success();
 }
 
+// Regardless of the Windows version, the CWD of a process is only possible to
+// retrieve by reading it from the process's PEB structure.
+Status getProcessCurrentDirectory(HANDLE proc,
+                                  std::string& out,
+                                  const unsigned long pid) {
+  RTL_USER_PROCESS_PARAMETERS upp;
+  auto s = getUserProcessParameters(proc, upp, pid);
+  if (!s.ok()) {
+    LOG(INFO) << "Failed to get PEB UPP for " << pid << " with "
+              << GetLastError();
+    return s;
+  }
+
+  size_t bytes_read = 0;
+  std::vector<wchar_t> current_directory(kMaxPathSize, 0x0);
+  SecureZeroMemory(current_directory.data(), kMaxPathSize);
+  if (!ReadProcessMemory(proc,
+                         upp.CurrentDirectoryPath.Buffer,
+                         current_directory.data(),
+                         upp.CurrentDirectoryPath.Length,
+                         &bytes_read)) {
+    return Status::failure("Failed to read current working directory for " +
+                           std::to_string(pid));
+  }
+  out = wstringToString(current_directory.data());
+  return Status::success();
+}
+
 void getProcessPathInfo(HANDLE& proc,
                         const unsigned long pid,
                         DynamicTableRowHolder& r) {
   auto out = kMaxPathSize;
-  std::vector<char> path(kMaxPathSize, 0x0);
+  std::vector<WCHAR> path(kMaxPathSize, 0x0);
   SecureZeroMemory(path.data(), kMaxPathSize);
-  auto ret = QueryFullProcessImageName(proc, 0, path.data(), &out);
+  auto ret = QueryFullProcessImageNameW(proc, 0, path.data(), &out);
   if (ret != TRUE) {
-    LOG(ERROR) << "Failed to lookup path information for process " << pid;
+    LOG(INFO) << "Failed to lookup path information for process " << pid;
   } else {
-    r["path"] = TEXT(path.data());
+    r["path"] = SQL_TEXT(wstringToString(path.data()));
   }
 
   {
@@ -320,18 +373,12 @@ void getProcessPathInfo(HANDLE& proc,
         boost_path.empty() ? -1 : osquery::pathExists(path.data()).ok());
   }
 
-  path.clear();
-  path.resize(kMaxPathSize, 0x0);
-  if (pid == GetCurrentProcessId()) {
-    ret = GetModuleFileName(nullptr, path.data(), kMaxPathSize);
+  std::string currDir{""};
+  auto s = getProcessCurrentDirectory(proc, currDir, pid);
+  if (!s.ok()) {
+    LOG(INFO) << "Failed to get cwd for " << pid << " with " << GetLastError();
   } else {
-    ret = GetModuleFileNameEx(proc, nullptr, path.data(), kMaxPathSize);
-  }
-
-  if (ret == FALSE) {
-    LOG(ERROR) << "Failed to get cwd for " << pid << " with " << GetLastError();
-  } else {
-    r["cwd"] = TEXT(path.data());
+    r["cwd"] = SQL_TEXT(currDir);
   }
   r["root"] = r["cwd"];
 }
@@ -430,6 +477,18 @@ void genProcRssInfo(HANDLE& proc, DynamicTableRowHolder& r) {
 TableRows genProcesses(QueryContext& context) {
   TableRows results;
 
+  // Check for pid filtering in constraints.
+  // We use a list here, but sqlite3 will usually call this with
+  // a single pid for each item in JOIN or IN() list.
+
+  std::set<int> pidlist;
+  if (context.constraints.count("pid") > 0 &&
+      context.constraints.at("pid").exists(EQUALS)) {
+    for (const auto& pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
+      pidlist.insert(pid);
+    }
+  }
+
   auto proc_snap = CreateToolhelp32Snapshot(TH32CS_SNAPALL, NULL);
   auto const proc_snap_manager =
       scope_guard::create([&proc_snap]() { CloseHandle(proc_snap); });
@@ -439,10 +498,10 @@ TableRows genProcesses(QueryContext& context) {
     return {};
   }
 
-  PROCESSENTRY32 proc;
-  proc.dwSize = sizeof(PROCESSENTRY32);
+  PROCESSENTRY32W proc;
+  proc.dwSize = sizeof(PROCESSENTRY32W);
 
-  auto ret = Process32First(proc_snap, &proc);
+  auto ret = Process32FirstW(proc_snap, &proc);
   if (ret == FALSE) {
     LOG(ERROR) << "Failed to acquire first process information with "
                << std::to_string(GetLastError());
@@ -450,11 +509,18 @@ TableRows genProcesses(QueryContext& context) {
   }
 
   while (ret != FALSE) {
-    auto r = make_table_row();
     auto pid = proc.th32ProcessID;
+
+    bool wanted_pid = (pidlist.empty() || pidlist.count(pid) > 0);
+    if (!wanted_pid) {
+      ret = Process32NextW(proc_snap, &proc);
+      continue;
+    }
+
+    auto r = make_table_row();
     r["pid"] = BIGINT(pid);
     r["parent"] = BIGINT(proc.th32ParentProcessID);
-    r["name"] = TEXT(proc.szExeFile);
+    r["name"] = SQL_TEXT(wstringToString(proc.szExeFile));
     r["threads"] = INTEGER(proc.cntThreads);
 
     // Set default values for columns, in the event opening the process fails
@@ -497,7 +563,7 @@ TableRows genProcesses(QueryContext& context) {
       VLOG(1) << "Failed to open handle to process " << proc.th32ProcessID
               << " with " << GetLastError();
       results.push_back(r);
-      ret = Process32Next(proc_snap, &proc);
+      ret = Process32NextW(proc_snap, &proc);
       continue;
     }
 
@@ -514,11 +580,11 @@ TableRows genProcesses(QueryContext& context) {
         // handle
         kNtQueryInformationProcess =
             reinterpret_cast<NtQueryInformationProcessPtr>(GetProcAddress(
-                GetModuleHandle("ntdll.dll"), "NtQueryInformationProcess"));
+                GetModuleHandleA("ntdll.dll"), "NtQueryInformationProcess"));
 
         kRtlNtStatusToDosError =
             reinterpret_cast<RtlNtStatusToDosErrorPtr>(GetProcAddress(
-                GetModuleHandle("ntdll.dll"), "RtlNtStatusToDosError"));
+                GetModuleHandleA("ntdll.dll"), "RtlNtStatusToDosError"));
       }
 
       std::string cmd{""};
@@ -575,7 +641,7 @@ TableRows genProcesses(QueryContext& context) {
     }
 
     results.push_back(r);
-    ret = Process32Next(proc_snap, &proc);
+    ret = Process32NextW(proc_snap, &proc);
   }
 
   return results;

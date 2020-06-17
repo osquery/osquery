@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -10,7 +9,11 @@
 // Sanity check integration test for rpm_packages
 // Spec file: specs/linux/rpm_packages.table
 
+#include <osquery/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/info/platform_type.h>
+
+#include <osquery/logger.h>
 
 namespace osquery {
 namespace table_tests {
@@ -23,27 +26,29 @@ class rpmPackages : public testing::Test {
 };
 
 TEST_F(rpmPackages, test_sanity) {
-  // 1. Query data
-  auto const data = execute_query("select * from rpm_packages");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"name", NormalType}
-  //      {"version", NormalType}
-  //      {"release", NormalType}
-  //      {"source", NormalType}
-  //      {"size", IntType}
-  //      {"sha1", NormalType}
-  //      {"arch", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
-}
+  auto rows = execute_query("select * from rpm_packages");
+  if (rows.size() > 0) {
+    ValidationMap row_map = {{"name", NonEmptyString},
+                             {"version", NormalType},
+                             {"release", NormalType},
+                             {"source", NormalType},
+                             {"size", IntType},
+                             {"sha1", NonEmptyString},
+                             {"arch", NonEmptyString},
+                             {"epoch", IntType},
+                             {"install_time", IntType},
+                             {"vendor", NonEmptyString},
+                             {"package_group", NonEmptyString}};
 
+    validate_rows(rows, row_map);
+
+    if (isPlatform(PlatformType::TYPE_LINUX)) {
+      validate_container_rows("rpm_packages", row_map);
+    }
+  } else {
+    LOG(WARNING) << "Empty results of query from 'rpm_packages', assume there "
+                    "is no rpm in the system";
+  }
+}
 } // namespace table_tests
 } // namespace osquery

@@ -12,7 +12,7 @@ function(generateOsqueryLoggerTestsTest)
   add_osquery_executable(osquery_logger_tests-test logger.cpp)
 
   target_link_libraries(osquery_logger_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_distributed

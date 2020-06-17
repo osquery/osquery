@@ -6,7 +6,7 @@
 
 function(osqueryUtilsJsonMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsJsonJsontestsTest()
   endif()
 
@@ -19,7 +19,7 @@ function(generateOsqueryUtilsJson)
   )
 
   target_link_libraries(osquery_utils_json PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils
     osquery_utils_conversions
     osquery_utils_status
@@ -45,7 +45,7 @@ function(generateOsqueryUtilsJsonJsontestsTest)
   add_osquery_executable(osquery_utils_json_jsontests-test tests/json.cpp)
 
   target_link_libraries(osquery_utils_json_jsontests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_json
     thirdparty_googletest
   )

@@ -1,0 +1,13 @@
+table_name("mdls")
+description("Query file metadata in the Spotlight database.")
+schema([
+    Column("path", TEXT, "Path of the file", required=True),
+    Column("key", TEXT, "Name of the metadata key"),
+    Column("value", TEXT, "Value stored in the metadata key"),
+    Column("valuetype", TEXT, "CoreFoundation type of data stored in value", hidden=True),
+])
+implementation("mdls@genMdlsResults")
+fuzz_paths([])
+examples([
+	"select * from mdls where path = '/Users/testuser/Desktop/testfile';"
+])

@@ -227,9 +227,11 @@ inline void explodeRegistryPath(const std::string& path,
                                 std::string& rHive,
                                 std::string& rKey) {
   auto toks = osquery::split(path, kRegSep);
-  rHive = toks.front();
-  toks.erase(toks.begin());
-  rKey = osquery::join(toks, kRegSep);
+  if (!toks.empty()) {
+    rHive = toks.front();
+    toks.erase(toks.begin());
+    rKey = osquery::join(toks, kRegSep);
+  }
 }
 
 /// Microsoft helper function for getting the contents of a registry key
@@ -243,13 +245,17 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
   }
 
   HKEY hkey;
-  auto ret = RegOpenKeyEx(
-      kRegistryHives.at(hive), TEXT(key.c_str()), 0, KEY_READ, &hkey);
-  reg_handle_t hRegistryHandle(hkey, closeRegHandle);
+  auto ret = RegOpenKeyExW(kRegistryHives.at(hive),
+                           stringToWstring(key).c_str(),
+                           0,
+                           KEY_READ,
+                           &hkey);
 
   if (ret != ERROR_SUCCESS) {
     return Status(ret, "Failed to open registry handle");
   }
+
+  reg_handle_t hRegistryHandle(hkey, closeRegHandle);
 
   const DWORD maxKeyLength = 255;
   const DWORD maxValueName = 16383;
@@ -259,36 +265,36 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
   DWORD cbMaxValueData;
   DWORD retCode;
   FILETIME ftLastWriteTime;
-  retCode = RegQueryInfoKey(hRegistryHandle.get(),
-                            nullptr,
-                            nullptr,
-                            nullptr,
-                            &cSubKeys,
-                            nullptr,
-                            nullptr,
-                            &cValues,
-                            &cchMaxValueName,
-                            &cbMaxValueData,
-                            nullptr,
-                            &ftLastWriteTime);
+  retCode = RegQueryInfoKeyW(hRegistryHandle.get(),
+                             nullptr,
+                             nullptr,
+                             nullptr,
+                             &cSubKeys,
+                             nullptr,
+                             nullptr,
+                             &cValues,
+                             &cchMaxValueName,
+                             &cbMaxValueData,
+                             nullptr,
+                             &ftLastWriteTime);
   if (retCode != ERROR_SUCCESS) {
     return Status(retCode, "Failed to query registry info for key");
   }
-  auto achKey = std::make_unique<TCHAR[]>(maxKeyLength);
+  auto achKey = std::make_unique<WCHAR[]>(maxKeyLength);
   DWORD cbName;
 
   // Process registry subkeys
   if (cSubKeys > 0) {
     for (DWORD i = 0; i < cSubKeys; i++) {
       cbName = maxKeyLength;
-      retCode = RegEnumKeyEx(hRegistryHandle.get(),
-                             i,
-                             achKey.get(),
-                             &cbName,
-                             nullptr,
-                             nullptr,
-                             nullptr,
-                             &ftLastWriteTime);
+      retCode = RegEnumKeyExW(hRegistryHandle.get(),
+                              i,
+                              achKey.get(),
+                              &cbName,
+                              nullptr,
+                              nullptr,
+                              nullptr,
+                              &ftLastWriteTime);
       if (retCode != ERROR_SUCCESS) {
         return Status(retCode, "Failed to enumerate registry key");
       }
@@ -296,8 +302,8 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
       Row r;
       r["key"] = keyPath;
       r["type"] = "subkey";
-      r["name"] = achKey.get();
-      r["path"] = keyPath + kRegSep + achKey.get();
+      r["name"] = wstringToString(achKey.get());
+      r["path"] = keyPath + kRegSep + wstringToString(achKey.get());
       r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
       results.push_back(r);
     }
@@ -308,22 +314,22 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
   }
 
   DWORD cchValue = maxKeyLength;
-  auto achValue = std::make_unique<TCHAR[]>(maxValueName);
+  auto achValue = std::make_unique<WCHAR[]>(maxValueName);
   auto bpDataBuff = std::make_unique<BYTE[]>(cbMaxValueData);
 
   // Process registry values
   for (size_t i = 0; i < cValues; i++) {
     cchValue = maxValueName;
-    achValue[0] = '\0';
+    achValue[0] = L'\0';
 
-    retCode = RegEnumValue(hRegistryHandle.get(),
-                           static_cast<DWORD>(i),
-                           achValue.get(),
-                           &cchValue,
-                           nullptr,
-                           nullptr,
-                           nullptr,
-                           nullptr);
+    retCode = RegEnumValueW(hRegistryHandle.get(),
+                            static_cast<DWORD>(i),
+                            achValue.get(),
+                            &cchValue,
+                            nullptr,
+                            nullptr,
+                            nullptr,
+                            nullptr);
     if (retCode != ERROR_SUCCESS) {
       return Status(retCode, "Failed to enumerate registry values");
     }
@@ -331,12 +337,12 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
     DWORD lpData = cbMaxValueData;
     DWORD lpType;
 
-    retCode = RegQueryValueEx(hRegistryHandle.get(),
-                              achValue.get(),
-                              nullptr,
-                              &lpType,
-                              bpDataBuff.get(),
-                              &lpData);
+    retCode = RegQueryValueExW(hRegistryHandle.get(),
+                               achValue.get(),
+                               nullptr,
+                               &lpType,
+                               bpDataBuff.get(),
+                               &lpData);
     if (retCode != ERROR_SUCCESS) {
       return Status(retCode, "Failed to query registry value");
     }
@@ -350,8 +356,9 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
 
     Row r;
     r["key"] = keyPath;
-    r["name"] = ((achValue[0] == '\0') ? "(Default)" : achValue.get());
-    r["path"] = keyPath + kRegSep + achValue.get();
+    r["name"] = ((achValue[0] == L'\0') ? "(Default)"
+                                        : wstringToString(achValue.get()));
+    r["path"] = keyPath + kRegSep + wstringToString(achValue.get());
     if (kRegistryTypes.count(lpType) > 0) {
       r["type"] = kRegistryTypes.at(lpType);
     } else {
@@ -361,21 +368,16 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
 
     if (bpDataBuff != nullptr) {
       /// REG_LINK is a Unicode string, which in Windows is wchar_t
-      auto regLinkStr = std::make_unique<char[]>(cbMaxValueData);
+      std::string regLinkStr;
       if (lpType == REG_LINK) {
-        const size_t newSize = cbMaxValueData;
-        size_t convertedChars = 0;
-        wcstombs_s(&convertedChars,
-                   regLinkStr.get(),
-                   newSize,
-                   (wchar_t*)bpDataBuff.get(),
-                   _TRUNCATE);
+        regLinkStr =
+            wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
       }
 
       std::vector<char> regBinary;
       std::string data;
       std::vector<std::string> multiSzStrs;
-      auto p = bpDataBuff.get();
+      auto p = reinterpret_cast<wchar_t*>(bpDataBuff.get());
 
       switch (lpType) {
       case REG_FULL_RESOURCE_DESCRIPTOR:
@@ -395,15 +397,16 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff.get())));
         break;
       case REG_EXPAND_SZ:
-        r["data"] = std::string((char*)bpDataBuff.get());
+        r["data"] =
+            wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
         break;
       case REG_LINK:
-        r["data"] = std::string(regLinkStr.get());
+        r["data"] = regLinkStr;
         break;
       case REG_MULTI_SZ:
         while (*p != 0x00) {
-          std::string s((char*)p);
-          p += s.size() + 1;
+          std::string s = wstringToString(p);
+          p += wcslen(p) + 1;
           multiSzStrs.push_back(s);
         }
         r["data"] = boost::algorithm::join(multiSzStrs, ",");
@@ -415,7 +418,8 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = std::to_string(*((unsigned long long*)bpDataBuff.get()));
         break;
       case REG_SZ:
-        r["data"] = std::string((char*)bpDataBuff.get());
+        r["data"] =
+            wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
         break;
       default:
         r["data"] = "";
@@ -575,8 +579,13 @@ QueryData genRegistry(QueryContext& context) {
     }
     if (context.hasConstraint("path", LIKE)) {
       for (const auto& path : context.constraints["path"].getAll(LIKE)) {
-        auto status = expandRegistryGlobs(
-            path.substr(0, path.find_last_of(kRegSep)), keys);
+        Status status;
+        if (boost::ends_with(path, kSQLGlobRecursive)) {
+          status = expandRegistryGlobs(path, keys);
+        } else {
+          status = expandRegistryGlobs(
+              path.substr(0, path.find_last_of(kRegSep)), keys);
+        }
         if (!status.ok()) {
           LOG(INFO) << "Failed to expand globs: " + status.getMessage();
         }

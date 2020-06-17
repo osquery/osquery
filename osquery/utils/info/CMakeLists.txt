@@ -16,7 +16,7 @@ function(generateOsqueryUtilsInfo)
   )
 
   target_link_libraries(osquery_utils_info PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_conversions
     osquery_utils_macros
   )

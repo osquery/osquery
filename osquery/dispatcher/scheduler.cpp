@@ -17,7 +17,6 @@
 #include <osquery/data_logger.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
-#include <osquery/killswitch.h>
 #include <osquery/numeric_monitoring.h>
 #include <osquery/process/process.h>
 #include <osquery/profiler/code_profiler.h>
@@ -32,15 +31,7 @@ namespace osquery {
 
 FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit");
 
-FLAG(uint64,
-     schedule_max_drift,
-     60,
-     "Max time drift in seconds. Scheduler tries to compensate the drift until "
-     "the drift exceed this value. After it the drift will be reseted to zero "
-     "and the compensation process will start from the beginning. It is needed "
-     "to avoid the problem of endless compensation (which is CPU greedy) after "
-     "a long SIGSTOP/SIGCONT pause or something similar. Set it to zero to "
-     "switch off a drift compensation. Default: 60");
+FLAG(uint64, schedule_max_drift, 60, "Max time drift in seconds");
 
 FLAG(uint64,
      schedule_reload,
@@ -102,7 +93,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
 
 Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
-  LOG(INFO) << "Executing scheduled query " << name << ": " << query.query;
+  VLOG(1) << "Executing scheduled query " << name << ": " << query.query;
   runDecorators(DECORATE_ALWAYS);
 
   auto sql = monitor(name, query);
@@ -145,12 +136,10 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
     status = dbQuery.addNewResults(
         std::move(sql.rowsTyped()), item.epoch, item.counter, diff_results);
     if (!status.ok()) {
-      std::string line = "Error adding new results to database for query " +
-                         name + ": " + status.what();
-      LOG(ERROR) << line;
-
+      std::string message = "Error adding new results to database for query " +
+                            name + ": " + status.what();
       // If the database is not available then the daemon cannot continue.
-      Initializer::requestShutdown(EXIT_CATASTROPHIC, line);
+      Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
     }
   } else {
     diff_results.added = std::move(sql.rowsTyped());
@@ -170,10 +159,9 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   status = logQueryLogItem(item);
   if (!status.ok()) {
     // If log directory is not available, then the daemon shouldn't continue.
-    std::string error = "Error logging the results of query: " + name + ": " +
-                        status.toString();
-    LOG(ERROR) << error;
-    Initializer::requestShutdown(EXIT_CATASTROPHIC, error);
+    std::string message = "Error logging the results of query: " + name + ": " +
+                          status.toString();
+    Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
   }
   return status;
 }

@@ -1,0 +1,28 @@
+# osquery/tables/specs/denylist
+# Usage: add table spec names to this list to prevent table generation
+# Example: add tables that are not yet ready for release
+# Example: add a platform:table_name, which is not yet ready
+
+# Denylist a ton of tables for FreeBSD:
+freebsd:acpi_tables
+freebsd:arp_cache
+freebsd:block_devices
+freebsd:disk_encryption
+freebsd:file_events
+freebsd:user_groups
+freebsd:hardware_events
+freebsd:kernel_info
+freebsd:pci_devices
+freebsd:usb_devices
+freebsd:yara_events
+freebsd:smbios_tables
+freebsd:socket_events
+freebsd:memory_devices
+freebsd:memory_arrays
+freebsd:memory_error_info
+freebsd:memory_array_mapped_addresses
+freebsd:memory_device_mapped_addresses
+freebsd:oem_strings
+
+# Denylisting as an example:
+example

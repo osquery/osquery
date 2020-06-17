@@ -6,6 +6,14 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <atomic>
+#include <chrono>
+#include <map>
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
+
 #include <osquery/config/config.h>
 
 #include <osquery/config/tests/test_utils.h>
@@ -20,6 +28,7 @@
 #include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
+#include <osquery/utils/json/json.h>
 
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
@@ -28,15 +37,6 @@
 #include <boost/filesystem/path.hpp>
 
 #include <gtest/gtest.h>
-
-#include <atomic>
-#include <chrono>
-#include <map>
-#include <memory>
-#include <string>
-#include <thread>
-#include <vector>
-
 
 namespace osquery {
 
@@ -47,10 +47,9 @@ DECLARE_bool(disable_database);
 
 namespace fs = boost::filesystem;
 
-// Blacklist testing methods, internal to config implementations.
-extern void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist);
-extern void saveScheduleBlacklist(
-    const std::map<std::string, size_t>& blacklist);
+// Denylist testing methods, internal to config implementations.
+extern void restoreScheduleDenylist(std::map<std::string, size_t>& denylist);
+extern void saveScheduleDenylist(const std::map<std::string, size_t>& denylist);
 
 class ConfigTests : public testing::Test {
  public:
@@ -80,6 +79,13 @@ class ConfigTests : public testing::Test {
   void TearDown() {
     fs::remove_all(fake_directory_);
     FLAGS_config_refresh = refresh_;
+  }
+
+  void resetDispatcher() {
+    auto& dispatcher = Dispatcher::instance();
+    dispatcher.stopServices();
+    dispatcher.joinServices();
+    dispatcher.resetStopping();
   }
 
  protected:
@@ -113,7 +119,8 @@ class TestConfigPlugin : public ConfigPlugin {
     }
 
     std::string content;
-    auto s = readFile(getTestConfigDirectory() / "test_noninline_packs.conf", content);
+    auto s = readFile(getTestConfigDirectory() / "test_noninline_packs.conf",
+                      content);
     config["data"] = content;
     return s;
   }
@@ -179,6 +186,77 @@ TEST_F(ConfigTests, test_invalid_content) {
   ASSERT_NO_THROW(get().update({{"bad_source", bad_json}}));
 }
 
+TEST_F(ConfigTests, test_config_not_an_object) {
+  std::string invalid_config = "[1]";
+  ASSERT_FALSE(get().update({{"invalid_config_source", invalid_config}}));
+}
+
+TEST_F(ConfigTests, test_config_depth) {
+  std::string invalid_config;
+
+  auto add_nested_objects = [](std::string& invalid_config) {
+    for (int i = 0; i < 100; ++i) {
+      invalid_config += "{\"1\": ";
+    }
+
+    invalid_config += "{}";
+    invalid_config += std::string(100, '}');
+  };
+
+  add_nested_objects(invalid_config);
+
+  JSON doc;
+  auto status = doc.fromString(invalid_config, JSON::ParseMode::Iterative);
+
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  ASSERT_FALSE(get().validateConfig(doc).ok());
+
+  invalid_config = "{ \"a\" : \"something\", \"b\" : ";
+  add_nested_objects(invalid_config);
+  invalid_config += "}";
+
+  status = doc.fromString(invalid_config, JSON::ParseMode::Iterative);
+
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  ASSERT_FALSE(get().validateConfig(doc).ok());
+
+  auto add_nested_arrays_and_objects = [](std::string& invalid_config) {
+    for (int i = 0; i < 100; ++i) {
+      invalid_config += "{ \"a\" : [";
+    }
+
+    for (int i = 0; i < 100; i++) {
+      invalid_config += "]}";
+    }
+  };
+
+  invalid_config.clear();
+  add_nested_arrays_and_objects(invalid_config);
+
+  status = doc.fromString(invalid_config, JSON::ParseMode::Iterative);
+
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  ASSERT_FALSE(get().validateConfig(doc).ok());
+}
+
+TEST_F(ConfigTests, test_config_too_big) {
+  std::string big_config = "{ \"data\" : [ 1";
+
+  for (int i = 0; i < 1 * 1024 * 1024; ++i) {
+    big_config += ",1";
+  }
+
+  big_config += "]}";
+
+  // It is a valid JSON document
+  JSON doc;
+  auto status = doc.fromString(big_config);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  // But it's too big for our config system
+  ASSERT_FALSE(get().update({{"big_config", big_config}}));
+}
+
 TEST_F(ConfigTests, test_strip_comments) {
   std::string json_comments =
       "// Comment\n // Comment //\n  # Comment\n# Comment\n{\"options\":{}}";
@@ -193,32 +271,32 @@ TEST_F(ConfigTests, test_strip_comments) {
   EXPECT_TRUE(get().update({{"data", json_comments}}));
 }
 
-TEST_F(ConfigTests, test_schedule_blacklist) {
+TEST_F(ConfigTests, test_schedule_denylist) {
   auto current_time = getUnixTime();
-  std::map<std::string, size_t> blacklist;
-  saveScheduleBlacklist(blacklist);
-  restoreScheduleBlacklist(blacklist);
-  EXPECT_EQ(blacklist.size(), 0U);
+  std::map<std::string, size_t> denylist;
+  saveScheduleDenylist(denylist);
+  restoreScheduleDenylist(denylist);
+  EXPECT_EQ(denylist.size(), 0U);
 
   // Create some entries.
-  blacklist["test_1"] = current_time * 2;
-  blacklist["test_2"] = current_time * 3;
-  saveScheduleBlacklist(blacklist);
-  blacklist.clear();
-  restoreScheduleBlacklist(blacklist);
-  ASSERT_EQ(blacklist.count("test_1"), 1U);
-  ASSERT_EQ(blacklist.count("test_2"), 1U);
-  EXPECT_EQ(blacklist.at("test_1"), current_time * 2);
-  EXPECT_EQ(blacklist.at("test_2"), current_time * 3);
+  denylist["test_1"] = current_time * 2;
+  denylist["test_2"] = current_time * 3;
+  saveScheduleDenylist(denylist);
+  denylist.clear();
+  restoreScheduleDenylist(denylist);
+  ASSERT_EQ(denylist.count("test_1"), 1U);
+  ASSERT_EQ(denylist.count("test_2"), 1U);
+  EXPECT_EQ(denylist.at("test_1"), current_time * 2);
+  EXPECT_EQ(denylist.at("test_2"), current_time * 3);
 
   // Now save an expired query.
-  blacklist["test_1"] = 1;
-  saveScheduleBlacklist(blacklist);
-  blacklist.clear();
+  denylist["test_1"] = 1;
+  saveScheduleDenylist(denylist);
+  denylist.clear();
 
   // When restoring, the values below the current time will not be included.
-  restoreScheduleBlacklist(blacklist);
-  EXPECT_EQ(blacklist.size(), 1U);
+  restoreScheduleDenylist(denylist);
+  EXPECT_EQ(denylist.size(), 1U);
 }
 
 TEST_F(ConfigTests, test_pack_noninline) {
@@ -299,7 +377,7 @@ TEST_F(ConfigTests, test_content_update) {
   // Update, then clear, packs should have been cleared.
   get().update(config_data);
   auto source_hash = get().getHash(source);
-  EXPECT_EQ("fb0973b39c70db16655effbca532d4aa93381e59", source_hash);
+  EXPECT_EQ("dfae832a62a3e3a51760334184364b7d66468ccc", source_hash);
 
   size_t count = 0;
   auto packCounter = [&count](const Pack& pack) { count++; };
@@ -328,14 +406,14 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
       << ") should equal " << expected_size;
   ASSERT_FALSE(query_names.empty());
 
-  // Construct a schedule blacklist and place the first scheduled query.
-  std::map<std::string, size_t> blacklist;
+  // Construct a schedule denylist and place the first scheduled query.
+  std::map<std::string, size_t> denylist;
   std::string query_name = query_names[0];
-  blacklist[query_name] = getUnixTime() * 2;
-  saveScheduleBlacklist(blacklist);
-  blacklist.clear();
+  denylist[query_name] = getUnixTime() * 2;
+  saveScheduleDenylist(denylist);
+  denylist.clear();
 
-  // When the blacklist is edited externally, the config must re-read.
+  // When the denylist is edited externally, the config must re-read.
   get().reset();
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
 
@@ -351,41 +429,42 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
 
   // Try again, this time requesting scheduled queries.
   query_names.clear();
-  bool blacklisted = false;
-  get().scheduledQueries(([&blacklisted, &query_names, &query_name](
+  bool denylisted = false;
+  get().scheduledQueries(([&denylisted, &query_names, &query_name](
                               std::string name, const ScheduledQuery& query) {
                            if (name == query_name) {
-                             // Only populate the query we've blacklisted.
+                             // Only populate the query we've denylisted.
                              query_names.push_back(std::move(name));
-                             blacklisted = query.blacklisted;
+                             denylisted = query.denylisted;
                            }
                          }),
                          true);
   ASSERT_EQ(query_names.size(), std::size_t{1});
   EXPECT_EQ(query_names[0], query_name);
-  EXPECT_TRUE(blacklisted);
+  EXPECT_TRUE(denylisted);
 }
 
-TEST_F(ConfigTests, test_nonblacklist_query) {
-  std::map<std::string, size_t> blacklist;
+TEST_F(ConfigTests, test_nondenylist_query) {
+  std::map<std::string, size_t> denylist;
 
-  const std::string kConfigTestNonBlacklistQuery{"pack_unrestricted_pack_process_heartbeat"};
+  const std::string kConfigTestNonDenylistQuery{
+      "pack_unrestricted_pack_process_heartbeat"};
 
-  blacklist[kConfigTestNonBlacklistQuery] = getUnixTime() * 2;
-  saveScheduleBlacklist(blacklist);
+  denylist[kConfigTestNonDenylistQuery] = getUnixTime() * 2;
+  saveScheduleDenylist(denylist);
 
   get().reset();
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
 
-  std::map<std::string, bool> blacklisted;
+  std::map<std::string, bool> denylisted;
   get().scheduledQueries(
-      ([&blacklisted](std::string name, const ScheduledQuery& query) {
-        blacklisted[name] = query.blacklisted;
+      ([&denylisted](std::string name, const ScheduledQuery& query) {
+        denylisted[name] = query.denylisted;
       }));
 
-  // This query cannot be blacklisted.
-  auto query = blacklisted.find(kConfigTestNonBlacklistQuery);
-  ASSERT_NE(query, blacklisted.end());
+  // This query cannot be denylisted.
+  auto query = denylisted.find(kConfigTestNonDenylistQuery);
+  ASSERT_NE(query, denylisted.end());
   EXPECT_FALSE(query->second);
 }
 
@@ -560,8 +639,7 @@ TEST_F(ConfigTests, test_config_refresh) {
   get().reset();
 
   // Stop the existing refresh runner thread.
-  Dispatcher::stopServices();
-  Dispatcher::joinServices();
+  resetDispatcher();
 
   // Set a config_refresh value to convince the Config to start the thread.
   FLAGS_config_refresh = 2;
@@ -603,8 +681,7 @@ TEST_F(ConfigTests, test_config_refresh) {
   EXPECT_EQ(get().getRefresh(), FLAGS_config_refresh);
 
   // Stop the new refresh runner thread.
-  Dispatcher::stopServices();
-  Dispatcher::joinServices();
+  resetDispatcher();
 
   FLAGS_config_refresh = refresh;
   FLAGS_config_accelerated_refresh = refresh_acceleratred;
@@ -662,4 +739,4 @@ TEST_F(ConfigTests, test_config_backup_integrate) {
 
   FLAGS_config_enable_backup = config_enable_backup_saved;
 }
-}
+} // namespace osquery

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
@@ -6,22 +6,18 @@
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
 import ast
 import fnmatch
-import jinja2
 import logging
 import os
 import sys
 
+import templite
+
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-from osquery.tools.tests import utils
+from osquery_tests.tools.tests import utils
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -84,7 +80,7 @@ TABLE_ATTRIBUTES = {
     "user_data": "USER_BASED",
     "cacheable": "CACHEABLE",
     "utility": "UTILITY",
-    "kernel_required": "KERNEL_REQUIRED",
+    "kernel_required": "KERNEL_REQUIRED", # Deprecated
 }
 
 
@@ -122,29 +118,29 @@ def lightred(msg):
     return "\033[1;31m %s \033[0m" % str(msg)
 
 
-def is_blacklisted(table_name, path=None, blacklist=None):
-    """Allow blacklisting by tablename."""
-    if blacklist is None:
+def is_denylisted(table_name, path=None, denylist=None):
+    """Allow denylisting by tablename."""
+    if denylist is None:
         specs_path = os.path.dirname(path)
         if os.path.basename(specs_path) != "specs":
             specs_path = os.path.dirname(specs_path)
-        blacklist_path = os.path.join(specs_path, "blacklist")
-        if not os.path.exists(blacklist_path):
+        denylist_path = os.path.join(specs_path, "denylist")
+        if not os.path.exists(denylist_path):
             return False
         try:
-            with open(blacklist_path, "r") as fh:
-                blacklist = [
+            with open(denylist_path, "r") as fh:
+                denylist = [
                     line.strip() for line in fh.read().split("\n")
                     if len(line.strip()) > 0 and line.strip()[0] != "#"
                 ]
         except:
-            # Blacklist is not readable.
+            # Denylist is not readable.
             return False
-    if not blacklist:
+    if not denylist:
         return False
 
-    # table_name based blacklisting!
-    for item in blacklist:
+    # table_name based denylisting!
+    for item in denylist:
         item = item.split(":")
         # If this item is restricted to a platform and the platform
         # and table name match
@@ -258,13 +254,6 @@ class TableState(Singleton):
                                     column.name, self.table_name))))
                 exit(1)
 
-        if "ADDITIONAL" in all_options and "INDEX" not in all_options:
-            if "no_pkey" not in self.attributes:
-                print(lightred(
-                    "Table cannot have 'additional' columns without an index: %s" %(
-                    path)))
-                exit(1)
-
         path_bits = path.split("/")
         for i in range(1, len(path_bits)):
             dir_path = ""
@@ -277,7 +266,7 @@ class TableState(Singleton):
                     # May encounter a race when using a make jobserver.
                     pass
         logging.debug("generating %s" % path)
-        self.impl_content = jinja2.Template(TEMPLATES[template]).render(
+        self.impl_content = templite.Templite(TEMPLATES[template]).render(
             table_name=self.table_name,
             table_name_cc=to_camel_case(self.table_name),
             table_name_ucc=to_upper_camel_case(self.table_name),
@@ -299,10 +288,10 @@ class TableState(Singleton):
         with open(path, "w+") as file_h:
             file_h.write(self.impl_content)
 
-    def blacklist(self, path):
-        print(lightred("Blacklisting generated %s" % path))
-        logging.debug("blacklisting %s" % path)
-        self.generate(path, template="blacklist")
+    def denylist(self, path):
+        print(lightred("Denylisting generated %s" % path))
+        logging.debug("denylisting %s" % path)
+        self.generate(path, template="denylist")
 
 table = TableState()
 
@@ -403,7 +392,6 @@ def implementation(impl_string, generator=False):
     """
     define the path to the implementation file and the function which
     implements the virtual table. You should use the following format:
-
       # the path is "osquery/table/implementations/foo.cpp"
       # the function is "QueryData genFoo();"
       implementation("foo@genFoo")
@@ -450,7 +438,7 @@ def main():
         "--debug", default=False, action="store_true",
         help="Output debug messages (when developing)"
     )
-    parser.add_argument("--disable-blacklist", default=False,
+    parser.add_argument("--disable-denylist", default=False,
         action="store_true")
     parser.add_argument("--header", default=False, action="store_true",
                         help="Generate the header file instead of cpp")
@@ -470,15 +458,15 @@ def main():
     filename = args.spec_file
     output = args.output
     if filename.endswith(".table"):
-        # Adding a 3rd parameter will enable the blacklist
+        # Adding a 3rd parameter will enable the denylist
 
         setup_templates(args.templates)
         with open(filename, "r") as file_handle:
             tree = ast.parse(file_handle.read())
             exec(compile(tree, "<string>", "exec"))
-            blacklisted = is_blacklisted(table.table_name, path=filename)
-            if not args.disable_blacklist and blacklisted:
-                table.blacklist(output)
+            denylisted = is_denylisted(table.table_name, path=filename)
+            if not args.disable_denylist and denylisted:
+                table.denylist(output)
             else:
                 if args.header:
                     template_type = "typed_row"

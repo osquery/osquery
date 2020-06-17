@@ -1,4 +1,3 @@
-
 /**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -10,6 +9,7 @@
 // Sanity check integration test for last
 // Spec file: specs/posix/last.table
 
+#include <osquery/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
@@ -26,22 +26,21 @@ TEST_F(last, test_sanity) {
   // 1. Query data
   auto const data = execute_query("select * from last");
   // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
+  if (data.empty()) {
+    LOG(WARNING) << "No entries in wtmp, skipping test";
+    return;
+  }
   // 3. Build validation map
-  // See helper.h for avaialbe flags
-  // Or use custom DataCheck object
-  // ValidatatioMap row_map = {
-  //      {"username", NormalType}
-  //      {"tty", NormalType}
-  //      {"pid", IntType}
-  //      {"type", IntType}
-  //      {"time", IntType}
-  //      {"host", NormalType}
-  //}
+  ValidationMap row_map = {
+      {"username", NormalType},
+      {"tty", NormalType},
+      {"pid", NonNegativeInt},
+      {"type", IntMinMaxCheck(7, 8)},
+      {"time", NonNegativeInt},
+      {"host", NormalType},
+  };
   // 4. Perform validation
-  // validate_rows(data, row_map);
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

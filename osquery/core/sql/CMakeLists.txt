@@ -20,7 +20,7 @@ function(generateOsqueryCoreSql)
   )
 
   target_link_libraries(osquery_core_sql PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_json
     osquery_utils_status
     thirdparty_sqlite

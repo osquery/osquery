@@ -16,13 +16,15 @@ function(generateTablesUtilityUtilitytable)
   )
 
   target_link_libraries(osquery_tables_utility_utilitytable PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config
     osquery_core
     osquery_filesystem
     osquery_process
     osquery_utils_macros
     osquery_utils_system_systemutils
+    osquery_worker_ipc_platformtablecontaineripc
+    osquery_worker_logging_glog_logger
     thirdparty_boost
   )
 endfunction()

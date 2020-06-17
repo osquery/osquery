@@ -1,15 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import argparse
 import ast
@@ -21,10 +16,8 @@ import uuid
 import subprocess
 
 from gentable import *
-from utils import platform
+from osquery_tests.tools.tests import utils
 
-SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(SCRIPT_DIR + "/../tests")
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -73,7 +66,7 @@ class Encoder(json.JSONEncoder):
     """
 
     def __init__(self, *args, **kwargs):
-        super(Encoder, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.kwargs = dict(kwargs)
         del self.kwargs['indent']
         self._replacement_map = {}
@@ -88,7 +81,7 @@ class Encoder(json.JSONEncoder):
 
     def encode(self, o):
         result = super(Encoder, self).encode(o)
-        for k, v in self._replacement_map.iteritems():
+        for k, v in self._replacement_map.items():
             result = result.replace('"@@%s@@"' % (k,), v)
         return result
 
@@ -145,7 +138,7 @@ def gen_diff(api_old_path, api_new_path):
     tables_removed = []
     columns_added = []
     columns_removed = []
-    for name, table in new_tables.iteritems():
+    for name, table in new_tables.items():
         if name not in old_tables:
             tables_added.append(name)
             continue
@@ -155,7 +148,7 @@ def gen_diff(api_old_path, api_new_path):
                 columns_added.append("%s:%s:%s:%s" % (category["name"],
                                                       table["name"], column["name"], column["type"]))
 
-    for name, table in old_tables.iteritems():
+    for name, table in old_tables.items():
         if name not in new_tables:
             tables_removed.append(name)
             continue
@@ -185,19 +178,19 @@ def gen_diff(api_old_path, api_new_path):
 
 
 def gen_api(tables_path, profile={}):
-    blacklist = None
-    blacklist_path = os.path.join(tables_path, "blacklist")
-    if os.path.exists(blacklist_path):
-        with open(blacklist_path, "r") as fh:
-            blacklist = fh.read()
+    denylist = None
+    denylist_path = os.path.join(tables_path, "denylist")
+    if os.path.exists(denylist_path):
+        with open(denylist_path, "r") as fh:
+            denylist = fh.read()
 
     categories = {}
     for base, _, files in os.walk(tables_path):
         for spec_file in files:
             if spec_file[0] == '.' or spec_file.find("example") == 0:
                 continue
-            # Exclude blacklist specific file
-            if spec_file == 'blacklist':
+            # Exclude denylist specific file
+            if spec_file == 'denylist' or spec_file == 'CMakeLists.txt':
                 continue
             platform = os.path.basename(base)
             # Exclude kernel tables
@@ -207,16 +200,16 @@ def gen_api(tables_path, profile={}):
             name = spec_file.split(".table", 1)[0]
             if platform not in categories.keys():
                 categories[platform] = {"name": platform_name, "tables": []}
-            with open(os.path.join(base, spec_file), "rU") as fh:
+            with open(os.path.join(base, spec_file), "r") as fh:
                 tree = ast.parse(fh.read())
                 table_spec = gen_spec(tree)
                 table_profile = profile.get("%s.%s" % (platform, name), {})
                 table_spec["profile"] = NoIndent(table_profile)
-                table_spec["blacklisted"] = is_blacklisted(table_spec["name"],
-                                                           blacklist=blacklist)
+                table_spec["denylisted"] = is_denylisted(table_spec["name"], path=spec_file,
+                                                           denylist=denylist)
                 categories[platform]["tables"].append(table_spec)
     categories = [{"key": k, "name": v["name"], "tables": v["tables"]}
-                  for k, v in categories.iteritems()]
+                  for k, v in categories.items()]
     return categories
 
 
@@ -277,7 +270,7 @@ def main(argc, argv):
                 logging.error("Cannot parse profile data: %s" % (str(e)))
                 exit(2)
 
-    # Read in the optional list of blacklisted tables, then generate
+    # Read in the optional list of denylisted tables, then generate
     # categories.
     api = gen_api(args.tables, profile)
 
@@ -303,5 +296,4 @@ def main(argc, argv):
 
 
 if __name__ == "__main__":
-    SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
     main(len(sys.argv), sys.argv)

@@ -1,0 +1,16 @@
+# .readthedocs.yml
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+version: 2
+
+# We run out of memory on the RTD builder.
+submodules:
+  exclude: all
+
+mkdocs:
+  configuration: mkdocs.yml
+
+python:
+  version: 3.7
+  install:
+    - requirements: docs/requirements.txt

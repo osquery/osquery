@@ -33,7 +33,7 @@ void genPkgRow(sqlite3_stmt* stmt, Row& r) {
         r[column_name] = std::string((const char*)value);
       }
     } else if (column_type == SQLITE_INTEGER) {
-      auto value = sqlite3_column_int(stmt, i);
+      auto value = sqlite3_column_int64(stmt, i);
       r[column_name] = INTEGER(value);
     }
   }

@@ -29,7 +29,7 @@ Status UdevEventPublisher::setUp() {
   // Create the udev object.
   handle_ = udev_new();
   if (handle_ == nullptr) {
-    return Status(1, "Could not create udev object.");
+    return Status::failure("Could not create udev object");
   }
 
   // Set up the udev monitor before scanning/polling.
@@ -37,7 +37,7 @@ Status UdevEventPublisher::setUp() {
   if (monitor_ == nullptr) {
     udev_unref(handle_);
     handle_ = nullptr;
-    return Status(1, "Could not create udev monitor.");
+    return Status::failure("Could not create udev monitor");
   }
 
   udev_monitor_enable_receiving(monitor_);
@@ -61,11 +61,11 @@ Status UdevEventPublisher::run() {
   {
     WriteLock lock(mutex_);
     if (monitor_ == nullptr) {
-      return Status(1);
+      return Status::failure("udev monitor not set up");
     }
     int fd = udev_monitor_get_fd(monitor_);
     if (fd < 0) {
-      LOG(ERROR) << "Could not get udev monitor fd";
+      LOG(ERROR) << "Could not get udev monitor fd: " << std::strerror(-fd);
       return Status::failure("udev monitor failed");
     }
 
@@ -75,8 +75,8 @@ Status UdevEventPublisher::run() {
 
     int selector = ::poll(fds, 1, 1000);
     if (selector == -1 && errno != EINTR && errno != EAGAIN) {
-      LOG(ERROR) << "Could not read udev monitor";
-      return Status(1, "udev monitor failed.");
+      LOG(ERROR) << "Could not read udev monitor: " << std::strerror(errno);
+      return Status::failure("udev monitor failed");
     }
 
     if (selector == 0 || !(fds[0].revents & POLLIN)) {
@@ -86,8 +86,9 @@ Status UdevEventPublisher::run() {
 
     struct udev_device* device = udev_monitor_receive_device(monitor_);
     if (device == nullptr) {
-      LOG(ERROR) << "udev monitor returned invalid device";
-      return Status(1, "udev monitor failed.");
+      LOG(ERROR) << "udev monitor returned invalid device: "
+                 << std::strerror(errno);
+      return Status::failure("udev monitor failed");
     }
 
     auto ec = createEventContextFrom(device);

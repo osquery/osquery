@@ -12,20 +12,9 @@ function(generateOsqueryExtensionsTestsTest)
   add_osquery_executable(osquery_extensions_extensiontests-test extensions.cpp)
 
   target_link_libraries(osquery_extensions_extensiontests-test PRIVATE
-    global_cxx_settings
-    osquery_config
-    osquery_database
-    osquery_dispatcher
-    osquery_events
-    osquery_extensions
+    osquery_cxx_settings
+    osquery_sdk_pluginsdk
     osquery_extensions_implthrift
-    osquery_process
-    osquery_registry
-    osquery_remote_enroll_tlsenroll
-    osquery_remote_utility
-    plugins_config_tlsconfig
-    plugins_database_ephemeral
-    specs_tables
     thirdparty_googletest
   )
 endfunction()

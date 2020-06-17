@@ -2,7 +2,7 @@ table_name("apps")
 description("OS X applications installed in known search paths (e.g., /Applications).")
 schema([
     Column("name", TEXT, "Name of the Name.app folder"),
-    Column("path", TEXT, "Absolute and full Name.app path"),
+    Column("path", TEXT, "Absolute and full Name.app path", index=True),
     Column("bundle_executable", TEXT,
         "Info properties CFBundleExecutable label"),
     Column("bundle_identifier", TEXT,

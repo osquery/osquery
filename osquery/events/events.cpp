@@ -734,7 +734,7 @@ void EventFactory::configUpdate() {
       continue;
     }
 
-    WriteLock lock(ef.factory_lock_);
+    RecursiveLock lock(ef.factory_lock_);
     auto subscriber = ef.getEventSubscriber(details.first);
     subscriber->min_expiration_ = details.second.max_interval * 3;
     subscriber->min_expiration_ += (60 - (subscriber->min_expiration_ % 60));
@@ -771,7 +771,7 @@ Status EventFactory::run(const std::string& type_id) {
   EventPublisherRef publisher = nullptr;
   {
     auto& ef = EventFactory::getInstance();
-    WriteLock lock(ef.factory_lock_);
+    RecursiveLock lock(ef.factory_lock_);
     publisher = ef.getEventPublisher(type_id);
   }
 
@@ -780,9 +780,11 @@ Status EventFactory::run(const std::string& type_id) {
   } else if (publisher->hasStarted()) {
     return Status(1, "Cannot restart an event publisher");
   }
+
   setThreadName(publisher->name());
   VLOG(1) << "Starting event publisher run loop: " + type_id;
   publisher->hasStarted(true);
+  publisher->state(EventState::EVENT_RUNNING);
 
   auto status = Status(0, "OK");
   while (!publisher->isEnding()) {
@@ -797,6 +799,7 @@ Status EventFactory::run(const std::string& type_id) {
     // prevents the thread from thrashing through exiting checks.
     publisher->pause(std::chrono::milliseconds(200));
   }
+
   if (!status.ok()) {
     // The runloop status is not reflective of the event type's.
     VLOG(1) << "Event publisher " << publisher->type()
@@ -841,7 +844,7 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
 
   auto& ef = EventFactory::getInstance();
   {
-    WriteLock lock(getInstance().factory_lock_);
+    RecursiveLock lock(ef.factory_lock_);
     if (ef.event_pubs_.count(type_id) != 0) {
       // This is a duplicate event publisher.
       return Status(1, "Duplicate publisher type");
@@ -938,7 +941,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
 
   auto& ef = EventFactory::getInstance();
   {
-    WriteLock lock(getInstance().factory_lock_);
+    RecursiveLock lock(ef.factory_lock_);
     ef.event_subs_[name] = specialized_sub;
   }
 
@@ -984,20 +987,26 @@ size_t EventFactory::numSubscriptions(const std::string& type_id) {
 }
 
 EventPublisherRef EventFactory::getEventPublisher(const std::string& type_id) {
-  if (getInstance().event_pubs_.count(type_id) == 0) {
+  auto& ef = EventFactory::getInstance();
+
+  RecursiveLock lock(ef.factory_lock_);
+  if (ef.event_pubs_.count(type_id) == 0) {
     LOG(ERROR) << "Requested unknown/failed event publisher: " + type_id;
     return nullptr;
   }
-  return getInstance().event_pubs_.at(type_id);
+  return ef.event_pubs_.at(type_id);
 }
 
 EventSubscriberRef EventFactory::getEventSubscriber(
     const std::string& name_id) {
+  auto& ef = EventFactory::getInstance();
+
+  RecursiveLock lock(ef.factory_lock_);
   if (!exists(name_id)) {
     LOG(ERROR) << "Requested unknown event subscriber: " + name_id;
     return nullptr;
   }
-  return getInstance().event_subs_.at(name_id);
+  return ef.event_subs_.at(name_id);
 }
 
 bool EventFactory::exists(const std::string& name_id) {
@@ -1011,7 +1020,7 @@ Status EventFactory::deregisterEventPublisher(const EventPublisherRef& pub) {
 Status EventFactory::deregisterEventPublisher(const std::string& type_id) {
   auto& ef = EventFactory::getInstance();
 
-  WriteLock lock(ef.factory_lock_);
+  RecursiveLock lock(ef.factory_lock_);
   EventPublisherRef publisher = ef.getEventPublisher(type_id);
   if (publisher == nullptr) {
     return Status(1, "No event publisher to deregister");
@@ -1037,20 +1046,20 @@ Status EventFactory::deregisterEventPublisher(const std::string& type_id) {
 Status EventFactory::deregisterEventSubscriber(const std::string& sub) {
   auto& ef = EventFactory::getInstance();
 
-  WriteLock lock(ef.factory_lock_);
+  RecursiveLock lock(ef.factory_lock_);
   if (ef.event_subs_.count(sub) == 0) {
     return Status(1, "Event subscriber is missing");
   }
 
   auto& subscriber = ef.event_subs_.at(sub);
-  subscriber->state(EventState::EVENT_NONE);
   subscriber->tearDown();
+  subscriber->state(EventState::EVENT_NONE);
   ef.event_subs_.erase(sub);
   return Status(0);
 }
 
 std::vector<std::string> EventFactory::publisherTypes() {
-  WriteLock lock(getInstance().factory_lock_);
+  RecursiveLock lock(getInstance().factory_lock_);
   std::vector<std::string> types;
   for (const auto& publisher : getInstance().event_pubs_) {
     types.push_back(publisher.first);
@@ -1059,7 +1068,7 @@ std::vector<std::string> EventFactory::publisherTypes() {
 }
 
 std::vector<std::string> EventFactory::subscriberNames() {
-  WriteLock lock(getInstance().factory_lock_);
+  RecursiveLock lock(getInstance().factory_lock_);
   std::vector<std::string> names;
   for (const auto& subscriber : getInstance().event_subs_) {
     names.push_back(subscriber.first);
@@ -1085,7 +1094,7 @@ void EventFactory::end(bool join) {
   }
 
   {
-    WriteLock lock(getInstance().factory_lock_);
+    RecursiveLock lock(ef.factory_lock_);
     // A small cool off helps OS API event publisher flushing.
     if (!FLAGS_disable_events) {
       ef.threads_.clear();

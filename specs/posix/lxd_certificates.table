@@ -1,0 +1,12 @@
+table_name("lxd_certificates")
+description("LXD certificates information.")
+schema([
+    Column("name", TEXT, "Name of the certificate"),
+    Column("type", TEXT, "Type of the certificate"),
+    Column("fingerprint", TEXT, "SHA256 hash of the certificate"),
+    Column("certificate", TEXT, "Certificate content")
+])
+implementation("applications/lxd@genLxdCerts")
+examples([
+  "select * from lxd_certificates" 
+])

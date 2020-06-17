@@ -16,7 +16,7 @@ function(generatePluginsConfigParsersTestsDecoratorstestsTest)
   add_osquery_executable(plugins_config_parsers_tests_decoratorstests-test decorators_tests.cpp)
 
   target_link_libraries(plugins_config_parsers_tests_decoratorstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_database
@@ -32,7 +32,6 @@ function(generatePluginsConfigParsersTestsDecoratorstestsTest)
     plugins_config_parsers
     plugins_database_ephemeral
     specs_tables
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
 endfunction()
@@ -42,7 +41,7 @@ function(generatePluginsConfigParsersTestsEventsparsertestsTest)
   add_osquery_executable(plugins_config_parsers_tests_eventsparsertests-test events_parser_tests.cpp)
 
   target_link_libraries(plugins_config_parsers_tests_eventsparsertests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_database
@@ -58,17 +57,15 @@ function(generatePluginsConfigParsersTestsEventsparsertestsTest)
     plugins_config_parsers
     plugins_database_ephemeral
     specs_tables
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
-
 endfunction()
 
 function(generatePluginsConfigParsersTestsFilepathstestsTest)
   add_osquery_executable(plugins_config_parsers_tests_filepathstests-test file_paths_tests.cpp)
 
   target_link_libraries(plugins_config_parsers_tests_filepathstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_database
@@ -85,7 +82,6 @@ function(generatePluginsConfigParsersTestsFilepathstestsTest)
     plugins_config_parsers
     plugins_database_ephemeral
     specs_tables
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
 endfunction()
@@ -95,7 +91,7 @@ function(generatePluginsConfigParsersTestsOptionstestsTest)
   add_osquery_executable(plugins_config_parsers_tests_optionstests-test options_tests.cpp)
 
   target_link_libraries(plugins_config_parsers_tests_optionstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_database
@@ -112,7 +108,6 @@ function(generatePluginsConfigParsersTestsOptionstestsTest)
     plugins_config_parsers
     plugins_database_ephemeral
     specs_tables
-    osquery_tools_tests_conffiles
     thirdparty_googletest
   )
 endfunction()
@@ -121,7 +116,7 @@ function(generatePluginsConfigParsersTestsViewstestsTest)
   add_osquery_executable(plugins_config_parsers_tests_viewstests-test views_tests.cpp)
 
   target_link_libraries(plugins_config_parsers_tests_viewstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_database

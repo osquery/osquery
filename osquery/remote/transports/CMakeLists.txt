@@ -6,7 +6,7 @@
 
 function(osqueryRemoteTransportsMain)
 
-  if(BUILD_TESTING AND DEFINED PLATFORM_POSIX)
+  if(OSQUERY_BUILD_TESTS AND DEFINED PLATFORM_POSIX)
     generateOsqueryRemoteTransportsRemotetransportstlstestsTest()
   endif()
 
@@ -19,7 +19,7 @@ function(generateOsqueryRemoteTransportsTransportstls)
   )
 
   target_link_libraries(osquery_remote_transports_transportstls PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_remote_httpclient
@@ -37,9 +37,15 @@ function(generateOsqueryRemoteTransportsTransportstls)
   if(DEFINED PLATFORM_POSIX)
     add_test(NAME osquery_remote_transports_remotetransportstlstests-test COMMAND osquery_remote_transports_remotetransportstlstests-test)
 
+    set(remotetransportstlstests-test_env
+      "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
+      "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
+    )
+
     set_tests_properties(
       osquery_remote_transports_remotetransportstlstests-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      PROPERTIES ENVIRONMENT "${remotetransportstlstests-test_env}"
     )
   endif()
 endfunction()
@@ -50,7 +56,7 @@ function(generateOsqueryRemoteTransportsRemotetransportstlstestsTest)
   add_osquery_executable(osquery_remote_transports_remotetransportstlstests-test tests/tls_transports_tests.cpp)
 
   target_link_libraries(osquery_remote_transports_remotetransportstlstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_database
     osquery_events
@@ -62,10 +68,8 @@ function(generateOsqueryRemoteTransportsRemotetransportstlstestsTest)
     osquery_utils_info
     plugins_config_tlsconfig
     plugins_database_ephemeral
-    plugins_killswitch_killswitchfilesystem
     tests_helper
     thirdparty_googletest
-    osquery_tools_tests_testfiles
   )
 endfunction()
 

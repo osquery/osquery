@@ -9,6 +9,7 @@ function(osquerySqlMain)
   generateOsquerySqlTestsTest()
   generateOsquerySqlTestsVirtualtableTestsTest()
   generateOsquerySqlTestsSqliteutiltestsTest()
+  generateOsquerySqlTestsSqlitehashingtestsTest()
 endfunction()
 
 function(generateOsquerySqlTestsSqltestutils)
@@ -21,7 +22,7 @@ function(generateOsquerySqlTestsSqltestutils)
   generateIncludeNamespace(osquery_sql_tests_sqltestutils "osquery/sql/tests" "FILE_ONLY" ${public_header_files})
 
   target_link_libraries(osquery_sql_tests_sqltestutils PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_distributed
     osquery_events
@@ -40,7 +41,7 @@ function(generateOsquerySqlTestsTest)
   add_osquery_executable(osquery_sql_tests-test sql.cpp)
 
   target_link_libraries(osquery_sql_tests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_distributed
     osquery_events
@@ -60,7 +61,7 @@ function(generateOsquerySqlTestsVirtualtableTestsTest)
   add_osquery_executable(osquery_sql_tests_virtualtabletests-test virtual_table.cpp)
 
   target_link_libraries(osquery_sql_tests_virtualtabletests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_distributed
     osquery_events
@@ -80,7 +81,7 @@ function(generateOsquerySqlTestsSqliteutiltestsTest)
   add_osquery_executable(osquery_sql_tests_sqliteutilstests-test sqlite_util_tests.cpp)
 
   target_link_libraries(osquery_sql_tests_sqliteutilstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_database
     osquery_distributed
     osquery_events
@@ -94,6 +95,18 @@ function(generateOsquerySqlTestsSqliteutiltestsTest)
     specs_tables
     thirdparty_googletest
   )
+endfunction()
+
+function(generateOsquerySqlTestsSqlitehashingtestsTest)
+  add_osquery_executable(osquery_sql_tests_sqlitehashingtests-test sqlite_hashing_tests.cpp)
+
+  target_link_libraries(osquery_sql_tests_sqlitehashingtests-test PRIVATE
+    osquery_cxx_settings
+    osquery_database
+    osquery_sql
+    osquery_sql_tests_sqltestutils
+    thirdparty_googletest
+    )
 endfunction()
 
 osquerySqlMain()

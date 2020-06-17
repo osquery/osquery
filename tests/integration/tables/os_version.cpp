@@ -10,15 +10,16 @@
 // Spec file: specs/os_version.table
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
 namespace table_tests {
 
 class OsVersion : public testing::Test {
-  protected:
-    void SetUp() override {
-      setUpEnvironment();
-    }
+ protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
 };
 
 TEST_F(OsVersion, test_sanity) {
@@ -26,7 +27,7 @@ TEST_F(OsVersion, test_sanity) {
 
   ASSERT_EQ(data.size(), 1ul);
 
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"name", NonEmptyString},
       {"version", NonEmptyString},
       {"major", NonNegativeInt},
@@ -36,11 +37,18 @@ TEST_F(OsVersion, test_sanity) {
       {"platform", NonEmptyString},
       {"platform_like", NonEmptyString},
       {"codename", NormalType},
+      {"arch", NonEmptyString},
 #ifdef OSQUERY_WINDOWS
       {"install_date", NonEmptyString},
 #endif
   };
+
   validate_rows(data, row_map);
+
+  // Query again with hidden columns too
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    validate_container_rows("os_version", row_map);
+  }
 }
 
 } // namespace table_tests

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
@@ -46,21 +46,22 @@ class REPLWrapper(object):
         if not command:
             return res
         try:
-            self.child.proc.stdin.write(command + '\r\n')
+            command = command + '\r\n'
+            self.child.proc.stdin.write(command.encode())
             self.child.proc.stdin.flush()
 
             # Wait for stderr/stdout to populate for at most timeout seconds
-            for i in xrange(self.timeout):
+            for i in range(self.timeout):
                 if not self.child.out_queue.empty():
                     break
                 time.sleep(1)
             while not self.child.out_queue.empty():
-                l = self.child.out_queue.get_nowait()
+                l = self.child.out_queue.get_nowait().decode()
                 res += l
 
         except Exception as e:
             print('[-] Failed to communicate with client: {}'.format(e))
-        return res
+        return res.encode()
 
 
 class WinExpectSpawn(object):
@@ -68,7 +69,6 @@ class WinExpectSpawn(object):
         si = subprocess.STARTUPINFO()
         si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         kwargs = dict(
-            bufsize=1,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

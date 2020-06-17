@@ -33,6 +33,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 DECLARE_bool(disable_database);
+DECLARE_string(extensions_require);
 
 const int kDelay = 20;
 const int kTimeout = 3000;
@@ -64,11 +65,18 @@ class ExtensionsTest : public testing::Test {
   }
 
   void TearDown() override {
-    Dispatcher::stopServices();
-    Dispatcher::joinServices();
+    resetDispatcher();
+
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
       fs::remove(fs::path(socket_path));
     }
+  }
+
+  void resetDispatcher() {
+    auto& dispatcher = Dispatcher::instance();
+    dispatcher.stopServices();
+    dispatcher.joinServices();
+    dispatcher.resetStopping();
   }
 
   bool ping(int attempts = 3) {
@@ -134,9 +142,23 @@ class ExtensionsTest : public testing::Test {
 TEST_F(ExtensionsTest, test_manager_runnable) {
   // Start a testing extension manager.
   auto status = startExtensionManager(socket_path);
-  EXPECT_TRUE(status.ok()) << " error " << status.what();
+  ASSERT_TRUE(status.ok()) << " error " << status.what();
   // Call success if the Unix socket was created.
   EXPECT_TRUE(socketExistsLocal(socket_path));
+}
+
+TEST_F(ExtensionsTest, test_manager_bad_socket) {
+  auto status = startExtensionManager("/this/doesnt/exist");
+  EXPECT_FALSE(status.ok());
+}
+
+TEST_F(ExtensionsTest, test_manager_bad_require_extension) {
+  FLAGS_extensions_require = "this_extension_doesnt_exist";
+  auto status = startExtensionManager(socket_path);
+  ASSERT_FALSE(status.ok());
+  EXPECT_TRUE(status.getMessage().find("Required extension not found") !=
+              std::string::npos);
+  FLAGS_extensions_require = "";
 }
 
 TEST_F(ExtensionsTest, test_extension_runnable) {
@@ -149,8 +171,7 @@ TEST_F(ExtensionsTest, test_extension_runnable) {
   EXPECT_TRUE(ping());
 }
 
-// TODO: fix it and enable, please
-TEST_F(ExtensionsTest, DISABLED_test_extension_start) {
+TEST_F(ExtensionsTest, test_extension_start) {
   auto status = startExtensionManager(socket_path);
   EXPECT_TRUE(status.ok());
   EXPECT_TRUE(socketExistsLocal(socket_path));
@@ -194,8 +215,7 @@ class TestExtensionPlugin : public ExtensionPlugin {};
 
 CREATE_REGISTRY(ExtensionPlugin, "extension_test");
 
-// TODO: fix it and enable, please
-TEST_F(ExtensionsTest, DISABLED_test_extension_broadcast) {
+TEST_F(ExtensionsTest, test_extension_broadcast) {
   auto status = startExtensionManager(socket_path);
   EXPECT_TRUE(status.ok());
   EXPECT_TRUE(socketExistsLocal(socket_path));
@@ -269,4 +289,4 @@ TEST_F(ExtensionsTest, DISABLED_test_extension_broadcast) {
   rf.allowDuplicates(false);
 }
 
-}
+} // namespace osquery

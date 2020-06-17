@@ -6,7 +6,7 @@
 
 function(osqueryTablesSystemMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -18,6 +18,8 @@ function(generateOsqueryTablesSystemSystemtable)
     cpuid.cpp
     hash.cpp
     python_packages.cpp
+    ssh_keys.cpp
+    ssh_configs.cpp
     system_utils.cpp
     uptime.cpp
   )
@@ -35,8 +37,6 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/magic.cpp
       posix/shell_history.cpp
       posix/smbios_utils.cpp
-      posix/ssh_configs.cpp
-      posix/ssh_keys.cpp
       posix/sudoers.cpp
       posix/suid_bin.cpp
       posix/system_controls.cpp
@@ -56,7 +56,6 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/groups.cpp
       linux/intel_me.cpp
       linux/kernel_info.cpp
-      linux/kernel_integrity.cpp
       linux/kernel_modules.cpp
       linux/md_tables.cpp
       linux/memory_info.cpp
@@ -68,6 +67,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/pci_devices.cpp
       linux/portage.cpp
       linux/process_open_files.cpp
+      linux/process_open_pipes.cpp
       linux/processes.cpp
       linux/rpm_packages.cpp
       linux/shadow.cpp
@@ -78,6 +78,8 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/usb_devices.cpp
       linux/user_groups.cpp
       linux/users.cpp
+      linux/selinux_settings.cpp
+      linux/apparmor_profiles.cpp
     )
 
   elseif(DEFINED PLATFORM_MACOS)
@@ -114,6 +116,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/launchd.cpp
       darwin/managed_policies.cpp
       darwin/mdfind.mm
+      darwin/mdls.mm
       darwin/mounts.cpp
       darwin/nfs_shares.cpp
       darwin/nvram.cpp
@@ -126,6 +129,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/quicklook_cache.cpp
       darwin/running_apps.mm
       darwin/sandboxes.cpp
+      darwin/screenlock.mm
       darwin/shared_folders.mm
       darwin/sharing_preferences.cpp
       darwin/signature.mm
@@ -164,8 +168,10 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/autoexec.cpp
       windows/bitlocker_info.cpp
       windows/certificates.cpp
+      windows/chassis_info.cpp
       windows/chocolatey_packages.cpp
       windows/cpu_info.cpp
+      windows/default_environment.cpp
       windows/disk_info.cpp
       windows/drivers.cpp
       windows/groups.cpp
@@ -194,13 +200,18 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/system_info.cpp
       windows/user_groups.cpp
       windows/users.cpp
+      windows/userassist.cpp
       windows/video_info.cpp
       windows/windows_crashes.cpp
+      windows/windows_optional_features.cpp
+      windows/windows_security_products.cpp
+      windows/windows_security_center.cpp
       windows/wmi_bios_info.cpp
       windows/wmi_cli_event_consumers.cpp
       windows/wmi_event_filters.cpp
       windows/wmi_filter_consumer_binding.cpp
       windows/wmi_script_event_consumers.cpp
+      windows/hvci_status.cpp
     )
   endif()
 
@@ -209,7 +220,7 @@ function(generateOsqueryTablesSystemSystemtable)
   )
 
   target_link_libraries(osquery_tables_system_systemtable PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_events
@@ -220,16 +231,23 @@ function(generateOsqueryTablesSystemSystemtable)
     osquery_utils
     osquery_utils_conversions
     osquery_utils_expected
+    osquery_utils_system_env
     osquery_utils_system_filepath
     osquery_utils_system_systemutils
     osquery_utils_system_time
     osquery_utils_system_uptime
-    thirdparty_augeas
+    osquery_worker_ipc_platformtablecontaineripc
     thirdparty_boost
-    thirdparty_libmagic
-    thirdparty_libxml2
     osquery_rows_processes_header
   )
+
+  if(NOT DEFINED PLATFORM_WINDOWS)
+    target_link_libraries(osquery_tables_system_systemtable PUBLIC
+      thirdparty_augeas
+      thirdparty_libmagic
+      thirdparty_libxml2
+    )
+  endif()
 
   if(DEFINED PLATFORM_LINUX)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
@@ -264,10 +282,12 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_POSIX)
     set(platform_public_header_files
+      posix/apt_sources.h
       posix/known_hosts.h
       posix/shell_history.h
       posix/sudoers.h
       posix/sysctl_utils.h
+      posix/last.h
     )
   endif()
 
@@ -297,16 +317,14 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.h
       windows/certificates.h
       windows/users.h
+      windows/userassist.h
     )
   endif()
 
   generateIncludeNamespace(osquery_tables_system_systemtable "osquery/tables/system" "FULL_PATH" ${platform_public_header_files})
 
   if(DEFINED PLATFORM_POSIX)
-    add_test(NAME osquery_tables_system_tests_knownhoststests-test COMMAND osquery_tables_system_tests_knownhoststests-test)
-    add_test(NAME osquery_tables_system_tests_shellhistorytests-test COMMAND osquery_tables_system_tests_shellhistorytests-test)
-    add_test(NAME osquery_tables_system_tests_sudoerstests-test COMMAND osquery_tables_system_tests_sudoerstests-test)
-    add_test(NAME osquery_tables_system_tests_yumsourcestests-test COMMAND osquery_tables_system_tests_yumsourcestests-test)
+    add_test(NAME osquery_tables_system_posix_tests-test COMMAND osquery_tables_system_posix_tests-test)
     add_test(NAME osquery_tables_system_tests_augeastests-test COMMAND osquery_tables_system_tests_augeastests-test)
     set_tests_properties(
       osquery_tables_system_tests_augeastests-test
@@ -315,34 +333,16 @@ function(generateOsqueryTablesSystemSystemtable)
   endif()
 
   if(DEFINED PLATFORM_LINUX)
-    add_test(NAME osquery_tables_system_tests_mdtablestests-test COMMAND osquery_tables_system_tests_mdtablestests-test)
-    add_test(NAME osquery_tables_system_tests_pcidevicestests-test COMMAND osquery_tables_system_tests_pcidevicestests-test)
-    add_test(NAME osquery_tables_system_tests_portagetests-test COMMAND osquery_tables_system_tests_portagetests-test)
+    add_test(NAME osquery_tables_system_linux_tests-test COMMAND osquery_tables_system_linux_tests-test)
   elseif(DEFINED PLATFORM_MACOS)
-    add_test(NAME osquery_tables_system_tests_appstests-test COMMAND osquery_tables_system_tests_appstests-test)
-    add_test(NAME osquery_tables_system_tests_asltests-test COMMAND osquery_tables_system_tests_asltests-test)
-    add_test(NAME osquery_tables_system_tests_certificatestests-test COMMAND osquery_tables_system_tests_certificatestests-test)
-    add_test(NAME osquery_tables_system_tests_extendedattributestests-test COMMAND osquery_tables_system_tests_extendedattributestests-test)
-    add_test(NAME osquery_tables_system_tests_firewalltests-test COMMAND osquery_tables_system_tests_firewalltests-test)
-    add_test(NAME osquery_tables_system_tests_launchdtests-test COMMAND osquery_tables_system_tests_launchdtests-test)
-    add_test(NAME osquery_tables_system_tests_mdfindtests-test COMMAND osquery_tables_system_tests_mdfindtests-test)
-    add_test(NAME osquery_tables_system_tests_processestests-test COMMAND osquery_tables_system_tests_processestests-test)
-    add_test(NAME osquery_tables_system_tests_smctests-test COMMAND osquery_tables_system_tests_smctests-test)
-    add_test(NAME osquery_tables_system_tests_startupitemstests-test COMMAND osquery_tables_system_tests_startupitemstests-test)
-    add_test(NAME osquery_tables_system_tests_signaturetests-test COMMAND osquery_tables_system_tests_signaturetests-test)
+    add_test(NAME osquery_tables_system_darwin_tests-test COMMAND osquery_tables_system_darwin_tests-test)
 
     set_tests_properties(
-      osquery_tables_system_tests_appstests-test
-      osquery_tables_system_tests_certificatestests-test
-      osquery_tables_system_tests_extendedattributestests-test
-      osquery_tables_system_tests_firewalltests-test
-      osquery_tables_system_tests_launchdtests-test
-      osquery_tables_system_tests_startupitemstests-test
+      osquery_tables_system_darwin_tests-test
       PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
     )
   elseif(DEFINED PLATFORM_WINDOWS)
-    add_test(NAME osquery_tables_system_tests_certificatestests-test COMMAND osquery_tables_system_tests_certificatestests-test)
-    add_test(NAME osquery_tables_system_tests_registrytests-test COMMAND osquery_tables_system_tests_registrytests-test)
+    add_test(NAME osquery_tables_system_windows_tests-test COMMAND osquery_tables_system_windows_tests-test)
   endif()
 
   add_test(NAME osquery_tables_system_tests_systemtablestests-test COMMAND osquery_tables_system_tests_systemtablestests-test)

@@ -19,6 +19,14 @@
 #pragma warning(disable : 4715)
 #endif
 
+/**
+ * This protects parsing from overflowing the stack.
+ * See http://rapidjson.org/md_doc_features.html for more details.
+ *
+ * This must be defined before including RapidJSON headers.
+ */
+#define RAPIDJSON_PARSE_DEFAULT_FLAGS (kParseIterativeFlag)
+
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/stringbuffer.h>
@@ -41,6 +49,8 @@ class JSON : private only_movable {
   explicit JSON(rapidjson::Type type);
 
  public:
+  enum class ParseMode { Iterative, Recursive };
+
   JSON();
   JSON(JSON&&) = default;
   JSON& operator=(JSON&&) = default;
@@ -338,7 +348,8 @@ class JSON : private only_movable {
   Status toString(std::string& str) const;
 
   /// Helper to convert a string into JSON.
-  Status fromString(const std::string& str);
+  Status fromString(const std::string& str,
+                    ParseMode parse_mode = ParseMode::Recursive);
 
   /// Merge members of source into target, must both be objects.
   void mergeObject(rapidjson::Value& target_obj, rapidjson::Value& source_obj);

@@ -19,6 +19,7 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+#include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/version.h>
 #include <osquery/utils/macros/macros.h>
 
@@ -215,6 +216,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
   } else {
     r["watcher"] = "-1";
   }
+  r["platform_mask"] = INTEGER(static_cast<uint64_t>(kPlatformType));
 
   std::string uuid;
   r["uuid"] = (getHostUUID(uuid)) ? uuid : "";
@@ -235,7 +237,7 @@ QueryData genOsquerySchedule(QueryContext& context) {
         r["name"] = name;
         r["query"] = query.query;
         r["interval"] = INTEGER(query.interval);
-        r["blacklisted"] = (query.blacklisted) ? "1" : "0";
+        r["denylisted"] = (query.denylisted) ? "1" : "0";
         // Set default (0) values for each query if it has not yet executed.
         r["executions"] = "0";
         r["wall_time"] = "0";

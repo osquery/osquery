@@ -1,0 +1,23 @@
+VERIFICATION
+
+Verification is intended to assist the Chocolatey moderators and community
+in verifying that this package's contents are trustworthy.
+
+Package can be verified like this:
+
+  - Check that the file signing certificate is valid:
+  ```
+  PS C:\\Users\\thor> Get-AuthenticodeSignature 'C:\\Program Files\\osquery\\osqueryd\\osqueryd.exe'
+    Directory: C:\\Program Files\\osquery\\osqueryd
+
+    SignerCertificate                         Status          Path
+    -----------------                         ------          ----
+    EEA3330A4F0FAC86A3FE01F1E7D72E7A9808AC86  Valid           osqueryd.exe
+  ```
+
+  - Check that the file hash of the osqueryd.exe binary is correct:
+  ```
+  PS C:\\Users\\thor> (Get-FileHash -Algorithm sha256 'C:\\Program Files\\osquery\\osqueryd\\osqueryd.exe').Hash
+  ```
+
+  - Alternatively pull the MSI package from https://osquery.io and verify the osqueryd.exe hashes match

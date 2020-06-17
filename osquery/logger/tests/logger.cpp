@@ -29,7 +29,7 @@ DECLARE_bool(logger_status_sync);
 DECLARE_bool(logger_event_type);
 DECLARE_bool(logger_snapshot_event_type);
 DECLARE_bool(disable_logging);
-DECLARE_bool(log_numerics_as_numbers);
+DECLARE_bool(logger_numerics);
 
 class LoggerTests : public testing::Test {
  public:
@@ -191,7 +191,7 @@ TEST_F(LoggerTests, test_logger_log_status) {
   EXPECT_EQ(O_WARNING, LoggerTests::last_status.severity);
   EXPECT_GT(LoggerTests::last_status.line, 0U);
   EXPECT_EQ(warning, LoggerTests::last_status.message);
-  EXPECT_GE(now, LoggerTests::last_status.time);
+  EXPECT_GE(LoggerTests::last_status.time, now);
   EXPECT_EQ(getHostIdentifier(), LoggerTests::last_status.identifier);
 }
 
@@ -371,8 +371,8 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
   std::string expected =
       "{\"name\":\"test_query\",\"hostIdentifier\":\"unknown_test_host\","
       "\"calendarTime\":\"no_time\",\"unixTime\":0,\"epoch\":0,"
-      "\"counter\":0,\"logNumericsAsNumbers\":" +
-      std::string(FLAGS_log_numerics_as_numbers ? "true" : "false") +
+      "\"counter\":0,\"numerics\":" +
+      std::string(FLAGS_logger_numerics ? "true" : "false") +
       ",\"columns\":{\"test_column\":\"test_value\"},\"action\":\"added\"}";
   EXPECT_EQ(LoggerTests::log_lines.back(), expected);
 }
@@ -389,27 +389,27 @@ TEST_F(LoggerTests, test_logger_numeric_flag) {
   item.epoch = 0L;
   item.counter = 0L;
   item.results.added.push_back({{"test_double_column", 2.000}});
-  FLAGS_log_numerics_as_numbers = true;
+  FLAGS_logger_numerics = true;
   logQueryLogItem(item);
   EXPECT_EQ(1U, LoggerTests::log_lines.size());
 
   // Make sure the JSON output serializes the double as a double when the flag
-  // FLAGS_log_numerics_as_numbers is true (as we set it, above)
+  // FLAGS_logger_numerics is true (as we set it, above)
   std::string expected =
       "{\"name\":\"test_query\",\"hostIdentifier\":\"unknown_test_host\","
       "\"calendarTime\":\"no_time\",\"unixTime\":0,\"epoch\":0,"
-      "\"counter\":0,\"logNumericsAsNumbers\":true,\"columns\":{\"test_double_"
+      "\"counter\":0,\"numerics\":true,\"columns\":{\"test_double_"
       "column\":2.0},\"action\":\"added\"}";
   EXPECT_EQ(LoggerTests::log_lines.back(), expected);
 
-  FLAGS_log_numerics_as_numbers = false;
+  FLAGS_logger_numerics = false;
   logQueryLogItem(item);
   // Make sure the JSON output serializes the double as a double within a string
-  // when FLAGS_log_numerics_as_numbers is false (as we set it, above)
+  // when FLAGS_logger_numerics is false (as we set it, above)
   expected =
       "{\"name\":\"test_query\",\"hostIdentifier\":\"unknown_test_host\","
       "\"calendarTime\":\"no_time\",\"unixTime\":0,\"epoch\":0,"
-      "\"counter\":0,\"logNumericsAsNumbers\":false,\"columns\":{\"test_double_"
+      "\"counter\":0,\"numerics\":false,\"columns\":{\"test_double_"
       "column\":\"2.0\"},\"action\":\"added\"}";
   EXPECT_EQ(LoggerTests::log_lines.back(), expected);
 }

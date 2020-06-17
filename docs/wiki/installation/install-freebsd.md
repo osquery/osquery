@@ -1,4 +1,4 @@
-The easiest way to install osquery on FreeBSD is via the ports tree.  Check [FreshPorts](http://www.freshports.org/sysutils/osquery) for the latest version information.
+The easiest way to install osquery on FreeBSD is via the ports tree.  Check [FreshPorts](https://www.freshports.org/sysutils/osquery) for the latest version information.
 
 ```bash
 # from ports

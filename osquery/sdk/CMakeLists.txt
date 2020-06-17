@@ -6,7 +6,7 @@
 
 function(osquerySdkMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -23,7 +23,6 @@ function(generateOsquerySdkPluginsdk)
     osquery_events_eventsregistry
     osquery_experimental_eventsstream_registry
     osquery_extensions
-    osquery_killswitch
     osquery_numericmonitoring
     osquery_remote_enroll_tlsenroll
     osquery_sql

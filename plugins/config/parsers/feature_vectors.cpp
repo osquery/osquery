@@ -6,9 +6,9 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <plugins/config/parsers/feature_vectors.h>
 #include <osquery/config/config.h>
 #include <osquery/registry_factory.h>
+#include <plugins/config/parsers/feature_vectors.h>
 
 namespace osquery {
 
@@ -22,13 +22,19 @@ Status FeatureVectorsConfigParserPlugin::update(const std::string& source,
                                                 const ParserConfig& config) {
   auto fv = config.find(kFeatureVectorsRootKey);
   if (fv == config.end()) {
-    return Status();
+    // No feature_vectors key.
+    return Status::success();
+  }
+
+  if (!fv->second.doc().IsObject()) {
+    // Expect feature_vectors to be an object.
+    return Status::success();
   }
 
   auto obj = data_.getObject();
   data_.copyFrom(fv->second.doc(), obj);
   data_.add(kFeatureVectorsRootKey, obj);
-  return Status();
+  return Status::success();
 }
 
 REGISTER_INTERNAL(FeatureVectorsConfigParserPlugin,

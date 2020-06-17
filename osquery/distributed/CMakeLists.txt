@@ -5,7 +5,7 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(osqueryDistributedMain)
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -18,7 +18,7 @@ function(generateOsqueryDistributed)
   )
 
   target_link_libraries(osquery_distributed PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_core_plugins
     osquery_database
@@ -28,6 +28,16 @@ function(generateOsqueryDistributed)
   )
 
   add_test(NAME osquery_distributed_tests-test COMMAND osquery_distributed_tests-test)
+  set(distributedtests-test_env
+      "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
+      "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
+    )
+
+  set_tests_properties(
+    osquery_distributed_tests-test
+    PROPERTIES ENVIRONMENT "${distributedtests-test_env}"
+  )
 endfunction()
 
 osqueryDistributedMain()

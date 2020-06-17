@@ -8,6 +8,7 @@
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/tables.h>
 #include <osquery/tables/system/darwin/firewall.h>
 #include <osquery/utils/darwin/plist.h>
@@ -94,12 +95,17 @@ QueryData parseALFExceptionsTree(const pt::ptree& tree) {
     if (it.second.get("alias", "").length() > 0) {
       std::string path;
       auto alias_data = it.second.get<std::string>("alias", "");
+      auto status = pathFromNestedPlistAliasData(alias_data, path);
 
-      if (pathFromPlistAliasData(alias_data, path).ok()) {
-        r["path"] = path;
-        r["state"] = INTEGER(it.second.get("state", -1));
-        results.push_back(r);
+      if (!status.ok()) {
+        TLOG << "Could not parse nested plist for applications: "
+             << status.getMessage();
+        continue;
       }
+
+      r["path"] = path;
+      r["state"] = INTEGER(it.second.get("state", -1));
+      results.push_back(r);
     }
   }
 
@@ -139,31 +145,5 @@ QueryData genALFExplicitAuths(QueryContext& context) {
   }
   return parseALFExplicitAuthsTree(tree);
 }
-
-QueryData parseALFServicesTree(const pt::ptree& tree) {
-  QueryData results;
-  if (tree.count("firewall") == 0) {
-    return {};
-  }
-
-  auto& firewall_tree = tree.get_child("firewall");
-  for (const auto& it : firewall_tree) {
-    Row r;
-    r["service"] = it.first;
-    r["process"] = it.second.get("proc", "");
-    r["state"] = INTEGER(it.second.get("state", -1));
-    results.push_back(r);
-  }
-  return results;
-}
-
-QueryData genALFServices(QueryContext& context) {
-  pt::ptree tree;
-  auto s = genALFTreeFromFilesystem(tree);
-  if (!s.ok()) {
-    return {};
-  }
-  return parseALFServicesTree(tree);
-}
-}
-}
+} // namespace tables
+} // namespace osquery

@@ -14,7 +14,7 @@ function(generateOsqueryHashing)
   )
 
   target_link_libraries(osquery_hashing PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_filesystem
     osquery_utils
     osquery_utils_info

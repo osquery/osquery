@@ -6,13 +6,15 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <iomanip>
+#include <openssl/opensslv.h>
 #include <openssl/x509.h>
+
+#include <iomanip>
 #include <string>
 
 #include <osquery/core.h>
-#include <osquery/hashing/hashing.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/tables/system/darwin/keychain.h>
 #include <osquery/utils/conversions/join.h>
 
@@ -20,7 +22,8 @@ namespace osquery {
 namespace tables {
 
 const std::vector<std::string> kSystemKeychainPaths = {
-    "/System/Library/Keychains", "/Library/Keychains",
+    "/System/Library/Keychains",
+    "/Library/Keychains",
 };
 
 const std::vector<std::string> kUserKeychainPaths = {
@@ -82,14 +85,21 @@ void genAlgorithmProperties(X509* cert,
                             std::string& key,
                             std::string& sig,
                             std::string& size) {
-  int nid = 0;
-  nid = OBJ_obj2nid(cert->cert_info->key->algor->algorithm);
+  ASN1_OBJECT* ppkalg;
+  auto* pubkey = X509_get_X509_PUBKEY(cert);
+
+  if (pubkey == nullptr) {
+    return;
+  }
+
+  X509_PUBKEY_get0_param(&ppkalg, nullptr, nullptr, nullptr, pubkey);
+  int nid = OBJ_obj2nid(ppkalg);
+
   if (nid != NID_undef) {
     key = std::string(OBJ_nid2ln(nid));
 
     // Get EVP public key, to determine public key size.
-    EVP_PKEY* pkey = nullptr;
-    pkey = X509_get_pubkey(cert);
+    EVP_PKEY* pkey = X509_get_pubkey(cert);
     if (pkey != nullptr) {
       if (nid == NID_rsaEncryption || nid == NID_dsa) {
         size_t key_size = 0;
@@ -100,11 +110,14 @@ void genAlgorithmProperties(X509* cert,
       // The EVP_size for EC keys returns the maximum buffer for storing the
       // key data, it does not indicate the size/strength of the curve.
       if (nid == NID_X9_62_id_ecPublicKey) {
+// Temporary workaround for Buck compiling with an older openssl version
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
         const EC_KEY* ec_pkey = pkey->pkey.ec;
-        const EC_GROUP* ec_pkey_group = nullptr;
-        ec_pkey_group = EC_KEY_get0_group(ec_pkey);
-        int curve_nid = 0;
-        curve_nid = EC_GROUP_get_curve_name(ec_pkey_group);
+#else
+        const EC_KEY* ec_pkey = EVP_PKEY_get0_EC_KEY(pkey);
+#endif
+        const EC_GROUP* ec_pkey_group = EC_KEY_get0_group(ec_pkey);
+        int curve_nid = EC_GROUP_get_curve_name(ec_pkey_group);
         if (curve_nid != NID_undef) {
           size = std::string(OBJ_nid2ln(curve_nid));
         }
@@ -113,7 +126,7 @@ void genAlgorithmProperties(X509* cert,
     EVP_PKEY_free(pkey);
   }
 
-  nid = OBJ_obj2nid(cert->cert_info->signature->algorithm);
+  nid = X509_get_signature_nid(cert);
   if (nid != NID_undef) {
     sig = std::string(OBJ_nid2ln(nid));
   }
@@ -205,8 +218,13 @@ void genCommonName(X509* cert,
 
   ASN1_STRING* commonNameData = X509_NAME_ENTRY_get_data(commonNameEntry);
 
-  unsigned char* data = ASN1_STRING_data(commonNameData);
-  common_name = std::string(reinterpret_cast<char*>(data));
+// Temporary workaround for Buck compiling with an older openssl version
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
+  const auto* data = ASN1_STRING_data(commonNameData);
+#else
+  const auto* data = ASN1_STRING_get0_data(commonNameData);
+#endif
+  common_name = std::string(reinterpret_cast<const char*>(data));
 }
 
 std::string genHumanReadableDateTime(ASN1_TIME* time) {
@@ -325,5 +343,5 @@ std::set<std::string> getKeychainPaths() {
 
   return keychain_paths;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

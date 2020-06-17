@@ -1,6 +1,6 @@
 An osquery deployment can help you establish an infrastructural baseline, allowing you to detect malicious activity using scheduled queries.
 
-This approach will help you catch known malware ([WireLurker](http://bits.blogs.nytimes.com/2014/11/05/malicious-software-campaign-targets-apple-users-in-china/), IceFog, Imuler, etc.), and more importantly, unknown malware. Let's look at MacOS startup items for a given laptop using [osqueryi](../introduction/using-osqueryi.md):
+This approach will help you catch known malware ([WireLurker](https://bits.blogs.nytimes.com/2014/11/05/malicious-software-campaign-targets-apple-users-in-china/), IceFog, Imuler, etc.), and more importantly, unknown malware. Let's look at MacOS startup items for a given laptop using [osqueryi](../introduction/using-osqueryi.md):
 
 ```sh
 $ osqueryi
@@ -44,7 +44,7 @@ It's clear that a suspicious application called "Phone" was added to this host's
 
 ### Case-study: WireLurker
 
-In November 2015, Palo Alto Networks [discovered](http://researchcenter.paloaltonetworks.com/2014/11/wirelurker-new-era-os-x-ios-malware/) a new piece of macOS malware called Wirelurker.
+In November 2015, Palo Alto Networks [discovered](https://unit42.paloaltonetworks.com/wirelurker-new-era-os-x-ios-malware/) a new piece of macOS malware called Wirelurker.
 
 If you have osquery deployed, you can search for their static IOCs (indicators of compromise):
 

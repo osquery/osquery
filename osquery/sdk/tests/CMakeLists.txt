@@ -12,7 +12,7 @@ function(generateOsquerySdkTestsPluginsdktestsTest)
   add_osquery_executable(osquery_sdk_tests_pluginsdktests-test registry_tests.cpp)
 
   target_link_libraries(osquery_sdk_tests_pluginsdktests-test PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_extensions_implthrift
     osquery_sdk_pluginsdk
     thirdparty_googletest

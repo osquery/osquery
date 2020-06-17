@@ -51,8 +51,11 @@ class DistributedTests : public testing::Test {
     }
   }
 
-  void startServer() {
-    TLSServerRunner::start();
+  bool startServer() {
+    if (!TLSServerRunner::start()) {
+      return false;
+    }
+
     TLSServerRunner::setClientConfig();
     clearNodeKey();
 
@@ -66,6 +69,7 @@ class DistributedTests : public testing::Test {
 
     Registry::get().setActive("distributed", "tls");
     server_started_ = true;
+    return true;
   }
 
  protected:
@@ -186,18 +190,18 @@ TEST_F(DistributedTests, test_deserialize_distributed_query_result_json) {
   EXPECT_EQ(r.results[0]["foo"], "bar");
 }
 
-TEST_F(DistributedTests, DISABLED_test_workflow) {
-  startServer();
+TEST_F(DistributedTests, test_workflow) {
+  ASSERT_TRUE(startServer());
 
   auto dist = Distributed();
   auto s = dist.pullUpdates();
-  EXPECT_TRUE(s.ok());
+  ASSERT_TRUE(s.ok()) << s.getMessage();
   EXPECT_EQ(s.toString(), "OK");
 
   EXPECT_EQ(dist.getPendingQueryCount(), 2U);
   EXPECT_EQ(dist.results_.size(), 0U);
   s = dist.runQueries();
-  EXPECT_TRUE(s.ok());
+  ASSERT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 
   EXPECT_EQ(dist.getPendingQueryCount(), 0U);

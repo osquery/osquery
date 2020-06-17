@@ -25,7 +25,6 @@ function(generateOsqueryTablesTableimplementations)
 
   if(DEFINED PLATFORM_POSIX)
     target_link_libraries(osquery_tables_tableimplementations INTERFACE
-      osquery_tables_sleuthkit_sleuthkittable
       osquery_tables_yara_yaratable
       osquery_tables_lldpd_llpdtable
     )
@@ -39,7 +38,13 @@ function(generateOsqueryTablesTableimplementations)
 
   if(DEFINED PLATFORM_LINUX)
     target_link_libraries(osquery_tables_tableimplementations INTERFACE
-      osquery_tables_cloud
+      osquery_tables_cloud_aws
+    )
+  endif()
+
+  if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS)
+    target_link_libraries(osquery_tables_tableimplementations INTERFACE
+      osquery_tables_cloud_azure
     )
   endif()
 
@@ -50,6 +55,7 @@ function(generateOsqueryTablesTableimplementations)
     osquery_tables_networking
     osquery_tables_system_systemtable
     osquery_tables_utility_utilitytable
+    osquery_tables_sleuthkit_sleuthkittable
   )
 endfunction()
 

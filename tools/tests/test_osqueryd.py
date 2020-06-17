@@ -1,15 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
 #  This source code is licensed in accordance with the terms specified in
 #  the LICENSE file found in the root directory of this source tree.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import os
 import signal
@@ -150,12 +145,12 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         os.kill(daemon.pid, signal.SIGINT)
         self.assertTrue(daemon.isDead(daemon.pid, 10))
         if os.name != "nt":
-            self.assertTrue(daemon.retcode in [128 + signal.SIGINT, -2])
+            self.assertEqual(daemon.retcode, 0)
 
     @test_base.flaky
     def test_6_logger_mode(self):
         logger_path = test_base.getTestDirectory(test_base.CONFIG_DIR)
-        test_mode = 0754  # Strange mode that should never exist
+        test_mode = 0o754  # Strange mode that should never exist
         daemon = self._run_daemon(
             {
                 "disable_watchdog": True,
@@ -192,7 +187,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
             # TODO: Add ACL checks for Windows logs
             if pth.find('.log') > 0 and os.name != "nt":
                 rpath = os.path.realpath(pth)
-                mode = os.stat(rpath).st_mode & 0777
+                mode = os.stat(rpath).st_mode & 0o777
                 self.assertEqual(mode, test_mode)
 
         daemon.kill()
@@ -245,6 +240,48 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
         self.assertTrue(daemon.isAlive())
         daemon.kill()
+
+    def test_config_check_exits(self):
+        daemon = self._run_daemon({
+            "config_check": True,
+            "disable_extensions": True,
+            "disable_logging": False,
+            "disable_database": True,
+            "logger_plugin": "stdout",
+            "verbose": True,
+        })
+
+        self.assertTrue(daemon.isDead(daemon.pid, 10))
+        if os.name != "nt":
+            self.assertEqual(daemon.retcode, 0)
+
+    def test_config_dump_exits(self):
+        daemon = self._run_daemon({
+            "config_dump": True,
+            "disable_extensions": True,
+            "disable_logging": False,
+            "disable_database": True,
+            "logger_plugin": "stdout",
+            "verbose": True,
+        })
+
+        self.assertTrue(daemon.isDead(daemon.pid, 10))
+        if os.name != "nt":
+            self.assertEqual(daemon.retcode, 0)
+
+    def test_database_dump_exits(self):
+        daemon = self._run_daemon({
+            "database_dump": True,
+            "disable_extensions": True,
+            "disable_logging": False,
+            "disable_database": True,
+            "logger_plugin": "stdout",
+            "verbose": True,
+        })
+
+        self.assertTrue(daemon.isDead(daemon.pid, 10))
+        if os.name != "nt":
+            self.assertEqual(daemon.retcode, 0)
 
 if __name__ == '__main__':
     with test_base.CleanChildProcesses():

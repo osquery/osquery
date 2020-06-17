@@ -6,6 +6,10 @@
 
 function(osqueryMainMain)
   generateOsqueryMain()
+
+  if((OSQUERY_ENABLE_FUZZER_SANITIZERS OR OSQUERY_BUILD_TESTS) AND DEFINED PLATFORM_LINUX)
+    add_subdirectory("harnesses")
+  endif()
 endfunction()
 
 function(generateOsqueryMain)
@@ -29,7 +33,7 @@ function(generateOsqueryMain)
   )
 
   target_link_libraries(osquery_main PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_core
     osquery_core_plugins
@@ -41,7 +45,6 @@ function(generateOsqueryMain)
     osquery_experimental_tracing_syscallstracing
     osquery_extensions
     osquery_extensions_implthrift
-    osquery_killswitch
     osquery_logger_datalogger
     osquery_process
     osquery_numericmonitoring
@@ -61,10 +64,8 @@ function(generateOsqueryMain)
     plugins_logger_stdout
     plugins_logger_syslog
     plugins_logger_tlslogger
-    plugins_killswitch_killswitchfilesystem
-    plugins_killswitch_killswitchtls
     plugins_numericmonitoring_filesystem
-    plugins_remote_enroll_tlsenrollplugin
+    plugins_remote_enroll_tlsenroll
     specs_tables
     thirdparty_boost
   )
@@ -91,6 +92,7 @@ function(generateOsqueryMain)
       plugins_logger_awskinesis
       plugins_logger_awslogforwarder
       plugins_logger_windowseventlog
+      plugins_logger_kafkaproducer
     )
   endif()
 

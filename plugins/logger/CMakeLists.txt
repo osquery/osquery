@@ -6,7 +6,7 @@
 
 function(pluginsLoggerMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -41,9 +41,11 @@ function(generatePluginsLoggerAwsfirehose)
   enableLinkWholeArchive(plugins_logger_awsfirehose)
 
   target_link_libraries(plugins_logger_awsfirehose PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_dispatcher
     plugins_logger_awslogforwarder
+    thirdparty_aws_core
+    thirdparty_aws_firehose
   )
 
   set(public_header_files
@@ -61,12 +63,14 @@ function(generatePluginsLoggerAwskinesis)
   enableLinkWholeArchive(plugins_logger_awskinesis)
 
   target_link_libraries(plugins_logger_awskinesis PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_dispatcher
     osquery_process
     osquery_registry
     plugins_logger_awslogforwarder
+    thirdparty_aws_core
+    thirdparty_aws_kinesis
   )
 
   set(public_header_files
@@ -81,7 +85,7 @@ function(generatePluginsLoggerAwslogforwarder)
   add_osquery_library(plugins_logger_awslogforwarder INTERFACE)
 
   target_link_libraries(plugins_logger_awslogforwarder INTERFACE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils_aws
     plugins_logger_buffered
   )
@@ -101,7 +105,7 @@ function(generatePluginsLoggerBuffered)
   enableLinkWholeArchive(plugins_logger_buffered)
 
   target_link_libraries(plugins_logger_buffered PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     plugins_logger_commondeps
     osquery_utils
     osquery_utils_json
@@ -125,7 +129,7 @@ function(generatePluginsLoggerFilesystemlogger)
   enableLinkWholeArchive(plugins_logger_filesystemlogger)
 
   target_link_libraries(plugins_logger_filesystemlogger PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     plugins_logger_commondeps
     osquery_filesystem
     osquery_utils_config
@@ -141,30 +145,26 @@ endfunction()
 
 function(generatePluginsLoggerKafkaproducer)
 
-  if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_MACOS)
-    add_osquery_library(plugins_logger_kafkaproducer EXCLUDE_FROM_ALL
-      kafka_producer.cpp
-    )
+  add_osquery_library(plugins_logger_kafkaproducer EXCLUDE_FROM_ALL
+    kafka_producer.cpp
+  )
 
-    enableLinkWholeArchive(plugins_logger_kafkaproducer)
+  enableLinkWholeArchive(plugins_logger_kafkaproducer)
 
-    target_link_libraries(plugins_logger_kafkaproducer PUBLIC
-      global_cxx_settings
-      plugins_logger_commondeps
-      osquery_dispatcher
-      osquery_utils_config
-      thirdparty_librdkafka
-    )
+  target_link_libraries(plugins_logger_kafkaproducer PUBLIC
+    osquery_cxx_settings
+    plugins_logger_commondeps
+    osquery_dispatcher
+    osquery_utils_config
+    thirdparty_librdkafka
+  )
 
-    set(public_header_files
-      kafka_producer.h
-    )
+  set(public_header_files
+    kafka_producer.h
+  )
 
-    generateIncludeNamespace(plugins_logger_kafkaproducer "plugins/logger" "FILE_ONLY" ${public_header_files})
-    add_test(NAME plugins_logger_tests_kafkaproducerloggertests-test COMMAND plugins_logger_tests_kafkaproducerloggertests-test)
-  else()
-    add_osquery_library(plugins_logger_kafkaproducer INTERFACE)
-  endif()
+  generateIncludeNamespace(plugins_logger_kafkaproducer "plugins/logger" "FILE_ONLY" ${public_header_files})
+  add_test(NAME plugins_logger_tests_kafkaproducerloggertests-test COMMAND plugins_logger_tests_kafkaproducerloggertests-test)
 endfunction()
 
 function(generatePluginsLoggerStdout)
@@ -175,7 +175,7 @@ function(generatePluginsLoggerStdout)
   enableLinkWholeArchive(plugins_logger_stdout)
 
   target_link_libraries(plugins_logger_stdout PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     plugins_logger_commondeps
   )
 
@@ -196,7 +196,7 @@ function(generatePluginsLoggerSyslog)
     enableLinkWholeArchive(plugins_logger_syslog)
 
     target_link_libraries(plugins_logger_syslog PUBLIC
-      global_cxx_settings
+      osquery_cxx_settings
       plugins_logger_commondeps
     )
 
@@ -223,7 +223,7 @@ function(generatePluginsLoggerTlslogger)
   enableLinkWholeArchive(plugins_logger_tlslogger)
 
   target_link_libraries(plugins_logger_tlslogger PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     plugins_logger_commondeps
     osquery_dispatcher
     osquery_remote_serializers_serializerjson
@@ -240,10 +240,17 @@ function(generatePluginsLoggerTlslogger)
 
   add_test(NAME plugins_logger_tests_tlsloggertests-test COMMAND plugins_logger_tests_tlsloggertests-test)
 
+  set(tlsloggertests-test_env
+    "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
+    "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
+  )
+
   set_tests_properties(
     plugins_logger_tests_tlsloggertests-test
-    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    PROPERTIES ENVIRONMENT "${tlsloggertests-test_env}"
   )
+
 endfunction()
 
 function(generatePluginsLoggerWindowseventlog)
@@ -254,7 +261,7 @@ function(generatePluginsLoggerWindowseventlog)
   enableLinkWholeArchive(plugins_logger_windowseventlog)
 
   target_link_libraries(plugins_logger_windowseventlog PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     plugins_logger_commondeps
   )
 

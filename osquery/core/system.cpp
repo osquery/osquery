@@ -157,12 +157,17 @@ std::string getFqdn() {
 #endif
     return fqdn_string;
   } else {
-    unsigned long size = 256;
-    std::vector<char> fqdn(size, 0x0);
+    std::string result;
 #ifdef WIN32
-    GetComputerNameEx(ComputerNameDnsFullyQualified, fqdn.data(), &size);
+    DWORD size = 0;
+    if (0 == GetComputerNameExW(ComputerNameDnsFullyQualified, NULL, &size)) {
+      std::vector<WCHAR> fqdn(size, 0x0);
+      GetComputerNameExW(ComputerNameDnsFullyQualified, fqdn.data(), &size);
+      result = wstringToString(fqdn.data());
+    }
+
 #endif
-    return fqdn.data();
+    return result;
   }
 }
 

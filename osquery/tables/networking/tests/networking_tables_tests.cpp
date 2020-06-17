@@ -126,9 +126,9 @@ TEST_F(NetworkingTablesTests, test_parse_etc_protocols_content) {
             getEtcProtocolsExpectedResults());
 }
 
-TEST_F(NetworkingTablesTests, DISABLED_test_listening_ports) {
+TEST_F(NetworkingTablesTests, test_listening_ports) {
   auto& server = TLSServerRunner::instance();
-  server.start();
+  ASSERT_TRUE(server.start());
   auto results = SQL::selectAllFrom("listening_ports");
 
   // Expect to find a process PID for the server.

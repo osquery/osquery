@@ -6,16 +6,15 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <pwd.h>
 #include <set>
 #include <string>
-#include <sys/types.h>
 
 #include <boost/filesystem.hpp>
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/json/json.h>
 
 namespace fs = boost::filesystem;
@@ -26,18 +25,18 @@ namespace tables {
 const std::vector<std::string> kPackageKeys{
     "name", "version", "description", "license", "homepage"};
 
-void genReadJSONAndAddRow(const std::string& package, QueryData& results) {
+void genReadJSONAndAddRow(const std::string& uid,
+                          const std::string& package,
+                          QueryData& results) {
   std::string json;
   if (!readFile(package, json).ok()) {
-    LOG(WARNING) << "Could not read Atom's package.json from '" << package
-                 << "'";
+    LOG(WARNING) << "Could not read Atom package.json from '" << package << "'";
     return;
   }
 
   auto doc = JSON::newObject();
   if (!doc.fromString(json) || !doc.doc().IsObject()) {
-    LOG(WARNING) << "Could not parse Atom's package.json from " << package
-                 << "'";
+    LOG(WARNING) << "Could not parse Atom package.json from " << package << "'";
     return;
   }
 
@@ -51,27 +50,31 @@ void genReadJSONAndAddRow(const std::string& package, QueryData& results) {
   }
   // add package path manually
   r["path"] = package;
+  r["uid"] = uid;
   results.push_back(r);
 }
 
 QueryData genAtomPackages(QueryContext& context) {
   QueryData results;
+
   // find atom config directories
-  std::set<fs::path> confDirs;
-  struct passwd* pwd;
-  while ((pwd = getpwent()) != NULL) {
-    fs::path confDir{pwd->pw_dir};
-    confDir /= ".atom";
-    if (isDirectory(confDir)) {
-      confDirs.insert(confDir);
+  std::set<std::pair<std::string, fs::path>> confDirs;
+  auto users = usersFromContext(context);
+  for (const auto& row : users) {
+    auto uid = row.find("uid");
+    auto directory = row.find("directory");
+    if (directory == row.end() || uid == row.end()) {
+      continue;
     }
+    confDirs.insert({uid->second, fs::path(directory->second) / ".atom"});
   }
 
   for (const auto& confDir : confDirs) {
     std::vector<std::string> packages;
-    resolveFilePattern(confDir / "packages" / "%" / "package.json", packages);
+    resolveFilePattern(confDir.second / "packages" / "%" / "package.json",
+                       packages);
     for (const auto& package : packages) {
-      genReadJSONAndAddRow(package, results);
+      genReadJSONAndAddRow(confDir.first, package, results);
     }
   }
 

@@ -64,7 +64,7 @@ class Error final : public ErrorBase {
     return *underlyingError_;
   }
 
-  std::unique_ptr<ErrorBase> takeUnderlyingError() const {
+  std::unique_ptr<ErrorBase> takeUnderlyingError() {
     return std::move(underlyingError_);
   }
 

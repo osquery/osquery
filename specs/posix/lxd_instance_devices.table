@@ -1,0 +1,14 @@
+table_name("lxd_instance_devices")
+description("LXD instance devices information.")
+schema([
+    Column("name", TEXT, "Instance name", index=True, required=True),
+    Column("device", TEXT, "Name of the device"),
+    Column("device_type", TEXT, "Device type"),
+    Column("key", TEXT, "Device info param name"),
+    Column("value", TEXT, "Device info param value")
+])
+implementation("applications/lxd@genLxdInstanceDevices")
+examples([
+  "select * from lxd_instance_devices where name = 'hello'"
+])
+

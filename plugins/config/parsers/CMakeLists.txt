@@ -5,7 +5,7 @@
 # the LICENSE file found in the root directory of this source tree.
 
 function(pluginsConfigParsersMain)
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -29,7 +29,7 @@ function(generatePluginsConfigParsers)
   enableLinkWholeArchive(plugins_config_parsers)
 
   target_link_libraries(plugins_config_parsers PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_headers
     osquery_config
     osquery_core

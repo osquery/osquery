@@ -7,8 +7,14 @@
  */
 
 #include <boost/filesystem.hpp>
+#include <thread>
+
+#ifdef LINUX
+#include <malloc.h>
+#endif
 
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/utils/status/status.h>
@@ -21,6 +27,23 @@
 #include <yara.h>
 
 namespace osquery {
+
+// After a large scan of many files, the memory allocation could be
+// substantial.  free() may not return it to operating system, but
+// rather keep it around in anticipation that app will reallocate.
+// Call malloc_trim() on linux to try to convince it to release.
+#ifdef LINUX
+FLAG(bool,
+     yara_malloc_trim,
+     true,
+     "Call malloc_trim() after YARA scans (linux)");
+#endif
+FLAG(uint32,
+     yara_delay,
+     50,
+     "Time in ms to sleep after scan of each file (default 50) to reduce "
+     "memory spikes");
+
 namespace tables {
 
 void doYARAScan(YR_RULES* rules,
@@ -91,8 +114,14 @@ QueryData genYara(QueryContext& context) {
             resolveFilePattern(pattern, patterns, GLOB_FILES | GLOB_NO_CANON);
         if (status.ok()) {
           for (const auto& resolved : patterns) {
+            struct stat sb;
+            if (0 != stat(resolved.c_str(), &sb)) {
+              continue; // failed to stat
+            }
+
             // Check that each resolved path is readable.
-            if (isReadable(resolved)) {
+            if (isReadable(resolved) &&
+                !yaraShouldSkipFile(resolved, sb.st_mode)) {
               paths.insert(resolved);
             }
           }
@@ -129,11 +158,21 @@ QueryData genYara(QueryContext& context) {
     for (const auto& group : groups) {
       if (rules.count(group) > 0) {
         doYARAScan(rules[group], path.c_str(), results, group, group);
+
+        // sleep between each file to help smooth out malloc spikes
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(FLAGS_yara_delay));
       }
     }
   }
 
+#ifdef LINUX
+  if (osquery::FLAGS_yara_malloc_trim) {
+    malloc_trim(0);
+  }
+#endif
+
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

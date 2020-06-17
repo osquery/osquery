@@ -1,0 +1,20 @@
+table_name("ntfs_journal_events")
+description("Track time/action changes to files specified in configuration data.")
+schema ([
+    Column("action", TEXT, "Change action (Write, Delete, etc)"),
+    Column("category", TEXT, "The category that the event originated from"),
+    Column("old_path", TEXT, "Old path (renames only)"),
+    Column("path", TEXT, "Path"),
+    Column("record_timestamp", TEXT, "Journal record timestamp"),
+    Column("record_usn", TEXT, "The update sequence number that identifies the journal record"),
+    Column("node_ref_number", TEXT, "The ordinal that associates a journal record with a filename"),
+    Column("parent_ref_number", TEXT, "The ordinal that associates a journal record with a filename's parent directory"),
+    Column("drive_letter", TEXT, "The drive letter identifying the source journal"),
+    Column("file_attributes", TEXT, "File attributes"),
+    Column("partial", BIGINT, "Set to 1 if either path or old_path only contains the file or folder name"),
+    Column("time", BIGINT, "Time of file event"),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+
+attributes(event_subscriber=True)
+implementation("ntfs_journal_events@NTFSEventSubscriber::genTable")

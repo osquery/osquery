@@ -139,6 +139,12 @@ const BOMVar* BOM::getVariable(size_t* offset) const {
   }
 
   *offset += sizeof(BOMVar) + var->length;
+  if (size_ < vars_offset_ + *offset) {
+    // Next offset overflows the variable list.
+    *offset = 0;
+    return nullptr;
+  }
+
   return var;
 }
 

@@ -6,7 +6,7 @@
 
 function(osqueryDatabaseMain)
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
 
@@ -19,7 +19,7 @@ function(generateOsqueryDatabase)
   )
 
   target_link_libraries(osquery_database PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_core
     osquery_utils
     osquery_utils_conversions

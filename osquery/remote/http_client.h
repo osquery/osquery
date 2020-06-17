@@ -47,14 +47,12 @@
 
 #include <osquery/remote/uri.h>
 
-namespace boost_system = boost::system;
-namespace boost_asio = boost::asio;
 namespace beast_http = boost::beast::http;
 
 namespace osquery {
 namespace http {
 
-typedef boost_asio::ssl::stream<boost_asio::ip::tcp::socket&> ssl_stream;
+typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket&> ssl_stream;
 typedef beast_http::request<beast_http::string_body> beast_http_request;
 typedef beast_http::response<beast_http::string_body> beast_http_response;
 typedef beast_http::response_parser<beast_http::string_body>
@@ -154,11 +152,6 @@ class Client {
       return *this;
     }
 
-    Options& openssl_sni_hostname(std::string const& sni_h) {
-      sni_hostname_ = sni_h;
-      return *this;
-    }
-
     Options& proxy_hostname(std::string const& prxy_h) {
       proxy_hostname_ = prxy_h;
       return *this;
@@ -180,11 +173,15 @@ class Client {
              (client_certificate_file_ == ropts.client_certificate_file_) &&
              (client_private_key_file_ == ropts.client_private_key_file_) &&
              (ciphers_ == ropts.ciphers_) &&
-             (sni_hostname_ == ropts.sni_hostname_) &&
-             (ssl_options_ == ropts.ssl_options_) &&
-             (always_verify_peer_ == ropts.always_verify_peer_) &&
              (proxy_hostname_ == ropts.proxy_hostname_) &&
-             (keep_alive_ == ropts.keep_alive_);
+             (remote_hostname_ == ropts.remote_hostname_) &&
+             (remote_port_ == ropts.remote_port_) &&
+             (ssl_options_ == ropts.ssl_options_) &&
+             (timeout_ == ropts.timeout_) &&
+             (always_verify_peer_ == ropts.always_verify_peer_) &&
+             (follow_redirects_ == ropts.follow_redirects_) &&
+             (keep_alive_ == ropts.keep_alive_) &&
+             (ssl_connection_ == ropts.ssl_connection_);
     }
 
    private:
@@ -193,7 +190,6 @@ class Client {
     boost::optional<std::string> client_certificate_file_;
     boost::optional<std::string> client_private_key_file_;
     boost::optional<std::string> ciphers_;
-    boost::optional<std::string> sni_hostname_;
     boost::optional<std::string> proxy_hostname_;
     boost::optional<std::string> remote_hostname_;
     boost::optional<std::string> remote_port_;
@@ -276,7 +272,7 @@ class Client {
   Response sendHTTPRequest(Request& req);
 
   /// Handles HTTP request timeout.
-  void timeoutHandler(boost_system::error_code const& ec);
+  void timeoutHandler(boost::system::error_code const& ec);
 
   /**
    * @brief Handles response if requests completes or aborted due to timeout.
@@ -285,39 +281,58 @@ class Client {
    * connections. This can happen if a remote server did not call shutdown on
    * the TLS connection.
    */
-  void postResponseHandler(boost_system::error_code const& ec);
+  void postResponseHandler(boost::system::error_code const& ec);
 
   /// Callback to be provided during async_resolve call.
-  void resolveHandler(const boost::system::error_code& ec,
-                      boost_asio::ip::tcp::resolver::results_type results);
+  void resolveHandler(boost::system::error_code const& ec,
+                      boost::asio::ip::tcp::resolver::results_type results);
 
   /// Callback to be provided during async_connect call.
-  void connectHandler(const boost::system::error_code& ec,
-                      const boost_asio::ip::tcp::endpoint&);
+  void connectHandler(boost::system::error_code const& ec,
+                      boost::asio::ip::tcp::endpoint const&);
 
   /// Callback to be provided during async_handshake call.
-  void handshakeHandler(const boost::system::error_code& ec);
+  void handshakeHandler(boost::system::error_code const& ec);
 
   /// Callback to be provided during async_write call.
-  void writeHandler(boost_system::error_code const& ec, size_t);
+  void writeHandler(boost::system::error_code const& ec, size_t);
 
   /// Callback to be provided during async_read call.
-  void readHandler(boost_system::error_code const& ec, size_t);
+  void readHandler(boost::system::error_code const& ec, size_t);
 
-  bool isSocketOpen() {
-    return sock_.is_open();
-  }
+  /// Check if the socket is open.
+  bool isSocketOpen();
 
+  /// If the socket is open, request a shutdown and close.
   void closeSocket();
+
+  /**
+   * @brief Wrap calls to boost::beast async functions.
+   *
+   * callNetworkOperation is a wrapper function which wraps following tasks
+   * 1. Start the timer for network call timeout.
+   * 2. Call provided call back which is actually an async network call.
+   * 3. Wait for timer and async network call simultaneously.
+   *
+   * This function sets ec_ in case of boost io service returns with an error.
+   */
+  void callNetworkOperation(std::function<void()> callback);
+
+  /**
+   * @brief Used in callbacks to cancel timers and set ec_.
+   *
+   * Note that one side-effect is ec_ will be overwritten.
+   */
+  void cancelTimerAndSetError(boost::system::error_code const& ec);
 
  private:
   Options client_options_;
-  boost_asio::io_context ioc_;
-  boost_asio::ip::tcp::resolver r_;
-  boost_asio::ip::tcp::socket sock_;
-  boost_asio::deadline_timer timer_;
+  boost::asio::io_context ioc_;
+  boost::asio::ip::tcp::resolver r_;
+  boost::asio::ip::tcp::socket sock_;
+  boost::asio::deadline_timer timer_;
   std::shared_ptr<ssl_stream> ssl_sock_;
-  boost_system::error_code ec_;
+  boost::system::error_code ec_;
   bool new_client_options_{true};
 };
 
@@ -511,5 +526,5 @@ class HTTP_Response<T>::Headers {
  private:
   T* resp_;
 };
-}
-}
+} // namespace http
+} // namespace osquery

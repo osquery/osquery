@@ -70,6 +70,16 @@ Status serializeQueryData(const QueryDataTyped& q,
                           bool asNumeric);
 
 /**
+ * @brief Serialize a QueryData object into a JSON document.
+ *
+ * @param q the QueryData to serialize.
+ * @param doc [output] the output JSON document.
+ *
+ * @return Status indicating the success or failure of the operation.
+ */
+Status serializeQueryDataJSON(const QueryData& q, JSON& doc);
+
+/**
  * @brief Serialize a QueryData object into a JSON string.
  *
  * @param q the QueryData to serialize.
@@ -100,6 +110,8 @@ Status deserializeQueryData(const rapidjson::Value& arr, QueryDataTyped& qd);
 
 /// Inverse of serializeQueryData, convert JSON to QueryDataSet.
 Status deserializeQueryData(const rapidjson::Value& arr, QueryDataSet& qd);
+
+Status deserializeQueryDataJSON(const JSON& doc, QueryData& qd);
 
 /// Inverse of serializeQueryDataJSON, convert a JSON string to QueryData.
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd);

@@ -9,6 +9,9 @@
 #pragma once
 
 #include <osquery/events.h>
+#include <osquery/utils/mutex.h>
+
+#include <set>
 
 namespace osquery {
 
@@ -36,6 +39,7 @@ class OpenBSMConsumerRunner;
 class OpenBSMEventPublisher
     : public EventPublisher<OpenBSMSubscriptionContext, OpenBSMEventContext> {
   DECLARE_PUBLISHER("openbsm");
+
  public:
   Status setUp() override;
 
@@ -43,6 +47,7 @@ class OpenBSMEventPublisher
 
   void tearDown() override;
 
+  /// Poll the audit descriptor until the publisher is interrupted.
   Status run() override;
 
   OpenBSMEventPublisher(const std::string& name = "OpenBSMEventPublisher")
@@ -55,9 +60,21 @@ class OpenBSMEventPublisher
   }
 
  private:
-  FILE* audit_pipe_ = nullptr;
+  /// Dequeue from the audit descriptor when data is available.
+  void acquireMessages();
+
+  Status configureAuditPipe();
+
   /// Apply normal subscription to event matching logic.
   bool shouldFire(const OpenBSMSubscriptionContextRef& mc,
                   const OpenBSMEventContextRef& ec) const override;
+
+ private:
+  FILE* audit_pipe_{nullptr};
+  Mutex audit_pipe_mutex_;
+
+  /// Total set of event IDs from subscriptions.
+  std::set<size_t> event_ids_;
+  Mutex event_ids_mutex_;
 };
 } // namespace osquery

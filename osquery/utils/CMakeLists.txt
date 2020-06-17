@@ -6,6 +6,7 @@
 
 function(osqueryUtilsMain)
   add_subdirectory("aws")
+  add_subdirectory("azure")
   add_subdirectory("caches")
   add_subdirectory("system")
   add_subdirectory("status")
@@ -20,7 +21,7 @@ function(osqueryUtilsMain)
   add_subdirectory("versioning")
   add_subdirectory("schemer")
 
-  if(BUILD_TESTING)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsUtilstestsTest()
   endif()
 
@@ -47,7 +48,7 @@ function(generateOsqueryUtils)
   add_osquery_library(osquery_utils_attribute INTERFACE)
 
   target_link_libraries(osquery_utils PUBLIC
-    global_cxx_settings
+    osquery_cxx_settings
     thirdparty_glog
     osquery_logger
     osquery_utils_config
@@ -98,11 +99,18 @@ function(generateOsqueryUtilsUtilstestsTest)
     tests/scope_guard.cpp
   )
 
+  if(DEFINED PLATFORM_WINDOWS)
+    list(APPEND source_files
+      tests/windows/env.cpp
+    )
+  endif()
+
   add_osquery_executable(osquery_utils_utilstests-test ${source_files})
 
   target_link_libraries(osquery_utils_utilstests-test PRIVATE
-    global_cxx_settings
+    osquery_cxx_settings
     osquery_utils
+    osquery_utils_system_env
     thirdparty_googletest
   )
 endfunction()
