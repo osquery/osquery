@@ -223,8 +223,8 @@ class Client {
     }
   }
 
-  Options& options() {
-    return client_options_;
+  void unsetProxy() {
+    client_options_.proxy_hostname_ = boost::none;
   }
 
   /// HTTP put request method.

@@ -19,6 +19,7 @@
 #include <string>
 
 #include <boost/property_tree/ini_parser.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <aws/core/Aws.h>
@@ -140,7 +141,7 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
   http::Client client(TLSTransport().getInternalOptions());
   if (uri.GetAuthority() == kEc2LocalAuthority) {
     // Do not use the osquery system proxy for requests to the local authorty.
-    client.options().proxy_hostname = "";
+    client.unsetProxy();
   }
   http::Request req(url);
 
@@ -391,27 +392,21 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
     options.timeout(3);
     http::Client client(options);
 
-    auto doc = JSON::newObject();
     try {
       http::Response res = client.get(req);
       if (res.status() == 200) {
-        doc.fromString(res.body());
+        pt::ptree tree;
+        std::stringstream ss(res.body());
+        pt::read_json(ss, tree);
+        cached_id = tree.get<std::string>("instanceId", ""),
+        cached_region = tree.get<std::string>("region", ""),
+        VLOG(1) << "EC2 instance ID: " << cached_id
+                << ". Region: " << cached_region;
       }
     } catch (const std::system_error& e) {
       // Assume that this is not EC2 instance
       VLOG(1) << "Error getting EC2 instance information: " << e.what();
     }
-
-    if (doc.doc().IsObject()) {
-      if (doc.doc().HasMember("instanceId") && doc.doc()["instanceId"].IsString()) {
-        cached_id = doc.doc()["instanceId"].GetString();
-      }
-      if (doc.doc().HasMember("region") && doc.doc()["region"].IsString()) {
-        cached_region = doc.doc()["region"].GetString();
-      }
-    }
-
-    VLOG(1) << "EC2 instance ID: " << cached_id << " Region: " << cached_region;
     checked = true;
   });
 
@@ -498,24 +493,33 @@ Status getAWSRegion(std::string& region, bool sts) {
 
 Status appendLogTypeToJson(const std::string& log_type, std::string& log) {
   if (log_type.empty()) {
-    return Status::failure("log_type is empty");
+    return Status(1, "log_type is empty");
   }
 
   if (log.empty()) {
-    return Status::failure("original JSON is empty");
+    return Status(1, "original JSON is empty");
   }
 
-  auto doc = JSON::newObject();
-  if (!doc.fromString(log)) {
-    return Status::failure("JSON deserialization error");
+  pt::ptree params;
+  try {
+    std::stringstream input;
+    input << log;
+    pt::read_json(input, params);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1,
+                  std::string("JSON deserialization exception: ") + e.what());
   }
 
-  doc.addCopy("log_type", log_type);
-  std::string result;
-  if (!doc.toString(result).ok()) {
-    return Status::failure("JSON serialization error");
+  params.put<std::string>("log_type", log_type);
+
+  std::ostringstream output;
+  try {
+    pt::write_json(output, params, false);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1, std::string("JSON serialization exception: ") + e.what());
   }
-  log = std::move(result);
+
+  log = output.str();
 
   // Get rid of newline
   if (!log.empty()) {
