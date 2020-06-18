@@ -9,9 +9,7 @@ function(osqueryTablesCloudMain)
     generateOsqueryTablesCloudAws()
   endif()
 
-  if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS)
-    generateOsqueryTablesCloudAzure()
-  endif()
+  generateOsqueryTablesCloudAzure()
 endfunction()
 
 function(generateOsqueryTablesCloudAws)
