@@ -140,7 +140,7 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
   http::Client client(TLSTransport().getInternalOptions());
   if (uri.GetAuthority() == kEc2LocalAuthority) {
     // Do not use the osquery system proxy for requests to the local authorty.
-    client.options.proxy_hostname = "";
+    client.options().proxy_hostname = "";
   }
   http::Request req(url);
 
