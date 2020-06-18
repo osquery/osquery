@@ -42,11 +42,9 @@ function(generateOsqueryTablesTableimplementations)
     )
   endif()
 
-  if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS)
-    target_link_libraries(osquery_tables_tableimplementations INTERFACE
-      osquery_tables_cloud_azure
-    )
-  endif()
+  target_link_libraries(osquery_tables_tableimplementations INTERFACE
+    osquery_tables_cloud_azure
+  )
 
   target_link_libraries(osquery_tables_tableimplementations INTERFACE
     osquery_tables_applications
