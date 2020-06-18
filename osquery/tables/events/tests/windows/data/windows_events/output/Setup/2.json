@@ -1,5 +1,5 @@
 {
-    "osquery_time": "1592433522",
+    "osquery_time": "1592478128",
     "datetime": "2020-06-09T20:48:38.2768166Z",
     "source": "Setup",
     "provider_name": "Microsoft-Windows-Servicing",
@@ -7,6 +7,6 @@
     "event_id": "2",
     "task_id": "1",
     "level": "0",
-    "keywords": "9223372036854775808",
+    "keywords": "0x8000000000000000",
     "data": "{\"Data\":\"\"}"
 }

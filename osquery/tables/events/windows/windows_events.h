@@ -33,7 +33,7 @@ class WindowsEventSubscriber
     std::int64_t task_id{0U};
     std::int64_t level{0U};
 
-    std::uint64_t keywords{0U};
+    std::string keywords;
     std::string data;
   };
 

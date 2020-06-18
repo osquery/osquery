@@ -1,5 +1,5 @@
 {
-    "osquery_time": "1592433522",
+    "osquery_time": "1592478128",
     "datetime": "2020-06-12T15:26:37.1614447Z",
     "source": "Security",
     "provider_name": "Microsoft-Windows-Eventlog",
@@ -7,6 +7,6 @@
     "event_id": "1101",
     "task_id": "101",
     "level": "2",
-    "keywords": "4620693217682128896",
+    "keywords": "0x4020000000000000",
     "data": "{\"Data\":\"\"}"
 }

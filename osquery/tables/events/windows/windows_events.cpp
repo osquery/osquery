@@ -161,22 +161,9 @@ Status WindowsEventSubscriber::processEventObject(
         "valid");
   }
 
-  auto string_keywords = event_object.get("Event.System.Keywords", "");
-  if (string_keywords.empty()) {
-    output.keywords = 0;
-
-  } else {
-    char* expected_null_term{nullptr};
-    output.keywords =
-        std::strtoull(string_keywords.c_str(), &expected_null_term, 0);
-
-    if (expected_null_term == nullptr || *expected_null_term != 0) {
-      return Status::failure(
-          "Invalid Windows event object: the System.Keywords tag is not a "
-          "valid integer value: " +
-          string_keywords);
-    }
-  }
+  // These values will easily go above what an std::int64_t can represent, and
+  // sqlite does not have an unsigned version for sqlite3_result_int64
+  output.keywords = event_object.get("Event.System.Keywords", "");
 
   auto event_data_node_opt = event_object.get_child_optional("Event.EventData");
   boost::property_tree::ptree event_data;
@@ -267,7 +254,7 @@ void WindowsEventSubscriber::generateRow(Row& row, const Event& windows_event) {
   row["eventid"] = INTEGER(windows_event.event_id);
   row["task"] = INTEGER(windows_event.task_id);
   row["level"] = INTEGER(windows_event.level);
-  row["keywords"] = INTEGER(windows_event.keywords);
+  row["keywords"] = TEXT(windows_event.keywords);
   row["data"] = TEXT(windows_event.data);
 }
 } // namespace osquery

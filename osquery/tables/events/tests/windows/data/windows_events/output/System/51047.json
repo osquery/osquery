@@ -1,5 +1,5 @@
 {
-    "osquery_time": "1592433522",
+    "osquery_time": "1592478128",
     "datetime": "2020-06-05T22:14:59.1722183Z",
     "source": "System",
     "provider_name": "Microsoft-Windows-DHCPv6-Client",
@@ -7,6 +7,6 @@
     "event_id": "51047",
     "task_id": "4",
     "level": "4",
-    "keywords": "2305843009213693952",
+    "keywords": "0x2000000000000000",
     "data": "{\"Data\":{\"DwordVal\":\"1\"}}"
 }

@@ -1,5 +1,5 @@
 {
-    "osquery_time": "1592433522",
+    "osquery_time": "1592478128",
     "datetime": "2020-06-05T13:25:27.0083795Z",
     "source": "System",
     "provider_name": "Service Control Manager",
@@ -7,6 +7,6 @@
     "event_id": "7023",
     "task_id": "0",
     "level": "2",
-    "keywords": "9259400833873739776",
+    "keywords": "0x8080000000000000",
     "data": "{\"Data\":{\"param1\":\"netprofm\",\"param2\":\"%%21\"}}"
 }

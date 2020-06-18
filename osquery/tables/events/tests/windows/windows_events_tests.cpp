@@ -135,10 +135,8 @@ TEST_F(WindowsEventsTests, test_recorded_events) {
 
       EXPECT_EQ(windows_event.task_id, expected_event_data.get<int>("task_id"));
       EXPECT_EQ(windows_event.level, expected_event_data.get<int>("level"));
-
-      auto string_keywords = expected_event_data.get<std::string>("keywords");
-      auto int_keywords = std::strtoull(string_keywords.c_str(), nullptr, 10);
-      EXPECT_EQ(windows_event.keywords, int_keywords);
+      EXPECT_EQ(windows_event.keywords,
+                expected_event_data.get<std::string>("keywords"));
 
       EXPECT_EQ(windows_event.data,
                 expected_event_data.get<std::string>("data"));
@@ -176,7 +174,7 @@ TEST_F(WindowsEventsTests, row_generation) {
     3,
 
     // keywords
-    4,
+    "4",
 
     "data"
   };
