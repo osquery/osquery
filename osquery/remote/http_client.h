@@ -223,6 +223,10 @@ class Client {
     }
   }
 
+  Options& options() {
+    return client_options_;
+  }
+
   /// HTTP put request method.
   Response put(Request& req,
                std::string const& body,
