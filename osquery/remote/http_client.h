@@ -52,6 +52,9 @@ namespace beast_http = boost::beast::http;
 namespace osquery {
 namespace http {
 
+/// Authority address used by cloud metadata services (e.g., EC2, Azure).
+extern const std::string kInstanceMetadataAuthority;
+
 typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket&> ssl_stream;
 typedef beast_http::request<beast_http::string_body> beast_http_request;
 typedef beast_http::response<beast_http::string_body> beast_http_response;
@@ -221,10 +224,6 @@ class Client {
     if (new_client_options_) {
       client_options_ = opts;
     }
-  }
-
-  Options& options() {
-    return client_options_;
   }
 
   /// HTTP put request method.

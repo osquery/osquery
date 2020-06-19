@@ -80,6 +80,13 @@ FLAG(string,
      "",
      "Proxy password for use in AWS client config");
 
+/// EC2 instance latestmetadata URL
+const std::string kEc2MetadataUrl =
+    "http://" + http::kInstanceMetadataAuthority + "/latest/";
+
+/// Hypervisor UUID file
+const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
+
 /// Map of AWS region name to AWS::Region enum.
 static const std::set<std::string> kAwsRegions = {"us-east-1",
                                                   "us-west-1",
@@ -139,10 +146,6 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
   Aws::String url = uri.GetURIString();
 
   http::Client client(TLSTransport().getInternalOptions());
-  if (uri.GetAuthority() == kEc2LocalAuthority) {
-    // Do not use the osquery system proxy for requests to the local authorty.
-    client.options().proxy_hostname("");
-  }
   http::Request req(url);
 
   for (const auto& requestHeader : request.GetHeaders()) {

@@ -14,6 +14,8 @@
 namespace osquery {
 namespace http {
 
+const std::string kInstanceMetadataAuthority = "169.254.169.254";
+
 const std::string kHTTPSDefaultPort{"443"};
 const std::string kHTTPDefaultPort{"80"};
 const std::string kProxyDefaultPort{"3128"};
@@ -318,6 +320,10 @@ bool Client::initHTTPRequest(Request& req) {
   if (req.remoteHost()) {
     std::string hostname = *req.remoteHost();
     std::string port;
+
+    if (hostname == kInstanceMetadataAuthority) {
+      client_options_.proxy_hostname_ = boost::none;
+    }
 
     if (req.remotePort()) {
       port = *req.remotePort();

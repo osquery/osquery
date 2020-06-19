@@ -26,7 +26,8 @@ namespace osquery {
 
 // 2018-02-01 is supported across all Azure regions, according to MS.
 const std::string kAzureMetadataEndpoint =
-    "http://169.254.169.254/metadata/instance/compute?api-version=2018-02-01";
+    "http://" + http::kInstanceMetadataAuthority +
+    "/metadata/instance/compute?api-version=2018-02-01";
 
 // 3 seconds should be more than enough time for the metadata endpoint to
 // respond.

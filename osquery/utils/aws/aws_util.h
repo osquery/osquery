@@ -37,14 +37,11 @@ namespace osquery {
 
 using RegionName = const char* const;
 
-/// EC2 instance authority.
-const std::string kEc2LocalAuthority = "169.254.169.254";
-
 /// EC2 instance latestmetadata URL
-const std::string kEc2MetadataUrl = "http://" + kEc2LocalAuthority + "/latest/";
+extern const std::string kEc2MetadataUrl;
 
 /// Hypervisor UUID file
-const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
+extern const std::string kHypervisorUuid;
 
 /**
  * @brief Client factory for the Osquery HTTP client
