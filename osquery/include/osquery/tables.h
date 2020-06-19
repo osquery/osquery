@@ -579,6 +579,9 @@ struct QueryContext {
   /// Check if any of the given columns is used by the query
   bool isAnyColumnUsed(std::initializer_list<std::string> colNames) const;
 
+  /// Check if this is a star-select or similar.
+  bool defaultColumnsUsed() const;
+
   inline bool isAnyColumnUsed(UsedColumnsBitset desiredBitset) const {
     return !colsUsedBitset || (*colsUsedBitset & desiredBitset).any();
   }

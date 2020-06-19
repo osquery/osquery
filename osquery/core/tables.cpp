@@ -15,6 +15,8 @@
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/tryto.h>
 
+#include <climits>
+
 namespace osquery {
 
 FLAG(bool, disable_caching, false, "Disable scheduled query caching");
@@ -25,6 +27,14 @@ size_t TablePlugin::kCacheInterval = 0;
 size_t TablePlugin::kCacheStep = 0;
 
 #define kDisableRowId "WITHOUT ROWID"
+
+// Columns used bitmask
+// https://stackoverflow.com/questions/1392059/algorithm-to-generate-bit-mask
+template <typename R>
+static constexpr R bitmask(unsigned int const onecount) {
+  return static_cast<R>(-(onecount != 0)) &
+         (static_cast<R>(-1) >> ((sizeof(R) * CHAR_BIT) - onecount));
+}
 
 Status TablePlugin::addExternal(const std::string& name,
                                 const PluginResponse& response) {
@@ -185,7 +195,7 @@ PluginResponse TablePlugin::routeInfo() const {
 }
 
 static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
-  if (!ctx.useCache()) {
+  if (!ctx.useCache() || !ctx.defaultColumnsUsed()) {
     // The query execution did not request use of the warm cache.
     return false;
   }
@@ -506,6 +516,11 @@ bool QueryContext::isAnyColumnUsed(
     }
   }
   return false;
+}
+
+bool QueryContext::defaultColumnsUsed() const {
+  auto mask = bitmask<uint64_t>(table_->columns.size());
+  return !colsUsedBitset || *colsUsedBitset == mask;
 }
 
 void QueryContext::useCache(bool use_cache) {
