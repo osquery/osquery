@@ -911,6 +911,7 @@ class TablePlugin : public Plugin {
   FRIEND_TEST(VirtualTableTests, test_tableplugin_statement);
   FRIEND_TEST(VirtualTableTests, test_indexing_costs);
   FRIEND_TEST(VirtualTableTests, test_table_results_cache);
+  FRIEND_TEST(VirtualTableTests, test_table_results_cache_colcheck);
   FRIEND_TEST(VirtualTableTests, test_yield_generator);
 };
 

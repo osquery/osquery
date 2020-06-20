@@ -577,12 +577,19 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
   EXPECT_EQ(results.size(), 1U);
   EXPECT_EQ(cache->generates_, 3U);
 
-  // Run the query again, the virtual table cache will be returned.
+  // Run the query again, but select all columns explicitly.
+  results.clear();
+  statement = "SELECT i, d from table_cache;";
+  queryInternal(statement, results, dbc);
+  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(cache->generates_, 3U);
+
+  // Run the query again, but do not star-select.
   results.clear();
   statement = "SELECT i from table_cache;";
   queryInternal(statement, results, dbc);
   EXPECT_EQ(results.size(), 1U);
-  EXPECT_EQ(cache->generates_, 3U);
+  EXPECT_EQ(cache->generates_, 4U);
 
   // Now with constraints that invalidate the cache results.
   results.clear();
@@ -590,7 +597,7 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
   queryInternal(statement, results, dbc);
   EXPECT_EQ(results.size(), 1U);
   // The table should NOT have used the cache.
-  EXPECT_EQ(cache->generates_, 4U);
+  EXPECT_EQ(cache->generates_, 5U);
 }
 
 TEST_F(VirtualTableTests, test_table_results_cache_colcheck) {
@@ -1119,8 +1126,8 @@ TEST_F(VirtualTableTests, test_used_columns_default) {
     auto status = queryInternal("SELECT * FROM colsUsedDefault", results, dbc);
     EXPECT_TRUE(status.ok());
     ASSERT_EQ(results.size(), 1U);
-    EXPECT_EQ(results[0].find("col1"), "value1");
-    EXPECT_EQ(results[0].find("col2"), "value2");
+    EXPECT_EQ(results[0]["col1"], "value1");
+    EXPECT_EQ(results[0]["col2"], "value2");
   }
 
   {
@@ -1129,8 +1136,8 @@ TEST_F(VirtualTableTests, test_used_columns_default) {
         queryInternal("SELECT col1 FROM colsUsedDefault", results, dbc);
     EXPECT_TRUE(status.ok());
     ASSERT_EQ(results.size(), 1U);
-    EXPECT_EQ(results[0].find("col1"), results[0].end());
-    EXPECT_EQ(results[0].find("col2"), results[0].end());
+    EXPECT_TRUE(results[0]["col1"].empty());
+    EXPECT_TRUE(results[0]["col2"].empty());
   }
 }
 
