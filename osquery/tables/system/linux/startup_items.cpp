@@ -21,6 +21,10 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
+const std::vector<std::string> systemItemPaths = {"/etc/xdg/autostart/"};
+
+const std::vector<std::string> systemScriptPaths = {"/etc/init.d/"};
+
 void genAutoStartItems(const std::string& sysdir, QueryData& results) {
   try {
     fs::directory_iterator it((fs::path(sysdir))), end;
@@ -48,7 +52,7 @@ void genAutoStartItems(const std::string& sysdir, QueryData& results) {
       r["source"] = sysdir;
 
       auto username = osquery::split(sysdir, "/");
-      if (username.size() > 1) {
+      if (username.size() > 1 && username[0] == "home") {
         r["username"] = username[1];
       }
       results.push_back(r);
@@ -70,7 +74,7 @@ void genAutoStartScripts(const std::string& sysdir, QueryData& results) {
       r["status"] = "enabled";
       r["source"] = sysdir;
       auto username = osquery::split(sysdir, "/");
-      if (username.size() > 1) {
+      if (username.size() > 1 && username[0] == "home") {
         r["username"] = username[1];
       }
       results.push_back(r);
@@ -82,14 +86,23 @@ void genAutoStartScripts(const std::string& sysdir, QueryData& results) {
 
 QueryData genStartupItems(QueryContext& context) {
   QueryData results;
-  // gen autostart
-  // gen autostart scripts
+
+  // User specific
   for (const auto& dir : getHomeDirectories()) {
     auto itemsDir = dir / "/.config/autostart/";
     auto scriptsDir = dir / "/.config/autostart-scripts/";
     genAutoStartItems(itemsDir.string(), results);
     genAutoStartScripts(scriptsDir.string(), results);
   }
+
+  // System wide
+  for (const auto& dir : systemScriptPaths) {
+    genAutoStartScripts(dir, results);
+  }
+  for (const auto& dir : systemItemPaths) {
+    genAutoStartItems(dir, results);
+  }
+
   return results;
 }
 
