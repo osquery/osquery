@@ -6,11 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-// clang-format off
-// Keep it on top of all other includes to fix double include WinSock.h header file
-// which is windows specific boost build problem
 #include <osquery/remote/http_client.h>
-// clang-format on
 
 #include <string>
 

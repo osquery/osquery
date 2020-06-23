@@ -319,6 +319,10 @@ bool Client::initHTTPRequest(Request& req) {
     std::string hostname = *req.remoteHost();
     std::string port;
 
+    if (hostname == kInstanceMetadataAuthority) {
+      client_options_.proxy_hostname_ = boost::none;
+    }
+
     if (req.remotePort()) {
       port = *req.remotePort();
     } else if (req.protocol() && (*req.protocol()).compare("https") == 0) {
