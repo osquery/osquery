@@ -97,6 +97,8 @@ function(generateOsqueryTablesEventsEventstable)
   if(DEFINED PLATFORM_WINDOWS)
     set(platform_public_header_files
       windows/ntfs_journal_events.h
+      windows/powershell_events.h
+      windows/windows_events.h
     )
 
     generateIncludeNamespace(osquery_tables_events_eventstable "osquery/tables/events" "FULL_PATH" ${platform_public_header_files})

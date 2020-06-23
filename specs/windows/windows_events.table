@@ -9,7 +9,7 @@ schema([
     Column("eventid", INTEGER, "Event ID of the event"),
     Column("task", INTEGER, "Task value associated with the event"),
     Column("level", INTEGER, "The severity level associated with the event"),
-    Column("keywords", BIGINT, "A bitmask of the keywords defined in the event"),
+    Column("keywords", TEXT, "A bitmask of the keywords defined in the event"),
     Column("data", TEXT, "Data associated with the event"),
     Column("eid", TEXT, "Event ID", hidden=True),
 ])

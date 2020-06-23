@@ -39,9 +39,11 @@ function(generateOsqueryEvents)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
-      windows/windows_event_log.cpp
+      windows/evtsubscription.cpp
       windows/ntfs_event_publisher.cpp
       windows/usn_journal_reader.cpp
+      windows/windowseventlogpublisher.cpp
+      windows/windowseventlogparserservice.cpp
     )
   endif()
 
@@ -104,9 +106,11 @@ function(generateOsqueryEvents)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     set(platform_public_header_files
-      windows/windows_event_log.h
+      windows/evtsubscription.h
       windows/ntfs_event_publisher.h
       windows/usn_journal_reader.h
+      windows/windowseventlogpublisher.h
+      windows/windowseventlogparserservice.h
     )
   endif()
 
@@ -126,8 +130,9 @@ function(generateOsqueryEvents)
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
-    add_test(NAME osquery_events_tests_windowseventlogtests-test COMMAND osquery_events_tests_windowseventlogtests-test)
     add_test(NAME osquery_events_tests_usnjournalreadertests-test COMMAND osquery_events_tests_usnjournalreadertests-test)
+    add_test(NAME osquery_tables_events_tests_powershelleventstests-test COMMAND osquery_tables_events_tests_powershelleventstests-test)
+    add_test(NAME osquery_tables_events_tests_windowseventstests-test COMMAND osquery_tables_events_tests_windowseventstests-test)
   endif()
 endfunction()
 
