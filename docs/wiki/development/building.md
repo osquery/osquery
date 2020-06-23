@@ -276,9 +276,14 @@ vagrant ssh aws-amazon2015.03
 
 # Custom Packages
 
-Package creation is facilitated by CPack.
+Package creation is facilitated by CPack. Creating a standalone custom package on any platform should be as simple as running:
 
-The package will include several components:
+```sh
+cmake --build . --target package
+```
+
+Invoking the `package` target will instruct `cpack` to auto resolve all of the package
+dependencies for osquery and build a platform specific package. The package created will include several components:
 
 - The executables: `osqueryd`, `osqueryi`, and small management script `osqueryctl`
 - An osquery systemd unit on Linux (with initd script wrapper)
@@ -288,6 +293,12 @@ The package will include several components:
 - The example query packs from the repository
 - Folder structures required for logging
 
+What follows are instructions for directly invoking `cpack` on each platform, should
+you wish to create a more custom deployment package. For the most part this is not
+encouraged, and users should stick with leveraging the `package` target as detailed above.
+
+### On Linux:
+
 To create a DEB, RPM, or TGZ on Linux, CPack will attempt to auto-detect the appropriate package type.
 You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
 
@@ -296,7 +307,40 @@ cmake -DPACKAGING_SYSTEM=RPM ..
 cmake --build . --target package
 ```
 
-On macOS the `package` target will create a `.pkg`, and on Windows it will create a `.msi`.
+### On Windows:
+
+On Windows CPack will create an MSI by default. You can toggle this behavior to instead create a 
+Chocolatey package by overriding the CMake `PACKAGING_SYSTEM` variable similar to Linux.
+
+To create a default MSI package use the following:
+
+```sh
+cmake -G "Visual Studio 16 2019" -A x64 -T v141 ..
+cmake --build . --config Release --target package
+```
+
+To instead generate a Chocolatey package, use the following:
+
+```sh
+cmake -DPACKAGING_SYSTEM=NuGet -G "Visual Studio 16 2019" -A x64 -T v141 ..
+cmake --build . --config Release --target package
+```
+
+### On Macos:
+
+Similarly on macOS after you have built the binaries using CMake, you can run `cpack` from the build directory to generate a `.pkg`.
+
+```sh
+/Users/thor/osquery/build ❯ cpack
+CPack: Create package using productbuild
+CPack: Install projects
+CPack: - Run preinstall target for: osquery
+CPack: - Install project: osquery
+CPack: -   Install component: osquery
+CPack: Create package
+CPack: -   Building component package: /Users/USERNAME/work/repos/osquery/build/_CPack_Packages/Darwin/productbuild/osquery-4.1.0-1-g6d9fdde80/Contents/Packages/osquery-4.1.0-1-g6d9fdde80-osquery.pkg
+CPack: - package: /Users/USERNAME/work/repos/osquery/build/osquery-4.1.0-1-g6d9fdde80.pkg generated.
+```
 
 # Build Performance
 
