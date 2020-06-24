@@ -2,6 +2,14 @@ include(CheckPIESupported)
 check_pie_supported()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# The function creates the osquery_<c|cxx>_settings targets with compiler and linker flags
+# for internal targets and <c|cxx>_settings for any other target to use as a base.
+#
+# Flags are first grouped by their platform (POSIX, LINUX, MACOS, WINDOWS),
+# then by their language ("c", "cxx" and "common" for both),
+# then by their type ("compile_options", "defines" etc) and last
+# if they are used only on our own targets (the ones with osquery_ prefix),
+# or also with third party libraries targets (the ones without).
 function(setupBuildFlags)
   add_library(cxx_settings INTERFACE)
   add_library(c_settings INTERFACE)
@@ -207,11 +215,12 @@ function(setupBuildFlags)
     set(windows_common_compile_options
       "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Z7;/Gs;/GS>"
       "$<$<CONFIG:Debug>:/Od;/UNDEBUG>$<$<NOT:$<CONFIG:Debug>>:/Ot>"
-      /MT
-      /EHs
-      /W3
       /guard:cf
       /bigobj
+    )
+
+    set(osquery_windows_compile_options
+      /W3
     )
 
     set(windows_common_link_options
@@ -291,26 +300,28 @@ function(setupBuildFlags)
     )
 
     list(APPEND osquery_defines ${osquery_windows_common_defines})
+    list(APPEND osquery_compile_options ${osquery_windows_compile_options})
 
     # Remove some flags from the default ones to avoid "overriding" warnings or unwanted results.
-    if(DEFINED PLATFORM_WINDOWS AND "${CMAKE_GENERATOR}" STREQUAL "Ninja")
-      string(REPLACE "/MD" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-      string(REPLACE "/MD" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-      string(REPLACE "/MD" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-      string(REPLACE "/MD" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+    string(REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+    string(REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+    string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+    string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 
-      string(REPLACE "/Zi" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-      string(REPLACE "/Zi" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+    string(REPLACE "/Zi" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+    string(REPLACE "/Zi" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 
-      # This must be removed, because passing /EHs doesn't override it
-      string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    string(REPLACE "/EHsc" "/EHs" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-      overwrite_cache_variable("CMAKE_C_FLAGS_RELEASE" STRING "${CMAKE_C_FLAGS_RELEASE}")
-      overwrite_cache_variable("CMAKE_C_FLAGS_RELWITHDEBINFO" STRING "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-      overwrite_cache_variable("CMAKE_CXX_FLAGS_RELEASE" STRING "${CMAKE_CXX_FLAGS_RELEASE}")
-      overwrite_cache_variable("CMAKE_CXX_FLAGS_RELWITHDEBINFO" STRING "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-      overwrite_cache_variable("CMAKE_CXX_FLAGS" STRING "${CMAKE_CXX_FLAGS}")
-    endif()
+    string(REPLACE "/W3" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+    string(REPLACE "/W3" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+    overwrite_cache_variable("CMAKE_C_FLAGS_RELEASE" STRING "${CMAKE_C_FLAGS_RELEASE}")
+    overwrite_cache_variable("CMAKE_C_FLAGS_RELWITHDEBINFO" STRING "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+    overwrite_cache_variable("CMAKE_CXX_FLAGS_RELEASE" STRING "${CMAKE_CXX_FLAGS_RELEASE}")
+    overwrite_cache_variable("CMAKE_CXX_FLAGS_RELWITHDEBINFO" STRING "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+    overwrite_cache_variable("CMAKE_C_FLAGS" STRING "${CMAKE_C_FLAGS}")
+    overwrite_cache_variable("CMAKE_CXX_FLAGS" STRING "${CMAKE_CXX_FLAGS}")
   else()
     message(FATAL_ERROR "Platform not supported!")
   endif()
@@ -318,6 +329,10 @@ function(setupBuildFlags)
   add_library(osquery_cxx_settings INTERFACE)
   target_link_libraries(osquery_cxx_settings INTERFACE
     cxx_settings
+  )
+
+  target_compile_options(osquery_cxx_settings INTERFACE
+    ${osquery_compile_options}
   )
 
   target_compile_definitions(osquery_cxx_settings INTERFACE
@@ -328,6 +343,10 @@ function(setupBuildFlags)
   add_library(osquery_c_settings INTERFACE)
   target_link_libraries(osquery_c_settings INTERFACE
     c_settings
+  )
+
+  target_compile_options(osquery_c_settings INTERFACE
+    ${osquery_compile_options}
   )
 
   target_compile_definitions(osquery_c_settings INTERFACE
