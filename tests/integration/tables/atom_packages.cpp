@@ -9,6 +9,7 @@
 // Sanity check integration test for atom_packages
 // Spec file: specs/atom_packages.table
 
+#include <osquery/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
@@ -23,6 +24,12 @@ class atomPackages : public testing::Test {
 
 TEST_F(atomPackages, test_sanity) {
   auto const data = execute_query("select * from atom_packages");
+  if (data.empty()) {
+    LOG(WARNING) << "Empty results of query from 'atom_packages', assume there "
+                    "is no atom on the system";
+    return;
+  }
+
   ValidationMap row_map = {
       {"name", NormalType},
       {"version", NormalType},
@@ -30,6 +37,7 @@ TEST_F(atomPackages, test_sanity) {
       {"path", NormalType},
       {"license", NormalType},
       {"homepage", NormalType},
+      {"uid", IntType},
   };
   validate_rows(data, row_map);
 }
