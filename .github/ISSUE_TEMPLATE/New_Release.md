@@ -23,4 +23,5 @@ about: Checklist of Release actions
 - [ ] Update the website with the new release and schema.
 - [ ] Publish the website changes.
 - [ ] Publish the new packages into the hosted repos.
+- [ ] Bump or ping the [Homebrew Cask](https://github.com/Homebrew/homebrew-cask/blob/master/Casks/osquery.rb).
 - [ ] Advertise the new release. :)
