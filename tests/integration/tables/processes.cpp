@@ -85,7 +85,7 @@ TEST_F(ProcessesTest, test_sanity) {
   } else {
     row_map.emplace("start_time", timeSanityCheck);
   }
-  
+
   // Add the platform-specific columns.
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     row_map.emplace("is_elevated_token", NormalType);
