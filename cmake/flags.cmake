@@ -141,18 +141,6 @@ function(setupBuildFlags)
       )
 
       set(macos_cxx_link_options
-        "SHELL:-framework AppKit"
-        "SHELL:-framework Foundation"
-        "SHELL:-framework CoreServices"
-        "SHELL:-framework CoreFoundation"
-        "SHELL:-framework CoreWLAN"
-        "SHELL:-framework CoreGraphics"
-        "SHELL:-framework DiskArbitration"
-        "SHELL:-framework IOKit"
-        "SHELL:-framework OpenDirectory"
-        "SHELL:-framework Security"
-        "SHELL:-framework ServiceManagement"
-        "SHELL:-framework SystemConfiguration"
         -stdlib=libc++
         -lresolv
       )
@@ -163,6 +151,18 @@ function(setupBuildFlags)
         bsm
         xar
         c++abi
+        "-framework AppKit"
+        "-framework Foundation"
+        "-framework CoreServices"
+        "-framework CoreFoundation"
+        "-framework CoreWLAN"
+        "-framework CoreGraphics"
+        "-framework DiskArbitration"
+        "-framework IOKit"
+        "-framework OpenDirectory"
+        "-framework Security"
+        "-framework ServiceManagement"
+        "-framework SystemConfiguration"
       )
 
       set(osquery_macos_common_defines
