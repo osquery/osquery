@@ -26,6 +26,7 @@
 - Windows: omit non-interactive sessions from logged_in_users ([#6375](https://github.com/osquery/osquery/pull/6375))
 - Fixes to package_bom table ([#6457](https://github.com/osquery/osquery/pull/6457), [#6461](https://github.com/osquery/osquery/pull/6461))
 - Add chassis_info table for windows ([#5282](https://github.com/osquery/osquery/pull/5282))
+- Add Azure tables ([#6507](https://github.com/osquery/osquery/pull/6507))
 
 ### Bug Fixes
 
@@ -56,6 +57,7 @@
 - Remove references to brew in macOS install ([#6494](https://github.com/osquery/osquery/pull/6494))
 - Add note to bump the Homebrew cask ([#6519](https://github.com/osquery/osquery/pull/6519))
 - Updating docs on cpack usage to include Chocolatey ([#6022](https://github.com/osquery/osquery/pull/6022))
+- Changelog for 4.4.0 ([#6492](https://github.com/osquery/osquery/pull/6492))
 
 ### Build
 
@@ -83,6 +85,7 @@
 - Fix rpm and deb package name format ([#6468](https://github.com/osquery/osquery/pull/6468))
 - Fix atom_packages, processes, rpm_packages tests ([#6518](https://github.com/osquery/osquery/pull/6518))
 - Fixes and cleanup for Windows compiler flags ([#6521](https://github.com/osquery/osquery/pull/6521))
+- Correct macOS framework linking ([#6522](https://github.com/osquery/osquery/pull/6522))
 
 ### Security Issues
 
