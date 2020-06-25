@@ -57,7 +57,7 @@
 - Remove references to brew in macOS install ([#6494](https://github.com/osquery/osquery/pull/6494))
 - Add note to bump the Homebrew cask ([#6519](https://github.com/osquery/osquery/pull/6519))
 - Updating docs on cpack usage to include Chocolatey ([#6022](https://github.com/osquery/osquery/pull/6022))
-- Changelog for 4.4.0 ([#6492](https://github.com/osquery/osquery/pull/6492))
+- Changelog for 4.4.0 ([#6492](https://github.com/osquery/osquery/pull/6492), [#6523](https://github.com/osquery/osquery/pull/6523)))
 
 ### Build
 
