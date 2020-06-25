@@ -579,6 +579,9 @@ struct QueryContext {
   /// Check if any of the given columns is used by the query
   bool isAnyColumnUsed(std::initializer_list<std::string> colNames) const;
 
+  /// Check if this is a star-select or similar.
+  bool defaultColumnsUsed() const;
+
   inline bool isAnyColumnUsed(UsedColumnsBitset desiredBitset) const {
     return !colsUsedBitset || (*colsUsedBitset & desiredBitset).any();
   }
@@ -908,6 +911,7 @@ class TablePlugin : public Plugin {
   FRIEND_TEST(VirtualTableTests, test_tableplugin_statement);
   FRIEND_TEST(VirtualTableTests, test_indexing_costs);
   FRIEND_TEST(VirtualTableTests, test_table_results_cache);
+  FRIEND_TEST(VirtualTableTests, test_table_results_cache_colcheck);
   FRIEND_TEST(VirtualTableTests, test_yield_generator);
 };
 
