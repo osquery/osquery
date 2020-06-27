@@ -36,7 +36,7 @@ class EphemeralDatabasePluginTests : public DatabasePluginTests {
 CREATE_DATABASE_TESTS(EphemeralDatabasePluginTests);
 
 void DatabasePluginTests::SetUp() {
-  Initializer::platformSetup();
+  platformSetup();
   registryAndPluginInit();
   FLAGS_disable_database = true;
   DatabasePlugin::setAllowOpen(true);

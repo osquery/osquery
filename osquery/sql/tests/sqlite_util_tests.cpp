@@ -24,7 +24,7 @@ namespace osquery {
 class SQLiteUtilTests : public testing::Test {
  public:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     Flag::updateValue("enable_tables",
                       "test_table,time,process_events,osquery_info,file,users,"

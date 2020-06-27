@@ -325,7 +325,7 @@ void validate_container_rows(const std::string& table_name,
 }
 
 void setUpEnvironment() {
-  Initializer::platformSetup();
+  platformSetup();
   registryAndPluginInit();
   FLAGS_disable_database = true;
   DatabasePlugin::setAllowOpen(true);

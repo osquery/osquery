@@ -113,20 +113,6 @@ class Initializer : private boost::noncopyable {
   static void shutdownNow(int retcode = EXIT_SUCCESS);
 
   /**
-   * @brief Initialize any platform dependent libraries or objects
-   *
-   * On windows, we require the COM libraries be initialized just once
-   */
-  static void platformSetup();
-
-  /**
-   * @brief Before ending, tear down any platform specific setup
-   *
-   * On windows, we require the COM libraries be initialized just once
-   */
-  static void platformTeardown();
-
-  /**
    * @brief Check if a process is an osquery worker.
    *
    * By default an osqueryd process will fork/exec then set an environment
@@ -272,6 +258,20 @@ size_t getStartTime();
 
 /// Set the osquery tool start time.
 void setStartTime(size_t st);
+
+/**
+ * @brief Initialize any platform dependent libraries or objects.
+ *
+ * On windows, we require the COM libraries be initialized just once.
+ */
+void platformSetup();
+
+/**
+ * @brief Before ending, tear down any platform specific setup.
+ *
+ * On windows, we require the COM libraries be initialized just once.
+ */
+void platformTeardown();
 
 bool checkPlatform(const std::string& platform);
 } // namespace osquery

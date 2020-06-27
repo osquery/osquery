@@ -53,7 +53,7 @@ MATCHER_P(MatchesStatus, expected, "") {
 class BufferedLogForwarderTests : public Test {
  protected:
   void SetUp() {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);

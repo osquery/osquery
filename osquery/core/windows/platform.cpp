@@ -13,7 +13,7 @@
 
 namespace osquery {
 
-void Initializer::platformSetup() {
+void platformSetup() {
   // Initialize the COM libraries utilized by Windows WMI calls.
   auto ret = ::CoInitializeEx(0, COINIT_MULTITHREADED);
   if (ret != S_OK) {
@@ -21,7 +21,7 @@ void Initializer::platformSetup() {
   }
 }
 
-void Initializer::platformTeardown() {
+void platformTeardown() {
   // Before we shutdown, we must insure to free the COM libs in windows
   ::CoUninitialize();
 }

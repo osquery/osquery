@@ -16,7 +16,7 @@ namespace osquery {
 class SQLiteHashingTests : public testing::Test {
  public:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
   }
 };

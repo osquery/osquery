@@ -103,7 +103,7 @@ QueryData parseEtcProtocolsContent(const std::string& content);
 class NetworkingTablesTests : public testing::Test {
  protected:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);

@@ -52,7 +52,7 @@ class TLSTransportsTests : public testing::Test {
   }
 
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);
