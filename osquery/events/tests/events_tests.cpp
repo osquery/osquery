@@ -24,7 +24,7 @@ DECLARE_bool(disable_database);
 class EventsTests : public ::testing::Test {
  protected:
   void SetUp() override {
-    kToolType = ToolType::TEST;
+    setToolType(ToolType::TEST);
     registryAndPluginInit();
 
     // Force registry to use ephemeral database plugin

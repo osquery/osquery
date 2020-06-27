@@ -126,16 +126,6 @@ class Initializer : private boost::noncopyable {
    */
   static void platformTeardown();
 
-  /// Check the program is the osquery daemon.
-  static bool isDaemon() {
-    return kToolType == ToolType::DAEMON;
-  }
-
-  /// Check the program is the osquery shell.
-  static bool isShell() {
-    return kToolType == ToolType::SHELL;
-  }
-
   /**
    * @brief Check if a process is an osquery worker.
    *

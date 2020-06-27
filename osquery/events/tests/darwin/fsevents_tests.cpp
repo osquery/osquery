@@ -45,7 +45,7 @@ class FSEventsTests : public testing::Test {
   void SetUp() override {
     fs::create_directories(real_test_dir);
 
-    kToolType = ToolType::TEST;
+    setToolType(ToolType::TEST);
     registryAndPluginInit();
 
     FLAGS_disable_database = true;

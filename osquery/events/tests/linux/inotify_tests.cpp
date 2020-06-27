@@ -32,7 +32,7 @@ const int kMaxEventLatency = 3000;
 class INotifyTests : public testing::Test {
  protected:
   void SetUp() override {
-    kToolType = ToolType::TEST;
+    setToolType(ToolType::TEST);
     registryAndPluginInit();
 
     FLAGS_disable_database = true;

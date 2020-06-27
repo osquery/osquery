@@ -219,7 +219,7 @@ void setVerboseLevel() {
     /* We use a different default for the log level if running as a daemon or if
      * running as a shell. If the flag was set we just use that in both cases.
      */
-    if (Flag::isDefault("logger_min_status") && Initializer::isShell()) {
+    if (Flag::isDefault("logger_min_status") && isShell()) {
       FLAGS_minloglevel = google::GLOG_WARNING;
     } else {
       FLAGS_minloglevel = Flag::getInt32Value("logger_min_status");
@@ -325,7 +325,7 @@ void BufferedLogSink::send(google::LogSeverity severity,
   }
 
   // The daemon will relay according to the schedule.
-  if (enabled_ && !Initializer::isDaemon()) {
+  if (enabled_ && !isDaemon()) {
     relayStatusLogs(FLAGS_logger_status_sync);
   }
 }

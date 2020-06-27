@@ -113,8 +113,6 @@ CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
 
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 
-ToolType kToolType{ToolType::UNKNOWN};
-
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
 
@@ -209,15 +207,15 @@ Initializer::Initializer(int& argc,
   if (tool == ToolType::SHELL_DAEMON) {
     if (fs::path(argv[0]).filename().string().find("osqueryd") !=
         std::string::npos) {
-      kToolType = ToolType::DAEMON;
+      setToolType(ToolType::DAEMON);
       binary_ = "osqueryd";
     } else {
-      kToolType = ToolType::SHELL;
+      setToolType(ToolType::SHELL);
       binary_ = "osqueryi";
     }
   } else {
     // Set the tool type to allow runtime decisions based on daemon, shell, etc.
-    kToolType = tool;
+    setToolType(tool);
   }
 
   // The 'main' thread is that which executes the initializer.
@@ -254,15 +252,15 @@ Initializer::Initializer(int& argc,
   for (int i = 1; i < *argc_; i++) {
     auto help = std::string((*argv_)[i]);
     if (help == "-S" || help == "--S") {
-      kToolType = ToolType::SHELL;
+      setToolType(ToolType::SHELL);
       binary_ = "osqueryi";
     } else if (help == "-D" || help == "--D") {
-      kToolType = ToolType::DAEMON;
+      setToolType(ToolType::DAEMON);
       binary_ = "osqueryd";
     } else if ((help == "--help" || help == "-help" || help == "--h" ||
                 help == "-h") &&
                tool != ToolType::TEST) {
-      printUsage(binary_, kToolType);
+      printUsage(binary_, getToolType());
       shutdownNow();
     }
     if (help.find("--flagfile") == 0) {
@@ -327,7 +325,7 @@ Initializer::Initializer(int& argc,
 
   // Initialize the status and results logger.
   initStatusLogger(binary_, init_glog);
-  if (kToolType != ToolType::EXTENSION) {
+  if (getToolType() != ToolType::EXTENSION) {
     if (isWorker()) {
       VLOG(1) << "osquery worker initialized [watcher="
               << PlatformProcess::getLauncherProcess()->pid() << "]";
