@@ -28,6 +28,9 @@ sudo apt install --no-install-recommends git python3 bison flex make
 sudo apt install --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel
 pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
 
+# Optional: install RPM packaging prerequisites
+sudo apt install --no-install-recommends rpm binutils
+
 # Download and install the osquery toolchain
 wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-x86_64.tar.xz
 sudo tar xvf osquery-toolchain-1.1.0-x86_64.tar.xz -C /usr/local
@@ -302,8 +305,11 @@ encouraged, and users should stick with leveraging the `package` target as detai
 To create a DEB, RPM, or TGZ on Linux, CPack will attempt to auto-detect the appropriate package type.
 You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
 
+Note: RPM will always try to create debuginfo packages, to do so though it needs the build folder
+to be in a path that's longer than `/usr/src/debug/osquery/src_1`.
+
 ```sh
-cmake -DPACKAGING_SYSTEM=RPM ..
+cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain -DPACKAGING_SYSTEM=RPM ..
 cmake --build . --target package
 ```
 
@@ -328,18 +334,12 @@ cmake --build . --config Release --target package
 
 ### On Macos:
 
-Similarly on macOS after you have built the binaries using CMake, you can run `cpack` from the build directory to generate a `.pkg`.
+On macOS you can choose between a TGZ or a PKG, which is the default.
+You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
 
 ```sh
-/Users/thor/osquery/build ❯ cpack
-CPack: Create package using productbuild
-CPack: Install projects
-CPack: - Run preinstall target for: osquery
-CPack: - Install project: osquery
-CPack: -   Install component: osquery
-CPack: Create package
-CPack: -   Building component package: /Users/USERNAME/work/repos/osquery/build/_CPack_Packages/Darwin/productbuild/osquery-4.1.0-1-g6d9fdde80/Contents/Packages/osquery-4.1.0-1-g6d9fdde80-osquery.pkg
-CPack: - package: /Users/USERNAME/work/repos/osquery/build/osquery-4.1.0-1-g6d9fdde80.pkg generated.
+cmake -DPACKAGING_SYSTEM=TGZ -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 ..
+cmake --build . --target package
 ```
 
 # Build Performance
