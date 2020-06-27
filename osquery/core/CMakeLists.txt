@@ -20,6 +20,7 @@ function(generateOsqueryCore)
     flags.cpp
     init.cpp
     query.cpp
+    shutdown.cpp
     system.cpp
     tables.cpp
     watcher.cpp

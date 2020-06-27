@@ -21,6 +21,8 @@
 #include <osquery/process/process.h>
 #include <osquery/profiler/code_profiler.h>
 #include <osquery/query.h>
+#include <osquery/shutdown.h>
+
 #include <osquery/utils/system/time.h>
 
 #include "osquery/dispatcher/scheduler.h"
@@ -139,7 +141,7 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
       std::string message = "Error adding new results to database for query " +
                             name + ": " + status.what();
       // If the database is not available then the daemon cannot continue.
-      Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
+      requestShutdown(EXIT_CATASTROPHIC, message);
     }
   } else {
     diff_results.added = std::move(sql.rowsTyped());
@@ -161,7 +163,7 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
     // If log directory is not available, then the daemon shouldn't continue.
     std::string message = "Error logging the results of query: " + name + ": " +
                           status.toString();
-    Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
+    requestShutdown(EXIT_CATASTROPHIC, message);
   }
   return status;
 }

@@ -24,8 +24,10 @@
 #include <osquery/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/registry.h>
+#include <osquery/shutdown.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
+
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
@@ -244,7 +246,7 @@ void ExtensionWatcher::exitFatal(int return_code) {
   // Exit the extension.
   // We will save the wanted return code and raise an interrupt.
   // This interrupt will be handled by the main thread then join the watchers.
-  Initializer::requestShutdown(return_code);
+  requestShutdown(return_code);
 }
 
 void ExtensionWatcher::watch() {

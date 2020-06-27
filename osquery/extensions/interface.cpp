@@ -15,8 +15,9 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-#include <osquery/system.h>
+#include <osquery/shutdown.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 #include "osquery/extensions/interface.h"
 
@@ -57,7 +58,7 @@ Status ExtensionInterface::call(const std::string& registry,
 void ExtensionInterface::shutdown() {
   // Request a graceful shutdown of the Thrift listener.
   VLOG(1) << "Extension " << uuid_ << " requested shutdown";
-  Initializer::requestShutdown(EXIT_SUCCESS);
+  requestShutdown(EXIT_SUCCESS);
 }
 
 ExtensionList ExtensionManagerInterface::extensions() {

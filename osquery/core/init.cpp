@@ -40,6 +40,7 @@
 #include <osquery/numeric_monitoring.h>
 #include <osquery/process/process.h>
 #include <osquery/registry.h>
+#include <osquery/shutdown.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/version.h>
@@ -113,15 +114,6 @@ CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 
 ToolType kToolType{ToolType::UNKNOWN};
-
-/**
- * @brief The requested exit code.
- *
- * Use Initializer::requestShutdown to request shutdown in most cases.
- * This will notify the main thread requesting the dispatcher to
- * interrupt all services.
- */
-std::sig_atomic_t kExitCode{0};
 
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
@@ -454,7 +446,7 @@ void Initializer::initWatcher() const {
     // Do not start new workers.
     watcher.bindFates();
     if (watcher.getWorkerStatus() >= 0) {
-      kExitCode = watcher.getWorkerStatus();
+      setShutdownExitCode(watcher.getWorkerStatus());
     }
   }
 }
@@ -654,14 +646,8 @@ class AlarmRunnable : public InterruptableRunnable {
   void stop() {}
 };
 
-/// Graceful shutdown request conditional var.
-std::condition_variable kShutdownRequestCV;
-std::mutex kShutdownRequestMutex;
-bool kShutdownRequested{false};
-
 void Initializer::waitForShutdown() const {
-  std::unique_lock<std::mutex> lock(kShutdownRequestMutex);
-  kShutdownRequestCV.wait(lock, [] { return kShutdownRequested; });
+  osquery::waitForShutdown();
 }
 
 int Initializer::shutdown(int retcode) const {
@@ -695,25 +681,15 @@ int Initializer::shutdown(int retcode) const {
   platformTeardown();
 
   // Allow the retcode to override a stored request for shutdown.
-  return (retcode == 0) ? kExitCode : retcode;
+  return (retcode == 0) ? getShutdownExitCode() : retcode;
 }
 
 void Initializer::requestShutdown(int retcode) {
-  static std::once_flag thrown;
-  std::call_once(thrown, [&retcode]() {
-    // Can be called from any thread, attempt a graceful shutdown.
-    std::unique_lock<std::mutex> lock(kShutdownRequestMutex);
-
-    kExitCode = retcode;
-    kShutdownRequested = true;
-    kShutdownRequestCV.notify_all();
-  });
+  osquery::requestShutdown(retcode);
 }
 
 void Initializer::requestShutdown(int retcode, const std::string& message) {
-  LOG(ERROR) << message;
-  systemLog(message);
-  requestShutdown(retcode);
+  osquery::requestShutdown(retcode, message);
 }
 
 void Initializer::shutdownNow(int retcode) {
