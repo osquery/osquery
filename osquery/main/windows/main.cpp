@@ -23,6 +23,7 @@
 #include <osquery/system.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/system/system.h>
+#include <osquery/shutdown.h>
 
 DECLARE_string(flagfile);
 
@@ -295,7 +296,7 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
     // Give the main thread a chance to shutdown gracefully before exiting
     UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3, kServiceShutdownWait);
 
-    Initializer::requestShutdown();
+    requestShutdown();
     auto thread = OpenThread(SYNCHRONIZE, false, kLegacyThreadId);
     if (thread != nullptr) {
       WaitForSingleObjectEx(thread, INFINITE, FALSE);

@@ -27,7 +27,9 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/process/process.h>
+#include <osquery/shutdown.h>
 #include <osquery/sql.h>
+
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/tool_type.h>
 #include <osquery/utils/system/time.h>
@@ -215,15 +217,14 @@ void WatcherRunner::start() {
 
       auto status = watcher.getWorkerStatus();
       if (status == EXIT_CATASTROPHIC) {
-        Initializer::requestShutdown(EXIT_CATASTROPHIC,
-                                     "Worker returned exit status");
+        requestShutdown(EXIT_CATASTROPHIC, "Worker returned exit status");
         break;
       }
 
       if (watcher.workerRestartCount() ==
           getWorkerLimit(WatchdogLimitType::RESPAWN_LIMIT)) {
         // Too many worker restarts.
-        Initializer::requestShutdown(EXIT_FAILURE, "Too many worker restarts");
+        requestShutdown(EXIT_FAILURE, "Too many worker restarts");
         break;
       }
 
@@ -238,9 +239,8 @@ void WatcherRunner::start() {
     if (use_worker_) {
       auto status = isWatcherHealthy(*self, watcher_state);
       if (!status.ok()) {
-        Initializer::requestShutdown(
-            EXIT_CATASTROPHIC,
-            "Watcher has become unhealthy: " + status.getMessage());
+        requestShutdown(EXIT_CATASTROPHIC,
+                        "Watcher has become unhealthy: " + status.getMessage());
         break;
       }
     }
@@ -359,7 +359,7 @@ void WatcherRunner::stopChild(const PlatformProcess& child) const {
     if (!child.cleanup()) {
       auto message = std::string("Watcher cannot stop worker process (") +
                      std::to_string(child_pid) + ").";
-      Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
+      requestShutdown(EXIT_CATASTROPHIC, message);
     }
   }
 }
@@ -544,9 +544,8 @@ void WatcherRunner::createWorker() {
                             EQUALS,
                             INTEGER(PlatformProcess::getCurrentPid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
-    Initializer::requestShutdown(
-        EXIT_FAILURE,
-        "osquery watcher cannot determine process path for worker");
+    requestShutdown(EXIT_FAILURE,
+                    "osquery watcher cannot determine process path for worker");
     return;
   }
 
@@ -568,7 +567,7 @@ void WatcherRunner::createWorker() {
     // osqueryd binary has become unsafe.
     auto message = std::string(RLOG(1382)) +
                    "osqueryd has unsafe permissions: " + exec_path.string();
-    Initializer::requestShutdown(EXIT_FAILURE, message);
+    requestShutdown(EXIT_FAILURE, message);
     return;
   }
 
@@ -576,7 +575,7 @@ void WatcherRunner::createWorker() {
   if (worker == nullptr) {
     // Unrecoverable error, cannot create a worker process.
     LOG(ERROR) << "osqueryd could not create a worker process";
-    Initializer::shutdownNow(EXIT_FAILURE);
+    requestShutdown(EXIT_FAILURE);
     return;
   }
 
@@ -623,7 +622,7 @@ void WatcherRunner::createExtension(const std::string& extension) {
   if (ext_process == nullptr) {
     // Unrecoverable error, cannot create an extension process.
     LOG(ERROR) << "Cannot create extension process: " << extension;
-    Initializer::shutdownNow(EXIT_FAILURE);
+    requestShutdown(EXIT_FAILURE);
   }
 
   watcher.setExtension(extension, ext_process);
@@ -639,7 +638,7 @@ void WatcherWatcherRunner::start() {
       VLOG(1) << "osqueryd worker (" << PlatformProcess::getCurrentPid()
               << ") detected killed watcher (" << watcher_->pid() << ")";
       // The watcher watcher is a thread. Do not join services after removing.
-      Initializer::requestShutdown();
+      requestShutdown();
       break;
     }
     pause(std::chrono::seconds(getWorkerLimit(WatchdogLimitType::INTERVAL)));

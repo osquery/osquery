@@ -27,8 +27,10 @@
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
+#include <osquery/shutdown.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/time.h>
@@ -511,7 +513,7 @@ Status Config::refresh() {
       }
       VLOG(1) << "Requesting shutdown after dumping config";
       // Don't force because the config plugin may have started services.
-      Initializer::requestShutdown();
+      requestShutdown();
       return Status::success();
     }
     status = update(response[0]);
