@@ -117,9 +117,6 @@ DECLARE_string(pack_delimiter);
 const std::string kExecutingQuery{"executing_query"};
 const std::string kFailedQueries{"failed_queries"};
 
-/// The time osquery was started.
-std::atomic<size_t> kStartTime;
-
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
 Mutex config_refresh_mutex_;
@@ -375,14 +372,6 @@ void Config::addPack(const std::string& name,
   } else {
     addSinglePack(name, obj);
   }
-}
-
-size_t Config::getStartTime() {
-  return kStartTime;
-}
-
-void Config::setStartTime(size_t st) {
-  kStartTime = st;
 }
 
 void Config::removePack(const std::string& pack) {

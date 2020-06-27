@@ -304,7 +304,7 @@ void WatcherRunner::watchExtensions() {
 }
 
 size_t WatcherRunner::delayedTime() const {
-  return Config::getStartTime() + FLAGS_watchdog_delay;
+  return getStartTime() + FLAGS_watchdog_delay;
 }
 
 bool WatcherRunner::watch(const PlatformProcess& child) const {

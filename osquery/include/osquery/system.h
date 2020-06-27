@@ -267,5 +267,11 @@ bool isUserAdmin();
  */
 Status setThreadName(const std::string& name);
 
+/// Get the osquery tool start time.
+size_t getStartTime();
+
+/// Set the osquery tool start time.
+void setStartTime(size_t st);
+
 bool checkPlatform(const std::string& platform);
 } // namespace osquery

@@ -53,7 +53,7 @@ DECLARE_bool(disable_database);
 using chrono_clock = std::chrono::high_resolution_clock;
 
 void initTesting() {
-  Config::setStartTime(getUnixTime());
+  setStartTime(getUnixTime());
 
   setToolType(ToolType::TEST);
   if (osquery::isPlatform(PlatformType::TYPE_OSX)) {
