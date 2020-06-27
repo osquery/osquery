@@ -199,7 +199,7 @@ Initializer::Initializer(int& argc,
   std::srand(static_cast<unsigned int>(
       chrono_clock::now().time_since_epoch().count()));
   // The config holds the initialization time for easy access.
-  Config::setStartTime(getUnixTime());
+  setStartTime(getUnixTime());
 
   isWorker_ = hasWorkerVariable();
 
