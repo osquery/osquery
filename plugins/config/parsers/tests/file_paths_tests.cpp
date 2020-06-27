@@ -28,7 +28,7 @@ DECLARE_bool(disable_database);
 class FilePathsConfigParserPluginTests : public testing::Test {
  public:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
 
     // Force registry to use ephemeral database plugin

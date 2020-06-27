@@ -25,7 +25,7 @@ DECLARE_bool(disable_database);
 class VirtualTableTests : public testing::Test {
  public:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);

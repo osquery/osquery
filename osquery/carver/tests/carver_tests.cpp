@@ -52,7 +52,7 @@ class CarverTests : public testing::Test {
 
  protected:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
 
     // Force registry to use ephemeral database plugin

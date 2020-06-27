@@ -26,7 +26,7 @@ namespace osquery {
 class WmiTests : public testing::Test {
  protected:
   void SetUp() {
-    Initializer::platformSetup();
+    platformSetup();
   }
 };
 

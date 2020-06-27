@@ -117,13 +117,13 @@ void initTesting() {
   DatabasePlugin::setAllowOpen(true);
   DatabasePlugin::initPlugin();
 
-  Initializer::platformSetup();
+  platformSetup();
 }
 
 void shutdownTesting() {
   DatabasePlugin::shutdown();
 
-  Initializer::platformTeardown();
+  platformTeardown();
 }
 
 ScheduledQuery getOsqueryScheduledQuery() {

@@ -28,13 +28,13 @@ function(generateOsqueryCore)
 
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
-      posix/initializer.cpp
+      posix/platform.cpp
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/handle.cpp
-      windows/initializer.cpp
+      windows/platform.cpp
       windows/wmi.cpp
     )
   endif()

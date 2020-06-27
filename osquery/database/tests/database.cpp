@@ -26,7 +26,7 @@ DECLARE_bool(disable_database);
 class DatabaseTests : public testing::Test {
  public:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
 
     // Force registry to use ephemeral database plugin

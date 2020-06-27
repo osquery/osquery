@@ -25,7 +25,7 @@ class ViewsConfigParserPluginTests : public testing::Test {
     static bool initialized = false;
     if (!initialized) {
       initialized = true;
-      Initializer::platformSetup();
+      platformSetup();
       registryAndPluginInit();
 
       // Force registry to use ephemeral database plugin

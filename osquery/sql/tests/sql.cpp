@@ -24,7 +24,7 @@ extern void escapeNonPrintableBytesEx(std::string& data);
 class SQLTests : public testing::Test {
  public:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
   }
 };

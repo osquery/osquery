@@ -10,11 +10,11 @@
 
 namespace osquery {
 
-void Initializer::platformSetup() {
+void platformSetup() {
   /* No platform-specific logic is needed on POSIX. */
 }
 
-void Initializer::platformTeardown() {
+void platformTeardown() {
   /* No platform-specific logic is needed on POSIX. */
 }
 } // namespace osquery
