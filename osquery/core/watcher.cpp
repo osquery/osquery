@@ -306,12 +306,30 @@ void WatcherRunner::watchExtensions() {
   for (const auto& extension : watcher_->extensions()) {
     // Check the extension status, causing a wait.
     int process_status = 0;
-    extension.second->checkStatus(process_status);
+    ProcessState status = extension.second->checkStatus(process_status);
 
-    auto ext_valid = extension.second->isValid();
+    bool ext_valid = (PROCESS_STILL_ALIVE == status);
     auto s = isChildSane(*extension.second);
 
-    if (!ext_valid || (!s.ok() && getUnixTime() >= delayedTime())) {
+    /*
+      Handle 3 cases
+      == case 1:
+      ext_valid == false
+      FLAGS_enable_extensions_watchdog == *
+        - launch new extension
+      == case 2:
+      ext_valid == true
+      FLAGS_enable_extensions_watchdog == false
+        - do nothing
+      == case 3:
+      ext_valid == true
+      FLAGS_enable_extensions_watchdog == true
+        - if unsane then:
+          - kill old extension
+          - launch new extension (edited)
+    */
+    if (!ext_valid || (FLAGS_enable_extensions_watchdog && !s.ok() &&
+                       getUnixTime() >= delayedTime())) {
       if (ext_valid && FLAGS_enable_extensions_watchdog) {
         // The extension was already launched once.
         std::stringstream error;
