@@ -266,18 +266,17 @@ function(generateSpecialTargets)
     "libraries"
   )
 
-  set(command_prefix)
-  if(OSQUERY_TOOLCHAIN_SYSROOT)
-    set(command_prefix "${CMAKE_COMMAND}" -E env "PATH=${OSQUERY_TOOLCHAIN_SYSROOT}/usr/bin:$ENV{PATH}")
-  endif()
-
   add_custom_target(format_check
-    COMMAND ${command_prefix} "${OSQUERY_PYTHON_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/tools/formatting/format-check.py --exclude-folders ${excluded_folders} origin/master
+    COMMAND "${OSQUERY_PYTHON_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/tools/formatting/format-check.py"
+            --exclude-folders "${excluded_folders}" --binary "${OSQUERY_CLANG_FORMAT}" origin/master
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
   )
   add_custom_target(format
-    COMMAND ${command_prefix} "${OSQUERY_PYTHON_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py --exclude-folders ${excluded_folders} -f --style=file
+    COMMAND "${OSQUERY_PYTHON_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
+            --exclude-folders "${excluded_folders}" --binary "${OSQUERY_CLANG_FORMAT}" -f --style=file
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
   )
@@ -418,4 +417,39 @@ function(getCleanedOsqueryVersionComponents major minor patch)
   set("${major}" "${${major}}" PARENT_SCOPE)
   set("${minor}" "${${minor}}" PARENT_SCOPE)
   set("${patch}" "${${patch}}" PARENT_SCOPE)
+endfunction()
+
+function(findClangFormat)
+  set(clang_format_doc "Path to the clang-format binary")
+
+  if(OSQUERY_TOOLCHAIN_SYSROOT)
+    if(NOT EXISTS "${OSQUERY_TOOLCHAIN_SYSROOT}/usr/bin/clang-format")
+        set(error_message "Could not find clang-format in the custom toolchain sysroot, please try to install the toolchain again.")
+        if(OSQUERY_ENABLE_FORMAT_ONLY)
+          message(FATAL_ERROR "${error_message}")
+        else()
+          message(WARNING "${error_message}")
+        endif()
+    else()
+      set(OSQUERY_CLANG_FORMAT "${OSQUERY_TOOLCHAIN_SYSROOT}/usr/bin/clang-format" CACHE FILEPATH "${clang_format_doc}")
+    endif()
+  else()
+    find_program(OSQUERY_CLANG_FORMAT clang-format DOC "${clang_format_doc}")
+
+    set(error_message "Could not find clang-format in the system, please install it and be sure that it can be found via the PATH env var. "
+      "Otherwise provide its location by passing -DOSQUERY_CLANG_FORMAT=<clang-format-path>"
+    )
+
+    if("${OSQUERY_CLANG_FORMAT}" STREQUAL "OSQUERY_CLANG_FORMAT-NOTFOUND")
+      if(OSQUERY_ENABLE_FORMAT_ONLY)
+        message(FATAL_ERROR "${error_message}")
+      else()
+        message(WARNING "${error_message}")
+      endif()
+    endif()
+  endif()
+
+  if(NOT "${OSQUERY_CLANG_FORMAT}" STREQUAL "OSQUERY_CLANG_FORMAT-NOTFOUND")
+    message(STATUS "Found clang-format: ${OSQUERY_CLANG_FORMAT}")
+  endif()
 endfunction()

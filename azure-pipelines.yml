@@ -39,6 +39,26 @@ jobs:
     - script: mkdir -p $(BUILD_DIR)
       displayName: "Create build folder"
 
+    - task: CMake@1
+      displayName: "Configure osquery for formatting"
+      inputs:
+        workingDirectory: $(BUILD_DIR)
+        cmakeArgs:
+          -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain
+          -DOSQUERY_ENABLE_FORMAT_ONLY=ON
+          $(Build.SourcesDirectory)
+
+    - script: |
+        ./tools/formatting/format-test.sh --build $(BUILD_DIR)
+      displayName: "format_check.py test"
+      workingDirectory: $(Build.SourcesDirectory)
+
+    - task: CMake@1
+      displayName: "Check code formatting"
+      inputs:
+        workingDirectory: $(BUILD_DIR)
+        cmakeArgs: --build . --target format_check
+
     - task: CacheBeta@2
       inputs:
         key: submodules | Linux | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
@@ -52,21 +72,11 @@ jobs:
               -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain \
               -DOSQUERY_BUILD_TESTS=ON \
               -DOSQUERY_BUILD_ROOT_TESTS=ON \
+              -UOSQUERY_ENABLE_FORMAT_ONLY \
               $(EXTRA_CMAKE_ARGS) \
               $(Build.SourcesDirectory)
       displayName: "Configure osquery"
       workingDirectory: $(BUILD_DIR)
-
-    - script: |
-        ./tools/formatting/format-test.sh --build $(BUILD_DIR)
-      displayName: "format_check.py test"
-      workingDirectory: $(Build.SourcesDirectory)
-
-    - task: CMake@1
-      displayName: "Check code formatting"
-      inputs:
-        workingDirectory: $(BUILD_DIR)
-        cmakeArgs: --build . --target format_check
 
     - task: CacheBeta@2
       inputs:
