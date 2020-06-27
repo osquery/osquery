@@ -970,7 +970,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
 
   // Provide a helpful reference to table documentation within the shell.
   if ((!user_based_satisfied || !required_satisfied || !events_satisfied)) {
-    if (Initializer::isShell()) {
+    if (isShell()) {
       LOG(WARNING) << "Please see the table documentation: "
                    << table_doc(pVtab->content->name);
     }

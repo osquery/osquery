@@ -178,7 +178,7 @@ int startOsquery(int argc, char* argv[]) {
 
   // Only worker processes should start a daemon or shell.
   if (!runner.isWatcher()) {
-    if (runner.isDaemon()) {
+    if (isDaemon()) {
       startDaemon(runner);
     } else {
       retcode = startShell(runner, argc, argv);

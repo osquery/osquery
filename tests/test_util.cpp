@@ -55,7 +55,7 @@ using chrono_clock = std::chrono::high_resolution_clock;
 void initTesting() {
   Config::setStartTime(getUnixTime());
 
-  kToolType = ToolType::TEST;
+  setToolType(ToolType::TEST);
   if (osquery::isPlatform(PlatformType::TYPE_OSX)) {
     kTestWorkingDirectory = "/private/tmp/osquery-tests";
   } else {

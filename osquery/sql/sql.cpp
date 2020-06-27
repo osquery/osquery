@@ -209,7 +209,7 @@ Status mockGetQueryTables(std::string copy_q,
 }
 
 Status getQueryTables(const std::string& q, std::vector<std::string>& tables) {
-  if (kToolType == ToolType::TEST) {
+  if (getToolType() == ToolType::TEST) {
     // We 'mock' this functionality for internal tests.
     return mockGetQueryTables(q, tables);
   }

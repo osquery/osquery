@@ -7,3 +7,29 @@
  */
 
 #include <osquery/utils/info/tool_type.h>
+
+namespace osquery {
+
+namespace {
+
+/// Current tool type.
+ToolType kToolType{ToolType::UNKNOWN};
+
+} // namespace
+
+void setToolType(ToolType tool) {
+  kToolType = tool;
+}
+
+ToolType getToolType() {
+  return kToolType;
+}
+
+bool isDaemon() {
+  return kToolType == ToolType::DAEMON;
+}
+
+bool isShell() {
+  return kToolType == ToolType::SHELL;
+}
+} // namespace osquery

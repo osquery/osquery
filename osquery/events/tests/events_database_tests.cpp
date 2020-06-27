@@ -363,8 +363,8 @@ TEST_F(EventsDatabaseTests, test_optimize) {
   }
 
   // Lie about the tool type to enable optimizations.
-  auto default_type = kToolType;
-  kToolType = ToolType::DAEMON;
+  auto default_type = getToolType();
+  setToolType(ToolType::DAEMON);
   FLAGS_events_optimize = true;
 
   // Must also define an executing query.
@@ -394,7 +394,7 @@ TEST_F(EventsDatabaseTests, test_optimize) {
   EXPECT_EQ(std::to_string(sub->optimize_time_), content);
 
   // Restore the tool type.
-  kToolType = default_type;
+  setToolType(default_type);
 }
 
 TEST_F(EventsDatabaseTests, test_expire_check) {
