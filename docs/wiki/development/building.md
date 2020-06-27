@@ -305,7 +305,8 @@ encouraged, and users should stick with leveraging the `package` target as detai
 To create a DEB, RPM, or TGZ on Linux, CPack will attempt to auto-detect the appropriate package type.
 You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
 
-Note: RPM will always try to create debuginfo packages, to do so though it needs the build folder
+Note: RPM will always try to create debuginfo packages, to do so though it needs the source folder
+to be in a path that's longer than `/usr/src/debug/osquery/src_0` and the build folder
 to be in a path that's longer than `/usr/src/debug/osquery/src_1`.
 
 ```sh
