@@ -268,7 +268,7 @@ jobs:
     displayName: "Windows Release"
 
     pool:
-      vmImage: vs2017-win2016
+      vmImage: windows-2019
 
     timeoutInMinutes: 120
 
@@ -318,7 +318,7 @@ jobs:
 
     - powershell: |
         (New-Object System.Net.WebClient).DownloadFile(`
-        "https://github.com/ninja-build/ninja/releases/download/v1.9.0/ninja-win.zip",`
+        "https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-win.zip",`
         "$env:TEMP\ninja-win.zip")
 
         mkdir "C:\Program Files\Ninja"
@@ -327,7 +327,7 @@ jobs:
       displayName: "Install Ninja"
 
     - script: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=14.1
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         cmake -G Ninja ^
         -DCMAKE_C_COMPILER=cl.exe ^
         -DCMAKE_CXX_COMPILER=cl.exe ^
@@ -347,7 +347,7 @@ jobs:
       displayName: sccache
 
     - script: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=14.1
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         cmake --build . -j 3
         if %errorlevel% neq 0 exit /b %errorlevel%
         sccache.exe --stop-server
