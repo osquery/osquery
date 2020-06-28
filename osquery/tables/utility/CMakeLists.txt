@@ -19,6 +19,7 @@ function(generateTablesUtilityUtilitytable)
     osquery_cxx_settings
     osquery_config
     osquery_core
+    osquery_core_init
     osquery_filesystem
     osquery_process
     osquery_utils_macros
