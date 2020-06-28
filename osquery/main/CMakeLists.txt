@@ -36,6 +36,7 @@ function(generateOsqueryMain)
     osquery_cxx_settings
     osquery_headers
     osquery_core
+    osquery_core_init
     osquery_core_plugins
     osquery_core_sql
     osquery_database
