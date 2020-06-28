@@ -426,7 +426,7 @@ void Initializer::initWatcher() const {
 
   // The watcher takes a list of paths to autoload extensions from.
   // The loadExtensions call will populate the watcher's list of extensions.
-  osquery::loadExtensions();
+  watcher.loadExtensions();
 
   // Add a watcher service thread to start/watch an optional worker and list
   // of optional extensions from the autoload paths.

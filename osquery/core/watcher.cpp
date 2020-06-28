@@ -23,6 +23,7 @@
 #include <osquery/core/sql/query_data.h>
 #include <osquery/core/watcher.h>
 #include <osquery/data_logger.h>
+#include <osquery/extensions.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger.h>
@@ -37,8 +38,6 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
-
-const auto kNumOfCPUs = boost::thread::physical_concurrency();
 
 struct LimitDefinition {
   size_t normal;
@@ -55,6 +54,30 @@ struct PerformanceChange {
 
 using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
 
+/**
+ * @brief A scoped locker for iterating over watcher extensions.
+ *
+ * A lock must be used if any part of osquery wants to enumerate the autoloaded
+ * extensions or autoloadable extension paths a Watcher may be monitoring.
+ * A signal or WatcherRunner thread may stop or start extensions.
+ */
+class WatcherExtensionsLocker {
+ public:
+  /// Construct and gain watcher lock.
+  WatcherExtensionsLocker() {
+    Watcher::get().lock();
+  }
+
+  /// Destruct and release watcher lock.
+  ~WatcherExtensionsLocker() {
+    Watcher::get().unlock();
+  }
+};
+
+namespace {
+
+const auto kNumOfCPUs = boost::thread::physical_concurrency();
+
 const WatchdogLimitMap kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
     {WatchdogLimitType::MEMORY_LIMIT, {200, 100, 10000}},
@@ -70,6 +93,7 @@ const WatchdogLimitMap kWatchdogLimits = {
     // How often to poll for performance limit violations.
     {WatchdogLimitType::INTERVAL, {3, 3, 3}},
 };
+} // namespace
 
 CLI_FLAG(int32,
          watchdog_level,
@@ -170,9 +194,12 @@ void Watcher::reset(const PlatformProcess& child) {
   }
 }
 
-void Watcher::addExtensionPath(const std::string& path) {
-  setExtension(path, std::make_shared<PlatformProcess>());
-  resetExtensionCounters(path, 0);
+void Watcher::loadExtensions() {
+  auto autoload_paths = osquery::loadExtensions();
+  for (const auto& path : autoload_paths) {
+    setExtension(path, std::make_shared<PlatformProcess>());
+    resetExtensionCounters(path, 0);
+  }
 }
 
 bool Watcher::hasManagedExtensions() const {
