@@ -31,7 +31,8 @@ void officeData(QueryData& results,
     QueryData office_entries;
     queryKey(rKey, office_entries);
     for (const auto& aKey : office_entries) {
-      // All file entries are start with "Item", skip entries that are not named "Item"
+      // All file entries are start with "Item", skip entries that are not named
+      // "Item"
       if (aKey.at("name").find("Item") == std::string::npos) {
         continue;
       }
