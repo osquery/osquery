@@ -205,6 +205,13 @@ function(setupBuildFlags)
         -fsanitize-coverage=edge,indirect-calls
       )
 
+      # Support ASAN within coroutines2.
+      # Note that __ucontext__ is orders of magnitude slower than __fcontext__.
+      target_compile_definitions(cxx_settings INTERFACE
+        BOOST_USE_UCONTEXT
+        BOOST_USE_ASAN
+      )
+
       # Require at least address (may be refactored out)
       target_link_options(cxx_settings INTERFACE
         -fsanitize=address
