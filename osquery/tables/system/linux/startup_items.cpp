@@ -16,7 +16,6 @@
 #include <osquery/utils/conversions/split.h>
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
@@ -27,11 +26,12 @@ const std::vector<std::string> systemScriptPaths = {"/etc/init.d/"};
 
 void genAutoStartItems(const std::string& sysdir, QueryData& results) {
   try {
-    fs::directory_iterator it((fs::path(sysdir))), end;
-    for (; it != end; ++it) {
+    std::vector<std::string> dirFiles;
+    osquery::listFilesInDirectory(sysdir, dirFiles, false);
+    for (const auto& file : dirFiles) {
       Row r;
       std::string content;
-      if (readFile(it->path().string(), content)) {
+      if (readFile(file, content)) {
         for (const auto& line : osquery::split(content, "\n")) {
           if (line.find("Name=") == 0) {
             auto details = osquery::split(line, "=");
@@ -57,19 +57,19 @@ void genAutoStartItems(const std::string& sysdir, QueryData& results) {
       }
       results.push_back(r);
     }
-  } catch (const fs::filesystem_error& e) {
+  } catch (const Status e) {
     VLOG(1) << "Error traversing " << sysdir << ": " << e.what();
   }
 }
 
 void genAutoStartScripts(const std::string& sysdir, QueryData& results) {
   try {
-    fs::directory_iterator it((fs::path(sysdir))), end;
-    for (; it != end; ++it) {
+    std::vector<std::string> dirFiles;
+    osquery::listFilesInDirectory(sysdir, dirFiles, false);
+    for (const auto& file : dirFiles) {
       Row r;
-      auto name = osquery::split(it->path().string(), "/");
-      r["name"] = name.back();
-      r["path"] = it->path().string();
+      r["name"] = osquery::split(file, "/").back();
+      r["path"] = file;
       r["type"] = "Startup Item";
       r["status"] = "enabled";
       r["source"] = sysdir;
@@ -79,7 +79,7 @@ void genAutoStartScripts(const std::string& sysdir, QueryData& results) {
       }
       results.push_back(r);
     }
-  } catch (const fs::filesystem_error& e) {
+  } catch (const Status e) {
     VLOG(1) << "Error traversing " << sysdir << ": " << e.what();
   }
 }
