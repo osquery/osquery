@@ -18,6 +18,6 @@
 namespace osquery {
 
 /// Custom literal for size_t.
-size_t operator"" _sz(unsigned long long int x);
+uint64_t operator"" _sz(unsigned long long int x);
 
 } // namespace osquery

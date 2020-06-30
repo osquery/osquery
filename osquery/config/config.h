@@ -262,10 +262,10 @@ class Config : private boost::noncopyable {
   Status refresh();
 
   /// Update the refresh rate.
-  void setRefresh(size_t refresh_sec);
+  void setRefresh(uint64_t refresh_sec);
 
   /// Inspect the refresh rate.
-  size_t getRefresh() const;
+  uint64_t getRefresh() const;
 
   /**
    * @brief Check if a config plugin is registered and load configs.

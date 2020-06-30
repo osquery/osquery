@@ -373,5 +373,5 @@ class WatcherWatcherRunner : public InternalRunnable {
 };
 
 /// Get a performance limit by name and optional level.
-size_t getWorkerLimit(WatchdogLimitType limit);
+uint64_t getWorkerLimit(WatchdogLimitType limit);
 }

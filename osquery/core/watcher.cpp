@@ -46,8 +46,8 @@ struct LimitDefinition {
 
 struct PerformanceChange {
   size_t sustained_latency;
-  size_t footprint;
-  size_t iv;
+  uint64_t footprint;
+  uint64_t iv;
   pid_t parent;
 };
 
@@ -646,7 +646,7 @@ void WatcherWatcherRunner::start() {
   }
 }
 
-size_t getWorkerLimit(WatchdogLimitType name) {
+uint64_t getWorkerLimit(WatchdogLimitType name) {
   if (kWatchdogLimits.count(name) == 0) {
     return 0;
   }

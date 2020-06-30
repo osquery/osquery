@@ -157,7 +157,7 @@ tryTo(std::string from) {
   return impl::stringToBool(std::move(from));
 }
 
-inline size_t operator"" _sz(unsigned long long int x) {
+inline uint64_t operator"" _sz(unsigned long long int x) {
   return x;
 }
 

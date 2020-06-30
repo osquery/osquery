@@ -244,7 +244,7 @@ Status getUserProcessParameters(HANDLE proc,
                            std::to_string(status));
   }
 
-  size_t bytes_read = 0;
+  SIZE_T bytes_read = 0;
   PEB peb;
   if (!ReadProcessMemory(
           proc, pbi.PebBaseAddress, &peb, sizeof(peb), &bytes_read)) {
@@ -273,7 +273,7 @@ Status getProcessCommandLineLegacy(HANDLE proc,
     return s;
   }
 
-  size_t bytes_read = 0;
+  SIZE_T bytes_read = 0;
   std::vector<wchar_t> command_line(kMaxPathSize, 0x0);
   SecureZeroMemory(command_line.data(), kMaxPathSize);
   if (!ReadProcessMemory(proc,
@@ -339,7 +339,7 @@ Status getProcessCurrentDirectory(HANDLE proc,
     return s;
   }
 
-  size_t bytes_read = 0;
+  SIZE_T bytes_read = 0;
   std::vector<wchar_t> current_directory(kMaxPathSize, 0x0);
   SecureZeroMemory(current_directory.data(), kMaxPathSize);
   if (!ReadProcessMemory(proc,

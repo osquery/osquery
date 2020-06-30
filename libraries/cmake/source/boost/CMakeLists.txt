@@ -689,11 +689,19 @@ function(generateBoostContext)
       "${library_root}/src/asm/ontop_x86_64_sysv_macho_gas.S"
     )
   elseif(DEFINED PLATFORM_WINDOWS)
-    set(asm_source_file_list
-      "${library_root}/src/asm/jump_x86_64_ms_pe_masm.asm"
-      "${library_root}/src/asm/make_x86_64_ms_pe_masm.asm"
-      "${library_root}/src/asm/ontop_x86_64_ms_pe_masm.asm"
-    )
+    if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+      set(asm_source_file_list
+        "${library_root}/src/asm/jump_i386_ms_pe_masm.asm"
+        "${library_root}/src/asm/make_i386_ms_pe_masm.asm"
+        "${library_root}/src/asm/ontop_i386_ms_pe_masm.asm"
+      )
+    else()
+      set(asm_source_file_list
+        "${library_root}/src/asm/jump_x86_64_ms_pe_masm.asm"
+        "${library_root}/src/asm/make_x86_64_ms_pe_masm.asm"
+        "${library_root}/src/asm/ontop_x86_64_ms_pe_masm.asm"
+      )
+    endif()
   endif()
 
   foreach(asm_source_file ${asm_source_file_list})
@@ -706,7 +714,7 @@ function(generateBoostContext)
     endif()
 
     if(DEFINED PLATFORM_WINDOWS)
-      set_property(SOURCE "${asm_source_file}" PROPERTY COMPILE_FLAGS "/Cp /Cx /Zp4")
+      set_property(SOURCE "${asm_source_file}" PROPERTY COMPILE_FLAGS "/Cp /Cx /Zp4 /safeseh")
     endif()
   endforeach()
 

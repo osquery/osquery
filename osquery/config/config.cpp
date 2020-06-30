@@ -522,11 +522,11 @@ Status Config::refresh() {
   return status;
 }
 
-void Config::setRefresh(size_t refresh_sec) {
+void Config::setRefresh(uint64_t refresh_sec) {
   refresh_runner_->refresh_sec_ = refresh_sec;
 }
 
-size_t Config::getRefresh() const {
+uint64_t Config::getRefresh() const {
   return refresh_runner_->refresh_sec_;
 }
 
