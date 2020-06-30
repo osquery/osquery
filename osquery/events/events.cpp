@@ -55,7 +55,7 @@ static inline EventTime timeFromRecord(const std::string& record) {
   return static_cast<EventTime>(tryTo<long long>(record).takeOr(0ll));
 }
 
-static inline std::string toIndex(size_t i) {
+static inline std::string toIndex(uint64_t i) {
   auto str_index = std::to_string(i);
   if (str_index.size() < 10) {
     str_index.insert(str_index.begin(), 10 - str_index.size(), '0');
@@ -297,7 +297,7 @@ void EventSubscriberPlugin::expireCheck() {
   auto data_key = "data." + dbNamespace();
   auto eid_key = "eid." + dbNamespace();
   // Min key will be the last surviving key.
-  size_t threshold_key = 0;
+  uint64_t threshold_key = 0;
 
   {
     auto limit = getEventsMax();
@@ -475,11 +475,11 @@ Status EventSubscriberPlugin::recordEvents(
   return status;
 }
 
-size_t EventSubscriberPlugin::getEventsExpiry() {
+uint64_t EventSubscriberPlugin::getEventsExpiry() {
   return FLAGS_events_expiry;
 }
 
-size_t EventSubscriberPlugin::getEventsMax() {
+uint64_t EventSubscriberPlugin::getEventsMax() {
   return FLAGS_events_max;
 }
 

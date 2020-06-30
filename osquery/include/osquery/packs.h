@@ -73,7 +73,7 @@ class Pack : private boost::noncopyable {
   /// Returns the minimum version that the pack is configured to run on
   const std::string& getVersion() const;
 
-  size_t getShard() const {
+  uint64_t getShard() const {
     return shard_;
   }
 
@@ -122,7 +122,7 @@ class Pack : private boost::noncopyable {
   std::string version_;
 
   /// Optional shard requirement for pack.
-  size_t shard_{0};
+  uint64_t shard_{0};
 
   /// Pack canonicalized name.
   std::string name_;
@@ -131,7 +131,7 @@ class Pack : private boost::noncopyable {
   std::string source_;
 
   /// Cached time and result from previous discovery step.
-  std::pair<size_t, bool> discovery_cache_;
+  std::pair<uint64_t, bool> discovery_cache_;
 
   /// Aggregate appropriateness of pack for this host.
   std::atomic<bool> valid_{false};
@@ -165,7 +165,7 @@ class Pack : private boost::noncopyable {
  * @param splay_percent a positive percent (1-100) to splay.
  * @return the result splayed value.
  */
-size_t splayValue(size_t original, size_t splay_percent);
+uint64_t splayValue(uint64_t original, uint64_t splay_percent);
 
 /**
  * @brief Retrieve a previously-calculated splay for a name/interval pair.
@@ -181,5 +181,5 @@ size_t splayValue(size_t original, size_t splay_percent);
  * @param interval the requested pre-splayed interval.
  * @return either the restored previous calculated splay, or a new splay.
  */
-size_t restoreSplayedValue(const std::string& name, size_t interval);
+uint64_t restoreSplayedValue(const std::string& name, uint64_t interval);
 }

@@ -23,8 +23,8 @@ FLAG(bool, disable_caching, false, "Disable scheduled query caching");
 
 CREATE_LAZY_REGISTRY(TablePlugin, "table");
 
-size_t TablePlugin::kCacheInterval = 0;
-size_t TablePlugin::kCacheStep = 0;
+uint64_t TablePlugin::kCacheInterval = 0;
+uint64_t TablePlugin::kCacheStep = 0;
 
 #define kDisableRowId "WITHOUT ROWID"
 
@@ -211,7 +211,7 @@ static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
   return true;
 }
 
-bool TablePlugin::isCached(size_t step, const QueryContext& ctx) const {
+bool TablePlugin::isCached(uint64_t step, const QueryContext& ctx) const {
   if (FLAGS_disable_caching) {
     return false;
   }
@@ -230,8 +230,8 @@ TableRows TablePlugin::getCache() const {
   return results;
 }
 
-void TablePlugin::setCache(size_t step,
-                           size_t interval,
+void TablePlugin::setCache(uint64_t step,
+                           uint64_t interval,
                            const QueryContext& ctx,
                            const TableRows& results) {
   if (FLAGS_disable_caching || !cacheAllowed(columns(), ctx)) {

@@ -116,7 +116,7 @@ const std::string kExecutingQuery{"executing_query"};
 const std::string kFailedQueries{"failed_queries"};
 
 /// The time osquery was started.
-std::atomic<size_t> kStartTime;
+std::atomic<uint64_t> kStartTime;
 
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
@@ -200,7 +200,7 @@ class Schedule : private boost::noncopyable {
    * failures. If a query caused a worker to fail it will be recorded during
    * the next execution and saved to the denylist.
    */
-  std::map<std::string, size_t> denylist_;
+  std::map<std::string, uint64_t> denylist_;
 
  private:
   friend class Config;
@@ -275,13 +275,13 @@ class ConfigRefreshRunner : public InternalRunnable {
 
  private:
   /// The current refresh rate in seconds.
-  std::atomic<size_t> refresh_sec_{0};
+  std::atomic<uint64_t> refresh_sec_{0};
 
  private:
   friend class Config;
 };
 
-void restoreScheduleDenylist(std::map<std::string, size_t>& denylist) {
+void restoreScheduleDenylist(std::map<std::string, uint64_t>& denylist) {
   std::string content;
   getDatabaseValue(kPersistentSettings, kFailedQueries, content);
   auto denylist_pairs = osquery::split(content, ":");
@@ -290,7 +290,7 @@ void restoreScheduleDenylist(std::map<std::string, size_t>& denylist) {
     return;
   }
 
-  size_t current_time = getUnixTime();
+  uint64_t current_time = getUnixTime();
   for (size_t i = 0; i < denylist_pairs.size() / 2; i++) {
     // Fill in a mapping of query name to time the denylist expires.
     auto expire = tryTo<long long>(denylist_pairs[(i * 2) + 1], 10).takeOr(0ll);
@@ -300,7 +300,7 @@ void restoreScheduleDenylist(std::map<std::string, size_t>& denylist) {
   }
 }
 
-void saveScheduleDenylist(const std::map<std::string, size_t>& denylist) {
+void saveScheduleDenylist(const std::map<std::string, uint64_t>& denylist) {
   std::string content;
   for (const auto& query : denylist) {
     if (!content.empty()) {
@@ -375,11 +375,11 @@ void Config::addPack(const std::string& name,
   }
 }
 
-size_t Config::getStartTime() {
+uint64_t Config::getStartTime() {
   return kStartTime;
 }
 
-void Config::setStartTime(size_t st) {
+void Config::setStartTime(uint64_t st) {
   kStartTime = st;
 }
 
@@ -413,7 +413,7 @@ void Config::removeFiles(const std::string& source) {
  * @param blt The time the query was originally denylisted.
  * @param query The scheduled query and its options.
  */
-static inline bool denylistExpired(size_t blt, const ScheduledQuery& query) {
+static inline bool denylistExpired(uint64_t blt, const ScheduledQuery& query) {
   if (getUnixTime() > blt) {
     return true;
   }
@@ -946,9 +946,9 @@ void Config::purge() {
     }
 
     // Parse the timestamp and compare.
-    size_t last_executed = 0;
+    uint64_t last_executed = 0;
     try {
-      last_executed = boost::lexical_cast<size_t>(content);
+      last_executed = boost::lexical_cast<uint64_t>(content);
     } catch (const boost::bad_lexical_cast& /* e */) {
       // Erase the timestamp as is it potentially corrupt.
       deleteDatabaseValue(kPersistentSettings, "timestamp." + saved_query);
@@ -1005,7 +1005,7 @@ void ConfigParserPlugin::reset() {
 }
 
 void Config::recordQueryPerformance(const std::string& name,
-                                    size_t delay,
+                                    uint64_t delay,
                                     const Row& r0,
                                     const Row& r1) {
   RecursiveLock lock(config_performance_mutex_);

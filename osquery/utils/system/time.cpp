@@ -26,7 +26,7 @@ std::string toAsciiTime(const struct tm* tm_time) {
 }
 
 std::string toAsciiTimeUTC(const struct tm* tm_time) {
-  size_t epoch = toUnixTime(tm_time);
+  uint64_t epoch = toUnixTime(tm_time);
   struct tm tptr;
 
   std::memset(&tptr, 0, sizeof(tptr));
@@ -56,7 +56,7 @@ std::string getAsciiTime() {
   return toAsciiTime(&now);
 }
 
-size_t toUnixTime(const struct tm* tm_time) {
+uint64_t toUnixTime(const struct tm* tm_time) {
   struct tm result;
   std::memset(&result, 0, sizeof(result));
 
@@ -64,7 +64,7 @@ size_t toUnixTime(const struct tm* tm_time) {
   return mktime(&result);
 }
 
-size_t getUnixTime() {
+uint64_t getUnixTime() {
   std::time_t ut = std::time(nullptr);
   return ut < 0 ? 0 : ut;
 }

@@ -47,7 +47,7 @@ struct QueryLogItem {
   std::string identifier;
 
   /// The time that the query was executed, seconds as UNIX time.
-  size_t time{0};
+  uint64_t time{0};
 
   /// The epoch at the time the query was executed
   uint64_t epoch{};

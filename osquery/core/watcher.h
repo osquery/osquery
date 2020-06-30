@@ -59,14 +59,14 @@ struct PerformanceState {
   /// A counter of how many intervals the process exceeded performance limits.
   size_t sustained_latency;
   /// The last checked user CPU time.
-  size_t user_time;
+  uint64_t user_time;
   /// The last checked system CPU time.
-  size_t system_time;
+  uint64_t system_time;
   /// A timestamp when the process/worker was last created.
-  size_t last_respawn_time;
+  uint64_t last_respawn_time;
 
   /// The initial (or as close as possible) process image footprint.
-  size_t initial_footprint;
+  uint64_t initial_footprint;
 
   PerformanceState() {
     sustained_latency = 0;
@@ -144,11 +144,11 @@ class Watcher : private boost::noncopyable {
   }
 
   /// Reset counters after a worker exits.
-  void resetWorkerCounters(size_t respawn_time);
+  void resetWorkerCounters(uint64_t respawn_time);
 
   /// Reset counters for an extension path.
   void resetExtensionCounters(const std::string& extension,
-                              size_t respawn_time);
+                              uint64_t respawn_time);
 
   /// Accessor for autoloadable extension paths.
   const ExtensionMap& extensions() const {
@@ -324,7 +324,7 @@ class WatcherRunner : public InternalRunnable {
   virtual void stopChild(const PlatformProcess& child) const;
 
   /// Return the time the watchdog is delayed until (from start of watcher).
-  size_t delayedTime() const;
+  uint64_t delayedTime() const;
 
  private:
   /// For testing only, ask the WatcherRunner to run a start loop once.

@@ -48,8 +48,9 @@ DECLARE_bool(disable_database);
 namespace fs = boost::filesystem;
 
 // Denylist testing methods, internal to config implementations.
-extern void restoreScheduleDenylist(std::map<std::string, size_t>& denylist);
-extern void saveScheduleDenylist(const std::map<std::string, size_t>& denylist);
+extern void restoreScheduleDenylist(std::map<std::string, uint64_t>& denylist);
+extern void saveScheduleDenylist(
+    const std::map<std::string, uint64_t>& denylist);
 
 class ConfigTests : public testing::Test {
  public:
@@ -102,7 +103,7 @@ class ConfigTests : public testing::Test {
   }
 
  private:
-  size_t refresh_{0};
+  uint64_t refresh_{0};
 };
 
 class TestConfigPlugin : public ConfigPlugin {
@@ -272,22 +273,21 @@ TEST_F(ConfigTests, test_strip_comments) {
 }
 
 TEST_F(ConfigTests, test_schedule_denylist) {
-  auto current_time = getUnixTime();
-  std::map<std::string, size_t> denylist;
+  std::map<std::string, uint64_t> denylist;
   saveScheduleDenylist(denylist);
   restoreScheduleDenylist(denylist);
   EXPECT_EQ(denylist.size(), 0U);
 
   // Create some entries.
-  denylist["test_1"] = current_time * 2;
-  denylist["test_2"] = current_time * 3;
+  denylist["test_1"] = ULONG_MAX - 2;
+  denylist["test_2"] = ULONG_MAX - 1;
   saveScheduleDenylist(denylist);
   denylist.clear();
   restoreScheduleDenylist(denylist);
   ASSERT_EQ(denylist.count("test_1"), 1U);
   ASSERT_EQ(denylist.count("test_2"), 1U);
-  EXPECT_EQ(denylist.at("test_1"), current_time * 2);
-  EXPECT_EQ(denylist.at("test_2"), current_time * 3);
+  EXPECT_EQ(denylist.at("test_1"), ULONG_MAX - 2);
+  EXPECT_EQ(denylist.at("test_2"), ULONG_MAX - 1);
 
   // Now save an expired query.
   denylist["test_1"] = 1;
@@ -407,7 +407,7 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
   ASSERT_FALSE(query_names.empty());
 
   // Construct a schedule denylist and place the first scheduled query.
-  std::map<std::string, size_t> denylist;
+  std::map<std::string, uint64_t> denylist;
   std::string query_name = query_names[0];
   denylist[query_name] = getUnixTime() * 2;
   saveScheduleDenylist(denylist);
@@ -445,7 +445,7 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
 }
 
 TEST_F(ConfigTests, test_nondenylist_query) {
-  std::map<std::string, size_t> denylist;
+  std::map<std::string, uint64_t> denylist;
 
   const std::string kConfigTestNonDenylistQuery{
       "pack_unrestricted_pack_process_heartbeat"};

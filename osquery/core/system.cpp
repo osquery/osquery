@@ -376,7 +376,7 @@ bool PlatformProcess::cleanup() const {
   }
 
   size_t delay = 0;
-  size_t timeout = (FLAGS_alarm_timeout + 1) * 1000;
+  auto timeout = (FLAGS_alarm_timeout + 1) * 1000;
   while (delay < timeout) {
     int status = 0;
     if (checkStatus(status) == PROCESS_EXITED) {

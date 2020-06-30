@@ -90,7 +90,7 @@ class Config : private boost::noncopyable {
    * @param r1 the process row after the query
    */
   void recordQueryPerformance(const std::string& name,
-                              size_t delay,
+                              uint64_t delay,
                               const Row& r0,
                               const Row& r1);
 
@@ -132,10 +132,10 @@ class Config : private boost::noncopyable {
   }
 
   /// Get start time of config.
-  static size_t getStartTime();
+  static uint64_t getStartTime();
 
   /// Set the start time if the config.
-  static void setStartTime(size_t st);
+  static void setStartTime(uint64_t st);
 
   /**
    * @brief Add a pack to the osquery schedule
