@@ -288,7 +288,7 @@ Status SQLiteDatabasePlugin::removeRange(const std::string& domain,
 Status SQLiteDatabasePlugin::scan(const std::string& domain,
                                   std::vector<std::string>& results,
                                   const std::string& prefix,
-                                  size_t max) const {
+                                  uint64_t max) const {
   QueryData _results;
   char* err = nullptr;
 

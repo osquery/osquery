@@ -135,7 +135,7 @@ class DatabasePlugin : public Plugin {
   virtual Status scan(const std::string& domain,
                       std::vector<std::string>& results,
                       const std::string& prefix,
-                      size_t max) const;
+                      uint64_t max) const;
 
   /**
    * @brief Shutdown the database and release initialization resources.
@@ -269,7 +269,7 @@ Status scanDatabaseKeys(const std::string& domain,
 Status scanDatabaseKeys(const std::string& domain,
                         std::vector<std::string>& keys,
                         const std::string& prefix,
-                        size_t max = 0);
+                        uint64_t max = 0);
 
 /// Allow callers to reload or reset the database plugin.
 void resetDatabase();

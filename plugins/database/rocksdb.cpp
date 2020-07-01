@@ -28,7 +28,7 @@ namespace osquery {
 HIDDEN_FLAG(int32, rocksdb_write_buffer, 16, "Max write buffer number");
 HIDDEN_FLAG(int32, rocksdb_merge_number, 4, "Min write buffer number to merge");
 HIDDEN_FLAG(int32, rocksdb_background_flushes, 4, "Max background flushes");
-HIDDEN_FLAG(uint64, rocksdb_buffer_blocks, 256, "Write buffer blocks (4k)");
+HIDDEN_FLAG(int32, rocksdb_buffer_blocks, 256, "Write buffer blocks (4k)");
 
 DECLARE_string(database_path);
 
@@ -365,7 +365,7 @@ Status RocksDBDatabasePlugin::removeRange(const std::string& domain,
 Status RocksDBDatabasePlugin::scan(const std::string& domain,
                                    std::vector<std::string>& results,
                                    const std::string& prefix,
-                                   size_t max) const {
+                                   uint64_t max) const {
   if (getDB() == nullptr) {
     return Status(1, "Database not opened");
   }
