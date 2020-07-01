@@ -32,6 +32,12 @@ class SemanticVersion {
   bool operator<(const SemanticVersion& other) {
     return !gt(other);
   }
+  bool operator>=(const SemanticVersion& other) {
+    return eq(other) || gt(other);
+  }
+  bool operator<=(const SemanticVersion& other) {
+    return eq(other) || !gt(other);
+  }
 
  public:
   static constexpr auto separator = '.';

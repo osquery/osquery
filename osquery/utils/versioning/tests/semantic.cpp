@@ -122,6 +122,9 @@ TEST_F(SemanticVersionTests, equals) {
 
   EXPECT_TRUE(v1.eq(v2));
   EXPECT_TRUE(v1 = v2);
+  EXPECT_TRUE(v2 = v1);
+  EXPECT_TRUE(v1 <= v2);
+  EXPECT_TRUE(v1 >= v2);
 }
 
 TEST_F(SemanticVersionTests, comparisons) {
@@ -149,7 +152,9 @@ TEST_F(SemanticVersionTests, comparisons) {
     EXPECT_FALSE(v1.eq(v2));
     EXPECT_FALSE(v2.eq(v1));
     EXPECT_TRUE(v1 < v2);
+    EXPECT_TRUE(v1 <= v2);
     EXPECT_FALSE(v1 > v2);
+    EXPECT_FALSE(v1 >= v2);
   }
 }
 
