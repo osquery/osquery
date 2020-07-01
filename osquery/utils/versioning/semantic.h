@@ -20,14 +20,20 @@ class SemanticVersion {
   unsigned patches = 0;
   unsigned build = 0;
 
-public:
-  bool gt(const  SemanticVersion &);
-  bool eq(const  SemanticVersion &);
-  bool operator=(const  SemanticVersion & other) {      return eq(other);    }
-  bool operator>(const  SemanticVersion & other) {      return gt(other);    }
-  bool operator<(const  SemanticVersion & other) {      return !gt(other);    }
+ public:
+  bool gt(const SemanticVersion&);
+  bool eq(const SemanticVersion&);
+  bool operator=(const SemanticVersion& other) {
+    return eq(other);
+  }
+  bool operator>(const SemanticVersion& other) {
+    return gt(other);
+  }
+  bool operator<(const SemanticVersion& other) {
+    return !gt(other);
+  }
 
- public: 
+ public:
   static constexpr auto separator = '.';
 
  public:
