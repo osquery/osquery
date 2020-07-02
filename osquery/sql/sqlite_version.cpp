@@ -30,7 +30,7 @@ int version_collate(void* userdata, // UNUSED
   std::string aStr((const char*)a);
   auto aVer = tryTo<SemanticVersion>(aStr);
   if (aVer.isError()) {
-    LOG(INFO) << "Unable to collate <<" << a
+    LOG(INFO) << "Unable to collate <<" << aStr
               << ">> as version. Treating as equal\n";
     return 0;
   }
@@ -38,7 +38,7 @@ int version_collate(void* userdata, // UNUSED
   std::string bStr((const char*)b);
   auto bVer = tryTo<SemanticVersion>(bStr);
   if (bVer.isError()) {
-    LOG(INFO) << "Unable to collate <<" << b
+    LOG(INFO) << "Unable to collate <<" << bStr
               << ">> as version. Treating as equal\n";
     return 0;
   }
