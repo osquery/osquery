@@ -20,7 +20,9 @@ std::string psidToString(PSID sid) {
     VLOG(1) << "ConvertSidToString failed with " << GetLastError();
     return std::string("");
   }
-  return std::string(sidOut);
+  std::string sidString(sidOut);
+  LocalFree(sidOut);
+  return sidString;
 }
 
 uint32_t getUidFromSid(PSID sid) {
