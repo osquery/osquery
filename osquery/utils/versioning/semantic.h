@@ -21,22 +21,24 @@ class SemanticVersion {
   unsigned build = 0;
 
  public:
-  bool gt(const SemanticVersion&);
+  int compare(const SemanticVersion&);
   bool eq(const SemanticVersion&);
-  bool operator=(const SemanticVersion& other) {
+
+ public:
+  bool operator==(const SemanticVersion& other) {
     return eq(other);
   }
   bool operator>(const SemanticVersion& other) {
-    return gt(other);
+    return compare(other) > 0;
   }
   bool operator<(const SemanticVersion& other) {
-    return !gt(other);
+    return compare(other) < 0;
   }
   bool operator>=(const SemanticVersion& other) {
-    return eq(other) || gt(other);
+    return compare(other) >= 0;
   }
   bool operator<=(const SemanticVersion& other) {
-    return eq(other) || !gt(other);
+    return compare(other) <= 0;
   }
 
  public:

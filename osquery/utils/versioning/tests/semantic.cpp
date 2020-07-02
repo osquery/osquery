@@ -121,8 +121,8 @@ TEST_F(SemanticVersionTests, equals) {
   auto v2 = v2exp.get();
 
   EXPECT_TRUE(v1.eq(v2));
-  EXPECT_TRUE(v1 = v2);
-  EXPECT_TRUE(v2 = v1);
+  //EXPECT_TRUE(v1 == v2);
+  //EXPECT_TRUE(v2 == v1);
   EXPECT_TRUE(v1 <= v2);
   EXPECT_TRUE(v1 >= v2);
 }

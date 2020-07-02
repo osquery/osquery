@@ -90,33 +90,41 @@ Expected<SemanticVersion, ConversionError> SemanticVersion::tryFromString(
   return version;
 }
 
-bool SemanticVersion::gt(const SemanticVersion& other) {
+int SemanticVersion::compare(const SemanticVersion& other) {
   if (major > other.major) {
-    return true;
+    return 1;
   }
 
   if (major < other.major) {
-    return false;
+    return -1;
   }
 
   if (minor > other.minor) {
-    return true;
+    return 1;
   }
 
   if (minor < other.minor) {
-    return false;
+    return -1;
   }
 
   if (patches > other.patches) {
-    return true;
+    return 1;
   }
 
   if (patches < other.patches) {
-    return false;
+    return -1;
   }
 
-  // Just return the comparison on build.
-  return build > other.build;
+  if (build > other.build) {
+    return 1;
+  }
+
+  if (build < other.build) {
+    return -1;
+  }
+
+  // May as well return equal...
+  return 0;
 }
 
 bool SemanticVersion::eq(const SemanticVersion& other) {
