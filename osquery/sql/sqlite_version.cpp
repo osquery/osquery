@@ -26,21 +26,24 @@ int version_collate(void* userdata, // UNUSED
                     const void* a,
                     int blen,
                     const void* b) {
-  auto aVer = tryTo<SemanticVersion>(a);
+
+  std::string aStr((const char*)a);
+  auto aVer = tryTo<SemanticVersion>(aStr);
   if (aVer.isError()) {
     LOG(INFO) << "Unable to collate <<" << a
               << ">> as version. Treating as equal\n";
     return 0;
   }
 
-  auto bVer = tryTo<SemanticVersion>(b);
+  std::string bStr((const char*)b);
+  auto bVer = tryTo<SemanticVersion>(bStr);
   if (bVer.isError()) {
     LOG(INFO) << "Unable to collate <<" << b
               << ">> as version. Treating as equal\n";
     return 0;
   }
 
-  return aVer.compare(bVer);
+  return aVer.get().compare(bVer.get());
 }
 
 void registerVersionExtensions(sqlite3* db) {
