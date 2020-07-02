@@ -28,6 +28,9 @@ class SemanticVersion {
   bool operator==(const SemanticVersion& other) {
     return eq(other);
   }
+  bool operator!=(const SemanticVersion& other) {
+    return !eq(other);
+  }
   bool operator>(const SemanticVersion& other) {
     return compare(other) > 0;
   }

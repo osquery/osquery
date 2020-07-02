@@ -110,6 +110,46 @@ TEST_F(SemanticVersionTests, fail_two_digits) {
   EXPECT_EQ(exp.getErrorCode(), ConversionError::InvalidArgument);
 }
 
+TEST_F(SemanticVersionTests, operators) {
+  // Test operator plumbing. The more indepth tests are on compare
+  auto v1_1_1 = tryTo<SemanticVersion>("1.1.1");
+  auto v1_1_1_0 = tryTo<SemanticVersion>("1.1.1.0");
+  auto v1_1_1_1 = tryTo<SemanticVersion>("1.1.1.1");
+  auto v1_2_1_1 = tryTo<SemanticVersion>("1.2.1.1");
+  auto v1_11_1 = tryTo<SemanticVersion>("1.11.1");
+
+  // equals should equal
+  EXPECT_TRUE(v1_1_1.get().eq(v1_1_1_0.get()));
+  EXPECT_TRUE(v1_1_1.get() == v1_1_1_0.get());
+  EXPECT_FALSE(v1_1_1.get() != v1_1_1_0.get());
+
+  // Not equals
+  EXPECT_FALSE(v1_1_1.get().eq(v1_1_1_1.get()));
+  EXPECT_FALSE(v1_1_1.get() == v1_1_1_1.get());
+  EXPECT_TRUE(v1_1_1.get() != v1_1_1_1.get());
+
+  // with equal values
+  EXPECT_FALSE(v1_1_1.get() < v1_1_1_0.get());
+  EXPECT_TRUE(v1_1_1.get() <= v1_1_1_0.get());
+  EXPECT_FALSE(v1_1_1.get() > v1_1_1_0.get());
+  EXPECT_TRUE(v1_1_1.get() >= v1_1_1_0.get());
+
+  // with trivial compare, would pass lexiraphical
+  EXPECT_TRUE(v1_1_1_1.get() < v1_2_1_1.get());
+  EXPECT_TRUE(v1_1_1_1.get() <= v1_2_1_1.get());
+  EXPECT_FALSE(v1_1_1_1.get() > v1_2_1_1.get());
+  EXPECT_FALSE(v1_1_1_1.get() >= v1_2_1_1.get());
+
+  // with non-trivial values, needs numeric
+  EXPECT_TRUE(v1_2_1_1.get() < v1_11_1.get());
+  EXPECT_TRUE(v1_2_1_1.get() <= v1_11_1.get());
+  EXPECT_FALSE(v1_2_1_1.get() > v1_11_1.get());
+  EXPECT_FALSE(v1_2_1_1.get() >= v1_11_1.get());
+}
+TEST_F(SemanticVersionTests, operator_le) {}
+TEST_F(SemanticVersionTests, operator_gt) {}
+TEST_F(SemanticVersionTests, operator_ge) {}
+
 TEST_F(SemanticVersionTests, equals) {
   auto v1exp = tryTo<SemanticVersion>("1.1.1");
   auto v2exp = tryTo<SemanticVersion>("1.1.1.0");
@@ -121,10 +161,14 @@ TEST_F(SemanticVersionTests, equals) {
   auto v2 = v2exp.get();
 
   EXPECT_TRUE(v1.eq(v2));
-  //EXPECT_TRUE(v1 == v2);
-  //EXPECT_TRUE(v2 == v1);
+  EXPECT_TRUE(v2.eq(v1));
+  EXPECT_TRUE(v1 == v2);
+  EXPECT_TRUE(v2 == v1);
   EXPECT_TRUE(v1 <= v2);
   EXPECT_TRUE(v1 >= v2);
+
+  EXPECT_EQ(v1.compare(v2), 0);
+  EXPECT_EQ(v2.compare(v1), 0);
 }
 
 TEST_F(SemanticVersionTests, comparisons) {
@@ -149,12 +193,8 @@ TEST_F(SemanticVersionTests, comparisons) {
     auto v1 = v1exp.get();
     auto v2 = v2exp.get();
 
-    EXPECT_FALSE(v1.eq(v2));
-    EXPECT_FALSE(v2.eq(v1));
-    EXPECT_TRUE(v1 < v2);
-    EXPECT_TRUE(v1 <= v2);
-    EXPECT_FALSE(v1 > v2);
-    EXPECT_FALSE(v1 >= v2);
+    EXPECT_EQ(v1.compare(v2), -1);
+    EXPECT_EQ(v2.compare(v1), 1);
   }
 }
 

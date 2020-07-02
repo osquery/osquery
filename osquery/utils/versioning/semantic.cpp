@@ -91,6 +91,10 @@ Expected<SemanticVersion, ConversionError> SemanticVersion::tryFromString(
 }
 
 int SemanticVersion::compare(const SemanticVersion& other) {
+  if (eq(other)) {
+    return 0;
+  }
+
   if (major > other.major) {
     return 1;
   }
