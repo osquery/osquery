@@ -57,6 +57,10 @@ const std::vector<std::string> kCsvFields = {
 const size_t kErrorThreshold = 10;
 
 Status NonBlockingFStream::openReadOnly(const std::string& path) {
+  if (fd_ != -1) {
+    return Status::failure("Stream already open");
+  }
+
   fd_ = ::open(path.c_str(), O_RDWR | O_NONBLOCK);
   if (fd_ < 0) {
     return Status::failure("Error opening stream for reading: " + path);
@@ -241,6 +245,7 @@ Status SyslogEventPublisher::run() {
 }
 
 void SyslogEventPublisher::tearDown() {
+  readStream_.close();
   unlockPipe();
 }
 
