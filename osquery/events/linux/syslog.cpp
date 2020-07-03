@@ -71,38 +71,45 @@ Status NonBlockingFStream::openReadOnly(const std::string& path) {
 Status NonBlockingFStream::getline(std::string& output) {
   output.clear();
 
-  // Poll for available data with a near-instant delay.
-  // It is the caller's responsibility to yeild context.
-  fd_set set;
-  struct timeval timeout = {0, 200};
-  FD_ZERO(&set);
-  FD_SET(fd_, &set);
-  int rv = ::select(FD_SETSIZE, &set, nullptr, nullptr, &timeout);
-  if (rv <= 0) {
-    // No data.
-    return Status::failure("No data to read");
+  char* buffer_end = nullptr;
+  if (offset_ > 0) {
+    buffer_end = static_cast<char*>(memchr(buffer_.data(), '\n', offset_));
   }
 
-  // Read starting where we left off (if there was a previous read).
-  auto buffer_data = buffer_.data() + offset_;
-  // Only read up to the capacity of the vector buffer.
-  auto max_read = buffer_.capacity() - offset_;
-  auto bytes_read = ::read(fd_, buffer_data, max_read);
-  if (bytes_read <= 0) {
-    return Status::failure("Not enough data available");
-  }
-
-  offset_ += bytes_read;
-
-  auto buffer_end = static_cast<char*>(memchr(buffer_data, '\n', bytes_read));
   if (buffer_end == nullptr) {
-    if (offset_ == buffer_.capacity()) {
-      // This is a problem we cannot handle.
-      offset_ = 0;
-      return Status::failure("Too much data");
+    // Poll for available data with a near-instant delay.
+    // It is the caller's responsibility to yeild context.
+    fd_set set;
+    struct timeval timeout = {0, 200};
+    FD_ZERO(&set);
+    FD_SET(fd_, &set);
+    int rv = ::select(FD_SETSIZE, &set, nullptr, nullptr, &timeout);
+    if (rv <= 0) {
+      // No data.
+      return Status::failure("No data to read");
     }
-    // Wait for the next read.
-    return Status::success();
+
+    // Read starting where we left off (if there was a previous read).
+    auto buffer_data = buffer_.data() + offset_;
+    // Only read up to the capacity of the vector buffer.
+    auto max_read = buffer_.capacity() - offset_;
+    auto bytes_read = ::read(fd_, buffer_data, max_read);
+    if (bytes_read <= 0) {
+      return Status::failure("Not enough data available");
+    }
+
+    offset_ += bytes_read;
+
+    buffer_end = static_cast<char*>(memchr(buffer_data, '\n', bytes_read));
+    if (buffer_end == nullptr) {
+      if (offset_ == buffer_.capacity()) {
+        // This is a problem we cannot handle.
+        offset_ = 0;
+        return Status::failure("Too much data");
+      }
+      // Wait for the next read.
+      return Status::success();
+    }
   }
 
   size_t line_size = buffer_end - buffer_.data();
@@ -111,7 +118,7 @@ Status NonBlockingFStream::getline(std::string& output) {
   offset_ = offset_ - line_size - 1;
   if (offset_ > 0) {
     // Shift bytes down.
-    memcpy(buffer_.data(), buffer_end, offset_);
+    memcpy(buffer_.data(), buffer_end + 1, offset_);
   }
   return Status::success();
 }

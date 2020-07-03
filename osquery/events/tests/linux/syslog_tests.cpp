@@ -115,6 +115,40 @@ TEST_F(SyslogTests, test_nonblockingfstream) {
   s = nbfs.getline(output);
   EXPECT_FALSE(s.ok());
   EXPECT_EQ(0, nbfs.offset());
+
+  // Need to clear the newline here.
+  s = nbfs.getline(output);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(0, nbfs.offset());
+
+  // Write multiple strings.
+  fill = std::string(9, 'A');
+  fill.push_back('\n');
+  fill += std::string(9, 'A');
+  fill.push_back('\n');
+
+  bytes_written = write(fd, fill.data(), fill.size());
+  ASSERT_EQ(20, bytes_written);
+
+  // Read the first
+  s = nbfs.getline(output);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(10, nbfs.offset());
+
+  {
+    std::string expected(9, 'A');
+    EXPECT_EQ(expected, output);
+  }
+
+  // Read the second
+  s = nbfs.getline(output);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(0, nbfs.offset());
+
+  {
+    std::string expected(9, 'A');
+    EXPECT_EQ(expected, output);
+  }
 }
 
 TEST_F(SyslogTests, test_populate_event_context) {
