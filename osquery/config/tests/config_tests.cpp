@@ -279,15 +279,15 @@ TEST_F(ConfigTests, test_schedule_denylist) {
   EXPECT_EQ(denylist.size(), 0U);
 
   // Create some entries.
-  denylist["test_1"] = ULONG_MAX - 2;
-  denylist["test_2"] = ULONG_MAX - 1;
+  denylist["test_1"] = LLONG_MAX - 2;
+  denylist["test_2"] = LLONG_MAX - 1;
   saveScheduleDenylist(denylist);
   denylist.clear();
   restoreScheduleDenylist(denylist);
   ASSERT_EQ(denylist.count("test_1"), 1U);
   ASSERT_EQ(denylist.count("test_2"), 1U);
-  EXPECT_EQ(denylist.at("test_1"), ULONG_MAX - 2);
-  EXPECT_EQ(denylist.at("test_2"), ULONG_MAX - 1);
+  EXPECT_EQ(denylist.at("test_1"), LLONG_MAX - 2);
+  EXPECT_EQ(denylist.at("test_2"), LLONG_MAX - 1);
 
   // Now save an expired query.
   denylist["test_1"] = 1;
