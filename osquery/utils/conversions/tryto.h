@@ -161,4 +161,4 @@ inline uint64_t operator"" _sz(unsigned long long int x) {
   return x;
 }
 
-}
+} // namespace osquery
