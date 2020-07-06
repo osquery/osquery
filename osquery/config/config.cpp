@@ -294,8 +294,8 @@ void restoreScheduleDenylist(std::map<std::string, uint64_t>& denylist) {
   for (size_t i = 0; i < denylist_pairs.size() / 2; i++) {
     // Fill in a mapping of query name to time the denylist expires.
     auto expire = tryTo<long long>(denylist_pairs[(i * 2) + 1], 10).takeOr(0ll);
-    if (expire > 0 && current_time < (size_t)expire) {
-      denylist[denylist_pairs[(i * 2)]] = (size_t)expire;
+    if (expire > 0 && current_time < (uint64_t)expire) {
+      denylist[denylist_pairs[(i * 2)]] = (uint64_t)expire;
     }
   }
 }
