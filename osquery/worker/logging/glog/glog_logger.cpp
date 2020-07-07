@@ -29,6 +29,10 @@ void GLOGLogger::log(int severity, const std::string& message) {
     LOG(INFO) << message;
     break;
   }
+  case google::GLOG_WARNING: {
+    LOG(WARNING) << message;
+    break;
+  }
   case google::GLOG_FATAL: {
     LOG(FATAL) << message;
     break;
