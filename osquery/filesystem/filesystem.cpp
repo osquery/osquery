@@ -308,7 +308,7 @@ static bool checkForLoops(std::set<int>& dsym_inos, std::string path) {
   if (dsym_inos.find(d_stat.st_ino) == dsym_inos.end()) {
     dsym_inos.insert(d_stat.st_ino);
   } else {
-    VLOG(1) << "Symlink loop detected possibly involving: " << path;
+    VLOG(1) << "Symlink loop detected. Ignoring: " << path;
     return true;
   }
   return false;
