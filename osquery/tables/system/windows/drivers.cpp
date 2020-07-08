@@ -25,7 +25,7 @@
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/core/windows/wmi.h>
 #include <osquery/utils/conversions/windows/strings.h>
-#include <osquery/filesystem/fileops.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
 namespace osquery {
 namespace tables {

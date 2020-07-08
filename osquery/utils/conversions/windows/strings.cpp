@@ -10,7 +10,12 @@
 #include <string>
 
 #include <osquery/logger.h>
+
+#include <wbemidl.h>
+
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/scope_guard.h>
 
 namespace osquery {
 
@@ -77,6 +82,50 @@ std::string wstringToString(const wchar_t* src) {
 
 std::string bstrToString(const BSTR src) {
   return wstringToString(static_cast<const wchar_t*>(src));
+}
+
+LONGLONG cimDatetimeToUnixtime(const std::string& src) {
+  // First init the SWbemDateTime class
+  ISWbemDateTime* pCimDateTime = nullptr;
+  auto hres = CoCreateInstance(CLSID_SWbemDateTime,
+                               nullptr,
+                               CLSCTX_INPROC_SERVER,
+                               IID_PPV_ARGS(&pCimDateTime));
+  if (!SUCCEEDED(hres)) {
+    LOG(WARNING) << "Failed to init CoCreateInstance with " << hres;
+    return -1;
+  }
+
+  // Then load up our CIM Datetime string into said class
+  auto bSrcStr = SysAllocString(stringToWstring(src.c_str()).c_str());
+  auto const bSrcStrManager =
+      scope_guard::create([&bSrcStr]() { SysFreeString(bSrcStr); });
+  hres = pCimDateTime->put_Value(bSrcStr);
+  if (!SUCCEEDED(hres)) {
+    LOG(WARNING) << "Failed to init CimDateTime with " << hres;
+    return -1;
+  }
+
+  // Convert this CIM Datetime to a FILETIME BSTR
+  BSTR bstrFileTime{L""};
+  auto const bstrFileTimeManager =
+      scope_guard::create([&bstrFileTime]() { SysFreeString(bstrFileTime); });
+  // VARIANT_FALSE means we fetch the time in UTC
+  hres = pCimDateTime->GetFileTime(VARIANT_FALSE, &bstrFileTime);
+  if (!SUCCEEDED(hres)) {
+    LOG(WARNING) << "Failed to convert CimDateTime to FILETIME with " << hres;
+    return -1;
+  }
+
+  LARGE_INTEGER intStore;
+  intStore.QuadPart = _wtoi64(bstrFileTime);
+  FILETIME timeStore;
+
+  timeStore.dwLowDateTime = intStore.LowPart;
+  timeStore.dwHighDateTime = intStore.HighPart;
+
+  // And finally convert this to a Unix epoch timestamp
+  return filetimeToUnixtime(timeStore);
 }
 
 } // namespace osquery

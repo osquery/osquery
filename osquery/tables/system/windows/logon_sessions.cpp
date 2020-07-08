@@ -19,9 +19,8 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/process/windows/process_ops.h>
-
-#include "osquery/filesystem/fileops.h"
 
 namespace osquery {
 namespace tables {
