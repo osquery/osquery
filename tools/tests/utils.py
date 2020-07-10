@@ -132,7 +132,7 @@ def get_stats(p, interval=1):
     return {
         "utilization": utilization,
         "counters": p.io_counters() if platform() != "darwin" else None,
-        "fds": p.num_fds(),
+        "fds": p.num_fds() if platform() != "win32" else None,
         "cpu_times": p.cpu_times(),
         "memory": p.memory_info(),
     }
@@ -165,6 +165,8 @@ def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
             break
         except psutil.ZombieProcess:
             break
+        except psutil.NoSuchProcess:
+            break
         delay += step
         if timeout > 0 and delay >= timeout + 2:
             proc.kill()
@@ -182,13 +184,17 @@ def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
 
     if len(stats.keys()) == 0:
         raise Exception("No stats recorded, perhaps binary returns -1?")
-    return {
+    rval = {
         "utilization": avg_utilization,
         "duration": duration,
         "memory": stats["memory"].rss,
         "user_time": stats["cpu_times"].user,
         "system_time": stats["cpu_times"].system,
         "cpu_time": stats["cpu_times"].user + stats["cpu_times"].system,
-        "fds": stats["fds"],
         "exit": p.wait(),
     }
+
+    if stats.get("fds") is not None:
+        rval["fds"] = stats["fds"]
+    return rval
+    
