@@ -9,6 +9,7 @@
 #pragma once
 
 #include <osquery/events.h>
+#include <osquery/utils/mutex.h>
 
 #include <boost/noncopyable.hpp>
 
@@ -59,10 +60,12 @@ class NonBlockingFStream : public boost::noncopyable {
  public:
   NonBlockingFStream() {
     buffer_.reserve(2048);
+    buffer_.assign(2048, 0);
   }
 
   explicit NonBlockingFStream(size_t capacity) {
     buffer_.reserve(capacity);
+    buffer_.assign(capacity, 0);
   }
 
   ~NonBlockingFStream() {
@@ -95,6 +98,9 @@ class NonBlockingFStream : public boost::noncopyable {
  private:
   /// The managed descriptor for the stream.
   int fd_{-1};
+
+  /// Mutex for fd accesses.
+  Mutex fd_mutex_;
 
   /// Push/pop buffer for reading a line and dequeuing.
   std::vector<char> buffer_;

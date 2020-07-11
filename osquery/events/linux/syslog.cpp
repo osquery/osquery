@@ -57,6 +57,8 @@ const std::vector<std::string> kCsvFields = {
 const size_t kErrorThreshold = 10;
 
 Status NonBlockingFStream::openReadOnly(const std::string& path) {
+  WriteLock lock(fd_mutex_);
+
   if (fd_ != -1) {
     return Status::failure("Stream already open");
   }
@@ -77,6 +79,8 @@ Status NonBlockingFStream::getline(std::string& output) {
   }
 
   if (buffer_end == nullptr) {
+    WriteLock lock(fd_mutex_);
+
     // Poll for available data with a near-instant delay.
     // It is the caller's responsibility to yeild context.
     fd_set set;
@@ -124,6 +128,8 @@ Status NonBlockingFStream::getline(std::string& output) {
 }
 
 Status NonBlockingFStream::close() {
+  WriteLock lock(fd_mutex_);
+
   if (fd_ != -1) {
     ::close(fd_);
     fd_ = -1;
