@@ -7,7 +7,6 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/filesystem/fileops.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/tables/system/windows/registry.h>
@@ -72,7 +71,7 @@ auto parseShimcacheData(const std::string& token,
   // Convert hex path to readable string
   try {
     string_path = boost::algorithm::unhex(path);
-  } catch (boost::algorithm::hex_decode_error&) {
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
     LOG(WARNING) << "Failed to decode Shimcache hex values to string";
     shimcache.last_modified = 0LL;
     return shimcache;
@@ -115,110 +114,74 @@ auto parseShimcacheData(const std::string& token,
   return shimcache;
 }
 
-void parseRegistry(const std::set<std::string>& shimcacheControl,
-                   QueryData& results) {
-  for (const auto& rKey : shimcacheControl) {
-    auto shimcache_entry = rKey.find(
-        "Control\\Session "
-        "Manager\\AppCompatCache");
+void parseEntry(const Row& aKey, size_t& index, QueryData& results) {
+  boost::optional<bool> execution_flag_exists;
+  std::string delimter;
+  std::string data = aKey.at("data");
 
-    if (shimcache_entry == std::string::npos) {
-      continue;
+  // Check if Registry data starts with any of supported WIN_START
+  // values and if the Shimcache delimiter exists at the specific
+  // substring
+  if ((boost::starts_with(data, kWin8Start)) &&
+      (data.substr(kWin8, 8) == kWin8110ShimcacheDelimiter)) {
+    execution_flag_exists = true;
+    delimter = kWin8110ShimcacheDelimiter;
+  } else if (boost::starts_with(data, kWin10Start) &&
+             (data.substr(kWin10PreCreator, 8) == kWin8110ShimcacheDelimiter)) {
+    delimter = kWin8110ShimcacheDelimiter;
+  } else if (boost::starts_with(data, kWin10CreatorStart) &&
+             (data.substr(kWin10Creator, 8) == kWin8110ShimcacheDelimiter)) {
+    delimter = kWin8110ShimcacheDelimiter;
+  } else {
+    LOG(WARNING) << "Unknown or unsupported shimcache data: "
+                 << data.substr(256, 8);
+    return;
+  }
+
+  bool first_run = true;
+  size_t pos = 0;
+  std::string token;
+
+  auto createRow = [&results, &index](const ShimcacheData& shimcache) {
+    Row r;
+    r["entry"] = INTEGER(index);
+    r["path"] = TEXT(shimcache.path);
+    r["modified_time"] = INTEGER(shimcache.last_modified);
+    if (shimcache.execution_flag.is_initialized()) {
+      if (shimcache.execution_flag.get()) {
+        r["execution_flag"] = INTEGER(1);
+      } else {
+        r["execution_flag"] = INTEGER(0);
+      }
+    } else {
+      r["execution_flag"] = INTEGER(-1);
     }
-    QueryData shimcacheResults;
-    size_t entry = 1;
+    results.push_back(std::move(r));
+  };
 
-    queryKey(rKey, shimcacheResults);
-    for (const auto& aKey : shimcacheResults) {
-      if (aKey.at("name") != "AppCompatCache") {
+  // Find all entries base on shimcache data delimter
+  while ((pos = data.find(delimter)) != std::string::npos) {
+    token = data.substr(0, pos);
+
+    // Skip all the data before the first delimter match
+    if (token.length() > 20) {
+      if (first_run) {
+        first_run = false;
+        data.erase(0, pos + delimter.length());
         continue;
       }
-      std::string token;
-      boost::optional<bool> execution_flag_exists;
-
-      std::string delimter;
-
-      size_t pos = 0;
-      std::string data = aKey.at("data");
-
-      // Check if Registry data starts with any of supported WIN_START
-      // values and if the Shimcache delimiter exists at the specific
-      // substring
-      if ((boost::starts_with(data, kWin8Start)) &&
-          (data.substr(kWin8, 8) == kWin8110ShimcacheDelimiter)) {
-        execution_flag_exists = true;
-        delimter = kWin8110ShimcacheDelimiter;
-      } else if (boost::starts_with(data, kWin10Start) &&
-                 (data.substr(kWin10PreCreator, 8) ==
-                  kWin8110ShimcacheDelimiter)) {
-        delimter = kWin8110ShimcacheDelimiter;
-      } else if (boost::starts_with(data, kWin10CreatorStart) &&
-                 (data.substr(kWin10Creator, 8) ==
-                  kWin8110ShimcacheDelimiter)) {
-        delimter = kWin8110ShimcacheDelimiter;
-      } else {
-        LOG(WARNING) << "Unknown or unsupported shimcache data: "
-                     << data.substr(256, 8);
-        results = {};
-        return;
-      }
-      bool first_run = true;
-
-      // Find all entries base on shimcache data delimter
-      while ((pos = data.find(delimter)) != std::string::npos) {
-        token = data.substr(0, pos);
-
-        // Skip all the data before the first delimter match
-        if (token.length() > 20) {
-          if (first_run) {
-            first_run = false;
-            data.erase(0, pos + delimter.length());
-            continue;
-          }
-          auto shimcache_results =
-              parseShimcacheData(token, execution_flag_exists);
-
-          Row r;
-          r["entry"] = INTEGER(entry);
-          r["path"] = TEXT(shimcache_results.path);
-          r["modified_time"] = INTEGER(shimcache_results.last_modified);
-          if (shimcache_results.execution_flag.is_initialized()) {
-            if (shimcache_results.execution_flag.get()) {
-              r["execution_flag"] = INTEGER(1);
-            } else {
-              r["execution_flag"] = INTEGER(0);
-            }
-          } else {
-            r["execution_flag"] = INTEGER(-1);
-          }
-          results.push_back(r);
-          entry++;
-        } else {
-          LOG(ERROR) << "Shimcache entry does not meet length requirements: "
-                     << token;
-        }
-        data.erase(0, pos + delimter.length());
-      }
-
-      // Get last appcopmat entry
-      token = data.substr(0, pos);
-      auto shimcache_results = parseShimcacheData(token, execution_flag_exists);
-      Row r;
-      r["entry"] = INTEGER(entry);
-      r["path"] = TEXT(shimcache_results.path);
-      r["modified_time"] = INTEGER(shimcache_results.last_modified);
-      if (shimcache_results.execution_flag.is_initialized()) {
-        if (shimcache_results.execution_flag.get()) {
-          r["execution_flag"] = TEXT("true");
-        } else {
-          r["execution_flag"] = TEXT("false");
-        }
-      } else {
-        r["execution_flag"] = TEXT("");
-      }
-      results.push_back(r);
+      createRow(parseShimcacheData(token, execution_flag_exists));
+      index++;
+    } else {
+      LOG(ERROR) << "Shimcache entry does not meet length requirements: "
+                 << token;
     }
+    data.erase(0, pos + delimter.length());
   }
+
+  // Get last appcopmat entry
+  token = data.substr(0, pos);
+  createRow(parseShimcacheData(token, execution_flag_exists));
 }
 
 QueryData genShimcache(QueryContext& context) {
@@ -226,7 +189,23 @@ QueryData genShimcache(QueryContext& context) {
   std::set<std::string> shimcacheResults;
 
   expandRegistryGlobs(kShimcacheControlset, shimcacheResults);
-  parseRegistry(shimcacheResults, results);
+  for (const auto& rKey : shimcacheResults) {
+    auto entry = rKey.find("Control\\Session Manager\\AppCompatCache");
+    if (entry == std::string::npos) {
+      continue;
+    }
+
+    QueryData entryResults;
+    size_t index = 1;
+    queryKey(rKey, entryResults);
+    for (const auto& aKey : entryResults) {
+      if (aKey.at("name") != "AppCompatCache") {
+        continue;
+      }
+      parseEntry(aKey, index, results);
+    }
+  }
+
   return results;
 }
 
