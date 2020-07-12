@@ -129,8 +129,8 @@ void FSEventsEventPublisher::stop() {
   }
 
   if (stream_ != nullptr) {
-    FSEventStreamStop(stream_);
     FSEventStreamFlushSync(stream_);
+    FSEventStreamStop(stream_);
     stream_started_ = false;
     FSEventStreamUnscheduleFromRunLoop(
         stream_, run_loop_, kCFRunLoopDefaultMode);
