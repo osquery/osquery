@@ -330,9 +330,6 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   WaitForEvents(kMaxEventLatency);
 
   EXPECT_TRUE(event_pub_->numEvents() > 0);
-
-  s = EventFactory::deregisterEventPublisher("fsevents");
-  ASSERT_TRUE(s.ok());
   EndEventLoop();
 }
 
