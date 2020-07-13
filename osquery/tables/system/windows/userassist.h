@@ -16,7 +16,8 @@ namespace tables {
 // Decode ROT13 data
 std::string rotDecode(std::string& value_key_reg);
 
-// Get Epoch time from Windows FILETIME
-auto lastExecute(std::string& time_data);
+// Get Epoch time from Windows FILETIME in little endian format
+// Windows Registry sometimes stores FILETIME in little endian format
+long long littleEndianToUnixTime(const std::string& time_data);
 } // namespace tables
 } // namespace osquery

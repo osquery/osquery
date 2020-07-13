@@ -1,0 +1,12 @@
+table_name("shimcache")
+description("Application Compatibility Cache, contains artifacts of execution.")
+schema([
+    Column("entry", INTEGER, "Execution order."),
+    Column("path", TEXT, "This is the path to the executed file."),
+    Column("modified_time", INTEGER, "File Modified time."),
+    Column("execution_flag", INTEGER, "Boolean Execution flag, 1 for execution, 0 for no execution, -1 for missing (this flag does not exist on Windows 10 and higher)."),
+])
+implementation("shimcache@genShimcache")
+examples([
+  "select * from shimcache;",
+])
