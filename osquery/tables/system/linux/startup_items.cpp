@@ -15,19 +15,19 @@
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/split.h>
 
-namespace fs = boost::filesystem;
-
 namespace osquery {
 namespace tables {
 
-const std::vector<std::string> systemItemPaths = {"/etc/xdg/autostart/"};
+const std::vector<std::string> kSystemItemPaths = {"/etc/xdg/autostart/"};
 
-const std::vector<std::string> systemScriptPaths = {"/etc/init.d/"};
+const std::vector<std::string> kSystemScriptPaths = {"/etc/init.d/"};
 
 void genAutoStartItems(const std::string& sysdir, QueryData& results) {
-  try {
     std::vector<std::string> dirFiles;
-    osquery::listFilesInDirectory(sysdir, dirFiles, false);
+    auto s = osquery::listFilesInDirectory(sysdir, dirFiles, false);
+    if (!s.ok()) {
+      VLOG(1) << "Error traversing " << sysdir << ": " << s.what();
+    }
     for (const auto& file : dirFiles) {
       Row r;
       std::string content;
@@ -57,15 +57,14 @@ void genAutoStartItems(const std::string& sysdir, QueryData& results) {
       }
       results.push_back(r);
     }
-  } catch (const Status e) {
-    VLOG(1) << "Error traversing " << sysdir << ": " << e.what();
-  }
 }
 
 void genAutoStartScripts(const std::string& sysdir, QueryData& results) {
-  try {
     std::vector<std::string> dirFiles;
-    osquery::listFilesInDirectory(sysdir, dirFiles, false);
+    auto s = osquery::listFilesInDirectory(sysdir, dirFiles, false);
+    if (!s.ok()) {
+      VLOG(1) << "Error traversing " << sysdir << ": " << s.what();
+    }
     for (const auto& file : dirFiles) {
       Row r;
       r["name"] = osquery::split(file, "/").back();
@@ -79,9 +78,6 @@ void genAutoStartScripts(const std::string& sysdir, QueryData& results) {
       }
       results.push_back(r);
     }
-  } catch (const Status e) {
-    VLOG(1) << "Error traversing " << sysdir << ": " << e.what();
-  }
 }
 
 QueryData genStartupItems(QueryContext& context) {
@@ -96,10 +92,10 @@ QueryData genStartupItems(QueryContext& context) {
   }
 
   // System wide
-  for (const auto& dir : systemScriptPaths) {
+  for (const auto& dir : kSystemScriptPaths) {
     genAutoStartScripts(dir, results);
   }
-  for (const auto& dir : systemItemPaths) {
+  for (const auto& dir : kSystemItemPaths) {
     genAutoStartItems(dir, results);
   }
 
