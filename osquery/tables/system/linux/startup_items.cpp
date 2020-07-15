@@ -23,61 +23,61 @@ const std::vector<std::string> kSystemItemPaths = {"/etc/xdg/autostart/"};
 const std::vector<std::string> kSystemScriptPaths = {"/etc/init.d/"};
 
 void genAutoStartItems(const std::string& sysdir, QueryData& results) {
-    std::vector<std::string> dirFiles;
-    auto s = osquery::listFilesInDirectory(sysdir, dirFiles, false);
-    if (!s.ok()) {
-      VLOG(1) << "Error traversing " << sysdir << ": " << s.what();
-    }
-    for (const auto& file : dirFiles) {
-      Row r;
-      std::string content;
-      if (readFile(file, content)) {
-        for (const auto& line : osquery::split(content, "\n")) {
-          if (line.find("Name=") == 0) {
-            auto details = osquery::split(line, "=");
-            if (details.size() == 2) {
-              r["name"] = details[1];
-            }
+  std::vector<std::string> dirFiles;
+  auto s = osquery::listFilesInDirectory(sysdir, dirFiles, false);
+  if (!s.ok()) {
+    VLOG(1) << "Error traversing " << sysdir << ": " << s.what();
+  }
+  for (const auto& file : dirFiles) {
+    Row r;
+    std::string content;
+    if (readFile(file, content)) {
+      for (const auto& line : osquery::split(content, "\n")) {
+        if (line.find("Name=") == 0) {
+          auto details = osquery::split(line, "=");
+          if (details.size() == 2) {
+            r["name"] = details[1];
           }
-          if (line.find("Exec=") == 0) {
-            auto details = osquery::split(line, "=");
-            if (details.size() == 2) {
-              r["path"] = details[1];
-            }
+        }
+        if (line.find("Exec=") == 0) {
+          auto details = osquery::split(line, "=");
+          if (details.size() == 2) {
+            r["path"] = details[1];
           }
         }
       }
-      r["type"] = "Startup Item";
-      r["status"] = "enabled";
-      r["source"] = sysdir;
-
-      auto username = osquery::split(sysdir, "/");
-      if (username.size() > 1 && username[0] == "home") {
-        r["username"] = username[1];
-      }
-      results.push_back(r);
     }
+    r["type"] = "Startup Item";
+    r["status"] = "enabled";
+    r["source"] = sysdir;
+
+    auto username = osquery::split(sysdir, "/");
+    if (username.size() > 1 && username[0] == "home") {
+      r["username"] = username[1];
+    }
+    results.push_back(r);
+  }
 }
 
 void genAutoStartScripts(const std::string& sysdir, QueryData& results) {
-    std::vector<std::string> dirFiles;
-    auto s = osquery::listFilesInDirectory(sysdir, dirFiles, false);
-    if (!s.ok()) {
-      VLOG(1) << "Error traversing " << sysdir << ": " << s.what();
+  std::vector<std::string> dirFiles;
+  auto s = osquery::listFilesInDirectory(sysdir, dirFiles, false);
+  if (!s.ok()) {
+    VLOG(1) << "Error traversing " << sysdir << ": " << s.what();
+  }
+  for (const auto& file : dirFiles) {
+    Row r;
+    r["name"] = osquery::split(file, "/").back();
+    r["path"] = file;
+    r["type"] = "Startup Item";
+    r["status"] = "enabled";
+    r["source"] = sysdir;
+    auto username = osquery::split(sysdir, "/");
+    if (username.size() > 1 && username[0] == "home") {
+      r["username"] = username[1];
     }
-    for (const auto& file : dirFiles) {
-      Row r;
-      r["name"] = osquery::split(file, "/").back();
-      r["path"] = file;
-      r["type"] = "Startup Item";
-      r["status"] = "enabled";
-      r["source"] = sysdir;
-      auto username = osquery::split(sysdir, "/");
-      if (username.size() > 1 && username[0] == "home") {
-        r["username"] = username[1];
-      }
-      results.push_back(r);
-    }
+    results.push_back(r);
+  }
 }
 
 QueryData genStartupItems(QueryContext& context) {
@@ -91,7 +91,7 @@ QueryData genStartupItems(QueryContext& context) {
     genAutoStartScripts(scriptsDir.string(), results);
   }
 
-  // System wide
+  // System specific
   for (const auto& dir : kSystemScriptPaths) {
     genAutoStartScripts(dir, results);
   }
