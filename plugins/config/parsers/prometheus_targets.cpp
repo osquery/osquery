@@ -9,8 +9,8 @@
 #include <iostream>
 
 #include <osquery/config/config.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <plugins/config/parsers/prometheus_targets.h>
 
 namespace osquery {

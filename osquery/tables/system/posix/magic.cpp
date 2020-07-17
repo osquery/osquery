@@ -14,8 +14,8 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem.hpp>
 
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 namespace tables {

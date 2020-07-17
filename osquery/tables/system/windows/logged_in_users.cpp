@@ -11,9 +11,9 @@
 #include <Wtsapi32.h>
 #include <winsock2.h>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 #include <osquery/process/windows/process_ops.h>
 #include <osquery/utils/conversions/split.h>

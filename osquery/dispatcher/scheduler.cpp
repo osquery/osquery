@@ -13,15 +13,15 @@
 #include <boost/io/detail/quoted_manip.hpp>
 
 #include <osquery/config/config.h>
-#include <osquery/core.h>
-#include <osquery/data_logger.h>
-#include <osquery/database.h>
-#include <osquery/flags.h>
-#include <osquery/numeric_monitoring.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/query.h>
+#include <osquery/core/shutdown.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/data_logger.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/process/process.h>
 #include <osquery/profiler/code_profiler.h>
-#include <osquery/query.h>
-#include <osquery/shutdown.h>
 
 #include <osquery/utils/system/time.h>
 

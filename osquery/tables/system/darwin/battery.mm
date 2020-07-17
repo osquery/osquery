@@ -15,7 +15,7 @@
 #import <IOKit/pwr_mgt/IOPM.h>
 #import <IOKit/pwr_mgt/IOPMLib.h>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {

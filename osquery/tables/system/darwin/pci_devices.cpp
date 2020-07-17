@@ -6,9 +6,9 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/core/tables.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/conversions/darwin/iokit.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

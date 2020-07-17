@@ -14,7 +14,7 @@
 
 #include <osquery/utils/info/platform_type.h>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 namespace table_tests {

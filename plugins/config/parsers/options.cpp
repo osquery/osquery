@@ -9,9 +9,9 @@
 #include <set>
 
 #include <osquery/config/config.h>
-#include <osquery/data_logger.h>
-#include <osquery/flags.h>
-#include <osquery/registry_factory.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/data_logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/json/json.h>
 
 namespace osquery {

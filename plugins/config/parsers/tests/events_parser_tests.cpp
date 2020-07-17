@@ -12,11 +12,11 @@
 
 #include <osquery/config/config.h>
 #include <osquery/config/tests/test_utils.h>
-#include <osquery/database.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/registry.h>
-#include <osquery/registry_interface.h>
-#include <osquery/system.h>
+#include <osquery/registry/registry.h>
+#include <osquery/registry/registry_interface.h>
 
 namespace osquery {
 

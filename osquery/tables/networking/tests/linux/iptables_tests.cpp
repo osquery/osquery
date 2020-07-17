@@ -10,7 +10,7 @@
 
 #include <arpa/inet.h>
 #include <osquery/core/sql/row.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 extern "C" {
 #include <osquery/tables/networking/linux/iptc_proxy.h>
 }

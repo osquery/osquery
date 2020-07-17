@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 

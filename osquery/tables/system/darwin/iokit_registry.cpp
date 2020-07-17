@@ -6,11 +6,11 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/utils/conversions/darwin/iokit.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
-#include <osquery/utils/conversions/split.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/utils/conversions/darwin/iokit.h>
+#include <osquery/utils/conversions/split.h>
 
 namespace osquery {
 namespace tables {

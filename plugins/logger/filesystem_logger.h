@@ -10,10 +10,10 @@
 
 #include <exception>
 
+#include <osquery/core/flagalias.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/registry_factory.h>
 #include <osquery/plugins/logger.h>
-#include <osquery/flagalias.h>
+#include <osquery/registry/registry_factory.h>
 
 namespace osquery {
 

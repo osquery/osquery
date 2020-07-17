@@ -8,10 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 
 #include "osquery/core/windows/wmi.h"
 

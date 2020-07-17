@@ -10,7 +10,7 @@
 
 #include <osquery/utils/conversions/tryto.h>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/io/detail/quoted_manip.hpp>

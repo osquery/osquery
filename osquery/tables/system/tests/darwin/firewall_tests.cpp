@@ -10,7 +10,7 @@
 
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/darwin/firewall.h>
 #include <osquery/utils/darwin/plist.h>
 

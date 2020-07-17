@@ -56,7 +56,6 @@ function(generateOsqueryEvents)
 
   target_link_libraries(osquery_events PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_config
     osquery_events_eventsregistry
@@ -73,6 +72,10 @@ function(generateOsqueryEvents)
       thirdparty_libaudit
       thirdparty_libudev
       thirdparty_util-linux
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    target_link_libraries(osquery_events PUBLIC
+      plugins_config_parsers
     )
   endif()
 
@@ -144,10 +147,16 @@ function(generateOsqueryEventsEventsregistry)
   target_link_libraries(osquery_events_eventsregistry PUBLIC
     osquery_cxx_settings
     osquery_core
+    osquery_config
     osquery_dispatcher
     osquery_sql
-    osquery_headers
   )
+
+  set(public_header_files
+    events.h
+  )
+
+  generateIncludeNamespace(osquery_events_eventsregistry "osquery/events" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_events_tests-test COMMAND osquery_events_tests-test)
 endfunction()

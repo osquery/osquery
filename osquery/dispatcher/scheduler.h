@@ -11,7 +11,7 @@
 #include <chrono>
 #include <map>
 
-#include <osquery/dispatcher.h>
+#include <osquery/dispatcher/dispatcher.h>
 
 #include "osquery/sql/sqlite_util.h"
 

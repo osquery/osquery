@@ -10,10 +10,10 @@
 #include <string>
 
 #include <osquery/config/config.h>
+#include <osquery/core/tables.h>
 #include <osquery/events/linux/inotify.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/tables/events/event_utils.h>
 
 namespace osquery {

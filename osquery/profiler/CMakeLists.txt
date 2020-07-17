@@ -27,6 +27,7 @@ function(generateOsqueryProfiler)
   target_link_libraries(osquery_profiler PUBLIC
     osquery_cxx_settings
     osquery_core
+    osquery_numericmonitoring
   )
 
   set(public_header_files

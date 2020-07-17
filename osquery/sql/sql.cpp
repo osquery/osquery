@@ -8,11 +8,11 @@
 
 #include <sstream>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/registry.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/plugins/sql.h>
 

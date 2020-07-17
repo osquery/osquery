@@ -7,7 +7,7 @@
  */
 
 #include <osquery/config/config.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 #include <plugins/config/parsers/feature_vectors.h>
 
 namespace osquery {

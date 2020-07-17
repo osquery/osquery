@@ -20,7 +20,6 @@ function(generateOsqueryTablesCloudAws)
 
   target_link_libraries(osquery_tables_cloud_aws PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_logger
     osquery_utils_aws
     thirdparty_boost
@@ -37,7 +36,6 @@ function(generateOsqueryTablesCloudAzure)
 
   target_link_libraries(osquery_tables_cloud_azure PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_logger
     osquery_utils_azure
     thirdparty_boost

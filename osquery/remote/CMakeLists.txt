@@ -25,7 +25,6 @@ function(generateOsqueryRemoteRequests)
 
   target_link_libraries(osquery_remote_requests PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_utils_status
     thirdparty_boost
     thirdparty_openssl
@@ -47,7 +46,7 @@ function(generateOsqueryRemoteHttpclient)
 
   target_link_libraries(osquery_remote_httpclient PUBLIC
     osquery_cxx_settings
-    osquery_headers
+    osquery_logger
     osquery_utils_status
     thirdparty_boost
     thirdparty_openssl

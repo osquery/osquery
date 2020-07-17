@@ -17,10 +17,10 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/core/flags.h>
 #include <osquery/core/sql/query_data.h>
-#include <osquery/database.h>
-#include <osquery/dispatcher.h>
-#include <osquery/flags.h>
+#include <osquery/database/database.h>
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/process/process.h>
 
 namespace osquery {

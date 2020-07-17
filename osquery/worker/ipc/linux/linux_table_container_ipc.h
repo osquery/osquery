@@ -12,8 +12,8 @@
 
 #include <string>
 
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/status/status.h>
 
 #include "osquery/worker/ipc/posix/pipe_channel.h"

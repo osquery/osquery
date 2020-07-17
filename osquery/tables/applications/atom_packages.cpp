@@ -11,9 +11,9 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/json/json.h>
 

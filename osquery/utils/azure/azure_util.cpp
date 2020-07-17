@@ -11,9 +11,9 @@
 // Keep this included first (See #6507).
 #include <osquery/remote/http_client.h>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
+#include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/azure/azure_util.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>

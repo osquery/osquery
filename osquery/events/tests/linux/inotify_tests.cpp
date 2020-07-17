@@ -14,12 +14,12 @@
 #include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
-#include <osquery/database.h>
-#include <osquery/events.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/events/events.h>
 #include <osquery/events/linux/inotify.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/info/tool_type.h>
 
 namespace fs = boost::filesystem;

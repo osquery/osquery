@@ -9,7 +9,7 @@
 #include <Objbase.h>
 #include <osquery/utils/system/system.h>
 
-#include <osquery/system.h>
+#include <osquery/core/system.h>
 
 namespace osquery {
 

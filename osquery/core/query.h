@@ -16,7 +16,7 @@
 
 #include <gtest/gtest_prod.h>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
 #include <osquery/core/sql/diff_results.h>
 #include <osquery/core/sql/scheduled_query.h>
 #include <osquery/utils/json/json.h>

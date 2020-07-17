@@ -12,7 +12,7 @@
 
 #include <boost/utility/string_view.hpp>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {

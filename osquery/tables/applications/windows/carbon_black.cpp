@@ -10,9 +10,9 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 
-#include <osquery/filesystem/filesystem.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/fileops.h>
-#include <osquery/tables.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/tables/system/windows/registry.h>
 
 namespace fs = boost::filesystem;

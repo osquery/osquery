@@ -17,18 +17,18 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <osquery/data_logger.h>
-#include <osquery/database.h>
-#include <osquery/events.h>
-#include <osquery/extensions.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/events/events.h>
+#include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/numeric_monitoring.h>
+#include <osquery/logger/data_logger.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/plugins/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/system.h>
+#include <osquery/registry/registry_factory.h>
 
-#include <osquery/flagalias.h>
+#include <osquery/core/flagalias.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>

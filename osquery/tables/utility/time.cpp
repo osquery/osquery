@@ -12,9 +12,9 @@
 
 #include <osquery/utils/system/time.h>
 
-#include <osquery/flags.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 

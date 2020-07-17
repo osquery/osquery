@@ -10,12 +10,12 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/database.h>
-#include <osquery/dispatcher.h>
-#include <osquery/flags.h>
-#include <osquery/numeric_monitoring.h>
-#include <osquery/registry_factory.h>
-#include <osquery/system.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
+#include <osquery/registry/registry_factory.h>
 
 #include <osquery/utils/conversions/tryto.h>
 

@@ -9,8 +9,8 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/tables.h>
 #include <osquery/utils/conversions/split.h>
 
 namespace osquery {

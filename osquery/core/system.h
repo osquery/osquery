@@ -14,10 +14,10 @@
 
 #include <boost/core/noncopyable.hpp>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/utils/info/tool_type.h>
 #include <osquery/utils/mutex.h>
 #include <osquery/utils/system/system.h>
-#include <osquery/utils/info/tool_type.h>
 
 namespace osquery {
 

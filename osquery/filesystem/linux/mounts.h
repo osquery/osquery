@@ -9,7 +9,7 @@
 #include <boost/optional.hpp>
 #include <unordered_map>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
 
 namespace osquery {

@@ -19,8 +19,8 @@
 #include <string>
 #include <vector>
 
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
 
 #include <sqlite3.h>

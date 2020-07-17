@@ -10,8 +10,8 @@
 
 #include <exception>
 
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/config/default_paths.h>
 
 namespace fs = boost::filesystem;

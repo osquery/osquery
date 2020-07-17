@@ -7,18 +7,18 @@
  */
 
 #include <osquery/config/config.h>
-#include <osquery/core.h>
-#include <osquery/events.h>
-#include <osquery/extensions.h>
+#include <osquery/config/packs.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/events/events.h>
+#include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/packs.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-#include <osquery/registry.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/registry/registry.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/version.h>
 #include <osquery/utils/macros/macros.h>

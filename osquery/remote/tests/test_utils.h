@@ -12,7 +12,7 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/process/process.h>
 

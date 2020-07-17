@@ -9,8 +9,8 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 
 #include "osquery/events/darwin/scnetwork.h"
 

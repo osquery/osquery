@@ -23,8 +23,8 @@
 #include <boost/format.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
 
-#include <osquery/logger.h>
-#include <osquery/numeric_monitoring.h>
+#include <osquery/logger/logger.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/profiler/code_profiler.h>
 
 namespace osquery {

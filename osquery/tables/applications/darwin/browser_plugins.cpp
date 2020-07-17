@@ -10,13 +10,13 @@ extern "C" {
 #include <xar/xar.h>
 }
 
-#include <osquery/utils/darwin/plist.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/applications/browser_utils.h>
 #include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/darwin/plist.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

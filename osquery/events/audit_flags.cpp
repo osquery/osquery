@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/flags.h>
+#include <osquery/core/flags.h>
 
 namespace osquery {
 

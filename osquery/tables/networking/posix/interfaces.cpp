@@ -26,9 +26,9 @@
 #endif
 #include <sys/ioctl.h>
 
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/networking/posix/interfaces.h>
 #include <osquery/tables/networking/posix/utils.h>
 #include <osquery/utils/conversions/split.h>

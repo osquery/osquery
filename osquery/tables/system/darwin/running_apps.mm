@@ -9,7 +9,7 @@
 #import <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {

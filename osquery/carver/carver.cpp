@@ -15,14 +15,14 @@
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/carver/carver.h>
-#include <osquery/database.h>
-#include <osquery/distributed.h>
+#include <osquery/database/database.h>
+#include <osquery/distributed/distributed.h>
 #include <osquery/filesystem/fileops.h>
-#include <osquery/flags.h>
+#include <osquery/core/flags.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/remote/serializers/json.h>
-#include <osquery/system.h>
+#include <osquery/core/system.h>
 #include <osquery/utils/base64.h>
 #include <osquery/utils/json/json.h>
 

@@ -10,10 +10,10 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
-#include <osquery/core.h>
-#include <osquery/registry.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/registry/registry.h>
 
 #include "osquery/core/watcher.h"
 #include "osquery/tests/test_util.h"

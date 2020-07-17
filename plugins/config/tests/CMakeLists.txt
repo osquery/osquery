@@ -17,7 +17,7 @@ function(generatePluginsConfigTestsTlsconfigteststest)
     osquery_core
     osquery_database
     osquery_dispatcher
-    osquery_headers
+    osquery_dispatcher_scheduler
     osquery_remote_requests
     osquery_remote_serializers_serializerjson
     osquery_remote_tests_remotetestutils

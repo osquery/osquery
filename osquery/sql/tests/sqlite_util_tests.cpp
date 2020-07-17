@@ -6,13 +6,13 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/core.h>
-#include <osquery/flags.h>
-#include <osquery/registry_interface.h>
-#include <osquery/sql.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/registry/registry_interface.h>
+#include <osquery/sql/sql.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/sql/tests/sql_test_utils.h>
-#include <osquery/system.h>
 #include <osquery/utils/info/platform_type.h>
 
 #include <gtest/gtest.h>

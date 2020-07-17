@@ -13,7 +13,7 @@
 #endif
 
 #include <osquery/core/database/rocksdb_database.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include <boost/algorithm/string.hpp>
 

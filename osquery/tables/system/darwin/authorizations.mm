@@ -10,10 +10,10 @@
 #include <Foundation/Foundation.h>
 #include <Security/Security.h>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 namespace tables {

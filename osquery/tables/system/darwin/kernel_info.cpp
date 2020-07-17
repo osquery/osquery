@@ -10,12 +10,12 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include <osquery/utils/conversions/darwin/iokit.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/tables/system/efi_misc.h>
 #include <osquery/utils/conversions/darwin/cfdata.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
-#include <osquery/tables/system/efi_misc.h>
+#include <osquery/utils/conversions/darwin/iokit.h>
 
 namespace osquery {
 namespace tables {

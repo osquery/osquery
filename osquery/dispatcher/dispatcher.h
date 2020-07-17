@@ -19,14 +19,13 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
 #include <osquery/utils/mutex.h>
 
 namespace osquery {
 
 class Status;
 class Dispatcher;
-
 
 class InterruptableRunnable {
  public:
@@ -172,7 +171,6 @@ class Dispatcher : private boost::noncopyable {
 
   // Protection around service access.
   mutable Mutex mutex_;
-
 
   /**
    * @brief Signal to the Dispatcher that no services should be created.

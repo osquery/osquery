@@ -13,8 +13,6 @@
 #include <string>
 #include <vector>
 
-#include <osquery/numeric_monitoring.h>
-
 namespace osquery {
 
 class CodeProfiler final {

@@ -14,16 +14,16 @@
 #include <shellapi.h>
 // clang-format on
 
-#include <osquery/core.h>
-#include <osquery/dispatcher.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/core.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
 #include <osquery/main/main.h>
 #include <osquery/process/process.h>
-#include <osquery/system.h>
+#include <osquery/core/system.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/system/system.h>
-#include <osquery/shutdown.h>
+#include <osquery/core/shutdown.h>
 
 DECLARE_string(flagfile);
 

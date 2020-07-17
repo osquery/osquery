@@ -15,7 +15,7 @@
 #include <boost/format.hpp>
 #include <boost/noncopyable.hpp>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {

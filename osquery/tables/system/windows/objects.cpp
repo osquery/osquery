@@ -8,9 +8,9 @@
 
 #include <osquery/utils/system/system.h>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 #include "osquery/core/windows/handle.h"
 #include "osquery/core/windows/ntapi.h"

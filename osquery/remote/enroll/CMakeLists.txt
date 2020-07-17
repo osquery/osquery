@@ -32,8 +32,13 @@ function(generateOsqueryRemoteEnrollTlsenroll)
 
   enableLinkWholeArchive(osquery_remote_enroll_tlsenroll)
 
-  add_test(NAME osquery_remote_enroll_remoteenrolltests-test COMMAND osquery_remote_enroll_remoteenrolltests-test)
+  set(public_header_files
+    enroll.h
+  )
 
+  generateIncludeNamespace(osquery_remote_enroll_tlsenroll "osquery/remote/enroll" "FILE_ONLY" ${public_header_files})
+
+  add_test(NAME osquery_remote_enroll_remoteenrolltests-test COMMAND osquery_remote_enroll_remoteenrolltests-test)
 
   set(remoteenrolltests-test_env
     "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"

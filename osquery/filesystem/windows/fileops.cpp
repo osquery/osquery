@@ -7,7 +7,7 @@
  */
 
 #include <osquery/filesystem/fileops.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/process/windows/process_ops.h>
 #include <osquery/utils/conversions/windows/strings.h>

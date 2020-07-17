@@ -14,8 +14,8 @@
 #include <boost/noncopyable.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/aws/aws_util.h>
 
 namespace pt = boost::property_tree;

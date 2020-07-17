@@ -61,6 +61,7 @@ function(generateOsquerySql)
   endif()
 
   set(public_header_files
+    sql.h
     dynamic_table_row.h
     sqlite_util.h
     virtual_table.h

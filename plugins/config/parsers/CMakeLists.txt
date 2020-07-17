@@ -30,7 +30,6 @@ function(generatePluginsConfigParsers)
 
   target_link_libraries(plugins_config_parsers PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_config
     osquery_core
     osquery_database

@@ -17,10 +17,10 @@
 #include <boost/algorithm/string/trim_all.hpp>
 #include <boost/utility.hpp>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
 
 namespace osquery {

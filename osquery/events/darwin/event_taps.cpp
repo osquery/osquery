@@ -6,8 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/flags.h>
-#include <osquery/registry_factory.h>
+#include <osquery/core/flags.h>
+#include <osquery/registry/registry_factory.h>
 
 #include "osquery/events/darwin/event_taps.h"
 

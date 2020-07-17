@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/remote/http_client.h>
 
 #include <boost/asio/connect.hpp>

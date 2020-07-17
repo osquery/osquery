@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/database.h>
+#include <osquery/database/database.h>
 
 /// The following test macros allow pretty test output.
 #define CREATE_DATABASE_TESTS(n)                                               \

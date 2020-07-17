@@ -12,11 +12,11 @@
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
 
+#include <osquery/core/flags.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <plugins/database/rocksdb.h>
 

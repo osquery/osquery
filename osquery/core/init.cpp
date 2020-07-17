@@ -29,18 +29,18 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/config/config.h>
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/shutdown.h>
 #include <osquery/core/watcher.h>
-#include <osquery/data_logger.h>
-#include <osquery/dispatcher.h>
-#include <osquery/events.h>
-#include <osquery/extensions.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/events/events.h>
+#include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/numeric_monitoring.h>
+#include <osquery/logger/data_logger.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/process/process.h>
-#include <osquery/registry.h>
-#include <osquery/shutdown.h>
+#include <osquery/registry/registry.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/version.h>

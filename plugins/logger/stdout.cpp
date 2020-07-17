@@ -10,8 +10,8 @@
 
 #include <iostream>
 
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 

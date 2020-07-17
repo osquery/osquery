@@ -13,7 +13,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <sstream>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/base64.h>

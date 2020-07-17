@@ -19,12 +19,12 @@
 #pragma warning(pop)
 #endif
 
-#include <osquery/core.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/info/platform_type.h>
 
-#include "osquery/flagalias.h"
+#include "osquery/core/flagalias.h"
 
 namespace osquery {
 

@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <sys/mount.h>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 #include <osquery/utils/system/filepath.h>
 
 namespace osquery {

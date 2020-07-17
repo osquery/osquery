@@ -6,8 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/core/system.h>
 #include <osquery/sdk.h>
-#include <osquery/system.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/json/json.h>
 

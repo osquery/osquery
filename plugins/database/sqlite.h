@@ -10,10 +10,10 @@
 
 #include <sqlite3.h>
 
-#include <osquery/database.h>
+#include <osquery/core/flags.h>
+#include <osquery/database/database.h>
 #include <osquery/filesystem/fileops.h>
-#include <osquery/flags.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 
 namespace osquery {
 

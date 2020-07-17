@@ -11,7 +11,7 @@
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core/sql/query_data.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 namespace fs = boost::filesystem;
 

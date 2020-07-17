@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 #include <osquery/utils/status/status.h>
 
 #include <osquery/worker/logging/glog_logger_types.h>

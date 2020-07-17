@@ -6,8 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/events.h>
-#include <osquery/sql.h>
+#include <osquery/events/events.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/hashing/hashing.h>
 #include <osquery/tables/events/event_utils.h>

@@ -6,13 +6,13 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/core.h>
-#include <osquery/utils/darwin/plist.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/sql/sqlite_util.h>
-#include <osquery/tables.h>
 #include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/darwin/plist.h>
 
 #import <OpenDirectory/OpenDirectory.h>
 

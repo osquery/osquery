@@ -6,8 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/data_logger.h>
-#include <osquery/shutdown.h>
+#include <osquery/core/shutdown.h>
+#include <osquery/logger/data_logger.h>
 
 #include <mutex>
 #include <string>

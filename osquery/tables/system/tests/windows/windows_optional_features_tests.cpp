@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <string>
 
-#include <osquery/sql.h>
+#include <osquery/sql/sql.h>
 
 #include "osquery/tests/test_util.h"
 

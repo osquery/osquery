@@ -11,7 +11,7 @@
 #include <mutex>
 
 #include <osquery/events/windows/evtsubscription.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {

@@ -8,8 +8,8 @@
 
 #include <utmpx.h>
 
-#include <osquery/core.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {

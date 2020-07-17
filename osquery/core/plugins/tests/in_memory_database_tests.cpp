@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/core/database/in_memory_database.h>
-#include <osquery/database.h>
+#include <osquery/database/database.h>
 
 namespace osquery {
 

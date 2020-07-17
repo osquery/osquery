@@ -7,10 +7,10 @@
  */
 
 #include <osquery/config/config.h>
+#include <osquery/core/flags.h>
 #include <osquery/events/windows/windowseventlogpublisher.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 
 #include <plugins/config/parsers/feature_vectors.h>
 

@@ -19,9 +19,9 @@
 
 #include <gtest/gtest_prod.h>
 
-#include <osquery/core.h>
-#include <osquery/dispatcher.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {

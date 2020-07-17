@@ -8,11 +8,11 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-#include <osquery/tables.h>
 #include <osquery/utils/conversions/darwin/cfnumber.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/darwin/plist.h>

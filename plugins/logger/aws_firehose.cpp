@@ -17,9 +17,8 @@
 #include <aws/firehose/model/PutRecordBatchRequest.h>
 #include <aws/firehose/model/PutRecordBatchResult.h>
 
-#include <osquery/flags.h>
-#include <osquery/registry.h>
-
+#include <osquery/core/flags.h>
+#include <osquery/registry/registry.h>
 
 namespace osquery {
 

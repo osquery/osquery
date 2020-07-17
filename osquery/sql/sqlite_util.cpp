@@ -13,11 +13,11 @@
 
 #include <osquery/utils/conversions/castvariant.h>
 
-#include <osquery/core.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/utils/conversions/split.h>
 

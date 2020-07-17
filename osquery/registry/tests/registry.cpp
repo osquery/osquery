@@ -8,8 +8,8 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/logger.h>
-#include <osquery/registry.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
 
 namespace osquery {
 

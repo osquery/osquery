@@ -20,7 +20,7 @@
 #define STRIP_FLAG_HELP 1
 #include <gflags/gflags.h>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
 #include <osquery/utils/status/status.h>
 
 #ifdef FREEBSD

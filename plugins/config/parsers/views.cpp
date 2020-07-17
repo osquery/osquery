@@ -9,10 +9,10 @@
 #include <set>
 
 #include <osquery/config/config.h>
-#include <osquery/database.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 
 namespace osquery {
 

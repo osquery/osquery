@@ -16,7 +16,7 @@
 #include <osquery/utils/system/linux/perf_event/perf_event.h>
 #include <osquery/utils/system/posix/errno.h>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include <sys/ioctl.h>
 #include <sys/resource.h>

@@ -14,7 +14,7 @@
 #include <vector>
 
 #include <osquery/plugins/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 
 namespace osquery {
 

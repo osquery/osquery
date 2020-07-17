@@ -9,8 +9,8 @@
 #include <ApplicationServices/ApplicationServices.h>
 #include <CoreGraphics/CoreGraphics.h>
 
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {

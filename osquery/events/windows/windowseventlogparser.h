@@ -13,7 +13,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include <osquery/flags.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {

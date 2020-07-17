@@ -6,9 +6,9 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/flagalias.h>
-#include <osquery/flags.h>
-#include <osquery/registry.h>
+#include <osquery/core/flagalias.h>
+#include <osquery/core/flags.h>
+#include <osquery/registry/registry.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace boost {

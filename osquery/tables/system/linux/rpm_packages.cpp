@@ -16,11 +16,11 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/sql/dynamic_table_row.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
 

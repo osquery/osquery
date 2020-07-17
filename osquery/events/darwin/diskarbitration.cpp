@@ -9,15 +9,15 @@
 #include <fstream>
 #include <iomanip>
 
-#include <osquery/utils/conversions/darwin/cfstring.h>
-#include <osquery/utils/conversions/darwin/cftime.h>
-#include <osquery/utils/conversions/darwin/cfdata.h>
-#include <osquery/utils/conversions/darwin/cfnumber.h>
+#include <osquery/core/tables.h>
 #include <osquery/events/darwin/diskarbitration.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/utils/conversions/darwin/cfdata.h>
+#include <osquery/utils/conversions/darwin/cfnumber.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/utils/conversions/darwin/cftime.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>

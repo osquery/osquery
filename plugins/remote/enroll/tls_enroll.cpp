@@ -14,12 +14,12 @@
 
 #include "tls_enroll.h"
 
-#include <osquery/enroll.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/remote/enroll/enroll.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
+#include <osquery/core/system.h>
 
 #include <osquery/process/process.h>
 #include <osquery/remote/requests.h>

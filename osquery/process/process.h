@@ -17,8 +17,8 @@
 
 #include <osquery/utils/system/system.h>
 
-#include <osquery/core.h>
-#include <osquery/system.h>
+#include <osquery/core/core.h>
+#include <osquery/core/system.h>
 // FIXME(fmanco): env functions were split but most usages still include
 // process.h. Once those includes are fixed this can be removed.
 #include <osquery/utils/system/env.h>

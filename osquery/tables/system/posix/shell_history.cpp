@@ -10,9 +10,9 @@
 #include <string>
 #include <vector>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/tables.h>
 #include <osquery/tables/system/posix/shell_history.h>
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/system/system.h>

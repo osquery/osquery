@@ -9,9 +9,9 @@
 #include <asm/unistd_64.h>
 
 #include <osquery/events/linux/process_events.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/events/linux/process_events.h>
 #include <osquery/utils/system/uptime.h>
 

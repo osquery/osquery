@@ -12,10 +12,10 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
-#include <osquery/database.h>
-#include <osquery/events.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/events/events.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/info/tool_type.h>
 
 namespace osquery {

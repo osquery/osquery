@@ -22,8 +22,8 @@
 #include <sys/sysctl.h>
 #include <sys/types.h>
 
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/core/tables.h>
 #include <osquery/tables/networking/posix/interfaces.h>
 
 namespace osquery {

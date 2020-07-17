@@ -12,7 +12,7 @@
 #include <DiskArbitration/DiskArbitration.h>
 #include <IOKit/IOKitLib.h>
 
-#include <osquery/events.h>
+#include <osquery/events/events.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {

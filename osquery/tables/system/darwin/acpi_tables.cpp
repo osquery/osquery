@@ -9,8 +9,8 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
 
+#include <osquery/core/tables.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/tables.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
 
 namespace osquery {

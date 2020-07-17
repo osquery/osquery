@@ -7,7 +7,7 @@
  */
 
 #include <osquery/sdk/sdk.h>
-#include <osquery/system.h>
+#include <osquery/core/system.h>
 
 using namespace osquery;
 

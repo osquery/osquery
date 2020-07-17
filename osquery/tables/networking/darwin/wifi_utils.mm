@@ -7,7 +7,7 @@
  */
 #include <CoreFoundation/CoreFoundation.h>
 
-#include <osquery/system.h>
+#include <osquery/core/system.h>
 #include <osquery/tables/networking/darwin/wifi_utils.h>
 
 namespace osquery {

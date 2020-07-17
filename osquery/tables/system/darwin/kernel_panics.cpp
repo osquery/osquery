@@ -11,9 +11,9 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/regex.hpp>
 
-#include <osquery/tables/system/system_utils.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/tables.h>
+#include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/conversions/split.h>
 
 namespace fs = boost::filesystem;

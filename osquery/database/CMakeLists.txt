@@ -26,6 +26,12 @@ function(generateOsqueryDatabase)
     thirdparty_boost
   )
 
+  set(public_header_files
+    database.h
+  )
+
+  generateIncludeNamespace(osquery_database "osquery/database" "FILE_ONLY" ${public_header_files})
+
   add_test(NAME osquery_database_tests-test COMMAND osquery_database_tests-test)
   add_test(NAME osquery_database_tests_results-test COMMAND osquery_database_tests_results-test)
 endfunction()

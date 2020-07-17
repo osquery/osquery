@@ -16,8 +16,8 @@
 
 #include <osquery/config/config.h>
 #include <plugins/config/parsers/prometheus_targets.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/core/tables.h>
 #include <osquery/tables/applications/posix/prometheus_metrics.h>
 #include <osquery/utils/conversions/split.h>
 

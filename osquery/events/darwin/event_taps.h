@@ -10,7 +10,7 @@
 
 #include <ApplicationServices/ApplicationServices.h>
 
-#include <osquery/events.h>
+#include <osquery/events/events.h>
 
 namespace osquery {
 

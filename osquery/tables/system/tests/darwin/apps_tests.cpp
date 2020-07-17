@@ -9,9 +9,9 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/tests/test_utils.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/darwin/plist.h>
 
 namespace fs = boost::filesystem;

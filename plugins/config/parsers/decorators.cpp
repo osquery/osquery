@@ -7,10 +7,10 @@
  */
 
 #include <osquery/config/config.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/json/json.h>
 #include <plugins/config/parsers/decorators.h>
 

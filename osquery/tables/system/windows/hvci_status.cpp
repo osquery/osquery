@@ -6,11 +6,11 @@
  *  root directory of this source tree.
  */
 
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 #include <osquery/core/windows/wmi.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 
 namespace osquery {
 namespace tables {

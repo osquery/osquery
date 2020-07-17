@@ -18,13 +18,13 @@ function(generateOsquerySdkPluginsdk)
 
   target_link_libraries(osquery_sdk_pluginsdk INTERFACE
     osquery_cxx_settings
-    osquery_headers
     osquery_config
     osquery_core_init
     osquery_dispatcher
     osquery_events_eventsregistry
     osquery_experimental_eventsstream_registry
     osquery_extensions
+    osquery_logger_datalogger
     osquery_numericmonitoring
     osquery_remote_enroll_tlsenroll
     osquery_sql
@@ -42,6 +42,7 @@ function(generateOsquerySdkPluginsdk)
     osquery_utils_system_uptime
     osquery_utils_attribute
     osquery_utils
+    plugins_config_parsers
     plugins_database_ephemeral
   )
 

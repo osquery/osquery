@@ -21,9 +21,9 @@
 
 #include <osquery/config/config.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/events/windows/ntfs_journal_events.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/json/json.h>

@@ -55,7 +55,7 @@ function(generateOsqueryTablesEventsEventstable)
   enableLinkWholeArchive(osquery_tables_events_eventstable)
 
   target_link_libraries(osquery_tables_events_eventstable PUBLIC
-    osquery_headers
+    osquery_cxx_settings
     osquery_config
     osquery_core
     osquery_events

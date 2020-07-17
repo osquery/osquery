@@ -12,11 +12,11 @@
 #include <cups/adminutil.h>
 #include <cups/cups.h>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 
 #ifndef __SERVICEMANAGEMENT_PRIVATE_H__
 #define __SERVICEMANAGEMENT_PRIVATE_H__

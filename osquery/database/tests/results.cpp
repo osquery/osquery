@@ -6,11 +6,11 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/database.h>
+#include <osquery/database/database.h>
 
+#include <osquery/core/query.h>
 #include <osquery/core/sql/diff_results.h>
 #include <osquery/core/sql/query_data.h>
-#include <osquery/query.h>
 #include <osquery/sql/tests/sql_test_utils.h>
 
 #include <gtest/gtest.h>

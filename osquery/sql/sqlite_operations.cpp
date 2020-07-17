@@ -10,8 +10,8 @@
 #include <string>
 
 #include <osquery/carver/carver.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/mutex.h>
 

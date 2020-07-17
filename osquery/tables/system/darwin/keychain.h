@@ -23,7 +23,7 @@
 #include <openssl/pem.h>
 #include <openssl/bio.h>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {

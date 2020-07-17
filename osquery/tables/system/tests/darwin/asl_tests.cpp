@@ -14,8 +14,8 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/system/darwin/asl_utils.h>
 #include <osquery/utils/conversions/tryto.h>
 

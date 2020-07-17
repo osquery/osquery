@@ -64,7 +64,6 @@ function(generatePluginsLoggerAwskinesis)
 
   target_link_libraries(plugins_logger_awskinesis PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_dispatcher
     osquery_process
     osquery_registry
@@ -153,9 +152,11 @@ function(generatePluginsLoggerKafkaproducer)
 
   target_link_libraries(plugins_logger_kafkaproducer PUBLIC
     osquery_cxx_settings
-    plugins_logger_commondeps
+    osquery_config
     osquery_dispatcher
     osquery_utils_config
+    plugins_config_parsers
+    plugins_logger_commondeps
     thirdparty_librdkafka
   )
 

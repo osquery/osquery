@@ -18,7 +18,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/noncopyable.hpp>
 
-#include <osquery/sql.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/utils/mutex.h>
 

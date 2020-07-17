@@ -6,10 +6,10 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/system/darwin/firewall.h>
 #include <osquery/utils/darwin/plist.h>
 

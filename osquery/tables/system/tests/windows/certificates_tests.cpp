@@ -8,11 +8,11 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/database.h>
-#include <osquery/flags.h>
-#include <osquery/registry.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/registry/registry.h>
 
 #include <osquery/tables/system/windows/certificates.h>
 

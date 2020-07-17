@@ -20,7 +20,6 @@ function(osqueryMainHarnesses)
 
   target_link_libraries(osquery_harnesses PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_core_plugins
     osquery_core_sql

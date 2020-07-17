@@ -6,9 +6,9 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/registry_interface.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/core/system.h>
+#include <osquery/registry/registry_interface.h>
+#include <osquery/sql/sql.h>
 
 #include <gtest/gtest.h>
 

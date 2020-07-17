@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/devtools/devtools.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 

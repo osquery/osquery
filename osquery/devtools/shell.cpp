@@ -33,13 +33,13 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <osquery/config/config.h>
-#include <osquery/database.h>
+#include <osquery/config/packs.h>
+#include <osquery/core/flags.h>
+#include <osquery/database/database.h>
 #include <osquery/devtools/devtools.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/packs.h>
 #include <osquery/process/process.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/sql/virtual_table.h>
 #include <osquery/utils/chars.h>
 #include <osquery/utils/conversions/join.h>

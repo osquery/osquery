@@ -22,10 +22,11 @@ function(generateOsqueryLogger)
   )
 
   set(public_header_files
+    data_logger.h
     logger.h
   )
 
-  generateIncludeNamespace(osquery_logger "osquery" "FILE_ONLY" ${public_header_files})
+  generateIncludeNamespace(osquery_logger "osquery/logger" "FILE_ONLY" ${public_header_files})
 endfunction()
 
 function(generateOsqueryLoggerDatalogger)
@@ -38,6 +39,7 @@ function(generateOsqueryLoggerDatalogger)
     osquery_core
     osquery_core_plugins
     osquery_database
+    osquery_events_eventsregistry
     osquery_filesystem
     osquery_numericmonitoring
     osquery_registry

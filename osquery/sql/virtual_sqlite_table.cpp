@@ -8,10 +8,10 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/utils/info/platform_type.h>
 

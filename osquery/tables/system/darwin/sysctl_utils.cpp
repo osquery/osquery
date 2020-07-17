@@ -9,8 +9,8 @@
 #include <sys/sysctl.h>
 #include <sys/time.h>
 
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/tables.h>
 #include <osquery/tables/system/posix/sysctl_utils.h>
 
 #include <mach/mach_types.h>

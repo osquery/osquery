@@ -13,10 +13,10 @@
 #include <malloc.h>
 #endif
 
+#include <osquery/core/flags.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/status/status.h>
 
 #include "osquery/tables/yara/yara_utils.h"

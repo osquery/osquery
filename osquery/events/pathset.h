@@ -16,7 +16,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/tokenizer.hpp>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
 
 namespace osquery {

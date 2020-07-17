@@ -10,12 +10,12 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/distributed.h>
-#include <osquery/enroll.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/core/core.h>
+#include <osquery/database/database.h>
+#include <osquery/distributed/distributed.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/remote/enroll/enroll.h>
+#include <osquery/sql/sql.h>
 
 #include "osquery/remote/tests/test_utils.h"
 #include "osquery/sql/sqlite_util.h"

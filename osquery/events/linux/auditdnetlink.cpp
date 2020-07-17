@@ -16,13 +16,13 @@
 
 #include <boost/utility/string_ref.hpp>
 
+#include <osquery/core/flags.h>
 #include <osquery/events/linux/auditdnetlink.h>
 #include <osquery/events/linux/process_events.h>
 #include <osquery/events/linux/process_file_events.h>
 #include <osquery/events/linux/selinux_events.h>
 #include <osquery/events/linux/socket_events.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/system/time.h>

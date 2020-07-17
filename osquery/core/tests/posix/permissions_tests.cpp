@@ -15,12 +15,12 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/noncopyable.hpp>
 
-#include <osquery/core.h>
-#include <osquery/dispatcher.h>
+#include <osquery/core/core.h>
+#include <osquery/core/system.h>
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-#include <osquery/system.h>
 
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tests/test_util.h"

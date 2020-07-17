@@ -13,7 +13,7 @@
 #include <osquery/utils/system/linux/cpu.h>
 #include <osquery/utils/system/linux/perf_event/perf_event.h>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include <boost/io/detail/quoted_manip.hpp>
 

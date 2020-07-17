@@ -8,9 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/azure/azure_util.h>
 
 namespace osquery {

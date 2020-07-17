@@ -19,8 +19,8 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/regex.hpp>
 
-#include <osquery/logger.h>
-#include <osquery/sql.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/core/windows/wmi.h>

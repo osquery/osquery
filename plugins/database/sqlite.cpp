@@ -11,10 +11,10 @@
 #include <sqlite3.h>
 #include <sys/stat.h>
 
+#include <osquery/core/query.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/query.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <plugins/database/sqlite.h>
 

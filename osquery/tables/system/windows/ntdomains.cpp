@@ -6,10 +6,10 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 
 #include "osquery/core/windows/wmi.h"
 

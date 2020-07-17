@@ -12,12 +12,12 @@
 #include <thread>
 
 #include <osquery/config/tests/test_utils.h>
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/flags.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/database/database.h>
 #include <osquery/process/process.h>
 #include <osquery/remote/tests/test_utils.h>
-#include <osquery/sql.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tests/test_util.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>

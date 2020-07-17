@@ -27,7 +27,7 @@
 #include <Windows.h>
 #include <winioctl.h>
 
-#include <osquery/events.h>
+#include <osquery/events/events.h>
 
 namespace osquery {
 

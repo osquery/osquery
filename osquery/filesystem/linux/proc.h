@@ -17,7 +17,7 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {

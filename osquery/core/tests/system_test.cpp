@@ -8,7 +8,7 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/system.h"
+#include "osquery/core/system.h"
 
 namespace osquery {
 

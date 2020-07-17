@@ -10,7 +10,7 @@
 
 #include <unordered_map>
 
-#include <osquery/numeric_monitoring.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
 
 namespace osquery {
 

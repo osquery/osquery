@@ -11,12 +11,12 @@
 #include <CoreServices/CoreServices.h>
 
 // Package BOM structure headers
-#include <osquery/utils/darwin/plist.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/system/darwin/packages.h>
+#include <osquery/utils/darwin/plist.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

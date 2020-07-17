@@ -39,7 +39,6 @@ function(generateOsqueryTablesYaraYaratable)
 
   target_link_libraries(osquery_tables_yara_yaratable PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_config
     osquery_dispatcher
     osquery_events

@@ -8,10 +8,10 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/core.h>
-#include <osquery/hashing/hashing.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/tables.h>
+#include <osquery/hashing/hashing.h>
 
 namespace fs = boost::filesystem;
 
