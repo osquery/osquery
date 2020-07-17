@@ -1,6 +1,6 @@
 // Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 #include <osquery/core.h>
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/sql.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/utils/info/platform_type.h>

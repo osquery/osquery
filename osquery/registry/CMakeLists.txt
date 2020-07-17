@@ -29,6 +29,12 @@ function(generateOsqueryRegistry)
     thirdparty_boost
   )
 
+  set(public_header_files
+    registry_interface.h
+  )
+
+  generateIncludeNamespace(osquery_registry "osquery/registry" "FILE_ONLY" ${public_header_files})
+
   add_test(NAME osquery_registry_tests-test COMMAND osquery_registry_tests-test)
 endfunction()
 

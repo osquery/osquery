@@ -10,7 +10,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/flags.h>
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables/system/windows/registry.h>

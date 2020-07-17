@@ -8,7 +8,7 @@
 
 #include <osquery/core.h>
 #include <osquery/flags.h>
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/sql.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/sql/tests/sql_test_utils.h>

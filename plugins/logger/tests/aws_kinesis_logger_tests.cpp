@@ -19,7 +19,7 @@
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/system.h>
 
 #include "plugins/logger/aws_log_forwarder.h"

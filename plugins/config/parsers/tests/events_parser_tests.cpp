@@ -15,7 +15,7 @@
 #include <osquery/database.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/registry.h>
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/system.h>
 
 namespace osquery {

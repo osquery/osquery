@@ -14,7 +14,7 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 
 namespace osquery {
 

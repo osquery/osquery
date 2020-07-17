@@ -20,7 +20,7 @@
 
 #include <osquery/core.h>
 #include <osquery/database.h>
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/system.h>
 #include <osquery/utils/status/status.h>
 

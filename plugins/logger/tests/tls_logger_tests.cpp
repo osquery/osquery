@@ -10,7 +10,7 @@
 
 #include <osquery/database.h>
 #include <osquery/flags.h>
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/remote/tests/test_utils.h>
 #include <osquery/system.h>
 

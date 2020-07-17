@@ -16,7 +16,7 @@
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/database.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/utils/conversions/tryto.h>
 
 #include <set>

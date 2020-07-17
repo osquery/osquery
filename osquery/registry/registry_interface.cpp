@@ -7,8 +7,8 @@
  */
 
 #include <osquery/extensions.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/registry_factory.h>
-#include <osquery/registry_interface.h>
 #include <osquery/utils/conversions/split.h>
 
 namespace osquery {

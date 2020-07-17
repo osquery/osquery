@@ -8,7 +8,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/tables.h>
 #include <osquery/worker/ipc/linux/linux_table_container_ipc.h>
 #include <osquery/worker/logging/logger.h>

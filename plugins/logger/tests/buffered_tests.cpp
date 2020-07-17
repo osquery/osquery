@@ -19,7 +19,7 @@
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/system.h>
 
 #include "plugins/logger/buffered.h"
