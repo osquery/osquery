@@ -1,5 +1,5 @@
 table_name("dns_cache")
-description("DNS Cache.")
+description("Enumerate the DNS cache using the undocumented DnsGetCacheDataTable function in dnsapi.dll.")
 schema([
     Column("name", TEXT, "DNS record name"),
     Column("type", TEXT, "DNS record type"),

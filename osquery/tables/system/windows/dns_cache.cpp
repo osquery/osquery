@@ -135,13 +135,13 @@ QueryData genDnsCache(QueryContext& context) {
   QueryData results;
 
   PDNSCACHEENTRY pEntry = (PDNSCACHEENTRY)malloc(sizeof(DNSCACHEENTRY));
-  HINSTANCE hLib = LoadLibrary(TEXT("DNSAPI.dll"));
+  HINSTANCE hLib = LoadLibraryEx(TEXT("DNSAPI.dll"), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
   DNS_GET_CACHE_DATA_TABLE DnsGetCacheDataTable =
     (DNS_GET_CACHE_DATA_TABLE)GetProcAddress(hLib, "DnsGetCacheDataTable");
 
   int stat = DnsGetCacheDataTable(pEntry);
   pEntry = pEntry->pNext;
-  while (pEntry)
+  while (pEntry != nullptr)
   {
     Row r;
 
