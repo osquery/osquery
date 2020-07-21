@@ -41,6 +41,19 @@ class SchedulerRunner : public InternalRunnable {
   std::chrono::milliseconds getCurrentTimeDrift() const noexcept;
 
  private:
+  void calculateTimeDriftAndMaybePause(
+      std::chrono::milliseconds loop_step_duration);
+
+  /// Check interval-based decorators.
+  void maybeRunDecorators(size_t time_step);
+
+  /// Check relative configuration flags.
+  void maybeReloadSchedule(size_t time_step);
+
+  /// Check if buffered status logs should be flushed.
+  void maybeFlushLogs(size_t time_step);
+
+ private:
   /// Interval in seconds between schedule steps.
   const std::chrono::milliseconds interval_;
 
