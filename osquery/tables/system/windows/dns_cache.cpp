@@ -16,8 +16,7 @@
 namespace osquery {
 namespace tables {
 
-typedef struct _DNS_CACHE_ENTRY
-{
+typedef struct _DNS_CACHE_ENTRY {
   struct _DNS_CACHE_ENTRY* pNext; // Pointer to next entry
   PWSTR pszName; // DNS Record Name
   unsigned short wType; // DNS Record Type
@@ -25,11 +24,10 @@ typedef struct _DNS_CACHE_ENTRY
   unsigned long dwFlags; // DNS Record Flags
 } DNSCACHEENTRY, *PDNSCACHEENTRY;
 
-typedef int(WINAPI *DNS_GET_CACHE_DATA_TABLE)(PDNSCACHEENTRY);
+typedef int(WINAPI* DNS_GET_CACHE_DATA_TABLE)(PDNSCACHEENTRY);
 
 std::string dnsTypeToString(unsigned short wType) {
-  switch (wType)
-  {
+  switch (wType) {
   case 1:
     return "A";
   case 2:
@@ -135,9 +133,10 @@ QueryData genDnsCache(QueryContext& context) {
   QueryData results;
 
   PDNSCACHEENTRY pEntry = (PDNSCACHEENTRY)malloc(sizeof(DNSCACHEENTRY));
-  HINSTANCE hLib = LoadLibraryEx(TEXT("DNSAPI.dll"), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  HINSTANCE hLib =
+      LoadLibraryEx(TEXT("DNSAPI.dll"), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
   DNS_GET_CACHE_DATA_TABLE DnsGetCacheDataTable =
-    (DNS_GET_CACHE_DATA_TABLE)GetProcAddress(hLib, "DnsGetCacheDataTable");
+      (DNS_GET_CACHE_DATA_TABLE)GetProcAddress(hLib, "DnsGetCacheDataTable");
 
   int stat = DnsGetCacheDataTable(pEntry);
   pEntry = pEntry->pNext;
@@ -156,5 +155,5 @@ QueryData genDnsCache(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
