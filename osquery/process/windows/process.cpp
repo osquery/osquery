@@ -236,7 +236,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   std::wstring environmentString = childEnvironment.str();
 
   auto status =
-      ::CreateProcess(NULL,
+      ::CreateProcess(nullptr,
                       mutable_argv.data(),
                       nullptr,
                       nullptr,
@@ -307,7 +307,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
         std::wstring(mutable_argv.begin(), mutable_argv.end())));
   } else {
     auto status =
-        ::CreateProcess(NULL,
+        ::CreateProcess(nullptr,
                         mutable_argv.data(),
                         nullptr,
                         nullptr,

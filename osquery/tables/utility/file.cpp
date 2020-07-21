@@ -15,6 +15,8 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace fs = boost::filesystem;
 
