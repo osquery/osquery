@@ -14,13 +14,15 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/tables/system/linux/dbus/methods/getproperty.h>
+#include <osquery/tables/system/linux/dbus/methods/listunitsmethodhandler.h>
+#include <osquery/tables/system/linux/dbus/uniquedbusconnection.h>
 #include <osquery/utils/conversions/split.h>
 
 namespace osquery {
 namespace tables {
 
 const std::vector<std::string> kSystemItemPaths = {"/etc/xdg/autostart/"};
-
 const std::vector<std::string> kSystemScriptPaths = {"/etc/init.d/"};
 
 void genAutoStartItems(const std::string& sysdir, QueryData& results) {
@@ -81,6 +83,69 @@ void genAutoStartScripts(const std::string& sysdir, QueryData& results) {
   }
 }
 
+Status genSystemdItems(QueryData& results) {
+  UniqueDbusConnection connection;
+  auto status = UniqueDbusConnection::create(connection, true);
+  if (!status.ok()) {
+    return status;
+  }
+
+  ListUnitsMethod list_units_method;
+  ListUnitsMethod::Output unit_list;
+  status = list_units_method.call(
+      unit_list, connection, "/org/freedesktop/systemd1");
+  if (!status.ok()) {
+    return status;
+  }
+
+  GetPropertyMethod get_property_method;
+
+  for (const auto& unit : unit_list) {
+    Row row = {};
+    row["name"] = unit.id;
+    row["type"] = "systemd unit";
+    row["status"] = unit.active_state;
+
+    std::string unit_path;
+    status = get_property_method.call(unit_path,
+                                      connection,
+                                      unit.path,
+                                      "org.freedesktop.systemd1.Unit",
+                                      "FragmentPath");
+    if (!status.ok()) {
+      return status;
+    }
+
+    row["path"] = unit_path;
+
+    std::string source_path;
+    status = get_property_method.call(source_path,
+                                      connection,
+                                      unit.path,
+                                      "org.freedesktop.systemd1.Unit",
+                                      "SourcePath");
+    if (!status.ok()) {
+      return status;
+    }
+
+    row["source"] = source_path;
+
+    std::string username;
+    status = get_property_method.call(username,
+                                      connection,
+                                      unit.path,
+                                      "org.freedesktop.systemd1.Service",
+                                      "User");
+
+    static_cast<void>(status);
+    row["username"] = username;
+
+    results.push_back(std::move(row));
+  }
+
+  return Status::success();
+}
+
 QueryData genStartupItems(QueryContext& context) {
   QueryData results;
 
@@ -98,6 +163,12 @@ QueryData genStartupItems(QueryContext& context) {
   }
   for (const auto& dir : kSystemItemPaths) {
     genAutoStartItems(dir, results);
+  }
+
+  auto status = genSystemdItems(results);
+  if (!status.ok()) {
+    LOG(ERROR) << "Failed to enumerate the systemd services: "
+               << status.getMessage();
   }
 
   return results;

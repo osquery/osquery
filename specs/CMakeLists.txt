@@ -57,6 +57,7 @@ function(generateNativeTables)
     python_packages.table
     routes.table
     ssh_configs.table
+    startup_items.table
     system_info.table
     uptime.table
     user_ssh_keys.table
@@ -183,7 +184,6 @@ function(generateNativeTables)
     "lldpd/lldp_neighbors.table:linux,macos,freebsd"
     "kernel_info.table:linux,macos,windows"
     "macwin/certificates.table:macos,windows"
-    "macwin/startup_items.table:macos,windows,linux"
     "posix/acpi_tables.table:linux,macos"
     "posix/apt_sources.table:linux,macos,freebsd"
     "posix/augeas.table:linux,macos,freebsd"

@@ -52,6 +52,10 @@ function(generateOsqueryTablesSystemSystemtable)
   if(DEFINED PLATFORM_LINUX)
     list(APPEND source_files
       freenux/cpu_time.cpp
+      linux/dbus/methods/listunitsmethodhandler.cpp
+      linux/dbus/methods/getproperty.cpp
+      linux/dbus/uniquedbusconnection.cpp
+      linux/dbus/uniquedbusmessage.cpp
       linux/acpi_tables.cpp
       linux/block_devices.cpp
       linux/deb_packages.cpp
@@ -264,6 +268,7 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_libcryptsetup
       thirdparty_librpm
       thirdparty_popt
+      thirdparty_dbus
     )
 
   elseif(DEFINED PLATFORM_MACOS)
@@ -300,6 +305,12 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_LINUX)
     list(APPEND platform_public_header_files
+      linux/dbus/methods/dbusmethod.h
+      linux/dbus/methods/listunitsmethodhandler.h
+      linux/dbus/methods/getproperty.h
+      linux/dbus/uniquedbusconnection.h
+      linux/dbus/uniquedbusmessage.h
+      linux/dbus/uniqueresource.h
       linux/md_tables.h
       linux/pci_devices.h
       linux/smbios_utils.h

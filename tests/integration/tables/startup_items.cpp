@@ -30,7 +30,7 @@ TEST_F(StartupItemsTest, test_sanity) {
       {"path", NonEmptyString},
       {"args", NormalType},
       {"type", SpecificValuesCheck{"Startup Item", "Login Item"}},
-      {"source", NonEmptyString},
+      {"source", NormalType},
       {"status", SpecificValuesCheck{"enabled", "disabled"}},
       {"username", NormalType},
   };
