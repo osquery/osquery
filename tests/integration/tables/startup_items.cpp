@@ -31,7 +31,7 @@ TEST_F(StartupItemsTest, test_sanity) {
       {"type", SpecificValuesCheck{"Startup Item", "Login Item"}},
       {"source", NonEmptyString},
       {"status", SpecificValuesCheck{"enabled", "disabled"}},
-      {"username", NonEmptyString},
+      {"username", NormalType},
   };
   validate_rows(data, row_map);
 }

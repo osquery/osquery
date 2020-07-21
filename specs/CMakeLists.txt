@@ -175,7 +175,7 @@ function(generateNativeTables)
     "lldpd/lldp_neighbors.table:linux,macos,freebsd"
     "kernel_info.table:linux,macos,windows"
     "macwin/certificates.table:macos,windows"
-    "macwin/startup_items.table:macos,windows"
+    "macwin/startup_items.table:macos,windows,linux"
     "posix/acpi_tables.table:linux,macos"
     "posix/apt_sources.table:linux,macos,freebsd"
     "posix/augeas.table:linux,macos,freebsd"
