@@ -24,6 +24,7 @@ DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
 DECLARE_bool(audit_allow_selinux_events);
+DECLARE_bool(audit_allow_kill_process_events);
 
 REGISTER(AuditEventPublisher, "event_publisher", "auditeventpublisher");
 
@@ -35,7 +36,8 @@ bool IsPublisherEnabled() noexcept {
 
   return (FLAGS_audit_allow_fim_events || FLAGS_audit_allow_process_events ||
           FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events ||
-          FLAGS_audit_allow_selinux_events);
+          FLAGS_audit_allow_selinux_events ||
+          FLAGS_audit_allow_kill_process_events);
 }
 } // namespace
 
