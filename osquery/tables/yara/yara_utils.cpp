@@ -31,6 +31,7 @@ bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
 void YARACompilerCallback(int error_level,
                           const char* file_name,
                           int line_number,
+                          const YR_RULE* rule,
                           const char* message,
                           void* user_data) {
   if (error_level == YARA_ERROR_LEVEL_ERROR) {
@@ -209,7 +210,10 @@ Status handleRuleFiles(const std::string& category,
  * This is the YARA callback. Used to store matching rules in the row which is
  * passed in as user_data.
  */
-int YARACallback(int message, void* message_data, void* user_data) {
+int YARACallback(YR_SCAN_CONTEXT* context,
+                 int message,
+                 void* message_data,
+                 void* user_data) {
   if (message == CALLBACK_MSG_RULE_MATCHING) {
     Row* r = (Row*)user_data;
     YR_RULE* rule = (YR_RULE*)message_data;
@@ -223,7 +227,7 @@ int YARACallback(int message, void* message_data, void* user_data) {
     YR_STRING* string = nullptr;
     yr_rule_strings_foreach(rule, string) {
       YR_MATCH* match = nullptr;
-      yr_string_matches_foreach(string, match) {
+      yr_string_matches_foreach(context, string, match) {
         if ((*r)["strings"].length() > 0) {
           (*r)["strings"] += "," + std::string(string->identifier);
         } else {
