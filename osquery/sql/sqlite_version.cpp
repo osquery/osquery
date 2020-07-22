@@ -26,7 +26,6 @@ int version_collate(void* userdata, // UNUSED
                     const void* a,
                     int blen,
                     const void* b) {
-
   std::string aStr((const char*)a);
   auto aVer = tryTo<SemanticVersion>(aStr);
   if (aVer.isError()) {
