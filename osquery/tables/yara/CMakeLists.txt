@@ -15,7 +15,7 @@ endfunction()
 
 function(generateOsqueryTablesYaraYaratable)
 
-  if(PLATFORM_WINDOWS OR PLATFORM_FREEBSD)
+  if(DEFINED PLATFORM_FREEBSD)
     add_osquery_library(osquery_tables_yara_yaratable INTERFACE)
     return()
   endif()

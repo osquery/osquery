@@ -130,7 +130,6 @@ function(generateTestsIntegrationTablesTestsTest)
       ulimit_info.cpp
       usb_devices.cpp
       user_events.cpp
-      yara.cpp
       yum_sources.cpp
     )
 
@@ -176,6 +175,7 @@ function(generateTestsIntegrationTablesTestsTest)
       startup_items.cpp
       syslog_events.cpp
       yara_events.cpp
+      yara.cpp
     )
 
     list(APPEND source_files ${platform_source_files})
@@ -251,6 +251,7 @@ function(generateTestsIntegrationTablesTestsTest)
       xprotect_meta.cpp
       xprotect_reports.cpp
       yara_events.cpp
+      yara.cpp
     )
 
     list(APPEND source_files ${platform_source_files})
@@ -300,6 +301,7 @@ function(generateTestsIntegrationTablesTestsTest)
       wmi_filter_consumer_binding.cpp
       wmi_script_event_consumers.cpp
       hvci_status.cpp
+      yara.cpp
     )
 
     list(APPEND source_files ${platform_source_files})
