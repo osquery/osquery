@@ -66,6 +66,7 @@ int YARACallback(YR_SCAN_CONTEXT* context,
  * Pseudo-code:
  *   getParser("yara")->getKey("yara");
  */
+
 class YARAConfigParserPlugin : public ConfigParserPlugin {
  public:
   /// Request a single "yara" top level key.
@@ -78,11 +79,17 @@ class YARAConfigParserPlugin : public ConfigParserPlugin {
     return rules_;
   }
 
+  std::set<std::string>& url_allow_set() {
+    return url_allow_set_;
+  }
+
   Status setUp() override;
 
  private:
   // Store compiled rules in a map (group => rules).
   std::map<std::string, YR_RULES*> rules_;
+
+  std::set<std::string> url_allow_set_;
 
   /// Store the signatures and file_paths and compile the rules.
   Status update(const std::string& source, const ParserConfig& config) override;
