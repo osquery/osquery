@@ -14,6 +14,7 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/core/sql/scheduled_query.h>
 #include <osquery/query.h>
 #include <osquery/sql/tests/sql_test_utils.h>
 #include <osquery/system.h>
@@ -155,5 +156,31 @@ TEST_F(QueryTests, test_get_stored_query_names) {
   auto names = cf.getStoredQueryNames();
   auto in_vector = std::find(names.begin(), names.end(), "foobar");
   EXPECT_NE(in_vector, names.end());
+}
+
+TEST_F(QueryTests, test_is_snapshot_query) {
+  auto sq = ScheduledQuery();
+
+  // If the snapshot option is not set, this is not a snapshot query.
+  EXPECT_FALSE(sq.isSnapshotQuery());
+
+  sq.options["snapshot"] = true;
+  EXPECT_TRUE(sq.isSnapshotQuery());
+
+  sq.options["snapshot"] = false;
+  EXPECT_FALSE(sq.isSnapshotQuery());
+}
+
+TEST_F(QueryTests, test_report_removed_rows) {
+  auto sq = ScheduledQuery();
+
+  // If the removed option is not set, removed rows should be reported.
+  EXPECT_TRUE(sq.reportRemovedRows());
+
+  sq.options["removed"] = true;
+  EXPECT_TRUE(sq.reportRemovedRows());
+
+  sq.options["removed"] = false;
+  EXPECT_FALSE(sq.reportRemovedRows());
 }
 }
