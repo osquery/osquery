@@ -27,7 +27,7 @@ class UsersTest : public testing::Test {
 };
 
 TEST_F(UsersTest, test_sanity) {
-  auto row_map = ValidatatioMap{
+  auto row_map = ValidationMap{
       {"uid", NonNegativeInt},
       {"uid_signed", IntType},
       {"gid_signed", IntType},

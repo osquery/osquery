@@ -28,7 +28,7 @@ TEST_F(groups, test_sanity) {
   // Build validation map
   // See helper.h for avaialbe flags
   // Or use custom DataCheck object
-  ValidatatioMap row_map = {
+  ValidationMap row_map = {
       {"gid", IntType},
       {"gid_signed", IntType},
       {"groupname", NormalType},
