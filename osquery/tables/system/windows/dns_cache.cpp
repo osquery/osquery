@@ -140,8 +140,7 @@ QueryData genDnsCache(QueryContext& context) {
 
   int stat = DnsGetCacheDataTable(pEntry);
   pEntry = pEntry->pNext;
-  while (pEntry != nullptr)
-  {
+  while (pEntry != nullptr) {
     Row r;
 
     r["name"] = wstringToString(pEntry->pszName);
