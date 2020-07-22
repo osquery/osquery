@@ -427,23 +427,23 @@ TEST_F(SQLTests, test_version_collate) {
   auto status = query("create temp table test_version(v string);", d);
   ASSERT_TRUE(status.ok());
 
-  auto status = query("insert into 'test_version' values('1');", d);
+  status = query("insert into 'test_version' values('1');", d);
   ASSERT_TRUE(status.ok());
 
-  auto status = query("insert into 'test_version' values('1.2.0');", d);
+  status = query("insert into 'test_version' values('1.2.0');", d);
   ASSERT_TRUE(status.ok());
 
-  auto status = query("insert into 'test_version' values('1.11.0');", d);
+  status = query("insert into 'test_version' values('1.11.0');", d);
   ASSERT_TRUE(status.ok());
 
-  auto status = query("select * from test_version ORDER BY v;", d);
+  status = query("select * from test_version ORDER BY v;", d);
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(d.size(), 3U);
   EXPECT_EQ(d[0]["v"], "1");
   EXPECT_EQ(d[1]["v"], "1.11.0");
   EXPECT_EQ(d[2]["v"], "1.2.0");
 
-  auto status =
+  status =
       query("select * from test_version ORDER BY v COLLATE VERSION;", d);
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(d.size(), 3U);
@@ -451,4 +451,28 @@ TEST_F(SQLTests, test_version_collate) {
   EXPECT_EQ(d[1]["v"], "1.2.0");
   EXPECT_EQ(d[2]["v"], "1.11.0");
 }
+
+  TEST_F(SQLTests, test_version_collate_in_table) {
+  QueryData d;
+  auto status = query("create temp table test_version_2(v string COLLATE VERSION);", d);
+  ASSERT_TRUE(status.ok());
+
+  status = query("insert into 'test_version_2' values('2');", d);
+  ASSERT_TRUE(status.ok());
+
+  status = query("insert into 'test_version_2' values('2.11.0');", d);
+  ASSERT_TRUE(status.ok());
+
+  status = query("insert into 'test_version_2' values('2.2.0');", d);
+  ASSERT_TRUE(status.ok());
+
+  status = query("select * from test_version_2 ORDER BY v;", d);
+  ASSERT_TRUE(status.ok());
+  ASSERT_EQ(d.size(), 3U);
+  EXPECT_EQ(d[0]["v"], "2");
+  EXPECT_EQ(d[1]["v"], "2.2.0");
+  EXPECT_EQ(d[2]["v"], "2.11.0");
+}
+
+  
 } // namespace osquery
