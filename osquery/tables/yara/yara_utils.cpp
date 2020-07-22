@@ -112,6 +112,43 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
 }
 
 /**
+ * Compile rules from string and load it into rule pointer.
+ */
+Status compileFromString(const std::string& rule_defs, YR_RULES** rules) {
+  YR_COMPILER* compiler = nullptr;
+  auto result = yr_compiler_create(&compiler);
+  if (result != ERROR_SUCCESS) {
+    return Status(1, " - Could not create compiler: " + std::to_string(result));
+  }
+
+  yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
+
+  VLOG(1) << "Loading YARA signature string: " << rule_defs;
+
+  auto errors = yr_compiler_add_string(compiler, rule_defs.c_str(), nullptr);
+
+  if (errors > 0) {
+    yr_compiler_destroy(compiler);
+    return Status::failure(" - Compilation error " + std::to_string(errors));
+  }
+
+  // get the rules and save them in the map.
+  result = yr_compiler_get_rules(compiler, *(&rules));
+
+  if (result != ERROR_SUCCESS) {
+    yr_compiler_destroy(compiler);
+    return Status::failure(" - Insufficient memory to get YARA rules");
+  }
+
+  if (compiler != nullptr) {
+    yr_compiler_destroy(compiler);
+    compiler = nullptr;
+  }
+
+  return Status::success();
+}
+
+/**
  * Given a vector of strings, attempt to compile them and store the result
  * in the map under the given category.
  */

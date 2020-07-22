@@ -47,10 +47,12 @@ FLAG(uint32,
 
 namespace tables {
 
+typedef enum { YC_NONE = 0, YC_GROUP, YC_FILE, YC_RULE } YaraScanContextType;
+
 void doYARAScan(YR_RULES* rules,
                 const std::string& path,
                 QueryData& results,
-                const std::string& group,
+                YaraScanContextType yc,
                 const std::string& sigfile) {
   Row r;
 
@@ -62,8 +64,9 @@ void doYARAScan(YR_RULES* rules,
 
   // This could use target_path instead to be consistent with yara_events.
   r["path"] = path;
-  r["sig_group"] = std::string(group);
-  r["sigfile"] = std::string(sigfile);
+  r["sig_group"] = yc == YC_GROUP ? std::string(sigfile) : std::string("");
+  r["sigfile"] = yc == YC_FILE ? std::string(sigfile) : std::string("");
+  r["sigrule"] = yc == YC_RULE ? std::string(sigfile) : std::string("");
 
   // Perform the scan, using the static YARA subscriber callback.
   int result = yr_rules_scan_file(
@@ -76,10 +79,12 @@ void doYARAScan(YR_RULES* rules,
 QueryData genYara(QueryContext& context) {
   QueryData results;
 
-  // Must specify a path constraint and at least one of sig_group or sigfile.
+  // Must specify a path constraint and at least one of sig_group, sigfile, or
+  // sigrule
   auto groups = context.constraints["sig_group"].getAll(EQUALS);
   auto sigfiles = context.constraints["sigfile"].getAll(EQUALS);
-  if (groups.size() == 0 && sigfiles.size() == 0) {
+  auto sigrules = context.constraints["sigrule"].getAll(EQUALS);
+  if (groups.empty() && sigfiles.empty() && sigrules.empty()) {
     return results;
   }
 
@@ -130,6 +135,13 @@ QueryData genYara(QueryContext& context) {
         return status;
       }));
 
+  std::set<std::pair<YaraScanContextType, std::string>> sign_group;
+
+  // Add sig groups to the sign group set
+  for (const auto& group : groups) {
+    sign_group.insert(std::make_pair(YC_GROUP, group));
+  }
+
   // Compile all sigfiles into a map.
   for (const auto& file : sigfiles) {
     // Check if this "ad-hoc" signature file has not been used/compiled.
@@ -141,7 +153,7 @@ QueryData genYara(QueryContext& context) {
       YR_RULES* tmp_rules = nullptr;
       auto status = compileSingleFile(path, &tmp_rules);
       if (!status.ok()) {
-        VLOG(1) << "YARA compile error: " << status.toString();
+        LOG(WARNING) << "YARA compile error: " << status.toString();
         continue;
       }
       // Cache the compiled rules by setting the unique signature file path
@@ -149,16 +161,33 @@ QueryData genYara(QueryContext& context) {
       // compile step and be added as rule groups.
       rules[file] = tmp_rules;
     }
-    // Assemble an "ad-hoc" group using the signature file path as the name.
-    groups.insert(file);
+    // Add signature file path to the sign group set
+    sign_group.insert(std::make_pair(YC_FILE, file));
+  }
+
+  for (const auto& rule_string : sigrules) {
+    // Check if the yara rule string has not been compiled before
+    if (rules.count(rule_string) == 0) {
+      YR_RULES* tmp_rules = nullptr;
+      // Compile rule string and load it into rule pointer
+      auto status = compileFromString(rule_string, &tmp_rules);
+      if (!status.ok()) {
+        LOG(WARNING) << "YARA rule : " << rule_string << status.toString();
+        continue;
+      }
+
+      rules[rule_string] = tmp_rules;
+    }
+    // Add rule string to sign group set
+    sign_group.insert(std::make_pair(YC_RULE, rule_string));
   }
 
   // Scan every path pair.
   for (const auto& path : paths) {
-    // Scan using the signature groups.
-    for (const auto& group : groups) {
-      if (rules.count(group) > 0) {
-        doYARAScan(rules[group], path.c_str(), results, group, group);
+    for (const auto& sign : sign_group) {
+      if (rules.count(sign.second) > 0) {
+        doYARAScan(
+            rules[sign.second], path.c_str(), results, sign.first, sign.second);
 
         // sleep between each file to help smooth out malloc spikes
         std::this_thread::sleep_for(
