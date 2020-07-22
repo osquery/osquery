@@ -107,13 +107,14 @@ QueryData genGroups(QueryContext& context) {
         // getgrnam. So with a surfeit of caution we populate some of
         // the row here
         Row r;
-        r["groupname"] = TEXT(groupname.first);
         r["is_hidden"] = INTEGER(groupname.second);
 
         struct group* grp = getgrnam(groupname.first.c_str());
         if (grp != nullptr) {
           genGroupRow(r, grp);
-        }
+        } else {
+	  r["groupname"] = TEXT(groupname.first);
+	}
 
         results.push_back(r);
       }
@@ -174,13 +175,14 @@ QueryData genUsers(QueryContext& context) {
         // getpwnam. So with a surfeit of caution we populate some of
         // the row here
         Row r;
-        r["username"] = TEXT(username.first.c_str());
         r["is_hidden"] = INTEGER(username.second);
 
         struct passwd* pwd = getpwnam(username.first.c_str());
         if (pwd != nullptr) {
           genUserRow(r, pwd);
-        }
+        } else {
+	  r["username"] = TEXT(username.first.c_str());
+	}
 
         results.push_back(r);
       }
