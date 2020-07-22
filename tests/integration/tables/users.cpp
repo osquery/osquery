@@ -63,7 +63,8 @@ TEST_F(UsersTest, test_sanity) {
 
   // select with a specified uid
   auto test_uid = rows.front().at("uid").c_str();
-  auto const rows_one = execute_query(std::string("select * from users where uid=") + test_uid);
+  auto const rows_one =
+      execute_query(std::string("select * from users where uid=") + test_uid);
   ASSERT_GE(rows_one.size(), 1ul);
   validate_rows(rows_one, row_map);
 }

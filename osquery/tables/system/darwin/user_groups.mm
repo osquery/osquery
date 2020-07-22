@@ -113,8 +113,8 @@ QueryData genGroups(QueryContext& context) {
         if (grp != nullptr) {
           genGroupRow(r, grp);
         } else {
-	  r["groupname"] = TEXT(groupname.first);
-	}
+          r["groupname"] = TEXT(groupname.first);
+        }
 
         results.push_back(r);
       }
@@ -181,8 +181,8 @@ QueryData genUsers(QueryContext& context) {
         if (pwd != nullptr) {
           genUserRow(r, pwd);
         } else {
-	  r["username"] = TEXT(username.first.c_str());
-	}
+          r["username"] = TEXT(username.first.c_str());
+        }
 
         results.push_back(r);
       }
