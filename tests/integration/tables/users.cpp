@@ -9,7 +9,7 @@
 // Sanity check integration test for users
 // Spec file: specs/users.table
 
-#include <string.h>
+#include <string>
 
 #include <osquery/tests/integration/tables/helper.h>
 
@@ -62,7 +62,7 @@ TEST_F(UsersTest, test_sanity) {
   validate_rows(rows, row_map);
 
   // select with a specified uid
-  auto test_uid = rows.front().at("uid").c_str();
+  auto test_uid = rows.front().at("uid");
   auto const rows_one =
       execute_query(std::string("select * from users where uid=") + test_uid);
   ASSERT_GE(rows_one.size(), 1ul);
