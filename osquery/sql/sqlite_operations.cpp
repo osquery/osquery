@@ -56,6 +56,34 @@ static void executeCarve(sqlite3_context* ctx) {
   sqlite3_result_text(ctx, "Carve Started", 13, SQLITE_TRANSIENT);
 }
 
+static void setFlag(sqlite3_context* ctx, int argc, sqlite3_value** argv) {
+  if (argc == 0) {
+    return;
+  }
+
+  if (SQLITE_NULL == sqlite3_value_type(argv[0])) {
+    sqlite3_result_null(ctx);
+    return;
+  }
+
+  std::string f((const char*)sqlite3_value_text(argv[0]));
+  auto i = f.find('=');
+  if (i != std::string::npos) {
+    std::string name = f.substr(0, i);
+    std::string value = f.substr(i + 1);
+
+    if (name.length() && value.length()) {
+      std::string res =
+          gflags::SetCommandLineOption(name.c_str(), value.c_str());
+
+      if (res.length() && isspace(res[res.length() - 1])) {
+        res.resize(res.length() - 1);
+      }
+      sqlite3_result_text(ctx, res.c_str(), res.length(), SQLITE_TRANSIENT);
+    }
+  }
+}
+
 void registerOperationExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "carve",
@@ -65,5 +93,7 @@ void registerOperationExtensions(sqlite3* db) {
                           nullptr,
                           addCarveFile,
                           executeCarve);
+  sqlite3_create_function(
+      db, "flag", 1, SQLITE_UTF8, nullptr, setFlag, nullptr, nullptr);
 }
 } // namespace osquery
