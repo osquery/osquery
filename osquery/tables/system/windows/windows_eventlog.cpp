@@ -19,6 +19,7 @@
 #include <osquery/tables.h>
 
 #include <osquery/core/windows/wmi.h>
+#include <osquery/events/windows/windowseventlogparser.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
@@ -33,68 +34,42 @@ const std::string kEventLogXmlSuffix = "</Query></QueryList>";
 
 const int kNumEventsBlock = 1024;
 
-/// Helper function to recursively parse a boost property tree
-void parseTree(const pt::ptree& tree, std::map<std::string, std::string>& res) {
-  for (const auto& node : tree) {
-    // Skip this since it's not part of the EventData.
-    if (node.first == "<xmlattr>") {
-      continue;
-    }
+void parseWelXml(QueryContext& context,
+                 std::wstring& xml_event,
+                 QueryData& results) {
+  Row row = {};
+  pt::ptree propTree;
+  WELEvent windows_event;
+  auto status = parseWindowsEventLogXML(propTree, xml_event);
+  status = parseWindowsEventLogPTree(windows_event, propTree);
 
-    auto nodeName = node.second.get("<xmlattr>.Name", "");
-    if (nodeName.empty()) {
-      nodeName = node.first.empty() ? "DataElement" : node.first;
-    }
+  row["time"] = INTEGER(windows_event.osquery_time);
+  row["datetime"] = SQL_TEXT(windows_event.datetime);
+  row["channel"] = SQL_TEXT(windows_event.source);
+  row["provider_name"] = SQL_TEXT(windows_event.provider_name);
+  row["provider_guid"] = SQL_TEXT(windows_event.provider_guid);
+  row["eventid"] = INTEGER(windows_event.event_id);
+  row["task"] = INTEGER(windows_event.task_id);
+  row["level"] = INTEGER(windows_event.level);
+  row["pid"] = INTEGER(windows_event.pid);
+  row["tid"] = INTEGER(windows_event.tid);
 
-    res[nodeName] = res[nodeName].empty()
-                        ? node.second.data()
-                        : res[nodeName] + "," + node.second.data();
+  row["keywords"] = SQL_TEXT(windows_event.keywords);
+  row["data"] = SQL_TEXT(windows_event.data);
 
-    parseTree(node.second, res);
-  }
-}
-
-void parseWelXml(pt::ptree& propTree, Row& r) {
-  r["channel"] = propTree.get("Event.System.Channel", "");
-  r["datetime"] =
-      propTree.get("Event.System.TimeCreated.<xmlattr>.SystemTime", "");
-  r["eventid"] = INTEGER(propTree.get("Event.System.EventID", -1));
-  r["recordid"] = INTEGER(propTree.get("Event.System.RecordID", -1));
-  r["provider_name"] = propTree.get("Event.System.Provider.<xmlattr>.Name", "");
-  r["provider_guid"] = propTree.get("Event.System.Provider.<xmlattr>.Guid", "");
-  r["task"] = INTEGER(propTree.get("Event.System.Task", -1));
-  r["level"] = INTEGER(propTree.get("Event.System.Level", -1));
-  r["keywords"] = propTree.get("Event.System.Keywords", "");
-
-  r["pid"] =
-      INTEGER(propTree.get("Event.System.Execution.<xmlattr>.ProcessID", -1));
-  r["tid"] =
-      INTEGER(propTree.get("Event.System.Execution.<xmlattr>.ThreadID", -1));
-
-  pt::ptree jsonString;
-  std::map<std::string, std::string> results;
-  std::string eventDataType;
-
-  for (const auto& node : propTree.get_child("Event", pt::ptree())) {
-    /// We have already processed the System event data
-    if (node.first == "System" || node.first == "<xmlattr>") {
-      continue;
-    }
-    eventDataType = node.first;
-    parseTree(node.second, results);
-  }
-  for (const auto& val : results) {
-    jsonString.put(eventDataType + "." + val.first, val.second);
+  if (context.hasConstraint("time_range", EQUALS)) {
+    auto time_range = context.constraints["time_range"].getAll(EQUALS);
+    row["time_range"] = SQL_TEXT(*time_range.begin());
+  } else {
+    row["time_range"] = SQL_TEXT("");
   }
 
-  std::stringstream ss_data;
-  boost::property_tree::write_json(ss_data, jsonString, false);
-
-  auto str_data = ss_data.str();
-  if (!str_data.empty() && str_data.at(str_data.size() - 1) == '\n') {
-    str_data.erase(str_data.end() - 1);
+  if (context.hasConstraint("timestamp", EQUALS)) {
+    auto timestamp = context.constraints["timestamp"].getAll(EQUALS);
+    row["timestamp"] = SQL_TEXT(*timestamp.begin());
   }
-  r["data"] = str_data;
+
+  results.push_back(row);
 }
 
 void parseQueryResults(QueryContext& context,
@@ -138,26 +113,9 @@ void parseQueryResults(QueryContext& context,
         continue;
       }
 
-      Row r;
-      pt::ptree propTree;
-      std::stringstream ss;
-      ss << wstringToString(renderedContent.data());
-      pt::read_xml(ss, propTree);
-      parseWelXml(propTree, r);
-
-      // Update the hidden time_range and timestamps column to avoid
-      // discarding the table silently.
-      auto time_range = context.constraints["time_range"].getAll(EQUALS);
-      for (const auto& filter : time_range) {
-        r["time_range"] = filter;
-      }
-
-      auto timestamp = context.constraints["timestamp"].getAll(EQUALS);
-      for (const auto& ts : timestamp) {
-        r["timestamp"] = ts;
-      }
-
-      results.push_back(r);
+      std::wstringstream xml_event;
+      xml_event << renderedContent.data();
+      parseWelXml(context, xml_event.str(), results);
       EvtClose(events[i]);
     }
 
@@ -171,19 +129,19 @@ void genXfilterFromConstraints(QueryContext& context, std::string& xfilter) {
 
   auto eids = context.constraints["eventid"].getAll(EQUALS);
   if (!eids.empty()) {
-    xfilterList.emplace_back("(EventID=" + osquery::join(eids, " or EventID=") +
-                             ")");
+    xfilterList.emplace_back(
+        "(EventID=" + osquery::join(eids, ") or (EventID=") + ")");
   }
 
   auto tasks = context.constraints["task"].getAll(EQUALS);
   if (!tasks.empty()) {
-    xfilterList.emplace_back("(Task=" + osquery::join(tasks, " or Task=") +
+    xfilterList.emplace_back("(Task=" + osquery::join(tasks, ") or (Task=") +
                              ")");
   }
 
   auto levels = context.constraints["level"].getAll(EQUALS);
   if (!levels.empty()) {
-    xfilterList.emplace_back("(Level=" + osquery::join(levels, " or Level=") +
+    xfilterList.emplace_back("(Level=" + osquery::join(levels, ") or (Level=") +
                              ")");
   }
 
@@ -197,28 +155,22 @@ void genXfilterFromConstraints(QueryContext& context, std::string& xfilter) {
   auto times = context.constraints["time_range"].getAll(EQUALS);
   auto timestamps = context.constraints["timestamp"].getAll(EQUALS);
   if (!times.empty()) {
-    for (const auto& t : times) {
-      auto time_vec = osquery::split(t, ";");
-      if (time_vec.empty()) {
-        continue;
-      }
+    auto datetime = *times.begin();
+    auto time_vec = osquery::split(datetime, ";");
 
-      if (time_vec.size() == 1) {
-        auto _start = time_vec.front();
-        xfilterList.emplace_back("TimeCreated[@SystemTime&gt;='" + _start +
-                                 "']");
-      } else {
-        auto _start = time_vec.front();
-        auto _end = time_vec.at(1);
-        xfilterList.emplace_back("TimeCreated[@SystemTime&gt;='" + _start +
-                                 "' and @SystemTime&lt;='" + _end + "']");
-      }
+    if (time_vec.size() == 1) {
+      auto _start = time_vec.front();
+      xfilterList.emplace_back("TimeCreated[@SystemTime&gt;='" + _start + "']");
+    } else if (time_vec.size() == 2) {
+      auto _start = time_vec.front();
+      auto _end = time_vec.at(1);
+      xfilterList.emplace_back("TimeCreated[@SystemTime&gt;='" + _start +
+                               "' and @SystemTime&lt;='" + _end + "']");
     }
   } else if (!timestamps.empty()) {
-    for (const auto& time_diff : timestamps) {
-      xfilterList.emplace_back(
-          "TimeCreated[timediff(@SystemTime) &lt;= " + time_diff + "]");
-    }
+    auto time_diff = *timestamps.begin();
+    xfilterList.emplace_back(
+        "TimeCreated[timediff(@SystemTime) &lt;= " + time_diff + "]");
   }
 
   xfilter = xfilterList.empty()

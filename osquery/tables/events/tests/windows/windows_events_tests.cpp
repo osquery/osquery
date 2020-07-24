@@ -172,6 +172,12 @@ TEST_F(WindowsEventsTests, row_generation) {
     // level
     3,
 
+    // pid
+    -1,
+
+    // tid
+    -1,
+
     // keywords
     "4",
 

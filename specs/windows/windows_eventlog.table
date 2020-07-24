@@ -1,4 +1,4 @@
-table_name("windows_events_vtable")
+table_name("windows_eventlog")
 description("Table for querying all recorded Windows event logs.")
 schema([
     Column("channel", TEXT, "Source or channel of the event", required=True),
@@ -8,7 +8,6 @@ schema([
     Column("provider_name", TEXT, "Provider name of the event"),
     Column("provider_guid", TEXT, "Provider guid of the event"),
     Column("eventid", INTEGER, "Event ID of the event", additional=True),
-    Column("recordid", INTEGER, "Record ID of the event"),
     Column("keywords", TEXT, "A bitmask of the keywords defined in the event"),
     Column("data", TEXT, "Data associated with the event"),
     Column("pid", INTEGER, "Process ID which emitted the event record", additional=True),
@@ -17,7 +16,7 @@ schema([
     Column("timestamp", TEXT, "Timestamp to selectively filter the events", hidden=True, additional=True),
 ])
 
-implementation("system/windows_events_vtable@genWindowsEventLog")
+implementation("system/windows_eventlogs@genWindowsEventLog")
 examples([
-  "select * from windows_events_vtable where eventid=4625 and channel='Security'",
+  "select * from windows_eventlog where eventid=4625 and channel='Security'",
 ])

@@ -96,6 +96,13 @@ Status parseWindowsEventLogPTree(
         "valid");
   }
 
+  // Some events may not have associated ProcessID and ThreadID; fallback value
+  // is set to -1
+  output.pid =
+      event_object.get("Event.System.Execution.<xmlattr>.ProcessID", -1);
+  output.tid =
+      event_object.get("Event.System.Execution.<xmlattr>.ThreadID", -1);
+
   // These values will easily go above what an std::int64_t can represent, and
   // sqlite does not have an unsigned version for sqlite3_result_int64
   output.keywords = event_object.get("Event.System.Keywords", "");

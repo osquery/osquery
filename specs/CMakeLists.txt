@@ -272,7 +272,7 @@ function(generateNativeTables)
     "windows/wmi_filter_consumer_binding.table:windows"
     "windows/wmi_event_filters.table:windows"
     "windows/windows_events.table:windows"
-    "windows/windows_events_vtable.table:windows"
+    "windows/windows_eventlog.table:windows"
     "windows/appcompat_shims.table:windows"
     "windows/ntfs_journal_events.table:windows"
     "windows/powershell_events.table:windows"

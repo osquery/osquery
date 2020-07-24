@@ -14,23 +14,22 @@
 namespace osquery {
 namespace table_tests {
 
-class windowsEventsVtable : public testing::Test {
+class windowsEventLog : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(windowsEventsVtable, test_sanity) {
+TEST_F(windowsEventLog, test_sanity) {
   // Query event data for Application channel
   auto const data = execute_query(
-      "select * from windows_events_vtable where channel = 'Application'");
+      "select * from windows_eventlog where channel = 'Application'");
   ASSERT_GE(data.size(), 0ul);
   ValidationMap row_map = {
       {"channel", NonEmptyString},
       {"datetime", NonEmptyString},
       {"eventid", IntType},
-      {"recordid", IntType},
       {"pid", IntType},
       {"tid", IntType},
       {"provider_name", NormalType},
