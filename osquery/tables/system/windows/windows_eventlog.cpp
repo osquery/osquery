@@ -70,6 +70,11 @@ void parseWelXml(QueryContext& context,
     row["timestamp"] = SQL_TEXT(*timestamp.begin());
   }
 
+  if (context.hasConstraint("xpath", EQUALS)) {
+    auto xpaths = context.constraints["xpath"].getAll(EQUALS);
+    row["xpath"] = SQL_TEXT(*xpaths.begin());
+  }
+
   yield(std::move(row));
 }
 
@@ -82,33 +87,34 @@ void parseQueryResults(QueryContext& context,
   // Retrieve the events one block at a time
   auto ret = EvtNext(
       queryResults, kNumEventsBlock, events.data(), INFINITE, 0, &numEvents);
-
   while (ret != FALSE) {
     for (unsigned long i = 0; i < numEvents; i++) {
-      std::vector<wchar_t> renderedContent;
       unsigned long renderedBuffSize = 0;
       unsigned long renderedBuffUsed = 0;
       unsigned long propCount = 0;
-      EvtRender(nullptr,
-                events[i],
-                EvtRenderEventXml,
-                renderedBuffSize,
-                renderedContent.data(),
-                &renderedBuffUsed,
-                &propCount);
-
-      if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-        renderedBuffSize = renderedBuffUsed;
-        renderedContent.resize(renderedBuffSize);
-        EvtRender(nullptr,
-                  events[i],
-                  EvtRenderEventXml,
-                  renderedBuffSize,
-                  renderedContent.data(),
-                  &renderedBuffUsed,
-                  &propCount);
+      if (!EvtRender(nullptr,
+                     events[i],
+                     EvtRenderEventXml,
+                     renderedBuffSize,
+                     nullptr,
+                     &renderedBuffUsed,
+                     &propCount)) {
+        if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+          LOG(WARNING) << "Failed to allocated memory to render event "
+                       << GetLastError();
+          continue;
+        }
       }
-      if (GetLastError() != ERROR_SUCCESS) {
+
+      std::vector<wchar_t> renderedContent(renderedBuffUsed);
+      renderedBuffSize = renderedBuffUsed;
+      if (!EvtRender(nullptr,
+                     events[i],
+                     EvtRenderEventXml,
+                     renderedBuffSize,
+                     renderedContent.data(),
+                     &renderedBuffUsed,
+                     &propCount)) {
         LOG(WARNING) << "Failed to render windows event with "
                      << GetLastError();
         continue;
@@ -122,6 +128,11 @@ void parseQueryResults(QueryContext& context,
 
     ret = EvtNext(
         queryResults, kNumEventsBlock, events.data(), INFINITE, 0, &numEvents);
+  }
+  if (ERROR_NO_MORE_ITEMS != GetLastError()) {
+    // No need to close the handler after error; The query
+    // EvtClose will also close all the event handler
+    VLOG(1) << "EvtNext failed with error " << GetLastError();
   }
 }
 
@@ -168,25 +179,46 @@ void genXfilterFromConstraints(QueryContext& context, std::string& xfilter) {
 }
 
 void genWindowsEventLog(RowYield& yield, QueryContext& context) {
-  if (!context.hasConstraint("channel", EQUALS)) {
-    LOG(WARNING) << "must specify the event log channel to search";
+  std::set<std::pair<std::string, std::string>> xpath_set;
+
+  // Check if the `xpath` constraint is available. The `xpath` has
+  // priority over `channel` and it will lookup and filter the events
+  // based on `xpath` if passed.
+  if (context.hasConstraint("xpath", EQUALS)) {
+    auto xpaths = context.constraints["xpath"].getAll(EQUALS);
+    auto xpath = *xpaths.begin();
+    pt::ptree propTree;
+    std::stringstream ss;
+    ss << xpath;
+    pt::read_xml(ss, propTree);
+    auto channel = propTree.get("QueryList.Query.Select.<xmlattr>.Path", "");
+    if (!channel.empty()) {
+      xpath_set.insert(std::make_pair(channel, xpath));
+    } else {
+      LOG(WARNING) << "Invalid xpath format - " << xpath;
+    }
+  } else if (context.hasConstraint("channel", EQUALS)) {
+    auto channels = context.constraints["channel"].getAll(EQUALS);
+    std::string xfilter("");
+    genXfilterFromConstraints(context, xfilter);
+    std::string welSearchQuery = kEventLogXmlPrefix;
+
+    for (const auto& channel : channels) {
+      welSearchQuery += "<Select Path=\"" + channel + "\">";
+      welSearchQuery += xfilter;
+      welSearchQuery += "</Select>" + kEventLogXmlSuffix;
+      xpath_set.insert(std::make_pair(channel, welSearchQuery));
+    }
+  } else {
+    LOG(WARNING) << "must specify the event log channel or xpath for lookup!";
     return;
   }
 
-  std::string xfilter("");
-  genXfilterFromConstraints(context, xfilter);
-
-  std::string welSearchQuery = kEventLogXmlPrefix;
-  auto channels = context.constraints["channel"].getAll(EQUALS);
-
-  for (const auto& channel : channels) {
-    welSearchQuery += "<Select Path=\"" + channel + "\">";
-    welSearchQuery += xfilter;
-    welSearchQuery += "</Select>" + kEventLogXmlSuffix;
+  for (const auto& path : xpath_set) {
     auto queryResults =
         EvtQuery(nullptr,
-                 stringToWstring(channel).c_str(),
-                 stringToWstring(welSearchQuery).c_str(),
+                 stringToWstring(path.first).c_str(),
+                 stringToWstring(path.second).c_str(),
                  EvtQueryChannelPath | EvtQueryReverseDirection);
 
     if (queryResults == nullptr) {
