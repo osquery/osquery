@@ -7,9 +7,7 @@
 function(osqueryTablesYaraTestsMain)
 
   # We deviate from what there's in the BUCK file because compiling empty sources doesn't work
-  if(DEFINED PLATFORM_POSIX)
-    generateOsqueryTablesYaraTestsTest()
-  endif()
+  generateOsqueryTablesYaraTestsTest()
 endfunction()
 
 function(generateOsqueryTablesYaraTestsTest)

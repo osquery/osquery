@@ -48,7 +48,6 @@ function(yaraMain)
     "${library_root}/modules/elf/elf.c"
     "${library_root}/modules/hash/hash.c"
     "${library_root}/modules/macho/macho.c"
-    "${library_root}/modules/magic/magic.c"
     "${library_root}/modules/math/math.c"
     "${library_root}/modules/module_list"
     "${library_root}/modules/pe/pe.c"
@@ -58,11 +57,19 @@ function(yaraMain)
   )
 
   if(DEFINED PLATFORM_WINDOWS)
-    target_sources(thirdparty_yara PRIVATE "${library_root}/proc/windows.c")
+    target_sources(thirdparty_yara PRIVATE
+      "${library_root}/proc/windows.c"
+    )
   elseif(DEFINED PLATFORM_LINUX)
-    target_sources(thirdparty_yara PRIVATE "${library_root}/proc/linux.c")
+    target_sources(thirdparty_yara PRIVATE
+      "${library_root}/proc/linux.c"
+      "${library_root}/modules/magic/magic.c"
+    )
   elseif(DEFINED PLATFORM_MACOS)
-    target_sources(thirdparty_yara PRIVATE "${library_root}/proc/mach.c")
+    target_sources(thirdparty_yara PRIVATE
+      "${library_root}/proc/mach.c"
+      "${library_root}/modules/magic/magic.c"
+    )
   else()
     message(FATAL_ERROR "Unsupported platform")
   endif()
@@ -90,8 +97,6 @@ function(yaraMain)
     HAVE_DLFCN_H=1
     LT_OBJDIR=\".libs/\"
     HAVE_LIBM=1
-    HAVE_MEMMEM=1
-    HAVE_TIMEGM=1
     HAVE_STDBOOL_H=1
     HAVE_CLOCK_GETTIME=1
     HAVE_SCAN_PROC_IMPL=1
@@ -109,17 +114,36 @@ function(yaraMain)
   if(DEFINED PLATFORM_LINUX)
     target_compile_definitions(thirdparty_yara PRIVATE
       USE_LINUX_PROC
+      HAVE_MEMMEM=1
+      HAVE_TIMEGM=1
+    )
+
+    target_link_libraries(thirdparty_yara PUBLIC
+      thirdparty_openssl
+      thirdparty_libmagic
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_compile_definitions(thirdparty_yara PRIVATE
       USE_MACH_PROC
+      HAVE_MEMMEM=1
+      HAVE_TIMEGM=1
+    )
+
+    target_link_libraries(thirdparty_yara PUBLIC
+      thirdparty_openssl
+      thirdparty_libmagic
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    target_compile_definitions(thirdparty_yara PRIVATE
+      USE_WINDOWS_PROC
+      HAVE_MEMMEM=0
+      HAVE_TIMEGM=0
+    )
+
+    target_link_libraries(thirdparty_yara PUBLIC
+      thirdparty_openssl
     )
   endif()
-
-  target_link_libraries(thirdparty_yara PUBLIC
-    thirdparty_openssl
-    thirdparty_libmagic
-  )
 
   target_link_libraries(thirdparty_yara PRIVATE
     thirdparty_c_settings

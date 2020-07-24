@@ -118,7 +118,7 @@ function(importLibraries)
     "Linux,Darwin:ssdeep-cpp"
     "Linux,Darwin,Windows:thrift"
     "Linux:util-linux"
-    "Linux,Darwin:yara"
+    "Linux,Darwin,Windows:yara"
     "Linux,Darwin,Windows:zlib"
     "Linux,Darwin,Windows:zstd"
     "Linux,Darwin,Windows:openssl"

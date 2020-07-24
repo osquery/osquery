@@ -291,7 +291,7 @@ function(generateNativeTables)
     "windows/hvci_status.table:windows"
     "windows/shimcache.table:windows"
     "yara/yara_events.table:linux,macos"
-    "yara/yara.table:linux,macos,freebsd"
+    "yara/yara.table:linux,macos,freebsd,windows"
   )
 
   foreach(spec_descriptor ${platform_dependent_spec_files})
