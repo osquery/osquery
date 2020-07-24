@@ -55,8 +55,8 @@ QueryData genEc2InstanceTags(QueryContext& context) {
   for (const auto& it : response.GetTags()) {
     Row r;
     r["instance_id"] = instance_id;
-    r["key"] = TEXT(it.GetKey());
-    r["value"] = TEXT(it.GetValue());
+    r["key"] = SQL_TEXT(it.GetKey());
+    r["value"] = SQL_TEXT(it.GetValue());
     results.push_back(r);
   }
 

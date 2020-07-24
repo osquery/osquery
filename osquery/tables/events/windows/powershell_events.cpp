@@ -108,15 +108,15 @@ Status PowershellEventSubscriber::generateRow(
   }
 
   row["time"] = INTEGER(first_script_message.osquery_time);
-  row["datetime"] = TEXT(first_script_message.event_time);
-  row["script_block_id"] = TEXT(first_script_message.script_block_id);
+  row["datetime"] = SQL_TEXT(first_script_message.event_time);
+  row["script_block_id"] = SQL_TEXT(first_script_message.script_block_id);
 
   row["script_block_count"] =
       INTEGER(first_script_message.expected_message_count);
 
-  row["script_text"] = TEXT(std::move(full_script));
-  row["script_name"] = TEXT(first_script_message.script_name);
-  row["script_path"] = TEXT(first_script_message.script_path);
+  row["script_text"] = SQL_TEXT(std::move(full_script));
+  row["script_name"] = SQL_TEXT(first_script_message.script_name);
+  row["script_path"] = SQL_TEXT(first_script_message.script_path);
   row["cosine_similarity"] = DOUBLE(cosine_similarity);
 
   return Status::success();

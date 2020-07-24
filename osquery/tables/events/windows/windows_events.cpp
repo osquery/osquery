@@ -247,14 +247,14 @@ void WindowsEventSubscriber::generateRow(Row& row, const Event& windows_event) {
   row = {};
 
   row["time"] = INTEGER(windows_event.osquery_time);
-  row["datetime"] = TEXT(windows_event.datetime);
-  row["source"] = TEXT(windows_event.source);
-  row["provider_name"] = TEXT(windows_event.provider_name);
-  row["provider_guid"] = TEXT(windows_event.provider_guid);
+  row["datetime"] = SQL_TEXT(windows_event.datetime);
+  row["source"] = SQL_TEXT(windows_event.source);
+  row["provider_name"] = SQL_TEXT(windows_event.provider_name);
+  row["provider_guid"] = SQL_TEXT(windows_event.provider_guid);
   row["eventid"] = INTEGER(windows_event.event_id);
   row["task"] = INTEGER(windows_event.task_id);
   row["level"] = INTEGER(windows_event.level);
-  row["keywords"] = TEXT(windows_event.keywords);
-  row["data"] = TEXT(windows_event.data);
+  row["keywords"] = SQL_TEXT(windows_event.keywords);
+  row["data"] = SQL_TEXT(windows_event.data);
 }
 } // namespace osquery

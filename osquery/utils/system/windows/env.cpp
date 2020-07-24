@@ -75,8 +75,8 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
 }
 
 boost::optional<std::string> expandEnvString(const std::string& input) {
-  std::vector<char> buf;
-  buf.assign(kInitialBufferSize, '\0');
+  std::vector<WCHAR> buf;
+  buf.assign(kInitialBufferSize, L'\0');
 
   if (input.size() > kEnvironmentExpansionMax) {
     VLOG(1) << "Not expanding environment string larger than "
@@ -84,8 +84,10 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
     return boost::none;
   }
 
-  auto len =
-      ::ExpandEnvironmentStrings(input.c_str(), buf.data(), kInitialBufferSize);
+  std::wstring const winput = stringToWstring(input);
+
+  auto len = ::ExpandEnvironmentStrings(
+      winput.c_str(), buf.data(), kInitialBufferSize);
   if (len == 0) {
     std::wstring description;
     if (!getWindowsErrorDescription(description, ::GetLastError())) {
@@ -99,7 +101,7 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
 
   if (len > kInitialBufferSize) {
     buf.assign(len, '\0');
-    len = ::ExpandEnvironmentStrings(input.c_str(), buf.data(), len);
+    len = ::ExpandEnvironmentStrings(winput.c_str(), buf.data(), len);
   }
 
   if (len == 0) {
@@ -115,7 +117,7 @@ boost::optional<std::string> expandEnvString(const std::string& input) {
 
   // Unlike GetEnvironmentVariableA, the length returned by
   // ExpandEnvironmentStrings does include the terminating null.
-  return std::string(buf.data(), len - 1);
+  return wstringToString(std::wstring(buf.data(), len - 1));
 }
 
 boost::optional<std::vector<std::string>> splitArgs(const std::string& args) {

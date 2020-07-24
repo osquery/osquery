@@ -126,7 +126,7 @@ void genFileInfo(const fs::path& path,
   r["inode"] = BIGINT(file_stat.inode);
   r["uid"] = BIGINT(file_stat.uid);
   r["gid"] = BIGINT(file_stat.gid);
-  r["mode"] = TEXT(file_stat.mode);
+  r["mode"] = SQL_TEXT(file_stat.mode);
   r["device"] = BIGINT(file_stat.device);
   r["size"] = BIGINT(file_stat.size);
   r["block_size"] = INTEGER(file_stat.block_size);
@@ -135,11 +135,11 @@ void genFileInfo(const fs::path& path,
   r["mtime"] = BIGINT(file_stat.mtime);
   r["ctime"] = BIGINT(file_stat.ctime);
   r["btime"] = BIGINT(file_stat.btime);
-  r["type"] = TEXT(file_stat.type);
-  r["attributes"] = TEXT(file_stat.attributes);
-  r["file_id"] = TEXT(file_stat.file_id);
-  r["volume_serial"] = TEXT(file_stat.volume_serial);
-  r["product_version"] = TEXT(file_stat.product_version);
+  r["type"] = SQL_TEXT(file_stat.type);
+  r["attributes"] = SQL_TEXT(file_stat.attributes);
+  r["file_id"] = SQL_TEXT(file_stat.file_id);
+  r["volume_serial"] = SQL_TEXT(file_stat.volume_serial);
+  r["product_version"] = SQL_TEXT(file_stat.product_version);
 
 #endif
 
@@ -219,5 +219,5 @@ QueryData genFile(QueryContext& context) {
     return genFileImpl(context, logger);
   }
 }
-}
+} // namespace tables
 } // namespace osquery

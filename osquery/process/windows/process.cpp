@@ -158,13 +158,13 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
     const std::string& exec_path, int argc, char** argv) {
-  ::STARTUPINFOA si = {0};
+  ::STARTUPINFO si = {0};
   ::PROCESS_INFORMATION pi = {nullptr};
 
   si.cb = sizeof(si);
 
-  std::stringstream argv_stream;
-  std::stringstream handle_stream;
+  std::wstringstream argv_stream;
+  std::wstringstream handle_stream;
 
   // The HANDLE exposed to the child process is currently limited to only having
   // SYNCHRONIZE and PROCESS_QUERY_LIMITED_INFORMATION capabilities. The
@@ -197,25 +197,25 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   // instead, we off-load the contents of argv into a vector which will have its
   // backing memory as modifiable.
   for (size_t i = 0; i < argc; i++) {
-    std::string component(argv[i]);
+    std::wstring component(stringToWstring(argv[i]));
     if (component.find(' ') != std::string::npos) {
-      boost::replace_all(component, "\"", "\\\"");
-      argv_stream << "\"" << component << "\" ";
+      boost::replace_all(component, L"\"", L"\\\"");
+      argv_stream << L"\"" << component << L"\" ";
     } else {
-      argv_stream << component << " ";
+      argv_stream << component << L" ";
     }
   }
 
   auto cmdline = argv_stream.str();
-  std::vector<char> mutable_argv(cmdline.begin(), cmdline.end());
-  mutable_argv.push_back('\0');
+  std::vector<WCHAR> mutable_argv(cmdline.begin(), cmdline.end());
+  mutable_argv.push_back(L'\0');
 
-  LPCH retrievedEnvironment = GetEnvironmentStringsA();
-  LPTSTR currentEnvironment = (LPTSTR)retrievedEnvironment;
-  std::stringstream childEnvironment;
+  LPWCH retrievedEnvironment = GetEnvironmentStrings();
+  LPCWSTR currentEnvironment = retrievedEnvironment;
+  std::wstringstream childEnvironment;
   while (*currentEnvironment) {
     childEnvironment << currentEnvironment;
-    childEnvironment << '\0';
+    childEnvironment << L'\0';
     currentEnvironment += lstrlen(currentEnvironment) + 1;
   }
 
@@ -230,21 +230,22 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   // OSQUERY_LAUNCHER. OSQUERY_LAUNCHER stores the string form of a HANDLE to
   // the current process. This is mostly used for detecting the death of the
   // launcher process in WatcherWatcherRunner::start
-  childEnvironment << "OSQUERY_WORKER=1" << '\0';
-  childEnvironment << "OSQUERY_LAUNCHER=" << handle << '\0' << '\0';
+  childEnvironment << L"OSQUERY_WORKER=1" << L'\0';
+  childEnvironment << L"OSQUERY_LAUNCHER=" << handle << L'\0' << L'\0';
 
-  std::string environmentString = childEnvironment.str();
+  std::wstring environmentString = childEnvironment.str();
 
-  auto status = ::CreateProcessA(exec_path.c_str(),
-                                 mutable_argv.data(),
-                                 nullptr,
-                                 nullptr,
-                                 TRUE,
-                                 IDLE_PRIORITY_CLASS,
-                                 &environmentString[0],
-                                 nullptr,
-                                 &si,
-                                 &pi);
+  auto status =
+      ::CreateProcess(nullptr,
+                      mutable_argv.data(),
+                      nullptr,
+                      nullptr,
+                      TRUE,
+                      CREATE_UNICODE_ENVIRONMENT | IDLE_PRIORITY_CLASS,
+                      &environmentString[0],
+                      nullptr,
+                      &si,
+                      &pi);
   ::CloseHandle(hLauncherProcess);
 
   if (!status) {
@@ -264,29 +265,32 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     const std::string& extensions_timeout,
     const std::string& extensions_interval,
     bool verbose) {
-  ::STARTUPINFOA si = {0};
+  ::STARTUPINFO si = {0};
   ::PROCESS_INFORMATION pi = {nullptr};
 
   si.cb = sizeof(si);
 
+  std::wstring const wexec_path = stringToWstring(exec_path);
+
   // To prevent errant double quotes from altering the intended arguments for
   // argv, we strip them out completely.
-  std::stringstream argv_stream;
-  argv_stream << "\"" << boost::replace_all_copy(exec_path, "\"", "") << "\" ";
+  std::wstringstream argv_stream;
+  argv_stream << L"\"" << boost::replace_all_copy(wexec_path, L"\"", L"")
+              << L"\" ";
   if (verbose) {
-    argv_stream << "--verbose ";
+    argv_stream << L"--verbose ";
   }
-  argv_stream << "--socket \"" << extensions_socket << "\" ";
-  argv_stream << "--timeout " << extensions_timeout << " ";
-  argv_stream << "--interval " << extensions_interval << " ";
+  argv_stream << L"--socket \"" << stringToWstring(extensions_socket) << L"\" ";
+  argv_stream << L"--timeout " << stringToWstring(extensions_timeout) << L" ";
+  argv_stream << L"--interval " << stringToWstring(extensions_interval) << L" ";
 
   // We don't directly use argv.c_str() as the value for lpCommandLine in
   // CreateProcess since that argument requires a modifiable buffer. So,
   // instead, we off-load the contents of argv into a vector which will have its
   // backing memory as modifiable.
   auto argv = argv_stream.str();
-  std::vector<char> mutable_argv(argv.begin(), argv.end());
-  mutable_argv.push_back('\0');
+  std::vector<WCHAR> mutable_argv(argv.begin(), argv.end());
+  mutable_argv.push_back(L'\0');
 
   // In POSIX, this environment variable is set to the child's process ID. But
   // that is not easily accomplishable on Windows and provides no value since
@@ -295,23 +299,24 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     return std::shared_ptr<PlatformProcess>();
   }
 
-  auto ext_path = fs::path(exec_path);
+  auto ext_path = fs::path(wexec_path);
 
   // We are autoloading a Python extension, so pass off to our helper
-  if (ext_path.extension().string() == ".ext") {
-    return launchTestPythonScript(
-        std::string(mutable_argv.begin(), mutable_argv.end()));
+  if (ext_path.extension().wstring() == L".ext") {
+    return launchTestPythonScript(wstringToString(
+        std::wstring(mutable_argv.begin(), mutable_argv.end())));
   } else {
-    auto status = ::CreateProcessA(exec_path.c_str(),
-                                   mutable_argv.data(),
-                                   nullptr,
-                                   nullptr,
-                                   TRUE,
-                                   IDLE_PRIORITY_CLASS,
-                                   nullptr,
-                                   nullptr,
-                                   &si,
-                                   &pi);
+    auto status =
+        ::CreateProcess(nullptr,
+                        mutable_argv.data(),
+                        nullptr,
+                        nullptr,
+                        TRUE,
+                        CREATE_UNICODE_ENVIRONMENT | IDLE_PRIORITY_CLASS,
+                        nullptr,
+                        nullptr,
+                        &si,
+                        &pi);
     unsetEnvVar("OSQUERY_EXTENSION");
 
     if (!status) {
@@ -331,9 +336,9 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
   STARTUPINFOW si = {0};
   PROCESS_INFORMATION pi = {nullptr};
 
-  auto argv = "python " + args;
+  auto argv = L"python " + stringToWstring(args);
   std::vector<WCHAR> mutable_argv(argv.begin(), argv.end());
-  mutable_argv.push_back('\0');
+  mutable_argv.push_back(L'\0');
   si.cb = sizeof(si);
 
   const auto pythonEnv = getEnvVar("OSQUERY_PYTHON_INTERPRETER_PATH");

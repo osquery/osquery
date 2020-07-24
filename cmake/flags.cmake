@@ -267,6 +267,8 @@ function(setupBuildFlags)
       OSQUERY_BUILD_PLATFORM=windows
       OSQUERY_BUILD_DISTRO=10
       BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE=1
+      UNICODE
+      _UNICODE
     )
 
     set(windows_common_defines

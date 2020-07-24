@@ -50,7 +50,7 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
   // machines (like the CI server).
   CLSID* productListClassPtr = nullptr;
   static HINSTANCE wscLib =
-      LoadLibraryEx(TEXT("wscapi.dll"), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+      LoadLibraryExW(L"wscapi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
   if (wscLib != nullptr) {
     productListClassPtr = (CLSID *)GetProcAddress(wscLib, "CLSID_WSCProductList");
   }

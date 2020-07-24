@@ -134,7 +134,7 @@ QueryData genDnsCache(QueryContext& context) {
 
   PDNSCACHEENTRY pEntry = (PDNSCACHEENTRY)malloc(sizeof(DNSCACHEENTRY));
   HINSTANCE hLib =
-      LoadLibraryEx(TEXT("DNSAPI.dll"), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+      LoadLibraryExW(L"DNSAPI.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
   DNS_GET_CACHE_DATA_TABLE DnsGetCacheDataTable =
       (DNS_GET_CACHE_DATA_TABLE)GetProcAddress(hLib, "DnsGetCacheDataTable");
 

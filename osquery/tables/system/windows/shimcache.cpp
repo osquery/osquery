@@ -145,7 +145,7 @@ void parseEntry(const Row& aKey, size_t& index, QueryData& results) {
   auto createRow = [&results, &index](const ShimcacheData& shimcache) {
     Row r;
     r["entry"] = INTEGER(index);
-    r["path"] = TEXT(shimcache.path);
+    r["path"] = SQL_TEXT(shimcache.path);
     r["modified_time"] = INTEGER(shimcache.last_modified);
     if (shimcache.execution_flag.is_initialized()) {
       if (shimcache.execution_flag.get()) {
