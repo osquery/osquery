@@ -272,7 +272,7 @@ static void fillRow(Row& r, X509* cert, int dump_certificate) {
     r["sha1_fingerprint"] = ss.str();
   }
 
-  r["certificate_version"] = INTEGER(certversion(cert));
+  r["version"] = INTEGER(certversion(cert));
   r["signature_algorithm"] = signature_algorithm(cert);
   r["signature"] = signature(cert);
 
@@ -285,8 +285,7 @@ static void fillRow(Row& r, X509* cert, int dump_certificate) {
 
   r["key_usage"] = certificate_extensions(cert, NID_key_usage);
   r["extended_key_usage"] = certificate_extensions(cert, NID_ext_key_usage);
-  r["certificate_policies"] =
-      certificate_extensions(cert, NID_certificate_policies);
+  r["policies"] = certificate_extensions(cert, NID_certificate_policies);
 
   r["subject_alternative_names"] =
       certificate_extensions(cert, NID_subject_alt_name);
@@ -297,7 +296,7 @@ static void fillRow(Row& r, X509* cert, int dump_certificate) {
   r["subject_info_access"] = certificate_extensions(cert, NID_sinfo_access);
   r["policy_mappings"] = certificate_extensions(cert, NID_policy_mappings);
 
-  r["has_expired"] = INTEGER(has_cert_expired(cert));
+  r["has_expired"] = has_cert_expired(cert) ? "1" : "0";
 
   r["basic_constraint"] = certificate_extensions(cert, NID_basic_constraints);
   r["name_constraints"] = certificate_extensions(cert, NID_name_constraints);
@@ -309,7 +308,7 @@ static void fillRow(Row& r, X509* cert, int dump_certificate) {
 
   // check the dump_certificate flag and dump the certificate in PEM format
   if (dump_certificate) {
-    r["certificate_pem"] = pem(cert);
+    r["pem"] = pem(cert);
   }
 }
 

@@ -34,24 +34,24 @@ TEST_F(curlCertificate, test_sanity) {
                            {"valid_to", NormalType},
                            {"sha256_fingerprint", NormalType},
                            {"sha1_fingerprint", NormalType},
-                           {"certificate_version", IntType},
+                           {"version", IntType},
                            {"signature_algorithm", NormalType},
                            {"signature", NormalType},
                            {"subject_key_identifier", NormalType},
                            {"authority_key_identifier", NormalType},
                            {"key_usage", NormalType},
                            {"extended_key_usage", NormalType},
-                           {"certificate_policies", NormalType},
+                           {"policies", NormalType},
                            {"subject_alternative_names", NormalType},
                            {"issuer_alternative_names", NormalType},
                            {"info_access", NormalType},
                            {"subject_info_access", NormalType},
                            {"policy_mappings", NormalType},
-                           {"certificate_has_expired", IntType},
+                           {"has_expired", IntType},
                            {"basic_constraint", NormalType},
                            {"name_constraints", NormalType},
                            {"policy_constraints", NormalType},
-                           {"certificate_pem", NormalType}};
+                           {"pem", NormalType}};
   validate_rows(data, row_map);
 }
 
