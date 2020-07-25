@@ -162,9 +162,11 @@ Status Query::addNewResults(QueryDataTyped current_qd,
     if (!status.ok()) {
       return status;
     }
+  }
 
+  if (update_db || fresh_results || new_query) {
     counter = getQueryCounter(fresh_results || new_query);
-    status =
+    auto status =
         setDatabaseValue(kQueries, name_ + "counter", std::to_string(counter));
     if (!status.ok()) {
       return status;
