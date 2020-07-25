@@ -1836,7 +1836,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   (!ret) ? wfile_stat->ctime = -1
          : wfile_stat->ctime = longIntToUnixtime(basic_info.ChangeTime);
 
-  windowsGetFileVersion(wstringToString(path.wstring()),
+  windowsGetVersionInfo(wstringToString(path.wstring()),
                         wfile_stat->product_version,
                         wfile_stat->file_version);
 
