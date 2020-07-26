@@ -118,7 +118,9 @@ Status windowsShortPathToLongPath(const std::string& shortPath,
   return Status::success();
 }
 
-Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
+Status windowsGetVersionInfo(const std::string& path,
+                             std::string& product_version,
+                             std::string& file_version) {
   DWORD handle = 0;
   std::wstring wpath = stringToWstring(path).c_str();
   auto verSize = GetFileVersionInfoSizeW(wpath.c_str(), &handle);
@@ -138,11 +140,16 @@ Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
   if (err == 0) {
     return Status(GetLastError(), "Failed to query version value");
   }
-  rVersion =
+  product_version =
       std::to_string((pFileInfo->dwProductVersionMS >> 16 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionMS >> 0 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionLS >> 16 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionLS >> 0 & 0xffff));
+  file_version =
+      std::to_string((pFileInfo->dwFileVersionMS >> 16 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwFileVersionMS >> 0 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwFileVersionLS >> 16 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwFileVersionLS >> 0 & 0xffff));
   return Status::success();
 }
 
@@ -1829,8 +1836,9 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   (!ret) ? wfile_stat->ctime = -1
          : wfile_stat->ctime = longIntToUnixtime(basic_info.ChangeTime);
 
-  windowsGetFileVersion(wstringToString(path.wstring()),
-                        wfile_stat->product_version);
+  windowsGetVersionInfo(wstringToString(path.wstring()),
+                        wfile_stat->product_version,
+                        wfile_stat->file_version);
 
   CloseHandle(file_handle);
 

@@ -71,6 +71,7 @@ TEST_F(FileTests, test_sanity) {
   row_map["volume_serial"] = NormalType;
   row_map["file_id"] = NormalType;
   row_map["product_version"] = NormalType;
+  row_map["file_version"] = NormalType;
 #endif
 
 #ifdef __APPLE__
