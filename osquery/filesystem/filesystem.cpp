@@ -121,7 +121,8 @@ Status readFile(const fs::path& path,
 
   off_t file_size = static_cast<off_t>(handle.fd->size());
 
-  if (handle.fd->isSpecialFile() && size > 0) {
+  if (size > 0 &&
+      (handle.fd->isSpecialFile() || static_cast<off_t>(size) < file_size)) {
     file_size = static_cast<off_t>(size);
   }
 
