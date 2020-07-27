@@ -142,20 +142,20 @@ function(librpmMain)
   # uses CMake instead of autotools, with a git-committed `config.h`.
   # This mirrors detection done by autoconf/headers.m4 as CMake code.
   #
-  if(UNIX)
+  if(DEFINED PLATFORM_LINUX)
     CHECK_SYMBOL_EXISTS(major "sys/mkdev.h" MAJOR_IN_MKDEV)
     CHECK_SYMBOL_EXISTS(major "sys/sysmacros.h" MAJOR_IN_SYSMACROS) 
     if(MAJOR_IN_MKDEV)
       target_compile_definitions(thirdparty_librpm PRIVATE
         MAJOR_IN_MKDEV=1
       )
-    endif(MAJOR_IN_MKDEV)
+    endif()
     if(MAJOR_IN_SYSMACROS)
       target_compile_definitions(thirdparty_librpm PRIVATE
         MAJOR_IN_SYSMACROS=1
       )
-    endif(MAJOR_IN_SYSMACROS)
-  endif(UNIX)
+    endif()
+  endif()
 
   target_link_libraries(thirdparty_librpm PUBLIC
     thirdparty_berkeley-db
