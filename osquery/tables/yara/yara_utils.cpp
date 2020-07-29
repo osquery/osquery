@@ -42,6 +42,24 @@ void YARACompilerCallback(int error_level,
   }
 }
 
+// yr_initialize maintains a reference count and avoid
+// re-initialization
+Status yaraInitilize(void) {
+  auto result = yr_initialize();
+  if (result != ERROR_SUCCESS) {
+    return Status::failure("Fail to initialize YARA " + std::to_string(result));
+  }
+  return Status::success();
+}
+
+Status yaraFinalize(void) {
+  auto result = yr_finalize();
+  if (result != ERROR_SUCCESS) {
+    return Status::failure("Fail to finalize YARA " + std::to_string(result));
+  }
+  return Status::success();
+}
+
 /**
  * Compile a single rule file and load it into rule pointer.
  */

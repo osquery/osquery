@@ -108,6 +108,16 @@ QueryData genYara(QueryContext& context) {
   }
   auto& rules = yaraParser->rules();
 
+  auto hashStr = [](const std::string& str,
+                    YaraScanContextType yc) -> std::string {
+    switch (yc) {
+    case YC_RULE:
+      return "rule_" + std::to_string(std::hash<std::string>{}(str));
+    default:
+      return str;
+    }
+  };
+
   // Collect all paths specified too.
   auto paths = context.constraints["path"].getAll(EQUALS);
   context.expandConstraints(
@@ -137,6 +147,12 @@ QueryData genYara(QueryContext& context) {
 
   std::set<std::pair<YaraScanContextType, std::string>> sign_group;
 
+  auto yr_init = yaraInitilize();
+  if (!yr_init.ok()) {
+    LOG(WARNING) << yr_init.toString();
+    return results;
+  }
+
   // Add sig groups to the sign group set
   for (const auto& group : groups) {
     sign_group.insert(std::make_pair(YC_GROUP, group));
@@ -145,7 +161,7 @@ QueryData genYara(QueryContext& context) {
   // Compile all sigfiles into a map.
   for (const auto& file : sigfiles) {
     // Check if this "ad-hoc" signature file has not been used/compiled.
-    if (rules.count(file) == 0) {
+    if (rules.count(hashStr(file, YC_FILE)) == 0) {
       // If this is a relative path append the default yara search path.
       auto path = (file[0] != '/') ? kYARAHome : "";
       path += file;
@@ -159,7 +175,7 @@ QueryData genYara(QueryContext& context) {
       // Cache the compiled rules by setting the unique signature file path
       // as the lookup name. Additional signature file uses will skip the
       // compile step and be added as rule groups.
-      rules[file] = tmp_rules;
+      rules[hashStr(file, YC_FILE)] = tmp_rules;
     }
     // Add signature file path to the sign group set
     sign_group.insert(std::make_pair(YC_FILE, file));
@@ -167,7 +183,7 @@ QueryData genYara(QueryContext& context) {
 
   for (const auto& rule_string : sigrules) {
     // Check if the yara rule string has not been compiled before
-    if (rules.count(rule_string) == 0) {
+    if (rules.count(hashStr(rule_string, YC_RULE)) == 0) {
       YR_RULES* tmp_rules = nullptr;
       // Compile rule string and load it into rule pointer
       auto status = compileFromString(rule_string, &tmp_rules);
@@ -176,7 +192,7 @@ QueryData genYara(QueryContext& context) {
         continue;
       }
 
-      rules[rule_string] = tmp_rules;
+      rules[hashStr(rule_string, YC_RULE)] = tmp_rules;
     }
     // Add rule string to sign group set
     sign_group.insert(std::make_pair(YC_RULE, rule_string));
@@ -185,15 +201,37 @@ QueryData genYara(QueryContext& context) {
   // Scan every path pair.
   for (const auto& path : paths) {
     for (const auto& sign : sign_group) {
-      if (rules.count(sign.second) > 0) {
-        doYARAScan(
-            rules[sign.second], path.c_str(), results, sign.first, sign.second);
+      if (rules.count(hashStr(sign.second, sign.first)) > 0) {
+        doYARAScan(rules[hashStr(sign.second, sign.first)],
+                   path.c_str(),
+                   results,
+                   sign.first,
+                   sign.second);
 
         // sleep between each file to help smooth out malloc spikes
         std::this_thread::sleep_for(
             std::chrono::milliseconds(FLAGS_yara_delay));
       }
     }
+  }
+
+  // Rule string is hashed before adding to the cache. There are
+  // possibilities of collision when arbitrary queries are executed
+  // with distributed API. Clear the hash string from the cache
+  for (const auto& sign : sign_group) {
+    if (sign.first == YC_RULE) {
+      auto it = rules.find(hashStr(sign.second, sign.first));
+      if (it != rules.end()) {
+        rules.erase(hashStr(sign.second, sign.first));
+      }
+    }
+  }
+
+  // Clean-up after finish scanning; If yr_initialize is called
+  // more than once it will decrease the reference counter and return
+  auto yr_fini = yaraFinalize();
+  if (!yr_fini.ok()) {
+    LOG(WARNING) << yr_fini.toString();
   }
 
 #ifdef LINUX

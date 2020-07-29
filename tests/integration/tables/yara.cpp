@@ -24,7 +24,6 @@ class yara : public testing::Test {
 
 TEST_F(yara, test_sanity) {
   // Query data from yara table
-#if !defined(WINDOWS)
   auto const data = execute_query(
       "select * from yara where path like '%' and sigrule = "
       "'rule always_true { condition: true }'");
@@ -35,12 +34,11 @@ TEST_F(yara, test_sanity) {
                            {"count", IntType},
                            {"sig_group", NormalType},
                            {"sigfile", NormalType},
-                           {"sigrules", NormalType},
+                           {"sigrule", NormalType},
                            {"strings", NormalType},
                            {"tags", NormalType}};
 
   validate_rows(data, row_map);
-#endif
 }
 
 } // namespace table_tests
