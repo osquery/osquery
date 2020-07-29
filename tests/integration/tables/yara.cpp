@@ -26,7 +26,7 @@ TEST_F(yara, test_sanity) {
   // Query data from yara table
 #if !defined(WINDOWS)
   auto const data = execute_query(
-      "select * from yara where path like '%' and sigrules = "
+      "select * from yara where path like '%' and sigrule = "
       "'rule always_true { condition: true }'");
 
   ASSERT_GE(data.size(), 0ul);
