@@ -71,17 +71,30 @@ class AnotherFakeEventPublisher
 };
 
 TEST_F(EventsTests, test_event_publisher) {
+  // Inspect the publisher "type", which is the publisher "name".
   auto pub = std::make_shared<FakeEventPublisher>();
   EXPECT_EQ(pub->type(), "FakePublisher");
+  EXPECT_EQ(EventFactory::getType<FakeEventPublisher>(), "FakePublisher");
+  // This is different for each publisher with an overridden type().
+  EXPECT_EQ(EventFactory::getType<AnotherFakeEventPublisher>(),
+            "AnotherFakePublisher");
 
   // Test type names.
   auto pub_sub = pub->createSubscriptionContext();
   EXPECT_EQ(typeid(FakeSubscriptionContext), typeid(*pub_sub));
+
+  // This publisher has no type.
+  auto basic_pub = std::make_shared<BasicEventPublisher>();
+  EXPECT_TRUE(basic_pub->type().empty());
+  EXPECT_TRUE(EventFactory::getType<BasicEventPublisher>().empty());
+  basic_pub->setName("BasicPublisher");
+  EXPECT_EQ(basic_pub->type(), "BasicPublisher");
 }
 
 TEST_F(EventsTests, test_register_event_publisher) {
   auto basic_pub = std::make_shared<BasicEventPublisher>();
   auto status = EventFactory::registerEventPublisher(basic_pub);
+  // This publisher has no type set, registration will fail.
   EXPECT_FALSE(status.ok());
 
   // Set a name for the publisher, which becomes the type by default.

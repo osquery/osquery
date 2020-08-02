@@ -884,8 +884,8 @@ class EventFactory : private boost::noncopyable {
    */
   template <class PUB>
   static const std::string getType() {
-    auto pub = std::make_shared<PUB>();
-    return pub->type();
+    static std::string _type = std::make_shared<PUB>()->type();
+    return _type;
   }
 
   /**
