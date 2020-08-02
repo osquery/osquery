@@ -44,6 +44,6 @@ class WindowsEventLog {
       Event& windows_event, const boost::property_tree::ptree& event_object);
 };
 
-using Event = WindowsEventLog::Event;
+using WELEvent = WindowsEventLog::Event;
 
 } // namespace osquery

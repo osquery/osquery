@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/events/windows/windowseventlogparser.h>
 #include <osquery/tables/events/windows/powershell_events.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
@@ -28,8 +29,8 @@ Status initializePowershellEventsContext(
         xml_event_list) {
   for (const auto& xml_event : xml_event_list) {
     boost::property_tree::ptree event_object = {};
-    auto status = WindowsEventLogParserService::processEvent(
-        event_object, stringToWstring(xml_event));
+    auto status =
+        WindowsEventLog::processEvent(event_object, stringToWstring(xml_event));
 
     if (!status.ok()) {
       return status;
@@ -46,7 +47,7 @@ class PowershellEventsTests : public testing::Test {};
 
 TEST_F(PowershellEventsTests, parse_simple_event) {
   boost::property_tree::ptree event_object = {};
-  auto status = WindowsEventLogParserService::processEvent(
+  auto status = WindowsEventLog::processEvent(
       event_object, stringToWstring(kSingleScriptBlock));
 
   ASSERT_TRUE(status.ok());

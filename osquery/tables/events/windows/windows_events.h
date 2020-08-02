@@ -8,8 +8,8 @@
 
 #include <ctime>
 
+#include <osquery/events/windows/windowseventlogparser.h>
 #include <osquery/events/windows/windowseventlogpublisher.h>
-#include <osquery/events/windows/windowseventlogutils.h>
 
 namespace pt = boost::property_tree;
 
@@ -22,6 +22,6 @@ class WindowsEventSubscriber
 
   Status Callback(const ECRef& event, const SCRef& subscription);
 
-  static void generateRow(Row& row, const Event& windows_event);
+  static void generateRow(Row& row, const WELEvent& windows_event);
 };
 } // namespace osquery

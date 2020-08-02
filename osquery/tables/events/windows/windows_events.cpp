@@ -65,11 +65,11 @@ Status WindowsEventSubscriber::init() {
 WindowsEventSubscriber::~WindowsEventSubscriber() {}
 
 Status WindowsEventSubscriber::Callback(const ECRef& event, const SCRef&) {
-  std::vector<Event> windows_event_list;
+  std::vector<WELEvent> windows_event_list;
   bool display_parsing_error{false};
 
   for (const auto& event_object : event->event_objects) {
-    Event windows_event = {};
+    WELEvent windows_event = {};
     auto status =
         WindowsEventLog::processEventObject(windows_event, event_object);
     if (!status.ok()) {
@@ -105,7 +105,8 @@ Status WindowsEventSubscriber::Callback(const ECRef& event, const SCRef&) {
   return Status::success();
 }
 
-void WindowsEventSubscriber::generateRow(Row& row, const Event& windows_event) {
+void WindowsEventSubscriber::generateRow(Row& row,
+                                         const WELEvent& windows_event) {
   row = {};
 
   row["time"] = INTEGER(windows_event.osquery_time);
