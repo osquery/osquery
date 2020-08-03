@@ -16,8 +16,6 @@ include(cmake/toolchain.cmake)
 
 project(osquery)
 
-# Small change to test CI
-
 if(OSQUERY_BUILD_TESTS)
   enable_testing()
 endif()
