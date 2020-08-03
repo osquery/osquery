@@ -287,6 +287,7 @@ jobs:
     - powershell: |
         cmake --version
         $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\x64) | Sort-Object -Descending)[0].FullName
+        & $python3_path\python -m pip install --upgrade pip --no-warn-script-location
         & $python3_path\python -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
       displayName: Install tests prerequisites
 
