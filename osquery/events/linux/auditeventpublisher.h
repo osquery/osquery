@@ -43,12 +43,35 @@ struct SyscallAuditEventData final {
   std::string executable_path;
 };
 
+struct AppArmorAuditEventData final {
+  std::unordered_map<std::string, boost::variant<std::string, std::uint64_t>>
+      fields = {{"apparmor", ""},
+                {"operation", ""},
+                {"profile", ""},
+                {"name", ""},
+                {"comm", ""},
+                {"denied_mask", ""},
+                {"capname", ""},
+                {"requested_mask", ""},
+                {"info", ""},
+                {"error", ""},
+                {"namespace", ""},
+                {"label", ""},
+                {"parent", 0},
+                {"pid", 0},
+                {"capability", 0},
+                {"fsuid", 0},
+                {"ouid", 0}};
+};
+
 /// Audit event descriptor
 struct AuditEvent final {
-  enum class Type { UserEvent, Syscall, SELinux };
+  enum class Type { UserEvent, Syscall, SELinux, AppArmor };
 
   Type type;
-  boost::variant<UserAuditEventData, SyscallAuditEventData> data;
+  boost::
+      variant<UserAuditEventData, SyscallAuditEventData, AppArmorAuditEventData>
+          data;
 
   std::vector<AuditEventRecord> record_list;
 };
@@ -127,4 +150,7 @@ void CopyFieldFromMap(
     const std::map<std::string, std::string>& fields,
     const std::string& name,
     const std::string& default_value = std::string()) noexcept;
+
+// Strips first and last quote from string if present
+std::string StripQuotes(const std::string& value) noexcept;
 } // namespace osquery
