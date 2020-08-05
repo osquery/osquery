@@ -17,33 +17,29 @@
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
-class WindowsEventLog {
- public:
-  struct Event final {
-    std::time_t osquery_time{0U};
-    std::string datetime;
 
-    std::string source;
-    std::string provider_name;
-    std::string provider_guid;
+struct WELEvent final {
+  std::time_t osquery_time{0U};
+  std::string datetime;
 
-    std::int64_t event_id{0U};
-    std::int64_t task_id{0U};
-    std::int64_t level{0U};
+  std::string source;
+  std::string provider_name;
+  std::string provider_guid;
 
-    std::string keywords;
-    std::string data;
-  };
+  std::int64_t event_id{0U};
+  std::int64_t task_id{0U};
+  std::int64_t level{0U};
 
-  // Process event log and generate the property_tree object
-  static Status processEvent(boost::property_tree::ptree& event_object,
-                             const std::wstring& xml_event);
-
-  // Utility function to parse the windows event property tree
-  static Status processEventObject(
-      Event& windows_event, const boost::property_tree::ptree& event_object);
+  std::string keywords;
+  std::string data;
 };
 
-using WELEvent = WindowsEventLog::Event;
+// Process event log and generate the property_tree object
+Status parseWindowsEventLogXML(boost::property_tree::ptree& event_object,
+                               const std::wstring& xml_event);
+
+// Utility function to parse the windows event property tree
+Status parseWindowsEventLogPTree(
+    WELEvent& windows_event, const boost::property_tree::ptree& event_object);
 
 } // namespace osquery

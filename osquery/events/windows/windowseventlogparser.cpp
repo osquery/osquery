@@ -18,8 +18,8 @@
 #include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
-Status WindowsEventLog::processEvent(boost::property_tree::ptree& event_object,
-                                     const std::wstring& xml_event) {
+Status parseWindowsEventLogXML(boost::property_tree::ptree& event_object,
+                               const std::wstring& xml_event) {
   event_object = {};
 
   try {
@@ -38,11 +38,11 @@ Status WindowsEventLog::processEvent(boost::property_tree::ptree& event_object,
   return Status::success();
 }
 
-Status WindowsEventLog::processEventObject(
-    Event& windows_event, const boost::property_tree::ptree& event_object) {
+Status parseWindowsEventLogPTree(
+    WELEvent& windows_event, const boost::property_tree::ptree& event_object) {
   windows_event = {};
 
-  Event output;
+  WELEvent output;
   output.osquery_time = std::time(nullptr);
 
   output.datetime =

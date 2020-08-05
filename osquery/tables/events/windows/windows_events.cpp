@@ -70,8 +70,7 @@ Status WindowsEventSubscriber::Callback(const ECRef& event, const SCRef&) {
 
   for (const auto& event_object : event->event_objects) {
     WELEvent windows_event = {};
-    auto status =
-        WindowsEventLog::processEventObject(windows_event, event_object);
+    auto status = parseWindowsEventLogPTree(windows_event, event_object);
     if (!status.ok()) {
       display_parsing_error = true;
       LOG(ERROR) << status.getMessage();

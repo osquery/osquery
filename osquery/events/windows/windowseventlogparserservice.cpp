@@ -76,7 +76,7 @@ void WindowsEventLogParserService::start() {
 
       for (const auto& raw_event : raw_event_list) {
         boost::property_tree::ptree event_object;
-        auto status = WindowsEventLog::processEvent(event_object, raw_event);
+        auto status = parseWindowsEventLogXML(event_object, raw_event);
         if (!status.ok()) {
           LOG(ERROR) << status.getMessage();
           continue;
