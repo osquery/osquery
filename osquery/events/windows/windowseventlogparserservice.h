@@ -32,9 +32,6 @@ class WindowsEventLogParserService final : public InternalRunnable {
 
   ChannelEventObjects getChannelEventObjects();
 
-  static Status processEvent(boost::property_tree::ptree& event_object,
-                             const std::wstring& xml_event);
-
  private:
   struct PrivateData;
   std::unique_ptr<PrivateData> d_;
