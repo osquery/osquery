@@ -166,25 +166,26 @@ Status PowershellEventSubscriber::parseScriptMessageEvent(
     auto field_name = node.get("<xmlattr>.Name", "");
     if (field_name.empty()) {
       malformed_field = true;
-      continue;
+      break;
     }
 
     auto field_string_value = node.data();
-    auto field_integer_value_exp = tryTo<std::size_t>(field_string_value);
 
     if (field_name == "MessageNumber") {
+      auto field_integer_value_exp = tryTo<std::size_t>(field_string_value);
       if (field_integer_value_exp.isError()) {
-        ++malformed_field;
-        continue;
+        malformed_field = true;
+        break;
       }
 
       output.message_number = field_integer_value_exp.take();
       ++field_count;
 
     } else if (field_name == "MessageTotal") {
+      auto field_integer_value_exp = tryTo<std::size_t>(field_string_value);
       if (field_integer_value_exp.isError()) {
-        ++malformed_field;
-        continue;
+        malformed_field = true;
+        break;
       }
 
       output.expected_message_count = field_integer_value_exp.take();
