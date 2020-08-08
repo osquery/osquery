@@ -27,7 +27,7 @@ std::string psidToString(PSID sid) {
 
 uint32_t getUidFromSid(PSID sid) {
   auto const uid_default = static_cast<uint32_t>(-1);
-  LPSTR sidString;
+  LPSTR sidString = nullptr;
   if (ConvertSidToStringSidA(sid, &sidString) == 0) {
     VLOG(1) << "getUidFromSid failed ConvertSidToStringSid error " +
                    std::to_string(GetLastError());
