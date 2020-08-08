@@ -166,6 +166,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/appcompat_shims.cpp
       windows/authenticode.cpp
       windows/autoexec.cpp
+      windows/background_activities_moderator.cpp
       windows/bitlocker_info.cpp
       windows/certificates.cpp
       windows/chassis_info.cpp

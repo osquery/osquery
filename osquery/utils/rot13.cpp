@@ -1,0 +1,35 @@
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed in accordance with the terms specified in
+ *  the LICENSE file found in the root directory of this source tree.
+ */
+
+#include <osquery/utils/rot13.h>
+
+#include <string>
+
+namespace osquery {
+
+std::string rotDecode(std::string& rot_string) {
+  std::string decoded_string;
+
+  for (std::size_t i = 0; i < rot_string.size(); i++) {
+    if (isalpha(rot_string[i])) {
+      if (rot_string[i] >= 'a' && rot_string[i] <= 'm') {
+        decoded_string.append(1, rot_string[i] + 13);
+      } else if (rot_string[i] >= 'm' && rot_string[i] <= 'z') {
+        decoded_string.append(1, rot_string[i] - 13);
+      } else if (rot_string[i] >= 'A' && rot_string[i] <= 'M') {
+        decoded_string.append(1, rot_string[i] + 13);
+      } else if (rot_string[i] >= 'M' && rot_string[i] <= 'Z') {
+        decoded_string.append(1, rot_string[i] - 13);
+      }
+    } else {
+      decoded_string.append(1, rot_string[i]);
+    }
+  }
+  return decoded_string;
+}
+} // namespace osquery

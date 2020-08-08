@@ -10,6 +10,8 @@
 
 #include <osquery/utils/system/system.h>
 
+#include <string>
+
 namespace osquery {
 
 /**
@@ -25,5 +27,12 @@ LONGLONG filetimeToUnixtime(const FILETIME& ft);
  * @returns The unix epoch timestamp representation of the LARGE int value
  */
 LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
+
+/**
+* @brief Windows helper function for converting Little Endian FILETIME to Unix epoch. Windows Registry sometimes stores FILETIME in little endian format
+* 
+* @returns The unix epoch timestamp representation of the FILETIME
+*/
+LONGLONG littleEndianToUnixTime(const std::string& time_data);
 
 } // namespace osquery

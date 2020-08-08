@@ -10,7 +10,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/tables/system/windows/registry.h>
-#include <osquery/tables/system/windows/userassist.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/conversions/tryto.h>
 
 #include <boost/algorithm/hex.hpp>

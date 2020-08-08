@@ -33,6 +33,7 @@ function(generateOsqueryUtils)
     base64.cpp
     chars.cpp
     only_movable.cpp
+    rot13.cpp
   )
 
   if(DEFINED PLATFORM_MACOS)
@@ -67,6 +68,7 @@ function(generateOsqueryUtils)
     map_take.h
     mutex.h
     only_movable.h
+    rot13.h
     scope_guard.h
   )
 
@@ -96,6 +98,7 @@ function(generateOsqueryUtilsUtilstestsTest)
     tests/base64.cpp
     tests/chars.cpp
     tests/map_take.cpp
+    tests/rot13.cpp
     tests/scope_guard.cpp
   )
 

@@ -10,29 +10,25 @@
 
 namespace osquery {
 namespace table_tests {
-class UserassistTest : public testing::Test {
+class BamTest : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(UserassistTest, test_sanity) {
-  QueryData const rows = execute_query("select * from userassist");
-  QueryData const specific_query_rows =
-      execute_query("select * from userassist where path is 'UEME_CTLSESSION'");
-
+TEST_F(BamTest, test_sanity) {
+  QueryData const rows = execute_query("select * from background_activities_moderator");
   ASSERT_GT(rows.size(), 0ul);
-  ASSERT_GT(specific_query_rows.size(), 0ul);
 
   ValidationMap row_map = {
       {"path", NonEmptyString},
       {"last_execution_time", NormalType},
-      {"count", NormalType},
       {"sid", NonEmptyString},
   };
-  validate_rows(rows, row_map);
-  validate_rows(specific_query_rows, row_map);
+  if (!rows.empty()) {
+    validate_rows(rows, row_map);
+  }
 }
 } // namespace table_tests
 } // namespace osquery
