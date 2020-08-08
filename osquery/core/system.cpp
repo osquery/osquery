@@ -351,7 +351,7 @@ Status createPidFile() {
   if (pathExists(pidfile_path).ok()) {
     // if it exists, check if that pid is running.
     std::string content;
-    auto read_status = readFile(pidfile_path, content, true);
+    auto read_status = readFile(pidfile_path, content);
     if (!read_status.ok()) {
       return Status(1, "Could not read pidfile: " + read_status.toString());
     }
