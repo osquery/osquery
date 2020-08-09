@@ -6,9 +6,9 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/utils/conversions/windows/windows_time.h>
-#include <osquery/utils/conversions/tryto.h>
 #include <osquery/logger.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
 #include <string>
 

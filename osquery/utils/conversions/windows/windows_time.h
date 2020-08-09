@@ -29,10 +29,11 @@ LONGLONG filetimeToUnixtime(const FILETIME& ft);
 LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
 
 /**
-* @brief Windows helper function for converting Little Endian FILETIME to Unix epoch. Windows Registry sometimes stores FILETIME in little endian format
-* 
-* @returns The unix epoch timestamp representation of the FILETIME
-*/
+ * @brief Windows helper function for converting Little Endian FILETIME to Unix
+ * epoch. Windows Registry sometimes stores FILETIME in little endian format
+ *
+ * @returns The unix epoch timestamp representation of the FILETIME
+ */
 LONGLONG littleEndianToUnixTime(const std::string& time_data);
 
 } // namespace osquery
