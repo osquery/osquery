@@ -11,17 +11,16 @@
 namespace osquery {
 namespace table_tests {
 
-class officeMruInfo : public testing::Test {
+class OfficeMostRecentlyUsedTest : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(officeMruInfo, test_sanity) {
+TEST_F(OfficeMostRecentlyUsedTest, test_sanity) {
   QueryData const rows =
       execute_query("select * from office_most_recently_used");
-  ASSERT_GT(rows.size(), 0ul);
 
   ValidationMap row_map = {{"application", NonEmptyString},
                            {"version", NonEmptyString},
@@ -30,6 +29,7 @@ TEST_F(officeMruInfo, test_sanity) {
                            {"sid", NonEmptyString}};
   if (!rows.empty()) {
     validate_rows(rows, row_map);
+    ASSERT_GT(rows.size(), 0ul);
   }
 }
 
