@@ -7,7 +7,7 @@
  */
 
 // Sanity check integration test for windows_events
-// Spec file: specs/windows/windows_events_vtable.table
+// Spec file: specs/windows/windows_eventlog.table
 
 #include <osquery/tests/integration/tables/helper.h>
 

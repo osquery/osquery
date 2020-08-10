@@ -15,11 +15,12 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 #include <osquery/core/windows/wmi.h>
 #include <osquery/events/windows/windowseventlogparser.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
@@ -36,8 +37,8 @@ const int kNumEventsBlock = 1024;
 
 void parseWelXml(QueryContext& context,
                  std::wstring& xml_event,
-                 QueryData& results) {
-  Row row = {};
+                 RowYield& yield) {
+  auto row = make_table_row();
   pt::ptree propTree;
   WELEvent windows_event;
   auto status = parseWindowsEventLogXML(propTree, xml_event);
@@ -69,12 +70,12 @@ void parseWelXml(QueryContext& context,
     row["timestamp"] = SQL_TEXT(*timestamp.begin());
   }
 
-  results.push_back(row);
+  yield(std::move(row));
 }
 
 void parseQueryResults(QueryContext& context,
                        EVT_HANDLE queryResults,
-                       QueryData& results) {
+                       RowYield& yield) {
   std::vector<EVT_HANDLE> events(kNumEventsBlock);
   unsigned long numEvents = 0;
 
@@ -115,7 +116,7 @@ void parseQueryResults(QueryContext& context,
 
       std::wstringstream xml_event;
       xml_event << renderedContent.data();
-      parseWelXml(context, xml_event.str(), results);
+      parseWelXml(context, xml_event.str(), yield);
       EvtClose(events[i]);
     }
 
@@ -131,18 +132,6 @@ void genXfilterFromConstraints(QueryContext& context, std::string& xfilter) {
   if (!eids.empty()) {
     xfilterList.emplace_back(
         "(EventID=" + osquery::join(eids, ") or (EventID=") + ")");
-  }
-
-  auto tasks = context.constraints["task"].getAll(EQUALS);
-  if (!tasks.empty()) {
-    xfilterList.emplace_back("(Task=" + osquery::join(tasks, ") or (Task=") +
-                             ")");
-  }
-
-  auto levels = context.constraints["level"].getAll(EQUALS);
-  if (!levels.empty()) {
-    xfilterList.emplace_back("(Level=" + osquery::join(levels, ") or (Level=") +
-                             ")");
   }
 
   auto pids = context.constraints["pid"].getAll(EQUALS);
@@ -178,12 +167,10 @@ void genXfilterFromConstraints(QueryContext& context, std::string& xfilter) {
                 : "*[System[" + osquery::join(xfilterList, " and ") + "]]";
 }
 
-QueryData genWindowsEventLog(QueryContext& context) {
-  QueryData results;
-
+void genWindowsEventLog(RowYield& yield, QueryContext& context) {
   if (!context.hasConstraint("channel", EQUALS)) {
     LOG(WARNING) << "must specify the event log channel to search";
-    return {};
+    return;
   }
 
   std::string xfilter("");
@@ -205,14 +192,12 @@ QueryData genWindowsEventLog(QueryContext& context) {
     if (queryResults == nullptr) {
       LOG(WARNING) << "Failed to search event log for query with "
                    << GetLastError();
-      return {};
+      return;
     }
 
-    parseQueryResults(context, queryResults, results);
+    parseQueryResults(context, queryResults, yield);
     EvtClose(queryResults);
   }
-
-  return results;
 }
 
 }; // namespace tables
