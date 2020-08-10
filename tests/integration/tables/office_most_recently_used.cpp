@@ -19,7 +19,7 @@ class officeMruInfo : public testing::Test {
 };
 
 TEST_F(officeMruInfo, test_sanity) {
-  QueryData const data =
+  QueryData const rows =
       execute_query("select * from office_most_recently_used");
   ASSERT_GT(rows.size(), 0ul);
 
