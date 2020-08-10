@@ -121,7 +121,8 @@ Status readFile(const fs::path& path,
 
   off_t file_size = static_cast<off_t>(handle.fd->size());
 
-  if (handle.fd->isSpecialFile() && size > 0) {
+  if (size > 0 &&
+      (handle.fd->isSpecialFile() || static_cast<off_t>(size) < file_size)) {
     file_size = static_cast<off_t>(size);
   }
 
@@ -308,7 +309,7 @@ static bool checkForLoops(std::set<int>& dsym_inos, std::string path) {
   if (dsym_inos.find(d_stat.st_ino) == dsym_inos.end()) {
     dsym_inos.insert(d_stat.st_ino);
   } else {
-    LOG(WARNING) << "Symlink loop detected possibly involving: " << path;
+    VLOG(1) << "Symlink loop detected. Ignoring: " << path;
     return true;
   }
   return false;
@@ -589,7 +590,7 @@ std::string lsperms(int mode) {
 Status parseJSON(const fs::path& path, pt::ptree& tree) {
   try {
     pt::read_json(path.string(), tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     return Status(1, "Could not parse JSON from file");
   }
   return Status::success();

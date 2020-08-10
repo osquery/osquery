@@ -16,7 +16,6 @@
 #include <boost/optional.hpp>
 
 #include <osquery/core.h>
-#include <osquery/core/watcher.h>
 #include <osquery/extensions/interface.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
@@ -24,8 +23,10 @@
 #include <osquery/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/registry.h>
+#include <osquery/shutdown.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
+
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
@@ -36,21 +37,26 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-// Millisecond latency between initializing manager pings.
-const size_t kExtensionInitializeLatency = 20;
-
 enum class ExtendableType {
   EXTENSION = 1,
 };
 
 using ExtendableTypeSet = std::map<ExtendableType, std::set<std::string>>;
 
+namespace {
+
+/// Map of acceptable file extensions for extension binaries.
 const std::map<PlatformType, ExtendableTypeSet> kFileExtensions{
     {PlatformType::TYPE_WINDOWS,
      {{ExtendableType::EXTENSION, {".exe", ".ext"}}}},
     {PlatformType::TYPE_LINUX, {{ExtendableType::EXTENSION, {".ext"}}}},
     {PlatformType::TYPE_OSX, {{ExtendableType::EXTENSION, {".ext"}}}},
 };
+
+/// Millisecond latency between initializing manager pings.
+const size_t kExtensionInitializeLatency{20};
+
+} // namespace
 
 CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
 
@@ -244,7 +250,7 @@ void ExtensionWatcher::exitFatal(int return_code) {
   // Exit the extension.
   // We will save the wanted return code and raise an interrupt.
   // This interrupt will be handled by the main thread then join the watchers.
-  Initializer::requestShutdown(return_code);
+  requestShutdown(return_code);
 }
 
 void ExtensionWatcher::watch() {
@@ -369,19 +375,16 @@ void initShellSocket(const std::string& homedir) {
   }
 }
 
-void loadExtensions() {
+std::set<std::string> loadExtensions() {
   // Disabling extensions will disable autoloading.
   if (FLAGS_disable_extensions) {
-    return;
+    return {};
   }
 
   // Optionally autoload extensions, sanitize the binary path and inform
   // the osquery watcher to execute the extension when started.
-  auto status = loadExtensions(
+  return loadExtensions(
       fs::path(FLAGS_extensions_autoload).make_preferred().string());
-  if (!status.ok()) {
-    VLOG(1) << "Could not autoload extensions: " << status.what();
-  }
 }
 
 static bool isFileSafe(std::string& path, ExtendableType type) {
@@ -435,20 +438,21 @@ static bool isFileSafe(std::string& path, ExtendableType type) {
   return true;
 }
 
-Status loadExtensions(const std::string& loadfile) {
+std::set<std::string> loadExtensions(const std::string& loadfile) {
+  std::set<std::string> autoload_binaries;
   if (!FLAGS_extension.empty()) {
     // This is a shell-only development flag for quickly loading/using a single
     // extension. It bypasses the safety check.
-    Watcher::get().addExtensionPath(FLAGS_extension);
+    autoload_binaries.insert(FLAGS_extension);
   }
 
   std::string autoload_paths;
-  if (!readFile(loadfile, autoload_paths).ok()) {
-    return Status(1, "Failed reading: " + loadfile);
+  auto status = readFile(loadfile, autoload_paths);
+  if (!status.ok()) {
+    VLOG(1) << "Could not autoload extensions: " << status.what();
   }
 
   // The set of binaries to auto-load, after safety is confirmed.
-  std::set<std::string> autoload_binaries;
   for (auto& path : osquery::split(autoload_paths, "\n")) {
     if (isDirectory(path)) {
       std::vector<std::string> paths;
@@ -463,12 +467,7 @@ Status loadExtensions(const std::string& loadfile) {
     }
   }
 
-  for (const auto& binary : autoload_binaries) {
-    // After the path is sanitized the watcher becomes responsible for
-    // forking and executing the extension binary.
-    Watcher::get().addExtensionPath(binary);
-  }
-  return Status::success();
+  return autoload_binaries;
 }
 
 Status startExtension(const std::string& name, const std::string& version) {
@@ -564,6 +563,7 @@ Status startExtension(const std::string& manager_path,
           << sdk_version << ") registered";
   return Status(0, std::to_string(uuid));
 }
+
 Status ExternalSQLPlugin::query(const std::string& query,
                                 QueryData& results,
                                 bool use_cache) const {

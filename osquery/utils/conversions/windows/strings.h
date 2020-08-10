@@ -37,6 +37,14 @@ std::string wstringToString(const std::wstring& src);
 std::string wstringToString(const wchar_t* src);
 
 /**
+ * @brief Windows helper function to convert a CIM Datetime to Unix timestamp
+ *
+ * @returns Given a CIM datetime generated from a WMI query, this helper
+ * function returns the equivalent Unix timestamp
+ */
+LONGLONG cimDatetimeToUnixtime(const std::string& src);
+
+/**
  * @brief Windows WMI Helper function to print the type associated with results
  *
  * @returns A string created from a BSTR

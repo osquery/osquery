@@ -21,6 +21,8 @@
 #include <osquery/process/process.h>
 #include <osquery/profiler/code_profiler.h>
 #include <osquery/query.h>
+#include <osquery/shutdown.h>
+
 #include <osquery/utils/system/time.h>
 
 #include "osquery/dispatcher/scheduler.h"
@@ -116,7 +118,7 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   item.calendar_time = osquery::getAsciiTime();
   getDecorations(item.decorations);
 
-  if (query.options.count("snapshot") && query.options.at("snapshot")) {
+  if (query.isSnapshotQuery()) {
     // This is a snapshot query, emit results with a differential or state.
     item.snapshot_results = std::move(sql.rowsTyped());
     logSnapshotQuery(item);
@@ -139,17 +141,17 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
       std::string message = "Error adding new results to database for query " +
                             name + ": " + status.what();
       // If the database is not available then the daemon cannot continue.
-      Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
+      requestShutdown(EXIT_CATASTROPHIC, message);
     }
   } else {
     diff_results.added = std::move(sql.rowsTyped());
   }
 
-  if (query.options.count("removed") && !query.options.at("removed")) {
+  if (!query.reportRemovedRows()) {
     diff_results.removed.clear();
   }
 
-  if (diff_results.added.empty() && diff_results.removed.empty()) {
+  if (diff_results.hasNoResults()) {
     // No diff results or events to emit.
     return status;
   }
@@ -161,9 +163,46 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
     // If log directory is not available, then the daemon shouldn't continue.
     std::string message = "Error logging the results of query: " + name + ": " +
                           status.toString();
-    Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
+    requestShutdown(EXIT_CATASTROPHIC, message);
   }
   return status;
+}
+
+void SchedulerRunner::calculateTimeDriftAndMaybePause(
+    std::chrono::milliseconds loop_step_duration) {
+  if (loop_step_duration + time_drift_ < interval_) {
+    pause(interval_ - loop_step_duration - time_drift_);
+    time_drift_ = std::chrono::milliseconds::zero();
+  } else {
+    time_drift_ += loop_step_duration - interval_;
+    if (time_drift_ > max_time_drift_) {
+      // giving up
+      time_drift_ = std::chrono::milliseconds::zero();
+    }
+  }
+}
+
+void SchedulerRunner::maybeRunDecorators(size_t time_step) {
+  // Configuration decorators run on 60 second intervals only.
+  if ((time_step % 60) == 0) {
+    runDecorators(DECORATE_INTERVAL, time_step);
+  }
+}
+
+void SchedulerRunner::maybeReloadSchedule(size_t time_step) {
+  if (FLAGS_schedule_reload > 0 && (time_step % FLAGS_schedule_reload) == 0) {
+    if (FLAGS_schedule_reload_sql) {
+      SQLiteDBManager::resetPrimary();
+    }
+    resetDatabase();
+  }
+}
+
+void SchedulerRunner::maybeFlushLogs(size_t time_step) {
+  // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
+  if ((time_step % 3) == 0) {
+    relayStatusLogs(true);
+  }
 }
 
 void SchedulerRunner::start() {
@@ -171,51 +210,30 @@ void SchedulerRunner::start() {
   auto i = osquery::getUnixTime();
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
     auto start_time_point = std::chrono::steady_clock::now();
-    Config::get().scheduledQueries(
-        ([&i](const std::string& name, const ScheduledQuery& query) {
-          if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
-            TablePlugin::kCacheInterval = query.splayed_interval;
-            TablePlugin::kCacheStep = i;
-            const auto status = launchQuery(name, query);
-            monitoring::record(
-                (boost::format("scheduler.query.%s.%s.status.%s") %
-                 query.pack_name % query.name %
-                 (status.ok() ? "success" : "failure"))
-                    .str(),
-                1,
-                monitoring::PreAggregationType::Sum,
-                true);
-          }
-        }));
-    // Configuration decorators run on 60 second intervals only.
-    if ((i % 60) == 0) {
-      runDecorators(DECORATE_INTERVAL, i);
-    }
-    if (FLAGS_schedule_reload > 0 && (i % FLAGS_schedule_reload) == 0) {
-      if (FLAGS_schedule_reload_sql) {
-        SQLiteDBManager::resetPrimary();
+    Config::get().scheduledQueries(([&i](const std::string& name,
+                                         const ScheduledQuery& query) {
+      if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
+        TablePlugin::kCacheInterval = query.splayed_interval;
+        TablePlugin::kCacheStep = i;
+        const auto status = launchQuery(name, query);
+        monitoring::record((boost::format("scheduler.query.%s.%s.status.%s") %
+                            query.pack_name % query.name %
+                            (status.ok() ? "success" : "failure"))
+                               .str(),
+                           1,
+                           monitoring::PreAggregationType::Sum,
+                           true);
       }
-      resetDatabase();
-    }
+    }));
 
-    // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
-    if ((i % 3) == 0) {
-      relayStatusLogs(true);
-    }
+    maybeRunDecorators(i);
+    maybeReloadSchedule(i);
+    maybeFlushLogs(i);
+
     auto loop_step_duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start_time_point);
-    if (loop_step_duration + time_drift_ < interval_) {
-      pause(std::chrono::milliseconds(interval_ - loop_step_duration -
-                                      time_drift_));
-      time_drift_ = std::chrono::milliseconds::zero();
-    } else {
-      time_drift_ += loop_step_duration - interval_;
-      if (time_drift_ > max_time_drift_) {
-        // giving up
-        time_drift_ = std::chrono::milliseconds::zero();
-      }
-    }
+    calculateTimeDriftAndMaybePause(loop_step_duration);
     if (interrupted()) {
       break;
     }

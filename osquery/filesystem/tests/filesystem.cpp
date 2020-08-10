@@ -184,6 +184,14 @@ TEST_F(FilesystemTests, test_read_limit) {
   EXPECT_TRUE(status.ok());
 }
 
+TEST_F(FilesystemTests, test_read_size) {
+  std::string content;
+  size_t s = 3;
+  auto status = readFile(fake_directory_ / "root.txt", content, s);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(content.size(), s);
+}
+
 TEST_F(FilesystemTests, test_list_files_missing_directory) {
   std::vector<std::string> results;
   auto status = listFilesInDirectory("/foo/bar", results);

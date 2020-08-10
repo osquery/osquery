@@ -44,6 +44,7 @@ function(generateOsqueryEvents)
       windows/usn_journal_reader.cpp
       windows/windowseventlogpublisher.cpp
       windows/windowseventlogparserservice.cpp
+      windows/windowseventlogparser.cpp
     )
   endif()
 
@@ -111,6 +112,7 @@ function(generateOsqueryEvents)
       windows/usn_journal_reader.h
       windows/windowseventlogpublisher.h
       windows/windowseventlogparserservice.h
+      windows/windowseventlogparser.h
     )
   endif()
 

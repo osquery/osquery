@@ -144,17 +144,10 @@ Status Query::addNewResults(QueryDataTyped current_qd,
     target_gd = &dr.added;
   }
 
-  counter = getQueryCounter(fresh_results || new_query);
-  auto status =
-      setDatabaseValue(kQueries, name_ + "counter", std::to_string(counter));
-  if (!status.ok()) {
-    return status;
-  }
-
   if (update_db) {
     // Replace the "previous" query data with the current.
     std::string json;
-    status = serializeQueryDataJSON(*target_gd, json, true);
+    auto status = serializeQueryDataJSON(*target_gd, json, true);
     if (!status.ok()) {
       return status;
     }
@@ -166,6 +159,15 @@ Status Query::addNewResults(QueryDataTyped current_qd,
 
     status = setDatabaseValue(
         kQueries, name_ + "epoch", std::to_string(current_epoch));
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  if (update_db || fresh_results || new_query) {
+    counter = getQueryCounter(fresh_results || new_query);
+    auto status =
+        setDatabaseValue(kQueries, name_ + "counter", std::to_string(counter));
     if (!status.ok()) {
       return status;
     }

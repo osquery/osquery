@@ -97,12 +97,18 @@ FLAG(string,
 
 FLAG(bool, utc, true, "Convert all UNIX times to UTC");
 
+namespace {
+
 const std::vector<std::string> kPlaceholderHardwareUUIDList{
     "00000000-0000-0000-0000-000000000000",
     "03000200-0400-0500-0006-000700080009",
     "03020100-0504-0706-0809-0a0b0c0d0e0f",
     "10000000-0000-8000-0040-000000000000",
 };
+
+/// The time osquery was started.
+std::atomic<size_t> kStartTime{0};
+} // namespace
 
 #ifdef WIN32
 struct tm* gmtime_r(time_t* t, struct tm* result) {
@@ -345,7 +351,7 @@ Status createPidFile() {
   if (pathExists(pidfile_path).ok()) {
     // if it exists, check if that pid is running.
     std::string content;
-    auto read_status = readFile(pidfile_path, content, true);
+    auto read_status = readFile(pidfile_path, content);
     if (!read_status.ok()) {
       return Status(1, "Could not read pidfile: " + read_status.toString());
     }
@@ -571,6 +577,14 @@ Status setThreadName(const std::string& name) {
 #else
   return Status::failure("setThreadName not supported on this OS");
 #endif
+}
+
+void setStartTime(size_t st) {
+  kStartTime = st;
+}
+
+size_t getStartTime() {
+  return kStartTime;
 }
 
 bool checkPlatform(const std::string& platform) {

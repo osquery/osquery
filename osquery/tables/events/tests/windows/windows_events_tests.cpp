@@ -14,6 +14,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include <osquery/events/windows/windowseventlogparser.h>
 #include <osquery/tables/events/windows/windows_events.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
@@ -76,8 +77,7 @@ TEST_F(WindowsEventsTests, test_recorded_events) {
       auto wide_chars_buffer = stringToWstring(buffer.str());
 
       boost::property_tree::ptree event_object = {};
-      auto status = WindowsEventLogParserService::processEvent(
-          event_object, wide_chars_buffer);
+      auto status = parseWindowsEventLogXML(event_object, wide_chars_buffer);
 
       ASSERT_TRUE(status.ok())
           << "Failed to parse the following event sample: " << event_sample_path
@@ -85,9 +85,8 @@ TEST_F(WindowsEventsTests, test_recorded_events) {
 
       // Attempt to process the event object; this will have to flatten some of
       // the original XML structure to make it compatible with JSON
-      WindowsEventSubscriber::Event windows_event;
-      status = WindowsEventSubscriber::processEventObject(windows_event,
-                                                          event_object);
+      WELEvent windows_event;
+      status = parseWindowsEventLogPTree(windows_event, event_object);
       ASSERT_TRUE(status.ok())
           << "Failed to process the following event sample: "
           << event_sample_path << ". Error: " << status.getMessage();
@@ -146,16 +145,15 @@ TEST_F(WindowsEventsTests, test_recorded_events) {
 
 TEST_F(WindowsEventsTests, invalid_event_parsing) {
   boost::property_tree::ptree event_object = {};
-  WindowsEventSubscriber::Event windows_event;
-  auto status =
-      WindowsEventSubscriber::processEventObject(windows_event, event_object);
+  WELEvent windows_event;
+  auto status = parseWindowsEventLogPTree(windows_event, event_object);
 
   ASSERT_FALSE(status.ok());
 }
 
 TEST_F(WindowsEventsTests, row_generation) {
   // clang-format off
-  WindowsEventSubscriber::Event test_event = {
+  WELEvent test_event = {
     // osquery time
     1U,
 

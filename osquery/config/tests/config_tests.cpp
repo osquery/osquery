@@ -54,7 +54,7 @@ extern void saveScheduleDenylist(const std::map<std::string, size_t>& denylist);
 class ConfigTests : public testing::Test {
  public:
   ConfigTests() {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);

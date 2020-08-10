@@ -131,6 +131,32 @@ function(librpmMain)
     SYSCONFDIR="/usr/local/etc"
   )
 
+  # Starting in glibc 2.25, the macros `major` and `minor` were moved
+  # from `<sys/types.h>` to `<sys/sysmacros.h>`, to stop leaking these
+  # common words into the global namespace of those including <stdlib.h>
+  #
+  # https://sourceware.org/bugzilla/show_bug.cgi?format=multiple&id=19239
+  #
+  # The macros MAJOR_IN_MKDEV and MAJOR_IN_SYSMACROS would be defined if
+  # necessary by autoconfig, and put in `config.h`. But osquery build
+  # uses CMake instead of autotools, with a git-committed `config.h`.
+  # This mirrors detection done by autoconf/headers.m4 as CMake code.
+  #
+  if(DEFINED PLATFORM_LINUX)
+    CHECK_SYMBOL_EXISTS(major "sys/mkdev.h" MAJOR_IN_MKDEV)
+    CHECK_SYMBOL_EXISTS(major "sys/sysmacros.h" MAJOR_IN_SYSMACROS) 
+    if(MAJOR_IN_MKDEV)
+      target_compile_definitions(thirdparty_librpm PRIVATE
+        MAJOR_IN_MKDEV=1
+      )
+    endif()
+    if(MAJOR_IN_SYSMACROS)
+      target_compile_definitions(thirdparty_librpm PRIVATE
+        MAJOR_IN_SYSMACROS=1
+      )
+    endif()
+  endif()
+
   target_link_libraries(thirdparty_librpm PUBLIC
     thirdparty_berkeley-db
     thirdparty_openssl

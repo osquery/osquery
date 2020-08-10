@@ -868,7 +868,11 @@ class EventFactory : private boost::noncopyable {
   template <typename PUB>
   static void fire(const EventContextRef& ec) {
     auto event_pub = getEventPublisher(getType<PUB>());
-    event_pub->fire(ec);
+    if (event_pub != nullptr) {
+      // A publisher may not exist anymore if an OS event callback is fired
+      // during process teardown. A publisher cannot-be-found log is generated.
+      event_pub->fire(ec);
+    }
   }
 
   /**
@@ -880,8 +884,8 @@ class EventFactory : private boost::noncopyable {
    */
   template <class PUB>
   static const std::string getType() {
-    auto pub = std::make_shared<PUB>();
-    return pub->type();
+    static std::string _type = std::make_shared<PUB>()->type();
+    return _type;
   }
 
   /**

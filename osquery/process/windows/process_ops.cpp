@@ -20,12 +20,14 @@ std::string psidToString(PSID sid) {
     VLOG(1) << "ConvertSidToString failed with " << GetLastError();
     return std::string("");
   }
-  return std::string(sidOut);
+  std::string sidString(sidOut);
+  LocalFree(sidOut);
+  return sidString;
 }
 
 uint32_t getUidFromSid(PSID sid) {
   auto const uid_default = static_cast<uint32_t>(-1);
-  LPSTR sidString;
+  LPSTR sidString = nullptr;
   if (ConvertSidToStringSidA(sid, &sidString) == 0) {
     VLOG(1) << "getUidFromSid failed ConvertSidToStringSid error " +
                    std::to_string(GetLastError());

@@ -131,12 +131,6 @@ class Config : private boost::noncopyable {
     return valid_;
   }
 
-  /// Get start time of config.
-  static size_t getStartTime();
-
-  /// Set the start time if the config.
-  static void setStartTime(size_t st);
-
   /**
    * @brief Add a pack to the osquery schedule
    */

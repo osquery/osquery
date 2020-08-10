@@ -27,8 +27,10 @@
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
+#include <osquery/shutdown.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/time.h>
@@ -114,9 +116,6 @@ DECLARE_string(pack_delimiter);
  */
 const std::string kExecutingQuery{"executing_query"};
 const std::string kFailedQueries{"failed_queries"};
-
-/// The time osquery was started.
-std::atomic<size_t> kStartTime;
 
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
@@ -375,14 +374,6 @@ void Config::addPack(const std::string& name,
   }
 }
 
-size_t Config::getStartTime() {
-  return kStartTime;
-}
-
-void Config::setStartTime(size_t st) {
-  kStartTime = st;
-}
-
 void Config::removePack(const std::string& pack) {
   RecursiveLock wlock(config_schedule_mutex_);
   return schedule_->remove(pack);
@@ -511,7 +502,7 @@ Status Config::refresh() {
       }
       VLOG(1) << "Requesting shutdown after dumping config";
       // Don't force because the config plugin may have started services.
-      Initializer::requestShutdown();
+      requestShutdown();
       return Status::success();
     }
     status = update(response[0]);

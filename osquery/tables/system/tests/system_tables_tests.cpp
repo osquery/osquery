@@ -21,6 +21,9 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+#ifdef OSQUERY_WINDOWS
+#include <osquery/utils/conversions/windows/strings.h>
+#endif
 #include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
@@ -30,7 +33,7 @@ namespace tables {
 class SystemsTablesTests : public testing::Test {
  protected:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
 
     // Force registry to use ephemeral database plugin
@@ -230,20 +233,20 @@ TEST_F(SystemsTablesTests, test_table_constraints) {
   {
     // Check LIKE and = operands.
 #ifdef OSQUERY_WINDOWS
-    TCHAR windows_path[64];
+    WCHAR windows_path[64];
     auto windows_path_length =
-        GetSystemWindowsDirectory(windows_path, sizeof(windows_path));
+        GetSystemWindowsDirectoryW(windows_path, ARRAYSIZE(windows_path));
     ASSERT_FALSE(windows_path_length == 0);
 
     std::stringstream qry_stream;
     qry_stream << boost::format("select path from file where path LIKE '%s") %
-                      windows_path
+                      wstringToString(windows_path)
                << R"(\%';)";
     std::string like_query = qry_stream.str();
     qry_stream = std::stringstream();
 
     qry_stream << boost::format("select path from file where path = '%s") %
-                      windows_path
+                      wstringToString(windows_path)
                << R"(';)";
     std::string equal_query = qry_stream.str();
 

@@ -7,13 +7,13 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/filesystem/fileops.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/tables/system/windows/registry.h>
 #include <osquery/tables/system/windows/userassist.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/system/time.h>
 #include <string>
 
@@ -21,7 +21,7 @@ namespace osquery {
 namespace tables {
 
 constexpr auto kFullRegPath =
-    "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist";
+    "\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist";
 
 // Decode ROT13 sub key value
 /**
@@ -50,27 +50,28 @@ std::string rotDecode(std::string& value_key_reg) {
   return decoded_value_key;
 }
 
-// Get last exeution time
-auto lastExecute(std::string& time_data) {
+// Convert little endian Windows FILETIME to unix timestamp
+long long littleEndianToUnixTime(const std::string& time_data) {
   // If timestamp is zero dont convert to UNIX Time
   if (time_data == "0000000000000000") {
-    return 1LL;
+    return 0LL;
   } else {
+    std::string time_string = time_data;
     // swap endianess
-    std::reverse(time_data.begin(), time_data.end());
+    std::reverse(time_string.begin(), time_string.end());
 
-    for (std::size_t i = 0; i < time_data.length(); i += 2) {
-      char temp = time_data[i];
-      time_data[i] = time_data[i + 1];
-      time_data[i + 1] = temp;
+    for (std::size_t i = 0; i < time_string.length(); i += 2) {
+      char temp = time_string[i];
+      time_string[i] = time_string[i + 1];
+      time_string[i + 1] = temp;
     }
 
     // Convert string to long long
     unsigned long long last_run =
-        tryTo<unsigned long long>(time_data, 16).takeOr(0ull);
+        tryTo<unsigned long long>(time_string, 16).takeOr(0ull);
     if (last_run == 0ull) {
-      LOG(WARNING) << "Failed to convert string to long long: " << time_data;
-      return 1LL;
+      LOG(WARNING) << "Failed to convert string to long long: " << time_string;
+      return 0LL;
     }
 
     FILETIME file_time;
@@ -84,7 +85,7 @@ auto lastExecute(std::string& time_data) {
 }
 
 // Get execution count
-int executionNum(const std::string& assist_data) {
+std::size_t executionNum(const std::string& assist_data) {
   if (assist_data.length() <= 16) {
     LOG(WARNING) << "Userassist execution count format is incorrect";
     return -1;
@@ -159,18 +160,18 @@ QueryData genUserAssist(QueryContext& context) {
           results.push_back(r);
         } else {
           std::string assist_data = aKey.at("data");
-          auto time_str = 1LL;
+          auto time_str = 0LL;
           if (assist_data.length() <= 136) {
             LOG(WARNING)
                 << "Userassist last execute Timestamp format is incorrect";
           } else {
             std::string time_data = assist_data.substr(120, 16);
-            time_str = lastExecute(time_data);
+            time_str = littleEndianToUnixTime(time_data);
           }
 
           r["path"] = decoded_value_key;
 
-          if (time_str == 1LL) {
+          if (time_str == 0LL) {
             r["count"] = "";
             r["last_execution_time"] = "";
           } else {

@@ -33,11 +33,11 @@
 #include <osquery/tables.h>
 
 #include <osquery/core/windows/wmi.h>
-#include <osquery/filesystem/fileops.h>
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/scope_guard.h>
 
 namespace osquery {

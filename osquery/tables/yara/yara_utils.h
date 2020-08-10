@@ -42,7 +42,10 @@ Status handleRuleFiles(const std::string& category,
  */
 bool yaraShouldSkipFile(const std::string& path, mode_t st_mode);
 
-int YARACallback(int message, void* message_data, void* user_data);
+int YARACallback(YR_SCAN_CONTEXT* context,
+                 int message,
+                 void* message_data,
+                 void* user_data);
 
 /**
  * @brief A simple ConfigParserPlugin for a "yara" dictionary key.

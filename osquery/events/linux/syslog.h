@@ -8,12 +8,15 @@
 
 #pragma once
 
-#include <stdio.h>
-
-#include <fstream>
-#include <map>
-
 #include <osquery/events.h>
+#include <osquery/utils/mutex.h>
+
+#include <boost/noncopyable.hpp>
+
+#include <map>
+#include <vector>
+
+#include <stdio.h>
 
 namespace osquery {
 
@@ -43,6 +46,76 @@ struct SyslogEventContext : public EventContext {
 
 using SyslogEventContextRef = std::shared_ptr<SyslogEventContext>;
 using SyslogSubscriptionContextRef = std::shared_ptr<SyslogSubscriptionContext>;
+
+/**
+ * @brief Implement a non-blocking-read of a pipe.
+ *
+ * The goal is to abstract a managed buffer and stream-like-object to implement
+ * a version of std::getline that does not block.
+ *
+ * Limitations include undefined behavior (dropping the initial bytes) when a
+ * line would overflow the reserved internal buffer.
+ */
+class NonBlockingFStream : public boost::noncopyable {
+ public:
+  NonBlockingFStream() {
+    buffer_.reserve(2048);
+    buffer_.assign(2048, 0);
+  }
+
+  explicit NonBlockingFStream(size_t capacity) {
+    buffer_.reserve(capacity);
+    buffer_.assign(capacity, 0);
+  }
+
+  ~NonBlockingFStream() {
+    close();
+  }
+
+  /// Open for reading and writing to avoid blocking a pipe read.
+  Status openReadOnly(const std::string& path);
+
+  /// Close the managed fstream, called on destruction.
+  Status close();
+
+  /**
+   * @brief Read a complete line or nothing into output.
+   *
+   * The output buffer will be cleared everytime. Data will only be written if
+   * a complete line was dequeued from the managed stream. If too much data is
+   * written and our internal buffer overflows then no data will be output.
+   *
+   * Overflowing the internal buffer does not break the reading. If this occures
+   * then expect a line to be truncated and only yeild the max bytes.
+   */
+  Status getline(std::string& output);
+
+  /// Inspect the internal offset.
+  size_t offset() {
+    return offset_;
+  }
+
+ private:
+  /// The managed descriptor for the stream.
+  int fd_{-1};
+
+  /// Mutex for fd accesses.
+  Mutex fd_mutex_;
+
+  /// Push/pop buffer for reading a line and dequeuing.
+  std::vector<char> buffer_;
+
+  /**
+   * @brief Offset into the buffer for the next read.
+   *
+   * If a call to getline did not find a '\n', then the next call will continue
+   * to dequeue where the previous getline left off.
+   */
+  size_t offset_{0};
+
+ private:
+  FRIEND_TEST(SyslogTests, test_nonblockingfstream);
+};
 
 /**
  * @brief Event publisher for syslog lines forwarded through rsyslog
@@ -113,7 +186,7 @@ class SyslogEventPublisher
   /**
    * @brief Input stream for reading from the pipe.
    */
-  std::fstream readStream_;
+  NonBlockingFStream readStream_;
 
   /**
    * @brief Counter used to shut down thread when too many errors occur.
@@ -201,4 +274,4 @@ class RsyslogCsvSeparator {
  private:
   bool last_;
 };
-}
+} // namespace osquery

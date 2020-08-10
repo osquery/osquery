@@ -34,8 +34,8 @@
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
-#include <osquery/filesystem/fileops.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/tables/system/windows/registry.h>
 
@@ -203,10 +203,10 @@ Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
   if (!ConvertStringSidToSidA(toks[1].c_str(), &sid)) {
     return Status(GetLastError(), "Could not convert string to sid");
   } else {
-    wchar_t accntName[UNLEN] = {0};
-    wchar_t domName[DNLEN] = {0};
-    unsigned long accntNameLen = UNLEN;
-    unsigned long domNameLen = DNLEN;
+    WCHAR accntName[UNLEN + 1] = {0};
+    WCHAR domName[DNLEN + 1] = {0};
+    DWORD accntNameLen = UNLEN + 1;
+    DWORD domNameLen = DNLEN + 1;
     SID_NAME_USE eUse;
     if (!LookupAccountSidW(nullptr,
                            sid,

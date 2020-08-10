@@ -25,7 +25,7 @@ class HostIdentityTests : public testing::Test {
  public:
   void SetUp() override {
     FLAGS_disable_database = true;
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     DatabasePlugin::initPlugin();
   }

@@ -34,7 +34,7 @@ DECLARE_bool(logger_numerics);
 class LoggerTests : public testing::Test {
  public:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);
@@ -476,8 +476,8 @@ TEST_F(LoggerTests, test_recursion) {
   EXPECT_EQ(3U, plugin->statuses);
 
   // Try again with the tool type as a daemon.
-  auto tool_type = kToolType;
-  kToolType = ToolType::DAEMON;
+  auto tool_type = getToolType();
+  setToolType(ToolType::DAEMON);
   LOG(WARNING) << "recurse";
 
   // The daemon calls the status relay within the scheduler.
@@ -488,7 +488,7 @@ TEST_F(LoggerTests, test_recursion) {
   EXPECT_EQ(4U, plugin->statuses);
   relayStatusLogs(true);
   EXPECT_EQ(5U, plugin->statuses);
-  kToolType = tool_type;
+  setToolType(tool_type);
 
   EXPECT_EQ(0U, queuedStatuses());
   EXPECT_EQ(0U, queuedSenders());

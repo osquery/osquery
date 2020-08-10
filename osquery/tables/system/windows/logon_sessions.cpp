@@ -19,9 +19,8 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/process/windows/process_ops.h>
-
-#include "osquery/filesystem/fileops.h"
 
 namespace osquery {
 namespace tables {
@@ -66,9 +65,9 @@ QueryData queryLogonSessions(QueryContext& context) {
           kLogonTypeToStr.find(SECURITY_LOGON_TYPE(session_data->LogonType))
               ->second;
       r["session_id"] = INTEGER(session_data->Session);
-      LPTSTR sid = nullptr;
-      if (ConvertSidToStringSid(session_data->Sid, &sid)) {
-        r["logon_sid"] = sid;
+      LPWSTR sid = nullptr;
+      if (ConvertSidToStringSidW(session_data->Sid, &sid)) {
+        r["logon_sid"] = wstringToString(sid);
       }
       if (sid) {
         LocalFree(sid);

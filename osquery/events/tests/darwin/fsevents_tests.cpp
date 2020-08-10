@@ -45,7 +45,7 @@ class FSEventsTests : public testing::Test {
   void SetUp() override {
     fs::create_directories(real_test_dir);
 
-    kToolType = ToolType::TEST;
+    setToolType(ToolType::TEST);
     registryAndPluginInit();
 
     FLAGS_disable_database = true;
@@ -67,7 +67,9 @@ class FSEventsTests : public testing::Test {
     event_pub_ = std::make_shared<FSEventsEventPublisher>();
     event_pub_->no_defer_ = true;
     event_pub_->no_self_ = false;
-    EventFactory::registerEventPublisher(event_pub_);
+    auto s = EventFactory::registerEventPublisher(event_pub_);
+    ASSERT_TRUE(s.ok());
+
     FILE* fd = fopen(real_test_path.c_str(), "w+");
     fclose(fd);
 
@@ -79,6 +81,10 @@ class FSEventsTests : public testing::Test {
     while (!event_pub_->hasStarted()) {
       ::usleep(20);
     }
+
+    auto s = EventFactory::deregisterEventPublisher("fsevents");
+    ASSERT_TRUE(s.ok());
+
     EventFactory::end(false);
     temp_thread_.join();
   }
@@ -130,40 +136,44 @@ class FSEventsTests : public testing::Test {
 
 TEST_F(FSEventsTests, test_register_event_pub) {
   auto pub = std::make_shared<FSEventsEventPublisher>();
-  auto status = EventFactory::registerEventPublisher(pub);
-  EXPECT_TRUE(status.ok());
+  auto s = EventFactory::registerEventPublisher(pub);
+  EXPECT_TRUE(s.ok());
 
   // Make sure only one event type exists
   EXPECT_EQ(EventFactory::numEventPublishers(), 1U);
-  status = EventFactory::deregisterEventPublisher("fsevents");
-  EXPECT_TRUE(status.ok());
+  s = EventFactory::deregisterEventPublisher("fsevents");
+  EXPECT_TRUE(s.ok());
 }
 
 TEST_F(FSEventsTests, test_fsevents_add_subscription_missing_path) {
   auto pub = std::make_shared<FSEventsEventPublisher>();
-  EventFactory::registerEventPublisher(pub);
+  auto s = EventFactory::registerEventPublisher(pub);
+  ASSERT_TRUE(s.ok());
 
   // This subscription path is fake, and will succeed!
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = "/this/path/is/fake";
 
   auto subscription = Subscription::create("TestSubscriber", mc);
-  auto status = EventFactory::addSubscription("fsevents", subscription);
-  EXPECT_TRUE(status.ok());
-  EventFactory::deregisterEventPublisher("fsevents");
+  s = EventFactory::addSubscription("fsevents", subscription);
+  EXPECT_TRUE(s.ok());
+
+  s = EventFactory::deregisterEventPublisher("fsevents");
+  ASSERT_TRUE(s.ok());
 }
 
 TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   auto event_pub = std::make_shared<FSEventsEventPublisher>();
-  EventFactory::registerEventPublisher(event_pub);
+  auto s = EventFactory::registerEventPublisher(event_pub);
+  ASSERT_TRUE(s.ok());
 
   // This subscription path *should* be real.
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = "/";
 
   auto subscription = Subscription::create("TestSubscriber", mc);
-  auto status = EventFactory::addSubscription("fsevents", subscription);
-  EXPECT_TRUE(status.ok());
+  s = EventFactory::addSubscription("fsevents", subscription);
+  EXPECT_TRUE(s.ok());
   event_pub->configure();
 
   // Make sure configure was called.
@@ -174,26 +184,29 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   auto mc_dup = std::make_shared<FSEventsSubscriptionContext>();
   mc_dup->path = "/";
   auto subscription_dup = Subscription::create("TestSubscriber", mc_dup);
-  status = EventFactory::addSubscription("fsevents", subscription_dup);
-  EXPECT_TRUE(status.ok());
+  s = EventFactory::addSubscription("fsevents", subscription_dup);
+  EXPECT_TRUE(s.ok());
   event_pub->configure();
 
   // But the paths with be deduped when the event type reconfigures.
   num_paths = event_pub->numSubscriptionedPaths();
   EXPECT_EQ(num_paths, 1U);
-  EventFactory::deregisterEventPublisher("fsevents");
+
+  s = EventFactory::deregisterEventPublisher("fsevents");
+  ASSERT_TRUE(s.ok());
 }
 
 TEST_F(FSEventsTests, test_fsevents_match_subscription) {
   auto event_pub = std::make_shared<FSEventsEventPublisher>();
-  EventFactory::registerEventPublisher(event_pub);
+  auto s = EventFactory::registerEventPublisher(event_pub);
+  ASSERT_TRUE(s.ok());
 
   auto sc = event_pub->createSubscriptionContext();
   sc->path = "/etc/%%";
   replaceGlobWildcards(sc->path);
   auto subscription = Subscription::create("TestSubscriber", sc);
-  auto status = EventFactory::addSubscription("fsevents", subscription);
-  EXPECT_TRUE(status.ok());
+  s = EventFactory::addSubscription("fsevents", subscription);
+  EXPECT_TRUE(s.ok());
   event_pub->configure();
 
   std::vector<std::string> exclude_paths = {
@@ -215,7 +228,9 @@ TEST_F(FSEventsTests, test_fsevents_match_subscription) {
     ec->path = "/private/etc/ssl/certs/";
     EXPECT_TRUE(event_pub->shouldFire(sc, ec));
   }
-  EventFactory::deregisterEventPublisher("fsevents");
+
+  s = EventFactory::deregisterEventPublisher("fsevents");
+  ASSERT_TRUE(s.ok());
 }
 
 class TestFSEventsEventSubscriber
@@ -286,11 +301,13 @@ class TestFSEventsEventSubscriber
 TEST_F(FSEventsTests, test_fsevents_run) {
   // Assume event type is registered.
   event_pub_ = std::make_shared<FSEventsEventPublisher>();
-  EventFactory::registerEventPublisher(event_pub_);
+  auto s = EventFactory::registerEventPublisher(event_pub_);
+  ASSERT_TRUE(s.ok());
 
   // Create a subscriber.
   auto sub = std::make_shared<TestFSEventsEventSubscriber>();
-  EventFactory::registerEventSubscriber(sub);
+  s = EventFactory::registerEventSubscriber(sub);
+  ASSERT_TRUE(s.ok());
 
   // Create a subscriptioning context
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
@@ -313,9 +330,7 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   WaitForEvents(kMaxEventLatency);
 
   EXPECT_TRUE(event_pub_->numEvents() > 0);
-  // We are managing the thread ourselves, so no join needed.
-  EventFactory::end(false);
-  temp_thread_.join();
+  EndEventLoop();
 }
 
 TEST_F(FSEventsTests, test_fsevents_fire_event) {
@@ -324,7 +339,8 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
 
   // Simulate registering an event subscriber.
   auto sub = std::make_shared<TestFSEventsEventSubscriber>();
-  EventFactory::registerEventSubscriber(sub);
+  auto s = EventFactory::registerEventSubscriber(sub);
+  ASSERT_TRUE(s.ok());
 
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(real_test_path, 0);
@@ -347,10 +363,12 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
 
   // Simulate registering an event subscriber.
   auto sub = std::make_shared<TestFSEventsEventSubscriber>();
-  auto status = sub->init();
+  auto s = sub->init();
+  ASSERT_TRUE(s.ok());
 
   auto sc = sub->GetSubscription(real_test_path, 0);
-  EventFactory::registerEventSubscriber(sub);
+  s = EventFactory::registerEventSubscriber(sub);
+  ASSERT_TRUE(s.ok());
 
   sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc);
   event_pub_->configure();
@@ -404,10 +422,12 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
 TEST_F(FSEventsTests, test_fsevents_embedded_wildcards) {
   // Assume event type is not registered.
   event_pub_ = std::make_shared<FSEventsEventPublisher>();
-  EventFactory::registerEventPublisher(event_pub_);
+  auto s = EventFactory::registerEventPublisher(event_pub_);
+  ASSERT_TRUE(s.ok());
 
   auto sub = std::make_shared<TestFSEventsEventSubscriber>();
-  EventFactory::registerEventSubscriber(sub);
+  s = EventFactory::registerEventSubscriber(sub);
+  ASSERT_TRUE(s.ok());
 
   // Create ./fsevents/2/1/
   fs::create_directories(real_test_dir + "/2/1");
@@ -424,5 +444,8 @@ TEST_F(FSEventsTests, test_fsevents_embedded_wildcards) {
   ASSERT_EQ(event_pub_->numSubscriptionedPaths(), 1U);
   std::set<std::string> expected = {real_test_dir + "/2/1/"};
   EXPECT_EQ(event_pub_->paths_, expected);
+
+  s = EventFactory::deregisterEventPublisher("fsevents");
+  ASSERT_TRUE(s.ok());
 }
 }

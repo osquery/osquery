@@ -28,7 +28,7 @@ DECLARE_bool(disable_database);
 class WatcherTests : public testing::Test {
  protected:
   WatcherTests() {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);

@@ -71,6 +71,12 @@ void genODEntries(ODRecordType record_type,
   }
 }
 
+void genGroupRow(Row& r, group* grp) {
+  r["groupname"] = grp->gr_name;
+  r["gid"] = BIGINT(grp->gr_gid);
+  r["gid_signed"] = BIGINT((int32_t)grp->gr_gid);
+}
+
 QueryData genGroups(QueryContext& context) {
   QueryData results;
   @autoreleasepool {
@@ -87,26 +93,29 @@ QueryData genGroups(QueryContext& context) {
         genODEntries(kODRecordTypeGroups, groupname, groupnames);
 
         Row r;
-        r["groupname"] = grp->gr_name;
+        genGroupRow(r, grp);
         r["is_hidden"] = INTEGER(groupnames[r["groupname"]]);
-        r["gid"] = BIGINT(grp->gr_gid);
-        r["gid_signed"] = BIGINT((int32_t)grp->gr_gid);
         results.push_back(r);
       }
     } else {
       std::map<std::string, bool> groupnames;
       genODEntries(kODRecordTypeGroups, nil, groupnames);
       for (const auto& groupname : groupnames) {
+        // opendirectory and getgrnam are documented as having
+        // different code paths. Thus we may see cases where
+        // genODEntries produces responses that are not in
+        // getgrnam. So with a surfeit of caution we populate some of
+        // the row here
+        Row r;
+        r["is_hidden"] = INTEGER(groupname.second);
+
         struct group* grp = getgrnam(groupname.first.c_str());
-        if (grp == nullptr) {
-          continue;
+        if (grp != nullptr) {
+          genGroupRow(r, grp);
+        } else {
+          r["groupname"] = TEXT(groupname.first);
         }
 
-        Row r;
-        r["groupname"] = groupname.first;
-        r["is_hidden"] = INTEGER(groupname.second);
-        r["gid"] = BIGINT(grp->gr_gid);
-        r["gid_signed"] = BIGINT((int32_t)grp->gr_gid);
         results.push_back(r);
       }
     }
@@ -115,6 +124,7 @@ QueryData genGroups(QueryContext& context) {
 }
 
 void genUserRow(Row& r, const passwd* pwd) {
+  r["username"] = TEXT(pwd->pw_name);
   r["uid"] = BIGINT(pwd->pw_uid);
   r["gid"] = BIGINT(pwd->pw_gid);
   r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
@@ -151,24 +161,29 @@ QueryData genUsers(QueryContext& context) {
         genODEntries(kODRecordTypeUsers, username, usernames);
 
         Row r;
-        r["username"] = pwd->pw_name;
-        r["is_hidden"] = INTEGER(usernames[r["username"]]);
         genUserRow(r, pwd);
+        r["is_hidden"] = INTEGER(usernames[r["username"]]);
         results.push_back(r);
       }
     } else {
       std::map<std::string, bool> usernames;
       genODEntries(kODRecordTypeUsers, nil, usernames);
       for (const auto& username : usernames) {
+        // opendirectory and getpwnam are documented as having
+        // different code paths. Thus we may see cases where
+        // genODEntries produces responses that are not in
+        // getpwnam. So with a surfeit of caution we populate some of
+        // the row here
+        Row r;
+        r["is_hidden"] = INTEGER(username.second);
+
         struct passwd* pwd = getpwnam(username.first.c_str());
-        if (pwd == nullptr) {
-          continue;
+        if (pwd != nullptr) {
+          genUserRow(r, pwd);
+        } else {
+          r["username"] = TEXT(username.first.c_str());
         }
 
-        Row r;
-        r["username"] = pwd->pw_name;
-        r["is_hidden"] = INTEGER(usernames[r["username"]]);
-        genUserRow(r, pwd);
         results.push_back(r);
       }
     }

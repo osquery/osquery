@@ -15,10 +15,10 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include <osquery/filesystem/fileops.h>
 #include <osquery/process/windows/process_ops.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
 const std::map<int, std::string> kSessionStates = {
     {WTSActive, "active"},

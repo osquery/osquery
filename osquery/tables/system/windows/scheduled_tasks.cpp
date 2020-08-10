@@ -20,8 +20,8 @@
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
-#include <osquery/filesystem/fileops.h>
 #include <osquery/process/process.h>
 
 namespace osquery {
@@ -113,7 +113,7 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
     HRESULT lastTaskRun = E_FAIL;
     pRegisteredTask->get_LastTaskResult(&lastTaskRun);
     _com_error err(lastTaskRun);
-    r["last_run_message"] = err.ErrorMessage();
+    r["last_run_message"] = wstringToString(err.ErrorMessage());
     r["last_run_code"] = INTEGER(lastTaskRun);
 
     // We conver the COM Date type to a unix epoch timestamp

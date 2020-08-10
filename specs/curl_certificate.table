@@ -13,25 +13,25 @@ schema([
     Column("valid_to", TEXT, "Period of validity end date"),
     Column("sha256_fingerprint", TEXT, "SHA-256 fingerprint"),
     Column("sha1_fingerprint", TEXT, "SHA1 fingerprint"),
-    Column("certificate_version", INTEGER, "Version Number"),
+    Column("version", INTEGER, "Version Number"),
     Column("signature_algorithm", TEXT, "Signature Algorithm"),
     Column("signature", TEXT, "Signature"),
     Column("subject_key_identifier", TEXT, "Subject Key Identifier"),
     Column("authority_key_identifier", TEXT, "Authority Key Identifier"),
     Column("key_usage", TEXT, "Usage of key in certificate"),
     Column("extended_key_usage", TEXT, "Extended usage of key in certificate"),
-    Column("certificate_policies", TEXT, "Certificate Policies"),
+    Column("policies", TEXT, "Certificate Policies"),
     Column("subject_alternative_names", TEXT, "Subject Alternative Name"),
     Column("issuer_alternative_names", TEXT, "Issuer Alternative Name"),
     Column("info_access", TEXT, "Authority Information Access"),
     Column("subject_info_access", TEXT, "Subject Information Access"),
     Column("policy_mappings", TEXT, "Policy Mappings"),
-    Column("certificate_has_expired", INTEGER, "1 if the certificate has expired, 0 otherwise"),
+    Column("has_expired", INTEGER, "1 if the certificate has expired, 0 otherwise"),
     Column("basic_constraint", TEXT, "Basic Constraints"),
     Column("name_constraints", TEXT, "Name Constraints"),
     Column("policy_constraints", TEXT, "Policy Constraints"),
     Column("dump_certificate", INTEGER, "Set this value to '1' to dump certificate", additional=True, hidden=True),
-    Column("certificate_pem", TEXT, "Certificate PEM format")
+    Column("pem", TEXT, "Certificate PEM format")
 ])
 implementation("curl_certificate@genTLSCertificate")
 examples([

@@ -58,7 +58,13 @@ class DynamicTableRowHolder {
   inline std::string& operator[](const std::string& key) {
     return (*row)[key];
   }
+  inline const std::string& operator[](const std::string& key) const {
+    return (*row)[key];
+  }
   inline std::string& operator[](std::string&& key) {
+    return (*row)[key];
+  }
+  inline const std::string& operator[](std::string&& key) const {
     return (*row)[key];
   }
   inline size_t count(const std::string& key) {

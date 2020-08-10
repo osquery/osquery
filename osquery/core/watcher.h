@@ -118,8 +118,13 @@ class Watcher : private boost::noncopyable {
     return worker_status_;
   }
 
-  /// Add extensions autoloadable paths.
-  void addExtensionPath(const std::string& path);
+  /**
+   * @brief Call the loadExtensions global method.
+   *
+   * The watcher is the only 'user' of autoloadable extensions. It will start
+   * each process and optionally monitor the performance.
+   */
+  void loadExtensions();
 
   /// Lock access to extensions.
   void lock() {
@@ -221,9 +226,6 @@ class Watcher : private boost::noncopyable {
   /// Keep a list of resolved extension paths and their managed pids.
   ExtensionMap extensions_;
 
-  /// Paths to autoload extensions.
-  std::vector<std::string> extensions_paths_;
-
   /// Bind the fate of the watcher to the worker.
   std::atomic<bool> restart_worker_{true};
 
@@ -242,26 +244,6 @@ class Watcher : private boost::noncopyable {
 
  private:
   friend class WatcherRunner;
-};
-
-/**
- * @brief A scoped locker for iterating over watcher extensions.
- *
- * A lock must be used if any part of osquery wants to enumerate the autoloaded
- * extensions or autoloadable extension paths a Watcher may be monitoring.
- * A signal or WatcherRunner thread may stop or start extensions.
- */
-class WatcherExtensionsLocker {
- public:
-  /// Construct and gain watcher lock.
-  WatcherExtensionsLocker() {
-    Watcher::get().lock();
-  }
-
-  /// Destruct and release watcher lock.
-  ~WatcherExtensionsLocker() {
-    Watcher::get().unlock();
-  }
 };
 
 /**

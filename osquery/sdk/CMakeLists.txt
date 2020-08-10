@@ -20,6 +20,7 @@ function(generateOsquerySdkPluginsdk)
     osquery_cxx_settings
     osquery_headers
     osquery_config
+    osquery_core_init
     osquery_dispatcher
     osquery_events_eventsregistry
     osquery_experimental_eventsstream_registry

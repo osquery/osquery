@@ -6,6 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/env.h>
 #include <osquery/utils/system/system.h>
 
@@ -102,7 +103,7 @@ static inline Status getService(const SC_HANDLE& scmHandle,
         throw std::runtime_error(ss.str());
       }
       if (lpsd->lpDescription != nullptr) {
-        r["description"] = SQL_TEXT(lpsd->lpDescription);
+        r["description"] = SQL_TEXT(wstringToString(lpsd->lpDescription));
       }
     } else if (ERROR_MUI_FILE_NOT_FOUND != err) {
       // Bug in Windows 10 with CDPUserSvc_63718, just ignore description
@@ -112,16 +113,16 @@ static inline Status getService(const SC_HANDLE& scmHandle,
     LOG(WARNING) << svc.lpServiceName << ": " << e.what();
   }
 
-  r["name"] = SQL_TEXT(svc.lpServiceName);
-  r["display_name"] = SQL_TEXT(svc.lpDisplayName);
-  r["status"] = SQL_TEXT(kSvcStatus[svc.ServiceStatusProcess.dwCurrentState]);
+  r["name"] = SQL_TEXT(wstringToString(svc.lpServiceName));
+  r["display_name"] = SQL_TEXT(wstringToString(svc.lpDisplayName));
+  r["status"] = kSvcStatus[svc.ServiceStatusProcess.dwCurrentState];
   r["pid"] = INTEGER(svc.ServiceStatusProcess.dwProcessId);
   r["win32_exit_code"] = INTEGER(svc.ServiceStatusProcess.dwWin32ExitCode);
   r["service_exit_code"] =
       INTEGER(svc.ServiceStatusProcess.dwServiceSpecificExitCode);
   r["start_type"] = SQL_TEXT(kSvcStartType[lpsc->dwStartType]);
-  r["path"] = SQL_TEXT(lpsc->lpBinaryPathName);
-  r["user_account"] = SQL_TEXT(lpsc->lpServiceStartName);
+  r["path"] = SQL_TEXT(wstringToString(lpsc->lpBinaryPathName));
+  r["user_account"] = SQL_TEXT(wstringToString(lpsc->lpServiceStartName));
 
   if (kServiceType.count(lpsc->dwServiceType) > 0) {
     r["service_type"] = SQL_TEXT(kServiceType.at(lpsc->dwServiceType));

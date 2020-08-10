@@ -90,9 +90,10 @@ void GenerateEventRow(Row& row, const RawAuditEvent& audit_event) {
 class ProcessEventsTests : public testing::Test {};
 
 TEST_F(ProcessEventsTests, syscall_name_label) {
-  ASSERT_EQ(
-      kExecProcessEventsSyscalls.size() + kForkProcessEventsSyscalls.size(),
-      AuditProcessEventSubscriber::GetSyscallNameMap().size());
+  ASSERT_EQ(kExecProcessEventsSyscalls.size() +
+                kForkProcessEventsSyscalls.size() +
+                kKillProcessEventsSyscalls.size(),
+            AuditProcessEventSubscriber::GetSyscallNameMap().size());
 
   std::string name;
 
@@ -148,6 +149,59 @@ TEST_F(ProcessEventsTests, exec_event_processing) {
       {"mode", "0100755"},
       {"owner_uid", "0"},
       {"owner_gid", "0"}};
+
+  for (const auto& key : kExpectedFields) {
+    EXPECT_TRUE(event_row.find(key) != event_row.end());
+  }
+
+  for (const auto& p : kExpectedFieldMap) {
+    const auto& key = p.first;
+    const auto& expected_value = p.second;
+
+    auto it = event_row.find(key);
+    ASSERT_TRUE(it != event_row.end());
+
+    const auto& actual_value = it->second;
+    EXPECT_EQ(expected_value, actual_value);
+  }
+}
+
+TEST_F(ProcessEventsTests, kill_syscall_event_processing) {
+  // clang-format off
+  const RawAuditEvent kSampleKillEvent = {
+    { 1300, "audit(1588703361.452:26860): arch=c000003e syscall=62 success=yes exit=0 a0=6334 a1=f a2=0 a3=7f8b95cbbcc0 items=0 ppid=6198 pid=6199 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts3 ses=5 comm=\"bash\" exe=\"/bin/bash\" key=226B696C6C73686F7422" },
+    { 1318, "audit(1588703361.452:26860): opid=25396 oauid=1000 ouid=1000 oses=5 ocomm=\"python3\"" },
+    { 1307, "audit(1588703361.452:26860): proctitle=\"-bash\"" },
+    { 1320, "audit(1588703361.452:26860): " }
+  };
+  // clang-format on
+
+  Row event_row;
+  GenerateEventRow(event_row, kSampleKillEvent);
+
+  const std::vector<std::string> kExpectedFields = {
+      "uptime", "overflows", "env", "env_size", "env_count"};
+
+  const std::unordered_map<std::string, std::string> kExpectedFieldMap = {
+      {"syscall", "kill"},
+      {"parent", "6198"},
+      {"pid", "6199"},
+      {"auid", "1000"},
+      {"uid", "1000"},
+      {"gid", "1000"},
+      {"euid", "1000"},
+      {"suid", "1000"},
+      {"fsuid", "1000"},
+      {"egid", "1000"},
+      {"sgid", "1000"},
+      {"fsgid", "1000"},
+      {"tty", "pts3"},
+      {"ses", "5"},
+      {"comm", "\"bash\""},
+      {"path", "/bin/bash"},
+      {"ocomm", "\"python3\""},
+      {"oauid", "1000"},
+      {"oses", "5"}};
 
   for (const auto& key : kExpectedFields) {
     EXPECT_TRUE(event_row.find(key) != event_row.end());

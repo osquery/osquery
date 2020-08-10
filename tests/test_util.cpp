@@ -53,9 +53,9 @@ DECLARE_bool(disable_database);
 using chrono_clock = std::chrono::high_resolution_clock;
 
 void initTesting() {
-  Config::setStartTime(getUnixTime());
+  setStartTime(getUnixTime());
 
-  kToolType = ToolType::TEST;
+  setToolType(ToolType::TEST);
   if (osquery::isPlatform(PlatformType::TYPE_OSX)) {
     kTestWorkingDirectory = "/private/tmp/osquery-tests";
   } else {
@@ -117,13 +117,13 @@ void initTesting() {
   DatabasePlugin::setAllowOpen(true);
   DatabasePlugin::initPlugin();
 
-  Initializer::platformSetup();
+  platformSetup();
 }
 
 void shutdownTesting() {
   DatabasePlugin::shutdown();
 
-  Initializer::platformTeardown();
+  platformTeardown();
 }
 
 ScheduledQuery getOsqueryScheduledQuery() {

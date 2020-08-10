@@ -27,7 +27,7 @@ class WorkerTableContainerTests : public testing::Test {
     FLAGS_minloglevel = google::GLOG_INFO;
     FLAGS_alsologtostderr = true;
     FLAGS_v = 1;
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
   }
 };

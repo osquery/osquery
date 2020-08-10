@@ -20,9 +20,6 @@ DECLARE_string(extensions_autoload);
 DECLARE_string(extensions_timeout);
 DECLARE_bool(disable_extensions);
 
-/// A millisecond internal applied to extension initialization.
-extern const size_t kExtensionInitializeLatency;
-
 /**
  * @brief Helper struct for managing extension metadata.
  *
@@ -83,7 +80,7 @@ Status pingExtension(const std::string& path);
 Status applyExtensionDelay(std::function<Status(bool& stop)> predicate);
 
 /**
- * @brief Request the extensions API to autoload any appropriate extensions.
+ * @brief Read the autoload flags and return a set of autoload paths.
  *
  * Extensions may be 'autoloaded' using the `extensions_autoload` command line
  * argument. loadExtensions should be called before any plugin or registry item
@@ -93,32 +90,14 @@ Status applyExtensionDelay(std::function<Status(bool& stop)> predicate);
  * path with file ownership equivalent or greater (root) than the osquery
  * process requesting autoload.
  */
-void loadExtensions();
+std::set<std::string> loadExtensions();
 
 /**
- * @brief Load extensions from a delimited search path string.
+ * @brief Load extensions from a specific search path.
  *
- * @param loadfile Path to file containing newline delimited file paths
+ * @param loadfile Path to file containing newline delimited file paths.
  */
-Status loadExtensions(const std::string& loadfile);
-
-/**
- * @brief Request the extensions API to autoload any appropriate modules.
- *
- * Extension modules are shared libraries that add Plugins to the osquery
- * core's registry at runtime.
- */
-void loadModules();
-
-/**
- * @brief Load extension modules from a delimited search path string.
- *
- * @param loadfile Path to file containing newline delimited file paths
- */
-Status loadModules(const std::string& loadfile);
-
-/// Load all modules in a directory.
-Status loadModuleFile(const std::string& path);
+std::set<std::string> loadExtensions(const std::string& loadfile);
 
 /**
  * @brief Initialize the extensions socket path variable for osqueryi.

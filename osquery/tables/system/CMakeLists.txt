@@ -73,6 +73,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/shadow.cpp
       linux/shared_memory.cpp
       linux/smbios_tables.cpp
+      linux/startup_items.cpp
       linux/sysctl_utils.cpp
       linux/system_info.cpp
       linux/usb_devices.cpp
@@ -172,6 +173,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/cpu_info.cpp
       windows/default_environment.cpp
       windows/disk_info.cpp
+      windows/dns_cache.cpp
       windows/drivers.cpp
       windows/groups.cpp
       windows/ie_extensions.cpp
@@ -194,6 +196,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/scheduled_tasks.cpp
       windows/services.cpp
       windows/shared_resources.cpp
+      windows/shimcache.cpp
       windows/smbios_tables.cpp
       windows/startup_items.cpp
       windows/system_info.cpp

@@ -99,69 +99,18 @@ class Initializer : private boost::noncopyable {
    */
   int shutdown(int retcode) const;
 
-  /**
-   * @brief Wait until a #requestShutdown is issued.
-   *
-   * The #requestShutdown method is called in a signal handler or service
-   * stop event. It may also be called by osquery internal components if an
-   * unrecoverable error occurs.
-   *
-   * This method should be called before #shutdown.
-   */
+  /// For compatibility. See the global method waitForShutdown.
   void waitForShutdown() const;
 
  public:
-  /**
-   * @brief Forcefully request the application to stop.
-   *
-   * Since all osquery tools may implement various 'dispatched' services in the
-   * form of event handler threads or thrift service and client pools, a stop
-   * request should behave nicely and request these services stop.
-   *
-   * Use shutdown whenever you would normally call stdlib exit.
-   *
-   * @param retcode the requested return code for the process.
-   */
+  /// For compatibility. See the global method requestShutdown.
   static void requestShutdown(int retcode = EXIT_SUCCESS);
 
-  /**
-   * @brief Forcefully request the application to stop.
-   *
-   * See #requestShutdown, this overloaded alternative allows the caller to
-   * also log a reason/message to the system log. This is intended for extreme
-   * failure cases and thus requires an explicit error code.
-   *
-   * @param retcode the request return code for the process.
-   * @param system_log A log line to write to the system's log.
-   */
+  /// For compatibility. See the global method requestShutdown.
   static void requestShutdown(int retcode, const std::string& system_log);
 
   /// Exit immediately without requesting the dispatcher to stop.
   static void shutdownNow(int retcode = EXIT_SUCCESS);
-
-  /**
-   * @brief Initialize any platform dependent libraries or objects
-   *
-   * On windows, we require the COM libraries be initialized just once
-   */
-  static void platformSetup();
-
-  /**
-   * @brief Before ending, tear down any platform specific setup
-   *
-   * On windows, we require the COM libraries be initialized just once
-   */
-  static void platformTeardown();
-
-  /// Check the program is the osquery daemon.
-  static bool isDaemon() {
-    return kToolType == ToolType::DAEMON;
-  }
-
-  /// Check the program is the osquery shell.
-  static bool isShell() {
-    return kToolType == ToolType::SHELL;
-  }
 
   /**
    * @brief Check if a process is an osquery worker.
@@ -303,6 +252,26 @@ bool isUserAdmin();
  * @return If the name was set successfully
  */
 Status setThreadName(const std::string& name);
+
+/// Get the osquery tool start time.
+size_t getStartTime();
+
+/// Set the osquery tool start time.
+void setStartTime(size_t st);
+
+/**
+ * @brief Initialize any platform dependent libraries or objects.
+ *
+ * On windows, we require the COM libraries be initialized just once.
+ */
+void platformSetup();
+
+/**
+ * @brief Before ending, tear down any platform specific setup.
+ *
+ * On windows, we require the COM libraries be initialized just once.
+ */
+void platformTeardown();
 
 bool checkPlatform(const std::string& platform);
 } // namespace osquery

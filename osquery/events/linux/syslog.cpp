@@ -56,6 +56,87 @@ const std::vector<std::string> kCsvFields = {
     "time", "host", "severity", "facility", "tag", "message"};
 const size_t kErrorThreshold = 10;
 
+Status NonBlockingFStream::openReadOnly(const std::string& path) {
+  WriteLock lock(fd_mutex_);
+
+  if (fd_ != -1) {
+    return Status::failure("Stream already open");
+  }
+
+  fd_ = ::open(path.c_str(), O_RDWR | O_NONBLOCK);
+  if (fd_ < 0) {
+    return Status::failure("Error opening stream for reading: " + path);
+  }
+  return Status::success();
+}
+
+Status NonBlockingFStream::getline(std::string& output) {
+  output.clear();
+
+  char* buffer_end = nullptr;
+  if (offset_ > 0) {
+    buffer_end = static_cast<char*>(memchr(buffer_.data(), '\n', offset_));
+  }
+
+  if (buffer_end == nullptr) {
+    WriteLock lock(fd_mutex_);
+
+    // Poll for available data with a near-instant delay.
+    // It is the caller's responsibility to yeild context.
+    fd_set set;
+    struct timeval timeout = {0, 200};
+    FD_ZERO(&set);
+    FD_SET(fd_, &set);
+    int rv = ::select(FD_SETSIZE, &set, nullptr, nullptr, &timeout);
+    if (rv <= 0) {
+      // No data.
+      return Status::failure("No data to read");
+    }
+
+    // Read starting where we left off (if there was a previous read).
+    auto buffer_data = buffer_.data() + offset_;
+    // Only read up to the capacity of the vector buffer.
+    auto max_read = buffer_.capacity() - offset_;
+    auto bytes_read = ::read(fd_, buffer_data, max_read);
+    if (bytes_read <= 0) {
+      return Status::failure("Not enough data available");
+    }
+
+    offset_ += bytes_read;
+
+    buffer_end = static_cast<char*>(memchr(buffer_data, '\n', bytes_read));
+    if (buffer_end == nullptr) {
+      if (offset_ == buffer_.capacity()) {
+        // This is a problem we cannot handle.
+        offset_ = 0;
+        return Status::failure("Too much data");
+      }
+      // Wait for the next read.
+      return Status::success();
+    }
+  }
+
+  size_t line_size = buffer_end - buffer_.data();
+  output.reserve(line_size);
+  std::copy(buffer_.data(), buffer_end, std::back_inserter(output));
+  offset_ = offset_ - line_size - 1;
+  if (offset_ > 0) {
+    // Shift bytes down.
+    memcpy(buffer_.data(), buffer_end + 1, offset_);
+  }
+  return Status::success();
+}
+
+Status NonBlockingFStream::close() {
+  WriteLock lock(fd_mutex_);
+
+  if (fd_ != -1) {
+    ::close(fd_);
+    fd_ = -1;
+  }
+  return Status();
+}
+
 Status SyslogEventPublisher::setUp() {
   if (!FLAGS_enable_syslog) {
     return Status(1, "Publisher disabled via configuration");
@@ -83,16 +164,11 @@ Status SyslogEventPublisher::setUp() {
     return s;
   }
 
-  // Opening with both flags appears to be the only way to open the pipe
-  // without blocking for a writer. We won't ever write to the pipe, but we
-  // don't want to block here and will instead block waiting for a read in the
-  // run() method
-  readStream_.open(FLAGS_syslog_pipe_path,
-                   std::ifstream::in | std::ifstream::out);
-  if (!readStream_.good()) {
-    return Status(1,
-                  "Error opening pipe for reading: " + FLAGS_syslog_pipe_path);
+  s = readStream_.openReadOnly(FLAGS_syslog_pipe_path);
+  if (!s.ok()) {
+    return s;
   }
+
   VLOG(1) << "Successfully opened pipe for syslog ingestion: "
           << FLAGS_syslog_pipe_path;
 
@@ -100,7 +176,7 @@ Status SyslogEventPublisher::setUp() {
 }
 
 Status SyslogEventPublisher::createPipe(const std::string& path) {
-  if (mkfifo(FLAGS_syslog_pipe_path.c_str(), kPipeMode) != 0) {
+  if (mkfifo(path.c_str(), kPipeMode) != 0) {
     return Status(1, "Error in mkfifo: " + std::string(strerror(errno)));
   }
 
@@ -155,15 +231,14 @@ Status SyslogEventPublisher::run() {
   // (see InterruptableRunnable::pause()) between runs. In case something goes
   // weird and there is a huge amount of input, we limit how many logs we
   // take in per run to avoid pegging the CPU.
+
+  std::string line;
   for (size_t i = 0; i < FLAGS_syslog_rate_limit; ++i) {
-    if (readStream_.rdbuf()->in_avail() == 0) {
-      // If there is no pending data, we have flushed everything and can wait
-      // until the next time EventFactory calls run(). This also allows the
-      // thread to join when it is stopped by EventFactory.
-      return Status::success();
+    if (!readStream_.getline(line) || line.empty()) {
+      // Not enough data was available, fall through an wait.
+      break;
     }
-    std::string line;
-    std::getline(readStream_, line);
+
     auto ec = createEventContext();
     Status status = populateEventContext(line, ec);
     if (status.ok()) {
@@ -183,6 +258,7 @@ Status SyslogEventPublisher::run() {
 }
 
 void SyslogEventPublisher::tearDown() {
+  readStream_.close();
   unlockPipe();
 }
 
@@ -218,4 +294,4 @@ bool SyslogEventPublisher::shouldFire(const SyslogSubscriptionContextRef& sc,
                                       const SyslogEventContextRef& ec) const {
   return true;
 }
-}
+} // namespace osquery

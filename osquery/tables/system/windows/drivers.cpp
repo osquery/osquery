@@ -25,7 +25,7 @@
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/core/windows/wmi.h>
 #include <osquery/utils/conversions/windows/strings.h>
-#include <osquery/filesystem/fileops.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
 namespace osquery {
 namespace tables {
@@ -56,7 +56,7 @@ static inline void win32LogWARNING(const std::string& msg,
 static inline std::string kNormalizeImage(std::string& path) {
   boost::algorithm::to_lower(path);
 
-  std::string sys_root(MAX_PATH, '\0');
+  std::wstring sys_root(MAX_PATH, L'\0');
   auto ret = GetSystemDirectory(&sys_root.front(),
                                 static_cast<unsigned int>(sys_root.size()));
   if (ret == 0) {
@@ -71,7 +71,7 @@ static inline std::string kNormalizeImage(std::string& path) {
   if (path.find("system32") != std::string::npos) {
     boost::regex_replace(path, boost::regex("^.*?system32"), "");
   }
-  return sys_root.append(path);
+  return wstringToString(sys_root.append(stringToWstring(path)));
 }
 
 device_infoset_t setupDevInfoSet(const DWORD flags) {
@@ -223,7 +223,7 @@ QueryData genDrivers(QueryContext& context) {
     return results;
   }
 
-  std::map<std::string, Row> api_devices;
+  std::map<std::wstring, Row> api_devices;
   std::vector<SP_DEVINFO_DATA> devices;
   auto ret = getDeviceList(dev_info_set, devices);
   if (!ret.ok()) {
@@ -239,7 +239,7 @@ QueryData genDrivers(QueryContext& context) {
 
   // Then, leverage the Windows APIs to get whatever remains
   for (auto& device : devices) {
-    char devId[MAX_DEVICE_ID_LEN] = {0};
+    WCHAR devId[MAX_DEVICE_ID_LEN] = {0};
     if (CM_Get_Device_ID(device.DevInst, devId, MAX_DEVICE_ID_LEN, 0) !=
         CR_SUCCESS) {
       win32LogWARNING("Failed to get device ID");
@@ -283,9 +283,9 @@ QueryData genDrivers(QueryContext& context) {
    */
   for (const auto& row : wmi_results) {
     Row r;
-    std::string devid;
-    row.GetString("DeviceID", devid);
-    r["device_id"] = devid;
+    std::wstring devid;
+    row.GetString(L"DeviceID", devid);
+    r["device_id"] = wstringToString(devid);
     row.GetString("DeviceName", r["device_name"]);
     row.GetString("Description", r["description"]);
     row.GetString("DeviceClass", r["class"]);
@@ -303,13 +303,13 @@ QueryData genDrivers(QueryContext& context) {
       r["signed"] = "-1";
     }
 
-    std::string inf_name;
-    ret = row.GetString("InfName", inf_name);
+    std::wstring inf_name;
+    ret = row.GetString(L"InfName", inf_name);
     if (!ret.ok()) {
       VLOG(1) << "Failed to retrieve Inf name for " << r["device_name"]
               << " with " << ret.getMessage();
     } else {
-      std::vector<char> inf(MAX_PATH, 0x0);
+      std::vector<WCHAR> inf(MAX_PATH, 0x0);
       unsigned long inf_len = 0;
       auto sdi_ret =
           SetupGetInfDriverStoreLocation(inf_name.c_str(),
@@ -331,9 +331,9 @@ QueryData genDrivers(QueryContext& context) {
       if (sdi_ret != TRUE) {
         VLOG(1) << "Failed to derive full driver INF path for "
                 << r["device_name"] << " with " << GetLastError();
-        r["inf"] = inf_name;
+        r["inf"] = wstringToString(inf_name);
       } else {
-        r["inf"] = inf.data();
+        r["inf"] = wstringToString(inf.data());
       }
     }
 

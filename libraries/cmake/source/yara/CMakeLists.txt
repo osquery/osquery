@@ -11,6 +11,7 @@ function(yaraMain)
     "${library_root}/ahocorasick.c"
     "${library_root}/arena.c"
     "${library_root}/atoms.c"
+    "${library_root}/base64.c"
     "${library_root}/bitmask.c"
     "${library_root}/compiler.c"
     "${library_root}/endian.c"
@@ -25,6 +26,7 @@ function(yaraMain)
     "${library_root}/libyara.c"
     "${library_root}/mem.c"
     "${library_root}/modules.c"
+    "${library_root}/notebook.c"
     "${library_root}/object.c"
     "${library_root}/parser.c"
     "${library_root}/proc.c"
@@ -40,27 +42,34 @@ function(yaraMain)
     "${library_root}/stream.c"
     "${library_root}/strutils.c"
     "${library_root}/threading.c"
-    "${library_root}/modules/demo.c"
-    "${library_root}/modules/dex.c"
-    "${library_root}/modules/dotnet.c"
-    "${library_root}/modules/elf.c"
-    "${library_root}/modules/hash.c"
-    "${library_root}/modules/macho.c"
-    "${library_root}/modules/magic.c"
-    "${library_root}/modules/math.c"
+    "${library_root}/modules/demo/demo.c"
+    "${library_root}/modules/dex/dex.c"
+    "${library_root}/modules/dotnet/dotnet.c"
+    "${library_root}/modules/elf/elf.c"
+    "${library_root}/modules/hash/hash.c"
+    "${library_root}/modules/macho/macho.c"
+    "${library_root}/modules/math/math.c"
     "${library_root}/modules/module_list"
-    "${library_root}/modules/pe.c"
-    "${library_root}/modules/pe_utils.c"
-    "${library_root}/modules/tests.c"
-    "${library_root}/modules/time.c"
+    "${library_root}/modules/pe/pe.c"
+    "${library_root}/modules/pe/pe_utils.c"
+    "${library_root}/modules/tests/tests.c"
+    "${library_root}/modules/time/time.c"
   )
 
   if(DEFINED PLATFORM_WINDOWS)
-    target_sources(thirdparty_yara PRIVATE "${library_root}/proc/windows.c")
+    target_sources(thirdparty_yara PRIVATE
+      "${library_root}/proc/windows.c"
+    )
   elseif(DEFINED PLATFORM_LINUX)
-    target_sources(thirdparty_yara PRIVATE "${library_root}/proc/linux.c")
+    target_sources(thirdparty_yara PRIVATE
+      "${library_root}/proc/linux.c"
+      "${library_root}/modules/magic/magic.c"
+    )
   elseif(DEFINED PLATFORM_MACOS)
-    target_sources(thirdparty_yara PRIVATE "${library_root}/proc/mach.c")
+    target_sources(thirdparty_yara PRIVATE
+      "${library_root}/proc/mach.c"
+      "${library_root}/modules/magic/magic.c"
+    )
   else()
     message(FATAL_ERROR "Unsupported platform")
   endif()
@@ -68,12 +77,12 @@ function(yaraMain)
   target_compile_definitions(thirdparty_yara PRIVATE
     PACKAGE_NAME=\"yara\"
     PACKAGE_TARNAME=\"yara\"
-    PACKAGE_VERSION=\"3.10.0\"
-    PACKAGE_STRING=\"yara\ 3.10.0\"
+    PACKAGE_VERSION=\"4.0.2\"
+    PACKAGE_STRING=\"yara\ 4.0.2\"
     PACKAGE_BUGREPORT=\"vmalvarez@virustotal.com\"
     PACKAGE_URL=\"\"
     PACKAGE=\"yara\"
-    VERSION=\"3.10.0\"
+    VERSION=\"4.0.2\"
     YYTEXT_POINTER=1
     STDC_HEADERS=1
     HAVE_SYS_TYPES_H=1
@@ -88,8 +97,6 @@ function(yaraMain)
     HAVE_DLFCN_H=1
     LT_OBJDIR=\".libs/\"
     HAVE_LIBM=1
-    HAVE_MEMMEM=1
-    HAVE_TIMEGM=1
     HAVE_STDBOOL_H=1
     HAVE_CLOCK_GETTIME=1
     HAVE_SCAN_PROC_IMPL=1
@@ -107,17 +114,36 @@ function(yaraMain)
   if(DEFINED PLATFORM_LINUX)
     target_compile_definitions(thirdparty_yara PRIVATE
       USE_LINUX_PROC
+      HAVE_MEMMEM=1
+      HAVE_TIMEGM=1
+    )
+
+    target_link_libraries(thirdparty_yara PUBLIC
+      thirdparty_openssl
+      thirdparty_libmagic
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_compile_definitions(thirdparty_yara PRIVATE
       USE_MACH_PROC
+      HAVE_MEMMEM=1
+      HAVE_TIMEGM=1
+    )
+
+    target_link_libraries(thirdparty_yara PUBLIC
+      thirdparty_openssl
+      thirdparty_libmagic
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    target_compile_definitions(thirdparty_yara PRIVATE
+      USE_WINDOWS_PROC
+      HAVE_MEMMEM=0
+      HAVE_TIMEGM=0
+    )
+
+    target_link_libraries(thirdparty_yara PUBLIC
+      thirdparty_openssl
     )
   endif()
-
-  target_link_libraries(thirdparty_yara PUBLIC
-    thirdparty_openssl
-    thirdparty_libmagic
-  )
 
   target_link_libraries(thirdparty_yara PRIVATE
     thirdparty_c_settings

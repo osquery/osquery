@@ -76,7 +76,7 @@ class MockKafkaProducerPlugin : public KafkaProducerPlugin {
 class KafkaProducerPluginTest : public ::testing::Test {
  protected:
   void SetUp() {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);

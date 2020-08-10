@@ -1,0 +1,11 @@
+table_name("dns_cache")
+description("Enumerate the DNS cache using the undocumented DnsGetCacheDataTable function in dnsapi.dll.")
+schema([
+    Column("name", TEXT, "DNS record name"),
+    Column("type", TEXT, "DNS record type"),
+    Column("flags", INTEGER, "DNS record flags"),
+])
+implementation("dns_cache@genDnsCache")
+examples([
+  "select * from dns_cache",
+])

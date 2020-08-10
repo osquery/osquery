@@ -11,6 +11,7 @@
 
 #include <boost/property_tree/xml_parser.hpp>
 
+#include <osquery/events/windows/windowseventlogparser.h>
 #include <osquery/events/windows/windowseventlogpublisher.h>
 #include <osquery/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
@@ -75,7 +76,7 @@ void WindowsEventLogParserService::start() {
 
       for (const auto& raw_event : raw_event_list) {
         boost::property_tree::ptree event_object;
-        auto status = processEvent(event_object, raw_event);
+        auto status = parseWindowsEventLogXML(event_object, raw_event);
         if (!status.ok()) {
           LOG(ERROR) << status.getMessage();
           continue;
@@ -145,23 +146,4 @@ WindowsEventLogParserService::getChannelEventObjects() {
   return output;
 }
 
-Status WindowsEventLogParserService::processEvent(
-    boost::property_tree::ptree& event_object, const std::wstring& xml_event) {
-  event_object = {};
-
-  try {
-    auto converted_xml_event = wstringToString(xml_event.c_str());
-    std::stringstream stream(std::move(converted_xml_event));
-
-    boost::property_tree::ptree output;
-    read_xml(stream, output);
-
-    event_object = std::move(output);
-
-  } catch (const boost::property_tree::xml_parser::xml_parser_error& e) {
-    return Status::failure("Failed to parse the XML event: " + e.message());
-  }
-
-  return Status::success();
-}
 } // namespace osquery

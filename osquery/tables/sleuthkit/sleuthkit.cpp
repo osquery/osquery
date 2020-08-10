@@ -180,7 +180,7 @@ void DeviceHelper::generateFile(const std::string& partition,
     r["inode"] = BIGINT(meta->getAddr());
     r["uid"] = BIGINT(meta->getUid());
     r["gid"] = BIGINT(meta->getGid());
-    r["mode"] = TEXT(meta->getMode());
+    r["mode"] = SQL_TEXT(meta->getMode());
     r["size"] = BIGINT(meta->getSize());
     r["atime"] = BIGINT(meta->getATime());
     r["mtime"] = BIGINT(meta->getMTime());
