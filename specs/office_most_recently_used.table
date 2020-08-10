@@ -1,0 +1,13 @@
+table_name("office_most_recently_used")
+description("View recently opened Office documents.")
+schema([
+	Column("application", TEXT, "Associated Office application"),
+	Column("version", TEXT, "Office application version number"),
+	Column("path", TEXT, "File path"),
+	Column("last_opened_time", INTEGER, "Most recent opened time file was opened"),
+	Column("sid", TEXT, "User SID"),
+])
+implementation("office_most_recently_used@genOfficeMostRecentlyUsed")
+examples([
+	"select * from office_most_recently_used;",
+])
