@@ -19,8 +19,18 @@ class officeMruInfo : public testing::Test {
 };
 
 TEST_F(officeMruInfo, test_sanity) {
-  auto const data = execute_query("select * from office_most_recently_used");
-  // validate_rows(data, row_map);
+  QueryData const data =
+      execute_query("select * from office_most_recently_used");
+  ASSERT_GT(rows.size(), 0ul);
+
+  ValidationMap row_map = {{"application", NonEmptyString},
+                           {"version", NonEmptyString},
+                           {"path", NonEmptyString},
+                           {"last_opened_time", NormalType},
+                           {"sid", NonEmptyString}};
+  if (!rows.empty()) {
+    validate_rows(rows, row_map);
+  }
 }
 
 } // namespace table_tests
