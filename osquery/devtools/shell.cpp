@@ -1140,12 +1140,12 @@ inline void meta_version(struct callback_data* p) {
 }
 
 inline void meta_show(struct callback_data* p) {
-  // The show/summary meta command is provided to help with general debugging.
-  // All of this information is 'duplicate', and can be found with better
-  // detail within osquery virtual tables.
+  // The show/summary meta command is provided to help with general
+  // debugging.  All of this information is 'duplicate', and can be
+  // found with better detail within osquery virtual tables.
   print_bold("osquery");
   printf(
-      " - being built, with love, at Facebook\n"
+      " - being built, with love.\n"
       "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   meta_version(p);
 
