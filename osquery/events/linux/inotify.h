@@ -14,7 +14,7 @@
 #include <sys/inotify.h>
 #include <sys/stat.h>
 
-#include <osquery/events.h>
+#include <osquery/events/events.h>
 
 #include "osquery/events/pathset.h"
 

@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include <osquery/core.h>
-#include <osquery/flags.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
 #include <osquery/plugins/sql.h>
-#include <osquery/registry_interface.h>
+#include <osquery/registry/registry_interface.h>
 
 namespace osquery {
 

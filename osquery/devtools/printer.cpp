@@ -9,9 +9,9 @@
 #include <iostream>
 #include <sstream>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
 #include <osquery/devtools/devtools.h>
-#include <osquery/flags.h>
 #include <osquery/process/process.h>
 #include <osquery/utils/chars.h>
 #include <osquery/utils/map_take.h>

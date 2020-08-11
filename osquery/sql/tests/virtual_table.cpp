@@ -8,13 +8,13 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/logger.h>
-#include <osquery/registry.h>
-#include <osquery/sql.h>
+#include <osquery/core/core.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
 #include <osquery/sql/dynamic_table_row.h>
-#include <osquery/system.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/sql/virtual_table.h>
 

@@ -9,7 +9,7 @@
 // Sanity check integration test for atom_packages
 // Spec file: specs/atom_packages.table
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {

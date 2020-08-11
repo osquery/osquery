@@ -14,9 +14,9 @@
 #include <osquery/remote/transports/tls.h>
 // clang-format on
 
-#include <osquery/enroll.h>
-#include <osquery/flags.h>
-#include <osquery/system.h>
+#include <osquery/remote/enroll/enroll.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
 
 #include <osquery/process/process.h>
 #include <osquery/remote/requests.h>

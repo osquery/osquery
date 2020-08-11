@@ -20,9 +20,9 @@
 #include <cstdlib>
 #include <iostream>
 
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/worker/ipc/posix/pipe_channel_factory.h>
 #include <osquery/worker/ipc/table_ipc_json_converter.h>
 

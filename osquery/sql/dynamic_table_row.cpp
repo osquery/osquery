@@ -9,7 +9,7 @@
 #include "dynamic_table_row.h"
 #include "virtual_table.h"
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace rj = rapidjson;

@@ -14,12 +14,12 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include <osquery/carver/carver.h>
-#include <osquery/database.h>
-#include <osquery/dispatcher.h>
-#include <osquery/distributed.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/distributed/distributed.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/json/json.h>
 
 namespace pt = boost::property_tree;

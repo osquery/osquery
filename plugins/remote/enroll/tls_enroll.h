@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <osquery/enroll.h>
+#include <osquery/remote/enroll/enroll.h>
 
 namespace osquery {
 

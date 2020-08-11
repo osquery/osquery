@@ -28,7 +28,6 @@ function(generateOsqueryTablesSmart)
 
     target_link_libraries(osquery_tables_smart PUBLIC
       osquery_cxx_settings
-      osquery_headers
       osquery_logger
       osquery_sql
       thirdparty_smartmontools

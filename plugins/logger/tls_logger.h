@@ -10,7 +10,7 @@
 
 #include "plugins/logger/buffered.h"
 
-#include <osquery/dispatcher.h>
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/plugins/logger.h>
 
 namespace osquery {

@@ -11,10 +11,10 @@
 #include <LM.h>
 // clang-format on
 
-#include <osquery/core.h>
-#include <osquery/tables.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 
 #include "osquery/tables/system/windows/registry.h"
 #include <osquery/utils/conversions/tryto.h>

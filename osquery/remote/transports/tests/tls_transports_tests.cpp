@@ -16,9 +16,9 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/logger.h>
-#include <osquery/system.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/core/system.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/info/platform_type.h>
 
 #include "osquery/remote/requests.h"

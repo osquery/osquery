@@ -6,16 +6,16 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/core.h>
-#include <osquery/registry_factory.h>
+#include <osquery/core/core.h>
+#include <osquery/registry/registry_factory.h>
 
 #include <cstdlib>
 #include <sstream>
 
-#include <osquery/extensions.h>
-#include <osquery/logger.h>
+#include <osquery/extensions/extensions.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-#include <osquery/registry.h>
+#include <osquery/registry/registry.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/json/json.h>
 

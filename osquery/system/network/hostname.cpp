@@ -8,7 +8,7 @@
 
 #include <osquery/system/network/hostname.h>
 
-#include <osquery/system.h>
+#include <osquery/core/system.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {

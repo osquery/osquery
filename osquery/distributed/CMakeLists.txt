@@ -27,6 +27,12 @@ function(generateOsqueryDistributed)
     osquery_utils_system_time
   )
 
+  set(public_header_files
+    distributed.h
+  )
+
+  generateIncludeNamespace(osquery_distributed "osquery/distributed" "FILE_ONLY" ${public_header_files})
+
   add_test(NAME osquery_distributed_tests-test COMMAND osquery_distributed_tests-test)
   set(distributedtests-test_env
       "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"

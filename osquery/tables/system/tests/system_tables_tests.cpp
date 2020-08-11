@@ -12,15 +12,15 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 #ifdef OSQUERY_WINDOWS
 #include <osquery/utils/conversions/windows/strings.h>
 #endif

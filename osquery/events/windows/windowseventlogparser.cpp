@@ -12,9 +12,9 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include <osquery/core/flags.h>
 #include <osquery/events/windows/windowseventlogparser.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {

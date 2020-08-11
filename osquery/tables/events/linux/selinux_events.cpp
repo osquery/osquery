@@ -8,11 +8,11 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/core/flags.h>
 #include <osquery/events/linux/auditeventpublisher.h>
 #include <osquery/events/linux/selinux_events.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/tables/events/linux/selinux_events.h>
 #include <osquery/utils/system/uptime.h>
 

@@ -13,9 +13,9 @@
 #include <vector>
 
 #include <osquery/config/config.h>
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/events.h>
+#include <osquery/core/core.h>
+#include <osquery/database/database.h>
+#include <osquery/events/events.h>
 #include <osquery/filesystem/filesystem.h>
 
 namespace osquery {

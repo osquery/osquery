@@ -8,10 +8,10 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/database.h>
-#include <osquery/logger.h>
-#include <osquery/registry.h>
-#include <osquery/system.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
 
 #include <osquery/config/config.h>
 #include <osquery/dispatcher/scheduler.h>

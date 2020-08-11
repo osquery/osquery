@@ -6,8 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/core/tables.h>
 #include <osquery/sql/dynamic_table_row.h>
-#include <osquery/tables.h>
 
 #include <string>
 

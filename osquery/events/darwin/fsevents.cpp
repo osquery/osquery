@@ -11,10 +11,10 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 
 #include "osquery/events/darwin/fsevents.h"
 

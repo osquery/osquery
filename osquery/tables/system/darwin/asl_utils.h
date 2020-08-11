@@ -12,8 +12,8 @@
 
 #include <asl.h>
 
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 #ifndef ASL_API_VERSION
 #define OLD_ASL_API

@@ -13,9 +13,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <osquery/core/flags.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 

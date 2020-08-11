@@ -12,8 +12,8 @@
 #include <string>
 #include <vector>
 
-#include <osquery/flags.h>
-#include <osquery/query.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/query.h>
 
 namespace osquery {
 
@@ -34,7 +34,7 @@ DECLARE_bool(disable_events);
  *
  * @code{.cpp}
  *   // Copyright 2004-present Facebook. All Rights Reserved.
- *   #include <osquery/core.h>
+ *   #include <osquery/core/core.h>
  *   #include <osquery/devtools.h>
  *
  *   int main(int argc, char *argv[]) {

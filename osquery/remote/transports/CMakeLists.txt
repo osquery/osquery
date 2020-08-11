@@ -20,7 +20,6 @@ function(generateOsqueryRemoteTransportsTransportstls)
 
   target_link_libraries(osquery_remote_transports_transportstls PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_remote_httpclient
     osquery_remote_requests

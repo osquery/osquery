@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include <osquery/core/system.h>
 #include <osquery/sdk.h>
-#include <osquery/system.h>
 
 namespace osquery {
 class ExampleTable : public TablePlugin {

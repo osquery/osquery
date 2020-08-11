@@ -11,8 +11,8 @@
 #include <osquery/experimental/events_stream/events_stream.h>
 #include <osquery/experimental/tracing/linux/probes.h>
 
-#include <osquery/dispatcher.h>
-#include <osquery/logger.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/logger/logger.h>
 
 #include <osquery/utils/caches/lru.h>
 #include <osquery/utils/expected/expected.h>

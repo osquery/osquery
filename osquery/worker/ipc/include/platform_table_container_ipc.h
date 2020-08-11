@@ -11,7 +11,7 @@
 #include <string>
 
 #include <osquery/core/sql/query_data.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 #include <osquery/worker/logging/logger.h>
 
 namespace osquery {

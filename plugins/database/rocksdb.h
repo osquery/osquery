@@ -10,8 +10,8 @@
 
 #include <rocksdb/db.h>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
+#include <osquery/core/core.h>
+#include <osquery/database/database.h>
 #include <osquery/utils/mutex.h>
 
 #include <gtest/gtest_prod.h>

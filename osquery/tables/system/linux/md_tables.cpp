@@ -23,9 +23,9 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
 #include <osquery/events/linux/udev.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/linux/md_tables.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>

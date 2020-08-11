@@ -16,11 +16,11 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/core/flags.h>
 #include <osquery/events/linux/process_file_events.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/tables/events/linux/process_file_events.h>
 #include <osquery/utils/system/uptime.h>
 

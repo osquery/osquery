@@ -16,7 +16,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 
 #include "osquery/tests/test_util.h"

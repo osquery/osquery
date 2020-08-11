@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/core/sql/query_data.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {

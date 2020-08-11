@@ -10,9 +10,9 @@
 #include <fstream>
 #include <iostream>
 
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/system/system.h>
 
 namespace osquery {

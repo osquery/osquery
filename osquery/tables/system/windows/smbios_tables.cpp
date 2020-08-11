@@ -9,8 +9,8 @@
 #include <iomanip>
 #include <sstream>
 
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 #include "osquery/core/windows/wmi.h"
 

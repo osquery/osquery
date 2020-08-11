@@ -28,9 +28,9 @@
 #error Boost error: Local sockets not available
 #endif
 
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>

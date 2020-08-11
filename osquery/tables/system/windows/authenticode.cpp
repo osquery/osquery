@@ -21,9 +21,9 @@
 // clang-format on
 
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
+#include <osquery/core/tables.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 

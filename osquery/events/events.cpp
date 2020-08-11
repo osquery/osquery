@@ -15,14 +15,14 @@
 #include <boost/lexical_cast.hpp>
 
 #include <osquery/config/config.h>
-#include <osquery/database.h>
-#include <osquery/events.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/events/events.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/sql/dynamic_table_row.h>
-#include <osquery/system.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/time.h>

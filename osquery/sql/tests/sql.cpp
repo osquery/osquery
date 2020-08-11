@@ -9,13 +9,13 @@
 #include <boost/format.hpp>
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
-#include <osquery/registry.h>
-#include <osquery/sql.h>
+#include <osquery/core/core.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/registry/registry.h>
 #include <osquery/sql/dynamic_table_row.h>
+#include <osquery/sql/sql.h>
 #include <osquery/sql/tests/sql_test_utils.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
 
 namespace osquery {
 

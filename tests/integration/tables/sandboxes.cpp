@@ -11,7 +11,7 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 namespace table_tests {

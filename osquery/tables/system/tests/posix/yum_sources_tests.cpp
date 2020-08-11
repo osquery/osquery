@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/sql.h>
+#include <osquery/sql/sql.h>
 
 namespace osquery {
 namespace tables {

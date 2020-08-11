@@ -9,10 +9,10 @@
 #include <windows.h>
 #include <wscapi.h>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/map_take.h>
 

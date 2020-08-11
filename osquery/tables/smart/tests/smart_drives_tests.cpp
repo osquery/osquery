@@ -14,7 +14,7 @@
 
 #include <iterator>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 #include <osquery/tables/smart/smart_drives.h>
 
 namespace osquery {

@@ -16,10 +16,10 @@
 #include <boost/functional/hash.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/core/flags.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/errno.h>
 

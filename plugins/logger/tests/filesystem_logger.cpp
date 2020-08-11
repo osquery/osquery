@@ -12,10 +12,10 @@
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/info/platform_type.h>
 
-#include <osquery/data_logger.h>
-#include <osquery/database.h>
-#include <osquery/registry_factory.h>
-#include <osquery/system.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/data_logger.h>
+#include <osquery/registry/registry_factory.h>
 
 #include <boost/filesystem/operations.hpp>
 

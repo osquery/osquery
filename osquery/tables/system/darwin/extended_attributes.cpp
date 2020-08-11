@@ -12,10 +12,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/base64.h>
 #include <osquery/utils/chars.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>

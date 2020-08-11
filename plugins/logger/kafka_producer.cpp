@@ -22,11 +22,11 @@
 #include <boost/algorithm/string/find.hpp>
 
 #include <osquery/config/config.h>
-#include <osquery/core.h>
-#include <osquery/dispatcher.h>
-#include <osquery/flags.h>
-#include <osquery/registry_factory.h>
-#include <osquery/system.h>
+#include <osquery/core/core.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/core/flags.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/core/system.h>
 #include <osquery/utils/json/json.h>
 
 #include <plugins/config/parsers/kafka_topics.h>

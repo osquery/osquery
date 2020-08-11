@@ -8,14 +8,14 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/enroll.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/database/database.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
 #include <osquery/process/process.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/remote/enroll/enroll.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/system/time.h>
 
 namespace osquery {

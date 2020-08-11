@@ -8,10 +8,10 @@
 
 #include <boost/filesystem/path.hpp>
 
-#include <osquery/database.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/core/flags.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/tables/events/windows/powershell_events.h>
 #include <osquery/utils/conversions/tryto.h>
 

@@ -6,9 +6,9 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/dispatcher.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/flags.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 
 namespace osquery {

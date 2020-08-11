@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <osquery/events.h>
+#include <osquery/events/events.h>
 #include <osquery/utils/mutex.h>
 
 #include <boost/noncopyable.hpp>

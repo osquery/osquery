@@ -8,8 +8,8 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/tables.h>
 #include <osquery/tables/system/posix/sysctl_utils.h>
 #include <osquery/utils/conversions/split.h>
 

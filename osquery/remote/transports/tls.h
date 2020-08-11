@@ -16,7 +16,7 @@
 #include <osquery/remote/http_client.h>
 // clang-format on
 
-#include <osquery/flags.h>
+#include <osquery/core/flags.h>
 #include <osquery/remote/requests.h>
 
 namespace osquery {

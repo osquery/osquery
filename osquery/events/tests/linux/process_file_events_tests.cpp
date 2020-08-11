@@ -16,10 +16,10 @@
 #include <vector>
 #include <sstream>
 
-#include <osquery/events.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/tables.h>
+#include <osquery/events/events.h>
 #include <osquery/events/linux/auditeventpublisher.h>
-#include <osquery/flags.h>
-#include <osquery/tables.h>
 #include <osquery/tables/events/linux/process_file_events.h>
 
 namespace osquery {

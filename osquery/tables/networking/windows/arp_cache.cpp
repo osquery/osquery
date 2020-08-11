@@ -8,7 +8,7 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/core/windows/wmi.h>

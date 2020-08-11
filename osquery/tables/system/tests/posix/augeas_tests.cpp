@@ -9,10 +9,10 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/tests/test_utils.h>
-#include <osquery/database.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 
 namespace osquery {
 DECLARE_bool(disable_database);

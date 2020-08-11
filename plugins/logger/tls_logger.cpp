@@ -16,10 +16,10 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/enroll.h>
-#include <osquery/flags.h>
-#include <osquery/flagalias.h>
-#include <osquery/registry.h>
+#include <osquery/remote/enroll/enroll.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/flagalias.h>
+#include <osquery/registry/registry.h>
 
 #include <osquery/remote/serializers/json.h>
 

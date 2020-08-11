@@ -93,7 +93,7 @@ Here is that code for `./osquery/tables/utility/time_example.cpp`:
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include <ctime>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {
@@ -171,7 +171,7 @@ To make this compile, open `./tests/integration/tables/CMakeLists.txt`, find the
 
 ## Using where clauses
 
-The `QueryContext` data type is osquery's abstraction of the underlying SQL engine's query parsing. It is defined in [osquery/tables.h](/osquery/include/osquery/tables.h).
+The `QueryContext` data type is osquery's abstraction of the underlying SQL engine's query parsing. It is defined in `osquery/core/tables.h`.
 
 The most important use of the context is query predicate constraints (e.g., `WHERE col = 'value'`). Some tables MUST have a predicate constraint, others may optionally use the constraints to increase performance.
 
@@ -201,7 +201,7 @@ Examples:
 
 ## SQL data types
 
-Data types like `TableRows`, `TableRow`, `DiffResults`, etc. are osquery's built-in data result types. They're all defined in [include/osquery/database.h](https://github.com/osquery/osquery/blob/master/include/osquery/database.h).
+Data types like `TableRows`, `TableRow`, `DiffResults`, etc. are osquery's built-in data result types. They're all defined in [osquery/database/database.h](https://github.com/osquery/osquery/blob/master/osquery/database/database.h).
 
 `TableRow` is an interface; each table has a generated implementation with strongly-typed fields for each column in the table. There's also `DynamicTableRow`, which is backed by a `std::map<std::string, std::string>` mapping column names to the string representations of their values. `DynamicTableRow` exists to support tables that were written before the strongly-typed row support was added, and for plugins.
 

@@ -9,9 +9,9 @@
 #include <smartmontools/libsmartctl.h>
 #include <smartmontools/smartctl_errs.h>
 
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/smart/smart_drives.h>
 
 namespace osquery {

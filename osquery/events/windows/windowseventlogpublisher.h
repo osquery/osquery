@@ -11,7 +11,7 @@
 #include <memory>
 #include <unordered_set>
 
-#include <osquery/events.h>
+#include <osquery/events/events.h>
 #include <osquery/events/windows/windowseventlogparserservice.h>
 
 namespace osquery {

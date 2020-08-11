@@ -8,12 +8,11 @@
 
 #include <IOKit/IOMessage.h>
 
-#include <osquery/utils/conversions/darwin/iokit.h>
+#include <osquery/core/tables.h>
 #include <osquery/events/darwin/iokit.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
-
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/utils/conversions/darwin/iokit.h>
 
 namespace osquery {
 

@@ -14,9 +14,9 @@
 
 #include <vector>
 
-#include <osquery/logger.h>
+#include <osquery/core/system.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-#include <osquery/system.h>
 #include <osquery/utils/info/platform_type.h>
 
 #include <boost/algorithm/string.hpp>

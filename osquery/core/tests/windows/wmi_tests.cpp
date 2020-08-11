@@ -15,8 +15,8 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/tests/test_utils.h>
-#include <osquery/core.h>
-#include <osquery/system.h>
+#include <osquery/core/core.h>
+#include <osquery/core/system.h>
 #include <osquery/utils/system/env.h>
 
 #include "osquery/core/windows/wmi.h"

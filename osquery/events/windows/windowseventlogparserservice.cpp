@@ -13,7 +13,7 @@
 
 #include <osquery/events/windows/windowseventlogparser.h>
 #include <osquery/events/windows/windowseventlogpublisher.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/system.h>
 

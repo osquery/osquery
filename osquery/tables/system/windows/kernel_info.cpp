@@ -9,9 +9,9 @@
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/system/system.h>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"

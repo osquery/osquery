@@ -11,9 +11,9 @@
 
 #include <osquery/config/config.h>
 #include <osquery/config/tests/test_utils.h>
-#include <osquery/database.h>
-#include <osquery/registry.h>
-#include <osquery/system.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/registry/registry.h>
 
 namespace osquery {
 

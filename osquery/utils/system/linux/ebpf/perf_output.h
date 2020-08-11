@@ -13,7 +13,7 @@
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/system/linux/perf_event/perf_event.h>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include <gtest/gtest_prod.h>
 

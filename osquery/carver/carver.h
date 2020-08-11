@@ -11,7 +11,7 @@
 #include <set>
 #include <string>
 
-#include <osquery/dispatcher.h>
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/utils/status/status.h>
 

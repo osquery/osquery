@@ -12,7 +12,6 @@ function(pluginsRemoteEnrollTestsMain)
     osquery_config
     osquery_database
     osquery_sql
-    osquery_headers
     osquery_remote_tests_remotetestutils
     plugins_remote_enroll_tlsenroll
     thirdparty_googletest

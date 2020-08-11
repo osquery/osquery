@@ -13,9 +13,9 @@
 #include <osquery/utils/system/system.h>
 #include <winternl.h>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 #define SystemSpeculationControlInformation (SYSTEM_INFORMATION_CLASS)201
 typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION {

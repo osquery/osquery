@@ -10,12 +10,12 @@
 #include <mutex>
 #include <random>
 
-#include <osquery/database.h>
+#include <osquery/config/packs.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/logger.h>
-#include <osquery/packs.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/version.h>

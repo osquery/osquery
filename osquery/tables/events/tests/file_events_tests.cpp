@@ -10,13 +10,13 @@
 
 #include <osquery/config/config.h>
 #include <osquery/config/tests/test_utils.h>
-#include <osquery/database.h>
-#include <osquery/events.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/events/events.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/events/event_utils.h>
 
 namespace osquery {

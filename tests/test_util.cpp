@@ -19,12 +19,12 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/utils/system/time.h>
+#include <osquery/core/system.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/time.h>
 
 #include <osquery/process/process.h>
 #include <osquery/tests/test_util.h>

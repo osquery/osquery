@@ -12,7 +12,7 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 #include <osquery/sql/sqlite_util.h>
 
 namespace osquery {

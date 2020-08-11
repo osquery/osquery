@@ -9,7 +9,7 @@
 // Sanity check integration test for process_open_pipes
 // Spec file: specs/posix/process_open_pipes.table
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 
 #include <fcntl.h>

@@ -11,13 +11,13 @@
 #include <string>
 #include <vector>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/shutdown.h>
+#include <osquery/core/system.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/shutdown.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 
 #include "osquery/extensions/interface.h"
 

@@ -15,8 +15,8 @@
 
 #include <vector>
 
-#include <osquery/system.h>
-#include <osquery/logger.h>
+#include <osquery/core/system.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 
 namespace osquery {

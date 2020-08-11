@@ -9,7 +9,7 @@
 #include <string>
 #include <cstddef>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include <osquery/utils/chars.h>
 #include <osquery/utils/conversions/tryto.h>

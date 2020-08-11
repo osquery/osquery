@@ -9,10 +9,10 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
 
-#include <osquery/flags.h>
-#include <osquery/registry_interface.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/registry/registry_interface.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/system/windows/registry.h>
 #include <osquery/tests/test_util.h>
 

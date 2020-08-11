@@ -9,9 +9,9 @@
 #include <benchmark/benchmark.h>
 
 #include <osquery/config/config.h>
-#include <osquery/events.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/events/events.h>
+#include <osquery/registry/registry_factory.h>
 
 #include "osquery/tests/test_util.h"
 

@@ -12,12 +12,11 @@
 #include <string>
 #include <vector>
 
-#include <osquery/flags.h>
-#include <osquery/query.h>
-#include <osquery/tables.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/query.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
-
 
 /**
  * @brief The core interface to executing osquery SQL commands.
@@ -96,7 +95,6 @@ class SQL : private only_movable {
    */
   std::string getMessageString() const;
 
-
  public:
   /**
    * @brief Get all, 'SELECT * ...', results given a virtual table name.
@@ -156,7 +154,6 @@ class SQL : private only_movable {
   /// The internal member which holds the column names and order for the query
   ColumnNames columns_;
 };
-
 
 /**
  * @brief Execute a query.

@@ -13,12 +13,12 @@
 #include <Foundation/Foundation.h>
 #include <Security/CodeSigning.h>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/system/darwin/keychain.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/conversions/tryto.h>

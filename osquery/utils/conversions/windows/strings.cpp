@@ -9,7 +9,7 @@
 #include <codecvt>
 #include <string>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include <wbemidl.h>
 

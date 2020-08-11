@@ -8,10 +8,10 @@
 
 #include <osquery/system/network/hostname.h>
 
-#include <osquery/database.h>
-#include <osquery/flags.h>
-#include <osquery/registry_interface.h>
-#include <osquery/system.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/registry/registry_interface.h>
 
 #include <boost/uuid/string_generator.hpp>
 

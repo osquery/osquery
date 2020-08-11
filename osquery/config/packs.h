@@ -17,7 +17,7 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <osquery/query.h>
+#include <osquery/core/query.h>
 
 #include <gtest/gtest_prod.h>
 
@@ -182,4 +182,4 @@ size_t splayValue(size_t original, size_t splay_percent);
  * @return either the restored previous calculated splay, or a new splay.
  */
 size_t restoreSplayedValue(const std::string& name, size_t interval);
-}
+} // namespace osquery

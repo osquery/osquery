@@ -11,7 +11,7 @@
 #include <cstdint>
 
 #include <osquery/debug/debug_only.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/error/error.h>
 #include <osquery/utils/expected/expected.h>
 

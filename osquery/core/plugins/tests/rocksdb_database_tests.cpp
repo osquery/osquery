@@ -13,7 +13,7 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include <osquery/core/database/rocksdb_database.h>
-#include <osquery/database.h>
+#include <osquery/database/database.h>
 
 namespace osquery {
 

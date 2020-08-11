@@ -23,10 +23,10 @@
 #include <libprocstat.h>
 
 #include "osquery/tables/system/freebsd/procstat.h"
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/sql/dynamic_table_row.h>
-#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

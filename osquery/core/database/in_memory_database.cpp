@@ -7,8 +7,8 @@
  */
 
 #include <osquery/core/database/in_memory_database.h>
-#include <osquery/database.h>
-#include <osquery/logger.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/core/demangle.hpp>

@@ -10,7 +10,7 @@
 #include <sys/vfs.h>
 
 #include <osquery/filesystem/linux/mounts.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/system/filepath.h>
 
 namespace osquery {

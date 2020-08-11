@@ -45,14 +45,14 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/sql/sql.h>
 
 #ifdef WIN32
 #include "osquery/core/windows/wmi.h"

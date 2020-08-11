@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {

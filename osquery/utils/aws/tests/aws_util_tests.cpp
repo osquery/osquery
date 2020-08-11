@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/flags.h>
+#include <osquery/core/flags.h>
 #include <osquery/process/process.h>
 
 #include <osquery/config/tests/test_utils.h>

@@ -9,7 +9,7 @@
 #include "tls.h"
 
 #include <chrono>
-#include <osquery/core.h>
+#include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/info/platform_type.h>

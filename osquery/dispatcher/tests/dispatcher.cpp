@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/dispatcher.h>
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {

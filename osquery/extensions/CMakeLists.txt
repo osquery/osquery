@@ -30,6 +30,12 @@ function(generateOsqueryExtensions)
     osquery_utils_conversions
   )
 
+  set(public_header_files
+    extensions.h
+  )
+
+  generateIncludeNamespace(osquery_extensions "osquery/extensions" "FILE_ONLY" ${public_header_files})
+
   add_test(NAME osquery_extensions_extensiontests-test COMMAND osquery_extensions_extensiontests-test)
 endfunction()
 
@@ -62,8 +68,9 @@ function(generateOsqueryExtensionsExtensionsinterface)
 
   target_link_libraries(osquery_extensions_extensionsinterface PUBLIC
     osquery_cxx_settings
-    osquery_headers
+    osquery_dispatcher
     osquery_filesystem
+    osquery_registry
   )
 
   generateIncludeNamespace(osquery_extensions_extensionsinterface "osquery/extensions" "FILE_ONLY" ${public_header_files})

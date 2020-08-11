@@ -15,9 +15,9 @@
 
 #include <sstream>
 
-#include <osquery/events.h>
-#include <osquery/flags.h>
-#include <osquery/tables.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/tables.h>
+#include <osquery/events/events.h>
 
 #include "osquery/events/linux/auditdnetlink.h"
 #include "osquery/tests/test_util.h"

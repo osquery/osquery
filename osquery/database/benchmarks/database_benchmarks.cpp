@@ -8,9 +8,9 @@
 
 #include <benchmark/benchmark.h>
 
-#include <osquery/database.h>
+#include <osquery/core/query.h>
+#include <osquery/database/database.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/query.h>
 
 #include "osquery/tests/test_util.h"
 #include <osquery/utils/json/json.h>

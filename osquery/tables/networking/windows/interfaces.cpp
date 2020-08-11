@@ -17,9 +17,9 @@
 
 #include <boost/algorithm/string/join.hpp>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/logger/logger.h>
+#include <osquery/core/tables.h>
 
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>

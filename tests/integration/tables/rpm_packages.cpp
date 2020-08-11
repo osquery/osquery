@@ -9,7 +9,7 @@
 // Sanity check integration test for rpm_packages
 // Spec file: specs/linux/rpm_packages.table
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 #include <osquery/utils/info/platform_type.h>
 

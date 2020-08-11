@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/registry.h>
+#include <osquery/registry/registry.h>
 
 #include <gtest/gtest.h>
 

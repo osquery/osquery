@@ -9,14 +9,14 @@
 #include <atomic>
 #include <unordered_set>
 
-#include <osquery/core.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/sql/virtual_table.h>
-#include <osquery/system.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {

@@ -15,9 +15,9 @@
 #include <tchar.h>
 #include <vector>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/logger/logger.h>
+#include <osquery/core/tables.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/process/windows/process_ops.h>

@@ -27,6 +27,7 @@ function(generateOsqueryNumericmonitoring)
   )
 
   set(public_header_files
+    numeric_monitoring.h
     plugin_interface.h
     pre_aggregation_cache.h
   )

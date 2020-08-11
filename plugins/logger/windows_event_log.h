@@ -12,7 +12,7 @@
 #include <evntprov.h>
 // clang-format on
 
-#include <osquery/flags.h>
+#include <osquery/core/flags.h>
 #include <osquery/plugins/logger.h>
 
 namespace osquery {

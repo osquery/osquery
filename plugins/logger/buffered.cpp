@@ -15,11 +15,11 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/database.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry.h>
-#include <osquery/system.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
 #include <osquery/utils/info/version.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>

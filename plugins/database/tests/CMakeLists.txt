@@ -67,6 +67,7 @@ function(generatePluginsDatabaseTestsDatabasetestutils)
 
   target_link_libraries(plugins_database_tests_databasetestutils PRIVATE
     osquery_filesystem
+    osquery_registry
     osquery_utils_json
     thirdparty_googletest_headers
   )

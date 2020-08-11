@@ -18,6 +18,7 @@ function(generateOsqueryExperimentalEventsstreamEventsstreamregistry)
   target_link_libraries(osquery_experimental_eventsstream_registry PUBLIC
     osquery_cxx_settings
     osquery_core
+    osquery_numericmonitoring
     osquery_utils
     thirdparty_boost
   )

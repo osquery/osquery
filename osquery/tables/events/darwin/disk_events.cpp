@@ -8,12 +8,11 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include <osquery/events.h>
+#include <osquery/core/tables.h>
 #include <osquery/events/darwin/diskarbitration.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
-
+#include <osquery/events/events.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 
 namespace osquery {
 

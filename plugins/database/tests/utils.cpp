@@ -8,11 +8,11 @@
 
 #include <future>
 
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/registry.h>
-#include <osquery/registry_factory.h>
-#include <osquery/system.h>
+#include <osquery/registry/registry.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/json/json.h>
 #include <plugins/database/tests/utils.h>
 

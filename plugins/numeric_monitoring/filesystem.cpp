@@ -8,8 +8,8 @@
 
 #include <boost/format.hpp>
 
-#include <osquery/flags.h>
-#include <osquery/registry_factory.h>
+#include <osquery/core/flags.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/config/default_paths.h>
 #include <plugins/numeric_monitoring/filesystem.h>
 

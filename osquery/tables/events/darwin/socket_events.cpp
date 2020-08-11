@@ -15,10 +15,10 @@
 
 #include <iostream>
 
-#include <osquery/events.h>
+#include <osquery/core/flags.h>
 #include <osquery/events/darwin/openbsm.h>
-#include <osquery/flags.h>
-#include <osquery/registry_factory.h>
+#include <osquery/events/events.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/system/uptime.h>
 
 namespace osquery {

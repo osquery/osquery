@@ -10,7 +10,7 @@
 
 #include <boost/format.hpp>
 
-#include <osquery/numeric_monitoring.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/profiler/code_profiler.h>
 
 namespace osquery {

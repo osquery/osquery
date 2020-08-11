@@ -7,7 +7,7 @@
  */
 
 #include <osquery/plugins/plugin.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 
 #include "osquery/numeric_monitoring/plugin_interface.h"
 

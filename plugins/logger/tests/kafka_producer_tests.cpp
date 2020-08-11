@@ -18,10 +18,10 @@
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include <boost/chrono.hpp>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/registry_interface.h>
-#include <osquery/system.h>
+#include <osquery/core/core.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/utils/status/status.h>
 
 #include "plugins/logger/kafka_producer.h"

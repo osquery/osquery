@@ -22,15 +22,17 @@ function(generateOsqueryConfig)
 
   target_link_libraries(osquery_config PUBLIC
     osquery_cxx_settings
-    osquery_headers
+    osquery_events_eventsregistry
     osquery_filesystem
     osquery_hashing
+    osquery_registry
     osquery_utils
     osquery_utils_system_time
   )
 
   set(public_header_files
     config.h
+    packs.h
   )
 
   generateIncludeNamespace(osquery_config "osquery/config" "FILE_ONLY" ${public_header_files})

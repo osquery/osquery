@@ -24,11 +24,11 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/flags.h>
+#include <osquery/core/flags.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/core/tables.h>
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/utils/mutex.h>
 #include <osquery/utils/info/platform_type.h>

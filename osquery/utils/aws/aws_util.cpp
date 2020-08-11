@@ -32,8 +32,8 @@
 #include <aws/sts/model/AssumeRoleRequest.h>
 #include <aws/sts/model/Credentials.h>
 
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
 #include <osquery/utils/aws/aws_util.h>

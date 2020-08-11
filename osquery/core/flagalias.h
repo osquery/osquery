@@ -10,7 +10,7 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include <osquery/flags.h>
+#include <osquery/core/flags.h>
 
 namespace boost {
 /// We define a lexical_cast template for boolean for Gflags boolean string

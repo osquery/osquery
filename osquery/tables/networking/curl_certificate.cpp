@@ -18,8 +18,8 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 #include <algorithm>
 #include <iomanip>

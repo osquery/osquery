@@ -12,7 +12,7 @@
 #include <utility>
 
 #include <osquery/hashing/hashing.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 // TODO(5591) Remove this when addressed by Boost's ASIO config.
 // https://www.boost.org/doc/libs/1_67_0/boost/asio/detail/config.hpp

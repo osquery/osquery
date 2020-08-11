@@ -15,6 +15,7 @@ function(generateOsqueryDispatcherTestsTest)
   target_link_libraries(osquery_dispatcher_tests-test PRIVATE
     osquery_cxx_settings
     osquery_database
+    osquery_dispatcher
     osquery_distributed
     osquery_events
     osquery_extensions
@@ -34,6 +35,7 @@ function(generateOsqueryDispatcherTestsSchedulerTest)
     target_link_libraries(osquery_dispatcher_tests_scheduler-test PRIVATE
     osquery_cxx_settings
     osquery_database
+    osquery_dispatcher_scheduler
     osquery_distributed
     osquery_events
     osquery_extensions

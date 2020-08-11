@@ -6,8 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
+#include <osquery/registry/registry_factory.h>
 #include <plugins/config/parsers/logger.h>
-#include <osquery/registry_factory.h>
 
 namespace rj = rapidjson;
 

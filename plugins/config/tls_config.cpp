@@ -13,10 +13,10 @@
 // clang-format on
 
 #include <osquery/config/config.h>
-#include <osquery/dispatcher.h>
-#include <osquery/enroll.h>
-#include <osquery/flags.h>
-#include <osquery/registry.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/remote/enroll/enroll.h>
+#include <osquery/core/flags.h>
+#include <osquery/registry/registry.h>
 #include <osquery/remote/requests.h>
 #include <osquery/remote/serializers/json.h>
 #include <osquery/utils/json/json.h>

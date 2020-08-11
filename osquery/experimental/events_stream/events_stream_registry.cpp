@@ -10,7 +10,7 @@
 
 #include <boost/io/detail/quoted_manip.hpp>
 
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 
 namespace osquery {
 

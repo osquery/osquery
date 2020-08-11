@@ -34,7 +34,6 @@ function(generateOsqueryMain)
 
   target_link_libraries(osquery_main PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_core_init
     osquery_core_plugins
@@ -42,6 +41,7 @@ function(generateOsqueryMain)
     osquery_database
     osquery_devtools
     osquery_dispatcher
+    osquery_dispatcher_scheduler
     osquery_experimental_eventsstream_registry
     osquery_experimental_tracing_syscallstracing
     osquery_extensions

@@ -8,10 +8,10 @@
 
 #include <chrono>
 
-#include <osquery/database.h>
-#include <osquery/distributed.h>
-#include <osquery/flags.h>
-#include <osquery/system.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/distributed/distributed.h>
 
 #include <osquery/utils/system/time.h>
 #include <osquery/dispatcher/distributed_runner.h>

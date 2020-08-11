@@ -10,7 +10,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/applications/browser_utils.h>
 #include <osquery/tables/system/system_utils.h>
 

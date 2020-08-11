@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <osquery/dispatcher.h>
-#include <osquery/extensions.h>
-#include <osquery/query.h>
+#include <osquery/core/query.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/extensions/extensions.h>
 
 namespace osquery {
 

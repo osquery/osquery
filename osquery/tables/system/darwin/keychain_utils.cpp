@@ -12,7 +12,7 @@
 #include <iomanip>
 #include <string>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/hashing/hashing.h>
 #include <osquery/tables/system/darwin/keychain.h>

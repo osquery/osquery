@@ -22,11 +22,11 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/tokenizer.hpp>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 
+#include <osquery/core/flags.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include "osquery/events/linux/syslog.h"
 

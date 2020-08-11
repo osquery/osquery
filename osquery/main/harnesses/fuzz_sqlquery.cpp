@@ -6,7 +6,7 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/sql.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/main/harnesses/fuzz_utils.h>
 

@@ -15,10 +15,10 @@
 #include <boost/algorithm/string/find.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/split.h>
 
 namespace osquery {

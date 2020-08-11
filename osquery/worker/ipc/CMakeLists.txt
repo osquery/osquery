@@ -36,8 +36,8 @@ function(generateOsqueryWorkerIpcTableIpcJsonConverter)
 
   target_link_libraries(osquery_worker_ipc_tableipcjsonconverter PUBLIC
     osquery_cxx_settings
+    osquery_core
     osquery_core_sql
-    osquery_headers
     osquery_utils_status
     osquery_utils_json
   )
@@ -63,7 +63,6 @@ function(generateOsqueryWorkerIpcPlatformTableContainerIpc)
     target_link_libraries(osquery_worker_ipc_platformtablecontaineripc INTERFACE
       osquery_cxx_settings
       osquery_core_sql
-      osquery_headers
       osquery_worker_logging_glog_logger
     )
   endif()
@@ -102,7 +101,6 @@ function(generateOsqueryWorkerIpcTableIpc)
     osquery_cxx_settings
     osquery_core
     osquery_core_sql
-    osquery_headers
     osquery_utils_status
     osquery_worker_ipc_tablechannel
     osquery_worker_ipc_tableipcjsonconverter

@@ -9,7 +9,7 @@
 // Sanity check integration test for known_hosts
 // Spec file: specs/posix/known_hosts.table
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {

@@ -10,7 +10,7 @@
 
 #include <openssl/opensslv.h>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/filesystem/filesystem.h>

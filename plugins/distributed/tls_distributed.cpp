@@ -14,10 +14,10 @@
 #include <vector>
 #include <sstream>
 
-#include <osquery/distributed.h>
-#include <osquery/enroll.h>
-#include <osquery/flags.h>
-#include <osquery/registry.h>
+#include <osquery/distributed/distributed.h>
+#include <osquery/remote/enroll/enroll.h>
+#include <osquery/core/flags.h>
+#include <osquery/registry/registry.h>
 
 #include <osquery/utils/json/json.h>
 #include <osquery/remote/serializers/json.h>

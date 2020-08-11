@@ -12,7 +12,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/sql.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/system/posix/sudoers.h>
 #include <osquery/utils/scope_guard.h>
 

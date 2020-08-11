@@ -10,8 +10,8 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/flags.h>
-#include <osquery/registry_factory.h>
+#include <osquery/core/flags.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <plugins/numeric_monitoring/filesystem.h>

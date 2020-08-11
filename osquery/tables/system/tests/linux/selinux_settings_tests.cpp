@@ -10,9 +10,9 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/system.h>
+#include <osquery/core/core.h>
+#include <osquery/core/system.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {

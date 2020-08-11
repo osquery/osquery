@@ -8,8 +8,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/tables.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/expected/expected.h>
 

@@ -8,9 +8,9 @@
 
 #include <regex>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/tables.h>
 
 #include "osquery/tables/system/windows/registry.h"
 

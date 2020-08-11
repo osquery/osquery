@@ -13,10 +13,10 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/core/flags.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/config/default_paths.h>
 
 #include <osquery/utils/json/json.h>

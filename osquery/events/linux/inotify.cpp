@@ -16,8 +16,8 @@
 
 #include <osquery/config/config.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/system/time.h>
 
 #include "osquery/events/linux/inotify.h"

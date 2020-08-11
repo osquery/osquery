@@ -10,11 +10,11 @@
 #include <boost/io/detail/quoted_manip.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include <osquery/database.h>
-#include <osquery/flagalias.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry.h>
+#include <osquery/core/flagalias.h>
+#include <osquery/core/flags.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/json/json.h>

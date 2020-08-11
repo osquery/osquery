@@ -14,7 +14,7 @@
 
 #include <gtest/gtest_prod.h>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/status/status.h>
 

@@ -9,7 +9,7 @@
 #include <osquery/utils/system/linux/ebpf/map.h>
 #include <osquery/utils/system/linux/ebpf/ebpf.h>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include <gtest/gtest.h>
 

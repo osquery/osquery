@@ -8,11 +8,11 @@
 
 #include <osquery/utils/json/json.h>
 
-#include <osquery/database.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/conversions/tryto.h>
 
 #include <climits>

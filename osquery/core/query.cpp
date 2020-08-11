@@ -10,11 +10,11 @@
 #include <string>
 #include <vector>
 
-#include <osquery/database.h>
-#include <osquery/flagalias.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/query.h>
+#include <osquery/core/flagalias.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/query.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
 
 #include <osquery/utils/json/json.h>
 

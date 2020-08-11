@@ -14,10 +14,10 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/core/query.h>
 #include <osquery/core/sql/scheduled_query.h>
-#include <osquery/query.h>
+#include <osquery/core/system.h>
 #include <osquery/sql/tests/sql_test_utils.h>
-#include <osquery/system.h>
 #include <osquery/tests/test_util.h>
 
 namespace osquery {

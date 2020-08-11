@@ -14,13 +14,13 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
-#include <osquery/utils/darwin/plist.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/utils/darwin/plist.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

@@ -6,9 +6,9 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/extensions.h>
-#include <osquery/registry_factory.h>
-#include <osquery/registry_interface.h>
+#include <osquery/extensions/extensions.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/utils/conversions/split.h>
 
 namespace osquery {

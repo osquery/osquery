@@ -15,13 +15,13 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/extensions.h>
+#include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 
 #include <osquery/utils/info/platform_type.h>
 
-#include <osquery/database.h>
+#include <osquery/database/database.h>
 #include <osquery/extensions/interface.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/process/process.h>

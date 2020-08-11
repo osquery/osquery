@@ -10,10 +10,10 @@
 
 #include <mutex>
 
-#include <osquery/core.h>
-#include <osquery/tables.h>
-#include <osquery/utils/mutex.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/mutex.h>
 
 namespace osquery {
 namespace tables {

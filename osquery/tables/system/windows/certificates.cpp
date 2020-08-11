@@ -16,10 +16,10 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/logger.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/windows/process_ops.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>

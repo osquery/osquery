@@ -27,9 +27,10 @@ function(generateOsqueryCoreInit)
   )
 
   set(dependencies
-    osquery_headers
+    osquery_cxx_settings
     osquery_config
     osquery_core
+    osquery_numericmonitoring
     osquery_extensions
   )
 
@@ -75,11 +76,12 @@ function(generateOsqueryCore)
   )
 
   set(dependencies
-    osquery_headers
+    osquery_cxx_settings
     osquery_core_plugins
     osquery_core_sql
     osquery_filesystem
     osquery_process
+    osquery_registry
     osquery_utils
     osquery_utils_conversions
     osquery_utils_info
@@ -103,17 +105,25 @@ function(generateOsqueryCore)
     ${dependencies}
   )
 
+  set(public_header_files
+    core.h
+    flags.h
+    flagalias.h
+    query.h
+    tables.h
+    shutdown.h
+    system.h
+  )
+
   if(DEFINED PLATFORM_WINDOWS)
-    list(APPEND windows_public_header_files
+    list(APPEND public_header_files
       windows/handle.h
       windows/ntapi.h
       windows/wmi.h
     )
-
-    generateIncludeNamespace(osquery_core "osquery/core" "FULL_PATH" ${windows_public_header_files})
   endif()
 
-  generateIncludeNamespace(osquery_core "osquery/core" "FILE_ONLY" ${public_header_files})
+  generateIncludeNamespace(osquery_core "osquery/core" "FULL_PATH" ${public_header_files})
 
   add_test(NAME osquery_core_tests_flagstests-test COMMAND osquery_core_tests_flagstests-test)
   add_test(NAME osquery_core_tests_systemtests-test COMMAND osquery_core_tests_systemtests-test)

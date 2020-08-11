@@ -8,7 +8,7 @@
 
 #include <IOKit/usb/IOUSBLib.h>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 #include <osquery/utils/conversions/darwin/iokit.h>
 
 namespace osquery {

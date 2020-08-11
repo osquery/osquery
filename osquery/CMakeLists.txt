@@ -32,24 +32,7 @@ function(osqueryMain)
   add_subdirectory("system")
   add_subdirectory("worker")
 
-  generateOsqueryHeaders()
   generateOsqueryd()
-endfunction()
-
-function(generateOsqueryHeaders)
-  add_osquery_library(osquery_headers INTERFACE)
-  target_include_directories(osquery_headers INTERFACE "${CMAKE_SOURCE_DIR}/osquery/include")
-
-  target_link_libraries(osquery_headers INTERFACE
-    osquery_cxx_settings
-    osquery_core_plugins
-    osquery_utils_info
-    osquery_utils_macros
-    osquery_utils_system_systemutils
-    thirdparty_gflags
-    thirdparty_sqlite
-    thirdparty_googletest_headers
-  )
 endfunction()
 
 function(generateOsqueryd)

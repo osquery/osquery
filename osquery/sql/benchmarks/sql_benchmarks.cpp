@@ -8,10 +8,10 @@
 
 #include <benchmark/benchmark.h>
 
-#include <osquery/core.h>
-#include <osquery/registry.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/registry/registry.h>
+#include <osquery/sql/sql.h>
 
 #include "osquery/sql/virtual_table.h"
 

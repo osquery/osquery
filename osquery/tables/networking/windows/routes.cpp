@@ -19,8 +19,8 @@
 // clang-format on
 
 #include <boost/algorithm/string/join.hpp>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/core/tables.h>
 
 #include <osquery/utils/conversions/tryto.h>
 #include "osquery/core/windows/wmi.h"
