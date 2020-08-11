@@ -111,17 +111,16 @@ void doYARAScan(YR_RULES* rules,
 }
 
 Status compileSignatureFiles(
-    QueryContext& context,
-    std::set<std::pair<YaraScanContextType, std::string>>& channel) {
+    QueryContext& queryContext,
+    std::set<std::pair<YaraScanContextType, std::string>>& scanContext) {
   auto yaraParser = getYaraParser();
   if (yaraParser == nullptr || yaraParser.get() == nullptr) {
     return Status::failure("YARA config parser plugin has no pointer");
   }
 
   auto& rules = yaraParser->rules();
-  auto sigfiles = context.constraints["sigfile"].getAll(EQUALS);
+  auto sigfiles = queryContext.constraints["sigfile"].getAll(EQUALS);
 
-  // Compile all sigfiles into a map.
   for (const auto& file : sigfiles) {
     // Check if this "ad-hoc" signature file has not been used/compiled.
     if (rules.count(hashStr(file, YC_FILE)) == 0) {
@@ -137,26 +136,26 @@ Status compileSignatureFiles(
       }
       // Cache the compiled rules by setting the unique signature file path
       // as the lookup name. Additional signature file uses will skip the
-      // compile step and be added as rule groups.
+      // compile step and be added to the scan context
       rules[hashStr(file, YC_FILE)] = tmp_rules;
     }
-    // Add signature file path to the sign group set
-    channel.insert(std::make_pair(YC_FILE, file));
+    // Add signature file path to the scan context set
+    scanContext.insert(std::make_pair(YC_FILE, file));
   }
 
   return Status::success();
 }
 
 Status compileSignatureRules(
-    QueryContext& context,
-    std::set<std::pair<YaraScanContextType, std::string>>& channel) {
+    QueryContext& queryContext,
+    std::set<std::pair<YaraScanContextType, std::string>>& scanContext) {
   auto yaraParser = getYaraParser();
   if (yaraParser == nullptr || yaraParser.get() == nullptr) {
     return Status::failure("YARA config parser plugin has no pointer");
   }
 
   auto& rules = yaraParser->rules();
-  auto sigrules = context.constraints["sigrule"].getAll(EQUALS);
+  auto sigrules = queryContext.constraints["sigrule"].getAll(EQUALS);
   for (const auto& rule_string : sigrules) {
     // Check if the yara rule string has not been compiled before
     if (rules.count(hashStr(rule_string, YC_RULE)) == 0) {
@@ -169,8 +168,8 @@ Status compileSignatureRules(
 
       rules[hashStr(rule_string, YC_RULE)] = tmp_rules;
     }
-    // Add rule string to sign group set
-    channel.insert(std::make_pair(YC_RULE, rule_string));
+    // Add rule string to the scan context set
+    scanContext.insert(std::make_pair(YC_RULE, rule_string));
   }
 
   return Status::success();
@@ -188,14 +187,6 @@ QueryData genYara(QueryContext& context) {
     return results;
   }
 
-  auto yaraParser = getYaraParser();
-  if (yaraParser == nullptr || yaraParser.get() == nullptr) {
-    LOG(ERROR) << "YARA config parser plugin has no pointer";
-    return results;
-  }
-
-  auto& rules = yaraParser->rules();
-
   // Collect all paths specified too.
   auto paths = context.constraints["path"].getAll(EQUALS);
   context.expandConstraints(
@@ -210,7 +201,7 @@ QueryData genYara(QueryContext& context) {
           for (const auto& resolved : patterns) {
             struct stat sb;
             if (0 != stat(resolved.c_str(), &sb)) {
-              continue; // failed to stat
+              continue; // failed to stat the file
             }
 
             // Check that each resolved path is readable.
@@ -223,34 +214,39 @@ QueryData genYara(QueryContext& context) {
         return status;
       }));
 
-  std::set<std::pair<YaraScanContextType, std::string>> scanContext;
-
   auto yr_init = yaraInitilize();
   if (!yr_init.ok()) {
     LOG(WARNING) << yr_init.toString();
     return results;
   }
 
-  // Add sig groups to the sign group set
+  std::set<std::pair<YaraScanContextType, std::string>> scanContext;
+
+  // Add signature groups to the scan context
   for (const auto& group : groups) {
     scanContext.insert(std::make_pair(YC_GROUP, group));
   }
 
+  // Compile signature files and add them to the scan context
   auto file_status = compileSignatureFiles(context, scanContext);
   if (!file_status.ok()) {
-    LOG(WARNING) << file_status.toString();
     return results;
   }
 
   if (FLAGS_enable_yara_table_extension) {
     auto rule_status = compileSignatureRules(context, scanContext);
     if (!rule_status.ok()) {
-      LOG(WARNING) << rule_status.toString();
       return results;
     }
   }
 
-  // Scan every path pair.
+  auto yaraParser = getYaraParser();
+  if (yaraParser == nullptr || yaraParser.get() == nullptr) {
+    return results;
+  }
+
+  // Scan every path pair with the yara rules
+  auto& rules = yaraParser->rules();
   for (const auto& path : paths) {
     for (const auto& sign : scanContext) {
       if (rules.count(hashStr(sign.second, sign.first)) > 0) {
