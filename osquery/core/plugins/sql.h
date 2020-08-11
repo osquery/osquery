@@ -1,6 +1,5 @@
 /**
  * Copyright (c) 2014-present, The osquery authors
- * Copyright 2018 Alex Ionescu.
  *
  * This source code is licensed as defined by the LICENSE file found in the
  * root directory of this source tree.
