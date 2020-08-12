@@ -422,7 +422,8 @@ function New-ChocolateyPackage() {
     <title>osquery</title>
     <authors>osquery</authors>
     <owners>osquery</owners>
-    <copyright>Copyright (c) 2014-present, Facebook, Inc. All rights reserved.</copyright>
+    <copyright>Copyright (c) 2014-present, The osquery authors. See LICENSE file found in the
+# root directory of this source tree.</copyright>
     <projectUrl>https://osquery.io</projectUrl>
     <iconUrl>https://github.com/osquery/osquery/blob/master/tools/osquery.ico</iconUrl>
     <licenseUrl>https://github.com/osquery/osquery/blob/master/LICENSE</licenseUrl>

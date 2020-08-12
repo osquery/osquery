@@ -90,7 +90,14 @@ As indicated in the spec file, our implementation will be in a function called `
 Here is that code for `./osquery/tables/utility/time_example.cpp`:
 
 ```cpp
-// Copyright 2004-present Facebook. All Rights Reserved.
+/**
+ * Copyright (c) 2014-present, The osquery authors
+ *
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+ */
 
 #include <ctime>
 #include <osquery/core/tables.h>
@@ -132,7 +139,14 @@ You may add small unit tests using GTest, but each table *should* have an integr
 Create a file `./tests/integration/tables/time_example.cpp`.
 
 ```cpp
-// Copyright 2004-present Facebook. All Rights Reserved.
+/**
+ * Copyright (c) 2014-present, The osquery authors
+ *
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+ */
 
 #include <osquery/tests/integration/tables/helper.h>
 
