@@ -345,16 +345,8 @@ void ExtensionRunnerInterface::init(RouteUUID uuid, bool manager) {
         std::make_shared<extensions::ExtensionManagerProcessor>(handler);
   }
   // Set the global output function for thrift
-  GlobalOutput.setOutputFunction([](const char* message) -> void {
-    time_t now;
-    char dbgtime[26];
-    time(&now);
-    THRIFT_CTIME_R(&now, dbgtime);
-    dbgtime[24] = 0;
-    std::stringstream ss;
-    ss << "Thrift: " << dbgtime << " " << message;
-    VLOG(1) << ss.str();
-  });
+  GlobalOutput.setOutputFunction(
+      [](const char* message) -> void { VLOG(1) << "Thrift: " << message; });
 }
 
 void ExtensionRunnerInterface::stopServer() {
