@@ -39,6 +39,7 @@
 
 namespace osquery {
 
+using namespace apache::thrift;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 using namespace apache::thrift::server;
@@ -343,6 +344,9 @@ void ExtensionRunnerInterface::init(RouteUUID uuid, bool manager) {
     server_->processor =
         std::make_shared<extensions::ExtensionManagerProcessor>(handler);
   }
+  // Set the global output function for thrift
+  GlobalOutput.setOutputFunction(
+      [](const char* message) -> void { VLOG(1) << "Thrift: " << message; });
 }
 
 void ExtensionRunnerInterface::stopServer() {
