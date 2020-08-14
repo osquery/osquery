@@ -1,18 +1,19 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <windows.h>
 #include <wscapi.h>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/map_take.h>
 
@@ -34,7 +35,7 @@ std::string resolveProductHealthOrError(int productName) {
       _In_ DWORD Providers, _Out_ PWSC_SECURITY_PROVIDER_HEALTH);
   pWscGetSecurityProviderHealth WscGetSecurityProviderHealth;
   static HMODULE hDLL =
-      LoadLibraryEx("wscapi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+      LoadLibraryExW(L"wscapi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
   if (hDLL == nullptr) {
     VLOG(1) << "Could not dynamically load 'wscapi.dll'";
     return "Error";

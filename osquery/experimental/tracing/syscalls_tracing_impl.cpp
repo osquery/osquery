@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <osquery/experimental/tracing/syscalls_tracing_impl.h>
@@ -11,8 +12,8 @@
 #include <osquery/experimental/events_stream/events_stream.h>
 #include <osquery/experimental/tracing/linux/probes.h>
 
-#include <osquery/dispatcher.h>
-#include <osquery/logger.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/logger/logger.h>
 
 #include <osquery/utils/caches/lru.h>
 #include <osquery/utils/expected/expected.h>

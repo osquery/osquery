@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #ifdef GTEST_HAS_TR1_TUPLE
@@ -15,13 +16,13 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/extensions.h>
+#include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 
 #include <osquery/utils/info/platform_type.h>
 
-#include <osquery/database.h>
+#include <osquery/database/database.h>
 #include <osquery/extensions/interface.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/process/process.h>
@@ -41,7 +42,7 @@ const int kTimeout = 3000;
 class ExtensionsTest : public testing::Test {
  protected:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);

@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesSystemMain)
 
@@ -73,6 +74,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/shadow.cpp
       linux/shared_memory.cpp
       linux/smbios_tables.cpp
+      linux/startup_items.cpp
       linux/sysctl_utils.cpp
       linux/system_info.cpp
       linux/usb_devices.cpp
@@ -172,6 +174,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/cpu_info.cpp
       windows/default_environment.cpp
       windows/disk_info.cpp
+      windows/dns_cache.cpp
       windows/drivers.cpp
       windows/groups.cpp
       windows/ie_extensions.cpp
@@ -194,6 +197,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/scheduled_tasks.cpp
       windows/services.cpp
       windows/shared_resources.cpp
+      windows/shimcache.cpp
       windows/smbios_tables.cpp
       windows/startup_items.cpp
       windows/system_info.cpp
@@ -220,7 +224,6 @@ function(generateOsqueryTablesSystemSystemtable)
 
   target_link_libraries(osquery_tables_system_systemtable PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_events
     osquery_filesystem

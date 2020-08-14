@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -17,7 +18,7 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <osquery/query.h>
+#include <osquery/core/query.h>
 
 #include <gtest/gtest_prod.h>
 
@@ -181,5 +182,5 @@ uint64_t splayValue(uint64_t original, uint64_t splay_percent);
  * @param interval the requested pre-splayed interval.
  * @return either the restored previous calculated splay, or a new splay.
  */
-uint64_t restoreSplayedValue(const std::string& name, uint64_t interval);
+size_t restoreSplayedValue(const std::string& name, uint64_t interval);
 }

@@ -1,16 +1,17 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <locale>
 #include <string>
 
 #include <osquery/core/windows/wmi.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
@@ -279,18 +280,26 @@ Status WmiResultItem::GetUnsignedLongLong(const std::string& name,
 Status WmiResultItem::GetString(const std::string& name,
                                 std::string& ret) const {
   std::wstring property_name = stringToWstring(name);
+  std::wstring result;
+  auto status = GetString(property_name, result);
+  ret = wstringToString(result);
+  return status;
+}
+
+Status WmiResultItem::GetString(const std::wstring& name,
+                                std::wstring& ret) const {
   VARIANT value;
-  HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
+  HRESULT hr = result_->Get(name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
-    ret = "";
+    ret = L"";
     return Status::failure("Error retrieving data from WMI query.");
   }
   if (value.vt != VT_BSTR) {
-    ret = "";
+    ret = L"";
     VariantClear(&value);
     return Status::failure("Invalid data type returned.");
   }
-  ret = bstrToString(value.bstrVal);
+  ret = value.bstrVal;
   VariantClear(&value);
   return Status::success();
 }

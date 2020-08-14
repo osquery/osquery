@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <rpm/header.h>
@@ -16,11 +17,11 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/sql/dynamic_table_row.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
 
@@ -227,12 +228,14 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
     if (file_count <= 0) {
       logger.vlog(1, "RPM package " + package_name + " contains 0 files");
       rpmfiFree(fi);
+      rpmtdFree(td);
       continue;
     } else if (file_count > MAX_RPM_FILES) {
       logger.vlog(1,
                   "RPM package " + package_name + " contains over " +
                       std::to_string(MAX_RPM_FILES) + " files");
       rpmfiFree(fi);
+      rpmtdFree(td);
       continue;
     }
 
@@ -253,6 +256,9 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
       auto digest = rpmfiFDigestHex(fi, &digest_algo);
       if (digest_algo == PGPHASHALGO_SHA256) {
         r["sha256"] = (digest != nullptr) ? digest : "";
+      }
+      if (digest != nullptr) {
+        free(digest);
       }
 
       yield(std::move(r));

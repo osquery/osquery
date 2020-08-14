@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(boostMain)
   set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -676,6 +677,10 @@ endfunction()
 function(generateBoostContext)
   set(library_root "${BOOST_ROOT}/libs/context")
 
+  set(source_files
+    "${library_root}/src/execution_context.cpp"
+  )
+
   if(DEFINED PLATFORM_LINUX)
     set(asm_source_file_list
       "${library_root}/src/asm/jump_x86_64_sysv_elf_gas.S"
@@ -718,8 +723,14 @@ function(generateBoostContext)
     endif()
   endforeach()
 
+  if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
+    list(APPEND source_files
+      "${library_root}/src/fiber.cpp"
+    )
+  endif()
+
   add_library(thirdparty_boost_context STATIC
-    "${library_root}/src/execution_context.cpp"
+    ${source_files}
     ${asm_source_file_list}
   )
 

@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -19,7 +20,7 @@
 
 #include <WbemIdl.h>
 
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 
@@ -185,6 +186,14 @@ class WmiResultItem {
    * @returns Status indicating the success of the query
    */
   Status GetString(const std::string& name, std::string& ret) const;
+
+  /**
+   * @brief Windows WMI Helper function to retrieve a String result from a WMI
+   * query
+   *
+   * @returns Status indicating the success of the query
+   */
+  Status GetString(const std::wstring& name, std::wstring& ret) const;
 
   /**
    * @brief Windows WMI Helper function to retrieve a vector of String result

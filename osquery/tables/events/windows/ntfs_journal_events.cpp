@@ -1,11 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 /* NOTE(woodruffw): osquery targets Windows 7, but we do feature-testing below
@@ -21,12 +20,12 @@
 
 #include <osquery/config/config.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
-#include <osquery/utils/json/json.h>
-
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/events/windows/ntfs_journal_events.h>
+#include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 REGISTER(NTFSEventSubscriber, "event_subscriber", "ntfs_journal_events");
@@ -147,27 +146,27 @@ Row NTFSEventSubscriber::generateRowFromEvent(const NTFSEventRecord& event) {
   auto action_description_it = kNTFSEventToStringMap.find(event.type);
   assert(action_description_it != kNTFSEventToStringMap.end());
 
-  row["action"] = TEXT(action_description_it->second);
-  row["old_path"] = TEXT(event.old_path);
-  row["path"] = TEXT(event.path);
+  row["action"] = SQL_TEXT(action_description_it->second);
+  row["old_path"] = SQL_TEXT(event.old_path);
+  row["path"] = SQL_TEXT(event.path);
   row["partial"] = INTEGER(event.partial);
 
   // NOTE(woodruffw): These are emitted in decimal, not hex.
   // There's no good reason for this, other than that
   // boost's mp type doesn't handle std::hex and other
   // ios formatting directives correctly.
-  row["node_ref_number"] = TEXT(event.node_ref_number.str());
-  row["parent_ref_number"] = TEXT(event.parent_ref_number.str());
+  row["node_ref_number"] = SQL_TEXT(event.node_ref_number.str());
+  row["parent_ref_number"] = SQL_TEXT(event.parent_ref_number.str());
 
   {
     std::stringstream buffer;
     buffer << event.record_timestamp;
-    row["record_timestamp"] = TEXT(buffer.str());
+    row["record_timestamp"] = SQL_TEXT(buffer.str());
 
     buffer.str("");
     buffer << std::hex << std::setfill('0') << std::setw(16)
            << event.update_sequence_number;
-    row["record_usn"] = TEXT(buffer.str());
+    row["record_usn"] = SQL_TEXT(buffer.str());
 
     // NOTE(woodruffw): Maybe comma-separate here? Pipes make it clear
     // that these are flags, but CSV is easier to parse and is
@@ -190,11 +189,11 @@ Row NTFSEventSubscriber::generateRowFromEvent(const NTFSEventRecord& event) {
       add_separator = true;
     }
 
-    row["file_attributes"] = TEXT(buffer.str());
+    row["file_attributes"] = SQL_TEXT(buffer.str());
   }
 
   std::string drive_letter(1, event.drive_letter);
-  row["drive_letter"] = TEXT(drive_letter);
+  row["drive_letter"] = SQL_TEXT(drive_letter);
 
   return row;
 }
@@ -270,7 +269,7 @@ Status NTFSEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     }
 
     auto row = generateRowFromEvent(event);
-    row["category"] = TEXT(sc->category);
+    row["category"] = SQL_TEXT(sc->category);
     emitted_row_list.push_back(row);
   }
 
@@ -310,7 +309,7 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
   // so we need to pass FILE_FLAG_BACKUP_SEMANTICS rather
   // than FILE_ATTRIBUTE_NORMAL.
   for (const auto& path : include_paths) {
-    HANDLE file_hnd = ::CreateFile(path.c_str(),
+    HANDLE file_hnd = ::CreateFile(stringToWstring(path).c_str(),
                                    GENERIC_READ,
                                    FILE_SHARE_READ | FILE_SHARE_WRITE,
                                    NULL,

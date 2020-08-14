@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <osquery/utils/system/system.h>
@@ -12,16 +13,16 @@
 #include <taskschd.h>
 #include <winbase.h>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
 
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
-#include <osquery/filesystem/fileops.h>
 #include <osquery/process/process.h>
 
 namespace osquery {
@@ -113,7 +114,7 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
     HRESULT lastTaskRun = E_FAIL;
     pRegisteredTask->get_LastTaskResult(&lastTaskRun);
     _com_error err(lastTaskRun);
-    r["last_run_message"] = err.ErrorMessage();
+    r["last_run_message"] = wstringToString(err.ErrorMessage());
     r["last_run_code"] = INTEGER(lastTaskRun);
 
     // We conver the COM Date type to a unix epoch timestamp

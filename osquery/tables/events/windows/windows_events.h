@@ -1,13 +1,15 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <ctime>
 
+#include <osquery/events/windows/windowseventlogparser.h>
 #include <osquery/events/windows/windowseventlogpublisher.h>
 
 namespace pt = boost::property_tree;
@@ -21,25 +23,6 @@ class WindowsEventSubscriber
 
   Status Callback(const ECRef& event, const SCRef& subscription);
 
-  struct Event final {
-    std::time_t osquery_time{0U};
-    std::string datetime;
-
-    std::string source;
-    std::string provider_name;
-    std::string provider_guid;
-
-    std::int64_t event_id{0U};
-    std::int64_t task_id{0U};
-    std::int64_t level{0U};
-
-    std::string keywords;
-    std::string data;
-  };
-
-  static Status processEventObject(
-      Event& windows_event, const boost::property_tree::ptree& event_object);
-
-  static void generateRow(Row& row, const Event& windows_event);
+  static void generateRow(Row& row, const WELEvent& windows_event);
 };
 } // namespace osquery

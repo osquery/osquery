@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <boost/filesystem/operations.hpp>
@@ -12,10 +13,10 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
-#include <osquery/database.h>
-#include <osquery/events.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/events/events.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/info/tool_type.h>
 
 namespace osquery {
@@ -24,7 +25,7 @@ DECLARE_bool(disable_database);
 class EventsTests : public ::testing::Test {
  protected:
   void SetUp() override {
-    kToolType = ToolType::TEST;
+    setToolType(ToolType::TEST);
     registryAndPluginInit();
 
     // Force registry to use ephemeral database plugin
@@ -71,17 +72,30 @@ class AnotherFakeEventPublisher
 };
 
 TEST_F(EventsTests, test_event_publisher) {
+  // Inspect the publisher "type", which is the publisher "name".
   auto pub = std::make_shared<FakeEventPublisher>();
   EXPECT_EQ(pub->type(), "FakePublisher");
+  EXPECT_EQ(EventFactory::getType<FakeEventPublisher>(), "FakePublisher");
+  // This is different for each publisher with an overridden type().
+  EXPECT_EQ(EventFactory::getType<AnotherFakeEventPublisher>(),
+            "AnotherFakePublisher");
 
   // Test type names.
   auto pub_sub = pub->createSubscriptionContext();
   EXPECT_EQ(typeid(FakeSubscriptionContext), typeid(*pub_sub));
+
+  // This publisher has no type.
+  auto basic_pub = std::make_shared<BasicEventPublisher>();
+  EXPECT_TRUE(basic_pub->type().empty());
+  EXPECT_TRUE(EventFactory::getType<BasicEventPublisher>().empty());
+  basic_pub->setName("BasicPublisher");
+  EXPECT_EQ(basic_pub->type(), "BasicPublisher");
 }
 
 TEST_F(EventsTests, test_register_event_publisher) {
   auto basic_pub = std::make_shared<BasicEventPublisher>();
   auto status = EventFactory::registerEventPublisher(basic_pub);
+  // This publisher has no type set, registration will fail.
   EXPECT_FALSE(status.ok());
 
   // Set a name for the publisher, which becomes the type by default.
@@ -125,12 +139,13 @@ TEST_F(EventsTests, test_event_publisher_types) {
   auto pub = std::make_shared<FakeEventPublisher>();
   EXPECT_EQ(pub->type(), "FakePublisher");
 
-  EventFactory::registerEventPublisher(pub);
+  auto status = EventFactory::registerEventPublisher(pub);
+  ASSERT_TRUE(status.ok());
   auto pub2 = EventFactory::getEventPublisher("FakePublisher");
   EXPECT_EQ(pub->type(), pub2->type());
 
   // It is possible to deregister by base event publisher type.
-  auto status = EventFactory::deregisterEventPublisher(pub2);
+  status = EventFactory::deregisterEventPublisher(pub2);
   EXPECT_TRUE(status.ok());
   // And attempting to deregister by type afterward will fail.
   status = EventFactory::deregisterEventPublisher(pub->type());
@@ -180,12 +195,13 @@ TEST_F(EventsTests, test_create_subscription) {
 
   auto pub = std::make_shared<BasicEventPublisher>();
   pub->setName(basic_publisher_type);
-  EventFactory::registerEventPublisher(pub);
+  auto status = EventFactory::registerEventPublisher(pub);
+  ASSERT_TRUE(status.ok());
 
   // Make sure a subscription cannot be added for a non-existent event type.
   // Note: It normally would not make sense to create a blank subscription.
   auto subscription = Subscription::create("FakeSubscriber");
-  auto status = EventFactory::addSubscription("FakePublisher", subscription);
+  status = EventFactory::addSubscription("FakePublisher", subscription);
   EXPECT_FALSE(status.ok());
 
   // In this case we can still add a blank subscription to an existing event
@@ -205,11 +221,11 @@ TEST_F(EventsTests, test_multiple_subscriptions) {
 
   auto pub = std::make_shared<BasicEventPublisher>();
   pub->setName(basic_publisher_type);
-  EventFactory::registerEventPublisher(pub);
+  auto status = EventFactory::registerEventPublisher(pub);
+  ASSERT_TRUE(status.ok());
 
   auto subscription = Subscription::create("subscriber");
-  auto status =
-      EventFactory::addSubscription(basic_publisher_type, subscription);
+  status = EventFactory::addSubscription(basic_publisher_type, subscription);
   status = EventFactory::addSubscription(basic_publisher_type, subscription);
   EXPECT_TRUE(status.ok());
 
@@ -220,7 +236,7 @@ TEST_F(EventsTests, test_multiple_subscriptions) {
 }
 
 struct TestSubscriptionContext : public SubscriptionContext {
-  int smallest;
+  int smallest{0};
 };
 
 class TestEventPublisher
@@ -266,10 +282,11 @@ class TestEventPublisher
 TEST_F(EventsTests, test_create_custom_event_publisher) {
   auto basic_pub = std::make_shared<BasicEventPublisher>();
   basic_pub->setName("BasicPublisher");
-  EventFactory::registerEventPublisher(basic_pub);
+  auto status = EventFactory::registerEventPublisher(basic_pub);
+  ASSERT_TRUE(status.ok());
 
   auto pub = std::make_shared<TestEventPublisher>();
-  auto status = EventFactory::registerEventPublisher(pub);
+  status = EventFactory::registerEventPublisher(pub);
   ASSERT_TRUE(status.ok());
 
   // These event types have unique event type IDs
@@ -406,10 +423,12 @@ TEST_F(EventsTests, test_event_subscriber) {
 
 TEST_F(EventsTests, test_event_subscriber_subscribe) {
   auto pub = std::make_shared<FakeEventPublisher>();
-  EventFactory::registerEventPublisher(pub);
+  auto status = EventFactory::registerEventPublisher(pub);
+  ASSERT_TRUE(status.ok());
 
   auto sub = std::make_shared<FakeEventSubscriber>();
-  EventFactory::registerEventSubscriber(sub);
+  status = EventFactory::registerEventSubscriber(sub);
+  ASSERT_TRUE(status.ok());
 
   // Don't overload the normal `init` Subscription member.
   sub->lateInit();
@@ -418,10 +437,13 @@ TEST_F(EventsTests, test_event_subscriber_subscribe) {
 
   auto ec = pub->createEventContext();
   pub->fire(ec, 0);
-
   EXPECT_TRUE(sub->bellHathTolled);
 
-  auto status = EventFactory::deregisterEventSubscriber(sub->getName());
+  sub->bellHathTolled = false;
+  EventFactory::fire<FakeEventPublisher>(ec);
+  EXPECT_TRUE(sub->bellHathTolled);
+
+  status = EventFactory::deregisterEventSubscriber(sub->getName());
   EXPECT_TRUE(status.ok());
   status = EventFactory::deregisterEventPublisher(pub->type());
   EXPECT_TRUE(status.ok());
@@ -429,10 +451,12 @@ TEST_F(EventsTests, test_event_subscriber_subscribe) {
 
 TEST_F(EventsTests, test_event_subscriber_context) {
   auto pub = std::make_shared<FakeEventPublisher>();
-  EventFactory::registerEventPublisher(pub);
+  auto status = EventFactory::registerEventPublisher(pub);
+  ASSERT_TRUE(status.ok());
 
   auto sub = std::make_shared<FakeEventSubscriber>();
-  EventFactory::registerEventSubscriber(sub);
+  status = EventFactory::registerEventSubscriber(sub);
+  ASSERT_TRUE(status.ok());
 
   sub->laterInit();
   pub->configure();
@@ -442,7 +466,7 @@ TEST_F(EventsTests, test_event_subscriber_context) {
 
   EXPECT_TRUE(sub->contextBellHathTolled);
 
-  auto status = EventFactory::deregisterEventSubscriber(sub->getName());
+  status = EventFactory::deregisterEventSubscriber(sub->getName());
   EXPECT_TRUE(status.ok());
   status = EventFactory::deregisterEventPublisher(pub->type());
   EXPECT_TRUE(status.ok());
@@ -569,10 +593,11 @@ TEST_F(EventsTests, test_event_toggle_subscribers) {
   EXPECT_FALSE(sub2->disabled);
 
   // Registering a disabled subscriber will put it into a paused state.
-  EventFactory::registerEventSubscriber(sub);
+  auto status = EventFactory::registerEventSubscriber(sub);
+  EXPECT_TRUE(status.ok());
   EXPECT_EQ(sub->state(), EventState::EVENT_PAUSED);
 
-  auto status = EventFactory::deregisterEventSubscriber(sub->getName());
+  status = EventFactory::deregisterEventSubscriber(sub->getName());
   EXPECT_TRUE(status.ok());
 }
-}
+} // namespace osquery

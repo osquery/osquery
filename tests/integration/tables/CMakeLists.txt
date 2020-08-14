@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(testsIntegrationTablesMain)
   generateTestsIntegrationTablesIntegrationtestshelper()
@@ -130,7 +131,6 @@ function(generateTestsIntegrationTablesTestsTest)
       ulimit_info.cpp
       usb_devices.cpp
       user_events.cpp
-      yara.cpp
       yum_sources.cpp
     )
 
@@ -173,8 +173,10 @@ function(generateTestsIntegrationTablesTestsTest)
       shared_memory.cpp
       smart_drive_info.cpp
       socket_events.cpp
+      startup_items.cpp
       syslog_events.cpp
       yara_events.cpp
+      yara.cpp
     )
 
     list(APPEND source_files ${platform_source_files})
@@ -250,6 +252,7 @@ function(generateTestsIntegrationTablesTestsTest)
       xprotect_meta.cpp
       xprotect_reports.cpp
       yara_events.cpp
+      yara.cpp
     )
 
     list(APPEND source_files ${platform_source_files})
@@ -285,6 +288,7 @@ function(generateTestsIntegrationTablesTestsTest)
       scheduled_tasks.cpp
       services.cpp
       shared_resources.cpp
+      shimcache.cpp
       startup_items.cpp
       userassist.cpp
       video_info.cpp
@@ -298,6 +302,7 @@ function(generateTestsIntegrationTablesTestsTest)
       wmi_filter_consumer_binding.cpp
       wmi_script_event_consumers.cpp
       hvci_status.cpp
+      yara.cpp
     )
 
     list(APPEND source_files ${platform_source_files})

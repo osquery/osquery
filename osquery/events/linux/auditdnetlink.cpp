@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <linux/audit.h>
@@ -16,13 +17,13 @@
 
 #include <boost/utility/string_ref.hpp>
 
+#include <osquery/core/flags.h>
 #include <osquery/events/linux/auditdnetlink.h>
 #include <osquery/events/linux/process_events.h>
 #include <osquery/events/linux/process_file_events.h>
 #include <osquery/events/linux/selinux_events.h>
 #include <osquery/events/linux/socket_events.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/system/time.h>
@@ -58,6 +59,7 @@ DECLARE_bool(audit_allow_config);
 DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_fork_process_events);
+DECLARE_bool(audit_allow_kill_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
 DECLARE_bool(audit_allow_selinux_events);
@@ -345,6 +347,14 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
                  "clone) table";
 
       for (int syscall : kForkProcessEventsSyscalls) {
+        monitored_syscall_list_.insert(syscall);
+      }
+    }
+
+    if (FLAGS_audit_allow_kill_process_events) {
+      VLOG(1) << "Enabling audit rules for the process_events (kill, tkill, "
+                 "tgkill) table";
+      for (int syscall : kKillProcessEventsSyscalls) {
         monitored_syscall_list_.insert(syscall);
       }
     }

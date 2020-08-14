@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -21,10 +22,10 @@
 #include <boost/optional.hpp>
 #include <sqlite3.h>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/query.h>
 #include <osquery/core/sql/column.h>
 #include <osquery/plugins/plugin.h>
-#include <osquery/query.h>
 
 #include <gtest/gtest_prod.h>
 
@@ -172,7 +173,6 @@ struct Constraint {
       : op(_op), expr(std::move(_expr)) {}
 };
 
-
 /**
  * @brief Attributes about a Table implementation.
  */
@@ -206,8 +206,6 @@ inline TableAttributes operator|(TableAttributes a, TableAttributes b) {
 inline size_t operator&(TableAttributes a, TableAttributes b) {
   return static_cast<size_t>(a) & static_cast<size_t>(b);
 }
-
-
 
 /// Alias for an ordered list of column name and corresponding SQL type.
 using TableColumns =
@@ -366,7 +364,7 @@ struct ConstraintList : private boost::noncopyable {
   friend struct QueryContext;
 
  private:
-   FRIEND_TEST(TablesTests, test_constraint_list);
+  FRIEND_TEST(TablesTests, test_constraint_list);
 };
 
 /// Pass a constraint map to the query request.

@@ -33,13 +33,13 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <osquery/config/config.h>
-#include <osquery/database.h>
+#include <osquery/config/packs.h>
+#include <osquery/core/flags.h>
+#include <osquery/database/database.h>
 #include <osquery/devtools/devtools.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/packs.h>
 #include <osquery/process/process.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/sql/virtual_table.h>
 #include <osquery/utils/chars.h>
 #include <osquery/utils/conversions/join.h>
@@ -1140,12 +1140,12 @@ inline void meta_version(struct callback_data* p) {
 }
 
 inline void meta_show(struct callback_data* p) {
-  // The show/summary meta command is provided to help with general debugging.
-  // All of this information is 'duplicate', and can be found with better
-  // detail within osquery virtual tables.
+  // The show/summary meta command is provided to help with general
+  // debugging.  All of this information is 'duplicate', and can be
+  // found with better detail within osquery virtual tables.
   print_bold("osquery");
   printf(
-      " - being built, with love, at Facebook\n"
+      " - being built, with love.\n"
       "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
   meta_version(p);
 

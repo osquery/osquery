@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <osquery/utils/system/system.h>
@@ -16,14 +17,15 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/logger.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/windows/process_ops.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
 #include <osquery/filesystem/fileops.h>
 #include <osquery/tables/system/windows/certificates.h>
@@ -101,7 +103,7 @@ std::string getKeyUsage(const PCERT_INFO& certInfo) {
 
 void getCertCtxProp(const PCCERT_CONTEXT& certContext,
                     unsigned long propId,
-                    std::vector<char>& dataBuff) {
+                    std::vector<BYTE>& dataBuff) {
   unsigned long dataBuffLen = 0;
   auto ret = CertGetCertificateContextProperty(
       certContext, propId, nullptr, &dataBuffLen);
@@ -404,53 +406,59 @@ void addCertRow(PCCERT_CONTEXT certContext,
                 const std::string& username,
                 const std::string& storeLocation,
                 QueryData& results) {
-  std::vector<char> certBuff;
-  getCertCtxProp(certContext, CERT_HASH_PROP_ID, certBuff);
+  std::vector<BYTE> fingerprintBuff;
+  getCertCtxProp(certContext, CERT_HASH_PROP_ID, fingerprintBuff);
   std::string fingerprint;
-  toHexStr(certBuff.begin(), certBuff.end(), fingerprint);
+  toHexStr(fingerprintBuff.begin(), fingerprintBuff.end(), fingerprint);
 
   Row r;
   r["sid"] = sid;
   r["username"] = username;
   r["store_id"] = storeId;
   r["sha1"] = fingerprint;
+  std::vector<WCHAR> certBuff;
   certBuff.resize(256, 0);
   std::fill(certBuff.begin(), certBuff.end(), 0);
-  CertGetNameString(certContext,
-                    CERT_NAME_SIMPLE_DISPLAY_TYPE,
-                    0,
-                    nullptr,
-                    certBuff.data(),
-                    static_cast<unsigned long>(certBuff.size()));
-  r["common_name"] = certBuff.data();
+  CertGetNameString(
+      certContext,
+      CERT_NAME_SIMPLE_DISPLAY_TYPE | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
+      0,
+      nullptr,
+      certBuff.data(),
+      static_cast<unsigned long>(certBuff.size()));
+  r["common_name"] = wstringToString(certBuff.data());
 
-  auto subjSize = CertNameToStr(certContext->dwCertEncodingType,
-                                &(certContext->pCertInfo->Subject),
-                                CERT_SIMPLE_NAME_STR,
-                                nullptr,
-                                0);
+  auto subjSize =
+      CertNameToStr(certContext->dwCertEncodingType,
+                    &(certContext->pCertInfo->Subject),
+                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
+                    nullptr,
+                    0);
   certBuff.resize(subjSize, 0);
   std::fill(certBuff.begin(), certBuff.end(), 0);
-  subjSize = CertNameToStr(certContext->dwCertEncodingType,
-                           &(certContext->pCertInfo->Subject),
-                           CERT_SIMPLE_NAME_STR,
-                           certBuff.data(),
-                           subjSize);
-  r["subject"] = subjSize == 0 ? "" : certBuff.data();
+  subjSize =
+      CertNameToStr(certContext->dwCertEncodingType,
+                    &(certContext->pCertInfo->Subject),
+                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
+                    certBuff.data(),
+                    subjSize);
+  r["subject"] = subjSize == 0 ? "" : wstringToString(certBuff.data());
 
-  auto issuerSize = CertNameToStr(certContext->dwCertEncodingType,
-                                  &(certContext->pCertInfo->Issuer),
-                                  CERT_SIMPLE_NAME_STR,
-                                  nullptr,
-                                  0);
+  auto issuerSize =
+      CertNameToStr(certContext->dwCertEncodingType,
+                    &(certContext->pCertInfo->Issuer),
+                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
+                    nullptr,
+                    0);
   certBuff.resize(issuerSize, 0);
   std::fill(certBuff.begin(), certBuff.end(), 0);
-  issuerSize = CertNameToStr(certContext->dwCertEncodingType,
-                             &(certContext->pCertInfo->Issuer),
-                             CERT_SIMPLE_NAME_STR,
-                             certBuff.data(),
-                             issuerSize);
-  r["issuer"] = issuerSize == 0 ? "" : certBuff.data();
+  issuerSize =
+      CertNameToStr(certContext->dwCertEncodingType,
+                    &(certContext->pCertInfo->Issuer),
+                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
+                    certBuff.data(),
+                    issuerSize);
+  r["issuer"] = issuerSize == 0 ? "" : wstringToString(certBuff.data());
 
   // TODO(#5654) 1: Find the right API calls to get whether a cert is for a CA
   r["ca"] = INTEGER(-1);
@@ -477,10 +485,10 @@ void addCertRow(PCCERT_CONTEXT certContext,
   r["key_strength"] = INTEGER(
       (certContext->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData) * 8);
 
-  certBuff.clear();
-  getCertCtxProp(certContext, CERT_KEY_IDENTIFIER_PROP_ID, certBuff);
+  std::vector<BYTE> keypropBuff;
+  getCertCtxProp(certContext, CERT_KEY_IDENTIFIER_PROP_ID, keypropBuff);
   std::string subjectKeyId;
-  toHexStr(certBuff.begin(), certBuff.end(), subjectKeyId);
+  toHexStr(keypropBuff.begin(), keypropBuff.end(), subjectKeyId);
   r["subject_key_id"] = subjectKeyId;
 
   r["path"] =

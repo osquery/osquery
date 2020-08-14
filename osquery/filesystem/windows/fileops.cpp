@@ -1,16 +1,18 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <osquery/filesystem/fileops.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/process/windows/process_ops.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
 #include <AclAPI.h>
 #include <LM.h>
@@ -117,7 +119,9 @@ Status windowsShortPathToLongPath(const std::string& shortPath,
   return Status::success();
 }
 
-Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
+Status windowsGetVersionInfo(const std::string& path,
+                             std::string& product_version,
+                             std::string& file_version) {
   DWORD handle = 0;
   std::wstring wpath = stringToWstring(path).c_str();
   auto verSize = GetFileVersionInfoSizeW(wpath.c_str(), &handle);
@@ -137,11 +141,16 @@ Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
   if (err == 0) {
     return Status(GetLastError(), "Failed to query version value");
   }
-  rVersion =
+  product_version =
       std::to_string((pFileInfo->dwProductVersionMS >> 16 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionMS >> 0 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionLS >> 16 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionLS >> 0 & 0xffff));
+  file_version =
+      std::to_string((pFileInfo->dwFileVersionMS >> 16 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwFileVersionMS >> 0 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwFileVersionLS >> 16 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwFileVersionLS >> 0 & 0xffff));
   return Status::success();
 }
 
@@ -1569,22 +1578,6 @@ Status socketExists(const fs::path& path, bool remove_socket) {
   return Status::success();
 }
 
-LONGLONG filetimeToUnixtime(const FILETIME& ft) {
-  LARGE_INTEGER date, adjust;
-  date.HighPart = ft.dwHighDateTime;
-  date.LowPart = ft.dwLowDateTime;
-  adjust.QuadPart = 11644473600000 * 10000;
-  date.QuadPart -= adjust.QuadPart;
-  return date.QuadPart / 10000000;
-}
-
-LONGLONG longIntToUnixtime(LARGE_INTEGER& ft) {
-  ULARGE_INTEGER ull;
-  ull.LowPart = ft.LowPart;
-  ull.HighPart = ft.HighPart;
-  return ull.QuadPart / 10000000ULL - 11644473600ULL;
-}
-
 std::string getFileAttribStr(unsigned long file_attributes) {
   std::string attribs;
 
@@ -1844,8 +1837,9 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   (!ret) ? wfile_stat->ctime = -1
          : wfile_stat->ctime = longIntToUnixtime(basic_info.ChangeTime);
 
-  windowsGetFileVersion(wstringToString(path.wstring()),
-                        wfile_stat->product_version);
+  windowsGetVersionInfo(wstringToString(path.wstring()),
+                        wfile_stat->product_version,
+                        wfile_stat->file_version);
 
   CloseHandle(file_handle);
 
@@ -1856,7 +1850,7 @@ fs::path getSystemRoot() {
   std::vector<WCHAR> winDirectory(MAX_PATH + 1);
   ZeroMemory(winDirectory.data(), MAX_PATH + 1);
   GetWindowsDirectoryW(winDirectory.data(), MAX_PATH);
-  return fs::path(wstringToString(winDirectory.data()));
+  return fs::path(winDirectory.data());
 }
 
 Status platformLstat(const std::string& path, struct stat& d_stat) {

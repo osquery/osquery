@@ -1,16 +1,17 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include "glog_logger.h"
 
 #include <string>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 
@@ -27,6 +28,10 @@ void GLOGLogger::log(int severity, const std::string& message) {
   }
   case google::GLOG_INFO: {
     LOG(INFO) << message;
+    break;
+  }
+  case google::GLOG_WARNING: {
+    LOG(WARNING) << message;
     break;
   }
   case google::GLOG_FATAL: {

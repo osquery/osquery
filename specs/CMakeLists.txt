@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(specsMain)
   add_osquery_library(specs_tables INTERFACE)
@@ -175,7 +176,7 @@ function(generateNativeTables)
     "lldpd/lldp_neighbors.table:linux,macos,freebsd"
     "kernel_info.table:linux,macos,windows"
     "macwin/certificates.table:macos,windows"
-    "macwin/startup_items.table:macos,windows"
+    "macwin/startup_items.table:macos,windows,linux"
     "posix/acpi_tables.table:linux,macos"
     "posix/apt_sources.table:linux,macos,freebsd"
     "posix/augeas.table:linux,macos,freebsd"
@@ -287,9 +288,11 @@ function(generateNativeTables)
     "windows/windows_optional_features.table:windows"
     "windows/connectivity.table:windows"
     "windows/userassist.table:windows"
+    "windows/dns_cache.table:windows"
     "windows/hvci_status.table:windows"
+    "windows/shimcache.table:windows"
     "yara/yara_events.table:linux,macos"
-    "yara/yara.table:linux,macos,freebsd"
+    "yara/yara.table:linux,macos,freebsd,windows"
   )
 
   foreach(spec_descriptor ${platform_dependent_spec_files})

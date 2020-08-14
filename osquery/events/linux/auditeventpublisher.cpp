@@ -1,18 +1,19 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <array>
 
+#include <osquery/core/flags.h>
 #include <osquery/events/linux/auditeventpublisher.h>
 #include <osquery/events/linux/selinux_events.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
@@ -24,6 +25,7 @@ DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
 DECLARE_bool(audit_allow_selinux_events);
+DECLARE_bool(audit_allow_kill_process_events);
 
 REGISTER(AuditEventPublisher, "event_publisher", "auditeventpublisher");
 
@@ -35,7 +37,8 @@ bool IsPublisherEnabled() noexcept {
 
   return (FLAGS_audit_allow_fim_events || FLAGS_audit_allow_process_events ||
           FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events ||
-          FLAGS_audit_allow_selinux_events);
+          FLAGS_audit_allow_selinux_events ||
+          FLAGS_audit_allow_kill_process_events);
 }
 } // namespace
 

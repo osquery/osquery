@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -59,6 +60,32 @@ struct ScheduledQuery : private only_movable {
   ScheduledQuery() = default;
   ScheduledQuery(ScheduledQuery&&) = default;
   ScheduledQuery& operator=(ScheduledQuery&&) = default;
+
+  /**
+   * @brief Returns true if the query is a snapshot query, otherwise false.
+   *
+   * @return A bool indicating if this query is a snapshot query.
+   */
+  inline bool isSnapshotQuery() const {
+    auto it = options.find("snapshot");
+    return it != options.end() && it->second;
+  }
+
+  /**
+   * @brief Returns true if removed rows should be reported, otherwise false.
+   *
+   * @return A bool indicating if this query reports removed rows.
+   */
+  inline bool reportRemovedRows() const {
+    auto it = options.find("removed");
+
+    if (it == options.end()) {
+      // If the option is missing, we do want to report removed rows.
+      return true;
+    }
+
+    return it->second;
+  }
 
   /// equals operator
   bool operator==(const ScheduledQuery& comp) const {

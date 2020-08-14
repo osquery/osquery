@@ -1,6 +1,6 @@
 How do I add a command line flag/option/argument to osquery? Well, first familiarize yourself with gflags, then take note of the wrapper below.
 
-[include/osquery/flags.h](https://github.com/osquery/osquery/blob/master/include/osquery/flags.h) contains a single wrapper for `gflags::DEFINE_` type style macros. osquery includes a simple wrapper for defining arguments/options/flags for the osqueryd daemon and shell.
+[osquery/core/flags.h](https://github.com/osquery/osquery/blob/master/osquery/core/flags.h) contains a single wrapper for `gflags::DEFINE_` type style macros. osquery includes a simple wrapper for defining arguments/options/flags for the osqueryd daemon and shell.
 
 Instead of writing the normal gflags macro for defining a new option:
 
@@ -13,7 +13,7 @@ DEFINE_bool(you_are_awesome, true, "Ground truth for awesome.");  // DON'T DO TH
 Use the following wrapper:
 
 ```cpp
-#include <osquery/flags.h>
+#include <osquery/core/flags.h>
 
 FLAG(bool, you_are_awesome, true, "Ground truth for awesome.");
 ```

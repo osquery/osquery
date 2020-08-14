@@ -1,17 +1,18 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <map>
 #include <string>
 
 #include <osquery/config/config.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/tables/yara/yara_utils.h>
 
 namespace osquery {
@@ -31,6 +32,7 @@ bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
 void YARACompilerCallback(int error_level,
                           const char* file_name,
                           int line_number,
+                          const YR_RULE* rule,
                           const char* message,
                           void* user_data) {
   if (error_level == YARA_ERROR_LEVEL_ERROR) {
@@ -209,7 +211,10 @@ Status handleRuleFiles(const std::string& category,
  * This is the YARA callback. Used to store matching rules in the row which is
  * passed in as user_data.
  */
-int YARACallback(int message, void* message_data, void* user_data) {
+int YARACallback(YR_SCAN_CONTEXT* context,
+                 int message,
+                 void* message_data,
+                 void* user_data) {
   if (message == CALLBACK_MSG_RULE_MATCHING) {
     Row* r = (Row*)user_data;
     YR_RULE* rule = (YR_RULE*)message_data;
@@ -223,7 +228,7 @@ int YARACallback(int message, void* message_data, void* user_data) {
     YR_STRING* string = nullptr;
     yr_rule_strings_foreach(rule, string) {
       YR_MATCH* match = nullptr;
-      yr_string_matches_foreach(string, match) {
+      yr_string_matches_foreach(context, string, match) {
         if ((*r)["strings"].length() > 0) {
           (*r)["strings"] += "," + std::string(string->identifier);
         } else {

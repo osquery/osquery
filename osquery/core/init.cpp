@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <chrono>
@@ -29,17 +30,18 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/config/config.h>
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/shutdown.h>
 #include <osquery/core/watcher.h>
-#include <osquery/data_logger.h>
-#include <osquery/dispatcher.h>
-#include <osquery/events.h>
-#include <osquery/extensions.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/events/events.h>
+#include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/numeric_monitoring.h>
+#include <osquery/logger/data_logger.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/process/process.h>
-#include <osquery/registry.h>
+#include <osquery/registry/registry.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/version.h>
@@ -111,17 +113,6 @@ CLI_FLAG(bool, daemonize, false, "Attempt to daemonize (POSIX only)");
 CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
 
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
-
-ToolType kToolType{ToolType::UNKNOWN};
-
-/**
- * @brief The requested exit code.
- *
- * Use Initializer::requestShutdown to request shutdown in most cases.
- * This will notify the main thread requesting the dispatcher to
- * interrupt all services.
- */
-std::sig_atomic_t kExitCode{0};
 
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
@@ -209,7 +200,7 @@ Initializer::Initializer(int& argc,
   std::srand(static_cast<unsigned int>(
       chrono_clock::now().time_since_epoch().count()));
   // The config holds the initialization time for easy access.
-  Config::setStartTime(getUnixTime());
+  setStartTime(getUnixTime());
 
   isWorker_ = hasWorkerVariable();
 
@@ -217,15 +208,15 @@ Initializer::Initializer(int& argc,
   if (tool == ToolType::SHELL_DAEMON) {
     if (fs::path(argv[0]).filename().string().find("osqueryd") !=
         std::string::npos) {
-      kToolType = ToolType::DAEMON;
+      setToolType(ToolType::DAEMON);
       binary_ = "osqueryd";
     } else {
-      kToolType = ToolType::SHELL;
+      setToolType(ToolType::SHELL);
       binary_ = "osqueryi";
     }
   } else {
     // Set the tool type to allow runtime decisions based on daemon, shell, etc.
-    kToolType = tool;
+    setToolType(tool);
   }
 
   // The 'main' thread is that which executes the initializer.
@@ -262,15 +253,15 @@ Initializer::Initializer(int& argc,
   for (int i = 1; i < *argc_; i++) {
     auto help = std::string((*argv_)[i]);
     if (help == "-S" || help == "--S") {
-      kToolType = ToolType::SHELL;
+      setToolType(ToolType::SHELL);
       binary_ = "osqueryi";
     } else if (help == "-D" || help == "--D") {
-      kToolType = ToolType::DAEMON;
+      setToolType(ToolType::DAEMON);
       binary_ = "osqueryd";
     } else if ((help == "--help" || help == "-help" || help == "--h" ||
                 help == "-h") &&
                tool != ToolType::TEST) {
-      printUsage(binary_, kToolType);
+      printUsage(binary_, getToolType());
       shutdownNow();
     }
     if (help.find("--flagfile") == 0) {
@@ -335,7 +326,7 @@ Initializer::Initializer(int& argc,
 
   // Initialize the status and results logger.
   initStatusLogger(binary_, init_glog);
-  if (kToolType != ToolType::EXTENSION) {
+  if (getToolType() != ToolType::EXTENSION) {
     if (isWorker()) {
       VLOG(1) << "osquery worker initialized [watcher="
               << PlatformProcess::getLauncherProcess()->pid() << "]";
@@ -436,7 +427,7 @@ void Initializer::initWatcher() const {
 
   // The watcher takes a list of paths to autoload extensions from.
   // The loadExtensions call will populate the watcher's list of extensions.
-  osquery::loadExtensions();
+  watcher.loadExtensions();
 
   // Add a watcher service thread to start/watch an optional worker and list
   // of optional extensions from the autoload paths.
@@ -454,7 +445,7 @@ void Initializer::initWatcher() const {
     // Do not start new workers.
     watcher.bindFates();
     if (watcher.getWorkerStatus() >= 0) {
-      kExitCode = watcher.getWorkerStatus();
+      setShutdownExitCode(watcher.getWorkerStatus());
     }
   }
 }
@@ -654,14 +645,8 @@ class AlarmRunnable : public InterruptableRunnable {
   void stop() {}
 };
 
-/// Graceful shutdown request conditional var.
-std::condition_variable kShutdownRequestCV;
-std::mutex kShutdownRequestMutex;
-bool kShutdownRequested{false};
-
 void Initializer::waitForShutdown() const {
-  std::unique_lock<std::mutex> lock(kShutdownRequestMutex);
-  kShutdownRequestCV.wait(lock, [] { return kShutdownRequested; });
+  osquery::waitForShutdown();
 }
 
 int Initializer::shutdown(int retcode) const {
@@ -695,25 +680,15 @@ int Initializer::shutdown(int retcode) const {
   platformTeardown();
 
   // Allow the retcode to override a stored request for shutdown.
-  return (retcode == 0) ? kExitCode : retcode;
+  return (retcode == 0) ? getShutdownExitCode() : retcode;
 }
 
 void Initializer::requestShutdown(int retcode) {
-  static std::once_flag thrown;
-  std::call_once(thrown, [&retcode]() {
-    // Can be called from any thread, attempt a graceful shutdown.
-    std::unique_lock<std::mutex> lock(kShutdownRequestMutex);
-
-    kExitCode = retcode;
-    kShutdownRequested = true;
-    kShutdownRequestCV.notify_all();
-  });
+  osquery::requestShutdown(retcode);
 }
 
 void Initializer::requestShutdown(int retcode, const std::string& message) {
-  LOG(ERROR) << message;
-  systemLog(message);
-  requestShutdown(retcode);
+  osquery::requestShutdown(retcode, message);
 }
 
 void Initializer::shutdownNow(int retcode) {

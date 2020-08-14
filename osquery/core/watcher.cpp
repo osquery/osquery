@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <chrono>
@@ -20,14 +21,17 @@
 #include <boost/thread.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/core/shutdown.h>
 #include <osquery/core/sql/query_data.h>
 #include <osquery/core/watcher.h>
-#include <osquery/data_logger.h>
+#include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
+#include <osquery/logger/data_logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-#include <osquery/sql.h>
+#include <osquery/sql/sql.h>
+
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/tool_type.h>
 #include <osquery/utils/system/time.h>
@@ -35,8 +39,6 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
-
-const auto kNumOfCPUs = boost::thread::physical_concurrency();
 
 struct LimitDefinition {
   size_t normal;
@@ -53,6 +55,30 @@ struct PerformanceChange {
 
 using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
 
+/**
+ * @brief A scoped locker for iterating over watcher extensions.
+ *
+ * A lock must be used if any part of osquery wants to enumerate the autoloaded
+ * extensions or autoloadable extension paths a Watcher may be monitoring.
+ * A signal or WatcherRunner thread may stop or start extensions.
+ */
+class WatcherExtensionsLocker {
+ public:
+  /// Construct and gain watcher lock.
+  WatcherExtensionsLocker() {
+    Watcher::get().lock();
+  }
+
+  /// Destruct and release watcher lock.
+  ~WatcherExtensionsLocker() {
+    Watcher::get().unlock();
+  }
+};
+
+namespace {
+
+const auto kNumOfCPUs = boost::thread::physical_concurrency();
+
 const WatchdogLimitMap kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
     {WatchdogLimitType::MEMORY_LIMIT, {200, 100, 10000}},
@@ -68,6 +94,7 @@ const WatchdogLimitMap kWatchdogLimits = {
     // How often to poll for performance limit violations.
     {WatchdogLimitType::INTERVAL, {3, 3, 3}},
 };
+} // namespace
 
 CLI_FLAG(int32,
          watchdog_level,
@@ -168,9 +195,12 @@ void Watcher::reset(const PlatformProcess& child) {
   }
 }
 
-void Watcher::addExtensionPath(const std::string& path) {
-  setExtension(path, std::make_shared<PlatformProcess>());
-  resetExtensionCounters(path, 0);
+void Watcher::loadExtensions() {
+  auto autoload_paths = osquery::loadExtensions();
+  for (const auto& path : autoload_paths) {
+    setExtension(path, std::make_shared<PlatformProcess>());
+    resetExtensionCounters(path, 0);
+  }
 }
 
 bool Watcher::hasManagedExtensions() const {
@@ -215,15 +245,14 @@ void WatcherRunner::start() {
 
       auto status = watcher.getWorkerStatus();
       if (status == EXIT_CATASTROPHIC) {
-        Initializer::requestShutdown(EXIT_CATASTROPHIC,
-                                     "Worker returned exit status");
+        requestShutdown(EXIT_CATASTROPHIC, "Worker returned exit status");
         break;
       }
 
       if (watcher.workerRestartCount() ==
           getWorkerLimit(WatchdogLimitType::RESPAWN_LIMIT)) {
         // Too many worker restarts.
-        Initializer::requestShutdown(EXIT_FAILURE, "Too many worker restarts");
+        requestShutdown(EXIT_FAILURE, "Too many worker restarts");
         break;
       }
 
@@ -238,9 +267,8 @@ void WatcherRunner::start() {
     if (use_worker_) {
       auto status = isWatcherHealthy(*self, watcher_state);
       if (!status.ok()) {
-        Initializer::requestShutdown(
-            EXIT_CATASTROPHIC,
-            "Watcher has become unhealthy: " + status.getMessage());
+        requestShutdown(EXIT_CATASTROPHIC,
+                        "Watcher has become unhealthy: " + status.getMessage());
         break;
       }
     }
@@ -359,7 +387,7 @@ void WatcherRunner::stopChild(const PlatformProcess& child) const {
     if (!child.cleanup()) {
       auto message = std::string("Watcher cannot stop worker process (") +
                      std::to_string(child_pid) + ").";
-      Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
+      requestShutdown(EXIT_CATASTROPHIC, message);
     }
   }
 }
@@ -544,9 +572,8 @@ void WatcherRunner::createWorker() {
                             EQUALS,
                             INTEGER(PlatformProcess::getCurrentPid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
-    Initializer::requestShutdown(
-        EXIT_FAILURE,
-        "osquery watcher cannot determine process path for worker");
+    requestShutdown(EXIT_FAILURE,
+                    "osquery watcher cannot determine process path for worker");
     return;
   }
 
@@ -568,7 +595,7 @@ void WatcherRunner::createWorker() {
     // osqueryd binary has become unsafe.
     auto message = std::string(RLOG(1382)) +
                    "osqueryd has unsafe permissions: " + exec_path.string();
-    Initializer::requestShutdown(EXIT_FAILURE, message);
+    requestShutdown(EXIT_FAILURE, message);
     return;
   }
 
@@ -576,7 +603,7 @@ void WatcherRunner::createWorker() {
   if (worker == nullptr) {
     // Unrecoverable error, cannot create a worker process.
     LOG(ERROR) << "osqueryd could not create a worker process";
-    Initializer::shutdownNow(EXIT_FAILURE);
+    requestShutdown(EXIT_FAILURE);
     return;
   }
 
@@ -623,7 +650,7 @@ void WatcherRunner::createExtension(const std::string& extension) {
   if (ext_process == nullptr) {
     // Unrecoverable error, cannot create an extension process.
     LOG(ERROR) << "Cannot create extension process: " << extension;
-    Initializer::shutdownNow(EXIT_FAILURE);
+    requestShutdown(EXIT_FAILURE);
   }
 
   watcher.setExtension(extension, ext_process);
@@ -639,7 +666,7 @@ void WatcherWatcherRunner::start() {
       VLOG(1) << "osqueryd worker (" << PlatformProcess::getCurrentPid()
               << ") detected killed watcher (" << watcher_->pid() << ")";
       // The watcher watcher is a thread. Do not join services after removing.
-      Initializer::requestShutdown();
+      requestShutdown();
       break;
     }
     pause(std::chrono::seconds(getWorkerLimit(WatchdogLimitType::INTERVAL)));

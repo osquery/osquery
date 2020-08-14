@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -58,7 +59,13 @@ class DynamicTableRowHolder {
   inline std::string& operator[](const std::string& key) {
     return (*row)[key];
   }
+  inline const std::string& operator[](const std::string& key) const {
+    return (*row)[key];
+  }
   inline std::string& operator[](std::string&& key) {
+    return (*row)[key];
+  }
+  inline const std::string& operator[](std::string&& key) const {
     return (*row)[key];
   }
   inline size_t count(const std::string& key) {

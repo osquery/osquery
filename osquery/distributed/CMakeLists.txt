@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryDistributedMain)
   if(OSQUERY_BUILD_TESTS)
@@ -26,6 +27,12 @@ function(generateOsqueryDistributed)
     osquery_utils_json
     osquery_utils_system_time
   )
+
+  set(public_header_files
+    distributed.h
+  )
+
+  generateIncludeNamespace(osquery_distributed "osquery/distributed" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_distributed_tests-test COMMAND osquery_distributed_tests-test)
   set(distributedtests-test_env

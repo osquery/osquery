@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <sstream>
@@ -22,11 +23,11 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #if WIN32
 #include <osquery/utils/conversions/windows/strings.h>
 #endif
@@ -121,7 +122,8 @@ Status readFile(const fs::path& path,
 
   off_t file_size = static_cast<off_t>(handle.fd->size());
 
-  if (handle.fd->isSpecialFile() && size > 0) {
+  if (size > 0 &&
+      (handle.fd->isSpecialFile() || static_cast<off_t>(size) < file_size)) {
     file_size = static_cast<off_t>(size);
   }
 
@@ -308,7 +310,7 @@ static bool checkForLoops(std::set<int>& dsym_inos, std::string path) {
   if (dsym_inos.find(d_stat.st_ino) == dsym_inos.end()) {
     dsym_inos.insert(d_stat.st_ino);
   } else {
-    LOG(WARNING) << "Symlink loop detected possibly involving: " << path;
+    VLOG(1) << "Symlink loop detected. Ignoring: " << path;
     return true;
   }
   return false;
@@ -589,7 +591,7 @@ std::string lsperms(int mode) {
 Status parseJSON(const fs::path& path, pt::ptree& tree) {
   try {
     pt::read_json(path.string(), tree);
-  } catch (const pt::json_parser::json_parser_error& /*e*/) {
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     return Status(1, "Could not parse JSON from file");
   }
   return Status::success();

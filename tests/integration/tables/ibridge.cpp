@@ -6,7 +6,7 @@
 // Sanity check integration test for ibridge
 // Spec file: specs/darwin/ibridge_info.table
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {

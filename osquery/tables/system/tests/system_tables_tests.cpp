@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <gflags/gflags.h>
@@ -12,15 +13,18 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
+#ifdef OSQUERY_WINDOWS
+#include <osquery/utils/conversions/windows/strings.h>
+#endif
 #include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
@@ -30,7 +34,7 @@ namespace tables {
 class SystemsTablesTests : public testing::Test {
  protected:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
 
     // Force registry to use ephemeral database plugin
@@ -230,20 +234,20 @@ TEST_F(SystemsTablesTests, test_table_constraints) {
   {
     // Check LIKE and = operands.
 #ifdef OSQUERY_WINDOWS
-    TCHAR windows_path[64];
+    WCHAR windows_path[64];
     auto windows_path_length =
-        GetSystemWindowsDirectory(windows_path, sizeof(windows_path));
+        GetSystemWindowsDirectoryW(windows_path, ARRAYSIZE(windows_path));
     ASSERT_FALSE(windows_path_length == 0);
 
     std::stringstream qry_stream;
     qry_stream << boost::format("select path from file where path LIKE '%s") %
-                      windows_path
+                      wstringToString(windows_path)
                << R"(\%';)";
     std::string like_query = qry_stream.str();
     qry_stream = std::stringstream();
 
     qry_stream << boost::format("select path from file where path = '%s") %
-                      windows_path
+                      wstringToString(windows_path)
                << R"(';)";
     std::string equal_query = qry_stream.str();
 

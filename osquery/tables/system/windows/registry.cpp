@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <osquery/utils/system/system.h>
@@ -24,18 +25,18 @@
 
 #include <sqlite3.h>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
-#include <osquery/filesystem/fileops.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/tables/system/windows/registry.h>
 
@@ -203,10 +204,10 @@ Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
   if (!ConvertStringSidToSidA(toks[1].c_str(), &sid)) {
     return Status(GetLastError(), "Could not convert string to sid");
   } else {
-    wchar_t accntName[UNLEN] = {0};
-    wchar_t domName[DNLEN] = {0};
-    unsigned long accntNameLen = UNLEN;
-    unsigned long domNameLen = DNLEN;
+    WCHAR accntName[UNLEN + 1] = {0};
+    WCHAR domName[DNLEN + 1] = {0};
+    DWORD accntNameLen = UNLEN + 1;
+    DWORD domNameLen = DNLEN + 1;
     SID_NAME_USE eUse;
     if (!LookupAccountSidW(nullptr,
                            sid,

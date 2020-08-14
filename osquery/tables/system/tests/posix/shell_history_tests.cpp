@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <fstream>
@@ -12,7 +13,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/sql.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/system/posix/shell_history.h>
 
 namespace fs = boost::filesystem;
@@ -23,7 +24,11 @@ namespace tables {
 class ShellHistoryTests : public testing::Test {};
 
 TEST_F(ShellHistoryTests, empty_timestamp) {
-  auto results = QueryData{};
+  std::vector<DynamicTableRowHolder> results;
+  auto predicate = [&results](DynamicTableRowHolder& r) {
+    results.push_back(std::move(r));
+  };
+
   auto directory =
       fs::temp_directory_path() /
       fs::unique_path("osquery.shell_history_tests.empty_timestamp.%%%%-%%%%");
@@ -37,27 +42,32 @@ TEST_F(ShellHistoryTests, empty_timestamp) {
     fout << first_line << '\n';
     fout << second_line << '\n';
   }
+
   auto const uid = std::to_string(geteuid());
   genShellHistoryForUser(
-      uid, std::to_string(getegid()), directory.native(), results);
+      uid, std::to_string(getegid()), directory.native(), predicate);
   ASSERT_EQ(results.size(), 2u);
 
   const auto& first_row = results[0];
-  EXPECT_EQ(first_row.at("uid"), uid);
-  EXPECT_EQ(first_row.at("time"), "0");
-  EXPECT_EQ(first_row.at("command"), first_line);
-  EXPECT_EQ(first_row.at("history_file"), filepath.native());
+  EXPECT_EQ(first_row["uid"], uid);
+  EXPECT_EQ(first_row["time"], "0");
+  EXPECT_EQ(first_row["command"], first_line);
+  EXPECT_EQ(first_row["history_file"], filepath.native());
 
   const auto& second_row = results[1];
-  EXPECT_EQ(second_row.at("uid"), uid);
-  EXPECT_EQ(second_row.at("time"), "0");
-  EXPECT_EQ(second_row.at("command"), second_line);
-  EXPECT_EQ(second_row.at("history_file"), filepath.native());
+  EXPECT_EQ(second_row["uid"], uid);
+  EXPECT_EQ(second_row["time"], "0");
+  EXPECT_EQ(second_row["command"], second_line);
+  EXPECT_EQ(second_row["history_file"], filepath.native());
   fs::remove_all(directory);
 }
 
 TEST_F(ShellHistoryTests, bash_sessions_no_exist) {
-  auto results = QueryData{};
+  std::vector<DynamicTableRowHolder> results;
+  auto predicate = [&results](DynamicTableRowHolder& r) {
+    results.push_back(std::move(r));
+  };
+
   auto directory =
       fs::temp_directory_path() /
       fs::unique_path(
@@ -66,13 +76,17 @@ TEST_F(ShellHistoryTests, bash_sessions_no_exist) {
   auto const uid = std::to_string(geteuid());
 
   // test non-existent .bash_sessions directory
-  genShellHistoryFromBashSessions(uid, directory.native(), results);
+  genShellHistoryFromBashSessions(uid, directory.native(), predicate);
   ASSERT_EQ(results.size(), 0u);
   fs::remove_all(directory);
 }
 
 TEST_F(ShellHistoryTests, bash_sessions_no_history) {
-  auto results = QueryData{};
+  std::vector<DynamicTableRowHolder> results;
+  auto predicate = [&results](DynamicTableRowHolder& r) {
+    results.push_back(std::move(r));
+  };
+
   auto directory =
       fs::temp_directory_path() /
       fs::unique_path(
@@ -92,13 +106,17 @@ TEST_F(ShellHistoryTests, bash_sessions_no_history) {
   }
   auto const uid = std::to_string(geteuid());
   // test non-existent some_guid_here.history file
-  genShellHistoryFromBashSessions(uid, directory.native(), results);
+  genShellHistoryFromBashSessions(uid, directory.native(), predicate);
   ASSERT_EQ(results.size(), 0u);
   fs::remove_all(directory);
 }
 
 TEST_F(ShellHistoryTests, bash_sessions_empty_ts) {
-  auto results = QueryData{};
+  std::vector<DynamicTableRowHolder> results;
+  auto predicate = [&results](DynamicTableRowHolder& r) {
+    results.push_back(std::move(r));
+  };
+
   auto directory =
       fs::temp_directory_path() /
       fs::unique_path(
@@ -118,20 +136,20 @@ TEST_F(ShellHistoryTests, bash_sessions_empty_ts) {
     fout << second_line << '\n';
   }
   auto const uid = std::to_string(geteuid());
-  genShellHistoryFromBashSessions(uid, directory.native(), results);
+  genShellHistoryFromBashSessions(uid, directory.native(), predicate);
   ASSERT_EQ(results.size(), 2u);
 
   const auto& first_row = results[0];
-  EXPECT_EQ(first_row.at("uid"), uid);
-  EXPECT_EQ(first_row.at("time"), "0");
-  EXPECT_EQ(first_row.at("command"), first_line);
-  EXPECT_EQ(first_row.at("history_file"), fs::canonical(filepath).native());
+  EXPECT_EQ(first_row["uid"], uid);
+  EXPECT_EQ(first_row["time"], "0");
+  EXPECT_EQ(first_row["command"], first_line);
+  EXPECT_EQ(first_row["history_file"], fs::canonical(filepath).native());
 
   const auto& second_row = results[1];
-  EXPECT_EQ(second_row.at("uid"), uid);
-  EXPECT_EQ(second_row.at("time"), "0");
-  EXPECT_EQ(second_row.at("command"), second_line);
-  EXPECT_EQ(second_row.at("history_file"), fs::canonical(filepath).native());
+  EXPECT_EQ(second_row["uid"], uid);
+  EXPECT_EQ(second_row["time"], "0");
+  EXPECT_EQ(second_row["command"], second_line);
+  EXPECT_EQ(second_row["history_file"], fs::canonical(filepath).native());
   fs::remove_all(directory);
 }
 

@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <algorithm>
@@ -19,16 +20,18 @@
 #include <boost/iterator/filter_iterator.hpp>
 
 #include <osquery/config/config.h>
-#include <osquery/database.h>
-#include <osquery/events.h>
-#include <osquery/flagalias.h>
-#include <osquery/flags.h>
+#include <osquery/config/packs.h>
+#include <osquery/core/flagalias.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/shutdown.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/events/events.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/logger.h>
-#include <osquery/packs.h>
-#include <osquery/registry.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
+
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/time.h>
@@ -114,9 +117,6 @@ DECLARE_string(pack_delimiter);
  */
 const std::string kExecutingQuery{"executing_query"};
 const std::string kFailedQueries{"failed_queries"};
-
-/// The time osquery was started.
-std::atomic<uint64_t> kStartTime;
 
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
@@ -375,14 +375,6 @@ void Config::addPack(const std::string& name,
   }
 }
 
-uint64_t Config::getStartTime() {
-  return kStartTime;
-}
-
-void Config::setStartTime(uint64_t st) {
-  kStartTime = st;
-}
-
 void Config::removePack(const std::string& pack) {
   RecursiveLock wlock(config_schedule_mutex_);
   return schedule_->remove(pack);
@@ -511,7 +503,7 @@ Status Config::refresh() {
       }
       VLOG(1) << "Requesting shutdown after dumping config";
       // Don't force because the config plugin may have started services.
-      Initializer::requestShutdown();
+      requestShutdown();
       return Status::success();
     }
     status = update(response[0]);

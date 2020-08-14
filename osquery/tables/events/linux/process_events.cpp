@@ -1,17 +1,18 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <asm/unistd_64.h>
 
 #include <osquery/events/linux/process_events.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/events/linux/process_events.h>
 #include <osquery/utils/system/uptime.h>
 
@@ -22,8 +23,11 @@ const std::unordered_map<int, std::string> kSyscallNameMap = {
     {__NR_execveat, "execveat"},
     {__NR_fork, "fork"},
     {__NR_vfork, "vfork"},
-    {__NR_clone, "clone"}};
-}
+    {__NR_clone, "clone"},
+    {__NR_kill, "kill"},
+    {__NR_tkill, "tkill"},
+    {__NR_tgkill, "tgkill"}};
+};
 
 DECLARE_bool(audit_allow_process_events);
 
@@ -32,6 +36,12 @@ FLAG(bool,
      false,
      "Allow the audit publisher to install process event monitoring rules to "
      "capture fork/vfork/clone system calls");
+
+FLAG(bool,
+     audit_allow_kill_process_events,
+     false,
+     "Allow the audit publisher to install process event monitoring rules to "
+     "capture kill/tkill/tgkill system calls");
 
 REGISTER(AuditProcessEventSubscriber, "event_subscriber", "process_events");
 
@@ -124,12 +134,17 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
 
     bool is_exec_syscall{false};
+    bool is_kill_syscall{false};
     if (kExecProcessEventsSyscalls.count(event_data.syscall_number) > 0U) {
       is_exec_syscall = true;
 
     } else if (kForkProcessEventsSyscalls.count(event_data.syscall_number) >
                0U) {
       is_exec_syscall = false;
+
+    } else if (kKillProcessEventsSyscalls.count(event_data.syscall_number) >
+               0U) {
+      is_kill_syscall = true;
 
     } else {
       continue;
@@ -211,6 +226,17 @@ Status AuditProcessEventSubscriber::ProcessEvents(
         VLOG(1) << "Failed to parse the event: " << status.getMessage();
         continue;
       }
+
+    } else if (is_kill_syscall) {
+      const AuditEventRecord* obj_pid_recod =
+          GetEventRecord(event, AUDIT_OBJ_PID);
+
+      CopyFieldFromMap(row, syscall_event_record->fields, "tty", "");
+      CopyFieldFromMap(row, syscall_event_record->fields, "ses", "-1");
+      CopyFieldFromMap(row, syscall_event_record->fields, "comm", "");
+      CopyFieldFromMap(row, obj_pid_recod->fields, "ocomm", "-1");
+      CopyFieldFromMap(row, obj_pid_recod->fields, "oses", "-1");
+      CopyFieldFromMap(row, obj_pid_recod->fields, "oauid", "-1");
 
     } else {
       row["owner_uid"] = "0";

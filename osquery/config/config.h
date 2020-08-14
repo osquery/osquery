@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -13,9 +14,9 @@
 #include <memory>
 #include <vector>
 
+#include <osquery/core/query.h>
 #include <osquery/core/sql/query_performance.h>
 #include <osquery/plugins/plugin.h>
-#include <osquery/query.h>
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/json/json.h>
 
@@ -130,12 +131,6 @@ class Config : private boost::noncopyable {
   bool isValid() const {
     return valid_;
   }
-
-  /// Get start time of config.
-  static uint64_t getStartTime();
-
-  /// Set the start time if the config.
-  static void setStartTime(uint64_t st);
 
   /**
    * @brief Add a pack to the osquery schedule

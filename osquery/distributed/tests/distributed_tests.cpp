@@ -1,21 +1,22 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <iostream>
 
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/distributed.h>
-#include <osquery/enroll.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/core/core.h>
+#include <osquery/database/database.h>
+#include <osquery/distributed/distributed.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/remote/enroll/enroll.h>
+#include <osquery/sql/sql.h>
 
 #include "osquery/remote/tests/test_utils.h"
 #include "osquery/sql/sqlite_util.h"
@@ -30,7 +31,7 @@ DECLARE_string(distributed_tls_write_endpoint);
 class DistributedTests : public testing::Test {
  protected:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
     DatabasePlugin::setAllowOpen(true);

@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryRemoteMain)
   add_subdirectory("serializers")
@@ -25,7 +26,6 @@ function(generateOsqueryRemoteRequests)
 
   target_link_libraries(osquery_remote_requests PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_utils_status
     thirdparty_boost
     thirdparty_openssl
@@ -47,7 +47,7 @@ function(generateOsqueryRemoteHttpclient)
 
   target_link_libraries(osquery_remote_httpclient PUBLIC
     osquery_cxx_settings
-    osquery_headers
+    osquery_logger
     osquery_utils_status
     thirdparty_boost
     thirdparty_openssl

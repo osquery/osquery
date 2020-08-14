@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <string>
@@ -12,8 +13,8 @@
 #include <aws/ec2/EC2Client.h>
 #include <aws/ec2/model/DescribeTagsRequest.h>
 
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/aws/aws_util.h>
 
 namespace osquery {
@@ -55,8 +56,8 @@ QueryData genEc2InstanceTags(QueryContext& context) {
   for (const auto& it : response.GetTags()) {
     Row r;
     r["instance_id"] = instance_id;
-    r["key"] = TEXT(it.GetKey());
-    r["value"] = TEXT(it.GetValue());
+    r["key"] = SQL_TEXT(it.GetKey());
+    r["value"] = SQL_TEXT(it.GetValue());
     results.push_back(r);
   }
 

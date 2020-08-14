@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryDatabaseMain)
 
@@ -25,6 +26,12 @@ function(generateOsqueryDatabase)
     osquery_utils_conversions
     thirdparty_boost
   )
+
+  set(public_header_files
+    database.h
+  )
+
+  generateIncludeNamespace(osquery_database "osquery/database" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_database_tests-test COMMAND osquery_database_tests-test)
   add_test(NAME osquery_database_tests_results-test COMMAND osquery_database_tests_results-test)
