@@ -182,5 +182,5 @@ uint64_t splayValue(uint64_t original, uint64_t splay_percent);
  * @param interval the requested pre-splayed interval.
  * @return either the restored previous calculated splay, or a new splay.
  */
-size_t restoreSplayedValue(const std::string& name, uint64_t interval);
+uint64_t restoreSplayedValue(const std::string& name, uint64_t interval);
 }

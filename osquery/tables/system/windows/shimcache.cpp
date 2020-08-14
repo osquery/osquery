@@ -57,7 +57,8 @@ auto parseShimcacheData(const std::string& token,
   }
 
   // Convert string to size_t for file path length
-  size_t shimcache_file_path = tryTo<std::size_t>(path_length, 16).takeOr(0_sz);
+  uint64_t shimcache_file_path =
+      tryTo<std::uint64_t>(path_length, 16).takeOr(0_sz);
 
   // Registry data is in Unicode (extra 0x00)
   std::string path = token.substr(20, shimcache_file_path * 2);
