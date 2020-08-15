@@ -267,6 +267,13 @@ jobs:
   - job: WindowsBuild
     displayName: "Windows Release"
 
+    strategy:
+      matrix:
+        x64:
+          VC_VARS_FILE: vcvars64.bat
+        win32:
+          VC_VARS_FILE: vcvars32.bat
+
     pool:
       vmImage: windows-2019
 
@@ -328,7 +335,7 @@ jobs:
       displayName: "Install Ninja"
 
     - script: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\$(VC_VARS_FILE)"
         cmake -G Ninja ^
         -DCMAKE_C_COMPILER=cl.exe ^
         -DCMAKE_CXX_COMPILER=cl.exe ^
@@ -348,7 +355,7 @@ jobs:
       displayName: sccache
 
     - script: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\$(VC_VARS_FILE)"
         cmake --build . -j 3
         if %errorlevel% neq 0 exit /b %errorlevel%
         sccache.exe --stop-server
@@ -388,14 +395,15 @@ jobs:
       - WindowsBuild
 
     variables:
-      WindowsReleaseStatus: $[ dependencies.WindowsBuild.outputs['JobResult.Status'] ]
+      WindowsRelease64Status: $[ dependencies.WindowsBuild.outputs['x64.JobResult.Status'] ]
+      WindowsRelease32Status: $[ dependencies.WindowsBuild.outputs['win32.JobResult.Status'] ]
 
     steps:
     - checkout: none
 
     - script: |
-        if [ -z "$(WindowsReleaseStatus)" ]; then
+        if [ -z "$(WindowsRelease64Status)" ] || [ -z "$(WindowsRelease32Status)" ]; then
           exit 1
         fi
-      displayName: "Detect Windows build status"
+      displayName: "Detect Windows jobs build statuses"
 # WINDOWS
