@@ -694,7 +694,7 @@ function(generateBoostContext)
       "${library_root}/src/asm/ontop_x86_64_sysv_macho_gas.S"
     )
   elseif(DEFINED PLATFORM_WINDOWS)
-    if(CMAKE_SHARED_LINKER_FLAGS STREQUAL "/machine:X86")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
       set(asm_source_file_list
         "${library_root}/src/asm/jump_i386_ms_pe_masm.asm"
         "${library_root}/src/asm/make_i386_ms_pe_masm.asm"
