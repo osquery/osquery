@@ -271,8 +271,10 @@ jobs:
       matrix:
         x64:
           VC_VARS_FILE: vcvars64.bat
+          PYTHON_FOLDER: x64
         win32:
           VC_VARS_FILE: vcvars32.bat
+          PYTHON_FOLDER: x86
 
     pool:
       vmImage: windows-2019
@@ -293,7 +295,7 @@ jobs:
 
     - powershell: |
         cmake --version
-        $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\x64) | Sort-Object -Descending)[0].FullName
+        $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\$(PYTHON_FOLDER)) | Sort-Object -Descending)[0].FullName
         & $python3_path\python -m pip install --upgrade pip --no-warn-script-location
         & $python3_path\python -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
       displayName: Install tests prerequisites
