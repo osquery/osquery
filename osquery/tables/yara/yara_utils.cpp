@@ -35,10 +35,11 @@ void YARACompilerCallback(int error_level,
                           const YR_RULE* rule,
                           const char* message,
                           void* user_data) {
+  auto name = (file_name != nullptr) ? std::string(file_name) : std::string("");
   if (error_level == YARA_ERROR_LEVEL_ERROR) {
-    VLOG(1) << file_name << "(" << line_number << "): error: " << message;
+    VLOG(1) << name << "(" << line_number << "): error: " << message;
   } else {
-    VLOG(1) << file_name << "(" << line_number << "): warning: " << message;
+    VLOG(1) << name << "(" << line_number << "): warning: " << message;
   }
 }
 
@@ -140,8 +141,6 @@ Status compileFromString(const std::string& rule_defs, YR_RULES** rules) {
   }
 
   yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
-
-  VLOG(1) << "Loading YARA signature string: " << rule_defs;
 
   auto errors = yr_compiler_add_string(compiler, rule_defs.c_str(), nullptr);
 

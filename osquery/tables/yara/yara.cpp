@@ -17,6 +17,7 @@
 #include <osquery/core/flags.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/status/status.h>
 
@@ -39,6 +40,7 @@ FLAG(bool,
      true,
      "Call malloc_trim() after YARA scans (linux)");
 #endif
+
 FLAG(uint32,
      yara_delay,
      50,
@@ -52,13 +54,15 @@ FLAG(bool,
 
 namespace tables {
 
-typedef enum { YC_NONE = 0, YC_GROUP, YC_FILE, YC_RULE } YaraScanContextType;
+typedef enum { YC_NONE = 0, YC_GROUP, YC_FILE, YC_RULE } YaraScanType;
 
-static inline std::string hashStr(const std::string& str,
-                                  YaraScanContextType yc) {
+typedef std::set<std::pair<YaraScanType, std::string>> YaraScanContext;
+
+static inline std::string hashStr(const std::string& str, YaraScanType yc) {
   switch (yc) {
   case YC_RULE:
-    return "rule_" + std::to_string(std::hash<std::string>{}(str));
+    return "rule_" +
+           hashFromBuffer(HASH_TYPE_SHA256, str.c_str(), str.length());
   default:
     return str;
   }
@@ -86,7 +90,7 @@ static std::shared_ptr<YARAConfigParserPlugin> getYaraParser(void) {
 void doYARAScan(YR_RULES* rules,
                 const std::string& path,
                 QueryData& results,
-                YaraScanContextType yc,
+                YaraScanType yc,
                 const std::string& sigfile) {
   Row r;
 
@@ -110,9 +114,8 @@ void doYARAScan(YR_RULES* rules,
   }
 }
 
-Status compileSignatureFiles(
-    QueryContext& queryContext,
-    std::set<std::pair<YaraScanContextType, std::string>>& scanContext) {
+Status genYaraRuleFromFile(QueryContext& queryContext,
+                           YaraScanContext& scanContext) {
   auto yaraParser = getYaraParser();
   if (yaraParser == nullptr || yaraParser.get() == nullptr) {
     return Status::failure("YARA config parser plugin has no pointer");
@@ -139,16 +142,15 @@ Status compileSignatureFiles(
       // compile step and be added to the scan context
       rules[hashStr(file, YC_FILE)] = tmp_rules;
     }
-    // Add signature file path to the scan context set
+
     scanContext.insert(std::make_pair(YC_FILE, file));
   }
 
   return Status::success();
 }
 
-Status compileSignatureRules(
-    QueryContext& queryContext,
-    std::set<std::pair<YaraScanContextType, std::string>>& scanContext) {
+Status genYaraRuleFromString(QueryContext& queryContext,
+                             YaraScanContext& scanContext) {
   auto yaraParser = getYaraParser();
   if (yaraParser == nullptr || yaraParser.get() == nullptr) {
     return Status::failure("YARA config parser plugin has no pointer");
@@ -156,10 +158,12 @@ Status compileSignatureRules(
 
   auto& rules = yaraParser->rules();
   auto sigrules = queryContext.constraints["sigrule"].getAll(EQUALS);
+
+  // Compile signature string and add them to the scan context
   for (const auto& rule_string : sigrules) {
-    // Check if the yara rule string has not been compiled before
     if (rules.count(hashStr(rule_string, YC_RULE)) == 0) {
       YR_RULES* tmp_rules = nullptr;
+
       auto status = compileFromString(rule_string, &tmp_rules);
       if (!status.ok()) {
         LOG(WARNING) << "YARA rule : " << rule_string << status.toString();
@@ -220,7 +224,7 @@ QueryData genYara(QueryContext& context) {
     return results;
   }
 
-  std::set<std::pair<YaraScanContextType, std::string>> scanContext;
+  YaraScanContext scanContext;
 
   // Add signature groups to the scan context
   for (const auto& group : groups) {
@@ -228,13 +232,13 @@ QueryData genYara(QueryContext& context) {
   }
 
   // Compile signature files and add them to the scan context
-  auto file_status = compileSignatureFiles(context, scanContext);
+  auto file_status = genYaraRuleFromFile(context, scanContext);
   if (!file_status.ok()) {
     return results;
   }
 
   if (FLAGS_enable_yara_table_extension) {
-    auto rule_status = compileSignatureRules(context, scanContext);
+    auto rule_status = genYaraRuleFromString(context, scanContext);
     if (!rule_status.ok()) {
       return results;
     }
