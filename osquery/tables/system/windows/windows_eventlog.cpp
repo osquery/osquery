@@ -1,17 +1,16 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <Windows.h>
 #include <winevt.h>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
@@ -21,6 +20,7 @@
 #include <osquery/core/windows/wmi.h>
 #include <osquery/events/windows/windowseventlogparser.h>
 #include <osquery/sql/dynamic_table_row.h>
+#include <osquery/tables/system/windows/windows_eventlog.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
@@ -35,14 +35,20 @@ const std::string kEventLogXmlSuffix = "</Query></QueryList>";
 
 const int kNumEventsBlock = 1024;
 
-void parseWelXml(QueryContext& context,
-                 std::wstring& xml_event,
-                 RowYield& yield) {
-  auto row = make_table_row();
+Status parseWelXml(QueryContext& context, std::wstring& xml_event, Row& row) {
   pt::ptree propTree;
   WELEvent windows_event;
-  auto status = parseWindowsEventLogXML(propTree, xml_event);
-  status = parseWindowsEventLogPTree(windows_event, propTree);
+  auto xml_status = parseWindowsEventLogXML(propTree, xml_event);
+  if (!xml_status.ok()) {
+    VLOG(1) << "parseWelXml : " << xml_status.toString();
+    return xml_status;
+  }
+
+  auto pt_status = parseWindowsEventLogPTree(windows_event, propTree);
+  if (!pt_status.ok()) {
+    VLOG(1) << "parseWelXml : " << pt_status.toString();
+    return pt_status;
+  }
 
   row["time"] = INTEGER(windows_event.osquery_time);
   row["datetime"] = SQL_TEXT(windows_event.datetime);
@@ -75,12 +81,12 @@ void parseWelXml(QueryContext& context,
     row["xpath"] = SQL_TEXT(*xpaths.begin());
   }
 
-  yield(std::move(row));
+  return Status::success();
 }
 
-void parseQueryResults(QueryContext& context,
-                       EVT_HANDLE queryResults,
-                       RowYield& yield) {
+void renderQueryResults(QueryContext& context,
+                        EVT_HANDLE queryResults,
+                        RowYield& yield) {
   std::vector<EVT_HANDLE> events(kNumEventsBlock);
   unsigned long numEvents = 0;
 
@@ -100,8 +106,9 @@ void parseQueryResults(QueryContext& context,
                      &renderedBuffUsed,
                      &propCount)) {
         if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-          LOG(WARNING) << "Failed to allocated memory to render event "
+          LOG(WARNING) << "Failed to get the size of rendered event "
                        << GetLastError();
+          EvtClose(events[i]);
           continue;
         }
       }
@@ -117,13 +124,19 @@ void parseQueryResults(QueryContext& context,
                      &propCount)) {
         LOG(WARNING) << "Failed to render windows event with "
                      << GetLastError();
+        EvtClose(events[i]);
         continue;
       }
 
+      EvtClose(events[i]);
+
+      Row row;
       std::wstringstream xml_event;
       xml_event << renderedContent.data();
-      parseWelXml(context, xml_event.str(), yield);
-      EvtClose(events[i]);
+      auto status = parseWelXml(context, xml_event.str(), row);
+      if (status.ok()) {
+        yield(TableRowHolder(new DynamicTableRow(std::move(row))));
+      }
     }
 
     ret = EvtNext(
@@ -178,13 +191,33 @@ void genXfilterFromConstraints(QueryContext& context, std::string& xfilter) {
                 : "*[System[" + osquery::join(xfilterList, " and ") + "]]";
 }
 
+bool shouldHandleXpath(QueryContext& context) {
+  // xpaths are mutually execlusive and can't be used with itself
+  // and the other constraints
+  auto xpaths = context.constraints["xpath"].getAll(EQUALS);
+  if (xpaths.size() > 1) {
+    return false;
+  }
+
+  return !(context.hasConstraint("channel", EQUALS) ||
+           context.hasConstraint("time_range", EQUALS) ||
+           context.hasConstraint("timestamp", EQUALS));
+}
+
 void genWindowsEventLog(RowYield& yield, QueryContext& context) {
   std::set<std::pair<std::string, std::string>> xpath_set;
+  auto hasXpath = context.hasConstraint("xpath", EQUALS);
 
-  // Check if the `xpath` constraint is available. The `xpath` has
-  // priority over `channel` and it will lookup and filter the events
-  // based on `xpath` if passed.
-  if (context.hasConstraint("xpath", EQUALS)) {
+  if (hasXpath && !shouldHandleXpath(context)) {
+    LOG(WARNING) << "Error : xpaths are mutually exclusive and"
+                    " can't be used with other constraints "
+                    "(channel, time_range, timestamp)";
+    return;
+  }
+
+  // Check if the `xpath` constraint is available and query
+  // the events with xpath
+  if (hasXpath) {
     auto xpaths = context.constraints["xpath"].getAll(EQUALS);
     auto xpath = *xpaths.begin();
     pt::ptree propTree;
@@ -197,6 +230,7 @@ void genWindowsEventLog(RowYield& yield, QueryContext& context) {
     } else {
       LOG(WARNING) << "Invalid xpath format - " << xpath;
     }
+
   } else if (context.hasConstraint("channel", EQUALS)) {
     auto channels = context.constraints["channel"].getAll(EQUALS);
     std::string xfilter("");
@@ -209,8 +243,9 @@ void genWindowsEventLog(RowYield& yield, QueryContext& context) {
       welSearchQuery += "</Select>" + kEventLogXmlSuffix;
       xpath_set.insert(std::make_pair(channel, welSearchQuery));
     }
+
   } else {
-    LOG(WARNING) << "must specify the event log channel or xpath for lookup!";
+    LOG(WARNING) << "must specify the event channel or xpath for lookup!";
     return;
   }
 
@@ -227,7 +262,7 @@ void genWindowsEventLog(RowYield& yield, QueryContext& context) {
       return;
     }
 
-    parseQueryResults(context, queryResults, yield);
+    renderQueryResults(context, queryResults, yield);
     EvtClose(queryResults);
   }
 }

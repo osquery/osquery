@@ -135,6 +135,7 @@ function(generateOsqueryTablesSystemWindowsTests)
   add_osquery_executable(osquery_tables_system_windows_tests-test
     windows/certificates_tests.cpp
     windows/registry_tests.cpp
+    windows/windows_eventlog_tests.cpp
     windows/windows_optional_features_tests.cpp
   )
 
