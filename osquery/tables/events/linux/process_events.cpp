@@ -275,10 +275,13 @@ Status AuditProcessEventSubscriber::ProcessExecveEventData(
     }
 
     if (row["cmdline"].size() > 0) {
-      row["cmdline"] += ' ';
+      row["cmdline"] += " ";
     }
 
+    // Shell syntax, use to prevent spaces from changing semantics
+    row["cmdline"] += "'";
     row["cmdline"] += DecodeAuditPathValues(arg.second);
+    row["cmdline"] += "'";
   }
 
   row["cmdline_size"] = std::to_string(row["cmdline"].size());
