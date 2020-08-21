@@ -17,6 +17,8 @@
 
 namespace osquery {
 
+DECLARE_bool(disable_yara_string_private);
+
 bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
   // avoid special files /dev/x , /proc/x, FIFO's named-pipes, etc.
   if ((st_mode & S_IFMT) != S_IFREG) {
@@ -131,10 +133,11 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
 }
 
 /**
- * Compile rules from string and load it into rule pointer.
+ * Compile yara rules from string and load it into rule pointer.
  */
 Status compileFromString(const std::string& rule_defs, YR_RULES** rules) {
   YR_COMPILER* compiler = nullptr;
+
   auto result = yr_compiler_create(&compiler);
   if (result != ERROR_SUCCESS) {
     return Status(1, " - Could not create compiler: " + std::to_string(result));
@@ -142,19 +145,27 @@ Status compileFromString(const std::string& rule_defs, YR_RULES** rules) {
 
   yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
 
-  auto errors = yr_compiler_add_string(compiler, rule_defs.c_str(), nullptr);
-
-  if (errors > 0) {
+  result = yr_compiler_add_string(compiler, rule_defs.c_str(), nullptr);
+  if (result > 0) {
     yr_compiler_destroy(compiler);
-    return Status::failure(" - Compilation error " + std::to_string(errors));
+    return Status::failure(" - Compilation error " + std::to_string(result));
   }
 
-  // get the rules and save them in the map.
   result = yr_compiler_get_rules(compiler, *(&rules));
-
   if (result != ERROR_SUCCESS) {
     yr_compiler_destroy(compiler);
     return Status::failure(" - Insufficient memory to get YARA rules");
+  }
+
+  // The yara rule strings are set to private unless it is disabled. This
+  // will protect from data exfiltration
+  if (!FLAGS_disable_yara_string_private) {
+    YR_RULE* rule = nullptr;
+    yr_rules_foreach((*rules), rule) {
+      if (rule->strings) {
+        rule->strings->flags = rule->strings->flags | STRING_FLAGS_PRIVATE;
+      }
+    }
   }
 
   if (compiler != nullptr) {

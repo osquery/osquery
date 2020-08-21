@@ -19,6 +19,7 @@
 #ifdef CONCAT
 #undef CONCAT
 #endif
+
 #include <yara.h>
 
 namespace pt = boost::property_tree;

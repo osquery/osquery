@@ -47,16 +47,26 @@ FLAG(uint32,
      "Time in ms to sleep after scan of each file (default 50) to reduce "
      "memory spikes");
 
-FLAG(bool,
-     enable_yara_table_extension,
-     false,
-     "Enable yara table extension to pass sigrule with query ");
+HIDDEN_FLAG(bool,
+            enable_yara_sigrule,
+            false,
+            "Enable yara table extension to pass sigrule with query ");
+
+HIDDEN_FLAG(bool,
+            disable_yara_string_private,
+            false,
+            "The yara strings are private by default. The flag will disable "
+            "the feature. ");
 
 namespace tables {
 
 typedef enum { YC_NONE = 0, YC_GROUP, YC_FILE, YC_RULE } YaraScanType;
 
-typedef std::set<std::pair<YaraScanType, std::string>> YaraScanContext;
+using YaraScanContext = std::set<std::pair<YaraScanType, std::string>>;
+
+static inline bool isNull(std::shared_ptr<ConfigParserPlugin> parser) {
+  return (parser == nullptr) || (parser.get() == nullptr);
+}
 
 static inline std::string hashStr(const std::string& str, YaraScanType yc) {
   switch (yc) {
@@ -68,10 +78,10 @@ static inline std::string hashStr(const std::string& str, YaraScanType yc) {
   }
 };
 
-// Get yara config parser
+// Get the yara configuration parser
 static std::shared_ptr<YARAConfigParserPlugin> getYaraParser(void) {
   auto parser = Config::getParser("yara");
-  if (parser == nullptr || parser.get() == nullptr) {
+  if (isNull(parser)) {
     LOG(ERROR) << "YARA config parser plugin has no pointer";
     return nullptr;
   }
@@ -92,32 +102,46 @@ void doYARAScan(YR_RULES* rules,
                 QueryData& results,
                 YaraScanType yc,
                 const std::string& sigfile) {
-  Row r;
+  Row row;
 
   // These are default values, to be updated in YARACallback.
-  r["count"] = INTEGER(0);
-  r["matches"] = std::string("");
-  r["strings"] = std::string("");
-  r["tags"] = std::string("");
+  row["count"] = INTEGER(0);
+  row["matches"] = SQL_TEXT("");
+  row["strings"] = SQL_TEXT("");
+  row["tags"] = SQL_TEXT("");
+  row["sig_group"] = SQL_TEXT("");
+  row["sigfile"] = SQL_TEXT("");
+  row["sigrule"] = SQL_TEXT("");
 
   // This could use target_path instead to be consistent with yara_events.
-  r["path"] = path;
-  r["sig_group"] = yc == YC_GROUP ? std::string(sigfile) : std::string("");
-  r["sigfile"] = yc == YC_FILE ? std::string(sigfile) : std::string("");
-  r["sigrule"] = yc == YC_RULE ? std::string(sigfile) : std::string("");
+  row["path"] = path;
+
+  switch (yc) {
+  case YC_GROUP:
+    row["sig_group"] = SQL_TEXT(sigfile);
+    break;
+  case YC_FILE:
+    row["sigfile"] = SQL_TEXT(sigfile);
+    break;
+  case YC_RULE:
+    row["sigrule"] = SQL_TEXT(sigfile);
+    break;
+  case YC_NONE:
+    break;
+  }
 
   // Perform the scan, using the static YARA subscriber callback.
   int result = yr_rules_scan_file(
-      rules, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
+      rules, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&row, 0);
   if (result == ERROR_SUCCESS) {
-    results.push_back(std::move(r));
+    results.push_back(std::move(row));
   }
 }
 
 Status genYaraRuleFromFile(QueryContext& queryContext,
                            YaraScanContext& scanContext) {
   auto yaraParser = getYaraParser();
-  if (yaraParser == nullptr || yaraParser.get() == nullptr) {
+  if (isNull(yaraParser)) {
     return Status::failure("YARA config parser plugin has no pointer");
   }
 
@@ -125,24 +149,26 @@ Status genYaraRuleFromFile(QueryContext& queryContext,
   auto sigfiles = queryContext.constraints["sigfile"].getAll(EQUALS);
 
   for (const auto& file : sigfiles) {
-    // Check if this "ad-hoc" signature file has not been used/compiled.
-    if (rules.count(hashStr(file, YC_FILE)) == 0) {
-      // If this is a relative path append the default yara search path.
-      auto path = (file[0] != '/') ? kYARAHome : "";
-      path += file;
-
-      YR_RULES* tmp_rules = nullptr;
-      auto status = compileSingleFile(path, &tmp_rules);
-      if (!status.ok()) {
-        LOG(WARNING) << "YARA compile error: " << status.toString();
-        continue;
-      }
-      // Cache the compiled rules by setting the unique signature file path
-      // as the lookup name. Additional signature file uses will skip the
-      // compile step and be added to the scan context
-      rules[hashStr(file, YC_FILE)] = tmp_rules;
+    // Check if the signature file has been used/ compiled
+    if (rules.count(hashStr(file, YC_FILE)) > 0) {
+      scanContext.insert(std::make_pair(YC_FILE, file));
+      continue;
     }
 
+    // If this is a relative path append the default yara search path.
+    auto path = (file[0] != '/') ? (kYARAHome + file) : file;
+
+    YR_RULES* tmp_rules = nullptr;
+    auto status = compileSingleFile(path, &tmp_rules);
+    if (!status.ok()) {
+      LOG(WARNING) << "YARA compile error : " << status.toString();
+      continue;
+    }
+
+    // Cache the compiled rules by setting the unique signature file path
+    // as the lookup name. Additional signature file uses will skip the
+    // compile step and be added to the scan context
+    rules[hashStr(file, YC_FILE)] = tmp_rules;
     scanContext.insert(std::make_pair(YC_FILE, file));
   }
 
@@ -152,7 +178,7 @@ Status genYaraRuleFromFile(QueryContext& queryContext,
 Status genYaraRuleFromString(QueryContext& queryContext,
                              YaraScanContext& scanContext) {
   auto yaraParser = getYaraParser();
-  if (yaraParser == nullptr || yaraParser.get() == nullptr) {
+  if (isNull(yaraParser)) {
     return Status::failure("YARA config parser plugin has no pointer");
   }
 
@@ -161,18 +187,23 @@ Status genYaraRuleFromString(QueryContext& queryContext,
 
   // Compile signature string and add them to the scan context
   for (const auto& rule_string : sigrules) {
-    if (rules.count(hashStr(rule_string, YC_RULE)) == 0) {
-      YR_RULES* tmp_rules = nullptr;
-
-      auto status = compileFromString(rule_string, &tmp_rules);
-      if (!status.ok()) {
-        LOG(WARNING) << "YARA rule : " << rule_string << status.toString();
-        continue;
-      }
-
-      rules[hashStr(rule_string, YC_RULE)] = tmp_rules;
+    // Check if the signature string has been used/compiled
+    if (rules.count(hashStr(rule_string, YC_RULE)) > 0) {
+      scanContext.insert(std::make_pair(YC_RULE, rule_string));
+      continue;
     }
-    // Add rule string to the scan context set
+
+    YR_RULES* tmp_rules = nullptr;
+    auto status = compileFromString(rule_string, &tmp_rules);
+    if (!status.ok()) {
+      LOG(WARNING) << "YARA compile error : " << status.toString();
+      continue;
+    }
+
+    // Cache the compiled rules by setting the unique hashed signature
+    // string as the lookup name. Additional signature file uses will
+    // skip the compile step and be added to the scan context
+    rules[hashStr(rule_string, YC_RULE)] = tmp_rules;
     scanContext.insert(std::make_pair(YC_RULE, rule_string));
   }
 
@@ -181,17 +212,49 @@ Status genYaraRuleFromString(QueryContext& queryContext,
 
 QueryData genYara(QueryContext& context) {
   QueryData results;
+  YaraScanContext scanContext;
 
-  // Must specify a path constraint and at least one of sig_group, sigfile, or
-  // sigrule
-  auto groups = context.constraints["sig_group"].getAll(EQUALS);
-  auto sigfiles = context.constraints["sigfile"].getAll(EQUALS);
-  auto sigrules = context.constraints["sigrule"].getAll(EQUALS);
-  if (groups.empty() && sigfiles.empty() && sigrules.empty()) {
+  // Initialize yara library
+  auto status = yaraInitilize();
+  if (!status.ok()) {
+    LOG(WARNING) << "Error : " << status.toString();
     return results;
   }
 
-  // Collect all paths specified too.
+  // The query must specify one of sig_groups, sigfile, or sigrule
+  // for scan. The signature rules are compiled and added to the
+  // scan context.
+  if (context.hasConstraint("sig_group", EQUALS)) {
+    auto groups = context.constraints["sig_group"].getAll(EQUALS);
+    for (const auto& group : groups) {
+      scanContext.insert(std::make_pair(YC_GROUP, group));
+    }
+  }
+
+  if (context.hasConstraint("sigfile", EQUALS)) {
+    // Compile signature files and add them to the scan context
+    auto status = genYaraRuleFromFile(context, scanContext);
+    if (!status.ok()) {
+      return results;
+    }
+  }
+
+  if (FLAGS_enable_yara_sigrule && context.hasConstraint("sigrule", EQUALS)) {
+    // Compile signature strings and add them to the scan context
+    auto status = genYaraRuleFromString(context, scanContext);
+    if (!status.ok()) {
+      return results;
+    }
+  }
+
+  // return if scan context is empty. One of sig_group, sigfile, or
+  // sigrule must be specified.
+  if (scanContext.empty()) {
+    VLOG(1) << "Query must specify sig_group, sigfile, or sigrule for scan!";
+    return results;
+  }
+
+  // Get all the paths specified
   auto paths = context.constraints["path"].getAll(EQUALS);
   context.expandConstraints(
       "path",
@@ -218,34 +281,8 @@ QueryData genYara(QueryContext& context) {
         return status;
       }));
 
-  auto yr_init = yaraInitilize();
-  if (!yr_init.ok()) {
-    LOG(WARNING) << yr_init.toString();
-    return results;
-  }
-
-  YaraScanContext scanContext;
-
-  // Add signature groups to the scan context
-  for (const auto& group : groups) {
-    scanContext.insert(std::make_pair(YC_GROUP, group));
-  }
-
-  // Compile signature files and add them to the scan context
-  auto file_status = genYaraRuleFromFile(context, scanContext);
-  if (!file_status.ok()) {
-    return results;
-  }
-
-  if (FLAGS_enable_yara_table_extension) {
-    auto rule_status = genYaraRuleFromString(context, scanContext);
-    if (!rule_status.ok()) {
-      return results;
-    }
-  }
-
   auto yaraParser = getYaraParser();
-  if (yaraParser == nullptr || yaraParser.get() == nullptr) {
+  if (isNull(yaraParser)) {
     return results;
   }
 
