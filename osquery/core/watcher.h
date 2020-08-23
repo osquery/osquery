@@ -210,6 +210,14 @@ class Watcher : private boost::noncopyable {
     worker_restarts_++;
   }
 
+  void workerStartTime(size_t start_time) {
+    worker_start_time_ = start_time;
+  }
+
+  size_t workerStartTime() {
+    return worker_start_time_;
+  }
+
  private:
   /// Performance state for the worker process.
   PerformanceState state_;
@@ -248,6 +256,7 @@ class Watcher : private boost::noncopyable {
 
  private:
   friend class WatcherRunner;
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
 };
 
 /**
