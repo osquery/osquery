@@ -221,6 +221,9 @@ class Watcher : private boost::noncopyable {
   /// Keep the single worker process/thread ID for inspection.
   std::shared_ptr<PlatformProcess> worker_;
 
+  /// Time the worker was started.
+  size_t worker_start_time_{0};
+
   /// Number of worker restarts NOT induced by a watchdog process.
   size_t worker_restarts_{0};
 
