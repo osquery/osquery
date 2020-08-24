@@ -33,11 +33,21 @@ QueryData genChassisInfo(QueryContext& context) {
     Row r;
     auto isPresent = false;
     long number;
+    std::vector<long> chassisTypes;
     data.GetBool("AudibleAlarm", isPresent);
     r["audible_alarm"] = isPresent ? "True" : "False";
     data.GetString("BreachDescription", r["breach_description"]);
-    data.GetLong("ChassisTypes", number);
-    r["chassis_types"] = INTEGER(number);
+    data.GetVectorOfLongs("ChassisTypes", chassisTypes);
+
+    std::ostringstream oValueConcat;
+    for (size_t i = 0; i < chassisTypes.size(); ++i) {
+      if (i != 0) {
+        oValueConcat << ",";
+      }
+      oValueConcat << chassisTypes[i];
+    }
+
+    r["chassis_types"] = SQL_TEXT(oValueConcat.str());
     data.GetString("Description", r["description"]);
 
     // reset boolean to make sure there is no interference from the last call

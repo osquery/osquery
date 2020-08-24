@@ -3,7 +3,7 @@ description("Display information pertaining to the chassis and its security stat
 schema([
     Column("audible_alarm", TEXT, "If TRUE, the frame is equipped with an audible alarm."),
     Column("breach_description", TEXT, "If provided, gives a more detailed description of a detected security breach."),
-    Column("chassis_types", INTEGER, "The type of chassis, such as Desktop or Laptop."),
+    Column("chassis_types", TEXT, "The type of chassis, such as Desktop or Laptop."),
     Column("description", TEXT, "An extended description of the chassis if available."),
     Column("lock", TEXT, "If TRUE, the frame is equipped with a lock."),
     Column("manufacturer", TEXT, "The manufacturer of the chassis."),
