@@ -40,6 +40,14 @@ void setShutdownExitCode(int retcode);
 void waitForShutdown();
 
 /**
+ * @brief Check if something has requested a shutdown.
+ *
+ * This function is not very helpful and should be avoided. It exists to assist
+ * tools outside of the daemon such as the shell.
+ */
+bool shutdownRequested();
+
+/**
  * @brief Forcefully request the application to stop.
  *
  * Since all osquery tools may implement various 'dispatched' services in the
