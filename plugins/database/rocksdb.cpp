@@ -203,10 +203,10 @@ Status RocksDBDatabasePlugin::compactFiles(const std::string& domain) {
       if (!s.ok()) {
         return Status::failure(s.ToString());
       }
-      db_->CompactRange(
-          rocksdb::CompactRangeOptions(), handle, nullptr, nullptr);
     }
   }
+
+  db_->CompactRange(rocksdb::CompactRangeOptions(), handle, nullptr, nullptr);
 
   return Status::success();
 }
