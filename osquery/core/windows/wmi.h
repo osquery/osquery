@@ -207,8 +207,7 @@ class WmiResultItem {
 
   /**
    * @brief Windows WMI Helper function to retrieve a vector of long result
-   * from
-   * a WMI query
+   * from a WMI query
    *
    * @returns Status indicating the success of the query
    */
