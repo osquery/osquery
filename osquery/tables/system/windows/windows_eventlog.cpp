@@ -40,13 +40,13 @@ Status parseWelXml(QueryContext& context, std::wstring& xml_event, Row& row) {
   WELEvent windows_event;
   auto xml_status = parseWindowsEventLogXML(propTree, xml_event);
   if (!xml_status.ok()) {
-    VLOG(1) << "parseWelXml : " << xml_status.toString();
+    VLOG(1) << "Error parsing event log XML: " << xml_status.toString();
     return xml_status;
   }
 
   auto pt_status = parseWindowsEventLogPTree(windows_event, propTree);
   if (!pt_status.ok()) {
-    VLOG(1) << "parseWelXml : " << pt_status.toString();
+    VLOG(1) << "Error parsing event log PTree: " << pt_status.toString();
     return pt_status;
   }
 
@@ -209,9 +209,8 @@ void genWindowsEventLog(RowYield& yield, QueryContext& context) {
   auto hasXpath = context.hasConstraint("xpath", EQUALS);
 
   if (hasXpath && !shouldHandleXpath(context)) {
-    LOG(WARNING) << "Error : xpaths are mutually exclusive and"
-                    " can't be used with other constraints "
-                    "(channel, time_range, timestamp)";
+    LOG(WARNING) << "Xpaths are mutually exclusive and cannot be "
+                    "used with constraints (channel, time_range, timestamp)";
     return;
   }
 
@@ -228,7 +227,7 @@ void genWindowsEventLog(RowYield& yield, QueryContext& context) {
     if (!channel.empty()) {
       xpath_set.insert(std::make_pair(channel, xpath));
     } else {
-      LOG(WARNING) << "Invalid xpath format - " << xpath;
+      LOG(WARNING) << "Invalid xpath format: " << xpath;
     }
 
   } else if (context.hasConstraint("channel", EQUALS)) {
@@ -245,7 +244,8 @@ void genWindowsEventLog(RowYield& yield, QueryContext& context) {
     }
 
   } else {
-    LOG(WARNING) << "must specify the event channel or xpath for lookup!";
+    LOG(WARNING) << "Query constraints are invalid: the event "
+                    "channel or xpath must be specified";
     return;
   }
 
