@@ -12,6 +12,7 @@
 
 #include <mutex>
 #include <string>
+#include <atomic>
 
 namespace osquery {
 
