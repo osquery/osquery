@@ -10,9 +10,9 @@
 #include <osquery/core/shutdown.h>
 #include <osquery/logger/data_logger.h>
 
+#include <atomic>
 #include <mutex>
 #include <string>
-#include <atomic>
 
 namespace osquery {
 
