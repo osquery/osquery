@@ -7,8 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <asm/unistd_64.h>
-
 #include <osquery/events/linux/process_events.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>

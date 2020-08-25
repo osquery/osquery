@@ -7,8 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <asm/unistd_64.h>
-
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/core/flags.h>
