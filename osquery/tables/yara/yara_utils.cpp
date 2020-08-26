@@ -38,6 +38,8 @@ void YARACompilerCallback(int error_level,
                           const char* message,
                           void* user_data) {
   std::stringstream ss;
+  // file_name will be nullptr on compiling YARA rules from
+  // string. It checks the file_name and generate the logs.
   if (file_name == nullptr)
     ss << "YARA rule string ";
   else
