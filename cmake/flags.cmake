@@ -1,5 +1,10 @@
-include(CheckPIESupported)
-check_pie_supported()
+if(NOT DEFINED OSQUERY_TOOLCHAIN_SYSROOT)
+    include(CheckPIESupported)
+    check_pie_supported()
+    if(NOT CMAKE_C_LINK_PIE_SUPPORT OR NOT CMAKE_CXX_LINK_PIE_SUPPORT)
+        message(FATAL_ERROR "The linker for the current compiler do not support -fPIE or -pie")
+    endif()
+endif()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # The function creates the osquery_<c|cxx>_settings targets with compiler and linker flags
