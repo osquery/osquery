@@ -113,12 +113,28 @@ TEST_F(ProcessEventsTests, syscall_name_label) {
 
 TEST_F(ProcessEventsTests, exec_event_processing) {
   // clang-format off
+#if defined(__x86_64__)
+  const std::string kExecSyscall{"59"};
+#elif defined(__aarch64__)
+  const std::string kExecSyscall{"221"};
+#else
+  #error Unsupported architecture
+#endif
   const RawAuditEvent kSampleExecveEvent = {
-    { 1300, "audit(1502125323.756:6): arch=c000003e syscall=59 success=yes exit=0 a0=23eb8e0 a1=23ebbc0 a2=23c9860 a3=7ffe18d32ed0 items=2 ppid=6882 pid=7841 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=2 comm=\"sh\" exe=\"/usr/bin/bash\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)" },
+   { 1300, "audit(1502125323.756:6): arch=c000003e syscall=" + kExecSyscall +
+      "success=yes exit=0 a0=23eb8e0 a1=23ebbc0 a2=23c9860 a3=7ffe18d32ed0 "
+      "items=2 ppid=6882 pid=7841 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 "
+      "fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=2 "
+      "comm=\"sh\" exe=\"/usr/bin/bash\" "
+      "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)" },
     { 1309, "audit(1502125323.756:6): argc=1 a0=\"sh\"" },
     { 1307, "audit(1502125323.756:6):  cwd=\"/home/alessandro\"" },
-    { 1302, "audit(1502125323.756:6): item=0 name=\"/usr/bin/sh\" inode=18867 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:shell_exec_t:s0 objtype=NORMAL" },
-    { 1302, "audit(1502125323.756:6): item=1 name=\"/lib64/ld-linux-x86-64.so.2\" inode=33604032 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:ld_so_t:s0 objtype=NORMAL" },
+    { 1302, "audit(1502125323.756:6): item=0 name=\"/usr/bin/sh\" inode=18867 "
+      "dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 "
+      "obj=system_u:object_r:shell_exec_t:s0 objtype=NORMAL" },
+    { 1302, "audit(1502125323.756:6): item=1 name=\"/lib64/ld-linux-x86-64.so.2\" "
+      "inode=33604032 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 "
+      "obj=system_u:object_r:ld_so_t:s0 objtype=NORMAL" },
     { 1320, "audit(1502125323.756:6): " }
   };
   // clang-format on
@@ -133,7 +149,6 @@ TEST_F(ProcessEventsTests, exec_event_processing) {
       {"auid", "1000"},
       {"pid", "7841"},
       {"uid", "1000"},
-      {"auid", "1000"},
       {"euid", "1000"},
       {"fsuid", "1000"},
       {"suid", "1000"},
@@ -170,7 +185,13 @@ TEST_F(ProcessEventsTests, exec_event_processing) {
 TEST_F(ProcessEventsTests, kill_syscall_event_processing) {
   // clang-format off
   const RawAuditEvent kSampleKillEvent = {
+#if defined(__x86_64__)
     { 1300, "audit(1588703361.452:26860): arch=c000003e syscall=62 success=yes exit=0 a0=6334 a1=f a2=0 a3=7f8b95cbbcc0 items=0 ppid=6198 pid=6199 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts3 ses=5 comm=\"bash\" exe=\"/bin/bash\" key=226B696C6C73686F7422" },
+#elif defined(__aarch64__)
+    { 1300, "audit(1588703361.452:26860): arch=c00000b7 syscall=129 success=yes exit=0 a0=6334 a1=f a2=0 a3=7f8b95cbbcc0 items=0 ppid=6198 pid=6199 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts3 ses=5 comm=\"bash\" exe=\"/bin/bash\" key=226B696C6C73686F7422" },
+#else
+    #error Unsupported architecture
+#endif
     { 1318, "audit(1588703361.452:26860): opid=25396 oauid=1000 ouid=1000 oses=5 ocomm=\"python3\"" },
     { 1307, "audit(1588703361.452:26860): proctitle=\"-bash\"" },
     { 1320, "audit(1588703361.452:26860): " }
@@ -300,6 +321,7 @@ TEST_F(ProcessEventsTests, process_id_acquisition) {
   std::uint64_t parent_process_id{0U};
   std::uint64_t process_id{0U};
 
+#ifdef __x86_64__
   for (int syscall_nr : {__NR_fork, __NR_vfork}) {
     auto status = AuditProcessEventSubscriber::GetProcessIDs(
         parent_process_id, process_id, syscall_nr, event_record);
@@ -308,6 +330,7 @@ TEST_F(ProcessEventsTests, process_id_acquisition) {
     EXPECT_EQ(parent_process_id, 15929U);
     EXPECT_EQ(process_id, 33);
   }
+#endif /* __x86_64__ */
 
   // Normal process creation, with clone (a0 does not have the CLONE_PARENT bit
   // set)
