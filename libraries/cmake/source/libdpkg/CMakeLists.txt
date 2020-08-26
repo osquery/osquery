@@ -93,7 +93,7 @@ function(libdpkgMain)
   )
 
   target_include_directories(thirdparty_libdpkg PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}"
     "${library_root}/lib/compat"
     "${library_root}"
     "${library_root}/lib"
