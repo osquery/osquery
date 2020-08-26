@@ -206,6 +206,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/userassist.cpp
       windows/video_info.cpp
       windows/windows_crashes.cpp
+      windows/windows_eventlog.cpp
       windows/windows_optional_features.cpp
       windows/windows_security_products.cpp
       windows/windows_security_center.cpp
@@ -320,6 +321,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/certificates.h
       windows/users.h
       windows/userassist.h
+      windows/windows_eventlog.h
     )
   endif()
 

@@ -29,6 +29,8 @@ struct WELEvent final {
   std::int64_t event_id{0U};
   std::int64_t task_id{0U};
   std::int64_t level{0U};
+  std::int64_t pid{0U};
+  std::int64_t tid{0U};
 
   std::string keywords;
   std::string data;
