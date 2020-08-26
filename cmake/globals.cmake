@@ -22,6 +22,21 @@ endif()
 # Used as the PYTHONPATH folder.
 set(OSQUERY_PYTHON_PATH "${CMAKE_BINARY_DIR}/python_path")
 
+# We need to figure out the processor architecture and set the normalized variable
+# before any targets are created
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
+  # Windows x86_64
+  set(TARGET_PROCESSOR "x86_64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+  # *nix x86_64
+  set(TARGET_PROCESSOR "x86_64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+  # *nix AArch64
+  set(TARGET_PROCESSOR "aarch64")
+else()
+  message(FATAL_ERROR "Unsupported architecture ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
 # TODO(alessandro): Add missing defines: PLATFORM_FREEBSD
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   set(PLATFORM_POSIX 1)
