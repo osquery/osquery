@@ -48,15 +48,10 @@ FLAG(uint32,
      "memory spikes");
 
 HIDDEN_FLAG(bool,
-            enable_yara_sigrule,
-            false,
-            "Enable yara table extension to pass sigrule with query ");
-
-HIDDEN_FLAG(bool,
             enable_yara_string,
             false,
-            "The yara strings are private by default. The flag will disable "
-            "the feature and string column will show with the table");
+            "Enable returning matched YARA strings. The strings are set to "
+            "private if rules are passed with sigrule");
 
 namespace tables {
 
@@ -148,7 +143,7 @@ Status getYaraRules(YARAConfigParser parser,
                     YaraRuleType sign_type,
                     YaraScanContext& context) {
   if (isNull(parser)) {
-    return Status::failure("YARA config parser plugin not found");
+    return Status::failure("YARA config parser plugin is null");
   }
 
   auto& rules_map = parser->rules();
@@ -222,26 +217,30 @@ QueryData genYara(QueryContext& context) {
     }
   }
 
+  // Compile signature file if query has sigfile constraint and
+  // add them to the scan context
   if (context.hasConstraint("sigfile", EQUALS)) {
-    // Compile signature files and add them to the scan context
     auto sigfiles = context.constraints["sigfile"].getAll(EQUALS);
     auto status = getYaraRules(yaraParser, sigfiles, YC_FILE, scanContext);
     if (!status.ok()) {
+      LOG(WARNING) << status.toString();
       return results;
     }
   }
 
-  if (FLAGS_enable_yara_sigrule && context.hasConstraint("sigrule", EQUALS)) {
-    // Compile signature strings and add them to the scan context
+  // Compile signature string if query has sigrule constraint and
+  // add them to the scan context
+  if (context.hasConstraint("sigrule", EQUALS)) {
     auto sigrules = context.constraints["sigrule"].getAll(EQUALS);
     auto status = getYaraRules(yaraParser, sigrules, YC_RULE, scanContext);
     if (!status.ok()) {
+      LOG(WARNING) << status.toString();
       return results;
     }
   }
 
-  // return if scan context is empty. One of sig_group, sigfile, or
-  // sigrule must be specified.
+  // scan context is empty. One of sig_group, sigfile, or sigrule
+  // must be specified with the query
   if (scanContext.empty()) {
     VLOG(1) << "Query must specify sig_group, sigfile, or sigrule for scan";
     return results;
