@@ -19,13 +19,16 @@ namespace {
 const std::unordered_map<int, std::string> kSyscallNameMap = {
     {__NR_execve, "execve"},
     {__NR_execveat, "execveat"},
-    {__NR_fork, "fork"},
-    {__NR_vfork, "vfork"},
     {__NR_clone, "clone"},
     {__NR_kill, "kill"},
     {__NR_tkill, "tkill"},
-    {__NR_tgkill, "tgkill"}};
+    {__NR_tgkill, "tgkill"},
+#ifdef __x86_64__
+    {__NR_fork, "fork"},
+    {__NR_vfork, "vfork"},
+#endif /* __x86_64__ */
 };
+} // namespace
 
 DECLARE_bool(audit_allow_process_events);
 
@@ -312,7 +315,11 @@ Status AuditProcessEventSubscriber::GetProcessIDs(
     return Status::failure("Invalid record type");
   }
 
-  if (syscall_nr == __NR_fork || syscall_nr == __NR_vfork) {
+  if (0
+#ifdef __x86_64__
+      || syscall_nr == __NR_fork || syscall_nr == __NR_vfork
+#endif /*  __x86_64__ */
+  ) {
     GetIntegerFieldFromMap(parent_process_id, syscall_record.fields, "pid");
     GetIntegerFieldFromMap(process_id, syscall_record.fields, "exit");
 
