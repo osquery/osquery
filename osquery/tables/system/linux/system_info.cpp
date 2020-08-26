@@ -34,6 +34,7 @@ QueryData genSystemInfo(QueryContext& context) {
   std::string uuid;
   r["uuid"] = (osquery::getHostUUID(uuid)) ? uuid : "";
 
+#ifdef __x86_64__
   auto qd = SQL::selectAllFrom("cpuid");
   for (const auto& row : qd) {
     if (row.at("feature") == "product_name") {
@@ -41,6 +42,7 @@ QueryData genSystemInfo(QueryContext& context) {
       boost::trim(r["cpu_brand"]);
     }
   }
+#endif /* __x86_64__ */
 
   auto logical_cores = std::thread::hardware_concurrency();
   r["cpu_logical_cores"] = (logical_cores > 0) ? INTEGER(logical_cores) : "-1";

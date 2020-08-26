@@ -37,7 +37,6 @@ function(generateNativeTables)
     carves.table
     chrome_extensions.table
     chrome_extension_content_scripts.table
-    cpuid.table
     curl.table
     curl_certificate.table
     etc_hosts.table
@@ -72,6 +71,10 @@ function(generateNativeTables)
     utility/osquery_schedule.table
     utility/time.table
   )
+
+  if(TARGET_PROCESSOR STREQUAL "x86_64")
+    list(APPEND platform_independent_spec_files cpuid.table)
+  endif()
 
   set(platform_dependent_spec_files
     "arp_cache.table:linux,macos,windows"
