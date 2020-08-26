@@ -10,7 +10,7 @@ schema([
     Column("sigfile", TEXT, "Signature file used",
         additional=True),
 	Column("sigrule", TEXT, "Signature strings used",
-        additional=True),
+        additional=True, hidden=True),
     Column("strings", TEXT, "Matching strings"),
     Column("tags", TEXT, "Matching tags"),
 ])
