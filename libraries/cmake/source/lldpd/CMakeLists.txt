@@ -62,17 +62,17 @@ function(generateLibevent)
 
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_libevent PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/libevent"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/linux/libevent"
     )
     target_include_directories(thirdparty_libevent SYSTEM INTERFACE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/libevent"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/linux/libevent"
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_libevent PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/libevent"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/macos/libevent"
     )
     target_include_directories(thirdparty_libevent SYSTEM INTERFACE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/libevent"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/macos/libevent"
     )
   endif()
 
@@ -147,11 +147,11 @@ function(generateLiblldpd)
 
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_lldpd PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/liblldpd"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/linux/liblldpd"
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_lldpd PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/liblldpd"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/macos/liblldpd"
     )
   endif()
 
