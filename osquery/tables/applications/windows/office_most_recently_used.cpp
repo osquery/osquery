@@ -7,10 +7,10 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/fileops.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/registry.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
@@ -32,6 +32,10 @@ void officeData(QueryData& results,
   Row r;
   for (const auto& rKey : registry_results) {
     QueryData office_entries;
+    if (rKey.length() < 20) {
+      LOG(INFO) << "File MRU Registry path malformed: " << rKey;
+      continue;
+    }
     queryKey(rKey, office_entries);
     for (const auto& aKey : office_entries) {
       // All file entries are start with "Item", skip entries that are not named
@@ -84,6 +88,10 @@ void office365Data(QueryData& results,
                    const std::string& sid) {
   Row r;
   for (const auto& rKey : office_365_results) {
+    if (rKey.length() < 20) {
+      LOG(INFO) << "File MRU Registry path malformed: " << rKey;
+      continue;
+    }
     std::string key = rKey;
     std::set<std::string> office_365_results_files;
     // Iterate through all User MRU entries
