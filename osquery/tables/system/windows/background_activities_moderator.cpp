@@ -8,8 +8,8 @@
  */
 
 #include <osquery/core/core.h>
-#include <osquery/logger/logger.h>
 #include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/registry.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 
