@@ -196,6 +196,11 @@ void DatabasePluginTests::testDelete() {
   auto s = getPlugin()->remove(kQueries, "test_delete");
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.getMessage(), "OK");
+
+  std::string r;
+  s = getPlugin()->get(kQueries, "test_delete", r);
+  EXPECT_FALSE(s.ok());
+  EXPECT_TRUE(r.empty());
 }
 
 void DatabasePluginTests::testDeleteRange() {

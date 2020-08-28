@@ -19,6 +19,8 @@ function(rocksdbMain)
     "${library_root}/db/compaction_iterator.cc"
     "${library_root}/db/compaction_job.cc"
     "${library_root}/db/compaction_picker.cc"
+    "${library_root}/db/compaction_picker_universal.cc"
+    "${library_root}/db/db_filesnapshot.cc"
     "${library_root}/db/db_impl.cc"
     "${library_root}/db/db_impl_write.cc"
     "${library_root}/db/db_impl_compaction_flush.cc"
@@ -30,21 +32,26 @@ function(rocksdbMain)
     "${library_root}/db/db_iter.cc"
     "${library_root}/db/dbformat.cc"
     "${library_root}/db/event_helpers.cc"
+    "${library_root}/db/external_sst_file_ingestion_job.cc"
     "${library_root}/db/experimental.cc"
     "${library_root}/db/file_indexer.cc"
     "${library_root}/db/flush_job.cc"
     "${library_root}/db/flush_scheduler.cc"
+    "${library_root}/db/forward_iterator.cc"
     "${library_root}/db/internal_stats.cc"
     "${library_root}/db/log_reader.cc"
     "${library_root}/db/log_writer.cc"
     "${library_root}/db/memtable.cc"
     "${library_root}/db/memtable_list.cc"
+    "${library_root}/db/managed_iterator.cc"
+    "${library_root}/db/malloc_stats.cc"
     "${library_root}/db/merge_helper.cc"
     "${library_root}/db/merge_operator.cc"
     "${library_root}/db/range_del_aggregator.cc"
     "${library_root}/db/snapshot_impl.cc"
     "${library_root}/db/table_cache.cc"
     "${library_root}/db/table_properties_collector.cc"
+    "${library_root}/db/transaction_log_impl.cc"
     "${library_root}/db/version_builder.cc"
     "${library_root}/db/version_edit.cc"
     "${library_root}/db/version_set.cc"
@@ -57,8 +64,12 @@ function(rocksdbMain)
     "${library_root}/env/env_hdfs.cc"
     "${library_root}/env/mock_env.cc"
     "${library_root}/memtable/alloc_tracker.cc"
+    "${library_root}/memtable/hash_cuckoo_rep.cc"
+    "${library_root}/memtable/hash_linklist_rep.cc"
+    "${library_root}/memtable/hash_skiplist_rep.cc"
     "${library_root}/memtable/skiplistrep.cc"
     "${library_root}/memtable/write_buffer_manager.cc"
+    "${library_root}/memtable/vectorrep.cc"
     "${library_root}/monitoring/histogram.cc"
     "${library_root}/monitoring/histogram_windowing.cc"
     "${library_root}/monitoring/instrumented_mutex.cc"
@@ -74,6 +85,8 @@ function(rocksdbMain)
     "${library_root}/options/db_options.cc"
     "${library_root}/options/options.cc"
     "${library_root}/options/options_helper.cc"
+    "${library_root}/options/options_parser.cc"
+    "${library_root}/options/options_sanity_check.cc"
     "${library_root}/port/stack_trace.cc"
     "${library_root}/table/block.cc"
     "${library_root}/table/block_based_filter_block.cc"
@@ -91,6 +104,11 @@ function(rocksdbMain)
     "${library_root}/table/iterator.cc"
     "${library_root}/table/merging_iterator.cc"
     "${library_root}/table/meta_blocks.cc"
+    "${library_root}/table/plain_table_builder.cc"
+    "${library_root}/table/plain_table_factory.cc"
+    "${library_root}/table/plain_table_index.cc"
+    "${library_root}/table/plain_table_reader.cc"
+    "${library_root}/table/plain_table_key_coding.cc"
     "${library_root}/table/partitioned_filter_block.cc"
     "${library_root}/table/persistent_cache_helper.cc"
     "${library_root}/table/sst_file_writer.cc"
@@ -104,6 +122,7 @@ function(rocksdbMain)
     "${library_root}/util/comparator.cc"
     "${library_root}/util/concurrent_arena.cc"
     "${library_root}/util/crc32c.cc"
+    "${library_root}/util/delete_scheduler.cc"
     "${library_root}/util/dynamic_bloom.cc"
     "${library_root}/util/event_logger.cc"
     "${library_root}/util/file_reader_writer.cc"
@@ -181,11 +200,6 @@ function(rocksdbMain)
 
   target_compile_definitions(thirdparty_rocksdb PRIVATE
     ${platform_definitions}
-  )
-
-  # This is used in RocksDB headers.
-  target_compile_definitions(thirdparty_rocksdb PUBLIC
-    ROCKSDB_LITE
   )
 
   target_link_libraries(thirdparty_rocksdb PRIVATE
