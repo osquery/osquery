@@ -67,7 +67,11 @@ endfunction()
 
 function(generateOsqueryFuzzHarness harness_name source_files)
   add_osquery_executable(${harness_name} ${source_files})
-  set_target_properties(${harness_name} PROPERTIES POSITION_INDEPENDENT_CODE true)
+  # TODO: osquery-toolchain libFuzzer is not compiled with -fPIC support,
+  # temporarily disable PIE until the toolchain is fixed.
+  if(DEFINED OSQUERY_TOOLCHAIN_SYSROOT)
+    set_target_properties(${harness_name} PROPERTIES POSITION_INDEPENDENT_CODE OFF)
+  endif()
   target_link_libraries(${harness_name} PRIVATE osquery_harnesses)
   target_link_options(${harness_name} PRIVATE -fsanitize=fuzzer)
 endfunction()
