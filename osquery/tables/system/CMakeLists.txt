@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesSystemMain)
 
@@ -205,6 +206,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/userassist.cpp
       windows/video_info.cpp
       windows/windows_crashes.cpp
+      windows/windows_eventlog.cpp
       windows/windows_optional_features.cpp
       windows/windows_security_products.cpp
       windows/windows_security_center.cpp
@@ -223,7 +225,6 @@ function(generateOsqueryTablesSystemSystemtable)
 
   target_link_libraries(osquery_tables_system_systemtable PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_events
     osquery_filesystem
@@ -320,6 +321,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/certificates.h
       windows/users.h
       windows/userassist.h
+      windows/windows_eventlog.h
     )
   endif()
 

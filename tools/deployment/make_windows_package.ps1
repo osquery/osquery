@@ -1,8 +1,9 @@
-#  Copyright (c) 2014-present, Facebook, Inc.
-#  All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-#  This source code is licensed in accordance with the terms specified in
-#  the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 # We make heavy use of Write-Host, because colors are awesome. #dealwithit.
 
@@ -421,7 +422,8 @@ function New-ChocolateyPackage() {
     <title>osquery</title>
     <authors>osquery</authors>
     <owners>osquery</owners>
-    <copyright>Copyright (c) 2014-present, Facebook, Inc. All rights reserved.</copyright>
+    <copyright>Copyright (c) 2014-present, The osquery authors. See LICENSE file found in the
+# root directory of this source tree.</copyright>
     <projectUrl>https://osquery.io</projectUrl>
     <iconUrl>https://github.com/osquery/osquery/blob/master/tools/osquery.ico</iconUrl>
     <licenseUrl>https://github.com/osquery/osquery/blob/master/LICENSE</licenseUrl>

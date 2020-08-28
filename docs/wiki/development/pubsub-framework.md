@@ -44,8 +44,8 @@ implementation("new_etc_files@NewETCFilesEventSubscriber::genTable")
 Now with the simplest table spec possible, we need to write `NewETCFilesEventSubscriber`!
 
 ```cpp
-#include <osquery/database.h>
-#include "osquery/events/linux/inotify.h"
+#include <osquery/database/database.h>
+#include <osquery/events/linux/inotify.h>
 
 namespace osquery {
 namespace tables {

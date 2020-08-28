@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesEventsTestsMain)
   generateOsqueryTablesEventsTestsFileeventstestsTest()
@@ -22,7 +23,6 @@ function(generateOsqueryTablesEventsTestsFileeventstestsTest)
 
   target_link_libraries(osquery_tables_events_tests_fileeventstests-test PRIVATE
     osquery_cxx_settings
-    osquery_headers
     osquery_config
     osquery_config_tests_testutils
     osquery_database
@@ -45,7 +45,6 @@ function(generateOsqueryTablesEventsTestsSelinuxeventstestsTest)
 
   target_link_libraries(osquery_tables_events_tests_selinuxeventstests-test PRIVATE
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_config
     osquery_config_tests_testutils
@@ -69,7 +68,6 @@ function(generateOsqueryTablesEventsTestsProcesseventstestsTest)
 
   target_link_libraries(osquery_tables_events_tests_processeventstests-test PRIVATE
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_config
     osquery_config_tests_testutils
@@ -93,7 +91,6 @@ function(generateOsqueryTablesEventsTestsPowershelleventstestsTest)
 
   target_link_libraries(osquery_tables_events_tests_powershelleventstests-test PRIVATE
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_config
     osquery_config_tests_testutils
@@ -122,7 +119,6 @@ function(generateOsqueryTablesEventsTestsWindowseventstestsTest)
 
   target_link_libraries(osquery_tables_events_tests_windowseventstests-test PRIVATE
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_config
     osquery_config_tests_testutils

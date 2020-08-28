@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(pluginsLoggerMain)
 
@@ -64,7 +65,6 @@ function(generatePluginsLoggerAwskinesis)
 
   target_link_libraries(plugins_logger_awskinesis PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_dispatcher
     osquery_process
     osquery_registry
@@ -153,9 +153,11 @@ function(generatePluginsLoggerKafkaproducer)
 
   target_link_libraries(plugins_logger_kafkaproducer PUBLIC
     osquery_cxx_settings
-    plugins_logger_commondeps
+    osquery_config
     osquery_dispatcher
     osquery_utils_config
+    plugins_config_parsers
+    plugins_logger_commondeps
     thirdparty_librdkafka
   )
 

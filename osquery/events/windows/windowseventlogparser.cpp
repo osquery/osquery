@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <sstream>
@@ -12,9 +13,9 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include <osquery/core/flags.h>
 #include <osquery/events/windows/windowseventlogparser.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
@@ -94,6 +95,13 @@ Status parseWindowsEventLogPTree(
         "Invalid Windows event object: the System.Level tag is missing or not "
         "valid");
   }
+
+  // Some events may not have associated ProcessID and ThreadID; fallback value
+  // is set to -1
+  output.pid =
+      event_object.get("Event.System.Execution.<xmlattr>.ProcessID", -1);
+  output.tid =
+      event_object.get("Event.System.Execution.<xmlattr>.ThreadID", -1);
 
   // These values will easily go above what an std::int64_t can represent, and
   // sqlite does not have an unsigned version for sqlite3_result_int64

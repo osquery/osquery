@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <algorithm>
@@ -13,15 +14,15 @@
 #include <boost/io/detail/quoted_manip.hpp>
 
 #include <osquery/config/config.h>
-#include <osquery/core.h>
-#include <osquery/data_logger.h>
-#include <osquery/database.h>
-#include <osquery/flags.h>
-#include <osquery/numeric_monitoring.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/query.h>
+#include <osquery/core/shutdown.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/data_logger.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/process/process.h>
 #include <osquery/profiler/code_profiler.h>
-#include <osquery/query.h>
-#include <osquery/shutdown.h>
 
 #include <osquery/utils/system/time.h>
 
