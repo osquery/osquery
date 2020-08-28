@@ -11,6 +11,8 @@
 
 #include <osquery/utils/system/system.h>
 
+#include <string>
+
 namespace osquery {
 
 /**
