@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <vector>
@@ -11,18 +12,18 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
-#include <osquery/database.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
 #include <osquery/dispatcher/scheduler.h>
-#include <osquery/flags.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/logger.h>
-#include <osquery/registry.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
 #include <osquery/remote/requests.h>
 #include <osquery/remote/serializers/json.h>
 #include <osquery/remote/tests/test_utils.h>
 #include <osquery/remote/transports/tls.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
 #include <osquery/utils/system/time.h>
 #include <plugins/config/tls_config.h>
 

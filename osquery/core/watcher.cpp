@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <chrono>
@@ -20,16 +21,16 @@
 #include <boost/thread.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/core/shutdown.h>
 #include <osquery/core/sql/query_data.h>
 #include <osquery/core/watcher.h>
-#include <osquery/data_logger.h>
-#include <osquery/extensions.h>
+#include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
+#include <osquery/logger/data_logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-#include <osquery/shutdown.h>
-#include <osquery/sql.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/tool_type.h>

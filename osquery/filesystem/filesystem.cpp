@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <sstream>
@@ -22,11 +23,11 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #if WIN32
 #include <osquery/utils/conversions/windows/strings.h>
 #endif

@@ -8,8 +8,8 @@ The following code is more-or-less the **filesystem** config plugin. This is the
 
 ```cpp
 // Note 1: REQUIRED includes
-#include <osquery/config.h>
-#include <osquery/flags.h>
+#include <osquery/config/config.h>
+#include <osquery/core/flags.h>
 
 namespace osquery {
 

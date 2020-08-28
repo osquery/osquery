@@ -1,22 +1,23 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <unordered_map>
 
 #include <boost/io/detail/quoted_manip.hpp>
 
-#include <osquery/dispatcher.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/numeric_monitoring.h>
+#include <osquery/core/flags.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/logger/logger.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/numeric_monitoring/plugin_interface.h>
 #include <osquery/numeric_monitoring/pre_aggregation_cache.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 
 #include <osquery/utils/enum_class_hash.h>
 

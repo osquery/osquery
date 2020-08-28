@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <CoreServices/CoreServices.h>
@@ -12,8 +13,8 @@
 #include <osquery/rows/processes.h>
 
 #include <osquery/core/sql/query_data.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {

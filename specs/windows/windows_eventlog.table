@@ -1,0 +1,23 @@
+table_name("windows_eventlog")
+description("Table for querying all recorded Windows event logs.")
+schema([
+    Column("channel", TEXT, "Source or channel of the event", required=True),
+    Column("datetime", TEXT, "System time at which the event occurred"),
+    Column("task", INTEGER, "Task value associated with the event"),
+    Column("level", INTEGER, "Severity level associated with the event"),
+    Column("provider_name", TEXT, "Provider name of the event"),
+    Column("provider_guid", TEXT, "Provider guid of the event"),
+    Column("eventid", INTEGER, "Event ID of the event", additional=True),
+    Column("keywords", TEXT, "A bitmask of the keywords defined in the event"),
+    Column("data", TEXT, "Data associated with the event"),
+    Column("pid", INTEGER, "Process ID which emitted the event record", additional=True),
+    Column("tid", INTEGER, "Thread ID which emitted the event record"),
+    Column("time_range", TEXT, "System time to selectively filter the events", hidden=True, additional=True),
+    Column("timestamp", TEXT, "Timestamp to selectively filter the events", hidden=True, additional=True),
+    Column("xpath", TEXT, "The custom query to filter events", hidden=True, required=True),
+])
+
+implementation("system/windows_eventlog@genWindowsEventLog", generator=True)
+examples([
+  "select * from windows_eventlog where eventid=4625 and channel='Security'",
+])

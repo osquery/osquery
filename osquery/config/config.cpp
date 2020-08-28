@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <algorithm>
@@ -19,17 +20,17 @@
 #include <boost/iterator/filter_iterator.hpp>
 
 #include <osquery/config/config.h>
-#include <osquery/database.h>
-#include <osquery/events.h>
-#include <osquery/flagalias.h>
-#include <osquery/flags.h>
+#include <osquery/config/packs.h>
+#include <osquery/core/flagalias.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/shutdown.h>
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/events/events.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/logger.h>
-#include <osquery/packs.h>
-#include <osquery/registry.h>
-#include <osquery/shutdown.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
 
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>

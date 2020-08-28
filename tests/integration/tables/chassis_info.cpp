@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 // Sanity check integration test for chassis_info
@@ -27,12 +28,12 @@ TEST_F(chassisTest, test_sanity) {
   ValidationMap row_map = {
       {"audible_alarm", NonEmptyString},
       {"breach_description", NormalType},
-      {"chassis_types", NonNegativeOrErrorInt},
+      {"chassis_types", NonEmptyString},
       {"description", NormalType},
       {"lock", NonEmptyString},
       {"manufacturer", NormalType},
       {"model", NormalType},
-      {"security_status", NonNegativeOrErrorInt},
+      {"security_breach", NonEmptyString},
       {"serial", NormalType},
       {"smbios_tag", NormalType},
       {"sku", NormalType},

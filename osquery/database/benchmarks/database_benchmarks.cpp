@@ -1,16 +1,17 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <benchmark/benchmark.h>
 
-#include <osquery/database.h>
+#include <osquery/core/query.h>
+#include <osquery/database/database.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/query.h>
 
 #include "osquery/tests/test_util.h"
 #include <osquery/utils/json/json.h>
