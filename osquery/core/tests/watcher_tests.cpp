@@ -15,6 +15,7 @@
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
 #include <osquery/registry/registry.h>
+#include <osquery/utils/system/time.h>
 
 #include "osquery/core/watcher.h"
 #include "osquery/tests/test_util.h"
@@ -296,6 +297,10 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
   r["resident_size"] = INTEGER(100);
   runner.setProcessRow({r});
 
+  // Set the worker start time.
+  auto start_time = Watcher::get().workerStartTime();
+  Watcher::get().workerStartTime(getUnixTime() - 1);
+
   // Check the fake process sanity, which records the state at t=0.
   EXPECT_TRUE(runner.isChildSane(fake_test_process));
 
@@ -316,5 +321,6 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
   EXPECT_FALSE(runner.watch(fake_test_process));
 
   FLAGS_watchdog_delay = delay;
+  Watcher::get().workerStartTime(start_time);
 }
 } // namespace osquery

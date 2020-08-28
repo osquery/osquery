@@ -332,7 +332,7 @@ void WatcherRunner::watchExtensions() {
 }
 
 size_t WatcherRunner::delayedTime() const {
-  return getStartTime() + FLAGS_watchdog_delay;
+  return Watcher::get().workerStartTime() + FLAGS_watchdog_delay;
 }
 
 bool WatcherRunner::watch(const PlatformProcess& child) const {
@@ -547,6 +547,7 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
 
 void WatcherRunner::createWorker() {
   auto& watcher = Watcher::get();
+  watcher.workerStartTime(getUnixTime());
 
   {
     WatcherExtensionsLocker locker;
