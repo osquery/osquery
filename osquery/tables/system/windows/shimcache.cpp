@@ -11,8 +11,8 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/registry.h>
-#include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>

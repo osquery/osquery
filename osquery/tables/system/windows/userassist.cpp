@@ -12,8 +12,8 @@
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/registry.h>
 #include <osquery/utils/conversions/tryto.h>
-#include <osquery/utils/rot13.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/rot13.h>
 
 #include <string>
 
