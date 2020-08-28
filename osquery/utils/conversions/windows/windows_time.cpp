@@ -8,6 +8,8 @@
  */
 
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/logger.h>
 
 namespace osquery {
 
