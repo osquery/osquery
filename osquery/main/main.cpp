@@ -17,6 +17,7 @@
 
 #include <osquery/core/core.h>
 #include <osquery/core/flags.h>
+#include <osquery/core/shutdown.h>
 #include <osquery/core/system.h>
 #include <osquery/core/watcher.h>
 #include <osquery/database/database.h>
@@ -130,9 +131,14 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
   int retcode = 0;
   if (osquery::FLAGS_profile <= 0) {
     runner.start();
-
-    // Virtual tables will be attached to the shell's in-memory SQLite DB.
-    retcode = osquery::launchIntoShell(argc, argv);
+    if (shutdownRequested()) {
+      // Something in the initialization errored or requested a shutown.
+      runner.waitForShutdown();
+      retcode = getShutdownExitCode();
+    } else {
+      // Virtual tables will be attached to the shell's in-memory SQLite DB.
+      retcode = osquery::launchIntoShell(argc, argv);
+    }
   } else {
     retcode = profile(argc, argv);
   }

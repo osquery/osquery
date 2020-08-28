@@ -10,6 +10,7 @@
 #include <osquery/core/shutdown.h>
 #include <osquery/logger/data_logger.h>
 
+#include <atomic>
 #include <mutex>
 #include <string>
 
@@ -25,7 +26,7 @@ struct ShutdownData {
   std::mutex request_mutex;
 
   /// A request to shutdown may only be issued once.
-  bool requested{false};
+  std::atomic<bool> requested{false};
 
   /// The current requested return code for the process.
   std::sig_atomic_t retcode{0};
@@ -33,6 +34,10 @@ struct ShutdownData {
 
 struct ShutdownData kShutdownData;
 } // namespace
+
+bool shutdownRequested() {
+  return kShutdownData.requested;
+}
 
 int getShutdownExitCode() {
   return kShutdownData.retcode;
@@ -44,8 +49,8 @@ void setShutdownExitCode(int retcode) {
 
 void waitForShutdown() {
   std::unique_lock<std::mutex> lock(kShutdownData.request_mutex);
-  kShutdownData.request_signal.wait(lock,
-                                    [] { return kShutdownData.requested; });
+  kShutdownData.request_signal.wait(
+      lock, [] { return (kShutdownData.requested) ? true : false; });
 }
 
 void requestShutdown(int retcode) {
