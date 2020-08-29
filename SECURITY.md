@@ -7,7 +7,7 @@ This document aggregates security issues (weaknesses and vulnerabilities) affect
 ```
 
 There are several types of issues that do not include a CVE or reporter.
-If you find a security issue and believe a CVE should be assigned, please contact a [member of the TSC](https://github.com/osquery/osquery/blob/master/CONTRIBUTING.md#technical-steering-committee) in the [osquery Slack](https://osquery-slack.herokuapp.com), we are happy to submit the request and provide attribution to you.
+If you find a security issue and believe a CVE should be assigned, please contact a [member of the TSC](https://github.com/osquery/osquery/blob/master/CONTRIBUTING.md#technical-steering-committee) in the osquery [Slack](https://osquery.slack.com), we are happy to submit the request and provide attribution to you.
 Specifically, we will use the GitHub Security Advisory features for CVE requests.
 The project maintainers will tag related issues and pull requests with the [`hardening`](https://github.com/osquery/osquery/issues?q=is%3Aissue+is%3Aopen+label%3Ahardening) label. There may be changes with this label that are not directly security issues.
 
