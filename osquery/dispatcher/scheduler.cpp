@@ -239,6 +239,11 @@ void SchedulerRunner::start() {
       break;
     }
   }
+
+  // Scheduler ended.
+  LOG(INFO) << "The scheduler ended after " << FLAGS_schedule_timeout
+            << " seconds";
+  requestShutdown();
 }
 
 std::chrono::milliseconds SchedulerRunner::getCurrentTimeDrift() const
@@ -247,7 +252,9 @@ std::chrono::milliseconds SchedulerRunner::getCurrentTimeDrift() const
 }
 
 void startScheduler() {
-  startScheduler(static_cast<unsigned long int>(FLAGS_schedule_timeout), 1);
+  startScheduler(
+      static_cast<unsigned long int>(FLAGS_schedule_timeout + getUnixTime()),
+      1);
 }
 
 void startScheduler(unsigned long int timeout, size_t interval) {
