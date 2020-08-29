@@ -205,6 +205,15 @@ class WmiResultItem {
   Status GetVectorOfStrings(const std::string& name,
                             std::vector<std::string>& ret) const;
 
+  /**
+   * @brief Windows WMI Helper function to retrieve a vector of long result
+   * from a WMI query
+   *
+   * @returns Status indicating the success of the query
+   */
+  Status GetVectorOfLongs(const std::string& name,
+                          std::vector<long>& ret) const;
+
  private:
   std::unique_ptr<IWbemClassObject, impl::WmiObjectDeleter> result_{nullptr};
 };

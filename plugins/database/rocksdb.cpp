@@ -165,7 +165,50 @@ Status RocksDBDatabasePlugin::setUp() {
   if (!read_only_ && platformSetSafeDbPerms(path_) == false) {
     return Status(1, "Cannot set permissions on RocksDB path: " + path_);
   }
+
+  for (const auto& cf_name : kDomains) {
+    if (cf_name != kEvents) {
+      auto compact_status = compactFiles(cf_name);
+      if (!compact_status.ok()) {
+        LOG(INFO) << "Cannot compact column family " << cf_name << ": "
+                  << compact_status.getMessage();
+      }
+    }
+  }
+
   return Status(0);
+}
+
+Status RocksDBDatabasePlugin::compactFiles(const std::string& domain) {
+  auto handle = getHandleForColumnFamily(domain);
+  if (handle == nullptr) {
+    return Status::failure(1, "Handle does not exist");
+  }
+
+  rocksdb::ColumnFamilyMetaData cf_meta;
+  db_->GetColumnFamilyMetaData(handle, &cf_meta);
+
+  for (const auto& level : cf_meta.levels) {
+    std::vector<std::string> input_file_names;
+    for (const auto& file : level.files) {
+      if (file.being_compacted) {
+        return Status::success();
+      }
+      input_file_names.push_back(file.name);
+    }
+
+    if (!input_file_names.empty()) {
+      auto s = db_->CompactFiles(
+          rocksdb::CompactionOptions(), handle, input_file_names, level.level);
+      if (!s.ok()) {
+        return Status::failure(s.ToString());
+      }
+    }
+  }
+
+  db_->CompactRange(rocksdb::CompactRangeOptions(), handle, nullptr, nullptr);
+
+  return Status::success();
 }
 
 void RocksDBDatabasePlugin::tearDown() {

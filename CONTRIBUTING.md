@@ -18,13 +18,10 @@ You can see who the _core team_ is by viewing the [team
 page](https://github.com/orgs/osquery/teams) on the osquery GitHub
 organization.
 
-If you need help, both the core team and community members are on the
-osquery [Slack](https://osquery.slack.com). Feel free to register
-using the following [link](https://slack.osquery.io/) if you haven't
-done so yet and get in touch with us.  The `#code-review` Slack
-channel has been set up to handle urgent review needs as well as
-questions about your PR. Note: prefer to keep discussion about code
-changes in the GitHub pull request thread.
+If you need help, both the core team and community members are on the osquery [Slack](https://osquery.slack.com).
+Feel free to register using the following [shared invite](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw).
+The `#code-review` Slack channel has been set up to handle urgent review needs as well as questions about your PR.
+Note: prefer to keep discussion about code changes in the GitHub pull request thread.
 
 The osquery team also hosts regular office hours where the community
 is invited to discuss osquery development with the core team. You are

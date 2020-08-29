@@ -19,6 +19,7 @@
 #ifdef CONCAT
 #undef CONCAT
 #endif
+
 #include <yara.h>
 
 namespace pt = boost::property_tree;
@@ -33,7 +34,13 @@ void YARACompilerCallback(int error_level,
                           const char* message,
                           void* user_data);
 
+Status yaraInitilize(void);
+
+Status yaraFinalize(void);
+
 Status compileSingleFile(const std::string& file, YR_RULES** rule);
+
+Status compileFromString(const std::string& buffer, YR_RULES** rules);
 
 Status handleRuleFiles(const std::string& category,
                        const pt::ptree& rule_files,

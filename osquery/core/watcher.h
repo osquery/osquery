@@ -210,6 +210,14 @@ class Watcher : private boost::noncopyable {
     worker_restarts_++;
   }
 
+  void workerStartTime(size_t start_time) {
+    worker_start_time_ = start_time;
+  }
+
+  size_t workerStartTime() {
+    return worker_start_time_;
+  }
+
  private:
   /// Performance state for the worker process.
   PerformanceState state_;
@@ -220,6 +228,9 @@ class Watcher : private boost::noncopyable {
  private:
   /// Keep the single worker process/thread ID for inspection.
   std::shared_ptr<PlatformProcess> worker_;
+
+  /// Time the worker was started.
+  size_t worker_start_time_{0};
 
   /// Number of worker restarts NOT induced by a watchdog process.
   size_t worker_restarts_{0};
@@ -245,6 +256,7 @@ class Watcher : private boost::noncopyable {
 
  private:
   friend class WatcherRunner;
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
 };
 
 /**

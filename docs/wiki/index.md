@@ -30,7 +30,7 @@ Additionally, osquery's codebase is made up of high-performance, modular compone
 
 ## Getting Help
 
-If any part of osquery is not working as expected, please create a [GitHub Issue](https://github.com/osquery/osquery/issues). Keep in touch with osquery developers and users in our Slack [https://osquery-slack.herokuapp.com/](https://osquery-slack.herokuapp.com/).
+If any part of osquery is not working as expected, please create a [GitHub Issue](https://github.com/osquery/osquery/issues). Keep in touch with osquery developers and users in our Slack: [Join osquery](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw).
 
 ## Documentation
 

@@ -102,6 +102,9 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
    */
   rocksdb::DB* getDB() const;
 
+  /// Request RocksDB compact each domain and level to that same level.
+  Status compactFiles(const std::string& domain);
+
   /**
    * @brief Helper method to repair a corrupted db. Best effort only.
    *
