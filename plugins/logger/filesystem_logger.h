@@ -12,8 +12,8 @@
 #include <exception>
 
 #include <osquery/core/flagalias.h>
+#include <osquery/core/plugins/logger.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/plugins/logger.h>
 #include <osquery/registry/registry_factory.h>
 
 namespace osquery {

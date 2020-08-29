@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/plugins/logger.h>
+#include <osquery/core/plugins/logger.h>
 #include <osquery/registry/registry_factory.h>
 
 namespace osquery {

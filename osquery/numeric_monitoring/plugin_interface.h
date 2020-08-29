@@ -13,8 +13,8 @@
 #include <string>
 
 #include <osquery/core/core.h>
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/core/query.h>
-#include <osquery/plugins/plugin.h>
 #include <osquery/utils/expected/expected.h>
 
 #include <osquery/numeric_monitoring/numeric_monitoring.h>

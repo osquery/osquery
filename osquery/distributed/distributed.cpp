@@ -10,11 +10,11 @@
 #include <sstream>
 #include <utility>
 
+#include <osquery/core/plugins/logger.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/distributed/distributed.h>
 #include <osquery/logger/logger.h>
-#include <osquery/plugins/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
 #include <osquery/utils/json/json.h>

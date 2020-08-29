@@ -9,6 +9,6 @@
 
 #pragma once
 
-#include <osquery/plugins/plugin.h>
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/registry/registry_interface.h>

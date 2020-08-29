@@ -14,7 +14,7 @@
 // clang-format on
 
 #include <osquery/core/flags.h>
-#include <osquery/plugins/logger.h>
+#include <osquery/core/plugins/logger.h>
 
 namespace osquery {
 

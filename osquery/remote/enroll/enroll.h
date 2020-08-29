@@ -13,7 +13,7 @@
 #include <string>
 
 #include <osquery/core/flags.h>
-#include <osquery/plugins/plugin.h>
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/utils/json/json.h>
 
 namespace osquery {
