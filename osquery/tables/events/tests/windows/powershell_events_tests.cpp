@@ -1,15 +1,17 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <string>
 
 #include <gtest/gtest.h>
 
+#include <osquery/events/windows/windowseventlogparser.h>
 #include <osquery/tables/events/windows/powershell_events.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
@@ -28,8 +30,8 @@ Status initializePowershellEventsContext(
         xml_event_list) {
   for (const auto& xml_event : xml_event_list) {
     boost::property_tree::ptree event_object = {};
-    auto status = WindowsEventLogParserService::processEvent(
-        event_object, stringToWstring(xml_event));
+    auto status =
+        parseWindowsEventLogXML(event_object, stringToWstring(xml_event));
 
     if (!status.ok()) {
       return status;
@@ -46,8 +48,8 @@ class PowershellEventsTests : public testing::Test {};
 
 TEST_F(PowershellEventsTests, parse_simple_event) {
   boost::property_tree::ptree event_object = {};
-  auto status = WindowsEventLogParserService::processEvent(
-      event_object, stringToWstring(kSingleScriptBlock));
+  auto status = parseWindowsEventLogXML(event_object,
+                                        stringToWstring(kSingleScriptBlock));
 
   ASSERT_TRUE(status.ok());
 

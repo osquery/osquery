@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesSystemTestsMain)
 
@@ -134,6 +135,7 @@ function(generateOsqueryTablesSystemWindowsTests)
   add_osquery_executable(osquery_tables_system_windows_tests-test
     windows/certificates_tests.cpp
     windows/registry_tests.cpp
+    windows/windows_eventlog_tests.cpp
     windows/windows_optional_features_tests.cpp
   )
 
@@ -165,7 +167,6 @@ function(generateOsqueryTablesSystemTestsAugeasTestsTest)
     osquery_events
     osquery_extensions
     osquery_extensions_implthrift
-    osquery_headers
     osquery_registry
     osquery_remote_enroll_tlsenroll
     osquery_sql

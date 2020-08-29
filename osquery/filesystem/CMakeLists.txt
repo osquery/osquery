@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryFilesystemMain)
 
@@ -51,8 +52,8 @@ function(generateOsqueryFilesystem)
 
   target_link_libraries(osquery_filesystem PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_process
+    osquery_sql
     osquery_utils_conversions
     osquery_utils_status
     osquery_utils_system_env
@@ -110,7 +111,7 @@ function(generateOsqueryFilesystemTest)
   )
 
   if(DEFINED PLATFORM_MACOS)
-    list(APPEND source_files 
+    list(APPEND source_files
       tests/darwin/plist_tests.cpp
       tests/darwin/bsd_file_flags_tests.cpp
     )

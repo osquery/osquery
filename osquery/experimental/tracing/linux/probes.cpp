@@ -1,11 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <osquery/experimental/tracing/linux/probes.h>
@@ -16,7 +15,7 @@
 #include <osquery/utils/system/linux/perf_event/perf_event.h>
 #include <osquery/utils/system/posix/errno.h>
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 
 #include <sys/ioctl.h>
 #include <sys/resource.h>

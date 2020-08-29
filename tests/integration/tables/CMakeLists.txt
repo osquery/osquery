@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(testsIntegrationTablesMain)
   generateTestsIntegrationTablesIntegrationtestshelper()
@@ -294,6 +295,7 @@ function(generateTestsIntegrationTablesTestsTest)
       winbaseobj.cpp
       windows_crashes.cpp
       windows_events.cpp
+      windows_eventlog.cpp
       windows_security_products.cpp
       wmi_bios_info.cpp
       wmi_cli_event_consumers.cpp

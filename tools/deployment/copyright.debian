@@ -4,7 +4,7 @@ Source: https://github.com/osquery/osquery
 
 Files: *
 License: Apache 2.0 or GPL 2.0
-Copyright: Copyright (C) 2014-present, Facebook, Inc.
+Copyright: Copyright (c) 2014-present, The osquery authors. See LICENSE
 
 Files: share/osquery/lenses/*
 Copyright: Copyright (C) 2007-2016 David Lutterkort, Augeas Lenses authors.

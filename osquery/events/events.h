@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -19,9 +20,9 @@
 
 #include <gtest/gtest_prod.h>
 
-#include <osquery/core.h>
-#include <osquery/dispatcher.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
@@ -884,8 +885,8 @@ class EventFactory : private boost::noncopyable {
    */
   template <class PUB>
   static const std::string getType() {
-    auto pub = std::make_shared<PUB>();
-    return pub->type();
+    static std::string _type = std::make_shared<PUB>()->type();
+    return _type;
   }
 
   /**

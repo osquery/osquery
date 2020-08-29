@@ -1,17 +1,18 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <boost/filesystem/path.hpp>
 
-#include <osquery/database.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/core/flags.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/tables/events/windows/powershell_events.h>
 #include <osquery/utils/conversions/tryto.h>
 
@@ -166,25 +167,26 @@ Status PowershellEventSubscriber::parseScriptMessageEvent(
     auto field_name = node.get("<xmlattr>.Name", "");
     if (field_name.empty()) {
       malformed_field = true;
-      continue;
+      break;
     }
 
     auto field_string_value = node.data();
-    auto field_integer_value_exp = tryTo<std::size_t>(field_string_value);
 
     if (field_name == "MessageNumber") {
+      auto field_integer_value_exp = tryTo<std::size_t>(field_string_value);
       if (field_integer_value_exp.isError()) {
-        ++malformed_field;
-        continue;
+        malformed_field = true;
+        break;
       }
 
       output.message_number = field_integer_value_exp.take();
       ++field_count;
 
     } else if (field_name == "MessageTotal") {
+      auto field_integer_value_exp = tryTo<std::size_t>(field_string_value);
       if (field_integer_value_exp.isError()) {
-        ++malformed_field;
-        continue;
+        malformed_field = true;
+        break;
       }
 
       output.expected_message_count = field_integer_value_exp.take();

@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <sys/stat.h>
@@ -12,11 +13,11 @@
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
 
+#include <osquery/core/flags.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <plugins/database/rocksdb.h>
 
@@ -164,7 +165,50 @@ Status RocksDBDatabasePlugin::setUp() {
   if (!read_only_ && platformSetSafeDbPerms(path_) == false) {
     return Status(1, "Cannot set permissions on RocksDB path: " + path_);
   }
+
+  for (const auto& cf_name : kDomains) {
+    if (cf_name != kEvents) {
+      auto compact_status = compactFiles(cf_name);
+      if (!compact_status.ok()) {
+        LOG(INFO) << "Cannot compact column family " << cf_name << ": "
+                  << compact_status.getMessage();
+      }
+    }
+  }
+
   return Status(0);
+}
+
+Status RocksDBDatabasePlugin::compactFiles(const std::string& domain) {
+  auto handle = getHandleForColumnFamily(domain);
+  if (handle == nullptr) {
+    return Status::failure(1, "Handle does not exist");
+  }
+
+  rocksdb::ColumnFamilyMetaData cf_meta;
+  db_->GetColumnFamilyMetaData(handle, &cf_meta);
+
+  for (const auto& level : cf_meta.levels) {
+    std::vector<std::string> input_file_names;
+    for (const auto& file : level.files) {
+      if (file.being_compacted) {
+        return Status::success();
+      }
+      input_file_names.push_back(file.name);
+    }
+
+    if (!input_file_names.empty()) {
+      auto s = db_->CompactFiles(
+          rocksdb::CompactionOptions(), handle, input_file_names, level.level);
+      if (!s.ok()) {
+        return Status::failure(s.ToString());
+      }
+    }
+  }
+
+  db_->CompactRange(rocksdb::CompactRangeOptions(), handle, nullptr, nullptr);
+
+  return Status::success();
 }
 
 void RocksDBDatabasePlugin::tearDown() {

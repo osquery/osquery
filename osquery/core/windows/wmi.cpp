@@ -1,16 +1,17 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <locale>
 #include <string>
 
 #include <osquery/core/windows/wmi.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
@@ -325,6 +326,34 @@ Status WmiResultItem::GetVectorOfStrings(const std::string& name,
   ret.reserve(count);
   for (long i = 0; i < count; i++) {
     ret.push_back(bstrToString(pData[i]));
+  }
+  SafeArrayUnaccessData(value.parray);
+  VariantClear(&value);
+  return Status::success();
+}
+
+Status WmiResultItem::GetVectorOfLongs(const std::string& name,
+                                       std::vector<long>& ret) const {
+  std::wstring property_name = stringToWstring(name);
+  VARIANT value;
+  HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
+  if (hr != S_OK) {
+    return Status::failure("Error retrieving data from WMI query.");
+  }
+  if (value.vt != (VT_I4 | VT_ARRAY)) {
+    VariantClear(&value);
+    return Status::failure("Invalid data type returned.");
+  }
+  long lbound, ubound;
+  SafeArrayGetLBound(value.parray, 1, &lbound);
+  SafeArrayGetUBound(value.parray, 1, &ubound);
+  long count = ubound - lbound + 1;
+
+  long* pData = nullptr;
+  SafeArrayAccessData(value.parray, (void**)&pData);
+  ret.reserve(count);
+  for (long i = 0; i < count; i++) {
+    ret.push_back(pData[i]);
   }
   SafeArrayUnaccessData(value.parray);
   VariantClear(&value);

@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <atomic>
@@ -21,13 +22,13 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/filesystem/mock_file_structure.h>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/dispatcher.h>
-#include <osquery/flags.h>
-#include <osquery/packs.h>
-#include <osquery/registry.h>
-#include <osquery/system.h>
+#include <osquery/config/packs.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/registry/registry.h>
 #include <osquery/utils/json/json.h>
 
 #include <osquery/utils/info/platform_type.h>

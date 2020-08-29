@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -31,9 +32,6 @@ class WindowsEventLogParserService final : public InternalRunnable {
                     EvtSubscription::EventList event_list);
 
   ChannelEventObjects getChannelEventObjects();
-
-  static Status processEvent(boost::property_tree::ptree& event_object,
-                             const std::wstring& xml_event);
 
  private:
   struct PrivateData;
