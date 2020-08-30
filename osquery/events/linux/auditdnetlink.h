@@ -43,12 +43,12 @@ struct AuditEventRecord final {
   /// Audit event id that owns this record. Remember: PRIMARY KEY(id, timestamp)
   std::string audit_id;
 
-  /// The field list for this record. Valid for everything except SELinux
-  /// records
+  /// The field list for this record. Valid for everything except SELinux and
+  /// AppArmor records
   std::map<std::string, std::string> fields;
 
-  /// The raw message, only valid for SELinux records (because they have broken
-  /// syntax)
+  /// The raw message, only valid for SELinux and AppArmor records (because they
+  /// have broken syntax)
   std::string raw_data;
 };
 

@@ -18,6 +18,7 @@
 #include <boost/utility/string_ref.hpp>
 
 #include <osquery/core/flags.h>
+#include <osquery/events/linux/apparmor_events.h>
 #include <osquery/events/linux/auditdnetlink.h>
 #include <osquery/events/linux/process_events.h>
 #include <osquery/events/linux/process_file_events.h>
@@ -63,11 +64,25 @@ DECLARE_bool(audit_allow_kill_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
 DECLARE_bool(audit_allow_selinux_events);
+DECLARE_bool(audit_allow_apparmor_events);
 
 namespace {
+
+const std::string kAppArmorRecordMarker{"apparmor="};
+
 bool IsSELinuxRecord(const audit_reply& reply) noexcept {
   static const auto& selinux_event_set = kSELinuxEventList;
-  return (selinux_event_set.find(reply.type) != selinux_event_set.end());
+  return (selinux_event_set.find(reply.type) != selinux_event_set.end()) &&
+         (std::string(reply.message).find(kAppArmorRecordMarker) ==
+          std::string::npos);
+}
+
+bool isAppArmorRecord(const audit_reply& reply) noexcept {
+  static const auto& apparmor_event_set = kAppArmorEventSet;
+
+  return (apparmor_event_set.find(reply.type) != apparmor_event_set.end()) &&
+         (std::string(reply.message).find(kAppArmorRecordMarker) !=
+          std::string::npos);
 }
 
 /**
@@ -75,6 +90,10 @@ bool IsSELinuxRecord(const audit_reply& reply) noexcept {
  * message type.
  */
 bool ShouldHandle(const audit_reply& reply) noexcept {
+  if (isAppArmorRecord(reply)) {
+    return FLAGS_audit_allow_apparmor_events;
+  }
+
   if (IsSELinuxRecord(reply)) {
     return FLAGS_audit_allow_selinux_events;
   }
@@ -715,7 +734,7 @@ void AuditdNetlinkParser::start() {
       }
 
       // We are not interested in all messages; only get the ones related to
-      // user events, syscalls and SELinux events
+      // user events, syscalls, SELinux events and AppArmor events
       if (!ShouldHandle(reply)) {
         continue;
       }
@@ -778,6 +797,11 @@ bool AuditdNetlinkParser::ParseAuditReply(
   if (IsSELinuxRecord(reply)) {
     event_record.raw_data = reply.message;
     return true;
+  }
+
+  // Save the whole message for AppArmor too
+  if (isAppArmorRecord(reply)) {
+    event_record.raw_data = reply.message;
   }
 
   // Tokenize the message

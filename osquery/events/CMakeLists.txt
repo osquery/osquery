@@ -94,6 +94,7 @@ function(generateOsqueryEvents)
       linux/process_events.h
       linux/process_file_events.h
       linux/selinux_events.h
+      linux/apparmor_events.h
       linux/socket_events.h
       linux/syslog.h
       linux/udev.h
