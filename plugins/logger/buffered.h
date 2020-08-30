@@ -16,8 +16,8 @@
 #include <thread>
 #include <vector>
 
+#include <osquery/core/plugins/logger.h>
 #include <osquery/dispatcher/dispatcher.h>
-#include <osquery/plugins/logger.h>
 
 namespace osquery {
 

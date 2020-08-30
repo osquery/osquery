@@ -23,9 +23,9 @@
 #include <sqlite3.h>
 
 #include <osquery/core/core.h>
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/core/query.h>
 #include <osquery/core/sql/column.h>
-#include <osquery/plugins/plugin.h>
 
 #include <gtest/gtest_prod.h>
 

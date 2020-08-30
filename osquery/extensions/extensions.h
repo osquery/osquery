@@ -11,7 +11,7 @@
 
 #include <osquery/core/core.h>
 #include <osquery/core/flags.h>
-#include <osquery/plugins/sql.h>
+#include <osquery/core/plugins/sql.h>
 #include <osquery/registry/registry_interface.h>
 
 namespace osquery {

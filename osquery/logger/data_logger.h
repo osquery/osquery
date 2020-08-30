@@ -16,9 +16,9 @@
 
 #include <osquery/core/core.h>
 #include <osquery/core/flags.h>
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/core/query.h>
 #include <osquery/logger/logger.h>
-#include <osquery/plugins/plugin.h>
 
 namespace osquery {
 

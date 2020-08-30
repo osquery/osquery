@@ -19,7 +19,7 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core/core.h>
-#include <osquery/plugins/plugin.h>
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/utils/mutex.h>
 
 namespace osquery {

@@ -15,7 +15,7 @@
 #include <osquery/registry/registry.h>
 #include <osquery/sql/sql.h>
 
-#include <osquery/plugins/sql.h>
+#include <osquery/core/plugins/sql.h>
 
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/info/tool_type.h>
