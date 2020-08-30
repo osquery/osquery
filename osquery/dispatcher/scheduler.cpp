@@ -38,7 +38,7 @@ FLAG(uint64, schedule_max_drift, 60, "Max time drift in seconds");
 
 FLAG(uint64,
      schedule_reload,
-     300,
+     3600,
      "Interval in seconds to reload database arenas");
 
 FLAG(uint64, schedule_epoch, 0, "Epoch for scheduled queries");
