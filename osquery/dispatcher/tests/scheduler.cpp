@@ -243,9 +243,8 @@ TEST_F(SchedulerTests, test_scheduler_drift_accumulation) {
   Config::get().update({{"data", config}});
 
   // Run the scheduler for 1 second with a second interval.
-  SchedulerRunner runner(static_cast<unsigned long int>(3),
-                         size_t{0},
-                         std::chrono::seconds{10});
+  SchedulerRunner runner(
+      static_cast<unsigned long int>(3), size_t{0}, std::chrono::seconds{10});
   runner.start();
 
   EXPECT_GE(runner.getCurrentTimeDrift(), std::chrono::milliseconds{1});
