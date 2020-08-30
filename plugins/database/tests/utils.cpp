@@ -40,8 +40,8 @@ void DatabasePluginTests::SetUp() {
   platformSetup();
   registryAndPluginInit();
   FLAGS_disable_database = true;
-  DatabasePlugin::setAllowOpen(true);
-  DatabasePlugin::initPlugin();
+  setDatabaseAllowOpen();
+  initDatabasePlugin();
 
   auto& rf = RegistryFactory::get();
   existing_plugin_ = rf.getActive("database");

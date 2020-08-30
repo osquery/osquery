@@ -41,8 +41,8 @@ class PacksTests : public testing::Test {
     platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
   }
 };
 

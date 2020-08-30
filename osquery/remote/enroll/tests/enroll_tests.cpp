@@ -33,8 +33,8 @@ class EnrollTests : public testing::Test {
     platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
 
     deleteDatabaseValue(kPersistentSettings, "nodeKey");
     deleteDatabaseValue(kPersistentSettings, "nodeKeyTime");

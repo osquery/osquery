@@ -28,7 +28,7 @@ class HostIdentityTests : public testing::Test {
     FLAGS_disable_database = true;
     platformSetup();
     registryAndPluginInit();
-    DatabasePlugin::initPlugin();
+    initDatabasePlugin();
   }
 };
 

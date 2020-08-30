@@ -329,8 +329,8 @@ void setUpEnvironment() {
   platformSetup();
   registryAndPluginInit();
   FLAGS_disable_database = true;
-  DatabasePlugin::setAllowOpen(true);
-  DatabasePlugin::initPlugin();
+  setDatabaseAllowOpen();
+  initDatabasePlugin();
 }
 
 } // namespace table_tests

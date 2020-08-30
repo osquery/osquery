@@ -53,10 +53,10 @@ const std::string kDbVersionKey = "results_version";
 const std::vector<std::string> kDomains = {
     kPersistentSettings, kQueries, kEvents, kLogs, kCarves};
 
-std::atomic<bool> DatabasePlugin::kDBAllowOpen(false);
-std::atomic<bool> DatabasePlugin::kDBRequireWrite(false);
-std::atomic<bool> DatabasePlugin::kDBInitialized(false);
-std::atomic<bool> DatabasePlugin::kDBChecking(false);
+std::atomic<bool> kDBAllowOpen(false);
+std::atomic<bool> kDBRequireWrite(false);
+std::atomic<bool> kDBInitialized(false);
+std::atomic<bool> kDBChecking(false);
 
 /**
  * @brief A reader/writer mutex protecting database resets.
@@ -65,33 +65,6 @@ std::atomic<bool> DatabasePlugin::kDBChecking(false);
  * database plugin APIs.
  */
 Mutex kDatabaseReset;
-
-Status DatabasePlugin::initPlugin() {
-  // Initialize the database plugin using the flag.
-  auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
-  {
-    auto const status = RegistryFactory::get().setActive("database", plugin);
-    if (status.ok()) {
-      kDBInitialized = true;
-      return status;
-    }
-    LOG(WARNING) << "Failed to activate database plugin " << boost::io::quoted(plugin) << ": " << status.what();
-  }
-  // If the database did not setUp override the active plugin.
-  auto const status = RegistryFactory::get().setActive("database", "ephemeral");
-  if (!status.ok()) {
-    LOG(ERROR) << "Failed to activate database plugin \"ephemeral\": " << status.what();
-  }
-  kDBInitialized = status.ok();
-  return status;
-}
-
-void DatabasePlugin::shutdown() {
-  auto database_registry = RegistryFactory::get().registry("database");
-  for (auto& plugin : RegistryFactory::get().names("database")) {
-    database_registry->remove(plugin);
-  }
-}
 
 Status DatabasePlugin::reset() {
   // Keep this simple, scope the critical section to the broader methods.
@@ -104,7 +77,7 @@ bool DatabasePlugin::checkDB() {
   bool result = true;
   try {
     auto status = setUp();
-    if (kDBRequireWrite && read_only_) {
+    if (requireWrite() && read_only_) {
       result = false;
     }
     tearDown();
@@ -115,6 +88,18 @@ bool DatabasePlugin::checkDB() {
   }
   kDBChecking = false;
   return result;
+}
+
+bool DatabasePlugin::requireWrite() const {
+  return kDBRequireWrite;
+}
+
+bool DatabasePlugin::allowOpen() const {
+  return kDBAllowOpen;
+}
+
+bool DatabasePlugin::checkingDB() const {
+  return kDBChecking;
 }
 
 Status DatabasePlugin::scan(const std::string& domain,
@@ -136,7 +121,7 @@ Status DatabasePlugin::call(const PluginRequest& request,
 
   if (request.at("action") == "reset") {
     WriteLock lock(kDatabaseReset);
-    DatabasePlugin::kDBInitialized = false;
+    kDBInitialized = false;
     // Prevent RocksDB reentrancy by logger plugins during plugin setup.
     VLOG(1) << "Resetting the database plugin: " << getName();
     auto status = this->reset();
@@ -145,7 +130,7 @@ Status DatabasePlugin::call(const PluginRequest& request,
       Registry::get().setActive("database", "ephemeral");
       LOG(WARNING) << "Unable to reset database plugin: " << getName();
     }
-    DatabasePlugin::kDBInitialized = true;
+    kDBInitialized = true;
     return status;
   }
 
@@ -301,7 +286,7 @@ Status getDatabaseValue(const std::string& domain,
   }
 
   ReadLock lock(kDatabaseReset);
-  if (!DatabasePlugin::kDBInitialized) {
+  if (!kDBInitialized) {
     throw std::runtime_error("Cannot get database value: " + key);
   } else {
     auto plugin = getDatabasePlugin();
@@ -343,7 +328,7 @@ Status setDatabaseBatch(const std::string& domain,
   }
 
   ReadLock lock(kDatabaseReset);
-  if (!DatabasePlugin::kDBInitialized) {
+  if (!kDBInitialized) {
     throw std::runtime_error("Cannot set database values");
   }
 
@@ -371,7 +356,7 @@ Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
   }
 
   ReadLock lock(kDatabaseReset);
-  if (!DatabasePlugin::kDBInitialized) {
+  if (!kDBInitialized) {
     throw std::runtime_error("Cannot delete database value: " + key);
   } else {
     auto plugin = getDatabasePlugin();
@@ -397,7 +382,7 @@ Status deleteDatabaseRange(const std::string& domain,
   }
 
   ReadLock lock(kDatabaseReset);
-  if (!DatabasePlugin::kDBInitialized) {
+  if (!kDBInitialized) {
     throw std::runtime_error("Cannot delete database values: " + low + " - " +
                              high);
   } else {
@@ -440,7 +425,7 @@ Status scanDatabaseKeys(const std::string& domain,
   }
 
   ReadLock lock(kDatabaseReset);
-  if (!DatabasePlugin::kDBInitialized) {
+  if (!kDBInitialized) {
     throw std::runtime_error("Cannot scan database values: " + prefix);
   } else {
     auto plugin = getDatabasePlugin();
@@ -469,6 +454,46 @@ void dumpDatabase() {
     }
   }
   fflush(stdout);
+}
+
+void setDatabaseRequireWrite(bool require_write) {
+  kDBRequireWrite = require_write;
+}
+
+void setDatabaseAllowOpen(bool allow_open) {
+  kDBAllowOpen = allow_open;
+}
+
+Status initDatabasePlugin() {
+  // Initialize the database plugin using the flag.
+  auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
+  {
+    auto const status = RegistryFactory::get().setActive("database", plugin);
+    if (status.ok()) {
+      kDBInitialized = true;
+      return status;
+    }
+    LOG(WARNING) << "Failed to activate database plugin " << boost::io::quoted(plugin) << ": " << status.what();
+  }
+
+  // If the database did not setUp override the active plugin.
+  auto const status = RegistryFactory::get().setActive("database", "ephemeral");
+  if (!status.ok()) {
+    LOG(ERROR) << "Failed to activate database plugin \"ephemeral\": " << status.what();
+  }
+  kDBInitialized = status.ok();
+  return status;
+}
+
+bool databaseInitialized() {
+  return kDBInitialized;
+}
+
+void shutdownDatabase() {
+  auto database_registry = RegistryFactory::get().registry("database");
+  for (auto& plugin : RegistryFactory::get().names("database")) {
+    database_registry->remove(plugin);
+  }
 }
 
 Status ptreeToRapidJSON(const std::string& in, std::string& out) {
