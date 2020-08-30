@@ -32,7 +32,10 @@
 
 namespace osquery {
 
-FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit");
+FLAG(uint64,
+     schedule_timeout,
+     0,
+     "Limit the schedule to a duration in seconds, 0 for no limit");
 
 FLAG(uint64, schedule_max_drift, 60, "Max time drift in seconds");
 

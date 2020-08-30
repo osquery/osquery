@@ -116,9 +116,8 @@ TEST_F(TLSConfigTests, test_runner_and_scheduler) {
   Config::get().load();
 
   // Start a scheduler runner for 3 seconds.
-  auto t = static_cast<unsigned long int>(getUnixTime());
   ASSERT_TRUE(
-      Dispatcher::addService(std::make_shared<SchedulerRunner>(t + 1, 1)).ok());
+      Dispatcher::addService(std::make_shared<SchedulerRunner>(1, 1)).ok());
   // Reload our instance config.
   ASSERT_TRUE(Config::get().load().ok());
 

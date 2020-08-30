@@ -299,7 +299,7 @@ which does not define an interval.
 
 `--schedule_timeout=0`
 
-Limit the schedule, 0 for no limit. Optionally limit the `osqueryd`'s life by adding a schedule limit in seconds. This should only be used for testing.
+Limit the schedule, 0 for no limit. Optionally limit the `osqueryd`'s life by adding a schedule limit in seconds as a duration. This should only be used for testing.
 
 `--disable_tables=table_name1,table_name2`
 
