@@ -473,13 +473,15 @@ Status initDatabasePlugin() {
       kDBInitialized = true;
       return status;
     }
-    LOG(WARNING) << "Failed to activate database plugin " << boost::io::quoted(plugin) << ": " << status.what();
+    LOG(WARNING) << "Failed to activate database plugin "
+                 << boost::io::quoted(plugin) << ": " << status.what();
   }
 
   // If the database did not setUp override the active plugin.
   auto const status = RegistryFactory::get().setActive("database", "ephemeral");
   if (!status.ok()) {
-    LOG(ERROR) << "Failed to activate database plugin \"ephemeral\": " << status.what();
+    LOG(ERROR) << "Failed to activate database plugin \"ephemeral\": "
+               << status.what();
   }
   kDBInitialized = status.ok();
   return status;

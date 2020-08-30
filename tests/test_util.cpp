@@ -122,8 +122,7 @@ void initTesting() {
 }
 
 void shutdownTesting() {
-  DatabasePlugin::shutdown();
-
+  shutdownDatabase();
   platformTeardown();
 }
 
