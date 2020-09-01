@@ -19,6 +19,19 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#ifdef WIN32
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "Ws2_32.lib")
+#pragma comment(lib, "Mswsock.lib")
+#pragma comment(lib, "AdvApi32.lib")
+#else
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#endif
+
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 
@@ -335,49 +348,126 @@ Status getTLSCertificate(const std::string& hostname,
     return Status::failure("Failed to create OpenSSL CTX object");
   }
 
+  std::string port = "443";
+  auto connect_hostname = hostname;
+  auto delim = hostname.find(":");
+  if (delim + 1 == hostname.length()) {
+    return Status::failure("No port specified after \":\"");
+  }
+  if (delim != std::string::npos) {
+    port = hostname.substr(delim + 1, std::string::npos);
+    connect_hostname = hostname.substr(0, delim);
+  }
+
+  int ret;
+#ifdef WIN32
+  // Initialize Winsock
+  WSADATA wsaData;
+  ret = WSAStartup(MAKEWORD(2, 2), &wsaData);
+  if (ret != 0) {
+    return Status::failure("WSAStartup failed with error: " +
+                           std::to_string(ret));
+  }
+#endif
+
+  // connect up the socket first and then pass to BIO
+  struct addrinfo hints, *addrinfo, *current_addr, *preferred_addr;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = PF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_NUMERICSERV | AI_ADDRCONFIG;
+
+  ret = getaddrinfo(connect_hostname.c_str(), port.c_str(), &hints, &addrinfo);
+  if (ret != 0) {
+#ifdef WIN32
+    WSACleanup();
+#endif
+    return Status::failure("Unable to resolve hostname");
+  }
+
+  current_addr = addrinfo;
+  // take the first return as the default, but prefer IPv4 addrs
+  preferred_addr = addrinfo;
+  while (current_addr) {
+    if (current_addr->ai_family == AF_INET) {
+      preferred_addr = current_addr;
+      break;
+    }
+    current_addr = current_addr->ai_next;
+  }
+
+#ifdef WIN32
+  SOCKET sock;
+#else
+  int sock;
+#endif
+  sock = socket(preferred_addr->ai_family,
+                preferred_addr->ai_socktype,
+                preferred_addr->ai_protocol);
+  if (sock < 0) {
+    if (addrinfo != nullptr) {
+      freeaddrinfo(addrinfo);
+    }
+#ifdef WIN32
+    WSACleanup();
+#endif
+    return Status::failure("Unable to create socket");
+  }
+
+  struct timeval tv;
+  tv.tv_sec = 1;
+  tv.tv_usec = 0;
+  if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv) <
+      0) {
+    if (addrinfo != nullptr) {
+      freeaddrinfo(addrinfo);
+    }
+#ifdef WIN32
+    WSACleanup();
+#endif
+    return Status::failure("Unable to set socket options");
+  }
+
+  if (connect(sock, preferred_addr->ai_addr, (int)preferred_addr->ai_addrlen) <
+      0) {
+    if (addrinfo != nullptr) {
+      freeaddrinfo(addrinfo);
+    }
+#ifdef WIN32
+    WSACleanup();
+#endif
+    return Status::failure("Failed to establish TCP connection");
+  }
+
+  if (addrinfo != nullptr) {
+    freeaddrinfo(addrinfo);
+  }
+
+  SSL* ssl = SSL_new(ctx.get());
+  if (ssl == nullptr) {
+#ifdef WIN32
+    WSACleanup();
+#endif
+    return Status::failure("Failed to create OpenSSL object");
+  }
+
   auto delBIO = [](BIO* bio) { BIO_free_all(bio); };
-  auto server = std::unique_ptr<BIO, decltype(delBIO)>(
-      BIO_new_ssl_connect(ctx.get()), delBIO);
-  if (server == nullptr) {
+  auto bio = std::unique_ptr<BIO, decltype(delBIO)>(
+      BIO_new_socket((int)sock, BIO_CLOSE), delBIO);
+  if (bio == nullptr) {
+#ifdef WIN32
+    WSACleanup();
+#endif
     return Status::failure("Failed to create OpenSSL BIO object");
   }
 
-  std::string port = ":443";
-  auto ext_hostname = hostname;
-  auto conn_hostname = hostname;
-  auto delim = hostname.find(":");
-  if (delim == std::string::npos) {
-    conn_hostname += ":443";
-  } else {
-    ext_hostname = hostname.substr(0, delim);
-  }
+  SSL_set_bio(ssl, bio.get(), bio.get());
 
-  auto ret = BIO_set_conn_hostname(server.get(), conn_hostname.c_str());
+  ret = SSL_connect(ssl);
   if (ret != 1) {
-    return Status::failure("Failed to set OpenSSL hostname: " +
-                           std::to_string(ret));
-  }
-
-  SSL* ssl = nullptr;
-  BIO_get_ssl(server.get(), &ssl);
-  if (ssl == nullptr) {
-    return Status::failure("Failed to retrieve OpenSSL object");
-  }
-
-  ret = SSL_set_tlsext_host_name(ssl, ext_hostname.c_str());
-  if (ret != 1) {
-    return Status::failure("Failed to set OpenSSL server name: " +
-                           std::to_string(ret));
-  }
-
-  ret = BIO_do_connect(server.get());
-  if (ret != 1) {
-    return Status::failure("Failed to establish TLS connection: " +
-                           std::to_string(ret));
-  }
-
-  ret = BIO_do_handshake(server.get());
-  if (ret != 1) {
+#ifdef WIN32
+    WSACleanup();
+#endif
     return Status::failure("Failed to complete TLS handshake: " +
                            std::to_string(ret));
   }
@@ -386,6 +476,9 @@ Status getTLSCertificate(const std::string& hostname,
   auto cert = std::unique_ptr<X509, decltype(delX509)>(
       SSL_get_peer_certificate(ssl), delX509);
   if (cert == nullptr) {
+#ifdef WIN32
+    WSACleanup();
+#endif
     return Status::failure("No certificate");
   }
 
@@ -393,6 +486,9 @@ Status getTLSCertificate(const std::string& hostname,
   r["hostname"] = hostname;
   fillRow(r, cert.get(), dump_certificate);
   results.push_back(r);
+#ifdef WIN32
+  WSACleanup();
+#endif
   return Status::success();
 }
 
