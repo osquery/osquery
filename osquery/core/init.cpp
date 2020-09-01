@@ -270,10 +270,9 @@ Initializer::Initializer(int& argc,
   }
 
   if (isShell()) {
-    // The shell is transient, rewrite config-loaded paths.
-    FLAGS_disable_logging = true;
-    // The shell never will not fork a worker.
-    FLAGS_disable_watchdog = true;
+    // Configure default flag values that are different for the shell.
+    // Since these are set before flags are parsed, it is possible for the CLI
+    // to overwrite them.
     FLAGS_disable_events = true;
   }
 
@@ -290,6 +289,13 @@ Initializer::Initializer(int& argc,
 
   // Let gflags parse the non-help options/flags.
   GFLAGS_NAMESPACE::ParseCommandLineFlags(argc_, argv_, isShell());
+
+  if (isShell()) {
+    // Do not set these values before calling ParseCommandLineFlags.
+    // These values are force-set and ignore the configuration and CLI.
+    FLAGS_disable_logging = true;
+    FLAGS_disable_watchdog = true;
+  }
 
   // Initialize registries and plugins
   registryAndPluginInit();
