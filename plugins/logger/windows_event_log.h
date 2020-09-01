@@ -45,7 +45,7 @@ class WindowsEventLoggerPlugin : public LoggerPlugin {
       const std::string& message,
       StatusLogSeverity severity = O_INFO,
       const std::string& source_file_name = std::string("<empty>"),
-      size_t line = 0U);
+      uint64_t line = 0U);
 
  private:
   REGHANDLE registration_handle_{0};

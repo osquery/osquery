@@ -78,7 +78,7 @@ class BufferedLogForwarder : public InternalRunnable {
       const std::string& service_name,
       const std::string& name,
       const std::chrono::duration<Rep, Period>& log_period,
-      size_t max_log_lines)
+      uint64_t max_log_lines)
       : InternalRunnable(service_name),
         log_period_(
             std::chrono::duration_cast<std::chrono::seconds>(log_period)),

@@ -255,10 +255,10 @@ bool isUserAdmin();
 Status setThreadName(const std::string& name);
 
 /// Get the osquery tool start time.
-size_t getStartTime();
+uint64_t getStartTime();
 
 /// Set the osquery tool start time.
-void setStartTime(size_t st);
+void setStartTime(uint64_t st);
 
 /**
  * @brief Initialize any platform dependent libraries or objects.

@@ -235,7 +235,7 @@ OsqueryFlagsAWSCredentialsProvider::GetAWSCredentials() {
 Aws::Auth::AWSCredentials
 OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
   // Grab system time in seconds-since-epoch for token expiration checks.
-  size_t current_time = osquery::getUnixTime();
+  uint64_t current_time = osquery::getUnixTime();
 
   // config provides STS creds that includes the token
   if (!FLAGS_aws_session_token.empty()) {

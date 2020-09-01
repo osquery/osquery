@@ -36,8 +36,8 @@ using IKinesisLogForwarder =
 class KinesisLogForwarder final : public IKinesisLogForwarder {
  public:
   KinesisLogForwarder(const std::string& name,
-                      size_t log_period,
-                      size_t max_lines)
+                      uint64_t log_period,
+                      uint64_t max_lines)
       : IKinesisLogForwarder(name, log_period, max_lines) {}
 
  protected:

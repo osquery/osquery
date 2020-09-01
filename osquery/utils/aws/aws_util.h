@@ -126,7 +126,7 @@ class OsquerySTSAWSCredentialsProvider
   Aws::String session_token_;
 
   /// Time when the last-most-recent credentials will expire.
-  size_t token_expire_time_{0};
+  uint64_t token_expire_time_{0};
 };
 
 /**

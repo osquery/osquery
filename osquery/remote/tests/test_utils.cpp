@@ -42,7 +42,7 @@ bool TLSServerRunner::start(const std::string& server_cert) {
   int max_retry = 5;
   int retry = 0;
   bool started = false;
-  std::srand(getUnixTime());
+  std::srand((unsigned int)getUnixTime());
 
   while (retry < max_retry) {
     // Pick a port in an ephemeral range at random.

@@ -247,7 +247,7 @@ class TLSRequestHelper : private boost::noncopyable {
   static Status go(const std::string& uri,
                    JSON& params,
                    std::string& output,
-                   const size_t attempts) {
+                   const uint64_t attempts) {
     Status s;
     JSON override_params;
     const auto& params_doc = params.doc();

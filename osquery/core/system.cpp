@@ -108,7 +108,7 @@ const std::vector<std::string> kPlaceholderHardwareUUIDList{
 };
 
 /// The time osquery was started.
-std::atomic<size_t> kStartTime{0};
+std::atomic<uint64_t> kStartTime{0};
 } // namespace
 
 #ifdef WIN32
@@ -580,11 +580,11 @@ Status setThreadName(const std::string& name) {
 #endif
 }
 
-void setStartTime(size_t st) {
+void setStartTime(uint64_t st) {
   kStartTime = st;
 }
 
-size_t getStartTime() {
+uint64_t getStartTime() {
   return kStartTime;
 }
 

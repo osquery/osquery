@@ -90,7 +90,7 @@ Status WindowsEventLoggerPlugin::emitLogRecord(
     const std::string& message,
     StatusLogSeverity severity,
     const std::string& source_file_name,
-    size_t line) {
+    uint64_t line) {
   if (registration_handle == 0) {
     return Status(1, "The Windows Event Logger plugin is not initialized.");
   }
