@@ -270,6 +270,7 @@ function(setupBuildFlags)
       wevtapi.lib
       shell32.lib
       gdi32.lib
+      mswsock.lib
     )
 
     set(osquery_windows_common_defines

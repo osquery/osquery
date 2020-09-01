@@ -31,6 +31,7 @@ schema([
     Column("name_constraints", TEXT, "Name Constraints"),
     Column("policy_constraints", TEXT, "Policy Constraints"),
     Column("dump_certificate", INTEGER, "Set this value to '1' to dump certificate", additional=True, hidden=True),
+    Column("timeout", INTEGER, "Set this value to the timeout in seconds to complete the TLS handshake (default 4s, use 0 for no timeout)", additional=True, hidden=True),
     Column("pem", TEXT, "Certificate PEM format")
 ])
 implementation("curl_certificate@genTLSCertificate")
