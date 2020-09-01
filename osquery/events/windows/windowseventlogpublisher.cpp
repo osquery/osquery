@@ -61,6 +61,11 @@ Status loadCharacterFrequencyMap(std::vector<double>& character_frequency_map) {
         "The character_frequencies configuration entity array is empty");
   }
 
+  if (character_frequencies_array.Empty.Size() > kCharFreqVectorLen) {
+    return Status::failure(
+        "The character_frequencies configuration entity array is too large");
+  }
+
   std::vector<double> output(kCharFreqVectorLen, 0.0);
   for (rapidjson::SizeType i = 0; i < character_frequencies_array.Size(); i++) {
     if (character_frequencies_array[i].IsDouble()) {
