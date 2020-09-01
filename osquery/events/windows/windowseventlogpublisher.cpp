@@ -61,7 +61,7 @@ Status loadCharacterFrequencyMap(std::vector<double>& character_frequency_map) {
         "The character_frequencies configuration entity array is empty");
   }
 
-  if (character_frequencies_array.Empty.Size() > kCharFreqVectorLen) {
+  if (character_frequencies_array.Size() > kCharFreqVectorLen) {
     return Status::failure(
         "The character_frequencies configuration entity array is too large");
   }
