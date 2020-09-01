@@ -40,8 +40,8 @@ class TLSConfigTests : public testing::Test {
     platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
 
     ASSERT_TRUE(TLSServerRunner::start());
     TLSServerRunner::setClientConfig();

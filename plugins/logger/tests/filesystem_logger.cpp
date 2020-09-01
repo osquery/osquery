@@ -41,8 +41,8 @@ class FilesystemLoggerTests : public testing::Test {
     platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
 
     auto logger_path = fs::temp_directory_path() /
         fs::unique_path("osquery.filesystem_logger_tests.%%%%.%%%%.logs");

@@ -23,8 +23,8 @@ int osqueryFuzzerInitialize(int* argc, char*** argv) {
   osquery::registryAndPluginInit();
 
   FLAGS_disable_database = true;
-  osquery::DatabasePlugin::setAllowOpen(true);
-  osquery::DatabasePlugin::initPlugin();
+  osquery::setDatabaseAllowOpen();
+  osquery::initDatabasePlugin();
 
   auto* db = osquery::SQLiteDBManager::instance().get()->db();
 

@@ -421,8 +421,8 @@ void Initializer::initWatcher() const {
   // The watcher should not log into or use a persistent database.
   // The watcher already disabled database usage.
   if (isWatcher()) {
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
   }
 
   // The watcher takes a list of paths to autoload extensions from.
@@ -516,12 +516,12 @@ void Initializer::start() const {
   }
 
   if (!isWatcher()) {
-    DatabasePlugin::setAllowOpen(true);
+    setDatabaseAllowOpen();
     // A daemon must always have R/W access to the database.
-    DatabasePlugin::setRequireWrite(isDaemon());
+    setDatabaseRequireWrite(isDaemon());
 
     for (size_t i = 1; i <= kDatabaseMaxRetryCount; i++) {
-      if (DatabasePlugin::initPlugin().ok()) {
+      if (initDatabasePlugin().ok()) {
         break;
       }
 
@@ -671,7 +671,7 @@ int Initializer::shutdown(int retcode) const {
 
   // Hopefully release memory used by global string constructors in gflags.
   GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
-  DatabasePlugin::shutdown();
+  shutdownDatabase();
 
   // Cancel the alarm.
   alarm_runnable.interrupt();

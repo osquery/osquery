@@ -29,8 +29,8 @@ class RegistryTablesTest : public testing::Test {
 
     // Force registry to use ephemeral database plugin
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
   }
 };
 

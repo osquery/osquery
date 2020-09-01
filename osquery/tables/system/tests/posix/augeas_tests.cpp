@@ -31,8 +31,8 @@ class AugeasTests : public testing::Test {
     FLAGS_augeas_lenses =
         (osquery::getTestConfigDirectory() / "augeas/lenses").string();
 
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
   }
 };
 

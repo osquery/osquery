@@ -56,8 +56,8 @@ class TLSTransportsTests : public testing::Test {
     platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
   }
 
   void startServer(const std::string& server_cert = {}) {

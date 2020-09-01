@@ -58,8 +58,8 @@ class EventsDatabaseTests : public ::testing::Test {
     registryAndPluginInit();
 
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
 
     RegistryFactory::get().registry("config_parser")->setUp();
     optimize_ = FLAGS_events_optimize;

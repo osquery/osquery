@@ -38,8 +38,8 @@ class LoggerTests : public testing::Test {
     platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
 
     // Backup the logging status, then disable.
     FLAGS_disable_logging = false;
