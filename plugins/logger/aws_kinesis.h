@@ -20,9 +20,8 @@
 #include <aws/kinesis/model/PutRecordsRequestEntry.h>
 
 #include <osquery/core/core.h>
+#include <osquery/core/plugins/logger.h>
 #include <osquery/dispatcher/dispatcher.h>
-#include <osquery/plugins/logger.h>
-
 
 namespace osquery {
 DECLARE_uint64(aws_kinesis_period);

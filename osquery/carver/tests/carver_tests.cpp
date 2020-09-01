@@ -58,8 +58,8 @@ class CarverTests : public testing::Test {
 
     // Force registry to use ephemeral database plugin
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
 
     working_dir_ =
         fs::temp_directory_path() /

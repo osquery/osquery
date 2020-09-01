@@ -16,9 +16,9 @@
 #include <vector>
 
 #include <osquery/core/core.h>
+#include <osquery/core/plugins/logger.h>
 #include <osquery/dispatcher/dispatcher.h>
 #include <osquery/logger/logger.h>
-#include <osquery/plugins/logger.h>
 
 #include <osquery/utils/aws/aws_util.h>
 

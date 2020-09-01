@@ -12,8 +12,8 @@
 #include <string>
 #include <vector>
 
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/core/query.h>
-#include <osquery/plugins/plugin.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {

@@ -11,11 +11,11 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/core/plugins/logger.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/data_logger.h>
-#include <osquery/plugins/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/system/time.h>
@@ -38,8 +38,8 @@ class LoggerTests : public testing::Test {
     platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
 
     // Backup the logging status, then disable.
     FLAGS_disable_logging = false;

@@ -277,24 +277,29 @@ Status RegistryInterface::addExternal(const RouteUUID& uuid,
 
 /// Remove all the routes for a given uuid.
 void RegistryInterface::removeExternal(const RouteUUID& uuid) {
-  WriteLock lock(mutex_);
   std::vector<std::string> removed_items;
 
   // Create list of items to remove by filtering uuid
-  for (const auto& item : external_) {
-    if (item.second == uuid) {
-      removed_items.push_back(item.first);
+  {
+    ReadLock lock(mutex_);
+    for (const auto& item : external_) {
+      if (item.second == uuid) {
+        removed_items.push_back(item.first);
+      }
+    }
+
+    for (const auto& item : removed_items) {
+      removeExternalPlugin(item);
     }
   }
 
-  for (const auto& item : removed_items) {
-    removeExternalPlugin(item);
-  }
-
   // Remove items belonging to the external uuid.
-  for (const auto& item : removed_items) {
-    external_.erase(item);
-    routes_.erase(item);
+  {
+    WriteLock lock(mutex_);
+    for (const auto& item : removed_items) {
+      external_.erase(item);
+      routes_.erase(item);
+    }
   }
 }
 

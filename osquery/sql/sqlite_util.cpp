@@ -10,7 +10,7 @@
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/sql/virtual_table.h"
 
-#include <osquery/plugins/sql.h>
+#include <osquery/core/plugins/sql.h>
 
 #include <osquery/utils/conversions/castvariant.h>
 

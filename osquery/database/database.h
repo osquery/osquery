@@ -13,12 +13,9 @@
 #include <string>
 #include <vector>
 
-#include <osquery/plugins/plugin.h>
+#include <osquery/core/plugins/plugin.h>
 
 namespace osquery {
-// A list of key/str pairs; used for write batching with setDatabaseBatch
-using DatabaseStringValueList =
-    std::vector<std::pair<std::string, std::string>>;
 
 class Status;
 /**
@@ -66,6 +63,10 @@ const int kDbCurrentVersion = 2;
  * logs until the logger plugin-specific thread decided to flush.
  */
 extern const std::string kLogs;
+
+// A list of key/str pairs; used for write batching with setDatabaseBatch
+using DatabaseStringValueList =
+    std::vector<std::pair<std::string, std::string>>;
 
 /**
  * @brief An osquery backing storage (database) type that persists executions.
@@ -164,43 +165,15 @@ class DatabasePlugin : public Plugin {
   /// Database-specific workflow: perform an initialize, then reset.
   bool checkDB();
 
-  /// Require all DBHandle accesses to open a read and write handle.
-  static void setRequireWrite(bool rw) {
-    kDBRequireWrite = rw;
-  }
+ protected:
+  /// Check if the database requires write.
+  bool requireWrite() const;
 
-  /// Allow DBHandle creations.
-  static void setAllowOpen(bool ao) {
-    kDBAllowOpen = ao;
-  }
+  /// Check if the database allows opening.
+  bool allowOpen() const;
 
- public:
-  /// Control availability of the RocksDB handle (default false).
-  static std::atomic<bool> kDBAllowOpen;
-
-  /// The database must be opened in a R/W mode (default false).
-  static std::atomic<bool> kDBRequireWrite;
-
-  /// An internal mutex around database sanity checking.
-  static std::atomic<bool> kDBChecking;
-
-  /// An internal status protecting database access.
-  static std::atomic<bool> kDBInitialized;
-
- public:
-  /**
-   * @brief Allow the initializer to check the active database plugin.
-   *
-   * Unlink the initializer's Initializer::initActivePlugin helper method, the
-   * database plugin should always be within the core. There is no need to
-   * discover the active plugin via the registry or extensions API.
-   *
-   * The database should setUp in preparation for accesses.
-   */
-  static Status initPlugin();
-
-  /// Allow shutdown before exit.
-  static void shutdown();
+  /// Check if the DB is being checked ;)
+  bool checkingDB() const;
 
  protected:
   /// The database was opened in a ReadOnly mode.
@@ -277,6 +250,28 @@ void resetDatabase();
 
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();
+
+/// Require all database accesses to open a read and write handle.
+void setDatabaseRequireWrite(bool require_write = true);
+
+/// Allow database usage creations.
+void setDatabaseAllowOpen(bool allow_open = true);
+
+/**
+ * @brief Allow a caller to check the active database plugin.
+ *
+ * There is no need to discover the active plugin via the registry or
+ * extensions API.
+ *
+ * The database should setUp in preparation for accesses.
+ */
+Status initDatabasePlugin();
+
+/// Check if the database has been initialized successfully.
+bool databaseInitialized();
+
+/// Allow shutdown before exit.
+void shutdownDatabase();
 
 Status ptreeToRapidJSON(const std::string& in, std::string& out);
 

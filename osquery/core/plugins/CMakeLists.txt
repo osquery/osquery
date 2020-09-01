@@ -29,7 +29,7 @@ function(generateOsqueryCorePlugins)
     sql.h
   )
 
-  generateIncludeNamespace(osquery_core_plugins "osquery/plugins" "FILE_ONLY" ${public_header_files})
+  generateIncludeNamespace(osquery_core_plugins "osquery/core/plugins" "FILE_ONLY" ${public_header_files})
 endfunction()
 
 osqueryCorePluginsMain()

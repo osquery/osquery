@@ -14,9 +14,9 @@
 #include <memory>
 #include <vector>
 
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/core/query.h>
 #include <osquery/core/sql/query_performance.h>
-#include <osquery/plugins/plugin.h>
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/json/json.h>
 

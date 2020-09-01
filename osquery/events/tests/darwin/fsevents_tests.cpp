@@ -50,8 +50,8 @@ class FSEventsTests : public testing::Test {
     registryAndPluginInit();
 
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
 
     // FSEvents will use data from the config and config parsers.
     Registry::get().registry("config_parser")->setUp();

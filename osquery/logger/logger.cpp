@@ -19,6 +19,7 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core/flags.h>
+#include <osquery/core/plugins/logger.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/events/events.h>
@@ -26,7 +27,6 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/data_logger.h>
 #include <osquery/numeric_monitoring/numeric_monitoring.h>
-#include <osquery/plugins/logger.h>
 #include <osquery/registry/registry_factory.h>
 
 #include <osquery/core/flagalias.h>
@@ -485,7 +485,7 @@ size_t queuedSenders() {
 }
 
 void relayStatusLogs(bool async) {
-  if (FLAGS_disable_logging || !DatabasePlugin::kDBInitialized) {
+  if (FLAGS_disable_logging || !databaseInitialized()) {
     // The logger plugins may not be setUp if logging is disabled.
     // If the database is not setUp, or is in a reset, status logs continue
     // to buffer.

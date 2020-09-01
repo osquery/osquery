@@ -1,0 +1,28 @@
+table_name("apparmor_events")
+description("Track AppArmor events.")
+schema([
+    Column("type", TEXT, "Event type"),
+    Column("message", TEXT, "Raw audit message"),
+    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("uptime", BIGINT, "Time of execution in system uptime"),
+    Column("eid", TEXT, "Event ID", hidden=True),
+    Column("apparmor", TEXT, "Apparmor Status like ALLOWED, DENIED etc."),
+    Column("operation", TEXT, "Permission requested by the process"),
+    Column("parent", UNSIGNED_BIGINT, "Parent process PID"),
+    Column("profile", TEXT, "Apparmor profile name"),
+    Column("name", TEXT, "Process name"),
+    Column("pid", UNSIGNED_BIGINT, "Process ID"),
+    Column("comm", TEXT, "Command-line name of the command that was used to invoke the analyzed process"),
+    Column("denied_mask", TEXT, "Denied permissions for the process"),
+    Column("capname", TEXT, "Capability requested by the process"),
+    Column("fsuid", UNSIGNED_BIGINT, "Filesystem user ID"),
+    Column("ouid", UNSIGNED_BIGINT, "Object owner's user ID"),
+    Column("capability", BIGINT, "Capability number"),
+    Column("requested_mask", TEXT, "Requested access mask"),
+    Column("info", TEXT, "Additional information"),
+    Column("error", TEXT, "Error information"),
+    Column("namespace", TEXT, "AppArmor namespace"),
+    Column("label", TEXT, "AppArmor label"),
+])
+attributes(event_subscriber=True)
+implementation("apparmor_events@apparmor_events::genTable")

@@ -30,8 +30,8 @@ class SchedulerTests : public testing::Test {
     platformSetup();
     registryAndPluginInit();
     FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    setDatabaseAllowOpen();
+    initDatabasePlugin();
 
     logging_ = FLAGS_disable_logging;
     FLAGS_disable_logging = true;
