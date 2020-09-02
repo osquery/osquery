@@ -105,7 +105,7 @@ bool DatabasePlugin::checkingDB() const {
 Status DatabasePlugin::scan(const std::string& domain,
                             std::vector<std::string>& results,
                             const std::string& prefix,
-                            size_t max) const {
+                            uint64_t max) const {
   return Status::success();
 }
 
@@ -401,7 +401,7 @@ Status scanDatabaseKeys(const std::string& domain,
 Status scanDatabaseKeys(const std::string& domain,
                         std::vector<std::string>& keys,
                         const std::string& prefix,
-                        size_t max) {
+                        uint64_t max) {
   if (domain.empty()) {
     return Status(1, "Missing domain");
   }

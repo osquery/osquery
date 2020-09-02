@@ -46,13 +46,13 @@ class SchedulerRunner : public InternalRunnable {
       std::chrono::milliseconds loop_step_duration);
 
   /// Check interval-based decorators.
-  void maybeRunDecorators(size_t time_step);
+  void maybeRunDecorators(uint64_t time_step);
 
   /// Check relative configuration flags.
-  void maybeReloadSchedule(size_t time_step);
+  void maybeReloadSchedule(uint64_t time_step);
 
   /// Check if buffered status logs should be flushed.
-  void maybeFlushLogs(size_t time_step);
+  void maybeFlushLogs(uint64_t time_step);
 
  private:
   /// Interval in seconds between schedule steps.

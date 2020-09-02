@@ -128,26 +128,26 @@ class DBFakeEventSubscriber : public EventSubscriber<DBFakeEventPublisher> {
     return Status::success();
   }
 
-  size_t getEventsMax() override {
+  uint64_t getEventsMax() override {
     return max_;
   }
 
-  void setEventsMax(size_t max) {
+  void setEventsMax(uint64_t max) {
     max_ = max;
   }
 
-  size_t getEventsExpiry() override {
+  uint64_t getEventsExpiry() override {
     return expiry_;
   }
 
-  void setEventsExpiry(size_t expiry) {
+  void setEventsExpiry(uint64_t expiry) {
     expiry_ = expiry;
   }
 
  private:
-  size_t max_;
+  uint64_t max_;
 
-  size_t expiry_;
+  uint64_t expiry_;
 };
 
 TEST_F(EventsDatabaseTests, test_event_module_id) {
@@ -381,7 +381,7 @@ TEST_F(EventsDatabaseTests, test_optimize) {
   // The last EID returned will also be stored for duplication checks.
   EXPECT_EQ(10U, sub->optimize_eid_);
 
-  for (size_t i = t + 800; i < t + 800 + 10; ++i) {
+  for (uint64_t i = t + 800; i < t + 800 + 10; ++i) {
     sub->testAdd(i);
   }
 

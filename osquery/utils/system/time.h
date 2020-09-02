@@ -24,14 +24,14 @@ std::string platformAsctime(const struct tm* timeptr);
  *
  * @return an int representing the UNIX epoch time of the struct tm
  */
-size_t toUnixTime(const struct tm* tm_time);
+uint64_t toUnixTime(const struct tm* tm_time);
 
 /**
  * @brief Getter for the current UNIX time.
  *
  * @return an int representing the amount of seconds since the UNIX epoch
  */
-size_t getUnixTime();
+uint64_t getUnixTime();
 
 /**
  * @brief Converts a struct tm into a human-readable format. This expected the

@@ -53,7 +53,7 @@ struct StatusLogLine {
   std::string filename;
 
   /// The line of the file emitting the status log.
-  size_t line;
+  uint64_t line;
 
   /// The string-formatted status message.
   std::string message;
@@ -62,7 +62,7 @@ struct StatusLogLine {
   std::string calendar_time;
 
   /// The UNIX time for when the status message was emitted
-  size_t time;
+  uint64_t time;
 
   /**
    * @brief The host identifier at the time when logs are flushed.

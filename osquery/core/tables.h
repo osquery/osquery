@@ -816,7 +816,7 @@ class TablePlugin : public Plugin {
    * @param ctx The query context.
    * @return True if the cache contains fresh results, otherwise false.
    */
-  bool isCached(size_t interval, const QueryContext& ctx) const;
+  bool isCached(uint64_t interval, const QueryContext& ctx) const;
 
   /**
    * @brief Perform a database lookup of cached results and deserialize.
@@ -836,17 +836,17 @@ class TablePlugin : public Plugin {
    * It will inspect the query context, if any required/indexed/optimized or
    * additional columns are used then the cache will not be saved.
    */
-  void setCache(size_t step,
-                size_t interval,
+  void setCache(uint64_t step,
+                uint64_t interval,
                 const QueryContext& ctx,
                 const TableRows& results);
 
  private:
   /// The last time in seconds the table data results were saved to cache.
-  size_t last_cached_{0};
+  uint64_t last_cached_{0};
 
   /// The last interval in seconds when the table data was cached.
-  size_t last_interval_{0};
+  uint64_t last_interval_{0};
 
  public:
   /**
@@ -856,10 +856,10 @@ class TablePlugin : public Plugin {
    * their scheduled interval to internal TablePlugin implementations. If the
    * table is cachable then the interval can be used to calculate freshness.
    */
-  static size_t kCacheInterval;
+  static uint64_t kCacheInterval;
 
   /// The schedule step, this is the current position of the schedule.
-  static size_t kCacheStep;
+  static uint64_t kCacheStep;
 
  public:
   /**

@@ -38,7 +38,7 @@ extern const std::map<DecorationPoint, std::string> kDecorationPointKeys;
  * @param source restrict run to a specific config source.
  */
 void runDecorators(DecorationPoint point,
-                   size_t time = 0,
+                   uint64_t time = 0,
                    const std::string& source = "");
 
 /**

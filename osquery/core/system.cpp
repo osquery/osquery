@@ -108,7 +108,7 @@ const std::vector<std::string> kPlaceholderHardwareUUIDList{
 };
 
 /// The time osquery was started.
-std::atomic<size_t> kStartTime{0};
+std::atomic<uint64_t> kStartTime{0};
 } // namespace
 
 #ifdef WIN32
@@ -383,7 +383,7 @@ bool PlatformProcess::cleanup() const {
   }
 
   size_t delay = 0;
-  size_t timeout = (FLAGS_alarm_timeout + 1) * 1000;
+  auto timeout = (FLAGS_alarm_timeout + 1) * 1000;
   while (delay < timeout) {
     int status = 0;
     if (checkStatus(status) == PROCESS_EXITED) {
@@ -580,11 +580,11 @@ Status setThreadName(const std::string& name) {
 #endif
 }
 
-void setStartTime(size_t st) {
+void setStartTime(uint64_t st) {
   kStartTime = st;
 }
 
-size_t getStartTime() {
+uint64_t getStartTime() {
   return kStartTime;
 }
 

@@ -183,14 +183,14 @@ void SchedulerRunner::calculateTimeDriftAndMaybePause(
   }
 }
 
-void SchedulerRunner::maybeRunDecorators(size_t time_step) {
+void SchedulerRunner::maybeRunDecorators(uint64_t time_step) {
   // Configuration decorators run on 60 second intervals only.
   if ((time_step % 60) == 0) {
     runDecorators(DECORATE_INTERVAL, time_step);
   }
 }
 
-void SchedulerRunner::maybeReloadSchedule(size_t time_step) {
+void SchedulerRunner::maybeReloadSchedule(uint64_t time_step) {
   if (FLAGS_schedule_reload > 0 && (time_step % FLAGS_schedule_reload) == 0) {
     if (FLAGS_schedule_reload_sql) {
       SQLiteDBManager::resetPrimary();
@@ -199,7 +199,7 @@ void SchedulerRunner::maybeReloadSchedule(size_t time_step) {
   }
 }
 
-void SchedulerRunner::maybeFlushLogs(size_t time_step) {
+void SchedulerRunner::maybeFlushLogs(uint64_t time_step) {
   // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
   if ((time_step % 3) == 0) {
     relayStatusLogs(true);

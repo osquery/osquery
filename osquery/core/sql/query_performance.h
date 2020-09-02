@@ -21,7 +21,7 @@ struct QueryPerformance {
   size_t executions{0};
 
   /// Last UNIX time in seconds the query was executed successfully.
-  size_t last_executed{0};
+  unsigned long long int last_executed{0};
 
   /// Total wall time taken
   unsigned long long int wall_time{0};

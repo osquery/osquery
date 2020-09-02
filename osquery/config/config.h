@@ -91,7 +91,7 @@ class Config : private boost::noncopyable {
    * @param r1 the process row after the query
    */
   void recordQueryPerformance(const std::string& name,
-                              size_t delay,
+                              uint64_t delay,
                               const Row& r0,
                               const Row& r1);
 
@@ -257,10 +257,10 @@ class Config : private boost::noncopyable {
   Status refresh();
 
   /// Update the refresh rate.
-  void setRefresh(size_t refresh_sec);
+  void setRefresh(uint64_t refresh_sec);
 
   /// Inspect the refresh rate.
-  size_t getRefresh() const;
+  uint64_t getRefresh() const;
 
   /**
    * @brief Check if a config plugin is registered and load configs.

@@ -112,7 +112,7 @@ Status EphemeralDatabasePlugin::removeRange(const std::string& domain,
 Status EphemeralDatabasePlugin::scan(const std::string& domain,
                                      std::vector<std::string>& results,
                                      const std::string& prefix,
-                                     size_t max) const {
+                                     uint64_t max) const {
   if (db_.count(domain) == 0) {
     return Status(0);
   }

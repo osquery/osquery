@@ -267,6 +267,15 @@ jobs:
   - job: WindowsBuild
     displayName: "Windows Release"
 
+    strategy:
+      matrix:
+        x64:
+          VC_VARS_FILE: vcvars64.bat
+          PYTHON_FOLDER: x64
+        win32:
+          VC_VARS_FILE: vcvars32.bat
+          PYTHON_FOLDER: x86
+
     pool:
       vmImage: windows-2019
 
@@ -286,7 +295,7 @@ jobs:
 
     - powershell: |
         cmake --version
-        $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\x64) | Sort-Object -Descending)[0].FullName
+        $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\$(PYTHON_FOLDER)) | Sort-Object -Descending)[0].FullName
         & $python3_path\python -m pip install --upgrade pip --no-warn-script-location
         & $python3_path\python -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
       displayName: Install tests prerequisites
@@ -328,7 +337,7 @@ jobs:
       displayName: "Install Ninja"
 
     - script: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\$(VC_VARS_FILE)"
         cmake -G Ninja ^
         -DCMAKE_C_COMPILER=cl.exe ^
         -DCMAKE_CXX_COMPILER=cl.exe ^
@@ -342,13 +351,13 @@ jobs:
 
     - task: CacheBeta@2
       inputs:
-        key: sccache | Windows | $(CacheVersion) | $(Build.SourceVersion)
-        restoreKeys: sccache | Windows | $(CacheVersion)
+        key: sccache | Windows$(System.JobName) | $(CacheVersion) | $(Build.SourceVersion)
+        restoreKeys: sccache | Windows$(System.JobName)  | $(CacheVersion)
         path: $(SCCACHE_DIR)
       displayName: sccache
 
     - script: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\$(VC_VARS_FILE)"
         cmake --build . -j 3
         if %errorlevel% neq 0 exit /b %errorlevel%
         sccache.exe --stop-server
@@ -388,14 +397,15 @@ jobs:
       - WindowsBuild
 
     variables:
-      WindowsReleaseStatus: $[ dependencies.WindowsBuild.outputs['JobResult.Status'] ]
+      WindowsRelease64Status: $[ dependencies.WindowsBuild.outputs['x64.JobResult.Status'] ]
+      WindowsRelease32Status: $[ dependencies.WindowsBuild.outputs['win32.JobResult.Status'] ]
 
     steps:
     - checkout: none
 
     - script: |
-        if [ -z "$(WindowsReleaseStatus)" ]; then
+        if [ -z "$(WindowsRelease64Status)" ] || [ -z "$(WindowsRelease32Status)" ]; then
           exit 1
         fi
-      displayName: "Detect Windows build status"
+      displayName: "Detect Windows jobs build statuses"
 # WINDOWS

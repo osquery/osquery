@@ -57,10 +57,11 @@ auto parseShimcacheData(const std::string& token,
   }
 
   // Convert string to size_t for file path length
-  size_t shimcache_file_path = tryTo<std::size_t>(path_length, 16).takeOr(0_sz);
+  uint64_t shimcache_file_path =
+      tryTo<std::uint64_t>(path_length, 16).takeOr(0_sz);
 
   // Registry data is in Unicode (extra 0x00)
-  std::string path = token.substr(20, shimcache_file_path * 2);
+  std::string path = token.substr(20, (size_t)shimcache_file_path * 2);
   boost::erase_all(path, "00");
 
   // Windows Store entries have extra data, the extra data includes tabs in the
@@ -89,8 +90,8 @@ auto parseShimcacheData(const std::string& token,
   } else {
     shimcache_modified_start = 20;
   }
-  std::string shimcache_time =
-      token.substr(shimcache_modified_start + shimcache_file_path * 2, 16);
+  std::string shimcache_time = token.substr(
+      shimcache_modified_start + (size_t)shimcache_file_path * 2, 16);
 
   // Check to make sure the shimcache entry is greater than zero
   if (!string_path.empty()) {
@@ -103,7 +104,9 @@ auto parseShimcacheData(const std::string& token,
   if (execution_flag_exists == true) {
     int shimcache_flag =
         tryTo<int>(
-            token.substr(execution_flag_start + shimcache_file_path * 2, 2), 16)
+            token.substr(execution_flag_start + (size_t)shimcache_file_path * 2,
+                         2),
+            16)
             .takeOr(0);
     // Perform Bitwise AND to determine TRUE or FALSE
     if (shimcache_flag & 2) {

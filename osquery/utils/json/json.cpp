@@ -357,9 +357,9 @@ const rj::Document& JSON::doc() const {
   return doc_;
 }
 
-size_t JSON::valueToSize(const rj::Value& value) {
+std::uint64_t JSON::valueToSize(const rj::Value& value) {
   if (value.IsString()) {
-    return tryTo<std::size_t>(std::string{value.GetString()}).takeOr(0_sz);
+    return tryTo<std::uint64_t>(std::string{value.GetString()}).takeOr(0_sz);
   } else if (value.IsNumber()) {
     return static_cast<size_t>(value.GetUint64());
   }

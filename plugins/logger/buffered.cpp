@@ -37,12 +37,12 @@ FLAG(uint64,
 
 const std::chrono::seconds BufferedLogForwarder::kLogPeriod{
     std::chrono::seconds(4)};
-const size_t BufferedLogForwarder::kMaxLogLines{1024};
+const uint64_t BufferedLogForwarder::kMaxLogLines{1024};
 
 Status BufferedLogForwarder::setUp() {
   // initialize buffer_count_ by scanning the DB
   std::vector<std::string> indexes;
-  auto status = scanDatabaseKeys(kLogs, indexes, index_name_, 0);
+  auto status = scanDatabaseKeys(kLogs, indexes, index_name_, (uint64_t)0);
 
   if (!status.ok()) {
     return Status(1, "Error scanning for buffered log count");
@@ -111,7 +111,7 @@ void BufferedLogForwarder::purge() {
     return;
   }
 
-  size_t purge_count = buffer_count_ - FLAGS_buffered_log_max;
+  unsigned long long int purge_count = buffer_count_ - FLAGS_buffered_log_max;
 
   // Collect purge_count indexes of each type (result/status) before
   // partitioning to find the oldest. Note this assumes that the indexes are
@@ -147,7 +147,7 @@ void BufferedLogForwarder::purge() {
   // Partition the indexes so that the first purge_count elements are the
   // oldest indexes (the ones to be purged)
   std::nth_element(indexes.begin(),
-                   indexes.begin() + purge_count - 1,
+                   indexes.begin() + (unsigned int)purge_count - 1,
                    indexes.end(),
                    [&](const std::string& a, const std::string& b) {
                      // Skip the prefix when doing comparisons
@@ -157,7 +157,7 @@ void BufferedLogForwarder::purge() {
                                       prefix_size,
                                       std::string::npos) < 0;
                    });
-  indexes.erase(indexes.begin() + purge_count, indexes.end());
+  indexes.erase(indexes.begin() + (unsigned int)purge_count, indexes.end());
 
   // Now only indexes of logs to be deleted remain
   iterate(indexes, [this](const std::string& index) {
@@ -176,13 +176,13 @@ void BufferedLogForwarder::start() {
   }
 }
 
-Status BufferedLogForwarder::logString(const std::string& s, size_t time) {
+Status BufferedLogForwarder::logString(const std::string& s, uint64_t time) {
   std::string index = genResultIndex(time);
   return addValueWithCount(kLogs, index, s);
 }
 
 Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log,
-                                       size_t time) {
+                                       uint64_t time) {
   // Append decorations to status
   // Assemble a decorations tree to append to each status buffer line.
   pt::ptree dtree;
@@ -246,11 +246,11 @@ bool BufferedLogForwarder::isStatusIndex(const std::string& index) {
   return isIndex(index, false);
 }
 
-std::string BufferedLogForwarder::genResultIndex(size_t time) {
+std::string BufferedLogForwarder::genResultIndex(uint64_t time) {
   return genIndex(true, time);
 }
 
-std::string BufferedLogForwarder::genStatusIndex(size_t time) {
+std::string BufferedLogForwarder::genStatusIndex(uint64_t time) {
   return genIndex(false, time);
 }
 
@@ -258,7 +258,7 @@ std::string BufferedLogForwarder::genIndexPrefix(bool results) {
   return index_name_ + '_' + ((results) ? 'r' : 's') + '_';
 }
 
-std::string BufferedLogForwarder::genIndex(bool results, size_t time) {
+std::string BufferedLogForwarder::genIndex(bool results, uint64_t time) {
   if (time == 0) {
     time = getUnixTime();
   }

@@ -307,7 +307,7 @@ TEST_F(BufferedLogForwarderTests, test_split) {
 TEST_F(BufferedLogForwarderTests, test_purge) {
   FLAGS_buffered_log_max = 3;
   StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 100);
-  size_t time = getUnixTime();
+  uint64_t time = getUnixTime();
   for (uint64_t i = 0; i < 10; ++i) {
     runner.logString(std::to_string(i), time);
     StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
@@ -338,7 +338,7 @@ TEST_F(BufferedLogForwarderTests, test_purge_max) {
   StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 5);
   StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
   StatusLogLine log2 = makeStatusLogLine(O_ERROR, "bar", 30, "bar error");
-  size_t time = getUnixTime();
+  uint64_t time = getUnixTime();
 
   runner.logString("foo", time);
   runner.logStatus({log1}, time);

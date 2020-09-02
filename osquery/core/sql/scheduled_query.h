@@ -36,10 +36,10 @@ struct ScheduledQuery : private only_movable {
   std::string oncall;
 
   /// How often the query should be executed, in second.
-  size_t interval{0};
+  uint64_t interval{0};
 
   /// A temporary splayed internal.
-  size_t splayed_interval{0};
+  uint64_t splayed_interval{0};
 
   /**
    * @brief Queries are denylisted based on logic in the configuration.

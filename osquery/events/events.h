@@ -121,7 +121,7 @@ extern const std::vector<size_t> kEventTimeLists;
 struct SubscriberExpirationDetails {
  public:
   /// The max internal is the minimum wait time for expiring subscriber data.
-  size_t max_interval{0};
+  uint64_t max_interval{0};
 
   /// The number of queries that should run between intervals.
   size_t query_count{0};
@@ -558,7 +558,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    *
    * @return The events expiration timeout for this event type
    */
-  virtual size_t getEventsExpiry();
+  virtual uint64_t getEventsExpiry();
 
   /**
    * @brief Get the max number of events for this event type
@@ -569,7 +569,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    *
    * @return The max number of events for this event type
    */
-  virtual size_t getEventsMax();
+  virtual uint64_t getEventsMax();
 
  public:
   /**
@@ -683,7 +683,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   size_t optimize_eid_{0};
 
   /// The minimum acceptable expiration, based on the query schedule.
-  std::atomic<size_t> min_expiration_{0};
+  std::atomic<uint64_t> min_expiration_{0};
 
   /// The number of scheduled queries using this subscriber.
   std::atomic<size_t> query_count_{0};

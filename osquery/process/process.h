@@ -212,7 +212,7 @@ class SecurityDescriptor {
 /// Returns the current user's ID (UID on POSIX systems and RID for Windows)
 uint32_t platformGetUid();
 
-inline void sleepFor(size_t msec) {
+inline void sleepFor(uint64_t msec) {
   std::chrono::milliseconds mduration(msec);
   std::this_thread::sleep_for(mduration);
 }
