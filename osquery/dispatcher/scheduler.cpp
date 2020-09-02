@@ -248,8 +248,7 @@ void SchedulerRunner::start() {
 
   // Scheduler ended.
   if (!interrupted()) {
-    LOG(INFO) << "The scheduler ended after " << FLAGS_schedule_timeout
-              << " seconds";
+    LOG(INFO) << "The scheduler ended after " << timeout_ << " seconds";
     requestShutdown();
   }
 }

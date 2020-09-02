@@ -242,7 +242,7 @@ TEST_F(SchedulerTests, test_scheduler_drift_accumulation) {
   })config";
   Config::get().update({{"data", config}});
 
-  // Run the scheduler for 1 second with a second interval.
+  // Run the scheduler for 3 seconds with no interval.
   SchedulerRunner runner(
       static_cast<unsigned long int>(3), size_t{0}, std::chrono::seconds{10});
   runner.start();
