@@ -16,9 +16,9 @@ namespace osquery {
 /**
  * @brief Decode a rot13 encoded string.
  *
- * @param rot_string The encode rot13 string.
+ * @param rot_string The encoded rot13 string.
  * @return Decoded string.
  */
-std::string rotDecode(std::string& rot_string);
+std::string rotDecode(const std::string& rot_string);
 
 } // namespace osquery

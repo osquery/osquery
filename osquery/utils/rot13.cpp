@@ -13,7 +13,7 @@
 
 namespace osquery {
 
-std::string rotDecode(std::string& rot_string) {
+std::string rotDecode(const std::string& rot_string) {
   std::string decoded_string;
 
   for (std::size_t i = 0; i < rot_string.size(); i++) {

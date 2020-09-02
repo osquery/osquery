@@ -106,6 +106,7 @@ function(generateOsqueryUtilsUtilstestsTest)
   if(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       tests/windows/env.cpp
+      tests/windows/filetime.cpp
     )
   endif()
 

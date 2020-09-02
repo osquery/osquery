@@ -95,7 +95,9 @@ auto parseShimcacheData(const std::string& token,
   // Check to make sure the shimcache entry is greater than zero
   if (!string_path.empty()) {
     // Get last modified time of the file
-    shimcache.last_modified = littleEndianToUnixTime(shimcache_time);
+    shimcache.last_modified = (shimcache_time == "0000000000000000")
+                                  ? 0LL
+                                  : littleEndianToUnixTime(shimcache_time);
   } else {
     shimcache.last_modified = 0LL;
   }

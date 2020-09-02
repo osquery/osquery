@@ -81,7 +81,7 @@ QueryData genUserAssist(QueryContext& context) {
         // split reg path by \Count\ to get Key values
         auto count_key = subkey.find("Count\\");
         auto value_key = subkey.substr(count_key);
-        auto value_key_reg = value_key.substr(6, std::string::npos);
+        std::string value_key_reg = value_key.substr(6, std::string::npos);
 
         std::string decoded_value_key = rotDecode(value_key_reg);
         Row r;
@@ -103,13 +103,17 @@ QueryData genUserAssist(QueryContext& context) {
                 << "Userassist last execute Timestamp format is incorrect";
           } else {
             std::string time_data = assist_data.substr(120, 16);
-            time_str = littleEndianToUnixTime(time_data);
+            // Sometimes Userassist artifacts have 0 as timestamp, skip filetime
+            // converstion
+            time_str = (time_data == "0000000000000000")
+                           ? 0LL
+                           : littleEndianToUnixTime(time_data);
           }
           r["path"] = decoded_value_key;
 
           if (time_str == 0LL) {
             r["count"] = "";
-            r["last_execution_time"] = "";
+            r["last_execution_time"] = INTEGER(time_str);
           } else {
             r["last_execution_time"] = INTEGER(time_str);
             auto count = executionNum(assist_data);

@@ -25,8 +25,6 @@ QueryData genBackgroundActivitiesModerator(QueryContext& context) {
   QueryData results;
 
   std::set<std::string> bam_keys;
-  Row r;
-
   expandRegistryGlobs(kBamRegPath, bam_keys);
 
   for (const auto& rKey : bam_keys) {
@@ -42,7 +40,7 @@ QueryData genBackgroundActivitiesModerator(QueryContext& context) {
 
     QueryData bam_entries;
     queryKey(rKey, bam_entries);
-
+    Row r;
     for (const auto& bKey : bam_entries) {
       r["path"] = bKey.at("name");
       std::string last_run = bKey.at("data");
@@ -55,9 +53,7 @@ QueryData genBackgroundActivitiesModerator(QueryContext& context) {
       } else {
         std::string time_data = last_run.substr(0, 16);
         auto time_str = littleEndianToUnixTime(time_data);
-        if (time_str == 0LL) {
-          r["last_execution_time"] = "";
-        }
+        r["last_execution_time"] = (time_str == 0LL) ? 0LL : INTEGER(time_str);
         r["last_execution_time"] = INTEGER(time_str);
         r["sid"] = sid;
       }
