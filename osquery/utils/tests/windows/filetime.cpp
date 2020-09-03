@@ -17,7 +17,7 @@ class FiletimeTests : public testing::Test {};
 
 TEST_F(FiletimeTests, test_filetime) {
   std::string time = "0000006089400513";
-  std::string unix_time = littleEndianToUnixTime(time);
-  ASSERT_TRUE(unix_time == "1409616000");
+  long long unix_time = littleEndianToUnixTime(time);
+  ASSERT_TRUE(unix_time == 1409616000);
 }
 } // namespace osquery
