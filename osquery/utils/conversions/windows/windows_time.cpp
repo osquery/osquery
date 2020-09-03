@@ -42,16 +42,16 @@ LONGLONG littleEndianToUnixTime(const std::string& time_data) {
   }
 
   // Convert string to long long
-  unsigned long long last_run =
+  unsigned long long filetime_long =
       tryTo<unsigned long long>(time_string, 16).takeOr(0ull);
-  if (last_run == 0ull) {
+  if (filetime_long == 0ull) {
     LOG(WARNING) << "Failed to convert string to long long: " << time_string;
     return 0LL;
   }
 
   FILETIME file_time;
   ULARGE_INTEGER large_time;
-  large_time.QuadPart = last_run;
+  large_time.QuadPart = filetime_long;
   file_time.dwHighDateTime = large_time.HighPart;
   file_time.dwLowDateTime = large_time.LowPart;
   auto last_time = filetimeToUnixtime(file_time);
