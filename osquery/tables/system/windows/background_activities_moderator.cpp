@@ -48,12 +48,10 @@ QueryData genBackgroundActivitiesModerator(QueryContext& context) {
       // BAM Registry entries contain "SequenceNumber and Version keys. These
       // keys do not have any data.
       if (bKey.at("name") == "SequenceNumber" || bKey.at("name") == "Version") {
-        r["last_execution_time"] = "";
         r["sid"] = sid;
       } else {
         std::string time_data = last_run.substr(0, 16);
         auto time_str = littleEndianToUnixTime(time_data);
-        r["last_execution_time"] = (time_str == 0LL) ? 0LL : INTEGER(time_str);
         r["last_execution_time"] = INTEGER(time_str);
         r["sid"] = sid;
       }

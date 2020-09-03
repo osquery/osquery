@@ -113,12 +113,11 @@ QueryData genUserAssist(QueryContext& context) {
 
           if (time_str == 0LL) {
             r["count"] = "";
-            r["last_execution_time"] = INTEGER(time_str);
           } else {
-            r["last_execution_time"] = INTEGER(time_str);
             auto count = executionNum(assist_data);
             r["count"] = INTEGER(count);
           }
+          r["last_execution_time"] = INTEGER(time_str);
           r["sid"] = uKey.at("name");
           results.push_back(r);
         }
