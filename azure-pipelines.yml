@@ -311,8 +311,8 @@ jobs:
 
     - task: CacheBeta@2
       inputs:
-        key: submodules | Windows | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
-        restoreKeys: submodules | Windows | $(SubmoduleCacheVersion)
+        key: submodules | Windows$(System.JobName) | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
+        restoreKeys: submodules | Windows$(System.JobName) | $(SubmoduleCacheVersion)
         path: $(Build.SourcesDirectory)/.git/modules
       displayName: Submodule cache
 
