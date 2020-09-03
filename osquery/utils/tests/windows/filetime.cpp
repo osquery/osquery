@@ -11,12 +11,11 @@
 #include <osquery/utils/conversions/windows/windows_time.h>
 
 #include <string>
-
 namespace osquery {
 class FiletimeTests : public testing::Test {};
 
 TEST_F(FiletimeTests, test_filetime) {
-  std::string time = "0000006089400513";
+  std::string time = "00c0bdd640c6cf01";
   long long unix_time = littleEndianToUnixTime(time);
   ASSERT_TRUE(unix_time == 1409616000);
 }
