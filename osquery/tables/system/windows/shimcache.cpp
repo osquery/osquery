@@ -59,6 +59,12 @@ auto parseShimcacheData(const std::string& token,
   // Convert string to size_t for file path length
   size_t shimcache_file_path = tryTo<std::size_t>(path_length, 16).takeOr(0_sz);
 
+  // If the file path size is zero then there is no path
+  if (shim_file_path == 0) {
+    shimcache.last_modified = 0LL;
+    return shimcache;
+  }
+
   // Registry data is in Unicode (extra 0x00)
   std::string path = token.substr(20, shimcache_file_path * 2);
   boost::erase_all(path, "00");
@@ -73,7 +79,7 @@ auto parseShimcacheData(const std::string& token,
   try {
     string_path = boost::algorithm::unhex(path);
   } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode Shimcache hex values to string";
+    LOG(WARNING) << "Failed to decode Shimcache hex values to string: " << path;
     shimcache.last_modified = 0LL;
     return shimcache;
   }
@@ -93,15 +99,11 @@ auto parseShimcacheData(const std::string& token,
       token.substr(shimcache_modified_start + shimcache_file_path * 2, 16);
 
   // Check to make sure the shimcache entry is greater than zero
-  if (!string_path.empty()) {
-    // Sometimes Shimcache artifacts have 0 as timestamp, if so skip filetime
-    // converstion
-    shimcache.last_modified = (shimcache_time == "0000000000000000")
-                                  ? 0LL
-                                  : littleEndianToUnixTime(shimcache_time);
-  } else {
-    shimcache.last_modified = 0LL;
-  }
+  // Sometimes Shimcache artifacts have 0 as timestamp, if so skip filetime
+  // converstion
+  shimcache.last_modified = (shimcache_time == "0000000000000000")
+                                ? 0LL
+                                : littleEndianToUnixTime(shimcache_time);
 
   if (execution_flag_exists == true) {
     int shimcache_flag =
@@ -185,7 +187,12 @@ void parseEntry(const Row& aKey, size_t& index, QueryData& results) {
 
   // Get last appcopmat entry
   token = data.substr(0, pos);
-  createRow(parseShimcacheData(token, execution_flag_exists));
+  if (token.length() > 20) {
+    createRow(parseShimcacheData(token, execution_flag_exists));
+  } else {
+    LOG(ERROR) << "Shimcache entry does not meet length requirements: "
+               << token;
+  }
 }
 
 QueryData genShimcache(QueryContext& context) {

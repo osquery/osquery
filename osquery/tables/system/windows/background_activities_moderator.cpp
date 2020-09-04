@@ -40,8 +40,8 @@ QueryData genBackgroundActivitiesModerator(QueryContext& context) {
 
     QueryData bam_entries;
     queryKey(rKey, bam_entries);
-    Row r;
     for (const auto& bKey : bam_entries) {
+      Row r;
       r["path"] = bKey.at("name");
       std::string last_run = bKey.at("data");
 
