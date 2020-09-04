@@ -98,7 +98,6 @@ auto parseShimcacheData(const std::string& token,
   std::string shimcache_time =
       token.substr(shimcache_modified_start + shimcache_file_path * 2, 16);
 
-  // Check to make sure the shimcache entry is greater than zero
   // Sometimes Shimcache artifacts have 0 as timestamp, if so skip filetime
   // converstion
   shimcache.last_modified = (shimcache_time == "0000000000000000")

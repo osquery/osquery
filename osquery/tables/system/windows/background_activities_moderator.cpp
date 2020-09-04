@@ -44,8 +44,7 @@ QueryData genBackgroundActivitiesModerator(QueryContext& context) {
       Row r;
       r["path"] = bKey.at("name");
       std::string last_run = bKey.at("data");
-
-        r["sid"] = sid;
+      r["sid"] = sid;
 
       // BAM Registry entries contain "SequenceNumber and Version keys. These
       // keys do not have any data.
