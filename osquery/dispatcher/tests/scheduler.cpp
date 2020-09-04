@@ -170,7 +170,7 @@ TEST_F(SchedulerTests, test_scheduler) {
   Config::get().update({{"data", config}});
 
   // Run the scheduler for 1 second with a second interval.
-  SchedulerRunner runner(static_cast<unsigned long int>(now + 1), 1);
+  SchedulerRunner runner(static_cast<unsigned long int>(1), 1);
   runner.start();
 
   // If a query was executed the cache step will have been advanced.
@@ -205,7 +205,7 @@ TEST_F(SchedulerTests, test_scheduler_zero_drift) {
 
   // Run the scheduler for 1 second with a second interval.
   SchedulerRunner runner(
-      static_cast<unsigned long int>(now), size_t{1}, std::chrono::seconds{10});
+      static_cast<unsigned long int>(1), size_t{1}, std::chrono::seconds{10});
   runner.start();
 
   EXPECT_EQ(runner.getCurrentTimeDrift(), std::chrono::milliseconds::zero());
@@ -242,10 +242,9 @@ TEST_F(SchedulerTests, test_scheduler_drift_accumulation) {
   })config";
   Config::get().update({{"data", config}});
 
-  // Run the scheduler for 1 second with a second interval.
-  SchedulerRunner runner(static_cast<unsigned long int>(now + 3),
-                         size_t{0},
-                         std::chrono::seconds{10});
+  // Run the scheduler for 3 seconds with no interval.
+  SchedulerRunner runner(
+      static_cast<unsigned long int>(3), size_t{0}, std::chrono::seconds{10});
   runner.start();
 
   EXPECT_GE(runner.getCurrentTimeDrift(), std::chrono::milliseconds{1});
@@ -262,7 +261,7 @@ TEST_F(SchedulerTests, test_scheduler_reload) {
   auto backup_reload = FLAGS_schedule_reload;
 
   // Start the scheduler;
-  auto expire = static_cast<unsigned long int>(getUnixTime() + 1);
+  auto expire = static_cast<unsigned long int>(1);
   FLAGS_schedule_reload = 1;
   SchedulerRunner runner(expire, 1);
   FLAGS_schedule_reload = backup_reload;

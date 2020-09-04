@@ -59,7 +59,7 @@ class SchedulerRunner : public InternalRunnable {
   const std::chrono::milliseconds interval_;
 
   /// Maximum number of steps.
-  const unsigned long int timeout_;
+  unsigned long int timeout_;
 
   /// Accumulated for some time time drift to compensate.
   /// It will be either reduced during compensation process or
