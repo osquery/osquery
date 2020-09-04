@@ -45,15 +45,14 @@ QueryData genBackgroundActivitiesModerator(QueryContext& context) {
       r["path"] = bKey.at("name");
       std::string last_run = bKey.at("data");
 
+        r["sid"] = sid;
+
       // BAM Registry entries contain "SequenceNumber and Version keys. These
       // keys do not have any data.
-      if (bKey.at("name") == "SequenceNumber" || bKey.at("name") == "Version") {
-        r["sid"] = sid;
-      } else {
+      if (bKey.at("name") != "SequenceNumber" && bKey.at("name") != "Version") {
         std::string time_data = last_run.substr(0, 16);
         auto time_str = littleEndianToUnixTime(time_data);
         r["last_execution_time"] = INTEGER(time_str);
-        r["sid"] = sid;
       }
 
       results.push_back(r);
