@@ -60,7 +60,7 @@ auto parseShimcacheData(const std::string& token,
   size_t shimcache_file_path = tryTo<std::size_t>(path_length, 16).takeOr(0_sz);
 
   // If the file path size is zero then there is no path
-  if (shim_file_path == 0) {
+  if (shimcache_file_path == 0) {
     shimcache.last_modified = 0LL;
     return shimcache;
   }

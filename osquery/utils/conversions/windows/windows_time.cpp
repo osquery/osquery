@@ -36,9 +36,7 @@ LONGLONG littleEndianToUnixTime(const std::string& time_data) {
   std::reverse(time_string.begin(), time_string.end());
 
   for (std::size_t i = 0; i < time_string.length(); i += 2) {
-    char temp = time_string[i];
-    time_string[i] = time_string[i + 1];
-    time_string[i + 1] = temp;
+    std::swap(time_string[i], time_string[i + 1]);
   }
 
   // Convert string to long long
