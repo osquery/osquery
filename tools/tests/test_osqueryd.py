@@ -43,16 +43,15 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
         self.assertTrue(daemon.isAlive())
 
+        info_path = os.path.join(logger_path, "osqueryd.INFO")
         def info_exists():
-            info_path = test_base.getLatestInfoLog(logger_path)
             return os.path.exists(info_path)
 
         # Wait for the daemon to flush to GLOG.
         test_base.expectTrue(info_exists)
 
         # Assign the variable after we have assurances it exists
-        info_path = test_base.getLatestInfoLog(logger_path)
-        self.assertTrue(os.path.exists(info_path))
+        self.assertTrue(info_exists())
 
         # Lastly, verify that we have permission to read the file
         data = ''
@@ -168,10 +167,9 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Wait for the daemon to write the info log to disk before continuing
+        info_path = os.path.join(logger_path, "osqueryd.INFO")
         def info_exists():
-            info_path = test_base.getLatestInfoLog(logger_path)
             return os.path.exists(info_path)
-        info_path = test_base.getLatestInfoLog(logger_path)
 
         def results_exists():
             return os.path.exists(results_path)

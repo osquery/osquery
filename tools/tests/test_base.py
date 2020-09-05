@@ -684,8 +684,7 @@ class CleanChildProcesses:
 
 def expectTrue(functional, interval=1, attempts=10):
     """Helper function to run a function with expected latency"""
-    delay = 0
-    for i in range(0, attempts):
+    for _ in range(0, attempts):
         if functional():
             return True
         time.sleep(interval)
@@ -705,19 +704,6 @@ def getTestDirectory(base):
     path = os.path.join(base, "test-dir" + str(random.randint(1000, 9999)))
     utils.reset_dir(path)
     return path
-
-
-# Grab the latest info log
-def getLatestInfoLog(base):
-    info_path = os.path.join(base, "osqueryd.INFO")
-    if os.name != "nt":
-        return info_path
-    query = "select path from file where path like '{}' ORDER BY mtime DESC LIMIT 1;".format(info_path+'%')
-    osqueryi = OsqueryWrapper(getLatestOsqueryBinary('osqueryi'))
-    results = osqueryi.run_query(query)
-    if len(results) > 0:
-        return results[0]["path"]
-    return ""
 
 
 def loadThriftFromBuild(build_dir):
