@@ -254,7 +254,15 @@ void dumpDatabase();
 /// Require all database accesses to open a read and write handle.
 void setDatabaseRequireWrite(bool require_write = true);
 
-/// Allow database usage creations.
+/**
+ * @brief Allow database usage.
+ *
+ * We want to prevent implicit calls to database APIs before the application
+ * starts. To do this we require a call to setDatabaseAllowOpen.
+ *
+ * It is possible to "flip" this to not allow opening the database for testing
+ * purposes.
+ */
 void setDatabaseAllowOpen(bool allow_open = true);
 
 /**
