@@ -48,10 +48,13 @@ void parseOfficeData(QueryData& results,
     Row r;
     // File path starts with *
     r["path"] = file_path->second.substr(file_path->second.find("*") + 1);
+
+    // Extract the office application version from the registry path
     std::string version = office_version;
     r["version"] =
         version.substr(office_version.find("Office\\"), 11).substr(7);
 
+    // Extract the office application name from the registry path
     std::string application = office_version;
     std::string office_app =
         application.substr(office_version.find(r["version"]));
