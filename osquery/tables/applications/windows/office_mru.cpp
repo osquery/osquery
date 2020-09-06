@@ -32,7 +32,7 @@ void parseOfficeData(QueryData& results,
                      std::string office_version) {
   for (const auto& aKey : office_entries) {
     auto item = aKey.find("name");
-    // All file entries are start with "Item", skip entries that are not named
+    // All file entries start with "Item", skip entries that are not named
     // "Item"
     if (item->second.find("Item") == std::string::npos) {
       continue;
