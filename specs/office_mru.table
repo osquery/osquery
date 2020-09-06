@@ -1,4 +1,4 @@
-table_name("office_most_recently_used")
+table_name("office_mru")
 description("View recently opened Office documents.")
 schema([
 	Column("application", TEXT, "Associated Office application"),
@@ -7,7 +7,7 @@ schema([
 	Column("last_opened_time", INTEGER, "Most recent opened time file was opened"),
 	Column("sid", TEXT, "User SID"),
 ])
-implementation("office_most_recently_used@genOfficeMostRecentlyUsed")
+implementation("office_mru@genOfficeMru")
 examples([
-	"select * from office_most_recently_used;",
+	"select * from office_mru;",
 ])

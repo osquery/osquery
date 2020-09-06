@@ -12,16 +12,15 @@
 namespace osquery {
 namespace table_tests {
 
-class OfficeMostRecentlyUsedTest : public testing::Test {
+class OfficeMruTest : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(OfficeMostRecentlyUsedTest, test_sanity) {
-  QueryData const rows =
-      execute_query("select * from office_most_recently_used");
+TEST_F(OfficeMruTest, test_sanity) {
+  QueryData const rows = execute_query("select * from office_mru");
 
   ValidationMap row_map = {{"application", NonEmptyString},
                            {"version", NonEmptyString},

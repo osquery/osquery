@@ -39,7 +39,7 @@ function(generateOsqueryTablesApplications)
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/carbon_black.cpp
-      windows/office_most_recently_used.cpp
+      windows/office_mru.cpp
     )
   elseif(DEFINED PLATFORM_LINUX)
     list(APPEND source_files
