@@ -477,6 +477,10 @@ void setDatabaseAllowOpen(bool allow_open) {
 }
 
 Status initDatabasePlugin() {
+  if (kDBInitialized) {
+    return Status::success();
+  }
+
   // Initialize the database plugin using the flag.
   auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
   {
