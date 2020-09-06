@@ -32,6 +32,10 @@ function(googleLogMain)
   get_target_property(gflags_include_directory thirdparty_gflags INTERFACE_INCLUDE_DIRECTORIES)
   target_include_directories(glog PRIVATE "${gflags_include_directory}")
 
+  # Small hack to set glog's includes as SYSTEM
+  get_target_property(glog_include_directory glog INTERFACE_INCLUDE_DIRECTORIES)
+  target_include_directories(glog SYSTEM PUBLIC ${glog_include_directory})
+
   add_library(thirdparty_glog INTERFACE)
   target_link_libraries(thirdparty_glog INTERFACE
     glog
