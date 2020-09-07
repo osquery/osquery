@@ -55,7 +55,6 @@ const std::vector<std::string> kDomains = {
     kPersistentSettings, kQueries, kEvents, kLogs, kCarves};
 
 std::atomic<bool> kDBAllowOpen(false);
-std::atomic<bool> kDBRequireWrite(false);
 std::atomic<bool> kDBInitialized(false);
 std::atomic<bool> kDBChecking(false);
 
@@ -89,9 +88,6 @@ bool DatabasePlugin::checkDB() {
   bool result = true;
   try {
     auto status = setUp();
-    if (requireWrite() && read_only_) {
-      result = false;
-    }
     tearDown();
     result = status.ok();
   } catch (const std::exception& e) {
@@ -100,10 +96,6 @@ bool DatabasePlugin::checkDB() {
   }
   kDBChecking = false;
   return result;
-}
-
-bool DatabasePlugin::requireWrite() const {
-  return kDBRequireWrite;
 }
 
 bool DatabasePlugin::allowOpen() const {
@@ -468,10 +460,6 @@ void dumpDatabase() {
   fflush(stdout);
 }
 
-void setDatabaseRequireWrite(bool require_write) {
-  kDBRequireWrite = require_write;
-}
-
 void setDatabaseAllowOpen(bool allow_open) {
   kDBAllowOpen = allow_open;
 }
@@ -483,34 +471,18 @@ Status initDatabasePlugin() {
 
   // Initialize the database plugin using the flag.
   auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
-  {
-    Status status;
-    for (size_t i = 0; i < kDatabaseMaxRetryCount; i++) {
-      status = RegistryFactory::get().setActive("database", plugin);
-      if (status.ok()) {
-        kDBInitialized = true;
-        return status;
-      }
-
-      if (FLAGS_disable_database) {
-        // Do not try multiple times to initialize the emphemeral plugin.
-        break;
-      }
-      sleepFor(kDatabaseRetryDelay);
+  Status status;
+  for (size_t i = 0; i < kDatabaseMaxRetryCount; i++) {
+    status = RegistryFactory::get().setActive("database", plugin);
+    if (status.ok()) {
+      break;
     }
-    LOG(WARNING) << "Failed to activate database plugin "
-                 << boost::io::quoted(plugin) << ": " << status.what();
-  }
 
-  // If the database did not setUp override the active plugin.
-  if (FLAGS_disable_database) {
-    return Status::failure("Could not activate any database plugin");
-  }
-
-  auto const status = RegistryFactory::get().setActive("database", "ephemeral");
-  if (!status.ok()) {
-    LOG(ERROR) << "Failed to activate database plugin \"ephemeral\": "
-               << status.what();
+    if (FLAGS_disable_database) {
+      // Do not try multiple times to initialize the emphemeral plugin.
+      break;
+    }
+    sleepFor(kDatabaseRetryDelay);
   }
 
   kDBInitialized = status.ok();

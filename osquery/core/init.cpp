@@ -521,9 +521,6 @@ void Initializer::start() const {
 
   if (!isWatcher()) {
     setDatabaseAllowOpen();
-    // A daemon must always have R/W access to the database.
-    setDatabaseRequireWrite(isDaemon());
-
     auto status = initDatabasePlugin();
     if (!status.ok()) {
       auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
