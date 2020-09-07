@@ -7,6 +7,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
+import glob
 import os
 import signal
 import shutil
@@ -43,20 +44,19 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
         self.assertTrue(daemon.isAlive())
 
+        info_path = os.path.join(logger_path, "osqueryd.INFO*")
         def info_exists():
-            info_path = test_base.getLatestInfoLog(logger_path)
-            return os.path.exists(info_path)
+            return len(glob.glob(info_path)) > 0
 
         # Wait for the daemon to flush to GLOG.
         test_base.expectTrue(info_exists)
 
         # Assign the variable after we have assurances it exists
-        info_path = test_base.getLatestInfoLog(logger_path)
-        self.assertTrue(os.path.exists(info_path))
+        self.assertTrue(info_exists())
 
         # Lastly, verify that we have permission to read the file
         data = ''
-        with open(info_path, 'r') as fh:
+        with open(glob.glob(info_path)[0], 'r') as fh:
             try:
                 data = fh.read()
             except:
@@ -164,15 +164,14 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
                 "verbose": True,
             })
 
-        results_path = os.path.join(logger_path, "osqueryd.results.log")
         self.assertTrue(daemon.isAlive())
 
         # Wait for the daemon to write the info log to disk before continuing
+        info_path = os.path.join(logger_path, "osqueryd.INFO*")
         def info_exists():
-            info_path = test_base.getLatestInfoLog(logger_path)
-            return os.path.exists(info_path)
-        info_path = test_base.getLatestInfoLog(logger_path)
+            return len(glob.glob(info_path)) > 0
 
+        results_path = os.path.join(logger_path, "osqueryd.results.log")
         def results_exists():
             return os.path.exists(results_path)
 
@@ -180,6 +179,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         test_base.expectTrue(info_exists)
         test_base.expectTrue(results_exists)
 
+        info_path = glob.glob(info_path)[0]
         # Both log files should exist, the results should have the given mode.
         for pth in [info_path, results_path]:
             self.assertTrue(os.path.exists(pth))
