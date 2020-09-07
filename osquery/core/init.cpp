@@ -125,8 +125,6 @@ DWORD kLegacyThreadId;
 /// When no flagfile is provided via CLI, attempt to read flag 'defaults'.
 const std::string kBackupDefaultFlagfile{OSQUERY_HOME "osquery.flags.default"};
 
-const size_t kDatabaseMaxRetryCount{25};
-const size_t kDatabaseRetryDelay{200};
 bool Initializer::isWorker_{false};
 
 namespace {
@@ -526,20 +524,11 @@ void Initializer::start() const {
     // A daemon must always have R/W access to the database.
     setDatabaseRequireWrite(isDaemon());
 
-    for (size_t i = 1; i <= kDatabaseMaxRetryCount; i++) {
-      if (initDatabasePlugin().ok()) {
-        break;
-      }
-
-      if (i == kDatabaseMaxRetryCount) {
-        auto message = std::string(RLOG(1629)) + binary_ +
-                       " initialize failed: Could not initialize database";
-        auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
-        requestShutdown(retcode, message);
-        return;
-      }
-
-      sleepFor(kDatabaseRetryDelay);
+    auto status = initDatabasePlugin();
+    if (!status.ok()) {
+      auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
+      requestShutdown(retcode, status.getMessage());
+      return;
     }
 
     // Ensure the database results version is up to date before proceeding
