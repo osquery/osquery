@@ -34,7 +34,7 @@ function(googleLogMain)
 
   # Small hack to set glog's includes as SYSTEM
   get_target_property(glog_include_directory glog INTERFACE_INCLUDE_DIRECTORIES)
-  target_include_directories(glog SYSTEM PUBLIC ${glog_include_directory})
+  target_include_directories(glog SYSTEM INTERFACE ${glog_include_directory})
 
   add_library(thirdparty_glog INTERFACE)
   target_link_libraries(thirdparty_glog INTERFACE
