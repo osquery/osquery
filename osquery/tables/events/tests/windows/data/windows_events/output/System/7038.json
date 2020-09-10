@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "2",
     "keywords": "0x8080000000000000",
-    "data": "{\"Data\":{\"param1\":\"WerSvc\",\"param2\":\"NT AUTHORITY\\\\SYSTEM\",\"param3\":\"%%50\"}}"
+    "data": "{\"EventData\":{\"param1\":\"WerSvc\",\"param2\":\"NT AUTHORITY\\\\SYSTEM\",\"param3\":\"%%50\"}}"
 }

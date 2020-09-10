@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "4",
     "keywords": "0x80000000000000",
-    "data": "{\"Data\":[\"2020-06-10T18:10:08Z\",\"RulesEngine\"]}"
+    "data": "{\"EventData\":[\"2020-06-10T18:10:08Z\",\"RulesEngine\"]}"
 }

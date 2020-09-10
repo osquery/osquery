@@ -8,5 +8,5 @@
     "task_id": "101",
     "level": "2",
     "keywords": "0x4020000000000000",
-    "data": "{\"Data\":\"\"}"
+    "data": "{\"UserData\":{\"AuditEventsDropped\":{\"<xmlattr>\":{\"xmlns\":\"http:\\/\\/manifests.microsoft.com\\/win\\/2004\\/08\\/windows\\/eventlog\"},\"Reason\":\"0\"}}}"
 }

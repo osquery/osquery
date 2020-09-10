@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "0",
     "keywords": "0x80000000000000",
-    "data": "{\"Data\":[\"defragmentation\",\"System Reserved\"]}"
+    "data": "{\"EventData\":{\"\":\"defragmentation\",\"\":\"System Reserved\",\"Binary\":\"0000000034020000FD0100000000000022B651A2296BEDD85E9C8D030000000000000000\"}}"
 }

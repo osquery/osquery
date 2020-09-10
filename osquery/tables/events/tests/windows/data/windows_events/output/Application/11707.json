@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "4",
     "keywords": "0x80000000000000",
-    "data": "{\"Data\":[\"Product: icecap_collectionresources -- Installation completed successfully.\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"\"]}"
+    "data": "{\"EventData\":{\"\":\"Product: icecap_collectionresources -- Installation completed successfully.\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"\",\"Binary\":\"7B31453645353930342D453937462D343146372D423344422D3043384344333138304533437D\"}}"
 }

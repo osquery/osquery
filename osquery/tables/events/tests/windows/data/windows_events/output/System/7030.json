@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "2",
     "keywords": "0x8080000000000000",
-    "data": "{\"Data\":{\"param1\":\"Printer Extensions and Notifications\"}}"
+    "data": "{\"EventData\":{\"param1\":\"Printer Extensions and Notifications\"}}"
 }

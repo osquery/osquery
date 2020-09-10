@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "2",
     "keywords": "0x80000000000000",
-    "data": "{\"Data\":[\"hr=0x8007139F\",\"RuleId=31e71c49-8da7-4a2f-ad92-45d98a1c79ba;Action=AutoActivate;AppId=55c92734-d682-4d71-983e-d6ec3f16059f;SkuId=9fbaf5d6-4d83-4422-870d-fdda6e5858aa;NotificationInterval=1440;Trigger=TimerEvent\"]}"
+    "data": "{\"EventData\":[\"hr=0x8007139F\",\"RuleId=31e71c49-8da7-4a2f-ad92-45d98a1c79ba;Action=AutoActivate;AppId=55c92734-d682-4d71-983e-d6ec3f16059f;SkuId=9fbaf5d6-4d83-4422-870d-fdda6e5858aa;NotificationInterval=1440;Trigger=TimerEvent\"]}"
 }

@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "4",
     "keywords": "0x8080000000000000",
-    "data": "{\"Data\":{\"ServiceName\":\"Intel(R) PRO\\\/1000 PCI Express Network Connection Driver I\",\"ImagePath\":\"\\\\SystemRoot\\\\System32\\\\drivers\\\\e1i65x64.sys\",\"ServiceType\":\"kernel mode driver\",\"StartType\":\"demand start\",\"AccountName\":\"\"}}"
+    "data": "{\"EventData\":{\"ServiceName\":\"Intel(R) PRO\\\/1000 PCI Express Network Connection Driver I\",\"ImagePath\":\"\\\\SystemRoot\\\\System32\\\\drivers\\\\e1i65x64.sys\",\"ServiceType\":\"kernel mode driver\",\"StartType\":\"demand start\",\"AccountName\":\"\"}}"
 }
