@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "4",
     "keywords": "0x80000000000000",
-    "data": "{\"Data\":[\"C:\\\\Program Files (x86)\\\\Microsoft Visual Studio\\\\Installer\\\\resources\\\\app\\\\ServiceHub\\\\Hosts\\\\Microsoft.ServiceHub.Host.CLR\\\\vs_installerservice.exe Files (x86)\\\\Microsoft Visual Studio\\\\Installer\\\\resources\\\\app\\\\ServiceHub\\\\Hosts\\\\Microsoft.ServiceHub.Host.CLR\\\\vs_installerservice.exe\\\" \\\"desktopClr$C94B8CFE-E3FD-4BAF-A941-2866DBB566FE\\\" \\\"net.pipe:\\\/\\\/8D4CBCD2EAAFE9895BBC7D4F475EE46F\\\"\",\"\"]}"
+    "data": "{\"EventData\":{\"\":\"C:\\\\Program Files (x86)\\\\Microsoft Visual Studio\\\\Installer\\\\resources\\\\app\\\\ServiceHub\\\\Hosts\\\\Microsoft.ServiceHub.Host.CLR\\\\vs_installerservice.exe Files (x86)\\\\Microsoft Visual Studio\\\\Installer\\\\resources\\\\app\\\\ServiceHub\\\\Hosts\\\\Microsoft.ServiceHub.Host.CLR\\\\vs_installerservice.exe\\\" \\\"desktopClr$C94B8CFE-E3FD-4BAF-A941-2866DBB566FE\\\" \\\"net.pipe:\\/\\/8D4CBCD2EAAFE9895BBC7D4F475EE46F\\\"\",\"\":\"\",\"Binary\":\"000000008900000083000000000000004386252307000000000000000000000000000000\"}}"
 }

@@ -8,5 +8,5 @@
     "task_id": "12548",
     "level": "0",
     "keywords": "0x8020000000000000",
-    "data": "{\"Data\":{\"SubjectUserSid\":\"S-1-5-18\",\"SubjectUserName\":\"SYSTEM\",\"SubjectDomainName\":\"NT AUTHORITY\",\"SubjectLogonId\":\"0x3e7\",\"PrivilegeList\":\"SeAssignPrimaryTokenPrivilege\\n\\t\\t\\tSeTcbPrivilege\\n\\t\\t\\tSeSecurityPrivilege\\n\\t\\t\\tSeTakeOwnershipPrivilege\\n\\t\\t\\tSeLoadDriverPrivilege\\n\\t\\t\\tSeBackupPrivilege\\n\\t\\t\\tSeRestorePrivilege\\n\\t\\t\\tSeDebugPrivilege\\n\\t\\t\\tSeAuditPrivilege\\n\\t\\t\\tSeSystemEnvironmentPrivilege\\n\\t\\t\\tSeImpersonatePrivilege\\n\\t\\t\\tSeDelegateSessionUserImpersonatePrivilege\"}}"
+    "data": "{\"EventData\":{\"SubjectUserSid\":\"S-1-5-18\",\"SubjectUserName\":\"SYSTEM\",\"SubjectDomainName\":\"NT AUTHORITY\",\"SubjectLogonId\":\"0x3e7\",\"PrivilegeList\":\"SeAssignPrimaryTokenPrivilege\\n\\t\\t\\tSeTcbPrivilege\\n\\t\\t\\tSeSecurityPrivilege\\n\\t\\t\\tSeTakeOwnershipPrivilege\\n\\t\\t\\tSeLoadDriverPrivilege\\n\\t\\t\\tSeBackupPrivilege\\n\\t\\t\\tSeRestorePrivilege\\n\\t\\t\\tSeDebugPrivilege\\n\\t\\t\\tSeAuditPrivilege\\n\\t\\t\\tSeSystemEnvironmentPrivilege\\n\\t\\t\\tSeImpersonatePrivilege\\n\\t\\t\\tSeDelegateSessionUserImpersonatePrivilege\"}}"
 }

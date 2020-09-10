@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "2",
     "keywords": "0x8080000000000000",
-    "data": "{\"Data\":{\"param1\":\"netprofm\",\"param2\":\"%%21\"}}"
+    "data": "{\"EventData\":{\"param1\":\"netprofm\",\"param2\":\"%%21\",\"Binary\":\"6E0065007400700072006F0066006D000000\"}}"
 }

@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "4",
     "keywords": "0x80000000000000",
-    "data": "{\"Data\":[\"Product: Strawberry Perl (64-bit) -- Installation failed.\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"\"]}"
+    "data":  "{\"EventData\":{\"\":\"Product: Strawberry Perl (64-bit) -- Installation failed.\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"\",\"Binary\":\"7B41323445343936412D364541432D313031342D384134342D4339323133354438383131357D2C2031363032\"}}"
 }

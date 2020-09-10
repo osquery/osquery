@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "4",
     "keywords": "0x80000000000000",
-    "data": "{\"Data\":[\"SessionEnv\"]}"
+    "data": "{\"EventData\":{\"\":\"SessionEnv\",\"Binary\":\"D9060000\"}}"
 }

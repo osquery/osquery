@@ -18,8 +18,62 @@
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
+namespace pt = boost::property_tree;
+
 namespace osquery {
-Status parseWindowsEventLogXML(boost::property_tree::ptree& event_object,
+
+static inline pt::ptree parseChildNodeToJSONPtree(
+    const pt::ptree& event_data_node) {
+  pt::ptree event_data;
+  bool detect_data_type{true};
+  bool as_array{false};
+
+  for (const auto& p : event_data_node) {
+    const auto& name = p.first;
+    const auto& data_field = p.second;
+
+    if (name == "Data") {
+      pt::ptree array_item;
+      std::string data_name = {};
+      auto data_name_attr_opt = data_field.get_child_optional("<xmlattr>.Name");
+      if (data_name_attr_opt.has_value()) {
+        const auto& data_name_attr = data_name_attr_opt.value();
+        data_name = data_name_attr.get_value<std::string>("");
+      }
+
+      if (detect_data_type) {
+        as_array = data_name.empty();
+        detect_data_type = false;
+      }
+
+      auto data_value = data_field.get("", "");
+      if (as_array) {
+        array_item.put("", data_value);
+        event_data.push_back(std::make_pair("", array_item));
+      } else {
+        event_data.put(data_name, data_value);
+      }
+
+    } else {
+      // Process xml tags if they are not Data.
+      // Check if the `data_field` has no children and get
+      // the data_value
+      if (data_field.empty()) {
+        pt::ptree array_item;
+        auto data_value = data_field.get("", "");
+        array_item.put("", data_value);
+        event_data.add_child(name, array_item);
+      } else {
+        pt::ptree array_item;
+        auto child = parseChildNodeToJSONPtree(data_field);
+        event_data.add_child(name, child);
+      }
+    }
+  }
+  return event_data;
+}
+
+Status parseWindowsEventLogXML(pt::ptree& event_object,
                                const std::wstring& xml_event) {
   event_object = {};
 
@@ -27,20 +81,20 @@ Status parseWindowsEventLogXML(boost::property_tree::ptree& event_object,
     auto converted_xml_event = wstringToString(xml_event.c_str());
     std::stringstream stream(std::move(converted_xml_event));
 
-    boost::property_tree::ptree output;
+    pt::ptree output;
     read_xml(stream, output);
 
     event_object = std::move(output);
 
-  } catch (const boost::property_tree::xml_parser::xml_parser_error& e) {
+  } catch (const pt::xml_parser::xml_parser_error& e) {
     return Status::failure("Failed to parse the XML event: " + e.message());
   }
 
   return Status::success();
 }
 
-Status parseWindowsEventLogPTree(
-    WELEvent& windows_event, const boost::property_tree::ptree& event_object) {
+Status parseWindowsEventLogPTree(WELEvent& windows_event,
+                                 const pt::ptree& event_object) {
   windows_event = {};
 
   WELEvent output;
@@ -107,68 +161,29 @@ Status parseWindowsEventLogPTree(
   // sqlite does not have an unsigned version for sqlite3_result_int64
   output.keywords = event_object.get("Event.System.Keywords", "");
 
-  auto event_data_node_opt = event_object.get_child_optional("Event.EventData");
-  boost::property_tree::ptree event_data;
-
-  if (event_data_node_opt) {
-    const auto& event_data_node = event_data_node_opt.value();
-
-    bool detect_data_type{true};
-    bool as_array{false};
-
-    for (const auto& p : event_data_node) {
-      const auto& name = p.first;
-      const auto& data_field = p.second;
-
-      if (name != "Data") {
-        continue;
-      }
-
-      std::string data_name = {};
-
-      auto data_name_attr_opt = data_field.get_child_optional("<xmlattr>.Name");
-      if (data_name_attr_opt.has_value()) {
-        const auto& data_name_attr = data_name_attr_opt.value();
-        data_name = data_name_attr.get_value<std::string>("");
-      }
-
-      if (detect_data_type) {
-        as_array = data_name.empty();
-        detect_data_type = false;
-      }
-
-      if (as_array != data_name.empty()) {
-        return Status::failure(
-            "Invalid Windows event object: found both named and unnamed <Data> "
-            "tags under <EventData>");
-      }
-
-      auto data_value = data_field.get("", "");
-
-      if (as_array) {
-        boost::property_tree::ptree array_item;
-        array_item.put("", data_value);
-
-        event_data.push_back(std::make_pair("", array_item));
-
-      } else {
-        event_data.put(data_name, data_value);
-      }
+  pt::ptree property_list;
+  auto getDataFromPtree = [&](std::string node_name) -> void {
+    auto event_data_node_opt = event_object.get_child_optional(node_name);
+    if (!event_data_node_opt) {
+      return;
     }
-  }
 
-  // We only support the Data tags for now, but make sure we can add
-  // additional fields in the future
-  boost::property_tree::ptree property_list;
-  property_list.add_child("Data", event_data);
+    const auto& event_data_node = event_data_node_opt.value();
+    auto event_data = parseChildNodeToJSONPtree(event_data_node);
+    property_list.add_child(node_name, event_data);
+  };
+
+  // Add the event & user data node to the property list
+  getDataFromPtree("Event.EventData");
+  getDataFromPtree("Event.UserData");
 
   try {
     std::stringstream stream;
-    boost::property_tree::write_json(stream, property_list, false);
+    pt::write_json(stream, property_list.get_child("Event"), false);
 
     output.data = stream.str();
 
-  } catch (const boost::property_tree::json_parser::json_parser_error& e) {
+  } catch (const pt::json_parser::json_parser_error& e) {
     return Status::failure(
         "Invalid Windows event object: the EventData tag is not valid: " +
         e.message());

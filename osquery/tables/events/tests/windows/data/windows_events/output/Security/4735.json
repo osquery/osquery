@@ -8,5 +8,5 @@
     "task_id": "13826",
     "level": "0",
     "keywords": "0x8020000000000000",
-    "data": "{\"Data\":{\"TargetUserName\":\"Users\",\"TargetDomainName\":\"Builtin\",\"TargetSid\":\"S-1-5-32-545\",\"SubjectUserSid\":\"S-1-5-18\",\"SubjectUserName\":\"WIN-VJP8LBM74F9$\",\"SubjectDomainName\":\"WORKGROUP\",\"SubjectLogonId\":\"0x3e7\",\"PrivilegeList\":\"-\",\"SamAccountName\":\"-\",\"SidHistory\":\"-\"}}"
+    "data": "{\"EventData\":{\"TargetUserName\":\"Users\",\"TargetDomainName\":\"Builtin\",\"TargetSid\":\"S-1-5-32-545\",\"SubjectUserSid\":\"S-1-5-18\",\"SubjectUserName\":\"WIN-VJP8LBM74F9$\",\"SubjectDomainName\":\"WORKGROUP\",\"SubjectLogonId\":\"0x3e7\",\"PrivilegeList\":\"-\",\"SamAccountName\":\"-\",\"SidHistory\":\"-\"}}"
 }

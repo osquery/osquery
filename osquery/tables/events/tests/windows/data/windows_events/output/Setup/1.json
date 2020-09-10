@@ -8,5 +8,5 @@
     "task_id": "1",
     "level": "0",
     "keywords": "0x8000000000000000",
-    "data": "{\"Data\":\"\"}"
+    "data": "{\"UserData\":{\"CbsPackageInitiateChanges\":{\"<xmlattr>\":{\"xmlns\":\"http:\\/\\/manifests.microsoft.com\\/win\\/2004\\/08\\/windows\\/setup_provider\"},\"PackageIdentifier\":\"KB4556803\",\"InitialPackageState\":\"5112\",\"InitialPackageStateTextized\":\"Installed\",\"IntendedPackageState\":\"5112\",\"IntendedPackageStateTextized\":\"Installed\",\"Client\":\"UpdateAgentLCU\"}}}"
 }

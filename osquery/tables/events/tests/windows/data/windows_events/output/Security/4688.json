@@ -8,5 +8,5 @@
     "task_id": "13312",
     "level": "0",
     "keywords": "0x8020000000000000",
-    "data": "{\"Data\":{\"SubjectUserSid\":\"S-1-5-18\",\"SubjectUserName\":\"-\",\"SubjectDomainName\":\"-\",\"SubjectLogonId\":\"0x3e7\",\"NewProcessId\":\"0x294\",\"NewProcessName\":\"C:\\\\Windows\\\\System32\\\\lsass.exe\",\"TokenElevationType\":\"%%1936\",\"ProcessId\":\"0x200\",\"CommandLine\":\"\",\"TargetUserSid\":\"S-1-0-0\",\"TargetUserName\":\"-\",\"TargetDomainName\":\"-\",\"TargetLogonId\":\"0x0\",\"ParentProcessName\":\"C:\\\\Windows\\\\System32\\\\wininit.exe\",\"MandatoryLabel\":\"S-1-16-16384\"}}"
+    "data": "{\"EventData\":{\"SubjectUserSid\":\"S-1-5-18\",\"SubjectUserName\":\"-\",\"SubjectDomainName\":\"-\",\"SubjectLogonId\":\"0x3e7\",\"NewProcessId\":\"0x294\",\"NewProcessName\":\"C:\\\\Windows\\\\System32\\\\lsass.exe\",\"TokenElevationType\":\"%%1936\",\"ProcessId\":\"0x200\",\"CommandLine\":\"\",\"TargetUserSid\":\"S-1-0-0\",\"TargetUserName\":\"-\",\"TargetDomainName\":\"-\",\"TargetLogonId\":\"0x0\",\"ParentProcessName\":\"C:\\\\Windows\\\\System32\\\\wininit.exe\",\"MandatoryLabel\":\"S-1-16-16384\"}}"
 }

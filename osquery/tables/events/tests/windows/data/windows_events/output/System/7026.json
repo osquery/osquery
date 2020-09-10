@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "4",
     "keywords": "0x8080000000000000",
-    "data": "{\"Data\":{\"param1\":\"\\ndam\"}}"
+    "data": "{\"EventData\":{\"param1\":\"\\ndam\"}}"
 }

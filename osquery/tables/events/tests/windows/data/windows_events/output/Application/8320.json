@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "4",
     "keywords": "0x80000000000000",
-    "data": "{\"Data\":[\"Security-SPP-Action-StateData (REG_SZ) =AppId=55c92734-d682-4d71-983e-d6ec3f16059f;LastConsumptionReason=0xc004f034;LastNotificationId=NeverActivated;LicenseState=SL_LICENSING_STATUS_NOTIFICATION;PartialProductKey=PKCKT;ProductKeyType=Retail;SkuId=9fbaf5d6-4d83-4422-870d-fdda6e5858aa;ruleId=31e71c49-8da7-4a2f-ad92-45d98a1c79ba;uxDifferentiator=RETAIL\"]}"
+    "data": "{\"EventData\":[\"Security-SPP-Action-StateData (REG_SZ) =AppId=55c92734-d682-4d71-983e-d6ec3f16059f;LastConsumptionReason=0xc004f034;LastNotificationId=NeverActivated;LicenseState=SL_LICENSING_STATUS_NOTIFICATION;PartialProductKey=PKCKT;ProductKeyType=Retail;SkuId=9fbaf5d6-4d83-4422-870d-fdda6e5858aa;ruleId=31e71c49-8da7-4a2f-ad92-45d98a1c79ba;uxDifferentiator=RETAIL\"]}"
 }
