@@ -148,21 +148,12 @@ Status RocksDBDatabasePlugin::setUp() {
   if (!s.ok() || db_ == nullptr) {
     LOG(INFO) << "Rocksdb open failed (" << s.code() << ":" << s.subcode()
               << ") " << s.ToString();
-    if (requireWrite()) {
-      // A failed open in R/W mode is a runtime error.
-      return Status(1, s.ToString());
-    }
-
-    if (!checkingDB()) {
-      LOG(INFO) << "Opening RocksDB failed: Continuing with read-only support";
-    }
-    // Also disable event publishers.
-    Flag::updateValue("disable_events", "true");
-    read_only_ = true;
+    // A failed open in R/W mode is a runtime error.
+    return Status(1, s.ToString());
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.
-  if (!read_only_ && platformSetSafeDbPerms(path_) == false) {
+  if (platformSetSafeDbPerms(path_) == false) {
     return Status(1, "Cannot set permissions on RocksDB path: " + path_);
   }
 
@@ -315,10 +306,6 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
 
 Status RocksDBDatabasePlugin::putBatch(const std::string& domain,
                                        const DatabaseStringValueList& data) {
-  if (read_only_) {
-    return Status::success();
-  }
-
   auto cfh = getHandleForColumnFamily(domain);
   if (cfh == nullptr) {
     return Status(1, "Could not get column family for " + domain);
@@ -362,10 +349,6 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
 
 Status RocksDBDatabasePlugin::remove(const std::string& domain,
                                      const std::string& key) {
-  if (read_only_) {
-    return Status::success();
-  }
-
   auto cfh = getHandleForColumnFamily(domain);
   if (cfh == nullptr) {
     return Status(1, "Could not get column family for " + domain);
@@ -384,10 +367,6 @@ Status RocksDBDatabasePlugin::remove(const std::string& domain,
 Status RocksDBDatabasePlugin::removeRange(const std::string& domain,
                                           const std::string& low,
                                           const std::string& high) {
-  if (read_only_) {
-    return Status::success();
-  }
-
   auto cfh = getHandleForColumnFamily(domain);
   if (cfh == nullptr) {
     return Status(1, "Could not get column family for " + domain);

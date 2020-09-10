@@ -59,39 +59,29 @@ Status SQLiteDatabasePlugin::setUp() {
       nullptr);
 
   if (result != SQLITE_OK || db_ == nullptr) {
-    if (requireWrite()) {
+    close();
+    // A failed open in R/W mode is a runtime error.
+    return Status(1, "Cannot open database: " + std::to_string(result));
+  }
+
+  for (const auto& domain : kDomains) {
+    std::string q = "create table if not exists " + domain +
+                    " (key TEXT PRIMARY KEY, value TEXT);";
+    result = sqlite3_exec(db_, q.c_str(), nullptr, nullptr, nullptr);
+    if (result != SQLITE_OK) {
       close();
-      // A failed open in R/W mode is a runtime error.
-      return Status(1, "Cannot open database: " + std::to_string(result));
+      return Status(1, "Cannot create domain: " + domain);
     }
-
-    if (!checkingDB()) {
-      VLOG(1) << "Opening database failed: Continuing with read-only support";
-    }
-
-    read_only_ = true;
   }
 
-  if (!read_only_) {
-    for (const auto& domain : kDomains) {
-      std::string q = "create table if not exists " + domain +
-                      " (key TEXT PRIMARY KEY, value TEXT);";
-      result = sqlite3_exec(db_, q.c_str(), nullptr, nullptr, nullptr);
-      if (result != SQLITE_OK) {
-        close();
-        return Status(1, "Cannot create domain: " + domain);
-      }
-    }
-
-    std::string settings;
-    for (const auto& setting : kDBSettings) {
-      settings += "PRAGMA " + setting.first + "=" + setting.second + "; ";
-    }
-    sqlite3_exec(db_, settings.c_str(), nullptr, nullptr, nullptr);
+  std::string settings;
+  for (const auto& setting : kDBSettings) {
+    settings += "PRAGMA " + setting.first + "=" + setting.second + "; ";
   }
+  sqlite3_exec(db_, settings.c_str(), nullptr, nullptr, nullptr);
 
   // RocksDB may not create/append a directory with acceptable permissions.
-  if (!read_only_ && platformSetSafeDbPerms(path_) == false) {
+  if (platformSetSafeDbPerms(path_) == false) {
     close();
     return Status(1, "Cannot set permissions on database path: " + path_);
   }
@@ -186,10 +176,6 @@ Status SQLiteDatabasePlugin::put(const std::string& domain,
 
 Status SQLiteDatabasePlugin::putBatch(const std::string& domain,
                                       const DatabaseStringValueList& data) {
-  if (read_only_) {
-    return Status::success();
-  }
-
   // Prepare the query, adding placeholders for all the rows we have in `data`
   std::stringstream buffer;
   buffer << "insert or replace into " + domain + " values ";
@@ -240,10 +226,6 @@ Status SQLiteDatabasePlugin::putBatch(const std::string& domain,
 
 Status SQLiteDatabasePlugin::remove(const std::string& domain,
                                     const std::string& key) {
-  if (read_only_) {
-    return Status::success();
-  }
-
   sqlite3_stmt* stmt = nullptr;
   std::string q = "delete from " + domain + " where key IN (?1);";
   sqlite3_prepare_v2(db_, q.c_str(), -1, &stmt, nullptr);
@@ -264,10 +246,6 @@ Status SQLiteDatabasePlugin::remove(const std::string& domain,
 Status SQLiteDatabasePlugin::removeRange(const std::string& domain,
                                          const std::string& low,
                                          const std::string& high) {
-  if (read_only_) {
-    return Status::success();
-  }
-
   sqlite3_stmt* stmt = nullptr;
   std::string q = "delete from " + domain + " where key >= ?1 and key <= ?2;";
   sqlite3_prepare_v2(db_, q.c_str(), -1, &stmt, nullptr);

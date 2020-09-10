@@ -166,9 +166,6 @@ class DatabasePlugin : public Plugin {
   bool checkDB();
 
  protected:
-  /// Check if the database requires write.
-  bool requireWrite() const;
-
   /// Check if the database allows opening.
   bool allowOpen() const;
 
@@ -176,9 +173,6 @@ class DatabasePlugin : public Plugin {
   bool checkingDB() const;
 
  protected:
-  /// The database was opened in a ReadOnly mode.
-  bool read_only_{false};
-
   /// Original requested path on disk.
   std::string path_;
 };
@@ -250,9 +244,6 @@ void resetDatabase();
 
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();
-
-/// Require all database accesses to open a read and write handle.
-void setDatabaseRequireWrite(bool require_write = true);
 
 /**
  * @brief Allow database usage.
