@@ -55,10 +55,10 @@ static inline pt::ptree parseChildNodeToJSONPtree(
       }
 
     } else {
-      // Handle xml tag if they are not Data. It will convert
-      // the xml property tree node to json. This is very common
-      // with UserData tag in the windows events log
-      if (data_field.size() == 0) {
+      // Process xml tags if they are not Data.
+      // Check if the `data_field` has no children and get
+      // the data_value
+      if (data_field.empty()) {
         pt::ptree array_item;
         auto data_value = data_field.get("", "");
         array_item.put("", data_value);
@@ -73,7 +73,7 @@ static inline pt::ptree parseChildNodeToJSONPtree(
   return event_data;
 }
 
-Status parseWindowsEventLogXML(boost::property_tree::ptree& event_object,
+Status parseWindowsEventLogXML(pt::ptree& event_object,
                                const std::wstring& xml_event) {
   event_object = {};
 
@@ -81,20 +81,20 @@ Status parseWindowsEventLogXML(boost::property_tree::ptree& event_object,
     auto converted_xml_event = wstringToString(xml_event.c_str());
     std::stringstream stream(std::move(converted_xml_event));
 
-    boost::property_tree::ptree output;
+    pt::ptree output;
     read_xml(stream, output);
 
     event_object = std::move(output);
 
-  } catch (const boost::property_tree::xml_parser::xml_parser_error& e) {
+  } catch (const pt::xml_parser::xml_parser_error& e) {
     return Status::failure("Failed to parse the XML event: " + e.message());
   }
 
   return Status::success();
 }
 
-Status parseWindowsEventLogPTree(
-    WELEvent& windows_event, const boost::property_tree::ptree& event_object) {
+Status parseWindowsEventLogPTree(WELEvent& windows_event,
+                                 const pt::ptree& event_object) {
   windows_event = {};
 
   WELEvent output;
@@ -179,12 +179,11 @@ Status parseWindowsEventLogPTree(
 
   try {
     std::stringstream stream;
-    boost::property_tree::write_json(
-        stream, property_list.get_child("Event"), false);
+    pt::write_json(stream, property_list.get_child("Event"), false);
 
     output.data = stream.str();
 
-  } catch (const boost::property_tree::json_parser::json_parser_error& e) {
+  } catch (const pt::json_parser::json_parser_error& e) {
     return Status::failure(
         "Invalid Windows event object: the EventData tag is not valid: " +
         e.message());
