@@ -23,8 +23,11 @@ function(generateOsqueryEvents)
       linux/auditdnetlink.cpp
       linux/auditeventpublisher.cpp
       linux/inotify.cpp
+      linux/bpfprocesseventspublisher.cpp
+      linux/bpfsocketeventspublisher.cpp
       linux/syslog.cpp
       linux/udev.cpp
+      linux/setrlimit.cpp
     )
 
   elseif(DEFINED PLATFORM_MACOS)
@@ -73,6 +76,7 @@ function(generateOsqueryEvents)
       thirdparty_libaudit
       thirdparty_libudev
       thirdparty_util-linux
+      thirdparty_ebpfpub
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     target_link_libraries(osquery_events PUBLIC
@@ -93,11 +97,14 @@ function(generateOsqueryEvents)
       linux/inotify.h
       linux/process_events.h
       linux/process_file_events.h
+      linux/bpfprocesseventspublisher.h
+      linux/bpfsocketeventspublisher.h
       linux/selinux_events.h
       linux/apparmor_events.h
       linux/socket_events.h
       linux/syslog.h
       linux/udev.h
+      linux/setrlimit.h
     )
 
   elseif(DEFINED PLATFORM_MACOS)
