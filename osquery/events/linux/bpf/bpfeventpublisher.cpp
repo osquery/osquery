@@ -183,6 +183,8 @@ Status BPFEventPublisher::run() {
   }
 
   while (!isEnding()) {
+    std::size_t invalid_event_count = 0U;
+
     d->perf_event_reader->exec(
         std::chrono::seconds(1U),
 
@@ -219,9 +221,15 @@ Status BPFEventPublisher::run() {
             }
 
             const auto& event_handler = event_handler_it->second;
-            event_handler(state, event);
+            if (!event_handler(state, event)) {
+              ++invalid_event_count;
+            }
           }
         });
+
+    if (invalid_event_count != 0U) {
+      LOG(ERROR) << invalid_event_count << " malformed events received";
+    }
 
     auto event_list = d->system_state_tracker->eventList();
     if (!event_list.empty()) {

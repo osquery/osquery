@@ -19,9 +19,15 @@ struct SystemStateTracker::PrivateData final {
 };
 
 SystemStateTracker::Ref SystemStateTracker::create() {
+  return create(createProcessContext, createProcessContextMap);
+}
+
+SystemStateTracker::Ref SystemStateTracker::create(
+    ProcessContextFactory process_factory,
+    ProcessContextMapFactory process_map_factory) {
   try {
     return SystemStateTracker::Ref(
-        new SystemStateTracker(createProcessContext));
+        new SystemStateTracker(process_factory, process_map_factory));
 
   } catch (const Status& status) {
     LOG(ERROR) << status.getMessage();
@@ -99,11 +105,12 @@ bool SystemStateTracker::closeHandle(pid_t process_id, int fd) {
 }
 
 SystemStateTracker::SystemStateTracker(
-    ProcessContextFactory process_context_factory)
+    ProcessContextFactory process_factory,
+    ProcessContextMapFactory& process_map_factory)
     : d(new PrivateData) {
-  d->process_context_factory = process_context_factory;
+  d->process_context_factory = process_factory;
 
-  if (!createProcessContextMap(d->context.process_map)) {
+  if (!process_map_factory(d->context.process_map)) {
     throw Status::failure("Failed to scan the procfs folder");
   }
 }
@@ -141,6 +148,7 @@ bool SystemStateTracker::createProcess(
     pid_t child_process_id) {
   ProcessContext child_process_context =
       getProcessContext(context, process_context_factory, process_id);
+
   child_process_context.parent_process_id = process_id;
 
   Event event;
@@ -343,6 +351,10 @@ bool SystemStateTracker::closeHandle(
     ProcessContextFactory process_context_factory,
     pid_t process_id,
     int fd) {
+  if (context.process_map.find(process_id) == context.process_map.end()) {
+    return true;
+  }
+
   auto& process_context =
       getProcessContext(context, process_context_factory, process_id);
 
@@ -360,5 +372,9 @@ SystemStateTracker::EventList SystemStateTracker::eventList() {
   d->context.event_list = {};
 
   return event_list;
+}
+
+SystemStateTracker::Context SystemStateTracker::getContextCopy() const {
+  return d->context;
 }
 } // namespace osquery

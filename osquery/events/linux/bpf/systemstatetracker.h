@@ -21,8 +21,12 @@ namespace osquery {
 class SystemStateTracker final : public ISystemStateTracker {
  public:
   using ProcessContextFactory = std::function<bool(ProcessContext&, pid_t)>;
+  using ProcessContextMapFactory = std::function<bool(ProcessContextMap&)>;
 
   static Ref create();
+  static Ref create(ProcessContextFactory process_factory,
+                    ProcessContextMapFactory process_map_factory);
+
   virtual ~SystemStateTracker() override;
 
   virtual bool createProcess(
@@ -58,8 +62,12 @@ class SystemStateTracker final : public ISystemStateTracker {
 
   virtual EventList eventList() override;
 
+  struct Context;
+  Context getContextCopy() const;
+
  private:
-  SystemStateTracker(ProcessContextFactory process_context_factory);
+  SystemStateTracker(ProcessContextFactory process_factory,
+                     ProcessContextMapFactory& process_map_factory);
 
  public:
   struct PrivateData;

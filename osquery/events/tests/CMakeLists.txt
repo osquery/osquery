@@ -130,10 +130,10 @@ endfunction()
 function(generateOsqueryEventsTestsBpftestsTest)
   add_osquery_executable(
     osquery_events_tests_bpftests-test
-    linux/bpf/bpftestsmain.h
-    linux/bpf/bpftestsmain.cpp
 
+    linux/bpf/bpftestsmain.h
     linux/bpf/systemstatetracker.cpp
+    linux/bpf/bpfeventpublisher.cpp
   )
 
   target_link_libraries(osquery_events_tests_bpftests-test PRIVATE

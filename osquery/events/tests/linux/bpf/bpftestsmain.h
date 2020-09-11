@@ -12,13 +12,13 @@
 #include <gtest/gtest.h>
 
 namespace osquery {
-class BPFTests : public testing::Test {
- protected:
-  virtual void SetUp() override;
-};
-
 class SystemStateTrackerTests : public testing::Test {
  protected:
-  virtual void SetUp() override;
+  virtual void SetUp() override{};
+};
+
+class BPFEventPublisherTests : public testing::Test {
+ protected:
+  virtual void SetUp() override{};
 };
 } // namespace osquery
