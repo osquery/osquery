@@ -8,9 +8,9 @@ event-based architecture as the [File Integrity Monitoring
 how event-based tables are created and designed, check out the osquery
 [Table Pubsub Framework](../development/pubsub-framework.md). On all
 supported platforms, process events are abstracted into the
-[`process_events`](https://osquery.io/schema/4.0.2#process_events)
+[`process_events`](https://osquery.io/schema/current#process_events)
 table. Similarly, socket events are abstracted into the
-[`socket_events`](https://osquery.io/schema/2.11.2#process_events)
+[`socket_events`](https://osquery.io/schema/current#process_events)
 table.
 
 To collect process events add a query like:
