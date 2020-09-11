@@ -7,7 +7,12 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/remote/http_client.h>
+#include <osquery/remote/transports/tls.h>
+
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <regex>
 #include <thread>
 
 #ifdef LINUX
@@ -21,11 +26,13 @@
 #include <osquery/logger/logger.h>
 #include <osquery/utils/status/status.h>
 
-#include "osquery/tables/yara/yara_utils.h"
+#include <osquery/remote/uri.h>
+#include <osquery/tables/yara/yara_utils.h>
 
 #ifdef CONCAT
 #undef CONCAT
 #endif
+
 #include <yara.h>
 
 namespace osquery {
@@ -57,7 +64,7 @@ namespace tables {
 
 using YaraRuleSet = std::set<std::string>;
 
-typedef enum { YC_NONE = 0, YC_GROUP, YC_FILE, YC_RULE } YaraRuleType;
+typedef enum { YC_NONE = 0, YC_GROUP, YC_FILE, YC_RULE, YC_URL } YaraRuleType;
 
 using YARAConfigParser = std::shared_ptr<YARAConfigParserPlugin>;
 
@@ -97,6 +104,57 @@ static YARAConfigParser getYaraParser(void) {
   return yaraParser;
 }
 
+bool isRuleUrlAllowed(std::set<std::string> signature_set, std::string url) {
+  Uri test_uri(url);
+  for (const auto& sig : signature_set) {
+    Uri sig_uri(sig);
+
+    // The uri scheme, host and path matches are case sensitive
+    if ((sig_uri.host() == test_uri.host()) &&
+        (sig_uri.scheme() == test_uri.scheme())) {
+      // Check the regex pattern for the allowed URL
+      const std::regex pat(sig_uri.path());
+      if (std::regex_match(test_uri.path(), pat)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+Status getRuleFromURL(const std::string& url, std::string& rule) {
+  auto yaraParser = getYaraParser();
+  if (isNull(yaraParser)) {
+    return Status::failure("YARA config parser plugin not found");
+  }
+
+  try {
+    auto signature_set = yaraParser->url_allow_set();
+    if (!isRuleUrlAllowed(signature_set, url)) {
+      VLOG(1) << "YARA signature url " << url << " not allowed";
+      return Status::failure("YARA signature url not allowed");
+    }
+
+    http::Client client(TLSTransport().getInternalOptions());
+    http::Response response;
+    http::Request request(url);
+
+    response = client.get(request);
+    // Check for the status code and update the rule string on success
+    // and result has been transmitted to the message body
+    if (response.status() == 200) {
+      rule = response.body();
+    } else {
+      VLOG(1) << "Can't fetch rules from url response code: "
+              << response.status();
+    }
+  } catch (const std::exception& e) {
+    return Status::failure(e.what());
+  }
+
+  return Status::success();
+}
+
 void doYARAScan(YR_RULES* rules,
                 const std::string& path,
                 QueryData& results,
@@ -125,6 +183,9 @@ void doYARAScan(YR_RULES* rules,
     break;
   case YC_RULE:
     row["sigrule"] = SQL_TEXT(sigfile);
+    break;
+  case YC_URL:
+    row["sigurl"] = SQL_TEXT(sigfile);
     break;
   case YC_NONE:
     break;
@@ -170,6 +231,24 @@ Status getYaraRules(YARAConfigParser parser,
 
     case YC_RULE: {
       auto status = compileFromString(sign, &tmp_rules);
+      if (!status.ok()) {
+        LOG(WARNING) << "YARA compile error: " << status.toString();
+        continue;
+      }
+      break;
+    }
+
+    case YC_URL: {
+      std::string rule_string;
+      auto request = getRuleFromURL(sign, rule_string);
+      // rule_string will be empty if there is partial fetch or
+      // the function failed to fetch the YARA rules from URL
+      if (!request.ok() || rule_string.empty()) {
+        LOG(WARNING) << "Failed to get YARA rule url: " << sign;
+        continue;
+      }
+
+      auto status = compileFromString(rule_string, &tmp_rules);
       if (!status.ok()) {
         LOG(WARNING) << "YARA compile error: " << status.toString();
         continue;
@@ -239,6 +318,15 @@ QueryData genYara(QueryContext& context) {
     }
   }
 
+  if (context.hasConstraint("sigurl", EQUALS)) {
+    auto sigurls = context.constraints["sigurl"].getAll(EQUALS);
+    auto status = getYaraRules(yaraParser, sigurls, YC_URL, scanContext);
+    if (!status.ok()) {
+      LOG(WARNING) << status.toString();
+      return results;
+    }
+  }
+
   // scan context is empty. One of sig_group, sigfile, or sigrule
   // must be specified with the query
   if (scanContext.empty()) {
@@ -294,8 +382,9 @@ QueryData genYara(QueryContext& context) {
   // Rule string is hashed before adding to the cache. There are
   // possibilities of collision when arbitrary queries are executed
   // with distributed API. Clear the hash string from the cache
+  // Also cleanup the cache block if rules are downloaded from url
   for (const auto& sign : scanContext) {
-    if (sign.first == YC_RULE) {
+    if (sign.first == YC_RULE || sign.first == YC_URL) {
       auto it = rules.find(hashStr(sign.second, sign.first));
       if (it != rules.end()) {
         rules.erase(hashStr(sign.second, sign.first));

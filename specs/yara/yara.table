@@ -13,6 +13,8 @@ schema([
         additional=True, hidden=True),
     Column("strings", TEXT, "Matching strings"),
     Column("tags", TEXT, "Matching tags"),
+    Column("sigurl", TEXT, "Signature url",
+        additional=True, hidden=True)
 ])
 implementation("yara@genYara")
 examples([

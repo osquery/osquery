@@ -15,6 +15,8 @@
 #include <osquery/registry/registry_factory.h>
 #include <osquery/tables/yara/yara_utils.h>
 
+#include <osquery/remote/uri.h>
+
 namespace osquery {
 
 DECLARE_bool(enable_yara_string);
@@ -376,6 +378,26 @@ Status YARAConfigParserPlugin::update(const std::string& source,
           if (!status.ok()) {
             VLOG(1) << "YARA rule compile error: " << status.getMessage();
             return status;
+          }
+        }
+      }
+    }
+  }
+
+  if (yara_config.HasMember("signature_urls")) {
+    auto& sigurl = yara_config["signature_urls"];
+    if (!sigurl.IsArray()) {
+      VLOG(1) << "YARA signature_url must be an array";
+    } else {
+      VLOG(1) << "Compiling YARA signature_url for allowed list";
+      for (const auto& element : sigurl.GetArray()) {
+        if (element.IsString()) {
+          auto url_string = element.GetString();
+          try {
+            Uri test_uri(url_string);
+            url_allow_set_.insert(url_string);
+          } catch (const std::exception&) {
+            VLOG(1) << "Invalid signature url: " << element.GetString();
           }
         }
       }
