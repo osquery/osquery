@@ -120,8 +120,19 @@ Status BPFEventPublisher::setUp() {
             kEventMapSize);
 
     if (!function_tracer_exp.succeeded()) {
+      std::stringstream verbose_message;
+      verbose_message << "Failed to load the BPF probe for syscall "
+                      << tracer_allocator.syscall_name << ": "
+                      << function_tracer_exp.error().message();
+
       if (tracer_allocator.syscall_name == "openat2") {
-        LOG(INFO) << "openat2() system call not found. Skipping";
+        verbose_message << ". This syscall may not be available on this "
+                           "system, continuining despite the error";
+      }
+
+      VLOG(1) << verbose_message.str();
+
+      if (tracer_allocator.syscall_name == "openat2") {
         continue;
       }
 

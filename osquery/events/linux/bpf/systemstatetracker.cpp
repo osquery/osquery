@@ -89,8 +89,13 @@ ProcessContext& SystemStateTracker::getProcessContext(Context& context,
   auto process_it = context.process_map.find(process_id);
   if (process_it == context.process_map.end()) {
     ProcessContext process_context;
-    if (!createProcessContext(process_context, process_id)) {
+    if (createProcessContext(process_context, process_id)) {
+      VLOG(1) << "Created new process context from procfs for pid "
+              << process_id << " some fields may be not accurate";
+    } else {
       process_context = {};
+      VLOG(1) << "Created empty process context for pid " << process_id
+              << ". Fields will show up empty";
     }
 
     auto status =

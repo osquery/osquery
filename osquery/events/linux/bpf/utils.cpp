@@ -8,6 +8,7 @@
 
 #include <osquery/events/linux/bpf/utils.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/tryto.h>
 
 #include <tob/utils/uniquefd.h>
@@ -28,6 +29,7 @@ bool readLinkAt(std::string& destination,
                 const std::string& relative_path) {
   std::vector<char> buffer(4096);
 
+  errno = 0;
   auto bytes_read = readlinkat(
       dirfd, relative_path.c_str(), buffer.data(), buffer.size() - 1U);
 
@@ -113,8 +115,9 @@ bool queryProcessParentID(pid_t& parent_pid, int procs_fd) {
 
   char* space_separator_ptr{nullptr};
   auto output_pid = std::strtoull(parent_pid_ptr, &space_separator_ptr, 10);
-  if (output_pid == 0 || space_separator_ptr == nullptr ||
-      *space_separator_ptr != ' ') {
+
+  // pid 0 is valid (example: kworker)
+  if (space_separator_ptr == nullptr || *space_separator_ptr != ' ') {
     return false;
   }
 
@@ -149,13 +152,14 @@ bool queryProcessFileDescriptorMap(ProcessContext::FileDescriptorMap& fd_map,
   }
 
   for (;;) {
+    errno = 0;
     auto entry = readdir(directory.get());
     if (entry == nullptr) {
-      if (errno != 0) {
-        return false;
+      if (errno == 0 || errno == ENOENT) {
+        break;
       }
 
-      break;
+      return false;
     }
 
     const char* string_fd = entry->d_name;
@@ -218,30 +222,38 @@ bool createProcessContext(ProcessContext& process_context, pid_t process_id) {
     process_root_fd.reset(fd);
   }
 
-  // Get the binary path
-  if (!readLinkAt(process_context.binary_path, process_root_fd.get(), "exe")) {
+  // Attempt to parse the parent process id from the stat file
+  if (!queryProcessParentID(process_context.parent_process_id,
+                            process_root_fd.get())) {
     return false;
   }
 
+  // If the parent process id is set to 0, then this may be a special
+  // process (or a thread! like a kworker). We can expect cwd/exe/cmdline to
+  // not work correctly, but we should still have access to an empty fd folder
+  auto ignore_errors = process_context.parent_process_id == 0;
+
   // Get the current working directory
-  if (!readLinkAt(process_context.cwd, process_root_fd.get(), "cwd")) {
+  if (!readLinkAt(process_context.cwd, process_root_fd.get(), "cwd") &&
+      !ignore_errors) {
+    return false;
+  }
+
+  // Get the binary path
+  if (!readLinkAt(process_context.binary_path, process_root_fd.get(), "exe") &&
+      !ignore_errors) {
     return false;
   }
 
   // Get the command line arguments
-  if (!queryProcessArgv(process_context.argv, process_root_fd.get())) {
+  if (!queryProcessArgv(process_context.argv, process_root_fd.get()) &&
+      !ignore_errors) {
     return false;
   }
 
   // Enumerate the file descriptors for standard files
-  if (!queryProcessFileDescriptorMap(process_context.fd_map,
-                                     process_root_fd.get())) {
-    return false;
-  }
-
-  // Attempt to parse the parent process id from the stat file
-  return queryProcessParentID(process_context.parent_process_id,
-                              process_root_fd.get());
+  return queryProcessFileDescriptorMap(process_context.fd_map,
+                                       process_root_fd.get());
 }
 
 bool createProcessContextMap(ProcessContextMap& process_map) {
@@ -268,6 +280,9 @@ bool createProcessContextMap(ProcessContextMap& process_map) {
     ProcessContext process_context = {};
     if (createProcessContext(process_context, process_id)) {
       process_map.insert({process_id, std::move(process_context)});
+    } else {
+      VLOG(1) << "Failed to create the process context from procfs for pid "
+              << process_id;
     }
   }
 
