@@ -21,7 +21,7 @@ function(ebpfpubLibraryMain)
 
   add_subdirectory("src" EXCLUDE_FROM_ALL)
 
-  target_link_libraries(ebpfpub PUBLIC thirdparty_cxx_settings)
+  target_link_libraries(ebpfpub PRIVATE thirdparty_cxx_settings)
   add_library(thirdparty_ebpfpub ALIAS ebpfpub)
 endfunction()
 

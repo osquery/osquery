@@ -6,17 +6,20 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/events/linux/bpfprocesseventspublisher.h>
+#include <osquery/events/linux/bpf/bpfeventpublisher.h>
 
 namespace osquery {
 
-class BPFProcessEventsSubscriber final
-    : public EventSubscriber<BPFProcessEventsPublisher> {
+class BPFEventSubscriber final : public EventSubscriber<BPFEventPublisher> {
  public:
-  virtual ~BPFProcessEventsSubscriber() override = default;
+  virtual ~BPFEventSubscriber() override = default;
   virtual Status init() override;
 
   Status eventCallback(const ECRef& event_context,
                        const SCRef& subscription_context);
+
+  static bool generateRow(Row& row, const ISystemStateTracker::Event& event);
+  static std::vector<Row> generateRowList(
+      const ISystemStateTracker::EventList& event_list);
 };
 } // namespace osquery

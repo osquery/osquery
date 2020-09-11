@@ -8,20 +8,19 @@
 
 #include <mutex>
 
-#include <osquery/events/linux/setrlimit.h>
-#include <osquery/flags.h>
+#include <osquery/core/flags.h>
+#include <osquery/events/linux/bpf/setrlimit.h>
 
 #include <sys/resource.h>
 
 namespace osquery {
-DECLARE_bool(enable_bpf_process_events);
-DECLARE_bool(enable_bpf_socket_events);
+DECLARE_bool(enable_bpf_events);
 
 namespace {
 std::once_flag setrlimit_flag;
 
 void configureBPFMemoryLimitsHelper() {
-  if (!FLAGS_enable_bpf_process_events && !FLAGS_enable_bpf_socket_events) {
+  if (!FLAGS_enable_bpf_events) {
     return;
   }
 
