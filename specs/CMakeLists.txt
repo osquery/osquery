@@ -252,6 +252,7 @@ function(generateNativeTables)
     "sleuthkit/device_partitions.table:linux,macos,freebsd,windows"
     "smart/smart_drive_info.table:linux,macos"
     "user_groups.table:linux,macos,windows"
+    "windows/background_activities_moderator.table:windows"
     "windows/bitlocker_info.table:windows"
     "windows/chassis_info.table:windows"
     "windows/logon_sessions.table:windows"

@@ -265,6 +265,7 @@ function(generateTestsIntegrationTablesTestsTest)
       arp_cache.cpp
       authenticode.cpp
       autoexec.cpp
+      background_activities_moderator.cpp
       bitlocker_info.cpp
       certificates.cpp
       connectivity.cpp
