@@ -10,13 +10,6 @@
 // see README.api of libdpkg-dev
 #define LIBDPKG_VOLATILE_API
 
-extern "C" {
-#include <dpkg/dpkg-db.h>
-#include <dpkg/dpkg.h>
-#include <dpkg/parsedump.h>
-#include <dpkg/pkg-array.h>
-}
-
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/core/system.h>
@@ -25,6 +18,13 @@ extern "C" {
 #include <osquery/logger/logger.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
+
+extern "C" {
+#include <dpkg/dpkg-db.h>
+#include <dpkg/dpkg.h>
+#include <dpkg/parsedump.h>
+#include <dpkg/pkg-array.h>
+}
 
 namespace osquery {
 namespace tables {
