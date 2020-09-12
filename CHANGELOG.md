@@ -3,40 +3,44 @@
 
 [Git Commits](https://github.com/osquery/osquery/compare/4.4.0...4.5.0)
 
+We would like to thank all of the contributors working on bootstrapping the ARM64/AARCH64 support and Windows 32bit support.
+Additionally, we want to thank those working on Unicode support and all the bug fixes, documentation improvements, and new features.
+Thank you! :clap:
+
 ### New Features
 
-- Aarch64 beta support for Linux ([#6612](https://github.com/osquery/osquery/pull/6612))
+- ARM64/AARCH64 beta support for Linux ([#6612](https://github.com/osquery/osquery/pull/6612))
 - Windows 32bit support ([#6543](https://github.com/osquery/osquery/pull/6543))
 - Fix buildup of RocksDB SST files ([#6606](https://github.com/osquery/osquery/pull/6606))
 
 ### Under the Hood improvements
 
-- events: Remove selectAllFrom from linux process events callback ([#6638](https://github.com/osquery/osquery/pull/6638))
-- database: Remove read only concept ([#6637](https://github.com/osquery/osquery/pull/6637))
-- database: Move initialization retry logic into DB API ([#6633](https://github.com/osquery/osquery/pull/6633))
-- refactor: Move osquery/include files into respective CMake targets ([#6557](https://github.com/osquery/osquery/pull/6557))
-- events: Memoize EventFactory::getType ([#6555](https://github.com/osquery/osquery/pull/6555))
+- Remove selectAllFrom from Linux process_events callback ([#6638](https://github.com/osquery/osquery/pull/6638))
+- Remove database read only concept ([#6637](https://github.com/osquery/osquery/pull/6637))
+- Move database initialization retry logic into DB API ([#6633](https://github.com/osquery/osquery/pull/6633))
+- Move osquery/include files into respective CMake targets ([#6557](https://github.com/osquery/osquery/pull/6557))
+- Memoize EventFactory::getType ([#6555](https://github.com/osquery/osquery/pull/6555))
 - Update schedule counter behavior ([#6223](https://github.com/osquery/osquery/pull/6223))
 - Define UNICODE and _UNICODE preprocessors for windows ([#6338](https://github.com/osquery/osquery/pull/6338))
-- wmi: adding utility function to convert datetime to FILETIME ([#5901](https://github.com/osquery/osquery/pull/5901))
-- detangle: Move osquery shutdown logic outside of Initializer ([#6530](https://github.com/osquery/osquery/pull/6530))
+- Add WMI utility function to convert datetime to FILETIME ([#5901](https://github.com/osquery/osquery/pull/5901))
+- Move osquery shutdown logic outside of Initializer ([#6530](https://github.com/osquery/osquery/pull/6530))
 
 ### Table Changes
 
-- Support for Background Activity Moderator ([#6585](https://github.com/osquery/osquery/pull/6585))
+- Support for Windows Background Activity Moderator ([#6585](https://github.com/osquery/osquery/pull/6585))
 - Add apparmor_events table to Linux ([#4982](https://github.com/osquery/osquery/pull/4982))
-- Add sigurl to get the YARA signature from https server for scan  ([#6607](https://github.com/osquery/osquery/pull/6607))
-- Add sigrules to pass YARA signature with query ([#6568](https://github.com/osquery/osquery/pull/6568))
+- Add sigurl column to get YARA signatures from and HTTPS server ([#6607](https://github.com/osquery/osquery/pull/6607))
+- Add sigrules column to pass YARA signatures within queries ([#6568](https://github.com/osquery/osquery/pull/6568))
 - Add non-evented table for querying Windows Events Log ([#6563](https://github.com/osquery/osquery/pull/6563))
 - Improve chassis_types and security_breach columns within chassis_info ([#6608](https://github.com/osquery/osquery/pull/6608))
-- powershell_events: Fix bool type usage ([#6584](https://github.com/osquery/osquery/pull/6584))
-- Add FileVersionRaw column to file table for windows ([#5771](https://github.com/osquery/osquery/pull/5771))
+- Fix bool type usage in powershell_events ([#6584](https://github.com/osquery/osquery/pull/6584))
+- Add FileVersionRaw column to file table for Windows ([#5771](https://github.com/osquery/osquery/pull/5771))
 - Enable YARA table on Windows ([#6564](https://github.com/osquery/osquery/pull/6564))
 - Add dns_cache table for Windows ([#6505](https://github.com/osquery/osquery/pull/6505))
 - Add support for processing KILL syscall ([#6435](https://github.com/osquery/osquery/pull/6435))
 - Add startup_items table for Linux ([#6502](https://github.com/osquery/osquery/pull/6502))
-- Add shimcache Table ([#6463](https://github.com/osquery/osquery/pull/6463))
-- Refactor shell_history to use generators (it will now use less memory) ([#6541](https://github.com/osquery/osquery/pull/6541))
+- Add shimcache table ([#6463](https://github.com/osquery/osquery/pull/6463))
+- Refactor shell_history to use generators (it will use less memory) ([#6541](https://github.com/osquery/osquery/pull/6541))
 
 ### Bug Fixes
 
@@ -45,39 +49,39 @@
 - Add check for character_frequencies size ([#6625](https://github.com/osquery/osquery/pull/6625))
 - Fix race in removing external TablePlugins ([#6623](https://github.com/osquery/osquery/pull/6623))
 - Force shell to disable watchdog and logger ([#6621](https://github.com/osquery/osquery/pull/6621))
-- shell: Return early if relative flags are used ([#6605](https://github.com/osquery/osquery/pull/6605))
+- Return early within the shell if relative flags are used ([#6605](https://github.com/osquery/osquery/pull/6605))
 - Apply watcher delay each time the worker is started ([#6604](https://github.com/osquery/osquery/pull/6604))
 - Set global output function for Thrift ([#6592](https://github.com/osquery/osquery/pull/6592))
 - Fix incorrect readFile params in createPidFile ([#6578](https://github.com/osquery/osquery/pull/6578))
 - Fix call to LocalFree() on uninit ptr inside getUidFromSid() ([#6579](https://github.com/osquery/osquery/pull/6579))
 - Fix readFile to observe requested read size ([#6569](https://github.com/osquery/osquery/pull/6569))
-- syslog: Replace fstream with custom non-blocking getline ([#6539](https://github.com/osquery/osquery/pull/6539))
-- events: Only fire if publisher exists ([#6553](https://github.com/osquery/osquery/pull/6553))
+- Replace fstream within syslog_events with a custom non-blocking getline ([#6539](https://github.com/osquery/osquery/pull/6539))
+- Only fire events if a publisher exists ([#6553](https://github.com/osquery/osquery/pull/6553))
 - Fix Leak in psidToString ([#6548](https://github.com/osquery/osquery/pull/6548))
-- rpm: Fix memory leaks in rpm_package_files ([#6544](https://github.com/osquery/osquery/pull/6544))
+- Fix memory leaks in rpm_package_files ([#6544](https://github.com/osquery/osquery/pull/6544))
 - Change "Symlink loop" message from warning to verbose ([#6545](https://github.com/osquery/osquery/pull/6545))
 
 ### Documentation
 
 - Update process auditing docs schema link ([#6645](https://github.com/osquery/osquery/pull/6645))
-- Improve descriptions for table: processes ([#6596](https://github.com/osquery/osquery/pull/6596))
+- Improve descriptions for the processes table ([#6596](https://github.com/osquery/osquery/pull/6596))
 - Replace slackin with Slack shared invite ([#6617](https://github.com/osquery/osquery/pull/6617))
-- Update copyright notices ([#6589](https://github.com/osquery/osquery/pull/6589), [#6590](https://github.com/osquery/osquery/pull/6590))
+- Update copyright notices to osquery foundation ([#6589](https://github.com/osquery/osquery/pull/6589), [#6590](https://github.com/osquery/osquery/pull/6590))
 
 ### Build
 
-- Fix Windows build removing non existing C11 conformance ([#6629](https://github.com/osquery/osquery/pull/6629))
-- Remove ExecStartPre from systemd service unit -- do not create empty config file ([#6586](https://github.com/osquery/osquery/pull/6586))
-- ci: Fix pip upgrade warning ([#6576](https://github.com/osquery/osquery/pull/6576))
-- CMake detect MAJOR_IN_SYSMACROS/MKDEV for librpm ([#6554](https://github.com/osquery/osquery/pull/6554))
+- Fix Windows build by removing non existing C11 conformance ([#6629](https://github.com/osquery/osquery/pull/6629))
+- Remove ExecStartPre from systemd service unit ([#6586](https://github.com/osquery/osquery/pull/6586))
+- Fix pip upgrade warning within CI ([#6576](https://github.com/osquery/osquery/pull/6576))
+- Detect MAJOR_IN_SYSMACROS/MKDEV for librpm in CMake ([#6554](https://github.com/osquery/osquery/pull/6554))
 - Add curl_certificate tests ([#5281](https://github.com/osquery/osquery/pull/5281))
 - Update YARA library to 4.0.2 ([#6559](https://github.com/osquery/osquery/pull/6559))
-- fsevents: Improve testing assumptions and flush fsevents when stopping ([#6552](https://github.com/osquery/osquery/pull/6552))
-- fix the test utility to allow windows profiling ([#6550](https://github.com/osquery/osquery/pull/6550))
-- build: Support ASAN for boost coroutine2 using ucontext ([#6531](https://github.com/osquery/osquery/pull/6531))
-- CPack: Update and uniform instructions to build a package ([#6529](https://github.com/osquery/osquery/pull/6529))
-- CPack: Use specific RPM variables to set the package name ([#6527](https://github.com/osquery/osquery/pull/6527))
-- Azure Pipelines: Update compiler version used to v142 ([#6528](https://github.com/osquery/osquery/pull/6528))
+- Improve testing assumptions and flush fsevents when stopping ([#6552](https://github.com/osquery/osquery/pull/6552))
+- Fix the test utility to allow Windows profiling ([#6550](https://github.com/osquery/osquery/pull/6550))
+- Support ASAN for boost coroutine2 using ucontext ([#6531](https://github.com/osquery/osquery/pull/6531))
+- Update instructions for CPack package building ([#6529](https://github.com/osquery/osquery/pull/6529))
+- Use specific RPM variables to set the package name ([#6527](https://github.com/osquery/osquery/pull/6527))
+- Update compiler version used to v142 within Azure ([#6528](https://github.com/osquery/osquery/pull/6528))
 
 ### Hardening
 
