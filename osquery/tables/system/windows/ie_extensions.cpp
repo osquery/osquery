@@ -45,9 +45,7 @@ const std::vector<std::string> kIEBrowserHelperKeys = {
 
 static inline Status getBHOs(QueryData& results) {
   QueryData regQueryResults;
-  auto ret =
-      queryMultipleRegistryKeys(kIEBrowserHelperKeys, "", regQueryResults);
-
+  auto ret = queryMultipleRegistryKeys(kIEBrowserHelperKeys, regQueryResults);
   if (!ret.ok()) {
     return ret;
   }
