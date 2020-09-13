@@ -19,6 +19,11 @@ import test_base
 SHELL_TIMEOUT = 10
 EXIT_CATASTROPHIC = 78
 
+
+def configFile(config_name):
+    return os.path.join(test_base.TEST_CONFIGS_DIR, config_name)
+
+
 class OsqueryiTest(unittest.TestCase):
     def setUp(self):
         self.binary = test_base.getLatestOsqueryBinary('osqueryi')
@@ -40,19 +45,19 @@ class OsqueryiTest(unittest.TestCase):
             self.binary,
             "--config_check",
             "--database_path=%s" % (self.dbpath),
-            "--config_path=%s/test.config" % test_base.SCRIPT_DIR,
+            "--config_path=%s" % configFile("test.config"),
             "--extensions_autoload=",
             "--verbose",
         ],
             SHELL_TIMEOUT)
-        self.assertEqual(proc.stdout, "")
+        self.assertEqual(proc.stdout, b"")
         print(proc.stdout)
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
     def test_config_dump(self):
         '''Test that config raw output is dumped when requested'''
-        config = os.path.join(test_base.SCRIPT_DIR, "test_noninline_packs.conf")
+        config = configFile("test_noninline_packs.conf")
         proc = test_base.TimeoutRunner([
                 self.binary,
                 "--config_dump",
@@ -64,7 +69,7 @@ class OsqueryiTest(unittest.TestCase):
         content = ""
         with open(config, 'r') as fh:
             content = fh.read()
-        actual = proc.stdout
+        actual = proc.stdout.decode('utf-8')
 
         if os.name == "nt":
             actual = actual.replace('\r', '')
@@ -98,7 +103,7 @@ class OsqueryiTest(unittest.TestCase):
             "--extensions_autoload=",
             "--verbose",
             "--database_path=%s" % (self.dbpath),
-            "--config_path=%s" % os.path.join(test_base.SCRIPT_DIR, "test.badconfig")
+            "--config_path=%s" % configFile("test.badconfig"),
         ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.proc.poll(), 1)
@@ -122,16 +127,15 @@ class OsqueryiTest(unittest.TestCase):
 
     def test_config_check_example(self):
         '''Test that the example config passes'''
-        example_path = os.path.join("deployment", "osquery.example.conf")
         proc = test_base.TimeoutRunner([
                 self.binary,
                 "--config_check",
-                "--config_path=%s" % os.path.join(test_base.SCRIPT_DIR, "..", example_path),
+                "--config_path=%s" % configFile("osquery.example.conf"),
                 "--extensions_autoload=",
                 "--verbose",
             ],
             SHELL_TIMEOUT)
-        self.assertEqual(proc.stdout, "")
+        self.assertEqual(proc.stdout, b"")
         print (proc.stdout)
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
@@ -192,9 +196,9 @@ class OsqueryiTest(unittest.TestCase):
             SHELL_TIMEOUT
         )
         if os.name == "nt":
-            self.assertEqual(proc.stdout, "[\r\n  {\"0\":\"0\"}\r\n]\r\n")
+            self.assertEqual(proc.stdout, b"[\r\n  {\"0\":\"0\"}\r\n]\r\n")
         else:
-            self.assertEqual(proc.stdout, "[\n  {\"0\":\"0\"}\n]\n")
+            self.assertEqual(proc.stdout, b"[\n  {\"0\":\"0\"}\n]\n")
         print(proc.stdout)
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
@@ -251,4 +255,5 @@ class OsqueryiTest(unittest.TestCase):
         self.assertEqual(result, [{'a_number':'314159'}])
 
 if __name__ == '__main__':
-    test_base.Tester().run()
+    with test_base.CleanChildProcesses():
+        test_base.Tester().run()

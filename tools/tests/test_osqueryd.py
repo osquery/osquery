@@ -30,7 +30,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
     @test_base.flaky
     def test_2_daemon_with_option(self):
-        logger_path = test_base.getTestDirectory(test_base.CONFIG_DIR)
+        logger_path = test_base.getTestDirectory(test_base.TEMP_DIR)
         daemon = self._run_daemon(
             {
                 "disable_watchdog": True,
@@ -150,7 +150,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
     @test_base.flaky
     def test_6_logger_mode(self):
-        logger_path = test_base.getTestDirectory(test_base.CONFIG_DIR)
+        logger_path = test_base.getTestDirectory(test_base.TEMP_DIR)
         test_mode = 0o754  # Strange mode that should never exist
         daemon = self._run_daemon(
             {
@@ -194,7 +194,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     def test_7_logger_stdout(self):
-        logger_path = test_base.getTestDirectory(test_base.CONFIG_DIR)
+        logger_path = test_base.getTestDirectory(test_base.TEMP_DIR)
         daemon = self._run_daemon({
             "disable_watchdog": True,
             "disable_extensions": True,
