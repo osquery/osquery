@@ -281,6 +281,7 @@ function(generateTestsIntegrationTablesTestsTest)
       kernel_info.cpp
       kva_speculative_info.cpp
       logical_drives.cpp
+      office_mru.cpp
       ntdomains.cpp
       ntfs_acl_permissions.cpp
       patches.cpp
