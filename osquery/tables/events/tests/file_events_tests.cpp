@@ -23,7 +23,6 @@
 namespace osquery {
 
 DECLARE_bool(registry_exceptions);
-DECLARE_bool(disable_database);
 
 class FileEventSubscriber;
 
@@ -32,11 +31,7 @@ class FileEventsTableTests : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-
-    // Force registry to use ephemeral database plugin
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     Config::get().reset();
 

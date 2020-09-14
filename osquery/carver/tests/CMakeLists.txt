@@ -25,7 +25,6 @@ function(generateOsqueryCarverTestsTest)
     osquery_utils_conversions
     osquery_utils_info
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )

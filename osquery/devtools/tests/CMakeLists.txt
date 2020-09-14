@@ -23,7 +23,6 @@ function(generateOsqueryDevtoolsTestsPrintertestsTest)
     osquery_remote_enroll_tlsenroll
     osquery_devtools
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )

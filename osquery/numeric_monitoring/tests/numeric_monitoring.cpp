@@ -26,16 +26,12 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
-
 class NumericMonitoringTests : public testing::Test {
  public:
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 };
 

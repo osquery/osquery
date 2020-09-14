@@ -22,9 +22,9 @@ function(generateTestsIntegrationTablesIntegrationtestshelper)
 
   target_link_libraries(tests_integration_tables_integrationtestshelper PUBLIC
     osquery_cxx_settings
+    osquery_database
     osquery_sql
     osquery_utils
-    plugins_database_ephemeral
     thirdparty_boost
     thirdparty_googletest_headers
   )
@@ -334,7 +334,6 @@ function(generateTestsIntegrationTablesTestsTest)
     osquery_utils_conversions
     osquery_utils_info
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     specs_tables
     tests_integration_tables_integrationtestshelper
     thirdparty_googletest

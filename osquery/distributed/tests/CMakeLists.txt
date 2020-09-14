@@ -16,6 +16,7 @@ function(generateOsqueryDistributedTestsTest)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
+    osquery_database
     osquery_distributed
     osquery_extensions
     osquery_extensions_implthrift
@@ -27,7 +28,6 @@ function(generateOsqueryDistributedTestsTest)
     osquery_utils_info
     osquery_utils_system_time
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     plugins_distributed_tls_distributedtls
     plugins_remote_enroll_tlsenroll
     specs_tables

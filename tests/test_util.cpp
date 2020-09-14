@@ -49,7 +49,6 @@ DECLARE_string(extensions_socket);
 DECLARE_string(extensions_autoload);
 DECLARE_string(enroll_tls_endpoint);
 DECLARE_bool(disable_logging);
-DECLARE_bool(disable_database);
 
 using chrono_clock = std::chrono::high_resolution_clock;
 
@@ -67,8 +66,6 @@ void initTesting() {
   if (osquery::isPlatform(PlatformType::TYPE_WINDOWS)) {
     kTestDataPath = "../" + kTestDataPath;
   }
-
-  registryAndPluginInit();
 
   // Allow unit test execution from anywhere in the osquery source/build tree.
   if (fs::exists("test_data/test_inline_pack.conf")) {
@@ -111,14 +108,10 @@ void initTesting() {
   FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
 
   FLAGS_disable_logging = true;
-  FLAGS_disable_database = true;
-
-  // Tests need a database plugin.
-  // Set up the database instance for the unittests.
-  setDatabaseAllowOpen();
-  initDatabasePlugin();
 
   platformSetup();
+  registryAndPluginInit();
+  initDatabasePluginForTesting();
 }
 
 void shutdownTesting() {

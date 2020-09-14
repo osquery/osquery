@@ -31,7 +31,6 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
 DECLARE_string(tls_server_certs);
 
 class TLSTransportsTests : public testing::Test {
@@ -55,9 +54,7 @@ class TLSTransportsTests : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 
   void startServer(const std::string& server_cert = {}) {

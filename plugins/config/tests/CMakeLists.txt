@@ -26,7 +26,6 @@ function(generatePluginsConfigTestsTlsconfigteststest)
     osquery_sql
     osquery_utils_system_time
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     plugins_remote_enroll_tlsenroll
     thirdparty_googletest
   )

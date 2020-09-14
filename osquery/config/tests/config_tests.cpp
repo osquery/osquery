@@ -44,7 +44,6 @@ namespace osquery {
 DECLARE_uint64(config_refresh);
 DECLARE_uint64(config_accelerated_refresh);
 DECLARE_bool(config_enable_backup);
-DECLARE_bool(disable_database);
 
 namespace fs = boost::filesystem;
 
@@ -58,9 +57,7 @@ class ConfigTests : public testing::Test {
   ConfigTests() {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     Config::get().reset();
   }

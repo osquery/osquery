@@ -26,7 +26,6 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
-DECLARE_bool(disable_database);
 
 const int kMaxEventLatency = 3000;
 
@@ -35,10 +34,7 @@ class INotifyTests : public testing::Test {
   void SetUp() override {
     setToolType(ToolType::TEST);
     registryAndPluginInit();
-
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     // INotify will use data from the config and config parsers.
     Registry::get().registry("config_parser")->setUp();

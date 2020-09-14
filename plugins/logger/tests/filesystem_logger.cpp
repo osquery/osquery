@@ -30,7 +30,6 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
 DECLARE_string(logger_path);
 DECLARE_bool(disable_logging);
 DECLARE_bool(logger_numerics);
@@ -40,9 +39,7 @@ class FilesystemLoggerTests : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     auto logger_path = fs::temp_directory_path() /
         fs::unique_path("osquery.filesystem_logger_tests.%%%%.%%%%.logs");

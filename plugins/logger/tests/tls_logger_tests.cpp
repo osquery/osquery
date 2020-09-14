@@ -25,9 +25,7 @@ class TLSLoggerTests : public testing::Test {
   void SetUp() {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 
  public:

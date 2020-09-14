@@ -16,6 +16,7 @@ function(generateOsqueryLoggerTestsTest)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
+    osquery_database
     osquery_distributed
     osquery_extensions
     osquery_extensions_implthrift
@@ -25,7 +26,6 @@ function(generateOsqueryLoggerTestsTest)
     osquery_utils_info
     osquery_utils_system_time
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )

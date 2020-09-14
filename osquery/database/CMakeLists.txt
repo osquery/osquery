@@ -11,6 +11,7 @@ function(osqueryDatabaseMain)
     add_subdirectory("tests")
   endif()
 
+  generateOsqueryDatabaseEphemeral()
   generateOsqueryDatabase()
 endfunction()
 
@@ -22,6 +23,7 @@ function(generateOsqueryDatabase)
   target_link_libraries(osquery_database PUBLIC
     osquery_cxx_settings
     osquery_core
+    osquery_database_ephemeral
     osquery_utils
     osquery_utils_conversions
     thirdparty_boost
@@ -31,10 +33,26 @@ function(generateOsqueryDatabase)
     database.h
   )
 
+  enableLinkWholeArchive(osquery_database)
+
   generateIncludeNamespace(osquery_database "osquery/database" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_database_tests-test COMMAND osquery_database_tests-test)
   add_test(NAME osquery_database_tests_results-test COMMAND osquery_database_tests_results-test)
+endfunction()
+
+function(generateOsqueryDatabaseEphemeral)
+  add_osquery_library(osquery_database_ephemeral EXCLUDE_FROM_ALL
+    ephemeral.cpp
+  )
+
+  target_link_libraries(osquery_database_ephemeral PUBLIC
+    osquery_cxx_settings
+    osquery_registry
+    thirdparty_boost
+  )
+
+  enableLinkWholeArchive(osquery_database_ephemeral)
 endfunction()
 
 osqueryDatabaseMain()

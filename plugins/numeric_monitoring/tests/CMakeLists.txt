@@ -21,7 +21,6 @@ function(pluginsNumericmonitoringTestsFilesystemtestsTest)
     osquery_numericmonitoring
     osquery_remote_enroll_tlsenroll
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     plugins_numericmonitoring_filesystem
     specs_tables
     thirdparty_googletest

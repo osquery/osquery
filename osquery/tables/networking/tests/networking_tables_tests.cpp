@@ -19,7 +19,6 @@
 #include <osquery/sql/sql.h>
 
 namespace osquery {
-DECLARE_bool(disable_database);
 namespace tables {
 
 // generate the content that would be found in an /etc/hosts file
@@ -106,9 +105,7 @@ class NetworkingTablesTests : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 };
 

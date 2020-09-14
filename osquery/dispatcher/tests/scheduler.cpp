@@ -21,7 +21,6 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
 DECLARE_bool(disable_logging);
 DECLARE_uint64(schedule_reload);
 
@@ -29,9 +28,7 @@ class SchedulerTests : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     logging_ = FLAGS_disable_logging;
     FLAGS_disable_logging = true;

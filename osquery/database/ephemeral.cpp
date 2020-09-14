@@ -7,11 +7,77 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/database/database.h>
+#include <osquery/registry/registry_factory.h>
+
+#include <boost/variant.hpp>
+
 #include <iostream>
 
-#include "plugins/database/ephemeral.h"
-
 namespace osquery {
+
+class EphemeralDatabasePlugin : public DatabasePlugin {
+  using DBType =
+      std::map<std::string,
+               std::map<std::string, boost::variant<int, std::string>>>;
+  template <typename T>
+  Status getAny(const std::string& domain,
+                const std::string& key,
+                T& value) const;
+
+ private:
+  void setValue(const std::string& domain,
+                const std::string& key,
+                const std::string& value);
+
+  void setValue(const std::string& domain, const std::string& key, int value);
+
+ public:
+  /// Data retrieval method.
+
+  Status get(const std::string& domain,
+             const std::string& key,
+             std::string& value) const override;
+  Status get(const std::string& domain,
+             const std::string& key,
+             int& value) const override;
+  /// Data storage method.
+  Status put(const std::string& domain,
+             const std::string& key,
+             const std::string& value) override;
+  Status put(const std::string& domain,
+             const std::string& key,
+             int value) override;
+
+  Status putBatch(const std::string& domain,
+                  const DatabaseStringValueList& data) override;
+
+  /// Data removal method.
+  Status remove(const std::string& domain, const std::string& k) override;
+
+  Status removeRange(const std::string& domain,
+                     const std::string& low,
+                     const std::string& high) override;
+
+  /// Key/index lookup method.
+  Status scan(const std::string& domain,
+              std::vector<std::string>& results,
+              const std::string& prefix,
+              uint64_t max) const override;
+
+ public:
+  /// Database workflow: open and setup.
+  Status setUp() override {
+    DBType().swap(db_);
+    return Status(0);
+  }
+
+ private:
+  DBType db_;
+};
+
+/// Backing-storage provider for osquery internal/core.
+REGISTER_INTERNAL(EphemeralDatabasePlugin, "database", "ephemeral");
 
 template <typename T>
 Status EphemeralDatabasePlugin::getAny(const std::string& domain,
@@ -30,10 +96,9 @@ Status EphemeralDatabasePlugin::getAny(const std::string& domain,
   try {
     value = boost::get<T>(keyIterator->second);
   } catch (const boost::bad_get& e) {
-    LOG(WARNING) << "Type error getting string value for (domain,key) : ("
-                 << key << "," << domain << ") " << e.what();
-    return Status(
-        1, "EphemeralDatabasePlugin::get was requested incorrect type(string)");
+    return Status(1,
+                  "Type error getting string value for " + key + " in domain " +
+                      domain + ": " + e.what());
   }
   return Status(0);
 }

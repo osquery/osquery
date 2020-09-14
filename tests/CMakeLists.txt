@@ -26,6 +26,7 @@ function(generateTestsHelper)
   target_link_libraries(tests_helper PUBLIC
     osquery_cxx_settings
     osquery_core
+    osquery_database
     osquery_filesystem
     osquery_process
     osquery_remote_serializers_serializerjson
@@ -33,7 +34,6 @@ function(generateTestsHelper)
     osquery_utils
     osquery_utils_conversions
     osquery_utils_system_time
-    plugins_database_ephemeral
     specs_tables
     thirdparty_boost
     thirdparty_googletest_headers

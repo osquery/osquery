@@ -10,7 +10,6 @@
 #include <gtest/gtest.h>
 
 #include <osquery/core/system.h>
-#include <osquery/database/database.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 

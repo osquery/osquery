@@ -477,7 +477,7 @@ Status initDatabasePlugin() {
     if (status.ok()) {
       break;
     }
-
+    printf("%s\n", status.getMessage().c_str());
     if (FLAGS_disable_database) {
       // Do not try multiple times to initialize the emphemeral plugin.
       break;
@@ -487,6 +487,14 @@ Status initDatabasePlugin() {
 
   kDBInitialized = status.ok();
   return status;
+}
+
+Status initDatabasePluginForTesting() {
+  // Use the built-in ephemeral database.
+  FLAGS_disable_database = true;
+  setDatabaseAllowOpen();
+  initDatabasePlugin();
+  return Status::success();
 }
 
 bool databaseInitialized() {

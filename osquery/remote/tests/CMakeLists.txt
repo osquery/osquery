@@ -30,7 +30,6 @@ function(generateOsqueryRemoteTestsRemotetestsutils)
     osquery_utils_conversions
     osquery_utils_info
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     tests_helper
   )
 endfunction()
@@ -50,7 +49,6 @@ function(generateOsqueryRemoteTestsRequeststestsTest)
     osquery_utils_conversions
     osquery_utils_info
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     tests_helper
     thirdparty_googletest
   )

@@ -20,18 +20,13 @@
 #include <osquery/utils/info/tool_type.h>
 
 namespace osquery {
-DECLARE_bool(disable_database);
 
 class EventsTests : public ::testing::Test {
  protected:
   void SetUp() override {
     setToolType(ToolType::TEST);
     registryAndPluginInit();
-
-    // Force registry to use ephemeral database plugin
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     RegistryFactory::get().registry("config_parser")->setUp();
   }

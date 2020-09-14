@@ -245,15 +245,7 @@ void resetDatabase();
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();
 
-/**
- * @brief Allow database usage.
- *
- * We want to prevent implicit calls to database APIs before the application
- * starts. To do this we require a call to setDatabaseAllowOpen.
- *
- * It is possible to "flip" this to not allow opening the database for testing
- * purposes.
- */
+/// Allow database usage creations.
 void setDatabaseAllowOpen(bool allow_open = true);
 
 /**
@@ -265,6 +257,14 @@ void setDatabaseAllowOpen(bool allow_open = true);
  * The database should setUp in preparation for accesses.
  */
 Status initDatabasePlugin();
+
+/**
+ * @brief Helper method for unit test binaries.
+ *
+ * This allows the database to be opened, disables the database, then calls
+ * the normal plugin initialization.
+ */
+Status initDatabasePluginForTesting();
 
 /// Check if the database has been initialized successfully.
 bool databaseInitialized();

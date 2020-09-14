@@ -33,9 +33,6 @@
 #include <unordered_set>
 
 namespace osquery {
-
-DECLARE_bool(disable_database);
-
 namespace table_tests {
 
 namespace fs = boost::filesystem;
@@ -328,9 +325,7 @@ void validate_container_rows(const std::string& table_name,
 void setUpEnvironment() {
   platformSetup();
   registryAndPluginInit();
-  FLAGS_disable_database = true;
-  setDatabaseAllowOpen();
-  initDatabasePlugin();
+  initDatabasePluginForTesting();
 }
 
 } // namespace table_tests

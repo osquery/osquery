@@ -17,14 +17,9 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
-
 int osqueryFuzzerInitialize(int* argc, char*** argv) {
   osquery::registryAndPluginInit();
-
-  FLAGS_disable_database = true;
-  osquery::setDatabaseAllowOpen();
-  osquery::initDatabasePlugin();
+  osquery::initDatabasePluginForTesting();
 
   auto* db = osquery::SQLiteDBManager::instance().get()->db();
 

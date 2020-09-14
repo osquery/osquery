@@ -22,7 +22,6 @@ function(osqueryRegistryTestsTest)
     osquery_registry
     osquery_remote_enroll_tlsenroll
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )

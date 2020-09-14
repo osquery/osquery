@@ -18,8 +18,6 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
-
 class ViewsConfigParserPluginTests : public testing::Test {
  protected:
   void SetUp() override {
@@ -28,11 +26,7 @@ class ViewsConfigParserPluginTests : public testing::Test {
       initialized = true;
       platformSetup();
       registryAndPluginInit();
-
-      // Force registry to use ephemeral database plugin
-      FLAGS_disable_database = true;
-      setDatabaseAllowOpen();
-      initDatabasePlugin();
+      initDatabasePluginForTesting();
     }
   }
 };

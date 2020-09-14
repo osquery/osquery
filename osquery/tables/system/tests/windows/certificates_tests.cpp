@@ -19,8 +19,6 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
-
 namespace tables {
 
 class CertificatesTablesTest : public testing::Test {
@@ -28,10 +26,7 @@ class CertificatesTablesTest : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 };
 

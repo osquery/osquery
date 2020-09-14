@@ -20,15 +20,12 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
-
 class HostIdentityTests : public testing::Test {
  public:
   void SetUp() override {
-    FLAGS_disable_database = true;
     platformSetup();
     registryAndPluginInit();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 };
 

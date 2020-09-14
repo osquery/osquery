@@ -22,7 +22,6 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
 DECLARE_int32(logger_min_status);
 DECLARE_int32(logger_min_stderr);
 DECLARE_bool(logger_secondary_status_only);
@@ -37,9 +36,7 @@ class LoggerTests : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     // Backup the logging status, then disable.
     FLAGS_disable_logging = false;

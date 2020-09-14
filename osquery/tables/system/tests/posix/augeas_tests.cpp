@@ -16,8 +16,9 @@
 #include <osquery/sql/sql.h>
 
 namespace osquery {
-DECLARE_bool(disable_database);
+
 DECLARE_string(augeas_lenses);
+
 namespace tables {
 
 class AugeasTests : public testing::Test {
@@ -25,14 +26,10 @@ class AugeasTests : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
+    initDatabasePluginForTesting();
 
-    // Force registry to use ephemeral database plugin
-    FLAGS_disable_database = true;
     FLAGS_augeas_lenses =
         (osquery::getTestConfigDirectory() / "augeas/lenses").string();
-
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
   }
 };
 

@@ -25,16 +25,13 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 DECLARE_string(enroll_secret_path);
-DECLARE_bool(disable_database);
 
 class EnrollTests : public testing::Test {
  public:
   void SetUp() {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     deleteDatabaseValue(kPersistentSettings, "nodeKey");
     deleteDatabaseValue(kPersistentSettings, "nodeKeyTime");

@@ -24,7 +24,7 @@
 #include <osquery/utils/json/json.h>
 
 namespace osquery {
-DECLARE_bool(disable_database);
+
 DECLARE_string(distributed_tls_read_endpoint);
 DECLARE_string(distributed_tls_write_endpoint);
 
@@ -33,9 +33,7 @@ class DistributedTests : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 
  protected:
