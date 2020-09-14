@@ -65,13 +65,12 @@ Status getClassExecutables(const std::string& clsId,
                            std::vector<std::string>& results);
 
 /*
- * @brief Expand a globbing pattern into a set of registry keys to
- * query
+ * @brief Expand a globbing pattern into a set of registry keys to query.
  *
  * @param pattern The SQL globbing pattern, e.g.
  * 'HKEY_LOCAL_MACHINE\%\Microsoft' or 'HKEY_USERS\%\SOFTWARE\%%'
  * @param results A set that will be populated with all registry keys matching
- * the glob pattern
+ * the glob pattern. The set will be initially cleared.
  * @return Failure if the max recursive depth is reached, otherwise success
  */
 Status expandRegistryGlobs(const std::string& pattern,

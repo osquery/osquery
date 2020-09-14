@@ -466,6 +466,7 @@ static inline Status populateAllKeysRecursive(
 
 Status expandRegistryGlobs(const std::string& pattern,
                            std::set<std::string>& results) {
+  results.clear();
   auto pathElems = osquery::split(pattern, kRegSep);
   if (pathElems.size() == 0) {
     return Status::success();
