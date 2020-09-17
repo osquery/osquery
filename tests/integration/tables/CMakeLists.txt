@@ -35,7 +35,6 @@ function(generateTestsIntegrationTablesTestsTest)
     carbon_black_info.cpp
     carves.cpp
     chrome_extensions.cpp
-    cpuid.cpp
     curl.cpp
     curl_certificate.cpp
     etc_hosts.cpp
@@ -74,6 +73,10 @@ function(generateTestsIntegrationTablesTestsTest)
     device_hash.cpp
     device_partitions.cpp
   )
+
+  if(TARGET_PROCESSOR STREQUAL "x86_64")
+    list(APPEND source_files cpuid.cpp)
+  endif()
 
   if(DEFINED PLATFORM_POSIX)
     set(platform_source_files
@@ -262,6 +265,7 @@ function(generateTestsIntegrationTablesTestsTest)
       arp_cache.cpp
       authenticode.cpp
       autoexec.cpp
+      background_activities_moderator.cpp
       bitlocker_info.cpp
       certificates.cpp
       connectivity.cpp
@@ -277,6 +281,7 @@ function(generateTestsIntegrationTablesTestsTest)
       kernel_info.cpp
       kva_speculative_info.cpp
       logical_drives.cpp
+      office_mru.cpp
       ntdomains.cpp
       ntfs_acl_permissions.cpp
       patches.cpp

@@ -8,5 +8,5 @@
     "task_id": "13826",
     "level": "0",
     "keywords": "0x8020000000000000",
-    "data": "{\"Data\":{\"TargetUserName\":\"Hyper-V Administrators\",\"TargetDomainName\":\"Builtin\",\"TargetSid\":\"S-1-5-32-578\",\"SubjectUserSid\":\"S-1-5-18\",\"SubjectUserName\":\"MINWINPC$\",\"SubjectDomainName\":\"\",\"SubjectLogonId\":\"0x3e7\",\"PrivilegeList\":\"-\",\"SamAccountName\":\"Hyper-V Administrators\",\"SidHistory\":\"-\"}}"
+    "data": "{\"EventData\":{\"TargetUserName\":\"Hyper-V Administrators\",\"TargetDomainName\":\"Builtin\",\"TargetSid\":\"S-1-5-32-578\",\"SubjectUserSid\":\"S-1-5-18\",\"SubjectUserName\":\"MINWINPC$\",\"SubjectDomainName\":\"\",\"SubjectLogonId\":\"0x3e7\",\"PrivilegeList\":\"-\",\"SamAccountName\":\"Hyper-V Administrators\",\"SidHistory\":\"-\"}}"
 }

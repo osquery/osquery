@@ -7,27 +7,31 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <asm/unistd_64.h>
-
+#include <osquery/core/flags.h>
 #include <osquery/events/linux/process_events.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
-#include <osquery/sql/sql.h>
 #include <osquery/tables/events/linux/process_events.h>
 #include <osquery/utils/system/uptime.h>
+
+#include <sys/stat.h>
 
 namespace osquery {
 namespace {
 const std::unordered_map<int, std::string> kSyscallNameMap = {
     {__NR_execve, "execve"},
     {__NR_execveat, "execveat"},
-    {__NR_fork, "fork"},
-    {__NR_vfork, "vfork"},
     {__NR_clone, "clone"},
     {__NR_kill, "kill"},
     {__NR_tkill, "tkill"},
-    {__NR_tgkill, "tgkill"}};
+    {__NR_tgkill, "tgkill"},
+#ifdef __x86_64__
+    {__NR_fork, "fork"},
+    {__NR_vfork, "vfork"},
+#endif /* __x86_64__ */
 };
+} // namespace
 
 DECLARE_bool(audit_allow_process_events);
 
@@ -64,25 +68,17 @@ Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   }
 
   for (auto& row : emitted_row_list) {
-    auto qd = SQL::selectAllFrom("file", "path", EQUALS, row.at("path"));
-
-    // In general, we should always have the AUDIT_PATH record; if we don't
-    // have it then we probably just lost it
-    if (row["mode"].empty()) {
-      row["mode"] = qd.front().at("mode");
-    }
-
-    row["btime"] = "0";
-
-    if (qd.size() == 1) {
-      row["ctime"] = qd.front().at("ctime");
-      row["atime"] = qd.front().at("atime");
-      row["mtime"] = qd.front().at("mtime");
-
+    struct stat file_stat;
+    if (stat(row.at("path").c_str(), &file_stat)) {
+      if (row["mode"].empty()) {
+        row["mode"] = lsperms(file_stat.st_mode);
+      }
+      row["btime"] = "0";
+      row["atime"] = BIGINT(file_stat.st_atime);
+      row["mtime"] = BIGINT(file_stat.st_mtime);
+      row["ctime"] = BIGINT(file_stat.st_ctime);
     } else {
-      VLOG(1) << "Failed to acquire the ctime/atime/mtime values for path "
-              << row.at("path");
-
+      VLOG(1) << "Failed to stat path: " << row.at("path");
       row["ctime"] = "0";
       row["atime"] = "0";
       row["mtime"] = "0";
@@ -191,7 +187,8 @@ Status AuditProcessEventSubscriber::ProcessEvents(
 
     if (!GetSyscallName(row["syscall"], event_data.syscall_number)) {
       row["syscall"] = std::to_string(event_data.syscall_number);
-      VLOG(1) << "Failed to locate the system call name";
+      VLOG(1) << "Failed to locate the system call name: "
+              << event_data.syscall_number;
     }
 
     std::string field_value;
@@ -243,7 +240,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
       row["owner_gid"] = "0";
     }
 
-    emitted_row_list.push_back(row);
+    emitted_row_list.emplace_back(row);
   }
 
   return Status::success();
@@ -314,7 +311,11 @@ Status AuditProcessEventSubscriber::GetProcessIDs(
     return Status::failure("Invalid record type");
   }
 
-  if (syscall_nr == __NR_fork || syscall_nr == __NR_vfork) {
+  if (0
+#ifdef __x86_64__
+      || syscall_nr == __NR_fork || syscall_nr == __NR_vfork
+#endif /*  __x86_64__ */
+  ) {
     GetIntegerFieldFromMap(parent_process_id, syscall_record.fields, "pid");
     GetIntegerFieldFromMap(process_id, syscall_record.fields, "exit");
 

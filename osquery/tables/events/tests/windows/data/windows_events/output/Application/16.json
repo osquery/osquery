@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "2",
     "keywords": "0x80000000000000",
-    "data": "{\"Data\":[\"Windows Defender\",\"SECURITY_PRODUCT_STATE_ON\"]}"
+    "data": "{\"EventData\":{\"\":\"Windows Defender\",\"\":\"SECURITY_PRODUCT_STATE_ON\",\"Binary\":\"02000000\"}}"
 }

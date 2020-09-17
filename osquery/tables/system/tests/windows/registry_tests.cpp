@@ -47,6 +47,34 @@ TEST_F(RegistryTablesTest, test_registry_existing_key) {
   EXPECT_TRUE(results.size() > 0);
 }
 
+TEST_F(RegistryTablesTest, test_expand_registry_globs) {
+  std::set<std::string> results;
+  auto s = expandRegistryGlobs(kTestSpecificKey + kRegSep + '%', results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(results.empty());
+
+  // Calls should reset the output variable.
+  s = expandRegistryGlobs("", results);
+  EXPECT_TRUE(results.empty());
+}
+
+TEST_F(RegistryTablesTest, test_query_multiple_registry_keys) {
+  QueryData test_results;
+  auto s = queryMultipleRegistryKeys({kTestKey}, test_results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(test_results.empty());
+
+  QueryData test_specific_results;
+  s = queryMultipleRegistryKeys({kTestSpecificKey}, test_specific_results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(test_specific_results.empty());
+
+  QueryData results;
+  s = queryMultipleRegistryKeys({kTestKey, kTestSpecificKey}, results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_EQ(results.size(), test_results.size() + test_specific_results.size());
+}
+
 TEST_F(RegistryTablesTest, test_registry_non_existing_key) {
   QueryData results;
   auto ret = queryKey(kInvalidTestKey, results);

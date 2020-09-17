@@ -37,7 +37,6 @@ function(generateNativeTables)
     carves.table
     chrome_extensions.table
     chrome_extension_content_scripts.table
-    cpuid.table
     curl.table
     curl_certificate.table
     etc_hosts.table
@@ -73,9 +72,14 @@ function(generateNativeTables)
     utility/time.table
   )
 
+  if(TARGET_PROCESSOR STREQUAL "x86_64")
+    list(APPEND platform_independent_spec_files cpuid.table)
+  endif()
+
   set(platform_dependent_spec_files
     "arp_cache.table:linux,macos,windows"
     "atom_packages.table:linux,macos,windows"
+    "office_mru.table:windows"
     "darwin/account_policy_data.table:macos"
     "darwin/ad_config.table:macos"
     "darwin/alf.table:macos"
@@ -249,6 +253,7 @@ function(generateNativeTables)
     "sleuthkit/device_partitions.table:linux,macos,freebsd,windows"
     "smart/smart_drive_info.table:linux,macos"
     "user_groups.table:linux,macos,windows"
+    "windows/background_activities_moderator.table:windows"
     "windows/bitlocker_info.table:windows"
     "windows/chassis_info.table:windows"
     "windows/logon_sessions.table:windows"

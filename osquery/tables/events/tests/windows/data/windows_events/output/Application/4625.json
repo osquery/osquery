@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "4",
     "keywords": "0x80000000000000",
-    "data": "{\"Data\":{\"param1\":\"86400\",\"param2\":\"SuppressDuplicateDuration\",\"param3\":\"Software\\\\Microsoft\\\\EventSystem\\\\EventLog\"}}"
+    "data": "{\"EventData\":{\"param1\":\"86400\",\"param2\":\"SuppressDuplicateDuration\",\"param3\":\"Software\\\\Microsoft\\\\EventSystem\\\\EventLog\"}}"
 }

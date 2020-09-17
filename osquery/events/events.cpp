@@ -782,7 +782,7 @@ Status EventFactory::run(const std::string& type_id) {
     return Status(1, "Cannot restart an event publisher");
   }
 
-  setThreadName(publisher->name());
+  setThreadName("pub:" + type_id);
   VLOG(1) << "Starting event publisher run loop: " + type_id;
   publisher->hasStarted(true);
   publisher->state(EventState::EVENT_RUNNING);

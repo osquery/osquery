@@ -16,7 +16,6 @@ endfunction()
 
 function(generateOsqueryTablesSystemSystemtable)
   set(source_files
-    cpuid.cpp
     hash.cpp
     python_packages.cpp
     ssh_keys.cpp
@@ -24,6 +23,10 @@ function(generateOsqueryTablesSystemSystemtable)
     system_utils.cpp
     uptime.cpp
   )
+
+  if(TARGET_PROCESSOR STREQUAL "x86_64")
+    list(APPEND source_files cpuid.cpp)
+  endif()
 
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
@@ -167,6 +170,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/appcompat_shims.cpp
       windows/authenticode.cpp
       windows/autoexec.cpp
+      windows/background_activities_moderator.cpp
       windows/bitlocker_info.cpp
       windows/certificates.cpp
       windows/chassis_info.cpp

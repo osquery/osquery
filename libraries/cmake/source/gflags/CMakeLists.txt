@@ -20,7 +20,7 @@ function(gflagsMain)
     gflags_static
   )
 
-  target_include_directories(thirdparty_gflags INTERFACE
+  target_include_directories(thirdparty_gflags SYSTEM INTERFACE
     "${CMAKE_CURRENT_BINARY_DIR}/submodule/include"
   )
 endfunction()

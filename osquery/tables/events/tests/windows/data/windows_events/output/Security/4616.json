@@ -8,5 +8,5 @@
     "task_id": "12288",
     "level": "0",
     "keywords": "0x8020000000000000",
-    "data": "{\"Data\":{\"SubjectUserSid\":\"S-1-5-19\",\"SubjectUserName\":\"LOCAL SERVICE\",\"SubjectDomainName\":\"NT AUTHORITY\",\"SubjectLogonId\":\"0x3e5\",\"PreviousTime\":\"2020-06-17T13:38:15.3323108Z\",\"NewTime\":\"2020-06-17T13:38:15.3355043Z\",\"ProcessId\":\"0x7cc\",\"ProcessName\":\"C:\\\\Windows\\\\System32\\\\svchost.exe\"}}"
+    "data": "{\"EventData\":{\"SubjectUserSid\":\"S-1-5-19\",\"SubjectUserName\":\"LOCAL SERVICE\",\"SubjectDomainName\":\"NT AUTHORITY\",\"SubjectLogonId\":\"0x3e5\",\"PreviousTime\":\"2020-06-17T13:38:15.3323108Z\",\"NewTime\":\"2020-06-17T13:38:15.3355043Z\",\"ProcessId\":\"0x7cc\",\"ProcessName\":\"C:\\\\Windows\\\\System32\\\\svchost.exe\"}}"
 }

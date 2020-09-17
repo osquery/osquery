@@ -8,5 +8,5 @@
     "task_id": "0",
     "level": "4",
     "keywords": "0x80000000000000",
-    "data": "{\"Data\":[\"C:\\\\ProgramData\\\\Package Cache\\\\{15E06EC7-2755-BD07-45AD-98DF1679A6BE}v10.1.18362.1\\\\Installers\\\\Windows App Certification Kit x64-x86_en-us.msi\",\"3688\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"\"]}"
+    "data": "{\"EventData\":[\"C:\\\\ProgramData\\\\Package Cache\\\\{15E06EC7-2755-BD07-45AD-98DF1679A6BE}v10.1.18362.1\\\\Installers\\\\Windows App Certification Kit x64-x86_en-us.msi\",\"3688\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"\"]}"
 }

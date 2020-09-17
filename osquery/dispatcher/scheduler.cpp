@@ -32,7 +32,10 @@
 
 namespace osquery {
 
-FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit");
+FLAG(uint64,
+     schedule_timeout,
+     0,
+     "Limit the schedule to a duration in seconds, 0 for no limit");
 
 FLAG(uint64, schedule_max_drift, 60, "Max time drift in seconds");
 
@@ -209,6 +212,9 @@ void SchedulerRunner::maybeFlushLogs(uint64_t time_step) {
 void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
+  // Timeout is the number of seconds from starting.
+  timeout_ += (timeout_ == 0) ? 0 : i;
+
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
     auto start_time_point = std::chrono::steady_clock::now();
     Config::get().scheduledQueries(([&i](const std::string& name,
@@ -238,6 +244,12 @@ void SchedulerRunner::start() {
     if (interrupted()) {
       break;
     }
+  }
+
+  // Scheduler ended.
+  if (!interrupted()) {
+    LOG(INFO) << "The scheduler ended after " << timeout_ << " seconds";
+    requestShutdown();
   }
 }
 

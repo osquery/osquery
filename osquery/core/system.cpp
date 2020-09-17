@@ -544,20 +544,21 @@ DropPrivileges::~DropPrivileges() {
 
 Status setThreadName(const std::string& name) {
 #if defined(__APPLE__)
-  int return_code = pthread_setname_np(name.c_str());
+  int return_code = pthread_setname_np(name.substr(0, 15).c_str());
   return return_code == 0
              ? Status::success()
              : Status::failure("pthread_setname_np failed with error " +
                                std::to_string(return_code));
 #elif defined(__linux__)
-  int return_code = pthread_setname_np(pthread_self(), name.c_str());
+  int return_code =
+      pthread_setname_np(pthread_self(), name.substr(0, 15).c_str());
   return return_code == 0
              ? Status::success()
              : Status::failure("pthread_setname_np failed with error " +
                                std::to_string(return_code));
 #elif defined(__FreeBSD__)
   // FreeBSD silently ignores errors and does not return an error code
-  pthread_set_name_np(pthread_self(), name.c_str());
+  pthread_set_name_np(pthread_self(), name.substr(0, 15).c_str());
   return Status::success();
 #elif defined(WIN32)
   // SetThreadDescription is available in builds newer than 1607 of windows 10

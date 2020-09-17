@@ -29,18 +29,10 @@ Status queryKey(const std::string& keyPath, QueryData& results);
 /*
  * @brief Helper function to query multiple registry keys
  *
- * @param regexes a vector of registry key regexes to query
- * @param additionalConstaints a string of hard-coded constraints for the query
+ * @param keys a vector of registry keys to query using LIKE (caller adds %).
  * @param results a container to receive the results of the query
- *
- * This function binds the regexes to the query statement to ensure parameters
- * are all properly escaped. It is the responsibility of the caller to parse
- * through the QueryData object and extrct relevant data.
- * Note: Ensure that the `additionalConstraints` field, if used, _does not_
- * contain any user supplied data.
  */
-Status queryMultipleRegistryKeys(const std::vector<std::string>& regexes,
-                                 const std::string& additionalConstraints,
+Status queryMultipleRegistryKeys(const std::vector<std::string>& keys,
                                  QueryData& results);
 
 /*
@@ -73,13 +65,12 @@ Status getClassExecutables(const std::string& clsId,
                            std::vector<std::string>& results);
 
 /*
- * @brief Expand a globbing pattern into a set of registry keys to
- * query
+ * @brief Expand a globbing pattern into a set of registry keys to query.
  *
  * @param pattern The SQL globbing pattern, e.g.
  * 'HKEY_LOCAL_MACHINE\%\Microsoft' or 'HKEY_USERS\%\SOFTWARE\%%'
  * @param results A set that will be populated with all registry keys matching
- * the glob pattern
+ * the glob pattern. The set will be initially cleared.
  * @return Failure if the max recursive depth is reached, otherwise success
  */
 Status expandRegistryGlobs(const std::string& pattern,
