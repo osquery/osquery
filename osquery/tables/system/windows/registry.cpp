@@ -98,6 +98,18 @@ Status queryMultipleRegistryKeys(const std::vector<std::string>& keys,
   return Status::success();
 }
 
+Status queryMultipleRegistryPaths(const std::vector<std::string>& paths,
+                                  QueryData& results) {
+  QueryContext qc;
+  for (size_t i = 0; i < paths.size(); i++) {
+    struct Constraint c(LIKE, paths[i]);
+    qc.constraints["path"].add(c);
+  }
+
+  results = genRegistry(qc);
+  return Status::success();
+}
+
 Status getClassName(const std::string& clsId, std::string& rClsName) {
   std::vector<std::string> keys;
   for (const auto& key : kClassKeys) {

@@ -36,6 +36,15 @@ Status queryMultipleRegistryKeys(const std::vector<std::string>& keys,
                                  QueryData& results);
 
 /*
+ * @brief Helper function to query multiple registry paths
+ *
+ * @param paths a vector of registry paths to query using LIKE (caller adds %).
+ * @param results a container to receive the results of the query
+ */
+Status queryMultipleRegistryPaths(const std::vector<std::string>& paths,
+                                  QueryData& results);
+
+/*
  * @brief Get the name of a class from it's Class ID
  *
  * @param clsId the class ID, e.g. "{0000002F-0000-0000-C000-000000000046}"

@@ -75,6 +75,23 @@ TEST_F(RegistryTablesTest, test_query_multiple_registry_keys) {
   EXPECT_EQ(results.size(), test_results.size() + test_specific_results.size());
 }
 
+TEST_F(RegistryTablesTest, test_query_multiple_registry_paths) {
+  QueryData test_results;
+  auto s = queryMultipleRegistryPaths({kTestKey}, test_results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(test_results.empty());
+
+  QueryData test_specific_results;
+  s = queryMultipleRegistryPaths({kTestSpecificKey}, test_specific_results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(test_specific_results.empty());
+
+  QueryData results;
+  s = queryMultipleRegistryPaths({kTestKey, kTestSpecificKey}, results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_EQ(results.size(), test_results.size() + test_specific_results.size());
+}
+
 TEST_F(RegistryTablesTest, test_registry_non_existing_key) {
   QueryData results;
   auto ret = queryKey(kInvalidTestKey, results);
