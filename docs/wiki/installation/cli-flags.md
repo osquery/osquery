@@ -429,7 +429,7 @@ Compression codec to use for compressing message sets. Valid options are ("none"
 
 `--buffered_log_max=1000000`
 
-There are multiple logger plugins that use a "buffered logging" implementation. The TLS and AWS loggers use this approach. This flag sets the maximum number of logs to buffer before dropping new logs. If the buffered logs have not been shuttled to the logger desintation they will be purged in order of their timestamp. The oldest logs are purged first.
+There are multiple logger plugins that use a "buffered logging" implementation. The TLS and AWS loggers use this approach. This flag sets the maximum number of logs to buffer before dropping new logs. If the buffered logs have not been shuttled to the logger destintation they will be purged in order of their timestamp. The oldest logs are purged first.
 
 Setting this to value to `0` means unlimited logs will be buffered.
 

@@ -1,10 +1,12 @@
+# Debugging osquery
+
 Here are some debugging tips and tricks related to the daemon and shell from a deployment and usage perspective. Please see the development documentation in the next section for debugging code changes.
 
 Almost every situation requiring debugging should ultimately be solved with bug fixes or better documentation. In these cases,  the documentation usually surfaces in the form of verbose messages in the tools.
 
 Please feel encouraged to add additional messages in the code, or create GitHub issues documenting your experience and suggestions for documentation or code improvements.
 
-### Running the shell or daemon in verbose mode
+## Running the shell or daemon in verbose mode
 
 This is pretty simple! Just append `--verbose` as a switch.
 
@@ -19,12 +21,12 @@ osquery>
 
 To see the daemon's verbose messages you'll need to run it in the foreground, see the next section. Be aware that verbose messages are treated like others and sent to your downstream logger plugin. If you are collecting these logs, the verbose messages will be collected too!
 
-### Running the daemon in the foreground
+## Running the daemon in the foreground
 
 The daemon has some restrictions that make verbose debugging difficult, let's walk through how to run it in the foreground.
 
 ```shell
-$ osqueryd --ephemeral --database_path /tmp/osquery.db
+osqueryd --ephemeral --database_path /tmp/osquery.db
 ```
 
 The `ephemeral` flag tells the daemon that it may co-exist with other persistent daemons. The `database_path` must be overridden as the defaults are not writable/readable by a non-privileged user. Now we can append `--verbose`:
@@ -43,7 +45,7 @@ Also note the daemon expects to be owned by the superuser if executed as the sup
 
 If you are using a `--flagfile` to define additional command line switches then it should be readable by your user. In cases where the Remote API is used, an enroll secret or TLS client private key is needed. If these are read-restricted to the superuser you may need to also debug as the superuser.
 
-### Checking the config sanity
+## Checking the config sanity
 
 The daemon will not start with an invalid configuration. And no configuration is provided by default. See the [configuration](../deployment/configuration.md) guide for details on how to move the example config to an active config.
 
@@ -137,7 +139,7 @@ Remember! The `osqueryi` shell and the `osqueryd` daemon do not communicate. The
 
 If you try to select from an events-based table in the shell you will see something similar to the following warning:
 
-```
+```sql
 osquery> select * from file_events;
 virtual_table.cpp:542] Table file_events is event-based but events are disabled
 virtual_table.cpp:549] Please see the table documentation: https://osquery.io/schema/current/#file_events

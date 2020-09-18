@@ -1,3 +1,5 @@
+# Logging osquery
+
 The osquery daemon uses a default **filesystem** logger plugin. Like the config, output from the filesystem plugin is written as JSON. Results from the query schedule are written to `/var/log/osquery/osqueryd.results.log`.
 
 There are two types of logs:
