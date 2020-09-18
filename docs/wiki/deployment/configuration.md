@@ -2,7 +2,7 @@ An osquery deployment consists of:
 
 * Installing the tools for [Windows](../installation/install-windows.md), [macOS](../installation/install-macos.md), or [Linux](../installation/install-linux.md)
 * Reviewing the [osqueryd](../introduction/using-osqueryd.md) introduction
-* Configuring and starting the **osqueryd** service (this page)
+* Configuring and starting the `osqueryd` service (this page)
 * Managing and [collecting](log-aggregation.md) the query results
 
 ## Configuration components
@@ -19,7 +19,7 @@ There are several components contributing to a configuration:
 * File Change Monitoring: categories and paths of monitored files and directories
 * (insert new feature that requires a configuration here!)
 
-There are also "initialization" parameters that control how **osqueryd** is
+There are also "initialization" parameters that control how `osqueryd` is
 launched.  These parameters only make sense as command-line arguments since
 they are used before a configuration plugin is selected. See the [command line
 flags](../installation/cli-flags.md) overview for a complete list of these
@@ -31,7 +31,7 @@ config path as follows:
 
 * Windows: **C:\Program Files\osquery\osquery.conf**
 * Linux: **/etc/osquery/osquery.conf** and **/etc/osquery/osquery.conf.d/**
-* MacOS: **/var/osquery/osquery.conf** and **/var/osquery/osquery.conf.d/**
+* macOS: **/var/osquery/osquery.conf** and **/var/osquery/osquery.conf.d/**
 
 You may override the **filesystem** plugin's path using
 `--config_path=/path/to/osquery.conf`. You may also use the ".d/" directory
@@ -316,7 +316,7 @@ The basic scheduled query specification includes:
 
 The `platform` key can be:
 
-- `darwin` for MacOS hosts
+- `darwin` for macOS hosts
 - `freebsd` for FreeBSD hosts
 - `linux` for any RedHat or Debian-based hosts
 - `posix` for `darwin`, `freebsd`, and `linux` hosts
@@ -611,13 +611,9 @@ You can test this locally before deploying to your fleet and add more columns as
 
 ## Chef Configuration
 
-Here are example chef cookbook recipes and files for macOS and Linux
-deployments.  Consider improving the recipes using node attributes to further
-control what nodes and clients enable osquery. It helps to create a canary or a
-testing set that implements a separate "testing" configuration. These recipes
-assume you are deploying the macOS package or the Linux package separately.
+Here are example Chef cookbook recipes and files for macOS and Linux deployments. Consider improving the recipes using node attributes to further control what nodes and clients enable osquery. It helps to create a canary or a testing set that implements a separate "testing" configuration. These recipes assume you are deploying the macOS package or the Linux package separately.
 
-### Chef OS X / macOS
+### Chef macOS
 
 Consider the default recipe:
 
@@ -671,6 +667,7 @@ end
 And the following files/templates used by the recipe:
 
 **templates/default/launchd.plist.erb**
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -701,12 +698,14 @@ And the following files/templates used by the recipe:
 ```
 
 **files/default/com.facebook.osquery.osqueryd.conf**
-```
+
+```shell
 # logfilename                         [owner:group]  mode count size   when  flags [/pid_file] [sig_num]
 /var/log/osquery/osqueryd.results.log root:wheel     600  2     10000  *     NZ
 ```
 
 **files/default/osquery.conf**
+
 ```json
 {
   "options": {
@@ -747,4 +746,4 @@ And the same configuration file from the macOS example is appropriate.
 
 ## osqueryctl helper
 
-To test a deploy or configuration we include a short helper script called **osqueryctl**. There are several actions including "start", "stop", and "config-check" that apply to both macOS and Linux.
+To test a deploy or configuration we include a short helper script called `osqueryctl`. There are several actions including `start`, `stop`, and `config-check` that apply to both macOS and Linux.

@@ -1,4 +1,4 @@
-How do I add a command line flag/option/argument to osquery? Well, first familiarize yourself with gflags, then take note of the wrapper below.
+How do I add a command-line flag/option/argument to osquery? Well, first familiarize yourself with [gflags](https://github.com/gflags/gflags), then take note of the wrapper below.
 
 [osquery/core/flags.h](https://github.com/osquery/osquery/blob/master/osquery/core/flags.h) contains a single wrapper for `gflags::DEFINE_` type style macros. osquery includes a simple wrapper for defining arguments/options/flags for the osqueryd daemon and shell.
 

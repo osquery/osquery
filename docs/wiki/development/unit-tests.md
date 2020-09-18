@@ -2,7 +2,7 @@ All commits to osquery should be well unit-tested. Having tests is useful for ma
 
 ## Writing a test
 
-**Prerequisite**
+### Prerequisite
 
 This guide is going to take you through the process of creating and building a new unit test in the osquery project.
 
@@ -10,7 +10,7 @@ First ensure that you can properly build the code, by referring to the ["buildin
 
 Before you modify osquery code (or any code for that matter), make sure that you can successfully execute all tests. The steps for building and running tests are particular to the platform and build toolchain you are using, so again refer to the ["building osquery"](building.md) guide for the appropriate information for your setup.
 
-**Adding a test**
+## Adding a test
 
 We'll create a test in the "osquery/examples" subdirectory of the main repository. Let's create a file "example_test.cpp" in that directory.
 
@@ -48,6 +48,6 @@ ADD_OSQUERY_TEST(example_test example_test.cpp)
 
 After you specify the test sources, add whatever libraries you have to link against and properly set the compiler flags, make sure you call `ADD_TEST` with your unit test. This registers it with CTest (CMake's test runner).
 
-**Extending the test**
+## Extending the test
 
 Your test is just C++ code. Use the [Google Test documentation](https://github.com/google/googletest/blob/master/googletest/docs/primer.md#assertions) to assist you in writing meaningful tests.
