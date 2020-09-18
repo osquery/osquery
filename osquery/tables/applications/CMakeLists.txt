@@ -19,6 +19,7 @@ function(generateOsqueryTablesApplications)
     browser_chrome.cpp
     browser_utils.cpp
     browser_firefox.cpp
+    atom_packages.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
@@ -33,17 +34,12 @@ function(generateOsqueryTablesApplications)
 
   if(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
-      atom_packages.cpp
       darwin/browser_plugins.cpp
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/carbon_black.cpp
       windows/office_mru.cpp
-    )
-  elseif(DEFINED PLATFORM_LINUX)
-    list(APPEND source_files
-      atom_packages.cpp
     )
   endif()
 

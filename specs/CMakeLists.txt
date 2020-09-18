@@ -78,7 +78,7 @@ function(generateNativeTables)
 
   set(platform_dependent_spec_files
     "arp_cache.table:linux,macos,windows"
-    "atom_packages.table:linux,macos"
+    "atom_packages.table:linux,macos,windows"
     "office_mru.table:windows"
     "darwin/account_policy_data.table:macos"
     "darwin/ad_config.table:macos"
