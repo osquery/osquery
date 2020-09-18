@@ -33,8 +33,6 @@ namespace tables {
 const std::string kEventLogXmlPrefix = "<QueryList><Query Id=\"0\">";
 const std::string kEventLogXmlSuffix = "</Query></QueryList>";
 
-const int kNumEventsBlock = 1024;
-
 Status parseWelXml(QueryContext& context, std::wstring& xml_event, Row& row) {
   pt::ptree propTree;
   WELEvent windows_event;
@@ -87,61 +85,91 @@ Status parseWelXml(QueryContext& context, std::wstring& xml_event, Row& row) {
 void renderQueryResults(QueryContext& context,
                         EVT_HANDLE queryResults,
                         RowYield& yield) {
-  std::vector<EVT_HANDLE> events(kNumEventsBlock);
-  unsigned long numEvents = 0;
+  uint32_t kNumEventsBlock = 1024;
+  uint32_t _position = 0;
 
-  // Retrieve the events one block at a time
-  auto ret = EvtNext(
-      queryResults, kNumEventsBlock, events.data(), INFINITE, 0, &numEvents);
-  while (ret != FALSE) {
-    for (unsigned long i = 0; i < numEvents; i++) {
-      unsigned long renderedBuffSize = 0;
-      unsigned long renderedBuffUsed = 0;
-      unsigned long propCount = 0;
-      if (!EvtRender(nullptr,
-                     events[i],
-                     EvtRenderEventXml,
-                     renderedBuffSize,
-                     nullptr,
-                     &renderedBuffUsed,
-                     &propCount)) {
-        if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-          LOG(WARNING) << "Failed to get the size of rendered event "
+  // The batch size should be more than 32. It is not documented
+  // but `EvtNext` should not fail (RPC_S_INVALID_BOUND error)
+  // with low batch size.
+  while (kNumEventsBlock > 32) {
+    std::vector<EVT_HANDLE> events(kNumEventsBlock);
+    unsigned long numEvents = 0;
+    // Retrieve the events one block at a time
+    auto ret = EvtNext(
+        queryResults, kNumEventsBlock, events.data(), INFINITE, 0, &numEvents);
+    while (ret != FALSE) {
+      for (unsigned long i = 0; i < numEvents; i++) {
+        unsigned long renderedBuffSize = 0;
+        unsigned long renderedBuffUsed = 0;
+        unsigned long propCount = 0;
+        _position += 1;
+        if (!EvtRender(nullptr,
+                       events[i],
+                       EvtRenderEventXml,
+                       renderedBuffSize,
+                       nullptr,
+                       &renderedBuffUsed,
+                       &propCount)) {
+          if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+            LOG(WARNING) << "Failed to get the size of rendered event "
+                         << GetLastError();
+            EvtClose(events[i]);
+            continue;
+          }
+        }
+
+        std::vector<wchar_t> renderedContent(renderedBuffUsed);
+        renderedBuffSize = renderedBuffUsed;
+        if (!EvtRender(nullptr,
+                       events[i],
+                       EvtRenderEventXml,
+                       renderedBuffSize,
+                       renderedContent.data(),
+                       &renderedBuffUsed,
+                       &propCount)) {
+          LOG(WARNING) << "Failed to render windows event with "
                        << GetLastError();
           EvtClose(events[i]);
           continue;
         }
-      }
 
-      std::vector<wchar_t> renderedContent(renderedBuffUsed);
-      renderedBuffSize = renderedBuffUsed;
-      if (!EvtRender(nullptr,
-                     events[i],
-                     EvtRenderEventXml,
-                     renderedBuffSize,
-                     renderedContent.data(),
-                     &renderedBuffUsed,
-                     &propCount)) {
-        LOG(WARNING) << "Failed to render windows event with "
-                     << GetLastError();
         EvtClose(events[i]);
-        continue;
+
+        Row row;
+        std::wstringstream xml_event;
+        xml_event << renderedContent.data();
+        auto status = parseWelXml(context, xml_event.str(), row);
+        if (status.ok()) {
+          yield(TableRowHolder(new DynamicTableRow(std::move(row))));
+        }
       }
 
-      EvtClose(events[i]);
-
-      Row row;
-      std::wstringstream xml_event;
-      xml_event << renderedContent.data();
-      auto status = parseWelXml(context, xml_event.str(), row);
-      if (status.ok()) {
-        yield(TableRowHolder(new DynamicTableRow(std::move(row))));
-      }
+      ret = EvtNext(queryResults,
+                    kNumEventsBlock,
+                    events.data(),
+                    INFINITE,
+                    0,
+                    &numEvents);
     }
 
-    ret = EvtNext(
-        queryResults, kNumEventsBlock, events.data(), INFINITE, 0, &numEvents);
+    // While reading a batch of large event log reports `EvtNext` may
+    // fail with error code 1734 (RPC_S_INVALID_BOUND) and loose the
+    // chunk of events. This is an unusual behavior and not documented.
+    // The fix reduces the batch size to half and retries `EvtNext`
+    if (RPC_S_INVALID_BOUND == GetLastError()) {
+      kNumEventsBlock = kNumEventsBlock / 2;
+      // `EvtNext` may update the event position in query handler on
+      // failure with RPC_S_INVALID_BOUND error. `EvtSeek` reset the
+      // position before calling EvtNext with lower batch size.
+      if (!EvtSeek(
+              queryResults, _position, nullptr, 0, EvtSeekRelativeToFirst)) {
+        VLOG(1) << "EvtSeek failed with error " << GetLastError();
+      }
+      continue;
+    }
+    break;
   }
+
   if (ERROR_NO_MORE_ITEMS != GetLastError()) {
     // No need to close the handler after error; The query
     // EvtClose will also close all the event handler
