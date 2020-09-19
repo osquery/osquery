@@ -565,11 +565,11 @@ def flaky(gen):
     exceptions = []
     def attempt(this):
         try:
-            worked = gen(this)
+            gen(this)
             return True
         except Exception as e:
             import traceback
-            exc_type, exc_obj, tb = sys.exc_info()
+            _, _, tb = sys.exc_info()
             exceptions.append(e)
             print(traceback.format_tb(tb)[1])
         return False
@@ -578,6 +578,9 @@ def flaky(gen):
         for i in range(3):
             if attempt(this):
                 return True
+            # The attempt failed, try to setup again.
+            this.tearDown()
+            this.setUp()
         i = 1
         for exc in exceptions:
             print("Test (attempt %d) %s::%s failed: %s" %
