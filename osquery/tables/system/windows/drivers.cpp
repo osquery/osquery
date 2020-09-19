@@ -17,16 +17,16 @@
 #include <cfgmgr32.h>
 // clang-format on
 
-#include <boost/algorithm/string/case_conv.hpp>
-#include <boost/regex.hpp>
-
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
-
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/core/windows/wmi.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/tables/system/windows/registry.h>
+
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/regex.hpp>
 
 namespace osquery {
 namespace tables {
@@ -169,14 +169,19 @@ Status getDeviceProperty(const device_infoset_t& infoset,
 }
 
 std::string getDriverImagePath(const std::string& service_key) {
-  SQL sql("SELECT data FROM registry WHERE path = '" + service_key +
-          "\\ImagePath'");
+  QueryData results;
+  queryMultipleRegistryPaths({service_key + kRegSep + "ImagePath"}, results);
 
-  if (sql.rows().empty() || sql.rows().at(0).count("data") == 0) {
+  if (results.empty()) {
     return "";
   }
 
-  auto path = sql.rows().at(0).at("data");
+  auto data_it = results[0].find("data");
+  if (data_it == results[0].end()) {
+    return "";
+  }
+
+  auto path = data_it->second;
   if (path.empty()) {
     return "";
   }
@@ -186,16 +191,16 @@ std::string getDriverImagePath(const std::string& service_key) {
 
 Status genServiceKeyMap(
     std::map<std::string, std::string>& services_image_map) {
-  // Attempt to get all of the services image paths in the default location
-  SQL sql("SELECT key, data FROM registry WHERE path LIKE'" + kServiceKeyPath +
-          "%\\ImagePath'");
+  QueryData results;
+  queryMultipleRegistryPaths({kServiceKeyPath + '%' + kRegSep + "ImagePath"},
+                             results);
 
   // Something went wrong
-  if (sql.rows().empty()) {
+  if (results.empty()) {
     return Status::failure("Failed to retrieve services image path cache");
   }
 
-  for (auto& row : sql.rows()) {
+  for (auto& row : results) {
     auto key_it = row.find("key");
     auto data_it = row.find("data");
     if (key_it == row.end() || data_it == row.end()) {
@@ -265,7 +270,7 @@ QueryData genDrivers(QueryContext& context) {
       // If the image map doesn't exist in the cache, manually look it up
       auto svc_key_it = svc_image_map.find(svc_key);
       if (svc_key_it != svc_image_map.end()) {
-        r["image"] = svc_image_map[svc_key_it->second];
+        r["image"] = svc_key_it->second;
       } else {
         // Manual lookups of the service keys image path are _very_ slow
         VLOG(1) << r["service"]
