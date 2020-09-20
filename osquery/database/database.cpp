@@ -477,7 +477,7 @@ Status initDatabasePlugin() {
     if (status.ok()) {
       break;
     }
-    printf("%s\n", status.getMessage().c_str());
+
     if (FLAGS_disable_database) {
       // Do not try multiple times to initialize the emphemeral plugin.
       break;
