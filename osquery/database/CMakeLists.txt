@@ -33,8 +33,6 @@ function(generateOsqueryDatabase)
     database.h
   )
 
-  enableLinkWholeArchive(osquery_database)
-
   generateIncludeNamespace(osquery_database "osquery/database" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_database_tests-test COMMAND osquery_database_tests-test)
