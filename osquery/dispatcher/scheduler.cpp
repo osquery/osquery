@@ -13,6 +13,7 @@
 #include <boost/format.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
 
+#include <osquery/carver/carver.h>
 #include <osquery/config/config.h>
 #include <osquery/core/core.h>
 #include <osquery/core/flags.h>
@@ -193,6 +194,12 @@ void SchedulerRunner::maybeRunDecorators(uint64_t time_step) {
   }
 }
 
+void SchedulerRunner::maybeScheduleCarves(uint64_t time_step) {
+  if ((time_step & 60) == 0) {
+    scheduleCarves();
+  }
+}
+
 void SchedulerRunner::maybeReloadSchedule(uint64_t time_step) {
   if (FLAGS_schedule_reload > 0 && (time_step % FLAGS_schedule_reload) == 0) {
     if (FLAGS_schedule_reload_sql) {
@@ -236,6 +243,7 @@ void SchedulerRunner::start() {
     maybeRunDecorators(i);
     maybeReloadSchedule(i);
     maybeFlushLogs(i);
+    maybeScheduleCarves(i);
 
     auto loop_step_duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(

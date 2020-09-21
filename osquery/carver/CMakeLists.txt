@@ -12,6 +12,7 @@ function(osqueryCarverMain)
   endif()
 
   generateOsqueryCarver()
+  generateOsqueryCarverUtils()
 endfunction()
 
 function(generateOsqueryCarver)
@@ -22,8 +23,8 @@ function(generateOsqueryCarver)
   target_link_libraries(osquery_carver PUBLIC
     osquery_cxx_settings
     osquery_core
-    osquery_core_plugins
-    osquery_core_sql
+    osquery_carver_utils
+    osquery_dispatcher
     osquery_distributed
     osquery_filesystem
     osquery_hashing
@@ -41,6 +42,28 @@ function(generateOsqueryCarver)
   generateIncludeNamespace(osquery_carver "osquery/carver" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_carver_tests-test COMMAND osquery_carver_tests-test)
+endfunction()
+
+
+function(generateOsqueryCarverUtils)
+  add_osquery_library(osquery_carver_utils EXCLUDE_FROM_ALL
+    carver_utils.cpp
+  )
+
+  target_link_libraries(osquery_carver_utils PUBLIC
+    osquery_cxx_settings
+    osquery_core
+    osquery_database
+    osquery_utils
+    thirdparty_boost
+    thirdparty_gflags
+  )
+
+  set(public_header_files
+    carver_utils.h
+  )
+
+  generateIncludeNamespace(osquery_carver_utils "osquery/carver" "FILE_ONLY" ${public_header_files})
 endfunction()
 
 osqueryCarverMain()

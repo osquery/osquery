@@ -7,10 +7,12 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/carver/carver.h>
+#include <osquery/carver/carver_utils.h>
 #include <osquery/core/flags.h>
+#include <osquery/core/system.h>
 #include <osquery/core/tables.h>
 #include <osquery/database/database.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/json/json.h>
 
