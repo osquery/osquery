@@ -50,11 +50,12 @@ static void executeCarve(sqlite3_context* ctx) {
   WriteLock lock(kFunctionCarveMutex);
   if (!FLAGS_carver_disable_function) {
     carvePaths(kFunctionCarvePaths);
+    sqlite3_result_text(ctx, "Carve Started", 13, SQLITE_TRANSIENT);
   } else {
     LOG(WARNING) << "Carver as a function is disabled";
+    sqlite3_result_text(ctx, "Carve Failed", 13, SQLITE_TRANSIENT);
   }
   kFunctionCarvePaths.clear();
-  sqlite3_result_text(ctx, "Carve Started", 13, SQLITE_TRANSIENT);
 }
 
 void registerOperationExtensions(sqlite3* db) {
