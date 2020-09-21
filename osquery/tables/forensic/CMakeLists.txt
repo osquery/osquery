@@ -19,8 +19,6 @@ function(generateOsqueryTablesForensic)
     osquery_carver
     osquery_core
     osquery_database
-    osquery_dispatcher
-    osquery_distributed
     osquery_logger
     osquery_utils_json
     thirdparty_boost
