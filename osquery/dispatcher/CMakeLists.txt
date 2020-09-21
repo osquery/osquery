@@ -49,6 +49,7 @@ function(generateOsqueryDistributedAndScheduler)
     osquery_carver
     osquery_core
     osquery_database
+    osquery_distributed
     osquery_logger_datalogger
     osquery_process
     osquery_profiler

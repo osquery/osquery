@@ -45,6 +45,7 @@ function(generateOsqueryTablesYaraYaratable)
     osquery_events
     osquery_logger
     osquery_registry
+    osquery_remote_utility
     osquery_utils_config
     thirdparty_boost
     thirdparty_yara

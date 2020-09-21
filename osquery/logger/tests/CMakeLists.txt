@@ -17,16 +17,13 @@ function(generateOsqueryLoggerTestsTest)
     osquery_core
     osquery_core_plugins
     osquery_database
-    osquery_distributed
     osquery_extensions
     osquery_extensions_implthrift
     osquery_logger_datalogger
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_utils_info
     osquery_utils_system_time
-    plugins_config_tlsconfig
-    specs_tables
+    tests_helper
     thirdparty_googletest
   )
 endfunction()

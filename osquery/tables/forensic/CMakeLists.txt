@@ -16,7 +16,7 @@ function(generateOsqueryTablesForensic)
 
   target_link_libraries(osquery_tables_forensic PUBLIC
     osquery_cxx_settings
-    osquery_carver
+    osquery_carver_utils
     osquery_core
     osquery_database
     osquery_logger

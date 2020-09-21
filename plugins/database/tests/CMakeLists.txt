@@ -17,17 +17,13 @@ function(generatePluginsDatabaseTestsSqliteplugintestsTest)
     osquery_cxx_settings
     osquery_core
     osquery_database
-    osquery_dispatcher
-    osquery_events
+    osquery_database_tests_databasetestutils
     osquery_extensions
     osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_utils_json
-    plugins_config_tlsconfig
     plugins_database_sqliteplugin
-    specs_tables
-    osquery_database_tests_databasetestutils
+    tests_helper
     thirdparty_googletest
   )
 endfunction()
@@ -39,17 +35,13 @@ function(generatePluginsDatabaseTestsRocksdbtestsTest)
     osquery_cxx_settings
     osquery_core
     osquery_database
-    osquery_dispatcher
-    osquery_events
+    osquery_database_tests_databasetestutils
     osquery_extensions
     osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_utils_json
-    plugins_config_tlsconfig
     plugins_database_rocksdbplugin
-    specs_tables
-    osquery_database_tests_databasetestutils
+    tests_helper
     thirdparty_googletest
   )
 endfunction()

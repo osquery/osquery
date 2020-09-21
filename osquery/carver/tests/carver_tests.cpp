@@ -16,13 +16,11 @@
 
 #include <osquery/carver/carver.h>
 #include <osquery/carver/carver_utils.h>
-#include <osquery/config/tests/test_utils.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/hashing/hashing.h>
 #include <osquery/registry/registry.h>
-#include <osquery/sql/sql.h>
 #include <osquery/utils/json/json.h>
 
 namespace osquery {

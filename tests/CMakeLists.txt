@@ -26,10 +26,10 @@ function(generateTestsHelper)
   target_link_libraries(tests_helper PUBLIC
     osquery_cxx_settings
     osquery_core
+    osquery_config
     osquery_database
     osquery_filesystem
     osquery_process
-    osquery_remote_serializers_serializerjson
     osquery_sql
     osquery_utils
     osquery_utils_conversions
