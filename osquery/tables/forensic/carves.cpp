@@ -7,13 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <boost/algorithm/string/join.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-
 #include <osquery/carver/carver.h>
 #include <osquery/core/flags.h>
 #include <osquery/core/tables.h>
@@ -21,13 +14,9 @@
 #include <osquery/logger/logger.h>
 #include <osquery/utils/json/json.h>
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 DECLARE_bool(disable_carver);
-
-std::string generateNewUUID();
 
 namespace tables {
 namespace {
