@@ -29,10 +29,9 @@ DECLARE_bool(logger_numerics);
 class QueryTests : public testing::Test {
  public:
   QueryTests() {
+    platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 };
 

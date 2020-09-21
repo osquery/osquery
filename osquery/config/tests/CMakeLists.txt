@@ -34,6 +34,7 @@ function(generateOsqueryConfigTestsTest)
   target_link_libraries(osquery_config_tests-test PRIVATE
     osquery_cxx_settings
     osquery_config
+    osquery_database
     osquery_dispatcher
     osquery_events
     osquery_extensions
@@ -43,7 +44,6 @@ function(generateOsqueryConfigTestsTest)
     osquery_remote_enroll_tlsenroll
     osquery_utils_system_time
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     specs_tables
     osquery_config_tests_testutils
     thirdparty_googletest
@@ -57,6 +57,7 @@ function(generateOsqueryConfigTestsPacksTest)
   target_link_libraries(osquery_config_tests_packs-test PRIVATE
     osquery_cxx_settings
     osquery_config
+    osquery_database
     osquery_dispatcher
     osquery_events
     osquery_extensions
@@ -66,7 +67,6 @@ function(generateOsqueryConfigTestsPacksTest)
     osquery_remote_enroll_tlsenroll
     osquery_utils_system_time
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     specs_tables
     osquery_config_tests_testutils
     thirdparty_googletest

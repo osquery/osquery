@@ -17,16 +17,12 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
-
 class TablesTests : public testing::Test {
 protected:
  void SetUp() {
    platformSetup();
    registryAndPluginInit();
-   FLAGS_disable_database = true;
-   setDatabaseAllowOpen();
-   initDatabasePlugin();
+   initDatabasePluginForTesting();
  }
 };
 

@@ -33,7 +33,6 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
 DECLARE_string(extensions_require);
 
 const int kDelay = 20;
@@ -44,9 +43,7 @@ class ExtensionsTest : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
       socket_path =

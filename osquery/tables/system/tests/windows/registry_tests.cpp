@@ -18,7 +18,6 @@
 #include <osquery/tests/test_util.h>
 
 namespace osquery {
-DECLARE_bool(disable_database);
 namespace tables {
 
 class RegistryTablesTest : public testing::Test {
@@ -26,11 +25,7 @@ class RegistryTablesTest : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-
-    // Force registry to use ephemeral database plugin
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 };
 

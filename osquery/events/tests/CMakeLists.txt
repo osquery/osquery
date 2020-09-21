@@ -41,7 +41,6 @@ function(generateOsqueryEventsTestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -62,7 +61,6 @@ function(generateOsqueryEventsTestsEventsdatabasetestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -83,7 +81,6 @@ function(generateOsqueryEventsTestsSyslogtestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -104,7 +101,6 @@ function(generateOsqueryEventsTestsAudittestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -125,7 +121,6 @@ function(generateOsqueryEventsTestsProcessfileeventstestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -146,7 +141,6 @@ function(generateOsqueryEventsTestsInotifytestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -169,7 +163,6 @@ function(generateOsqueryEventsTestsFseventstestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -181,6 +174,7 @@ function(generateOsqueryEventsTestsWindowsusnjournalreadertestsTest)
   target_link_libraries(osquery_events_tests_usnjournalreadertests-test PRIVATE
     osquery_tables_system_systemtable
     osquery_core
+    osquery_database
     osquery_events
     osquery_filesystem
     osquery_utils
@@ -188,7 +182,6 @@ function(generateOsqueryEventsTestsWindowsusnjournalreadertestsTest)
     osquery_config_tests_testutils
     osquery_remote_tests_remotetestutils
     osquery_database
-    plugins_database_ephemeral
     osquery_core_sql
     specs_tables
     thirdparty_googletest

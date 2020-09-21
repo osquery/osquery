@@ -29,8 +29,6 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
-
 class MockKafkaProducerPlugin : public KafkaProducerPlugin {
  public:
   MockKafkaProducerPlugin() : timesFlushed_(0), timesPolled_(0) {
@@ -79,9 +77,7 @@ class KafkaProducerPluginTest : public ::testing::Test {
   void SetUp() {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 };
 

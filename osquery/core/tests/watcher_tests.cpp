@@ -25,16 +25,13 @@ using namespace testing;
 namespace osquery {
 
 DECLARE_uint64(watchdog_delay);
-DECLARE_bool(disable_database);
 
 class WatcherTests : public testing::Test {
  protected:
   WatcherTests() {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     Config::get().reset();
   }

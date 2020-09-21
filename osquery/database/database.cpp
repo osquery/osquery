@@ -489,6 +489,14 @@ Status initDatabasePlugin() {
   return status;
 }
 
+Status initDatabasePluginForTesting() {
+  // Use the built-in ephemeral database.
+  FLAGS_disable_database = true;
+  setDatabaseAllowOpen();
+  initDatabasePlugin();
+  return Status::success();
+}
+
 bool databaseInitialized() {
   return kDBInitialized;
 }

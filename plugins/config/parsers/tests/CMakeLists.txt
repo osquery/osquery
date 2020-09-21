@@ -31,7 +31,6 @@ function(generatePluginsConfigParsersTestsDecoratorstestsTest)
     osquery_utils_json
     plugins_config_tlsconfig
     plugins_config_parsers
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -56,7 +55,6 @@ function(generatePluginsConfigParsersTestsEventsparsertestsTest)
     osquery_utils_json
     plugins_config_tlsconfig
     plugins_config_parsers
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -81,7 +79,6 @@ function(generatePluginsConfigParsersTestsFilepathstestsTest)
     osquery_utils_json
     plugins_config_tlsconfig
     plugins_config_parsers
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -107,7 +104,6 @@ function(generatePluginsConfigParsersTestsOptionstestsTest)
     osquery_utils_json
     plugins_config_tlsconfig
     plugins_config_parsers
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -132,7 +128,6 @@ function(generatePluginsConfigParsersTestsViewstestsTest)
     osquery_utils_json
     plugins_config_tlsconfig
     plugins_config_parsers
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )

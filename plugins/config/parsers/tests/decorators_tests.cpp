@@ -21,7 +21,6 @@ namespace osquery {
 
 DECLARE_bool(disable_decorators);
 DECLARE_bool(decorations_top_level);
-DECLARE_bool(disable_database);
 DECLARE_bool(logger_numerics);
 
 class DecoratorsConfigParserPluginTests : public testing::Test {
@@ -29,11 +28,7 @@ class DecoratorsConfigParserPluginTests : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-
-    // Force registry to use ephemeral database plugin
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     // Read config content manually.
     readFile(getTestConfigDirectory() / "test_parse_items.conf", content_);

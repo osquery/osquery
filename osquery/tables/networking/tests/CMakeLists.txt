@@ -30,7 +30,6 @@ function(generateOsqueryTablesNetworkingTestsNetworkingtablestestsTest)
     osquery_tables_networking
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     thirdparty_boost
     thirdparty_googletest
   )
@@ -52,7 +51,6 @@ function(generateOsqueryTablesNetworkingTestsWifitestsTest)
     osquery_remote_tests_remotetestutils
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     thirdparty_boost
     thirdparty_googletest
   )
@@ -74,7 +72,6 @@ function(generateOsqueryTablesNetworkingTestsIptablestestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     thirdparty_boost
     thirdparty_googletest
   )

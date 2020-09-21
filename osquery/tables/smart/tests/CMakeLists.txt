@@ -28,7 +28,6 @@ function(generateOsqueryTablesSmartTestsSmartdrivestestsTest)
     osquery_tables_events_eventstable
     plugins_config_tlsconfig
     plugins_config_parsers
-    plugins_database_ephemeral
     specs_tables
     thirdparty_smartmontools
     thirdparty_googletest

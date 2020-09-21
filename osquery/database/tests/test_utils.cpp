@@ -11,11 +11,11 @@
 
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
+#include <osquery/database/tests/test_utils.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/registry/registry.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/utils/json/json.h>
-#include <plugins/database/tests/utils.h>
 
 #include <boost/filesystem.hpp>
 
@@ -23,7 +23,6 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
 DECLARE_string(database_path);
 
 class EphemeralDatabasePluginTests : public DatabasePluginTests {
@@ -39,9 +38,7 @@ CREATE_DATABASE_TESTS(EphemeralDatabasePluginTests);
 void DatabasePluginTests::SetUp() {
   platformSetup();
   registryAndPluginInit();
-  FLAGS_disable_database = true;
-  setDatabaseAllowOpen();
-  initDatabasePlugin();
+  initDatabasePluginForTesting();
 
   auto& rf = RegistryFactory::get();
   existing_plugin_ = rf.getActive("database");
@@ -49,10 +46,10 @@ void DatabasePluginTests::SetUp() {
 
   setName(name());
   previous_path_ = FLAGS_database_path;
-  FLAGS_database_path = (
-      fs::temp_directory_path() /
-      fs::unique_path("osquery.database_plugin_tests.%%%%.%%%%.%%%%.%%%%.db")
-  ).string();
+  FLAGS_database_path =
+      (fs::temp_directory_path() /
+       fs::unique_path("osquery.database_plugin_tests.%%%%.%%%%.%%%%.%%%%.db"))
+          .string();
   path_ = FLAGS_database_path;
   // removePath(path_);
 

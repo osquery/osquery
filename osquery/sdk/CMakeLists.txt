@@ -21,6 +21,7 @@ function(generateOsquerySdkPluginsdk)
     osquery_cxx_settings
     osquery_config
     osquery_core_init
+    osquery_database
     osquery_dispatcher
     osquery_events_eventsregistry
     osquery_experimental_eventsstream_registry
@@ -44,7 +45,6 @@ function(generateOsquerySdkPluginsdk)
     osquery_utils_attribute
     osquery_utils
     plugins_config_parsers
-    plugins_database_ephemeral
   )
 
   enableLinkWholeArchive(osquery_sdk_pluginsdk)

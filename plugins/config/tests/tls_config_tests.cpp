@@ -32,16 +32,13 @@ namespace osquery {
 DECLARE_string(tls_hostname);
 DECLARE_bool(enroll_always);
 DECLARE_uint64(config_refresh);
-DECLARE_bool(disable_database);
 
 class TLSConfigTests : public testing::Test {
  public:
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     ASSERT_TRUE(TLSServerRunner::start());
     TLSServerRunner::setClientConfig();

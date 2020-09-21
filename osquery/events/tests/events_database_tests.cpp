@@ -27,7 +27,6 @@
 #include <osquery/utils/system/time.h>
 
 namespace osquery {
-DECLARE_bool(disable_database);
 
 static TableRows genRows(EventSubscriberPlugin* sub) {
   auto vtc = std::make_shared<VirtualTableContent>();
@@ -56,10 +55,7 @@ DECLARE_bool(events_optimize);
 class EventsDatabaseTests : public ::testing::Test {
   void SetUp() override {
     registryAndPluginInit();
-
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     RegistryFactory::get().registry("config_parser")->setUp();
     optimize_ = FLAGS_events_optimize;

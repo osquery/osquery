@@ -47,7 +47,6 @@ function(generateOsqueryTablesSystemLinuxTests)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     thirdparty_googletest
   )
 endfunction()
@@ -73,7 +72,6 @@ function(generateOsqueryTablesSystemPosixTests)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     thirdparty_googletest
   )
 endfunction()
@@ -94,7 +92,6 @@ function(generateOsqueryTablesSystemTestsSystemtablestestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     thirdparty_googletest
   )
 endfunction()
@@ -126,7 +123,6 @@ function(generateOsqueryTablesSystemDarwinTests)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     thirdparty_googletest
   )
 endfunction()
@@ -150,7 +146,6 @@ function(generateOsqueryTablesSystemWindowsTests)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     thirdparty_googletest
   )
 endfunction()
@@ -163,6 +158,7 @@ function(generateOsqueryTablesSystemTestsAugeasTestsTest)
   target_link_libraries(osquery_tables_system_tests_augeastests-test PRIVATE
     osquery_cxx_settings
     osquery_config_tests_testutils
+    osquery_database
     osquery_dispatcher
     osquery_events
     osquery_extensions
@@ -171,7 +167,6 @@ function(generateOsqueryTablesSystemTestsAugeasTestsTest)
     osquery_remote_enroll_tlsenroll
     osquery_sql
     osquery_tables_events_eventstable
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )

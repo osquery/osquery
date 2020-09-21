@@ -30,8 +30,6 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
-
 extern size_t getMachineShard(const std::string& hostname = "",
                               bool force = false);
 
@@ -40,9 +38,7 @@ class PacksTests : public testing::Test {
   PacksTests() {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 };
 

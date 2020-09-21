@@ -34,7 +34,6 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 DECLARE_uint64(buffered_log_max);
-DECLARE_bool(disable_database);
 
 // Check that the string matches the StatusLogLine
 MATCHER_P(MatchesStatus, expected, "") {
@@ -56,9 +55,7 @@ class BufferedLogForwarderTests : public Test {
   void SetUp() {
     platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
   }
 
  public:

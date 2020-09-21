@@ -11,31 +11,8 @@ function(osqueryPluginsDatabaseMain)
     add_subdirectory("tests")
   endif()
 
-  generatePluginsDatabaseEphemeral()
   generatePluginsDatabaseRocksdbplugin()
   generatePluginsDatabaseSqliteplugin()
-endfunction()
-
-function(generatePluginsDatabaseEphemeral)
-  add_osquery_library(plugins_database_ephemeral EXCLUDE_FROM_ALL
-    ephemeral.cpp
-  )
-
-  enableLinkWholeArchive(plugins_database_ephemeral)
-
-  target_link_libraries(plugins_database_ephemeral PUBLIC
-    osquery_cxx_settings
-    osquery_core
-    osquery_database
-    osquery_registry
-    osquery_utils
-  )
-
-  set(public_header_files
-    ephemeral.h
-  )
-
-  generateIncludeNamespace(plugins_database_ephemeral "plugins/database" "FILE_ONLY" ${public_header_files})
 endfunction()
 
 function(generatePluginsDatabaseRocksdbplugin)

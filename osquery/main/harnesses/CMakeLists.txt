@@ -41,7 +41,6 @@ function(osqueryMainHarnesses)
     plugins_config_tlsconfig
     plugins_config_parsers
     plugins_config_updateconfigplugin
-    plugins_database_ephemeral
     plugins_database_rocksdbplugin
     plugins_database_sqliteplugin
     plugins_distributed_tls_distributedtls

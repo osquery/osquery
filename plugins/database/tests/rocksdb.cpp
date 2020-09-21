@@ -7,10 +7,10 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/database/tests/test_utils.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/sql/sql.h>
 #include <plugins/database/rocksdb.h>
-#include <plugins/database/tests/utils.h>
 
 namespace osquery {
 

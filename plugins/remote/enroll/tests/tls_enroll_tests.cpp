@@ -34,7 +34,6 @@
 namespace osquery {
 
 DECLARE_string(tls_hostname);
-DECLARE_bool(disable_database);
 
 class TLSEnrollTests : public testing::Test {
  protected:
@@ -50,9 +49,7 @@ class TLSEnrollTests : public testing::Test {
 void TLSEnrollTests::SetUp() {
   platformSetup();
   registryAndPluginInit();
-  FLAGS_disable_database = true;
-  setDatabaseAllowOpen();
-  initDatabasePlugin();
+  initDatabasePluginForTesting();
 
   // Start a server.
   ASSERT_TRUE(TLSServerRunner::start());

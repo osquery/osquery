@@ -15,6 +15,7 @@ function(generateOsqueryUtilsAwsTestsTest)
   target_link_libraries(osquery_utils_aws_tests-test PRIVATE
     osquery_cxx_settings
     osquery_config_tests_testutils
+    osquery_database
     osquery_dispatcher
     osquery_events
     osquery_extensions
@@ -24,7 +25,6 @@ function(generateOsqueryUtilsAwsTestsTest)
     osquery_utils_aws
     osquery_utils_info
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )

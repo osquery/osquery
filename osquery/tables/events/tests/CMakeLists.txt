@@ -34,7 +34,6 @@ function(generateOsqueryTablesEventsTestsFileeventstestsTest)
     osquery_tables_events_eventstable
     plugins_config_tlsconfig
     plugins_config_parsers
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -57,7 +56,6 @@ function(generateOsqueryTablesEventsTestsSelinuxeventstestsTest)
     osquery_tables_events_eventstable
     plugins_config_tlsconfig
     plugins_config_parsers
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -80,7 +78,6 @@ function(generateOsqueryTablesEventsTestsProcesseventstestsTest)
     osquery_tables_events_eventstable
     plugins_config_tlsconfig
     plugins_config_parsers
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -103,7 +100,6 @@ function(generateOsqueryTablesEventsTestsPowershelleventstestsTest)
     osquery_tables_events_eventstable
     plugins_config_tlsconfig
     plugins_config_parsers
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )
@@ -131,7 +127,6 @@ function(generateOsqueryTablesEventsTestsWindowseventstestsTest)
     osquery_tables_events_eventstable
     plugins_config_tlsconfig
     plugins_config_parsers
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )

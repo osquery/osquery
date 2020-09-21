@@ -33,7 +33,6 @@ function(generateOsquerySqlTestsSqltestutils)
     osquery_remote_enroll_tlsenroll
     osquery_sql
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     specs_tables
   )
 endfunction()
@@ -72,7 +71,6 @@ function(generateOsquerySqlTestsVirtualtableTestsTest)
     osquery_remote_enroll_tlsenroll
     osquery_sql
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )

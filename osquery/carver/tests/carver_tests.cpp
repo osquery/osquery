@@ -28,8 +28,6 @@ namespace osquery {
 
 namespace fs = boost::filesystem;
 
-DECLARE_bool(disable_database);
-
 /// Prefix used for posix tar archive.
 const std::string kTestCarveNamePrefix = "carve_";
 
@@ -55,11 +53,7 @@ class CarverTests : public testing::Test {
   void SetUp() override {
     platformSetup();
     registryAndPluginInit();
-
-    // Force registry to use ephemeral database plugin
-    FLAGS_disable_database = true;
-    setDatabaseAllowOpen();
-    initDatabasePlugin();
+    initDatabasePluginForTesting();
 
     working_dir_ =
         fs::temp_directory_path() /

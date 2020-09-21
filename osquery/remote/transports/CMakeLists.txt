@@ -67,7 +67,6 @@ function(generateOsqueryRemoteTransportsRemotetransportstlstestsTest)
     osquery_utils_conversions
     osquery_utils_info
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     tests_helper
     thirdparty_googletest
   )

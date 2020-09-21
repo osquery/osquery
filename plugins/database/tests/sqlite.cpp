@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <plugins/database/tests/utils.h>
+#include <osquery/database/tests/test_utils.h>
 
 namespace osquery {
 
