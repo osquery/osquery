@@ -1,3 +1,5 @@
+# osquery Changelog
+
 <a name="4.5.0"></a>
 ## [4.5.0](https://github.com/osquery/osquery/releases/tag/4.5.0)
 
@@ -263,20 +265,24 @@ Thank you! :clap:
 [Git Commits](https://github.com/osquery/osquery/compare/4.1.2...4.2.0)
 
 ### New Features / Under the Hood improvements
+
 - TLS Testing infrastructure has been overhauled ([#6170](https://github.com/osquery/osquery/pull/6170))
 - Boost regex has been replaced with std ([#6236](https://github.com/osquery/osquery/pull/6236))
 - `community_id_v1` added as a SQL function ([#6211](https://github.com/osquery/osquery/pull/6211))
 
 ### Build
+
 - Fix format checking on Windows ([#6188](https://github.com/osquery/osquery/pull/6188))
 - Fix format folder exclusions for build checks ([#6201](https://github.com/osquery/osquery/pull/6201))
 - Fix the linking for extensions in build ([#6219](https://github.com/osquery/osquery/pull/6219))
 - Fix build to include windows optional features table ([#6207](https://github.com/osquery/osquery/pull/6207))
 
 ### Security Issues
+
 - [CVE-2020-1887] osquery does not properly verify the SNI hostname ([#6197](https://github.com/osquery/osquery/pull/6197))
 
 ### Bug Fixes
+
 - Carver no longer returns empty carves for hidden files ([#6183](https://github.com/osquery/osquery/pull/6183))
 - Address a race in the Dispatcher logic ([#6145](https://github.com/osquery/osquery/pull/6145))
 - Fix validation in 'last' table ([#6147](https://github.com/osquery/osquery/pull/6147))
@@ -288,6 +294,7 @@ Thank you! :clap:
 - Fix heap buffer overflow in callDoubleFunc and powerFunc ([#6225](https://github.com/osquery/osquery/pull/6225))
 
 ### Table Changes
+
 - Added table `firefox_addons` to All Platforms ([#6200](https://github.com/osquery/osquery/pull/6200))
 - Added table `ssh_configs` to All Platforms ([#6161](https://github.com/osquery/osquery/pull/6161))
 - Added table `user_ssh_keys` to All Platforms ([#6161](https://github.com/osquery/osquery/pull/6161))
@@ -452,7 +459,6 @@ It features a heavily reworked build system. This aims to provide flexibility an
 - macOS query pack: detect SearchAwesome malware ([#5713](https://github.com/osquery/osquery/pull/5713))
 - macOS query pack: detect when a process is tapping keyboard event ([#5345](https://github.com/osquery/osquery/pull/5345))
 
-
 ### Build
 
 - Refactor CMake build ([#5604](https://github.com/osquery/osquery/pull/5604), [#5627](https://github.com/osquery/osquery/pull/5627), [#5630](https://github.com/osquery/osquery/pull/5630), ([#5618](https://github.com/osquery/osquery/pull/5618)), ([#5619](https://github.com/osquery/osquery/pull/5619)))
@@ -462,7 +468,6 @@ It features a heavily reworked build system. This aims to provide flexibility an
 - Use `urllib2` to automatically handle HTTP 301/302 redirections ([#5612](https://github.com/osquery/osquery/pull/5612))
 - Update MSI package to install to `Program Files` on Windows ([#5579](https://github.com/osquery/osquery/pull/5579))
 - Linux custom toolchain integration ([#5759](https://github.com/osquery/osquery/pull/5759))
-
 
 ### Hardening
 
