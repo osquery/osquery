@@ -47,7 +47,7 @@ class Carver : public InternalRunnable {
    */
   void start() override;
 
- private:
+ protected:
   /*
    * @brief A helper function that 'carves' all files from disk
    *
@@ -71,7 +71,7 @@ class Carver : public InternalRunnable {
    * created, we POST the carved file to an endpoint specified by the
    * carver_start_endpoint and carver_continue_endpoint
    */
-  Status postCarve(const boost::filesystem::path& path);
+  virtual Status postCarve(const boost::filesystem::path& path);
 
   // Getter for the carver status
   Status getStatus() {
@@ -83,6 +83,7 @@ class Carver : public InternalRunnable {
     return carveDir_;
   }
 
+ private:
   /*
    * @brief a variable to keep track of the temp fs used in carving
    *
@@ -133,24 +134,8 @@ class Carver : public InternalRunnable {
    */
   std::string requestId_;
 
-  /*
-   * @brief the uri used to begin POSTing carve data
-   *
-   * This endpoint should negotiate the details of the carve, as well
-   * as give the client a session id used to continue POSTing the data.
-   */
-  std::string startUri_;
-
-  /// The uri used to receive the data blocks of a carve
-  std::string contUri_;
-
   // Running status of the carver
   Status status_;
-
- private:
-  friend class CarverTests;
-  FRIEND_TEST(CarverTests, test_carve_files_locally);
-  FRIEND_TEST(CarverTests, test_carve_files_not_exists);
 };
 
 /**
