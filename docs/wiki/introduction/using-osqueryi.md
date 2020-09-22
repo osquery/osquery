@@ -1,8 +1,10 @@
+# Using osqueryi
+
 `osqueryi` is the osquery interactive query console/shell. In this mode, it is completely standalone, does not communicate with a daemon, and does not need to run as an administrator (although some tables may return fewer results when running as non-administrator). Use the osquery shell to prototype queries and explore the current state of your operating system.
 
 ## Executing SQL queries
 
-**osqueryi** lets you run meta-commands and query osquery tables. See the [schema API](https://osquery.io/schema/) for a complete list of tables, types, and column descriptions. For SQL syntax help, see [SQL as understood by SQLite](https://www.sqlite.org/lang.html).
+`osqueryi` lets you run meta-commands and query osquery tables. See the [schema API](https://osquery.io/schema/) for a complete list of tables, types, and column descriptions. For SQL syntax help, see [SQL as understood by SQLite](https://www.sqlite.org/lang.html).
 
 ***Note***: the `osqueryd` binary, when run as `osqueryd -S`, operates as `osqueryi`. It will also operate in the interactive mode if the executable is renamed as `osqueryi`.
 
@@ -37,7 +39,7 @@ $ osqueryi --json "SELECT * FROM routes WHERE destination = '::1'"
 ]
 ```
 
-You may also pipe a query as *stdin*. The input will be executed on the **osqueryi** shell and must be well-formed SQL or **osqueryi** meta-commands. Note the added ';' to the query when using *stdin*:
+You may also pipe a query as *stdin*. The input will be executed on the `osqueryi` shell and must be well-formed SQL or `osqueryi` meta-commands. Note the added ';' to the query when using *stdin*:
 
 ```
 $ echo "SELECT * FROM routes WHERE destination = '::1';" | osqueryi --json
@@ -45,7 +47,7 @@ $ echo "SELECT * FROM routes WHERE destination = '::1';" | osqueryi --json
 
 ## Getting help
 
-**osqueryi** is a modified version of the SQLite shell.
+`osqueryi` is a modified version of the SQLite shell.
 It accepts several meta-commands, prefixed with a '.':
 
 * to list all tables: `.tables`
@@ -103,9 +105,9 @@ osquery> .exit
 $
 ```
 
-The shell does not keep much state or connect to the **osqueryd** daemon.
+The shell does not keep much state, or connect to the `osqueryd` daemon.
 If you would like to run queries and log changes to the output or log operating system events, consider deploying a query **schedule** using [osqueryd](using-osqueryd.md).
 
  > Note: Event publishers are not started by default. To enable event-based tables, use the flag `--disable_events=false`.
 
-**osqueryi** uses an in-memory database by default. To connect to an existing events database, use the flag `--database_path=/var/osquery/osquery.db` (only one process may attach to the database; see [Checking the database sanity](../deployment/debugging.md#checking-the-database-sanity)).
+`osqueryi` uses an in-memory database by default. To connect to an existing events database, use the flag `--database_path=/var/osquery/osquery.db` (only one process may attach to the database; see [Checking the database sanity](../deployment/debugging.md#checking-the-database-sanity)).
