@@ -247,15 +247,20 @@ void genWindowsEventLog(RowYield& yield, QueryContext& context) {
   if (hasXpath) {
     auto xpaths = context.constraints["xpath"].getAll(EQUALS);
     auto xpath = *xpaths.begin();
-    pt::ptree propTree;
-    std::stringstream ss;
-    ss << xpath;
-    pt::read_xml(ss, propTree);
-    auto channel = propTree.get("QueryList.Query.Select.<xmlattr>.Path", "");
-    if (!channel.empty()) {
-      xpath_set.insert(std::make_pair(channel, xpath));
-    } else {
-      LOG(WARNING) << "Invalid xpath format: " << xpath;
+    try {
+      pt::ptree propTree;
+      std::stringstream ss;
+      ss << xpath;
+      pt::read_xml(ss, propTree);
+      auto channel = propTree.get("QueryList.Query.Select.<xmlattr>.Path", "");
+      if (!channel.empty()) {
+        xpath_set.insert(std::make_pair(channel, xpath));
+      } else {
+        LOG(WARNING) << "Invalid xpath format: " << xpath;
+      }
+    } catch (std::exception& e) {
+      LOG(WARNING) << "Failed to parse the xpath xml string " << e.what();
+      return;
     }
 
   } else if (context.hasConstraint("channel", EQUALS)) {
