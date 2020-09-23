@@ -1,14 +1,16 @@
-We recommend installing Windows using the [Chocolatey package manager](https://chocolatey.org/packages/osquery/), or from the latest official binaries available on [the Downloads page](https://osquery.io/downloads/official/).
+# Installing osquery on Windows
+
+We recommend installing on Windows using the [Chocolatey package manager](https://chocolatey.org/packages/osquery/), or from the latest official binaries available on [the Downloads page](https://osquery.io/downloads/official/).
 
 For those needing more customization of their deployment, the steps taken by the installation are explained in more detail, below.
 
-### Installing with Chocolatey
+## Installing with Chocolatey
 
 Each osquery tag (stable release) is published to **Chocolatey** for our supported versions: [https://chocolatey.org/packages/osquery/](https://chocolatey.org/packages/osquery/)
 
-By default Chocolatey will install the binaries, example packs, example configuration, and an OpenSSL certificate bundle to `C:\Program Files\osquery` and nothing more. You can pass Chocolatey the `--params='/InstallService'` flag or make use of osquery's `--install` flag with `C:\Program Files\osquery\osqueryd\osqueryd.exe --install` to install a Windows SYSTEM level service for the **osqueryd** daemon.
+By default Chocolatey will install the binaries, example packs, example configuration, and an OpenSSL certificate bundle to `C:\Program Files\osquery` and nothing more. You can pass Chocolatey the `--params='/InstallService'` flag or make use of osquery's `--install` flag with `C:\Program Files\osquery\osqueryd\osqueryd.exe --install` to install a Windows `SYSTEM`-level service for the `osqueryd` daemon.
 
-### Installing osquery via the MSI package
+## Installing osquery via the MSI package
 
 For generating an **MSI** installer package, we support two methods.
 
@@ -28,14 +30,14 @@ cmake --build . --config RelWithDebInfo --target package
 
 The second method is to use the script `make_windows_package.ps1` included in the source tree. This is a PowerShell script that will generate an MSI package for installing osquery. Running `.\tools\deployment\make_windows_package.ps1 'msi'` from the source root will generate a standalone MSI package along with the example packs, configuration, and OpenSSL cert bundle.
 
-### Installing Manually
+## Installing Manually
 
-To get osquery running as a SYSTEM level service on Windows, one must ensure two things:
+To get osquery running as a `SYSTEM`-level service on Windows, one must ensure two things:
 
 1. `osqueryd.exe` is running with safe permissions
 2. The Windows Service Control Manager has all of the correct information for running the daemon
 
-The `osqueryd.exe` daemon is considered safe if the binary and the directory in which the binary resides do not allow non-privileged write accesses and both are owned by either the Administrators group or the SYSTEM account.
+The `osqueryd.exe` daemon is considered safe if the binary and the directory in which the binary resides do not allow non-privileged write accesses and both are owned by either the Administrators group or the `SYSTEM` account.
 
 The recommended way to set these ACLs is with PowerShell, and we've written a helper function to handle these permissions. To do so, `.` source the file and call the function, as follows:
 
@@ -57,7 +59,7 @@ For example:
 
 ````PowerShell
 C:\Program Files\osquery
-λ  .\manage-osqueryd.ps1 -install -startupArgs C:\Program Files\osquery\osquery.flags
+λ  .\manage-osqueryd.ps1 -install -startupArgs "C:\Program Files\osquery\osquery.flags"
 ````
 
 * If you'd rather use Powershell to manually create the service you can run:
@@ -76,7 +78,7 @@ C:\Users\Thor\work\repos\osquery [master ≡]
 
 ## Running osquery
 
-Out of the box via the Chocolatey installation, one can run osquery in the interactive shell mode using `osqueryi`. More commonly, however, the daemon is configured to be a system service. To set this up, you'll need to install the daemon via the service installation flags as detailed in the steps above, and then provide the daemon with a config file. The simplest way to get **osqueryd** up and running is to rename the `C:\Program Files\osquery\osquery.example.conf` file provided to `osquery.conf`. Once the configuration file is in place, you can start the Windows service:
+Out of the box via the Chocolatey installation, one can run osquery in the interactive shell mode using `osqueryi`. More commonly, however, the daemon is configured to be a system service. To set this up, you'll need to install the daemon via the service installation flags as detailed in the steps above, and then provide the daemon with a config file. The simplest way to get `osqueryd` up and running is to rename the `C:\Program Files\osquery\osquery.example.conf` file provided to `osquery.conf`. Once the configuration file is in place, you can start the Windows service:
 
 * `Start-Service osqueryd` if you're using **Powershell**
 * `sc.exe start osqueryd` if you're using **cmd.exe**
@@ -98,7 +100,7 @@ In order to enable support for the Windows Event Log, you first have to install 
 * **Install**: `wevtutil im C:\Program Files\osquery\osquery.man`
 * **Uninstall**: `wevtutil um C:\Program Files\osquery\osquery.man`
 
-The same operation can be performed using the osquery manager (C:\Program Files\osquery\manage-osqueryd.ps1):
+The same operation can be performed using the osquery manager (`C:\Program Files\osquery\manage-osqueryd.ps1`):
 
 * **Install**: `.\manage-osqueryd.ps1 -installWelManifest`
 * **Uninstall**: `.\manage-osqueryd.ps1 -uninstallWelManifest`
