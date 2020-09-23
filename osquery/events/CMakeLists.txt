@@ -16,7 +16,6 @@ function(osqueryEventsMain)
 endfunction()
 
 function(generateOsqueryEvents)
-
   if(DEFINED PLATFORM_LINUX)
     list(APPEND source_files
       audit_flags.cpp
@@ -24,9 +23,10 @@ function(generateOsqueryEvents)
       linux/auditeventpublisher.cpp
       linux/inotify.cpp
       linux/bpf/bpfeventpublisher.cpp
+      linux/bpf/filesystem.cpp
+      linux/bpf/processcontextfactory.cpp
       linux/bpf/setrlimit.cpp
       linux/bpf/systemstatetracker.cpp
-      linux/bpf/utils.cpp
       linux/syslog.cpp
       linux/udev.cpp
     )
@@ -99,10 +99,14 @@ function(generateOsqueryEvents)
       linux/process_events.h
       linux/process_file_events.h
       linux/bpf/bpfeventpublisher.h
-      linux/bpf/setrlimit.h
+      linux/bpf/filesystem.h
+      linux/bpf/ifilesystem.h
+      linux/bpf/iprocesscontextfactory.h
       linux/bpf/isystemstatetracker.h
+      linux/bpf/processcontextfactory.h
+      linux/bpf/setrlimit.h
       linux/bpf/systemstatetracker.h
-      linux/bpf/utils.h
+      linux/bpf/uniquedir.h
       linux/selinux_events.h
       linux/apparmor_events.h
       linux/socket_events.h

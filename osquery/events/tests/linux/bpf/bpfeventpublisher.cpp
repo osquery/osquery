@@ -8,6 +8,7 @@
  */
 
 #include "bpftestsmain.h"
+#include "mockedprocesscontextfactory.h"
 
 #include <osquery/events/linux/bpf/bpfeventpublisher.h>
 #include <osquery/events/linux/bpf/systemstatetracker.h>
@@ -63,59 +64,14 @@ const tob::ebpfpub::IFunctionTracer::Event kBaseBPFEvent = {
 };
 // clang-format on
 
-bool mockedProcessContextFactory(ProcessContext& process_context,
-                                 pid_t process_id) {
-  process_context = {};
-
-  if (process_id == 2) {
-    process_context.parent_process_id = 1;
-
-  } else if (process_id == 1000) {
-    process_context.parent_process_id = 2;
-
-  } else if (process_id == 1001) {
-    process_context.parent_process_id = 1000;
-
-  } else if (process_id == 1002) {
-    return false;
-
-  } else {
-    throw std::logic_error(
-        "Invalid process id specified in the process context factory");
-  }
-
-  process_context.binary_path = "/usr/bin/zsh";
-  process_context.argv = {"zsh", "-H", "-i"};
-  process_context.cwd = "/home/alessandro";
-
-  // clang-format off
-  process_context.fd_map = {
-    { 0, { "/dev/pts/1", true } },
-    { 1, { "/dev/pts/1", true } },
-    { 2, { "/dev/pts/1", true } },
-    { 11, { "/usr/share/zsh/functions/VCS_Info.zwc", false } },
-    { 12, { "/usr/share/zsh/functions/Completion.zwc", false } },
-    { 13, { "/usr/share/zsh/functions/VCS_Info/Backends.zwc", false } },
-    { 14, { "/usr/share/zsh/functions/Completion/Base.zwc", false } },
-    { 15, { "/usr/share/zsh/functions/Misc.zwc", false } }
-  };
-  // clang-format on
-
-  return true;
-}
-
-bool mockedProcessContextMapFactory(ProcessContextMap& process_map) {
-  ProcessContext process_context;
-  mockedProcessContextFactory(process_context, 2);
-
-  process_map.insert({2, process_context});
-  return true;
+IProcessContextFactory::Ref getMockedProcessContextFactory() {
+  return IProcessContextFactory::Ref(new MockedProcessContextFactory);
 }
 } // namespace
 
 TEST_F(BPFEventPublisherTests, processForkEvent_and_processVforkEvent) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -171,8 +127,8 @@ TEST_F(BPFEventPublisherTests, processForkEvent_and_processVforkEvent) {
 }
 
 TEST_F(BPFEventPublisherTests, processCloneEvent) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -232,8 +188,8 @@ TEST_F(BPFEventPublisherTests, processCloneEvent) {
 }
 
 TEST_F(BPFEventPublisherTests, processExecveEvent) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -297,8 +253,8 @@ TEST_F(BPFEventPublisherTests, processExecveEvent) {
 }
 
 TEST_F(BPFEventPublisherTests, processExecveatEvent) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -392,8 +348,8 @@ TEST_F(BPFEventPublisherTests, processExecveatEvent) {
 }
 
 TEST_F(BPFEventPublisherTests, processCloseEvent) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -443,8 +399,8 @@ TEST_F(BPFEventPublisherTests, processCloseEvent) {
 }
 
 TEST_F(BPFEventPublisherTests, processDupEvent) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -500,8 +456,8 @@ TEST_F(BPFEventPublisherTests, processDupEvent) {
 }
 
 TEST_F(BPFEventPublisherTests, processDup2Event) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -575,8 +531,8 @@ TEST_F(BPFEventPublisherTests, processDup2Event) {
 }
 
 TEST_F(BPFEventPublisherTests, processDup3Event) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -664,8 +620,8 @@ TEST_F(BPFEventPublisherTests, processDup3Event) {
 }
 
 TEST_F(BPFEventPublisherTests, processCreatEvent) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -722,8 +678,8 @@ TEST_F(BPFEventPublisherTests, processCreatEvent) {
 }
 
 TEST_F(BPFEventPublisherTests, processOpenEvent) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -798,8 +754,8 @@ TEST_F(BPFEventPublisherTests, processOpenEvent) {
 }
 
 TEST_F(BPFEventPublisherTests, processOpenatEvent) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -887,8 +843,8 @@ TEST_F(BPFEventPublisherTests, processOpenatEvent) {
 }
 
 TEST_F(BPFEventPublisherTests, processChdirEvent) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());
@@ -946,8 +902,8 @@ TEST_F(BPFEventPublisherTests, processChdirEvent) {
 }
 
 TEST_F(BPFEventPublisherTests, processFchdirEvent) {
-  auto state_tracker_ref = SystemStateTracker::create(
-      mockedProcessContextFactory, mockedProcessContextMapFactory);
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
 
   auto& state_tracker =
       static_cast<SystemStateTracker&>(*state_tracker_ref.get());

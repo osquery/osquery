@@ -21,4 +21,9 @@ class BPFEventPublisherTests : public testing::Test {
  protected:
   virtual void SetUp() override{};
 };
+
+class ProcessContextFactoryTests : public testing::Test {
+ protected:
+  virtual void SetUp() override{};
+};
 } // namespace osquery

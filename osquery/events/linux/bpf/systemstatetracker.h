@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include <osquery/events/linux/bpf/iprocesscontextfactory.h>
 #include <osquery/events/linux/bpf/isystemstatetracker.h>
-#include <osquery/events/linux/bpf/utils.h>
 
 #include <functional>
 #include <memory>
@@ -20,12 +20,8 @@
 namespace osquery {
 class SystemStateTracker final : public ISystemStateTracker {
  public:
-  using ProcessContextFactory = std::function<bool(ProcessContext&, pid_t)>;
-  using ProcessContextMapFactory = std::function<bool(ProcessContextMap&)>;
-
   static Ref create();
-  static Ref create(ProcessContextFactory process_factory,
-                    ProcessContextMapFactory process_map_factory);
+  static Ref create(IProcessContextFactory::Ref process_context_factory);
 
   virtual ~SystemStateTracker() override;
 
@@ -66,8 +62,7 @@ class SystemStateTracker final : public ISystemStateTracker {
   Context getContextCopy() const;
 
  private:
-  SystemStateTracker(ProcessContextFactory process_factory,
-                     ProcessContextMapFactory& process_map_factory);
+  SystemStateTracker(IProcessContextFactory::Ref process_context_factory);
 
  public:
   struct PrivateData;
@@ -80,19 +75,19 @@ class SystemStateTracker final : public ISystemStateTracker {
 
   static ProcessContext& getProcessContext(
       Context& context,
-      ProcessContextFactory process_context_factory,
+      IProcessContextFactory& process_context_factory,
       pid_t process_id);
 
   static bool createProcess(
       Context& context,
-      ProcessContextFactory process_context_factory,
+      IProcessContextFactory& process_context_factory,
       const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
       pid_t process_id,
       pid_t child_process_id);
 
   static bool executeBinary(
       Context& context,
-      ProcessContextFactory process_context_factory,
+      IProcessContextFactory& process_context_factory,
       const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
       pid_t process_id,
       int dirfd,
@@ -100,18 +95,20 @@ class SystemStateTracker final : public ISystemStateTracker {
       const std::string& binary_path,
       const tob::ebpfpub::IFunctionTracer::Event::Field::Argv& argv);
 
-  static bool setWorkingDirectory(Context& context,
-                                  ProcessContextFactory process_context_factory,
-                                  pid_t process_id,
-                                  int dirfd);
+  static bool setWorkingDirectory(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      pid_t process_id,
+      int dirfd);
 
-  static bool setWorkingDirectory(Context& context,
-                                  ProcessContextFactory process_context_factory,
-                                  pid_t process_id,
-                                  const std::string& path);
+  static bool setWorkingDirectory(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      pid_t process_id,
+      const std::string& path);
 
   static bool openFile(Context& context,
-                       ProcessContextFactory process_context_factory,
+                       IProcessContextFactory& process_context_factory,
                        pid_t process_id,
                        int dirfd,
                        int newfd,
@@ -125,7 +122,7 @@ class SystemStateTracker final : public ISystemStateTracker {
                               bool close_on_exec);
 
   static bool closeHandle(Context& context,
-                          ProcessContextFactory process_context_factory,
+                          IProcessContextFactory& process_context_factory,
                           pid_t process_id,
                           int fd);
 };

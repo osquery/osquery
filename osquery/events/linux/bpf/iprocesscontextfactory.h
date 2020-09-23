@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <unistd.h>
+#include <osquery/events/linux/bpf/ifilesystem.h>
 
 namespace osquery {
 struct ProcessContext final {
@@ -34,22 +34,20 @@ struct ProcessContext final {
 
 using ProcessContextMap = std::unordered_map<pid_t, ProcessContext>;
 
-bool readLinkAt(std::string& destination,
-                int dirfd,
-                const std::string& relative_path);
+class IProcessContextFactory {
+ public:
+  using Ref = std::unique_ptr<IProcessContextFactory>;
+  static Status create(Ref& obj);
 
-bool readFileAt(std::vector<char>& buffer,
-                int dirfd,
-                const std::string& relative_path);
+  virtual bool captureSingleProcess(ProcessContext& process_context,
+                                    pid_t process_id) const = 0;
 
-bool queryProcessArgv(std::vector<std::string>& argv, int procs_fd);
+  virtual bool captureAllProcesses(ProcessContextMap& process_map) const = 0;
 
-bool queryProcessParentID(pid_t& parent_pid, int procs_fd);
+  IProcessContextFactory() = default;
+  virtual ~IProcessContextFactory() = default;
 
-bool queryProcessFileDescriptorMap(ProcessContext::FileDescriptorMap& fd_map,
-                                   int procs_fd);
-
-bool createProcessContext(ProcessContext& process_context, pid_t process_id);
-
-bool createProcessContextMap(ProcessContextMap& process_map);
+  IProcessContextFactory(const IProcessContextFactory&) = delete;
+  IProcessContextFactory& operator=(const IProcessContextFactory&) = delete;
+};
 } // namespace osquery

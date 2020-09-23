@@ -15,19 +15,24 @@
 namespace osquery {
 struct SystemStateTracker::PrivateData final {
   Context context;
-  ProcessContextFactory process_context_factory;
+  IProcessContextFactory::Ref process_context_factory;
 };
 
 SystemStateTracker::Ref SystemStateTracker::create() {
-  return create(createProcessContext, createProcessContextMap);
+  IProcessContextFactory::Ref process_context_factory;
+  auto status = IProcessContextFactory::create(process_context_factory);
+  if (!status) {
+    throw status;
+  }
+
+  return create(std::move(process_context_factory));
 }
 
 SystemStateTracker::Ref SystemStateTracker::create(
-    ProcessContextFactory process_factory,
-    ProcessContextMapFactory process_map_factory) {
+    IProcessContextFactory::Ref process_context_factory) {
   try {
     return SystemStateTracker::Ref(
-        new SystemStateTracker(process_factory, process_map_factory));
+        new SystemStateTracker(std::move(process_context_factory)));
 
   } catch (const Status& status) {
     LOG(ERROR) << status.getMessage();
@@ -45,7 +50,7 @@ bool SystemStateTracker::createProcess(
     pid_t process_id,
     pid_t child_process_id) {
   return createProcess(d->context,
-                       d->process_context_factory,
+                       *d->process_context_factory.get(),
                        event_header,
                        process_id,
                        child_process_id);
@@ -59,7 +64,7 @@ bool SystemStateTracker::executeBinary(
     const std::string& binary_path,
     const tob::ebpfpub::IFunctionTracer::Event::Field::Argv& argv) {
   return executeBinary(d->context,
-                       d->process_context_factory,
+                       *d->process_context_factory.get(),
                        event_header,
                        process_id,
                        dirfd,
@@ -70,13 +75,13 @@ bool SystemStateTracker::executeBinary(
 
 bool SystemStateTracker::setWorkingDirectory(pid_t process_id, int dirfd) {
   return setWorkingDirectory(
-      d->context, d->process_context_factory, process_id, dirfd);
+      d->context, *d->process_context_factory.get(), process_id, dirfd);
 }
 
 bool SystemStateTracker::setWorkingDirectory(pid_t process_id,
                                              const std::string& path) {
   return setWorkingDirectory(
-      d->context, d->process_context_factory, process_id, path);
+      d->context, *d->process_context_factory.get(), process_id, path);
 }
 
 bool SystemStateTracker::openFile(pid_t process_id,
@@ -85,7 +90,7 @@ bool SystemStateTracker::openFile(pid_t process_id,
                                   const std::string& path,
                                   int flags) {
   return openFile(d->context,
-                  d->process_context_factory,
+                  *d->process_context_factory.get(),
                   process_id,
                   dirfd,
                   newfd,
@@ -101,28 +106,30 @@ bool SystemStateTracker::duplicateHandle(pid_t process_id,
 }
 
 bool SystemStateTracker::closeHandle(pid_t process_id, int fd) {
-  return closeHandle(d->context, d->process_context_factory, process_id, fd);
+  return closeHandle(
+      d->context, *d->process_context_factory.get(), process_id, fd);
 }
 
 SystemStateTracker::SystemStateTracker(
-    ProcessContextFactory process_factory,
-    ProcessContextMapFactory& process_map_factory)
+    IProcessContextFactory::Ref process_context_factory)
     : d(new PrivateData) {
-  d->process_context_factory = process_factory;
+  d->process_context_factory = std::move(process_context_factory);
 
-  if (!process_map_factory(d->context.process_map)) {
+  if (!d->process_context_factory->captureAllProcesses(
+          d->context.process_map)) {
     throw Status::failure("Failed to scan the procfs folder");
   }
 }
 
 ProcessContext& SystemStateTracker::getProcessContext(
     Context& context,
-    ProcessContextFactory process_context_factory,
+    IProcessContextFactory& process_context_factory,
     pid_t process_id) {
   auto process_it = context.process_map.find(process_id);
   if (process_it == context.process_map.end()) {
     ProcessContext process_context;
-    if (process_context_factory(process_context, process_id)) {
+    if (process_context_factory.captureSingleProcess(process_context,
+                                                     process_id)) {
       VLOG(1) << "Created new process context from procfs for pid "
               << process_id << " some fields may be not accurate";
     } else {
@@ -142,7 +149,7 @@ ProcessContext& SystemStateTracker::getProcessContext(
 
 bool SystemStateTracker::createProcess(
     Context& context,
-    ProcessContextFactory process_context_factory,
+    IProcessContextFactory& process_context_factory,
     const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
     pid_t process_id,
     pid_t child_process_id) {
@@ -173,7 +180,7 @@ bool SystemStateTracker::createProcess(
 
 bool SystemStateTracker::executeBinary(
     Context& context,
-    ProcessContextFactory process_context_factory,
+    IProcessContextFactory& process_context_factory,
     const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
     pid_t process_id,
     int dirfd,
@@ -250,7 +257,7 @@ bool SystemStateTracker::executeBinary(
 
 bool SystemStateTracker::setWorkingDirectory(
     Context& context,
-    ProcessContextFactory process_context_factory,
+    IProcessContextFactory& process_context_factory,
     pid_t process_id,
     int dirfd) {
   auto& process_context =
@@ -269,7 +276,7 @@ bool SystemStateTracker::setWorkingDirectory(
 
 bool SystemStateTracker::setWorkingDirectory(
     Context& context,
-    ProcessContextFactory process_context_factory,
+    IProcessContextFactory& process_context_factory,
     pid_t process_id,
     const std::string& path) {
   auto& process_context =
@@ -284,13 +291,14 @@ bool SystemStateTracker::setWorkingDirectory(
   return true;
 }
 
-bool SystemStateTracker::openFile(Context& context,
-                                  ProcessContextFactory process_context_factory,
-                                  pid_t process_id,
-                                  int dirfd,
-                                  int newfd,
-                                  const std::string& path,
-                                  int flags) {
+bool SystemStateTracker::openFile(
+    Context& context,
+    IProcessContextFactory& process_context_factory,
+    pid_t process_id,
+    int dirfd,
+    int newfd,
+    const std::string& path,
+    int flags) {
   if (path.empty()) {
     return false;
   }
@@ -348,7 +356,7 @@ bool SystemStateTracker::duplicateHandle(Context& context,
 
 bool SystemStateTracker::closeHandle(
     Context& context,
-    ProcessContextFactory process_context_factory,
+    IProcessContextFactory& process_context_factory,
     pid_t process_id,
     int fd) {
   if (context.process_map.find(process_id) == context.process_map.end()) {

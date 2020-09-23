@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "bpftestsmain.h"
+#include "mockedprocesscontextfactory.h"
 
 #include <osquery/events/linux/bpf/systemstatetracker.h>
 
@@ -23,10 +24,10 @@ const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader {
   0U,
 
   // thread id
-  100,
+  1001,
 
   // process id
-  100,
+  1001,
 
   // user id
   1000,
@@ -44,94 +45,33 @@ const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader {
   false
 };
 // clang-format on
-
-// clang-format off
-const ProcessContext kBaseProcessContext{
-  // parent process id
-  1000,
-
-  // binary path
-  "/bin/bash",
-
-  // argv
-  { "bash", "arg1", "arg2" },
-
-  // current working directory
-  "/root",
-
-  // file descriptor map
-  {
-    {
-      // file descriptor
-      1,
-
-      {
-        // path
-        "/bin/zsh",
-
-        // close on exec
-        false
-      }
-    },
-
-    {
-      // file descriptor
-      2,
-
-      {
-        // path
-        "/etc/hostname",
-
-        // close on exec
-        true
-      }
-    }
-  }
-};
-// clang-format on
 } // namespace
 
 TEST_F(SystemStateTrackerTests, getProcessContext) {
-  bool process_context_created{false};
-  bool fail_process_context_creation{false};
-
-  auto L_processContextFactory =
-      [&process_context_created, &fail_process_context_creation](
-          ProcessContext& process_context, pid_t process_id) -> bool {
-    process_context = {};
-    if (fail_process_context_creation) {
-      return false;
-    }
-
-    process_context_created = true;
-    process_context = kBaseProcessContext;
-
-    return true;
-  };
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
 
   SystemStateTracker::Context context;
   auto& process_context1 = SystemStateTracker::getProcessContext(
-      context, L_processContextFactory, 1000);
+      context, *process_context_factory.get(), 1000);
 
-  EXPECT_TRUE(process_context_created);
+  EXPECT_TRUE(process_context_factory->invocationCount() == 1U);
   EXPECT_EQ(context.process_map.size(), 1U);
   EXPECT_EQ(context.process_map.count(1000), 1U);
 
-  EXPECT_EQ(context.process_map.at(1000).binary_path,
-            kBaseProcessContext.binary_path);
+  EXPECT_EQ(context.process_map.at(1000).binary_path, "/usr/bin/zsh");
 
   EXPECT_EQ(&context.process_map.at(1000), &process_context1);
 
-  process_context_created = false;
-  SystemStateTracker::getProcessContext(context, L_processContextFactory, 1000);
-  EXPECT_FALSE(process_context_created);
+  SystemStateTracker::getProcessContext(
+      context, *process_context_factory.get(), 1000);
+  EXPECT_TRUE(process_context_factory->invocationCount() == 1U);
 
-  process_context_created = false;
-  fail_process_context_creation = true;
+  process_context_factory->failNextRequest();
   auto& process_context2 = SystemStateTracker::getProcessContext(
-      context, L_processContextFactory, 1001);
+      context, *process_context_factory.get(), 1001);
 
-  EXPECT_FALSE(process_context_created);
+  EXPECT_TRUE(process_context_factory->invocationCount() == 1U);
   EXPECT_EQ(context.process_map.size(), 2U);
   EXPECT_EQ(context.process_map.count(1001), 1U);
   EXPECT_TRUE(context.process_map.at(1001).binary_path.empty());
@@ -139,23 +79,8 @@ TEST_F(SystemStateTrackerTests, getProcessContext) {
 }
 
 TEST_F(SystemStateTrackerTests, create_process) {
-  std::size_t factory_call_count{0U};
-
-  auto L_processContextFactory = [&factory_call_count](
-                                     ProcessContext& process_context,
-                                     pid_t process_id) -> bool {
-    process_context = kBaseProcessContext;
-
-    if (process_id == 1000) {
-      process_context.parent_process_id = 1;
-
-    } else if (process_id == 1001) {
-      process_context.parent_process_id = 1000;
-    }
-
-    ++factory_call_count;
-    return true;
-  };
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
 
   // The fork/vfork/clone event, as received from BPF, is from the side of
   // the parent process, but the system tracker expects this to be on the
@@ -172,20 +97,20 @@ TEST_F(SystemStateTrackerTests, create_process) {
   SystemStateTracker::Context context;
   auto succeeded = SystemStateTracker::createProcess(
       context,
-      L_processContextFactory,
+      *process_context_factory.get(),
       bpf_event_header,
       1000, // parent pid
       bpf_event_header.process_id); // child pid
 
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(context.process_map.size(), 2U);
-  EXPECT_EQ(factory_call_count, 1U);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   EXPECT_EQ(context.process_map.count(1000), 1U);
   EXPECT_EQ(context.process_map.count(1001), 1U);
 
   const auto& parent_process1 = context.process_map.at(1000);
-  EXPECT_EQ(parent_process1.parent_process_id, 1);
+  EXPECT_EQ(parent_process1.parent_process_id, 2);
 
   const auto& child_process1 = context.process_map.at(1001);
   EXPECT_EQ(child_process1.parent_process_id, 1000);
@@ -212,14 +137,14 @@ TEST_F(SystemStateTrackerTests, create_process) {
 
   succeeded = SystemStateTracker::createProcess(
       context,
-      L_processContextFactory,
+      *process_context_factory.get(),
       bpf_event_header,
       1001, // parent pid
       bpf_event_header.process_id); // child pid
 
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(context.process_map.size(), 3U);
-  EXPECT_EQ(factory_call_count, 1U);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   EXPECT_EQ(context.process_map.count(1000), 1U);
   EXPECT_EQ(context.process_map.count(1001), 1U);
@@ -248,34 +173,36 @@ TEST_F(SystemStateTrackerTests, create_process) {
 }
 
 TEST_F(SystemStateTrackerTests, execute_binary_with_absolute_path) {
-  std::size_t factory_call_count{0U};
-
-  auto L_processContextFactory = [&factory_call_count](ProcessContext&,
-                                                       pid_t) -> bool {
-    ++factory_call_count;
-    return false;
-  };
-
   auto bpf_event_header = kBaseBPFEventHeader;
   bpf_event_header.process_id = 1001;
 
-  SystemStateTracker::Context context;
-  context.process_map.insert(
-      {bpf_event_header.process_id, kBaseProcessContext});
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
 
-  static const std::vector<std::string> kExecArgumentList = {"zsh"};
+  SystemStateTracker::Context context;
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(process_context,
+                                                  bpf_event_header.process_id);
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    context.process_map.insert({bpf_event_header.process_id, process_context});
+  }
+
+  static const std::vector<std::string> kExecArgumentList = {"date", "--help"};
   auto succeeded =
       SystemStateTracker::executeBinary(context,
-                                        L_processContextFactory,
+                                        *process_context_factory.get(),
                                         bpf_event_header,
                                         bpf_event_header.process_id,
                                         AT_FDCWD,
                                         0,
-                                        "/bin/zsh",
+                                        "/usr/bin/date",
                                         kExecArgumentList);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(factory_call_count, 0U);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Verify that:
   // 1. all the file descriptors marked as close-on-exec have been removed
@@ -285,9 +212,9 @@ TEST_F(SystemStateTrackerTests, execute_binary_with_absolute_path) {
 
   const auto& process_context = context.process_map.at(1001);
 
-  EXPECT_EQ(process_context.binary_path, "/bin/zsh");
+  EXPECT_EQ(process_context.binary_path, "/usr/bin/date");
   EXPECT_EQ(process_context.argv, kExecArgumentList);
-  EXPECT_EQ(process_context.fd_map.size(), 1U);
+  EXPECT_EQ(process_context.fd_map.size(), 5U);
 
   // Make sure that the exec event was generated
   ASSERT_EQ(context.event_list.size(), 1U);
@@ -308,36 +235,38 @@ TEST_F(SystemStateTrackerTests, execute_binary_with_absolute_path) {
 }
 
 TEST_F(SystemStateTrackerTests, execute_binary_at_cwd) {
-  std::size_t factory_call_count{0U};
-
-  auto L_processContextFactory = [&factory_call_count](ProcessContext&,
-                                                       pid_t) -> bool {
-    ++factory_call_count;
-    return false;
-  };
-
   auto bpf_event_header = kBaseBPFEventHeader;
   bpf_event_header.process_id = 1001;
 
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
+
   SystemStateTracker::Context context;
-  context.process_map.insert(
-      {bpf_event_header.process_id, kBaseProcessContext});
 
-  context.process_map[bpf_event_header.process_id].cwd = "/bin";
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(process_context,
+                                                  bpf_event_header.process_id);
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
-  static const std::vector<std::string> kExecArgumentList = {"zsh"};
+    context.process_map.insert({bpf_event_header.process_id, process_context});
+  }
+
+  context.process_map[bpf_event_header.process_id].cwd = "/usr/bin";
+
+  static const std::vector<std::string> kExecArgumentList = {"date", "--help"};
   auto succeeded =
       SystemStateTracker::executeBinary(context,
-                                        L_processContextFactory,
+                                        *process_context_factory.get(),
                                         bpf_event_header,
                                         bpf_event_header.process_id,
                                         AT_FDCWD,
                                         0,
-                                        "zsh",
+                                        "date",
                                         kExecArgumentList);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(factory_call_count, 0U);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Verify that:
   // 1. all the file descriptors marked as close-on-exec have been removed
@@ -347,9 +276,9 @@ TEST_F(SystemStateTrackerTests, execute_binary_at_cwd) {
 
   const auto& process_context = context.process_map.at(1001);
 
-  EXPECT_EQ(process_context.binary_path, "/bin/zsh");
+  EXPECT_EQ(process_context.binary_path, "/usr/bin/date");
   EXPECT_EQ(process_context.argv, kExecArgumentList);
-  EXPECT_EQ(process_context.fd_map.size(), 1U);
+  EXPECT_EQ(process_context.fd_map.size(), 5U);
 
   // Make sure that the exec event was generated
   ASSERT_EQ(context.event_list.size(), 1U);
@@ -370,50 +299,53 @@ TEST_F(SystemStateTrackerTests, execute_binary_at_cwd) {
 }
 
 TEST_F(SystemStateTrackerTests, execute_binary_with_fd) {
-  std::size_t factory_call_count{0U};
-
-  auto L_processContextFactory = [&factory_call_count](ProcessContext&,
-                                                       pid_t) -> bool {
-    ++factory_call_count;
-    return false;
-  };
-
   auto bpf_event_header = kBaseBPFEventHeader;
   bpf_event_header.process_id = 1001;
 
-  SystemStateTracker::Context context;
-  context.process_map.insert(
-      {bpf_event_header.process_id, kBaseProcessContext});
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
 
-  static const std::vector<std::string> kExecArgumentList = {"zsh"};
+  SystemStateTracker::Context context;
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(process_context,
+                                                  bpf_event_header.process_id);
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    process_context.fd_map[15].path = "/usr/bin/date";
+
+    context.process_map.insert({bpf_event_header.process_id, process_context});
+  }
+
+  static const std::vector<std::string> kExecArgumentList = {"date", "--help"};
 
   // Attempt to execute the binary with both a path and the AT_EMPTY_PATH
   // flag specified. this should fail
-  auto succeeded = SystemStateTracker::executeBinary(
-      context,
-      L_processContextFactory,
-      bpf_event_header,
-      bpf_event_header.process_id,
-      1, // This FD maps to /bin/zsh in the process context
-      AT_EMPTY_PATH,
-      "zsh",
-      kExecArgumentList);
+  auto succeeded =
+      SystemStateTracker::executeBinary(context,
+                                        *process_context_factory.get(),
+                                        bpf_event_header,
+                                        bpf_event_header.process_id,
+                                        15, // fd
+                                        AT_EMPTY_PATH,
+                                        "date",
+                                        kExecArgumentList);
 
   EXPECT_FALSE(succeeded);
 
   // Try again to execute the binary, this time without the path
-  succeeded = SystemStateTracker::executeBinary(
-      context,
-      L_processContextFactory,
-      bpf_event_header,
-      bpf_event_header.process_id,
-      1, // This FD maps to /bin/zsh in the process context
-      AT_EMPTY_PATH,
-      std::string(),
-      kExecArgumentList);
+  succeeded = SystemStateTracker::executeBinary(context,
+                                                *process_context_factory.get(),
+                                                bpf_event_header,
+                                                bpf_event_header.process_id,
+                                                15, // fd
+                                                AT_EMPTY_PATH,
+                                                std::string(),
+                                                kExecArgumentList);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(factory_call_count, 0U);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Verify that:
   // 1. all the file descriptors marked as close-on-exec have been removed
@@ -423,9 +355,9 @@ TEST_F(SystemStateTrackerTests, execute_binary_with_fd) {
 
   const auto& process_context = context.process_map.at(1001);
 
-  EXPECT_EQ(process_context.binary_path, "/bin/zsh");
+  EXPECT_EQ(process_context.binary_path, "/usr/bin/date");
   EXPECT_EQ(process_context.argv, kExecArgumentList);
-  EXPECT_EQ(process_context.fd_map.size(), 1U);
+  EXPECT_EQ(process_context.fd_map.size(), 5U);
 
   // Make sure that the exec event was generated
   ASSERT_EQ(context.event_list.size(), 1U);
@@ -446,51 +378,52 @@ TEST_F(SystemStateTrackerTests, execute_binary_with_fd) {
 }
 
 TEST_F(SystemStateTrackerTests, execute_binary_at_dirfd) {
-  std::size_t factory_call_count{0U};
-
-  auto L_processContextFactory = [&factory_call_count](ProcessContext&,
-                                                       pid_t) -> bool {
-    ++factory_call_count;
-    return false;
-  };
-
   auto bpf_event_header = kBaseBPFEventHeader;
   bpf_event_header.process_id = 1001;
 
-  SystemStateTracker::Context context;
-  context.process_map.insert(
-      {bpf_event_header.process_id, kBaseProcessContext});
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
 
-  static const std::vector<std::string> kExecArgumentList = {"zsh"};
+  SystemStateTracker::Context context;
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(process_context,
+                                                  bpf_event_header.process_id);
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    process_context.fd_map[15].path = "/usr/bin";
+
+    context.process_map.insert({bpf_event_header.process_id, process_context});
+  }
+
+  static const std::vector<std::string> kExecArgumentList = {"date", "--help"};
 
   // Attempt to execute the binary with a missing FD
   auto succeeded =
       SystemStateTracker::executeBinary(context,
-                                        L_processContextFactory,
+                                        *process_context_factory.get(),
                                         bpf_event_header,
                                         bpf_event_header.process_id,
-                                        1000, // This FD value does not exist
+                                        1000, // fd
                                         0,
-                                        "zsh",
+                                        "date",
                                         kExecArgumentList);
 
   EXPECT_FALSE(succeeded);
 
   // Try again to execute the binary, this time with a valid dirfd value
-  context.process_map[bpf_event_header.process_id].fd_map.insert(
-      {1000, {"/usr/local/bin", true}});
-
   succeeded = SystemStateTracker::executeBinary(context,
-                                                L_processContextFactory,
+                                                *process_context_factory.get(),
                                                 bpf_event_header,
                                                 bpf_event_header.process_id,
-                                                1000,
+                                                15, // fd
                                                 0,
-                                                "test_binary",
+                                                "date",
                                                 kExecArgumentList);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(factory_call_count, 0U);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Verify that:
   // 1. all the file descriptors marked as close-on-exec have been removed
@@ -500,11 +433,11 @@ TEST_F(SystemStateTrackerTests, execute_binary_at_dirfd) {
 
   const auto& process_context = context.process_map.at(1001);
 
-  // The path we are expecting is: (process_context.fd_map.at(1000).path) +
-  // "/test_binary"
-  EXPECT_EQ(process_context.binary_path, "/usr/local/bin/test_binary");
+  // The path we are expecting is: (process_context.fd_map.at(15).path) +
+  // "/date"
+  EXPECT_EQ(process_context.binary_path, "/usr/bin/date");
   EXPECT_EQ(process_context.argv, kExecArgumentList);
-  EXPECT_EQ(process_context.fd_map.size(), 1U);
+  EXPECT_EQ(process_context.fd_map.size(), 5U);
 
   // Make sure that the exec event was generated
   ASSERT_EQ(context.event_list.size(), 1U);
@@ -525,57 +458,61 @@ TEST_F(SystemStateTrackerTests, execute_binary_at_dirfd) {
 }
 
 TEST_F(SystemStateTrackerTests, set_working_directory_with_path) {
-  std::size_t factory_call_count{0U};
-
-  auto L_processContextFactory = [&factory_call_count](ProcessContext&,
-                                                       pid_t) -> bool {
-    ++factory_call_count;
-    return false;
-  };
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
 
   SystemStateTracker::Context context;
-  context.process_map.insert(
-      {kBaseBPFEventHeader.process_id, kBaseProcessContext});
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(
+        process_context, kBaseBPFEventHeader.process_id);
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    context.process_map.insert(
+        {kBaseBPFEventHeader.process_id, process_context});
+  }
 
   std::string test_cwd_folder{"/home/alessandro"};
-  auto succeeded =
-      SystemStateTracker::setWorkingDirectory(context,
-                                              L_processContextFactory,
-                                              kBaseBPFEventHeader.process_id,
-                                              test_cwd_folder);
+  auto succeeded = SystemStateTracker::setWorkingDirectory(
+      context, *process_context_factory.get(), 1001, test_cwd_folder);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(factory_call_count, 0U);
-  ASSERT_EQ(context.process_map.count(kBaseBPFEventHeader.process_id), 1U);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+  ASSERT_EQ(context.process_map.count(1001), 1U);
 
-  const auto& process_context =
-      context.process_map.at(kBaseBPFEventHeader.process_id);
+  const auto& process_context = context.process_map.at(1001);
   EXPECT_EQ(process_context.cwd, test_cwd_folder);
   EXPECT_TRUE(context.event_list.empty());
 }
 
 TEST_F(SystemStateTrackerTests, set_working_directory_with_fd) {
-  std::size_t factory_call_count{0U};
-
-  auto L_processContextFactory = [&factory_call_count](ProcessContext&,
-                                                       pid_t) -> bool {
-    ++factory_call_count;
-    return false;
-  };
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
 
   SystemStateTracker::Context context;
-  context.process_map.insert(
-      {kBaseBPFEventHeader.process_id, kBaseProcessContext});
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(process_context, 1001);
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    context.process_map.insert(
+        {kBaseBPFEventHeader.process_id, process_context});
+  }
 
   std::string test_cwd_folder{"/home/alessandro"};
   context.process_map[kBaseBPFEventHeader.process_id].fd_map.insert(
       {2000, {test_cwd_folder, true}});
 
-  auto succeeded = SystemStateTracker::setWorkingDirectory(
-      context, L_processContextFactory, kBaseBPFEventHeader.process_id, 2000);
+  auto succeeded =
+      SystemStateTracker::setWorkingDirectory(context,
+                                              *process_context_factory.get(),
+                                              kBaseBPFEventHeader.process_id,
+                                              2000);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(factory_call_count, 0U);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
   ASSERT_EQ(context.process_map.count(kBaseBPFEventHeader.process_id), 1U);
 
   const auto& process_context =
@@ -586,36 +523,41 @@ TEST_F(SystemStateTrackerTests, set_working_directory_with_fd) {
 }
 
 TEST_F(SystemStateTrackerTests, close_handle) {
-  std::size_t factory_call_count{0U};
-
-  auto L_processContextFactory = [&factory_call_count](ProcessContext&,
-                                                       pid_t) -> bool {
-    ++factory_call_count;
-    return false;
-  };
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
 
   SystemStateTracker::Context context;
-  context.process_map.insert(
-      {kBaseBPFEventHeader.process_id, kBaseProcessContext});
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(process_context, 1001);
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    context.process_map.insert(
+        {kBaseBPFEventHeader.process_id, process_context});
+  }
 
   std::string test_cwd_folder{"/home/alessandro"};
   context.process_map[kBaseBPFEventHeader.process_id].fd_map.insert(
       {2000, {test_cwd_folder, true}});
 
   EXPECT_EQ(context.process_map[kBaseBPFEventHeader.process_id].fd_map.size(),
-            3U);
+            9U);
 
-  auto succeeded = SystemStateTracker::closeHandle(
-      context, L_processContextFactory, kBaseBPFEventHeader.process_id, 2000);
+  auto succeeded =
+      SystemStateTracker::closeHandle(context,
+                                      *process_context_factory.get(),
+                                      kBaseBPFEventHeader.process_id,
+                                      2000);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(factory_call_count, 0U);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
   ASSERT_EQ(context.process_map.count(kBaseBPFEventHeader.process_id), 1U);
 
   const auto& process_context =
       context.process_map.at(kBaseBPFEventHeader.process_id);
 
-  EXPECT_EQ(process_context.fd_map.size(), 2U);
+  EXPECT_EQ(process_context.fd_map.size(), 8U);
   EXPECT_EQ(process_context.fd_map.count(2000), 0U);
 
   EXPECT_TRUE(context.event_list.empty());
@@ -629,192 +571,207 @@ TEST_F(SystemStateTrackerTests, duplicate_handle) {
   EXPECT_FALSE(succeeded);
   EXPECT_TRUE(context.process_map.empty());
 
-  context.process_map.insert(
-      {kBaseBPFEventHeader.process_id, kBaseProcessContext});
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
 
-  auto& process_context =
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(
+        process_context, kBaseBPFEventHeader.process_id);
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    context.process_map.insert(
+        {kBaseBPFEventHeader.process_id, process_context});
+  }
+
+  const auto& process_context =
       context.process_map.at(kBaseBPFEventHeader.process_id);
-
-  std::string test_file_path{"/home/alessandro/test.txt"};
-  process_context.fd_map.insert({2000, {test_file_path, true}});
-  EXPECT_EQ(process_context.fd_map.size(), 3U);
 
   succeeded = SystemStateTracker::duplicateHandle(
       context, kBaseBPFEventHeader.process_id, 1000, 3000, true);
 
   EXPECT_FALSE(succeeded);
-  EXPECT_EQ(process_context.fd_map.size(), 3U);
+  EXPECT_EQ(process_context.fd_map.size(), 8U);
 
   succeeded = SystemStateTracker::duplicateHandle(
-      context, kBaseBPFEventHeader.process_id, 2000, 3000, true);
+      context, kBaseBPFEventHeader.process_id, 15, 16, true);
 
   EXPECT_TRUE(succeeded);
   ASSERT_EQ(context.process_map.count(kBaseBPFEventHeader.process_id), 1U);
   EXPECT_EQ(context.process_map.size(), 1U);
-  EXPECT_EQ(process_context.fd_map.size(), 4U);
+  EXPECT_EQ(process_context.fd_map.size(), 9U);
 
-  ASSERT_EQ(process_context.fd_map.count(2000), 1U);
-  const auto& fd_info1 = process_context.fd_map.at(2000);
-  EXPECT_EQ(fd_info1.path, test_file_path);
+  ASSERT_EQ(process_context.fd_map.count(15), 1U);
+  ASSERT_EQ(process_context.fd_map.count(16), 1U);
 
-  ASSERT_EQ(process_context.fd_map.count(3000), 1U);
-  const auto& fd_info2 = process_context.fd_map.at(3000);
-  EXPECT_EQ(fd_info2.path, test_file_path);
+  const auto& fd_info1 = process_context.fd_map.at(15);
+  const auto& fd_info2 = process_context.fd_map.at(16);
+
+  EXPECT_EQ(fd_info1.path, fd_info2.path);
+  EXPECT_EQ(fd_info1.close_on_exec, false);
+  EXPECT_EQ(fd_info2.close_on_exec, true);
 
   EXPECT_TRUE(context.event_list.empty());
 }
 
 TEST_F(SystemStateTrackerTests, open_file) {
-  std::size_t factory_call_count{0U};
-
-  auto L_processContextFactory = [&factory_call_count](ProcessContext&,
-                                                       pid_t) -> bool {
-    ++factory_call_count;
-    return false;
-  };
-
   SystemStateTracker::Context context;
-  context.process_map.insert(
-      {kBaseBPFEventHeader.process_id, kBaseProcessContext});
+
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(
+        process_context, kBaseBPFEventHeader.process_id);
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    context.process_map.insert(
+        {kBaseBPFEventHeader.process_id, process_context});
+  }
 
   auto& process_context =
       context.process_map.at(kBaseBPFEventHeader.process_id);
 
-  EXPECT_EQ(process_context.fd_map.size(), 2U);
+  EXPECT_EQ(process_context.fd_map.size(), 8U);
 
   // Empty file path
   auto succeeded = SystemStateTracker::openFile(context,
-                                                L_processContextFactory,
+                                                *process_context_factory.get(),
                                                 kBaseBPFEventHeader.process_id,
                                                 AT_FDCWD,
-                                                10,
+                                                1000,
                                                 "",
                                                 0);
 
   EXPECT_FALSE(succeeded);
-  EXPECT_EQ(process_context.fd_map.size(), 2U);
-  EXPECT_EQ(factory_call_count, 0U);
+  EXPECT_EQ(process_context.fd_map.size(), 8U);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Invalid dirfd
   succeeded = SystemStateTracker::openFile(context,
-                                           L_processContextFactory,
+                                           *process_context_factory.get(),
                                            kBaseBPFEventHeader.process_id,
-                                           11111, // Invalid dirfd value
-                                           10,
+                                           1000, // Invalid dirfd value
+                                           16,
                                            "test_file",
                                            0);
 
   EXPECT_FALSE(succeeded);
-  EXPECT_EQ(process_context.fd_map.size(), 2U);
-  EXPECT_EQ(factory_call_count, 0U);
+  EXPECT_EQ(process_context.fd_map.size(), 8U);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Absolute paths, without close on exec
   std::string absolute_test_path{"/home/alessandro/Documents/secret.txt"};
 
   succeeded = SystemStateTracker::openFile(context,
-                                           L_processContextFactory,
+                                           *process_context_factory.get(),
                                            kBaseBPFEventHeader.process_id,
                                            AT_FDCWD,
-                                           10,
+                                           16,
                                            absolute_test_path,
                                            0);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(process_context.fd_map.size(), 3U);
-  ASSERT_EQ(process_context.fd_map.count(10), 1U);
-  EXPECT_FALSE(process_context.fd_map.at(10).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(10).path, absolute_test_path);
-  EXPECT_EQ(factory_call_count, 0U);
+  EXPECT_EQ(process_context.fd_map.size(), 9U);
+  ASSERT_EQ(process_context.fd_map.count(16), 1U);
+  EXPECT_FALSE(process_context.fd_map.at(16).close_on_exec);
+  EXPECT_EQ(process_context.fd_map.at(16).path, absolute_test_path);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Absolute paths, with close on exec
   succeeded = SystemStateTracker::openFile(context,
-                                           L_processContextFactory,
+                                           *process_context_factory.get(),
                                            kBaseBPFEventHeader.process_id,
                                            AT_FDCWD,
-                                           11,
+                                           17,
                                            absolute_test_path,
                                            O_CLOEXEC);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(process_context.fd_map.size(), 4U);
-  ASSERT_EQ(process_context.fd_map.count(11), 1U);
-  EXPECT_TRUE(process_context.fd_map.at(11).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(11).path, absolute_test_path);
-  EXPECT_EQ(factory_call_count, 0U);
+  EXPECT_EQ(process_context.fd_map.size(), 10U);
+  ASSERT_EQ(process_context.fd_map.count(17), 1U);
+  EXPECT_TRUE(process_context.fd_map.at(17).close_on_exec);
+  EXPECT_EQ(process_context.fd_map.at(17).path, absolute_test_path);
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Relative paths + cwd, without close on exec
   std::string relative_test_path{"secret.txt"};
 
   succeeded = SystemStateTracker::openFile(context,
-                                           L_processContextFactory,
+                                           *process_context_factory.get(),
                                            kBaseBPFEventHeader.process_id,
                                            AT_FDCWD,
-                                           12,
+                                           18,
                                            relative_test_path,
                                            0);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(process_context.fd_map.size(), 5U);
-  ASSERT_EQ(process_context.fd_map.count(12), 1U);
-  EXPECT_FALSE(process_context.fd_map.at(12).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(12).path,
+  EXPECT_EQ(process_context.fd_map.size(), 11U);
+  ASSERT_EQ(process_context.fd_map.count(18), 1U);
+  EXPECT_FALSE(process_context.fd_map.at(18).close_on_exec);
+  EXPECT_EQ(process_context.fd_map.at(18).path,
             process_context.cwd + "/" + relative_test_path);
-  EXPECT_EQ(factory_call_count, 0U);
+
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Relative paths + cwd, with close on exec
   succeeded = SystemStateTracker::openFile(context,
-                                           L_processContextFactory,
+                                           *process_context_factory.get(),
                                            kBaseBPFEventHeader.process_id,
                                            AT_FDCWD,
-                                           13,
+                                           19,
                                            relative_test_path,
                                            O_CLOEXEC);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(process_context.fd_map.size(), 6U);
-  ASSERT_EQ(process_context.fd_map.count(13), 1U);
-  EXPECT_TRUE(process_context.fd_map.at(13).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(13).path,
+  EXPECT_EQ(process_context.fd_map.size(), 12U);
+  ASSERT_EQ(process_context.fd_map.count(19), 1U);
+  EXPECT_TRUE(process_context.fd_map.at(19).close_on_exec);
+  EXPECT_EQ(process_context.fd_map.at(19).path,
             process_context.cwd + "/" + relative_test_path);
-  EXPECT_EQ(factory_call_count, 0U);
+
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Relative paths + dirfd, without close on exec
   std::string dirfd_folder_path{"/etc"};
   std::string dirfd_relative_path{"hosts"};
 
-  process_context.fd_map.insert({14, {dirfd_folder_path, true}});
+  process_context.fd_map.insert({20, {dirfd_folder_path, true}});
 
   succeeded = SystemStateTracker::openFile(context,
-                                           L_processContextFactory,
+                                           *process_context_factory.get(),
                                            kBaseBPFEventHeader.process_id,
-                                           14, // FD to the /etc folder
-                                           15,
+                                           20, // FD to the /etc folder
+                                           21,
                                            dirfd_relative_path,
                                            0);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(process_context.fd_map.size(), 8U);
-  ASSERT_EQ(process_context.fd_map.count(15), 1U);
-  EXPECT_FALSE(process_context.fd_map.at(15).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(15).path,
+  EXPECT_EQ(process_context.fd_map.size(), 14U);
+  ASSERT_EQ(process_context.fd_map.count(21), 1U);
+  EXPECT_FALSE(process_context.fd_map.at(21).close_on_exec);
+  EXPECT_EQ(process_context.fd_map.at(21).path,
             dirfd_folder_path + "/" + dirfd_relative_path);
-  EXPECT_EQ(factory_call_count, 0U);
+
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Relative paths + dirfd, with close on exec
   succeeded = SystemStateTracker::openFile(context,
-                                           L_processContextFactory,
+                                           *process_context_factory.get(),
                                            kBaseBPFEventHeader.process_id,
-                                           14, // FD to the /etc folder
-                                           16,
+                                           20, // FD to the /etc folder
+                                           22,
                                            dirfd_relative_path,
                                            O_CLOEXEC);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(process_context.fd_map.size(), 9U);
-  ASSERT_EQ(process_context.fd_map.count(16), 1U);
-  EXPECT_TRUE(process_context.fd_map.at(16).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(16).path,
+  EXPECT_EQ(process_context.fd_map.size(), 15U);
+  ASSERT_EQ(process_context.fd_map.count(22), 1U);
+  EXPECT_TRUE(process_context.fd_map.at(22).close_on_exec);
+  EXPECT_EQ(process_context.fd_map.at(22).path,
             dirfd_folder_path + "/" + dirfd_relative_path);
-  EXPECT_EQ(factory_call_count, 0U);
+
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 }
 } // namespace osquery
