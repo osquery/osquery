@@ -15,6 +15,7 @@
 #include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
+#include <osquery/core/flags.h>
 #include <osquery/core/tables.h>
 #include <osquery/database/database.h>
 #include <osquery/events/events.h>
@@ -26,12 +27,18 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
+DECLARE_bool(enable_file_events);
 
 const int kMaxEventLatency = 3000;
 
 class INotifyTests : public testing::Test {
+  bool enable_file_events_backup{false};
+
  protected:
   void SetUp() override {
+    enable_file_events_backup = FLAGS_enable_file_events;
+    FLAGS_enable_file_events = true;
+
     setToolType(ToolType::TEST);
     registryAndPluginInit();
     initDatabasePluginForTesting();
@@ -57,6 +64,8 @@ class INotifyTests : public testing::Test {
   }
 
   void TearDown() override {
+    FLAGS_enable_file_events = enable_file_events_backup;
+
     // End the event loops, and join on the threads.
     removePath(real_test_dir);
     removePath(real_test_path);
