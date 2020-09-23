@@ -1,3 +1,5 @@
+# Custom packaging
+
 !!! warning "Deprecated"
     The following package guidance is deprecated. Please use CPack to generate packages.
 
@@ -14,7 +16,7 @@ The first step to creating custom packages is having [built](../development/buil
 In your cloned osquery repository, once you have [built the code](../development/building.md) (hopefully a tagged release):
 
 ```sh
-$ make packages
+make packages
 ```
 
 This will use CMake and *fpm*, installed as an osquery build dependency, to generate an `osquery-VERSION.{rpm/deb}` and optionally debug and devel packages.
@@ -24,13 +26,13 @@ This will use CMake and *fpm*, installed as an osquery build dependency, to gene
 In your cloned osquery repository, once you have [built the code](../development/building.md) (hopefully a tagged release):
 
 ```sh
-$ make packages
+make packages
 ```
 
 The macOS deployment is a bit more complicated and customizable compared to Linux. We include some help and guidance for a more esoteric script `make_osx_package.sh`:
 
 ```sh
-$ ./tools/deployment/make_osx_package.sh -h
+./tools/deployment/make_osx_package.sh -h
 ```
 
 This tool will build an OS X/macOS package with:
@@ -57,7 +59,7 @@ You can now use your existing package distribution system ([JAMF](https://www.ja
 
 ### Custom LaunchDaemon
 
-If you want to modify the command-line arguments used to start **osqueryd**, copy and modify the [LaunchDaemon](https://github.com/osquery/osquery/blob/master/tools/com.facebook.osqueryd.plist), which is included with this repository, to suit your liking.
+If you want to modify the command-line arguments used to start `osqueryd`, copy and modify the [LaunchDaemon](https://github.com/osquery/osquery/blob/master/tools/com.facebook.osqueryd.plist), which is included with this repository, to suit your liking.
 
 When you run **make_osx_package.sh**, include a `-l`/`--launchd-path` flag which indicates the path of your new LaunchDaemon. If specified, this will be used instead of the default LaunchDaemon. For example:
 
@@ -68,10 +70,10 @@ $ ./tools/deployment/make_osx_package.sh -c /internal/osquery/osquery.conf \
 
 ### Removing the LaunchDaemon
 
-Perhaps you just want to deploy the osquery binaries via a pkg and you'd like to manage the scheduling of **osqueryd** via some other mechanism. To do this, when you run **make_osx_package.sh**, include a `-n`/`--no-launchd` flag. For example:
+Perhaps you just want to deploy the osquery binaries via a pkg and you'd like to manage the scheduling of `osqueryd` via some other mechanism. To do this, when you run **make_osx_package.sh**, include a `-n`/`--no-launchd` flag. For example:
 
 ```sh
-$ ./tools/deployment/make_osx_package.sh -n
+./tools/deployment/make_osx_package.sh -n
 ```
 
 This will make the package just lay the binaries down. The LaunchDaemon won't be included and no LaunchDaemon will be unloaded or loaded by the post-install script of the package.
