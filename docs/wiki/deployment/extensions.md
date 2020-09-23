@@ -1,4 +1,6 @@
-osquery supports proprietary tables, config plugins, and logger plugins built in C++ (or languages other than C++) through a Thrift-based extensions API. This is helpful if your enterprise or integration uses an internal method for configuration or log collection. You can internally develop and maintain these custom behaviors in an extension, and ask osquery to depend on the plugins it exposes. To make deployment and management of extensions simpler, osqueryd may "autoload", or subprocess, these extension binaries and monitor their performance.
+# Developing osquery Extensions
+
+osquery supports proprietary tables, config plugins, and logger plugins built in C++ (or other languages) through a Thrift-based extensions API. This is helpful if your deployment of osquery uses a custom method for osquery configuration or log collection. You can internally develop and maintain these custom behaviors in an extension, and ask osquery to depend on the plugins exposed by the extension. To make deployment and management of extensions simpler, `osqueryd` may "autoload", or subprocess, these extension binaries and monitor their performance.
 
 If you are interested in writing extensions, please read the [SDK and Extensions](../development/osquery-sdk.md) development article. That wiki article describes the Thrift API and provides example C++ code for an extension. Every extension runs as a separate process and communicates to the main osquery process using Thrift and a UNIX domain socket. A single extension may contain an arbitrary number of plugins, and each are registered using a setUp API call. Facebook, for example, is known to deploy an `fb-osquery` package and a single extension binary that contains its Facebook-specific tables and internal configuration/logging APIs.
 
@@ -48,7 +50,7 @@ The *autoload* workflow is similar to:
 - Wait `--extensions_timeout * --extensions_interval` for the extension to register the config plugin.
 - Fail if the plugin is not registered or the plugin returns a failed status.
 
-The same dependency check is applied to the logger plugin setting after a valid config is read. Every registered plugin is available throughout the run of the shell or daemon. 
+The same dependency check is applied to the logger plugin setting after a valid config is read. Every registered plugin is available throughout the run of the shell or daemon.
 
 ## Manually Loading Extensions
 

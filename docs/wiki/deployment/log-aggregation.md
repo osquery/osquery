@@ -1,18 +1,19 @@
-osquery is designed to work with any environment's existing data infrastructure. Since the problem space of forwarding logs is so well developed, osquery does not implement log forwarding internally.
+# Log aggregation
 
-In short, the act of forwarding logs and analyzing logs is mostly left as an exercise for the reader. This page offers advice and some options for you to consider, but at the end of the day, you know your infrastructure best and you should make your decisions based on that knowledge.
+osquery is designed to work with any environment's existing data infrastructure. Since the problem space of forwarding logs is so well developed, osquery does not implement log forwarding internally, but rather via plugins.
 
-## Aggregating logs
+**Note**: Ulimately, the solution for forwarding and analyzing osquery logs depends on your particular environment and deployment needs. This page offers advice and some options for you to consider, but at the end of the day, you know your infrastructure best and you should make your decisions based on that knowledge.
 
-When it comes to aggregating the logs that osqueryd generates, you have several options. If you use the filesystem logger plugin (which is the default), then you're responsible for shipping the logs off somewhere. There are many open source and commercial products which excel in this area. This section will explore a few of those options.
 
-### Logstash
+When it comes to aggregating the logs that `osqueryd` generates, you have several options. If you use the filesystem logger plugin (which is the default), then you're responsible for shipping the logs off somewhere. There are many open source and commercial products which excel in this area. This section will explore a few of those options.
+
+## Logstash
 
 [LogStash](https://www.elastic.co/products/logstash) is an open source tool enabling you to collect, parse, index and forward logs. Logstash enables you to ingest osquery logs with its [file](https://www.elastic.co/guide/en/logstash/current/plugins-inputs-file.html) input plugin and then send the data to an aggregator via its extensive list of [output plugins](https://www.elastic.co/guide/en/logstash/current/output-plugins.html). A common datastore for logstash logs is [ElasticSearch](https://www.elastic.co/products/elasticsearch/).
 
 An example Logstash to ElasticSearch config may look like this:
 
-```
+```JSON
 input {
   file {
     path => "/var/log/osquery/osqueryd.results.log"
@@ -37,13 +38,13 @@ output {
 }
 ```
 
-This will send the JSON formatted logs from the results log to an ElasticSearch instance listening on 127.0.0.1. This can be an Elasticsearch node at any endpoint address.
+This will send the JSON formatted logs from the results log to an ElasticSearch instance listening on `127.0.0.1` (the `hosts` field can be an Elasticsearch node at any IP address).
 
-### Splunk
+## Splunk
 
-If you use Splunk, you're probably already familiar with the [Splunk Universal Forwarder](https://docs.splunk.com/Splexicon:Universalforwarder). An example Splunk forwarder (inputs) config may look as follows:
+If you use Splunk, you're probably already familiar with the [Splunk Universal Forwarder](https://docs.splunk.com/Splexicon:Universalforwarder). An example Splunk forwarder config (`inputs.conf`) may look as follows:
 
-```
+```ini
 [monitor:///var/log/osquery/osqueryd.results.log]
 index = main
 sourcetype = osquery:results
@@ -67,7 +68,7 @@ sourcetype = osquery:warning
 
 ### Rsyslog
 
-[rsyslog](https://www.rsyslog.com) is a tried and testing UNIX log forwarding service. If you are deploying **osqueryd** in a production Linux environment where you do not have to worry about lossy network connections, this may be your best option.
+[rsyslog](https://www.rsyslog.com) is a tried and testing UNIX log forwarding service. If you are deploying `osqueryd` in a production Linux environment where you do not have to worry about lossy network connections, this may be your best option.
 
 ## Analyzing logs
 
@@ -89,8 +90,8 @@ Splunk will automatically extract the relevant fields for analytics, as shown be
 
 ![](https://i.imgur.com/tWCPx51.png)
 
-### Rsyslog, Fluentd, Scribe, etc.
+## Rsyslog, Fluentd, Scribe, etc
 
-If you are using a log forwarder which has less requirements on how data is stored (for example, Splunk Forwarders require the use of Splunk, etc.), then you have many options on how you can interact with **osqueryd** data. It is recommended that you use whatever log analytics platform that you are comfortable with.
+If you are using a log forwarder which has less requirements on how data is stored (for example, Splunk Forwarders require the use of Splunk, etc.), then you have many options on how you can interact with `osqueryd` data. It is recommended that you use whatever log analytics platform that you are comfortable with.
 
 Many people are very comfortable with [Logstash](https://www.elastic.co/products/logstash/). If you already have an existing Logstash/Elasticsearch deployment, that is a great option to exercise. If your organization uses a different backend log management solution, osquery should tie into that with minimal effort.
