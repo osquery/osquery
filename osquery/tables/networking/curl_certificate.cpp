@@ -9,6 +9,8 @@
 
 // Include system.h before openssl, because windows.h should be included in
 // specific environment. See osquery/utils/system/windows/system.h
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/scope_guard.h>
 #include <osquery/utils/system/system.h>
 
 #include <openssl/asn1.h>
@@ -19,6 +21,16 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#ifdef WIN32
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#endif
+
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 
@@ -28,6 +40,9 @@
 
 namespace osquery {
 namespace tables {
+
+// set default to no read timeout
+#define DEFAULT_READ_TIMEOUT 4
 
 static std::string pem(X509* cert) {
   auto bio_out = BIO_new(BIO_s_mem());
@@ -170,7 +185,7 @@ bool has_cert_expired(X509* cert) {
   return X509_cmp_current_time(X509_get_notAfter(cert)) <= 0;
 }
 
-static void fillRow(Row& r, X509* cert, int dump_certificate) {
+static void fillRow(Row& r, X509* cert, int dump_certificate, int timeout) {
   std::vector<char> temp(256, 0x0);
   auto temp_size = static_cast<int>(temp.size());
 
@@ -304,6 +319,9 @@ static void fillRow(Row& r, X509* cert, int dump_certificate) {
   r["policy_constraints"] =
       certificate_extensions(cert, NID_policy_constraints);
 
+  // set the timeout flag
+  r["timeout"] = INTEGER(timeout);
+
   // set the dump_certificate flag
   r["dump_certificate"] = INTEGER(dump_certificate);
 
@@ -315,7 +333,8 @@ static void fillRow(Row& r, X509* cert, int dump_certificate) {
 
 Status getTLSCertificate(const std::string& hostname,
                          QueryData& results,
-                         int dump_certificate) {
+                         int dump_certificate,
+                         int timeout) {
   SSL_library_init();
 
 // Temporary workaround for Buck compiling with an older openssl version
@@ -335,48 +354,115 @@ Status getTLSCertificate(const std::string& hostname,
     return Status::failure("Failed to create OpenSSL CTX object");
   }
 
-  auto delBIO = [](BIO* bio) { BIO_free_all(bio); };
-  auto server = std::unique_ptr<BIO, decltype(delBIO)>(
-      BIO_new_ssl_connect(ctx.get()), delBIO);
-  if (server == nullptr) {
-    return Status::failure("Failed to create OpenSSL BIO object");
-  }
-
-  std::string port = ":443";
-  auto ext_hostname = hostname;
-  auto conn_hostname = hostname;
+  std::string port = "443";
+  auto connect_hostname = hostname;
   auto delim = hostname.find(":");
-  if (delim == std::string::npos) {
-    conn_hostname += ":443";
-  } else {
-    ext_hostname = hostname.substr(0, delim);
+  if (delim + 1 == hostname.length()) {
+    // if no port specified use default port
+    connect_hostname = hostname.substr(0, delim);
+  } else if (delim != std::string::npos) {
+    port = hostname.substr(delim + 1, std::string::npos);
+    connect_hostname = hostname.substr(0, delim);
   }
 
-  auto ret = BIO_set_conn_hostname(server.get(), conn_hostname.c_str());
-  if (ret != 1) {
-    return Status::failure("Failed to set OpenSSL hostname: " +
+  int ret = 0;
+#ifdef WIN32
+  // Initialize Winsock
+  WSADATA wsaData;
+  ret = WSAStartup(MAKEWORD(2, 2), &wsaData);
+  if (ret != 0) {
+    return Status::failure("WSAStartup failed with error: " +
                            std::to_string(ret));
   }
+  auto const wsa_guard = scope_guard::create([]() { WSACleanup(); });
+#endif
 
-  SSL* ssl = nullptr;
-  BIO_get_ssl(server.get(), &ssl);
-  if (ssl == nullptr) {
-    return Status::failure("Failed to retrieve OpenSSL object");
+  // connect up the socket first and then pass to BIO
+  struct addrinfo hints, *addrinfo = nullptr, *current_addr = nullptr,
+                         *preferred_addr = nullptr;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = PF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_NUMERICSERV | AI_ADDRCONFIG;
+
+  ret = getaddrinfo(connect_hostname.c_str(), port.c_str(), &hints, &addrinfo);
+  if (ret != 0 || addrinfo == nullptr) {
+    return Status::failure("Unable to resolve hostname");
+  }
+  auto const ai_guard =
+      scope_guard::create([addrinfo]() { freeaddrinfo(addrinfo); });
+
+  current_addr = addrinfo;
+  // take the first return as the default, but prefer IPv4 addrs
+  preferred_addr = addrinfo;
+  while (current_addr != nullptr) {
+    if (current_addr->ai_family == AF_INET) {
+      preferred_addr = current_addr;
+      break;
+    }
+    current_addr = current_addr->ai_next;
   }
 
-  ret = SSL_set_tlsext_host_name(ssl, ext_hostname.c_str());
+#ifdef WIN32
+  SOCKET sock = 0;
+#else
+  int sock = 0;
+#endif
+  sock = socket(preferred_addr->ai_family,
+                preferred_addr->ai_socktype,
+                preferred_addr->ai_protocol);
+  if (sock < 0) {
+    return Status::failure("Unable to create socket");
+  }
+
+  if (timeout > 0) {
+#ifdef WIN32
+    DWORD tv = timeout * 1000;
+#else
+    struct timeval tv;
+    tv.tv_sec = timeout;
+    tv.tv_usec = 0;
+#endif
+    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv) <
+        0) {
+      return Status::failure("Unable to set socket options");
+    }
+  }
+
+  if (connect(sock, preferred_addr->ai_addr, (int)preferred_addr->ai_addrlen) <
+      0) {
+    return Status::failure("Failed to establish TCP connection");
+  }
+  auto const sock_guard = scope_guard::create([sock]() {
+#ifdef WIN32
+    closesocket(sock);
+#else
+    close(sock);
+#endif
+  });
+
+  auto ssl = SSL_new(ctx.get());
+  if (ssl == nullptr) {
+    return Status::failure("Failed to create OpenSSL object");
+  }
+  auto const ssl_guard = scope_guard::create([ssl]() { SSL_free(ssl); });
+
+  auto bio = BIO_new_socket((int)sock, BIO_NOCLOSE);
+  if (bio == nullptr) {
+    return Status::failure("Failed to create OpenSSL BIO object");
+  }
+  SSL_set_bio(ssl, bio, bio);
+
+  ret = SSL_set_tlsext_host_name(ssl, connect_hostname.c_str());
   if (ret != 1) {
     return Status::failure("Failed to set OpenSSL server name: " +
                            std::to_string(ret));
   }
 
-  ret = BIO_do_connect(server.get());
-  if (ret != 1) {
-    return Status::failure("Failed to establish TLS connection: " +
-                           std::to_string(ret));
-  }
+  // blocking mode
+  SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
 
-  ret = BIO_do_handshake(server.get());
+  ret = SSL_connect(ssl);
   if (ret != 1) {
     return Status::failure("Failed to complete TLS handshake: " +
                            std::to_string(ret));
@@ -391,7 +477,7 @@ Status getTLSCertificate(const std::string& hostname,
 
   Row r;
   r["hostname"] = hostname;
-  fillRow(r, cert.get(), dump_certificate);
+  fillRow(r, cert.get(), dump_certificate, timeout);
   results.push_back(r);
   return Status::success();
 }
@@ -399,14 +485,25 @@ Status getTLSCertificate(const std::string& hostname,
 QueryData genTLSCertificate(QueryContext& context) {
   QueryData results;
   auto dump_certificate = 0;
+  auto timeout = DEFAULT_READ_TIMEOUT;
   auto hostnames = context.constraints["hostname"].getAll(EQUALS);
 
   if (context.hasConstraint("dump_certificate", EQUALS)) {
     dump_certificate = context.constraints["dump_certificate"].matches<int>(1);
   }
 
+  if (context.hasConstraint("timeout", EQUALS)) {
+    auto timeout =
+        tryTo<int>(*(context.constraints["timeout"].getAll(EQUALS).begin()), 10)
+            .takeOr(DEFAULT_READ_TIMEOUT);
+    if (timeout < 0) {
+      LOG(WARNING) << "Ignoring out of range timeout: " << timeout;
+      timeout = DEFAULT_READ_TIMEOUT;
+    }
+  }
+
   for (const auto& hostname : hostnames) {
-    auto s = getTLSCertificate(hostname, results, dump_certificate);
+    auto s = getTLSCertificate(hostname, results, dump_certificate, timeout);
     if (!s.ok()) {
       LOG(INFO) << "Cannot get certificate for " << hostname << ": "
                 << s.getMessage();
