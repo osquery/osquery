@@ -1,3 +1,5 @@
+# Logger plugins
+
 For details on how osqueryd schedules queries and loads information from a config, see the [configuration](../deployment/configuration.md) deployment guide.
 
 If you would like to use services like [scribe](https://github.com/facebookarchive/scribe) or [flume](https://flume.apache.org), you need to write a C++ function that consumes/handles a string argument.
@@ -30,6 +32,6 @@ Essentially, you are just implementing a **logString** method. When the daemon i
 
 ## Using the plugin
 
-Add the source to *osquery/logger/plugins/CMakeLists.txts* and it will be compiled and linked.
+Add your source file to `osquery/plugins/logger/CMakeLists.txt` and it will be compiled and linked.
 
 Now when starting osqueryd you may use `--logger_plugin=name` where the name is the string identifier used in **REGISTER**.
