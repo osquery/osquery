@@ -53,7 +53,7 @@ $template OsqueryCsvFormat, "%timestamp:::date-rfc3339,csv%,%hostname:::csv%,%sy
 
 The above configuration should also work, but **rsyslog** strongly recommends using the new style configuration syntax.
 
-```json
+```
 template(
   name="OsqueryCsvFormat"
   type="string"

@@ -87,7 +87,7 @@ osquery> select * from osquery_events;
 
 ## Linux process auditing
 
-On Linux, osquery uses the Audit system to collect and process audit events from the kernel. It accomplishes this by monitoring the `execve()` syscall. `Auditd` should not be running when using osquery's process auditing, as it will conflict with `osqueryd` over access to the audit netlink socket. You should also ensure `auditd` is not configured to start at boot.
+On Linux, osquery uses the Audit system to collect and process audit events from the kernel. It accomplishes this by monitoring the `execve()` syscall. `auditd` should not be running when using osquery's process auditing, as it will conflict with `osqueryd` over access to the audit netlink socket. You should also ensure `auditd` is not configured to start at boot.
 
 The only prerequisite for using osquery's auditing functionality on Linux is that you must use a kernel version that contains the Audit functionality. Most kernels over version 2.6 have this capability.
 
