@@ -122,7 +122,7 @@ fs.inotify.max_queued_events = 32768
 
 In addition to FIM which generates events if a file is created/modified/deleted, osquery also supports file access monitoring which can generate events if a file is accessed.
 
-File accesses on Linux using `inotify` may induce unexpected and unwanted performance overhead. To prevent 'flooding' of access events alongside FIM, enabling access events for `file_path` categories is an explicit opt-in. You may add categories that were defined in your `file_paths` stanza:
+File accesses on Linux using `inotify` may incur unexpected and unwanted performance overhead. To prevent 'flooding' of access events alongside FIM, enabling access events for `file_path` categories is an explicit opt-in. You may add categories that were defined in your `file_paths` stanza:
 
 ```json
 {
