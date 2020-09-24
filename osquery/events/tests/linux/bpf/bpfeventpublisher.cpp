@@ -778,7 +778,7 @@ TEST_F(BPFEventPublisherTests, processOpenatEvent) {
   // clang-format off
   tob::ebpfpub::IFunctionTracer::Event::Field filename_field = {
     "filename",
-    true,
+    false,
     "/home/alessandro/test_file.txt"
   };
   // clang-format on
@@ -793,13 +793,14 @@ TEST_F(BPFEventPublisherTests, processOpenatEvent) {
 
   for (std::size_t i = 0U; i < 7; ++i) {
     bpf_event.in_field_map = {};
+    bpf_event.out_field_map = {};
 
     if ((i & 1) != 0) {
       bpf_event.in_field_map.insert({flags_field.name, flags_field});
     }
 
     if ((i & 2) != 0) {
-      bpf_event.in_field_map.insert({filename_field.name, filename_field});
+      bpf_event.out_field_map.insert({filename_field.name, filename_field});
     }
 
     if ((i & 4) != 0) {
@@ -817,7 +818,7 @@ TEST_F(BPFEventPublisherTests, processOpenatEvent) {
   // the syscall fails
   bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
 
-  bpf_event.in_field_map.insert({filename_field.name, filename_field});
+  bpf_event.out_field_map.insert({filename_field.name, filename_field});
   bpf_event.in_field_map.insert({flags_field.name, flags_field});
   bpf_event.in_field_map.insert({dfd_field.name, dfd_field});
 
@@ -835,7 +836,7 @@ TEST_F(BPFEventPublisherTests, processOpenatEvent) {
 
   succeeded = BPFEventPublisher::processOpenatEvent(state_tracker, bpf_event);
 
-  EXPECT_TRUE(succeeded);
+  ASSERT_TRUE(succeeded);
   EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
 
   // We should now have a new file descriptor in the process context
