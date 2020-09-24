@@ -39,7 +39,7 @@ const std::map<std::string, std::string> kKnownWifiNetworkKeysPreCatalina = {
     {"disabled", "Disabled"},
     {"temporarily_disabled", "TemporarilyDisabled"}};
 
-// The name of the "last_connected" key changed in 10.15, and the 
+// The name of the "last_connected" key changed in 10.15, and the
 // "auto_login" key no longer exists.
 const std::map<std::string, std::string> kKnownWifiNetworkKeys = {
     {"ssid", "SSID"},
@@ -57,18 +57,19 @@ const std::map<std::string, std::string> kKnownWifiNetworkKeys = {
 
 // Check if we are running on macOS 10.15 or later. Keys have changed.
 Status getKnownWifiNetworkKeys(std::map<std::string, std::string>& keys) {
-    auto qd = SQL::selectAllFrom("os_version");
+  auto qd = SQL::selectAllFrom("os_version");
   if (qd.size() != 1) {
     return Status(-1, "Couldn't determine macOS version");
   }
 
   keys = (qd.front().at("major") < "11" && qd.front().at("minor") < "15")
-            ? kKnownWifiNetworkKeysPreCatalina
-            : kKnownWifiNetworkKeys;
+             ? kKnownWifiNetworkKeysPreCatalina
+             : kKnownWifiNetworkKeys;
   return Status(0, "ok");
 }
 
-// Check if we are running on macOS 10.9, where the top-level key in the plist was different
+// Check if we are running on macOS 10.9, where the top-level key in the plist
+//  was different
 Status getKnownNetworksKey(std::string& key) {
   auto qd = SQL::selectAllFrom("os_version");
   if (qd.size() != 1) {
