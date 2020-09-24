@@ -109,9 +109,6 @@ Status BPFEventPublisher::setUp() {
 
     auto& buffer_storage = *buffer_storage_it->second.get();
 
-    VLOG(1) << "Initializing BPF probe for syscall "
-            << tracer_allocator.syscall_name;
-
     auto function_tracer_exp =
         tob::ebpfpub::IFunctionTracer::createFromSyscallTracepoint(
             tracer_allocator.syscall_name,
@@ -131,7 +128,6 @@ Status BPFEventPublisher::setUp() {
       }
 
       VLOG(1) << verbose_message.str();
-
       if (tracer_allocator.syscall_name == "openat2") {
         continue;
       }
@@ -142,6 +138,9 @@ Status BPFEventPublisher::setUp() {
 
     auto function_tracer = function_tracer_exp.takeValue();
     auto event_id = function_tracer->eventIdentifier();
+
+    VLOG(1) << "Initialized BPF probe for syscall "
+            << tracer_allocator.syscall_name << " (" << event_id << ")";
 
     d->event_handler_map[event_id] = tracer_allocator.event_handler;
     d->perf_event_reader->insert(std::move(function_tracer));
@@ -351,7 +350,12 @@ bool BPFEventPublisher::processCloseEvent(
   }
 
   auto process_id = static_cast<pid_t>(event.header.process_id);
-  return state.closeHandle(process_id, fd);
+
+  // Ignore whether the operation has succeeded or not
+  auto status = state.closeHandle(process_id, fd);
+  static_cast<void>(status);
+
+  return true;
 }
 
 bool BPFEventPublisher::processDupEvent(
@@ -375,7 +379,11 @@ bool BPFEventPublisher::processDupEvent(
   auto process_id = static_cast<pid_t>(event.header.process_id);
   static constexpr int kCloseOnExec{false};
 
-  return state.duplicateHandle(process_id, fildes, newfd, kCloseOnExec);
+  // Ignore whether the operation has succeeded or not
+  auto status = state.duplicateHandle(process_id, fildes, newfd, kCloseOnExec);
+  static_cast<void>(status);
+
+  return true;
 }
 
 bool BPFEventPublisher::processDup2Event(
@@ -405,7 +413,11 @@ bool BPFEventPublisher::processDup2Event(
   auto process_id = static_cast<pid_t>(event.header.process_id);
   static constexpr int kCloseOnExec{false};
 
-  return state.duplicateHandle(process_id, oldfd, newfd, kCloseOnExec);
+  // Ignore whether the operation has succeeded or not
+  auto status = state.duplicateHandle(process_id, oldfd, newfd, kCloseOnExec);
+  static_cast<void>(status);
+
+  return true;
 }
 
 bool BPFEventPublisher::processDup3Event(
@@ -440,7 +452,11 @@ bool BPFEventPublisher::processDup3Event(
   auto process_id = static_cast<pid_t>(event.header.process_id);
   auto close_on_exec = (flags & O_CLOEXEC) != 0;
 
-  return state.duplicateHandle(process_id, oldfd, newfd, close_on_exec);
+  // Ignore whether the operation has succeeded or not
+  auto status = state.duplicateHandle(process_id, oldfd, newfd, close_on_exec);
+  static_cast<void>(status);
+
+  return true;
 }
 
 bool BPFEventPublisher::processNameToHandleAtEvent(
@@ -524,13 +540,20 @@ bool BPFEventPublisher::processOpenatEvent(
     return false;
   }
 
+  // It is possible for the memory page containing the filename string to
+  // not be mapped when we start executing our probe. Since BPF can't handle
+  // page faults, we would get back an empty string.
+  //
+  // To work around this issue, this parameter has been switch from IN to OUT
+  // in the tracepointserializers.cpp file, so that we capture this when exiting
+  // the syscall. This makes sure that the string is readable by the
+  // bpf_read_str helper
   std::string filename;
-  if (!getEventMapValue(filename, event.in_field_map, "filename")) {
+  if (!getEventMapValue(filename, event.out_field_map, "filename")) {
     return false;
   }
 
   auto process_id = static_cast<pid_t>(event.header.process_id);
-
   return state.openFile(process_id,
                         static_cast<int>(dirfd),
                         newfd,
@@ -538,10 +561,45 @@ bool BPFEventPublisher::processOpenatEvent(
                         static_cast<int>(flags));
 }
 
-bool BPFEventPublisher::processOpenat2Event(
+[[deprecated("processOpenat2Event() has no unit test yet")]] bool
+BPFEventPublisher::processOpenat2Event(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
-  return true;
+  auto newfd = static_cast<int>(event.header.exit_code);
+  if (newfd == -1) {
+    return true;
+  }
+
+  std::uint64_t dirfd;
+  if (!getEventMapValue(dirfd, event.in_field_map, "dfd")) {
+    return false;
+  }
+
+  std::string filename;
+  if (!getEventMapValue(filename, event.in_field_map, "filename")) {
+    return false;
+  }
+
+  tob::ebpfpub::IFunctionTracer::Event::Field::Buffer buffer;
+  if (!getEventMapValue(buffer, event.in_field_map, "how")) {
+    return false;
+  }
+
+  struct open_how {
+    std::uint64_t flags;
+    std::uint64_t mode;
+    std::uint64_t resolve;
+  } openat_arguments;
+
+  auto size = std::min(sizeof(openat_arguments), buffer.size());
+  std::memcpy(&openat_arguments, buffer.data(), size);
+
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+  return state.openFile(process_id,
+                        static_cast<int>(dirfd),
+                        newfd,
+                        filename,
+                        static_cast<int>(openat_arguments.flags));
 }
 
 bool BPFEventPublisher::processOpenByHandleAtEvent(
@@ -580,7 +638,6 @@ bool BPFEventPublisher::processFchdirEvent(
   }
 
   auto process_id = static_cast<pid_t>(event.header.process_id);
-
   return state.setWorkingDirectory(process_id, static_cast<int>(dirfd));
 }
 
@@ -659,11 +716,11 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     0U
   },
 
-  {
+  /*{
     "name_to_handle_at",
     &BPFEventPublisher::processNameToHandleAtEvent,
     1U
-  },
+  },*/
 
   {
     "creat",
@@ -701,11 +758,11 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     1U
   },
 
-  {
+  /*{
     "open_by_handle_at",
     &BPFEventPublisher::processOpenByHandleAtEvent,
     1U
-  },
+  },*/
 
   {
     "execve",
@@ -719,7 +776,7 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     3U
   },
 
-  {
+  /*{
     "socket",
     &BPFEventPublisher::processSocketEvent,
     4U
@@ -747,7 +804,7 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     "bind",
     &BPFEventPublisher::processBindEvent,
     4U
-  },
+  },*/
 
   {
     "chdir",

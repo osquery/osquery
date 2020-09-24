@@ -153,7 +153,6 @@ function(generateOsqueryEventsTestsBpftestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     specs_tables
     thirdparty_googletest
   )

@@ -34,7 +34,9 @@ class IFilesystem {
                       const std::string& path,
                       int flags) const = 0;
 
-  virtual bool readLink(std::string& destination, int fd) const = 0;
+  virtual bool readLinkAt(std::string& destination,
+                          int dirfd,
+                          const std::string& path) const = 0;
 
   virtual bool read(std::vector<char>& buffer,
                     int fd,

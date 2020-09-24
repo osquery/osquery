@@ -24,7 +24,9 @@ class Filesystem final : public IFilesystem {
                       const std::string& path,
                       int flags) const override;
 
-  virtual bool readLink(std::string& destination, int fd) const override;
+  virtual bool readLinkAt(std::string& destination,
+                          int dirfd,
+                          const std::string& path) const override;
 
   virtual bool read(std::vector<char>& buffer,
                     int fd,

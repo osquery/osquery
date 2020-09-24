@@ -47,17 +47,14 @@ bool Filesystem::openAt(tob::utils::UniqueFd& fd,
   return true;
 }
 
-bool Filesystem::readLink(std::string& destination, int fd) const {
+bool Filesystem::readLinkAt(std::string& destination,
+                            int dirfd,
+                            const std::string& path) const {
   std::vector<char> buffer(4096);
 
-  errno = 0;
-
-  // If we pass nullptr directly, it will complain that the parameter should
-  // never be null. This is true for old kernels, but if we are here then we are
-  // using BPF which requires kernel 4.18 or newer
-  static const char* kNullPointer{nullptr};
   auto bytes_read =
-      readlinkat(fd, kNullPointer, buffer.data(), buffer.size() - 1U);
+      readlinkat(dirfd, path.c_str(), buffer.data(), buffer.size() - 1U);
+
   if (bytes_read == -1) {
     return false;
   }

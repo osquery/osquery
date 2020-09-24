@@ -55,54 +55,6 @@ bool ProcessContextFactory::captureSingleProcess(
     return false;
   }
 
-  std::vector<std::pair<std::string, tob::utils::UniqueFd>> fd_map;
-
-  // clang-format off
-  auto succeeded = fs.enumFiles(
-    process_fdmap.get(),
-
-    [&](const std::string &name, bool directory) {
-      if (directory) {
-        return;
-      }
-
-      char* null_terminator{nullptr};
-      std::strtoull(name.c_str(), &null_terminator, 10);
-      if (null_terminator == nullptr || *null_terminator != '\0') {
-        return;
-      }
-
-      tob::utils::UniqueFd file;
-      if (!fs.openAt(file, process_fdmap.get(), name,
-                     O_RDONLY | O_PATH | O_NOFOLLOW)) {
-        return;
-      }
-
-      fd_map.push_back(std::make_pair(name, std::move(file)));
-    }
-  );
-  // clang-format on
-
-  if (!succeeded) {
-    return false;
-  }
-
-  tob::utils::UniqueFd process_exe;
-  if (!fs.openAt(process_exe,
-                 process_root.get(),
-                 "exe",
-                 O_RDONLY | O_PATH | O_NOFOLLOW)) {
-    return false;
-  }
-
-  tob::utils::UniqueFd process_cwd;
-  if (!fs.openAt(process_cwd,
-                 process_root.get(),
-                 "cwd",
-                 O_RDONLY | O_PATH | O_NOFOLLOW)) {
-    return false;
-  }
-
   tob::utils::UniqueFd process_cmdline;
   if (!fs.openAt(process_cmdline, process_root.get(), "cmdline", O_RDONLY)) {
     return false;
@@ -114,63 +66,79 @@ bool ProcessContextFactory::captureSingleProcess(
   }
 
   ProcessContext output;
+
+  // clang-format off
+  auto succeeded = fs.enumFiles(
+    process_fdmap.get(),
+
+    [&](const std::string &name, bool directory) {
+      if (directory) {
+        return;
+      }
+
+      char* null_terminator{nullptr};
+      auto int_fd_value = std::strtoull(name.c_str(), &null_terminator, 10);
+      if (null_terminator == nullptr || *null_terminator != '\0') {
+        return;
+      }
+
+      std::string destination;
+      if (!fs.readLinkAt(destination, process_fdmap.get(), name)) {
+        return;
+      }
+
+      if (destination.find("anon_inode:[") == 0U) {
+        return;
+      }
+
+      if (destination.find("mnt:[") == 0U) {
+        return;
+      }
+
+      if (destination.find("net:[") == 0U) {
+        return;
+      }
+
+      if (destination.find("pipe:[") == 0U) {
+        return;
+      }
+
+      if (destination.find("socket:[") == 0U) {
+        return;
+      }
+
+      ProcessContext::FileDescriptor fd_info;
+      fd_info.path = std::move(destination);
+      fd_info.close_on_exec = false;
+
+      output.fd_map.insert({int_fd_value, fd_info});
+    }
+  );
+  // clang-format on
+
+  if (!succeeded) {
+    return false;
+  }
+
+  succeeded = fs.readLinkAt(output.binary_path, process_root.get(), "exe");
+  static_cast<void>(succeeded);
+
+  succeeded = getArgvFromCmdlineFile(fs, output.argv, process_cmdline.get());
+  static_cast<void>(succeeded);
+
+  // If we failed to capture both fields, assume it's a special process
+  // such as a kworker instance
+  if (output.binary_path.empty() != output.argv.empty()) {
+    return false;
+  }
+
+  if (!fs.readLinkAt(output.cwd, process_root.get(), "cwd")) {
+    return false;
+  }
+
   if (!getParentPidFromStatFile(
           fs, output.parent_process_id, process_stat.get())) {
     return false;
-  }
-
-  if (!fs.readLink(output.binary_path, process_exe.get())) {
-    return false;
-  }
-
-  if (!getArgvFromCmdlineFile(fs, output.argv, process_cmdline.get())) {
-    return false;
-  }
-
-  if (!fs.readLink(output.cwd, process_cwd.get())) {
-    return false;
-  }
-
-  for (const auto& p : fd_map) {
-    const auto& name = p.first;
-    const auto& unique_fd = p.second;
-
-    char* null_terminator{nullptr};
-    auto integer_fd_value = std::strtoull(name.c_str(), &null_terminator, 10);
-    if (null_terminator == nullptr || *null_terminator != '\0') {
-      continue;
-    }
-
-    std::string file_path;
-    if (!fs.readLink(file_path, unique_fd.get())) {
-      continue;
-    }
-
-    if (file_path.find("anon_inode:[") == 0U) {
-      continue;
-    }
-
-    if (file_path.find("mnt:[") == 0U) {
-      continue;
-    }
-
-    if (file_path.find("net:[") == 0U) {
-      continue;
-    }
-
-    if (file_path.find("pipe:[") == 0U) {
-      continue;
-    }
-
-    if (file_path.find("socket:[") == 0U) {
-      continue;
-    }
-
-    ProcessContext::FileDescriptor fd_info;
-    fd_info.path = std::move(file_path);
-    fd_info.close_on_exec = false;
-
-    output.fd_map.insert({integer_fd_value, fd_info});
   }
 
   process_context = std::move(output);
@@ -181,12 +149,12 @@ bool ProcessContextFactory::captureAllProcesses(
     IFilesystem& fs, ProcessContextMap& process_map) {
   process_map = {};
 
-  ProcessContextMap output;
-
   tob::utils::UniqueFd process_root;
   if (!fs.open(process_root, kProcFsRoot, O_DIRECTORY)) {
     return false;
   }
+
+  ProcessContextMap output;
 
   // clang-format off
   auto succeeded = fs.enumFiles(
@@ -206,6 +174,7 @@ bool ProcessContextFactory::captureAllProcesses(
       ProcessContext process_context = {};
       if (captureSingleProcess(fs, process_context, pid)) {
         output.insert({pid, std::move(process_context)});
+      } else {
       }
     }
   );

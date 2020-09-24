@@ -74,29 +74,22 @@ bool MockedFilesystem::openAt(tob::utils::UniqueFd& fd,
   return true;
 }
 
-bool MockedFilesystem::readLink(std::string& destination, int fd) const {
-  switch (fd) {
-  // exe
-  case 0xFFFFFF6:
-    destination = "/usr/bin/zsh";
-    break;
-
-  // cwd
-  case 0xFFFFFF7:
-    destination = "/home/alessandro";
-    break;
-
-  // first fd
-  case 0xFFFFFF4:
+bool MockedFilesystem::readLinkAt(std::string& destination,
+                                  int dirfd,
+                                  const std::string& path) const {
+  if (dirfd == 0xFFFFFF3 && path == "268435444") {
     destination = "/dev/pts/2";
-    break;
 
-  // second fd
-  case 0xFFFFFF5:
+  } else if (dirfd == 0xFFFFFF3 && path == "268435445") {
     destination = "/dev/pts/3";
-    break;
 
-  default:
+  } else if (dirfd == 0xFFFFFF1 && path == "exe") {
+    destination = "/usr/bin/zsh";
+
+  } else if (dirfd == 0xFFFFFF1 && path == "cwd") {
+    destination = "/home/alessandro";
+
+  } else {
     throw std::logic_error(
         "Invalid fd specified in MockedFilesystem::readLink");
   }
