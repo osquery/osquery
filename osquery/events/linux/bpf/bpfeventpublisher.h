@@ -65,9 +65,11 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
   static bool processForkEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processVforkEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processCloneEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
@@ -75,6 +77,7 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
   static bool processExecveEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processExecveatEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
@@ -82,36 +85,47 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
   static bool processCloseEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processDupEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processDup2Event(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processDup3Event(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processNameToHandleAtEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processCreatEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processMknodEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processMknodatEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processOpenEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processOpenatEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processOpenat2Event(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processOpenByHandleAtEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
@@ -119,6 +133,7 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
   static bool processChdirEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processFchdirEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
@@ -126,15 +141,19 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
   static bool processSocketEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processConnectEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processAcceptEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processAccept4Event(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processBindEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);

@@ -14,6 +14,7 @@
 #include <osquery/registry/registry_factory.h>
 
 #include <fcntl.h>
+#include <sys/sysinfo.h>
 
 namespace osquery {
 namespace {
@@ -55,6 +56,7 @@ struct BPFEventPublisher::PrivateData final {
   BufferStorageMap buffer_storage_map;
   EventHandlerMap event_handler_map;
 
+  std::map<std::uint64_t, tob::ebpfpub::IFunctionTracer::Event> event_queue;
   ISystemStateTracker::Ref system_state_tracker;
 };
 
@@ -182,8 +184,6 @@ Status BPFEventPublisher::run() {
   }
 
   while (!isEnding()) {
-    std::size_t invalid_event_count = 0U;
-
     d->perf_event_reader->exec(
         std::chrono::seconds(1U),
 
@@ -209,28 +209,47 @@ Status BPFEventPublisher::run() {
             VLOG(1) << "lost_events: " << error_counters.lost_events << "\n";
           }
 
-          auto& state = *d->system_state_tracker.get();
-
-          for (const auto& event : event_list) {
-            auto event_handler_it = d->event_handler_map.find(event.identifier);
-            if (event_handler_it == d->event_handler_map.end()) {
-              VLOG(1) << "Unhandled event received: " << event.identifier
-                      << "\n";
-              continue;
-            }
-
-            const auto& event_handler = event_handler_it->second;
-            if (!event_handler(state, event)) {
-              ++invalid_event_count;
-            }
+          for (auto& event : event_list) {
+            auto rel_timestamp = event.header.timestamp;
+            d->event_queue.insert({rel_timestamp, std::move(event)});
           }
         });
+
+    std::size_t invalid_event_count = 0U;
+    auto& state = *d->system_state_tracker.get();
+
+    struct sysinfo system_info {};
+    sysinfo(&system_info);
+
+    for (auto event_it = d->event_queue.begin();
+         event_it != d->event_queue.end();) {
+      const auto& rel_timestamp = event_it->first / 1000000000ULL;
+      if (system_info.uptime - rel_timestamp < 5ULL) {
+        ++event_it;
+        continue;
+      }
+
+      auto event = std::move(event_it->second);
+      event_it = d->event_queue.erase(event_it);
+
+      auto event_handler_it = d->event_handler_map.find(event.identifier);
+      if (event_handler_it == d->event_handler_map.end()) {
+        VLOG(1) << "Unhandled event received: " << event.identifier << "\n";
+        continue;
+      }
+
+      const auto& event_handler = event_handler_it->second;
+      if (!event_handler(state, event)) {
+        VLOG(1) << "Error processing event from tracer #" << event.identifier;
+        ++invalid_event_count;
+      }
+    }
 
     if (invalid_event_count != 0U) {
       LOG(ERROR) << invalid_event_count << " malformed events received";
     }
 
-    auto event_list = d->system_state_tracker->eventList();
+    auto event_list = state.eventList();
     if (!event_list.empty()) {
       auto event_context = createEventContext();
       event_context->event_list = std::move(event_list);
