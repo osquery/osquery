@@ -478,6 +478,9 @@ bool BPFEventPublisher::processDup3Event(
   return true;
 }
 
+// clang-format off
+[[deprecated("processNameToHandleAtEvent() is not yet implemented")]]
+// clang-format on
 bool BPFEventPublisher::processNameToHandleAtEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
@@ -580,8 +583,10 @@ bool BPFEventPublisher::processOpenatEvent(
                         static_cast<int>(flags));
 }
 
-[[deprecated("processOpenat2Event() has no unit test yet")]] bool
-BPFEventPublisher::processOpenat2Event(
+// clang-format off
+[[deprecated("processOpenat2Event() is not yet implemented")]]
+// clang-format on
+bool BPFEventPublisher::processOpenat2Event(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
   auto newfd = static_cast<int>(event.header.exit_code);
@@ -621,6 +626,9 @@ BPFEventPublisher::processOpenat2Event(
                         static_cast<int>(openat_arguments.flags));
 }
 
+// clang-format off
+[[deprecated("processOpenByHandleAtEvent() is not yet implemented")]]
+// clang-format on
 bool BPFEventPublisher::processOpenByHandleAtEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
@@ -660,30 +668,45 @@ bool BPFEventPublisher::processFchdirEvent(
   return state.setWorkingDirectory(process_id, static_cast<int>(dirfd));
 }
 
+// clang-format off
+[[deprecated("processSocketEvent() is not yet implemented")]]
+// clang-format on
 bool BPFEventPublisher::processSocketEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
   return true;
 }
 
+// clang-format off
+[[deprecated("processConnectEvent() is not yet implemented")]]
+// clang-format on
 bool BPFEventPublisher::processConnectEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
   return true;
 }
 
+// clang-format off
+[[deprecated("processAcceptEvent() is not yet implemented")]]
+// clang-format on
 bool BPFEventPublisher::processAcceptEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
   return true;
 }
 
+// clang-format off
+[[deprecated("processAccept4Event() is not yet implemented")]]
+// clang-format on
 bool BPFEventPublisher::processAccept4Event(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
   return true;
 }
 
+// clang-format off
+[[deprecated("processBindEvent() is not yet implemented")]]
+// clang-format on
 bool BPFEventPublisher::processBindEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
