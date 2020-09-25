@@ -206,7 +206,14 @@ bool SystemStateTracker::executeBinary(
     }
 
     auto fd_info = fd_info_it->second;
-    process_context.binary_path = fd_info.path;
+    if (!std::holds_alternative<ProcessContext::FileDescriptor::FileData>(
+            fd_info.data)) {
+      return false;
+    }
+
+    const auto& file_data =
+        std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
+    process_context.binary_path = file_data.path;
 
   } else if (binary_path.front() == '/') {
     process_context.binary_path = binary_path;
@@ -223,7 +230,14 @@ bool SystemStateTracker::executeBinary(
     }
 
     auto fd_info = fd_info_it->second;
-    root_path = fd_info.path;
+    if (!std::holds_alternative<ProcessContext::FileDescriptor::FileData>(
+            fd_info.data)) {
+      return false;
+    }
+
+    const auto& file_data =
+        std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
+    root_path = file_data.path;
 
     process_context.binary_path = root_path + "/" + binary_path;
   }
@@ -269,7 +283,14 @@ bool SystemStateTracker::setWorkingDirectory(
   }
 
   auto fd_info = fd_info_it->second;
-  process_context.cwd = fd_info.path;
+  if (!std::holds_alternative<ProcessContext::FileDescriptor::FileData>(
+          fd_info.data)) {
+    return false;
+  }
+
+  const auto& file_data =
+      std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
+  process_context.cwd = file_data.path;
 
   return true;
 }
@@ -320,12 +341,23 @@ bool SystemStateTracker::openFile(
     }
 
     auto fd_info = fd_info_it->second;
-    absolute_path = fd_info.path + "/" + path;
+    if (!std::holds_alternative<ProcessContext::FileDescriptor::FileData>(
+            fd_info.data)) {
+      return false;
+    }
+
+    const auto& file_data =
+        std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
+
+    absolute_path = file_data.path + "/" + path;
   }
 
   ProcessContext::FileDescriptor fd_info;
   fd_info.close_on_exec = ((flags & O_CLOEXEC) != 0);
-  fd_info.path = absolute_path;
+
+  ProcessContext::FileDescriptor::FileData file_data;
+  file_data.path = std::move(absolute_path);
+  fd_info.data = std::move(file_data);
 
   process_context.fd_map.insert({newfd, std::move(fd_info)});
   return true;

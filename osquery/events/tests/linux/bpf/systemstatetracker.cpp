@@ -7,10 +7,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <iostream>
-
 #include "bpftestsmain.h"
 #include "mockedprocesscontextfactory.h"
+#include "utils.h"
 
 #include <osquery/events/linux/bpf/systemstatetracker.h>
 
@@ -311,10 +310,10 @@ TEST_F(SystemStateTrackerTests, execute_binary_with_fd) {
     ProcessContext process_context;
     process_context_factory->captureSingleProcess(process_context,
                                                   bpf_event_header.process_id);
+
     EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
-    process_context.fd_map[15].path = "/usr/bin/date";
-
+    setFileDescriptor(process_context, 15, false, "/usr/bin/date");
     context.process_map.insert({bpf_event_header.process_id, process_context});
   }
 
@@ -390,10 +389,10 @@ TEST_F(SystemStateTrackerTests, execute_binary_at_dirfd) {
     ProcessContext process_context;
     process_context_factory->captureSingleProcess(process_context,
                                                   bpf_event_header.process_id);
+
     EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
-    process_context.fd_map[15].path = "/usr/bin";
-
+    setFileDescriptor(process_context, 15, false, "/usr/bin");
     context.process_map.insert({bpf_event_header.process_id, process_context});
   }
 
@@ -467,6 +466,7 @@ TEST_F(SystemStateTrackerTests, set_working_directory_with_path) {
     ProcessContext process_context;
     process_context_factory->captureSingleProcess(
         process_context, kBaseBPFEventHeader.process_id);
+
     EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
     context.process_map.insert(
@@ -491,19 +491,18 @@ TEST_F(SystemStateTrackerTests, set_working_directory_with_fd) {
       std::make_unique<MockedProcessContextFactory>();
 
   SystemStateTracker::Context context;
+  std::string test_cwd_folder{"/home/alessandro"};
 
   {
     ProcessContext process_context;
     process_context_factory->captureSingleProcess(process_context, 1001);
     EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
+    setFileDescriptor(process_context, 2000, true, test_cwd_folder);
+
     context.process_map.insert(
         {kBaseBPFEventHeader.process_id, process_context});
   }
-
-  std::string test_cwd_folder{"/home/alessandro"};
-  context.process_map[kBaseBPFEventHeader.process_id].fd_map.insert(
-      {2000, {test_cwd_folder, true}});
 
   auto succeeded =
       SystemStateTracker::setWorkingDirectory(context,
@@ -527,19 +526,18 @@ TEST_F(SystemStateTrackerTests, close_handle) {
       std::make_unique<MockedProcessContextFactory>();
 
   SystemStateTracker::Context context;
+  std::string test_cwd_folder{"/home/alessandro"};
 
   {
     ProcessContext process_context;
     process_context_factory->captureSingleProcess(process_context, 1001);
     EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
+    setFileDescriptor(process_context, 2000, true, test_cwd_folder);
+
     context.process_map.insert(
         {kBaseBPFEventHeader.process_id, process_context});
   }
-
-  std::string test_cwd_folder{"/home/alessandro"};
-  context.process_map[kBaseBPFEventHeader.process_id].fd_map.insert(
-      {2000, {test_cwd_folder, true}});
 
   EXPECT_EQ(context.process_map[kBaseBPFEventHeader.process_id].fd_map.size(),
             9U);
@@ -578,6 +576,7 @@ TEST_F(SystemStateTrackerTests, duplicate_handle) {
     ProcessContext process_context;
     process_context_factory->captureSingleProcess(
         process_context, kBaseBPFEventHeader.process_id);
+
     EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
     context.process_map.insert(
@@ -601,15 +600,10 @@ TEST_F(SystemStateTrackerTests, duplicate_handle) {
   EXPECT_EQ(context.process_map.size(), 1U);
   EXPECT_EQ(process_context.fd_map.size(), 9U);
 
-  ASSERT_EQ(process_context.fd_map.count(15), 1U);
-  ASSERT_EQ(process_context.fd_map.count(16), 1U);
-
-  const auto& fd_info1 = process_context.fd_map.at(15);
-  const auto& fd_info2 = process_context.fd_map.at(16);
-
-  EXPECT_EQ(fd_info1.path, fd_info2.path);
-  EXPECT_EQ(fd_info1.close_on_exec, false);
-  EXPECT_EQ(fd_info2.close_on_exec, true);
+  EXPECT_TRUE(validateFileDescriptor(
+      process_context, 15, false, "/usr/share/zsh/functions/Misc.zwc"));
+  EXPECT_TRUE(validateFileDescriptor(
+      process_context, 16, true, "/usr/share/zsh/functions/Misc.zwc"));
 
   EXPECT_TRUE(context.event_list.empty());
 }
@@ -674,9 +668,8 @@ TEST_F(SystemStateTrackerTests, open_file) {
 
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(process_context.fd_map.size(), 9U);
-  ASSERT_EQ(process_context.fd_map.count(16), 1U);
-  EXPECT_FALSE(process_context.fd_map.at(16).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(16).path, absolute_test_path);
+  EXPECT_TRUE(
+      validateFileDescriptor(process_context, 16, false, absolute_test_path));
   EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Absolute paths, with close on exec
@@ -690,9 +683,8 @@ TEST_F(SystemStateTrackerTests, open_file) {
 
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(process_context.fd_map.size(), 10U);
-  ASSERT_EQ(process_context.fd_map.count(17), 1U);
-  EXPECT_TRUE(process_context.fd_map.at(17).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(17).path, absolute_test_path);
+  EXPECT_TRUE(
+      validateFileDescriptor(process_context, 17, true, absolute_test_path));
   EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
   // Relative paths + cwd, without close on exec
@@ -708,10 +700,11 @@ TEST_F(SystemStateTrackerTests, open_file) {
 
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(process_context.fd_map.size(), 11U);
-  ASSERT_EQ(process_context.fd_map.count(18), 1U);
-  EXPECT_FALSE(process_context.fd_map.at(18).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(18).path,
-            process_context.cwd + "/" + relative_test_path);
+  EXPECT_TRUE(
+      validateFileDescriptor(process_context,
+                             18,
+                             false,
+                             process_context.cwd + "/" + relative_test_path));
 
   EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
@@ -726,10 +719,10 @@ TEST_F(SystemStateTrackerTests, open_file) {
 
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(process_context.fd_map.size(), 12U);
-  ASSERT_EQ(process_context.fd_map.count(19), 1U);
-  EXPECT_TRUE(process_context.fd_map.at(19).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(19).path,
-            process_context.cwd + "/" + relative_test_path);
+  validateFileDescriptor(process_context,
+                         19,
+                         true,
+                         process_context.cwd + "/" + relative_test_path);
 
   EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
@@ -737,7 +730,7 @@ TEST_F(SystemStateTrackerTests, open_file) {
   std::string dirfd_folder_path{"/etc"};
   std::string dirfd_relative_path{"hosts"};
 
-  process_context.fd_map.insert({20, {dirfd_folder_path, true}});
+  setFileDescriptor(process_context, 20, true, dirfd_folder_path);
 
   succeeded = SystemStateTracker::openFile(context,
                                            *process_context_factory.get(),
@@ -749,10 +742,11 @@ TEST_F(SystemStateTrackerTests, open_file) {
 
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(process_context.fd_map.size(), 14U);
-  ASSERT_EQ(process_context.fd_map.count(21), 1U);
-  EXPECT_FALSE(process_context.fd_map.at(21).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(21).path,
-            dirfd_folder_path + "/" + dirfd_relative_path);
+  EXPECT_TRUE(
+      validateFileDescriptor(process_context,
+                             21,
+                             false,
+                             dirfd_folder_path + "/" + dirfd_relative_path));
 
   EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 
@@ -767,10 +761,11 @@ TEST_F(SystemStateTrackerTests, open_file) {
 
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(process_context.fd_map.size(), 15U);
-  ASSERT_EQ(process_context.fd_map.count(22), 1U);
-  EXPECT_TRUE(process_context.fd_map.at(22).close_on_exec);
-  EXPECT_EQ(process_context.fd_map.at(22).path,
-            dirfd_folder_path + "/" + dirfd_relative_path);
+  EXPECT_TRUE(
+      validateFileDescriptor(process_context,
+                             22,
+                             true,
+                             dirfd_folder_path + "/" + dirfd_relative_path));
 
   EXPECT_EQ(process_context_factory->invocationCount(), 1U);
 }

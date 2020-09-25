@@ -17,7 +17,23 @@
 namespace osquery {
 struct ProcessContext final {
   struct FileDescriptor final {
-    std::string path;
+    struct FileData final {
+      std::string path;
+    };
+
+    struct SocketData final {
+      int domain{};
+      int type{};
+      int protocol{};
+
+      std::optional<std::string> opt_local_address;
+      std::optional<std::uint16_t> opt_local_port;
+
+      std::optional<std::string> opt_remote_address;
+      std::optional<std::uint16_t> opt_remote_port;
+    };
+
+    std::variant<std::monostate, FileData, SocketData> data;
     bool close_on_exec{false};
   };
 

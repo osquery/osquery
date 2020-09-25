@@ -9,6 +9,7 @@
 
 #include "bpftestsmain.h"
 #include "mockedprocesscontextfactory.h"
+#include "utils.h"
 
 #include <osquery/events/linux/bpf/bpfeventpublisher.h>
 #include <osquery/events/linux/bpf/systemstatetracker.h>
@@ -959,8 +960,12 @@ TEST_F(BPFEventPublisherTests, processFchdirEvent) {
 
   // The cwd should now be the same path set in the file descriptor
   // 15
-  EXPECT_EQ(
-      state_tracker.getContextCopy().process_map.at(2).cwd,
-      state_tracker.getContextCopy().process_map.at(2).fd_map.at(15).path);
+  auto state_tracker_context = state_tracker.getContextCopy();
+
+  EXPECT_TRUE(validateFileDescriptor(state_tracker_context.process_map,
+                                     2,
+                                     15,
+                                     false,
+                                     "/usr/share/zsh/functions/Misc.zwc"));
 }
 } // namespace osquery

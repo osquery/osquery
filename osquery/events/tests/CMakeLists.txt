@@ -139,6 +139,8 @@ function(generateOsqueryEventsTestsBpftestsTest)
     linux/bpf/mockedprocesscontextfactory.h
     linux/bpf/processcontextfactory.cpp
     linux/bpf/systemstatetracker.cpp
+    linux/bpf/utils.cpp
+    linux/bpf/utils.h
   )
 
   target_link_libraries(osquery_events_tests_bpftests-test PRIVATE

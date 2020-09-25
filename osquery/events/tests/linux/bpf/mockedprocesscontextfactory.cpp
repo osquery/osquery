@@ -7,6 +7,7 @@
  */
 
 #include "mockedprocesscontextfactory.h"
+#include "utils.h"
 
 #include <osquery/events/linux/bpf/iprocesscontextfactory.h>
 
@@ -33,18 +34,28 @@ ProcessContext createProcessContext(pid_t process_id) {
   process_context.argv = {"zsh", "-H", "-i"};
   process_context.cwd = "/home/alessandro";
 
-  // clang-format off
-  process_context.fd_map = {
-    { 0, { "/dev/pts/1", true } },
-    { 1, { "/dev/pts/1", true } },
-    { 2, { "/dev/pts/1", true } },
-    { 11, { "/usr/share/zsh/functions/VCS_Info.zwc", false } },
-    { 12, { "/usr/share/zsh/functions/Completion.zwc", false } },
-    { 13, { "/usr/share/zsh/functions/VCS_Info/Backends.zwc", false } },
-    { 14, { "/usr/share/zsh/functions/Completion/Base.zwc", false } },
-    { 15, { "/usr/share/zsh/functions/Misc.zwc", false } }
-  };
-  // clang-format on
+  setFileDescriptor(process_context, 0, true, "/dev/pts/1");
+  setFileDescriptor(process_context, 1, true, "/dev/pts/1");
+  setFileDescriptor(process_context, 2, true, "/dev/pts/1");
+
+  setFileDescriptor(
+      process_context, 11, false, "/usr/share/zsh/functions/VCS_Info.zwc");
+
+  setFileDescriptor(
+      process_context, 12, false, "/usr/share/zsh/functions/Completion.zwc");
+
+  setFileDescriptor(process_context,
+                    13,
+                    false,
+                    "/usr/share/zsh/functions/VCS_Info/Backends.zwc");
+
+  setFileDescriptor(process_context,
+                    14,
+                    false,
+                    "/usr/share/zsh/functions/Completion/Base.zwc");
+
+  setFileDescriptor(
+      process_context, 15, false, "/usr/share/zsh/functions/Misc.zwc");
 
   return process_context;
 }

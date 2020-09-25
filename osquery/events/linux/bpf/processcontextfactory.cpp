@@ -103,13 +103,19 @@ bool ProcessContextFactory::captureSingleProcess(
         return;
       }
 
-      if (destination.find("socket:[") == 0U) {
-        return;
-      }
-
       ProcessContext::FileDescriptor fd_info;
-      fd_info.path = std::move(destination);
       fd_info.close_on_exec = false;
+
+      if (destination.find("socket:[") == 0U) {
+        /// TODO(alessandro): scan /proc/net
+        return;
+
+      } else {
+        ProcessContext::FileDescriptor::FileData file_data;
+        file_data.path = std::move(destination);
+
+        fd_info.data = std::move(file_data);
+      }
 
       output.fd_map.insert({int_fd_value, fd_info});
     }
