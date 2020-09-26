@@ -18,6 +18,7 @@
 #include <tlhelp32.h>
 #include <wincrypt.h>
 #include <Softpub.h>
+#include <mscat.h>
 #include <iomanip>
 // clang-format on
 
@@ -123,6 +124,49 @@ void generateRow(Row& row, const SignatureInformation& signature_info) {
     break;
   }
   }
+}
+
+__checkReturn __success(return == true) bool getCatalogPathForFilePath(
+    __in const std::wstring path, __out std::wstring& catalogFile) {
+  bool status = false;
+  HANDLE handle = CreateFile(path.c_str(),
+                             GENERIC_READ,
+                             FILE_SHARE_READ,
+                             NULL,
+                             OPEN_EXISTING,
+                             FILE_ATTRIBUTE_NORMAL,
+                             NULL);
+  if (INVALID_HANDLE_VALUE != handle) {
+    HCATADMIN context;
+    GUID subsystem = DRIVER_ACTION_VERIFY;
+    HCATINFO catalog = NULL;
+
+    const SIZE_T SHA512_HASH_SIZE = 64;
+    BYTE hash[SHA512_HASH_SIZE];
+    DWORD hash_size = ARRAYSIZE(hash);
+
+    if (CryptCATAdminAcquireContext(&context, &subsystem, NULL)) {
+      if (CryptCATAdminCalcHashFromFileHandle(handle, &hash_size, hash, 0)) {
+        catalog =
+            CryptCATAdminEnumCatalogFromHash(context, hash, hash_size, 0, NULL);
+        if (NULL != catalog) {
+          CATALOG_INFO info = {0};
+          info.cbStruct = sizeof(info);
+          if (CryptCATCatalogInfoFromContext(catalog, &info, 0)) {
+            catalogFile = info.wszCatalogFile;
+            status = true;
+          }
+
+          CryptCATAdminReleaseCatalogContext(context, catalog, 0);
+        }
+      }
+      CryptCATAdminReleaseContext(context, 0);
+    }
+
+    CloseHandle(handle);
+  }
+
+  return status;
 }
 
 Status verifySignature(SignatureInformation::Result& result,
@@ -409,6 +453,13 @@ Status querySignatureInformation(SignatureInformation& signature_info,
   }
 
   signature_info.path = path;
+
+  std::wstring catalog;
+  // may be a system file whose hash is in the catalog file.
+  // if so, return the catalog's signature instead.
+  if (getCatalogPathForFilePath(utf16_path, catalog)) {
+    utf16_path = catalog;
+  }
 
   auto status = verifySignature(signature_info.result, utf16_path);
   if (!status.ok()) {
