@@ -24,13 +24,27 @@ class ISystemStateTracker {
   struct Event final {
     using BPFHeader = tob::ebpfpub::IFunctionTracer::Event::Header;
 
-    enum class Type { Fork, Exec };
+    enum class Type { Fork, Exec, Connect, Bind, Listen, Accept };
 
     struct ExecData final {
       std::vector<std::string> argv;
     };
 
-    using Data = std::variant<std::monostate, ExecData>;
+    struct SocketData final {
+      int domain{-1};
+      int type{-1};
+      int protocol{-1};
+
+      int fd{-1};
+
+      std::string local_address;
+      std::uint16_t local_port;
+
+      std::string remote_address;
+      std::uint16_t remote_port{};
+    };
+
+    using Data = std::variant<std::monostate, ExecData, SocketData>;
 
     Type type;
 
@@ -80,6 +94,15 @@ class ISystemStateTracker {
                                bool close_on_exec) = 0;
 
   virtual bool closeHandle(pid_t process_id, int fd) = 0;
+
+  virtual bool createSocket(
+      pid_t process_id, int domain, int type, int protocol, int fd) = 0;
+
+  virtual bool connect(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int fd,
+      const std::vector<std::uint8_t>& sockaddr) = 0;
 
   virtual EventList eventList() = 0;
 };

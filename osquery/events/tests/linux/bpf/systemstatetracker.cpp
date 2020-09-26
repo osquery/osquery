@@ -583,7 +583,7 @@ TEST_F(SystemStateTrackerTests, duplicate_handle) {
         {kBaseBPFEventHeader.process_id, process_context});
   }
 
-  const auto& process_context =
+  auto& process_context =
       context.process_map.at(kBaseBPFEventHeader.process_id);
 
   succeeded = SystemStateTracker::duplicateHandle(
@@ -602,6 +602,7 @@ TEST_F(SystemStateTrackerTests, duplicate_handle) {
 
   EXPECT_TRUE(validateFileDescriptor(
       process_context, 15, false, "/usr/share/zsh/functions/Misc.zwc"));
+
   EXPECT_TRUE(validateFileDescriptor(
       process_context, 16, true, "/usr/share/zsh/functions/Misc.zwc"));
 

@@ -56,9 +56,9 @@ void setSocketDescriptor(ProcessContext& process_context,
   fd_info.close_on_exec = close_on_exec;
 
   ProcessContext::FileDescriptor::SocketData socket_data;
-  socket_data.domain = domain;
-  socket_data.type = type;
-  socket_data.protocol = protocol;
+  socket_data.opt_domain = domain;
+  socket_data.opt_type = type;
+  socket_data.opt_protocol = protocol;
 
   socket_data.opt_local_address = local_address;
   socket_data.opt_local_port = local_port;
@@ -166,8 +166,15 @@ bool validateSocketDescriptor(const ProcessContext& process_context,
 
   const auto& socket_info =
       std::get<ProcessContext::FileDescriptor::SocketData>(fd_info.data);
-  if (socket_info.domain != domain || socket_info.type != type ||
-      socket_info.protocol != protocol) {
+
+  if (!socket_info.opt_domain.has_value() || socket_info.opt_type.has_value() ||
+      socket_info.opt_protocol.has_value()) {
+    return false;
+  }
+
+  if (socket_info.opt_domain.value() != domain ||
+      socket_info.opt_type.value() != type ||
+      socket_info.opt_protocol.value() != protocol) {
     return false;
   }
 

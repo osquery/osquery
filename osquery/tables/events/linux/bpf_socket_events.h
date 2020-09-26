@@ -10,10 +10,9 @@
 
 namespace osquery {
 
-class BPFProcessEventSubscriber final
-    : public EventSubscriber<BPFEventPublisher> {
+class BPFSocketEventSubscriber final : public EventSubscriber<BPFEventPublisher> {
  public:
-  virtual ~BPFProcessEventSubscriber() override = default;
+  virtual ~BPFSocketEventSubscriber() override = default;
   virtual Status init() override;
 
   Status eventCallback(const ECRef& event_context,
@@ -22,8 +21,7 @@ class BPFProcessEventSubscriber final
   // clang-format off
   [[deprecated("generateRow() does not have a unit test yet")]]
   // clang-format on
-  static bool
-  generateRow(Row& row, const ISystemStateTracker::Event& event);
+  static bool generateRow(Row& row, const ISystemStateTracker::Event& event);
 
   static std::vector<Row> generateRowList(
       const ISystemStateTracker::EventList& event_list);

@@ -584,7 +584,7 @@ bool BPFEventPublisher::processOpenatEvent(
 }
 
 // clang-format off
-[[deprecated("processOpenat2Event() is not yet implemented")]]
+[[deprecated("processOpenat2Event() does not have a unit test yet")]]
 // clang-format on
 bool BPFEventPublisher::processOpenat2Event(
     ISystemStateTracker& state,
@@ -669,20 +669,108 @@ bool BPFEventPublisher::processFchdirEvent(
 }
 
 // clang-format off
-[[deprecated("processSocketEvent() is not yet implemented")]]
+[[deprecated("processSocketEvent() does not have a unit test yet")]]
 // clang-format on
 bool BPFEventPublisher::processSocketEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  if (event.header.exit_code == -1) {
+    return true;
+  }
+
+  int fd = static_cast<int>(event.header.exit_code);
+
+  std::uint64_t domain{};
+  if (!getEventMapValue(domain, event.in_field_map, "family")) {
+    return false;
+  }
+
+  std::uint64_t type{};
+  if (!getEventMapValue(type, event.in_field_map, "type")) {
+    return false;
+  }
+
+  std::uint64_t protocol{};
+  if (!getEventMapValue(protocol, event.in_field_map, "protocol")) {
+    return false;
+  }
+
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+  return state.createSocket(process_id, domain, type, protocol, fd);
+}
+
+// clang-format off
+[[deprecated("processFcntlEvent() does not have a unit test yet")]]
+// clang-format on
+bool BPFEventPublisher::processFcntlEvent(
+    ISystemStateTracker& state,
+    const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // TODO(alessandro) add O_NONBLOCK support
+  if (event.header.exit_code == -1) {
+    return true;
+  }
+
+  auto new_fd = static_cast<int>(event.header.exit_code);
+
+  std::uint64_t cmd{};
+  if (!getEventMapValue(cmd, event.in_field_map, "cmd")) {
+    return false;
+  }
+
+  if (cmd != F_DUPFD && cmd != F_DUPFD_CLOEXEC) {
+    return true;
+  }
+
+  std::uint64_t fd{};
+  if (!getEventMapValue(fd, event.in_field_map, "fd")) {
+    return false;
+  }
+
+  std::uint64_t arg{};
+  if (!getEventMapValue(arg, event.in_field_map, "arg")) {
+    return false;
+  }
+
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+
+  // Ignore whether the operation has succeeded or not
+  auto close_on_exec = (cmd == F_DUPFD_CLOEXEC);
+  auto old_fd = static_cast<int>(fd);
+
+  auto status =
+      state.duplicateHandle(process_id, old_fd, new_fd, close_on_exec);
+
+  static_cast<void>(status);
+
   return true;
 }
 
 // clang-format off
-[[deprecated("processConnectEvent() is not yet implemented")]]
+[[deprecated("processConnectEvent() does not yet have a unit test")]]
 // clang-format on
 bool BPFEventPublisher::processConnectEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // TODO(alessandro) add O_NONBLOCK support
+  if (event.header.exit_code != 0) {
+    return true;
+  }
+
+  std::uint64_t fd{};
+  if (!getEventMapValue(fd, event.in_field_map, "fd")) {
+    return false;
+  }
+
+  tob::ebpfpub::IFunctionTracer::Event::Field::Buffer uservaddr;
+  if (!getEventMapValue(uservaddr, event.in_field_map, "uservaddr")) {
+    return false;
+  }
+
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+  auto status =
+      state.connect(event.header, process_id, static_cast<int>(fd), uservaddr);
+  static_cast<void>(status);
+
   return true;
 }
 
@@ -818,9 +906,15 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     3U
   },
 
-  /*{
+  {
     "socket",
     &BPFEventPublisher::processSocketEvent,
+    4U
+  },
+
+  {
+    "fcntl",
+    &BPFEventPublisher::processFcntlEvent,
     4U
   },
 
@@ -830,7 +924,7 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     4U
   },
 
-  {
+  /*{
     "accept",
     &BPFEventPublisher::processAcceptEvent,
     4U

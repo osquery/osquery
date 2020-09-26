@@ -22,9 +22,9 @@ struct ProcessContext final {
     };
 
     struct SocketData final {
-      int domain{};
-      int type{};
-      int protocol{};
+      std::optional<int> opt_domain;
+      std::optional<int> opt_type;
+      std::optional<int> opt_protocol;
 
       std::optional<std::string> opt_local_address;
       std::optional<std::uint16_t> opt_local_port;

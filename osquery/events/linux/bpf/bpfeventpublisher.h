@@ -142,6 +142,10 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
 
+  static bool processFcntlEvent(
+      ISystemStateTracker& state,
+      const tob::ebpfpub::IFunctionTracer::Event& event);
+
   static bool processConnectEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
