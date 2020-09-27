@@ -54,10 +54,17 @@ CLI_FLAG(uint32,
          8192,
          "Size of blocks used for POSTing data back to remote endpoints");
 
+/// Boolean if compression should be used.
 CLI_FLAG(bool,
          carver_compression,
          false,
          "Compress archives using zstd prior to upload (default false)");
+
+/// Time to expire successful carves from the local cache.
+CLI_FLAG(uint32,
+         carver_expiry,
+         86400,
+         "Seconds to store successful carve result metadata (in carves table)");
 
 DECLARE_bool(disable_carver);
 DECLARE_uint64(read_max);
@@ -97,13 +104,14 @@ void CarverRunnable::start() {
     if (status == kCarverStatusSuccess) {
       uint64_t start_time(doc["time"].GetUint());
       auto delta = getUnixTime() - start_time;
-      if (delta > 86400) {
-        // Expire results after 1 day.
+      if (delta > FLAGS_carver_expiry) {
         VLOG(1) << "Expiring successful carve metadata for GUID: " << guid;
         deleteDatabaseValue(kCarves, key);
         continue;
       }
-    } else if (status != kCarverStatusScheduled) {
+    }
+
+    if (status != kCarverStatusScheduled) {
       continue;
     }
 

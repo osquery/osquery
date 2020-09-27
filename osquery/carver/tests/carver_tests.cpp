@@ -158,6 +158,16 @@ TEST_F(CarverTests, test_schedule_carves) {
 
     EXPECT_EQ(runner.carves(), 1);
   }
+
+  {
+    FakeCarverRunner runner;
+    ASSERT_TRUE(FakeCarverRunner::running());
+    runner.start();
+
+    // All carves were previously completed.
+    EXPECT_EQ(runner.carves(), 0);
+  }
+
   ASSERT_FALSE(FakeCarverRunner::running());
 }
 
