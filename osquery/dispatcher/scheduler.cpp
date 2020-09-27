@@ -195,7 +195,7 @@ void SchedulerRunner::maybeRunDecorators(uint64_t time_step) {
 }
 
 void SchedulerRunner::maybeScheduleCarves(uint64_t time_step) {
-  if ((time_step & 60) == 0) {
+  if ((time_step % 60) == 0) {
     scheduleCarves();
   }
 }

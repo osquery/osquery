@@ -57,7 +57,6 @@ void updateCarveValue(const std::string& guid,
 }
 
 Status carvePaths(const std::set<std::string>& paths) {
-  Status s;
   auto guid = generateNewUUID();
 
   JSON tree;
@@ -74,7 +73,7 @@ Status carvePaths(const std::set<std::string>& paths) {
   }
 
   std::string out;
-  s = tree.toString(out);
+  auto s = tree.toString(out);
   if (!s.ok()) {
     VLOG(1) << "Failed to serialize carve paths: " << s.what();
     return s;
