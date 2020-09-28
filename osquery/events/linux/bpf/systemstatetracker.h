@@ -59,6 +59,12 @@ class SystemStateTracker final : public ISystemStateTracker {
   virtual bool createSocket(
       pid_t process_id, int domain, int type, int protocol, int fd) override;
 
+  virtual bool bind(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int fd,
+      const std::vector<std::uint8_t>& sockaddr) override;
+
   virtual bool connect(
       const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
       pid_t process_id,
@@ -148,6 +154,17 @@ class SystemStateTracker final : public ISystemStateTracker {
                int fd);
 
   // clang-format off
+  [[deprecated("bind() does not have a unit test yet")]]
+  // clang-format on
+  static bool
+  bind(Context& context,
+       IProcessContextFactory& process_context_factory,
+       const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+       pid_t process_id,
+       int fd,
+       const std::vector<std::uint8_t>& sockaddr);
+
+  // clang-format off
   [[deprecated("connect() does not have a unit test yet")]]
   // clang-format on
   static bool
@@ -172,6 +189,14 @@ class SystemStateTracker final : public ISystemStateTracker {
   parseInetSockaddr(std::string& address,
                     std::uint16_t& port,
                     const std::vector<std::uint8_t>& sockaddr);
+
+  // clang-format off
+  [[deprecated("parseNetlinkSockaddr() does not have a unit test yet")]]
+  // clang-format on
+  static bool
+  parseNetlinkSockaddr(std::string& address,
+                       std::uint16_t& port,
+                       const std::vector<std::uint8_t>& sockaddr);
 
   // clang-format off
   [[deprecated("parseInet6Sockaddr() does not have a unit test yet")]]

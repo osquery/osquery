@@ -38,7 +38,7 @@ class ISystemStateTracker {
       int fd{-1};
 
       std::string local_address;
-      std::uint16_t local_port;
+      std::uint16_t local_port{};
 
       std::string remote_address;
       std::uint16_t remote_port{};
@@ -97,6 +97,12 @@ class ISystemStateTracker {
 
   virtual bool createSocket(
       pid_t process_id, int domain, int type, int protocol, int fd) = 0;
+
+  virtual bool bind(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int fd,
+      const std::vector<std::uint8_t>& sockaddr) = 0;
 
   virtual bool connect(
       const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,

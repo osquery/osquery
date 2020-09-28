@@ -648,7 +648,6 @@ bool BPFEventPublisher::processChdirEvent(
   }
 
   auto process_id = static_cast<pid_t>(event.header.process_id);
-
   return state.setWorkingDirectory(process_id, filename);
 }
 
@@ -674,7 +673,7 @@ bool BPFEventPublisher::processFchdirEvent(
 bool BPFEventPublisher::processSocketEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
-  if (event.header.exit_code == -1) {
+  if (static_cast<int>(event.header.exit_code) == -1) {
     return true;
   }
 
@@ -705,12 +704,10 @@ bool BPFEventPublisher::processSocketEvent(
 bool BPFEventPublisher::processFcntlEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
-  // TODO(alessandro) add O_NONBLOCK support
-  if (event.header.exit_code == -1) {
+  auto new_fd = static_cast<int>(event.header.exit_code);
+  if (new_fd == -1) {
     return true;
   }
-
-  auto new_fd = static_cast<int>(event.header.exit_code);
 
   std::uint64_t cmd{};
   if (!getEventMapValue(cmd, event.in_field_map, "cmd")) {
@@ -741,7 +738,6 @@ bool BPFEventPublisher::processFcntlEvent(
       state.duplicateHandle(process_id, old_fd, new_fd, close_on_exec);
 
   static_cast<void>(status);
-
   return true;
 }
 
@@ -751,11 +747,8 @@ bool BPFEventPublisher::processFcntlEvent(
 bool BPFEventPublisher::processConnectEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
-  // TODO(alessandro) add O_NONBLOCK support
-  if (event.header.exit_code != 0) {
-    return true;
-  }
-
+  // Do not check for the exit code; this could be a non-blocking socket
+  // that causes the syscall to always return -1
   std::uint64_t fd{};
   if (!getEventMapValue(fd, event.in_field_map, "fd")) {
     return false;
@@ -767,11 +760,8 @@ bool BPFEventPublisher::processConnectEvent(
   }
 
   auto process_id = static_cast<pid_t>(event.header.process_id);
-  auto status =
-      state.connect(event.header, process_id, static_cast<int>(fd), uservaddr);
-  static_cast<void>(status);
-
-  return true;
+  return state.connect(
+      event.header, process_id, static_cast<int>(fd), uservaddr);
 }
 
 // clang-format off
@@ -798,7 +788,22 @@ bool BPFEventPublisher::processAccept4Event(
 bool BPFEventPublisher::processBindEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
-  return true;
+  if (event.header.exit_code != 0) {
+    return true;
+  }
+
+  std::uint64_t fd{};
+  if (!getEventMapValue(fd, event.in_field_map, "fd")) {
+    return false;
+  }
+
+  tob::ebpfpub::IFunctionTracer::Event::Field::Buffer uservaddr;
+  if (!getEventMapValue(uservaddr, event.in_field_map, "umyaddr")) {
+    return false;
+  }
+
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+  return state.bind(event.header, process_id, static_cast<int>(fd), uservaddr);
 }
 
 namespace {
@@ -934,13 +939,13 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     "accept4",
     &BPFEventPublisher::processAccept4Event,
     4U
-  },
+  },*/
 
   {
     "bind",
     &BPFEventPublisher::processBindEvent,
     4U
-  },*/
+  },
 
   {
     "chdir",

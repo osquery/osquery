@@ -22,20 +22,17 @@ Status BPFSocketEventSubscriber::init() {
 }
 
 Status BPFSocketEventSubscriber::eventCallback(const ECRef& event_context,
-                                         const SCRef&) {
+                                               const SCRef&) {
   auto row_list = generateRowList(event_context->event_list);
   addBatch(row_list);
 
   return Status::success();
 }
 
-bool BPFSocketEventSubscriber::generateRow(Row& row,
-                                     const ISystemStateTracker::Event& event) {
-  row = {};
+bool BPFSocketEventSubscriber::generateRow(
+    Row& row, const ISystemStateTracker::Event& event) {
 
-  if (event.type != ISystemStateTracker::Event::Type::Exec) {
-    return false;
-  }
+  row = {};
 
   switch (event.type) {
   case ISystemStateTracker::Event::Type::Connect:
@@ -69,14 +66,30 @@ bool BPFSocketEventSubscriber::generateRow(Row& row,
   row["parent_process_id"] = INTEGER(event.parent_process_id);
   row["path"] = TEXT(event.binary_path);
 
-  // Column("fd", TEXT, "The file description for the process socket"),
-  // Column("family", INTEGER, "The Internet protocol family ID"),
-  // Column("type", INTEGER, "The socket type"),
-  // Column("protocol", INTEGER, "The network protocol ID", 
-  // Column("local_address", TEXT, "Local address associated with socket"),
-  // Column("remote_address", TEXT, "Remote address associated with socket"),
-  // Column("local_port", INTEGER, "Local network protocol port number"),
-  // Column("remote_port", INTEGER, "Remote network protocol port number"),
+  if (!std::holds_alternative<ISystemStateTracker::Event::SocketData>(
+          event.data)) {
+    row["fd"] = TEXT("");
+    row["family"] = INTEGER(-1);
+    row["type"] = INTEGER(-1);
+    row["protocol"] = INTEGER(-1);
+    row["local_address"] = TEXT("");
+    row["remote_address"] = TEXT("");
+    row["local_port"] = INTEGER(0);
+    row["remote_port"] = INTEGER(0);
+
+  } else {
+    const auto& socket_data =
+        std::get<ISystemStateTracker::Event::SocketData>(event.data);
+
+    row["fd"] = INTEGER(socket_data.fd);
+    row["family"] = INTEGER(socket_data.domain);
+    row["type"] = INTEGER(socket_data.type);
+    row["protocol"] = INTEGER(socket_data.protocol);
+    row["local_address"] = TEXT(socket_data.local_address);
+    row["remote_address"] = TEXT(socket_data.remote_address);
+    row["local_port"] = INTEGER(socket_data.local_port);
+    row["remote_port"] = INTEGER(socket_data.remote_port);
+  }
 
   return true;
 }

@@ -14,6 +14,7 @@
 #include <osquery/utils/status/status.h>
 
 #include <linux/fcntl.h>
+#include <linux/netlink.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -125,6 +126,19 @@ bool SystemStateTracker::createSocket(
                       type,
                       protocol,
                       fd);
+}
+
+bool SystemStateTracker::bind(
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    int fd,
+    const std::vector<std::uint8_t>& sockaddr) {
+  return bind(d->context,
+              *d->process_context_factory.get(),
+              event_header,
+              process_id,
+              fd,
+              sockaddr);
 }
 
 bool SystemStateTracker::connect(
@@ -327,8 +341,8 @@ bool SystemStateTracker::setWorkingDirectory(
 
   const auto& file_data =
       std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
-  process_context.cwd = file_data.path;
 
+  process_context.cwd = file_data.path;
   return true;
 }
 
@@ -468,6 +482,93 @@ bool SystemStateTracker::createSocket(
   return true;
 }
 
+bool SystemStateTracker::bind(
+    Context& context,
+    IProcessContextFactory& process_context_factory,
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    int fd,
+    const std::vector<std::uint8_t>& sockaddr) {
+  auto& process_context =
+      getProcessContext(context, process_context_factory, process_id);
+
+  // If we dont have a file descriptor, create one right now. We may have
+  // to figure out what's in the sockaddr structure
+  auto fd_info_it = process_context.fd_map.find(fd);
+  if (fd_info_it == process_context.fd_map.end()) {
+    ProcessContext::FileDescriptor fd_info;
+    fd_info.close_on_exec = false;
+    fd_info.data = ProcessContext::FileDescriptor::SocketData{};
+
+    auto insert_status =
+        process_context.fd_map.insert({fd, std::move(fd_info)});
+
+    fd_info_it = insert_status.first;
+  }
+
+  // Reset the file descriptor type if it's not a socket
+  auto& fd_info = fd_info_it->second;
+  if (!std::holds_alternative<ProcessContext::FileDescriptor::SocketData>(
+          fd_info.data)) {
+    fd_info.data = ProcessContext::FileDescriptor::SocketData{};
+  }
+
+  auto& socket_address =
+      std::get<ProcessContext::FileDescriptor::SocketData>(fd_info.data);
+
+  if (!parseSocketAddress(socket_address, sockaddr, true)) {
+    std::stringstream str;
+    for (const auto& b : sockaddr) {
+      str << std::hex << std::setfill('0') << std::setw(2)
+          << static_cast<int>(b);
+    }
+    VLOG(1) << str.str();
+    return false;
+  }
+
+  Event event;
+  event.type = Event::Type::Bind;
+  event.parent_process_id = process_context.parent_process_id;
+  event.binary_path = process_context.binary_path;
+  event.cwd = process_context.cwd;
+  event.bpf_header = event_header;
+
+  Event::SocketData data;
+  data.fd = fd;
+
+  if (socket_address.opt_domain.has_value()) {
+    data.domain = socket_address.opt_domain.value();
+  }
+
+  if (socket_address.opt_type.has_value()) {
+    data.type = socket_address.opt_type.value();
+  }
+
+  if (socket_address.opt_protocol.has_value()) {
+    data.protocol = socket_address.opt_protocol.value();
+  }
+
+  if (socket_address.opt_local_address.has_value()) {
+    data.local_address = socket_address.opt_local_address.value();
+  }
+
+  if (socket_address.opt_local_port.has_value()) {
+    data.local_port = socket_address.opt_local_port.value();
+  }
+
+  if (socket_address.opt_remote_address.has_value()) {
+    data.remote_address = socket_address.opt_remote_address.value();
+  }
+
+  if (socket_address.opt_remote_port.has_value()) {
+    data.remote_port = socket_address.opt_remote_port.value();
+  }
+
+  event.data = std::move(data);
+  context.event_list.push_back(std::move(event));
+  return true;
+}
+
 bool SystemStateTracker::connect(
     Context& context,
     IProcessContextFactory& process_context_factory,
@@ -488,6 +589,7 @@ bool SystemStateTracker::connect(
 
     auto insert_status =
         process_context.fd_map.insert({fd, std::move(fd_info)});
+
     fd_info_it = insert_status.first;
   }
 
@@ -500,6 +602,7 @@ bool SystemStateTracker::connect(
 
   auto& socket_address =
       std::get<ProcessContext::FileDescriptor::SocketData>(fd_info.data);
+
   if (!parseSocketAddress(socket_address, sockaddr, false)) {
     return false;
   }
@@ -543,8 +646,8 @@ bool SystemStateTracker::connect(
   }
 
   event.data = std::move(data);
-
   context.event_list.push_back(std::move(event));
+  return true;
 }
 
 bool SystemStateTracker::parseUnixSockaddr(
@@ -622,16 +725,40 @@ bool SystemStateTracker::parseInet6Sockaddr(
 
   std::stringstream buffer;
   for (std::size_t i = 0U; i < sizeof(addr.sin6_addr.s6_addr); ++i) {
-    if (addr.sin6_addr.s6_addr[i] != 0) {
-      buffer << std::setfill('0') << std::setw(2) << addr.sin6_addr.s6_addr[i];
-    }
+    buffer << std::setfill('0') << std::setw(2)
+           << static_cast<int>(addr.sin6_addr.s6_addr[i]);
 
-    if (i + 1U < sizeof(addr.sin6_addr.s6_addr)) {
+    if (i + 1 < sizeof(addr.sin6_addr.s6_addr)) {
       buffer << ":";
     }
   }
 
   address = buffer.str();
+  return true;
+}
+
+bool SystemStateTracker::parseNetlinkSockaddr(
+    std::string& address,
+    std::uint16_t& port,
+    const std::vector<std::uint8_t>& sockaddr) {
+  address = {};
+  port = 0U;
+
+  std::uint16_t family{};
+  std::memcpy(&family, sockaddr.data(), sizeof(family));
+
+  if (family != AF_UNSPEC && family != AF_NETLINK) {
+    return false;
+  }
+
+  auto size = std::min(sizeof(sockaddr_in), sockaddr.size());
+
+  sockaddr_nl addr{};
+  std::memcpy(&addr, sockaddr.data(), size);
+
+  address = std::to_string(addr.nl_groups);
+  port = static_cast<std::uint16_t>(addr.nl_pid);
+
   return true;
 }
 
@@ -648,6 +775,8 @@ bool SystemStateTracker::parseSocketAddress(
   }
 
   if (sockaddr.size() < 2U) {
+    VLOG(1)
+        << "Invalid sockaddr structure received (less than 2 bytes available)";
     return false;
   }
 
@@ -665,11 +794,14 @@ bool SystemStateTracker::parseSocketAddress(
   if (family == AF_UNSPEC || family == AF_UNIX) {
     succeeded = parseUnixSockaddr(address, sockaddr);
 
-  } else if (!succeeded && (family == AF_UNSPEC || family == AF_UNIX)) {
+  } else if (!succeeded && (family == AF_UNSPEC || family == AF_INET)) {
     succeeded = parseInetSockaddr(address, port, sockaddr);
 
-  } else if (!succeeded && (family == AF_UNSPEC || family == AF_UNIX)) {
+  } else if (!succeeded && (family == AF_UNSPEC || family == AF_INET6)) {
     succeeded = parseInet6Sockaddr(address, port, sockaddr);
+
+  } else if (!succeeded && (family == AF_UNSPEC || family == AF_NETLINK)) {
+    succeeded = parseNetlinkSockaddr(address, port, sockaddr);
   }
 
   if (succeeded) {
