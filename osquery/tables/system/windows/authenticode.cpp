@@ -126,8 +126,8 @@ void generateRow(Row& row, const SignatureInformation& signature_info) {
   }
 }
 
-__checkReturn __success(return == true) bool getCatalogPathForFilePath(
-    __in const std::wstring path, __out std::wstring& catalogFile) {
+bool getCatalogPathForFilePath(const std::wstring path,
+                               std::wstring& catalogFile) {
   bool status = false;
   HANDLE handle = CreateFile(path.c_str(),
                              GENERIC_READ,
