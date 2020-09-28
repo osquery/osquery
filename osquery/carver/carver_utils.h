@@ -9,10 +9,11 @@
 
 #pragma once
 
+#include <osquery/utils/status/status.h>
+
+#include <atomic>
 #include <set>
 #include <string>
-
-#include <osquery/utils/status/status.h>
 
 namespace osquery {
 
@@ -30,6 +31,19 @@ const std::string kCarverStatusSuccess = "SUCCESS";
 
 /// Internal carver 'status' indicating a carve request scheduled.
 const std::string kCarverStatusScheduled = "SCHEDULED";
+
+/**
+ * @brief This flag is an optimization attempt used by the CarverRunner.
+ *
+ * When osquery starts, if the carver is enabled, the CarverRunner will scan
+ * for pending carves. After all are started, it will set this pending flag to
+ * false. Any carve requests will set it to true.
+ *
+ * CarverRunner threads start every 60 seconds. It is wasteful to start and stop
+ * the thread if there are no pending carves. This flag allows us to skip
+ * starting the thread.
+ */
+extern std::atomic<bool> kCarverPendingCarves;
 
 /// Update an attribute for a given carve GUID.
 void updateCarveValue(const std::string& guid,

@@ -24,6 +24,8 @@ CLI_FLAG(bool,
          true,
          "Disable the osquery file carver (default true)");
 
+std::atomic<bool> kCarverPendingCarves{true};
+
 /// Helper function to update values related to a carve
 void updateCarveValue(const std::string& guid,
                       const std::string& key,
@@ -79,6 +81,7 @@ Status carvePaths(const std::set<std::string>& paths) {
     return s;
   }
 
+  kCarverPendingCarves = true;
   return setDatabaseValue(kCarves, kCarverDBPrefix + guid, out);
 }
 } // namespace osquery

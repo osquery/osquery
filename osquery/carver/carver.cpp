@@ -125,6 +125,9 @@ void CarverRunnable::start() {
     auto requestId = Distributed::getCurrentRequestId();
     doCarve(paths, guid, requestId);
   }
+
+  // All pending carves have been started.
+  kCarverPendingCarves = false;
 }
 
 Carver::Carver(const std::set<std::string>& paths,
@@ -335,7 +338,8 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
 };
 
 void scheduleCarves() {
-  if (!FLAGS_disable_carver && !CarverRunnable::running()) {
+  if (!FLAGS_disable_carver && kCarverPendingCarves &&
+      !CarverRunnable::running()) {
     Dispatcher::addService(std::make_shared<CarverRunner<Carver>>());
   }
 }
