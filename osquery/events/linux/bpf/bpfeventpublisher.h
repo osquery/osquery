@@ -161,5 +161,9 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
   static bool processBindEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
+  static bool processListenEvent(
+      ISystemStateTracker& state,
+      const tob::ebpfpub::IFunctionTracer::Event& event);
 };
 } // namespace osquery

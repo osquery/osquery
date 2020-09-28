@@ -765,25 +765,76 @@ bool BPFEventPublisher::processConnectEvent(
 }
 
 // clang-format off
-[[deprecated("processAcceptEvent() is not yet implemented")]]
+[[deprecated("processAcceptEvent() does not yet have a unit test")]]
 // clang-format on
 bool BPFEventPublisher::processAcceptEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  int newfd = static_cast<int>(event.header.exit_code);
+  if (newfd == -1) {
+    return true;
+  }
+
+  std::uint64_t fd{};
+  if (!getEventMapValue(fd, event.in_field_map, "fd")) {
+    return false;
+  }
+
+  tob::ebpfpub::IFunctionTracer::Event::Field::Buffer upeer_sockaddr;
+  if (!getEventMapValue(
+          upeer_sockaddr, event.out_field_map, "upeer_sockaddr")) {
+    return false;
+  }
+
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+  auto status = state.accept(
+      event.header, process_id, static_cast<int>(fd), upeer_sockaddr, newfd, 0);
+
+  static_cast<void>(status);
   return true;
 }
 
 // clang-format off
-[[deprecated("processAccept4Event() is not yet implemented")]]
+[[deprecated("processAccept4Event() does not yet have a unit test")]]
 // clang-format on
 bool BPFEventPublisher::processAccept4Event(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  int newfd = static_cast<int>(event.header.exit_code);
+  if (newfd == -1) {
+    return true;
+  }
+
+  std::uint64_t fd{};
+  if (!getEventMapValue(fd, event.in_field_map, "fd")) {
+    return false;
+  }
+
+  tob::ebpfpub::IFunctionTracer::Event::Field::Buffer upeer_sockaddr;
+  if (!getEventMapValue(
+          upeer_sockaddr, event.out_field_map, "upeer_sockaddr")) {
+    return false;
+  }
+
+  std::uint64_t flags{};
+  if (!getEventMapValue(flags, event.in_field_map, "flags")) {
+    return false;
+  }
+
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+  auto status = state.accept(event.header,
+                             process_id,
+                             static_cast<int>(fd),
+                             upeer_sockaddr,
+                             newfd,
+                             static_cast<int>(flags));
+
+  static_cast<void>(status);
   return true;
 }
 
 // clang-format off
-[[deprecated("processBindEvent() is not yet implemented")]]
+[[deprecated("processBindEvent() does not yet have a unit test")]]
 // clang-format on
 bool BPFEventPublisher::processBindEvent(
     ISystemStateTracker& state,
@@ -804,6 +855,25 @@ bool BPFEventPublisher::processBindEvent(
 
   auto process_id = static_cast<pid_t>(event.header.process_id);
   return state.bind(event.header, process_id, static_cast<int>(fd), uservaddr);
+}
+
+// clang-format off
+[[deprecated("processListenEvent() does not yet have a unit test")]]
+// clang-format on
+bool BPFEventPublisher::processListenEvent(
+    ISystemStateTracker& state,
+    const tob::ebpfpub::IFunctionTracer::Event& event) {
+  if (event.header.exit_code != 0) {
+    return true;
+  }
+
+  std::uint64_t fd{};
+  if (!getEventMapValue(fd, event.in_field_map, "fd")) {
+    return false;
+  }
+
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+  return state.listen(event.header, process_id, static_cast<int>(fd));
 }
 
 namespace {
@@ -929,7 +999,7 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     4U
   },
 
-  /*{
+  {
     "accept",
     &BPFEventPublisher::processAcceptEvent,
     4U
@@ -939,11 +1009,17 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     "accept4",
     &BPFEventPublisher::processAccept4Event,
     4U
-  },*/
+  },
 
   {
     "bind",
     &BPFEventPublisher::processBindEvent,
+    4U
+  },
+
+  {
+    "listen",
+    &BPFEventPublisher::processListenEvent,
     4U
   },
 

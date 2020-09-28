@@ -1,7 +1,7 @@
 table_name("bpf_process_events")
 description("Track time/action process executions.")
 schema([
-    Column("timestamp", TEXT, "nsecs timestamp of the event"),
+    Column("bpf_time", TEXT, "The nsecs uptime timestamp as obtained from BPF"),
     Column("thread_id", BIGINT, "Thread ID"),
     Column("process_id", BIGINT, "Process ID"),
     Column("parent_process_id", BIGINT, "Parent process ID"),

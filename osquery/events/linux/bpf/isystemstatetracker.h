@@ -104,11 +104,24 @@ class ISystemStateTracker {
       int fd,
       const std::vector<std::uint8_t>& sockaddr) = 0;
 
+  virtual bool listen(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int fd) = 0;
+
   virtual bool connect(
       const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
       pid_t process_id,
       int fd,
       const std::vector<std::uint8_t>& sockaddr) = 0;
+
+  virtual bool accept(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int fd,
+      const std::vector<std::uint8_t>& sockaddr,
+      int newfd,
+      int flags) = 0;
 
   virtual EventList eventList() = 0;
 };

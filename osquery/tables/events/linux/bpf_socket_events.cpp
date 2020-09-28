@@ -55,7 +55,7 @@ bool BPFSocketEventSubscriber::generateRow(
     return false;
   }
 
-  row["timestamp"] = TEXT(event.bpf_header.timestamp);
+  row["bpf_time"] = TEXT(event.bpf_header.timestamp);
   row["thread_id"] = INTEGER(event.bpf_header.thread_id);
   row["process_id"] = INTEGER(event.bpf_header.process_id);
   row["uid"] = INTEGER(event.bpf_header.user_id);

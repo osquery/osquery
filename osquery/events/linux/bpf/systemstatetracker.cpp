@@ -141,6 +141,17 @@ bool SystemStateTracker::bind(
               sockaddr);
 }
 
+bool SystemStateTracker::listen(
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    int fd) {
+  return listen(d->context,
+                *d->process_context_factory.get(),
+                event_header,
+                process_id,
+                fd);
+}
+
 bool SystemStateTracker::connect(
     const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
     pid_t process_id,
@@ -152,6 +163,23 @@ bool SystemStateTracker::connect(
                  process_id,
                  fd,
                  sockaddr);
+}
+
+bool SystemStateTracker::accept(
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    int fd,
+    const std::vector<std::uint8_t>& sockaddr,
+    int newfd,
+    int flags) {
+  return accept(d->context,
+                *d->process_context_factory.get(),
+                event_header,
+                process_id,
+                fd,
+                sockaddr,
+                newfd,
+                flags);
 }
 
 SystemStateTracker::EventList SystemStateTracker::eventList() {
@@ -569,6 +597,67 @@ bool SystemStateTracker::bind(
   return true;
 }
 
+// clang-format off
+[[deprecated("listen() does not have a unit test yet")]]
+// clang-format on
+bool SystemStateTracker::listen(Context& context, IProcessContextFactory& process_context_factory, const tob::ebpfpub::IFunctionTracer::Event::Header& event_header, pid_t process_id, int fd) {
+  Event::SocketData data;
+  data.fd = fd;
+
+  auto& process_context =
+      getProcessContext(context, process_context_factory, process_id);
+
+  auto fd_info_it = process_context.fd_map.find(fd);
+  if (fd_info_it != process_context.fd_map.end()) {
+    auto& fd_info = fd_info_it->second;
+
+    if (std::holds_alternative<ProcessContext::FileDescriptor::SocketData>(
+            fd_info.data)) {
+      auto& socket_address =
+          std::get<ProcessContext::FileDescriptor::SocketData>(fd_info.data);
+
+      if (socket_address.opt_domain.has_value()) {
+        data.domain = socket_address.opt_domain.value();
+      }
+
+      if (socket_address.opt_type.has_value()) {
+        data.type = socket_address.opt_type.value();
+      }
+
+      if (socket_address.opt_protocol.has_value()) {
+        data.protocol = socket_address.opt_protocol.value();
+      }
+
+      if (socket_address.opt_local_address.has_value()) {
+        data.local_address = socket_address.opt_local_address.value();
+      }
+
+      if (socket_address.opt_local_port.has_value()) {
+        data.local_port = socket_address.opt_local_port.value();
+      }
+
+      if (socket_address.opt_remote_address.has_value()) {
+        data.remote_address = socket_address.opt_remote_address.value();
+      }
+
+      if (socket_address.opt_remote_port.has_value()) {
+        data.remote_port = socket_address.opt_remote_port.value();
+      }
+    }
+  }
+
+  Event event;
+  event.type = Event::Type::Listen;
+  event.parent_process_id = process_context.parent_process_id;
+  event.binary_path = process_context.binary_path;
+  event.cwd = process_context.cwd;
+  event.bpf_header = event_header;
+  event.data = std::move(data);
+
+  context.event_list.push_back(std::move(event));
+  return true;
+}
+
 bool SystemStateTracker::connect(
     Context& context,
     IProcessContextFactory& process_context_factory,
@@ -609,6 +698,104 @@ bool SystemStateTracker::connect(
 
   Event event;
   event.type = Event::Type::Connect;
+  event.parent_process_id = process_context.parent_process_id;
+  event.binary_path = process_context.binary_path;
+  event.cwd = process_context.cwd;
+  event.bpf_header = event_header;
+
+  Event::SocketData data;
+  data.fd = fd;
+
+  if (socket_address.opt_domain.has_value()) {
+    data.domain = socket_address.opt_domain.value();
+  }
+
+  if (socket_address.opt_type.has_value()) {
+    data.type = socket_address.opt_type.value();
+  }
+
+  if (socket_address.opt_protocol.has_value()) {
+    data.protocol = socket_address.opt_protocol.value();
+  }
+
+  if (socket_address.opt_local_address.has_value()) {
+    data.local_address = socket_address.opt_local_address.value();
+  }
+
+  if (socket_address.opt_local_port.has_value()) {
+    data.local_port = socket_address.opt_local_port.value();
+  }
+
+  if (socket_address.opt_remote_address.has_value()) {
+    data.remote_address = socket_address.opt_remote_address.value();
+  }
+
+  if (socket_address.opt_remote_port.has_value()) {
+    data.remote_port = socket_address.opt_remote_port.value();
+  }
+
+  event.data = std::move(data);
+  context.event_list.push_back(std::move(event));
+  return true;
+}
+
+bool SystemStateTracker::accept(
+    Context& context,
+    IProcessContextFactory& process_context_factory,
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    int fd,
+    const std::vector<std::uint8_t>& sockaddr,
+    int newfd,
+    int flags) {
+  auto& process_context =
+      getProcessContext(context, process_context_factory, process_id);
+
+  // If we dont have a file descriptor, create one right now. We may have
+  // to figure out what's in the sockaddr structure
+  auto parent_fd_info_it = process_context.fd_map.find(fd);
+  if (parent_fd_info_it == process_context.fd_map.end()) {
+    ProcessContext::FileDescriptor fd_info;
+    fd_info.close_on_exec = false;
+    fd_info.data = ProcessContext::FileDescriptor::SocketData{};
+
+    auto insert_status =
+        process_context.fd_map.insert({fd, std::move(fd_info)});
+
+    parent_fd_info_it = insert_status.first;
+  }
+
+  // Reset the parent file descriptor type if it's not a socket
+  auto& parent_fd_info = parent_fd_info_it->second;
+  if (!std::holds_alternative<ProcessContext::FileDescriptor::SocketData>(
+          parent_fd_info.data)) {
+    parent_fd_info.data = ProcessContext::FileDescriptor::SocketData{};
+  }
+
+  // Create the new socket, based on the parent one
+  auto new_fd_info = parent_fd_info;
+  new_fd_info.close_on_exec = ((flags & SOCK_CLOEXEC) != 0);
+
+  auto& socket_address =
+      std::get<ProcessContext::FileDescriptor::SocketData>(new_fd_info.data);
+
+  socket_address.opt_remote_address = {};
+  socket_address.opt_remote_port = {};
+
+  if (!parseSocketAddress(socket_address, sockaddr, true)) {
+    std::stringstream str;
+    for (const auto& c : sockaddr) {
+      str << std::hex << std::setw(2) << std::setfill('0')
+          << static_cast<int>(c);
+    }
+    VLOG(1) << "FAILED TO PARSE SOCKADDR " << str.str();
+    return false;
+  }
+
+  process_context.fd_map.insert({fd, new_fd_info});
+
+  Event event;
+  event.type = Event::Type::Listen;
   event.parent_process_id = process_context.parent_process_id;
   event.binary_path = process_context.binary_path;
   event.cwd = process_context.cwd;

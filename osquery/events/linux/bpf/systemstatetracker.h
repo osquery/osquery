@@ -65,11 +65,24 @@ class SystemStateTracker final : public ISystemStateTracker {
       int fd,
       const std::vector<std::uint8_t>& sockaddr) override;
 
+  virtual bool listen(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int fd) override;
+
   virtual bool connect(
       const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
       pid_t process_id,
       int fd,
       const std::vector<std::uint8_t>& sockaddr) override;
+
+  virtual bool accept(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int fd,
+      const std::vector<std::uint8_t>& sockaddr,
+      int newfd,
+      int flags) override;
 
   virtual EventList eventList() override;
 
@@ -165,6 +178,16 @@ class SystemStateTracker final : public ISystemStateTracker {
        const std::vector<std::uint8_t>& sockaddr);
 
   // clang-format off
+  [[deprecated("listen() does not have a unit test yet")]]
+  // clang-format on
+  static bool
+  listen(Context& context,
+         IProcessContextFactory& process_context_factory,
+         const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+         pid_t process_id,
+         int fd);
+
+  // clang-format off
   [[deprecated("connect() does not have a unit test yet")]]
   // clang-format on
   static bool
@@ -174,6 +197,19 @@ class SystemStateTracker final : public ISystemStateTracker {
           pid_t process_id,
           int fd,
           const std::vector<std::uint8_t>& sockaddr);
+
+  // clang-format off
+  [[deprecated("accept() does not have a unit test yet")]]
+  // clang-format on
+  virtual bool
+  accept(Context& context,
+         IProcessContextFactory& process_context_factory,
+         const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+         pid_t process_id,
+         int fd,
+         const std::vector<std::uint8_t>& sockaddr,
+         int newfd,
+         int flags);
 
   // clang-format off
   [[deprecated("parseUnixSockaddr() does not have a unit test yet")]]
