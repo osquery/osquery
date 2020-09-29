@@ -71,7 +71,7 @@ pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0
 
 ### Step 2: Download and build source on macOS
 
-A macOS 10.11 deployment target is selected in this example.
+In the following example, the use of the additional CMake argument `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.11` specifies macOS 10.11 as the minimum compatible macOS version to which you can deploy osquery (this affects the version of the macOS SDK used at build time).
 
 ```bash
 # Download source
