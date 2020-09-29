@@ -583,9 +583,6 @@ bool BPFEventPublisher::processOpenatEvent(
                         static_cast<int>(flags));
 }
 
-// clang-format off
-[[deprecated("processOpenat2Event() does not have a unit test yet")]]
-// clang-format on
 bool BPFEventPublisher::processOpenat2Event(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
@@ -600,7 +597,7 @@ bool BPFEventPublisher::processOpenat2Event(
   }
 
   std::string filename;
-  if (!getEventMapValue(filename, event.in_field_map, "filename")) {
+  if (!getEventMapValue(filename, event.out_field_map, "filename")) {
     return false;
   }
 

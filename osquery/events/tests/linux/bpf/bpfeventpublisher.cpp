@@ -754,7 +754,13 @@ TEST_F(BPFEventPublisherTests, processOpenEvent) {
   EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 9U);
 }
 
-TEST_F(BPFEventPublisherTests, processOpenatEvent) {
+void testOpenAtEventCommon(
+    const std::string& event_name,
+    const tob::ebpfpub::IFunctionTracer::Event::Field& field1,
+    const tob::ebpfpub::IFunctionTracer::Event::Field& field2,
+    const tob::ebpfpub::IFunctionTracer::Event::Field& field3) {
+  ASSERT_TRUE(event_name == "openat" || event_name == "openat2");
+
   auto state_tracker_ref =
       SystemStateTracker::create(getMockedProcessContextFactory());
 
@@ -765,9 +771,81 @@ TEST_F(BPFEventPublisherTests, processOpenatEvent) {
 
   // Processing should fail until we pass all parameters
   auto bpf_event = kBaseBPFEvent;
-  bpf_event.name = "openat";
+  bpf_event.name = event_name;
   bpf_event.header.process_id = 2;
 
+  for (std::size_t i = 0U; i < 7; ++i) {
+    bpf_event.in_field_map = {};
+    bpf_event.out_field_map = {};
+
+    if ((i & 1) != 0) {
+      bpf_event.out_field_map.insert({field1.name, field1});
+    }
+
+    if ((i & 2) != 0) {
+      bpf_event.in_field_map.insert({field2.name, field2});
+    }
+
+    if ((i & 4) != 0) {
+      bpf_event.in_field_map.insert({field3.name, field3});
+    }
+
+    bool succeeded{};
+    if (event_name == "openat") {
+      succeeded =
+          BPFEventPublisher::processOpenatEvent(state_tracker, bpf_event);
+
+    } else {
+      succeeded =
+          BPFEventPublisher::processOpenat2Event(state_tracker, bpf_event);
+    }
+
+    EXPECT_FALSE(succeeded);
+    EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+  }
+
+  // Now try again with all parameters but set the exit_code so that
+  // the syscall fails
+  bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
+
+  bpf_event.out_field_map.insert({field1.name, field1});
+  bpf_event.in_field_map.insert({field2.name, field2});
+  bpf_event.in_field_map.insert({field3.name, field3});
+
+  bool succeeded{};
+  if (event_name == "openat") {
+    succeeded = BPFEventPublisher::processOpenatEvent(state_tracker, bpf_event);
+
+  } else {
+    succeeded =
+        BPFEventPublisher::processOpenat2Event(state_tracker, bpf_event);
+  }
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // We should still have only 8 file descriptors
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 8U);
+
+  // Finally, set the exit code correctly and try again
+  bpf_event.header.exit_code = 16ULL;
+
+  if (event_name == "openat") {
+    succeeded = BPFEventPublisher::processOpenatEvent(state_tracker, bpf_event);
+
+  } else {
+    succeeded =
+        BPFEventPublisher::processOpenat2Event(state_tracker, bpf_event);
+  }
+
+  ASSERT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // We should now have a new file descriptor in the process context
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 9U);
+}
+
+TEST_F(BPFEventPublisherTests, processOpenatEvent) {
   // clang-format off
   tob::ebpfpub::IFunctionTracer::Event::Field flags_field = {
     "flags",
@@ -792,56 +870,35 @@ TEST_F(BPFEventPublisherTests, processOpenatEvent) {
   };
   // clang-format on
 
-  for (std::size_t i = 0U; i < 7; ++i) {
-    bpf_event.in_field_map = {};
-    bpf_event.out_field_map = {};
+  testOpenAtEventCommon("openat", filename_field, flags_field, dfd_field);
+}
 
-    if ((i & 1) != 0) {
-      bpf_event.in_field_map.insert({flags_field.name, flags_field});
-    }
+TEST_F(BPFEventPublisherTests, processOpenat2Event) {
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field how_field = {
+    "how",
+    true,
+    std::vector<std::uint8_t>(24, 0)
+  };
+  // clang-format on
 
-    if ((i & 2) != 0) {
-      bpf_event.out_field_map.insert({filename_field.name, filename_field});
-    }
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field filename_field = {
+    "filename",
+    false,
+    "/home/alessandro/test_file.txt"
+  };
+  // clang-format on
 
-    if ((i & 4) != 0) {
-      bpf_event.in_field_map.insert({dfd_field.name, dfd_field});
-    }
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field dfd_field = {
+    "dfd",
+    true,
+    15ULL
+  };
+  // clang-format on
 
-    auto succeeded =
-        BPFEventPublisher::processOpenatEvent(state_tracker, bpf_event);
-
-    EXPECT_FALSE(succeeded);
-    EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
-  }
-
-  // Now try again with all parameters but set the exit_code so that
-  // the syscall fails
-  bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
-
-  bpf_event.out_field_map.insert({filename_field.name, filename_field});
-  bpf_event.in_field_map.insert({flags_field.name, flags_field});
-  bpf_event.in_field_map.insert({dfd_field.name, dfd_field});
-
-  auto succeeded =
-      BPFEventPublisher::processOpenatEvent(state_tracker, bpf_event);
-
-  EXPECT_TRUE(succeeded);
-  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
-
-  // We should still have only 8 file descriptors
-  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 8U);
-
-  // Finally, set the exit code correctly and try again
-  bpf_event.header.exit_code = 16ULL;
-
-  succeeded = BPFEventPublisher::processOpenatEvent(state_tracker, bpf_event);
-
-  ASSERT_TRUE(succeeded);
-  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
-
-  // We should now have a new file descriptor in the process context
-  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 9U);
+  testOpenAtEventCommon("openat2", filename_field, how_field, dfd_field);
 }
 
 TEST_F(BPFEventPublisherTests, processChdirEvent) {
