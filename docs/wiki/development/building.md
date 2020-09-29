@@ -16,11 +16,9 @@ The build type is chosen when building on Windows, through the `--config` option
 
 Note: the recommended system memory for building osquery is at least 8GB, or Clang may crash during the compilation of third-party dependencies.
 
-## Linux
+## Linux (Ubuntu 18)
 
 The initial directory is assumed to be `/home/<user>`.
-
-### Ubuntu 18.04/18.10
 
 ```bash
 # Install the prerequisites
@@ -212,10 +210,15 @@ cmake --build . --target format
 
 To avoid having to move the committed files to the stage area and back each time, remember to format the code before committing.
 
-## Running Cppcheck (Linux only)
+## Running cppcheck
 
-1. Install it from the distro repository: `apt install cppcheck`
-2. Build the **cppcheck** target `cmake --build . --target cppcheck`
+The `cppcheck` tool runs some static analysis checks on the C++ code to detect possible bugs or undefined behaviors.
+
+1. Install the cppcheck prerequisite:
+    - On Linux: `apt install cppcheck`
+    - On macOS: `brew install cppcheck`
+    - On Windows: download and run [the cppcheck MSI installer](https://github.com/danmar/cppcheck/releases).
+2. Build the `cppcheck` target: `cmake --build . --target cppcheck`
 
 ## Running clang-tidy (Linux only)
 
