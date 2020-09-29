@@ -64,7 +64,7 @@ xcode-select --install
 brew install ccache git git-lfs cmake python clang-format flex bison
 
 # Optional: install python tests prerequisites
-pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
+pip3 install --user setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
 ```
 
 ### Step 2: Download and build source on macOS
