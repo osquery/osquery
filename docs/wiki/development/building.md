@@ -18,7 +18,7 @@ Note: the recommended system memory for building osquery is at least 8GB, or Cla
 
 ## Linux
 
-The root folder is assumed to be `/home/<user>`.
+The initial directory is assumed to be `/home/<user>`.
 
 ### Ubuntu 18.04/18.10
 
@@ -54,7 +54,7 @@ cmake --build . -j10 # where 10 is the number of parallel build jobs
 
 ## macOS
 
-The root folder is assumed to be `/Users/<user>`
+The initial directory is assumed to be `/Users/<user>`
 
 ### Step 1: Install macOS prerequisites
 
@@ -88,9 +88,9 @@ cmake --build .
 
 ## Windows 10
 
-The root folder is assumed to be `C:\`
+The initial directory is assumed to be `C:\`
 
-Note: The intention here is to reduce the length of the prefix of the osquery folder, since Windows and msbuild have a 255 characters max path limit.
+**Note:** Since Windows and `msbuild` have a 255 characters max path limit, starting the build in the shortest directory path possible is recommended to avoid problems when building.
 
 ### Step 1: Install Windows prerequisites
 
