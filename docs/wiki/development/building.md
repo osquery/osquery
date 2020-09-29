@@ -83,7 +83,7 @@ mkdir build; cd build
 cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 ..
 
 # Build
-cmake --build .
+cmake --build . -j $(sysctl -n hw.ncpu)
 ```
 
 ## Windows 10
