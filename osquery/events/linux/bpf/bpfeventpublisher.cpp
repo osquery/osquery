@@ -18,8 +18,6 @@
 
 namespace osquery {
 namespace {
-const std::size_t kPerfEventArraySize{12U};
-const std::size_t kBufferStorageSize{4096U};
 const std::size_t kEventMapSize{2048};
 
 using EventHandler = bool (*)(ISystemStateTracker& state,
@@ -46,6 +44,16 @@ FLAG(bool,
      false,
      "Enables the bpf_process_events publisher");
 
+FLAG(uint64,
+     bpf_perf_event_array_exp,
+     12,
+     "Size of the perf event array as a power of 2");
+
+FLAG(uint64,
+     bpf_buffer_storage_size,
+     4096U,
+     "How many slots each buffer storage should have");
+
 REGISTER(BPFEventPublisher, "event_publisher", "BPFEventPublisher");
 
 struct BPFEventPublisher::PrivateData final {
@@ -71,7 +79,7 @@ Status BPFEventPublisher::setUp() {
   }
 
   auto perf_event_array_exp =
-      tob::ebpf::PerfEventArray::create(kPerfEventArraySize);
+      tob::ebpf::PerfEventArray::create(FLAGS_bpf_perf_event_array_exp);
 
   if (!perf_event_array_exp.succeeded()) {
     throw std::runtime_error("Failed to create the perf event array: " +
@@ -95,8 +103,8 @@ Status BPFEventPublisher::setUp() {
         d->buffer_storage_map.find(tracer_allocator.buffer_storage_pool);
 
     if (buffer_storage_it == d->buffer_storage_map.end()) {
-      auto buffer_storage_exp =
-          tob::ebpfpub::IBufferStorage::create(kBufferStorageSize, 4096);
+      auto buffer_storage_exp = tob::ebpfpub::IBufferStorage::create(
+          FLAGS_bpf_buffer_storage_size, 4096);
 
       if (!buffer_storage_exp.succeeded()) {
         throw buffer_storage_exp.error();
