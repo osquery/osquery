@@ -136,7 +136,7 @@ bool getCatalogPathForFilePath(const std::wstring& path,
                              OPEN_EXISTING,
                              FILE_ATTRIBUTE_NORMAL,
                              NULL);
-  if (INVALID_HANDLE_VALUE != handle) {
+  if (handle != INVALID_HANDLE_VALUE) {
     HCATADMIN context;
     GUID subsystem = DRIVER_ACTION_VERIFY;
     HCATINFO catalog = NULL;
