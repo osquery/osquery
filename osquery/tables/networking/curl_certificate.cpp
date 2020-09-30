@@ -274,7 +274,7 @@ static void fillRow(Row& r, X509* cert, int dump_certificate, int timeout) {
     r["sha256_fingerprint"] = ss.str();
   }
 
-  temp_c.clear();
+  std::fill(temp_c.begin(), temp_c.end(), 0x0);
   digest = const_cast<EVP_MD*>(EVP_sha1());
   ret = X509_digest(cert, digest, temp_c.data(), &len);
 
