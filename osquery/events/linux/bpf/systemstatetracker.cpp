@@ -545,12 +545,6 @@ bool SystemStateTracker::bind(
       std::get<ProcessContext::FileDescriptor::SocketData>(fd_info.data);
 
   if (!parseSocketAddress(socket_address, sockaddr, true)) {
-    std::stringstream str;
-    for (const auto& b : sockaddr) {
-      str << std::hex << std::setfill('0') << std::setw(2)
-          << static_cast<int>(b);
-    }
-    VLOG(1) << str.str();
     return false;
   }
 
@@ -597,10 +591,12 @@ bool SystemStateTracker::bind(
   return true;
 }
 
-// clang-format off
-[[deprecated("listen() does not have a unit test yet")]]
-// clang-format on
-bool SystemStateTracker::listen(Context& context, IProcessContextFactory& process_context_factory, const tob::ebpfpub::IFunctionTracer::Event::Header& event_header, pid_t process_id, int fd) {
+bool SystemStateTracker::listen(
+    Context& context,
+    IProcessContextFactory& process_context_factory,
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    int fd) {
   Event::SocketData data;
   data.fd = fd;
 
@@ -783,16 +779,10 @@ bool SystemStateTracker::accept(
   socket_address.opt_remote_port = {};
 
   if (!parseSocketAddress(socket_address, sockaddr, true)) {
-    std::stringstream str;
-    for (const auto& c : sockaddr) {
-      str << std::hex << std::setw(2) << std::setfill('0')
-          << static_cast<int>(c);
-    }
-    VLOG(1) << "FAILED TO PARSE SOCKADDR " << str.str();
     return false;
   }
 
-  process_context.fd_map.insert({fd, new_fd_info});
+  process_context.fd_map.insert({newfd, new_fd_info});
 
   Event event;
   event.type = Event::Type::Listen;
@@ -802,7 +792,7 @@ bool SystemStateTracker::accept(
   event.bpf_header = event_header;
 
   Event::SocketData data;
-  data.fd = fd;
+  data.fd = newfd;
 
   if (socket_address.opt_domain.has_value()) {
     data.domain = socket_address.opt_domain.value();

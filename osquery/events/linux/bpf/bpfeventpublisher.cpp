@@ -664,9 +664,6 @@ bool BPFEventPublisher::processFchdirEvent(
   return state.setWorkingDirectory(process_id, static_cast<int>(dirfd));
 }
 
-// clang-format off
-[[deprecated("processSocketEvent() does not have a unit test yet")]]
-// clang-format on
 bool BPFEventPublisher::processSocketEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
@@ -695,9 +692,6 @@ bool BPFEventPublisher::processSocketEvent(
   return state.createSocket(process_id, domain, type, protocol, fd);
 }
 
-// clang-format off
-[[deprecated("processFcntlEvent() does not have a unit test yet")]]
-// clang-format on
 bool BPFEventPublisher::processFcntlEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
@@ -720,11 +714,6 @@ bool BPFEventPublisher::processFcntlEvent(
     return false;
   }
 
-  std::uint64_t arg{};
-  if (!getEventMapValue(arg, event.in_field_map, "arg")) {
-    return false;
-  }
-
   auto process_id = static_cast<pid_t>(event.header.process_id);
 
   // Ignore whether the operation has succeeded or not
@@ -738,9 +727,6 @@ bool BPFEventPublisher::processFcntlEvent(
   return true;
 }
 
-// clang-format off
-[[deprecated("processConnectEvent() does not yet have a unit test")]]
-// clang-format on
 bool BPFEventPublisher::processConnectEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
@@ -761,9 +747,6 @@ bool BPFEventPublisher::processConnectEvent(
       event.header, process_id, static_cast<int>(fd), uservaddr);
 }
 
-// clang-format off
-[[deprecated("processAcceptEvent() does not yet have a unit test")]]
-// clang-format on
 bool BPFEventPublisher::processAcceptEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
@@ -791,9 +774,6 @@ bool BPFEventPublisher::processAcceptEvent(
   return true;
 }
 
-// clang-format off
-[[deprecated("processAccept4Event() does not yet have a unit test")]]
-// clang-format on
 bool BPFEventPublisher::processAccept4Event(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
@@ -830,9 +810,6 @@ bool BPFEventPublisher::processAccept4Event(
   return true;
 }
 
-// clang-format off
-[[deprecated("processBindEvent() does not yet have a unit test")]]
-// clang-format on
 bool BPFEventPublisher::processBindEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
@@ -854,9 +831,6 @@ bool BPFEventPublisher::processBindEvent(
   return state.bind(event.header, process_id, static_cast<int>(fd), uservaddr);
 }
 
-// clang-format off
-[[deprecated("processListenEvent() does not yet have a unit test")]]
-// clang-format on
 bool BPFEventPublisher::processListenEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {

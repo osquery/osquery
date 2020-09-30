@@ -15,6 +15,7 @@
 #include <osquery/events/linux/bpf/systemstatetracker.h>
 
 #include <fcntl.h>
+#include <sys/un.h>
 
 namespace osquery {
 namespace {
@@ -1024,5 +1025,555 @@ TEST_F(BPFEventPublisherTests, processFchdirEvent) {
                                      15,
                                      false,
                                      "/usr/share/zsh/functions/Misc.zwc"));
+}
+
+TEST_F(BPFEventPublisherTests, processSocketEvent) {
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
+
+  auto& state_tracker =
+      static_cast<SystemStateTracker&>(*state_tracker_ref.get());
+
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // Processing should fail until we pass all parameters
+  auto bpf_event = kBaseBPFEvent;
+  bpf_event.name = "socket";
+  bpf_event.header.process_id = 2;
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field family_field = {
+    "family",
+    true,
+    0ULL
+  };
+  // clang-format on
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field type_field = {
+    "type",
+    true,
+    0ULL
+  };
+  // clang-format on
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field protocol_field = {
+    "protocol",
+    true,
+    0ULL
+  };
+  // clang-format on
+
+  for (std::size_t i = 0U; i < 7; ++i) {
+    bpf_event.in_field_map = {};
+
+    if ((i & 1) != 0) {
+      bpf_event.in_field_map.insert({family_field.name, family_field});
+    }
+
+    if ((i & 2) != 0) {
+      bpf_event.in_field_map.insert({type_field.name, type_field});
+    }
+
+    if ((i & 4) != 0) {
+      bpf_event.in_field_map.insert({protocol_field.name, protocol_field});
+    }
+
+    auto succeeded =
+        BPFEventPublisher::processSocketEvent(state_tracker, bpf_event);
+
+    EXPECT_FALSE(succeeded);
+    EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+  }
+
+  // Now try again with all parameters but set the exit_code so that
+  // the syscall fails. This event should be ignored and the operation
+  // should succeed
+  bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
+  bpf_event.in_field_map.insert({family_field.name, family_field});
+  bpf_event.in_field_map.insert({type_field.name, type_field});
+  bpf_event.in_field_map.insert({protocol_field.name, protocol_field});
+
+  auto succeeded =
+      BPFEventPublisher::processSocketEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // We should still have only 8 file descriptors
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 8U);
+
+  // Finally, set the exit code correctly and try again
+  bpf_event.header.exit_code = 16ULL;
+  succeeded = BPFEventPublisher::processSocketEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // We should now have a new file descriptor in the process context
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 9U);
+}
+
+TEST_F(BPFEventPublisherTests, processFcntlEvent) {
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
+
+  auto& state_tracker =
+      static_cast<SystemStateTracker&>(*state_tracker_ref.get());
+
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // Processing should fail until we pass all parameters
+  auto bpf_event = kBaseBPFEvent;
+  bpf_event.name = "fcntl";
+  bpf_event.header.process_id = 2;
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field cmd_field = {
+    "cmd",
+    true,
+    static_cast<std::uint64_t>(F_DUPFD)
+  };
+  // clang-format on
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+    "fd",
+    true,
+    15ULL
+  };
+  // clang-format on
+
+  for (std::size_t i = 0U; i < 3; ++i) {
+    bpf_event.in_field_map = {};
+
+    if ((i & 1) != 0) {
+      bpf_event.in_field_map.insert({cmd_field.name, cmd_field});
+    }
+
+    if ((i & 2) != 0) {
+      bpf_event.in_field_map.insert({fd_field.name, fd_field});
+    }
+
+    auto succeeded =
+        BPFEventPublisher::processFcntlEvent(state_tracker, bpf_event);
+
+    EXPECT_FALSE(succeeded);
+    EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+  }
+
+  // Now try again with all parameters but set the exit_code so that
+  // the syscall fails
+  bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
+
+  bpf_event.in_field_map.insert({cmd_field.name, cmd_field});
+  bpf_event.in_field_map.insert({fd_field.name, fd_field});
+
+  auto succeeded =
+      BPFEventPublisher::processFcntlEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // We should still have only 8 file descriptors
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 8U);
+
+  // Finally, set the exit code correctly and try again
+  bpf_event.header.exit_code = 16ULL;
+
+  succeeded = BPFEventPublisher::processFcntlEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // We should now have a new file descriptor in the process context
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 9U);
+
+  // Try once more, with a command that we ignore. This should have no effect
+  // and the operation should succeed
+  bpf_event.in_field_map["cmd"].data_var = static_cast<std::uint64_t>(F_GETFD);
+  bpf_event.header.exit_code = 17ULL;
+
+  succeeded = BPFEventPublisher::processFcntlEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 9U);
+}
+
+TEST_F(BPFEventPublisherTests, processConnectEvent) {
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
+
+  auto& state_tracker =
+      static_cast<SystemStateTracker&>(*state_tracker_ref.get());
+
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // Processing should fail until we pass all parameters
+  auto bpf_event = kBaseBPFEvent;
+  bpf_event.name = "connect";
+  bpf_event.header.process_id = 2;
+
+  // This will be read as AF_UNIX since it's all zeroed
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field uservaddr_field = {
+    "uservaddr",
+    true,
+    std::vector<std::uint8_t>(sizeof(sockaddr_un), 0)
+  };
+  // clang-format on
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+    "fd",
+    true,
+    15ULL
+  };
+  // clang-format on
+
+  for (std::size_t i = 0U; i < 3; ++i) {
+    bpf_event.in_field_map = {};
+
+    if ((i & 1) != 0) {
+      bpf_event.in_field_map.insert({uservaddr_field.name, uservaddr_field});
+    }
+
+    if ((i & 2) != 0) {
+      bpf_event.in_field_map.insert({fd_field.name, fd_field});
+    }
+
+    auto succeeded =
+        BPFEventPublisher::processConnectEvent(state_tracker, bpf_event);
+
+    EXPECT_FALSE(succeeded);
+    EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+  }
+
+  // Now try again with all parameters
+  bpf_event.in_field_map.insert({uservaddr_field.name, uservaddr_field});
+  bpf_event.in_field_map.insert({fd_field.name, fd_field});
+
+  auto succeeded =
+      BPFEventPublisher::processConnectEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+
+  // Try again, with an invalid file descriptor; this will still work because
+  // the state tracker will update the fd_map on the fly and emit the connect()
+  // event anyway even if some data is missing
+  bpf_event.in_field_map["fd"].data_var = 9999ULL;
+
+  succeeded = BPFEventPublisher::processConnectEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+
+  // Try again, with a broken sockaddr structure. This should return an error
+  bpf_event.in_field_map["uservaddr"].data_var =
+      std::vector<std::uint8_t>(1, 1);
+
+  succeeded = BPFEventPublisher::processConnectEvent(state_tracker, bpf_event);
+  EXPECT_FALSE(succeeded);
+}
+
+TEST_F(BPFEventPublisherTests, processAcceptEvent) {
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
+
+  auto& state_tracker =
+      static_cast<SystemStateTracker&>(*state_tracker_ref.get());
+
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // Processing should fail until we pass all parameters
+  auto bpf_event = kBaseBPFEvent;
+  bpf_event.name = "accept";
+  bpf_event.header.process_id = 2;
+
+  // This will be read as AF_UNIX since it's all zeroed
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field upeer_sockaddr_field = {
+    "upeer_sockaddr",
+    true,
+    std::vector<std::uint8_t>(sizeof(sockaddr_un), 0)
+  };
+  // clang-format on
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+    "fd",
+    true,
+    15ULL
+  };
+  // clang-format on
+
+  for (std::size_t i = 0U; i < 3; ++i) {
+    bpf_event.in_field_map = {};
+    bpf_event.out_field_map = {};
+
+    if ((i & 1) != 0) {
+      bpf_event.out_field_map.insert(
+          {upeer_sockaddr_field.name, upeer_sockaddr_field});
+    }
+
+    if ((i & 2) != 0) {
+      bpf_event.in_field_map.insert({fd_field.name, fd_field});
+    }
+
+    auto succeeded =
+        BPFEventPublisher::processAcceptEvent(state_tracker, bpf_event);
+
+    EXPECT_FALSE(succeeded);
+    EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+  }
+
+  // Now try again with all parameters but set the exit code so that
+  // the syscall fails. This event should be ignored
+  bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
+
+  bpf_event.out_field_map.insert(
+      {upeer_sockaddr_field.name, upeer_sockaddr_field});
+  bpf_event.in_field_map.insert({fd_field.name, fd_field});
+
+  auto succeeded =
+      BPFEventPublisher::processAcceptEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 8U);
+
+  // Try again, setting the correct exit code
+  bpf_event.header.exit_code = 99ULL;
+  succeeded = BPFEventPublisher::processAcceptEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 9U);
+
+  // Try again, with a broken sockaddr structure. This event will be ignored
+  // and this should always succeeds
+  bpf_event.header.exit_code = 100ULL;
+  bpf_event.out_field_map["upeer_sockaddr"].data_var =
+      std::vector<std::uint8_t>(1, 1);
+
+  succeeded = BPFEventPublisher::processAcceptEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 9U);
+}
+
+TEST_F(BPFEventPublisherTests, processAccept4Event) {
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
+
+  auto& state_tracker =
+      static_cast<SystemStateTracker&>(*state_tracker_ref.get());
+
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // Processing should fail until we pass all parameters
+  auto bpf_event = kBaseBPFEvent;
+  bpf_event.name = "accept4";
+  bpf_event.header.process_id = 2;
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field flags_field = {
+    "flags",
+    true,
+    0ULL
+  };
+  // clang-format on
+
+  // This will be read as AF_UNIX since it's all zeroed
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field upeer_sockaddr_field = {
+    "upeer_sockaddr",
+    true,
+    std::vector<std::uint8_t>(sizeof(sockaddr_un), 0)
+  };
+  // clang-format on
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+    "fd",
+    true,
+    15ULL
+  };
+  // clang-format on
+
+  for (std::size_t i = 0U; i < 7; ++i) {
+    bpf_event.in_field_map = {};
+    bpf_event.out_field_map = {};
+
+    if ((i & 1) != 0) {
+      bpf_event.out_field_map.insert(
+          {upeer_sockaddr_field.name, upeer_sockaddr_field});
+    }
+
+    if ((i & 2) != 0) {
+      bpf_event.in_field_map.insert({fd_field.name, fd_field});
+    }
+
+    if ((i & 4) != 0) {
+      bpf_event.in_field_map.insert({flags_field.name, flags_field});
+    }
+
+    auto succeeded =
+        BPFEventPublisher::processAccept4Event(state_tracker, bpf_event);
+
+    EXPECT_FALSE(succeeded);
+    EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+  }
+
+  // Now try again with all parameters but set the exit code so that
+  // the syscall fails. This event should be ignored
+  bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
+
+  bpf_event.out_field_map.insert(
+      {upeer_sockaddr_field.name, upeer_sockaddr_field});
+
+  bpf_event.in_field_map.insert({fd_field.name, fd_field});
+  bpf_event.in_field_map.insert({flags_field.name, flags_field});
+
+  auto succeeded =
+      BPFEventPublisher::processAccept4Event(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 8U);
+
+  // Try again, setting the correct exit code
+  bpf_event.header.exit_code = 99ULL;
+  succeeded = BPFEventPublisher::processAccept4Event(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 9U);
+
+  // Try again, with a broken sockaddr structure. This event will be ignored and
+  // should always return as the operation has succeeded
+  bpf_event.header.exit_code = 100ULL;
+  bpf_event.out_field_map["upeer_sockaddr"].data_var =
+      std::vector<std::uint8_t>(1, 1);
+
+  succeeded = BPFEventPublisher::processAccept4Event(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 9U);
+}
+
+TEST_F(BPFEventPublisherTests, processBindEvent) {
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
+
+  auto& state_tracker =
+      static_cast<SystemStateTracker&>(*state_tracker_ref.get());
+
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // Processing should fail until we pass all parameters
+  auto bpf_event = kBaseBPFEvent;
+  bpf_event.name = "bind";
+  bpf_event.header.process_id = 2;
+
+  // This will be read as AF_UNIX since it's all zeroed
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field umyaddr_field = {
+    "umyaddr",
+    true,
+    std::vector<std::uint8_t>(sizeof(sockaddr_un), 0)
+  };
+  // clang-format on
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+    "fd",
+    true,
+    15ULL
+  };
+  // clang-format on
+
+  for (std::size_t i = 0U; i < 3; ++i) {
+    bpf_event.in_field_map = {};
+
+    if ((i & 1) != 0) {
+      bpf_event.in_field_map.insert({umyaddr_field.name, umyaddr_field});
+    }
+
+    if ((i & 2) != 0) {
+      bpf_event.in_field_map.insert({fd_field.name, fd_field});
+    }
+
+    auto succeeded =
+        BPFEventPublisher::processBindEvent(state_tracker, bpf_event);
+
+    EXPECT_FALSE(succeeded);
+    EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+  }
+
+  // Now try again with all parameters but set the exit code so that
+  // the syscall fails. This event should be ignored
+  bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
+  bpf_event.in_field_map.insert({umyaddr_field.name, umyaddr_field});
+  bpf_event.in_field_map.insert({fd_field.name, fd_field});
+
+  auto succeeded =
+      BPFEventPublisher::processBindEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 8U);
+
+  // Try again, setting the correct exit code
+  bpf_event.header.exit_code = 0ULL;
+  succeeded = BPFEventPublisher::processBindEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 8U);
+
+  // Try again, with a broken sockaddr structure. We should get an error back
+  bpf_event.in_field_map["umyaddr"].data_var = std::vector<std::uint8_t>(1, 1);
+
+  succeeded = BPFEventPublisher::processBindEvent(state_tracker, bpf_event);
+
+  EXPECT_FALSE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 8U);
+}
+
+TEST_F(BPFEventPublisherTests, processListenEvent) {
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
+
+  auto& state_tracker =
+      static_cast<SystemStateTracker&>(*state_tracker_ref.get());
+
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // Processing should fail until we pass the file descriptor
+  auto bpf_event = kBaseBPFEvent;
+  bpf_event.name = "listen";
+  bpf_event.header.process_id = 2;
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+    "fd",
+    true,
+    15ULL
+  };
+  // clang-format on
+
+  auto succeeded =
+      BPFEventPublisher::processListenEvent(state_tracker, bpf_event);
+
+  EXPECT_FALSE(succeeded);
+
+  // Now try again with all parameters but set the exit code so that
+  // the syscall fails. This event should be ignored
+  bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
+  bpf_event.in_field_map.insert({fd_field.name, fd_field});
+
+  succeeded = BPFEventPublisher::processListenEvent(state_tracker, bpf_event);
+  EXPECT_TRUE(succeeded);
+
+  // Try again, with the correct exit code
+  bpf_event.header.exit_code = 0ULL;
+  succeeded = BPFEventPublisher::processListenEvent(state_tracker, bpf_event);
+  EXPECT_TRUE(succeeded);
 }
 } // namespace osquery

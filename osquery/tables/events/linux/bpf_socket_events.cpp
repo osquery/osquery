@@ -31,7 +31,6 @@ Status BPFSocketEventSubscriber::eventCallback(const ECRef& event_context,
 
 bool BPFSocketEventSubscriber::generateRow(
     Row& row, const ISystemStateTracker::Event& event) {
-
   row = {};
 
   switch (event.type) {
