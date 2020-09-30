@@ -19,7 +19,12 @@ function(FindCppcheck)
         PATHS "${OSQUERY_TOOLCHAIN_SYSROOT}"
       )
     endif()
-
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(executable_name "cppcheck")
+    
+    set(optional_path_suffix_list 
+      PATH_SUFFIXES usr/local/bin
+    )
   else()
     set(executable_name "cppcheck.exe")
   endif()
