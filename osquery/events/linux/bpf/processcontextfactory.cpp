@@ -192,13 +192,36 @@ bool ProcessContextFactory::captureAllProcesses(
 
 bool ProcessContextFactory::getArgvFromCmdlineFile(
     IFilesystem& fs, std::vector<std::string>& argv, int fd) {
+  argv = {};
+
   std::vector<char> buffer;
   if (!fs.read(buffer, fd, kMaxFileSize)) {
     return false;
   }
 
-  // TODO(alessandro): Parse!
-  argv = {buffer.data()};
+  std::vector<std::string> output;
+  std::size_t start = 0U;
+
+  for (;;) {
+    std::size_t end;
+    for (end = start; end < buffer.size() && buffer.at(end) != 0; ++end)
+      ;
+
+    auto argument_size = end - start;
+    if (argument_size == 0) {
+      break;
+    }
+
+    auto argument = std::string(buffer.data() + start, argument_size);
+    output.push_back(std::move(argument));
+
+    start = end + 1;
+    if (start >= buffer.size()) {
+      break;
+    }
+  }
+
+  argv = std::move(output);
   return true;
 }
 

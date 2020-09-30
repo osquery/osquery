@@ -32,11 +32,10 @@ TEST_F(ProcessContextFactoryTests, captureSingleProcess) {
   EXPECT_EQ(process_context.parent_process_id, 3616);
   EXPECT_EQ(process_context.binary_path, "/usr/bin/zsh");
 
-  // TODO(alessandro): Implement and test argv parsing
-  ASSERT_EQ(process_context.argv.size(), 1U);
+  ASSERT_EQ(process_context.argv.size(), 3U);
   EXPECT_EQ(process_context.argv.at(0), "zsh");
-  // EXPECT_EQ(process_context.argv.at(1), "-i");
-  // EXPECT_EQ(process_context.argv.at(2), "-H");
+  EXPECT_EQ(process_context.argv.at(1), "-i");
+  EXPECT_EQ(process_context.argv.at(2), "-H");
 
   EXPECT_EQ(process_context.cwd, "/home/alessandro");
 
@@ -67,11 +66,10 @@ TEST_F(ProcessContextFactoryTests, getArgvFromCmdlineFile) {
 
   EXPECT_TRUE(succeeded);
 
-  // TODO(alessandro): Implement and test argv parsing
-  ASSERT_EQ(argv.size(), 1U);
+  ASSERT_EQ(argv.size(), 3U);
   EXPECT_EQ(argv.at(0), "zsh");
-  // EXPECT_EQ(argv.at(1), "-i");
-  // EXPECT_EQ(argv.at(2), "-H");
+  EXPECT_EQ(argv.at(1), "-i");
+  EXPECT_EQ(argv.at(2), "-H");
 }
 
 TEST_F(ProcessContextFactoryTests, getParentPidFromStatFile) {
