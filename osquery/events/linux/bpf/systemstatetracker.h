@@ -154,54 +154,41 @@ class SystemStateTracker final : public ISystemStateTracker {
                           pid_t process_id,
                           int fd);
 
-  // clang-format off
-  [[deprecated("createSocket() does not have a unit test yet")]]
-  // clang-format on
-  static bool
-  createSocket(Context& context,
-               IProcessContextFactory& process_context_factory,
-               pid_t process_id,
-               int domain,
-               int type,
-               int protocol,
-               int fd);
+  static bool createSocket(Context& context,
+                           IProcessContextFactory& process_context_factory,
+                           pid_t process_id,
+                           int domain,
+                           int type,
+                           int protocol,
+                           int fd);
 
-  // clang-format off
-  [[deprecated("bind() does not have a unit test yet")]]
-  // clang-format on
-  static bool
-  bind(Context& context,
-       IProcessContextFactory& process_context_factory,
-       const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
-       pid_t process_id,
-       int fd,
-       const std::vector<std::uint8_t>& sockaddr);
+  static bool bind(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int fd,
+      const std::vector<std::uint8_t>& sockaddr);
 
-  // clang-format off
-  [[deprecated("listen() does not have a unit test yet")]]
-  // clang-format on
-  static bool
-  listen(Context& context,
-         IProcessContextFactory& process_context_factory,
-         const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
-         pid_t process_id,
-         int fd);
+  static bool listen(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int fd);
 
-  // clang-format off
-  [[deprecated("connect() does not have a unit test yet")]]
-  // clang-format on
-  static bool
-  connect(Context& context,
-          IProcessContextFactory& process_context_factory,
-          const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
-          pid_t process_id,
-          int fd,
-          const std::vector<std::uint8_t>& sockaddr);
+  static bool connect(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int fd,
+      const std::vector<std::uint8_t>& sockaddr);
 
   // clang-format off
   [[deprecated("accept() does not have a unit test yet")]]
   // clang-format on
-  virtual bool
+  static bool
   accept(Context& context,
          IProcessContextFactory& process_context_factory,
          const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
@@ -211,43 +198,24 @@ class SystemStateTracker final : public ISystemStateTracker {
          int newfd,
          int flags);
 
-  // clang-format off
-  [[deprecated("parseUnixSockaddr() does not have a unit test yet")]]
-  // clang-format on
-  static bool
-  parseUnixSockaddr(std::string& path,
-                    const std::vector<std::uint8_t>& sockaddr);
+  static bool parseUnixSockaddr(std::string& path,
+                                const std::vector<std::uint8_t>& sockaddr);
 
-  // clang-format off
-  [[deprecated("parseInetSockaddr() does not have a unit test yet")]]
-  // clang-format on
-  static bool
-  parseInetSockaddr(std::string& address,
-                    std::uint16_t& port,
-                    const std::vector<std::uint8_t>& sockaddr);
+  static bool parseInetSockaddr(std::string& address,
+                                std::uint16_t& port,
+                                const std::vector<std::uint8_t>& sockaddr);
 
-  // clang-format off
-  [[deprecated("parseNetlinkSockaddr() does not have a unit test yet")]]
-  // clang-format on
-  static bool
-  parseNetlinkSockaddr(std::string& address,
-                       std::uint16_t& port,
-                       const std::vector<std::uint8_t>& sockaddr);
+  static bool parseNetlinkSockaddr(std::string& address,
+                                   std::uint16_t& port,
+                                   const std::vector<std::uint8_t>& sockaddr);
 
-  // clang-format off
-  [[deprecated("parseInet6Sockaddr() does not have a unit test yet")]]
-  // clang-format on
-  static bool
-  parseInet6Sockaddr(std::string& address,
-                     std::uint16_t& port,
-                     const std::vector<std::uint8_t>& sockaddr);
+  static bool parseInet6Sockaddr(std::string& address,
+                                 std::uint16_t& port,
+                                 const std::vector<std::uint8_t>& sockaddr);
 
-  // clang-format off
-  [[deprecated("parseSocketAddress() does not have a unit test yet")]]
-  // clang-format on
-  static bool
-  parseSocketAddress(ProcessContext::FileDescriptor::SocketData& socket_data,
-                     const std::vector<std::uint8_t>& sockaddr,
-                     bool local);
+  static bool parseSocketAddress(
+      ProcessContext::FileDescriptor::SocketData& socket_data,
+      const std::vector<std::uint8_t>& sockaddr,
+      bool local);
 };
 } // namespace osquery

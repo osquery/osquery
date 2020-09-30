@@ -13,7 +13,12 @@
 
 #include <osquery/events/linux/bpf/systemstatetracker.h>
 
+#include <arpa/inet.h>
 #include <linux/fcntl.h>
+#include <linux/netlink.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 namespace osquery {
 namespace {
@@ -44,6 +49,43 @@ const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader {
   false
 };
 // clang-format on
+
+const std::vector<std::uint8_t> kTestUnixSocketAddress = {
+    0x01, 0x00, 0x2f, 0x74, 0x65, 0x73, 0x74, 0x2f, 0x70, 0x61, 0x74,
+    0x68, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+const std::vector<std::uint8_t> kTestIPv4Address = {0x02,
+                                                    0x00,
+                                                    0x00,
+                                                    0x50,
+                                                    0xc0,
+                                                    0xa8,
+                                                    0x01,
+                                                    0x02,
+                                                    0x00,
+                                                    0x00,
+                                                    0x00,
+                                                    0x00,
+                                                    0x00,
+                                                    0x00,
+                                                    0x00,
+                                                    0x00};
+
+const std::vector<std::uint8_t> kTestIPv6Address = {
+    0x0a, 0x00, 0x1f, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+    0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
+    0x0c, 0x0d, 0x0e, 0x0f, 0x00, 0x00, 0x00, 0x00};
+
+const std::vector<std::uint8_t> kTestNetlinkSockaddr = {
+    0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00};
 } // namespace
 
 TEST_F(SystemStateTrackerTests, getProcessContext) {
@@ -769,5 +811,311 @@ TEST_F(SystemStateTrackerTests, open_file) {
                              dirfd_folder_path + "/" + dirfd_relative_path));
 
   EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+}
+
+TEST_F(SystemStateTrackerTests, create_socket) {
+  SystemStateTracker::Context context;
+
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(
+        process_context, kBaseBPFEventHeader.process_id);
+
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    context.process_map.insert(
+        {kBaseBPFEventHeader.process_id, process_context});
+  }
+
+  auto& process_context =
+      context.process_map.at(kBaseBPFEventHeader.process_id);
+
+  EXPECT_EQ(process_context.fd_map.size(), 8U);
+
+  auto succeeded =
+      SystemStateTracker::createSocket(context,
+                                       *process_context_factory.get(),
+                                       kBaseBPFEventHeader.process_id,
+                                       AF_INET6,
+                                       SOCK_STREAM,
+                                       0,
+                                       99);
+
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+  ASSERT_TRUE(succeeded);
+
+  ASSERT_EQ(process_context.fd_map.size(), 9U);
+  ASSERT_EQ(process_context.fd_map.count(99), 1U);
+
+  const auto& fd = process_context.fd_map.at(99);
+  EXPECT_EQ(fd.close_on_exec, false);
+
+  ASSERT_TRUE(
+      std::holds_alternative<ProcessContext::FileDescriptor::SocketData>(
+          fd.data));
+
+  const auto& socket_data =
+      std::get<ProcessContext::FileDescriptor::SocketData>(fd.data);
+
+  ASSERT_TRUE(socket_data.opt_domain.has_value());
+  ASSERT_TRUE(socket_data.opt_type.has_value());
+  ASSERT_TRUE(socket_data.opt_protocol.has_value());
+
+  EXPECT_EQ(socket_data.opt_domain.value(), AF_INET6);
+  EXPECT_EQ(socket_data.opt_type.value(), SOCK_STREAM);
+  EXPECT_EQ(socket_data.opt_protocol.value(), 0);
+}
+
+TEST_F(SystemStateTrackerTests, bind_socket) {
+  SystemStateTracker::Context context;
+
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(
+        process_context, kBaseBPFEventHeader.process_id);
+
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    context.process_map.insert(
+        {kBaseBPFEventHeader.process_id, process_context});
+  }
+
+  auto& process_context =
+      context.process_map.at(kBaseBPFEventHeader.process_id);
+
+  setSocketDescriptor(
+      process_context, 99, true, AF_UNIX, SOCK_STREAM, 0, "", 1, "", 1);
+
+  EXPECT_EQ(process_context.fd_map.size(), 9U);
+
+  auto succeeded = SystemStateTracker::bind(context,
+                                            *process_context_factory.get(),
+                                            kBaseBPFEventHeader,
+                                            kBaseBPFEventHeader.process_id,
+                                            99,
+                                            kTestUnixSocketAddress);
+
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+  ASSERT_TRUE(succeeded);
+
+  ASSERT_EQ(process_context.fd_map.size(), 9U);
+  ASSERT_EQ(process_context.fd_map.count(99), 1U);
+
+  const auto& fd = process_context.fd_map.at(99);
+  EXPECT_EQ(fd.close_on_exec, true);
+
+  ASSERT_TRUE(
+      std::holds_alternative<ProcessContext::FileDescriptor::SocketData>(
+          fd.data));
+
+  const auto& socket_data =
+      std::get<ProcessContext::FileDescriptor::SocketData>(fd.data);
+
+  ASSERT_TRUE(socket_data.opt_local_address.has_value());
+  ASSERT_TRUE(socket_data.opt_local_port.has_value());
+
+  ASSERT_EQ(socket_data.opt_local_address.value(), "/test/path");
+  ASSERT_EQ(socket_data.opt_local_port.value(), 0);
+
+  // Make sure that the bind event was generated
+  ASSERT_EQ(context.event_list.size(), 1U);
+
+  const auto& bind_event = context.event_list.at(0U);
+  EXPECT_EQ(bind_event.type, ISystemStateTracker::Event::Type::Bind);
+  ASSERT_TRUE(std::holds_alternative<ISystemStateTracker::Event::SocketData>(
+      bind_event.data));
+
+  const auto& event_data =
+      std::get<ISystemStateTracker::Event::SocketData>(bind_event.data);
+
+  EXPECT_EQ(event_data.domain, AF_UNIX);
+  EXPECT_EQ(event_data.type, SOCK_STREAM);
+  EXPECT_EQ(event_data.protocol, 0);
+  EXPECT_EQ(event_data.fd, 99);
+  EXPECT_EQ(event_data.local_address, "/test/path");
+  EXPECT_EQ(event_data.local_port, 0);
+  EXPECT_TRUE(event_data.remote_address.empty());
+  EXPECT_EQ(event_data.remote_port, 1);
+}
+
+TEST_F(SystemStateTrackerTests, listen_socket) {
+  SystemStateTracker::Context context;
+
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(
+        process_context, kBaseBPFEventHeader.process_id);
+
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    context.process_map.insert(
+        {kBaseBPFEventHeader.process_id, process_context});
+  }
+
+  auto& process_context =
+      context.process_map.at(kBaseBPFEventHeader.process_id);
+
+  setSocketDescriptor(process_context,
+                      99,
+                      true,
+                      AF_INET,
+                      SOCK_STREAM,
+                      0,
+                      "127.0.0.1",
+                      8080,
+                      "",
+                      0);
+
+  EXPECT_EQ(process_context.fd_map.size(), 9U);
+
+  auto succeeded = SystemStateTracker::listen(context,
+                                              *process_context_factory.get(),
+                                              kBaseBPFEventHeader,
+                                              kBaseBPFEventHeader.process_id,
+                                              99);
+
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+  ASSERT_TRUE(succeeded);
+
+  ASSERT_EQ(process_context.fd_map.size(), 9U);
+
+  // Make sure that the bind event was generated
+  ASSERT_EQ(context.event_list.size(), 1U);
+
+  const auto& listen_event = context.event_list.at(0U);
+  EXPECT_EQ(listen_event.type, ISystemStateTracker::Event::Type::Listen);
+  ASSERT_TRUE(std::holds_alternative<ISystemStateTracker::Event::SocketData>(
+      listen_event.data));
+
+  const auto& event_data =
+      std::get<ISystemStateTracker::Event::SocketData>(listen_event.data);
+
+  EXPECT_EQ(event_data.domain, AF_INET);
+  EXPECT_EQ(event_data.type, SOCK_STREAM);
+  EXPECT_EQ(event_data.protocol, 0);
+  EXPECT_EQ(event_data.fd, 99);
+  EXPECT_EQ(event_data.local_address, "127.0.0.1");
+  EXPECT_EQ(event_data.local_port, 8080);
+  EXPECT_TRUE(event_data.remote_address.empty());
+  EXPECT_EQ(event_data.remote_port, 0);
+}
+
+TEST_F(SystemStateTrackerTests, connect_socket) {
+  SystemStateTracker::Context context;
+
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(
+        process_context, kBaseBPFEventHeader.process_id);
+
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    context.process_map.insert(
+        {kBaseBPFEventHeader.process_id, process_context});
+  }
+
+  auto& process_context =
+      context.process_map.at(kBaseBPFEventHeader.process_id);
+
+  setSocketDescriptor(process_context,
+                      99,
+                      true,
+                      AF_INET,
+                      SOCK_STREAM,
+                      0,
+                      "127.0.0.1",
+                      8080,
+                      "",
+                      0);
+
+  EXPECT_EQ(process_context.fd_map.size(), 9U);
+
+  auto succeeded = SystemStateTracker::connect(context,
+                                               *process_context_factory.get(),
+                                               kBaseBPFEventHeader,
+                                               kBaseBPFEventHeader.process_id,
+                                               99,
+                                               kTestIPv4Address);
+
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+  ASSERT_TRUE(succeeded);
+
+  ASSERT_EQ(process_context.fd_map.size(), 9U);
+
+  // Make sure that the bind event was generated
+  ASSERT_EQ(context.event_list.size(), 1U);
+
+  const auto& connect_event = context.event_list.at(0U);
+  EXPECT_EQ(connect_event.type, ISystemStateTracker::Event::Type::Connect);
+  ASSERT_TRUE(std::holds_alternative<ISystemStateTracker::Event::SocketData>(
+      connect_event.data));
+
+  const auto& event_data =
+      std::get<ISystemStateTracker::Event::SocketData>(connect_event.data);
+
+  EXPECT_EQ(event_data.domain, AF_INET);
+  EXPECT_EQ(event_data.type, SOCK_STREAM);
+  EXPECT_EQ(event_data.protocol, 0);
+  EXPECT_EQ(event_data.fd, 99);
+  EXPECT_EQ(event_data.local_address, "127.0.0.1");
+  EXPECT_EQ(event_data.local_port, 8080);
+  EXPECT_EQ(event_data.remote_address, "192.168.1.2");
+  EXPECT_EQ(event_data.remote_port, 80);
+}
+
+TEST_F(SystemStateTrackerTests, parse_ipv4_sockaddr) {
+  std::string address;
+  std::uint16_t port{};
+  auto succeeded =
+      SystemStateTracker::parseInetSockaddr(address, port, kTestIPv4Address);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(address, "192.168.1.2");
+  EXPECT_EQ(port, 80);
+}
+
+TEST_F(SystemStateTrackerTests, parse_ipv6_sockaddr) {
+  std::string address;
+  std::uint16_t port{};
+  auto succeeded =
+      SystemStateTracker::parseInet6Sockaddr(address, port, kTestIPv6Address);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(address, "00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f");
+  EXPECT_EQ(port, 8080);
+}
+
+TEST_F(SystemStateTrackerTests, parse_unix_sockaddr) {
+  std::string address;
+  auto succeeded =
+      SystemStateTracker::parseUnixSockaddr(address, kTestUnixSocketAddress);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(address, "/test/path");
+}
+
+TEST_F(SystemStateTrackerTests, parse_netlink_sockaddr) {
+  std::string address;
+  std::uint16_t port;
+
+  auto succeeded = SystemStateTracker::parseNetlinkSockaddr(
+      address, port, kTestNetlinkSockaddr);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(address, "1");
+  EXPECT_EQ(port, 2);
 }
 } // namespace osquery

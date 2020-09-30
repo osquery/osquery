@@ -893,7 +893,7 @@ bool SystemStateTracker::parseInet6Sockaddr(
     return false;
   }
 
-  auto size = std::min(sizeof(sockaddr_in), sockaddr.size());
+  auto size = std::min(sizeof(sockaddr_in6), sockaddr.size());
 
   sockaddr_in6 addr{};
   std::memcpy(&addr, sockaddr.data(), size);
@@ -901,8 +901,8 @@ bool SystemStateTracker::parseInet6Sockaddr(
   port = static_cast<std::uint16_t>(ntohs(addr.sin6_port));
 
   std::stringstream buffer;
-  for (std::size_t i = 0U; i < sizeof(addr.sin6_addr.s6_addr); ++i) {
-    buffer << std::setfill('0') << std::setw(2)
+  for (std::size_t i = 0U; i < 16; ++i) {
+    buffer << std::setfill('0') << std::setw(2) << std::hex
            << static_cast<int>(addr.sin6_addr.s6_addr[i]);
 
     if (i + 1 < sizeof(addr.sin6_addr.s6_addr)) {
