@@ -64,7 +64,8 @@ This config tells osqueryd to schedule two queries, **macos_kextstat** and
 **foobar**:
 
 * the schedule keys must be unique
-* the `interval` specifies query frequency (in seconds)
+* the `interval` specifies query frequency, in seconds. It has a
+  maximum value of 604,800 (1 week)
 
 The first query will log changes to the macOS host's kernel extensions,
 with a query interval of 10 seconds. Consider using osquery's [performance
