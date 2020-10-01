@@ -778,14 +778,14 @@ bool SystemStateTracker::accept(
   socket_address.opt_remote_address = {};
   socket_address.opt_remote_port = {};
 
-  if (!parseSocketAddress(socket_address, sockaddr, true)) {
+  if (!parseSocketAddress(socket_address, sockaddr, false)) {
     return false;
   }
 
   process_context.fd_map.insert({newfd, new_fd_info});
 
   Event event;
-  event.type = Event::Type::Listen;
+  event.type = Event::Type::Accept;
   event.parent_process_id = process_context.parent_process_id;
   event.binary_path = process_context.binary_path;
   event.cwd = process_context.cwd;

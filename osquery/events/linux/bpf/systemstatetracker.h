@@ -185,18 +185,15 @@ class SystemStateTracker final : public ISystemStateTracker {
       int fd,
       const std::vector<std::uint8_t>& sockaddr);
 
-  // clang-format off
-  [[deprecated("accept() does not have a unit test yet")]]
-  // clang-format on
-  static bool
-  accept(Context& context,
-         IProcessContextFactory& process_context_factory,
-         const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
-         pid_t process_id,
-         int fd,
-         const std::vector<std::uint8_t>& sockaddr,
-         int newfd,
-         int flags);
+  static bool accept(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int fd,
+      const std::vector<std::uint8_t>& sockaddr,
+      int newfd,
+      int flags);
 
   static bool parseUnixSockaddr(std::string& path,
                                 const std::vector<std::uint8_t>& sockaddr);

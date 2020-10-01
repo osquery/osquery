@@ -1076,6 +1076,164 @@ TEST_F(SystemStateTrackerTests, connect_socket) {
   EXPECT_EQ(event_data.remote_port, 80);
 }
 
+TEST_F(SystemStateTrackerTests, accept_socket) {
+  SystemStateTracker::Context context;
+
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
+
+  {
+    ProcessContext process_context;
+    process_context_factory->captureSingleProcess(
+        process_context, kBaseBPFEventHeader.process_id);
+
+    EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+
+    context.process_map.insert(
+        {kBaseBPFEventHeader.process_id, process_context});
+  }
+
+  auto& process_context =
+      context.process_map.at(kBaseBPFEventHeader.process_id);
+
+  setSocketDescriptor(process_context,
+                      99,
+                      true,
+                      AF_INET,
+                      SOCK_STREAM,
+                      0,
+                      "127.0.0.1",
+                      8080,
+                      "",
+                      0);
+
+  EXPECT_EQ(process_context.fd_map.size(), 9U);
+
+  // Accept two new connections; for one of them, try to use the
+  // SOCK_CLOEXEC flag to automatically set the close_on_exec
+  // option
+  auto succeeded = SystemStateTracker::accept(context,
+                                              *process_context_factory.get(),
+                                              kBaseBPFEventHeader,
+                                              kBaseBPFEventHeader.process_id,
+                                              99,
+                                              kTestIPv4Address,
+                                              100,
+                                              0);
+
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+  EXPECT_EQ(process_context.fd_map.size(), 10U);
+  ASSERT_TRUE(succeeded);
+
+  succeeded = SystemStateTracker::accept(context,
+                                         *process_context_factory.get(),
+                                         kBaseBPFEventHeader,
+                                         kBaseBPFEventHeader.process_id,
+                                         99,
+                                         kTestIPv4Address,
+                                         101,
+                                         SOCK_CLOEXEC);
+
+  EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+  EXPECT_EQ(process_context.fd_map.size(), 11U);
+  ASSERT_TRUE(succeeded);
+
+  // There should be 2 new file descriptors
+  ASSERT_EQ(process_context.fd_map.count(100), 1U);
+  ASSERT_EQ(process_context.fd_map.count(101), 1U);
+
+  const auto& fd1 = process_context.fd_map.at(100);
+  EXPECT_FALSE(fd1.close_on_exec);
+
+  ASSERT_TRUE(
+      std::holds_alternative<ProcessContext::FileDescriptor::SocketData>(
+          fd1.data));
+
+  const auto& socket_data1 =
+      std::get<ProcessContext::FileDescriptor::SocketData>(fd1.data);
+
+  ASSERT_TRUE(socket_data1.opt_domain.has_value());
+  ASSERT_TRUE(socket_data1.opt_type.has_value());
+  ASSERT_TRUE(socket_data1.opt_protocol.has_value());
+  ASSERT_TRUE(socket_data1.opt_local_address.has_value());
+  ASSERT_TRUE(socket_data1.opt_local_port.has_value());
+  ASSERT_TRUE(socket_data1.opt_remote_address.has_value());
+  ASSERT_TRUE(socket_data1.opt_remote_port.has_value());
+
+  EXPECT_EQ(socket_data1.opt_domain.value(), AF_INET);
+  EXPECT_EQ(socket_data1.opt_type.value(), SOCK_STREAM);
+  EXPECT_EQ(socket_data1.opt_protocol.value(), 0);
+  EXPECT_EQ(socket_data1.opt_local_address.value(), "127.0.0.1");
+  EXPECT_EQ(socket_data1.opt_local_port.value(), 8080);
+  EXPECT_EQ(socket_data1.opt_remote_address.value(), "192.168.1.2");
+  EXPECT_EQ(socket_data1.opt_remote_port.value(), 80);
+
+  const auto& fd2 = process_context.fd_map.at(101);
+  EXPECT_TRUE(fd2.close_on_exec);
+
+  ASSERT_TRUE(
+      std::holds_alternative<ProcessContext::FileDescriptor::SocketData>(
+          fd2.data));
+
+  const auto& socket_data2 =
+      std::get<ProcessContext::FileDescriptor::SocketData>(fd2.data);
+
+  ASSERT_TRUE(socket_data2.opt_domain.has_value());
+  ASSERT_TRUE(socket_data2.opt_type.has_value());
+  ASSERT_TRUE(socket_data2.opt_protocol.has_value());
+  ASSERT_TRUE(socket_data2.opt_local_address.has_value());
+  ASSERT_TRUE(socket_data2.opt_local_port.has_value());
+  ASSERT_TRUE(socket_data2.opt_remote_address.has_value());
+  ASSERT_TRUE(socket_data2.opt_remote_port.has_value());
+
+  EXPECT_EQ(socket_data2.opt_domain.value(), AF_INET);
+  EXPECT_EQ(socket_data2.opt_type.value(), SOCK_STREAM);
+  EXPECT_EQ(socket_data2.opt_protocol.value(), 0);
+  EXPECT_EQ(socket_data2.opt_local_address.value(), "127.0.0.1");
+  EXPECT_EQ(socket_data2.opt_local_port.value(), 8080);
+  EXPECT_EQ(socket_data2.opt_remote_address.value(), "192.168.1.2");
+  EXPECT_EQ(socket_data2.opt_remote_port.value(), 80);
+
+  // We should now have two identical events
+  ASSERT_EQ(context.event_list.size(), 2U);
+
+  const auto& accept_event1 = context.event_list.at(0U);
+  EXPECT_EQ(accept_event1.type, ISystemStateTracker::Event::Type::Accept);
+
+  const auto& accept_event2 = context.event_list.at(1U);
+  EXPECT_EQ(accept_event2.type, ISystemStateTracker::Event::Type::Accept);
+
+  ASSERT_TRUE(std::holds_alternative<ISystemStateTracker::Event::SocketData>(
+      accept_event1.data));
+
+  ASSERT_TRUE(std::holds_alternative<ISystemStateTracker::Event::SocketData>(
+      accept_event2.data));
+
+  const auto& event_data1 =
+      std::get<ISystemStateTracker::Event::SocketData>(accept_event1.data);
+
+  const auto& event_data2 =
+      std::get<ISystemStateTracker::Event::SocketData>(accept_event2.data);
+
+  EXPECT_EQ(event_data1.domain, AF_INET);
+  EXPECT_EQ(event_data1.type, SOCK_STREAM);
+  EXPECT_EQ(event_data1.protocol, 0);
+  EXPECT_EQ(event_data1.fd, 100);
+  EXPECT_EQ(event_data1.local_address, "127.0.0.1");
+  EXPECT_EQ(event_data1.local_port, 8080);
+  EXPECT_EQ(event_data1.remote_address, "192.168.1.2");
+  EXPECT_EQ(event_data1.remote_port, 80);
+
+  EXPECT_EQ(event_data2.domain, AF_INET);
+  EXPECT_EQ(event_data2.type, SOCK_STREAM);
+  EXPECT_EQ(event_data2.protocol, 0);
+  EXPECT_EQ(event_data2.fd, 101);
+  EXPECT_EQ(event_data2.local_address, "127.0.0.1");
+  EXPECT_EQ(event_data2.local_port, 8080);
+  EXPECT_EQ(event_data2.remote_address, "192.168.1.2");
+  EXPECT_EQ(event_data2.remote_port, 80);
+}
+
 TEST_F(SystemStateTrackerTests, parse_ipv4_sockaddr) {
   std::string address;
   std::uint16_t port{};
