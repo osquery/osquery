@@ -19,11 +19,7 @@ class BPFProcessEventSubscriber final
   Status eventCallback(const ECRef& event_context,
                        const SCRef& subscription_context);
 
-  // clang-format off
-  [[deprecated("generateRow() does not have a unit test yet")]]
-  // clang-format on
-  static bool
-  generateRow(Row& row, const ISystemStateTracker::Event& event);
+  static bool generateRow(Row& row, const ISystemStateTracker::Event& event);
 
   static std::vector<Row> generateRowList(
       const ISystemStateTracker::EventList& event_list);

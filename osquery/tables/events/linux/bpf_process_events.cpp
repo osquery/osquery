@@ -53,6 +53,7 @@ bool BPFProcessEventSubscriber::generateRow(
   if (!std::holds_alternative<ISystemStateTracker::Event::ExecData>(
           event.data)) {
     VLOG(1) << "Missing ExecData in Exec event";
+    row["cmdline"] = "";
 
   } else {
     const auto& exec_data =
