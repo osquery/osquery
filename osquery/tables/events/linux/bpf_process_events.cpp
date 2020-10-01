@@ -11,6 +11,9 @@
 #include <osquery/sql/sql.h>
 #include <osquery/tables/events/linux/bpf_process_events.h>
 
+#include <boost/algorithm/string.hpp>
+#include <rapidjson/document.h>
+
 namespace osquery {
 REGISTER(BPFProcessEventSubscriber, "event_subscriber", "bpf_process_events");
 
@@ -53,26 +56,16 @@ bool BPFProcessEventSubscriber::generateRow(
   if (!std::holds_alternative<ISystemStateTracker::Event::ExecData>(
           event.data)) {
     VLOG(1) << "Missing ExecData in Exec event";
+
     row["cmdline"] = "";
+    row["json_cmdline"] = "[]";
 
   } else {
     const auto& exec_data =
         std::get<ISystemStateTracker::Event::ExecData>(event.data);
 
-    std::stringstream buffer;
-    for (auto param_it = exec_data.argv.begin();
-         param_it != exec_data.argv.end();
-         ++param_it) {
-      // TODO(alessandro): correcly escape characters
-      const auto& parameter = *param_it;
-      buffer << "\"" << parameter << "\"";
-
-      if (std::next(param_it, 1) != exec_data.argv.end()) {
-        buffer << " ";
-      }
-    }
-
-    row["cmdline"] = buffer.str();
+    row["cmdline"] = generateCmdlineColumn(exec_data.argv);
+    row["json_cmdline"] = generateJsonCmdlineColumn(exec_data.argv);
   }
 
   return true;
@@ -90,5 +83,61 @@ std::vector<Row> BPFProcessEventSubscriber::generateRowList(
   }
 
   return row_list;
+}
+
+std::string BPFProcessEventSubscriber::generateCmdlineColumn(
+    const std::vector<std::string>& argv) {
+  std::string output;
+
+  for (auto param_it = argv.begin(); param_it != argv.end(); ++param_it) {
+    const auto& arg = *param_it;
+
+    // clang-format off
+    auto whitespace_it = std::find_if(
+      arg.begin(),
+      arg.end(),
+      
+      [](const char &c) -> bool {
+        return std::isspace(c);
+      }
+    );
+    // clang-format on
+
+    if (whitespace_it != arg.end()) {
+      output += "'";
+    }
+
+    output += arg;
+
+    if (whitespace_it != arg.end()) {
+      output += "'";
+    }
+
+    if (std::next(param_it, 1) != argv.end()) {
+      output += " ";
+    }
+  }
+
+  return output;
+}
+
+std::string BPFProcessEventSubscriber::generateJsonCmdlineColumn(
+    const std::vector<std::string>& argv) {
+  rapidjson::Document document;
+  document.SetArray();
+
+  auto& allocator = document.GetAllocator();
+  for (const auto& arg : argv) {
+    rapidjson::Value value = {};
+    value.SetString(arg, allocator);
+
+    document.PushBack(value, allocator);
+  }
+
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+
+  document.Accept(writer);
+  return buffer.GetString();
 }
 } // namespace osquery

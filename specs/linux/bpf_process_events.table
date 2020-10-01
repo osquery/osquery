@@ -14,6 +14,7 @@ schema([
     Column("binary_path", TEXT, "Binary path"),
     Column("cwd", TEXT, "Current working directory"),
     Column("cmdline", TEXT, "Command line arguments"),
+    Column("json_cmdline", TEXT, "Command line arguments, in JSON format", hidden=True),
     Column("time", BIGINT, "Time of execution in UNIX time", hidden=True),
     Column("eid", INTEGER, "Event ID", hidden=True),
 ])

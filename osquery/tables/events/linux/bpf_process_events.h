@@ -23,5 +23,11 @@ class BPFProcessEventSubscriber final
 
   static std::vector<Row> generateRowList(
       const ISystemStateTracker::EventList& event_list);
+
+  static std::string generateCmdlineColumn(
+      const std::vector<std::string>& argv);
+
+  static std::string generateJsonCmdlineColumn(
+      const std::vector<std::string>& argv);
 };
 } // namespace osquery

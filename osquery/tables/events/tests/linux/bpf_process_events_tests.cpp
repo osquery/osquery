@@ -25,7 +25,8 @@ const std::vector<std::string> kExpectedRowList = {"bpf_time",
                                                    "parent_process_id",
                                                    "binary_path",
                                                    "cwd",
-                                                   "cmdline"};
+                                                   "cmdline",
+                                                   "json_cmdline"};
 
 // clang-format off
 const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader = {
@@ -91,6 +92,7 @@ TEST_F(BPFProcessEventsTests, generateRow) {
   EXPECT_EQ(row.at("binary_path"), event.binary_path);
   EXPECT_EQ(row.at("cwd"), event.cwd);
   EXPECT_TRUE(row.at("cmdline").empty());
+  EXPECT_EQ(row.at("json_cmdline"), "[]");
 
   ISystemStateTracker::Event::ExecData event_data;
   event_data.argv = {"sudo", "-H", "-i"};
@@ -120,6 +122,19 @@ TEST_F(BPFProcessEventsTests, generateRow) {
 
   EXPECT_EQ(row.at("binary_path"), event.binary_path);
   EXPECT_EQ(row.at("cwd"), event.cwd);
-  EXPECT_EQ(row.at("cmdline"), "\"sudo\" \"-H\" \"-i\"");
+  EXPECT_EQ(row.at("cmdline"), "sudo -H -i");
+  EXPECT_EQ(row.at("json_cmdline"), "[\"sudo\",\"-H\",\"-i\"]");
+}
+
+TEST_F(BPFProcessEventsTests, generateCmdlineColumn) {
+  auto cmdline =
+      BPFProcessEventSubscriber::generateCmdlineColumn({"cat", "/test folder"});
+
+  EXPECT_EQ(cmdline, "cat '/test folder'");
+
+  cmdline = BPFProcessEventSubscriber::generateCmdlineColumn(
+      {"cat", "file1", "file2"});
+
+  EXPECT_EQ(cmdline, "cat file1 file2");
 }
 } // namespace osquery
