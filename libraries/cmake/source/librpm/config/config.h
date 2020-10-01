@@ -15,7 +15,7 @@
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
-/* #undef ENABLE_NLS */
+#define ENABLE_NLS 1
 
 /* Enable multithreading support? */
 /* #undef ENABLE_OPENMP */
@@ -53,15 +53,15 @@
 #define HAVE_DB_H 1
 
 /* Define if the GNU dcgettext() function is already present or preinstalled.
-  */
-/* #undef HAVE_DCGETTEXT */
+   */
+#define HAVE_DCGETTEXT 1
 
 /* Define to 1 if you have the declaration of `fdatasync', and to 0 if you
    don't. */
 #define HAVE_DECL_FDATASYNC 1
 
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
-  */
+   */
 #define HAVE_DIRENT_H 1
 
 /* Define to 1 if you have the `dirname' function. */
@@ -113,7 +113,7 @@
 #define HAVE_GETOPT_H 1
 
 /* Define if the GNU gettext() function is already present or preinstalled. */
-/* #undef HAVE_GETTEXT */
+#define HAVE_GETTEXT 1
 
 /* Define as 1 if your zlib has gzseek() */
 #define HAVE_GZSEEK 1
@@ -257,11 +257,11 @@
 /* #undef HAVE_SYS_AUXV_H */
 
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
-  */
+   */
 /* #undef HAVE_SYS_DIR_H */
 
 /* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
-  */
+   */
 /* #undef HAVE_SYS_NDIR_H */
 
 /* Define to 1 if you have the <sys/param.h> header file. */
@@ -304,14 +304,14 @@
 #define HAVE___SECURE_GETENV 1
 
 /* Define as const if the declaration of iconv() needs const. */
-#define ICONV_CONST
+#define ICONV_CONST 
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
- */
+   */
 #define LT_OBJDIR ".libs/"
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
-  */
+   */
 /* #undef MAJOR_IN_MKDEV */
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in
@@ -390,6 +390,7 @@
 # define __EXTENSIONS__ 1
 #endif
 
+
 /* Version number of package */
 #define VERSION "4.15.1"
 
@@ -443,7 +444,7 @@
 
 /* A full path to a program, possibly with arguments, that will create a
    directory and all necessary parent directories, ala 'mkdir -p' */
-#define __MKDIR_P "/usr/bin/mkdir -p"
+#define __MKDIR_P "/bin/mkdir -p"
 
 /* Define to `int' if <sys/types.h> does not define. */
 /* #undef mode_t */

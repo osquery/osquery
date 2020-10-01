@@ -65,10 +65,10 @@
 #define HAVE_DECL_PROGRAM_INVOCATION_NAME 1
 
 /* Define to 1 if arm decoder is enabled. */
-/* #undef HAVE_DECODER_ARM */
+#define HAVE_DECODER_ARM 1
 
 /* Define to 1 if armthumb decoder is enabled. */
-/* #undef HAVE_DECODER_ARMTHUMB */
+#define HAVE_DECODER_ARMTHUMB 1
 
 /* Define to 1 if delta decoder is enabled. */
 /* #undef HAVE_DECODER_DELTA */
@@ -95,10 +95,10 @@
 #define HAVE_DLFCN_H 1
 
 /* Define to 1 if arm encoder is enabled. */
-/* #undef HAVE_ENCODER_ARM */
+#define HAVE_ENCODER_ARM 1
 
 /* Define to 1 if armthumb encoder is enabled. */
-/* #undef HAVE_ENCODER_ARMTHUMB */
+#define HAVE_ENCODER_ARMTHUMB 1
 
 /* Define to 1 if delta encoder is enabled. */
 /* #undef HAVE_ENCODER_DELTA */
@@ -284,7 +284,8 @@
 /* Define to 1 if _mm_movemask_epi8 is available. */
 #define HAVE__MM_MOVEMASK_EPI8 1
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #define LT_OBJDIR ".libs/"
 
 /* Define to 1 when using POSIX threads (pthreads). */

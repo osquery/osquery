@@ -56,6 +56,10 @@ function(generateLibevent)
     _GNU_SOURCE
   )
 
+  target_link_libraries(thirdparty_libevent PUBLIC
+    thirdparty_zlib
+  )
+
   target_link_libraries(thirdparty_libevent PRIVATE
     thirdparty_c_settings
   )

@@ -89,6 +89,7 @@ function(libxml2Main)
 
   target_link_libraries(thirdparty_libxml2 PUBLIC
     thirdparty_icu
+    thirdparty_zlib
   )
 
   if(DEFINED PLATFORM_WINDOWS)

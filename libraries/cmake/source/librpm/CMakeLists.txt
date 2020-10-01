@@ -180,7 +180,6 @@ function(librpmMain)
   )
 
   target_include_directories(thirdparty_librpm SYSTEM INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
   )
 endfunction()
