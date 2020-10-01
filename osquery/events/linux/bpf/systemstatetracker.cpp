@@ -384,8 +384,13 @@ bool SystemStateTracker::setWorkingDirectory(
 
   if (path.front() == '/') {
     process_context.cwd = path;
+
   } else {
-    process_context.cwd += "/" + path;
+    if (process_context.cwd.back() != '/') {
+      process_context.cwd += "/";
+    }
+
+    process_context.cwd += path;
   }
 
   return true;
@@ -411,7 +416,12 @@ bool SystemStateTracker::openFile(
     absolute_path = path;
 
   } else if (dirfd == AT_FDCWD) {
-    absolute_path = process_context.cwd + "/" + path;
+    absolute_path = process_context.cwd;
+    if (absolute_path.back() != '/') {
+      absolute_path += "/";
+    }
+
+    absolute_path += path;
 
   } else {
     auto fd_info_it = process_context.fd_map.find(dirfd);
@@ -428,7 +438,12 @@ bool SystemStateTracker::openFile(
     const auto& file_data =
         std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
 
-    absolute_path = file_data.path + "/" + path;
+    absolute_path = file_data.path;
+    if (absolute_path.back() != '/') {
+      absolute_path += "/";
+    }
+
+    absolute_path += path;
   }
 
   ProcessContext::FileDescriptor fd_info;
