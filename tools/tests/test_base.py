@@ -124,31 +124,17 @@ TEMP_DIR = os.path.join(tempfile.gettempdir(),
 TEMP_NAME = os.path.join(TEMP_DIR, "tests")
 DEFAULT_CONFIG = {
     "options": {
-        "flagfile":
-        "/dev/null" if os.name == "posix" else "",
-        "database_path":
-        "%s.db" % TEMP_NAME,
-        "pidfile":
-        "%s.pid" % TEMP_NAME,
-        "config_path":
-        "%s.conf" % TEMP_NAME,
-        "extensions_autoload":
-        "/dev/null" if os.name == "posix" else "",
-        "extensions_socket":
-        "%s.em" % (TEMP_NAME
-                   if os.name == "posix" else "\\\\.\\pipe\\tests"),
-        "extensions_interval":
-        "1",
-        "extensions_timeout":
-        "0",
-        "watchdog_level":
-        "3",
-        "disable_logging":
-        "true",
-        "disable_events":
-        "true",
-        "force":
-        "true",
+        "flagfile": "/dev/null" if os.name == "posix" else "",
+        "config_path": "/dev/null" if os.name == "posix" else "",
+        "pidfile": "%s.pid" % TEMP_NAME,
+        "extensions_autoload": "/dev/null" if os.name == "posix" else "",
+        "extensions_socket": "/dev/null" if os.name == "posix" else "",
+        "disable_database": "true",
+        "disable_extensions": "true",
+        "disable_logging": "true",
+        "disable_events": "true",
+        "force": "true",
+        "watchdog_level": "3",
     },
     "schedule": {}
 }
@@ -180,7 +166,6 @@ class OsqueryWrapper(REPLWrapper):
         options = copy.deepcopy(CONFIG)["options"]
         for option in args.keys():
             options[option] = args[option]
-        options["database_path"] += str(random.randint(1000, 9999))
         command = command + " " + " ".join(
             ["--%s=%s" % (k, v) for k, v in options.items()])
         if os.name == "nt":
@@ -408,11 +393,12 @@ class ProcessGenerator(object):
                     options_only={},
                     overwrite={}):
         '''Spawn an osquery daemon process'''
-        global ARGS, TEMP_NAME, CONFIG
+        global ARGS, TEMP_DIR, CONFIG
         config = copy.deepcopy(CONFIG)
-        config["options"]["database_path"] += str(random.randint(1000, 9999))
-        config["options"]["extensions_socket"] += str(
-            random.randint(1000, 9999))
+        if len(options_only.keys()) > 0:
+            # Create a temporary config.
+            config["options"]["config_path"] = os.path.join(
+                TEMP_DIR, "config-%d.json" % (random.randint(1000, 9999)))
         for option in options.keys():
             config["options"][option] = options[option]
         flags = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
@@ -432,8 +418,6 @@ class ProcessGenerator(object):
         '''Spawn an osquery extension (example_extension)'''
         global CONFIG, BUILD_DIR
         config = copy.deepcopy(CONFIG)
-        config["options"]["extensions_socket"] += str(
-            random.randint(1000, 9999))
         binary = os.path.join(BUILD_DIR, "osquery", "examples", "example_extension.ext")
         if path is not None:
             config["options"]["extensions_socket"] = path
@@ -550,6 +534,11 @@ class Autoloader(object):
 
 class TimeoutRunner(object):
     def __init__(self, cmd=[], timeout_sec=1):
+        global CONFIG
+        options = copy.deepcopy(CONFIG)["options"]
+        args = ["--%s=%s" % (k, v) for k, v in options.items()]
+        cmd = [cmd[0]] + args + cmd[1:]
+
         self.stdout = None
         self.stderr = None
         self.proc = subprocess.Popen(

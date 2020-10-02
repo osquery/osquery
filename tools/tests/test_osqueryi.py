@@ -28,9 +28,6 @@ class OsqueryiTest(unittest.TestCase):
     def setUp(self):
         self.binary = test_base.getLatestOsqueryBinary('osqueryi')
         self.osqueryi = test_base.OsqueryWrapper(command=self.binary)
-        self.dbpath = "%s%s" % (
-            test_base.CONFIG["options"]["database_path"],
-            str(random.randint(1000, 9999)))
 
     @unittest.skipIf(os.name == "nt", "stderr tests not supported on Windows.")
     def test_error(self):
@@ -39,14 +36,13 @@ class OsqueryiTest(unittest.TestCase):
         self.assertRaises(test_base.OsqueryException,
                           self.osqueryi.run_query, 'foo')
 
+    @test_base.flaky
     def test_config_check_success(self):
         '''Test that a 0-config passes'''
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
-            "--database_path=%s" % (self.dbpath),
             "--config_path=%s" % configFile("test.config"),
-            "--extensions_autoload=",
             "--verbose",
         ],
             SHELL_TIMEOUT)
@@ -55,6 +51,7 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
+    @test_base.flaky
     def test_config_dump(self):
         '''Test that config raw output is dumped when requested'''
         config = configFile("test_noninline_packs.conf")
@@ -62,7 +59,6 @@ class OsqueryiTest(unittest.TestCase):
                 self.binary,
                 "--config_dump",
                 "--config_path=%s" % config,
-                "--extensions_autoload=",
                 "--verbose",
             ],
             SHELL_TIMEOUT)
@@ -84,8 +80,6 @@ class OsqueryiTest(unittest.TestCase):
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
-            "--database_path=%s" % (self.dbpath),
-            "--disable_extensions",
             "--verbose",
             "--config_path=/this/path/does/not/exist"
         ],
@@ -95,27 +89,25 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 1)
 
+    @test_base.flaky
     def test_config_check_failure_valid_path(self):
         # Now with a valid path, but invalid content.
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
-            "--extensions_autoload=",
             "--verbose",
-            "--database_path=%s" % (self.dbpath),
             "--config_path=%s" % configFile("test.badconfig"),
         ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.proc.poll(), 1)
         self.assertNotEqual(proc.stderr, "")
 
+    @test_base.flaky
     def test_config_check_failure_missing_plugin(self):
         # Finally with a missing config plugin
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
-            "--database_path=%s" % (self.dbpath),
-            "--extensions_autoload=",
             "--verbose",
             "--config_plugin=does_not_exist"
         ],
@@ -125,13 +117,13 @@ class OsqueryiTest(unittest.TestCase):
         # Also do not accept a SIGSEG
         self.assertEqual(proc.proc.poll(), EXIT_CATASTROPHIC)
 
+    @test_base.flaky
     def test_config_check_example(self):
         '''Test that the example config passes'''
         proc = test_base.TimeoutRunner([
                 self.binary,
                 "--config_check",
                 "--config_path=%s" % configFile("osquery.example.conf"),
-                "--extensions_autoload=",
                 "--verbose",
             ],
             SHELL_TIMEOUT)
@@ -140,6 +132,7 @@ class OsqueryiTest(unittest.TestCase):
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
+    @test_base.flaky
     def test_meta_commands(self):
         '''Test the supported meta shell/help/info commands'''
         commands = [
@@ -185,12 +178,12 @@ class OsqueryiTest(unittest.TestCase):
             result = self.osqueryi.run_command(command)
         pass
 
+    @test_base.flaky
     def test_json_output(self):
         '''Test that the output of --json is valid json'''
         proc = test_base.TimeoutRunner([
             self.binary,
             "select 0",
-            "--disable_extensions",
             "--json",
             ],
             SHELL_TIMEOUT
