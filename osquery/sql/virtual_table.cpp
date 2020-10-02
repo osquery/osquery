@@ -34,6 +34,8 @@ FLAG(bool,
      true,
      "Enable INDEX on all extension table columns (default true)");
 
+FLAG(bool, table_exceptions, false, "Allow tables to throw exceptions");
+
 SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
 DECLARE_bool(disable_events);
@@ -987,19 +989,29 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   if (Registry::get().exists("table", pVtab->content->name, true)) {
     auto plugin = Registry::get().plugin("table", pVtab->content->name);
     auto table = std::dynamic_pointer_cast<TablePlugin>(plugin);
-    if (table->usesGenerator()) {
-      pCur->uses_generator = true;
-      pCur->generator = std::make_unique<RowGenerator::pull_type>(
-          std::bind(&TablePlugin::generator,
-                    table,
-                    std::placeholders::_1,
-                    std::move(context)));
-      if (*pCur->generator) {
-        pCur->current = pCur->generator->get();
+    try {
+      if (table->usesGenerator()) {
+        pCur->uses_generator = true;
+        pCur->generator = std::make_unique<RowGenerator::pull_type>(
+            std::bind(&TablePlugin::generator,
+                      table,
+                      std::placeholders::_1,
+                      std::move(context)));
+        if (*pCur->generator) {
+          pCur->current = pCur->generator->get();
+        }
+        return SQLITE_OK;
       }
-      return SQLITE_OK;
+      pCur->rows = table->generate(context);
+    } catch (const std::exception& e) {
+      LOG(ERROR) << "Exception while executing table " << pVtab->content->name
+                 << ": " << e.what();
+      setTableErrorMessage(pVtabCursor->pVtab, e.what());
+      if (FLAGS_table_exceptions) {
+        throw;
+      }
+      return SQLITE_ERROR;
     }
-    pCur->rows = table->generate(context);
   } else {
     PluginRequest request = {{"action", "generate"}};
     TablePlugin::setRequestFromContext(context, request);

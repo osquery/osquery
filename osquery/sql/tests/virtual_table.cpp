@@ -21,6 +21,8 @@
 
 namespace osquery {
 
+DECLARE_bool(table_exceptions);
+
 class VirtualTableTests : public testing::Test {
  public:
   void SetUp() override {
@@ -1188,6 +1190,53 @@ TEST_F(VirtualTableTests, test_noindex_constraints) {
   ASSERT_EQ(1U, tablePlugin->scans);
   ASSERT_EQ(2U, results.size());
   ASSERT_EQ("0", results[1]["straints"]);
+}
+
+class exceptionalTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("col1", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ public:
+  TableRows generate(QueryContext& context) override {
+    throw std::runtime_error("error");
+    return TableRows();
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_table_exceptions);
+};
+
+TEST_F(VirtualTableTests, test_table_exceptions) {
+  // Add testing table to the registry.
+  auto tables = RegistryFactory::get().registry("table");
+  auto exceptional = std::make_shared<exceptionalTablePlugin>();
+  tables->add("exceptional", exceptional);
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal(
+      "exceptional", exceptional->columnDefinition(false), dbc, false);
+
+  auto backup_flag = FLAGS_table_exceptions;
+  FLAGS_table_exceptions = false;
+  {
+    QueryData results;
+    auto status = queryInternal("SELECT * FROM exceptional", results, dbc);
+    EXPECT_FALSE(status.ok());
+  }
+
+  FLAGS_table_exceptions = true;
+  {
+    EXPECT_THROW(
+        {
+          QueryData results;
+          queryInternal("SELECT * FROM exceptional", results, dbc);
+        },
+        std::runtime_error);
+  }
+  FLAGS_table_exceptions = backup_flag;
 }
 
 } // namespace osquery
