@@ -36,7 +36,6 @@ class OsqueryiTest(unittest.TestCase):
         self.assertRaises(test_base.OsqueryException,
                           self.osqueryi.run_query, 'foo')
 
-    @test_base.flaky
     def test_config_check_success(self):
         '''Test that a 0-config passes'''
         proc = test_base.TimeoutRunner([
@@ -51,7 +50,6 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
-    @test_base.flaky
     def test_config_dump(self):
         '''Test that config raw output is dumped when requested'''
         config = configFile("test_noninline_packs.conf")
@@ -74,7 +72,6 @@ class OsqueryiTest(unittest.TestCase):
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
-    @test_base.flaky
     def test_config_check_failure_invalid_path(self):
         '''Test that a missing config fails'''
         proc = test_base.TimeoutRunner([
@@ -89,7 +86,6 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 1)
 
-    @test_base.flaky
     def test_config_check_failure_valid_path(self):
         # Now with a valid path, but invalid content.
         proc = test_base.TimeoutRunner([
@@ -102,7 +98,6 @@ class OsqueryiTest(unittest.TestCase):
         self.assertEqual(proc.proc.poll(), 1)
         self.assertNotEqual(proc.stderr, "")
 
-    @test_base.flaky
     def test_config_check_failure_missing_plugin(self):
         # Finally with a missing config plugin
         proc = test_base.TimeoutRunner([
@@ -117,7 +112,6 @@ class OsqueryiTest(unittest.TestCase):
         # Also do not accept a SIGSEG
         self.assertEqual(proc.proc.poll(), EXIT_CATASTROPHIC)
 
-    @test_base.flaky
     def test_config_check_example(self):
         '''Test that the example config passes'''
         proc = test_base.TimeoutRunner([
@@ -132,7 +126,6 @@ class OsqueryiTest(unittest.TestCase):
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
-    @test_base.flaky
     def test_meta_commands(self):
         '''Test the supported meta shell/help/info commands'''
         commands = [
@@ -178,7 +171,6 @@ class OsqueryiTest(unittest.TestCase):
             result = self.osqueryi.run_command(command)
         pass
 
-    @test_base.flaky
     def test_json_output(self):
         '''Test that the output of --json is valid json'''
         proc = test_base.TimeoutRunner([
@@ -196,7 +188,6 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
-    @test_base.flaky
     def test_time(self):
         '''Demonstrating basic usage of OsqueryWrapper with the time table'''
         self.osqueryi.run_command(' ')  # flush error output
@@ -209,7 +200,6 @@ class OsqueryiTest(unittest.TestCase):
         self.assertTrue(0 <= int(row['seconds']) <= 60)
 
     # TODO: Running foreign table tests as non-priv user fails
-    @test_base.flaky
     @unittest.skipIf(os.name == "nt", "foreign table tests not supported on Windows.")
     def test_foreign_tables(self):
         '''Requires the --enable_foreign flag to add at least one table.'''
@@ -227,20 +217,17 @@ class OsqueryiTest(unittest.TestCase):
         after = int(result[0]['c'])
         self.assertGreater(after, before)
 
-    @test_base.flaky
     def test_time_using_all(self):
         self.osqueryi.run_command(' ')
         result = self.osqueryi.run_command('.all time')
         self.assertNotEqual(result.rstrip(), "Error querying table: time")
 
-    @test_base.flaky
     def test_config_bad_json(self):
         self.osqueryi = test_base.OsqueryWrapper(self.binary,
                                                  args={"config_path": "/"})
         result = self.osqueryi.run_query('SELECT * FROM time;')
         self.assertEqual(len(result), 1)
 
-    @test_base.flaky
     def test_atc(self):
         local_osquery_instance = test_base.OsqueryWrapper(self.binary,
                                                  args={"config_path": "test.config"})
