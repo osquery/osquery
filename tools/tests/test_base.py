@@ -406,7 +406,9 @@ class ProcessGenerator(object):
             config["options"][option] = options_only[option]
         for key in overwrite:
             config[key] = overwrite[key]
-        utils.write_config(config)
+        if len(options_only.keys()) > 0:
+            # Write the temporary config.
+            utils.write_config(config)
         binary = getLatestOsqueryBinary('osqueryd')
 
         daemon = ProcRunner("daemon", binary, flags, silent=silent)
