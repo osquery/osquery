@@ -187,6 +187,7 @@ static inline void printUsage(const std::string& binary, ToolType tool) {
   }
 
   fprintf(stdout, EPILOG);
+  fflush(stdout);
 }
 
 Initializer::Initializer(int& argc,
@@ -261,6 +262,7 @@ Initializer::Initializer(int& argc,
                tool != ToolType::TEST) {
       printUsage(binary_, getToolType());
       shutdownNow();
+      return;
     }
     if (help.find("--flagfile") == 0) {
       default_flags = false;
