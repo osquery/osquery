@@ -1454,66 +1454,48 @@ int platformAccess(const std::string& path, mode_t mode) {
   return -1;
 }
 
-static std::string normalizeDirPath(const fs::path& path) {
-  std::wregex pattern(L".*[*?\"|<>].*");
-
-  std::vector<WCHAR> full_path(MAX_PATH + 1);
-  std::vector<WCHAR> final_path(MAX_PATH + 1);
-
-  full_path.assign(MAX_PATH + 1, L'\0');
-  final_path.assign(MAX_PATH + 1, L'\0');
-
-  // Fail if illegal characters are detected in the path
-  if (std::regex_match(path.wstring(), pattern)) {
-    return std::string();
-  }
-
-  // Obtain the full path of the fs::path object
-  DWORD nret = ::GetFullPathNameW(
-      path.wstring().c_str(), MAX_PATH, full_path.data(), nullptr);
-  if (nret == 0) {
-    return std::string();
-  }
-
-  HANDLE handle = INVALID_HANDLE_VALUE;
-  handle = ::CreateFileW(full_path.data(),
-                         GENERIC_READ,
-                         FILE_SHARE_READ,
-                         nullptr,
-                         OPEN_EXISTING,
-                         FILE_FLAG_BACKUP_SEMANTICS,
-                         nullptr);
-  if (handle == INVALID_HANDLE_VALUE) {
-    return std::string();
-  }
-
-  // Resolve any symbolic links (somewhat rare on Windows)
-  nret = ::GetFinalPathNameByHandleW(
-      handle, final_path.data(), MAX_PATH, FILE_NAME_NORMALIZED);
-  ::CloseHandle(handle);
-
-  if (nret == 0) {
-    return std::string();
-  }
-
-  // NTFS is case insensitive, to normalize, make everything uppercase
-  ::CharUpperW(final_path.data());
-
-  boost::system::error_code ec;
-  std::string normalized_path = wstringToString(final_path.data());
-  if ((fs::is_directory(normalized_path, ec) && ec.value() == errc::success) &&
-      normalized_path[nret - 1] != '\\') {
-    normalized_path += "\\";
-  }
-  return normalized_path;
-}
-
 static bool dirPathsAreEqual(const fs::path& dir1, const fs::path& dir2) {
-  std::string normalized_path1 = normalizeDirPath(dir1);
-  std::string normalized_path2 = normalizeDirPath(dir2);
+  // two paths are the same, if both the unique identifier (nFileIndex) and
+  // volume serial number are the same.
+  // Reference: BY_HANDLE_FILE_INFORMATION structure's nFileIndexLow in MSDN.
+  HANDLE path1 = CreateFileW(dir1.wstring().c_str(),
+                             GENERIC_READ,
+                             FILE_SHARE_READ,
+                             nullptr,
+                             OPEN_EXISTING,
+                             FILE_FLAG_BACKUP_SEMANTICS,
+                             nullptr);
 
-  return (normalized_path1.size() > 0 && normalized_path2.size() > 0 &&
-          normalized_path1 == normalized_path2);
+  HANDLE path2 = CreateFileW(dir2.wstring().c_str(),
+                             GENERIC_READ,
+                             FILE_SHARE_READ,
+                             nullptr,
+                             OPEN_EXISTING,
+                             FILE_FLAG_BACKUP_SEMANTICS,
+                             nullptr);
+
+  bool result = false;
+
+  if (INVALID_HANDLE_VALUE != path1) {
+    if (INVALID_HANDLE_VALUE != path2) {
+      BY_HANDLE_FILE_INFORMATION info1 = {0};
+      BY_HANDLE_FILE_INFORMATION info2 = {0};
+      if (GetFileInformationByHandle(path1, &info1) &&
+          GetFileInformationByHandle(path2, &info2)) {
+        if (info1.dwVolumeSerialNumber == info2.dwVolumeSerialNumber &&
+            info1.nFileIndexHigh == info2.nFileIndexHigh &&
+            info1.nFileIndexLow == info2.nFileIndexLow) {
+          result = true;
+        }
+      }
+
+      CloseHandle(path2);
+    }
+
+    CloseHandle(path1);
+  }
+
+  return result;
 }
 
 Status platformIsTmpDir(const fs::path& dir) {
