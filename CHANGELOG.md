@@ -1,12 +1,71 @@
 # osquery Changelog
 
+<a name="4.5.1"></a>
+## [4.5.1](https://github.com/osquery/osquery/releases/tag/4.5.1)
+
+[Git Commits](https://github.com/osquery/osquery/compare/4.5.0...4.5.1)
+
+
+### New Features
+
+### Under the Hood improvements
+
+- carver: Improve tests by faking postCarve ([#6659](https://github.com/osquery/osquery/pull/6659))
+- carver: Emit an error if the carve function is disabled ([#6658](https://github.com/osquery/osquery/pull/6658))
+- carver: Update carves specs to allow full scan ([#6657](https://github.com/osquery/osquery/pull/6657))
+- carver: Update table to use JSON ([#6656](https://github.com/osquery/osquery/pull/6656))
+- Improve performance and accuracy of Windows registry querying ([#6647](https://github.com/osquery/osquery/pull/6647))
+- refactor: Move ephemeral database plugin into core and simplify tests ([#6648](https://github.com/osquery/osquery/pull/6648))
+
+### Table Changes
+
+- Support for Office MRU (most recently used) entries ([#6587](https://github.com/osquery/osquery/pull/6587))
+- Implement configurable timeout through WHERE clause on `curl_certificate` ([#6641](https://github.com/osquery/osquery/pull/6641))
+- Add atom table spec to window ([#6649](https://github.com/osquery/osquery/pull/6649))
+- Add signature information to authenticode table on windows ([#6677](https://github.com/osquery/osquery/pull/6677))
+
+### Bug Fixes
+
+- Fix container overflow in curl_certificate ([#6664](https://github.com/osquery/osquery/pull/6664))
+- Fix handling of invalid array bound error with EvtNext function ([#6660](https://github.com/osquery/osquery/pull/6660))
+- Fix BIOS Info table searching. ([#5246](https://github.com/osquery/osquery/pull/5246))
+- Fix image column within drivers table on Windows ([#6652](https://github.com/osquery/osquery/pull/6652))
+- Fix windows dirPathsAreEqual to use the documented way ([#6690](https://github.com/osquery/osquery/pull/6690))
+- Add Addition AWS regions ([#6666](https://github.com/osquery/osquery/pull/6666))
+
+### Documentation
+
+- Document max interval ([#6683](https://github.com/osquery/osquery/pull/6683))
+- Update documentation around build steps ([#6681](https://github.com/osquery/osquery/pull/6681))
+- Documentation copy editing
+  ([#6676](https://github.com/osquery/osquery/pull/6676),
+  [#6665](https://github.com/osquery/osquery/pull/6665),
+  [#6662](https://github.com/osquery/osquery/pull/6662))
+- Add 4.5.0 CHANGELOG ([#6646](https://github.com/osquery/osquery/pull/6646))
+
+### Build
+
+- Improve flaky python test handling ([#6654](https://github.com/osquery/osquery/pull/6654))
+- Restore test_osqueryi ([#6631](https://github.com/osquery/osquery/pull/6631))
+- systemd: Limit osqueryd CPU usage to 20% ([#6644](https://github.com/osquery/osquery/pull/6644))
+
+### Security Issues
+
+
+### Hardening
+
+- Add broad exception catching for table execution ([#6689](https://github.com/osquery/osquery/pull/6689))
+
+
 <a name="4.5.0"></a>
 ## [4.5.0](https://github.com/osquery/osquery/releases/tag/4.5.0)
 
 [Git Commits](https://github.com/osquery/osquery/compare/4.4.0...4.5.0)
 
-We would like to thank all of the contributors working on bootstrapping the ARM64/AARCH64 support and Windows 32bit support.
-Additionally, we want to thank those working on Unicode support and all the bug fixes, documentation improvements, and new features.
+We would like to thank all of the contributors working on
+bootstrapping the ARM64/AARCH64 support and Windows 32bit support.
+Additionally, we want to thank those working on Unicode support and
+all the bug fixes, documentation improvements, and new features.
 Thank you! :clap:
 
 ### New Features
