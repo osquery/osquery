@@ -32,6 +32,9 @@
 - Fix BIOS Info table searching ([#5246](https://github.com/osquery/osquery/pull/5246))
 - Fix image column within drivers table on Windows ([#6652](https://github.com/osquery/osquery/pull/6652))
 - Fix windows dirPathsAreEqual to use the documented way ([#6690](https://github.com/osquery/osquery/pull/6690))
+- Fix incorrect `stat()` return checking within process_events ([#6694](https://github.com/osquery/osquery/pull/6694))
+- Always flush stdout when called with `--help` ([#6693](https://github.com/osquery/osquery/pull/6693))
+
 
 ### Documentation
 
@@ -47,15 +50,15 @@
 
 - Improve flaky python test handling ([#6654](https://github.com/osquery/osquery/pull/6654))
 - Restore test_osqueryi ([#6631](https://github.com/osquery/osquery/pull/6631))
-- systemd: Limit osqueryd CPU usage to 20% ([#6644](https://github.com/osquery/osquery/pull/6644))
+- Limit osqueryd CPU usage to 20% in systemd unit file ([#6644](https://github.com/osquery/osquery/pull/6644))
+- Improve flaky `test_osqueryi` ([#6688](https://github.com/osquery/osquery/pull/6688))
+- Add cppcheck support to macOS ([#6685](https://github.com/osquery/osquery/pull/6685))
 
 ### Security Issues
 
-
 ### Hardening
 
-- Add broad exception catching for table execution ([#6689](https://github.com/osquery/osquery/pull/6689))
-
+- Add exception catching for table execution ([#6689](https://github.com/osquery/osquery/pull/6689))
 
 <a name="4.5.0"></a>
 ## [4.5.0](https://github.com/osquery/osquery/releases/tag/4.5.0)
