@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-12T15:26:36.6282004Z",
+    "source": "System",
+    "provider_name": "Microsoft-Windows-Directory-Services-SAM",
+    "provider_guid": "{0d4fdc09-8c27-494a-bda0-505e4fd8adae}",
+    "event_id": "16962",
+    "task_id": "0",
+    "level": "4",
+    "keywords": "0x8000000000000000",
+    "data": "{\"EventData\":{\"<xmlattr>\":{\"Name\":\"SAMMSG_RESTRICT_REMOTE_SAM_DEFAULT_SD\"},\"Default SD String:\":\"O:SYG:SYD:(A;;RC;;;BA)\"}}"
+}

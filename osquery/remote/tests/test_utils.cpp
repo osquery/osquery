@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <csignal>
@@ -12,13 +13,15 @@
 #include <thread>
 
 #include <osquery/config/tests/test_utils.h>
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/flags.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/remote/tests/test_utils.h>
-#include <osquery/sql.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tests/test_util.h>
+#include <osquery/utils/conversions/join.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
 
@@ -32,75 +35,120 @@ DECLARE_string(tls_server_certs);
 DECLARE_string(enroll_secret_path);
 DECLARE_bool(disable_caching);
 
+Status TLSServerRunner::startAndSetScript(const std::string& port,
+                                          const std::string& server_cert) {
+  auto script = (getTestHelperScriptsDirectory() / "test_http_server.py");
+  auto config_dir = getTestConfigDirectory();
+  std::vector<std::string> args = {
+      script.make_preferred().string(),
+      "--tls",
+      "--verbose",
+      "--test-configs-dir",
+      config_dir.make_preferred().string(),
+  };
+
+  if (!server_cert.empty()) {
+    args.push_back("--cert");
+    args.push_back(server_cert);
+  }
+
+  args.push_back(port);
+
+  const auto cmd = osquery::join(args, " ");
+  server_ = PlatformProcess::launchTestPythonScript(cmd);
+  if (server_ == nullptr) {
+    return Status::failure("Cannot create test python script: " + cmd);
+  }
+  return Status::success();
+}
+
+Status TLSServerRunner::getListeningPortPid(const std::string& port,
+                                            std::string& pid) {
+  // Reset the output.
+  pid.clear();
+
+  std::string q = "select pid from listening_ports where port = '" + port + "'";
+
+  auto caching = FLAGS_disable_caching;
+  FLAGS_disable_caching = true;
+  auto results = SQL(q);
+  FLAGS_disable_caching = caching;
+  if (results.rows().empty()) {
+    return Status::failure("No pid listening on port: " + port);
+  }
+
+  const auto& first_row = results.rows()[0];
+  pid = first_row.at("pid");
+  return Status::success();
+}
+
 bool TLSServerRunner::start(const std::string& server_cert) {
   auto& self = instance();
   if (self.server_ != nullptr) {
     return true;
   }
 
-  int max_retry = 5;
-  int retry = 0;
-  bool started = false;
-  std::srand(getUnixTime());
+  // We need to pick a 'random' port.
+  std::srand((unsigned int)getUnixTime());
 
+  bool started = false;
+  const size_t max_retry = 3;
+  size_t retry = 0;
   while (retry < max_retry) {
     // Pick a port in an ephemeral range at random.
     self.port_ = std::to_string(std::rand() % 10000 + 20000);
 
-    // Fork then exec a shell.
-    auto python_server_path =
-        (getTestHelperScriptsDirectory() / "test_http_server.py");
-    auto test_config_dir = getTestConfigDirectory();
-    auto python_server_cmd = python_server_path.make_preferred().string() +
-                             " --tls --verbose " + " --test-configs-dir " +
-                             test_config_dir.make_preferred().string();
-
-    if (!server_cert.empty()) {
-      python_server_cmd += " --cert " + server_cert;
+    {
+      // Check that the port is not used.
+      std::string pid;
+      if (self.getListeningPortPid(self.port_, pid).ok()) {
+        // Another process is listening on this port.
+        continue;
+      }
     }
 
-    python_server_cmd += " " + self.port_;
-
-    self.server_ = PlatformProcess::launchTestPythonScript(python_server_cmd);
-    if (self.server_ == nullptr) {
-      return started;
+    auto status = self.startAndSetScript(self.port_, server_cert);
+    if (!status.ok()) {
+      // This is an unexpected problem, retry without waiting.
+      LOG(WARNING) << status.getMessage();
+      continue;
     }
 
     size_t delay = 0;
-    std::string query =
-        "select pid from listening_ports where port = '" + self.port_ + "'";
-
-    bool port_occupied = false;
-    // Wait for the server to listen on the port
-    while (delay < 2 * 1000) {
-      auto caching = FLAGS_disable_caching;
-      FLAGS_disable_caching = true;
-      auto results = SQL(query);
-      FLAGS_disable_caching = caching;
-      if (!results.rows().empty()) {
-        const auto& first_row = results.rows()[0];
-        if (first_row.at("pid") == std::to_string(self.server_->pid())) {
-          started = true;
-        } else {
-          port_occupied = true;
-        }
-        break;
+    // Expect to wait for the server to listen on the port.
+    while (delay < max_retry * 2 * 1000) {
+      std::string pid;
+      status = self.getListeningPortPid(self.port_, pid);
+      if (!status.ok()) {
+        // No pid listening, we should wait longer.
+        LOG(WARNING) << status.getMessage();
+        sleepFor(100);
+        delay += 100;
+        continue;
       }
 
-      sleepFor(100);
-      delay += 100;
-    }
-
-    // We only want to retry if it's an issue of port collision
-    if (started || !port_occupied) {
+      if (pid == std::to_string(self.server_->pid())) {
+        started = true;
+      } else {
+        // Another process is listening on this pid.
+        LOG(WARNING) << "Another process is listening on port: " << self.port_;
+      }
       break;
     }
 
+    if (started) {
+      break;
+    }
+
+    self.stop();
     sleepFor(1000);
     ++retry;
   }
 
-  return started;
+  if (!started) {
+    return false;
+  }
+  return true;
 }
 
 void TLSServerRunner::setClientConfig() {

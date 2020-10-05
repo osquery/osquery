@@ -1,4 +1,6 @@
-Continuous integration currently tests stable release versions of osquery against macOS 10.14 (as listed under the _Build_status_ column on the project [README](https://github.com/osquery/osquery/blob/master/README.md)). There are no reported issues which block expected core functionality on 10.11 and greater, however 10.9 and previous macOS versions do not work.
+# Installing on macOS
+
+Continuous Integration currently tests stable release versions of osquery against macOS 10.14 (see the `vmImage: macos-10.14` line in the [CI configuration](https://github.com/osquery/osquery/blob/master/azure-pipelines.yml). There are no reported issues which block expected core functionality on 10.11 and greater, however 10.9 and previous macOS versions are not supported.
 
 ## Package Installation
 
@@ -20,13 +22,13 @@ The default package creates the following structure:
 /usr/local/bin/osqueryi
 ```
 
-This package does NOT install a LaunchDaemon to start **osqueryd**. You may use the `osqueryctl start` script to copy the sample launch daemon job plist and associated configuration into place.
+This package does **not** install a LaunchDaemon to start `osqueryd`. You may use the `osqueryctl start` script to copy the sample launch daemon job plist and associated configuration into place.
 
 ### Post installation steps
 
-Only applies if you have never installed and run **osqueryd** on this Mac.
+These steps only apply if this is the first time you have ever installed and run `osqueryd` on this Mac.
 
-After completing the package installation run the following commands. Note: If you are using our example chef recipe to install osquery then these steps are not necessary, the [recipe](../deployment/configuration/#chef-os-x-macos) has this covered.
+After completing the package installation run the following commands. If you are using the Chef recipe to install osquery, then these steps are not necessary: the [recipe](https://osquery.readthedocs.io/en/latest/deployment/configuration/#chef-macos) has this covered.
 
 ```sh
 # You can use the helper script:
@@ -59,6 +61,6 @@ sudo pkgutil --forget com.facebook.osquery
 
 To start a standalone osquery use: `osqueryi`. This does not need a server or service. All the table implementations are included!
 
-After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to **osqueryd**, the daemon, tool.
+After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to `osqueryd`, the daemon.
 
-> NOTICE: The interactive shell and daemon do NOT communicate!
+> NOTICE: The interactive shell and daemon do **not** communicate!

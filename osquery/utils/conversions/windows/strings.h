@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -35,6 +36,14 @@ std::string wstringToString(const std::wstring& src);
  * @returns A narrow string, constructed from a wide C-string
  */
 std::string wstringToString(const wchar_t* src);
+
+/**
+ * @brief Windows helper function to convert a CIM Datetime to Unix timestamp
+ *
+ * @returns Given a CIM datetime generated from a WMI query, this helper
+ * function returns the equivalent Unix timestamp
+ */
+LONGLONG cimDatetimeToUnixtime(const std::string& src);
 
 /**
  * @brief Windows WMI Helper function to print the type associated with results

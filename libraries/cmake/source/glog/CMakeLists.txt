@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(googleLogMain)
   set(disabled_option_list
@@ -30,6 +31,10 @@ function(googleLogMain)
 
   get_target_property(gflags_include_directory thirdparty_gflags INTERFACE_INCLUDE_DIRECTORIES)
   target_include_directories(glog PRIVATE "${gflags_include_directory}")
+
+  # Small hack to set glog's includes as SYSTEM
+  get_target_property(glog_include_directory glog INTERFACE_INCLUDE_DIRECTORIES)
+  target_include_directories(glog SYSTEM INTERFACE ${glog_include_directory})
 
   add_library(thirdparty_glog INTERFACE)
   target_link_libraries(thirdparty_glog INTERFACE

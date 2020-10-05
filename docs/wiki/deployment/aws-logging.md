@@ -1,4 +1,6 @@
-As of version 1.7.4, osquery can log results directly to Amazon AWS [Kinesis Streams](https://aws.amazon.com/kinesis/streams/) and [Kinesis Firehose](https://aws.amazon.com/kinesis/firehose/). For users of these services, `osqueryd` can eliminate the need for a separate log forwarding daemon running in your deployments.
+# Logging osquery to AWS
+
+As of osquery version 1.7.4, osquery can log results directly to Amazon AWS [Kinesis Streams](https://aws.amazon.com/kinesis/streams/) and [Kinesis Firehose](https://aws.amazon.com/kinesis/firehose/). For users of these services, `osqueryd` can eliminate the need for a separate log forwarding daemon running in your deployments.
 
 ## Configuration
 
@@ -31,20 +33,21 @@ When working with AWS, osquery will look for credentials and region configuratio
 4. `default` profile in the AWS config files
 5. Profile from the EC2 Instance Metadata Service
 
-All of the STS configuration flags are optional.  However, if `aws_sts_arn_role` is set, you can utilize temporary credentials via assume role with the [AWS Security Token Service](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
+All of the STS configuration flags are optional. However, if `aws_sts_arn_role` is set, you can utilize temporary credentials via assume role with the [AWS Security Token Service](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
 
 ### Kinesis Streams
 
 When logging to Kinesis Streams, the stream name must be specified with `aws_kinesis_stream`, and the log flushing period can be configured with `aws_kinesis_period`.  
 
-Setting aws_kinesis_random_partition_key to true will use random partition keys when sending data to Kinesis. Using random values will load balance over stream shards if you are using multiple shards in a stream.  Note that using this setting will result in the logs of each host distributed across shards, so do not use it if you need logs from each host to be processed by a consistent shard.  The default for this setting is "false".
+Setting `aws_kinesis_random_partition_key` to `true` will use random partition keys when sending data to Kinesis. Using random values will load balance over stream shards if you are using multiple shards in a stream. Note that using this setting will result in the logs of each host distributed across shards, so do not use it if you need logs from each host to be processed by a consistent shard. The default for this setting is `false`.
 
 ### Kinesis Firehose
 
 Similarly for Kinesis Firehose delivery streams, the stream name must be specified with `aws_firehose_stream`, and the period can be configured with `aws_firehose_period`.
 
 ### Sample Config File
-```
+
+```JSON
 {
   "options": {
     "host_identifier": "hostname",
@@ -66,4 +69,4 @@ Similarly for Kinesis Firehose delivery streams, the stream name must be specifi
 }
 ```
 
-**Note**: Kinesis services have a maximum 1MB record size. Result logs bigger than this will not be forwarded by **osqueryd** as they will be rejected by the Kinesis services.
+**Note**: Kinesis services have a maximum 1MB record size. Result logs bigger than this will not be forwarded by `osqueryd` as they will be rejected by the Kinesis services.

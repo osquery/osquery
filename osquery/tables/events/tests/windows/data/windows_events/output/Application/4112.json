@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-05T12:27:00.6413707Z",
+    "source": "Application",
+    "provider_name": "Microsoft-Windows-CAPI2",
+    "provider_guid": "{5bbca4a8-b209-48dc-a8c7-b23d3e5216fb}",
+    "event_id": "4112",
+    "task_id": "0",
+    "level": "4",
+    "keywords": "0x8080000000000000",
+    "data": "{\"EventData\":[\"‎13 ‎August ‎2019 17:18:35\"]}"
+}

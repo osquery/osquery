@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-12T15:59:22.7563417Z",
+    "source": "Application",
+    "provider_name": "ESENT",
+    "provider_guid": "",
+    "event_id": "300",
+    "task_id": "3",
+    "level": "4",
+    "keywords": "0x80000000000000",
+    "data": "{\"EventData\":[\"svchost\",\"7444,R,98\",\"DS_Token_DB: \"]}"
+}

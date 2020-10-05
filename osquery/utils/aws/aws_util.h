@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -38,10 +39,10 @@ namespace osquery {
 using RegionName = const char* const;
 
 /// EC2 instance latestmetadata URL
-const std::string kEc2MetadataUrl = "http://169.254.169.254/latest/";
+extern const std::string kEc2MetadataUrl;
 
 /// Hypervisor UUID file
-const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
+extern const std::string kHypervisorUuid;
 
 /**
  * @brief Client factory for the Osquery HTTP client
@@ -125,7 +126,7 @@ class OsquerySTSAWSCredentialsProvider
   Aws::String session_token_;
 
   /// Time when the last-most-recent credentials will expire.
-  size_t token_expire_time_{0};
+  uint64_t token_expire_time_{0};
 };
 
 /**
@@ -230,7 +231,7 @@ Status makeAWSClient(std::shared_ptr<Client>& client,
 
   client = std::make_shared<Client>(
       std::make_shared<OsqueryAWSCredentialsProviderChain>(sts), client_config);
-  return Status(0);
+  return Status::success();
 }
 
 /**

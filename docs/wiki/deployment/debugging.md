@@ -1,10 +1,12 @@
+# Debugging osquery
+
 Here are some debugging tips and tricks related to the daemon and shell from a deployment and usage perspective. Please see the development documentation in the next section for debugging code changes.
 
 Almost every situation requiring debugging should ultimately be solved with bug fixes or better documentation. In these cases,  the documentation usually surfaces in the form of verbose messages in the tools.
 
 Please feel encouraged to add additional messages in the code, or create GitHub issues documenting your experience and suggestions for documentation or code improvements.
 
-### Running the shell or daemon in verbose mode
+## Running the shell or daemon in verbose mode
 
 This is pretty simple! Just append `--verbose` as a switch.
 
@@ -19,31 +21,29 @@ osquery>
 
 To see the daemon's verbose messages you'll need to run it in the foreground, see the next section. Be aware that verbose messages are treated like others and sent to your downstream logger plugin. If you are collecting these logs, the verbose messages will be collected too!
 
-### Running the daemon in the foreground
+## Running the daemon in the foreground
 
 The daemon has some restrictions that make verbose debugging difficult, let's walk through how to run it in the foreground.
 
 ```shell
-$ osqueryd --ephemeral --database_path /tmp/osquery.db
+osqueryd --ephemeral --disable_database --disable_logging
 ```
 
-The `ephemeral` flag tells the daemon that it may co-exist with other persistent daemons. The `database_path` must be overridden as the defaults are not writable/readable by a non-privileged user. Now we can append `--verbose`:
+The `ephemeral` flag tells the daemon that it may co-exist with other persistent daemons. The `disable_database` must be present or `database_path` must be overridden as the default database location is not writable/readable by a non-privileged user. The same applies for `disable_logging`, and if you use the default logger plugin `filesystem` then alternatively `--logger_path` may be overridden. Now we can append `--verbose`:
 
 ```shell
-$ osqueryd --ephemeral --database_path /tmp/osquery.db --verbose
+$ osqueryd --ephemeral --disable_database --disable_logging --verbose
 I0412 08:03:59.664191 3056837568 init.cpp:380] osquery initialized [version=2.4.0]
 I0412 08:03:59.666533 196194304 watcher.cpp:465] osqueryd watcher (35549) executing worker (35550)
 I0412 08:03:59.688765 3056837568 init.cpp:377] osquery worker initialized [watcher=35549]
 I0412 08:03:59.690062 3056837568 rocksdb.cpp:205] Opening RocksDB handle: /tmp/osquery.db
 ```
 
-There may be errors from Glog about logging permissions, to silence them make a directory and override `--logger_path`, or use `--disable_logger`.
-
 Also note the daemon expects to be owned by the superuser if executed as the superuser. It also resists running in a tmpfs or sticky-bit directory. For special testing and debugging cases use `--allow_unsafe`.
 
 If you are using a `--flagfile` to define additional command line switches then it should be readable by your user. In cases where the Remote API is used, an enroll secret or TLS client private key is needed. If these are read-restricted to the superuser you may need to also debug as the superuser.
 
-### Checking the config sanity
+## Checking the config sanity
 
 The daemon will not start with an invalid configuration. And no configuration is provided by default. See the [configuration](../deployment/configuration.md) guide for details on how to move the example config to an active config.
 
@@ -67,7 +67,7 @@ osqueryi --config_path ./build/testing/invalid_osquery.conf --config_dump
 }
 ```
 
-Osqueryd will exit after printing the config.
+The daemon and shell should exit after printing the config.
 
 This example contains a C-style comment which was allowed in boost 1.58, but is deprecated and removed in 1.59. To be future-proof, stick to the JSON specification and do not include comments.
 
@@ -75,7 +75,7 @@ This example contains a C-style comment which was allowed in boost 1.58, but is 
 
 The osquery watchdog is only used in the daemon. It is enabled by default and can be disabled with `--disable_watchdog=true`. The watchdog enforces limits on a forked 'worker' process to protect systems from CPU expensive and memory-intensive queries. If the watchdog observes limit violations it will emit errors similar to:
 
-```shell
+```text
 Scheduled query may have failed: pack_threat_detectors_launch_daemons
 ```
 
@@ -83,7 +83,7 @@ This line is created when a worker starts and finds a 'dirty bit' toggled for th
 
 Lines that indicate the watchdog has taken action include either of the following:
 
-```shell
+```text
 osqueryd worker (92234) system performance limits exceeded
 osqueryd worker (8368) memory limits exceeded: 99573760
 ```
@@ -92,7 +92,7 @@ The pid of the offending worker is included in parenthesis.
 
 If the worker finds itself in a re-occurring error state or the watchdog continues to stop the worker, additional lines like the following are created:
 
-```shell
+```text
 osqueryd worker respawning too quickly: 1 times
 ```
 
@@ -145,7 +145,7 @@ virtual_table.cpp:549] Please see the table documentation: https://osquery.io/sc
 
 If you start the shell using `osqueryi --disable_events=0` you will no longer get this warning. BUT! It is most likely the case that the events you are trying to inspect require future configuration. `file_events` requires a [file integrity monitoring](file-integrity-monitoring.md) configurations, `process_events` requires either additional flags or OpenBSM configuration, these situations are described in [process auditing](process-auditing.md).
 
-On Linux and MacOS the `hardware_events` table is enabled for-free, so try to plug in a USB and run `select * from hardware_events`.
+On Linux and macOS the `hardware_events` table is enabled for-free, so try to plug in a USB and run `select * from hardware_events`.
 
 ### Testing event subscribers
 
@@ -158,3 +158,13 @@ SELECT *, eid FROM file_events;
 ```
 
 If this query is in your schedule then the first `eid` should be `000000001` or similar. Each time the query runs the following should hold: `count(0) == max(eid) - min(eid)` and `min(eid) + 1 == max(eid from last run)`.
+
+### Table exception handling
+
+The osquery virtual table code will catch and log (then ignore) any exceptions in table implementations. You may see a log line similar to the following:
+
+```text
+Exception while executing table TABLE_NAME: EXCEPTION_MESSAGE
+```
+
+If you would like to debug the exception and view the stacktrace you may disable the exception catching with the `--table_exceptions` flag.

@@ -1,19 +1,20 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <mutex>
 
 #include <sqlite3.h>
 
-#include <osquery/database.h>
+#include <osquery/core/flags.h>
+#include <osquery/database/database.h>
 #include <osquery/filesystem/fileops.h>
-#include <osquery/flags.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 
 namespace osquery {
 
@@ -52,7 +53,7 @@ class SQLiteDatabasePlugin : public DatabasePlugin {
   Status scan(const std::string& domain,
               std::vector<std::string>& results,
               const std::string& prefix,
-              size_t max) const override;
+              uint64_t max) const override;
 
  public:
   /// Database workflow: open and setup.

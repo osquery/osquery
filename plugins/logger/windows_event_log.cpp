@@ -1,17 +1,18 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <plugins/logger/windows_event_log.h>
 #include <plugins/logger/generated_wel.h>
 
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 
 namespace osquery {
 
@@ -89,7 +90,7 @@ Status WindowsEventLoggerPlugin::emitLogRecord(
     const std::string& message,
     StatusLogSeverity severity,
     const std::string& source_file_name,
-    size_t line) {
+    uint64_t line) {
   if (registration_handle == 0) {
     return Status(1, "The Windows Event Logger plugin is not initialized.");
   }

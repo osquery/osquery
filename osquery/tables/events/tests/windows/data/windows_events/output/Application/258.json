@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-12T14:59:40.7280202Z",
+    "source": "Application",
+    "provider_name": "Microsoft-Windows-Defrag",
+    "provider_guid": "",
+    "event_id": "258",
+    "task_id": "0",
+    "level": "0",
+    "keywords": "0x80000000000000",
+    "data": "{\"EventData\":{\"\":\"defragmentation\",\"\":\"System Reserved\",\"Binary\":\"0000000034020000FD0100000000000022B651A2296BEDD85E9C8D030000000000000000\"}}"
+}

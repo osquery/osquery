@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(gflagsMain)
   set(BUILD_gflags_nothreads_LIB false CACHE BOOL "" FORCE)
@@ -19,7 +20,7 @@ function(gflagsMain)
     gflags_static
   )
 
-  target_include_directories(thirdparty_gflags INTERFACE
+  target_include_directories(thirdparty_gflags SYSTEM INTERFACE
     "${CMAKE_CURRENT_BINARY_DIR}/submodule/include"
   )
 endfunction()

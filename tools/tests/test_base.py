@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-#  Copyright (c) 2014-present, Facebook, Inc.
-#  All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-#  This source code is licensed in accordance with the terms specified in
-#  the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 import copy
 import getpass
@@ -21,6 +22,7 @@ import threading
 import unittest
 import utils
 
+
 # TODO: Find an implementation that will work for Windows, for now, disable.
 # https://goo.gl/T4AgV5
 if os.name == "nt":
@@ -33,13 +35,52 @@ if os.name == "nt":
 else:
     import timeout_decorator
 
+
+def patched_run_command(self, command, timeout=-1, async_=False):
+    '''A patched 'run_command' from the pexpect module.
+
+    The original module and method do not support a bytes object in the final
+    string-join concatenation. We copy-paste most of the method and add a
+    decode and encode to preserve the function logic (make it look as similar
+    to the original as possible).
+
+    See https://pexpect.readthedocs.io/en/stable/_modules/pexpect/replwrap.html
+    '''
+    # Split up multiline commands and feed them in bit-by-bit
+    cmdlines = command.splitlines()
+    # splitlines ignores trailing newlines - add it back in manually
+    if command.endswith('\n'):
+        cmdlines.append('')
+    if not cmdlines:
+        raise ValueError("No command was given")
+
+    if async_:
+        from ._async import repl_run_command_async
+        return repl_run_command_async(self, cmdlines, timeout)
+
+    res = []
+    self.child.sendline(cmdlines[0])
+    for line in cmdlines[1:]:
+        self._expect_prompt(timeout=timeout)
+        res.append(self.child.before.decode("utf-8"))
+        self.child.sendline(line)
+
+    # Command was fully submitted, now wait for the next prompt
+    if self._expect_prompt(timeout=timeout) == 1:
+        # We got the continuation prompt - command was incomplete
+        self.child.kill(signal.SIGINT)
+        self._expect_prompt(timeout=1)
+        raise ValueError("Continuation prompt found - input was incomplete:\n"
+                            + command)
+    res = "".join(res + [self.child.before.decode("utf-8")])
+    return res.encode()
+
+
 # We use a generic 'expect' style subprocess manager on Windows
 if os.name == "nt":
     from winexpect import REPLWrapper, WinExpectSpawn
 else:
     import pexpect
-
-if os.name != "nt":
     try:
         from pexpect.replwrap import REPLWrapper
     except ImportError as e:
@@ -48,6 +89,10 @@ if os.name != "nt":
               (str(pexpect.__version__)))
         print("  pexpect location: %s" % (str(pexpect.__file__)))
         exit(1)
+
+    '''Patch the existing run command'''
+    REPLWrapper.run_command = patched_run_command
+
 
 try:
     import argparse
@@ -74,23 +119,23 @@ def getUserId():
 
 '''Defaults that should be used in integration tests.'''
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-CONFIG_DIR = os.path.join(tempfile.gettempdir(),
+TEMP_DIR = os.path.join(tempfile.gettempdir(),
                           "osquery-tests-python-%s" % (getUserId()))
-CONFIG_NAME = os.path.join(CONFIG_DIR, "tests")
+TEMP_NAME = os.path.join(TEMP_DIR, "tests")
 DEFAULT_CONFIG = {
     "options": {
         "flagfile":
         "/dev/null" if os.name == "posix" else "",
         "database_path":
-        "%s.db" % CONFIG_NAME,
+        "%s.db" % TEMP_NAME,
         "pidfile":
-        "%s.pid" % CONFIG_NAME,
+        "%s.pid" % TEMP_NAME,
         "config_path":
-        "%s.conf" % CONFIG_NAME,
+        "%s.conf" % TEMP_NAME,
         "extensions_autoload":
         "/dev/null" if os.name == "posix" else "",
         "extensions_socket":
-        "%s.em" % (CONFIG_NAME
+        "%s.em" % (TEMP_NAME
                    if os.name == "posix" else "\\\\.\\pipe\\tests"),
         "extensions_interval":
         "1",
@@ -131,7 +176,7 @@ class OsqueryWrapper(REPLWrapper):
     ERROR_PREFIX = u'Error:'
 
     def __init__(self, command='../osqueryi', args={}, env=None):
-        global CONFIG_NAME, CONFIG
+        global CONFIG
         options = copy.deepcopy(CONFIG)["options"]
         for option in args.keys():
             options[option] = args[option]
@@ -156,8 +201,7 @@ class OsqueryWrapper(REPLWrapper):
         When osqueryi returns an error, OsqueryException is thrown.
         '''
         query = query + ';'  # Extra semicolon causes no harm
-        result = self.run_command(query)
-        result = result.decode("utf-8")
+        result = self.run_command(query).decode('utf-8')
         # On Mac, the query appears first in the string. Remove it if so.
         result = re.sub(re.escape(query), '', result).strip()
         result_lines = result.splitlines()
@@ -182,6 +226,8 @@ class OsqueryWrapper(REPLWrapper):
             columns = re.findall('[^ |]+', header)
             rows = []
             for line in result_lines[3:-1]:
+                if len(line) > 0 and line[0] == '+':
+                    continue
                 values = re.findall('[^ |]+', line)
                 rows.append(
                     dict((col, val) for col, val in zip(columns, values)))
@@ -354,7 +400,7 @@ class ProcessGenerator(object):
     generators = []
 
     def setUp(self):
-        utils.reset_dir(CONFIG_DIR)
+        utils.reset_dir(TEMP_DIR)
 
     def _run_daemon(self,
                     options={},
@@ -362,7 +408,7 @@ class ProcessGenerator(object):
                     options_only={},
                     overwrite={}):
         '''Spawn an osquery daemon process'''
-        global ARGS, CONFIG_NAME, CONFIG
+        global ARGS, TEMP_NAME, CONFIG
         config = copy.deepcopy(CONFIG)
         config["options"]["database_path"] += str(random.randint(1000, 9999))
         config["options"]["extensions_socket"] += str(
@@ -489,8 +535,8 @@ class Autoloader(object):
     '''Helper class to write a module or extension autoload file.'''
 
     def __init__(self, autoloads=[]):
-        global CONFIG_DIR
-        self.path = os.path.join(CONFIG_DIR,
+        global TEMP_DIR
+        self.path = os.path.join(TEMP_DIR,
                                  "ext.load" + str(random.randint(1000, 9999)))
         with open(self.path, "w") as fh:
             fh.write("\n".join(autoloads))
@@ -519,11 +565,11 @@ def flaky(gen):
     exceptions = []
     def attempt(this):
         try:
-            worked = gen(this)
+            gen(this)
             return True
         except Exception as e:
             import traceback
-            exc_type, exc_obj, tb = sys.exc_info()
+            _, _, tb = sys.exc_info()
             exceptions.append(e)
             print(traceback.format_tb(tb)[1])
         return False
@@ -532,6 +578,9 @@ def flaky(gen):
         for i in range(3):
             if attempt(this):
                 return True
+            # The attempt failed, try to setup again.
+            this.tearDown()
+            this.setUp()
         i = 1
         for exc in exceptions:
             print("Test (attempt %d) %s::%s failed: %s" %
@@ -546,7 +595,7 @@ def flaky(gen):
 
 class Tester(object):
     def __init__(self):
-        global ARGS, CONFIG, CONFIG_DIR, TEST_CONFIGS_DIR, BUILD_DIR
+        global ARGS, CONFIG, TEMP_DIR, TEST_CONFIGS_DIR, BUILD_DIR
         parser = argparse.ArgumentParser(
             description=("osquery python integration testing."))
 
@@ -584,7 +633,7 @@ class Tester(object):
         # Write config
         random.seed(time.time())
 
-        utils.reset_dir(CONFIG_DIR)
+        utils.reset_dir(TEMP_DIR)
         CONFIG = read_config(ARGS.config) if ARGS.config else DEFAULT_CONFIG
         TEST_CONFIGS_DIR = ARGS.test_configs_dir
         BUILD_DIR = ARGS.build
@@ -683,8 +732,7 @@ class CleanChildProcesses:
 
 def expectTrue(functional, interval=1, attempts=10):
     """Helper function to run a function with expected latency"""
-    delay = 0
-    for i in range(0, attempts):
+    for _ in range(0, attempts):
         if functional():
             return True
         time.sleep(interval)
@@ -704,19 +752,6 @@ def getTestDirectory(base):
     path = os.path.join(base, "test-dir" + str(random.randint(1000, 9999)))
     utils.reset_dir(path)
     return path
-
-
-# Grab the latest info log
-def getLatestInfoLog(base):
-    info_path = os.path.join(base, "osqueryd.INFO")
-    if os.name != "nt":
-        return info_path
-    query = "select path from file where path like '{}' ORDER BY mtime DESC LIMIT 1;".format(info_path+'%')
-    osqueryi = OsqueryWrapper(getLatestOsqueryBinary('osqueryi'))
-    results = osqueryi.run_query(query)
-    if len(results) > 0:
-        return results[0]["path"]
-    return ""
 
 
 def loadThriftFromBuild(build_dir):

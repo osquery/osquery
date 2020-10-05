@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-12T15:26:36.6306391Z",
+    "source": "System",
+    "provider_name": "Microsoft-Windows-Directory-Services-SAM",
+    "provider_guid": "{0d4fdc09-8c27-494a-bda0-505e4fd8adae}",
+    "event_id": "16977",
+    "task_id": "0",
+    "level": "4",
+    "keywords": "0x8000000000000000",
+    "data": "{\"EventData\":{\"<xmlattr>\":{\"Name\":\"SAMMSG_MINPWDLEN_SETTINGS_IN_EFFECT\"},\"MinimumPasswordLength\":\"0\",\"RelaxMinimumPasswordLengthLimits\":\"0\",\"MinimumPasswordLengthAudit\":\"-1\"}}"
+}

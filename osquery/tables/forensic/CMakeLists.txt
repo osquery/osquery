@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesForensicMain)
   generateOsqueryTablesForensic()
@@ -15,12 +16,9 @@ function(generateOsqueryTablesForensic)
 
   target_link_libraries(osquery_tables_forensic PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_carver
     osquery_core
     osquery_database
-    osquery_dispatcher
-    osquery_distributed
     osquery_logger
     osquery_utils_json
     thirdparty_boost

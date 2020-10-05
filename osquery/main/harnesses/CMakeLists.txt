@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryMainHarnesses)
   if(OSQUERY_ENABLE_FUZZER_SANITIZERS AND NOT OSQUERY_ENABLE_ADDRESS_SANITIZER)
@@ -20,7 +21,6 @@ function(osqueryMainHarnesses)
 
   target_link_libraries(osquery_harnesses PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_core_plugins
     osquery_core_sql
@@ -41,7 +41,6 @@ function(osqueryMainHarnesses)
     plugins_config_tlsconfig
     plugins_config_parsers
     plugins_config_updateconfigplugin
-    plugins_database_ephemeral
     plugins_database_rocksdbplugin
     plugins_database_sqliteplugin
     plugins_distributed_tls_distributedtls
@@ -67,7 +66,11 @@ endfunction()
 
 function(generateOsqueryFuzzHarness harness_name source_files)
   add_osquery_executable(${harness_name} ${source_files})
-  set_target_properties(${harness_name} PROPERTIES POSITION_INDEPENDENT_CODE true)
+  # TODO: osquery-toolchain libFuzzer is not compiled with -fPIC support,
+  # temporarily disable PIE until the toolchain is fixed.
+  if(DEFINED OSQUERY_TOOLCHAIN_SYSROOT)
+    set_target_properties(${harness_name} PROPERTIES POSITION_INDEPENDENT_CODE OFF)
+  endif()
   target_link_libraries(${harness_name} PRIVATE osquery_harnesses)
   target_link_options(${harness_name} PRIVATE -fsanitize=fuzzer)
 endfunction()

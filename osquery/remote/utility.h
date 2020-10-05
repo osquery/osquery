@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -14,9 +15,9 @@
 #include <osquery/remote/transports/tls.h>
 // clang-format on
 
-#include <osquery/enroll.h>
-#include <osquery/flags.h>
-#include <osquery/system.h>
+#include <osquery/remote/enroll/enroll.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
 
 #include <osquery/process/process.h>
 #include <osquery/remote/requests.h>
@@ -246,7 +247,7 @@ class TLSRequestHelper : private boost::noncopyable {
   static Status go(const std::string& uri,
                    JSON& params,
                    std::string& output,
-                   const size_t attempts) {
+                   const uint64_t attempts) {
     Status s;
     JSON override_params;
     const auto& params_doc = params.doc();

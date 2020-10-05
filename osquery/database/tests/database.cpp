@@ -1,15 +1,16 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/database.h>
-#include <osquery/flags.h>
-#include <osquery/registry.h>
-#include <osquery/system.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/registry/registry.h>
 
 #include <osquery/utils/json/json.h>
 
@@ -21,18 +22,12 @@ namespace rj = rapidjson;
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
-
 class DatabaseTests : public testing::Test {
  public:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
-
-    // Force registry to use ephemeral database plugin
-    FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    initDatabasePluginForTesting();
   }
 };
 

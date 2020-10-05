@@ -1,35 +1,34 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/logger.h>
-#include <osquery/registry.h>
-#include <osquery/sql.h>
+#include <osquery/core/core.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
 #include <osquery/sql/dynamic_table_row.h>
-#include <osquery/system.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/sql/virtual_table.h>
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
+DECLARE_bool(table_exceptions);
 
 class VirtualTableTests : public testing::Test {
  public:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    initDatabasePluginForTesting();
   }
 };
 
@@ -557,7 +556,7 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
   queryInternal(statement, results, dbc);
   EXPECT_EQ(results.size(), 1U);
 
-  // The table should have used the cache.
+  // The table should not have used the cache.
   EXPECT_EQ(cache->generates_, 2U);
 
   // Now request that caching be used.
@@ -577,14 +576,64 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
   EXPECT_EQ(results.size(), 1U);
   EXPECT_EQ(cache->generates_, 3U);
 
-  // Once last time with constraints that invalidate the cache results.
+  // Run the query again, but select all columns explicitly.
+  results.clear();
+  statement = "SELECT i, d from table_cache;";
+  queryInternal(statement, results, dbc);
+  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(cache->generates_, 3U);
+
+  // Run the query again, but do not star-select.
+  results.clear();
+  statement = "SELECT i from table_cache;";
+  queryInternal(statement, results, dbc);
+  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(cache->generates_, 4U);
+
+  // Now with constraints that invalidate the cache results.
   results.clear();
   statement = "SELECT * from table_cache where i = '1';";
   queryInternal(statement, results, dbc);
   EXPECT_EQ(results.size(), 1U);
-
   // The table should NOT have used the cache.
-  EXPECT_EQ(cache->generates_, 4U);
+  EXPECT_EQ(cache->generates_, 5U);
+}
+
+TEST_F(VirtualTableTests, test_table_results_cache_colcheck) {
+  // Get a database connection.
+  auto tables = RegistryFactory::get().registry("table");
+  auto cache = std::make_shared<tableCacheTablePlugin>();
+  tables->add("table_cache_cols", cache);
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal(
+      "table_cache_cols", cache->columnDefinition(false), dbc, false);
+
+  // Request that caching be used.
+  dbc->useCache(true);
+
+  QueryData results;
+  std::string statement = "SELECT i from table_cache_cols;";
+  auto status = queryInternal(statement, results, dbc);
+
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(cache->generates_, 1U);
+
+  // Run the query again, the virtual table cache will be populated.
+  results.clear();
+  statement = "SELECT * from table_cache_cols;";
+  queryInternal(statement, results, dbc);
+  EXPECT_EQ(results.size(), 1U);
+  // The table should not have used the cache.
+  EXPECT_EQ(cache->generates_, 2U);
+
+  // Run the query again, the virtual table cache will be used.
+  results.clear();
+  statement = "SELECT * from table_cache_cols;";
+  queryInternal(statement, results, dbc);
+  EXPECT_EQ(results.size(), 1U);
+  // Results from cache.
+  EXPECT_EQ(cache->generates_, 2U);
 }
 
 class yieldTablePlugin : public TablePlugin {
@@ -1036,6 +1085,61 @@ TEST_F(VirtualTableTests, test_used_columns_bitset_with_alias) {
   EXPECT_EQ(results[0]["aliasToCol2"], "value2");
 }
 
+class colsUsedDefaultTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("col1", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("col2", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ public:
+  TableRows generate(QueryContext& context) override {
+    auto r = make_table_row();
+    if (context.defaultColumnsUsed()) {
+      r["col1"] = "value1";
+      r["col2"] = "value2";
+    }
+
+    TableRows result;
+    result.push_back(std::move(r));
+    return result;
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_used_columns_default);
+};
+
+TEST_F(VirtualTableTests, test_used_columns_default) {
+  // Add testing table to the registry.
+  auto tables = RegistryFactory::get().registry("table");
+  auto colsUsedDefault = std::make_shared<colsUsedDefaultTablePlugin>();
+  tables->add("colsUsedDefault", colsUsedDefault);
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal(
+      "colsUsedDefault", colsUsedDefault->columnDefinition(false), dbc, false);
+
+  {
+    QueryData results;
+    auto status = queryInternal("SELECT * FROM colsUsedDefault", results, dbc);
+    EXPECT_TRUE(status.ok());
+    ASSERT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0]["col1"], "value1");
+    EXPECT_EQ(results[0]["col2"], "value2");
+  }
+
+  {
+    QueryData results;
+    auto status =
+        queryInternal("SELECT col1 FROM colsUsedDefault", results, dbc);
+    EXPECT_TRUE(status.ok());
+    ASSERT_EQ(results.size(), 1U);
+    EXPECT_TRUE(results[0]["col1"].empty());
+    EXPECT_TRUE(results[0]["col2"].empty());
+  }
+}
+
 /*
  * Query this with
  *  "SELECT * FROM table WHERE name IN ('alpha','beta','charlie','delta')"
@@ -1086,6 +1190,53 @@ TEST_F(VirtualTableTests, test_noindex_constraints) {
   ASSERT_EQ(1U, tablePlugin->scans);
   ASSERT_EQ(2U, results.size());
   ASSERT_EQ("0", results[1]["straints"]);
+}
+
+class exceptionalTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("col1", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ public:
+  TableRows generate(QueryContext& context) override {
+    throw std::runtime_error("error");
+    return TableRows();
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_table_exceptions);
+};
+
+TEST_F(VirtualTableTests, test_table_exceptions) {
+  // Add testing table to the registry.
+  auto tables = RegistryFactory::get().registry("table");
+  auto exceptional = std::make_shared<exceptionalTablePlugin>();
+  tables->add("exceptional", exceptional);
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal(
+      "exceptional", exceptional->columnDefinition(false), dbc, false);
+
+  auto backup_flag = FLAGS_table_exceptions;
+  FLAGS_table_exceptions = false;
+  {
+    QueryData results;
+    auto status = queryInternal("SELECT * FROM exceptional", results, dbc);
+    EXPECT_FALSE(status.ok());
+  }
+
+  FLAGS_table_exceptions = true;
+  {
+    EXPECT_THROW(
+        {
+          QueryData results;
+          queryInternal("SELECT * FROM exceptional", results, dbc);
+        },
+        std::runtime_error);
+  }
+  FLAGS_table_exceptions = backup_flag;
 }
 
 } // namespace osquery

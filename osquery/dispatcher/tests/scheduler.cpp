@@ -1,17 +1,18 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <gtest/gtest.h>
 
-#include <osquery/database.h>
-#include <osquery/logger.h>
-#include <osquery/registry.h>
-#include <osquery/system.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry.h>
 
 #include <osquery/config/config.h>
 #include <osquery/dispatcher/scheduler.h>
@@ -20,17 +21,14 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
 DECLARE_bool(disable_logging);
 DECLARE_uint64(schedule_reload);
 
 class SchedulerTests : public testing::Test {
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    initDatabasePluginForTesting();
 
     logging_ = FLAGS_disable_logging;
     FLAGS_disable_logging = true;
@@ -169,7 +167,7 @@ TEST_F(SchedulerTests, test_scheduler) {
   Config::get().update({{"data", config}});
 
   // Run the scheduler for 1 second with a second interval.
-  SchedulerRunner runner(static_cast<unsigned long int>(now + 1), 1);
+  SchedulerRunner runner(static_cast<unsigned long int>(1), 1);
   runner.start();
 
   // If a query was executed the cache step will have been advanced.
@@ -204,7 +202,7 @@ TEST_F(SchedulerTests, test_scheduler_zero_drift) {
 
   // Run the scheduler for 1 second with a second interval.
   SchedulerRunner runner(
-      static_cast<unsigned long int>(now), size_t{1}, std::chrono::seconds{10});
+      static_cast<unsigned long int>(1), size_t{1}, std::chrono::seconds{10});
   runner.start();
 
   EXPECT_EQ(runner.getCurrentTimeDrift(), std::chrono::milliseconds::zero());
@@ -241,10 +239,9 @@ TEST_F(SchedulerTests, test_scheduler_drift_accumulation) {
   })config";
   Config::get().update({{"data", config}});
 
-  // Run the scheduler for 1 second with a second interval.
-  SchedulerRunner runner(static_cast<unsigned long int>(now + 3),
-                         size_t{0},
-                         std::chrono::seconds{10});
+  // Run the scheduler for 3 seconds with no interval.
+  SchedulerRunner runner(
+      static_cast<unsigned long int>(3), size_t{0}, std::chrono::seconds{10});
   runner.start();
 
   EXPECT_GE(runner.getCurrentTimeDrift(), std::chrono::milliseconds{1});
@@ -261,7 +258,7 @@ TEST_F(SchedulerTests, test_scheduler_reload) {
   auto backup_reload = FLAGS_schedule_reload;
 
   // Start the scheduler;
-  auto expire = static_cast<unsigned long int>(getUnixTime() + 1);
+  auto expire = static_cast<unsigned long int>(1);
   FLAGS_schedule_reload = 1;
   SchedulerRunner runner(expire, 1);
   FLAGS_schedule_reload = backup_reload;

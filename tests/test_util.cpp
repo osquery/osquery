@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <chrono>
@@ -19,12 +20,12 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/utils/system/time.h>
+#include <osquery/core/system.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/time.h>
 
 #include <osquery/process/process.h>
 #include <osquery/tests/test_util.h>
@@ -48,14 +49,13 @@ DECLARE_string(extensions_socket);
 DECLARE_string(extensions_autoload);
 DECLARE_string(enroll_tls_endpoint);
 DECLARE_bool(disable_logging);
-DECLARE_bool(disable_database);
 
 using chrono_clock = std::chrono::high_resolution_clock;
 
 void initTesting() {
-  Config::setStartTime(getUnixTime());
+  setStartTime(getUnixTime());
 
-  kToolType = ToolType::TEST;
+  setToolType(ToolType::TEST);
   if (osquery::isPlatform(PlatformType::TYPE_OSX)) {
     kTestWorkingDirectory = "/private/tmp/osquery-tests";
   } else {
@@ -66,8 +66,6 @@ void initTesting() {
   if (osquery::isPlatform(PlatformType::TYPE_WINDOWS)) {
     kTestDataPath = "../" + kTestDataPath;
   }
-
-  registryAndPluginInit();
 
   // Allow unit test execution from anywhere in the osquery source/build tree.
   if (fs::exists("test_data/test_inline_pack.conf")) {
@@ -110,20 +108,15 @@ void initTesting() {
   FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
 
   FLAGS_disable_logging = true;
-  FLAGS_disable_database = true;
 
-  // Tests need a database plugin.
-  // Set up the database instance for the unittests.
-  DatabasePlugin::setAllowOpen(true);
-  DatabasePlugin::initPlugin();
-
-  Initializer::platformSetup();
+  platformSetup();
+  registryAndPluginInit();
+  initDatabasePluginForTesting();
 }
 
 void shutdownTesting() {
-  DatabasePlugin::shutdown();
-
-  Initializer::platformTeardown();
+  shutdownDatabase();
+  platformTeardown();
 }
 
 ScheduledQuery getOsqueryScheduledQuery() {

@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -12,7 +13,7 @@
 #include <functional>
 
 #include <osquery/config/config.h>
-#include <osquery/database.h>
+#include <osquery/database/database.h>
 
 namespace osquery {
 
@@ -37,7 +38,7 @@ extern const std::map<DecorationPoint, std::string> kDecorationPointKeys;
  * @param source restrict run to a specific config source.
  */
 void runDecorators(DecorationPoint point,
-                   size_t time = 0,
+                   uint64_t time = 0,
                    const std::string& source = "");
 
 /**

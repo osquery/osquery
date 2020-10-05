@@ -1,97 +1,36 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/core.h>
-#include <osquery/filesystem/fileops.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/registry.h>
-#include <osquery/tables/system/windows/userassist.h>
-#include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
-#include <osquery/utils/system/time.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/rot13.h>
+
 #include <string>
 
 namespace osquery {
 namespace tables {
 
 constexpr auto kFullRegPath =
-    "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist";
-
-// Decode ROT13 sub key value
-/**
- * NOTE: If NoEncrypt is a DWORD set to 1 under the UserAssist registry key, new
- * values are saved in plain text. This value (NoEncrypt) has to be manually
- * added to the UserAssist registry key.
- */
-std::string rotDecode(std::string& value_key_reg) {
-  std::string decoded_value_key;
-
-  for (std::size_t i = 0; i < value_key_reg.size(); i++) {
-    if (isalpha(value_key_reg[i])) {
-      if (value_key_reg[i] >= 'a' && value_key_reg[i] <= 'm') {
-        decoded_value_key.append(1, value_key_reg[i] + 13);
-      } else if (value_key_reg[i] >= 'm' && value_key_reg[i] <= 'z') {
-        decoded_value_key.append(1, value_key_reg[i] - 13);
-      } else if (value_key_reg[i] >= 'A' && value_key_reg[i] <= 'M') {
-        decoded_value_key.append(1, value_key_reg[i] + 13);
-      } else if (value_key_reg[i] >= 'M' && value_key_reg[i] <= 'Z') {
-        decoded_value_key.append(1, value_key_reg[i] - 13);
-      }
-    } else {
-      decoded_value_key.append(1, value_key_reg[i]);
-    }
-  }
-  return decoded_value_key;
-}
-
-// Get last exeution time
-auto lastExecute(std::string& time_data) {
-  // If timestamp is zero dont convert to UNIX Time
-  if (time_data == "0000000000000000") {
-    return 1LL;
-  } else {
-    // swap endianess
-    std::reverse(time_data.begin(), time_data.end());
-
-    for (std::size_t i = 0; i < time_data.length(); i += 2) {
-      char temp = time_data[i];
-      time_data[i] = time_data[i + 1];
-      time_data[i + 1] = temp;
-    }
-
-    // Convert string to long long
-    unsigned long long last_run =
-        tryTo<unsigned long long>(time_data, 16).takeOr(0ull);
-    if (last_run == 0ull) {
-      LOG(WARNING) << "Failed to convert string to long long: " << time_data;
-      return 1LL;
-    }
-
-    FILETIME file_time;
-    ULARGE_INTEGER large_time;
-    large_time.QuadPart = last_run;
-    file_time.dwHighDateTime = large_time.HighPart;
-    file_time.dwLowDateTime = large_time.LowPart;
-    auto last_time = filetimeToUnixtime(file_time);
-    return last_time;
-  }
-}
+    "\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist";
 
 // Get execution count
-int executionNum(const std::string& assist_data) {
+std::size_t executionNum(const std::string& assist_data) {
   if (assist_data.length() <= 16) {
     LOG(WARNING) << "Userassist execution count format is incorrect";
     return -1;
   }
 
   std::string execution_count = assist_data.substr(8, 8);
-
   // swap endianess
   std::reverse(execution_count.begin(), execution_count.end());
 
@@ -114,7 +53,6 @@ QueryData genUserAssist(QueryContext& context) {
   QueryData users;
 
   queryKey("HKEY_USERS", users);
-
   for (const auto& uKey : users) {
     auto keyType = uKey.find("type");
     auto keyPath = uKey.find("path");
@@ -143,7 +81,7 @@ QueryData genUserAssist(QueryContext& context) {
         // split reg path by \Count\ to get Key values
         auto count_key = subkey.find("Count\\");
         auto value_key = subkey.substr(count_key);
-        auto value_key_reg = value_key.substr(6, std::string::npos);
+        std::string value_key_reg = value_key.substr(6, std::string::npos);
 
         std::string decoded_value_key = rotDecode(value_key_reg);
         Row r;
@@ -159,32 +97,33 @@ QueryData genUserAssist(QueryContext& context) {
           results.push_back(r);
         } else {
           std::string assist_data = aKey.at("data");
-          auto time_str = 1LL;
+          auto time_str = 0LL;
           if (assist_data.length() <= 136) {
             LOG(WARNING)
                 << "Userassist last execute Timestamp format is incorrect";
           } else {
             std::string time_data = assist_data.substr(120, 16);
-            time_str = lastExecute(time_data);
+            // Sometimes Userassist artifacts have 0 as timestamp, if so skip
+            // filetime converstion
+            time_str = (time_data == "0000000000000000")
+                           ? 0LL
+                           : littleEndianToUnixTime(time_data);
           }
-
           r["path"] = decoded_value_key;
 
-          if (time_str == 1LL) {
+          if (time_str == 0LL) {
             r["count"] = "";
-            r["last_execution_time"] = "";
           } else {
-            r["last_execution_time"] = INTEGER(time_str);
             auto count = executionNum(assist_data);
             r["count"] = INTEGER(count);
           }
+          r["last_execution_time"] = INTEGER(time_str);
           r["sid"] = uKey.at("name");
           results.push_back(r);
         }
       }
     }
   }
-
   return results;
 }
 } // namespace tables

@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -11,18 +12,17 @@
 #include "aws_log_forwarder.h"
 
 #include <chrono>
+#include <gflags/gflags.h>
 #include <memory>
 #include <vector>
-#include <gflags/gflags.h>
 
 #include <aws/firehose/FirehoseClient.h>
 #include <aws/firehose/model/PutRecordBatchResponseEntry.h>
 #include <aws/firehose/model/Record.h>
 
-#include <osquery/core.h>
-#include <osquery/dispatcher.h>
-#include <osquery/plugins/logger.h>
-
+#include <osquery/core/core.h>
+#include <osquery/core/plugins/logger.h>
+#include <osquery/dispatcher/dispatcher.h>
 
 namespace osquery {
 
@@ -37,8 +37,8 @@ using IFirehoseLogForwarder = AwsLogForwarder<
 class FirehoseLogForwarder final : public IFirehoseLogForwarder {
  public:
   FirehoseLogForwarder(const std::string& name,
-                       size_t log_period,
-                       size_t max_lines)
+                       uint64_t log_period,
+                       uint64_t max_lines)
       : IFirehoseLogForwarder(name, log_period, max_lines) {}
 
  protected:
@@ -83,4 +83,4 @@ class FirehoseLoggerPlugin : public LoggerPlugin {
  private:
   std::shared_ptr<FirehoseLogForwarder> forwarder_{nullptr};
 };
-}
+} // namespace osquery

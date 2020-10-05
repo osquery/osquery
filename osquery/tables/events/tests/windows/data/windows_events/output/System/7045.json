@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-05T13:25:27.8056213Z",
+    "source": "System",
+    "provider_name": "Service Control Manager",
+    "provider_guid": "{555908d1-a6d7-4695-8e1e-26931d2012f4}",
+    "event_id": "7045",
+    "task_id": "0",
+    "level": "4",
+    "keywords": "0x8080000000000000",
+    "data": "{\"EventData\":{\"ServiceName\":\"Intel(R) PRO\\\/1000 PCI Express Network Connection Driver I\",\"ImagePath\":\"\\\\SystemRoot\\\\System32\\\\drivers\\\\e1i65x64.sys\",\"ServiceType\":\"kernel mode driver\",\"StartType\":\"demand start\",\"AccountName\":\"\"}}"
+}

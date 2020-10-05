@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 // clang-format off
@@ -12,8 +13,8 @@
 #include <evntprov.h>
 // clang-format on
 
-#include <osquery/flags.h>
-#include <osquery/plugins/logger.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/plugins/logger.h>
 
 namespace osquery {
 
@@ -44,7 +45,7 @@ class WindowsEventLoggerPlugin : public LoggerPlugin {
       const std::string& message,
       StatusLogSeverity severity = O_INFO,
       const std::string& source_file_name = std::string("<empty>"),
-      size_t line = 0U);
+      uint64_t line = 0U);
 
  private:
   REGHANDLE registration_handle_{0};

@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-12T15:27:05.3825030Z",
+    "source": "System",
+    "provider_name": "Microsoft-Windows-Winlogon",
+    "provider_guid": "{dbe9b383-7cf3-4331-91cc-a3cb16a3b538}",
+    "event_id": "7001",
+    "task_id": "1101",
+    "level": "4",
+    "keywords": "0x2000200000000000",
+    "data": "{\"EventData\":{\"TSId\":\"2\",\"UserSid\":\"S-1-5-21-1635320930-1923649801-2071859845-1001\"}}"
+}

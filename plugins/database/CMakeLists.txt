@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryPluginsDatabaseMain)
 
@@ -10,31 +11,8 @@ function(osqueryPluginsDatabaseMain)
     add_subdirectory("tests")
   endif()
 
-  generatePluginsDatabaseEphemeral()
   generatePluginsDatabaseRocksdbplugin()
   generatePluginsDatabaseSqliteplugin()
-endfunction()
-
-function(generatePluginsDatabaseEphemeral)
-  add_osquery_library(plugins_database_ephemeral EXCLUDE_FROM_ALL
-    ephemeral.cpp
-  )
-
-  enableLinkWholeArchive(plugins_database_ephemeral)
-
-  target_link_libraries(plugins_database_ephemeral PUBLIC
-    osquery_cxx_settings
-    osquery_core
-    osquery_database
-    osquery_registry
-    osquery_utils
-  )
-
-  set(public_header_files
-    ephemeral.h
-  )
-
-  generateIncludeNamespace(plugins_database_ephemeral "plugins/database" "FILE_ONLY" ${public_header_files})
 endfunction()
 
 function(generatePluginsDatabaseRocksdbplugin)

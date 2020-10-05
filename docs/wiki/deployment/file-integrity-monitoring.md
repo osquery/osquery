@@ -1,27 +1,29 @@
-File integrity monitoring (FIM) is available for Linux and Darwin using inotify and FSEvents. The daemon reads a list of files/directories from the osquery configuration. The actions (and hashes when appropriate) to those selected files populate the [`file_events`](https://osquery.io/schema/current/#file_events) table.
+# File Integrity Monitoring with osquery
 
-To get started with FIM, you must first identify which files and directories you wish to monitor. Then use *fnmatch*-style, or filesystem globbing, patterns to represent the target paths. You may use standard wildcards "*\**" or SQL-style wildcards "*%*":
+File integrity monitoring (FIM) is available for Linux and macOS using inotify and FSEvents. The daemon reads a list of files/directories from the osquery configuration. The actions (and hashes when appropriate) to those selected files populate the [`file_events`](https://osquery.io/schema/current/#file_events) table.
 
-**Matching wildcard rules**
+To get started with FIM, you must first identify which files and directories you wish to monitor. Then use *fnmatch*-style, or filesystem globbing, patterns to represent the target paths. You may use standard wildcards `*`/`**` or SQL-style wildcards `*%*`:
 
-* `%`: Match all files and folders for one level.
-* `%%`: Match all files and folders recursively.
-* `%abc`: Match all within-level ending in "abc".
-* `abc%`: Match all within-level starting with "abc".
+## Matching wildcard rules
 
-**Matching examples**
+- `%`: Match all files and folders for one level.
+- `%%`: Match all files and folders recursively.
+- `%abc`: Match all within-level ending in "abc".
+- `abc%`: Match all within-level starting with "abc".
 
-* `/Users/%/Library`: Monitor for changes to every user's Library folder.
-* `/Users/%/Library/`: Monitor for changes to files within each Library folder.
-* `/Users/%/Library/%`: Same, changes to files within each Library folder.
-* `/Users/%/Library/%%`: Monitor changes recursively within each Library.
-* `/bin/%sh`: Monitor the *bin* directory for changes ending in *sh*.
+## Matching examples
 
-For example, you may want to monitor `/etc` along with other files on a Linux system. After you identify your target files and directories you wish to monitor, add them to a new section in the config *file_paths*.
+- `/Users/%/Library`: Monitor for changes to every user's Library folder.
+- `/Users/%/Library/`: Monitor for changes to files within each Library folder.
+- `/Users/%/Library/%`: Same, changes to files within each Library folder.
+- `/Users/%/Library/%%`: Monitor changes recursively within each Library.
+- `/bin/%sh`: Monitor the `bin` directory for changes ending in `sh`.
 
-**Note:** Many applications may replace a file instead of editing them in place. If you monitor the file directly, osquery will need to be restarted in order to monitor the replacement. This can be avoided by monitoring the containing directory instead.
+For example, you may want to monitor `/etc` along with other files on a Linux system. After you identify your target files and directories you wish to monitor, add them to the `file_paths` section in the config.
 
-The three areas below that are relevant to FIM are the scheduled query against `file_events`, the added `file_paths` section and the `exclude_paths` sections. The `file_events` query is scheduled to collect all of the FIM events that have occurred on any files within the paths specified within `file_paths` but excluding the paths specified within `exclude_paths` on a five minute interval. At a high level this means events are buffered within osquery and sent to the configured _logger_ every five minutes.
+**Note:** Many applications may *replace* a file instead of editing it in place. If you monitor the file directly, osquery will need to be restarted in order to monitor the replacement. This can be avoided by monitoring the containing directory instead.
+
+The three areas below that are relevant to FIM are the scheduled query against `file_events`, the added `file_paths` section, and the `exclude_paths` sections. The `file_events` query is scheduled to collect all of the FIM events that have occurred on any files within the paths specified within `file_paths` but excluding the paths specified within `exclude_paths` on a five minute interval. At a high level this means events are buffered within osquery and sent to the configured _logger_ every five minutes.
 
 **Note:** You cannot match recursively inside a path. For example `/Users/%%/Configuration.conf` is not a valid wildcard.
 
@@ -63,12 +65,12 @@ The three areas below that are relevant to FIM are the scheduled query against `
 }
 ```
 
-One must not mention arbitrary category name under the exclude_paths node, only valid categories are allowed.
+Do not use arbitrary category names under the `exclude_paths` node; only valid categories are allowed.
 
-* `valid category` - Categories which are mentioned under `file_paths` node. In the above example config `homes`, `etc` and `tmp` are termed as valid categories.
-* `invalid category` - Any other category name apart from `homes`, `etc` and `tmp` are considered as invalid categories.
+- `valid category` - Categories which are mentioned under `file_paths` node. In the above example config `homes`, `etc` and `tmp` are termed as valid categories.
+- `invalid category` - Any other category name apart from `homes`, `etc` and `tmp` are considered as invalid categories.
 
-In addition to `file_paths` one can use `file_paths_query` to specify the file paths to monitor as `path` column of the results of the given query, for example:
+In addition to `file_paths`, one can use `file_paths_query` to specify the file paths to monitor as `path` column of the results of the given query. For example:
 
 ```json
 {
@@ -80,7 +82,7 @@ In addition to `file_paths` one can use `file_paths_query` to specify the file p
 }
 ```
 
-**Note:** Invalid categories get dropped silently, i.e. they don't have any effect on the events generated.
+**Note:** Invalid categories get dropped silently, i.e., they don't have any effect on the events generated.
 
 ## Sample Event Output
 
@@ -101,7 +103,7 @@ As file changes happen, events will appear in the [**file_events**](https://osqu
 
 ## Tuning Linux inotify limits
 
-For Linux, osquery uses inotify to subscribe to file changes at the kernel level for performance.  This introduces some limitations on the number of files that can be monitored since each inotify watch takes up memory in kernel space (non-swappable memory).  Adjusting your limits accordingly can help increase the file limit at a cost of kernel memory.
+For Linux, osquery uses `inotify` to subscribe to file changes at the kernel level for performance.  This introduces some limitations on the number of files that can be monitored since each `inotify` watch takes up memory in kernel space (non-swappable memory).  Adjusting your limits accordingly can help increase the file limit at a cost of kernel memory.
 
 ### Example sysctl.conf modifications
 
@@ -120,7 +122,7 @@ fs.inotify.max_queued_events = 32768
 
 In addition to FIM which generates events if a file is created/modified/deleted, osquery also supports file access monitoring which can generate events if a file is accessed.
 
-File accesses on Linux using inotify may induce unexpected and unwanted performance reduction. To prevent 'flooding' of access events alongside FIM, enabling access events for `file_path` categories is an explicit opt-in. You may add categories that were defined in your `file_paths` stanza:
+File accesses on Linux using `inotify` may incur unexpected and unwanted performance overhead. To prevent 'flooding' of access events alongside FIM, enabling access events for `file_path` categories is an explicit opt-in. You may add categories that were defined in your `file_paths` stanza:
 
 ```json
 {
@@ -140,6 +142,6 @@ File accesses on Linux using inotify may induce unexpected and unwanted performa
 }
 ```
 
-The above configuration snippet will enable file integrity monitoring for 'homes', 'etc', and 'tmp' but only enable access monitoring for the 'homes' and 'etc' directories.
+The above configuration snippet will enable file integrity monitoring for `homes`, `etc`, and `tmp` but only enable access monitoring for the `homes` and `etc` directories.
 
-> NOTICE: The hashes of files will not be calculated to avoid generating additional access events.
+> NOTICE: The hashes of files will not be calculated, to avoid generating additional access events.

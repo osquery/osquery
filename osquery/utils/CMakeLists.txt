@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryUtilsMain)
   add_subdirectory("aws")
@@ -33,6 +34,7 @@ function(generateOsqueryUtils)
     base64.cpp
     chars.cpp
     only_movable.cpp
+    rot13.cpp
   )
 
   if(DEFINED PLATFORM_MACOS)
@@ -67,6 +69,7 @@ function(generateOsqueryUtils)
     map_take.h
     mutex.h
     only_movable.h
+    rot13.h
     scope_guard.h
   )
 
@@ -96,12 +99,14 @@ function(generateOsqueryUtilsUtilstestsTest)
     tests/base64.cpp
     tests/chars.cpp
     tests/map_take.cpp
+    tests/rot13.cpp
     tests/scope_guard.cpp
   )
 
   if(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       tests/windows/env.cpp
+      tests/windows/filetime.cpp
     )
   endif()
 

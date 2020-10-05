@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -20,7 +21,7 @@ struct QueryPerformance {
   size_t executions{0};
 
   /// Last UNIX time in seconds the query was executed successfully.
-  size_t last_executed{0};
+  unsigned long long int last_executed{0};
 
   /// Total wall time taken
   unsigned long long int wall_time{0};

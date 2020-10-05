@@ -1,29 +1,38 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/remote/http_client.h>
+#include <osquery/remote/transports/tls.h>
+
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <regex>
 #include <thread>
 
 #ifdef LINUX
 #include <malloc.h>
 #endif
 
+#include <osquery/core/flags.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/hashing/hashing.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/status/status.h>
 
-#include "osquery/tables/yara/yara_utils.h"
+#include <osquery/remote/uri.h>
+#include <osquery/tables/yara/yara_utils.h>
 
 #ifdef CONCAT
 #undef CONCAT
 #endif
+
 #include <yara.h>
 
 namespace osquery {
@@ -38,71 +47,294 @@ FLAG(bool,
      true,
      "Call malloc_trim() after YARA scans (linux)");
 #endif
+
 FLAG(uint32,
      yara_delay,
      50,
      "Time in ms to sleep after scan of each file (default 50) to reduce "
      "memory spikes");
 
+HIDDEN_FLAG(bool,
+            enable_yara_string,
+            false,
+            "Enable returning matched YARA strings. The strings are set to "
+            "private if rules are passed with sigrule");
+
 namespace tables {
+
+using YaraRuleSet = std::set<std::string>;
+
+typedef enum { YC_NONE = 0, YC_GROUP, YC_FILE, YC_RULE, YC_URL } YaraRuleType;
+
+using YARAConfigParser = std::shared_ptr<YARAConfigParserPlugin>;
+
+using YaraScanContext = std::set<std::pair<YaraRuleType, std::string>>;
+
+// Check if the YARAConfigParser is nullptr
+static inline bool isNull(std::shared_ptr<ConfigParserPlugin> parser) {
+  return (parser == nullptr) || (parser.get() == nullptr);
+}
+
+static inline std::string hashStr(const std::string& str, YaraRuleType yc) {
+  switch (yc) {
+  case YC_RULE:
+    return "rule_" +
+           hashFromBuffer(HASH_TYPE_SHA256, str.c_str(), str.length());
+  default:
+    return str;
+  }
+};
+
+// Get the yara configuration parser
+static YARAConfigParser getYaraParser(void) {
+  auto parser = Config::getParser("yara");
+  if (isNull(parser)) {
+    LOG(ERROR) << "YARA config parser plugin not found";
+    return nullptr;
+  }
+
+  YARAConfigParser yaraParser = nullptr;
+  try {
+    yaraParser = std::dynamic_pointer_cast<YARAConfigParserPlugin>(parser);
+  } catch (const std::bad_cast& e) {
+    LOG(ERROR) << "Cannot cast YARA config parser plugin";
+    return nullptr;
+  }
+
+  return yaraParser;
+}
+
+bool isRuleUrlAllowed(std::set<std::string> signature_set, std::string url) {
+  Uri test_uri(url);
+  for (const auto& sig : signature_set) {
+    Uri sig_uri(sig);
+
+    // The uri scheme, host and path matches are case sensitive
+    if ((sig_uri.host() == test_uri.host()) &&
+        (sig_uri.scheme() == test_uri.scheme())) {
+      // Check the regex pattern for the allowed URL
+      const std::regex pat(sig_uri.path());
+      if (std::regex_match(test_uri.path(), pat)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+Status getRuleFromURL(const std::string& url, std::string& rule) {
+  auto yaraParser = getYaraParser();
+  if (isNull(yaraParser)) {
+    return Status::failure("YARA config parser plugin not found");
+  }
+
+  try {
+    auto signature_set = yaraParser->url_allow_set();
+    if (!isRuleUrlAllowed(signature_set, url)) {
+      VLOG(1) << "YARA signature url " << url << " not allowed";
+      return Status::failure("YARA signature url not allowed");
+    }
+
+    http::Client client(TLSTransport().getInternalOptions());
+    http::Response response;
+    http::Request request(url);
+
+    response = client.get(request);
+    // Check for the status code and update the rule string on success
+    // and result has been transmitted to the message body
+    if (response.status() == 200) {
+      rule = response.body();
+    } else {
+      VLOG(1) << "Can't fetch rules from url response code: "
+              << response.status();
+    }
+  } catch (const std::exception& e) {
+    return Status::failure(e.what());
+  }
+
+  return Status::success();
+}
 
 void doYARAScan(YR_RULES* rules,
                 const std::string& path,
                 QueryData& results,
-                const std::string& group,
+                YaraRuleType yr_type,
                 const std::string& sigfile) {
-  Row r;
+  Row row;
 
   // These are default values, to be updated in YARACallback.
-  r["count"] = INTEGER(0);
-  r["matches"] = std::string("");
-  r["strings"] = std::string("");
-  r["tags"] = std::string("");
+  row["count"] = INTEGER(0);
+  row["matches"] = SQL_TEXT("");
+  row["strings"] = SQL_TEXT("");
+  row["tags"] = SQL_TEXT("");
+  row["sig_group"] = SQL_TEXT("");
+  row["sigfile"] = SQL_TEXT("");
+  row["sigrule"] = SQL_TEXT("");
 
   // This could use target_path instead to be consistent with yara_events.
-  r["path"] = path;
-  r["sig_group"] = std::string(group);
-  r["sigfile"] = std::string(sigfile);
+  row["path"] = path;
+
+  switch (yr_type) {
+  case YC_GROUP:
+    row["sig_group"] = SQL_TEXT(sigfile);
+    break;
+  case YC_FILE:
+    row["sigfile"] = SQL_TEXT(sigfile);
+    break;
+  case YC_RULE:
+    row["sigrule"] = SQL_TEXT(sigfile);
+    break;
+  case YC_URL:
+    row["sigurl"] = SQL_TEXT(sigfile);
+    break;
+  case YC_NONE:
+    break;
+  }
 
   // Perform the scan, using the static YARA subscriber callback.
   int result = yr_rules_scan_file(
-      rules, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
+      rules, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&row, 0);
   if (result == ERROR_SUCCESS) {
-    results.push_back(std::move(r));
+    results.push_back(std::move(row));
   }
+}
+
+Status getYaraRules(YARAConfigParser parser,
+                    YaraRuleSet signature_set,
+                    YaraRuleType sign_type,
+                    YaraScanContext& context) {
+  if (isNull(parser)) {
+    return Status::failure("YARA config parser plugin is null");
+  }
+
+  auto& rules_map = parser->rules();
+
+  // Compile signature string and add them to the scan context
+  for (const auto& sign : signature_set) {
+    // Check if the signature string has been used/compiled
+    if (rules_map.count(hashStr(sign, sign_type)) > 0) {
+      context.insert(std::make_pair(sign_type, sign));
+      continue;
+    }
+
+    YR_RULES* tmp_rules = nullptr;
+    switch (sign_type) {
+    case YC_FILE: {
+      auto path = (sign[0] != '/') ? (kYARAHome + sign) : sign;
+      auto status = compileSingleFile(path, &tmp_rules);
+      if (!status.ok()) {
+        LOG(WARNING) << "YARA compile error: " << status.toString();
+        continue;
+      }
+      break;
+    }
+
+    case YC_RULE: {
+      auto status = compileFromString(sign, &tmp_rules);
+      if (!status.ok()) {
+        LOG(WARNING) << "YARA compile error: " << status.toString();
+        continue;
+      }
+      break;
+    }
+
+    case YC_URL: {
+      std::string rule_string;
+      auto request = getRuleFromURL(sign, rule_string);
+      // rule_string will be empty if there is partial fetch or
+      // the function failed to fetch the YARA rules from URL
+      if (!request.ok() || rule_string.empty()) {
+        LOG(WARNING) << "Failed to get YARA rule url: " << sign;
+        continue;
+      }
+
+      auto status = compileFromString(rule_string, &tmp_rules);
+      if (!status.ok()) {
+        LOG(WARNING) << "YARA compile error: " << status.toString();
+        continue;
+      }
+      break;
+    }
+
+    default:
+      return Status::failure("Unsupported YARA rule type");
+    }
+
+    // Cache the compiled rules by setting the unique hashed signature
+    // string as the lookup name. Additional signature file uses will
+    // skip the compile step and be added to the scan context
+    rules_map[hashStr(sign, sign_type)] = tmp_rules;
+    context.insert(std::make_pair(sign_type, sign));
+  }
+
+  return Status::success();
 }
 
 QueryData genYara(QueryContext& context) {
   QueryData results;
+  YaraScanContext scanContext;
 
-  // Must specify a path constraint and at least one of sig_group or sigfile.
-  auto groups = context.constraints["sig_group"].getAll(EQUALS);
-  auto sigfiles = context.constraints["sigfile"].getAll(EQUALS);
-  if (groups.size() == 0 && sigfiles.size() == 0) {
+  // Initialize yara library
+  auto init_status = yaraInitilize();
+  if (!init_status.ok()) {
+    LOG(WARNING) << init_status.toString();
     return results;
   }
 
-  // This could be abstracted into a common "get rules for group" function.
-  auto parser = Config::getParser("yara");
-  if (parser == nullptr || parser.get() == nullptr) {
-    LOG(ERROR) << "YARA config parser plugin has no pointer";
+  auto yaraParser = getYaraParser();
+  if (isNull(yaraParser)) {
     return results;
   }
 
-  std::shared_ptr<YARAConfigParserPlugin> yaraParser = nullptr;
-  try {
-    yaraParser = std::dynamic_pointer_cast<YARAConfigParserPlugin>(parser);
-  } catch (const std::bad_cast& e) {
-    LOG(ERROR) << "Error casting yara config parser plugin";
-    return results;
+  // The query must specify one of sig_groups, sigfile, or sigrule
+  // for scan. The signature rules are compiled and added to the
+  // scan context.
+  if (context.hasConstraint("sig_group", EQUALS)) {
+    auto groups = context.constraints["sig_group"].getAll(EQUALS);
+    for (const auto& group : groups) {
+      scanContext.insert(std::make_pair(YC_GROUP, group));
+    }
   }
-  if (yaraParser == nullptr || yaraParser.get() == nullptr) {
-    LOG(ERROR) << "YARA config parser plugin has no pointer";
-    return results;
-  }
-  auto& rules = yaraParser->rules();
 
-  // Collect all paths specified too.
+  // Compile signature file if query has sigfile constraint and
+  // add them to the scan context
+  if (context.hasConstraint("sigfile", EQUALS)) {
+    auto sigfiles = context.constraints["sigfile"].getAll(EQUALS);
+    auto status = getYaraRules(yaraParser, sigfiles, YC_FILE, scanContext);
+    if (!status.ok()) {
+      LOG(WARNING) << status.toString();
+      return results;
+    }
+  }
+
+  // Compile signature string if query has sigrule constraint and
+  // add them to the scan context
+  if (context.hasConstraint("sigrule", EQUALS)) {
+    auto sigrules = context.constraints["sigrule"].getAll(EQUALS);
+    auto status = getYaraRules(yaraParser, sigrules, YC_RULE, scanContext);
+    if (!status.ok()) {
+      LOG(WARNING) << status.toString();
+      return results;
+    }
+  }
+
+  if (context.hasConstraint("sigurl", EQUALS)) {
+    auto sigurls = context.constraints["sigurl"].getAll(EQUALS);
+    auto status = getYaraRules(yaraParser, sigurls, YC_URL, scanContext);
+    if (!status.ok()) {
+      LOG(WARNING) << status.toString();
+      return results;
+    }
+  }
+
+  // scan context is empty. One of sig_group, sigfile, or sigrule
+  // must be specified with the query
+  if (scanContext.empty()) {
+    VLOG(1) << "Query must specify sig_group, sigfile, or sigrule for scan";
+    return results;
+  }
+
+  // Get all the paths specified
   auto paths = context.constraints["path"].getAll(EQUALS);
   context.expandConstraints(
       "path",
@@ -116,7 +348,7 @@ QueryData genYara(QueryContext& context) {
           for (const auto& resolved : patterns) {
             struct stat sb;
             if (0 != stat(resolved.c_str(), &sb)) {
-              continue; // failed to stat
+              continue; // failed to stat the file
             }
 
             // Check that each resolved path is readable.
@@ -129,41 +361,42 @@ QueryData genYara(QueryContext& context) {
         return status;
       }));
 
-  // Compile all sigfiles into a map.
-  for (const auto& file : sigfiles) {
-    // Check if this "ad-hoc" signature file has not been used/compiled.
-    if (rules.count(file) == 0) {
-      // If this is a relative path append the default yara search path.
-      auto path = (file[0] != '/') ? kYARAHome : "";
-      path += file;
-
-      YR_RULES* tmp_rules = nullptr;
-      auto status = compileSingleFile(path, &tmp_rules);
-      if (!status.ok()) {
-        VLOG(1) << "YARA compile error: " << status.toString();
-        continue;
-      }
-      // Cache the compiled rules by setting the unique signature file path
-      // as the lookup name. Additional signature file uses will skip the
-      // compile step and be added as rule groups.
-      rules[file] = tmp_rules;
-    }
-    // Assemble an "ad-hoc" group using the signature file path as the name.
-    groups.insert(file);
-  }
-
-  // Scan every path pair.
+  // Scan every path pair with the yara rules
+  auto& rules = yaraParser->rules();
   for (const auto& path : paths) {
-    // Scan using the signature groups.
-    for (const auto& group : groups) {
-      if (rules.count(group) > 0) {
-        doYARAScan(rules[group], path.c_str(), results, group, group);
+    for (const auto& sign : scanContext) {
+      if (rules.count(hashStr(sign.second, sign.first)) > 0) {
+        doYARAScan(rules[hashStr(sign.second, sign.first)],
+                   path.c_str(),
+                   results,
+                   sign.first,
+                   sign.second);
 
         // sleep between each file to help smooth out malloc spikes
         std::this_thread::sleep_for(
             std::chrono::milliseconds(FLAGS_yara_delay));
       }
     }
+  }
+
+  // Rule string is hashed before adding to the cache. There are
+  // possibilities of collision when arbitrary queries are executed
+  // with distributed API. Clear the hash string from the cache
+  // Also cleanup the cache block if rules are downloaded from url
+  for (const auto& sign : scanContext) {
+    if (sign.first == YC_RULE || sign.first == YC_URL) {
+      auto it = rules.find(hashStr(sign.second, sign.first));
+      if (it != rules.end()) {
+        rules.erase(hashStr(sign.second, sign.first));
+      }
+    }
+  }
+
+  // Clean-up after finish scanning; If yr_initialize is called
+  // more than once it will decrease the reference counter and return
+  auto fini_status = yaraFinalize();
+  if (!fini_status.ok()) {
+    LOG(WARNING) << fini_status.toString();
   }
 
 #ifdef LINUX

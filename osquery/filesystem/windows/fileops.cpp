@@ -1,16 +1,18 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <osquery/filesystem/fileops.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/process/windows/process_ops.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
 #include <AclAPI.h>
 #include <LM.h>
@@ -117,7 +119,9 @@ Status windowsShortPathToLongPath(const std::string& shortPath,
   return Status::success();
 }
 
-Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
+Status windowsGetVersionInfo(const std::string& path,
+                             std::string& product_version,
+                             std::string& file_version) {
   DWORD handle = 0;
   std::wstring wpath = stringToWstring(path).c_str();
   auto verSize = GetFileVersionInfoSizeW(wpath.c_str(), &handle);
@@ -137,11 +141,16 @@ Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
   if (err == 0) {
     return Status(GetLastError(), "Failed to query version value");
   }
-  rVersion =
+  product_version =
       std::to_string((pFileInfo->dwProductVersionMS >> 16 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionMS >> 0 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionLS >> 16 & 0xffff)) + "." +
       std::to_string((pFileInfo->dwProductVersionLS >> 0 & 0xffff));
+  file_version =
+      std::to_string((pFileInfo->dwFileVersionMS >> 16 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwFileVersionMS >> 0 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwFileVersionLS >> 16 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwFileVersionLS >> 0 & 0xffff));
   return Status::success();
 }
 
@@ -1445,66 +1454,48 @@ int platformAccess(const std::string& path, mode_t mode) {
   return -1;
 }
 
-static std::string normalizeDirPath(const fs::path& path) {
-  std::wregex pattern(L".*[*?\"|<>].*");
-
-  std::vector<WCHAR> full_path(MAX_PATH + 1);
-  std::vector<WCHAR> final_path(MAX_PATH + 1);
-
-  full_path.assign(MAX_PATH + 1, L'\0');
-  final_path.assign(MAX_PATH + 1, L'\0');
-
-  // Fail if illegal characters are detected in the path
-  if (std::regex_match(path.wstring(), pattern)) {
-    return std::string();
-  }
-
-  // Obtain the full path of the fs::path object
-  DWORD nret = ::GetFullPathNameW(
-      path.wstring().c_str(), MAX_PATH, full_path.data(), nullptr);
-  if (nret == 0) {
-    return std::string();
-  }
-
-  HANDLE handle = INVALID_HANDLE_VALUE;
-  handle = ::CreateFileW(full_path.data(),
-                         GENERIC_READ,
-                         FILE_SHARE_READ,
-                         nullptr,
-                         OPEN_EXISTING,
-                         FILE_FLAG_BACKUP_SEMANTICS,
-                         nullptr);
-  if (handle == INVALID_HANDLE_VALUE) {
-    return std::string();
-  }
-
-  // Resolve any symbolic links (somewhat rare on Windows)
-  nret = ::GetFinalPathNameByHandleW(
-      handle, final_path.data(), MAX_PATH, FILE_NAME_NORMALIZED);
-  ::CloseHandle(handle);
-
-  if (nret == 0) {
-    return std::string();
-  }
-
-  // NTFS is case insensitive, to normalize, make everything uppercase
-  ::CharUpperW(final_path.data());
-
-  boost::system::error_code ec;
-  std::string normalized_path = wstringToString(final_path.data());
-  if ((fs::is_directory(normalized_path, ec) && ec.value() == errc::success) &&
-      normalized_path[nret - 1] != '\\') {
-    normalized_path += "\\";
-  }
-  return normalized_path;
-}
-
 static bool dirPathsAreEqual(const fs::path& dir1, const fs::path& dir2) {
-  std::string normalized_path1 = normalizeDirPath(dir1);
-  std::string normalized_path2 = normalizeDirPath(dir2);
+  // two paths are the same, if both the unique identifier (nFileIndex) and
+  // volume serial number are the same.
+  // Reference: BY_HANDLE_FILE_INFORMATION structure's nFileIndexLow in MSDN.
+  HANDLE path1 = CreateFileW(dir1.wstring().c_str(),
+                             GENERIC_READ,
+                             FILE_SHARE_READ,
+                             nullptr,
+                             OPEN_EXISTING,
+                             FILE_FLAG_BACKUP_SEMANTICS,
+                             nullptr);
 
-  return (normalized_path1.size() > 0 && normalized_path2.size() > 0 &&
-          normalized_path1 == normalized_path2);
+  HANDLE path2 = CreateFileW(dir2.wstring().c_str(),
+                             GENERIC_READ,
+                             FILE_SHARE_READ,
+                             nullptr,
+                             OPEN_EXISTING,
+                             FILE_FLAG_BACKUP_SEMANTICS,
+                             nullptr);
+
+  bool result = false;
+
+  if (INVALID_HANDLE_VALUE != path1) {
+    if (INVALID_HANDLE_VALUE != path2) {
+      BY_HANDLE_FILE_INFORMATION info1 = {0};
+      BY_HANDLE_FILE_INFORMATION info2 = {0};
+      if (GetFileInformationByHandle(path1, &info1) &&
+          GetFileInformationByHandle(path2, &info2)) {
+        if (info1.dwVolumeSerialNumber == info2.dwVolumeSerialNumber &&
+            info1.nFileIndexHigh == info2.nFileIndexHigh &&
+            info1.nFileIndexLow == info2.nFileIndexLow) {
+          result = true;
+        }
+      }
+
+      CloseHandle(path2);
+    }
+
+    CloseHandle(path1);
+  }
+
+  return result;
 }
 
 Status platformIsTmpDir(const fs::path& dir) {
@@ -1567,22 +1558,6 @@ Status socketExists(const fs::path& path, bool remove_socket) {
     }
   }
   return Status::success();
-}
-
-LONGLONG filetimeToUnixtime(const FILETIME& ft) {
-  LARGE_INTEGER date, adjust;
-  date.HighPart = ft.dwHighDateTime;
-  date.LowPart = ft.dwLowDateTime;
-  adjust.QuadPart = 11644473600000 * 10000;
-  date.QuadPart -= adjust.QuadPart;
-  return date.QuadPart / 10000000;
-}
-
-LONGLONG longIntToUnixtime(LARGE_INTEGER& ft) {
-  ULARGE_INTEGER ull;
-  ull.LowPart = ft.LowPart;
-  ull.HighPart = ft.HighPart;
-  return ull.QuadPart / 10000000ULL - 11644473600ULL;
 }
 
 std::string getFileAttribStr(unsigned long file_attributes) {
@@ -1844,8 +1819,9 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   (!ret) ? wfile_stat->ctime = -1
          : wfile_stat->ctime = longIntToUnixtime(basic_info.ChangeTime);
 
-  windowsGetFileVersion(wstringToString(path.wstring()),
-                        wfile_stat->product_version);
+  windowsGetVersionInfo(wstringToString(path.wstring()),
+                        wfile_stat->product_version,
+                        wfile_stat->file_version);
 
   CloseHandle(file_handle);
 
@@ -1856,7 +1832,7 @@ fs::path getSystemRoot() {
   std::vector<WCHAR> winDirectory(MAX_PATH + 1);
   ZeroMemory(winDirectory.data(), MAX_PATH + 1);
   GetWindowsDirectoryW(winDirectory.data(), MAX_PATH);
-  return fs::path(wstringToString(winDirectory.data()));
+  return fs::path(winDirectory.data());
 }
 
 Status platformLstat(const std::string& path, struct stat& d_stat) {

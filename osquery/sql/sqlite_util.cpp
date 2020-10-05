@@ -1,23 +1,24 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/sql/virtual_table.h"
 
-#include <osquery/plugins/sql.h>
+#include <osquery/core/plugins/sql.h>
 
 #include <osquery/utils/conversions/castvariant.h>
 
-#include <osquery/core.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/utils/conversions/split.h>
 

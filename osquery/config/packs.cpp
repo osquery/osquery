@@ -1,21 +1,22 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <algorithm>
 #include <mutex>
 #include <random>
 
-#include <osquery/database.h>
+#include <osquery/config/packs.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/logger.h>
-#include <osquery/packs.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/version.h>
@@ -44,7 +45,7 @@ size_t kMaxQueryInterval = 604800;
 
 std::once_flag kUseDenylist;
 
-size_t splayValue(size_t original, size_t splayPercent) {
+uint64_t splayValue(uint64_t original, uint64_t splayPercent) {
   if (splayPercent == 0 || splayPercent > 100) {
     return original;
   }
@@ -52,8 +53,8 @@ size_t splayValue(size_t original, size_t splayPercent) {
   float percent_to_modify_by = (float)splayPercent / 100;
   size_t possible_difference =
       static_cast<size_t>(original * percent_to_modify_by);
-  size_t max_value = original + possible_difference;
-  size_t min_value = std::max((size_t)1, original - possible_difference);
+  uint64_t max_value = original + possible_difference;
+  uint64_t min_value = std::max((uint64_t)1, original - possible_difference);
 
   if (max_value == min_value) {
     return max_value;
@@ -62,7 +63,7 @@ size_t splayValue(size_t original, size_t splayPercent) {
   std::default_random_engine generator;
   generator.seed(static_cast<unsigned int>(
       std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-  std::uniform_int_distribution<size_t> distribution(min_value, max_value);
+  std::uniform_int_distribution<uint64_t> distribution(min_value, max_value);
   return distribution(generator);
 }
 
@@ -88,7 +89,7 @@ size_t getMachineShard(const std::string& hostname = "", bool force = false) {
   return shard;
 }
 
-size_t restoreSplayedValue(const std::string& name, size_t interval) {
+uint64_t restoreSplayedValue(const std::string& name, uint64_t interval) {
   // Attempt to restore a previously-calculated splay.
   std::string content;
   getDatabaseValue(kPersistentSettings, "interval." + name, content);
@@ -109,7 +110,7 @@ size_t restoreSplayedValue(const std::string& name, size_t interval) {
   }
 
   // If the splayed interval was not restored from the database.
-  auto splay = splayValue(interval, FLAGS_schedule_splay_percent);
+  uint64_t splay = splayValue(interval, FLAGS_schedule_splay_percent);
   content = std::to_string(interval) + ":" + std::to_string(splay);
   setDatabaseValue(kPersistentSettings, "interval." + name, content);
   return splay;
@@ -317,7 +318,7 @@ bool Pack::checkVersion(const std::string& version) const {
 
 bool Pack::checkDiscovery() {
   stats_.total++;
-  size_t current = osquery::getUnixTime();
+  uint64_t current = osquery::getUnixTime();
   if ((current - discovery_cache_.first) < FLAGS_pack_refresh_interval) {
     stats_.hits++;
     return discovery_cache_.second;

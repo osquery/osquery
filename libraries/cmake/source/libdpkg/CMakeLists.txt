@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(libdpkgMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -92,7 +93,7 @@ function(libdpkgMain)
   )
 
   target_include_directories(thirdparty_libdpkg PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}"
     "${library_root}/lib/compat"
     "${library_root}"
     "${library_root}/lib"

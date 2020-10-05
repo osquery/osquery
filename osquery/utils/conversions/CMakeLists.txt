@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryUtilsConversionsMain)
   if(OSQUERY_BUILD_TESTS)
@@ -32,6 +33,7 @@ function(generateOsqueryUtilsConversions)
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/strings.cpp
+      windows/windows_time.cpp
     )
   endif()
 
@@ -41,6 +43,8 @@ function(generateOsqueryUtilsConversions)
 
   target_link_libraries(osquery_utils_conversions PUBLIC
     osquery_cxx_settings
+    osquery_utils
+    osquery_utils_system_systemutils
     osquery_logger
     osquery_utils_conversions_to
     osquery_utils_expected
@@ -69,6 +73,7 @@ function(generateOsqueryUtilsConversions)
   elseif(DEFINED PLATFORM_WINDOWS)
     set(platform_public_header_files
       windows/strings.h
+      windows/windows_time.h
     )
   endif()
 
@@ -108,6 +113,7 @@ function(generateOsqueryUtilsConversionsConversionstestsTest)
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/tests/strings.cpp
+      windows/tests/windows_time.cpp
     )
   endif()
 

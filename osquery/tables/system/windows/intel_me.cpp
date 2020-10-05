@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <array>
@@ -14,6 +15,7 @@
 
 // clang-format off
 #include <osquery/utils/system/system.h>
+#include <osquery/utils/conversions/windows/strings.h>
 #include <SetupAPI.h>
 // clang-format on
 
@@ -22,9 +24,9 @@
 #include <initguid.h>
 #include <tchar.h>
 
-#include <osquery/core.h>
-#include <osquery/tables.h>
-#include <osquery/logger.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/tables/system/intel_me.hpp>
@@ -331,16 +333,16 @@ osquery::Status getDeviceInterfacePath(
         std::to_string(err));
   }
 
-  std::string path;
+  std::wstring path;
   path.assign(device_details->DevicePath, buffer.size() - sizeof(DWORD));
 
-  if (std::strlen(path.c_str()) == 0U) {
+  if (std::wcslen(path.c_str()) == 0U) {
     return osquery::Status::failure(
         "Invalid path returned for the given device interface; the string is "
         "empty");
   }
 
-  dev_interface_path = std::move(path);
+  dev_interface_path = wstringToString(path);
   return osquery::Status::success();
 }
 
@@ -405,7 +407,7 @@ osquery::Status openDeviceInterface(DeviceHandle& device_handle,
                                     const std::string& dev_interface_path) {
   device_handle.reset();
 
-  auto device = CreateFile(dev_interface_path.c_str(),
+  auto device = CreateFile(stringToWstring(dev_interface_path).c_str(),
                            GENERIC_READ | GENERIC_WRITE,
                            FILE_SHARE_READ | FILE_SHARE_WRITE,
                            nullptr,

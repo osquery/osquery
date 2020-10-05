@@ -1,11 +1,13 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(libgcryptMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(generated_root "${CMAKE_CURRENT_SOURCE_DIR}/generated/${TARGET_PROCESSOR}")
 
   add_library(thirdparty_libgcrypt
     "${library_root}/cipher/cipher-ctr.c"
@@ -42,8 +44,6 @@ function(libgcryptMain)
     "${library_root}/cipher/cast5.c"
     "${library_root}/cipher/des.c"
     "${library_root}/cipher/rijndael.c"
-    "${library_root}/cipher/rijndael-ssse3-amd64.c"
-    "${library_root}/cipher/rijndael-aesni.c"
     "${library_root}/cipher/rijndael-padlock.c"
     "${library_root}/cipher/twofish.c"
     "${library_root}/cipher/serpent.c"
@@ -63,7 +63,6 @@ function(libgcryptMain)
     "${library_root}/cipher/ecc-eddsa.c"
     "${library_root}/cipher/ecc-ecdsa.c"
     "${library_root}/cipher/ecc-gost.c"
-    "${library_root}/cipher/cipher-gcm-intel-pclmul.c"
     "${library_root}/cipher/gostr3411-94.c"
     "${library_root}/cipher/crc.c"
     "${library_root}/cipher/stribog.c"
@@ -115,17 +114,28 @@ function(libgcryptMain)
     "${library_root}/src/missing-string.c"
     "${library_root}/src/secmem.c"
     "${library_root}/src/fips.c"
-    "${library_root}/src/hwf-x86.c"
     "${library_root}/src/context.c"
 
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/mpi/mpih-add1.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/mpi/mpih-sub1.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/mpi/mpih-mul1.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/mpi/mpih-mul2.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/mpi/mpih-mul3.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/mpi/mpih-lshift.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/mpi/mpih-rshift.c"
+    "${generated_root}/mpi/mpih-lshift.c"
+    "${generated_root}/mpi/mpih-rshift.c"
   )
+
+  if(TARGET_PROCESSOR STREQUAL "aarch64")
+    target_sources(thirdparty_libgcrypt PRIVATE
+      "${library_root}/src/hwf-arm.c"
+      "${library_root}/cipher/rijndael-armv8-ce.c")
+  else()
+    target_sources(thirdparty_libgcrypt PRIVATE
+      "${library_root}/cipher/crc-intel-pclmul.c"
+      "${library_root}/cipher/rijndael-ssse3-amd64.c"
+      "${library_root}/cipher/rijndael-aesni.c"
+      "${library_root}/src/hwf-x86.c"
+      "${generated_root}/mpi/mpih-add1.c"
+      "${generated_root}/mpi/mpih-sub1.c"
+      "${generated_root}/mpi/mpih-mul1.c"
+      "${generated_root}/mpi/mpih-mul2.c"
+      "${generated_root}/mpi/mpih-mul3.c")
+  endif()
 
   # Some of these files don't play nice with clang; let's compile them
   # manually with gcc and then link in the object files
@@ -134,26 +144,44 @@ function(libgcryptMain)
   # with more processors. Note that the configuration flags to disable them
   # were not enough! Make sure all the AVX/AVX2 options are off when re-generating
   # a new config file!
-  set(asm_source_list
-    "${library_root}/cipher/arcfour-amd64.S"
-    "${library_root}/cipher/blowfish-amd64.S"
-    "${library_root}/cipher/cast5-amd64.S"
-    "${library_root}/cipher/des-amd64.S"
-    "${library_root}/cipher/rijndael-amd64.S"
-    "${library_root}/cipher/twofish-amd64.S"
-    "${library_root}/cipher/salsa20-amd64.S"
+  if(TARGET_PROCESSOR STREQUAL "aarch64")
+    set(asm_source_list
+      "${library_root}/cipher/rijndael-aarch64.S"
+      "${library_root}/cipher/rijndael-armv8-aarch64-ce.S"
+      "${library_root}/cipher/twofish-aarch64.S"
+      "${library_root}/cipher/camellia-aarch64.S"
+      "${library_root}/cipher/sha256-armv8-aarch64-ce.S"
+      "${library_root}/cipher/sha1-armv8-aarch64-ce.S"
+      "${library_root}/cipher/cipher-gcm-armv8-aarch64-ce.S"
 
-    "${library_root}/cipher/serpent-sse2-amd64.S"
-    "${library_root}/cipher/chacha20-sse2-amd64.S"
-    "${library_root}/cipher/poly1305-sse2-amd64.S"
-    "${library_root}/cipher/whirlpool-sse2-amd64.S"
+      "${generated_root}/mpi/mpih-add1-asm.S"
+      "${generated_root}/mpi/mpih-sub1-asm.S"
+      "${generated_root}/mpi/mpih-mul1-asm.S"
+      "${generated_root}/mpi/mpih-mul2-asm.S"
+      "${generated_root}/mpi/mpih-mul3-asm.S"
+      )
+  else()
+    set(asm_source_list
+      "${library_root}/cipher/arcfour-amd64.S"
+      "${library_root}/cipher/blowfish-amd64.S"
+      "${library_root}/cipher/cast5-amd64.S"
+      "${library_root}/cipher/des-amd64.S"
+      "${library_root}/cipher/rijndael-amd64.S"
+      "${library_root}/cipher/twofish-amd64.S"
+      "${library_root}/cipher/salsa20-amd64.S"
 
-    "${library_root}/cipher/rijndael-ssse3-amd64-asm.S"
-    "${library_root}/cipher/chacha20-ssse3-amd64.S"
-    "${library_root}/cipher/sha256-ssse3-amd64.S"
-    "${library_root}/cipher/sha512-ssse3-amd64.S"
-    "${library_root}/cipher/sha1-ssse3-amd64.S"
-  )
+      "${library_root}/cipher/serpent-sse2-amd64.S"
+      "${library_root}/cipher/chacha20-sse2-amd64.S"
+      "${library_root}/cipher/poly1305-sse2-amd64.S"
+      "${library_root}/cipher/whirlpool-sse2-amd64.S"
+
+      "${library_root}/cipher/rijndael-ssse3-amd64-asm.S"
+      "${library_root}/cipher/chacha20-ssse3-amd64.S"
+      "${library_root}/cipher/sha256-ssse3-amd64.S"
+      "${library_root}/cipher/sha512-ssse3-amd64.S"
+      "${library_root}/cipher/sha1-ssse3-amd64.S"
+    )
+  endif()
 
   add_custom_target(thirdparty_libgcrypt_asm)
   add_dependencies(thirdparty_libgcrypt thirdparty_libgcrypt_asm)
@@ -166,7 +194,7 @@ function(libgcryptMain)
 
     add_custom_command(
       OUTPUT "${asm_object}"
-      COMMAND ${CMAKE_C_COMPILER} -fno-integrated-as -DHAVE_CONFIG_H -O2 -g -DNDEBUG -fPIC -std=gnu11 -o "${asm_object}" -c "${asm_source}" "-I${CMAKE_CURRENT_SOURCE_DIR}/config"
+      COMMAND ${CMAKE_C_COMPILER} -fno-integrated-as -DHAVE_CONFIG_H -O2 -g -DNDEBUG -fPIC -std=gnu11 -o "${asm_object}" -c "${asm_source}" "-I${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}"
       DEPENDS "${asm_source}"
       COMMENT "Assembling: ${asm_source}"
       VERBATIM
@@ -200,19 +228,19 @@ function(libgcryptMain)
   )
 
   target_include_directories(thirdparty_libgcrypt PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}"
 
     "${library_root}/src"
     "${library_root}/mpi"
     "${library_root}/cipher"
 
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/src"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/mpi"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/cipher"
+    "${generated_root}/src"
+    "${generated_root}/mpi"
+    "${generated_root}/cipher"
   )
 
   target_include_directories(thirdparty_libgcrypt SYSTEM INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/src"
+    "${generated_root}/src"
   )
 endfunction()
 

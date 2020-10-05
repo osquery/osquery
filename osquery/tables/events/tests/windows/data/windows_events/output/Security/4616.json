@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-17T13:38:15.3358427Z",
+    "source": "Security",
+    "provider_name": "Microsoft-Windows-Security-Auditing",
+    "provider_guid": "{54849625-5478-4994-a5ba-3e3b0328c30d}",
+    "event_id": "4616",
+    "task_id": "12288",
+    "level": "0",
+    "keywords": "0x8020000000000000",
+    "data": "{\"EventData\":{\"SubjectUserSid\":\"S-1-5-19\",\"SubjectUserName\":\"LOCAL SERVICE\",\"SubjectDomainName\":\"NT AUTHORITY\",\"SubjectLogonId\":\"0x3e5\",\"PreviousTime\":\"2020-06-17T13:38:15.3323108Z\",\"NewTime\":\"2020-06-17T13:38:15.3355043Z\",\"ProcessId\":\"0x7cc\",\"ProcessName\":\"C:\\\\Windows\\\\System32\\\\svchost.exe\"}}"
+}

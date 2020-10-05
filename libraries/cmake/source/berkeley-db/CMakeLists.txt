@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(berkeleydbMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -181,7 +182,6 @@ function(berkeleydbMain)
     "${library_root}/src/mutex/mut_pthread.c"
     "${library_root}/src/mutex/mut_region.c"
     "${library_root}/src/mutex/mut_stat.c"
-    "${library_root}/src/mutex/mut_tas.c"
     "${library_root}/src/common/openflags.c"
     "${library_root}/src/os/os_abort.c"
     "${library_root}/src/os/os_abs.c"
@@ -274,11 +274,20 @@ function(berkeleydbMain)
     "${library_root}/src/common/zerofill.c"
   )
 
+  if(TARGET_PROCESSOR STREQUAL "x86_64")
+    target_sources(thirdparty_berkeley-db PRIVATE
+      "${library_root}/src/mutex/mut_tas.c")
+  endif()
+
+
   target_compile_definitions(thirdparty_berkeley-db PRIVATE
     _GNU_SOURCE
     _REENTRANT
-    __atomic_compare_exchange=__atomic_compare_exchange_db
   )
+  if(TARGET_PROCESSOR STREQUAL "x86_64")
+    target_compile_definitions(thirdparty_berkeley-db PRIVATE
+      __atomic_compare_exchange=__atomic_compare_exchange_db)
+  endif()
 
   target_link_libraries(thirdparty_berkeley-db PUBLIC
     thirdparty_sqlite
@@ -291,12 +300,12 @@ function(berkeleydbMain)
   target_include_directories(thirdparty_berkeley-db PRIVATE
     "${library_root}/lang/sql/adapter"
     "${library_root}/lang/sql/generated"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated/${TARGET_PROCESSOR}"
     "${library_root}/src"
   )
 
   target_include_directories(thirdparty_berkeley-db SYSTEM INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated/${TARGET_PROCESSOR}"
     "${library_root}/src"
   )
 endfunction()

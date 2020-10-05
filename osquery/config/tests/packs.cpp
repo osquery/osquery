@@ -1,21 +1,22 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <osquery/config/config.h>
 
 #include <osquery/config/tests/test_utils.h>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/flags.h>
-#include <osquery/packs.h>
-#include <osquery/registry.h>
-#include <osquery/system.h>
+#include <osquery/config/packs.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/registry/registry.h>
 
 #include <osquery/filesystem/filesystem.h>
 
@@ -29,19 +30,15 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
-
 extern size_t getMachineShard(const std::string& hostname = "",
                               bool force = false);
 
 class PacksTests : public testing::Test {
  public:
   PacksTests() {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    initDatabasePluginForTesting();
   }
 };
 

@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -21,7 +22,7 @@
 
 #include <boost/algorithm/hex.hpp>
 
-#include <osquery/dispatcher.h>
+#include <osquery/dispatcher/dispatcher.h>
 
 namespace osquery {
 
@@ -42,12 +43,12 @@ struct AuditEventRecord final {
   /// Audit event id that owns this record. Remember: PRIMARY KEY(id, timestamp)
   std::string audit_id;
 
-  /// The field list for this record. Valid for everything except SELinux
-  /// records
+  /// The field list for this record. Valid for everything except SELinux and
+  /// AppArmor records
   std::map<std::string, std::string> fields;
 
-  /// The raw message, only valid for SELinux records (because they have broken
-  /// syntax)
+  /// The raw message, only valid for SELinux and AppArmor records (because they
+  /// have broken syntax)
   std::string raw_data;
 };
 

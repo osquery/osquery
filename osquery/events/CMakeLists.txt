@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryEventsMain)
 
@@ -39,9 +40,12 @@ function(generateOsqueryEvents)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
-      windows/windows_event_log.cpp
+      windows/evtsubscription.cpp
       windows/ntfs_event_publisher.cpp
       windows/usn_journal_reader.cpp
+      windows/windowseventlogpublisher.cpp
+      windows/windowseventlogparserservice.cpp
+      windows/windowseventlogparser.cpp
     )
   endif()
 
@@ -53,7 +57,6 @@ function(generateOsqueryEvents)
 
   target_link_libraries(osquery_events PUBLIC
     osquery_cxx_settings
-    osquery_headers
     osquery_core
     osquery_config
     osquery_events_eventsregistry
@@ -71,6 +74,10 @@ function(generateOsqueryEvents)
       thirdparty_libudev
       thirdparty_util-linux
     )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    target_link_libraries(osquery_events PUBLIC
+      plugins_config_parsers
+    )
   endif()
 
   set(public_header_files
@@ -87,6 +94,7 @@ function(generateOsqueryEvents)
       linux/process_events.h
       linux/process_file_events.h
       linux/selinux_events.h
+      linux/apparmor_events.h
       linux/socket_events.h
       linux/syslog.h
       linux/udev.h
@@ -104,9 +112,12 @@ function(generateOsqueryEvents)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     set(platform_public_header_files
-      windows/windows_event_log.h
+      windows/evtsubscription.h
       windows/ntfs_event_publisher.h
       windows/usn_journal_reader.h
+      windows/windowseventlogpublisher.h
+      windows/windowseventlogparserservice.h
+      windows/windowseventlogparser.h
     )
   endif()
 
@@ -126,8 +137,9 @@ function(generateOsqueryEvents)
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
-    add_test(NAME osquery_events_tests_windowseventlogtests-test COMMAND osquery_events_tests_windowseventlogtests-test)
     add_test(NAME osquery_events_tests_usnjournalreadertests-test COMMAND osquery_events_tests_usnjournalreadertests-test)
+    add_test(NAME osquery_tables_events_tests_powershelleventstests-test COMMAND osquery_tables_events_tests_powershelleventstests-test)
+    add_test(NAME osquery_tables_events_tests_windowseventstests-test COMMAND osquery_tables_events_tests_windowseventstests-test)
   endif()
 endfunction()
 
@@ -137,10 +149,16 @@ function(generateOsqueryEventsEventsregistry)
   target_link_libraries(osquery_events_eventsregistry PUBLIC
     osquery_cxx_settings
     osquery_core
+    osquery_config
     osquery_dispatcher
     osquery_sql
-    osquery_headers
   )
+
+  set(public_header_files
+    events.h
+  )
+
+  generateIncludeNamespace(osquery_events_eventsregistry "osquery/events" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_events_tests-test COMMAND osquery_events_tests-test)
 endfunction()

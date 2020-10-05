@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-12T15:26:37.1614447Z",
+    "source": "Security",
+    "provider_name": "Microsoft-Windows-Eventlog",
+    "provider_guid": "{fc65ddd8-d6ef-4962-83d5-6e5cfe9ce148}",
+    "event_id": "1101",
+    "task_id": "101",
+    "level": "2",
+    "keywords": "0x4020000000000000",
+    "data": "{\"UserData\":{\"AuditEventsDropped\":{\"<xmlattr>\":{\"xmlns\":\"http:\\/\\/manifests.microsoft.com\\/win\\/2004\\/08\\/windows\\/eventlog\"},\"Reason\":\"0\"}}}"
+}

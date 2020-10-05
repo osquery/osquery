@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 // clang-format off
@@ -15,14 +16,14 @@
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/carver/carver.h>
-#include <osquery/database.h>
-#include <osquery/distributed.h>
+#include <osquery/database/database.h>
+#include <osquery/distributed/distributed.h>
 #include <osquery/filesystem/fileops.h>
-#include <osquery/flags.h>
+#include <osquery/core/flags.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/remote/serializers/json.h>
-#include <osquery/system.h>
+#include <osquery/core/system.h>
 #include <osquery/utils/base64.h>
 #include <osquery/utils/json/json.h>
 
@@ -112,10 +113,6 @@ Carver::Carver(const std::set<std::string>& paths,
     carvePaths_.insert(fs::path(p));
   }
 
-  // Construct the uri we post our data back to:
-  startUri_ = TLSRequestHelper::makeURI(FLAGS_carver_start_endpoint);
-  contUri_ = TLSRequestHelper::makeURI(FLAGS_carver_continue_endpoint);
-
   // Generate a unique identifier for this carve
   carveGuid_ = guid;
 
@@ -151,9 +148,9 @@ void Carver::start() {
     return;
   }
   const auto carvedFiles = carveAll();
-  auto s = archive(carvedFiles, archivePath_, FLAGS_carver_block_size);
-  if (!s.ok()) {
-    VLOG(1) << "Failed to create carve archive: " << s.getMessage();
+  status_ = archive(carvedFiles, archivePath_, FLAGS_carver_block_size);
+  if (!status_.ok()) {
+    VLOG(1) << "Failed to create carve archive: " << status_.getMessage();
     updateCarveValue(carveGuid_, "status", "ARCHIVE FAILED");
     return;
   }
@@ -161,9 +158,9 @@ void Carver::start() {
   fs::path uploadPath;
   if (FLAGS_carver_compression) {
     uploadPath = compressPath_;
-    s = compress(archivePath_, compressPath_);
-    if (!s.ok()) {
-      VLOG(1) << "Failed to compress carve archive: " << s.getMessage();
+    status_ = compress(archivePath_, compressPath_);
+    if (!status_.ok()) {
+      VLOG(1) << "Failed to compress carve archive: " << status_.getMessage();
       updateCarveValue(carveGuid_, "status", "COMPRESS FAILED");
       return;
     }
@@ -184,9 +181,9 @@ void Carver::start() {
   }
   updateCarveValue(carveGuid_, "sha256", uploadHash);
 
-  s = postCarve(uploadPath);
-  if (!s.ok()) {
-    VLOG(1) << "Failed to post carve: " << s.getMessage();
+  status_ = postCarve(uploadPath);
+  if (!status_.ok()) {
+    VLOG(1) << "Failed to post carve: " << status_.getMessage();
     updateCarveValue(carveGuid_, "status", "DATA POST FAILED");
     return;
   }
@@ -237,7 +234,9 @@ Status Carver::blockwiseCopy(PlatformFile& src, PlatformFile& dst) {
 };
 
 Status Carver::postCarve(const boost::filesystem::path& path) {
-  Request<TLSTransport, JSONSerializer> startRequest(startUri_);
+  // Construct the uri we post our data back to:
+  auto startUri = TLSRequestHelper::makeURI(FLAGS_carver_start_endpoint);
+  Request<TLSTransport, JSONSerializer> startRequest(startUri);
   startRequest.setOption("hostname", FLAGS_tls_hostname);
 
   // Perform the start request to get the session id
@@ -279,7 +278,8 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
     return Status(1, "Empty session_id received from remote endpoint");
   }
 
-  Request<TLSTransport, JSONSerializer> contRequest(contUri_);
+  auto contUri = TLSRequestHelper::makeURI(FLAGS_carver_continue_endpoint);
+  Request<TLSTransport, JSONSerializer> contRequest(contUri);
   contRequest.setOption("hostname", FLAGS_tls_hostname);
   for (size_t i = 0; i < blkCount; i++) {
     std::vector<char> block(FLAGS_carver_block_size, 0);

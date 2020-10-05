@@ -1,0 +1,3 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<Events><Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'><System><Provider Name='Service Control Manager' Guid='{555908d1-a6d7-4695-8e1e-26931d2012f4}' EventSourceName='Service Control Manager'/><EventID Qualifiers='49152'>7026</EventID><Version>0</Version><Level>4</Level><Task>0</Task><Opcode>0</Opcode><Keywords>0x8080000000000000</Keywords><TimeCreated SystemTime='2020-06-05T13:26:47.0740133Z'/><EventRecordID>153</EventRecordID><Correlation/><Execution ProcessID='648' ThreadID='652'/><Channel>System</Channel><Computer>DESKTOP-4AR7BIA</Computer><Security/></System><EventData><Data Name='param1'>
+dam</Data></EventData></Event></Events>

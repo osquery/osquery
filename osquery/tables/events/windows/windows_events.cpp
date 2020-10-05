@@ -1,143 +1,123 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <string>
+#include <sstream>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
 
-#include <osquery/config/config.h>
-#include <osquery/core.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
-
-#include <osquery/events/windows/windows_event_log.h>
-#include <osquery/filesystem/fileops.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/tables/events/windows/windows_events.h>
 #include <osquery/utils/conversions/split.h>
-#include <osquery/utils/conversions/windows/strings.h>
-#include <osquery/utils/json/json.h>
-
-namespace pt = boost::property_tree;
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
+namespace {
+std::string normalizeChannelName(std::string channel) {
+  boost::erase_all(channel, "\"");
+  boost::erase_all(channel, "\'");
 
-/*
- * @brief the Windows Event log channels to subscribe to
- *
- * By default we subscribe to all system channels. To subscribe to additional
- * channels specify them via this flag as a comma separated list.
- */
+  std::transform(channel.begin(), channel.end(), channel.begin(), ::tolower);
+  return channel;
+}
+} // namespace
+
+FLAG(bool,
+     enable_windows_events_subscriber,
+     false,
+     "Enables Windows Event Log events");
+
 FLAG(string,
      windows_event_channels,
      "System,Application,Setup,Security",
      "Comma-separated list of Windows event log channels");
 
-class WindowsEventSubscriber
-    : public EventSubscriber<WindowsEventLogEventPublisher> {
- public:
-  Status init() override {
-    auto wc = createSubscriptionContext();
-    for (auto& chan : osquery::split(FLAGS_windows_event_channels, ",")) {
-      // We remove quotes if they exist
-      boost::erase_all(chan, "\"");
-      boost::erase_all(chan, "\'");
-
-      // To enforce unification we lower case all channel names for shouldFire
-      std::transform(chan.begin(), chan.end(), chan.begin(), ::tolower);
-
-      wc->sources.insert(stringToWstring(chan));
-    }
-    subscribe(&WindowsEventSubscriber::Callback, wc);
-    return Status::success();
-  }
-
-  Status Callback(const ECRef& ec, const SCRef& sc);
-};
+DECLARE_bool(enable_windows_events_publisher);
 
 REGISTER(WindowsEventSubscriber, "event_subscriber", "windows_events");
 
-/// Helper function to recursively parse a boost ptree
-void parseTree(const pt::ptree& tree, std::map<std::string, std::string>& res) {
-  for (const auto& node : tree) {
-    // Skip this since it's not actually part of the EventData. Also prevents
-    // us from adding every Name attribute into its own key invalidly. This is
-    // part of a quirk of boost::ptree and its parsing of XML.
-    if (node.first == "<xmlattr>") {
-      continue;
-    }
-
-    auto nodeName = node.second.get("<xmlattr>.Name", "");
-    if (nodeName.empty()) {
-      nodeName = node.first.empty() ? "DataElement" : node.first;
-    }
-
-    res[nodeName] = res[nodeName].empty()
-                        ? node.second.data()
-                        : res[nodeName] + "," + node.second.data();
-
-    parseTree(node.second, res);
-  }
-}
-
-Status WindowsEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
-  Row r;
-  FILETIME cTime;
-  GetSystemTimeAsFileTime(&cTime);
-  r["time"] = BIGINT(filetimeToUnixtime(cTime));
-  r["datetime"] =
-      ec->eventRecord.get("Event.System.TimeCreated.<xmlattr>.SystemTime", "");
-  r["source"] = ec->eventRecord.get("Event.System.Channel", "");
-  r["provider_name"] =
-      ec->eventRecord.get("Event.System.Provider.<xmlattr>.Name", "");
-  r["provider_guid"] =
-      ec->eventRecord.get("Event.System.Provider.<xmlattr>.Guid", "");
-  r["eventid"] = INTEGER(ec->eventRecord.get("Event.System.EventID", -1));
-  r["task"] = INTEGER(ec->eventRecord.get("Event.System.Task", -1));
-  r["level"] = INTEGER(ec->eventRecord.get("Event.System.Level", -1));
-  r["keywords"] = BIGINT(ec->eventRecord.get("Event.System.Keywords", -1));
-
-  /*
-   * From the MSDN definition of the Event Schema, each event will have
-   * an XML choice element containing the event data, if any. The first
-   * iteration enumerates this choice, and the second iteration enumerates
-   * all data elements belonging to the choice.
-   */
-  pt::ptree jsonOut;
-  std::map<std::string, std::string> results;
-  std::string eventDataType;
-
-  for (const auto& node : ec->eventRecord.get_child("Event", pt::ptree())) {
-    /// We have already processed the System event data above
-    if (node.first == "System" || node.first == "<xmlattr>") {
-      continue;
-    }
-    eventDataType = node.first;
-    parseTree(node.second, results);
-  }
-  for (const auto& val : results) {
-    /// Reconstruct the event format as much as possible
-    jsonOut.put(eventDataType + "." + val.first, val.second);
+Status WindowsEventSubscriber::init() {
+  if (!FLAGS_enable_windows_events_publisher) {
+    return Status::failure("Required publisher is disabled by configuration");
   }
 
-  std::stringstream ss;
-  boost::property_tree::write_json(ss, jsonOut, false);
-
-  auto s = ss.str();
-  if (s.at(s.size() - 1) == '\n') {
-    s.erase(s.end() - 1);
+  if (!FLAGS_enable_windows_events_subscriber) {
+    return Status::failure("Subscriber disabled by configuration");
   }
-  r["data"] = s;
 
-  add(r);
+  auto subscription_context = createSubscriptionContext();
+  for (auto channel : osquery::split(FLAGS_windows_event_channels, ",")) {
+    auto normalized_channel_name = normalizeChannelName(channel);
+    subscription_context->channel_list.insert(normalized_channel_name);
+  }
+
+  subscribe(&WindowsEventSubscriber::Callback, subscription_context);
   return Status::success();
 }
+
+WindowsEventSubscriber::~WindowsEventSubscriber() {}
+
+Status WindowsEventSubscriber::Callback(const ECRef& event, const SCRef&) {
+  std::vector<WELEvent> windows_event_list;
+  bool display_parsing_error{false};
+
+  for (const auto& event_object : event->event_objects) {
+    WELEvent windows_event = {};
+    auto status = parseWindowsEventLogPTree(windows_event, event_object);
+    if (!status.ok()) {
+      display_parsing_error = true;
+      LOG(ERROR) << status.getMessage();
+      continue;
+    }
+
+    windows_event_list.push_back(std::move(windows_event));
+  }
+
+  if (display_parsing_error) {
+    LOG(ERROR) << "Failed to process a Windows event log object";
+  }
+
+  if (windows_event_list.empty()) {
+    return Status::success();
+  }
+
+  std::vector<Row> row_list;
+
+  for (const auto& windows_event : windows_event_list) {
+    Row row = {};
+    generateRow(row, windows_event);
+
+    row_list.push_back(std::move(row));
+  }
+
+  if (!row_list.empty()) {
+    addBatch(row_list);
+  }
+
+  return Status::success();
 }
+
+void WindowsEventSubscriber::generateRow(Row& row,
+                                         const WELEvent& windows_event) {
+  row = {};
+
+  row["time"] = INTEGER(windows_event.osquery_time);
+  row["datetime"] = SQL_TEXT(windows_event.datetime);
+  row["source"] = SQL_TEXT(windows_event.source);
+  row["provider_name"] = SQL_TEXT(windows_event.provider_name);
+  row["provider_guid"] = SQL_TEXT(windows_event.provider_guid);
+  row["eventid"] = INTEGER(windows_event.event_id);
+  row["task"] = INTEGER(windows_event.task_id);
+  row["level"] = INTEGER(windows_event.level);
+  row["keywords"] = SQL_TEXT(windows_event.keywords);
+  row["data"] = SQL_TEXT(windows_event.data);
+}
+} // namespace osquery

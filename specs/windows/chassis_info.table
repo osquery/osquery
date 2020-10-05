@@ -1,0 +1,21 @@
+table_name("chassis_info")
+description("Display information pertaining to the chassis and its security status.")
+schema([
+    Column("audible_alarm", TEXT, "If TRUE, the frame is equipped with an audible alarm."),
+    Column("breach_description", TEXT, "If provided, gives a more detailed description of a detected security breach."),
+    Column("chassis_types", TEXT, "A comma-separated list of chassis types, such as Desktop or Laptop."),
+    Column("description", TEXT, "An extended description of the chassis if available."),
+    Column("lock", TEXT, "If TRUE, the frame is equipped with a lock."),
+    Column("manufacturer", TEXT, "The manufacturer of the chassis."),
+    Column("model", TEXT, "The model of the chassis."),
+    Column("security_breach", TEXT, "The physical status of the chassis such as Breach Successful, Breach Attempted, etc."),
+    Column("serial", TEXT, "The serial number of the chassis."),
+    Column("smbios_tag", TEXT, "The assigned asset tag number of the chassis."),
+    Column("sku", TEXT, "The Stock Keeping Unit number if available."),
+    Column("status", TEXT, "If available, gives various operational or nonoperational statuses such as OK, Degraded, and Pred Fail."),
+    Column("visible_alarm", TEXT, "If TRUE, the frame is equipped with a visual alarm."),
+])
+implementation("chassis_info@genChassisInfo")
+examples([
+  "select * from chassis_info",
+])

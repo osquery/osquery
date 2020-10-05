@@ -1,19 +1,22 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <osquery/utils/json/json.h>
 
-#include <osquery/database.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/tables.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/conversions/tryto.h>
+
+#include <climits>
 
 namespace osquery {
 
@@ -21,10 +24,18 @@ FLAG(bool, disable_caching, false, "Disable scheduled query caching");
 
 CREATE_LAZY_REGISTRY(TablePlugin, "table");
 
-size_t TablePlugin::kCacheInterval = 0;
-size_t TablePlugin::kCacheStep = 0;
+uint64_t TablePlugin::kCacheInterval = 0;
+uint64_t TablePlugin::kCacheStep = 0;
 
 #define kDisableRowId "WITHOUT ROWID"
+
+// Columns used bitmask
+// https://stackoverflow.com/questions/1392059/algorithm-to-generate-bit-mask
+template <typename R>
+static constexpr R bitmask(unsigned int const onecount) {
+  return static_cast<R>(-(onecount != 0)) &
+         (static_cast<R>(-1) >> ((sizeof(R) * CHAR_BIT) - onecount));
+}
 
 Status TablePlugin::addExternal(const std::string& name,
                                 const PluginResponse& response) {
@@ -185,7 +196,7 @@ PluginResponse TablePlugin::routeInfo() const {
 }
 
 static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
-  if (!ctx.useCache()) {
+  if (!ctx.useCache() || !ctx.defaultColumnsUsed()) {
     // The query execution did not request use of the warm cache.
     return false;
   }
@@ -201,7 +212,7 @@ static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
   return true;
 }
 
-bool TablePlugin::isCached(size_t step, const QueryContext& ctx) const {
+bool TablePlugin::isCached(uint64_t step, const QueryContext& ctx) const {
   if (FLAGS_disable_caching) {
     return false;
   }
@@ -220,8 +231,8 @@ TableRows TablePlugin::getCache() const {
   return results;
 }
 
-void TablePlugin::setCache(size_t step,
-                           size_t interval,
+void TablePlugin::setCache(uint64_t step,
+                           uint64_t interval,
                            const QueryContext& ctx,
                            const TableRows& results) {
   if (FLAGS_disable_caching || !cacheAllowed(columns(), ctx)) {
@@ -506,6 +517,11 @@ bool QueryContext::isAnyColumnUsed(
     }
   }
   return false;
+}
+
+bool QueryContext::defaultColumnsUsed() const {
+  auto mask = bitmask<uint64_t>(table_->columns.size());
+  return !colsUsedBitset || *colsUsedBitset == mask;
 }
 
 void QueryContext::useCache(bool use_cache) {

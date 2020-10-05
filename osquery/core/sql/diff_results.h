@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -31,6 +32,15 @@ struct DiffResults : private only_movable {
   DiffResults() {}
   DiffResults(DiffResults&&) = default;
   DiffResults& operator=(DiffResults&&) = default;
+
+  /**
+   * @brief Returns true if there are no results in this diff, otherwise false.
+   *
+   * @return A bool indicating if this diff has no results.
+   */
+  inline bool hasNoResults() const {
+    return added.empty() && removed.empty();
+  }
 
   /// equals operator
   bool operator==(const DiffResults& comp) const {

@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-05T12:27:03.3760524Z",
+    "source": "Application",
+    "provider_name": "ESENT",
+    "provider_guid": "",
+    "event_id": "642",
+    "task_id": "1",
+    "level": "3",
+    "keywords": "0x80000000000000",
+    "data": "{\"EventData\":[\"wuaueng.dll\",\"5408,D,35\",\"SUS20ClientDataStore: \",\"0x40000001 (JET_efvUseEngineDefault)\",\"9120 (0x23a0)\",\"1568.20.0\"]}"
+}

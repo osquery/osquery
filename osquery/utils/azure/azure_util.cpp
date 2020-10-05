@@ -1,18 +1,18 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
- *  in the COPYING file in the root directory of this source tree).
- *  You may select, at your option, one of the above-listed licenses.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-
-#include <osquery/filesystem/filesystem.h>
+// Keep this included first (See #6507).
 #include <osquery/remote/http_client.h>
+
+#include <osquery/core/core.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/azure/azure_util.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
@@ -26,7 +26,8 @@ namespace osquery {
 
 // 2018-02-01 is supported across all Azure regions, according to MS.
 const std::string kAzureMetadataEndpoint =
-    "http://169.254.169.254/metadata/instance/compute?api-version=2018-02-01";
+    "http://" + http::kInstanceMetadataAuthority +
+    "/metadata/instance/compute?api-version=2018-02-01";
 
 // 3 seconds should be more than enough time for the metadata endpoint to
 // respond.

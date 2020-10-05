@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 # Set the build type
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -20,6 +21,21 @@ endif()
 # Destination of custom python modules/scripts used for tests and table generation.
 # Used as the PYTHONPATH folder.
 set(OSQUERY_PYTHON_PATH "${CMAKE_BINARY_DIR}/python_path")
+
+# We need to figure out the processor architecture and set the normalized variable
+# before any targets are created
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
+  # Windows x86_64
+  set(TARGET_PROCESSOR "x86_64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+  # *nix x86_64
+  set(TARGET_PROCESSOR "x86_64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+  # *nix AArch64
+  set(TARGET_PROCESSOR "aarch64")
+else()
+  message(FATAL_ERROR "Unsupported architecture ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
 
 # TODO(alessandro): Add missing defines: PLATFORM_FREEBSD
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")

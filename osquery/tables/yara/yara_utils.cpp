@@ -1,20 +1,25 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <map>
 #include <string>
 
 #include <osquery/config/config.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/tables/yara/yara_utils.h>
 
+#include <osquery/remote/uri.h>
+
 namespace osquery {
+
+DECLARE_bool(enable_yara_string);
 
 bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
   // avoid special files /dev/x , /proc/x, FIFO's named-pipes, etc.
@@ -31,13 +36,40 @@ bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
 void YARACompilerCallback(int error_level,
                           const char* file_name,
                           int line_number,
+                          const YR_RULE* rule,
                           const char* message,
                           void* user_data) {
+  std::stringstream ss;
+  // file_name will be nullptr on compiling YARA rules from
+  // string. It checks the file_name and generate the logs.
+  if (file_name == nullptr)
+    ss << "YARA rule string ";
+  else
+    ss << "YARA rule file " << file_name;
   if (error_level == YARA_ERROR_LEVEL_ERROR) {
-    VLOG(1) << file_name << "(" << line_number << "): error: " << message;
+    VLOG(1) << ss.str() << "(" << line_number << "): error: " << message;
   } else {
-    VLOG(1) << file_name << "(" << line_number << "): warning: " << message;
+    VLOG(1) << ss.str() << "(" << line_number << "): warning: " << message;
   }
+}
+
+// yr_initialize maintains a reference count and avoid
+// re-initialization
+Status yaraInitilize(void) {
+  auto result = yr_initialize();
+  if (result != ERROR_SUCCESS) {
+    return Status::failure("Failed to initialize YARA " +
+                           std::to_string(result));
+  }
+  return Status::success();
+}
+
+Status yaraFinalize(void) {
+  auto result = yr_finalize();
+  if (result != ERROR_SUCCESS) {
+    return Status::failure("Failed to finalize YARA " + std::to_string(result));
+  }
+  return Status::success();
 }
 
 /**
@@ -45,10 +77,11 @@ void YARACompilerCallback(int error_level,
  */
 Status compileSingleFile(const std::string& file, YR_RULES** rules) {
   YR_COMPILER* compiler = nullptr;
+
   int result = yr_compiler_create(&compiler);
   if (result != ERROR_SUCCESS) {
-    VLOG(1) << "Could not create compiler: " + std::to_string(result);
-    return Status(1, "Could not create compiler: " + std::to_string(result));
+    return Status::failure("Could not create compiler: " +
+                           std::to_string(result));
   }
 
   yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
@@ -65,7 +98,8 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
   result = yr_rules_load(file.c_str(), &tmp_rules);
   if (result != ERROR_SUCCESS && result != ERROR_INVALID_FILE) {
     yr_compiler_destroy(compiler);
-    return Status(1, "Error loading YARA rules: " + std::to_string(result));
+    return Status::failure("Error loading YARA rules: " +
+                           std::to_string(result));
   } else if (result == ERROR_SUCCESS) {
     *rules = tmp_rules;
   } else {
@@ -87,7 +121,7 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
     if (errors > 0) {
       yr_compiler_destroy(compiler);
       // Errors printed via callback.
-      return Status(1, "Compilation errors");
+      return Status::failure("Compilation errors");
     }
   }
 
@@ -97,7 +131,52 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
 
     if (result != ERROR_SUCCESS) {
       yr_compiler_destroy(compiler);
-      return Status(1, "Insufficient memory to get YARA rules");
+      return Status::failure("Insufficient memory to get YARA rules");
+    }
+  }
+
+  if (compiler != nullptr) {
+    yr_compiler_destroy(compiler);
+    compiler = nullptr;
+  }
+
+  return Status::success();
+}
+
+/**
+ * Compile yara rules from string and load it into rule pointer.
+ */
+Status compileFromString(const std::string& rule_defs, YR_RULES** rules) {
+  YR_COMPILER* compiler = nullptr;
+
+  auto result = yr_compiler_create(&compiler);
+  if (result != ERROR_SUCCESS) {
+    return Status::failure("Could not create compiler: " +
+                           std::to_string(result));
+  }
+
+  yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
+
+  result = yr_compiler_add_string(compiler, rule_defs.c_str(), nullptr);
+  if (result > 0) {
+    yr_compiler_destroy(compiler);
+    return Status::failure("Compilation error " + std::to_string(result));
+  }
+
+  result = yr_compiler_get_rules(compiler, *(&rules));
+  if (result != ERROR_SUCCESS) {
+    yr_compiler_destroy(compiler);
+    return Status::failure("Insufficient memory to get YARA rules");
+  }
+
+  // The yara rule strings are set to private unless it is disabled. This
+  // will protect from data exfiltration
+  if (!FLAGS_enable_yara_string) {
+    YR_RULE* rule = nullptr;
+    yr_rules_foreach((*rules), rule) {
+      if (rule->strings) {
+        rule->strings->flags = rule->strings->flags | STRING_FLAGS_PRIVATE;
+      }
     }
   }
 
@@ -209,7 +288,10 @@ Status handleRuleFiles(const std::string& category,
  * This is the YARA callback. Used to store matching rules in the row which is
  * passed in as user_data.
  */
-int YARACallback(int message, void* message_data, void* user_data) {
+int YARACallback(YR_SCAN_CONTEXT* context,
+                 int message,
+                 void* message_data,
+                 void* user_data) {
   if (message == CALLBACK_MSG_RULE_MATCHING) {
     Row* r = (Row*)user_data;
     YR_RULE* rule = (YR_RULE*)message_data;
@@ -223,7 +305,7 @@ int YARACallback(int message, void* message_data, void* user_data) {
     YR_STRING* string = nullptr;
     yr_rule_strings_foreach(rule, string) {
       YR_MATCH* match = nullptr;
-      yr_string_matches_foreach(string, match) {
+      yr_string_matches_foreach(context, string, match) {
         if ((*r)["strings"].length() > 0) {
           (*r)["strings"] += "," + std::string(string->identifier);
         } else {
@@ -296,6 +378,26 @@ Status YARAConfigParserPlugin::update(const std::string& source,
           if (!status.ok()) {
             VLOG(1) << "YARA rule compile error: " << status.getMessage();
             return status;
+          }
+        }
+      }
+    }
+  }
+
+  if (yara_config.HasMember("signature_urls")) {
+    auto& sigurl = yara_config["signature_urls"];
+    if (!sigurl.IsArray()) {
+      VLOG(1) << "YARA signature_url must be an array";
+    } else {
+      VLOG(1) << "Compiling YARA signature_url for allowed list";
+      for (const auto& element : sigurl.GetArray()) {
+        if (element.IsString()) {
+          auto url_string = element.GetString();
+          try {
+            Uri test_uri(url_string);
+            url_allow_set_.insert(url_string);
+          } catch (const std::exception&) {
+            VLOG(1) << "Invalid signature url: " << element.GetString();
           }
         }
       }

@@ -1,8 +1,10 @@
+# The pub-sub evented data framework of osquery
+
 Most of osquery's virtual tables are generated when an SQL statement requests data. For example, the [time](https://github.com/osquery/osquery/blob/master/osquery/tables/utility/time.cpp) gets the current time and returns it as a single row. So whenever a call selects data from time, e.g., `SELECT * FROM time;` the current time of the call will return.
 
 From an operating systems perspective, query-time synchronous data retrieval is lossy. Consider the [processes](https://github.com/osquery/osquery/blob/master/osquery/tables/system/linux/processes.cpp) table: if a process like `ps` runs for a fraction of a moment there's no way `SELECT * FROM processes;` will ever include the details.
 
-To solve for this osquery exposes a [pubsub framework](https://github.com/osquery/osquery/tree/master/osquery/events) for aggregating operating system information asynchronously at event time, storing related event details in the osquery backing store, and performing a lookup to report stored rows query time. This reporting pipeline is much more complicated than typical query-time virtual table generation. The time of event, storage history, and applicable (final) virtual table data information must be carefully considered. As events occur, the rows returned by a query will compound, as such selecting from an event-based virtual table generator should always include a time range.
+To solve this, osquery exposes a [pubsub framework](https://github.com/osquery/osquery/tree/master/osquery/events) for aggregating operating system information asynchronously at event time, storing related event details in the osquery backing store, and performing a lookup to report stored rows query time. This reporting pipeline is much more complicated than typical query-time virtual table generation. The time of event, storage history, and applicable (final) virtual table data information must be carefully considered. As events occur, the rows returned by a query will compound, as such selecting from an event-based virtual table generator should always include a time range.
 
 If no time range is provided, as in: `SELECT * FROM process_events;`, it is assumed you want to scan from `t=[0, now)`. Otherwise, all of the `*_events` tables must have a `time` column, this is used to optimize searching: `SELECT * FROM process_events WHERE time > NOW() - 300;`.
 
@@ -10,7 +12,7 @@ If no time range is provided, as in: `SELECT * FROM process_events;`, it is assu
 
 Almost every pubsub-based table ends with a `_events` or `_changes`. These tables will perform lookups into the osquery backing storage: RocksDB, for events buffered by the subscribers. These tables are a "query-time" abstraction that allow you to use SQL aggregations and a `time` column for optimizing lookups.
 
-When using the `osqueryi` shell, these tables will mostly remain empty. This is because the event loops start and stop with the process. If the shell is not running, no events are being buffered. Furthermore, some of the APIs used by the runloops require super user privileges or non-default flags and options. The shell does NOT communicate with the osquery daemon, nor does it use the same RocksDB storage. Thus the shell cannot be used to explore events buffered by the daemon.
+When using the `osqueryi` shell, these tables will mostly remain empty. This is because the event loops start and stop with the process. If the shell is not running, no events are being buffered. Furthermore, some of the APIs used by the runloops require super-user privileges or non-default flags and options. The shell does **not** communicate with the osquery daemon, nor does it use the same RocksDB storage. Thus the shell cannot be used to explore events buffered by the daemon.
 
 The buffered events will eventually expire! The `--events_expiry` flag controls the lifetime of buffered events. This is set to 1 day by default, this expiration occurs when events are selected from their subscriber table. For example: the `process_events` subscriber will buffer process starts until a query selects from this table. At that point all results will be returned and immediately after, any event that happened `time-86400` seconds ago will be deleted. If you select from this table every second you will constantly see a window of 1 day's worth of process events.
 
@@ -24,13 +26,13 @@ The pubsub runflow is exposed as a publisher `setUp()`, a series of `addSubscrip
 
 ## Example: inotify
 
-Filesystem events are the simplest example, let's consider Linux's inotify framework. [osquery/events/linux/inotify.cpp](https://github.com/osquery/osquery/blob/master/osquery/events/linux/inotify.cpp) is exposed as an osquery publisher.
+Filesystem events are the simplest example. Let's consider Linux's inotify framework: [osquery/events/linux/inotify.cpp](https://github.com/osquery/osquery/blob/master/osquery/events/linux/inotify.cpp) implements an osquery publisher.
 
-There's an array of yet-to-be-implemented uses of the inotify publisher, but a simple example includes querying for every change to "/etc/passwd". The [osquery/tables/events/linux/file_events.cpp](https://github.com/osquery/osquery/blob/master/osquery/tables/events/linux/file_events.cpp) table uses a pubsub subscription and implements a subscriber. The subscriptions are constructed from the configuration. See the file [integrity monitoring deployment](../deployment/file-integrity-monitoring.md) guide for details.
+There's a list of yet-to-be-implemented uses of the inotify publisher, but a simple example includes querying for every change to `/etc/passwd`. The [osquery/tables/events/linux/file_events.cpp](https://github.com/osquery/osquery/blob/master/osquery/tables/events/linux/file_events.cpp) table uses a pubsub subscription and implements a subscriber. The subscriptions are constructed from the configuration. See the file [integrity monitoring deployment](../deployment/file-integrity-monitoring.md) guide for details.
 
 ## Event Subscribers
 
-Let's continue to use the inotify event publisher as an example. And let's implement a table that reports new files created in "/etc/". The first thing we need is a [table spec](creating-tables.md):
+Let's continue to use the inotify event publisher as an example. And let's implement a table that reports new files created in `/etc/`. The first thing we need is a [table spec](creating-tables.md):
 
 ```python
 table_name("new_etc_files")
@@ -44,8 +46,8 @@ implementation("new_etc_files@NewETCFilesEventSubscriber::genTable")
 Now with the simplest table spec possible, we need to write `NewETCFilesEventSubscriber`!
 
 ```cpp
-#include <osquery/database.h>
-#include "osquery/events/linux/inotify.h"
+#include <osquery/database/database.h>
+#include <osquery/events/linux/inotify.h>
 
 namespace osquery {
 namespace tables {

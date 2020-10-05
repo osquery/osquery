@@ -1,17 +1,18 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/tables.h>
-
-#include <osquery/utils/conversions/split.h>
-#include <osquery/utils/conversions/tryto.h>
+#include <osquery/core/tables.h>
 
 #include <osquery/core/windows/wmi.h>
+#include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
 namespace tables {
@@ -31,11 +32,15 @@ QueryData genOSVersion(QueryContext& context) {
     return {};
   }
 
-  wmiResults[0].GetString("InstallDate", r["install_date"]);
   std::string osName;
   wmiResults[0].GetString("Caption", osName);
   r["name"] = osName;
   r["codename"] = osName;
+
+  std::string cimInstallDate{""};
+  wmiResults[0].GetString("InstallDate", cimInstallDate);
+  r["install_date"] = BIGINT(cimDatetimeToUnixtime(cimInstallDate));
+
   wmiResults[0].GetString("Version", version_string);
   auto version = osquery::split(version_string, ".");
 

@@ -1,16 +1,17 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/utils/conversions/darwin/iokit.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
-#include <osquery/utils/conversions/split.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/utils/conversions/darwin/iokit.h>
+#include <osquery/utils/conversions/split.h>
 
 namespace osquery {
 namespace tables {

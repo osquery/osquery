@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-05T13:25:20.6541388Z",
+    "source": "Security",
+    "provider_name": "Microsoft-Windows-Security-Auditing",
+    "provider_guid": "{54849625-5478-4994-a5ba-3e3b0328c30d}",
+    "event_id": "4731",
+    "task_id": "13826",
+    "level": "0",
+    "keywords": "0x8020000000000000",
+    "data": "{\"EventData\":{\"TargetUserName\":\"Hyper-V Administrators\",\"TargetDomainName\":\"Builtin\",\"TargetSid\":\"S-1-5-32-578\",\"SubjectUserSid\":\"S-1-5-18\",\"SubjectUserName\":\"MINWINPC$\",\"SubjectDomainName\":\"\",\"SubjectLogonId\":\"0x3e7\",\"PrivilegeList\":\"-\",\"SamAccountName\":\"Hyper-V Administrators\",\"SidHistory\":\"-\"}}"
+}

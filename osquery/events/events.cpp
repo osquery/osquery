@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <chrono>
@@ -15,14 +16,14 @@
 #include <boost/lexical_cast.hpp>
 
 #include <osquery/config/config.h>
-#include <osquery/database.h>
-#include <osquery/events.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/events/events.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/sql/dynamic_table_row.h>
-#include <osquery/system.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/time.h>
@@ -55,7 +56,7 @@ static inline EventTime timeFromRecord(const std::string& record) {
   return static_cast<EventTime>(tryTo<long long>(record).takeOr(0ll));
 }
 
-static inline std::string toIndex(size_t i) {
+static inline std::string toIndex(uint64_t i) {
   auto str_index = std::to_string(i);
   if (str_index.size() < 10) {
     str_index.insert(str_index.begin(), 10 - str_index.size(), '0');
@@ -122,7 +123,7 @@ void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
         stop = std::min(stop, expr);
       }
     }
-  } else if (Initializer::isDaemon() && FLAGS_events_optimize) {
+  } else if (isDaemon() && FLAGS_events_optimize) {
     // If the daemon is querying a subscriber without a 'time' constraint and
     // allows optimization, only emit events since the last query.
     std::string query_name;
@@ -297,7 +298,7 @@ void EventSubscriberPlugin::expireCheck() {
   auto data_key = "data." + dbNamespace();
   auto eid_key = "eid." + dbNamespace();
   // Min key will be the last surviving key.
-  size_t threshold_key = 0;
+  uint64_t threshold_key = 0;
 
   {
     auto limit = getEventsMax();
@@ -475,11 +476,11 @@ Status EventSubscriberPlugin::recordEvents(
   return status;
 }
 
-size_t EventSubscriberPlugin::getEventsExpiry() {
+uint64_t EventSubscriberPlugin::getEventsExpiry() {
   return FLAGS_events_expiry;
 }
 
-size_t EventSubscriberPlugin::getEventsMax() {
+uint64_t EventSubscriberPlugin::getEventsMax() {
   return FLAGS_events_max;
 }
 
@@ -781,7 +782,7 @@ Status EventFactory::run(const std::string& type_id) {
     return Status(1, "Cannot restart an event publisher");
   }
 
-  setThreadName(publisher->name());
+  setThreadName("pub:" + type_id);
   VLOG(1) << "Starting event publisher run loop: " + type_id;
   publisher->hasStarted(true);
   publisher->state(EventState::EVENT_RUNNING);

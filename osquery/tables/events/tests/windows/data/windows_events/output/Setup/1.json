@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-09T20:48:39.6827434Z",
+    "source": "Setup",
+    "provider_name": "Microsoft-Windows-Servicing",
+    "provider_guid": "{bd12f3b8-fc40-4a61-a307-b7a013a069c1}",
+    "event_id": "1",
+    "task_id": "1",
+    "level": "0",
+    "keywords": "0x8000000000000000",
+    "data": "{\"UserData\":{\"CbsPackageInitiateChanges\":{\"<xmlattr>\":{\"xmlns\":\"http:\\/\\/manifests.microsoft.com\\/win\\/2004\\/08\\/windows\\/setup_provider\"},\"PackageIdentifier\":\"KB4556803\",\"InitialPackageState\":\"5112\",\"InitialPackageStateTextized\":\"Installed\",\"IntendedPackageState\":\"5112\",\"IntendedPackageStateTextized\":\"Installed\",\"Client\":\"UpdateAgentLCU\"}}}"
+}

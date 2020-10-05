@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-12T15:26:36.5783234Z",
+    "source": "Security",
+    "provider_name": "Microsoft-Windows-Security-Auditing",
+    "provider_guid": "{54849625-5478-4994-a5ba-3e3b0328c30d}",
+    "event_id": "4608",
+    "task_id": "12288",
+    "level": "0",
+    "keywords": "0x8020000000000000",
+    "data": "{\"EventData\":\"\"}"
+}

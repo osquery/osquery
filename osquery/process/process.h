@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -17,8 +18,8 @@
 
 #include <osquery/utils/system/system.h>
 
-#include <osquery/core.h>
-#include <osquery/system.h>
+#include <osquery/core/core.h>
+#include <osquery/core/system.h>
 // FIXME(fmanco): env functions were split but most usages still include
 // process.h. Once those includes are fixed this can be removed.
 #include <osquery/utils/system/env.h>
@@ -211,7 +212,7 @@ class SecurityDescriptor {
 /// Returns the current user's ID (UID on POSIX systems and RID for Windows)
 uint32_t platformGetUid();
 
-inline void sleepFor(size_t msec) {
+inline void sleepFor(uint64_t msec) {
   std::chrono::milliseconds mduration(msec);
   std::this_thread::sleep_for(mduration);
 }

@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <chrono>
@@ -15,12 +16,12 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/database.h>
-#include <osquery/dispatcher.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_interface.h>
-#include <osquery/system.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_interface.h>
 
 #include "plugins/logger/buffered.h"
 #include <osquery/utils/info/platform_type.h>
@@ -33,7 +34,6 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 DECLARE_uint64(buffered_log_max);
-DECLARE_bool(disable_database);
 
 // Check that the string matches the StatusLogLine
 MATCHER_P(MatchesStatus, expected, "") {
@@ -53,11 +53,9 @@ MATCHER_P(MatchesStatus, expected, "") {
 class BufferedLogForwarderTests : public Test {
  protected:
   void SetUp() {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    initDatabasePluginForTesting();
   }
 
  public:
@@ -306,7 +304,7 @@ TEST_F(BufferedLogForwarderTests, test_split) {
 TEST_F(BufferedLogForwarderTests, test_purge) {
   FLAGS_buffered_log_max = 3;
   StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 100);
-  size_t time = getUnixTime();
+  uint64_t time = getUnixTime();
   for (uint64_t i = 0; i < 10; ++i) {
     runner.logString(std::to_string(i), time);
     StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
@@ -337,7 +335,7 @@ TEST_F(BufferedLogForwarderTests, test_purge_max) {
   StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 5);
   StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
   StatusLogLine log2 = makeStatusLogLine(O_ERROR, "bar", 30, "bar error");
-  size_t time = getUnixTime();
+  uint64_t time = getUnixTime();
 
   runner.logString("foo", time);
   runner.logStatus({log1}, time);

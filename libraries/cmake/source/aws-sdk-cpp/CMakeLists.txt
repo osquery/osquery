@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 option(OSQUERY_USE_AWS_MEMORY_MANAGEMENT "Set to true to enable the AWS custom memory allocator inside the Amazon SDK")
 
@@ -116,10 +117,16 @@ function(generateAwsChecksumsTarget)
     "${library_root}/source/crc_sw.c"
   )
 
-  if(DEFINED PLATFORM_POSIX)
+  if(DEFINED PLATFORM_POSIX AND TARGET_PROCESSOR STREQUAL "x86_64")
     set(additional_source_file_list
       "${library_root}/source/intel/cpuid.c"
       "${library_root}/source/intel/crc32c_sse42_asm.c"
+    )
+
+  elseif(DEFINED PLATFORM_POSIX AND TARGET_PROCESSOR STREQUAL "aarch64")
+    set(additional_source_file_list
+      "${library_root}/source/arm/cpuid_arm.c"
+      "${library_root}/source/arm/crc32c_arm.c"
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)

@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #ifndef WIN32
@@ -17,18 +18,18 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <osquery/data_logger.h>
-#include <osquery/database.h>
-#include <osquery/events.h>
-#include <osquery/extensions.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/plugins/logger.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/events/events.h>
+#include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/flags.h>
-#include <osquery/numeric_monitoring.h>
-#include <osquery/plugins/logger.h>
-#include <osquery/registry_factory.h>
-#include <osquery/system.h>
+#include <osquery/logger/data_logger.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
+#include <osquery/registry/registry_factory.h>
 
-#include <osquery/flagalias.h>
+#include <osquery/core/flagalias.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
@@ -219,7 +220,7 @@ void setVerboseLevel() {
     /* We use a different default for the log level if running as a daemon or if
      * running as a shell. If the flag was set we just use that in both cases.
      */
-    if (Flag::isDefault("logger_min_status") && Initializer::isShell()) {
+    if (Flag::isDefault("logger_min_status") && isShell()) {
       FLAGS_minloglevel = google::GLOG_WARNING;
     } else {
       FLAGS_minloglevel = Flag::getInt32Value("logger_min_status");
@@ -325,7 +326,7 @@ void BufferedLogSink::send(google::LogSeverity severity,
   }
 
   // The daemon will relay according to the schedule.
-  if (enabled_ && !Initializer::isDaemon()) {
+  if (enabled_ && !isDaemon()) {
     relayStatusLogs(FLAGS_logger_status_sync);
   }
 }
@@ -484,7 +485,7 @@ size_t queuedSenders() {
 }
 
 void relayStatusLogs(bool async) {
-  if (FLAGS_disable_logging || !DatabasePlugin::kDBInitialized) {
+  if (FLAGS_disable_logging || !databaseInitialized()) {
     // The logger plugins may not be setUp if logging is disabled.
     // If the database is not setUp, or is in a reset, status logs continue
     // to buffer.

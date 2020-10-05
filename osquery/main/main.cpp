@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #ifdef WIN32
@@ -18,21 +19,22 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/shutdown.h>
+#include <osquery/core/system.h>
 #include <osquery/core/watcher.h>
-#include <osquery/database.h>
+#include <osquery/database/database.h>
 #include <osquery/devtools/devtools.h>
 #include <osquery/dispatcher/distributed_runner.h>
 #include <osquery/dispatcher/scheduler.h>
-#include <osquery/extensions.h>
+#include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/fileops.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/main/main.h>
 #include <osquery/process/process.h>
-#include <osquery/registry_factory.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sqlite_util.h>
-#include <osquery/system.h>
 
 #include <osquery/experimental/tracing/syscalls_tracing.h>
 
@@ -84,7 +86,7 @@ int profile(int argc, char* argv[]) {
   }
 
   // Perform some duplication from Initializer with respect to database setup.
-  osquery::DatabasePlugin::setAllowOpen(true);
+  osquery::setDatabaseAllowOpen();
   osquery::RegistryFactory::get().setActive("database", "ephemeral");
 
   auto dbc = osquery::SQLiteDBManager::get();
@@ -173,9 +175,14 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
   int retcode = 0;
   if (osquery::FLAGS_profile <= 0) {
     runner.start();
-
-    // Virtual tables will be attached to the shell's in-memory SQLite DB.
-    retcode = osquery::launchIntoShell(argc, argv);
+    if (shutdownRequested()) {
+      // Something in the initialization errored or requested a shutown.
+      runner.waitForShutdown();
+      retcode = getShutdownExitCode();
+    } else {
+      // Virtual tables will be attached to the shell's in-memory SQLite DB.
+      retcode = osquery::launchIntoShell(argc, argv);
+    }
   } else {
     retcode = profile(argc, argv);
   }
@@ -222,7 +229,7 @@ int startOsquery(int argc, char* argv[]) {
 
   // Only worker processes should start a daemon or shell.
   if (!runner.isWatcher()) {
-    if (runner.isDaemon()) {
+    if (isDaemon()) {
       startDaemon(runner);
     } else {
       retcode = startShell(runner, argc, argv);

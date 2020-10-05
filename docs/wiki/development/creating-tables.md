@@ -1,8 +1,10 @@
+# Creating tables
+
 SQL tables are used to represent abstract operating system concepts, such as running processes.
 
 A table can be used in conjunction with other tables via operations like sub-queries and joins. This allows for a rich data exploration experience. While osquery ships with a default set of tables, osquery provides an API that allows you to create new tables.
 
-You can explore current schema here: [https://osquery.io/schema](https://osquery.io/schema/). Tables that are up for grabs in terms of development can be found on Github issues using the "virtual tables" + "[up for grabs tag](https://github.com/osquery/osquery/issues?q=is%3Aopen+is%3Aissue+label%3A%22virtual+tables%22)".
+You can explore current schema here: [https://osquery.io/schema](https://osquery.io/schema/). Tables that are up for grabs in terms of development can be found on GitHub issues using the "virtual tables" + "[up for grabs tag](https://github.com/osquery/osquery/issues?q=is%3Aopen+is%3Aissue+label%3A%22virtual+tables%22)".
 
 ## New Table Walkthrough
 
@@ -10,7 +12,7 @@ Let's walk through an exercise where we build a 'time' table. The table will hav
 
 Column values (a single row) will be dynamically computed at query time.
 
-**Table specifications**
+### Table specifications
 
 Under the hood, osquery uses libraries from SQLite core to create "virtual tables". The default API for creating virtual tables is relatively complex. osquery has abstracted this complexity away, allowing you to write a simple table declaration.
 
@@ -42,25 +44,25 @@ implementation("time@genTimeExample")
 
 You can leave the comments out in your production spec. Shoot for simplicity, try to avoid things like inheritance for Column objects, loops in your table spec, etc.
 
-You might wonder "this syntax looks similar to Python?". Well, it is! The build process actually parses the spec files as Python code and meta-programs necessary C/C++ implementation files.
+You might wonder "this syntax looks similar to Python?" Well, it is! The build process actually parses the spec files as Python code and meta-programs necessary C/C++ implementation files.
 
-**Where do I put the spec?**
+### Where to put the spec
 
 You may be wondering how osquery handles cross-platform support while still allowing operating-system specific tables. The osquery build process takes care of this by only generating the relevant code based on on logic in `./specs/CMakeLists.txt`. Additionally, we use a simple directory structure to help organize the many spec files.
 
-- Cross-platform: [./specs/](https://github.com/osquery/osquery/tree/master/specs/)
-- MacOS: [./specs/darwin/](https://github.com/osquery/osquery/tree/master/specs/darwin)
-- General Linux: [./specs/linux/](https://github.com/osquery/osquery/tree/master/specs/linux)
-- Windows: [./specs/windows/](https://github.com/osquery/osquery/tree/master/specs/windows)
-- POSIX: [./specs/posix/](https://github.com/osquery/osquery/tree/master/specs/posix)
-- FreeBSD: [./specs/freebsd/](https://github.com/osquery/osquery/tree/master/specs/freebsd)
+- Cross-platform: [specs/](https://github.com/osquery/osquery/tree/master/specs/)
+- macOS: [specs/darwin/](https://github.com/osquery/osquery/tree/master/specs/darwin)
+- General Linux: [specs/linux/](https://github.com/osquery/osquery/tree/master/specs/linux)
+- Windows: [specs/windows/](https://github.com/osquery/osquery/tree/master/specs/windows)
+- POSIX: [specs/posix/](https://github.com/osquery/osquery/tree/master/specs/posix)
+- FreeBSD: [specs/freebsd/](https://github.com/osquery/osquery/tree/master/specs/freebsd)
 - You get the picture ;)
 
 > NOTICE: the CMake build provides custom defines for each platform and platform version.
 
 To make our new `time_example` work, find the function in `./specs/CMakeLists.txt` called `generateNativeTables` and add a line `time_example.table`.
 
-**Specfile nuances**
+### Specfile nuances
 
 Each column in a **specfile** may have keyword arguments that effect how the SQLite behaves. If you require a column to be present in the `WHERE` predicate, like a `path` in the `file` table, then it must be reflected in the spec.
 
@@ -70,6 +72,7 @@ Each column in a **specfile** may have keyword arguments that effect how the SQL
 - **hidden=True**: Sets the `HIDDEN` attribute for the column, so a `SELECT * FROM` will not include this column.
 
 The table may also set `attributes`:
+
 ```python
 attributes(user_data=True)
 ```
@@ -83,17 +86,24 @@ There are several attributes that help with table documentation and optimization
 
 Specs may also include an **extended_schema** for a specific platform. They are the same as **schema** but the first argument is a function returning a bool. If true the columns are added and not marked hidden, otherwise they are all appended with `hidden=True`. This allows tables to keep a consistent set of columns and types while providing a good user experience for default selects.
 
-**Creating your implementation**
+### Creating your implementation
 
 As indicated in the spec file, our implementation will be in a function called `genTimeExample`. Since this is a very general table and should compile on all supported operating systems we can place it in `./osquery/tables/utility/time_example.cpp`. The directory `./osquery/tables` contains the set of implementation categories. Each category *may* contain a platform-restricted directory. If a table requires a different implementation on different platform, use these subdirectories. Place implementations in the corresponding category using your best judgment. The appropriate `CMakeLists.txt` must define the files within the platform-related directory to know what to build.
 
 Here is that code for `./osquery/tables/utility/time_example.cpp`:
 
 ```cpp
-// Copyright 2004-present Facebook. All Rights Reserved.
+/**
+ * Copyright (c) 2014-present, The osquery authors
+ *
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+ */
 
 #include <ctime>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {
@@ -125,14 +135,21 @@ Key points to remember:
 - Your implementation function should accept on `QueryContext&` parameter and return an instance of `TableRows`.
 - Your implementation function should use `context.isAnyColumnUsed` to run only the code necessary for the query.
 
-**Adding an integration test**
+### Adding an integration test
 
 You may add small unit tests using GTest, but each table *should* have an integration test where the end-to-end selecting and checking data formats occurs.
 
 Create a file `./tests/integration/tables/time_example.cpp`.
 
 ```cpp
-// Copyright 2004-present Facebook. All Rights Reserved.
+/**
+ * Copyright (c) 2014-present, The osquery authors
+ *
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+ */
 
 #include <osquery/tests/integration/tables/helper.h>
 
@@ -171,7 +188,7 @@ To make this compile, open `./tests/integration/tables/CMakeLists.txt`, find the
 
 ## Using where clauses
 
-The `QueryContext` data type is osquery's abstraction of the underlying SQL engine's query parsing. It is defined in [osquery/tables.h](/osquery/include/osquery/tables.h).
+The `QueryContext` data type is osquery's abstraction of the underlying SQL engine's query parsing. It is defined in `osquery/core/tables.h`.
 
 The most important use of the context is query predicate constraints (e.g., `WHERE col = 'value'`). Some tables MUST have a predicate constraint, others may optionally use the constraints to increase performance.
 
@@ -201,7 +218,7 @@ Examples:
 
 ## SQL data types
 
-Data types like `TableRows`, `TableRow`, `DiffResults`, etc. are osquery's built-in data result types. They're all defined in [include/osquery/database.h](https://github.com/osquery/osquery/blob/master/include/osquery/database.h).
+Data types like `TableRows`, `TableRow`, `DiffResults`, etc. are osquery's built-in data result types. They're all defined in [osquery/database/database.h](https://github.com/osquery/osquery/blob/master/osquery/database/database.h).
 
 `TableRow` is an interface; each table has a generated implementation with strongly-typed fields for each column in the table. There's also `DynamicTableRow`, which is backed by a `std::map<std::string, std::string>` mapping column names to the string representations of their values. `DynamicTableRow` exists to support tables that were written before the strongly-typed row support was added, and for plugins.
 
@@ -217,13 +234,13 @@ If your code compiled properly, launch the interactive query console by executin
 
 Run the leaks analysis to check for memory leaks:
 
-```
+```bash
 ./tools/analysis/profile.py --leaks --query "select * from time" --verbose
 ```
 
 If your table parses content from the filesystem you should define fuzzing rules. In your table specification add:
 
-```
+```python
 fuzz_paths([
     "/path/to/directory/used",
 ])

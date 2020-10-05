@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-05T16:12:07.4170796Z",
+    "source": "Application",
+    "provider_name": "Microsoft-Windows-Security-SPP",
+    "provider_guid": "{E23B33B0-C8C9-472C-A5F9-F2BDFEA0F156}",
+    "event_id": "1066",
+    "task_id": "0",
+    "level": "4",
+    "keywords": "0x80000000000000",
+    "data": "{\"EventData\":[\"C:\\\\Windows\\\\system32\\\\sppwinob.dll, msft:spp\\\/windowsfunctionality\\\/agent\\\/7.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:rm\\\/algorithm\\\/inherited\\\/1.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:rm\\\/algorithm\\\/phone\\\/1.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:rm\\\/algorithm\\\/pkey\\\/detect, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:spp\\\/ActionScheduler\\\/1.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:spp\\\/TaskScheduler\\\/1.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:spp\\\/statecollector\\\/pkey, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:spp\\\/volume\\\/services\\\/kms\\\/1.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:spp\\\/volume\\\/services\\\/kms\\\/activationinfo\\\/1.0, 0x00000000, 0x00000000\\n\"]}"
+}

@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-12T15:27:08.4281618Z",
+    "source": "Application",
+    "provider_name": "ESENT",
+    "provider_guid": "",
+    "event_id": "102",
+    "task_id": "1",
+    "level": "4",
+    "keywords": "0x80000000000000",
+    "data": "{\"EventData\":[\"SearchIndexer\",\"5780,P,98\",\"Windows: \",\"0\",\"10\",\"00\",\"19041\",\"0000\"]}"
+}

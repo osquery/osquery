@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryToolsTestsMain)
   if(OSQUERY_BUILD_TESTS)
@@ -33,7 +34,7 @@ function(addPythonTest)
     COMMAND ${python_test_command}
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 
-  set_tests_properties(${osquery_test_NAME} PROPERTIES TIMEOUT 60)
+  set_tests_properties(${osquery_test_NAME} PROPERTIES TIMEOUT 300)
 endfunction()
 
 function(preparePythonTestsEnvironment)
@@ -67,6 +68,7 @@ function(generatePythonTests)
 
   # Tests
   addPythonTest(NAME tools_tests_testosqueryd SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_osqueryd.py")
+  addPythonTest(NAME tools_tests_testosqueryi SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_osqueryi.py")
   if(PLATFORM_LINUX)
     addPythonTest(NAME tools_tests_testfschangestable SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_docker_container_fs_changes_table.py")
   endif()

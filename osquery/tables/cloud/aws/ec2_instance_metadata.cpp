@@ -1,16 +1,13 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-// clang-format off
-// Keep it on top of all other includes to fix double include WinSock.h header file
-// which is windows specific boost build problem
 #include <osquery/remote/http_client.h>
-// clang-format on
 
 #include <string>
 
@@ -18,8 +15,8 @@
 #include <boost/noncopyable.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/aws/aws_util.h>
 
 namespace pt = boost::property_tree;

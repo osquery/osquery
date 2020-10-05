@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -17,10 +18,10 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/core/flags.h>
 #include <osquery/core/sql/query_data.h>
-#include <osquery/database.h>
-#include <osquery/dispatcher.h>
-#include <osquery/flags.h>
+#include <osquery/database/database.h>
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/process/process.h>
 
 namespace osquery {
@@ -59,14 +60,14 @@ struct PerformanceState {
   /// A counter of how many intervals the process exceeded performance limits.
   size_t sustained_latency;
   /// The last checked user CPU time.
-  size_t user_time;
+  uint64_t user_time;
   /// The last checked system CPU time.
-  size_t system_time;
+  uint64_t system_time;
   /// A timestamp when the process/worker was last created.
-  size_t last_respawn_time;
+  uint64_t last_respawn_time;
 
   /// The initial (or as close as possible) process image footprint.
-  size_t initial_footprint;
+  uint64_t initial_footprint;
 
   PerformanceState() {
     sustained_latency = 0;
@@ -118,8 +119,13 @@ class Watcher : private boost::noncopyable {
     return worker_status_;
   }
 
-  /// Add extensions autoloadable paths.
-  void addExtensionPath(const std::string& path);
+  /**
+   * @brief Call the loadExtensions global method.
+   *
+   * The watcher is the only 'user' of autoloadable extensions. It will start
+   * each process and optionally monitor the performance.
+   */
+  void loadExtensions();
 
   /// Lock access to extensions.
   void lock() {
@@ -144,11 +150,11 @@ class Watcher : private boost::noncopyable {
   }
 
   /// Reset counters after a worker exits.
-  void resetWorkerCounters(size_t respawn_time);
+  void resetWorkerCounters(uint64_t respawn_time);
 
   /// Reset counters for an extension path.
   void resetExtensionCounters(const std::string& extension,
-                              size_t respawn_time);
+                              uint64_t respawn_time);
 
   /// Accessor for autoloadable extension paths.
   const ExtensionMap& extensions() const {
@@ -204,6 +210,14 @@ class Watcher : private boost::noncopyable {
     worker_restarts_++;
   }
 
+  void workerStartTime(uint64_t start_time) {
+    worker_start_time_ = start_time;
+  }
+
+  uint64_t workerStartTime() {
+    return worker_start_time_;
+  }
+
  private:
   /// Performance state for the worker process.
   PerformanceState state_;
@@ -215,14 +229,14 @@ class Watcher : private boost::noncopyable {
   /// Keep the single worker process/thread ID for inspection.
   std::shared_ptr<PlatformProcess> worker_;
 
+  /// Time the worker was started.
+  uint64_t worker_start_time_{0};
+
   /// Number of worker restarts NOT induced by a watchdog process.
   size_t worker_restarts_{0};
 
   /// Keep a list of resolved extension paths and their managed pids.
   ExtensionMap extensions_;
-
-  /// Paths to autoload extensions.
-  std::vector<std::string> extensions_paths_;
 
   /// Bind the fate of the watcher to the worker.
   std::atomic<bool> restart_worker_{true};
@@ -242,26 +256,7 @@ class Watcher : private boost::noncopyable {
 
  private:
   friend class WatcherRunner;
-};
-
-/**
- * @brief A scoped locker for iterating over watcher extensions.
- *
- * A lock must be used if any part of osquery wants to enumerate the autoloaded
- * extensions or autoloadable extension paths a Watcher may be monitoring.
- * A signal or WatcherRunner thread may stop or start extensions.
- */
-class WatcherExtensionsLocker {
- public:
-  /// Construct and gain watcher lock.
-  WatcherExtensionsLocker() {
-    Watcher::get().lock();
-  }
-
-  /// Destruct and release watcher lock.
-  ~WatcherExtensionsLocker() {
-    Watcher::get().unlock();
-  }
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
 };
 
 /**
@@ -324,7 +319,7 @@ class WatcherRunner : public InternalRunnable {
   virtual void stopChild(const PlatformProcess& child) const;
 
   /// Return the time the watchdog is delayed until (from start of watcher).
-  size_t delayedTime() const;
+  uint64_t delayedTime() const;
 
  private:
   /// For testing only, ask the WatcherRunner to run a start loop once.
@@ -373,5 +368,5 @@ class WatcherWatcherRunner : public InternalRunnable {
 };
 
 /// Get a performance limit by name and optional level.
-size_t getWorkerLimit(WatchdogLimitType limit);
+uint64_t getWorkerLimit(WatchdogLimitType limit);
 }

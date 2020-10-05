@@ -1,8 +1,10 @@
+# Configuring an osquery deployment
+
 An osquery deployment consists of:
 
 * Installing the tools for [Windows](../installation/install-windows.md), [macOS](../installation/install-macos.md), or [Linux](../installation/install-linux.md)
 * Reviewing the [osqueryd](../introduction/using-osqueryd.md) introduction
-* Configuring and starting the **osqueryd** service (this page)
+* Configuring and starting the `osqueryd` service (this page)
 * Managing and [collecting](log-aggregation.md) the query results
 
 ## Configuration components
@@ -19,7 +21,7 @@ There are several components contributing to a configuration:
 * File Change Monitoring: categories and paths of monitored files and directories
 * (insert new feature that requires a configuration here!)
 
-There are also "initialization" parameters that control how **osqueryd** is
+There are also "initialization" parameters that control how `osqueryd` is
 launched.  These parameters only make sense as command-line arguments since
 they are used before a configuration plugin is selected. See the [command line
 flags](../installation/cli-flags.md) overview for a complete list of these
@@ -31,7 +33,7 @@ config path as follows:
 
 * Windows: **C:\Program Files\osquery\osquery.conf**
 * Linux: **/etc/osquery/osquery.conf** and **/etc/osquery/osquery.conf.d/**
-* MacOS: **/var/osquery/osquery.conf** and **/var/osquery/osquery.conf.d/**
+* macOS: **/var/osquery/osquery.conf** and **/var/osquery/osquery.conf.d/**
 
 You may override the **filesystem** plugin's path using
 `--config_path=/path/to/osquery.conf`. You may also use the ".d/" directory
@@ -62,7 +64,8 @@ This config tells osqueryd to schedule two queries, **macos_kextstat** and
 **foobar**:
 
 * the schedule keys must be unique
-* the `interval` specifies query frequency (in seconds)
+* the `interval` specifies query frequency, in seconds. It has a
+  maximum value of 604,800 (1 week)
 
 The first query will log changes to the macOS host's kernel extensions,
 with a query interval of 10 seconds. Consider using osquery's [performance
@@ -143,6 +146,7 @@ The pack value may also be a string, such as:
 If using a string instead of an inline JSON dictionary the configuration plugin will be asked to "generate" that resource. In the case of the default **filesystem** plugin, these strings are considered paths.
 
 The **filesystem** plugin supports another convention for adding a directory of packs:
+
 ```json
 {
   "packs": {
@@ -261,6 +265,7 @@ This section details all (read: most) of the default configuration keys, called 
 The `options` key defines a map of option name to option value pairs. The names must be a CLI flag in the "osquery configuration options" set; running `osqueryd --help` will enumerate the list.
 
 Example:
+
 ```json
 {
   "options": {
@@ -282,6 +287,7 @@ It is possible to set "custom" options that do not exist as flags. These will no
 The `schedule` key defines a map of scheduled query names to the query details. You will see mention of the schedule throughout osquery's documentation. It is the focal point of osqueryd's capabilities.
 
 Example:
+
 ```json
 {
   "schedule": {
@@ -316,7 +322,7 @@ The basic scheduled query specification includes:
 
 The `platform` key can be:
 
-- `darwin` for MacOS hosts
+- `darwin` for macOS hosts
 - `freebsd` for FreeBSD hosts
 - `linux` for any RedHat or Debian-based hosts
 - `posix` for `darwin`, `freebsd`, and `linux` hosts
@@ -364,6 +370,7 @@ The `discovery` query set feature is described in detail in the above packs sect
 The `file_paths` key defines a map of file integrity monitoring (FIM) categories to sets of filesystem globbing lines. Please refer to the [FIM](../deployment/file-integrity-monitoring.md) guide for details on how to use osquery as a FIM tool.
 
 Example:
+
 ```json
 {
   "file_paths": {
@@ -388,6 +395,7 @@ The file paths set has a sister key: `file_accesses` which contains a set of cat
 The `yara` key uses two subkeys to configure YARA signatures: `signatures`, and to define a mapping for signature sets to categories of `file_paths` defined in the "file paths" configuration. Please refer to the much more detailed [YARA](../deployment/yara.md) deployment guide.
 
 Example:
+
 ```json
 {
   "yara": {
@@ -412,6 +420,7 @@ There is a strict relationship between the top-level `file_paths` key, and `yara
 The `prometheus_targets` key can be used to configure Prometheus targets to be queried. The metric timestamp of millisecond precision is taken when the target response is received.  The `prometheus_targets` parent key consists of a child key `urls`, which contains a list target urls to be scraped, and an optional child key `timeout` which contains the request timeout duration in seconds (defaults to 1 second if not provided).
 
 Example:
+
 ```json
 {
   "prometheus_targets": {
@@ -429,6 +438,7 @@ Example:
 Views are saved queries expressed as tables. Large subqueries or complex joining logic can often be moved into views allowing you to make your queries more concise.
 
 Example:
+
 ```json
 {
   "views": {
@@ -473,6 +483,7 @@ Decorator queries exist in osquery versions 1.7.3+ and are used to add additiona
 ```
 
 The types of decorators are:
+
 * `load`: run these decorators when the configuration loads (or is reloaded)
 * `always`: run these decorators before each query in the schedule
 * `interval`: a special key that defines a map of interval times, see below
@@ -563,7 +574,7 @@ Let's see what tables exist in our local SQLite database.
 
 ```
 sqlite> .tables
-access            active_policy     expired         
+access            active_policy     expired
 access_overrides  admin             policies
 ```
 
@@ -611,13 +622,9 @@ You can test this locally before deploying to your fleet and add more columns as
 
 ## Chef Configuration
 
-Here are example chef cookbook recipes and files for macOS and Linux
-deployments.  Consider improving the recipes using node attributes to further
-control what nodes and clients enable osquery. It helps to create a canary or a
-testing set that implements a separate "testing" configuration. These recipes
-assume you are deploying the macOS package or the Linux package separately.
+Here are example Chef cookbook recipes and files for macOS and Linux deployments. Consider improving the recipes using node attributes to further control what nodes and clients enable osquery. It helps to create a canary or a testing set that implements a separate "testing" configuration. These recipes assume you are deploying the macOS package or the Linux package separately.
 
-### Chef OS X / macOS
+### Chef macOS
 
 Consider the default recipe:
 
@@ -671,6 +678,7 @@ end
 And the following files/templates used by the recipe:
 
 **templates/default/launchd.plist.erb**
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -701,12 +709,14 @@ And the following files/templates used by the recipe:
 ```
 
 **files/default/com.facebook.osquery.osqueryd.conf**
-```
+
+```shell
 # logfilename                         [owner:group]  mode count size   when  flags [/pid_file] [sig_num]
 /var/log/osquery/osqueryd.results.log root:wheel     600  2     10000  *     NZ
 ```
 
 **files/default/osquery.conf**
+
 ```json
 {
   "options": {
@@ -747,4 +757,4 @@ And the same configuration file from the macOS example is appropriate.
 
 ## osqueryctl helper
 
-To test a deploy or configuration we include a short helper script called **osqueryctl**. There are several actions including "start", "stop", and "config-check" that apply to both macOS and Linux.
+To test a deploy or configuration we include a short helper script called `osqueryctl`. There are several actions including `start`, `stop`, and `config-check` that apply to both macOS and Linux.

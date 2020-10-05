@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -11,7 +12,7 @@
 #include <chrono>
 #include <map>
 
-#include <osquery/dispatcher.h>
+#include <osquery/dispatcher/dispatcher.h>
 
 #include "osquery/sql/sqlite_util.h"
 
@@ -41,11 +42,24 @@ class SchedulerRunner : public InternalRunnable {
   std::chrono::milliseconds getCurrentTimeDrift() const noexcept;
 
  private:
+  void calculateTimeDriftAndMaybePause(
+      std::chrono::milliseconds loop_step_duration);
+
+  /// Check interval-based decorators.
+  void maybeRunDecorators(uint64_t time_step);
+
+  /// Check relative configuration flags.
+  void maybeReloadSchedule(uint64_t time_step);
+
+  /// Check if buffered status logs should be flushed.
+  void maybeFlushLogs(uint64_t time_step);
+
+ private:
   /// Interval in seconds between schedule steps.
   const std::chrono::milliseconds interval_;
 
   /// Maximum number of steps.
-  const unsigned long int timeout_;
+  unsigned long int timeout_;
 
   /// Accumulated for some time time drift to compensate.
   /// It will be either reduced during compensation process or

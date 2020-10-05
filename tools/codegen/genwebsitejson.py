@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
-"""
-Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
+# Copyright (c) 2014-present, The osquery authors
+#
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+
+"""
 Generate a complete table specification for the website
 
 This script will generate JSON output as expected by the osquery website given
@@ -11,11 +17,12 @@ Usage:
     python tools/codegen/genwebsitejson.py --specs=./specs
 """
 
-#  Copyright (c) 2014-present, Facebook, Inc.
-#  All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-#  This source code is licensed in accordance with the terms specified in
-#  the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 import json
 import os

@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 // Sanity check integration test for file
@@ -71,6 +72,7 @@ TEST_F(FileTests, test_sanity) {
   row_map["volume_serial"] = NormalType;
   row_map["file_id"] = NormalType;
   row_map["product_version"] = NormalType;
+  row_map["file_version"] = NormalType;
 #endif
 
 #ifdef __APPLE__

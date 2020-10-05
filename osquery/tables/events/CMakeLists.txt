@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesEventsMain)
 
@@ -28,6 +29,7 @@ function(generateOsqueryTablesEventsEventstable)
       linux/socket_events.cpp
       linux/syslog_events.cpp
       linux/user_events.cpp
+      linux/apparmor_events.cpp
     )
 
   elseif(DEFINED PLATFORM_MACOS)
@@ -55,7 +57,7 @@ function(generateOsqueryTablesEventsEventstable)
   enableLinkWholeArchive(osquery_tables_events_eventstable)
 
   target_link_libraries(osquery_tables_events_eventstable PUBLIC
-    osquery_headers
+    osquery_cxx_settings
     osquery_config
     osquery_core
     osquery_events
@@ -85,6 +87,7 @@ function(generateOsqueryTablesEventsEventstable)
       linux/process_events.h
       linux/process_file_events.h
       linux/selinux_events.h
+      linux/apparmor_events.h
       linux/socket_events.h
     )
 
@@ -97,6 +100,8 @@ function(generateOsqueryTablesEventsEventstable)
   if(DEFINED PLATFORM_WINDOWS)
     set(platform_public_header_files
       windows/ntfs_journal_events.h
+      windows/powershell_events.h
+      windows/windows_events.h
     )
 
     generateIncludeNamespace(osquery_tables_events_eventstable "osquery/tables/events" "FULL_PATH" ${platform_public_header_files})

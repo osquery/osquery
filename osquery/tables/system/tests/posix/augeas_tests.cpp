@@ -1,37 +1,35 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <gtest/gtest.h>
 
 #include <osquery/config/tests/test_utils.h>
-#include <osquery/database.h>
-#include <osquery/registry_factory.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
+#include <osquery/registry/registry_factory.h>
+#include <osquery/sql/sql.h>
 
 namespace osquery {
-DECLARE_bool(disable_database);
+
 DECLARE_string(augeas_lenses);
+
 namespace tables {
 
 class AugeasTests : public testing::Test {
  protected:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
+    initDatabasePluginForTesting();
 
-    // Force registry to use ephemeral database plugin
-    FLAGS_disable_database = true;
     FLAGS_augeas_lenses =
         (osquery::getTestConfigDirectory() / "augeas/lenses").string();
-
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
   }
 };
 

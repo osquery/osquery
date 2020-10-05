@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -12,7 +13,7 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/process/process.h>
 
@@ -37,11 +38,32 @@ class TLSServerRunner : private boost::noncopyable {
     return instance().port_;
   }
 
-  /// Start the server if it hasn't started already.
+  /**
+   * Start the server if it hasn't started already.
+   *
+   * A failure status is returned on error.
+   */
   static bool start(const std::string& server_cert = {});
 
   /// Stop the service when the process exits.
   static void stop();
+
+ private:
+  /**
+   * The output "pid" will be empty if no listening port is found.
+   *
+   * A failure status will also be returned if no pid is found.
+   */
+  Status getListeningPortPid(const std::string& port, std::string& pid);
+
+  /**
+   * Try to start the TLS server and set ::server_ to the process.
+   *
+   * A failure status is returned if the process is not created.
+   * This does not check that the port was bound.
+   */
+  Status startAndSetScript(const std::string& port,
+                           const std::string& server_cert);
 
  private:
   /// Current server handle.

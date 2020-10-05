@@ -1,17 +1,18 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <set>
 #include <string>
 
 #include <osquery/carver/carver.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/mutex.h>
 
@@ -49,11 +50,12 @@ static void executeCarve(sqlite3_context* ctx) {
   WriteLock lock(kFunctionCarveMutex);
   if (!FLAGS_carver_disable_function) {
     carvePaths(kFunctionCarvePaths);
+    sqlite3_result_text(ctx, "Carve Started", 13, SQLITE_TRANSIENT);
   } else {
     LOG(WARNING) << "Carver as a function is disabled";
+    sqlite3_result_text(ctx, "Carve Failed", 13, SQLITE_TRANSIENT);
   }
   kFunctionCarvePaths.clear();
-  sqlite3_result_text(ctx, "Carve Started", 13, SQLITE_TRANSIENT);
 }
 
 void registerOperationExtensions(sqlite3* db) {

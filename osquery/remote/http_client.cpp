@@ -1,12 +1,13 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/remote/http_client.h>
 
 #include <boost/asio/connect.hpp>
@@ -85,21 +86,6 @@ void Client::connectHandler(boost::system::error_code const& ec,
   cancelTimerAndSetError(ec);
 }
 
-void Client::resolveHandler(
-    boost::system::error_code const& ec,
-    boost::asio::ip::tcp::resolver::results_type results) {
-  if (!ec) {
-    boost::asio::async_connect(sock_,
-                               results,
-                               std::bind(&Client::connectHandler,
-                                         this,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2));
-  } else {
-    cancelTimerAndSetError(ec);
-  }
-}
-
 void Client::handshakeHandler(boost::system::error_code const& ec) {
   cancelTimerAndSetError(ec);
 }
@@ -130,14 +116,18 @@ void Client::createConnection() {
     connect_host = connect_host.substr(0, pos);
   }
 
-  callNetworkOperation([&]() {
-    r_.async_resolve(connect_host,
-                     port,
-                     std::bind(&Client::resolveHandler,
-                               this,
-                               std::placeholders::_1,
-                               std::placeholders::_2));
-  });
+  // We can resolve async, but there is a handle leak in Windows.
+  auto results = r_.resolve(connect_host, port, ec_);
+  if (!ec_) {
+    callNetworkOperation([&]() {
+      boost::asio::async_connect(sock_,
+                                 results,
+                                 std::bind(&Client::connectHandler,
+                                           this,
+                                           std::placeholders::_1,
+                                           std::placeholders::_2));
+    });
+  }
 
   if (ec_) {
     std::string error("Failed to connect to ");
@@ -329,6 +319,10 @@ bool Client::initHTTPRequest(Request& req) {
   if (req.remoteHost()) {
     std::string hostname = *req.remoteHost();
     std::string port;
+
+    if (hostname == kInstanceMetadataAuthority) {
+      client_options_.proxy_hostname_ = boost::none;
+    }
 
     if (req.remotePort()) {
       port = *req.remotePort();

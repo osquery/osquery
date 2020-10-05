@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <thread>
@@ -13,14 +14,13 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/thread.hpp>
 
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/system/linux/smbios_utils.h>
 #include <osquery/utils/conversions/split.h>
-
 
 namespace osquery {
 namespace tables {
@@ -34,6 +34,7 @@ QueryData genSystemInfo(QueryContext& context) {
   std::string uuid;
   r["uuid"] = (osquery::getHostUUID(uuid)) ? uuid : "";
 
+#ifdef __x86_64__
   auto qd = SQL::selectAllFrom("cpuid");
   for (const auto& row : qd) {
     if (row.at("feature") == "product_name") {
@@ -41,6 +42,7 @@ QueryData genSystemInfo(QueryContext& context) {
       boost::trim(r["cpu_brand"]);
     }
   }
+#endif /* __x86_64__ */
 
   auto logical_cores = std::thread::hardware_concurrency();
   r["cpu_logical_cores"] = (logical_cores > 0) ? INTEGER(logical_cores) : "-1";

@@ -1,20 +1,21 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <algorithm>
 #include <string>
 #include <vector>
 
-#include <osquery/database.h>
-#include <osquery/flagalias.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/query.h>
+#include <osquery/core/flagalias.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/query.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
 
 #include <osquery/utils/json/json.h>
 
@@ -144,17 +145,10 @@ Status Query::addNewResults(QueryDataTyped current_qd,
     target_gd = &dr.added;
   }
 
-  counter = getQueryCounter(fresh_results || new_query);
-  auto status =
-      setDatabaseValue(kQueries, name_ + "counter", std::to_string(counter));
-  if (!status.ok()) {
-    return status;
-  }
-
   if (update_db) {
     // Replace the "previous" query data with the current.
     std::string json;
-    status = serializeQueryDataJSON(*target_gd, json, true);
+    auto status = serializeQueryDataJSON(*target_gd, json, true);
     if (!status.ok()) {
       return status;
     }
@@ -166,6 +160,15 @@ Status Query::addNewResults(QueryDataTyped current_qd,
 
     status = setDatabaseValue(
         kQueries, name_ + "epoch", std::to_string(current_epoch));
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  if (update_db || fresh_results || new_query) {
+    counter = getQueryCounter(fresh_results || new_query);
+    auto status =
+        setDatabaseValue(kQueries, name_ + "counter", std::to_string(counter));
     if (!status.ok()) {
       return status;
     }

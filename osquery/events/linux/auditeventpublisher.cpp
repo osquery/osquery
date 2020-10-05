@@ -1,18 +1,20 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <array>
 
+#include <osquery/core/flags.h>
+#include <osquery/events/linux/apparmor_events.h>
 #include <osquery/events/linux/auditeventpublisher.h>
 #include <osquery/events/linux/selinux_events.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
@@ -24,10 +26,15 @@ DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
 DECLARE_bool(audit_allow_selinux_events);
+DECLARE_bool(audit_allow_kill_process_events);
+DECLARE_bool(audit_allow_apparmor_events);
 
 REGISTER(AuditEventPublisher, "event_publisher", "auditeventpublisher");
 
 namespace {
+
+const std::string kAppArmorEventMarker{"apparmor"};
+
 bool IsPublisherEnabled() noexcept {
   if (FLAGS_disable_audit) {
     return false;
@@ -35,7 +42,9 @@ bool IsPublisherEnabled() noexcept {
 
   return (FLAGS_audit_allow_fim_events || FLAGS_audit_allow_process_events ||
           FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events ||
-          FLAGS_audit_allow_selinux_events);
+          FLAGS_audit_allow_selinux_events ||
+          FLAGS_audit_allow_kill_process_events ||
+          FLAGS_audit_allow_apparmor_events);
 }
 } // namespace
 
@@ -120,15 +129,57 @@ void AuditEventPublisher::ProcessEvents(
 
       event_context->audit_events.push_back(audit_event);
 
-      // SELinux events
+      // SELinux or AppArmor events
     } else if (selinux_event_set.find(audit_event_record.type) !=
                selinux_event_set.end()) {
-      AuditEvent audit_event;
-      audit_event.type = AuditEvent::Type::SELinux;
-      audit_event.record_list.push_back(audit_event_record);
+      if (audit_event_record.fields.find(kAppArmorEventMarker) ==
+          audit_event_record.fields.end()) {
+        // Pure SELinux Event
 
-      event_context->audit_events.push_back(audit_event);
+        AuditEvent audit_event;
+        audit_event.type = AuditEvent::Type::SELinux;
+        audit_event.record_list.push_back(audit_event_record);
 
+        event_context->audit_events.push_back(audit_event);
+      } else {
+        // We've got an AppArmor event
+        AppArmorAuditEventData data;
+
+        for (auto& field : data.fields) {
+          switch (field.second.which()) {
+          case 0: {
+            // string field
+            std::string value = "";
+            field.second =
+                StripQuotes(GetStringFieldFromMap(
+                                value, audit_event_record.fields, field.first)
+                                ? value
+                                : "");
+            break;
+          }
+          case 1: {
+            // int field
+            std::uint64_t value = 0;
+            field.second = GetIntegerFieldFromMap(
+                               value, audit_event_record.fields, field.first)
+                               ? value
+                               : 0;
+            break;
+          }
+          }
+        }
+
+        if (boost::get<std::string>(data.fields["apparmor"]).empty()) {
+          VLOG(1) << "AUDIT_APPARMOR record is malformed";
+          continue;
+        }
+
+        AuditEvent audit_event;
+        audit_event.type = AuditEvent::Type::AppArmor;
+        audit_event.record_list.push_back(audit_event_record);
+        audit_event.data = data;
+        event_context->audit_events.push_back(audit_event);
+      }
     } else if (audit_event_record.type == AUDIT_SYSCALL) {
       if (audit_event_it != trace_context.end()) {
         VLOG(1) << "Received a duplicated event.";
@@ -389,4 +440,14 @@ void CopyFieldFromMap(Row& row,
                       const std::string& default_value) noexcept {
   GetStringFieldFromMap(row[name], fields, name, default_value);
 }
+
+std::string StripQuotes(const std::string& value) noexcept {
+  if (value.length() >= 3 && value[0] == '\"' &&
+      value[value.length() - 1] == '\"') {
+    return value.substr(1, value.length() - 2);
+  } else {
+    return value;
+  }
+}
+
 } // namespace osquery

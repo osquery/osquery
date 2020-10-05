@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 // clang-format off
@@ -32,8 +33,8 @@
 #include <aws/sts/model/AssumeRoleRequest.h>
 #include <aws/sts/model/Credentials.h>
 
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/flags.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
 #include <osquery/utils/aws/aws_util.h>
@@ -80,21 +81,22 @@ FLAG(string,
      "",
      "Proxy password for use in AWS client config");
 
+/// EC2 instance latestmetadata URL
+const std::string kEc2MetadataUrl =
+    "http://" + http::kInstanceMetadataAuthority + "/latest/";
+
+/// Hypervisor UUID file
+const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
+
 /// Map of AWS region name to AWS::Region enum.
-static const std::set<std::string> kAwsRegions = {"us-east-1",
-                                                  "us-west-1",
-                                                  "us-west-2",
-                                                  "eu-west-1",
-                                                  "eu-central-1",
-                                                  "ap-southeast-1",
-                                                  "ap-southeast-2",
-                                                  "ap-northeast-1",
-                                                  "ap-northeast-2",
-                                                  "sa-east-1",
-                                                  "ap-south-1",
-                                                  "us-east-2",
-                                                  "ca-central-1",
-                                                  "eu-west-2"};
+static const std::set<std::string> kAwsRegions = {
+    "af-south-1",     "ap-east-1",     "ap-northeast-1", "ap-northeast-2",
+    "ap-northeast-3", "ap-south-1",    "ap-southeast-1", "ap-southeast-2",
+    "ca-central-1",   "cn-north-1",    "cn-northwest-1", "eu-central-1",
+    "eu-north-1",     "eu-south-1",    "eu-west-1",      "eu-west-2",
+    "eu-west-3",      "me-south-1",    "sa-east-1",      "us-east-1",
+    "us-east-2",      "us-gov-east-1", "us-gov-west-1",  "us-west-1",
+    "us-west-2"};
 
 // Default AWS region to use when no region set in flags or profile
 static RegionName kDefaultAWSRegion = Aws::Region::US_EAST_1;
@@ -227,7 +229,7 @@ OsqueryFlagsAWSCredentialsProvider::GetAWSCredentials() {
 Aws::Auth::AWSCredentials
 OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
   // Grab system time in seconds-since-epoch for token expiration checks.
-  size_t current_time = osquery::getUnixTime();
+  uint64_t current_time = osquery::getUnixTime();
 
   // config provides STS creds that includes the token
   if (!FLAGS_aws_session_token.empty()) {

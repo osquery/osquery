@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-17T14:27:52.1112601Z",
+    "source": "Application",
+    "provider_name": "Microsoft-Windows-Security-SPP",
+    "provider_guid": "{E23B33B0-C8C9-472C-A5F9-F2BDFEA0F156}",
+    "event_id": "8198",
+    "task_id": "0",
+    "level": "2",
+    "keywords": "0x80000000000000",
+    "data": "{\"EventData\":[\"hr=0x8007139F\",\"RuleId=31e71c49-8da7-4a2f-ad92-45d98a1c79ba;Action=AutoActivate;AppId=55c92734-d682-4d71-983e-d6ec3f16059f;SkuId=9fbaf5d6-4d83-4422-870d-fdda6e5858aa;NotificationInterval=1440;Trigger=TimerEvent\"]}"
+}

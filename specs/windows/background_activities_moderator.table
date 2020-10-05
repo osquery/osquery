@@ -1,0 +1,11 @@
+table_name("background_activities_moderator")
+description("Background Activities Moderator (BAM) tracks application execution.")
+schema([
+	Column("path", TEXT, "Application file path."),
+	Column("last_execution_time", INTEGER, "Most recent time application was executed."),
+	Column("sid", TEXT, "User SID."),
+])
+implementation("background_activities_moderator@genBackgroundActivitiesModerator")
+examples([
+	"select * from background_activities_moderator;",
+])

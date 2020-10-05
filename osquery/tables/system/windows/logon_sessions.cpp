@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 // clang-format is turned off to ensure windows.h is first
@@ -15,13 +16,12 @@
 #include <tchar.h>
 #include <vector>
 
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/core/core.h>
+#include <osquery/logger/logger.h>
+#include <osquery/core/tables.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/process/windows/process_ops.h>
-
-#include "osquery/filesystem/fileops.h"
 
 namespace osquery {
 namespace tables {
@@ -66,9 +66,9 @@ QueryData queryLogonSessions(QueryContext& context) {
           kLogonTypeToStr.find(SECURITY_LOGON_TYPE(session_data->LogonType))
               ->second;
       r["session_id"] = INTEGER(session_data->Session);
-      LPTSTR sid = nullptr;
-      if (ConvertSidToStringSid(session_data->Sid, &sid)) {
-        r["logon_sid"] = sid;
+      LPWSTR sid = nullptr;
+      if (ConvertSidToStringSidW(session_data->Sid, &sid)) {
+        r["logon_sid"] = wstringToString(sid);
       }
       if (sid) {
         LocalFree(sid);

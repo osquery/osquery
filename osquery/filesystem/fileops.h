@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -91,6 +92,7 @@ typedef struct win_stat {
   std::string attributes;
   std::string volume_serial;
   std::string product_version;
+  std::string file_version;
 
 } WINDOWS_STAT;
 
@@ -100,7 +102,9 @@ using PlatformHandle = int;
 using PlatformTimeType = struct timeval;
 #endif
 
-typedef struct { PlatformTimeType times[2]; } PlatformTime;
+typedef struct {
+  PlatformTimeType times[2];
+} PlatformTime;
 
 /// Constant for an invalid handle.
 const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
@@ -142,11 +146,6 @@ std::string lastErrorMessage(unsigned long);
 enum SeekMode { PF_SEEK_BEGIN = 0, PF_SEEK_CURRENT, PF_SEEK_END };
 
 #ifdef WIN32
-/// Takes a Windows FILETIME object and returns seconds since epoch
-LONGLONG filetimeToUnixtime(const FILETIME& ft);
-
-LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
-
 std::string getFileAttribStr(unsigned long);
 
 Status platformStat(const boost::filesystem::path&, WINDOWS_STAT*);
@@ -191,14 +190,17 @@ Status windowsShortPathToLongPath(const std::string& shortPath,
                                   std::string& rLongPath);
 
 /*
- * @brief Get the product version associated with a file
+ * @brief Get the product and file version associated with a file
  *
  * @param path: Full path to the file
- * @param rVersion: String representing the product version, e.g. "16.0.8201.0"
- *
+ * @param product_version: String representing the product version, e.g.
+ * "16.0.8201.0"
+ * @param file_version: String representing the file version
  * @return Success if the version could be retrieved, otherwise failure
  */
-Status windowsGetFileVersion(const std::string& path, std::string& rVersion);
+Status windowsGetVersionInfo(const std::string& path,
+                             std::string& product_version,
+                             std::string& file_version);
 #endif
 
 /**
@@ -437,4 +439,4 @@ Status platformLstat(const std::string& path, struct stat& d_stat);
  * @return osquery::Status
  */
 Status describeBSDFileFlags(std::string& output, std::uint32_t st_flags);
-}
+} // namespace osquery

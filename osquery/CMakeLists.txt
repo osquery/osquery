@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryMain)
   add_subdirectory("process")
@@ -32,24 +33,7 @@ function(osqueryMain)
   add_subdirectory("system")
   add_subdirectory("worker")
 
-  generateOsqueryHeaders()
   generateOsqueryd()
-endfunction()
-
-function(generateOsqueryHeaders)
-  add_osquery_library(osquery_headers INTERFACE)
-  target_include_directories(osquery_headers INTERFACE "${CMAKE_SOURCE_DIR}/osquery/include")
-
-  target_link_libraries(osquery_headers INTERFACE
-    osquery_cxx_settings
-    osquery_core_plugins
-    osquery_utils_info
-    osquery_utils_macros
-    osquery_utils_system_systemutils
-    thirdparty_gflags
-    thirdparty_sqlite
-    thirdparty_googletest_headers
-  )
 endfunction()
 
 function(generateOsqueryd)

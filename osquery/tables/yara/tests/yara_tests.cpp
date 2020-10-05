@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <gtest/gtest.h>
@@ -65,6 +66,39 @@ class YARATest : public testing::Test {
     fs::remove_all(file_to_scan);
     return r;
   }
+
+  Row scanString(const std::string& rule_defs) {
+    YR_RULES* rules = nullptr;
+    int result = yr_initialize();
+    EXPECT_TRUE(result == ERROR_SUCCESS);
+
+    Status status = compileFromString(rule_defs, &rules);
+    EXPECT_TRUE(status.ok()) << status.what();
+
+    Row r;
+    r["count"] = "0";
+    r["matches"] = "";
+
+    const auto file_to_scan =
+        fs::temp_directory_path() /
+        fs::unique_path("osquery.tests.yara.%%%%.%%%%.bin");
+    {
+      std::ofstream test_file(file_to_scan.string());
+      test_file << "test\n";
+    }
+
+    result = yr_rules_scan_file(rules,
+                                file_to_scan.string().c_str(),
+                                SCAN_FLAGS_FAST_MODE,
+                                YARACallback,
+                                (void*)&r,
+                                0);
+    EXPECT_TRUE(result == ERROR_SUCCESS) << " yara error code: " << result;
+
+    yr_rules_destroy(rules);
+    fs::remove_all(file_to_scan);
+    return r;
+  }
 };
 
 TEST_F(YARATest, test_match_true) {
@@ -94,6 +128,18 @@ TEST_F(YARATest, should_skip_file) {
   EXPECT_TRUE(yaraShouldSkipFile("/any/file/here", S_IFBLK));
   EXPECT_TRUE(yaraShouldSkipFile("/any/file/here", S_IFIFO));
 #endif
+}
+
+TEST_F(YARATest, test_match_string_true) {
+  Row r = scanString(alwaysTrue);
+  // expect count 1
+  EXPECT_TRUE(r["count"] == "1");
+}
+
+TEST_F(YARATest, test_match_string_false) {
+  Row r = scanString(alwaysFalse);
+  // expect count 0
+  EXPECT_TRUE(r["count"] == "0");
 }
 
 } // namespace osquery

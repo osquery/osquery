@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(pluginsLoggerTestsMain)
   generatePluginsLoggerTestsFilesystemloggertestsTest()
@@ -23,6 +24,7 @@ function(generatePluginsLoggerTestsFilesystemloggertestsTest)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
+    osquery_database
     osquery_distributed
     osquery_extensions
     osquery_extensions_implthrift
@@ -33,7 +35,6 @@ function(generatePluginsLoggerTestsFilesystemloggertestsTest)
     osquery_utils_info
     osquery_utils_system_time
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     plugins_logger_filesystemlogger
     specs_tables
     thirdparty_googletest
@@ -47,6 +48,7 @@ function(generatePluginsLoggerTestsBufferedloggertestsTest)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
+    osquery_database
     osquery_distributed
     osquery_extensions
     osquery_extensions_implthrift
@@ -57,7 +59,6 @@ function(generatePluginsLoggerTestsBufferedloggertestsTest)
     osquery_utils_info
     osquery_utils_system_time
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     plugins_logger_buffered
     specs_tables
     thirdparty_googletest
@@ -71,6 +72,7 @@ function(generatePluginsLoggerTestsKafkaproducerloggertestsTest)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
+    osquery_database
     osquery_distributed
     osquery_extensions
     osquery_extensions_implthrift
@@ -81,7 +83,6 @@ function(generatePluginsLoggerTestsKafkaproducerloggertestsTest)
     osquery_utils_info
     osquery_utils_system_time
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     plugins_logger_kafkaproducer
     specs_tables
     thirdparty_googletest
@@ -96,6 +97,7 @@ function(generatePluginsLoggerTestsAwskinesisloggertestsTest)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
+    osquery_database
     osquery_distributed
     osquery_extensions
     osquery_extensions_implthrift
@@ -106,7 +108,6 @@ function(generatePluginsLoggerTestsAwskinesisloggertestsTest)
     osquery_utils_info
     osquery_utils_system_time
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     plugins_logger_awskinesis
     plugins_logger_buffered
     specs_tables
@@ -122,6 +123,7 @@ function(generatePluginsLoggerTestsTlsloggertestsTest)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
+    osquery_database
     osquery_distributed
     osquery_extensions
     osquery_extensions_implthrift
@@ -133,7 +135,6 @@ function(generatePluginsLoggerTestsTlsloggertestsTest)
     osquery_utils_info
     osquery_utils_system_time
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     plugins_logger_tlslogger
     specs_tables
     thirdparty_googletest
@@ -148,6 +149,7 @@ function(generatePluginsLoggerTestsSyslogloggertestsTest)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
+    osquery_database
     osquery_distributed
     osquery_extensions
     osquery_extensions_implthrift
@@ -158,7 +160,6 @@ function(generatePluginsLoggerTestsSyslogloggertestsTest)
     osquery_utils_info
     osquery_utils_system_time
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     plugins_logger_syslog
     specs_tables
     thirdparty_googletest

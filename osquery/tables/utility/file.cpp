@@ -1,20 +1,21 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #if !defined(WIN32)
 #include <sys/stat.h>
 #endif
 
+#include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/system.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
 
@@ -126,7 +127,7 @@ void genFileInfo(const fs::path& path,
   r["inode"] = BIGINT(file_stat.inode);
   r["uid"] = BIGINT(file_stat.uid);
   r["gid"] = BIGINT(file_stat.gid);
-  r["mode"] = TEXT(file_stat.mode);
+  r["mode"] = SQL_TEXT(file_stat.mode);
   r["device"] = BIGINT(file_stat.device);
   r["size"] = BIGINT(file_stat.size);
   r["block_size"] = INTEGER(file_stat.block_size);
@@ -135,11 +136,12 @@ void genFileInfo(const fs::path& path,
   r["mtime"] = BIGINT(file_stat.mtime);
   r["ctime"] = BIGINT(file_stat.ctime);
   r["btime"] = BIGINT(file_stat.btime);
-  r["type"] = TEXT(file_stat.type);
-  r["attributes"] = TEXT(file_stat.attributes);
-  r["file_id"] = TEXT(file_stat.file_id);
-  r["volume_serial"] = TEXT(file_stat.volume_serial);
-  r["product_version"] = TEXT(file_stat.product_version);
+  r["type"] = SQL_TEXT(file_stat.type);
+  r["attributes"] = SQL_TEXT(file_stat.attributes);
+  r["file_id"] = SQL_TEXT(file_stat.file_id);
+  r["volume_serial"] = SQL_TEXT(file_stat.volume_serial);
+  r["product_version"] = SQL_TEXT(file_stat.product_version);
+  r["file_version"] = SQL_TEXT(file_stat.file_version);
 
 #endif
 
@@ -219,5 +221,5 @@ QueryData genFile(QueryContext& context) {
     return genFileImpl(context, logger);
   }
 }
-}
+} // namespace tables
 } // namespace osquery

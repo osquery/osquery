@@ -9,12 +9,17 @@ schema([
         additional=True),
     Column("sigfile", TEXT, "Signature file used",
         additional=True),
+	Column("sigrule", TEXT, "Signature strings used",
+        additional=True, hidden=True),
     Column("strings", TEXT, "Matching strings"),
     Column("tags", TEXT, "Matching tags"),
+    Column("sigurl", TEXT, "Signature url",
+        additional=True, hidden=True)
 ])
 implementation("yara@genYara")
 examples([
   "select * from yara where path = '/etc/passwd'",
   "select * from yara where path LIKE '/etc/%'",
   "select * from yara where path = '/etc/passwd' and sigfile = '/etc/osquery/yara/test.yara'",
+  "select * from yara where path = '/etc/passwd' and sigrule = 'rule always_true { condition: true }'",
 ])

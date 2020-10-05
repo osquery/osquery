@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <linux/audit.h>
@@ -16,13 +17,14 @@
 
 #include <boost/utility/string_ref.hpp>
 
+#include <osquery/core/flags.h>
+#include <osquery/events/linux/apparmor_events.h>
 #include <osquery/events/linux/auditdnetlink.h>
 #include <osquery/events/linux/process_events.h>
 #include <osquery/events/linux/process_file_events.h>
 #include <osquery/events/linux/selinux_events.h>
 #include <osquery/events/linux/socket_events.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/system/time.h>
@@ -58,14 +60,29 @@ DECLARE_bool(audit_allow_config);
 DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_fork_process_events);
+DECLARE_bool(audit_allow_kill_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
 DECLARE_bool(audit_allow_selinux_events);
+DECLARE_bool(audit_allow_apparmor_events);
 
 namespace {
+
+const std::string kAppArmorRecordMarker{"apparmor="};
+
 bool IsSELinuxRecord(const audit_reply& reply) noexcept {
   static const auto& selinux_event_set = kSELinuxEventList;
-  return (selinux_event_set.find(reply.type) != selinux_event_set.end());
+  return (selinux_event_set.find(reply.type) != selinux_event_set.end()) &&
+         (std::string(reply.message).find(kAppArmorRecordMarker) ==
+          std::string::npos);
+}
+
+bool isAppArmorRecord(const audit_reply& reply) noexcept {
+  static const auto& apparmor_event_set = kAppArmorEventSet;
+
+  return (apparmor_event_set.find(reply.type) != apparmor_event_set.end()) &&
+         (std::string(reply.message).find(kAppArmorRecordMarker) !=
+          std::string::npos);
 }
 
 /**
@@ -73,6 +90,10 @@ bool IsSELinuxRecord(const audit_reply& reply) noexcept {
  * message type.
  */
 bool ShouldHandle(const audit_reply& reply) noexcept {
+  if (isAppArmorRecord(reply)) {
+    return FLAGS_audit_allow_apparmor_events;
+  }
+
   if (IsSELinuxRecord(reply)) {
     return FLAGS_audit_allow_selinux_events;
   }
@@ -345,6 +366,14 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
                  "clone) table";
 
       for (int syscall : kForkProcessEventsSyscalls) {
+        monitored_syscall_list_.insert(syscall);
+      }
+    }
+
+    if (FLAGS_audit_allow_kill_process_events) {
+      VLOG(1) << "Enabling audit rules for the process_events (kill, tkill, "
+                 "tgkill) table";
+      for (int syscall : kKillProcessEventsSyscalls) {
         monitored_syscall_list_.insert(syscall);
       }
     }
@@ -705,7 +734,7 @@ void AuditdNetlinkParser::start() {
       }
 
       // We are not interested in all messages; only get the ones related to
-      // user events, syscalls and SELinux events
+      // user events, syscalls, SELinux events and AppArmor events
       if (!ShouldHandle(reply)) {
         continue;
       }
@@ -768,6 +797,11 @@ bool AuditdNetlinkParser::ParseAuditReply(
   if (IsSELinuxRecord(reply)) {
     event_record.raw_data = reply.message;
     return true;
+  }
+
+  // Save the whole message for AppArmor too
+  if (isAppArmorRecord(reply)) {
+    event_record.raw_data = reply.message;
   }
 
   // Tokenize the message

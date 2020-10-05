@@ -1,35 +1,31 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
 
-#include <osquery/flags.h>
-#include <osquery/registry_interface.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/registry/registry_interface.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/system/windows/registry.h>
 #include <osquery/tests/test_util.h>
 
 namespace osquery {
-DECLARE_bool(disable_database);
 namespace tables {
 
 class RegistryTablesTest : public testing::Test {
  protected:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
-
-    // Force registry to use ephemeral database plugin
-    FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    initDatabasePluginForTesting();
   }
 };
 
@@ -44,6 +40,51 @@ TEST_F(RegistryTablesTest, test_registry_existing_key) {
   auto ret = queryKey(kTestKey, results);
   EXPECT_TRUE(ret.ok());
   EXPECT_TRUE(results.size() > 0);
+}
+
+TEST_F(RegistryTablesTest, test_expand_registry_globs) {
+  std::set<std::string> results;
+  auto s = expandRegistryGlobs(kTestSpecificKey + kRegSep + '%', results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(results.empty());
+
+  // Calls should reset the output variable.
+  s = expandRegistryGlobs("", results);
+  EXPECT_TRUE(results.empty());
+}
+
+TEST_F(RegistryTablesTest, test_query_multiple_registry_keys) {
+  QueryData test_results;
+  auto s = queryMultipleRegistryKeys({kTestKey}, test_results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(test_results.empty());
+
+  QueryData test_specific_results;
+  s = queryMultipleRegistryKeys({kTestSpecificKey}, test_specific_results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(test_specific_results.empty());
+
+  QueryData results;
+  s = queryMultipleRegistryKeys({kTestKey, kTestSpecificKey}, results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_EQ(results.size(), test_results.size() + test_specific_results.size());
+}
+
+TEST_F(RegistryTablesTest, test_query_multiple_registry_paths) {
+  QueryData test_results;
+  auto s = queryMultipleRegistryPaths({kTestKey}, test_results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(test_results.empty());
+
+  QueryData test_specific_results;
+  s = queryMultipleRegistryPaths({kTestSpecificKey}, test_specific_results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(test_specific_results.empty());
+
+  QueryData results;
+  s = queryMultipleRegistryPaths({kTestKey, kTestSpecificKey}, results);
+  ASSERT_TRUE(s.ok());
+  EXPECT_EQ(results.size(), test_results.size() + test_specific_results.size());
 }
 
 TEST_F(RegistryTablesTest, test_registry_non_existing_key) {

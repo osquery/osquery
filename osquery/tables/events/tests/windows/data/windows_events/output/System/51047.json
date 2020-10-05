@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-05T22:14:59.1722183Z",
+    "source": "System",
+    "provider_name": "Microsoft-Windows-DHCPv6-Client",
+    "provider_guid": "{6a1f2b00-6a90-4c38-95a5-5cab3b056778}",
+    "event_id": "51047",
+    "task_id": "4",
+    "level": "4",
+    "keywords": "0x2000000000000000",
+    "data": "{\"EventData\":{\"DwordVal\":\"1\"}}"
+}

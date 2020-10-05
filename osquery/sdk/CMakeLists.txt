@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osquerySdkMain)
 
@@ -17,12 +18,15 @@ function(generateOsquerySdkPluginsdk)
   add_osquery_library(osquery_sdk_pluginsdk EXCLUDE_FROM_ALL empty_register_foreign_tables.cpp)
 
   target_link_libraries(osquery_sdk_pluginsdk INTERFACE
-    osquery_headers
+    osquery_cxx_settings
     osquery_config
+    osquery_core_init
+    osquery_database
     osquery_dispatcher
     osquery_events_eventsregistry
     osquery_experimental_eventsstream_registry
     osquery_extensions
+    osquery_logger_datalogger
     osquery_numericmonitoring
     osquery_remote_enroll_tlsenroll
     osquery_sql
@@ -40,7 +44,7 @@ function(generateOsquerySdkPluginsdk)
     osquery_utils_system_uptime
     osquery_utils_attribute
     osquery_utils
-    plugins_database_ephemeral
+    plugins_config_parsers
   )
 
   enableLinkWholeArchive(osquery_sdk_pluginsdk)

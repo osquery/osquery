@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(testsMain)
   add_subdirectory("cppcheck")
@@ -25,6 +26,7 @@ function(generateTestsHelper)
   target_link_libraries(tests_helper PUBLIC
     osquery_cxx_settings
     osquery_core
+    osquery_database
     osquery_filesystem
     osquery_process
     osquery_remote_serializers_serializerjson
@@ -32,7 +34,6 @@ function(generateTestsHelper)
     osquery_utils
     osquery_utils_conversions
     osquery_utils_system_time
-    plugins_database_ephemeral
     specs_tables
     thirdparty_boost
     thirdparty_googletest_headers

@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-05T16:14:04.1983617Z",
+    "source": "System",
+    "provider_name": "Microsoft-Windows-DistributedCOM",
+    "provider_guid": "{1B562E86-B7AA-4131-BADC-B6F3A001407E}",
+    "event_id": "10016",
+    "task_id": "0",
+    "level": "3",
+    "keywords": "0x8080000000000000",
+    "data": "{\"EventData\":{\"param1\":\"application-specific\",\"param2\":\"Local\",\"param3\":\"Launch\",\"param4\":\"Windows.SecurityCenter.WscBrokerManager\",\"param5\":\"Unavailable\",\"param6\":\"NT AUTHORITY\",\"param7\":\"SYSTEM\",\"param8\":\"S-1-5-18\",\"param9\":\"LocalHost (Using LRPC)\",\"param10\":\"Unavailable\",\"param11\":\"Unavailable\"}}"
+}

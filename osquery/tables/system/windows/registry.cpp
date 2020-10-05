@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <osquery/utils/system/system.h>
@@ -24,18 +25,18 @@
 
 #include <sqlite3.h>
 
-#include <osquery/core.h>
+#include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
 
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
-#include <osquery/filesystem/fileops.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/tables/system/windows/registry.h>
 
@@ -83,55 +84,29 @@ const std::vector<std::string> kClassKeys = {
 const std::vector<std::string> kClassExecSubKeys = {
     "InProcServer%", "InProcHandler%", "LocalServer%"};
 
-Status queryMultipleRegistryKeys(const std::vector<std::string>& regexes,
-                                 const std::string& additionalConstraints,
+QueryData genRegistry(QueryContext& context);
+
+Status queryMultipleRegistryKeys(const std::vector<std::string>& keys,
                                  QueryData& results) {
-  auto dbc = SQLiteDBManager::get();
-  std::string query(
-      "SELECT key, path, name, type, data, mtime FROM registry WHERE ");
-
-  if (!additionalConstraints.empty()) {
-    query += additionalConstraints + " AND ";
+  QueryContext qc;
+  for (size_t i = 0; i < keys.size(); i++) {
+    struct Constraint c(LIKE, keys[i]);
+    qc.constraints["key"].add(c);
   }
 
-  // Construct all of the registry key globs
-  query += "(key LIKE ";
-  std::vector<std::string> questions(regexes.size(), "?");
-  query += osquery::join(questions, " OR key LIKE ");
-  query += ")";
+  results = genRegistry(qc);
+  return Status::success();
+}
 
-  sqlite3_stmt* stmt = nullptr;
-  auto ret = sqlite3_prepare_v2(
-      dbc->db(), query.c_str(), static_cast<int>(query.size()), &stmt, nullptr);
-  if (ret != SQLITE_OK) {
-    return Status(1, "Failed to prepare sql query");
-  }
-  for (size_t i = 0; i < regexes.size(); i++) {
-    sqlite3_bind_text(
-        stmt, static_cast<int>(i + 1), regexes[i].c_str(), -1, SQLITE_STATIC);
+Status queryMultipleRegistryPaths(const std::vector<std::string>& paths,
+                                  QueryData& results) {
+  QueryContext qc;
+  for (size_t i = 0; i < paths.size(); i++) {
+    struct Constraint c(LIKE, paths[i]);
+    qc.constraints["path"].add(c);
   }
 
-  // The registry table schema has exactly 6 columns
-  if (sqlite3_column_count(stmt) != 6) {
-    return Status(1, "registry query returned invalid number of columns");
-  }
-
-  while (sqlite3_step(stmt) == SQLITE_ROW) {
-    Row r;
-    r["key"] = SQL_TEXT(sqlite3_column_text(stmt, 0));
-    r["path"] = SQL_TEXT(sqlite3_column_text(stmt, 1));
-    r["name"] = SQL_TEXT(sqlite3_column_text(stmt, 2));
-    r["type"] = SQL_TEXT(sqlite3_column_text(stmt, 3));
-    r["data"] = SQL_TEXT(sqlite3_column_text(stmt, 4));
-    r["mtime"] = BIGINT(sqlite3_column_int64(stmt, 5));
-    results.push_back(r);
-  }
-
-  ret = sqlite3_finalize(stmt);
-  if (ret != SQLITE_OK) {
-    return Status(1,
-                  "Failed to finalize statement with " + std::to_string(ret));
-  }
+  results = genRegistry(qc);
   return Status::success();
 }
 
@@ -142,9 +117,7 @@ Status getClassName(const std::string& clsId, std::string& rClsName) {
   }
 
   QueryData regQueryResults;
-  std::string constraint("name = '" + kDefaultRegName + "'");
-  auto ret = queryMultipleRegistryKeys(keys, constraint, regQueryResults);
-
+  auto ret = queryMultipleRegistryKeys(keys, regQueryResults);
   if (!ret.ok()) {
     return ret;
   }
@@ -153,8 +126,13 @@ Status getClassName(const std::string& clsId, std::string& rClsName) {
   }
 
   for (const auto& row : regQueryResults) {
-    if (!row.at("data").empty()) {
-      rClsName = row.at("data");
+    auto data_it = row.find("data");
+    auto name_it = row.find("name");
+    if (data_it == row.end() || name_it == row.end()) {
+      continue;
+    }
+    if (!data_it->second.empty() && name_it->second == kDefaultRegName) {
+      rClsName = data_it->second;
       return Status::success();
     }
   }
@@ -172,17 +150,22 @@ Status getClassExecutables(const std::string& clsId,
   }
 
   QueryData regQueryResults;
-  auto ret = queryMultipleRegistryKeys(resolvedKeys, "", regQueryResults);
+  auto ret = queryMultipleRegistryKeys(resolvedKeys, regQueryResults);
   if (!ret.ok()) {
     return ret;
   }
   if (regQueryResults.empty()) {
-    return Status(1, "ClsId not found in registry");
+    return Status(1, "ClsId executables not found in registry");
   }
 
   for (const auto& r : regQueryResults) {
-    if (r.at("name") == kDefaultRegName) {
-      results.push_back(r.at("data"));
+    auto name_it = r.find("name");
+    auto data_it = r.find("data");
+    if (data_it == r.end() || name_it == r.end()) {
+      continue;
+    }
+    if (name_it->second == kDefaultRegName) {
+      results.push_back(data_it->second);
     }
   }
   return Status::success();
@@ -203,10 +186,10 @@ Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
   if (!ConvertStringSidToSidA(toks[1].c_str(), &sid)) {
     return Status(GetLastError(), "Could not convert string to sid");
   } else {
-    wchar_t accntName[UNLEN] = {0};
-    wchar_t domName[DNLEN] = {0};
-    unsigned long accntNameLen = UNLEN;
-    unsigned long domNameLen = DNLEN;
+    WCHAR accntName[UNLEN + 1] = {0};
+    WCHAR domName[DNLEN + 1] = {0};
+    DWORD accntNameLen = UNLEN + 1;
+    DWORD domNameLen = DNLEN + 1;
     SID_NAME_USE eUse;
     if (!LookupAccountSidW(nullptr,
                            sid,
@@ -305,6 +288,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
       r["name"] = wstringToString(achKey.get());
       r["path"] = keyPath + kRegSep + wstringToString(achKey.get());
       r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
+      r["data"] = "";
       results.push_back(r);
     }
   }
@@ -365,6 +349,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
       r["type"] = "UNKNOWN";
     }
     r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
+    r["data"] = "";
 
     if (bpDataBuff != nullptr) {
       /// REG_LINK is a Unicode string, which in Windows is wchar_t
@@ -422,7 +407,6 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
             wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
         break;
       default:
-        r["data"] = "";
         break;
       }
       ZeroMemory(bpDataBuff.get(), cbMaxValueData);
@@ -494,6 +478,7 @@ static inline Status populateAllKeysRecursive(
 
 Status expandRegistryGlobs(const std::string& pattern,
                            std::set<std::string>& results) {
+  results.clear();
   auto pathElems = osquery::split(pattern, kRegSep);
   if (pathElems.size() == 0) {
     return Status::success();
@@ -566,7 +551,9 @@ QueryData genRegistry(QueryContext& context) {
     }
     if (context.hasConstraint("key", LIKE)) {
       for (const auto& key : context.constraints["key"].getAll(LIKE)) {
-        auto status = expandRegistryGlobs(key, keys);
+        std::set<std::string> keys_like;
+        auto status = expandRegistryGlobs(key, keys_like);
+        keys.insert(keys_like.begin(), keys_like.end());
         if (!status.ok()) {
           LOG(INFO) << "Failed to expand globs: " + status.getMessage();
         }
@@ -580,12 +567,14 @@ QueryData genRegistry(QueryContext& context) {
     if (context.hasConstraint("path", LIKE)) {
       for (const auto& path : context.constraints["path"].getAll(LIKE)) {
         Status status;
+        std::set<std::string> path_like;
         if (boost::ends_with(path, kSQLGlobRecursive)) {
-          status = expandRegistryGlobs(path, keys);
+          status = expandRegistryGlobs(path, path_like);
         } else {
           status = expandRegistryGlobs(
-              path.substr(0, path.find_last_of(kRegSep)), keys);
+              path.substr(0, path.find_last_of(kRegSep)), path_like);
         }
+        keys.insert(path_like.begin(), path_like.end());
         if (!status.ok()) {
           LOG(INFO) << "Failed to expand globs: " + status.getMessage();
         }

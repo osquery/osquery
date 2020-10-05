@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <codecvt>
@@ -17,13 +18,14 @@
 #include <tlhelp32.h>
 #include <wincrypt.h>
 #include <Softpub.h>
+#include <mscat.h>
 #include <iomanip>
 // clang-format on
 
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/sql/sql.h>
+#include <osquery/core/tables.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
@@ -122,6 +124,49 @@ void generateRow(Row& row, const SignatureInformation& signature_info) {
     break;
   }
   }
+}
+
+bool getCatalogPathForFilePath(const std::wstring& path,
+                               std::wstring& catalogFile) {
+  bool status = false;
+  HANDLE handle = CreateFile(path.c_str(),
+                             GENERIC_READ,
+                             FILE_SHARE_READ,
+                             NULL,
+                             OPEN_EXISTING,
+                             FILE_ATTRIBUTE_NORMAL,
+                             NULL);
+  if (handle != INVALID_HANDLE_VALUE) {
+    HCATADMIN context;
+    GUID subsystem = DRIVER_ACTION_VERIFY;
+    HCATINFO catalog = NULL;
+
+    const SIZE_T SHA512_HASH_SIZE = 64;
+    BYTE hash[SHA512_HASH_SIZE];
+    DWORD hash_size = ARRAYSIZE(hash);
+
+    if (CryptCATAdminAcquireContext(&context, &subsystem, NULL)) {
+      if (CryptCATAdminCalcHashFromFileHandle(handle, &hash_size, hash, 0)) {
+        catalog =
+            CryptCATAdminEnumCatalogFromHash(context, hash, hash_size, 0, NULL);
+        if (NULL != catalog) {
+          CATALOG_INFO info = {0};
+          info.cbStruct = sizeof(info);
+          if (CryptCATCatalogInfoFromContext(catalog, &info, 0)) {
+            catalogFile = info.wszCatalogFile;
+            status = true;
+          }
+
+          CryptCATAdminReleaseCatalogContext(context, catalog, 0);
+        }
+      }
+      CryptCATAdminReleaseContext(context, 0);
+    }
+
+    CloseHandle(handle);
+  }
+
+  return status;
 }
 
 Status verifySignature(SignatureInformation::Result& result,
@@ -408,6 +453,13 @@ Status querySignatureInformation(SignatureInformation& signature_info,
   }
 
   signature_info.path = path;
+
+  std::wstring catalog;
+  // may be a system file whose hash is in the catalog file.
+  // if so, return the catalog's signature instead.
+  if (getCatalogPathForFilePath(utf16_path, catalog)) {
+    utf16_path = catalog;
+  }
 
   auto status = verifySignature(signature_info.result, utf16_path);
   if (!status.ok()) {

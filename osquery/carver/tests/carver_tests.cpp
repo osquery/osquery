@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <boost/filesystem.hpp>
@@ -15,22 +16,39 @@
 
 #include <osquery/carver/carver.h>
 #include <osquery/config/tests/test_utils.h>
-#include <osquery/database.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/hashing/hashing.h>
-#include <osquery/registry.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
+#include <osquery/registry/registry.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/json/json.h>
 
 namespace osquery {
 
 namespace fs = boost::filesystem;
 
-DECLARE_bool(disable_database);
-
 /// Prefix used for posix tar archive.
 const std::string kTestCarveNamePrefix = "carve_";
+
+class FakeCarver : public Carver {
+ public:
+  FakeCarver(const std::set<std::string>& paths,
+             const std::string& guid,
+             const std::string& requestId)
+      : Carver(paths, guid, requestId) {}
+
+ protected:
+  Status postCarve(const boost::filesystem::path&) override {
+    return Status::success();
+  }
+
+ private:
+  friend class CarverTests;
+  FRIEND_TEST(CarverTests, test_carve_files_locally);
+  FRIEND_TEST(CarverTests, test_carve_start);
+  FRIEND_TEST(CarverTests, test_carve_files_not_exists);
+};
 
 std::string genGuid() {
   return boost::uuids::to_string(boost::uuids::random_generator()());
@@ -52,13 +70,9 @@ class CarverTests : public testing::Test {
 
  protected:
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
-
-    // Force registry to use ephemeral database plugin
-    FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    initDatabasePluginForTesting();
 
     working_dir_ =
         fs::temp_directory_path() /
@@ -98,16 +112,16 @@ class CarverTests : public testing::Test {
 };
 
 TEST_F(CarverTests, test_carve_files_locally) {
-  auto guid_ = genGuid();
-  auto paths_ = getCarvePaths();
+  auto guid = genGuid();
   std::string requestId = "";
-  Carver carve(getCarvePaths(), guid_, requestId);
+  FakeCarver carve(getCarvePaths(), guid, requestId);
+  ASSERT_TRUE(carve.getStatus().ok());
 
   const auto carves = carve.carveAll();
   EXPECT_EQ(carves.size(), 3U);
 
   const auto carveFSPath = carve.getCarveDir();
-  const auto tarPath = carveFSPath / (kTestCarveNamePrefix + guid_ + ".tar");
+  const auto tarPath = carveFSPath / (kTestCarveNamePrefix + guid + ".tar");
   const auto s = archive(carves, tarPath);
   EXPECT_TRUE(s.ok());
 
@@ -116,12 +130,23 @@ TEST_F(CarverTests, test_carve_files_locally) {
   EXPECT_GT(tar.size(), 0U);
 }
 
+TEST_F(CarverTests, test_carve_start) {
+  auto guid = genGuid();
+  std::string requestId = "";
+  FakeCarver carve(getCarvePaths(), guid, requestId);
+  ASSERT_TRUE(carve.getStatus().ok());
+
+  carve.start();
+  ASSERT_TRUE(carve.getStatus().ok());
+}
+
 TEST_F(CarverTests, test_carve_files_not_exists) {
-  auto guid_ = genGuid();
+  auto guid = genGuid();
   std::string requestId = "";
   const std::set<std::string> notExistsCarvePaths = {
       (getFilesToCarveDir() / "not_exists").string()};
-  Carver carve(notExistsCarvePaths, guid_, requestId);
+  FakeCarver carve(notExistsCarvePaths, guid, requestId);
+  ASSERT_TRUE(carve.getStatus().ok());
 
   const auto carves = carve.carveAll();
   EXPECT_TRUE(carves.empty());

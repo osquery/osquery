@@ -1,17 +1,17 @@
 table_name("carves")
-description("Forensic Carves.")
+description("List the set of completed and in-progress carves. If carve=1 then the query is treated as a new carve request.")
 schema([
     Column("time", BIGINT, "Time at which the carve was kicked off"),
     Column("sha256", TEXT, "A SHA256 sum of the carved archive"),
     Column("size", INTEGER, "Size of the carved archive"),
-    Column("path", TEXT, "The path of the requested carve", required=True),
+    Column("path", TEXT, "The path of the requested carve", additional=True),
     Column("status", TEXT, "Status of the carve, can be STARTING, PENDING, SUCCESS, or FAILED"),
     Column("carve_guid", TEXT, "Identifying value of the carve session", index=True),
     Column("carve", INTEGER, "Set this value to '1' to start a file carve", additional=True)
 ])
-attributes(user_data=True)
 implementation("forensic/carves@genCarves")
 examples([
+  "select * from carves",
   "select * from carves where status like '%FAIL%'",
   "select * from carves where path like '/Users/%/Downloads/%' and carve=1",
 ])

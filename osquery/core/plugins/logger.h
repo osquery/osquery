@@ -1,16 +1,17 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
 
 #include <string>
 
-#include <osquery/plugins/plugin.h>
+#include <osquery/core/plugins/plugin.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
@@ -52,7 +53,7 @@ struct StatusLogLine {
   std::string filename;
 
   /// The line of the file emitting the status log.
-  size_t line;
+  uint64_t line;
 
   /// The string-formatted status message.
   std::string message;
@@ -61,7 +62,7 @@ struct StatusLogLine {
   std::string calendar_time;
 
   /// The UNIX time for when the status message was emitted
-  size_t time;
+  uint64_t time;
 
   /**
    * @brief The host identifier at the time when logs are flushed.

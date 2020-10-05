@@ -1,13 +1,13 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryPluginsDatabaseTestsMain)
   generatePluginsDatabaseTestsSqliteplugintestsTest()
   generatePluginsDatabaseTestsRocksdbtestsTest()
-  generatePluginsDatabaseTestsDatabasetestutils()
 endfunction()
 
 function(generatePluginsDatabaseTestsSqliteplugintestsTest)
@@ -25,10 +25,9 @@ function(generatePluginsDatabaseTestsSqliteplugintestsTest)
     osquery_remote_enroll_tlsenroll
     osquery_utils_json
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     plugins_database_sqliteplugin
     specs_tables
-    plugins_database_tests_databasetestutils
+    osquery_database_tests_databasetestutils
     thirdparty_googletest
   )
 endfunction()
@@ -48,27 +47,10 @@ function(generatePluginsDatabaseTestsRocksdbtestsTest)
     osquery_remote_enroll_tlsenroll
     osquery_utils_json
     plugins_config_tlsconfig
-    plugins_database_ephemeral
     plugins_database_rocksdbplugin
     specs_tables
-    plugins_database_tests_databasetestutils
+    osquery_database_tests_databasetestutils
     thirdparty_googletest
-  )
-endfunction()
-
-function(generatePluginsDatabaseTestsDatabasetestutils)
-  add_osquery_library(plugins_database_tests_databasetestutils EXCLUDE_FROM_ALL utils.cpp)
-
-  set(public_header_files
-    utils.h
-  )
-
-  generateIncludeNamespace(plugins_database_tests_databasetestutils "plugins/database/tests" "FILE_ONLY" ${public_header_files})
-
-  target_link_libraries(plugins_database_tests_databasetestutils PRIVATE
-    osquery_filesystem
-    osquery_utils_json
-    thirdparty_googletest_headers
   )
 endfunction()
 

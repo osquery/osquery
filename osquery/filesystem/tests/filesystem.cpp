@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <algorithm>
@@ -17,10 +18,10 @@
 
 #include <osquery/filesystem/filesystem.h>
 
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-#include <osquery/system.h>
 
 #include <osquery/utils/info/platform_type.h>
 
@@ -182,6 +183,14 @@ TEST_F(FilesystemTests, test_read_limit) {
   // Any the links are readable too.
   status = readFile(fake_directory_ / "root2.txt", content);
   EXPECT_TRUE(status.ok());
+}
+
+TEST_F(FilesystemTests, test_read_size) {
+  std::string content;
+  size_t s = 3;
+  auto status = readFile(fake_directory_ / "root.txt", content, s);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(content.size(), s);
 }
 
 TEST_F(FilesystemTests, test_list_files_missing_directory) {

@@ -1,0 +1,12 @@
+{
+    "osquery_time": "1592478128",
+    "datetime": "2020-06-05T12:28:53.4375099Z",
+    "source": "Security",
+    "provider_name": "Microsoft-Windows-Security-Auditing",
+    "provider_guid": "{54849625-5478-4994-a5ba-3e3b0328c30d}",
+    "event_id": "4738",
+    "task_id": "13824",
+    "level": "0",
+    "keywords": "0x8020000000000000",
+    "data": "{\"EventData\":{\"Dummy\":\"-\",\"TargetUserName\":\"alessandro\",\"TargetDomainName\":\"DESKTOP-4AR7BIA\",\"TargetSid\":\"S-1-5-21-1635320930-1923649801-2071859845-1001\",\"SubjectUserSid\":\"S-1-5-18\",\"SubjectUserName\":\"WIN-VJP8LBM74F9$\",\"SubjectDomainName\":\"WORKGROUP\",\"SubjectLogonId\":\"0x3e7\",\"PrivilegeList\":\"-\",\"SamAccountName\":\"alessandro\",\"DisplayName\":\"%%1793\",\"UserPrincipalName\":\"-\",\"HomeDirectory\":\"%%1793\",\"HomePath\":\"%%1793\",\"ScriptPath\":\"%%1793\",\"ProfilePath\":\"%%1793\",\"UserWorkstations\":\"%%1793\",\"PasswordLastSet\":\"%%1794\",\"AccountExpires\":\"%%1794\",\"PrimaryGroupId\":\"513\",\"AllowedToDelegateTo\":\"-\",\"OldUacValue\":\"0x14\",\"NewUacValue\":\"0x214\",\"UserAccountControl\":\"\\n\\t\\t%%2089\",\"UserParameters\":\"%%1793\",\"SidHistory\":\"-\",\"LogonHours\":\"%%1797\"}}"
+}

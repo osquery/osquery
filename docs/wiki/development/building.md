@@ -1,10 +1,12 @@
+# Building osquery from source
+
 osquery supports many flavors of Linux, macOS, and Windows.
 
 While osquery runs on a large number of operating systems, we only provide build instructions for a select few.
 
-The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v141 on Windows, and AppleClang from Xcode Command Line Tools 10.2.1.
+The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v142 on Windows, and AppleClang from Xcode Command Line Tools 10.2.1.
 
-# Prerequisites
+## Prerequisites
 
 Git (>= 2.14.0), CMake (>= 3.14.6), Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
 
@@ -14,11 +16,9 @@ The build type is chosen when building on Windows, through the `--config` option
 
 Note: the recommended system memory for building osquery is at least 8GB, or Clang may crash during the compilation of third-party dependencies.
 
-## Linux
+## Linux (Ubuntu 18)
 
-The root folder is assumed to be `/home/<user>`.
-
-**Ubuntu 18.04/18.10**
+The initial directory is assumed to be `/home/<user>`.
 
 ```bash
 # Install the prerequisites
@@ -27,6 +27,9 @@ sudo apt install --no-install-recommends git python3 bison flex make
 # Optional: install python tests prerequisites
 sudo apt install --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel
 pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
+
+# Optional: install RPM packaging prerequisites
+sudo apt install --no-install-recommends rpm binutils
 
 # Download and install the osquery toolchain
 wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-x86_64.tar.xz
@@ -49,24 +52,24 @@ cmake --build . -j10 # where 10 is the number of parallel build jobs
 
 ## macOS
 
-The root folder is assumed to be `/Users/<user>`
+The initial directory is assumed to be `/Users/<user>`
 
-**Step 1: Install the prerequisites**
+### Step 1: Install macOS prerequisites
 
 Please ensure [Homebrew](https://brew.sh/) has been installed, first. Then do the following.
 
 ```bash
 # Install prerequisites
 xcode-select --install
-brew install git git-lfs cmake python clang-format flex bison
+brew install ccache git git-lfs cmake python clang-format flex bison
 
 # Optional: install python tests prerequisites
-pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
+pip3 install --user setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
 ```
 
-**Step 2: Download and build**
+### Step 2: Download and build source on macOS
 
-A macOS 10.11 deployment target is selected in this example.
+In the following example, the use of the additional CMake argument `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.11` specifies macOS 10.11 as the minimum compatible macOS version to which you can deploy osquery (this affects the version of the macOS SDK used at build time).
 
 ```bash
 # Download source
@@ -78,30 +81,30 @@ mkdir build; cd build
 cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 ..
 
 # Build
-cmake --build .
+cmake --build . -j $(sysctl -n hw.ncpu)
 ```
 
 ## Windows 10
 
-The root folder is assumed to be `C:\`
+The initial directory is assumed to be `C:\`
 
-Note: The intention here is to reduce the length of the prefix of the osquery folder, since Windows and msbuild have a 255 characters max path limit.
+**Note:** Since Windows and `msbuild` have a 255 characters max path limit, starting the build in the shortest directory path possible is recommended to avoid problems when building.
 
-**Step 1: Install the prerequisites**
+### Step 1: Install Windows prerequisites
 
 Note: It may be easier to install these prerequisites using [Chocolatey](https://chocolatey.org/).
 
 - [CMake](https://cmake.org/) (>= 3.14.6): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!  Do not install CMake using the Visual Studio Installer, because it contains an older version than required.
 - Visual Studio 2019 (2 options)
-  1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
-  2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v141 - VS 2017 C++", "MSVC v142 - VS 2017 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
+  1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v142 - VS 2019 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
+  2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v142 - VS 2019 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest): Select "checkout as-is, commit as-is". Later check "Enable symbolic links" support.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Wix Toolset](https://wixtoolset.org/releases/)
 - [Strawberry Perl](http://strawberryperl.com/) for the OpenSSL formula. It is recommended to install it to the default destination path.
 - [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
 
-**Optional: Install python tests prerequisites**
+### Optional: Install Python tests prerequisites
 
 Python 3 is assumed to be installed in `C:\Program Files\Python37`
 
@@ -112,7 +115,7 @@ Python 3 is assumed to be installed in `C:\Program Files\Python37`
 
 The use of an Administrator shell is recommended because the build process creates symbolic links. These [require a special permission to create on Windows](https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links), and the simplest solution is to build as Administrator. If you wish, you can instead assign just the `SeCreateSymbolicLinkPrivilege` permission to the user account. The setting can be found in "Local Security Policy" under Security Settings, Local Policies, User Rights Assignment. The user then has to log out and back in for the policy change to apply.
 
-**Step 2: Download and build**
+### Step 2: Download and build source on Windows
 
 ```PowerShell
 # Using a PowerShell console as Administrator (see note, below)
@@ -122,7 +125,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -G "Visual Studio 16 2019" -A x64 -T v141 ..
+cmake -G "Visual Studio 16 2019" -A x64 ..
 
 # Build
 cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel
@@ -132,7 +135,7 @@ cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in pa
 
 To build with tests active, add `-DOSQUERY_BUILD_TESTS=ON` to the osquery configure phase, then build the project. CTest will be used to run the tests and give a report.
 
-**Run tests on Windows**
+### Run tests on Windows
 
 To run the tests and get just a summary report:
 
@@ -153,7 +156,7 @@ To run a single test, in verbose mode:
 ctest -R <test name> -C <RelWithDebInfo|Release|Debug> -V
 ```
 
-**Run tests on Linux and macOS**
+### Run tests on Linux and macOS
 
 To run the tests and get just a summary report:
 
@@ -195,6 +198,7 @@ To verify that all the commits that are present on the branch but not on master 
 ```bash
 cmake --build . --target format_check
 ```
+
 This is the same command the CI runs to verify formatting.
 
 If the code is not formatted, you can do so with the following command run from the build folder,
@@ -206,11 +210,15 @@ cmake --build . --target format
 
 To avoid having to move the committed files to the stage area and back each time, remember to format the code before committing.
 
+## Running cppcheck
 
-## Running Cppcheck (Linux only)
+The `cppcheck` tool runs some static analysis checks on the C++ code to detect possible bugs or undefined behaviors.
 
-1. Install it from the distro repository: `apt install cppcheck`
-2. Build the **cppcheck** target `cmake --build . --target cppcheck`
+1. Install the cppcheck prerequisite:
+    - On Linux: `apt install cppcheck`
+    - On macOS: `brew install cppcheck`
+    - On Windows: download and run [the cppcheck MSI installer](https://github.com/danmar/cppcheck/releases).
+2. Build the `cppcheck` target: `cmake --build . --target cppcheck`
 
 ## Running clang-tidy (Linux only)
 
@@ -230,12 +238,11 @@ By default, the following checks are enabled:
 6. modernize-*
 7. bugprone-*
 
-
-# Using Vagrant
+## Using Vagrant
 
 If you are familiar with Vagrant, there is a helpful configuration in the root directory for testing osquery.
 
-## AWS-EC2-Backed Vagrant Targets
+### AWS-EC2-Backed Vagrant Targets
 
 The osquery vagrant infrastructure supports leveraging AWS EC2 to run virtual machines.
 This capability is provided by the [vagrant-aws](https://github.com/mitchellh/vagrant-aws) plugin, which is installed as follows:
@@ -274,11 +281,16 @@ vagrant up aws-amazon2015.03 --provider=aws
 vagrant ssh aws-amazon2015.03
 ```
 
-# Custom Packages
+## Custom Packages
 
-Package creation is facilitated by CPack.
+Package creation is facilitated by CPack. Creating a standalone custom package on any platform should be as simple as running:
 
-The package will include several components:
+```sh
+cmake --build . --target package
+```
+
+Invoking the `package` target will instruct `cpack` to auto resolve all of the package
+dependencies for osquery and build a platform specific package. The package created will include several components:
 
 - The executables: `osqueryd`, `osqueryi`, and small management script `osqueryctl`
 - An osquery systemd unit on Linux (with initd script wrapper)
@@ -288,17 +300,54 @@ The package will include several components:
 - The example query packs from the repository
 - Folder structures required for logging
 
+What follows are instructions for directly invoking `cpack` on each platform, should
+you wish to create a more custom deployment package. For the most part this is not
+encouraged, and users should stick with leveraging the `package` target as detailed above.
+
+### On Linux
+
 To create a DEB, RPM, or TGZ on Linux, CPack will attempt to auto-detect the appropriate package type.
 You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
 
+Note: RPM will always try to create debuginfo packages, to do so though it needs the source folder
+to be in a path that's longer than `/usr/src/debug/osquery/src_0` and the build folder
+to be in a path that's longer than `/usr/src/debug/osquery/src_1`.
+
 ```sh
-cmake -DPACKAGING_SYSTEM=RPM ..
+cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain -DPACKAGING_SYSTEM=RPM ..
 cmake --build . --target package
 ```
 
-On macOS the `package` target will create a `.pkg`, and on Windows it will create a `.msi`.
+### On Windows
 
-# Build Performance
+On Windows CPack will create an MSI by default. You can toggle this behavior to instead create a
+Chocolatey package by overriding the CMake `PACKAGING_SYSTEM` variable similar to Linux.
+
+To create a default MSI package use the following:
+
+```sh
+cmake -G "Visual Studio 16 2019" -A x64 ..
+cmake --build . --config Release --target package
+```
+
+To instead generate a Chocolatey package, use the following:
+
+```sh
+cmake -DPACKAGING_SYSTEM=NuGet -G "Visual Studio 16 2019" -A x64 ..
+cmake --build . --config Release --target package
+```
+
+### On macOS
+
+On macOS you can choose between a TGZ or a PKG, which is the default.
+You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
+
+```sh
+cmake -DPACKAGING_SYSTEM=TGZ -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 ..
+cmake --build . --target package
+```
+
+## Build Performance
 
 Generating a virtual table should *not* impact system performance. This is easier said than done, as some tables may _seem_ inherently latent (if you expect to run queries like `SELECT * from suid_bin;` which performs a complete filesystem traversal looking for binaries with suid permissions). Please read the osquery features and guide on [performance safety](../deployment/performance-safety.md).
 

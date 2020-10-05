@@ -1,8 +1,9 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesNetworkingTestsMain)
   generateOsqueryTablesNetworkingTestsNetworkingtablestestsTest()
@@ -29,7 +30,6 @@ function(generateOsqueryTablesNetworkingTestsNetworkingtablestestsTest)
     osquery_tables_networking
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     thirdparty_boost
     thirdparty_googletest
   )
@@ -51,7 +51,6 @@ function(generateOsqueryTablesNetworkingTestsWifitestsTest)
     osquery_remote_tests_remotetestutils
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     thirdparty_boost
     thirdparty_googletest
   )
@@ -73,7 +72,6 @@ function(generateOsqueryTablesNetworkingTestsIptablestestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    plugins_database_ephemeral
     thirdparty_boost
     thirdparty_googletest
   )

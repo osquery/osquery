@@ -1,10 +1,27 @@
-# Copyright (c) 2014-present, Facebook, Inc.
-# All rights reserved.
+# Copyright (c) 2014-present, The osquery authors
 #
-# This source code is licensed in accordance with the terms specified in
-# the LICENSE file found in the root directory of this source tree.
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
-function(librdkafkaMain)
+#
+# The configuration has been captured with the following command line arguments:
+#
+#   export CFLAGS="--sysroot /opt/osquery-toolchain"
+#   export CXXFLAGS="${CFLAGS}"
+#   export LDFLAGS="${CFLAGS}"
+#
+#   export PATH="/opt/osquery-toolchain/usr/bin:${PATH}"
+#
+#   ./configure --cc=clang --cxx=clang++ --enable-ssl --disable-gssapi --enable-sasl \
+#               --disable-lz4 --disable-lz4-ext --enable-static
+#
+# Note that you may have to manually adjust your osquery-toolchain sysroot in order
+# to actually generate some of the required definitions (i.e.: WITH_SSL)
+#
+
+ function(librdkafkaMain)
   generateLibrdkafka()
   generateLibrdkafkaxx()
 
@@ -137,11 +154,11 @@ function(generateLibrdkafka)
 
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_librdkafka_c PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/dummy"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/linux/dummy"
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_librdkafka_c PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/dummy"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/macos/dummy"
     )
   endif()
 
@@ -188,11 +205,11 @@ function(generateLibrdkafkaxx)
 
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_librdkafka_cxx PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/dummy"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/linux/dummy"
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_librdkafka_cxx PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/dummy"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/macos/dummy"
     )
   endif()
 

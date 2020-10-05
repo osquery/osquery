@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #pragma once
@@ -15,8 +16,8 @@
 #include <thread>
 #include <vector>
 
-#include <osquery/dispatcher.h>
-#include <osquery/plugins/logger.h>
+#include <osquery/core/plugins/logger.h>
+#include <osquery/dispatcher/dispatcher.h>
 
 namespace osquery {
 
@@ -49,7 +50,7 @@ inline void iterate(std::vector<std::string>& input,
 class BufferedLogForwarder : public InternalRunnable {
  protected:
   static const std::chrono::seconds kLogPeriod;
-  static const size_t kMaxLogLines;
+  static const uint64_t kMaxLogLines;
 
  protected:
   // These constructors are made available for subclasses to use, but
@@ -77,7 +78,7 @@ class BufferedLogForwarder : public InternalRunnable {
       const std::string& service_name,
       const std::string& name,
       const std::chrono::duration<Rep, Period>& log_period,
-      size_t max_log_lines)
+      uint64_t max_log_lines)
       : InternalRunnable(service_name),
         log_period_(
             std::chrono::duration_cast<std::chrono::seconds>(log_period)),
@@ -105,7 +106,7 @@ class BufferedLogForwarder : public InternalRunnable {
    *
    * @param s Results string to log
    */
-  Status logString(const std::string& s, size_t time = 0);
+  Status logString(const std::string& s, uint64_t time = 0);
 
   /**
    * @brief Log a vector of status lines
@@ -116,7 +117,7 @@ class BufferedLogForwarder : public InternalRunnable {
    *
    * @param log Vector of status lines to log
    */
-  Status logStatus(const std::vector<StatusLogLine>& log, size_t time = 0);
+  Status logStatus(const std::vector<StatusLogLine>& log, uint64_t time = 0);
 
  protected:
   /**
@@ -160,15 +161,15 @@ class BufferedLogForwarder : public InternalRunnable {
 
  protected:
   /// Generate a result index string to use with the backing store
-  std::string genResultIndex(size_t time = 0);
+  std::string genResultIndex(uint64_t time = 0);
 
   /// Generate a status index string to use with the backing store
-  std::string genStatusIndex(size_t time = 0);
+  std::string genStatusIndex(uint64_t time = 0);
 
  private:
   std::string genIndexPrefix(bool results);
 
-  std::string genIndex(bool results, size_t time = 0);
+  std::string genIndex(bool results, uint64_t time = 0);
 
   /**
    * @brief Add a database value while maintaining count
@@ -190,7 +191,7 @@ class BufferedLogForwarder : public InternalRunnable {
   std::chrono::seconds log_period_;
 
   /// Max number of logs to flush per check
-  size_t max_log_lines_;
+  uint64_t max_log_lines_;
 
   /**
    * @brief Name to use in index
@@ -206,7 +207,7 @@ class BufferedLogForwarder : public InternalRunnable {
   std::atomic<size_t> log_index_{0};
 
   /// Stores the count of buffered logs
-  size_t buffer_count_{0};
+  unsigned long long int buffer_count_{0};
 
   /// Protects the count of buffered logs
   RecursiveMutex count_mutex_;

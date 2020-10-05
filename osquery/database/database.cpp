@@ -1,20 +1,22 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include <osquery/database.h>
-#include <osquery/flagalias.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-#include <osquery/registry.h>
+#include <osquery/core/flagalias.h>
+#include <osquery/core/flags.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
+#include <osquery/process/process.h>
+#include <osquery/registry/registry.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/json/json.h>
@@ -52,10 +54,9 @@ const std::string kDbVersionKey = "results_version";
 const std::vector<std::string> kDomains = {
     kPersistentSettings, kQueries, kEvents, kLogs, kCarves};
 
-std::atomic<bool> DatabasePlugin::kDBAllowOpen(false);
-std::atomic<bool> DatabasePlugin::kDBRequireWrite(false);
-std::atomic<bool> DatabasePlugin::kDBInitialized(false);
-std::atomic<bool> DatabasePlugin::kDBChecking(false);
+std::atomic<bool> kDBAllowOpen(false);
+std::atomic<bool> kDBInitialized(false);
+std::atomic<bool> kDBChecking(false);
 
 /**
  * @brief A reader/writer mutex protecting database resets.
@@ -65,32 +66,16 @@ std::atomic<bool> DatabasePlugin::kDBChecking(false);
  */
 Mutex kDatabaseReset;
 
-Status DatabasePlugin::initPlugin() {
-  // Initialize the database plugin using the flag.
-  auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
-  {
-    auto const status = RegistryFactory::get().setActive("database", plugin);
-    if (status.ok()) {
-      kDBInitialized = true;
-      return status;
-    }
-    LOG(WARNING) << "Failed to activate database plugin " << boost::io::quoted(plugin) << ": " << status.what();
-  }
-  // If the database did not setUp override the active plugin.
-  auto const status = RegistryFactory::get().setActive("database", "ephemeral");
-  if (!status.ok()) {
-    LOG(ERROR) << "Failed to activate database plugin \"ephemeral\": " << status.what();
-  }
-  kDBInitialized = status.ok();
-  return status;
-}
+/**
+ * @brief Try multiple times to initialize persistent storage.
+ *
+ * It might be the case that other processes are stopping and have not released
+ * their whole-process lock on the database.
+ */
+const size_t kDatabaseMaxRetryCount{25};
 
-void DatabasePlugin::shutdown() {
-  auto database_registry = RegistryFactory::get().registry("database");
-  for (auto& plugin : RegistryFactory::get().names("database")) {
-    database_registry->remove(plugin);
-  }
-}
+/// Number of millisecons to pause between database initialize retries.
+const size_t kDatabaseRetryDelay{200};
 
 Status DatabasePlugin::reset() {
   // Keep this simple, scope the critical section to the broader methods.
@@ -103,9 +88,6 @@ bool DatabasePlugin::checkDB() {
   bool result = true;
   try {
     auto status = setUp();
-    if (kDBRequireWrite && read_only_) {
-      result = false;
-    }
     tearDown();
     result = status.ok();
   } catch (const std::exception& e) {
@@ -116,10 +98,18 @@ bool DatabasePlugin::checkDB() {
   return result;
 }
 
+bool DatabasePlugin::allowOpen() const {
+  return kDBAllowOpen;
+}
+
+bool DatabasePlugin::checkingDB() const {
+  return kDBChecking;
+}
+
 Status DatabasePlugin::scan(const std::string& domain,
                             std::vector<std::string>& results,
                             const std::string& prefix,
-                            size_t max) const {
+                            uint64_t max) const {
   return Status::success();
 }
 
@@ -135,7 +125,7 @@ Status DatabasePlugin::call(const PluginRequest& request,
 
   if (request.at("action") == "reset") {
     WriteLock lock(kDatabaseReset);
-    DatabasePlugin::kDBInitialized = false;
+    kDBInitialized = false;
     // Prevent RocksDB reentrancy by logger plugins during plugin setup.
     VLOG(1) << "Resetting the database plugin: " << getName();
     auto status = this->reset();
@@ -144,7 +134,7 @@ Status DatabasePlugin::call(const PluginRequest& request,
       Registry::get().setActive("database", "ephemeral");
       LOG(WARNING) << "Unable to reset database plugin: " << getName();
     }
-    DatabasePlugin::kDBInitialized = true;
+    kDBInitialized = true;
     return status;
   }
 
@@ -300,7 +290,7 @@ Status getDatabaseValue(const std::string& domain,
   }
 
   ReadLock lock(kDatabaseReset);
-  if (!DatabasePlugin::kDBInitialized) {
+  if (!kDBInitialized) {
     throw std::runtime_error("Cannot get database value: " + key);
   } else {
     auto plugin = getDatabasePlugin();
@@ -342,7 +332,7 @@ Status setDatabaseBatch(const std::string& domain,
   }
 
   ReadLock lock(kDatabaseReset);
-  if (!DatabasePlugin::kDBInitialized) {
+  if (!kDBInitialized) {
     throw std::runtime_error("Cannot set database values");
   }
 
@@ -370,7 +360,7 @@ Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
   }
 
   ReadLock lock(kDatabaseReset);
-  if (!DatabasePlugin::kDBInitialized) {
+  if (!kDBInitialized) {
     throw std::runtime_error("Cannot delete database value: " + key);
   } else {
     auto plugin = getDatabasePlugin();
@@ -396,7 +386,7 @@ Status deleteDatabaseRange(const std::string& domain,
   }
 
   ReadLock lock(kDatabaseReset);
-  if (!DatabasePlugin::kDBInitialized) {
+  if (!kDBInitialized) {
     throw std::runtime_error("Cannot delete database values: " + low + " - " +
                              high);
   } else {
@@ -415,7 +405,7 @@ Status scanDatabaseKeys(const std::string& domain,
 Status scanDatabaseKeys(const std::string& domain,
                         std::vector<std::string>& keys,
                         const std::string& prefix,
-                        size_t max) {
+                        uint64_t max) {
   if (domain.empty()) {
     return Status(1, "Missing domain");
   }
@@ -439,7 +429,7 @@ Status scanDatabaseKeys(const std::string& domain,
   }
 
   ReadLock lock(kDatabaseReset);
-  if (!DatabasePlugin::kDBInitialized) {
+  if (!kDBInitialized) {
     throw std::runtime_error("Cannot scan database values: " + prefix);
   } else {
     auto plugin = getDatabasePlugin();
@@ -468,6 +458,54 @@ void dumpDatabase() {
     }
   }
   fflush(stdout);
+}
+
+void setDatabaseAllowOpen(bool allow_open) {
+  kDBAllowOpen = allow_open;
+}
+
+Status initDatabasePlugin() {
+  if (kDBInitialized) {
+    return Status::success();
+  }
+
+  // Initialize the database plugin using the flag.
+  auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
+  Status status;
+  for (size_t i = 0; i < kDatabaseMaxRetryCount; i++) {
+    status = RegistryFactory::get().setActive("database", plugin);
+    if (status.ok()) {
+      break;
+    }
+
+    if (FLAGS_disable_database) {
+      // Do not try multiple times to initialize the emphemeral plugin.
+      break;
+    }
+    sleepFor(kDatabaseRetryDelay);
+  }
+
+  kDBInitialized = status.ok();
+  return status;
+}
+
+Status initDatabasePluginForTesting() {
+  // Use the built-in ephemeral database.
+  FLAGS_disable_database = true;
+  setDatabaseAllowOpen();
+  initDatabasePlugin();
+  return Status::success();
+}
+
+bool databaseInitialized() {
+  return kDBInitialized;
+}
+
+void shutdownDatabase() {
+  auto database_registry = RegistryFactory::get().registry("database");
+  for (auto& plugin : RegistryFactory::get().names("database")) {
+    database_registry->remove(plugin);
+  }
 }
 
 Status ptreeToRapidJSON(const std::string& in, std::string& out) {

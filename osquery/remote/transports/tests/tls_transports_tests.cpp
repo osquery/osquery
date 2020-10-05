@@ -1,9 +1,10 @@
 /**
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014-present, The osquery authors
  *
- *  This source code is licensed in accordance with the terms specified in
- *  the LICENSE file found in the root directory of this source tree.
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
 // clang-format off
@@ -16,9 +17,9 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/logger.h>
-#include <osquery/system.h>
-#include <osquery/registry_factory.h>
+#include <osquery/logger/logger.h>
+#include <osquery/core/system.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/info/platform_type.h>
 
 #include "osquery/remote/requests.h"
@@ -30,7 +31,6 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_database);
 DECLARE_string(tls_server_certs);
 
 class TLSTransportsTests : public testing::Test {
@@ -52,11 +52,9 @@ class TLSTransportsTests : public testing::Test {
   }
 
   void SetUp() override {
-    Initializer::platformSetup();
+    platformSetup();
     registryAndPluginInit();
-    FLAGS_disable_database = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    initDatabasePluginForTesting();
   }
 
   void startServer(const std::string& server_cert = {}) {
