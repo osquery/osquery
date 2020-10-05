@@ -45,6 +45,7 @@
   [#6665](https://github.com/osquery/osquery/pull/6665),
   [#6662](https://github.com/osquery/osquery/pull/6662))
 - Add 4.5.0 CHANGELOG ([#6646](https://github.com/osquery/osquery/pull/6646))
+- Add 4.5.1 CHANGELOG ([#6692](https://github.com/osquery/osquery/pull/6692))
 
 ### Build
 
