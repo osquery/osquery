@@ -5,17 +5,14 @@
 
 [Git Commits](https://github.com/osquery/osquery/compare/4.5.0...4.5.1)
 
-
-### New Features
-
 ### Under the Hood improvements
 
-- Improve carver tests by faking postCarve ([#6659](https://github.com/osquery/osquery/pull/6659))
-- Emit an error during carving, if the carve function is disabled ([#6658](https://github.com/osquery/osquery/pull/6658))
-- Update carver specs to allow full scan ([#6657](https://github.com/osquery/osquery/pull/6657))
-- Update carver table to use JSON ([#6656](https://github.com/osquery/osquery/pull/6656))
-- Improve performance and accuracy of Windows registry querying ([#6647](https://github.com/osquery/osquery/pull/6647))
-- Refactor ephemeral database plugin into core and simplify tests ([#6648](https://github.com/osquery/osquery/pull/6648))
+- Improve carver tests by faking `postCarve` ([#6659](https://github.com/osquery/osquery/pull/6659))
+- Emit an error during carving, if the `carve` SQL function is disabled ([#6658](https://github.com/osquery/osquery/pull/6658))
+- Update `carves` specs to allow full scan ([#6657](https://github.com/osquery/osquery/pull/6657))
+- Update `carves` table to use JSON ([#6656](https://github.com/osquery/osquery/pull/6656))
+- Improve performance and accuracy of Windows `registry` querying ([#6647](https://github.com/osquery/osquery/pull/6647))
+- Refactor `ephemeral` database plugin into core and simplify tests ([#6648](https://github.com/osquery/osquery/pull/6648))
 
 ### Table Changes
 
@@ -27,18 +24,17 @@
 
 ### Bug Fixes
 
-- Fix container overflow in curl_certificate ([#6664](https://github.com/osquery/osquery/pull/6664))
-- Fix handling of invalid array bound error with EvtNext function ([#6660](https://github.com/osquery/osquery/pull/6660))
-- Fix BIOS Info table searching ([#5246](https://github.com/osquery/osquery/pull/5246))
-- Fix image column within drivers table on Windows ([#6652](https://github.com/osquery/osquery/pull/6652))
-- Fix windows dirPathsAreEqual to use the documented way ([#6690](https://github.com/osquery/osquery/pull/6690))
+- Fix container overflow in `curl_certificate` ([#6664](https://github.com/osquery/osquery/pull/6664))
+- Fix handling of invalid array bound error with `EvtNext` function ([#6660](https://github.com/osquery/osquery/pull/6660))
+- Fix `wmi_bios_info` table searching ([#5246](https://github.com/osquery/osquery/pull/5246))
+- Fix `image` column within `drivers` table on Windows ([#6652](https://github.com/osquery/osquery/pull/6652))
+- Fix windows `dirPathsAreEqual` to use the documented way ([#6690](https://github.com/osquery/osquery/pull/6690))
 - Fix incorrect `stat()` return checking within process_events ([#6694](https://github.com/osquery/osquery/pull/6694))
-- Always flush stdout when called with `--help` ([#6693](https://github.com/osquery/osquery/pull/6693))
-
+- Always flush `stdout` when called with `--help` ([#6693](https://github.com/osquery/osquery/pull/6693))
 
 ### Documentation
 
-- Document max interval ([#6683](https://github.com/osquery/osquery/pull/6683))
+- Document max scheduled query interval ([#6683](https://github.com/osquery/osquery/pull/6683))
 - Update documentation around build steps ([#6681](https://github.com/osquery/osquery/pull/6681))
 - Documentation copy editing
   ([#6676](https://github.com/osquery/osquery/pull/6676),
@@ -50,12 +46,10 @@
 ### Build
 
 - Improve flaky python test handling ([#6654](https://github.com/osquery/osquery/pull/6654))
-- Restore test_osqueryi ([#6631](https://github.com/osquery/osquery/pull/6631))
-- Limit osqueryd CPU usage to 20% in systemd unit file ([#6644](https://github.com/osquery/osquery/pull/6644))
+- Restore `test_osqueryi` ([#6631](https://github.com/osquery/osquery/pull/6631))
+- Limit `osqueryd` CPU usage to 20% in systemd unit file ([#6644](https://github.com/osquery/osquery/pull/6644))
 - Improve flaky `test_osqueryi` ([#6688](https://github.com/osquery/osquery/pull/6688))
-- Add cppcheck support to macOS ([#6685](https://github.com/osquery/osquery/pull/6685))
-
-### Security Issues
+- Add `cppcheck` support to macOS ([#6685](https://github.com/osquery/osquery/pull/6685))
 
 ### Hardening
 
