@@ -51,6 +51,8 @@
 #ifdef __linux__
 #include <sys/syscall.h>
 
+#include <osquery/utils/system/linux/proc/proc.h>
+
 /*
  * These are the io priority groups as implemented by CFQ. RT is the realtime
  * class, it always gets premium service. BE is the best-effort scheduling
@@ -106,6 +108,7 @@ DECLARE_bool(disable_database);
 DECLARE_bool(disable_events);
 DECLARE_bool(disable_logging);
 DECLARE_bool(enable_numeric_monitoring);
+DECLARE_bool(logger_stderr);
 
 CLI_FLAG(bool, S, false, "Run as a shell process");
 CLI_FLAG(bool, D, false, "Run as a daemon process");
@@ -113,6 +116,13 @@ CLI_FLAG(bool, daemonize, false, "Attempt to daemonize (POSIX only)");
 CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
 
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
+
+#ifdef LINUX
+SHELL_FLAG(string,
+           setns,
+           "",
+           "Linux container namespace path to use for osqueryi");
+#endif
 
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
@@ -188,6 +198,30 @@ static inline void printUsage(const std::string& binary, ToolType tool) {
 
   fprintf(stdout, EPILOG);
   fflush(stdout);
+}
+
+void checkContainerNamespaceFlag() {
+#ifdef LINUX
+  if (FLAGS_setns.empty()) {
+    return;
+  }
+
+  if (FLAGS_logger_stderr == false || FLAGS_disable_extensions == false) {
+    LOG(WARNING) << "--logger_stderr AND --disable_extensions"
+                    " needed for setns to work, as the process needs to be "
+                    "single-threaded";
+  }
+
+  std::string feedback;
+  Status status = proc::setLinuxNamespace(FLAGS_setns.c_str(), feedback);
+
+  if (!feedback.empty()) {
+    LOG(INFO) << feedback;
+  }
+  if (!status.ok()) {
+    LOG(ERROR) << status.getMessage();
+  }
+#endif
 }
 
 Initializer::Initializer(int& argc,
@@ -296,6 +330,8 @@ Initializer::Initializer(int& argc,
     FLAGS_disable_logging = true;
     FLAGS_disable_watchdog = true;
   }
+
+  checkContainerNamespaceFlag();
 
   // Initialize registries and plugins
   registryAndPluginInit();
@@ -689,4 +725,4 @@ void Initializer::shutdownNow(int retcode) {
   platformTeardown();
   _Exit(retcode);
 }
-}
+} // namespace osquery

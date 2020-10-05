@@ -56,13 +56,6 @@ CLI_FLAG(bool, install, false, "Install osqueryd as a service");
 
 CLI_FLAG(bool, uninstall, false, "Uninstall osqueryd as a service");
 
-#ifdef LINUX
-SHELL_FLAG(string,
-           setns,
-           "",
-           "Linux container namespace path to use for osqueryi");
-#endif
-
 DECLARE_bool(disable_caching);
 DECLARE_bool(logger_stderr);
 
@@ -125,39 +118,7 @@ void startDaemon(Initializer& runner) {
   runner.waitForShutdown();
 }
 
-void check_container_namespace_flag() {
-#ifdef LINUX
-  if (FLAGS_setns.empty()) {
-    return;
-  }
-
-  if (FLAGS_logger_stderr == false || FLAGS_disable_extensions == false) {
-    LOG(WARNING) << "--logger_stderr AND --disable_extensions"
-                    " needed for setns to work, as the process needs to be "
-                    "single-threaded";
-  }
-
-  int fd = open(FLAGS_setns.c_str(), O_RDONLY);
-  if (fd <= 0) {
-    LOG(ERROR) << "Unable to open namespace path: " << FLAGS_setns
-               << " . Running as root?";
-    return;
-  }
-
-  // We call the syscall directly because setns() has been added as a function
-  // from glibc 2.14 and on only.
-
-  int result = static_cast<int>(syscall(SYS_setns, fd, 0));
-  if (result == -1) {
-    LOG(ERROR) << "Unable to switch to namespace";
-  }
-  close(fd);
-#endif
-}
-
 int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
-  check_container_namespace_flag();
-
   // Check for shell-specific switches and positional arguments.
   if (argc > 1 || !osquery::platformIsatty(stdin) ||
       !osquery::FLAGS_A.empty() || !osquery::FLAGS_pack.empty() ||

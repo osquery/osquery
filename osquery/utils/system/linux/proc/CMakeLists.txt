@@ -21,6 +21,7 @@ function(generateOsqueryUtilsSystemLinuxProc)
 
     target_link_libraries(osquery_utils_system_linux_proc PUBLIC
       osquery_cxx_settings
+      osquery_utils_status
       thirdparty_boost
     )
 

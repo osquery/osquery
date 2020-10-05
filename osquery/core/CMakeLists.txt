@@ -97,7 +97,7 @@ function(generateOsqueryCore)
   )
 
   if(DEFINED PLATFORM_LINUX)
-    list(APPEND dependencies thirdparty_util-linux)
+    list(APPEND dependencies thirdparty_util-linux osquery_utils_system_linux_proc)
   endif()
 
   target_link_libraries(osquery_core PUBLIC

@@ -29,6 +29,8 @@
 
 #ifdef LINUX
 #include <syscall.h>
+
+#include <osquery/utils/system/linux/proc/proc.h>
 #endif
 
 #include <linenoise.h>
@@ -128,7 +130,12 @@ static char zTimerHelp[] =
 #define MODE_Pretty 5 // Pretty print the SQL results
 
 static const char* modeDescr[] = {
-    "line", "column", "list", "semi", "csv", "pretty",
+    "line",
+    "column",
+    "list",
+    "semi",
+    "csv",
+    "pretty",
 };
 
 // ctype macros that work with signed characters
@@ -1248,85 +1255,6 @@ inline void meta_show(struct callback_data* p) {
   }
 }
 
-#ifdef LINUX
-std::string makeNSPath(const char *pid_or_path) {
-  std::string nspath = pid_or_path;
-  if (nspath.empty()) {
-    return nspath;
-  }
-  if (nspath[0] == '/') {
-    return nspath;
-  }
-  nspath = "/proc/";
-  nspath += pid_or_path;
-  nspath += "/ns/mnt";
-  return nspath;
-}
-
-/*
- * Use SYS_setns syscall to set namespace.
- * NOTE: setns() function not added until glibc 2.14
- */
-int setLinuxNamespace(FILE *outfp, const char *cpath) {
-  static int origfd = 0;
-  static std::string lastns;
-  std::string nspath = makeNSPath(cpath);
-
-  // need to keep handle to original namespace
-
-  if (origfd <= 0) {
-    char orig_path[96];
-    snprintf(orig_path, sizeof(orig_path), "/proc/%d/ns/mnt", getpid());
-
-    origfd = open(orig_path, O_RDONLY);
-    if (origfd <= 0) {
-      fprintf(outfp, "Unable to open original namespace descriptor: %s\n", orig_path);
-    }
-  }
-
-  // if in a namespace, unmount and restore original
-
-  if (!lastns.empty()) {
-    lastns.clear();
-
-    // restore original namespace
-
-    int result = static_cast<int>(syscall(SYS_setns, origfd, 0));
-
-    if (result == -1) {
-      fprintf(outfp, "ERROR: Unable to restore original namespace\n");
-      return SQLITE_ERROR;
-    }
-  }
-
-  if (nspath.empty()) {
-    fprintf(outfp, "Back in original namespace\n");
-    return SQLITE_OK;        // just wanted a restore to original
-  }
-
-  // switch to container namespace
-
-  int fd = open(nspath.c_str(), O_RDONLY);
-  if (fd <= 0) {
-    fprintf(outfp, "Unable to open namespace descriptor: %s\n", nspath.c_str());
-    return SQLITE_ERROR;
-  }
-
-  int result = static_cast<int>(syscall(SYS_setns, fd, 0));
-  close(fd);
-
-  if (result == -1) {
-    fprintf(outfp, "Unable to switch to namespace\n");
-    return SQLITE_ERROR;
-  }
-
-  lastns = nspath;
-
-  fprintf(outfp, "Now in namespace:%s\n", nspath.c_str());
-  return SQLITE_OK;
-}
-#endif
-
 /*
 ** If an input line begins with "." then invoke this routine to
 ** process that line.
@@ -1401,7 +1329,16 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
 
 #ifdef LINUX
   if (c == 's' && strncmp(azArg[0], "setns", n) == 0 && nArg >= 1 && nArg < 3) {
-    return setLinuxNamespace(p->out, (nArg == 2 ? azArg[1] : ""));
+    std::string feedback;
+    osquery::Status status =
+        osquery::proc::setLinuxNamespace((nArg == 2 ? azArg[1] : ""), feedback);
+    if (!feedback.empty()) {
+      fprintf(p->out, "%s", feedback.c_str());
+    }
+    if (!status.ok()) {
+      fprintf(p->out, "%s\n", status.getMessage().c_str());
+    }
+    return 0;
   }
 #endif
 
