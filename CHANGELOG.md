@@ -10,28 +10,28 @@
 
 ### Under the Hood improvements
 
-- carver: Improve tests by faking postCarve ([#6659](https://github.com/osquery/osquery/pull/6659))
-- carver: Emit an error if the carve function is disabled ([#6658](https://github.com/osquery/osquery/pull/6658))
-- carver: Update carves specs to allow full scan ([#6657](https://github.com/osquery/osquery/pull/6657))
-- carver: Update table to use JSON ([#6656](https://github.com/osquery/osquery/pull/6656))
+- Improve carver tests by faking postCarve ([#6659](https://github.com/osquery/osquery/pull/6659))
+- Emit an error during carving, if the carve function is disabled ([#6658](https://github.com/osquery/osquery/pull/6658))
+- Update carver specs to allow full scan ([#6657](https://github.com/osquery/osquery/pull/6657))
+- Update carver table to use JSON ([#6656](https://github.com/osquery/osquery/pull/6656))
 - Improve performance and accuracy of Windows registry querying ([#6647](https://github.com/osquery/osquery/pull/6647))
-- refactor: Move ephemeral database plugin into core and simplify tests ([#6648](https://github.com/osquery/osquery/pull/6648))
+- Refactor ephemeral database plugin into core and simplify tests ([#6648](https://github.com/osquery/osquery/pull/6648))
 
 ### Table Changes
 
 - Support for Office MRU (most recently used) entries ([#6587](https://github.com/osquery/osquery/pull/6587))
 - Implement configurable timeout through WHERE clause on `curl_certificate` ([#6641](https://github.com/osquery/osquery/pull/6641))
-- Add atom table spec to window ([#6649](https://github.com/osquery/osquery/pull/6649))
-- Add signature information to authenticode table on windows ([#6677](https://github.com/osquery/osquery/pull/6677))
+- Add `atom_packages` table spec to window ([#6649](https://github.com/osquery/osquery/pull/6649))
+- Add signature information to `authenticode` table on windows ([#6677](https://github.com/osquery/osquery/pull/6677))
+- Add additional AWS regions ([#6666](https://github.com/osquery/osquery/pull/6666))
 
 ### Bug Fixes
 
 - Fix container overflow in curl_certificate ([#6664](https://github.com/osquery/osquery/pull/6664))
 - Fix handling of invalid array bound error with EvtNext function ([#6660](https://github.com/osquery/osquery/pull/6660))
-- Fix BIOS Info table searching. ([#5246](https://github.com/osquery/osquery/pull/5246))
+- Fix BIOS Info table searching ([#5246](https://github.com/osquery/osquery/pull/5246))
 - Fix image column within drivers table on Windows ([#6652](https://github.com/osquery/osquery/pull/6652))
 - Fix windows dirPathsAreEqual to use the documented way ([#6690](https://github.com/osquery/osquery/pull/6690))
-- Add Addition AWS regions ([#6666](https://github.com/osquery/osquery/pull/6666))
 
 ### Documentation
 
