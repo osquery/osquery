@@ -146,6 +146,19 @@ void jsonPrint(const QueryData& q) {
   printf("\n]\n");
 }
 
+void jsonPrettyPrint(const QueryData& q) {
+  auto doc = JSON::newArray();
+  for (const auto& row : q) {
+    auto row_json = doc.getObject();
+    if (serializeRow(row, ColumnNames{}, doc, row_json)) {
+      doc.push(row_json);
+    }
+  }
+  std::string doc_string;
+  doc.toPrettyString(doc_string);
+  printf("%s\n", doc_string.c_str());
+}
+
 void computeRowLengths(const Row& r,
                        std::map<std::string, size_t>& lengths,
                        bool use_columns) {
@@ -156,4 +169,4 @@ void computeRowLengths(const Row& r,
     lengths[col.first] = (size > current) ? size : current;
   }
 }
-}
+} // namespace osquery

@@ -30,6 +30,7 @@
 
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
+#include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
@@ -347,6 +348,9 @@ class JSON : private only_movable {
 
   /// Convert this document to a JSON string.
   Status toString(std::string& str) const;
+
+  /// Convert this document to a formatted JSON string.
+  Status toPrettyString(std::string& str, size_t indentCharCount = 2) const;
 
   /// Helper to convert a string into JSON.
   Status fromString(const std::string& str,

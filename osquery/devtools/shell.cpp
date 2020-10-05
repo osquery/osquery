@@ -59,6 +59,7 @@ namespace osquery {
 /// Define flags used by the shell. They are parsed by the drop-in shell.
 SHELL_FLAG(bool, csv, false, "Set output mode to 'csv'");
 SHELL_FLAG(bool, json, false, "Set output mode to 'json'");
+SHELL_FLAG(bool, json_pretty, false, "Set output mode to 'json_pretty'");
 SHELL_FLAG(bool, line, false, "Set output mode to 'line'");
 SHELL_FLAG(bool, list, false, "Set output mode to 'list'");
 SHELL_FLAG(string, separator, "|", "Set output field separator, default '|'");
@@ -123,7 +124,12 @@ static char zTimerHelp[] =
 #define MODE_Pretty 5 // Pretty print the SQL results
 
 static const char* modeDescr[] = {
-    "line", "column", "list", "semi", "csv", "pretty",
+    "line",
+    "column",
+    "list",
+    "semi",
+    "csv",
+    "pretty",
 };
 
 // ctype macros that work with signed characters
@@ -765,7 +771,9 @@ static void set_table_name(struct callback_data* p, const char* zName) {
 
 static void pretty_print_if_needed(struct callback_data* pArg) {
   if ((pArg != nullptr) && pArg->mode == MODE_Pretty) {
-    if (osquery::FLAGS_json) {
+    if (osquery::FLAGS_json_pretty) {
+      osquery::jsonPrettyPrint(pArg->prettyPrint->results);
+    } else if (osquery::FLAGS_json) {
       osquery::jsonPrint(pArg->prettyPrint->results);
     } else {
       osquery::prettyPrint(pArg->prettyPrint->results,
