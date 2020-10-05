@@ -198,4 +198,3 @@ def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
     if stats.get("fds") is not None:
         rval["fds"] = stats["fds"]
     return rval
-    
