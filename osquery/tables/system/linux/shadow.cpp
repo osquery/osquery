@@ -41,7 +41,7 @@ void genShadowForAccount(const struct spwd* spwd, QueryData& results) {
     } else if (password[0] == '!' || password[0] == '*' || password[0] == 'x') {
       r["password_status"] = "locked";
     } else if (password == "") {
-        r["password_status"] = "empty";
+      r["password_status"] = "empty";
       }
     else {
       r["password_status"] = "active";
