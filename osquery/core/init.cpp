@@ -544,7 +544,7 @@ void Initializer::start() const {
   auto s = osquery::startExtensionManager();
   if (!s.ok()) {
     auto error_message =
-        "An error occured during extension manager startup: " + s.getMessage();
+        "An error occurred during extension manager startup: " + s.getMessage();
     auto severity =
         (FLAGS_disable_extensions) ? google::GLOG_INFO : google::GLOG_ERROR;
     if (severity == google::GLOG_INFO) {
