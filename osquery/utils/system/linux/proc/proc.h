@@ -29,9 +29,13 @@ std::string cmdline(pid_t pid);
  *
  * NOTE: setns() function not added until glibc 2.14
  * Requires that process is single-threaded.
- * To accomodate callers, his function does not log
+ * To accommodate callers, his function does not log
  * anything, but will provide INFO level in feedback
  * and error message in status when failure.
+ *
+ * @param cpath The pid or path to switch to.  If cpath is
+ *              empty, will switch back to original namespace
+ *              of the host.  Path format: /proc/<pid>/ns/mnt
  */
 Status setLinuxNamespace(const char* cpath, std::string& feedback);
 

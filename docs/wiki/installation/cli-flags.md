@@ -479,7 +479,7 @@ Docker information for containers, networks, volumes, images etc is available in
 
 `--setns=container_process_id`
 
-When osquery is run in shell-mode, it will check for the setns flag at startup.  If set, it will try to call setns system call to switch to the specified container namespace.  For example, if the container is running with pid 33900, using `--setns=33900` will run the queries inside that container's namespace.  Run `sudo lsns` to view container namespaces.  This only works when the following conditions are met : osquery is run with sufficient privileges (e.g. run as root), and the osquery process does not yet have multiple threads running.
+When osquery is run in shell-mode, it will check for the `setns` flag at startup.  If set, it will try to call `setns` system call to switch to the specified container namespace.  For example, if the container is running with pid 33900, using `--setns=33900` will run the queries inside that container's namespace.  Run `sudo lsns` to view container namespaces.  This only works when the following conditions are met: osquery is run with sufficient privileges (e.g., run as root), and the osquery process does not yet have multiple threads running.
 
 ## Shell-only flags
 

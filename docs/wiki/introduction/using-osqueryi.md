@@ -54,7 +54,7 @@ It accepts several meta-commands, prefixed with a '.':
 * to list the schema (columns, types) of a specific table: `.schema table_name` or `pragma table_info(table_name);` for more details
 * to list all available commands: `.help`
 * to exit the console: `.exit` or `^D`
-* to set linux container namespace: `.setns <pid>`  Will only work when running as single-threaded process (e.g. with `--disable_watchdog=true --disable_events=true --logger_stderr --disable_extensions=true`)
+* to set linux container namespace: `.setns <pid>` Omitting the pid will reset back to original namespace. Will only work when running as single-threaded process (e.g. with `--disable_watchdog=true --disable_events=true --logger_stderr --disable_extensions=true`)
 
 Here are some example shell commands:
 
