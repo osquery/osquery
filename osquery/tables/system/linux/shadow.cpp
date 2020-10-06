@@ -42,8 +42,7 @@ void genShadowForAccount(const struct spwd* spwd, QueryData& results) {
       r["password_status"] = "locked";
     } else if (password == "") {
       r["password_status"] = "empty";
-      }
-    else {
+    } else {
       r["password_status"] = "active";
     }
     if (std::regex_search(password, matches, kPasswordHashAlgRegex)) {
