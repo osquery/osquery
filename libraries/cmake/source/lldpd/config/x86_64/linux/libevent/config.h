@@ -414,7 +414,7 @@
 /* Version number of package */
 #define VERSION "2.0.22-stable"
 
-/* Define to appropriate substitue if compiler doesnt have __func__ */
+/* Define to appropriate substitue if compiler does not have __func__ */
 /* #undef __func__ */
 
 /* Define to empty if `const' does not conform to ANSI C. */

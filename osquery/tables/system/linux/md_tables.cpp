@@ -71,7 +71,7 @@ static inline void getLines(std::vector<std::string>& lines) {
 }
 
 /**
- * @brief function for walking thru a udev subsystem and working on devices
+ * @brief function for walking through a udev subsystem and working on devices
  *
  * @param systemName the name of the sysfs subsytem to work with
  * @param f function to execute on the subsystem; returns true if can break the
@@ -608,7 +608,7 @@ void getDrivesForArray(const std::string& arrayName,
   /* Keep track of index in QueryData that have removed slots since we can't
    * make safe assumptions about it's original slot position if disk_number >=
    * total_disk and we're unable to deteremine total number of missing slots
-   * until we walk thru all MD_SB_DISKS */
+   * until we walk through all MD_SB_DISKS */
   std::vector<size_t> removedSlots;
 
   size_t qdPos = data.size();

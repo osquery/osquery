@@ -30,7 +30,7 @@ function main() {
     exit 1
   fi
 
-  # We put this above the current directory to avoid accidently grabbing the file
+  # We put this above the current directory to avoid accidentally grabbing the file
   RESULTDEST=../tmp
   RESULTFILE=results.txt
   mkdir $RESULTDEST
@@ -64,7 +64,7 @@ BEGIN {
         next; # Were done, go to next line
     }
 }
-# Okay, we didnt find a sql statement with a semicolon or one ending in a ", so look for continuances
+# Okay, we did not find a sql statement with a semicolon or one ending in a ", so look for continuances
 # This is a SQL statement that starts on one line and finishes with a line continuance: \
 /\"select(.+)\\$/ {
     do {

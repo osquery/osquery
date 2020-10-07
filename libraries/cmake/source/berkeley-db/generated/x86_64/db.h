@@ -1012,7 +1012,7 @@ struct __db_txn_stat {
 	DB_LSN	  st_last_ckp;		/* lsn of the last checkpoint */
 	time_t	  st_time_ckp;		/* time of last checkpoint */
 	u_int32_t st_last_txnid;	/* last transaction id given out */
-	u_int32_t st_inittxns;		/* inital txns allocated */
+	u_int32_t st_inittxns;		/* initial txns allocated */
 	u_int32_t st_maxtxns;		/* maximum txns possible */
 	uintmax_t st_naborts;		/* number of aborted transactions */
 	uintmax_t st_nbegins;		/* number of begun transactions */
@@ -2128,7 +2128,7 @@ struct __dbc {
 #define	DBC_RECOVER		0x08000	/* Recovery cursor; don't log/lock. */
 #define	DBC_RMW			0x10000	/* Acquire write flag in read op. */
 #define	DBC_TRANSIENT		0x20000	/* Cursor is transient. */
-#define	DBC_WAS_READ_COMMITTED	0x40000	/* Cursor holds a read commited lock. */
+#define	DBC_WAS_READ_COMMITTED	0x40000	/* Cursor holds a read committed lock. */
 #define	DBC_WRITECURSOR		0x80000	/* Cursor may be used to write (CDB). */
 #define	DBC_WRITER	       0x100000	/* Cursor immediately writing (CDB). */
 	u_int32_t flags;

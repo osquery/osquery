@@ -36,7 +36,7 @@ namespace schemer {
  *  - C-string - only for serialisation;
  *  - types with defined schema, @see schemer::has_schema type trait.
  *
- * Not implemented yet, but comming soon:
+ * Not implemented yet, but coming soon:
  *  - Standard sontainers support
  */
 
