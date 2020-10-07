@@ -50,8 +50,8 @@ TEST_F(apps, test_sanity) {
   validate_rows(data, row_map);
 
   // Not totally sure what apps we expect on the VMs used by CI.
-  auto const data1 = execute_query(
-      "select * from apps where name = 'Preview.app'");
+  auto const data1 =
+      execute_query("select * from apps where name = 'Preview.app'");
   ASSERT_EQ(data1.size(), 1ul);
   validate_rows(data1, row_map);
 }
