@@ -121,7 +121,8 @@ FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 SHELL_FLAG(string,
            setns,
            "",
-           "The pid or '/proc/<pid>/ns/mnt' path of Linux container namespace to switch to");
+           "The pid or '/proc/<pid>/ns/mnt' path of Linux container namespace "
+           "to switch to");
 #endif
 
 /// The saved thread ID for shutdown to short-circuit raising a signal.
