@@ -118,11 +118,7 @@ CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 
 #ifdef LINUX
-SHELL_FLAG(string,
-           setns,
-           "",
-           "The pid or '/proc/<pid>/ns/mnt' path of Linux container namespace "
-           "to switch to");
+SHELL_FLAG(string, setns, "", "The pid of target Linux container namespace");
 #endif
 
 /// The saved thread ID for shutdown to short-circuit raising a signal.
