@@ -51,8 +51,7 @@ TEST_F(apps, test_sanity) {
 
   // Not totally sure what apps we expect on the VMs used by CI.
   auto const data1 = execute_query(
-      "select * from apps where path = '/Applications/Preview.app' or path = "
-      "'/System//Applications/Preview.app'");
+      "select * from apps where name = 'Preview.app'");
   ASSERT_EQ(data1.size(), 1ul);
   validate_rows(data1, row_map);
 }
