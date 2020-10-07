@@ -18,12 +18,15 @@ namespace {
 class DarwinBsdFlags : public testing::Test {};
 
 TEST_F(DarwinBsdFlags, testAllFlags) {
-  auto flags = UF_NODUMP | UF_IMMUTABLE | UF_APPEND | UF_OPAQUE | UF_HIDDEN |
-               SF_ARCHIVED | SF_IMMUTABLE | SF_APPEND;
+  auto flags = UF_APPEND | UF_COMPRESSED | UF_DATAVAULT | UF_HIDDEN |
+               UF_IMMUTABLE | UF_NODUMP | UF_OPAQUE | UF_TRACKED | SF_APPEND |
+               SF_ARCHIVED | SF_IMMUTABLE | SF_NOUNLINK | SF_RESTRICTED |
+               SF_SUPPORTED;
 
   std::string expected_description =
-      "NODUMP, UF_IMMUTABLE, UF_APPEND, OPAQUE, HIDDEN, ARCHIVED, "
-      "SF_IMMUTABLE, SF_APPEND";
+      "NODUMP, UF_IMMUTABLE, UF_APPEND, OPAQUE, COMPRESSED, TRACKED, "
+      "DATAVAULT, HIDDEN, ARCHIVED, SF_IMMUTABLE, SF_APPEND, "
+      "SF_RESTRICTED, SF_NOUNLINK, SF_SUPPORTED";
 
   // The function should return true when there are no undocumented bits
   // set inside the `flags` value
