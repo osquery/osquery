@@ -1288,7 +1288,7 @@ public:
 private:
 	// Note: no extra data appears in this class (other than
 	// inherited from DBT) since we need DBT and Dbt objects
-	// to have interchangeable pointers.
+	// to have interchangable pointers.
 	//
 	// When subclassing this class, remember that callback
 	// methods like bt_compare, bt_prefix, dup_compare may
