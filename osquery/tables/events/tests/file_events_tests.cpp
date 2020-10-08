@@ -14,7 +14,6 @@
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
-#include <osquery/events/events.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry.h>
 #include <osquery/sql/sql.h>
@@ -70,7 +69,7 @@ TEST_F(FileEventsTableTests, test_subscriber_exists) {
 
 TEST_F(FileEventsTableTests, test_table_empty) {
   // Attach/create the publishers.
-  attachEvents();
+  Initializer::attachEvents();
 
   auto results = SQL::selectAllFrom("file_events");
   EXPECT_EQ(results.size(), 0U);
@@ -87,7 +86,7 @@ class FileEventsTestsConfigPlugin : public ConfigPlugin {
 #ifndef WIN32
 TEST_F(FileEventsTableTests, test_configure_subscriptions) {
   // Attach/create the publishers.
-  attachEvents();
+  Initializer::attachEvents();
 
   // Load a configuration with file paths, verify subscriptions.
   auto registry = RegistryFactory::get().registry("config");

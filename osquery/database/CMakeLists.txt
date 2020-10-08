@@ -31,6 +31,7 @@ function(generateOsqueryDatabase)
 
   set(public_header_files
     database.h
+    idatabaseinterface.h
   )
 
   generateIncludeNamespace(osquery_database "osquery/database" "FILE_ONLY" ${public_header_files})

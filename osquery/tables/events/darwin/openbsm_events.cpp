@@ -15,7 +15,6 @@
 #include <bsm/libbsm.h>
 
 #include <osquery/events/darwin/openbsm.h>
-#include <osquery/events/events.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/utils/system/uptime.h>

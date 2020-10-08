@@ -22,7 +22,7 @@
 #include <osquery/core/plugins/logger.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
-#include <osquery/events/events.h>
+#include <osquery/events/eventfactory.h>
 #include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/data_logger.h>

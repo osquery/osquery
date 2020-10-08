@@ -8,6 +8,7 @@
  */
 
 #include <osquery/core/flags.h>
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/events/linux/auditeventpublisher.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>

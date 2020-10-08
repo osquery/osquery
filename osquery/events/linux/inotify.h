@@ -15,9 +15,9 @@
 #include <sys/inotify.h>
 #include <sys/stat.h>
 
-#include <osquery/events/events.h>
-
-#include "osquery/events/pathset.h"
+#include <osquery/events/eventpublisher.h>
+#include <osquery/events/pathset.h>
+#include <osquery/events/subscription.h>
 
 namespace osquery {
 

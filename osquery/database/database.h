@@ -14,9 +14,9 @@
 #include <vector>
 
 #include <osquery/core/plugins/plugin.h>
+#include <osquery/database/idatabaseinterface.h>
 
 namespace osquery {
-
 class Status;
 /**
  * @brief A list of supported backing storage categories: called domains.
@@ -285,4 +285,8 @@ Status ptreeToRapidJSON(const std::string& in, std::string& out);
  * @return Success status of upgrading the database
  */
 Status upgradeDatabase(int to_version = kDbCurrentVersion);
+
+/// Returns a database inteface that routes database requests through the
+/// registry
+IDatabaseInterface& getOsqueryDatabase();
 } // namespace osquery

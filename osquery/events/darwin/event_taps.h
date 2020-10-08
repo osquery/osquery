@@ -11,8 +11,6 @@
 
 #include <ApplicationServices/ApplicationServices.h>
 
-#include <osquery/events/events.h>
-
 namespace osquery {
 
 struct EventTappingSubscriptionContext : public SubscriptionContext {};

@@ -16,8 +16,6 @@
 #include <memory>
 #include <unordered_set>
 
-#include <osquery/events/events.h>
-
 #include "osquery/events/windows/usn_journal_reader.h"
 
 namespace osquery {

@@ -27,6 +27,7 @@
 #include <sys/resource.h>
 #endif
 
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
 #include <osquery/config/config.h>
@@ -35,7 +36,7 @@
 #include <osquery/core/shutdown.h>
 #include <osquery/core/watcher.h>
 #include <osquery/dispatcher/dispatcher.h>
-#include <osquery/events/events.h>
+#include <osquery/events/eventfactory.h>
 #include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/data_logger.h>
@@ -607,7 +608,7 @@ void Initializer::start() const {
   }
 
   // Start event threads.
-  osquery::attachEvents();
+  attachEvents();
   EventFactory::delay();
 }
 
@@ -688,5 +689,30 @@ void Initializer::requestShutdown(int retcode, const std::string& message) {
 void Initializer::shutdownNow(int retcode) {
   platformTeardown();
   _Exit(retcode);
+}
+
+void Initializer::attachEvents() {
+  const auto& publishers = RegistryFactory::get().plugins("event_publisher");
+  for (const auto& publisher : publishers) {
+    EventFactory::registerEventPublisher(publisher.second);
+  }
+
+  const auto& subscribers = RegistryFactory::get().plugins("event_subscriber");
+  for (const auto& subscriber : subscribers) {
+    if (!boost::ends_with(subscriber.first, "_events")) {
+      LOG(ERROR) << "Error registering subscriber: " << subscriber.first
+                 << ": Must use a '_events' suffix";
+      continue;
+    }
+
+    auto status = EventFactory::registerEventSubscriber(subscriber.second);
+    if (!status.ok()) {
+      VLOG(1) << "Error registering subscriber: " << subscriber.first << ": "
+              << status.getMessage();
+    }
+  }
+
+  // Configure the event publishers and subscribers.
+  EventFactory::configUpdate();
 }
 }

@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/events/linux/auditeventpublisher.h>
 
 namespace osquery {

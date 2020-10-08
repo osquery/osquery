@@ -11,6 +11,7 @@
 
 #include <linux/audit.h>
 
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/events/linux/apparmor_events.h>
 #include <osquery/events/linux/auditeventpublisher.h>
 
