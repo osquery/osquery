@@ -14,6 +14,7 @@
 #include <osquery/config/config.h>
 #include <osquery/core/tables.h>
 #include <osquery/events/darwin/fsevents.h>
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/tables/events/event_utils.h>

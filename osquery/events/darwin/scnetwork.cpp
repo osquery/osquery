@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 
