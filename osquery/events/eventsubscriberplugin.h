@@ -16,6 +16,7 @@
 #include <osquery/database/database.h>
 #include <osquery/events/eventer.h>
 #include <osquery/events/types.h>
+#include <osquery/utils/mutex.h>
 
 namespace osquery {
 class EventSubscriberPlugin : public Plugin, public Eventer {
