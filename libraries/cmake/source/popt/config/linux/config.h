@@ -96,7 +96,7 @@
 #define HAVE_VASPRINTF 1
 
 /* Define to 1 if you have the `__secure_getenv' function. */
-/* #undef HAVE___SECURE_GETENV */
+#define HAVE___SECURE_GETENV 1
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
@@ -117,6 +117,9 @@
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "popt"
 
+/* Define to the home page for this package. */
+#define PACKAGE_URL ""
+
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "1.16"
 
@@ -131,6 +134,11 @@
 
 /* Version number of package */
 #define VERSION "1.16"
+
+/* Enable large inode numbers on Mac OS X 10.5.  */
+#ifndef _DARWIN_USE_64_BIT_INODE
+# define _DARWIN_USE_64_BIT_INODE 1
+#endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 /* #undef _FILE_OFFSET_BITS */

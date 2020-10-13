@@ -13,7 +13,7 @@
 
 /* Define to 1 if you have the declaration of
    `AUDIT_VERSION_BACKLOG_WAIT_TIME', and to 0 if you don't. */
-#define HAVE_DECL_AUDIT_VERSION_BACKLOG_WAIT_TIME 1
+#define HAVE_DECL_AUDIT_VERSION_BACKLOG_WAIT_TIME 0
 
 /* Define to 1 if you have the declaration of `MS_DIRSYNC', and to 0 if you
    don't. */
@@ -112,7 +112,8 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #define LT_OBJDIR ".libs/"
 
 /* Name of package */

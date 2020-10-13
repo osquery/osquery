@@ -47,12 +47,13 @@
 /* #undef HAVE__USR_SHARE_HWDATA_PCI_IDS */
 
 /* Define to 1 if you have the file `/usr/share/misc/pci.ids'. */
-/* #undef HAVE__USR_SHARE_MISC_PCI_IDS */
+#define HAVE__USR_SHARE_MISC_PCI_IDS 1
 
 /* Define to 1 if you have the file `/usr/share/pci.ids'. */
 /* #undef HAVE__USR_SHARE_PCI_IDS */
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #define LT_OBJDIR ".libs/"
 
 /* Name of package */
@@ -65,7 +66,7 @@
 #define PACKAGE_NAME "udev"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "udev 173"
+#define PACKAGE_STRING "udev 174"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "udev"
@@ -74,7 +75,7 @@
 #define PACKAGE_URL "http://www.kernel.org/pub/linux/utils/kernel/hotplug/udev.html"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "173"
+#define PACKAGE_VERSION "174"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
@@ -102,7 +103,7 @@
 
 
 /* Version number of package */
-#define VERSION "173"
+#define VERSION "174"
 
 /* SELinux support. */
 /* #undef WITH_SELINUX */

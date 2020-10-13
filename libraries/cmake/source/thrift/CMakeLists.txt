@@ -93,7 +93,7 @@ function(thriftMain)
 
   if(DEFINED PLATFORM_WINDOWS)
     target_compile_definitions(thirdparty_thrift PRIVATE
-      PACKAGE_VERSION="0.12.0"
+      PACKAGE_VERSION="0.11.0"
     )
   endif()
 

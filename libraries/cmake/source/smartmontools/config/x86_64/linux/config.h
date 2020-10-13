@@ -152,7 +152,7 @@
 #define PACKAGE_VERSION "6.6"
 
 /* smartmontools Build Host */
-#define SMARTMONTOOLS_BUILD_HOST "x86_64-pc-linux-gnu"
+#define SMARTMONTOOLS_BUILD_HOST "x86_64-unknown-linux-gnu"
 
 /* smartmontools Configure Arguments */
 #define SMARTMONTOOLS_CONFIGURE_ARGS ""

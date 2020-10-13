@@ -348,9 +348,6 @@
 /* Define to 1 if the system has the type `ptrdiff_t'. */
 #define HAVE_PTRDIFF_T 1
 
-/* Define to 1 if the compiler has the `__builtin_clz` builtin. */
-#define HAVE___BUILTIN_CLZ 1
-
 /* Define to 1 if you have the <readline/history.h> header file. */
 /* #undef HAVE_READLINE_HISTORY_H */
 
@@ -479,8 +476,15 @@
 /* Define to 1 if you have the `strtoull' function. */
 /* #undef HAVE_STRTOULL */
 
+/* Define to 1 if `st_blocks' is a member of `struct stat'. */
+#define HAVE_STRUCT_STAT_ST_BLOCKS 1
+
 /* Define to 1 if `st_rdev' is a member of `struct stat'. */
 #define HAVE_STRUCT_STAT_ST_RDEV 1
+
+/* Define to 1 if your `struct stat' has `st_blocks'. Deprecated, use
+   `HAVE_STRUCT_STAT_ST_BLOCKS' instead. */
+#define HAVE_ST_BLOCKS 1
 
 /* Define to 1 if you have the <syslog.h> header file. */
 #define HAVE_SYSLOG_H 1
@@ -553,6 +557,9 @@
 /* Define to 1 if you have the <sys/utsname.h> header file. */
 #define HAVE_SYS_UTSNAME_H 1
 
+/* Define to 1 if you have the <sys/vfs.h> header file. */
+#define HAVE_SYS_VFS_H 1
+
 /* Define to 1 if you have the <sys/wait.h> header file. */
 #define HAVE_SYS_WAIT_H 1
 
@@ -591,6 +598,9 @@
 
 /* Define to 1 if the system has the type `_Bool'. */
 #define HAVE__BOOL 1
+
+/* Define to 1 if the system has the `__builtin_clz' built-in function */
+#define HAVE___BUILTIN_CLZ 1
 
 /* Internalization package */
 /* #undef INTL_PACKAGE */

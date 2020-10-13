@@ -29,3 +29,6 @@ Then copy
 ```
 cp ./config.h ../config/linux/thrift/config.h
 ```
+
+Finally, update `PACKAGE_VERSION` within `CMakeLists.txt`.
+

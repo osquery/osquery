@@ -35,7 +35,7 @@
 /* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
 
 /* Define to 1 if you have the `clock_gettime' function. */
-#define HAVE_CLOCK_GETTIME 1
+/* #undef HAVE_CLOCK_GETTIME */
 
 /* Define to 1 if the system has the type `cpu_set_t'. */
 #define HAVE_CPU_SET_T 1
@@ -222,7 +222,7 @@
 #define HAVE_LINUX_FD_H 1
 
 /* Define to 1 if you have the <linux/gsmmux.h> header file. */
-#define HAVE_LINUX_GSMMUX_H 1
+/* #undef HAVE_LINUX_GSMMUX_H */
 
 /* Define to 1 if you have the <linux/major.h> header file. */
 #define HAVE_LINUX_MAJOR_H 1
@@ -312,7 +312,7 @@
 #define HAVE_PRCTL 1
 
 /* Define to 1 if you have the `prlimit' function. */
-#define HAVE_PRLIMIT 1
+/* #undef HAVE_PRLIMIT */
 
 /* Define if program_invocation_short_name is defined */
 #define HAVE_PROGRAM_INVOCATION_SHORT_NAME 1
@@ -333,7 +333,7 @@
 /* #undef HAVE_SA_LEN */
 
 /* Define to 1 if you have the `scandirat' function. */
-#define HAVE_SCANDIRAT 1
+/* #undef HAVE_SCANDIRAT */
 
 /* scanf %as modifier */
 /* #undef HAVE_SCANF_AS_MODIFIER */
@@ -342,7 +342,7 @@
 #define HAVE_SCANF_MS_MODIFIER 1
 
 /* Define to 1 if you have the `secure_getenv' function. */
-#define HAVE_SECURE_GETENV 1
+/* #undef HAVE_SECURE_GETENV */
 
 /* Define to 1 if you have the `security_get_initial_context' function. */
 /* #undef HAVE_SECURITY_GET_INITIAL_CONTEXT */
@@ -357,7 +357,7 @@
 /* #undef HAVE_SECURITY_PAM_MISC_H */
 
 /* Define to 1 if you have the `setns' function. */
-#define HAVE_SETNS 1
+/* #undef HAVE_SETNS */
 
 /* Define to 1 if you have the `setresgid' function. */
 #define HAVE_SETRESGID 1
@@ -543,10 +543,10 @@
 #define HAVE___FPENDING 1
 
 /* Define if __progname is defined */
-#define HAVE___PROGNAME 1
+/* #undef HAVE___PROGNAME */
 
 /* Define to 1 if you have the `__secure_getenv' function. */
-/* #undef HAVE___SECURE_GETENV */
+#define HAVE___SECURE_GETENV 1
 
 /* libblkid date string */
 #define LIBBLKID_DATE "02-Nov-2015"
@@ -569,7 +569,8 @@
 /* Should login stat() the mailbox? */
 /* #undef LOGIN_STAT_MAIL */
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #define LT_OBJDIR ".libs/"
 
 /* Define to 1 if assertions should be disabled. */
@@ -664,7 +665,7 @@
 
 
 /* Should wall and write be installed setgid tty? */
-/* #undef USE_TTY_GROUP */
+#define USE_TTY_GROUP 1
 
 /* Define to 1 to remove /bin and /sbin from PATH env.variable */
 /* #undef USE_USRDIR_PATHS_ONLY */
