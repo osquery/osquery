@@ -41,17 +41,17 @@ bool BPFProcessEventSubscriber::generateRow(
     return false;
   }
 
-  row["bpf_time"] = TEXT(event.bpf_header.timestamp);
-  row["thread_id"] = INTEGER(event.bpf_header.thread_id);
-  row["process_id"] = INTEGER(event.bpf_header.process_id);
+  row["bpf_ntime"] = TEXT(event.bpf_header.timestamp);
+  row["tid"] = INTEGER(event.bpf_header.thread_id);
+  row["pid"] = INTEGER(event.bpf_header.process_id);
   row["uid"] = INTEGER(event.bpf_header.user_id);
   row["gid"] = INTEGER(event.bpf_header.group_id);
-  row["cgroup_id"] = INTEGER(event.bpf_header.cgroup_id);
+  row["cid"] = INTEGER(event.bpf_header.cgroup_id);
   row["exit_code"] = TEXT(std::to_string(event.bpf_header.exit_code));
   row["probe_error"] = INTEGER(event.bpf_header.probe_error);
   row["syscall"] = TEXT("exec");
-  row["parent_process_id"] = INTEGER(event.parent_process_id);
-  row["binary_path"] = TEXT(event.binary_path);
+  row["parent"] = INTEGER(event.parent_process_id);
+  row["path"] = TEXT(event.binary_path);
   row["cwd"] = TEXT(event.cwd);
   row["duration"] = INTEGER(event.bpf_header.duration);
 
@@ -106,17 +106,17 @@ std::string BPFProcessEventSubscriber::generateCmdlineColumn(
     // clang-format on
 
     if (whitespace_it != arg.end()) {
-      output += "'";
+      output += '\'';
     }
 
     output += arg;
 
     if (whitespace_it != arg.end()) {
-      output += "'";
+      output += '\'';
     }
 
     if (std::next(param_it, 1) != argv.end()) {
-      output += " ";
+      output += ' ';
     }
   }
 

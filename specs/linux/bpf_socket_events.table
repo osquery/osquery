@@ -1,13 +1,13 @@
 table_name("bpf_socket_events")
 description("Track network socket opens and closes.")
 schema([
-    Column("bpf_time", TEXT, "The nsecs uptime timestamp as obtained from BPF"),
-    Column("thread_id", BIGINT, "Thread ID"),
-    Column("process_id", BIGINT, "Process ID"),
-    Column("parent_process_id", BIGINT, "Parent process ID"),
+    Column("bpf_ntime", TEXT, "The nsecs uptime timestamp as obtained from BPF"),
+    Column("tid", BIGINT, "Thread ID"),
+    Column("pid", BIGINT, "Process ID"),
+    Column("parent", BIGINT, "Parent process ID"),
     Column("uid", BIGINT, "User ID"),
     Column("gid", BIGINT, "Group ID"),
-    Column("cgroup_id", INTEGER, "Cgroup ID"),
+    Column("cid", INTEGER, "Cgroup ID"),
     Column("exit_code", TEXT, "Exit code of the system call"),
     Column("probe_error", INTEGER, "Set to 1 if one or more buffers could not be captured"),
     Column("syscall", TEXT, "System call name"),

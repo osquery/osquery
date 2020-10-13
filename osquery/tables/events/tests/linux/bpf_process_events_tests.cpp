@@ -13,17 +13,17 @@
 
 namespace osquery {
 namespace {
-const std::vector<std::string> kExpectedRowList = {"bpf_time",
-                                                   "thread_id",
-                                                   "process_id",
+const std::vector<std::string> kExpectedRowList = {"bpf_ntime",
+                                                   "tid",
+                                                   "pid",
                                                    "uid",
                                                    "gid",
-                                                   "cgroup_id",
+                                                   "cid",
                                                    "exit_code",
                                                    "probe_error",
                                                    "syscall",
-                                                   "parent_process_id",
-                                                   "binary_path",
+                                                   "parent",
+                                                   "path",
                                                    "cwd",
                                                    "cmdline",
                                                    "json_cmdline"};
@@ -77,19 +77,17 @@ TEST_F(BPFProcessEventsTests, generateRow) {
   }
 
   EXPECT_EQ(row.at("syscall"), "exec");
-  EXPECT_EQ(row.at("bpf_time"), "1234567890");
-  EXPECT_EQ(row.at("thread_id"), "1001");
-  EXPECT_EQ(row.at("process_id"), "1001");
+  EXPECT_EQ(row.at("bpf_ntime"), "1234567890");
+  EXPECT_EQ(row.at("tid"), "1001");
+  EXPECT_EQ(row.at("pid"), "1001");
   EXPECT_EQ(row.at("uid"), "1000");
   EXPECT_EQ(row.at("gid"), "1000");
-  EXPECT_EQ(row.at("cgroup_id"), "12345");
+  EXPECT_EQ(row.at("cid"), "12345");
   EXPECT_EQ(row.at("exit_code"), "0");
   EXPECT_EQ(row.at("probe_error"), "0");
   EXPECT_EQ(row.at("syscall"), "exec");
-  EXPECT_EQ(row.at("parent_process_id"),
-            std::to_string(event.parent_process_id));
-
-  EXPECT_EQ(row.at("binary_path"), event.binary_path);
+  EXPECT_EQ(row.at("parent"), std::to_string(event.parent_process_id));
+  EXPECT_EQ(row.at("path"), event.binary_path);
   EXPECT_EQ(row.at("cwd"), event.cwd);
   EXPECT_TRUE(row.at("cmdline").empty());
   EXPECT_EQ(row.at("json_cmdline"), "[]");
@@ -108,19 +106,17 @@ TEST_F(BPFProcessEventsTests, generateRow) {
   }
 
   EXPECT_EQ(row.at("syscall"), "exec");
-  EXPECT_EQ(row.at("bpf_time"), "1234567890");
-  EXPECT_EQ(row.at("thread_id"), "1001");
-  EXPECT_EQ(row.at("process_id"), "1001");
+  EXPECT_EQ(row.at("bpf_ntime"), "1234567890");
+  EXPECT_EQ(row.at("tid"), "1001");
+  EXPECT_EQ(row.at("pid"), "1001");
   EXPECT_EQ(row.at("uid"), "1000");
   EXPECT_EQ(row.at("gid"), "1000");
-  EXPECT_EQ(row.at("cgroup_id"), "12345");
+  EXPECT_EQ(row.at("cid"), "12345");
   EXPECT_EQ(row.at("exit_code"), "0");
   EXPECT_EQ(row.at("probe_error"), "0");
   EXPECT_EQ(row.at("syscall"), "exec");
-  EXPECT_EQ(row.at("parent_process_id"),
-            std::to_string(event.parent_process_id));
-
-  EXPECT_EQ(row.at("binary_path"), event.binary_path);
+  EXPECT_EQ(row.at("parent"), std::to_string(event.parent_process_id));
+  EXPECT_EQ(row.at("path"), event.binary_path);
   EXPECT_EQ(row.at("cwd"), event.cwd);
   EXPECT_EQ(row.at("cmdline"), "sudo -H -i");
   EXPECT_EQ(row.at("json_cmdline"), "[\"sudo\",\"-H\",\"-i\"]");
