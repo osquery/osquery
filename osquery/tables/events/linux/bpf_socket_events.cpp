@@ -65,6 +65,7 @@ bool BPFSocketEventSubscriber::generateRow(
   row["probe_error"] = INTEGER(event.bpf_header.probe_error);
   row["parent_process_id"] = INTEGER(event.parent_process_id);
   row["path"] = TEXT(event.binary_path);
+  row["duration"] = INTEGER(event.bpf_header.duration);
 
   if (!std::holds_alternative<ISystemStateTracker::Event::SocketData>(
           event.data)) {

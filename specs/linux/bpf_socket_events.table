@@ -20,6 +20,7 @@ schema([
     Column("remote_address", TEXT, "Remote address associated with socket"),
     Column("local_port", INTEGER, "Local network protocol port number"),
     Column("remote_port", INTEGER, "Remote network protocol port number"),
+    Column("duration", INTEGER, "How much time was spent inside the syscall (nsecs)"),
     Column("time", BIGINT, "Time of execution in UNIX time", hidden=True),
     Column("eid", INTEGER, "Event ID", hidden=True),
 ])

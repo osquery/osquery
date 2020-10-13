@@ -53,6 +53,7 @@ bool BPFProcessEventSubscriber::generateRow(
   row["parent_process_id"] = INTEGER(event.parent_process_id);
   row["binary_path"] = TEXT(event.binary_path);
   row["cwd"] = TEXT(event.cwd);
+  row["duration"] = INTEGER(event.bpf_header.duration);
 
   if (!std::holds_alternative<ISystemStateTracker::Event::ExecData>(
           event.data)) {

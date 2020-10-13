@@ -901,12 +901,6 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     0U
   },
 
-  /*{
-    "name_to_handle_at",
-    &BPFEventPublisher::processNameToHandleAtEvent,
-    1U
-  },*/
-
   {
     "creat",
     &BPFEventPublisher::processCreatEvent,
@@ -942,12 +936,6 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     &BPFEventPublisher::processOpenat2Event,
     1U
   },
-
-  /*{
-    "open_by_handle_at",
-    &BPFEventPublisher::processOpenByHandleAtEvent,
-    1U
-  },*/
 
   {
     "execve",
