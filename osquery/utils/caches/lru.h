@@ -20,7 +20,7 @@ namespace caches {
  *
  * This cache discards the least recently used items (items at the end of the
  * queue) first. Insert and every access to the element push it up to the
- * begining of the queue.
+ * beginning of the queue.
  */
 template <typename KeyType_, typename ValueType_>
 class LRU {
@@ -58,7 +58,7 @@ class LRU {
   /**
    * @brief Get value from cache by key if it is in the cache.
    *
-   * @details The successful access will push the element up to the begining of
+   * @details The successful access will push the element up to the beginning of
    * the queue.
    *
    * @param KeyType key of the element to search for
