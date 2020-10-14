@@ -186,7 +186,7 @@ jobs:
         brew update
         brew upgrade
         brew install ccache flex bison
-        sudo xcode-select -s /Applications/Xcode_10.3.app/Contents/Developer
+        sudo xcode-select -s /Applications/Xcode_11.7.app/Contents/Developer
       displayName: "Upgrade Homebrew and install build prerequisites"
       timeoutInMinutes: 20
 
