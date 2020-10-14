@@ -46,6 +46,7 @@ function(generateOsqueryDistributedAndScheduler)
 
   target_link_libraries(osquery_dispatcher_scheduler PUBLIC
     osquery_cxx_settings
+    osquery_carver
     osquery_core
     osquery_database
     osquery_logger_datalogger

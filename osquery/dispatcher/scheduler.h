@@ -54,6 +54,9 @@ class SchedulerRunner : public InternalRunnable {
   /// Check if buffered status logs should be flushed.
   void maybeFlushLogs(uint64_t time_step);
 
+  /// Check if carve requests should be scheduled.
+  void maybeScheduleCarves(uint64_t time_step);
+
  private:
   /// Interval in seconds between schedule steps.
   const std::chrono::milliseconds interval_;

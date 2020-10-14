@@ -10,7 +10,7 @@
 #include <set>
 #include <string>
 
-#include <osquery/carver/carver.h>
+#include <osquery/carver/carver_utils.h>
 #include <osquery/core/flags.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
@@ -20,13 +20,16 @@
 
 namespace osquery {
 
+CLI_FLAG(bool,
+         carver_disable_function,
+         true,
+         "Disable the osquery file carver function (default true)");
+
 /// Global set of requested carve paths.
 static std::set<std::string> kFunctionCarvePaths;
 
 /// Mutex to protect access to carve paths.
 Mutex kFunctionCarveMutex;
-
-DECLARE_bool(carver_disable_function);
 
 static void addCarveFile(sqlite3_context* ctx, int argc, sqlite3_value** argv) {
   if (argc == 0) {
