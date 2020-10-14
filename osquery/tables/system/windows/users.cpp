@@ -110,6 +110,8 @@ void processRoamingProfiles(const std::set<std::string>& processedSids,
     ret = LookupAccountSidW(
         nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
     r["username"] = ret != 0 ? wstringToString(accntName) : "";
+    LocalFree(sid);
+
     results.push_back(r);
   }
 }
