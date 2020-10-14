@@ -487,15 +487,6 @@ bool BPFEventPublisher::processDup3Event(
   return true;
 }
 
-// clang-format off
-[[deprecated("processNameToHandleAtEvent() is not yet implemented")]]
-// clang-format on
-bool BPFEventPublisher::processNameToHandleAtEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
-  return true;
-}
-
 bool BPFEventPublisher::processCreatEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
@@ -630,15 +621,6 @@ bool BPFEventPublisher::processOpenat2Event(
                         newfd,
                         filename,
                         static_cast<int>(openat_arguments.flags));
-}
-
-// clang-format off
-[[deprecated("processOpenByHandleAtEvent() is not yet implemented")]]
-// clang-format on
-bool BPFEventPublisher::processOpenByHandleAtEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
-  return true;
 }
 
 bool BPFEventPublisher::processChdirEvent(
