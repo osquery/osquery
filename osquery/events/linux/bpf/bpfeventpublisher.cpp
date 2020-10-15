@@ -203,22 +203,23 @@ Status BPFEventPublisher::run() {
             const tob::ebpfpub::IPerfEventReader::ErrorCounters&
                 error_counters) {
           if (error_counters.invalid_probe_output != 0U) {
-            VLOG(1) << "invalid_probe_output: "
-                    << error_counters.invalid_probe_output << "\n";
+            VLOG(1) << "Invalid BPF probe output counter: "
+                    << error_counters.invalid_probe_output;
           }
 
           if (error_counters.invalid_event != 0U) {
-            VLOG(1) << "invalid_event: " << error_counters.invalid_event
-                    << "\n";
+            VLOG(1) << "Invalid BPF event types counter: "
+                    << error_counters.invalid_event;
           }
 
           if (error_counters.invalid_event_data != 0U) {
-            VLOG(1) << "invalid_event_data: "
-                    << error_counters.invalid_event_data << "\n";
+            VLOG(1) << "Invalid BPF event data counter: "
+                    << error_counters.invalid_event_data;
           }
 
           if (error_counters.lost_events != 0U) {
-            VLOG(1) << "lost_events: " << error_counters.lost_events << "\n";
+            VLOG(1) << "Lost BPF events counter: "
+                    << error_counters.lost_events;
           }
 
           for (auto& event : event_list) {
@@ -246,19 +247,22 @@ Status BPFEventPublisher::run() {
 
       auto event_handler_it = d->event_handler_map.find(event.identifier);
       if (event_handler_it == d->event_handler_map.end()) {
-        VLOG(1) << "Unhandled event received: " << event.identifier << "\n";
+        VLOG(1) << "Unhandled event received in BPFEventPublisher: "
+                << event.identifier;
         continue;
       }
 
       const auto& event_handler = event_handler_it->second;
       if (!event_handler(state, event)) {
-        VLOG(1) << "Error processing event from tracer #" << event.identifier;
+        VLOG(1) << "BPFEventPublisher failed to process event from tracer #"
+                << event.identifier;
         ++invalid_event_count;
       }
     }
 
     if (invalid_event_count != 0U) {
-      LOG(ERROR) << invalid_event_count << " malformed events received";
+      LOG(ERROR) << "BPFEventPublisher has encountered " << invalid_event_count
+                 << " malformed events";
     }
 
     auto event_list = state.eventList();
