@@ -39,7 +39,32 @@ struct FunctionTracerAllocator final {
 
 using FunctionTracerAllocatorList = std::vector<FunctionTracerAllocator>;
 
-extern const FunctionTracerAllocatorList kFunctionTracerAllocators;
+// Format: syscall, handler, memory pool id
+const FunctionTracerAllocatorList kFunctionTracerAllocators = {
+    {"fork", &BPFEventPublisher::processForkEvent, 0U},
+    {"vfork", &BPFEventPublisher::processVforkEvent, 0U},
+    {"clone", &BPFEventPublisher::processCloneEvent, 0U},
+    {"close", &BPFEventPublisher::processCloseEvent, 0U},
+    {"dup", &BPFEventPublisher::processDupEvent, 0U},
+    {"dup2", &BPFEventPublisher::processDup2Event, 0U},
+    {"dup3", &BPFEventPublisher::processDup3Event, 0U},
+    {"creat", &BPFEventPublisher::processCreatEvent, 1U},
+    {"mknod", &BPFEventPublisher::processMknodEvent, 1U},
+    {"mknodat", &BPFEventPublisher::processMknodatEvent, 1U},
+    {"open", &BPFEventPublisher::processOpenEvent, 2U},
+    {"openat", &BPFEventPublisher::processOpenatEvent, 2U},
+    {"openat2", &BPFEventPublisher::processOpenat2Event, 1U},
+    {"execve", &BPFEventPublisher::processExecveEvent, 3U},
+    {"execveat", &BPFEventPublisher::processExecveatEvent, 3U},
+    {"socket", &BPFEventPublisher::processSocketEvent, 4U},
+    {"fcntl", &BPFEventPublisher::processFcntlEvent, 4U},
+    {"connect", &BPFEventPublisher::processConnectEvent, 4U},
+    {"accept", &BPFEventPublisher::processAcceptEvent, 4U},
+    {"accept4", &BPFEventPublisher::processAccept4Event, 4U},
+    {"bind", &BPFEventPublisher::processBindEvent, 4U},
+    {"listen", &BPFEventPublisher::processListenEvent, 4U},
+    {"chdir", &BPFEventPublisher::processChdirEvent, 5U},
+    {"fchdir", &BPFEventPublisher::processFchdirEvent, 5U}};
 
 } // namespace
 
@@ -844,156 +869,4 @@ bool BPFEventPublisher::processListenEvent(
   auto process_id = static_cast<pid_t>(event.header.process_id);
   return state.listen(event.header, process_id, static_cast<int>(fd));
 }
-
-namespace {
-// clang-format off
-const FunctionTracerAllocatorList kFunctionTracerAllocators = {
-  {
-    "fork",
-    &BPFEventPublisher::processForkEvent,
-    0U
-  },
-
-  {
-    "vfork",
-    &BPFEventPublisher::processVforkEvent,
-    0U
-  },
-
-  {
-    "clone",
-    &BPFEventPublisher::processCloneEvent,
-    0U
-  },
-
-  {
-    "close",
-    &BPFEventPublisher::processCloseEvent,
-    0U
-  },
-
-  {
-    "dup",
-    &BPFEventPublisher::processDupEvent,
-    0U
-  },
-
-  {
-    "dup2",
-    &BPFEventPublisher::processDup2Event,
-    0U
-  },
-
-  {
-    "dup3",
-    &BPFEventPublisher::processDup3Event,
-    0U
-  },
-
-  {
-    "creat",
-    &BPFEventPublisher::processCreatEvent,
-    1U
-  },
-
-  {
-    "mknod",
-    &BPFEventPublisher::processMknodEvent,
-    1U
-  },
-
-  {
-    "mknodat",
-    &BPFEventPublisher::processMknodatEvent,
-    1U
-  },
-
-  {
-    "open",
-    &BPFEventPublisher::processOpenEvent,
-    2U
-  },
-
-  {
-    "openat",
-    &BPFEventPublisher::processOpenatEvent,
-    2U
-  },
-
-  {
-    "openat2",
-    &BPFEventPublisher::processOpenat2Event,
-    1U
-  },
-
-  {
-    "execve",
-    &BPFEventPublisher::processExecveEvent,
-    3U
-  },
-
-  {
-    "execveat",
-    &BPFEventPublisher::processExecveatEvent,
-    3U
-  },
-
-  {
-    "socket",
-    &BPFEventPublisher::processSocketEvent,
-    4U
-  },
-
-  {
-    "fcntl",
-    &BPFEventPublisher::processFcntlEvent,
-    4U
-  },
-
-  {
-    "connect",
-    &BPFEventPublisher::processConnectEvent,
-    4U
-  },
-
-  {
-    "accept",
-    &BPFEventPublisher::processAcceptEvent,
-    4U
-  },
-
-  {
-    "accept4",
-    &BPFEventPublisher::processAccept4Event,
-    4U
-  },
-
-  {
-    "bind",
-    &BPFEventPublisher::processBindEvent,
-    4U
-  },
-
-  {
-    "listen",
-    &BPFEventPublisher::processListenEvent,
-    4U
-  },
-
-  {
-    "chdir",
-    &BPFEventPublisher::processChdirEvent,
-    5U
-  },
-
-  {
-    "fchdir",
-    &BPFEventPublisher::processFchdirEvent,
-    5U
-  }
-};
-// clang-format on
-
-} // namespace
-
 } // namespace osquery
