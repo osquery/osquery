@@ -969,8 +969,6 @@ bool SystemStateTracker::parseSocketAddress(
   }
 
   if (sockaddr.size() < 2U) {
-    VLOG(1)
-        << "Invalid sockaddr structure received (less than 2 bytes available)";
     return false;
   }
 
