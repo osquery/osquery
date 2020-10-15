@@ -44,7 +44,7 @@ SystemStateTracker::Ref SystemStateTracker::create(
         new SystemStateTracker(std::move(process_context_factory)));
 
   } catch (const Status& status) {
-    LOG(ERROR) << status.getMessage();
+    LOG(ERROR) << "Failed to create the state tracker: " << status.getMessage();
     return nullptr;
 
   } catch (const std::bad_alloc&) {
@@ -300,7 +300,7 @@ bool SystemStateTracker::executeBinary(
     process_context.binary_path = binary_path;
 
   } else if (dirfd == AT_FDCWD) {
-    process_context.binary_path = process_context.cwd + "/" + binary_path;
+    process_context.binary_path = process_context.cwd + '/' + binary_path;
 
   } else {
     std::string root_path;
@@ -320,7 +320,7 @@ bool SystemStateTracker::executeBinary(
         std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
     root_path = file_data.path;
 
-    process_context.binary_path = root_path + "/" + binary_path;
+    process_context.binary_path = root_path + '/' + binary_path;
   }
 
   process_context.argv = argv;
@@ -389,7 +389,7 @@ bool SystemStateTracker::setWorkingDirectory(
 
   } else {
     if (process_context.cwd.back() != '/') {
-      process_context.cwd += "/";
+      process_context.cwd += '/';
     }
 
     process_context.cwd += path;
@@ -420,7 +420,7 @@ bool SystemStateTracker::openFile(
   } else if (dirfd == AT_FDCWD) {
     absolute_path = process_context.cwd;
     if (absolute_path.back() != '/') {
-      absolute_path += "/";
+      absolute_path += '/';
     }
 
     absolute_path += path;
@@ -442,7 +442,7 @@ bool SystemStateTracker::openFile(
 
     absolute_path = file_data.path;
     if (absolute_path.back() != '/') {
-      absolute_path += "/";
+      absolute_path += '/';
     }
 
     absolute_path += path;
@@ -888,9 +888,9 @@ bool SystemStateTracker::parseInetSockaddr(
   std::uint8_t components[4];
   std::memcpy(components, &addr.sin_addr.s_addr, sizeof(components));
 
-  address = std::to_string(components[0]) + ".";
-  address += std::to_string(components[1]) + ".";
-  address += std::to_string(components[2]) + ".";
+  address = std::to_string(components[0]) + '.';
+  address += std::to_string(components[1]) + '.';
+  address += std::to_string(components[2]) + '.';
   address += std::to_string(components[3]);
 
   return true;
