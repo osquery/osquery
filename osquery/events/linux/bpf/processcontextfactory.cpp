@@ -9,6 +9,7 @@
 
 #include <osquery/events/linux/bpf/processcontextfactory.h>
 #include <osquery/events/linux/bpf/uniquedir.h>
+#include <osquery/utils/conversions/tryto.h>
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -80,11 +81,12 @@ bool ProcessContextFactory::captureSingleProcess(
         return;
       }
 
-      char* null_terminator{nullptr};
-      auto int_fd_value = std::strtoull(name.c_str(), &null_terminator, 10);
-      if (null_terminator == nullptr || *null_terminator != '\0') {
+      auto int_fd_value_exp = tryTo<unsigned long long>(name, 10);
+      if (int_fd_value_exp.isError()) {
         return;
       }
+
+      auto int_fd_value = int_fd_value_exp.take();
 
       std::string destination;
       if (!fs.readLinkAt(destination, process_fdmap.get(),
@@ -173,11 +175,12 @@ bool ProcessContextFactory::captureAllProcesses(
         return;
       }
 
-      char* null_terminator{nullptr};
-      auto pid = static_cast<pid_t>(std::strtoull(name.c_str(), &null_terminator, 10));
-      if (null_terminator == nullptr || *null_terminator != '\0') {
+      auto pid_exp = tryTo<unsigned long long>(name, 10);
+      if (pid_exp.isError()) {
         return;
       }
+
+      auto pid = pid_exp.take();
 
       ProcessContext process_context = {};
       if (captureSingleProcess(fs, process_context, pid)) {
