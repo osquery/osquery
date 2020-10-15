@@ -17,16 +17,13 @@ namespace osquery {
 
 namespace {
 
-// clang-format off
-const std::unordered_map<ISystemStateTracker::Event::Type,
-                         std::string> kEventTypeToLabel = {
+const std::unordered_map<ISystemStateTracker::Event::Type, std::string>
+    kEventTypeToLabel = {
 
-  { ISystemStateTracker::Event::Type::Connect, "connect" },
-  { ISystemStateTracker::Event::Type::Bind, "bind" },
-  { ISystemStateTracker::Event::Type::Listen, "listen" },
-  { ISystemStateTracker::Event::Type::Accept, "accept" }
-};
-// clang-format on
+        {ISystemStateTracker::Event::Type::Connect, "connect"},
+        {ISystemStateTracker::Event::Type::Bind, "bind"},
+        {ISystemStateTracker::Event::Type::Listen, "listen"},
+        {ISystemStateTracker::Event::Type::Accept, "accept"}};
 
 const std::vector<std::string> kExpectedRowList = {"syscall",
                                                    "ntime",
