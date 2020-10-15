@@ -145,17 +145,7 @@ function(generateOsqueryEventsTestsBpftestsTest)
 
   target_link_libraries(osquery_events_tests_bpftests-test PRIVATE
     osquery_cxx_settings
-    osquery_config_tests_testutils
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_events
-    osquery_filesystem
     osquery_remote_tests_remotetestutils
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    specs_tables
     thirdparty_googletest
   )
 endfunction()
