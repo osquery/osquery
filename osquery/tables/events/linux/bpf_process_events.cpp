@@ -42,6 +42,11 @@ bool BPFProcessEventSubscriber::generateRow(
     return false;
   }
 
+  auto signed_exit_code = static_cast<std::int64_t>(event.bpf_header.exit_code);
+  if (signed_exit_code >= -EHWPOISON && signed_exit_code <= -EPERM) {
+    return false;
+  }
+
   row["ntime"] = TEXT(event.bpf_header.timestamp);
   row["tid"] = INTEGER(event.bpf_header.thread_id);
   row["pid"] = INTEGER(event.bpf_header.process_id);
