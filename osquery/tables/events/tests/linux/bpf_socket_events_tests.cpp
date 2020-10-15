@@ -29,7 +29,7 @@ const std::unordered_map<ISystemStateTracker::Event::Type,
 // clang-format on
 
 const std::vector<std::string> kExpectedRowList = {"syscall",
-                                                   "bpf_ntime",
+                                                   "ntime",
                                                    "tid",
                                                    "pid",
                                                    "uid",

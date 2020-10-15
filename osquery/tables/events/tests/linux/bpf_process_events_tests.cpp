@@ -15,7 +15,7 @@ namespace osquery {
 
 namespace {
 
-const std::vector<std::string> kExpectedRowList = {"bpf_ntime",
+const std::vector<std::string> kExpectedRowList = {"ntime",
                                                    "tid",
                                                    "pid",
                                                    "uid",
@@ -80,7 +80,7 @@ TEST_F(BPFProcessEventsTests, generateRow) {
   }
 
   EXPECT_EQ(row.at("syscall"), "exec");
-  EXPECT_EQ(row.at("bpf_ntime"), "1234567890");
+  EXPECT_EQ(row.at("ntime"), "1234567890");
   EXPECT_EQ(row.at("tid"), "1001");
   EXPECT_EQ(row.at("pid"), "1001");
   EXPECT_EQ(row.at("uid"), "1000");
@@ -109,7 +109,7 @@ TEST_F(BPFProcessEventsTests, generateRow) {
   }
 
   EXPECT_EQ(row.at("syscall"), "exec");
-  EXPECT_EQ(row.at("bpf_ntime"), "1234567890");
+  EXPECT_EQ(row.at("ntime"), "1234567890");
   EXPECT_EQ(row.at("tid"), "1001");
   EXPECT_EQ(row.at("pid"), "1001");
   EXPECT_EQ(row.at("uid"), "1000");

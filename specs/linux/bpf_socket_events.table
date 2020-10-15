@@ -1,7 +1,6 @@
 table_name("bpf_socket_events")
 description("Track network socket opens and closes.")
 schema([
-    Column("bpf_ntime", TEXT, "The nsecs uptime timestamp as obtained from BPF"),
     Column("tid", BIGINT, "Thread ID"),
     Column("pid", BIGINT, "Process ID"),
     Column("parent", BIGINT, "Parent process ID"),
@@ -21,6 +20,7 @@ schema([
     Column("local_port", INTEGER, "Local network protocol port number"),
     Column("remote_port", INTEGER, "Remote network protocol port number"),
     Column("duration", INTEGER, "How much time was spent inside the syscall (nsecs)"),
+    Column("ntime", TEXT, "The nsecs uptime timestamp as obtained from BPF"),
     Column("time", BIGINT, "Time of execution in UNIX time", hidden=True),
     Column("eid", INTEGER, "Event ID", hidden=True),
 ])
