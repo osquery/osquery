@@ -18,6 +18,7 @@
 #include <vector>
 
 namespace osquery {
+
 struct BPFEventSC final : public SubscriptionContext {
  private:
   friend class BPFEventPublisher;
@@ -167,4 +168,5 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
 };
+
 } // namespace osquery

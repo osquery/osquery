@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 namespace osquery {
+
 class SystemStateTrackerTests : public testing::Test {
  protected:
   virtual void SetUp() override{};
@@ -26,4 +27,5 @@ class ProcessContextFactoryTests : public testing::Test {
  protected:
   virtual void SetUp() override{};
 };
+
 } // namespace osquery

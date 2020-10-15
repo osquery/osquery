@@ -13,6 +13,7 @@
 #include <fcntl.h>
 
 namespace osquery {
+
 bool Filesystem::open(tob::utils::UniqueFd& fd,
                       const std::string& path,
                       int flags) const {
@@ -150,4 +151,5 @@ Status IFilesystem::create(Ref& obj) {
     return s;
   }
 }
+
 } // namespace osquery

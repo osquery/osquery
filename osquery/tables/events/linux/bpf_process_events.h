@@ -31,4 +31,5 @@ class BPFProcessEventSubscriber final
   static std::string generateJsonCmdlineColumn(
       const std::vector<std::string>& argv);
 };
+
 } // namespace osquery

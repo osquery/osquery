@@ -20,9 +20,12 @@
 #endif
 
 namespace osquery {
+
 namespace {
+
 const std::size_t kMaxFileSize{1024 * 100};
 const std::string kProcFsRoot{"/proc/"};
+
 } // namespace
 
 bool ProcessContextFactory::captureSingleProcess(
@@ -276,4 +279,5 @@ Status IProcessContextFactory::create(Ref& obj) {
     return s;
   }
 }
+
 } // namespace osquery

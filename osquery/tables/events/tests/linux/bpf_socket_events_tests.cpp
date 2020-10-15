@@ -14,7 +14,9 @@
 #include <netinet/in.h>
 
 namespace osquery {
+
 namespace {
+
 // clang-format off
 const std::unordered_map<ISystemStateTracker::Event::Type,
                          std::string> kEventTypeToLabel = {
@@ -45,6 +47,7 @@ const std::vector<std::string> kExpectedRowList = {"syscall",
                                                    "remote_address",
                                                    "local_port",
                                                    "remote_port"};
+
 } // namespace
 
 class BPFSocketEventsTests : public testing::Test {};
@@ -127,4 +130,5 @@ TEST_F(BPFSocketEventsTests, socket_data) {
   EXPECT_EQ(row.at("local_port"), "5000");
   EXPECT_EQ(row.at("remote_port"), "8080");
 }
+
 } // namespace osquery

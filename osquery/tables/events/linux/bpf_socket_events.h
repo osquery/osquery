@@ -25,4 +25,5 @@ class BPFSocketEventSubscriber final
   static std::vector<Row> generateRowList(
       const ISystemStateTracker::EventList& event_list);
 };
+
 } // namespace osquery

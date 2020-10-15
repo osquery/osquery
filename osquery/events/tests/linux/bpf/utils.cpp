@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 namespace osquery {
+
 void setFileDescriptor(ProcessContext& process_context,
                        int fd,
                        bool close_on_exec,
@@ -229,4 +230,5 @@ bool validateSocketDescriptor(const ProcessContextMap& process_context_map,
                                   remote_address,
                                   remote_port);
 }
+
 } // namespace osquery

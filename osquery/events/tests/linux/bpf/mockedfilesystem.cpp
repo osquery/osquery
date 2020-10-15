@@ -13,7 +13,9 @@
 #include <unordered_map>
 
 namespace osquery {
+
 namespace {
+
 const std::string kMockedStatFile{
     "33622 (zsh) S 33616 33622 33622 34818 33662 4194304 1679 1186 1 1 2 1 1 0 "
     "20 0 1 0 3767695 10260480 1469 18446744073709551615 94211933335552 "
@@ -22,6 +24,7 @@ const std::string kMockedStatFile{
     "140736923667198 140736923667198 140736923668459 0\n"};
 
 const char kCmdLine[] = "zsh\0-i\0-H\0";
+
 } // namespace
 
 bool MockedFilesystem::open(tob::utils::UniqueFd& fd,
@@ -138,4 +141,5 @@ bool MockedFilesystem::enumFiles(int dirfd, EnumFilesCallback callback) const {
 
   return true;
 }
+
 } // namespace osquery

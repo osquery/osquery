@@ -12,6 +12,7 @@
 #include <osquery/events/linux/bpf/iprocesscontextfactory.h>
 
 namespace osquery {
+
 class MockedProcessContextFactory final : public IProcessContextFactory {
  public:
   MockedProcessContextFactory() = default;
@@ -30,4 +31,5 @@ class MockedProcessContextFactory final : public IProcessContextFactory {
   mutable bool fail_next_request{false};
   mutable std::size_t invocation_count{false};
 };
+
 } // namespace osquery

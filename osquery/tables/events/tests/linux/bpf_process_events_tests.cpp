@@ -12,7 +12,9 @@
 #include <osquery/tables/events/linux/bpf_process_events.h>
 
 namespace osquery {
+
 namespace {
+
 const std::vector<std::string> kExpectedRowList = {"bpf_ntime",
                                                    "tid",
                                                    "pid",
@@ -55,6 +57,7 @@ const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader = {
   false
 };
 // clang-format on
+
 } // namespace
 
 class BPFProcessEventsTests : public testing::Test {};
@@ -133,4 +136,5 @@ TEST_F(BPFProcessEventsTests, generateCmdlineColumn) {
 
   EXPECT_EQ(cmdline, "cat file1 file2");
 }
+
 } // namespace osquery

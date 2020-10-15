@@ -14,6 +14,7 @@
 #include <osquery/events/linux/bpf/processcontextfactory.h>
 
 namespace osquery {
+
 TEST_F(ProcessContextFactoryTests, captureSingleProcess) {
   MockedFilesystem mocked_filesystem;
 
@@ -81,4 +82,5 @@ TEST_F(ProcessContextFactoryTests, getParentPidFromStatFile) {
 
   EXPECT_TRUE(succeeded);
 }
+
 } // namespace osquery

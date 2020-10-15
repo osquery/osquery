@@ -12,6 +12,7 @@
 #include <osquery/events/linux/bpf/iprocesscontextfactory.h>
 
 namespace osquery {
+
 void setFileDescriptor(ProcessContext& process_context,
                        int fd,
                        bool close_on_exec,
@@ -79,4 +80,5 @@ bool validateSocketDescriptor(const ProcessContextMap& process_context_map,
                               std::uint16_t local_port,
                               const std::string& remote_address,
                               std::uint16_t remote_port);
+
 } // namespace osquery

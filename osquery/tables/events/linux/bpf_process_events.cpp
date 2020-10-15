@@ -16,6 +16,7 @@
 #include <rapidjson/document.h>
 
 namespace osquery {
+
 REGISTER(BPFProcessEventSubscriber, "event_subscriber", "bpf_process_events");
 
 Status BPFProcessEventSubscriber::init() {
@@ -142,4 +143,5 @@ std::string BPFProcessEventSubscriber::generateJsonCmdlineColumn(
   document.Accept(writer);
   return buffer.GetString();
 }
+
 } // namespace osquery

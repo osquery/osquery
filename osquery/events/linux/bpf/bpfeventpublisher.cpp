@@ -18,7 +18,9 @@
 #include <sys/sysinfo.h>
 
 namespace osquery {
+
 namespace {
+
 const std::size_t kEventMapSize{2048};
 
 using EventHandler = bool (*)(ISystemStateTracker& state,
@@ -38,6 +40,7 @@ struct FunctionTracerAllocator final {
 using FunctionTracerAllocatorList = std::vector<FunctionTracerAllocator>;
 
 extern const FunctionTracerAllocatorList kFunctionTracerAllocators;
+
 } // namespace
 
 FLAG(bool,
@@ -986,5 +989,7 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
   }
 };
 // clang-format on
+
 } // namespace
+
 } // namespace osquery

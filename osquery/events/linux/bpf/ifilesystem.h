@@ -18,6 +18,7 @@
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
+
 class IFilesystem {
  public:
   using Ref = std::unique_ptr<IFilesystem>;
@@ -51,4 +52,5 @@ class IFilesystem {
   IFilesystem(const IFilesystem&) = delete;
   IFilesystem& operator=(const IFilesystem&) = delete;
 };
+
 } // namespace osquery

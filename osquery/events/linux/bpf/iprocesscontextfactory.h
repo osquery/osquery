@@ -16,6 +16,7 @@
 #include <osquery/events/linux/bpf/ifilesystem.h>
 
 namespace osquery {
+
 struct ProcessContext final {
   struct FileDescriptor final {
     struct FileData final {
@@ -67,4 +68,5 @@ class IProcessContextFactory {
   IProcessContextFactory(const IProcessContextFactory&) = delete;
   IProcessContextFactory& operator=(const IProcessContextFactory&) = delete;
 };
+
 } // namespace osquery

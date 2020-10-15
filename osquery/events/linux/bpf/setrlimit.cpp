@@ -15,6 +15,7 @@
 #include <sys/resource.h>
 
 namespace osquery {
+
 DECLARE_bool(enable_bpf_events);
 
 namespace {
@@ -47,4 +48,5 @@ Status configureBPFMemoryLimits() {
     return Status::failure(e.what());
   }
 }
+
 } // namespace osquery

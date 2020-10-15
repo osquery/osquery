@@ -19,6 +19,7 @@
 #include <unistd.h>
 
 namespace osquery {
+
 class SystemStateTracker final : public ISystemStateTracker {
  public:
   static Ref create();
@@ -216,4 +217,5 @@ class SystemStateTracker final : public ISystemStateTracker {
       const std::vector<std::uint8_t>& sockaddr,
       bool local);
 };
+
 } // namespace osquery

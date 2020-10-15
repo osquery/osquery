@@ -10,5 +10,7 @@
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
+
 Status configureBPFMemoryLimits();
+
 } // namespace osquery

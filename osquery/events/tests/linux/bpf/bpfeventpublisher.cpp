@@ -18,7 +18,9 @@
 #include <sys/un.h>
 
 namespace osquery {
+
 namespace {
+
 // clang-format off
 const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader = {
   // timestamp (nsecs from boot)
@@ -69,6 +71,7 @@ const tob::ebpfpub::IFunctionTracer::Event kBaseBPFEvent = {
 IProcessContextFactory::Ref getMockedProcessContextFactory() {
   return IProcessContextFactory::Ref(new MockedProcessContextFactory);
 }
+
 } // namespace
 
 TEST_F(BPFEventPublisherTests, processForkEvent_and_processVforkEvent) {
@@ -1576,4 +1579,5 @@ TEST_F(BPFEventPublisherTests, processListenEvent) {
   succeeded = BPFEventPublisher::processListenEvent(state_tracker, bpf_event);
   EXPECT_TRUE(succeeded);
 }
+
 } // namespace osquery

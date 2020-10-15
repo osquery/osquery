@@ -21,7 +21,9 @@
 #include <sys/un.h>
 
 namespace osquery {
+
 namespace {
+
 // clang-format off
 const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader {
   // nsecs timestamp, starting from the system boot
@@ -86,6 +88,7 @@ const std::vector<std::uint8_t> kTestIPv6Address = {
 
 const std::vector<std::uint8_t> kTestNetlinkSockaddr = {
     0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00};
+
 } // namespace
 
 TEST_F(SystemStateTrackerTests, getProcessContext) {
@@ -1276,4 +1279,5 @@ TEST_F(SystemStateTrackerTests, parse_netlink_sockaddr) {
   EXPECT_EQ(address, "1");
   EXPECT_EQ(port, 2);
 }
+
 } // namespace osquery

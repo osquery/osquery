@@ -18,6 +18,7 @@
 #include <vector>
 
 namespace osquery {
+
 class ISystemStateTracker {
  public:
   using Ref = std::unique_ptr<ISystemStateTracker>;
@@ -126,4 +127,5 @@ class ISystemStateTracker {
 
   virtual EventList eventList() = 0;
 };
+
 } // namespace osquery

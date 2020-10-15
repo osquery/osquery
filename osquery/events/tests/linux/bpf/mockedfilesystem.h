@@ -12,6 +12,7 @@
 #include <osquery/events/linux/bpf/ifilesystem.h>
 
 namespace osquery {
+
 class MockedFilesystem final : public IFilesystem {
  public:
   MockedFilesystem() = default;
@@ -36,4 +37,5 @@ class MockedFilesystem final : public IFilesystem {
 
   virtual bool enumFiles(int dirfd, EnumFilesCallback callback) const override;
 };
+
 } // namespace osquery

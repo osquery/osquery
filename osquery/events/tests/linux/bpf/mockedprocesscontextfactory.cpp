@@ -13,7 +13,9 @@
 #include <osquery/events/linux/bpf/iprocesscontextfactory.h>
 
 namespace osquery {
+
 namespace {
+
 ProcessContext createProcessContext(pid_t process_id) {
   ProcessContext process_context = {};
 
@@ -60,6 +62,7 @@ ProcessContext createProcessContext(pid_t process_id) {
 
   return process_context;
 }
+
 } // namespace
 
 std::size_t MockedProcessContextFactory::invocationCount() const {
@@ -94,4 +97,5 @@ bool MockedProcessContextFactory::captureAllProcesses(
 
   return true;
 }
+
 } // namespace osquery

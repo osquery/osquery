@@ -15,5 +15,7 @@
 #include <unistd.h>
 
 namespace osquery {
+
 using UniqueDir = std::unique_ptr<DIR, decltype(&closedir)>;
+
 } // namespace osquery

@@ -21,6 +21,7 @@
 #include <sys/un.h>
 
 namespace osquery {
+
 struct SystemStateTracker::PrivateData final {
   Context context;
   IProcessContextFactory::Ref process_context_factory;
@@ -1014,4 +1015,5 @@ bool SystemStateTracker::parseSocketAddress(
 SystemStateTracker::Context SystemStateTracker::getContextCopy() const {
   return d->context;
 }
+
 } // namespace osquery

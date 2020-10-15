@@ -12,6 +12,7 @@
 #include <osquery/events/linux/bpf/ifilesystem.h>
 
 namespace osquery {
+
 class Filesystem final : public IFilesystem {
  public:
   virtual ~Filesystem() override = default;
@@ -40,4 +41,5 @@ class Filesystem final : public IFilesystem {
 
   friend class IFilesystem;
 };
+
 } // namespace osquery

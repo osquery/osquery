@@ -13,6 +13,7 @@
 #include <osquery/tables/events/linux/bpf_socket_events.h>
 
 namespace osquery {
+
 REGISTER(BPFSocketEventSubscriber, "event_subscriber", "bpf_socket_events");
 
 Status BPFSocketEventSubscriber::init() {
@@ -108,4 +109,5 @@ std::vector<Row> BPFSocketEventSubscriber::generateRowList(
 
   return row_list;
 }
+
 } // namespace osquery

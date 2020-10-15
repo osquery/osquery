@@ -12,6 +12,7 @@
 #include <osquery/events/linux/bpf/iprocesscontextfactory.h>
 
 namespace osquery {
+
 class ProcessContextFactory final : public IProcessContextFactory {
  public:
   virtual ~ProcessContextFactory() override = default;
@@ -45,4 +46,5 @@ class ProcessContextFactory final : public IProcessContextFactory {
 
   friend class IProcessContextFactory;
 };
+
 } // namespace osquery
