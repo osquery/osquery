@@ -19,7 +19,7 @@ function(setupBuildFlags)
   add_library(cxx_settings INTERFACE)
   add_library(c_settings INTERFACE)
 
-  target_compile_features(cxx_settings INTERFACE cxx_std_14)
+  target_compile_features(cxx_settings INTERFACE cxx_std_17)
 
   # There's no specific C11 conformance on MSVC
   # and recent versions of CMake add the /std:c11 flag to the command line

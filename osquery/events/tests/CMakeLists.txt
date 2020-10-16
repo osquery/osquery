@@ -14,6 +14,7 @@ function(osqueryEventsTestsMain)
     generateOsqueryEventsTestsAudittestsTest()
     generateOsqueryEventsTestsProcessfileeventstestsTest()
     generateOsqueryEventsTestsInotifytestsTest()
+    generateOsqueryEventsTestsBpftestsTest()
   endif()
 
   if(DEFINED PLATFORM_MACOS)
@@ -122,6 +123,29 @@ function(generateOsqueryEventsTestsProcessfileeventstestsTest)
     osquery_utils
     osquery_utils_conversions
     specs_tables
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryEventsTestsBpftestsTest)
+  add_osquery_executable(
+    osquery_events_tests_bpftests-test
+
+    linux/bpf/bpfeventpublisher.cpp
+    linux/bpf/bpftestsmain.h
+    linux/bpf/mockedfilesystem.cpp
+    linux/bpf/mockedfilesystem.h
+    linux/bpf/mockedprocesscontextfactory.cpp
+    linux/bpf/mockedprocesscontextfactory.h
+    linux/bpf/processcontextfactory.cpp
+    linux/bpf/systemstatetracker.cpp
+    linux/bpf/utils.cpp
+    linux/bpf/utils.h
+  )
+
+  target_link_libraries(osquery_events_tests_bpftests-test PRIVATE
+    osquery_cxx_settings
+    osquery_remote_tests_remotetestutils
     thirdparty_googletest
   )
 endfunction()
