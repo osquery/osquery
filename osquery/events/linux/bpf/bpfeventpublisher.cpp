@@ -13,6 +13,7 @@
 #include <osquery/events/linux/bpf/systemstatetracker.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
+#include <osquery/utils/system/time.h>
 
 #include <fcntl.h>
 #include <sys/sysinfo.h>
@@ -220,38 +221,55 @@ Status BPFEventPublisher::run() {
         "Halting the publisher since initialization has failed");
   }
 
+  tob::ebpfpub::IPerfEventReader::ErrorCounters error_counters{};
+  auto last_error_counters_report = getUnixTime();
+
   while (!isEnding()) {
     d->perf_event_reader->exec(
         std::chrono::seconds(1U),
 
         [&](const tob::ebpfpub::IFunctionTracer::EventList& event_list,
             const tob::ebpfpub::IPerfEventReader::ErrorCounters&
-                error_counters) {
-          if (error_counters.invalid_probe_output != 0U) {
-            VLOG(1) << "Invalid BPF probe output counter: "
-                    << error_counters.invalid_probe_output;
-          }
+                new_error_counters) {
+          error_counters.invalid_event += new_error_counters.invalid_event;
+          error_counters.lost_events += new_error_counters.lost_events;
 
-          if (error_counters.invalid_event != 0U) {
-            VLOG(1) << "Invalid BPF event types counter: "
-                    << error_counters.invalid_event;
-          }
+          error_counters.invalid_probe_output +=
+              new_error_counters.invalid_probe_output;
 
-          if (error_counters.invalid_event_data != 0U) {
-            VLOG(1) << "Invalid BPF event data counter: "
-                    << error_counters.invalid_event_data;
-          }
-
-          if (error_counters.lost_events != 0U) {
-            VLOG(1) << "Lost BPF events counter: "
-                    << error_counters.lost_events;
-          }
+          error_counters.invalid_event_data +=
+              new_error_counters.invalid_event_data;
 
           for (auto& event : event_list) {
             auto rel_timestamp = event.header.timestamp;
             d->event_queue.insert({rel_timestamp, std::move(event)});
           }
         });
+
+    auto current_time = getUnixTime();
+    if (last_error_counters_report + 5U < current_time) {
+      if (error_counters.invalid_probe_output != 0U) {
+        VLOG(1) << "Invalid BPF probe output counter: "
+                << error_counters.invalid_probe_output;
+      }
+
+      if (error_counters.invalid_event != 0U) {
+        VLOG(1) << "Invalid BPF event types counter: "
+                << error_counters.invalid_event;
+      }
+
+      if (error_counters.invalid_event_data != 0U) {
+        VLOG(1) << "Invalid BPF event data counter: "
+                << error_counters.invalid_event_data;
+      }
+
+      if (error_counters.lost_events != 0U) {
+        VLOG(1) << "Lost BPF events counter: " << error_counters.lost_events;
+      }
+
+      error_counters = {};
+      last_error_counters_report = current_time;
+    }
 
     std::size_t invalid_event_count = 0U;
     auto& state = *d->system_state_tracker.get();
