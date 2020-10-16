@@ -223,7 +223,7 @@ std::string getUsernameFromSid(const std::string& sidString) {
                           domName.data(),
                           &domNameSize,
                           &eUse);
-
+  LocalFree(sid);
   if (ret == 0) {
     VLOG(1) << "LookupAccountSid failed with " << GetLastError()
             << " for sid: " << sidString;
