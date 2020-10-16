@@ -76,12 +76,12 @@ FLAG(bool,
 
 FLAG(uint64,
      bpf_perf_event_array_exp,
-     12,
+     10ULL,
      "Size of the perf event array as a power of 2");
 
 FLAG(uint64,
      bpf_buffer_storage_size,
-     4096U,
+     512ULL,
      "How many slots each buffer storage should have");
 
 REGISTER(BPFEventPublisher, "event_publisher", "BPFEventPublisher");
