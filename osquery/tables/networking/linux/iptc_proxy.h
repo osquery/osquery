@@ -50,6 +50,16 @@ struct iptcproxy_rule {
 };
 typedef struct iptcproxy_rule iptcproxy_rule;
 
+/* Values for "invflags" field in struct ip_data. */
+#define IPTC_INV_VIA_IN 0x01 /* Invert the sense of IN IFACE. */
+#define IPTC_INV_VIA_OUT 0x02 /* Invert the sense of OUT IFACE */
+#define IPTC_INV_TOS 0x04 /* Invert the sense of TOS. */
+#define IPTC_INV_SRCIP 0x08 /* Invert the sense of SRC IP. */
+#define IPTC_INV_DSTIP 0x10 /* Invert the sense of DST OP. */
+#define IPTC_INV_FRAG 0x20 /* Invert the sense of FRAG. */
+#define IPTC_INV_PROTO 0x40 /* Invert the sense of PROTO. */
+#define IPTC_INV_MASK 0x7F /* All possible flag bits mask. */
+
 const iptcproxy_handle* iptcproxy_init(const char* filter);
 void iptcproxy_free(const iptcproxy_handle* handle);
 
