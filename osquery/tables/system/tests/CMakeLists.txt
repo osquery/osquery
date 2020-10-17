@@ -117,6 +117,7 @@ function(generateOsqueryTablesSystemDarwinTests)
 
   target_link_libraries(osquery_tables_system_darwin_tests-test PRIVATE
     osquery_cxx_settings
+    osquery_config_tests_testutils
     osquery_core
     osquery_core_sql
     osquery_database

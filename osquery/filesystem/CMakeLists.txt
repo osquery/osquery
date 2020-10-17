@@ -121,6 +121,7 @@ function(generateOsqueryFilesystemTest)
 
   target_link_libraries(osquery_filesystem_filesystemtests-test PRIVATE
     osquery_cxx_settings
+    osquery_config_tests_testutils
     osquery_core
     osquery_extensions
     osquery_extensions_implthrift
