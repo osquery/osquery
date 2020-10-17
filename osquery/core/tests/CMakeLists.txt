@@ -109,6 +109,7 @@ function(generateOsqueryCoreTestsWmitestsTest)
 
   target_link_libraries(osquery_core_tests_wmitests-test PRIVATE
     osquery_cxx_settings
+    osquery_config_tests_testutils
     osquery_core
     osquery_sql_tests_sqltestutils
     osquery_utils_info
