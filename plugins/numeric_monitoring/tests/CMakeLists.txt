@@ -19,10 +19,8 @@ function(pluginsNumericmonitoringTestsFilesystemtestsTest)
     osquery_extensions
     osquery_extensions_implthrift
     osquery_numericmonitoring
-    osquery_remote_enroll_tlsenroll
-    plugins_config_tlsconfig
     plugins_numericmonitoring_filesystem
-    specs_tables
+    tests_helper
     thirdparty_googletest
   )
 endfunction()

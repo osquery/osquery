@@ -67,6 +67,10 @@ function(generateOsqueryTablesApplications)
     list(APPEND public_header_files
       posix/prometheus_metrics.h
     )
+
+    target_link_libraries(osquery_tables_applications PUBLIC
+      osquery_remote_utility
+    )
   endif()
 
   generateIncludeNamespace(osquery_tables_applications "osquery/tables/applications" "FULL_PATH" ${public_header_files})

@@ -25,14 +25,11 @@ function(generateOsquerySqlTestsSqltestutils)
   target_link_libraries(osquery_sql_tests_sqltestutils PUBLIC
     osquery_cxx_settings
     osquery_database
-    osquery_distributed
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_sql
-    plugins_config_tlsconfig
+    tests_helper
     specs_tables
   )
 endfunction()
@@ -43,16 +40,12 @@ function(generateOsquerySqlTestsTest)
   target_link_libraries(osquery_sql_tests-test PRIVATE
     osquery_cxx_settings
     osquery_database
-    osquery_distributed
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_sql
     osquery_sql_tests_sqltestutils
-    plugins_config_tlsconfig
-    specs_tables
+    tests_helper
     thirdparty_googletest
   )
 endfunction()
@@ -63,15 +56,11 @@ function(generateOsquerySqlTestsVirtualtableTestsTest)
   target_link_libraries(osquery_sql_tests_virtualtabletests-test PRIVATE
     osquery_cxx_settings
     osquery_database
-    osquery_distributed
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_sql
-    plugins_config_tlsconfig
-    specs_tables
+    tests_helper
     thirdparty_googletest
   )
 endfunction()
@@ -82,16 +71,12 @@ function(generateOsquerySqlTestsSqliteutiltestsTest)
   target_link_libraries(osquery_sql_tests_sqliteutilstests-test PRIVATE
     osquery_cxx_settings
     osquery_database
-    osquery_distributed
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_sql
     osquery_sql_tests_sqltestutils
-    plugins_config_tlsconfig
-    specs_tables
+    tests_helper
     thirdparty_googletest
   )
 endfunction()
@@ -105,7 +90,7 @@ function(generateOsquerySqlTestsSqlitehashingtestsTest)
     osquery_sql
     osquery_sql_tests_sqltestutils
     thirdparty_googletest
-    )
+  )
 endfunction()
 
 osquerySqlMain()

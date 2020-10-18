@@ -23,20 +23,12 @@ function(generateOsqueryCoreTestsFlagstestsTest)
 
   target_link_libraries(osquery_core_tests_flagstests-test PRIVATE
     osquery_cxx_settings
-    osquery_config_tests_testutils
     osquery_core
-    osquery_core_sql
-    osquery_dispatcher
-    osquery_distributed
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
-    tests_helper
     osquery_utils_info
-    plugins_config_tlsconfig
-    specs_tables
+    tests_helper
     thirdparty_googletest
   )
 endfunction()
@@ -46,20 +38,12 @@ function(generateOsqueryCoreTestsSystemtestsTest)
 
   target_link_libraries(osquery_core_tests_systemtests-test PRIVATE
     osquery_cxx_settings
-    osquery_config_tests_testutils
     osquery_core
-    osquery_core_sql
-    osquery_dispatcher
-    osquery_distributed
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
-    tests_helper
     osquery_utils_info
-    plugins_config_tlsconfig
-    specs_tables
+    tests_helper
     thirdparty_googletest
   )
 endfunction()
@@ -69,20 +53,12 @@ function(generateOsqueryCoreTestsTablestestsTest)
 
   target_link_libraries(osquery_core_tests_tablestests-test PRIVATE
     osquery_cxx_settings
-    osquery_config_tests_testutils
     osquery_core
-    osquery_core_sql
-    osquery_dispatcher
-    osquery_distributed
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     tests_helper
     osquery_utils_info
-    plugins_config_tlsconfig
-    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -101,21 +77,13 @@ function(generateOsqueryCoreTestsWatcherpermissionstestsTest)
 
   target_link_libraries(osquery_core_tests_watcherpermissionstests-test PRIVATE
     osquery_cxx_settings
-    osquery_config_tests_testutils
     osquery_core
-    osquery_core_sql
-    osquery_dispatcher
-    osquery_distributed
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_process
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     tests_helper
     osquery_utils_info
-    plugins_config_tlsconfig
-    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -125,21 +93,13 @@ function(generateOsqueryCoreTestsQuerytestsTest)
 
   target_link_libraries(osquery_core_tests_querytests-test PRIVATE
     osquery_cxx_settings
-    osquery_config_tests_testutils
     osquery_core
-    osquery_core_sql
-    osquery_dispatcher
-    osquery_distributed
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_registry
-    osquery_remote_enroll_tlsenroll
     osquery_sql_tests_sqltestutils
     tests_helper
     osquery_utils_info
-    plugins_config_tlsconfig
-    specs_tables
     thirdparty_googletest
   )
 endfunction()
@@ -149,9 +109,8 @@ function(generateOsqueryCoreTestsWmitestsTest)
 
   target_link_libraries(osquery_core_tests_wmitests-test PRIVATE
     osquery_cxx_settings
-    osquery_core
     osquery_config_tests_testutils
-    osquery_remote_enroll_tlsenroll
+    osquery_core
     osquery_sql_tests_sqltestutils
     osquery_utils_info
     tests_helper

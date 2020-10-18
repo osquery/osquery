@@ -16,16 +16,12 @@ function(generateOsqueryUtilsAwsTestsTest)
     osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_database
-    osquery_dispatcher
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_process
-    osquery_remote_enroll_tlsenroll
     osquery_utils_aws
     osquery_utils_info
-    plugins_config_tlsconfig
-    specs_tables
+    tests_helper
     thirdparty_googletest
   )
 endfunction()

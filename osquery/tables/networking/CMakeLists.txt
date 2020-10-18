@@ -77,7 +77,7 @@ function(generateOsqueryTablesNetworking)
     osquery_cxx_settings
     osquery_core
     osquery_filesystem
-    osquery_remote_httpclient
+    osquery_remote_utility
     osquery_utils
     osquery_utils_conversions
     osquery_tables_system_systemtable
