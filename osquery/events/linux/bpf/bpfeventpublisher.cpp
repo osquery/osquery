@@ -449,8 +449,10 @@ bool BPFEventPublisher::processDupEvent(
     return true;
   }
 
+  // The syscall will return a negative errno code if something
+  // didn't work
   auto newfd = static_cast<int>(event.header.exit_code);
-  if (newfd == -1) {
+  if (newfd < 0) {
     return true;
   }
 
@@ -467,8 +469,10 @@ bool BPFEventPublisher::processDupEvent(
 bool BPFEventPublisher::processDup2Event(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // The syscall will return a negative errno code if something
+  // didn't work
   auto exit_code = static_cast<int>(event.header.exit_code);
-  if (exit_code == -1) {
+  if (exit_code < 0) {
     return true;
   }
 
@@ -501,8 +505,10 @@ bool BPFEventPublisher::processDup2Event(
 bool BPFEventPublisher::processDup3Event(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // The syscall will return a negative errno code if something
+  // didn't work
   auto exit_code = static_cast<int>(event.header.exit_code);
-  if (exit_code == -1) {
+  if (exit_code < 0) {
     return true;
   }
 
@@ -540,8 +546,10 @@ bool BPFEventPublisher::processDup3Event(
 bool BPFEventPublisher::processCreatEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // The syscall will return a negative errno code if something
+  // didn't work
   auto newfd = static_cast<int>(event.header.exit_code);
-  if (newfd == -1) {
+  if (newfd < 0) {
     return true;
   }
 
@@ -572,8 +580,10 @@ bool BPFEventPublisher::processMknodatEvent(
 bool BPFEventPublisher::processOpenEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // The syscall will return a negative errno code if something
+  // didn't work
   auto newfd = static_cast<int>(event.header.exit_code);
-  if (newfd == -1) {
+  if (newfd < 0) {
     return true;
   }
 
@@ -597,8 +607,10 @@ bool BPFEventPublisher::processOpenEvent(
 bool BPFEventPublisher::processOpenatEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // The syscall will return a negative errno code if something
+  // didn't work
   auto newfd = static_cast<int>(event.header.exit_code);
-  if (newfd == -1) {
+  if (newfd < 0) {
     return true;
   }
 
@@ -636,8 +648,10 @@ bool BPFEventPublisher::processOpenatEvent(
 bool BPFEventPublisher::processOpenat2Event(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // The syscall will return a negative errno code if something
+  // didn't work
   auto newfd = static_cast<int>(event.header.exit_code);
-  if (newfd == -1) {
+  if (newfd < 0) {
     return true;
   }
 
@@ -708,7 +722,9 @@ bool BPFEventPublisher::processFchdirEvent(
 bool BPFEventPublisher::processSocketEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
-  if (static_cast<int>(event.header.exit_code) == -1) {
+  // The syscall will return a negative errno code if something
+  // didn't work
+  if (static_cast<int>(event.header.exit_code) < 0) {
     return true;
   }
 
@@ -736,8 +752,10 @@ bool BPFEventPublisher::processSocketEvent(
 bool BPFEventPublisher::processFcntlEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // The syscall will return a negative errno code if something
+  // didn't work
   auto new_fd = static_cast<int>(event.header.exit_code);
-  if (new_fd == -1) {
+  if (new_fd < 0) {
     return true;
   }
 
@@ -791,8 +809,10 @@ bool BPFEventPublisher::processConnectEvent(
 bool BPFEventPublisher::processAcceptEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // The syscall will return a negative errno code if something
+  // didn't work
   int newfd = static_cast<int>(event.header.exit_code);
-  if (newfd == -1) {
+  if (newfd < 0) {
     return true;
   }
 
@@ -818,8 +838,10 @@ bool BPFEventPublisher::processAcceptEvent(
 bool BPFEventPublisher::processAccept4Event(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // The syscall will return a negative errno code if something
+  // didn't work
   int newfd = static_cast<int>(event.header.exit_code);
-  if (newfd == -1) {
+  if (newfd < 0) {
     return true;
   }
 

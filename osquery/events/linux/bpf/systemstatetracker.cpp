@@ -406,18 +406,19 @@ bool SystemStateTracker::openFile(
     int newfd,
     const std::string& path,
     int flags) {
-  if (path.empty()) {
-    return false;
-  }
 
   auto& process_context =
       getProcessContext(context, process_context_factory, process_id);
 
   std::string absolute_path;
-  if (path.front() == '/') {
+  if (!path.empty() && path.front() == '/') {
     absolute_path = path;
 
   } else if (dirfd == AT_FDCWD) {
+    if (path.empty()) {
+      return false;
+    }
+
     absolute_path = process_context.cwd;
     if (absolute_path.back() != '/') {
       absolute_path += '/';
@@ -441,11 +442,14 @@ bool SystemStateTracker::openFile(
         std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
 
     absolute_path = file_data.path;
-    if (absolute_path.back() != '/') {
-      absolute_path += '/';
-    }
 
-    absolute_path += path;
+    if ((flags & AT_EMPTY_PATH) == 0) {
+      if (absolute_path.back() != '/') {
+        absolute_path += '/';
+      }
+
+      absolute_path += path;
+    }
   }
 
   ProcessContext::FileDescriptor fd_info;
