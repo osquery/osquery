@@ -43,6 +43,7 @@ TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
   for (CFIndex i = 0; i < count; i++) {
     parseNetworks((CFDictionaryRef)values[i], results);
   }
+  ASSERT_GT(results.size(), 0);
 
   Row expected1 = {
       {"ssid", "2890d228 3487"},
@@ -104,6 +105,7 @@ TEST_F(WifiNetworksTest, test_parse_legacy_wifi_networks) {
         (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)networks, i),
         results);
   }
+  ASSERT_GT(results.size(), 0);
 
   Row expected1 = {
       {"ssid", "2890d228 3487"},
