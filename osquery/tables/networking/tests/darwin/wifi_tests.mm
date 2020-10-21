@@ -10,15 +10,24 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <Foundation/Foundation.h>
 #include <gtest/gtest.h>
+
 #include <osquery/config/tests/test_utils.h>
+#include <osquery/core/system.h>
 #include <osquery/core/sql/query_data.h>
+#include <osquery/registry/registry_factory.h>
 
 namespace osquery {
 namespace tables {
 
 void parseNetworks(const CFDictionaryRef& network, QueryData& results);
 
-class WifiNetworksTest : public testing::Test {};
+class WifiNetworksTest : public testing::Test {
+ protected:
+  void SetUp() {
+    platformSetup();
+    registryAndPluginInit();
+  }
+};
 
 TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
   std::string path = (getTestConfigDirectory() / "test_airport.plist").string();
@@ -27,8 +36,8 @@ TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
       [NSDictionary dictionaryWithContentsOfFile:@(path.c_str())];
   ASSERT_GE((long)CFDictionaryGetCount(plist), 1);
   std::string key = "KnownNetworks";
-  auto cfkey = CFStringCreateWithCString(kCFAllocatorDefault, key.c_str(),
-                                         kCFStringEncodingUTF8);
+  auto cfkey = CFStringCreateWithCString(
+      kCFAllocatorDefault, key.c_str(), kCFStringEncodingUTF8);
   auto networks = (CFDictionaryRef)CFDictionaryGetValue(plist, cfkey);
 
   CFRelease(cfkey);
@@ -36,8 +45,8 @@ TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
   QueryData results;
   auto count = CFDictionaryGetCount(networks);
   ASSERT_EQ((long)count, 2);
-  std::vector<const void *> keys(count);
-  std::vector<const void *> values(count);
+  std::vector<const void*> keys(count);
+  std::vector<const void*> values(count);
   CFDictionaryGetKeysAndValues(networks, keys.data(), values.data());
 
   for (CFIndex i = 0; i < count; i++) {
@@ -90,8 +99,8 @@ TEST_F(WifiNetworksTest, test_parse_legacy_wifi_networks) {
       [NSDictionary dictionaryWithContentsOfFile:@(path.c_str())];
   ASSERT_GE((long)CFDictionaryGetCount(plist), 1);
   std::string key = "RememberedNetworks";
-  auto cfkey = CFStringCreateWithCString(kCFAllocatorDefault, key.c_str(),
-                                         kCFStringEncodingUTF8);
+  auto cfkey = CFStringCreateWithCString(
+      kCFAllocatorDefault, key.c_str(), kCFStringEncodingUTF8);
   auto networks = (CFArrayRef)CFDictionaryGetValue(plist, cfkey);
 
   CFRelease(cfkey);
