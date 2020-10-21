@@ -27,8 +27,7 @@ static const std::string kAirPortPreferencesPath =
 
 // In 10.14 and prior, there was an "auto_login" key.
 const std::map<std::string, std::string> kKnownWifiNetworkKeysPreCatalina = {
-    {"auto_login", "AutoLogin"},
-    {"last_connected", "LastConnected"}};
+    {"auto_login", "AutoLogin"}, {"last_connected", "LastConnected"}};
 
 const std::map<std::string, std::string> kKnownCommonWifiNetworkKeys = {
     {"ssid", "SSID"},
@@ -60,7 +59,8 @@ Status getKnownWifiNetworkKeys(std::map<std::string, std::string>& keys) {
 
   // Then include the common keys (not unique to any particular macOS version):
   // C++17 equivalent: keys.merge(kKnownCommonWifiNetworkKeys);
-  keys.insert(kKnownCommonWifiNetworkKeys.begin(), kKnownCommonWifiNetworkKeys.end());
+  keys.insert(kKnownCommonWifiNetworkKeys.begin(),
+              kKnownCommonWifiNetworkKeys.end());
 
   return Status(0, "ok");
 }
