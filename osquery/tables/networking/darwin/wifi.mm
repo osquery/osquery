@@ -25,13 +25,15 @@ static const std::string kAirPortPreferencesPath =
     "/Library/Preferences/SystemConfiguration/"
     "com.apple.airport.preferences.plist";
 
-const std::map<std::string, std::string> kKnownWifiNetworkKeys = {
+// In 10.14 and prior, there was an "auto_login" key.
+const std::map<std::string, std::string> kKnownWifiNetworkKeysPreCatalina = {
+    {"auto_login", "AutoLogin"}, {"last_connected", "LastConnected"}};
+
+const std::map<std::string, std::string> kKnownWifiNetworkKeysCommon = {
     {"ssid", "SSID"},
     {"network_name", "SSIDString"},
     {"security_type", "SecurityType"},
     {"roaming_profile", "RoamingProfileType"},
-    {"auto_login", "AutoLogin"},
-    {"last_connected", "LastConnected"},
     {"captive_portal", "Captive"},
     {"roaming", "SPRoaming"},
     {"passpoint", "Passpoint"},
@@ -39,11 +41,36 @@ const std::map<std::string, std::string> kKnownWifiNetworkKeys = {
     {"disabled", "Disabled"},
     {"temporarily_disabled", "TemporarilyDisabled"}};
 
-// Check if we are running on OS X 10.9, where the key in plist is different
+// The name of the "last_connected" key changed in 10.15.
+const std::map<std::string, std::string> kKnownWifiNetworkKeysPostCatalina = {
+    {"last_connected", "LastAutoJoinAt"}};
+
+// Adjust the keys to read, based on the version of macOS
+Status getKnownWifiNetworkKeys(std::map<std::string, std::string>& keys) {
+  auto qd = SQL::selectAllFrom("os_version");
+  if (qd.size() != 1) {
+    return Status(-1, "Couldn't determine macOS version");
+  }
+
+  // Begin with macOS-version-specific keys:
+  keys = (qd.front().at("major") < "11" && qd.front().at("minor") < "15")
+             ? kKnownWifiNetworkKeysPreCatalina
+             : kKnownWifiNetworkKeysPostCatalina;
+
+  // Then include the common keys (not unique to any particular macOS version):
+  // C++17 equivalent: keys.merge(kKnownWifiNetworkKeysCommon);
+  keys.insert(kKnownWifiNetworkKeysCommon.begin(),
+              kKnownWifiNetworkKeysCommon.end());
+
+  return Status(0, "ok");
+}
+
+// Check if we are running on macOS 10.9, where the top-level key in the plist
+//  was different
 Status getKnownNetworksKey(std::string& key) {
   auto qd = SQL::selectAllFrom("os_version");
   if (qd.size() != 1) {
-    return Status(-1, "Couldn't determine OS X version");
+    return Status(-1, "Couldn't determine macOS version");
   }
 
   key = (qd.front().at("major") == "10" && qd.front().at("minor") == "9")
@@ -75,8 +102,15 @@ void parseNetworks(const CFDictionaryRef& network, QueryData& results) {
     return;
   }
 
+  std::map<std::string, std::string> keys;
+  auto status = getKnownWifiNetworkKeys(keys);
+  if (!status.ok()) {
+    VLOG(1) << status.getMessage();
+    return;
+  }
+
   Row r;
-  for (const auto& kv : kKnownWifiNetworkKeys) {
+  for (const auto& kv : keys) {
     auto key = CFStringCreateWithCString(
         kCFAllocatorDefault, kv.second.c_str(), kCFStringEncodingUTF8);
     CFTypeRef value = nullptr;
