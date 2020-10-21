@@ -25,29 +25,16 @@ static const std::string kAirPortPreferencesPath =
     "/Library/Preferences/SystemConfiguration/"
     "com.apple.airport.preferences.plist";
 
+// In 10.14 and prior, there was an "auto_login" key.
 const std::map<std::string, std::string> kKnownWifiNetworkKeysPreCatalina = {
-    {"ssid", "SSID"},
-    {"network_name", "SSIDString"},
-    {"security_type", "SecurityType"},
-    {"roaming_profile", "RoamingProfileType"},
     {"auto_login", "AutoLogin"},
-    {"last_connected", "LastConnected"},
-    {"captive_portal", "Captive"},
-    {"roaming", "SPRoaming"},
-    {"passpoint", "Passpoint"},
-    {"possibly_hidden", "PossiblyHiddenNetwork"},
-    {"disabled", "Disabled"},
-    {"temporarily_disabled", "TemporarilyDisabled"}};
+    {"last_connected", "LastConnected"}};
 
-// The name of the "last_connected" key changed in 10.15, and the
-// "auto_login" key no longer exists.
-const std::map<std::string, std::string> kKnownWifiNetworkKeys = {
+const std::map<std::string, std::string> kKnownCommonWifiNetworkKeys = {
     {"ssid", "SSID"},
     {"network_name", "SSIDString"},
     {"security_type", "SecurityType"},
     {"roaming_profile", "RoamingProfileType"},
-    {"auto_login", "AutoLogin"}, // actually no longer present since Catalina
-    {"last_connected", "LastAutoJoinAt"},
     {"captive_portal", "Captive"},
     {"roaming", "SPRoaming"},
     {"passpoint", "Passpoint"},
@@ -55,16 +42,26 @@ const std::map<std::string, std::string> kKnownWifiNetworkKeys = {
     {"disabled", "Disabled"},
     {"temporarily_disabled", "TemporarilyDisabled"}};
 
-// Check if we are running on macOS 10.15 or later. Keys have changed.
+// The name of the "last_connected" key changed in 10.15.
+const std::map<std::string, std::string> kKnownWifiNetworkKeysPostCatalina = {
+    {"last_connected", "LastAutoJoinAt"}};
+
+// Adjust the keys to read, based on the version of macOS
 Status getKnownWifiNetworkKeys(std::map<std::string, std::string>& keys) {
   auto qd = SQL::selectAllFrom("os_version");
   if (qd.size() != 1) {
     return Status(-1, "Couldn't determine macOS version");
   }
 
+  // Begin with macOS-version-specific keys:
   keys = (qd.front().at("major") < "11" && qd.front().at("minor") < "15")
              ? kKnownWifiNetworkKeysPreCatalina
-             : kKnownWifiNetworkKeys;
+             : kKnownWifiNetworkKeysPostCatalina;
+
+  // Then include the common keys (not unique to any particular macOS version):
+  // C++17 equivalent: keys.merge(kKnownCommonWifiNetworkKeys);
+  keys.insert(kKnownCommonWifiNetworkKeys.begin(), kKnownCommonWifiNetworkKeys.end());
+
   return Status(0, "ok");
 }
 
