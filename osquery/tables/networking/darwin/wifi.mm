@@ -29,7 +29,7 @@ static const std::string kAirPortPreferencesPath =
 const std::map<std::string, std::string> kKnownWifiNetworkKeysPreCatalina = {
     {"auto_login", "AutoLogin"}, {"last_connected", "LastConnected"}};
 
-const std::map<std::string, std::string> kKnownCommonWifiNetworkKeys = {
+const std::map<std::string, std::string> kKnownWifiNetworkKeysCommon = {
     {"ssid", "SSID"},
     {"network_name", "SSIDString"},
     {"security_type", "SecurityType"},
@@ -58,9 +58,9 @@ Status getKnownWifiNetworkKeys(std::map<std::string, std::string>& keys) {
              : kKnownWifiNetworkKeysPostCatalina;
 
   // Then include the common keys (not unique to any particular macOS version):
-  // C++17 equivalent: keys.merge(kKnownCommonWifiNetworkKeys);
-  keys.insert(kKnownCommonWifiNetworkKeys.begin(),
-              kKnownCommonWifiNetworkKeys.end());
+  // C++17 equivalent: keys.merge(kKnownWifiNetworkKeysCommon);
+  keys.insert(kKnownWifiNetworkKeysCommon.begin(),
+              kKnownWifiNetworkKeysCommon.end());
 
   return Status(0, "ok");
 }
