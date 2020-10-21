@@ -12,8 +12,8 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/tests/test_utils.h>
-#include <osquery/core/system.h>
 #include <osquery/core/sql/query_data.h>
+#include <osquery/core/system.h>
 #include <osquery/registry/registry_factory.h>
 
 namespace osquery {
