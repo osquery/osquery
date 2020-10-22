@@ -682,6 +682,143 @@ TEST_F(BPFEventPublisherTests, processCreatEvent) {
   EXPECT_EQ(state_tracker.getContextCopy().process_map.at(2).fd_map.size(), 9U);
 }
 
+TEST_F(BPFEventPublisherTests, processMknodatEvent) {
+  auto state_tracker_ref =
+      SystemStateTracker::create(getMockedProcessContextFactory());
+
+  auto& state_tracker =
+      static_cast<SystemStateTracker&>(*state_tracker_ref.get());
+
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  // Processing should fail until we pass the mandatory parameters
+  auto bpf_event = kBaseBPFEvent;
+  bpf_event.name = "mknodat";
+  bpf_event.header.exit_code = 1000ULL;
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field mode_field = {
+    "mode",
+    true,
+    15ULL
+  };
+  // clang-format on
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field pathname_field = {
+    "pathname",
+    true,
+    "/home/alessandro/test_file"
+  };
+  // clang-format on
+
+  for (std::size_t i = 0U; i < 3; ++i) {
+    bpf_event.in_field_map = {};
+
+    if ((i & 1) != 0) {
+      bpf_event.in_field_map.insert({mode_field.name, mode_field});
+    }
+
+    if ((i & 2) != 0) {
+      bpf_event.in_field_map.insert({pathname_field.name, pathname_field});
+    }
+
+    auto succeeded =
+        BPFEventPublisher::processMknodatEvent(state_tracker, bpf_event);
+
+    EXPECT_FALSE(succeeded);
+    EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+  }
+
+  // Now try again with all parameters but set the exit_code so that
+  // the syscall fails. This event should now be discarded
+  bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
+
+  bpf_event.in_field_map.insert({mode_field.name, mode_field});
+  bpf_event.in_field_map.insert({pathname_field.name, pathname_field});
+
+  auto succeeded =
+      BPFEventPublisher::processMknodatEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  {
+    auto context = state_tracker.getContextCopy();
+    const auto& process = context.process_map.at(bpf_event.header.process_id);
+    EXPECT_EQ(process.fd_map.size(), 8U);
+  }
+
+  // Update the exit code again, so that the syscall fails. Pass the modes
+  // that we know should be ignored
+  bpf_event.header.exit_code = static_cast<std::uint64_t>(9999);
+  bpf_event.in_field_map["mode"].data_var = static_cast<std::uint64_t>(S_IFCHR);
+
+  succeeded = BPFEventPublisher::processMknodatEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  {
+    auto context = state_tracker.getContextCopy();
+    const auto& process = context.process_map.at(bpf_event.header.process_id);
+    EXPECT_EQ(process.fd_map.size(), 8U);
+  }
+
+  bpf_event.in_field_map["mode"].data_var = static_cast<std::uint64_t>(S_IFBLK);
+
+  succeeded = BPFEventPublisher::processMknodatEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  {
+    auto context = state_tracker.getContextCopy();
+    const auto& process = context.process_map.at(bpf_event.header.process_id);
+    EXPECT_EQ(process.fd_map.size(), 8U);
+  }
+
+  // Update the mode parameter so that the syscall creates a new regular
+  // file. This should finally succeed
+  bpf_event.in_field_map["mode"].data_var = static_cast<std::uint64_t>(S_IFREG);
+
+  succeeded = BPFEventPublisher::processMknodatEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  {
+    auto context = state_tracker.getContextCopy();
+    const auto& process = context.process_map.at(bpf_event.header.process_id);
+    EXPECT_EQ(process.fd_map.size(), 9U);
+  }
+
+  // Change the exit code to another file descriptor. Add the optional dirfd
+  // parameter using the fd we just created
+
+  // clang-format off
+  tob::ebpfpub::IFunctionTracer::Event::Field opt_dirfd_field = {
+    "dirfd",
+    true,
+    static_cast<std::uint64_t>(bpf_event.header.exit_code)
+  };
+  // clang-format on
+
+  bpf_event.in_field_map.insert({opt_dirfd_field.name, opt_dirfd_field});
+  bpf_event.header.exit_code = static_cast<std::uint64_t>(10000);
+
+  succeeded = BPFEventPublisher::processMknodatEvent(state_tracker, bpf_event);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+
+  {
+    auto context = state_tracker.getContextCopy();
+    const auto& process = context.process_map.at(bpf_event.header.process_id);
+    EXPECT_EQ(process.fd_map.size(), 10U);
+  }
+}
+
 TEST_F(BPFEventPublisherTests, processOpenEvent) {
   auto state_tracker_ref =
       SystemStateTracker::create(getMockedProcessContextFactory());

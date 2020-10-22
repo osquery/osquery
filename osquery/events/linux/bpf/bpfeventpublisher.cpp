@@ -50,7 +50,7 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     {"dup2", &BPFEventPublisher::processDup2Event, 0U},
     {"dup3", &BPFEventPublisher::processDup3Event, 0U},
     {"creat", &BPFEventPublisher::processCreatEvent, 1U},
-    {"mknod", &BPFEventPublisher::processMknodEvent, 1U},
+    {"mknod", &BPFEventPublisher::processMknodatEvent, 1U},
     {"mknodat", &BPFEventPublisher::processMknodatEvent, 1U},
     {"open", &BPFEventPublisher::processOpenEvent, 2U},
     {"openat", &BPFEventPublisher::processOpenatEvent, 2U},
@@ -565,16 +565,50 @@ bool BPFEventPublisher::processCreatEvent(
   return state.openFile(process_id, kNoDirfd, newfd, path, kOpenFlags);
 }
 
-bool BPFEventPublisher::processMknodEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
-  return true;
-}
-
 bool BPFEventPublisher::processMknodatEvent(
     ISystemStateTracker& state,
     const tob::ebpfpub::IFunctionTracer::Event& event) {
-  return true;
+  // The syscall will return a negative errno code if something
+  // didn't work
+  auto newfd = static_cast<int>(event.header.exit_code);
+  if (newfd < 0) {
+    return true;
+  }
+
+  std::uint64_t mode{};
+  if (!getEventMapValue(mode, event.in_field_map, "mode")) {
+    return false;
+  }
+
+  const auto kModeMask = S_IFREG | S_IFCHR | S_IFBLK | S_IFIFO | S_IFSOCK;
+  if ((mode & kModeMask) == 0) {
+    mode |= S_IFREG;
+  }
+
+  const auto kDiscardedModeMask = S_IFCHR | S_IFBLK;
+  if ((mode & kDiscardedModeMask) != 0) {
+    return true;
+  }
+
+  int dirfd{AT_FDCWD};
+  if (event.in_field_map.count("dirfd")) {
+    std::uint64_t dirfd_value{};
+    if (!getEventMapValue(dirfd_value, event.in_field_map, "dirfd")) {
+      return false;
+    }
+
+    dirfd = static_cast<int>(dirfd_value);
+  }
+
+  std::string pathname;
+  if (!getEventMapValue(pathname, event.in_field_map, "pathname")) {
+    return false;
+  }
+
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+  const int kEmptyFlags{};
+
+  return state.openFile(process_id, dirfd, newfd, pathname, kEmptyFlags);
 }
 
 bool BPFEventPublisher::processOpenEvent(

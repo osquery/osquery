@@ -108,10 +108,6 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
 
-  static bool processMknodEvent(
-      ISystemStateTracker& state,
-      const tob::ebpfpub::IFunctionTracer::Event& event);
-
   static bool processMknodatEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
