@@ -105,6 +105,5 @@ TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
     EXPECT_EQ(results.back()[column.first], column.second);
   }
 }
-
 }
 }
