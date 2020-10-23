@@ -93,8 +93,7 @@ TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
   };
 
   // Pre-macOS 10.15, there was also an auto_login field to read
-  if (qd.front().at("major") < "11" && qd.front().at("minor") < "15")
-  {
+  if (qd.front().at("major") < "11" && qd.front().at("minor") < "15") {
     expected1.insert(std::pair<std::string, RowData>("auto_login", "0"));
     expected2.insert(std::pair<std::string, RowData>("auto_login", "0"));
   }
