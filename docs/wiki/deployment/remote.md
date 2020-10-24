@@ -240,7 +240,7 @@ optional arguments:
   --use_enroll_secret   Require an enrollment secret for node enrollment
   --enroll_secret SECRET_FILE
                         File containing enrollment secret
-$ ./tools/tests/test_http_server.py --tls --persist --cert ./tools/tests/test_server.pem --key ./tools/tests/test_server.key --use_enroll_secret --enroll_secret ./tools/tests/test_enroll_secret.txt 8080
+$ ./tools/tests/test_http_server.py --tls --persist --cert ./tools/tests/configs/test_server.pem --key ./tools/tests/configs/test_server.key --ca .tools/tests/configs/test_server_ca.pem --use_enroll_secret --enroll_secret ./tools/tests/test_enroll_secret.txt 8080
 -- [DEBUG] Starting TLS/HTTPS server on TCP port: 8080
 ```
 
