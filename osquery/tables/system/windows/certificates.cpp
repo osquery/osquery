@@ -421,7 +421,7 @@ void addCertRow(PCCERT_CONTEXT certContext,
   std::fill(certBuff.begin(), certBuff.end(), 0);
   CertGetNameString(
       certContext,
-      CERT_NAME_SIMPLE_DISPLAY_TYPE | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
+      CERT_NAME_SIMPLE_DISPLAY_TYPE,
       0,
       nullptr,
       certBuff.data(),
@@ -431,7 +431,7 @@ void addCertRow(PCCERT_CONTEXT certContext,
   auto subjSize =
       CertNameToStr(certContext->dwCertEncodingType,
                     &(certContext->pCertInfo->Subject),
-                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
+                    CERT_SIMPLE_NAME_STR,
                     nullptr,
                     0);
   certBuff.resize(subjSize, 0);
@@ -439,7 +439,7 @@ void addCertRow(PCCERT_CONTEXT certContext,
   subjSize =
       CertNameToStr(certContext->dwCertEncodingType,
                     &(certContext->pCertInfo->Subject),
-                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
+                    CERT_SIMPLE_NAME_STR,
                     certBuff.data(),
                     subjSize);
   r["subject"] = subjSize == 0 ? "" : wstringToString(certBuff.data());
@@ -447,7 +447,7 @@ void addCertRow(PCCERT_CONTEXT certContext,
   auto issuerSize =
       CertNameToStr(certContext->dwCertEncodingType,
                     &(certContext->pCertInfo->Issuer),
-                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
+                    CERT_SIMPLE_NAME_STR,
                     nullptr,
                     0);
   certBuff.resize(issuerSize, 0);
@@ -455,7 +455,7 @@ void addCertRow(PCCERT_CONTEXT certContext,
   issuerSize =
       CertNameToStr(certContext->dwCertEncodingType,
                     &(certContext->pCertInfo->Issuer),
-                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
+                    CERT_SIMPLE_NAME_STR,
                     certBuff.data(),
                     issuerSize);
   r["issuer"] = issuerSize == 0 ? "" : wstringToString(certBuff.data());
