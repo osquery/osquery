@@ -190,6 +190,23 @@ class ISystemStateTracker {
       int newfd,
       int flags) = 0;
 
+  /// \brief Tracks name_to_handle_at usage
+  /// This method will track opaque FDs created with name_to_handle_at
+  virtual void nameToHandleAt(int dfd,
+                              const std::string& name,
+                              int handle_type,
+                              const std::vector<std::uint8_t>& handle,
+                              int mnt_id,
+                              int flag) = 0;
+
+  /// \brief Opens a file through a file_handle structure
+  /// This method will open a file using a previously tracked file_handle
+  virtual bool openByHandleAt(pid_t process_id,
+                              int mountdirfd,
+                              int handle_type,
+                              const std::vector<std::uint8_t>& handle,
+                              int newfd) = 0;
+
   /// Returns the list of generated events
   virtual EventList eventList() = 0;
 };

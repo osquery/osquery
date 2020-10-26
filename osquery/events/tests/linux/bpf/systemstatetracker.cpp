@@ -1280,4 +1280,86 @@ TEST_F(SystemStateTrackerTests, parse_netlink_sockaddr) {
   EXPECT_EQ(port, 2);
 }
 
+TEST_F(SystemStateTrackerTests, createFileHandleIndex) {
+  auto index =
+      SystemStateTracker::createFileHandleIndex(0x15, {0xAA, 0xBB, 0xCC, 0xDD});
+  EXPECT_EQ(index, "00000015_AABBCCDD");
+}
+
+TEST_F(SystemStateTrackerTests, saveFileHandle) {
+  const int dfd{0x10};
+  const std::string name{"testtest"};
+  const int handle_type{0x20};
+  const std::vector<std::uint8_t> handle{0x01, 0x02, 0x03};
+  const int mnt_id{200};
+  const int flag{};
+
+  // Add the file struct
+  SystemStateTracker::Context context;
+  SystemStateTracker::saveFileHandle(
+      context, dfd, name, handle_type, handle, mnt_id, flag);
+
+  EXPECT_EQ(context.file_handle_struct_map.size(), 1U);
+  EXPECT_EQ(context.file_handle_struct_index.size(), 1U);
+
+  // Attempt to add it again; this should be ignored
+  SystemStateTracker::saveFileHandle(
+      context, dfd, name, handle_type, handle, mnt_id, flag);
+
+  EXPECT_EQ(context.file_handle_struct_map.size(), 1U);
+  EXPECT_EQ(context.file_handle_struct_index.size(), 1U);
+
+  // Validate that the index was added correctly
+  auto index = SystemStateTracker::createFileHandleIndex(handle_type, handle);
+
+  EXPECT_EQ(context.file_handle_struct_map.count(index), 1U);
+  EXPECT_EQ(context.file_handle_struct_index.size(), 1U);
+
+  // Make sure that the handle was saved correcly
+  auto first_item_it = context.file_handle_struct_map.begin();
+  const auto& file_handle_struct = first_item_it->second;
+
+  EXPECT_EQ(file_handle_struct.dfd, dfd);
+  EXPECT_EQ(file_handle_struct.name, name);
+  EXPECT_EQ(file_handle_struct.flags, flag);
+}
+
+TEST_F(SystemStateTrackerTests, expireFileHandleEntries) {
+  SystemStateTracker::Context context;
+  SystemStateTracker::saveFileHandle(context, 1, "test1", 1, {1}, 1, 0);
+  SystemStateTracker::saveFileHandle(context, 2, "test2", 2, {2}, 2, 0);
+  SystemStateTracker::saveFileHandle(context, 3, "test3", 3, {3}, 3, 0);
+  SystemStateTracker::saveFileHandle(context, 4, "test4", 4, {4}, 4, 0);
+
+  EXPECT_EQ(context.file_handle_struct_map.size(), 4U);
+  EXPECT_EQ(context.file_handle_struct_index.size(), 4U);
+
+  SystemStateTracker::expireFileHandleEntries(context, 0U);
+  EXPECT_EQ(context.file_handle_struct_map.size(), 4U);
+  EXPECT_EQ(context.file_handle_struct_index.size(), 4U);
+
+  SystemStateTracker::expireFileHandleEntries(context, 10U);
+  EXPECT_EQ(context.file_handle_struct_map.size(), 4U);
+  EXPECT_EQ(context.file_handle_struct_index.size(), 4U);
+
+  SystemStateTracker::expireFileHandleEntries(context, 5U);
+  EXPECT_EQ(context.file_handle_struct_map.size(), 4U);
+  EXPECT_EQ(context.file_handle_struct_index.size(), 4U);
+
+  SystemStateTracker::expireFileHandleEntries(context, 4U);
+  EXPECT_EQ(context.file_handle_struct_map.size(), 4U);
+  EXPECT_EQ(context.file_handle_struct_index.size(), 4U);
+
+  SystemStateTracker::expireFileHandleEntries(context, 3U);
+  EXPECT_EQ(context.file_handle_struct_map.size(), 3U);
+  EXPECT_EQ(context.file_handle_struct_index.size(), 3U);
+
+  SystemStateTracker::expireFileHandleEntries(context, 2U);
+  EXPECT_EQ(context.file_handle_struct_map.size(), 2U);
+  EXPECT_EQ(context.file_handle_struct_index.size(), 2U);
+
+  SystemStateTracker::expireFileHandleEntries(context, 1U);
+  EXPECT_EQ(context.file_handle_struct_map.size(), 1U);
+  EXPECT_EQ(context.file_handle_struct_index.size(), 1U);
+}
 } // namespace osquery

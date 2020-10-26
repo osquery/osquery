@@ -23,6 +23,7 @@ namespace osquery {
 namespace {
 
 const std::size_t kEventMapSize{2048};
+const std::size_t kMaxNameToHandleAtSize{128U};
 
 using EventHandler = bool (*)(ISystemStateTracker& state,
                               const tob::ebpfpub::IFunctionTracer::Event&);
@@ -52,6 +53,8 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
     {"creat", &BPFEventPublisher::processCreatEvent, 1U},
     {"mknod", &BPFEventPublisher::processMknodatEvent, 1U},
     {"mknodat", &BPFEventPublisher::processMknodatEvent, 1U},
+    {"name_to_handle_at", &BPFEventPublisher::processNameToHandleAtEvent, 1U},
+    {"open_by_handle_at", &BPFEventPublisher::processOpenByHandleAtEvent, 1U},
     {"open", &BPFEventPublisher::processOpenEvent, 2U},
     {"openat", &BPFEventPublisher::processOpenatEvent, 2U},
     {"openat2", &BPFEventPublisher::processOpenat2Event, 1U},
@@ -609,6 +612,114 @@ bool BPFEventPublisher::processMknodatEvent(
   const int kEmptyFlags{};
 
   return state.openFile(process_id, dirfd, newfd, pathname, kEmptyFlags);
+}
+
+bool BPFEventPublisher::processNameToHandleAtEvent(
+    ISystemStateTracker& state,
+    const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // The syscall will return 0 when it succeeds
+  if (event.header.exit_code != 0) {
+    return true;
+  }
+
+  std::uint64_t dfd{};
+  if (!getEventMapValue(dfd, event.in_field_map, "dfd")) {
+    return false;
+  }
+
+  std::string name;
+  if (!getEventMapValue(name, event.out_field_map, "name")) {
+    return false;
+  }
+
+  std::vector<std::uint8_t> handle;
+  if (!getEventMapValue(handle, event.out_field_map, "handle")) {
+    return false;
+  }
+
+  std::uint64_t mnt_id{};
+  if (!getEventMapValue(mnt_id, event.out_field_map, "mnt_id")) {
+    return false;
+  }
+
+  std::uint64_t flag{};
+  if (!getEventMapValue(mnt_id, event.in_field_map, "flag")) {
+    return false;
+  }
+
+  // Validate the structure size; we at least need 6 bytes for the
+  // header
+  if (handle.size() < 8U) {
+    return true;
+  }
+
+  std::uint32_t handle_size{};
+  std::memcpy(&handle_size, handle.data(), sizeof(handle_size));
+
+  int handle_type{};
+  std::memcpy(&handle_type, handle.data() + 4U, sizeof(handle_type));
+
+  // Limit the size this data so we don't track too much
+  // memory
+  if (handle_size > kMaxNameToHandleAtSize ||
+      handle_size + 8U >= handle.size()) {
+    VLOG(1) << "The file_handle struct passed to name_to_handle_at is too big. "
+               "Failing this event";
+
+    return false;
+  }
+
+  std::vector<std::uint8_t> f_handle;
+  f_handle.resize(handle_size);
+  std::memcpy(f_handle.data(), handle.data() + 8U, f_handle.size());
+
+  state.nameToHandleAt(dfd, name, handle_type, f_handle, mnt_id, flag);
+  return true;
+}
+
+bool BPFEventPublisher::processOpenByHandleAtEvent(
+    ISystemStateTracker& state,
+    const tob::ebpfpub::IFunctionTracer::Event& event) {
+  // The syscall will return a negative errno code if something
+  // didn't work
+  auto newfd = static_cast<int>(event.header.exit_code);
+  if (newfd < 0) {
+    return true;
+  }
+
+  std::uint64_t mountdirfd{};
+  if (!getEventMapValue(mountdirfd, event.in_field_map, "mountdirfd")) {
+    return false;
+  }
+
+  std::vector<std::uint8_t> handle{};
+  if (!getEventMapValue(handle, event.in_field_map, "handle")) {
+    return false;
+  }
+
+  std::uint32_t handle_size{};
+  std::memcpy(&handle_size, handle.data(), sizeof(handle_size));
+
+  int handle_type{};
+  std::memcpy(&handle_type, handle.data() + 4U, sizeof(handle_type));
+
+  // Limit the size this data so we don't track too much
+  // memory
+  if (handle_size > kMaxNameToHandleAtSize ||
+      handle_size + 8U >= handle.size()) {
+    VLOG(1) << "The file_handle struct passed to name_to_handle_at is too big. "
+               "Failing this event";
+
+    return false;
+  }
+
+  std::vector<std::uint8_t> handle_data;
+  handle_data.resize(handle_size);
+  std::memcpy(handle_data.data(), handle.data() + 8U, handle_data.size());
+
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+  return state.openByHandleAt(
+      process_id, mountdirfd, handle_type, handle_data, newfd);
 }
 
 bool BPFEventPublisher::processOpenEvent(
