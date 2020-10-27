@@ -97,7 +97,7 @@ function(thriftMain)
   # custom header
   if(DEFINED PLATFORM_WINDOWS)
     target_compile_options(thirdparty_thrift PRIVATE
-      "${forced_include_file_flag} ${CMAKE_CURRENT_SOURCE_DIR}/patches/random_shuffle.h"
+      "${forced_include_file_flag}${CMAKE_CURRENT_SOURCE_DIR}/patches/random_shuffle.h"
     )
   else()
     target_compile_options(thirdparty_thrift PRIVATE
