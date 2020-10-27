@@ -11,6 +11,7 @@
 #include <unordered_set>
 
 #include "osquery/events/windows/ntfs_event_publisher.h"
+#include <osquery/events/eventsubscriber.h>
 
 namespace osquery {
 /// Subscriber for file change events

@@ -20,6 +20,7 @@
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/info/tool_type.h>
 #include <osquery/utils/system/time.h>
 
 namespace osquery {

@@ -185,6 +185,8 @@ function(generateOsqueryEventsEventsregistry)
     eventsubscriberplugin.cpp
   )
 
+  enableLinkWholeArchive(osquery_events_eventsregistry)
+
   target_link_libraries(osquery_events_eventsregistry PUBLIC
     osquery_cxx_settings
     osquery_core

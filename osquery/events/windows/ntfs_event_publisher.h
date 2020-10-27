@@ -17,6 +17,7 @@
 #include <unordered_set>
 
 #include "osquery/events/windows/usn_journal_reader.h"
+#include <osquery/events/eventpublisher.h>
 
 namespace osquery {
 /// The subscription context contains the list of paths the subscriber is
