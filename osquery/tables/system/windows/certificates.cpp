@@ -419,45 +419,40 @@ void addCertRow(PCCERT_CONTEXT certContext,
   std::vector<WCHAR> certBuff;
   certBuff.resize(256, 0);
   std::fill(certBuff.begin(), certBuff.end(), 0);
-  CertGetNameString(
-      certContext,
-      CERT_NAME_SIMPLE_DISPLAY_TYPE | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
-      0,
-      nullptr,
-      certBuff.data(),
-      static_cast<unsigned long>(certBuff.size()));
+  CertGetNameString(certContext,
+                    CERT_NAME_SIMPLE_DISPLAY_TYPE,
+                    0,
+                    nullptr,
+                    certBuff.data(),
+                    static_cast<unsigned long>(certBuff.size()));
   r["common_name"] = wstringToString(certBuff.data());
 
-  auto subjSize =
-      CertNameToStr(certContext->dwCertEncodingType,
-                    &(certContext->pCertInfo->Subject),
-                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
-                    nullptr,
-                    0);
+  auto subjSize = CertNameToStr(certContext->dwCertEncodingType,
+                                &(certContext->pCertInfo->Subject),
+                                CERT_SIMPLE_NAME_STR,
+                                nullptr,
+                                0);
   certBuff.resize(subjSize, 0);
   std::fill(certBuff.begin(), certBuff.end(), 0);
-  subjSize =
-      CertNameToStr(certContext->dwCertEncodingType,
-                    &(certContext->pCertInfo->Subject),
-                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
-                    certBuff.data(),
-                    subjSize);
+  subjSize = CertNameToStr(certContext->dwCertEncodingType,
+                           &(certContext->pCertInfo->Subject),
+                           CERT_SIMPLE_NAME_STR,
+                           certBuff.data(),
+                           subjSize);
   r["subject"] = subjSize == 0 ? "" : wstringToString(certBuff.data());
 
-  auto issuerSize =
-      CertNameToStr(certContext->dwCertEncodingType,
-                    &(certContext->pCertInfo->Issuer),
-                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
-                    nullptr,
-                    0);
+  auto issuerSize = CertNameToStr(certContext->dwCertEncodingType,
+                                  &(certContext->pCertInfo->Issuer),
+                                  CERT_SIMPLE_NAME_STR,
+                                  nullptr,
+                                  0);
   certBuff.resize(issuerSize, 0);
   std::fill(certBuff.begin(), certBuff.end(), 0);
-  issuerSize =
-      CertNameToStr(certContext->dwCertEncodingType,
-                    &(certContext->pCertInfo->Issuer),
-                    CERT_SIMPLE_NAME_STR | CERT_NAME_STR_ENABLE_PUNYCODE_FLAG,
-                    certBuff.data(),
-                    issuerSize);
+  issuerSize = CertNameToStr(certContext->dwCertEncodingType,
+                             &(certContext->pCertInfo->Issuer),
+                             CERT_SIMPLE_NAME_STR,
+                             certBuff.data(),
+                             issuerSize);
   r["issuer"] = issuerSize == 0 ? "" : wstringToString(certBuff.data());
 
   // TODO(#5654) 1: Find the right API calls to get whether a cert is for a CA
