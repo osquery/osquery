@@ -208,10 +208,6 @@ VMware Fusion (and possibly other systems as well) supports CPU hotswapping, rai
 
 This problem can be easily fixed by disabling hotswapping. This setting is unfortunately not available through the user interface, so it needs to be changed directly in the .vmx file (`vcpu.hotadd=FALSE`).
 
-**Known issues**
-
-Containers are not well supported yet; the internal system state tracker relies on being able to correctly correlate processed together by tracing the fork system call and its variants. When a PID namespace is used, the exit code for the function does not match a valid identifier on the host namespace, causing a cache miss in the process context map used track process information.
-
 ## macOS process & socket auditing
 
 osquery supports OpenBSM audit on macOS platforms. To enable it in osquery, you need to set `--disable_audit=false`
