@@ -90,13 +90,13 @@ function(thriftMain)
   if(PLATFORM_WINDOWS)
     set(forced_include_file_flag "/FI")
   else()
-    set(forced_include_file_flag "-include")
+    set(forced_include_file_flag "--include")
   endif()
 
   # C++17 dropped support for random_shuffle. Add it back with a
   # custom header
   target_compile_options(thirdparty_thrift PRIVATE
-    "${forced_include_file_flag}" "${CMAKE_CURRENT_SOURCE_DIR}/patches/random_shuffle.h"
+    "${forced_include_file_flag}${CMAKE_CURRENT_SOURCE_DIR}/patches/random_shuffle.h"
   )
 
   target_compile_definitions(thirdparty_thrift PRIVATE
