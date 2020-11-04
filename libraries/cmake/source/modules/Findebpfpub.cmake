@@ -8,7 +8,28 @@
 cmake_minimum_required(VERSION 3.14.6)
 include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
-importSourceSubmodule(
-  NAME "ebpfpub"
-  SUBMODULES "src"
+# The osquery-toolchain v1.0 shipped with a broken LLVM installation, so
+# we can't use find_package
+if(OSQUERY_TOOLCHAIN_SYSROOT)
+  set(llvm_bpfcodegen_hints
+    HINTS "${OSQUERY_TOOLCHAIN_SYSROOT}/usr/lib"
+  )
+endif()
+
+find_library(llvm_bpfcodegen_lib
+  NAMES
+    "libLLVMBPFCodeGen.a"
+
+  ${llvm_bpfcodegen_hints}
 )
+
+if("${llvm_bpfcodegen_lib}" STREQUAL "llvm_bpfcodegen_lib-NOTFOUND")
+  message(WARNING "The installed LLVM libraries do not support BPF")
+  set(OSQUERY_BUILD_BPF false CACHE BOOL "Whether to enable and build BPF support. Useful for ossfuzz (forced OFF)" FORCE)
+
+else()
+  importSourceSubmodule(
+    NAME "ebpfpub"
+    SUBMODULES "src"
+  )
+endif()

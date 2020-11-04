@@ -25,14 +25,19 @@ function(generateOsqueryTablesEventsEventstable)
       linux/hardware_events.cpp
       linux/process_events.cpp
       linux/process_file_events.cpp
-      linux/bpf_process_events.cpp
-      linux/bpf_socket_events.cpp
       linux/selinux_events.cpp
       linux/socket_events.cpp
       linux/syslog_events.cpp
       linux/user_events.cpp
       linux/apparmor_events.cpp
     )
+
+    if(OSQUERY_BUILD_BPF)
+      list(APPEND source_files
+        linux/bpf_process_events.cpp
+        linux/bpf_socket_events.cpp
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     list(APPEND source_files

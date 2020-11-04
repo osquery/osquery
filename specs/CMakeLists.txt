@@ -157,8 +157,6 @@ function(generateNativeTables)
     "linux/elf_segments.table:linux"
     "linux/md_devices.table:linux"
     "linux/process_namespaces.table:linux"
-    "linux/bpf_process_events.table:linux"
-    "linux/bpf_socket_events.table:linux"
     "linux/syslog_events.table:linux"
     "linux/rpm_packages.table:linux"
     "linux/portage_packages.table:linux"
@@ -303,6 +301,13 @@ function(generateNativeTables)
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd,windows"
   )
+
+  if(OSQUERY_BUILD_BPF)
+    list(APPEND platform_dependent_spec_files
+      "linux/bpf_process_events.table:linux"
+      "linux/bpf_socket_events.table:linux"
+    )
+  endif()
 
   foreach(spec_descriptor ${platform_dependent_spec_files})
     string(REPLACE ":" ";" spec_descriptor "${spec_descriptor}")
