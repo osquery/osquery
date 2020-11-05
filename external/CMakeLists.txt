@@ -28,6 +28,10 @@ function(subdirlist output path)
   file(GLOB children RELATIVE ${path} "${path}/*")
   set(DIRS "")
   foreach(child ${children})
+    if("${child}" STREQUAL "examples")
+      continue()
+    endif()
+
     get_filename_component(full_child "${path}/${child}" REALPATH)
     if(IS_DIRECTORY "${full_child}")
       list(APPEND DIRS "${path}/${child}")
@@ -38,7 +42,21 @@ function(subdirlist output path)
   set(${output} ${DIRS} PARENT_SCOPE)
 endfunction()
 
+function(externalsExamples)
+  set(example_name_list
+    "config_plugin"
+    "read_only_table"
+    "writable_table"
+  )
+
+  foreach(example_name ${example_name_list})
+    add_subdirectory("examples/${example_name}")
+  endforeach()
+endfunction()
+
 function(externalsMain)
+  externalsExamples()
+
   # Discover the implementation for extensions or modules in external directory
   subdirlist(EXTERNAL_PROJECTS ${EXTERNALS_DIR})
 
