@@ -169,6 +169,8 @@ osqueryi --audit_allow_config=true --audit_allow_sockets=true --audit_persist=tr
 
 If you would like to debug the raw audit events as `osqueryd` sees them, use the hidden flag `--audit_debug`. This will print all of the RAW audit lines to osquery's `stdout`.
 
+> NOTICE: Linux systems running `journald` will collect logging data originating from the kernel audit subsystem (something that osquery enables) from several sources, including audit records. To avoid performance problems on busy boxes (specially when osquery event tables are enabled), it is recommended to mask audit logs from entering the journal with the following command `systemctl mask --now systemd-journald-audit.socket`. 
+
 ## User event auditing with Audit
 
 On Linux, a companion table called `user_events` is included that provides several authentication-based events. If you are enabling process auditing it should be trivial to also include this table.

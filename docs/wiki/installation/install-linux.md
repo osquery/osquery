@@ -22,6 +22,8 @@ The default packages create the following structure:
 
 To install osquery, follow the instructions on the [Downloads](https://osquery.io/downloads/official) page according to your distro.
 
+> NOTICE: Linux systems running `journald` will collect logging data originating from the kernel audit subsystem (something that osquery enables) from several sources, including audit records. To avoid performance problems on busy boxes (specially when osquery event tables are enabled), it is recommended to mask audit logs from entering the journal with the following command `systemctl mask --now systemd-journald-audit.socket`. 
+
 ## Running osquery
 
 To start a standalone osquery use: `osqueryi`. This does not need a server or service. All the table implementations are included!
