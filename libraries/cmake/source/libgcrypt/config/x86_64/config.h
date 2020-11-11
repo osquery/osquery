@@ -13,7 +13,7 @@
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
 /* GIT commit id revision used to build this package */
-#define BUILD_REVISION "80fd8615"
+#define BUILD_REVISION "80fd861"
 
 /* The time this package was configured for a build */
 #define BUILD_TIMESTAMP "<none>"

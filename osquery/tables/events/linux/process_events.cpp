@@ -69,7 +69,7 @@ Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
   for (auto& row : emitted_row_list) {
     struct stat file_stat;
-    if (stat(row.at("path").c_str(), &file_stat)) {
+    if (!stat(row.at("path").c_str(), &file_stat)) {
       if (row["mode"].empty()) {
         row["mode"] = lsperms(file_stat.st_mode);
       }

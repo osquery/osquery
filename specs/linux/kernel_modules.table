@@ -2,7 +2,7 @@ table_name("kernel_modules")
 description("Linux kernel modules both loaded and within the load search path.")
 schema([
     Column("name", TEXT, "Module name"),
-    Column("size", TEXT, "Size of module content"),
+    Column("size", BIGINT, "Size of module content"),
     Column("used_by", TEXT, "Module reverse dependencies"),
     Column("status", TEXT, "Kernel module status"),
     Column("address", TEXT, "Kernel module address"),

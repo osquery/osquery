@@ -21,6 +21,7 @@ function(generatePluginsDistributedTls)
     osquery_core
     osquery_core_plugins
     osquery_database
+    osquery_distributed
     osquery_logger
     osquery_remote_utility
     osquery_remote_serializers_serializerjson

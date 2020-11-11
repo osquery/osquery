@@ -187,6 +187,7 @@ static inline void printUsage(const std::string& binary, ToolType tool) {
   }
 
   fprintf(stdout, EPILOG);
+  fflush(stdout);
 }
 
 Initializer::Initializer(int& argc,
@@ -261,6 +262,7 @@ Initializer::Initializer(int& argc,
                tool != ToolType::TEST) {
       printUsage(binary_, getToolType());
       shutdownNow();
+      return;
     }
     if (help.find("--flagfile") == 0) {
       default_flags = false;
@@ -542,7 +544,7 @@ void Initializer::start() const {
   auto s = osquery::startExtensionManager();
   if (!s.ok()) {
     auto error_message =
-        "An error occured during extension manager startup: " + s.getMessage();
+        "An error occurred during extension manager startup: " + s.getMessage();
     auto severity =
         (FLAGS_disable_extensions) ? google::GLOG_INFO : google::GLOG_ERROR;
     if (severity == google::GLOG_INFO) {

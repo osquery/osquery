@@ -66,7 +66,7 @@
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
-/* #undef ENABLE_NLS */
+#define ENABLE_NLS 1
 
 /* Enable password quality checking using passwdqc library */
 /* #undef ENABLE_PASSWDQC */
@@ -96,7 +96,7 @@
 
 /* Define if the GNU dcgettext() function is already present or preinstalled.
    */
-/* #undef HAVE_DCGETTEXT */
+#define HAVE_DCGETTEXT 1
 
 /* Define to 1 if you have the declaration of `dm_task_retry_remove', and to 0
    if you don't. */
@@ -135,7 +135,7 @@
 #define HAVE_FSEEKO 1
 
 /* Define if the GNU gettext() function is already present or preinstalled. */
-/* #undef HAVE_GETTEXT */
+#define HAVE_GETTEXT 1
 
 /* Define if you have the iconv() function. */
 /* #undef HAVE_ICONV */
@@ -229,7 +229,8 @@
 /* Define to 1 if you have the <uuid/uuid.h> header file. */
 #define HAVE_UUID_UUID_H 1
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #define LT_OBJDIR ".libs/"
 
 /* Name of package */

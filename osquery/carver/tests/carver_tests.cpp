@@ -15,13 +15,12 @@
 #include <gtest/gtest.h>
 
 #include <osquery/carver/carver.h>
-#include <osquery/config/tests/test_utils.h>
+#include <osquery/carver/carver_utils.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/hashing/hashing.h>
 #include <osquery/registry/registry.h>
-#include <osquery/sql/sql.h>
 #include <osquery/utils/json/json.h>
 
 namespace osquery {
@@ -40,6 +39,7 @@ class FakeCarver : public Carver {
 
  protected:
   Status postCarve(const boost::filesystem::path&) override {
+    updateCarveValue(carveGuid_, "status", kCarverStatusSuccess);
     return Status::success();
   }
 
@@ -48,6 +48,11 @@ class FakeCarver : public Carver {
   FRIEND_TEST(CarverTests, test_carve_files_locally);
   FRIEND_TEST(CarverTests, test_carve_start);
   FRIEND_TEST(CarverTests, test_carve_files_not_exists);
+};
+
+class FakeCarverRunner : public CarverRunner<FakeCarver> {
+ public:
+  FakeCarverRunner() : CarverRunner() {}
 };
 
 std::string genGuid() {
@@ -115,8 +120,8 @@ TEST_F(CarverTests, test_carve_files_locally) {
   auto guid = genGuid();
   std::string requestId = "";
   FakeCarver carve(getCarvePaths(), guid, requestId);
-  ASSERT_TRUE(carve.getStatus().ok());
 
+  ASSERT_TRUE(carve.createPaths());
   const auto carves = carve.carveAll();
   EXPECT_EQ(carves.size(), 3U);
 
@@ -130,14 +135,117 @@ TEST_F(CarverTests, test_carve_files_locally) {
   EXPECT_GT(tar.size(), 0U);
 }
 
-TEST_F(CarverTests, test_carve_start) {
+TEST_F(CarverTests, test_carve) {
   auto guid = genGuid();
   std::string requestId = "";
   FakeCarver carve(getCarvePaths(), guid, requestId);
-  ASSERT_TRUE(carve.getStatus().ok());
+  auto s = carve.carve();
+  ASSERT_TRUE(s.ok());
+}
 
-  carve.start();
-  ASSERT_TRUE(carve.getStatus().ok());
+TEST_F(CarverTests, test_schedule_carves) {
+  // Request paths for carving.
+  auto s = osquery::carvePaths(getCarvePaths());
+  ASSERT_TRUE(s.ok());
+
+  ASSERT_FALSE(FakeCarverRunner::running());
+  {
+    FakeCarverRunner runner;
+    ASSERT_TRUE(FakeCarverRunner::running());
+    runner.start();
+
+    EXPECT_EQ(runner.carves(), 1);
+  }
+
+  {
+    FakeCarverRunner runner;
+    ASSERT_TRUE(FakeCarverRunner::running());
+    runner.start();
+
+    // All carves were previously completed.
+    EXPECT_EQ(runner.carves(), 0);
+  }
+
+  ASSERT_FALSE(FakeCarverRunner::running());
+}
+
+TEST_F(CarverTests, test_expiration) {
+  {
+    // Reset the carves.
+    std::vector<std::string> carves;
+    scanDatabaseKeys(kCarves, carves, kCarverDBPrefix);
+    for (const auto& key : carves) {
+      deleteDatabaseValue(kCarves, key);
+    }
+  }
+
+  // Create 2 carve requests.
+  auto s = osquery::carvePaths(getCarvePaths());
+  ASSERT_TRUE(s.ok());
+  s = osquery::carvePaths(getCarvePaths());
+  ASSERT_TRUE(s.ok());
+
+  {
+    // Set one request to an expired time.
+    std::vector<std::string> carves;
+    scanDatabaseKeys(kCarves, carves, kCarverDBPrefix);
+    EXPECT_EQ(carves.size(), 2);
+
+    std::string carve;
+    s = getDatabaseValue(kCarves, carves[0], carve);
+    ASSERT_TRUE(s.ok());
+
+    JSON tree;
+    s = tree.fromString(carve);
+    ASSERT_TRUE(s.ok());
+    std::string guid(tree.doc()["carve_guid"].GetString());
+
+    tree.add("time", 0);
+    tree.add("status", kCarverStatusSuccess);
+    s = tree.toString(carve);
+    ASSERT_TRUE(s.ok());
+    s = setDatabaseValue(kCarves, carves[0], carve);
+    ASSERT_TRUE(s.ok());
+  }
+
+  {
+    // Schedule the carves and expect the expired successful carve to be
+    // deleted.
+    FakeCarverRunner runner;
+    runner.start();
+    EXPECT_EQ(runner.carves(), 1);
+
+    std::vector<std::string> carves;
+    scanDatabaseKeys(kCarves, carves, kCarverDBPrefix);
+    EXPECT_EQ(carves.size(), 1);
+
+    std::string carve;
+    s = getDatabaseValue(kCarves, carves[0], carve);
+    ASSERT_TRUE(s.ok());
+
+    JSON tree;
+    s = tree.fromString(carve);
+    ASSERT_TRUE(s.ok());
+    std::string guid(tree.doc()["carve_guid"].GetString());
+
+    // This time only update the time.
+    // Expect the carve to have been successful.
+    tree.add("time", 0);
+    s = tree.toString(carve);
+    ASSERT_TRUE(s.ok());
+    s = setDatabaseValue(kCarves, carves[0], carve);
+    ASSERT_TRUE(s.ok());
+  }
+
+  {
+    FakeCarverRunner runner;
+    runner.start();
+    EXPECT_EQ(runner.carves(), 0);
+
+    std::vector<std::string> carves;
+    scanDatabaseKeys(kCarves, carves, kCarverDBPrefix);
+    EXPECT_TRUE(carves.empty());
+  }
 }
 
 TEST_F(CarverTests, test_carve_files_not_exists) {
@@ -146,8 +254,6 @@ TEST_F(CarverTests, test_carve_files_not_exists) {
   const std::set<std::string> notExistsCarvePaths = {
       (getFilesToCarveDir() / "not_exists").string()};
   FakeCarver carve(notExistsCarvePaths, guid, requestId);
-  ASSERT_TRUE(carve.getStatus().ok());
-
   const auto carves = carve.carveAll();
   EXPECT_TRUE(carves.empty());
 }

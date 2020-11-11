@@ -83,7 +83,7 @@ Status NonBlockingFStream::getline(std::string& output) {
     WriteLock lock(fd_mutex_);
 
     // Poll for available data with a near-instant delay.
-    // It is the caller's responsibility to yeild context.
+    // It is the caller's responsibility to yield context.
     fd_set set;
     struct timeval timeout = {0, 200};
     FD_ZERO(&set);

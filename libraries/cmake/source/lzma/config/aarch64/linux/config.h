@@ -89,7 +89,7 @@
 /* #undef HAVE_DECODER_SPARC */
 
 /* Define to 1 if x86 decoder is enabled. */
-/* #undef HAVE_DECODER_X86 */
+#define HAVE_DECODER_X86 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1
@@ -119,7 +119,7 @@
 /* #undef HAVE_ENCODER_SPARC */
 
 /* Define to 1 if x86 encoder is enabled. */
-/* #undef HAVE_ENCODER_X86 */
+#define HAVE_ENCODER_X86 1
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #define HAVE_FCNTL_H 1

@@ -71,7 +71,7 @@
 /* #undef HAVE_LIBPQ_FE_H */
 
 /* Define to 1 if you have the `sqlite3' library (-lsqlite3). */
-#define HAVE_LIBSQLITE3 1
+/* #undef HAVE_LIBSQLITE3 */
 
 /* Define to 1 if you have the `stdc++' library (-lstdc++). */
 #define HAVE_LIBSTDC__ 1
@@ -117,7 +117,7 @@
 /* #undef HAVE_SET */
 
 /* Define to 1 if you have the <sqlite3.h> header file. */
-#define HAVE_SQLITE3_H 1
+/* #undef HAVE_SQLITE3_H */
 
 /* Define to 1 if you have the <stack> header file. */
 /* #undef HAVE_STACK */

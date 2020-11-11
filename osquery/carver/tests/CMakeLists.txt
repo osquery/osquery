@@ -14,18 +14,14 @@ function(generateOsqueryCarverTestsTest)
 
   target_link_libraries(osquery_carver_tests-test PRIVATE
     osquery_cxx_settings
-    osquery_config_tests_testutils
     osquery_carver
     osquery_database
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_hashing
-    osquery_remote_enroll_tlsenroll
     osquery_utils_conversions
     osquery_utils_info
-    plugins_config_tlsconfig
-    specs_tables
+    tests_helper
     thirdparty_googletest
   )
 endfunction()

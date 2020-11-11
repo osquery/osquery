@@ -1,0 +1,28 @@
+table_name("bpf_socket_events")
+description("Track network socket opens and closes.")
+schema([
+    Column("tid", BIGINT, "Thread ID"),
+    Column("pid", BIGINT, "Process ID"),
+    Column("parent", BIGINT, "Parent process ID"),
+    Column("uid", BIGINT, "User ID"),
+    Column("gid", BIGINT, "Group ID"),
+    Column("cid", INTEGER, "Cgroup ID"),
+    Column("exit_code", TEXT, "Exit code of the system call"),
+    Column("probe_error", INTEGER, "Set to 1 if one or more buffers could not be captured"),
+    Column("syscall", TEXT, "System call name"),
+    Column("path", TEXT, "Path of executed file"),
+    Column("fd", TEXT, "The file description for the process socket"),
+    Column("family", INTEGER, "The Internet protocol family ID"),
+    Column("type", INTEGER, "The socket type"),
+    Column("protocol", INTEGER, "The network protocol ID"), 
+    Column("local_address", TEXT, "Local address associated with socket"),
+    Column("remote_address", TEXT, "Remote address associated with socket"),
+    Column("local_port", INTEGER, "Local network protocol port number"),
+    Column("remote_port", INTEGER, "Remote network protocol port number"),
+    Column("duration", INTEGER, "How much time was spent inside the syscall (nsecs)"),
+    Column("ntime", TEXT, "The nsecs uptime timestamp as obtained from BPF"),
+    Column("time", BIGINT, "Time of execution in UNIX time", hidden=True),
+    Column("eid", INTEGER, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("bpf_socket_events@bpf_socket_events::genTable")

@@ -1,0 +1,23 @@
+table_name("bpf_process_events")
+description("Track time/action process executions.")
+schema([
+    Column("tid", BIGINT, "Thread ID"),
+    Column("pid", BIGINT, "Process ID"),
+    Column("parent", BIGINT, "Parent process ID"),
+    Column("uid", BIGINT, "User ID"),
+    Column("gid", BIGINT, "Group ID"),
+    Column("cid", INTEGER, "Cgroup ID"),
+    Column("exit_code", TEXT, "Exit code of the system call"),
+    Column("probe_error", INTEGER, "Set to 1 if one or more buffers could not be captured"),
+    Column("syscall", TEXT, "System call name"),
+    Column("path", TEXT, "Binary path"),
+    Column("cwd", TEXT, "Current working directory"),
+    Column("cmdline", TEXT, "Command line arguments"),
+    Column("duration", INTEGER, "How much time was spent inside the syscall (nsecs)"),
+    Column("json_cmdline", TEXT, "Command line arguments, in JSON format", hidden=True),
+    Column("ntime", TEXT, "The nsecs uptime timestamp as obtained from BPF"),
+    Column("time", BIGINT, "Time of execution in UNIX time", hidden=True),
+    Column("eid", INTEGER, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("bpf_process_events@bpf_process_events::genTable")

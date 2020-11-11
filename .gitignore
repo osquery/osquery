@@ -68,5 +68,6 @@ cscope.out
 
 # Ignored components
 /external/*
+!/external/examples
 !/external/cmake/cmakelibs.cmake
 !/external/CMakeLists.txt

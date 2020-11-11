@@ -123,19 +123,13 @@ function(generateOsqueryFilesystemTest)
     osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
-    osquery_core_sql
-    osquery_dispatcher
-    osquery_distributed
-    osquery_events
     osquery_extensions
     osquery_extensions_implthrift
     osquery_process
     osquery_registry
-    osquery_remote_enroll_tlsenroll
-    plugins_config_tlsconfig
-    specs_tables
     osquery_filesystem_mockfilestructure
     osquery_filesystem
+    tests_helper
     thirdparty_googletest
   )
 endfunction()

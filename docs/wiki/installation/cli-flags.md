@@ -180,7 +180,7 @@ Optional comma-delimited set of extension names to require before `osqueryi` or 
 
 `--extensions_default_index=true`
 
-Enable INDEX (and thereby constraints) on all extension table columns.  Provides backwards compatiblity for extensions (or SDKs) that don't correctly define indexes in column options. See issue 6006 for more details.
+Enable INDEX (and thereby constraints) on all extension table columns.  Provides backwards compatibility for extensions (or SDKs) that don't correctly define indexes in column options. See issue 6006 for more details.
 
 ## Remote settings flags (optional)
 

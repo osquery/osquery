@@ -5,7 +5,7 @@
 #define APPARMORDIR "no"
 
 /* Build date and time */
-#define BUILD_DATE "2019-07-31T21:20:43Z"
+#define BUILD_DATE ""
 
 /* Cisco Discovery Protocol */
 #define ENABLE_CDP /**/
@@ -221,7 +221,7 @@
 /* #undef HOST_OS_SOLARIS */
 
 /* Directory for launchd configuration file (OSX) */
-#define LAUNCHDDAEMONSDIR "no"
+#define LAUNCHDDAEMONSDIR "/Library/LaunchDaemons"
 
 /* Path to socket for communication with lldpd */
 #define LLDPD_CTL_SOCKET "/usr/local/var/run/lldpd.socket"
@@ -230,12 +230,13 @@
 #define LLDPD_PID_FILE "/usr/local/var/run/lldpd.pid"
 
 /* C compiler command */
-#define LLDP_CC "gcc  -fdiagnostics-show-option -fdiagnostics-color=auto -pipe -Wall -W -Wextra -Wformat -Wformat-security -Wfatal-errors -Wcast-align -Winline -Wpointer-arith -fno-omit-frame-pointer -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -fstack-protector -fstack-protector-all -fstack-protector-strong  -D_FORTIFY_SOURCE=2 -D_GNU_SOURCE -g -O2 "
+#define LLDP_CC "clang  -Wunknown-warning-option -fdiagnostics-show-option -fdiagnostics-color=auto -pipe -Wall -W -Wextra -Wformat -Wformat-security -Wfatal-errors -Wcast-align -Wheader-guard -Wdocumentation -Winline -Wpointer-arith -fno-omit-frame-pointer -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -fstack-protector -fstack-protector-all -fstack-protector-strong  -D_FORTIFY_SOURCE=2 -D_GNU_SOURCE --sysroot /usr/local/osquery-toolchain "
 
 /* Linker compiler command */
-#define LLDP_LD "/usr/bin/ld -m elf_x86_64  -Wl,-z,relro -Wl,-z,now   "
+#define LLDP_LD "/usr/bin/ld -m elf_x86_64  -Wl,-z,relro -Wl,-z,now  --sysroot /usr/local/osquery-toolchain "
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #define LT_OBJDIR ".libs/"
 
 /* Minimal kernel version required */
@@ -260,7 +261,7 @@
 #define PACKAGE_NAME "lldpd"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "lldpd 0.9.6-dirty"
+#define PACKAGE_STRING "lldpd 0.9.6"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "lldpd"
@@ -269,7 +270,7 @@
 #define PACKAGE_URL "http://vincentbernat.github.io/lldpd/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.9.6-dirty"
+#define PACKAGE_VERSION "0.9.6"
 
 /* Which directory to use to chroot lldpd */
 #define PRIVSEP_CHROOT "/var/empty"
@@ -284,10 +285,10 @@
 #define STDC_HEADERS 1
 
 /* Directory for systemd service files */
-#define SYSTEMDSYSTEMUNITDIR "/usr/share"
+#define SYSTEMDSYSTEMUNITDIR ""
 
 /* Directory for sysusers files */
-#define SYSUSERSDIR "/usr/share"
+#define SYSUSERSDIR ""
 
 /* Define to indicate to enable JSON support through jansson */
 /* #undef USE_JANSSON */
@@ -308,7 +309,7 @@
 /* #undef USE_XML */
 
 /* Version number of package */
-#define VERSION "0.9.6-dirty"
+#define VERSION "0.9.6"
 
 /* Define to rpl_malloc if the replacement function should be used. */
 /* #undef malloc */

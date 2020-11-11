@@ -9,13 +9,13 @@
 
 #pragma once
 
-#include <osquery/core/system.h>
-#include <osquery/sdk.h>
+#include <memory>
+
+#include <dirent.h>
+#include <unistd.h>
 
 namespace osquery {
-class ExampleTable : public TablePlugin {
- private:
-  TableColumns columns() const;
-  QueryData generate(QueryContext& request);
-};
+
+using UniqueDir = std::unique_ptr<DIR, decltype(&closedir)>;
+
 } // namespace osquery

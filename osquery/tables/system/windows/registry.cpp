@@ -191,13 +191,10 @@ Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
     DWORD accntNameLen = UNLEN + 1;
     DWORD domNameLen = DNLEN + 1;
     SID_NAME_USE eUse;
-    if (!LookupAccountSidW(nullptr,
-                           sid,
-                           accntName,
-                           &accntNameLen,
-                           domName,
-                           &domNameLen,
-                           &eUse)) {
+    BOOL result = LookupAccountSidW(
+        nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
+    LocalFree(sid);
+    if (!result) {
       return Status(GetLastError(), "Could not find sid");
     } else {
       rUsername = std::move(wstringToString(accntName));

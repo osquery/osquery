@@ -87,7 +87,7 @@ class NonBlockingFStream : public boost::noncopyable {
    * written and our internal buffer overflows then no data will be output.
    *
    * Overflowing the internal buffer does not break the reading. If this occures
-   * then expect a line to be truncated and only yeild the max bytes.
+   * then expect a line to be truncated and only yield the max bytes.
    */
   Status getline(std::string& output);
 

@@ -7,18 +7,10 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <gtest/gtest.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
-namespace example {
 
-class ExampleTests : public testing::Test {};
+Status configureBPFMemoryLimits();
 
-TEST_F(ExampleTests, test_plugin) { EXPECT_TRUE(1 == 1); }
-}
-}
-
-int main(int argc, char* argv[]) {
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+} // namespace osquery

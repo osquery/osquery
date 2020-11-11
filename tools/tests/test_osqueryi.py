@@ -28,9 +28,6 @@ class OsqueryiTest(unittest.TestCase):
     def setUp(self):
         self.binary = test_base.getLatestOsqueryBinary('osqueryi')
         self.osqueryi = test_base.OsqueryWrapper(command=self.binary)
-        self.dbpath = "%s%s" % (
-            test_base.CONFIG["options"]["database_path"],
-            str(random.randint(1000, 9999)))
 
     @unittest.skipIf(os.name == "nt", "stderr tests not supported on Windows.")
     def test_error(self):
@@ -44,9 +41,7 @@ class OsqueryiTest(unittest.TestCase):
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
-            "--database_path=%s" % (self.dbpath),
             "--config_path=%s" % configFile("test.config"),
-            "--extensions_autoload=",
             "--verbose",
         ],
             SHELL_TIMEOUT)
@@ -62,7 +57,6 @@ class OsqueryiTest(unittest.TestCase):
                 self.binary,
                 "--config_dump",
                 "--config_path=%s" % config,
-                "--extensions_autoload=",
                 "--verbose",
             ],
             SHELL_TIMEOUT)
@@ -78,14 +72,11 @@ class OsqueryiTest(unittest.TestCase):
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
-    @test_base.flaky
     def test_config_check_failure_invalid_path(self):
         '''Test that a missing config fails'''
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
-            "--database_path=%s" % (self.dbpath),
-            "--disable_extensions",
             "--verbose",
             "--config_path=/this/path/does/not/exist"
         ],
@@ -100,9 +91,7 @@ class OsqueryiTest(unittest.TestCase):
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
-            "--extensions_autoload=",
             "--verbose",
-            "--database_path=%s" % (self.dbpath),
             "--config_path=%s" % configFile("test.badconfig"),
         ],
             SHELL_TIMEOUT)
@@ -114,8 +103,6 @@ class OsqueryiTest(unittest.TestCase):
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
-            "--database_path=%s" % (self.dbpath),
-            "--extensions_autoload=",
             "--verbose",
             "--config_plugin=does_not_exist"
         ],
@@ -131,7 +118,6 @@ class OsqueryiTest(unittest.TestCase):
                 self.binary,
                 "--config_check",
                 "--config_path=%s" % configFile("osquery.example.conf"),
-                "--extensions_autoload=",
                 "--verbose",
             ],
             SHELL_TIMEOUT)
@@ -190,7 +176,6 @@ class OsqueryiTest(unittest.TestCase):
         proc = test_base.TimeoutRunner([
             self.binary,
             "select 0",
-            "--disable_extensions",
             "--json",
             ],
             SHELL_TIMEOUT
@@ -208,7 +193,6 @@ class OsqueryiTest(unittest.TestCase):
         proc = test_base.TimeoutRunner([
             self.binary,
             "select 0",
-            "--disable_extensions",
             "--json_pretty",
         ],
             SHELL_TIMEOUT
@@ -223,7 +207,6 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
-    @test_base.flaky
     def test_time(self):
         '''Demonstrating basic usage of OsqueryWrapper with the time table'''
         self.osqueryi.run_command(' ')  # flush error output
@@ -236,7 +219,6 @@ class OsqueryiTest(unittest.TestCase):
         self.assertTrue(0 <= int(row['seconds']) <= 60)
 
     # TODO: Running foreign table tests as non-priv user fails
-    @test_base.flaky
     @unittest.skipIf(os.name == "nt", "foreign table tests not supported on Windows.")
     def test_foreign_tables(self):
         '''Requires the --enable_foreign flag to add at least one table.'''
@@ -254,20 +236,17 @@ class OsqueryiTest(unittest.TestCase):
         after = int(result[0]['c'])
         self.assertGreater(after, before)
 
-    @test_base.flaky
     def test_time_using_all(self):
         self.osqueryi.run_command(' ')
         result = self.osqueryi.run_command('.all time')
         self.assertNotEqual(result.rstrip(), "Error querying table: time")
 
-    @test_base.flaky
     def test_config_bad_json(self):
         self.osqueryi = test_base.OsqueryWrapper(self.binary,
                                                  args={"config_path": "/"})
         result = self.osqueryi.run_query('SELECT * FROM time;')
         self.assertEqual(len(result), 1)
 
-    @test_base.flaky
     def test_atc(self):
         local_osquery_instance = test_base.OsqueryWrapper(self.binary,
                                                  args={"config_path": "test.config"})

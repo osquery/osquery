@@ -42,7 +42,7 @@ function(generateOsquerySql)
 
   target_link_libraries(osquery_sql PUBLIC
     osquery_cxx_settings
-    osquery_carver
+    osquery_carver_utils
     osquery_core
     osquery_core_plugins
     osquery_hashing

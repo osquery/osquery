@@ -7,12 +7,19 @@
 #define CPU "generic"
 #define WITHOUT_OPTIMIZATION 0
 #define ENABLE_SSL 1
-#define ENABLE_GSSAPI 0
+#define ENABLE_GSSAPI 1
 #define ENABLE_DEVEL 0
 #define ENABLE_VALGRIND 0
 #define ENABLE_REFCNT_DEBUG 0
 #define ENABLE_SHAREDPTR_DEBUG 0
 #define ENABLE_LZ4_EXT 0
+#define ENABLE_LZ4_EXT 0
+#define ENABLE_SSL 1
+#define ENABLE_GSSAPI 1
+#define ENABLE_GSSAPI 1
+#define ENABLE_LZ4_EXT 0
+#define ENABLE_LZ4_EXT 0
+#define WITH_STATIC_LINKING 1
 #define MKL_APP_NAME "librdkafka"
 #define MKL_APP_DESC_ONELINE "The Apache Kafka C/C++ library"
 // ccenv
