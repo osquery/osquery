@@ -86,6 +86,19 @@ class SystemStateTracker final : public ISystemStateTracker {
       int newfd,
       int flags) override;
 
+  virtual void nameToHandleAt(int dfd,
+                              const std::string& name,
+                              int handle_type,
+                              const std::vector<std::uint8_t>& handle,
+                              int mnt_id,
+                              int flag) override;
+
+  virtual bool openByHandleAt(pid_t process_id,
+                              int mountdirfd,
+                              int handle_type,
+                              const std::vector<std::uint8_t>& handle,
+                              int newfd) override;
+
   virtual EventList eventList() override;
 
   struct Context;
@@ -98,9 +111,20 @@ class SystemStateTracker final : public ISystemStateTracker {
   struct PrivateData;
   std::unique_ptr<PrivateData> d;
 
+  struct FileHandleStruct final {
+    int dfd{};
+    std::string name;
+    int flags{};
+  };
+
+  using FileHandleStructMap = std::unordered_map<std::string, FileHandleStruct>;
+
   struct Context final {
     ProcessContextMap process_map;
     EventList event_list;
+
+    std::vector<std::string> file_handle_struct_index;
+    FileHandleStructMap file_handle_struct_map;
   };
 
   static ProcessContext& getProcessContext(
@@ -197,6 +221,14 @@ class SystemStateTracker final : public ISystemStateTracker {
       int newfd,
       int flags);
 
+  static bool openByHandleAt(Context& context,
+                             IProcessContextFactory& process_context_factory,
+                             pid_t process_id,
+                             int mountdirfd,
+                             int handle_type,
+                             const std::vector<std::uint8_t>& handle,
+                             int newfd);
+
   static bool parseUnixSockaddr(std::string& path,
                                 const std::vector<std::uint8_t>& sockaddr);
 
@@ -216,6 +248,19 @@ class SystemStateTracker final : public ISystemStateTracker {
       ProcessContext::FileDescriptor::SocketData& socket_data,
       const std::vector<std::uint8_t>& sockaddr,
       bool local);
+
+  static std::string createFileHandleIndex(
+      int handle_type, const std::vector<std::uint8_t>& handle);
+
+  static void saveFileHandle(Context& context,
+                             int dfd,
+                             const std::string& name,
+                             int handle_type,
+                             const std::vector<std::uint8_t>& handle,
+                             int mnt_id,
+                             int flag);
+
+  static void expireFileHandleEntries(Context& context, std::size_t max_size);
 };
 
 } // namespace osquery

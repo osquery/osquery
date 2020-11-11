@@ -104,11 +104,11 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
 
-  static bool processCreatEvent(
+  static bool processOpenByHandleAtEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
 
-  static bool processMknodEvent(
+  static bool processCreatEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
 
@@ -125,10 +125,6 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
       const tob::ebpfpub::IFunctionTracer::Event& event);
 
   static bool processOpenat2Event(
-      ISystemStateTracker& state,
-      const tob::ebpfpub::IFunctionTracer::Event& event);
-
-  static bool processOpenByHandleAtEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
 

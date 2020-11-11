@@ -22,6 +22,12 @@
 
 namespace osquery {
 
+namespace {
+
+const std::size_t kMaxFileHandleEntryCount{512U};
+
+}
+
 struct SystemStateTracker::PrivateData final {
   Context context;
   IProcessContextFactory::Ref process_context_factory;
@@ -184,6 +190,38 @@ bool SystemStateTracker::accept(
                 flags);
 }
 
+void SystemStateTracker::nameToHandleAt(int dfd,
+                                        const std::string& name,
+                                        int handle_type,
+                                        const std::vector<std::uint8_t>& handle,
+                                        int mnt_id,
+                                        int flag) {
+  static std::size_t handles_saved{0U};
+
+  saveFileHandle(d->context, dfd, name, handle_type, handle, mnt_id, flag);
+  ++handles_saved;
+
+  if (handles_saved >= 32U) {
+    handles_saved = 0U;
+
+    expireFileHandleEntries(d->context, kMaxFileHandleEntryCount);
+  }
+}
+
+bool SystemStateTracker::openByHandleAt(pid_t process_id,
+                                        int mountdirfd,
+                                        int handle_type,
+                                        const std::vector<std::uint8_t>& handle,
+                                        int newfd) {
+  return openByHandleAt(d->context,
+                        *d->process_context_factory.get(),
+                        process_id,
+                        mountdirfd,
+                        handle_type,
+                        handle,
+                        newfd);
+}
+
 SystemStateTracker::EventList SystemStateTracker::eventList() {
   auto event_list = std::move(d->context.event_list);
   d->context.event_list = {};
@@ -294,6 +332,7 @@ bool SystemStateTracker::executeBinary(
 
     const auto& file_data =
         std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
+
     process_context.binary_path = file_data.path;
 
   } else if (binary_path.front() == '/') {
@@ -848,6 +887,91 @@ bool SystemStateTracker::accept(
   return true;
 }
 
+bool SystemStateTracker::openByHandleAt(
+    Context& context,
+    IProcessContextFactory& process_context_factory,
+    pid_t process_id,
+    int mountdirfd,
+    int handle_type,
+    const std::vector<std::uint8_t>& handle,
+    int newfd) {
+  // Locate the right file_handle struct
+  auto index = createFileHandleIndex(handle_type, handle);
+
+  auto file_handle_it = context.file_handle_struct_map.find(index);
+  if (file_handle_it == context.file_handle_struct_map.end()) {
+    return false;
+  }
+
+  const auto& file_handle = file_handle_it->second;
+
+  // Attempt to use the file_handle struct to locate the file
+  auto& process_context =
+      getProcessContext(context, process_context_factory, process_id);
+
+  std::string absolute_path;
+
+  if (!file_handle.name.empty()) {
+    if (file_handle.name.front() == '/') {
+      absolute_path = file_handle.name;
+
+    } else {
+      std::string base_path;
+
+      if (file_handle.dfd == AT_FDCWD) {
+        base_path = process_context.cwd;
+
+      } else {
+        auto fd_info_it = process_context.fd_map.find(file_handle.dfd);
+        if (fd_info_it == process_context.fd_map.end()) {
+          return false;
+        }
+
+        const auto& fd_info = fd_info_it->second;
+        if (!std::holds_alternative<ProcessContext::FileDescriptor::FileData>(
+                fd_info.data)) {
+          return false;
+        }
+
+        const auto& file_data =
+            std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
+
+        base_path = file_data.path;
+      }
+
+      absolute_path = base_path + '/' + file_handle.name;
+    }
+
+  } else if ((file_handle.flags & AT_EMPTY_PATH) != 0) {
+    auto fd_info_it = process_context.fd_map.find(file_handle.dfd);
+    if (fd_info_it == process_context.fd_map.end()) {
+      return false;
+    }
+
+    const auto& fd_info = fd_info_it->second;
+    if (!std::holds_alternative<ProcessContext::FileDescriptor::FileData>(
+            fd_info.data)) {
+      return false;
+    }
+
+    const auto& file_data =
+        std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
+
+    absolute_path = file_data.path;
+
+  } else {
+    return false;
+  }
+
+  ProcessContext::FileDescriptor fd_info{};
+  ProcessContext::FileDescriptor::FileData file_data{};
+  file_data.path = std::move(absolute_path);
+  fd_info.data = std::move(file_data);
+
+  process_context.fd_map.insert({newfd, std::move(fd_info)});
+  return true;
+}
+
 bool SystemStateTracker::parseUnixSockaddr(
     std::string& path, const std::vector<std::uint8_t>& sockaddr) {
   path = {};
@@ -1012,6 +1136,62 @@ bool SystemStateTracker::parseSocketAddress(
   }
 
   return succeeded;
+}
+
+std::string SystemStateTracker::createFileHandleIndex(
+    int handle_type, const std::vector<std::uint8_t>& handle) {
+  std::stringstream buffer;
+
+  buffer << std::setfill('0') << std::setw(8) << std::hex << handle_type << "_";
+
+  for (const auto& b : handle) {
+    buffer << std::setfill('0') << std::setw(2) << static_cast<int>(b);
+  }
+
+  return buffer.str();
+}
+
+void SystemStateTracker::saveFileHandle(Context& context,
+                                        int dfd,
+                                        const std::string& name,
+                                        int handle_type,
+                                        const std::vector<std::uint8_t>& handle,
+                                        int mnt_id,
+                                        int flag) {
+  FileHandleStruct file_handle;
+  file_handle.dfd = dfd;
+  file_handle.name = name;
+  file_handle.flags = flag;
+
+  auto index = createFileHandleIndex(handle_type, handle);
+  if (context.file_handle_struct_map.count(index) > 0) {
+    return;
+  }
+
+  context.file_handle_struct_map.insert({index, std::move(file_handle)});
+  context.file_handle_struct_index.push_back(std::move(index));
+}
+
+void SystemStateTracker::expireFileHandleEntries(Context& context,
+                                                 std::size_t max_size) {
+  if (max_size == 0U) {
+    return;
+  }
+
+  auto elements_to_remove = context.file_handle_struct_index.size() - max_size;
+  if (elements_to_remove == 0U) {
+    return;
+  }
+
+  auto start_range = context.file_handle_struct_index.begin();
+  auto end_range = std::next(start_range, elements_to_remove);
+
+  for (auto it = start_range; it != end_range; ++it) {
+    const auto& index = *it;
+    context.file_handle_struct_map.erase(index);
+  }
+
+  context.file_handle_struct_index.erase(start_range, end_range);
 }
 
 SystemStateTracker::Context SystemStateTracker::getContextCopy() const {
