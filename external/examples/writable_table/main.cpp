@@ -8,7 +8,8 @@
  */
 
 #include <osquery/core/system.h>
-#include <osquery/sdk.h>
+#include <osquery/sdk/sdk.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/json/json.h>
 
@@ -108,25 +109,33 @@ class WritableTable : public TablePlugin {
 
  public:
   /// Describes the columns available in the table
-  TableColumns columns() const {
+  virtual TableColumns columns() const override {
     return {std::make_tuple("text", TEXT_TYPE, ColumnOptions::DEFAULT),
             std::make_tuple("integer", INTEGER_TYPE, ColumnOptions::DEFAULT)};
   }
 
   /// Generates the rows for osquery
-  QueryData generate(QueryContext& context) {
+  virtual TableRows generate(QueryContext& request) override {
     std::lock_guard<std::mutex> lock(mutex);
 
-    QueryData results;
+    TableRows result;
+
     for (const auto& pkey_row_pair : data) {
-      results.push_back(pkey_row_pair.second);
+      auto r = make_table_row();
+
+      for (const auto& column : pkey_row_pair.second) {
+        r[column.first] = column.second;
+      }
+
+      result.push_back(std::move(r));
     }
 
-    return results;
+    return result;
   }
 
   /// Callback for INSERT queries
-  QueryData insert(QueryContext& context, const PluginRequest& request) {
+  virtual QueryData insert(QueryContext& context,
+                           const PluginRequest& request) override {
     std::lock_guard<std::mutex> lock(mutex);
 
     // Generate the Row from the json_value_array json
@@ -186,7 +195,8 @@ class WritableTable : public TablePlugin {
   }
 
   /// Callback for DELETE queries
-  QueryData delete_(QueryContext& context, const PluginRequest& request) {
+  virtual QueryData delete_(QueryContext& context,
+                            const PluginRequest& request) override {
     std::lock_guard<std::mutex> lock(mutex);
 
     const auto& rowid = request.at("id");
@@ -213,7 +223,8 @@ class WritableTable : public TablePlugin {
   }
 
   // Callback for UPDATE queries
-  QueryData update(QueryContext& context, const PluginRequest& request) {
+  virtual QueryData update(QueryContext& context,
+                           const PluginRequest& request) override {
     std::lock_guard<std::mutex> lock(mutex);
 
     // Validate the rowid
@@ -294,6 +305,6 @@ int main(int argc, char* argv[]) {
   }
 
   // Finally wait for a signal / interrupt to shutdown.
-  runner.waitThenShutdown();
+  runner.waitForShutdown();
   return 0;
 }
