@@ -54,6 +54,16 @@ static std::vector<fs::path> getChromePaths() {
     chromePaths.push_back("/.config/chromium/%/Extensions/");
   }
 
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    chromePaths.push_back(
+        "\\AppData\\Local\\Yandex\\YandexBrowser\\User Data\\%\\Extensions\\");
+  } else if (isPlatform(PlatformType::TYPE_OSX)) {
+    chromePaths.push_back(
+        "/Library/Application Support/Yandex/YandexBrowser/%/Extensions/");
+  } else {
+    chromePaths.push_back("/.config/yandex-browser%/%/Extensions/");
+  }
+
   return chromePaths;
 }
 
