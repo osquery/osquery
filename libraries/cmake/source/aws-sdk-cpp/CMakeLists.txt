@@ -245,8 +245,6 @@ function(generateAwsCore)
     "${library_root}/source/http/HttpTypes.cpp"
     "${library_root}/source/http/Scheme.cpp"
     "${library_root}/source/http/URI.cpp"
-    "${library_root}/source/http/curl/CurlHandleContainer.cpp"
-    "${library_root}/source/http/curl/CurlHttpClient.cpp"
     "${library_root}/source/http/standard/StandardHttpRequest.cpp"
     "${library_root}/source/http/standard/StandardHttpResponse.cpp"
     "${library_root}/source/internal/AWSHttpResourceClient.cpp"
