@@ -177,7 +177,7 @@ function(generateAwsSdkCppTargets)
   set(AWS_SDK_CPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/aws-sdk-cpp_src")
   set(AWS_SDK_CPP_VERSION_MAJOR 1)
   set(AWS_SDK_CPP_VERSION_MINOR 7)
-  set(AWS_SDK_CPP_VERSION_PATCH 161)
+  set(AWS_SDK_CPP_VERSION_PATCH 230)
 
   generateTinyXml2()
   generateCjson()
@@ -245,6 +245,8 @@ function(generateAwsCore)
     "${library_root}/source/http/HttpTypes.cpp"
     "${library_root}/source/http/Scheme.cpp"
     "${library_root}/source/http/URI.cpp"
+    "${library_root}/source/http/curl/CurlHandleContainer.cpp"
+    "${library_root}/source/http/curl/CurlHttpClient.cpp"
     "${library_root}/source/http/standard/StandardHttpRequest.cpp"
     "${library_root}/source/http/standard/StandardHttpResponse.cpp"
     "${library_root}/source/internal/AWSHttpResourceClient.cpp"
