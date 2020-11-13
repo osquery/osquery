@@ -25,24 +25,26 @@ namespace tables {
 
 QueryData genTime(QueryContext& context) {
   Row r;
-  time_t local_time = getUnixTime();
-  auto osquery_time = getUnixTime();
-  auto osquery_timestamp = getAsciiTime();
+
+  time_t now_time = getUnixTime();
+  auto local_time = now_time;
+  auto osquery_time = now_time;
 
   // The concept of 'now' is configurable.
   struct tm gmt;
-  gmtime_r(&local_time, &gmt);
+  gmtime_r(&now_time, &gmt);
+  auto osquery_timestamp = toAsciiTime(&gmt);
 
   struct tm now;
   if (FLAGS_utc) {
     now = gmt;
   } else {
-    localtime_r(&local_time, &now);
+    localtime_r(&now_time, &now);
   }
 
   struct tm local;
   localtime_r(&local_time, &local);
-  local_time = std::mktime(&local);
+  local_time = timegm(&local);
 
   char weekday[10] = {0};
   strftime(weekday, sizeof(weekday), "%A", &now);
