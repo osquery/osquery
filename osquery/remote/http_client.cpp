@@ -220,8 +220,7 @@ void Client::encryptConnection() {
   }
 
   if (client_options_.client_certificate_file_) {
-    ctx.use_certificate_file(*client_options_.client_certificate_file_,
-                             boost::asio::ssl::context::pem);
+    ctx.use_certificate_chain_file(*client_options_.client_certificate_file_);
   }
 
   if (client_options_.client_private_key_file_) {
