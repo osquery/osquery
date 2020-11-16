@@ -14,7 +14,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
-#include <osquery/tables/system/linux/dbus/methods/getproperty.h>
+#include <osquery/tables/system/linux/dbus/methods/getstringproperty.h>
 #include <osquery/tables/system/linux/dbus/methods/listunitsmethodhandler.h>
 #include <osquery/tables/system/linux/dbus/uniquedbusconnection.h>
 #include <osquery/utils/conversions/split.h>
@@ -98,7 +98,7 @@ Status genSystemdItems(QueryData& results) {
     return status;
   }
 
-  GetPropertyMethod get_property_method;
+  GetStringPropertyMethod get_string_property_method;
 
   for (const auto& unit : unit_list) {
     Row row = {};
@@ -107,11 +107,11 @@ Status genSystemdItems(QueryData& results) {
     row["status"] = unit.active_state;
 
     std::string unit_path;
-    status = get_property_method.call(unit_path,
-                                      connection,
-                                      unit.path,
-                                      "org.freedesktop.systemd1.Unit",
-                                      "FragmentPath");
+    status = get_string_property_method.call(unit_path,
+                                             connection,
+                                             unit.path,
+                                             "org.freedesktop.systemd1.Unit",
+                                             "FragmentPath");
     if (!status.ok()) {
       return status;
     }
@@ -119,11 +119,11 @@ Status genSystemdItems(QueryData& results) {
     row["path"] = unit_path;
 
     std::string source_path;
-    status = get_property_method.call(source_path,
-                                      connection,
-                                      unit.path,
-                                      "org.freedesktop.systemd1.Unit",
-                                      "SourcePath");
+    status = get_string_property_method.call(source_path,
+                                             connection,
+                                             unit.path,
+                                             "org.freedesktop.systemd1.Unit",
+                                             "SourcePath");
     if (!status.ok()) {
       return status;
     }
@@ -131,11 +131,11 @@ Status genSystemdItems(QueryData& results) {
     row["source"] = source_path;
 
     std::string username;
-    status = get_property_method.call(username,
-                                      connection,
-                                      unit.path,
-                                      "org.freedesktop.systemd1.Service",
-                                      "User");
+    status = get_string_property_method.call(username,
+                                             connection,
+                                             unit.path,
+                                             "org.freedesktop.systemd1.Service",
+                                             "User");
 
     static_cast<void>(status);
     row["username"] = username;
