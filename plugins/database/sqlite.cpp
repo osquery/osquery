@@ -246,6 +246,10 @@ Status SQLiteDatabasePlugin::remove(const std::string& domain,
 Status SQLiteDatabasePlugin::removeRange(const std::string& domain,
                                          const std::string& low,
                                          const std::string& high) {
+  if (low > high) {
+    return Status::failure("Invalid range: low > high");
+  }
+
   sqlite3_stmt* stmt = nullptr;
   std::string q = "delete from " + domain + " where key >= ?1 and key <= ?2;";
   sqlite3_prepare_v2(db_, q.c_str(), -1, &stmt, nullptr);

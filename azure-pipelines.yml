@@ -279,7 +279,7 @@ jobs:
     pool:
       vmImage: windows-2019
 
-    timeoutInMinutes: 120
+    timeoutInMinutes: 240
 
     variables:
       SCCACHE_DIR: $(Pipeline.Workspace)\sccache

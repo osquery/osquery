@@ -367,6 +367,12 @@ Status RocksDBDatabasePlugin::remove(const std::string& domain,
 Status RocksDBDatabasePlugin::removeRange(const std::string& domain,
                                           const std::string& low,
                                           const std::string& high) {
+  // The new RocksDB version will return an error if our range
+  // is not correct
+  if (low > high) {
+    return Status::failure("Invalid range: low > high");
+  }
+
   auto cfh = getHandleForColumnFamily(domain);
   if (cfh == nullptr) {
     return Status(1, "Could not get column family for " + domain);
