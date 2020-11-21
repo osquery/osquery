@@ -285,13 +285,10 @@ function(setupBuildFlags)
       _UNICODE
     )
 
-    # RocksDB now references the FILE_ID_INFO structure. See the "Requirements" paragraph
-    # at the following link:
-    # https://docs.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info
     set(windows_common_defines
       "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>"
-      _WIN32_WINNT=_WIN32_WINNT_WIN8
-      NTDDI_VERSION=NTDDI_WIN8
+      _WIN32_WINNT=_WIN32_WINNT_WIN7
+      NTDDI_VERSION=NTDDI_WIN7
     )
 
     set(windows_cxx_compile_options
