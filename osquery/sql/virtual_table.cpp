@@ -548,13 +548,12 @@ int xCreate(sqlite3* db,
             const char* const* argv,
             sqlite3_vtab** ppVtab,
             char** pzErr) {
-  auto* pVtab = new VirtualTable;
   if (argc == 0 || argv[0] == nullptr) {
-    delete pVtab;
     return SQLITE_NOMEM;
   }
 
-  memset(pVtab, 0, sizeof(VirtualTable));
+  auto* pVtab = new VirtualTable;
+  pVtab->base = {};
   pVtab->content = std::make_shared<VirtualTableContent>();
   pVtab->instance = (SQLiteDBInstance*)pAux;
 
