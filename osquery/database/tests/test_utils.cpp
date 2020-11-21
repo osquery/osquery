@@ -228,7 +228,7 @@ void DatabasePluginTests::testDeleteRange() {
   getPlugin()->put(kQueries, "new_test3", "3");
   getPlugin()->put(kQueries, "new_test4", "4");
   s = getPlugin()->removeRange(kQueries, "new_test3", "new_test2");
-  EXPECT_TRUE(s.ok());
+  EXPECT_FALSE(s.ok());
   getPlugin()->get(kQueries, "new_test2", r);
   EXPECT_EQ(r, "2");
   getPlugin()->get(kQueries, "new_test3", r);
