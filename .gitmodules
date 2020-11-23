@@ -127,3 +127,9 @@
 [submodule "libraries/cmake/source/ebpfpub/src"]
 	path = libraries/cmake/source/ebpfpub/src
 	url = https://github.com/trailofbits/ebpfpub
+[submodule "libraries/cmake/source/dbus/src"]
+	path = libraries/cmake/source/dbus/src
+	url = https://gitlab.freedesktop.org/dbus/dbus.git
+[submodule "libraries/cmake/source/expat/src"]
+	path = libraries/cmake/source/expat/src
+	url = https://github.com/libexpat/libexpat

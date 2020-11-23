@@ -126,6 +126,8 @@ function(importLibraries)
     "Linux,Darwin,Windows:aws-sdk-cpp"
     "Linux,Darwin,Windows:icu"
     "Linux:ebpfpub"
+    "Linux:expat"
+    "Linux:dbus"
   )
 
   foreach(library_descriptor ${library_descriptor_list})
