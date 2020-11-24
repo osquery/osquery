@@ -21,6 +21,11 @@ function(generateOsqueryFilesystem)
     filesystem.cpp
   )
 
+  set(public_header_files
+    fileops.h
+    filesystem.h
+  )
+
   if(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
       darwin/bsd_file_flags.cpp
@@ -30,6 +35,11 @@ function(generateOsqueryFilesystem)
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
       posix/fileops.cpp
+      posix/xattrs.cpp
+    )
+
+    list(APPEND public_header_files
+      posix/xattrs.h
     )
   endif()
 
@@ -61,11 +71,6 @@ function(generateOsqueryFilesystem)
     thirdparty_boost
     thirdparty_libarchive
     thirdparty_zstd
-  )
-
-  set(public_header_files
-    fileops.h
-    filesystem.h
   )
 
   if(DEFINED PLATFORM_LINUX)
@@ -109,6 +114,12 @@ function(generateOsqueryFilesystemTest)
     tests/fileops.cpp
     tests/filesystem.cpp
   )
+
+  if(DEFINED PLATFORM_POSIX)
+    list(APPEND source_files
+      tests/posix/xattrs.cpp
+    )
+  endif()
 
   if(DEFINED PLATFORM_MACOS)
     list(APPEND source_files

@@ -127,6 +127,7 @@ function(importLibraries)
     "Linux,Darwin,Windows:icu"
     "Linux:expat"
     "Linux:dbus"
+    "Linux:libcap"
   )
 
   if(OSQUERY_BUILD_BPF)

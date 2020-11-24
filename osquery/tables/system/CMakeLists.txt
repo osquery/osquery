@@ -61,6 +61,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/deb_packages.cpp
       linux/disk_encryption.cpp
       linux/elf_info.cpp
+      linux/extended_attributes.cpp
       linux/groups.cpp
       linux/intel_me.cpp
       linux/kernel_info.cpp
@@ -269,6 +270,7 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_librpm
       thirdparty_popt
       thirdparty_dbus
+      thirdparty_libcap
     )
 
   elseif(DEFINED PLATFORM_MACOS)
