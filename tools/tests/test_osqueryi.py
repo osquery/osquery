@@ -188,6 +188,25 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
+    def test_json_pretty_output(self):
+        '''Test that the output of --json_pretty is valid json'''
+        proc = test_base.TimeoutRunner([
+            self.binary,
+            "select 0",
+            "--json_pretty",
+        ],
+            SHELL_TIMEOUT
+        )
+        if os.name == "nt":
+            self.assertEqual(
+                proc.stdout, b"[\r\n  {\r\n    \"0\": \"0\"\r\n  }\r\n]\r\n")
+        else:
+            self.assertEqual(
+                proc.stdout, b"[\n  {\n    \"0\": \"0\"\n  }\n]\n")
+        print(proc.stdout)
+        print(proc.stderr)
+        self.assertEqual(proc.proc.poll(), 0)
+
     def test_time(self):
         '''Demonstrating basic usage of OsqueryWrapper with the time table'''
         self.osqueryi.run_command(' ')  # flush error output

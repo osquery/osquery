@@ -44,6 +44,20 @@ TEST_F(ConversionsTests, test_json_array) {
       "[{\"key\":10,\"key2\":-10,\"key3\":281474976710656,\"key4\":3."
       "14159265359},11]";
   EXPECT_EQ(expected, result);
+
+  EXPECT_TRUE(doc.toPrettyString(result));
+
+  std::string expectedPretty =
+      "[\n  {\n    \"key\": 10,\n    \"key2\": -10,\n    \"key3\": "
+      "281474976710656,\n    \"key4\": 3.14159265359\n  },\n  11\n]";
+  EXPECT_EQ(expectedPretty, result);
+
+  EXPECT_TRUE(doc.toPrettyString(result, 1 /*indentCharCount*/));
+
+  std::string expectedPrettyNonDefaultIndent =
+      "[\n {\n  \"key\": 10,\n  \"key2\": -10,\n  \"key3\": "
+      "281474976710656,\n  \"key4\": 3.14159265359\n },\n 11\n]";
+  EXPECT_EQ(expectedPrettyNonDefaultIndent, result);
 }
 
 TEST_F(ConversionsTests, test_json_object) {
@@ -59,6 +73,16 @@ TEST_F(ConversionsTests, test_json_object) {
 
   std::string expected = "{\"key\":10}";
   EXPECT_EQ(expected, result);
+
+  EXPECT_TRUE(doc.toPrettyString(result));
+
+  std::string expectedPretty = "{\n  \"key\": 10\n}";
+  EXPECT_EQ(expectedPretty, result);
+
+  EXPECT_TRUE(doc.toPrettyString(result, 3 /*indentCharCount*/));
+
+  std::string expectedPrettyNonDefaultIndent = "{\n   \"key\": 10\n}";
+  EXPECT_EQ(expectedPrettyNonDefaultIndent, result);
 }
 
 TEST_F(ConversionsTests, test_json_from_string) {

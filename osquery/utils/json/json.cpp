@@ -287,6 +287,15 @@ Status JSON::toString(std::string& str) const {
   return Status::success();
 }
 
+Status JSON::toPrettyString(std::string& str, size_t indentCharCount) const {
+  rj::StringBuffer sb;
+  rj::PrettyWriter<rj::StringBuffer> writer(sb);
+  writer.SetIndent(' ', indentCharCount);
+  doc_.Accept(writer);
+  str = sb.GetString();
+  return Status::success();
+}
+
 Status JSON::fromString(const std::string& str, ParseMode mode) {
   rj::ParseResult pr;
   switch (mode) {

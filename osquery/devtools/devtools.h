@@ -80,6 +80,16 @@ void prettyPrint(const QueryData& results,
 void jsonPrint(const QueryData& q);
 
 /**
+ * @brief JSON pretty print a QueryData object
+ *
+ * This is a helper method which allows a shell or other tool to print results
+ * in a pretty JSON format.
+ *
+ * @param q The QueryData object to print
+ */
+void jsonPrettyPrint(const QueryData& q);
+
+/**
  * @brief Compute a map of metadata about the supplied QueryData object
  *
  * @param r A row to analyze
