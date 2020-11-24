@@ -22,14 +22,19 @@ function(generateOsqueryEvents)
       linux/auditdnetlink.cpp
       linux/auditeventpublisher.cpp
       linux/inotify.cpp
-      linux/bpf/bpfeventpublisher.cpp
-      linux/bpf/filesystem.cpp
-      linux/bpf/processcontextfactory.cpp
-      linux/bpf/setrlimit.cpp
-      linux/bpf/systemstatetracker.cpp
       linux/syslog.cpp
       linux/udev.cpp
     )
+
+    if(OSQUERY_BUILD_BPF)
+      list(APPEND source_files
+        linux/bpf/bpfeventpublisher.cpp
+        linux/bpf/filesystem.cpp
+        linux/bpf/processcontextfactory.cpp
+        linux/bpf/setrlimit.cpp
+        linux/bpf/systemstatetracker.cpp
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
@@ -77,8 +82,14 @@ function(generateOsqueryEvents)
       thirdparty_libaudit
       thirdparty_libudev
       thirdparty_util-linux
-      thirdparty_ebpfpub
     )
+
+    if(OSQUERY_BUILD_BPF)
+      target_link_libraries(osquery_events PUBLIC
+        thirdparty_ebpfpub
+      )
+    endif()
+
   elseif(DEFINED PLATFORM_WINDOWS)
     target_link_libraries(osquery_events PUBLIC
       plugins_config_parsers
@@ -98,21 +109,26 @@ function(generateOsqueryEvents)
       linux/inotify.h
       linux/process_events.h
       linux/process_file_events.h
-      linux/bpf/bpfeventpublisher.h
-      linux/bpf/filesystem.h
-      linux/bpf/ifilesystem.h
-      linux/bpf/iprocesscontextfactory.h
-      linux/bpf/isystemstatetracker.h
-      linux/bpf/processcontextfactory.h
-      linux/bpf/setrlimit.h
-      linux/bpf/systemstatetracker.h
-      linux/bpf/uniquedir.h
       linux/selinux_events.h
       linux/apparmor_events.h
       linux/socket_events.h
       linux/syslog.h
       linux/udev.h
     )
+
+    if(OSQUERY_BUILD_BPF)
+      list(APPEND platform_public_header_files
+        linux/bpf/bpfeventpublisher.h
+        linux/bpf/filesystem.h
+        linux/bpf/ifilesystem.h
+        linux/bpf/iprocesscontextfactory.h
+        linux/bpf/isystemstatetracker.h
+        linux/bpf/processcontextfactory.h
+        linux/bpf/setrlimit.h
+        linux/bpf/systemstatetracker.h
+        linux/bpf/uniquedir.h
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     set(platform_public_header_files

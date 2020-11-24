@@ -14,7 +14,10 @@ function(osqueryEventsTestsMain)
     generateOsqueryEventsTestsAudittestsTest()
     generateOsqueryEventsTestsProcessfileeventstestsTest()
     generateOsqueryEventsTestsInotifytestsTest()
-    generateOsqueryEventsTestsBpftestsTest()
+
+    if(OSQUERY_BUILD_BPF)
+      generateOsqueryEventsTestsBpftestsTest()
+    endif()
   endif()
 
   if(DEFINED PLATFORM_MACOS)

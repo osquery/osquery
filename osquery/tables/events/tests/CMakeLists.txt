@@ -11,7 +11,10 @@ function(osqueryTablesEventsTestsMain)
   if(DEFINED PLATFORM_LINUX)
     generateOsqueryTablesEventsTestsSelinuxeventstestsTest()
     generateOsqueryTablesEventsTestsProcesseventstestsTest()
-    generateOsqueryTablesEventsTestsBPFtestsTest()
+
+    if(OSQUERY_BUILD_BPF)
+      generateOsqueryTablesEventsTestsBPFtestsTest()
+    endif()
 
   elseif(DEFINED PLATFORM_WINDOWS)
     generateOsqueryTablesEventsTestsPowershelleventstestsTest()
