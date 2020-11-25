@@ -281,15 +281,6 @@ function(rocksdbMain)
     PROPERTIES INCLUDE_DIRECTORIES "${library_root}/util"
   )
 
-  # By defining this, we'll cause the WinEnvIO::AreFilesSame method to return
-  # Status::NotSupported(), so that the caller can use a different way to
-  # determine whether the files are matching. This lets us keep the project-wide
-  # _WIN32_WINNT definition set to Windows 7 under cmake/flags.cmake.
-  set_source_files_properties(
-    "${library_root}/port/win/env_win.cc"
-    PROPERTIES COMPILE_DEFINITIONS "_WIN32_WINNT=_WIN32_WINNT_VISTA"
-  )
-
   if(DEFINED PLATFORM_WINDOWS)
     target_sources(thirdparty_rocksdb PRIVATE
       "${library_root}/port/win/env_default.cc"
@@ -299,6 +290,15 @@ function(rocksdbMain)
       "${library_root}/port/win/win_logger.cc"
       "${library_root}/port/win/win_thread.cc"
       "${library_root}/port/win/xpress_win.cc"
+    )
+
+    # By defining this, we'll cause the WinEnvIO::AreFilesSame method to return
+    # Status::NotSupported(), so that the caller can use a different way to
+    # determine whether the files are matching. This lets us keep the project-wide
+    # _WIN32_WINNT definition set to Windows 7 under cmake/flags.cmake.
+    set_source_files_properties(
+      "${library_root}/port/win/env_win.cc"
+      PROPERTIES COMPILE_OPTIONS "/FI${CMAKE_CURRENT_SOURCE_DIR}/patches/env_win.h"
     )
 
   else()
