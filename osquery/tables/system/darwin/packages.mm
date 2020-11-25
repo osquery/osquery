@@ -468,8 +468,17 @@ void genPkgInstallHistoryEntry(const pt::ptree& entry, QueryData& results) {
     r[it.second] = entry.get(it.first, "");
   }
 
-  for (const auto& package_identifier : entry.get_child("packageIdentifiers")) {
-    r["package_id"] = package_identifier.second.get<std::string>("");
+  // some packages do not set packageIdentifiers, allow it to be
+  // empty. Empirically this seems to be os packages, but we can't
+  // assume that.
+  if (const auto& identifiers =
+          entry.get_child_optional("packageIdentifiers")) {
+    for (const auto& package_identifier : *identifiers) {
+      r["package_id"] = package_identifier.second.get<std::string>("");
+      results.push_back(r);
+    }
+  } else {
+    // push_back for the nil packageIdentifiers case
     results.push_back(r);
   }
 }
