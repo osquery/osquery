@@ -475,10 +475,12 @@ void genPkgInstallHistoryEntry(const pt::ptree& entry, QueryData& results) {
           entry.get_child_optional("packageIdentifiers")) {
     for (const auto& package_identifier : *identifiers) {
       r["package_id"] = package_identifier.second.get<std::string>("");
+      results.push_back(r);
     }
+  } else {
+    // push_back for the nil packageIdentifiers case
+    results.push_back(r);
   }
-
-  results.push_back(r);
 }
 
 QueryData genPackageInstallHistory(QueryContext& context) {
