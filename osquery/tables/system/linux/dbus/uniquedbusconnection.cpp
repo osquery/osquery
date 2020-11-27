@@ -17,8 +17,13 @@ Status UniqueDbusConnectionAllocator::allocate(ResourceType& connection,
 
   DBusError error DBUS_ERROR_INIT;
   connection = dbus_bus_get(connection_type, &error);
-  if (connection == nullptr || dbus_error_is_set(&error)) {
-    return Status::failure("Failed to connect to the system dbus");
+  if (dbus_error_is_set(&error)) {
+    std::stringstream message;
+    message << "Failed to connect to the " << (system ? "system" : "session")
+            << " dbus: " << error.message << " (" << error.name << ")";
+
+    dbus_error_free(&error);
+    return Status::failure(message.str());
   }
 
   return Status::success();
