@@ -75,6 +75,7 @@ class DbusMethod final : private MethodHandler {
       message << "Failed to call the dbus method: " << error.message << " ("
               << error.name << ")";
 
+      dbus_error_free(&error);
       return Status::failure(message.str());
     }
 
