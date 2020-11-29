@@ -127,7 +127,7 @@ bool Filesystem::enumFiles(int dirfd, EnumFilesCallback callback) const {
     bool directory;
     if (entry->d_type == DT_DIR) {
       directory = true;
-    } else if (entry->d_type == DT_LNK || DT_REG) {
+    } else if (entry->d_type == DT_LNK || entry->d_type == DT_REG) {
       directory = false;
     } else {
       continue;
