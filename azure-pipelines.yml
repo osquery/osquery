@@ -21,7 +21,7 @@ jobs:
       vmImage: 'Ubuntu-16.04'
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v8
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-v9
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     timeoutInMinutes: 120
@@ -46,17 +46,16 @@ jobs:
         path: $(Build.SourcesDirectory)/.git/modules
       displayName: Submodule cache
 
-    - task: CMake@1
+    - script: |
+        cmake --version
+        cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) \
+              -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain \
+              -DOSQUERY_BUILD_TESTS=ON \
+              -DOSQUERY_BUILD_ROOT_TESTS=ON \
+              $(EXTRA_CMAKE_ARGS) \
+              $(Build.SourcesDirectory)
       displayName: "Configure osquery"
-      inputs:
-        workingDirectory: $(BUILD_DIR)
-        cmakeArgs:
-          -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
-          -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain
-          -DOSQUERY_BUILD_TESTS=ON
-          -DOSQUERY_BUILD_ROOT_TESTS=ON
-          $(EXTRA_CMAKE_ARGS)
-          $(Build.SourcesDirectory)
+      workingDirectory: $(BUILD_DIR)
 
     - script: |
         ./tools/formatting/format-test.sh --build $(BUILD_DIR)
@@ -174,15 +173,18 @@ jobs:
 
     steps:
     - script: |
-        cmake --version
         brew upgrade
         brew install ccache flex bison
         pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
         sudo xcode-select -s /Applications/Xcode_10.3.app/Contents/Developer
+        wget https://cmake.org/files/v3.17/cmake-3.17.5-Darwin-x86_64.tar.gz -O /tmp/cmake-3.17.5-Darwin-x86_64.tar.gz
+        tar xf /tmp/cmake-3.17.5-Darwin-x86_64.tar.gz -C $HOME
+        echo "##vso[task.prependpath]$HOME/cmake-3.17.5-Darwin-x86_64/CMake.app/Contents/bin"
       displayName: "Install Homebrew and prerequisites"
       timeoutInMinutes: 20
 
-    - script: mkdir $(Build.BinariesDirectory)/build
+    - script: |
+        mkdir $(Build.BinariesDirectory)/build
       displayName: "Create build folder"
 
     - task: CacheBeta@2
@@ -192,11 +194,15 @@ jobs:
         path: $(Build.SourcesDirectory)/.git/modules
       displayName: Submodule cache
 
-    - task: CMake@1
+    - script: |
+        cmake --version
+        cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 \
+              -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) \
+              -DOSQUERY_BUILD_TESTS=ON \
+              $(EXTRA_CMAKE_ARGS) \
+              $(Build.SourcesDirectory)
       displayName: "Configure osquery"
-      inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DOSQUERY_BUILD_TESTS=ON $(EXTRA_CMAKE_ARGS) $(Build.SourcesDirectory)
+      workingDirectory: $(Build.BinariesDirectory)/build
 
     - task: CacheBeta@2
       inputs:
@@ -205,22 +211,20 @@ jobs:
         path: $(CCACHE_DIR)
       displayName: ccache
 
-    - task: CMake@1
+    - script: |
+        cmake --build . -j 3
       displayName: "Build osquery"
-      inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: --build . -j 3
+      workingDirectory: $(Build.BinariesDirectory)/build
 
     - script: |
         ctest --build-nocmake -V
       displayName: "Run tests"
       workingDirectory: $(Build.BinariesDirectory)/build
 
-    - task: CMake@1
+    - script: |
+        cmake --build . --target package -j 3
       displayName: "Run productbuild packaging"
-      inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: --build . --target package -j 3
+      workingDirectory: $(Build.BinariesDirectory)/build
 
     - script: |
         cmake -DPACKAGING_SYSTEM=TGZ $(Build.SourcesDirectory)
@@ -294,11 +298,16 @@ jobs:
     - checkout: self
 
     - powershell: |
-        cmake --version
         $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\$(PYTHON_FOLDER)) | Sort-Object -Descending)[0].FullName
         & $python3_path\python -m pip install --upgrade pip --no-warn-script-location
         & $python3_path\python -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
       displayName: Install tests prerequisites
+
+    - powershell: |
+        (New-Object System.Net.WebClient).DownloadFile("https://cmake.org/files/v3.17/cmake-3.17.5-win64-x64.zip", "$env:TEMP\cmake-3.17.5-win64-x64.zip")
+        7z x -oC:\ -y "$env:TEMP\cmake-3.17.5-win64-x64.zip"
+        Write-Host "##vso[task.prependpath]C:\cmake-3.17.5-win64-x64\bin"
+      displayName: Install CMake
 
     - powershell: |
         mkdir $(Build.BinariesDirectory)\build
@@ -337,6 +346,7 @@ jobs:
       displayName: "Install Ninja"
 
     - script: |
+        cmake --version
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\$(VC_VARS_FILE)"
         cmake -G Ninja ^
         -DCMAKE_C_COMPILER=cl.exe ^
@@ -364,16 +374,15 @@ jobs:
       displayName: "Build osquery"
       workingDirectory: $(Build.BinariesDirectory)\build
 
-    - powershell: |
+    - script: |
         ctest --build-nocmake -C Release -V
       displayName: "Run tests"
       workingDirectory: $(Build.BinariesDirectory)/build
 
-    - task: CMake@1
+    - script: |
+        cmake --build . --target package --config Release -j 3
       displayName: "Run WIX packaging"
-      inputs:
-        workingDirectory: $(Build.BinariesDirectory)/build
-        cmakeArgs: --build . --target package --config Release -j 3
+      workingDirectory: $(Build.BinariesDirectory)/build
 
     - powershell: |
         # .artifactignore has to be copied in the cached folder, otherwise the CacheBeta task won't see it

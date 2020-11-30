@@ -5,7 +5,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
-cmake_minimum_required(VERSION 3.14.6)
+cmake_minimum_required(VERSION 3.17.5)
 
 cmake_policy(SET CMP0083 NEW)
 

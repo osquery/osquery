@@ -5,8 +5,6 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
-cmake_minimum_required(VERSION 3.13.3)
-
 include(ProcessorCount)
 
 function(cppcheckMain)
