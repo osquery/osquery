@@ -65,6 +65,46 @@ std::string getUserHomeDir(const std::string& sid) {
   return "";
 }
 
+// Given a SID, retrieve information about the matching user
+void genUser(const std::string& sidString, QueryData& results) {
+  Row r;
+
+  r["uuid"] = sidString;
+  r["directory"] = getUserHomeDir(sidString);
+
+  PSID sid;
+  auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
+  if (ret == 0) {
+    VLOG(1) << "Convert SID to string failed with " << GetLastError();
+  }
+  auto uid = getUidFromSid(sid);
+  auto gid = getGidFromSid(sid);
+  r["uid"] = BIGINT(uid);
+  r["gid"] = BIGINT(gid);
+  r["uid_signed"] = INTEGER(uid);
+  r["gid_signed"] = INTEGER(gid);
+  r["type"] = kWellKnownSids.find(sidString) == kWellKnownSids.end()
+                  ? "roaming"
+                  : "special";
+
+  // TODO
+  r["shell"] = "C:\\Windows\\system32\\cmd.exe";
+  r["description"] = "";
+
+  wchar_t accntName[UNLEN] = {0};
+  wchar_t domName[DNLEN] = {0};
+  unsigned long accntNameLen = UNLEN;
+  unsigned long domNameLen = DNLEN;
+  SID_NAME_USE eUse;
+  ret = LookupAccountSidW(
+      nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
+  r["username"] = ret != 0 ? wstringToString(accntName) : "";
+
+  results.push_back(r);
+}
+
+// Enumerate the users from the profiles key in the Registry, skipping any 
+// that are given in processedSids (i.e., that have already been processed)
 void processRoamingProfiles(const std::set<std::string>& processedSids,
                             QueryData& results) {
   QueryData regResults;
@@ -77,45 +117,15 @@ void processRoamingProfiles(const std::set<std::string>& processedSids,
     }
 
     auto sidString = profile.at("name");
-    if (processedSids.find(sidString) != processedSids.end()) {
-      continue;
+
+    // Skip this user if already processed
+    if (processedSids.find(sidString) == processedSids.end()) {
+      genUser(sidString, results);
     }
-    r["uuid"] = sidString;
-    r["directory"] = getUserHomeDir(sidString);
-
-    PSID sid;
-    auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
-    if (ret == 0) {
-      VLOG(1) << "Convert SID to string failed with " << GetLastError();
-    }
-    auto uid = getUidFromSid(sid);
-    auto gid = getGidFromSid(sid);
-    r["uid"] = BIGINT(uid);
-    r["gid"] = BIGINT(gid);
-    r["uid_signed"] = INTEGER(uid);
-    r["gid_signed"] = INTEGER(gid);
-    r["type"] = kWellKnownSids.find(sidString) == kWellKnownSids.end()
-                    ? "roaming"
-                    : "special";
-
-    // TODO
-    r["shell"] = "C:\\Windows\\system32\\cmd.exe";
-    r["description"] = "";
-
-    wchar_t accntName[UNLEN] = {0};
-    wchar_t domName[DNLEN] = {0};
-    unsigned long accntNameLen = UNLEN;
-    unsigned long domNameLen = DNLEN;
-    SID_NAME_USE eUse;
-    ret = LookupAccountSidW(
-        nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
-    r["username"] = ret != 0 ? wstringToString(accntName) : "";
-    LocalFree(sid);
-
-    results.push_back(r);
   }
 }
 
+// Enumerate all local users
 void processLocalAccounts(std::set<std::string>& processedSids,
                           QueryData& results) {
   unsigned long dwUserInfoLevel = 3;
@@ -196,10 +206,19 @@ void processLocalAccounts(std::set<std::string>& processedSids,
 
 QueryData genUsers(QueryContext& context) {
   QueryData results;
-  std::set<std::string> processedSids;
 
-  processLocalAccounts(processedSids, results);
-  processRoamingProfiles(processedSids, results);
+  // implement index on UUID (SID) column by
+  // returning only the users in the constraint:
+  if (context.constraints["uuid"].exists(EQUALS)) {
+    auto sidStrings = context.constraints["uuid"].getAll(EQUALS);
+    for (const auto& sidString : sidStrings) {
+      genUser(sidString, results);
+    }
+  } else {  // return all users
+    std::set<std::string> processedSids;
+    processLocalAccounts(processedSids, results);
+    processRoamingProfiles(processedSids, results);
+  }
 
   return results;
 }
