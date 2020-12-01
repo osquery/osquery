@@ -9,7 +9,7 @@ schema([
     Column("description", TEXT, "Optional user description"),
     Column("directory", TEXT, "User's home directory"),
     Column("shell", TEXT, "User's configured default shell"),
-    Column("uuid", TEXT, "User's UUID (Apple) or SID (Windows)"),
+    Column("uuid", TEXT, "User's UUID (Apple) or SID (Windows)", index=True),
 ])
 extended_schema(WINDOWS, [
     Column("type", TEXT, "Whether the account is roaming (domain), local, or a system profile"),
