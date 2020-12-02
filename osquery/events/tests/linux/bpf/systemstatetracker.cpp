@@ -1283,7 +1283,8 @@ TEST_F(SystemStateTrackerTests, parse_netlink_sockaddr) {
 TEST_F(SystemStateTrackerTests, createFileHandleIndex) {
   auto index =
       SystemStateTracker::createFileHandleIndex(0x15, {0xAA, 0xBB, 0xCC, 0xDD});
-  EXPECT_EQ(index, "00000015_AABBCCDD");
+
+  EXPECT_EQ(index, "00000015_aabbccdd");
 }
 
 TEST_F(SystemStateTrackerTests, saveFileHandle) {

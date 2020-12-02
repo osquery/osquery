@@ -604,7 +604,7 @@ bool BPFEventPublisher::processMknodatEvent(
   }
 
   std::string pathname;
-  if (!getEventMapValue(pathname, event.in_field_map, "pathname")) {
+  if (!getEventMapValue(pathname, event.in_field_map, "filename")) {
     return false;
   }
 
