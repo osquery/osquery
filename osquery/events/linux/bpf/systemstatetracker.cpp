@@ -1174,7 +1174,7 @@ void SystemStateTracker::saveFileHandle(Context& context,
 
 void SystemStateTracker::expireFileHandleEntries(Context& context,
                                                  std::size_t max_size) {
-  if (max_size == 0U) {
+  if (max_size == 0U || context.file_handle_struct_index.size() < max_size) {
     return;
   }
 

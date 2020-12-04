@@ -700,13 +700,13 @@ TEST_F(BPFEventPublisherTests, processMknodatEvent) {
   tob::ebpfpub::IFunctionTracer::Event::Field mode_field = {
     "mode",
     true,
-    15ULL
+    static_cast<std::uint64_t>(S_IFREG)
   };
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field pathname_field = {
-    "pathname",
+  tob::ebpfpub::IFunctionTracer::Event::Field filename_field = {
+    "filename",
     true,
     "/home/alessandro/test_file"
   };
@@ -720,7 +720,7 @@ TEST_F(BPFEventPublisherTests, processMknodatEvent) {
     }
 
     if ((i & 2) != 0) {
-      bpf_event.in_field_map.insert({pathname_field.name, pathname_field});
+      bpf_event.in_field_map.insert({filename_field.name, filename_field});
     }
 
     auto succeeded =
@@ -735,19 +735,13 @@ TEST_F(BPFEventPublisherTests, processMknodatEvent) {
   bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
 
   bpf_event.in_field_map.insert({mode_field.name, mode_field});
-  bpf_event.in_field_map.insert({pathname_field.name, pathname_field});
+  bpf_event.in_field_map.insert({filename_field.name, filename_field});
 
   auto succeeded =
       BPFEventPublisher::processMknodatEvent(state_tracker, bpf_event);
 
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
-
-  {
-    auto context = state_tracker.getContextCopy();
-    const auto& process = context.process_map.at(bpf_event.header.process_id);
-    EXPECT_EQ(process.fd_map.size(), 8U);
-  }
 
   // Update the exit code again, so that the syscall fails. Pass the modes
   // that we know should be ignored
@@ -759,24 +753,12 @@ TEST_F(BPFEventPublisherTests, processMknodatEvent) {
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
 
-  {
-    auto context = state_tracker.getContextCopy();
-    const auto& process = context.process_map.at(bpf_event.header.process_id);
-    EXPECT_EQ(process.fd_map.size(), 8U);
-  }
-
   bpf_event.in_field_map["mode"].data_var = static_cast<std::uint64_t>(S_IFBLK);
 
   succeeded = BPFEventPublisher::processMknodatEvent(state_tracker, bpf_event);
 
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
-
-  {
-    auto context = state_tracker.getContextCopy();
-    const auto& process = context.process_map.at(bpf_event.header.process_id);
-    EXPECT_EQ(process.fd_map.size(), 8U);
-  }
 
   // Update the mode parameter so that the syscall creates a new regular
   // file. This should finally succeed
@@ -785,7 +767,7 @@ TEST_F(BPFEventPublisherTests, processMknodatEvent) {
   succeeded = BPFEventPublisher::processMknodatEvent(state_tracker, bpf_event);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 2U);
 
   {
     auto context = state_tracker.getContextCopy();
@@ -810,7 +792,7 @@ TEST_F(BPFEventPublisherTests, processMknodatEvent) {
   succeeded = BPFEventPublisher::processMknodatEvent(state_tracker, bpf_event);
 
   EXPECT_TRUE(succeeded);
-  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 1U);
+  EXPECT_EQ(state_tracker.getContextCopy().process_map.size(), 2U);
 
   {
     auto context = state_tracker.getContextCopy();
