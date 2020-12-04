@@ -231,7 +231,6 @@ function(generateNativeTables)
     "posix/memory_error_info.table:linux,macos"
     "posix/mounts.table:linux,macos,freebsd"
     "posix/oem_strings.table:linux,macos"
-    "posix/opera_extensions.table:linux,macos,freebsd"
     "posix/pci_devices.table:linux,macos"
     "posix/process_envs.table:linux,macos,freebsd"
     "posix/process_events.table:linux,macos,freebsd"

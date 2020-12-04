@@ -6,9 +6,9 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesApplicationsMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("posix/tests")
+    add_subdirectory("chrome/tests")
   endif()
 
   generateOsqueryTablesApplications()
@@ -16,15 +16,15 @@ endfunction()
 
 function(generateOsqueryTablesApplications)
   set(source_files
-    browser_chrome.cpp
-    browser_utils.cpp
+    chrome/chrome_extensions.cpp
+    chrome/chrome_extension_content_scripts.cpp
+    chrome/utils.cpp
     browser_firefox.cpp
     atom_packages.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
-      posix/browser_opera.cpp
       posix/carbon_black.cpp
       posix/docker.cpp
       posix/lxd.cpp
@@ -60,7 +60,7 @@ function(generateOsqueryTablesApplications)
   )
 
   set(public_header_files
-    browser_utils.h
+    chrome/utils.h
   )
 
   if(DEFINED PLATFORM_POSIX)
