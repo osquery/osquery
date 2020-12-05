@@ -175,16 +175,21 @@ jobs:
     - script: |
         brew upgrade
         brew install ccache flex bison
-        pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
         sudo xcode-select -s /Applications/Xcode_10.3.app/Contents/Developer
-        wget https://cmake.org/files/v3.17/cmake-3.17.5-Darwin-x86_64.tar.gz -O /tmp/cmake-3.17.5-Darwin-x86_64.tar.gz
-        tar xf /tmp/cmake-3.17.5-Darwin-x86_64.tar.gz -C $HOME
-        echo "##vso[task.prependpath]$HOME/cmake-3.17.5-Darwin-x86_64/CMake.app/Contents/bin"
-      displayName: "Install Homebrew and prerequisites"
+      displayName: "Upgrade Homebrew and install build prerequisites"
       timeoutInMinutes: 20
 
     - script: |
-        mkdir $(Build.BinariesDirectory)/build
+        wget https://cmake.org/files/v3.17/cmake-3.17.5-Darwin-x86_64.tar.gz -O /tmp/cmake-3.17.5-Darwin-x86_64.tar.gz
+        tar xf /tmp/cmake-3.17.5-Darwin-x86_64.tar.gz -C $HOME
+        echo "##vso[task.prependpath]$HOME/cmake-3.17.5-Darwin-x86_64/CMake.app/Contents/bin"
+      displayName: "Install CMake"
+
+    - script: |
+        pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
+      displayName: "Install tests prerequisites"
+
+    - script: mkdir $(Build.BinariesDirectory)/build
       displayName: "Create build folder"
 
     - task: CacheBeta@2
@@ -275,10 +280,8 @@ jobs:
       matrix:
         x64:
           VC_VARS_FILE: vcvars64.bat
-          PYTHON_FOLDER: x64
         win32:
           VC_VARS_FILE: vcvars32.bat
-          PYTHON_FOLDER: x86
 
     pool:
       vmImage: windows-2019
@@ -297,10 +300,20 @@ jobs:
 
     - checkout: self
 
+    # This needs to be done before trying to install packages
+    # because the python paths added in the PATH will only be visible in successive steps
     - powershell: |
-        $python3_path = ((Get-Item C:\hostedtoolcache\windows\Python\3*\$(PYTHON_FOLDER)) | Sort-Object -Descending)[0].FullName
-        & $python3_path\python -m pip install --upgrade pip --no-warn-script-location
-        & $python3_path\python -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
+        $python3_path = (Get-Item C:\hostedtoolcache\windows\Python\3*\x64 | Sort-Object -Descending)[0].FullName
+        echo "Found python installation at $python3_path"
+        Write-Host "##vso[task.prependpath]$python3_path"
+        Write-Host "##vso[task.prependpath]$python3_path\Scripts"
+        Write-Host "##vso[task.setvariable variable=PYTHON_ROOT]$python3_path"
+      displayName: Find newest version of python
+
+    - powershell: |
+        python -m pip install --upgrade pip
+        python -m pip install wheel
+        python -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
       displayName: Install tests prerequisites
 
     - powershell: |
@@ -310,20 +323,9 @@ jobs:
       displayName: Install CMake
 
     - powershell: |
-        mkdir $(Build.BinariesDirectory)\build
-      displayName: "Create build folder"
-
-    - powershell: |
         tools\ci\scripts\install_openssl_formula_dependencies.ps1
       displayName: "Installing: Strawberry Perl"
       workingDirectory: $(Build.SourcesDirectory)
-
-    - task: CacheBeta@2
-      inputs:
-        key: submodules | Windows | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
-        restoreKeys: submodules | Windows | $(SubmoduleCacheVersion)
-        path: $(Build.SourcesDirectory)/.git/modules
-      displayName: Submodule cache
 
     - powershell: |
         (New-Object System.Net.WebClient).DownloadFile(`
@@ -345,6 +347,17 @@ jobs:
         Write-Host "##vso[task.prependpath]C:\Program Files\Ninja"
       displayName: "Install Ninja"
 
+    - powershell: |
+        mkdir $(Build.BinariesDirectory)\build
+      displayName: "Create build folder"
+
+    - task: CacheBeta@2
+      inputs:
+        key: submodules | Windows | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
+        restoreKeys: submodules | Windows | $(SubmoduleCacheVersion)
+        path: $(Build.SourcesDirectory)/.git/modules
+      displayName: Submodule cache
+
     - script: |
         cmake --version
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\$(VC_VARS_FILE)"
@@ -355,6 +368,7 @@ jobs:
         -DOSQUERY_BUILD_TESTS=ON ^
         -DCMAKE_C_COMPILER_LAUNCHER="sccache.exe" ^
         -DCMAKE_CXX_COMPILER_LAUNCHER="sccache.exe" ^
+        -DPython3_ROOT_DIR="$(PYTHON_ROOT)" ^
         $(Build.SourcesDirectory)
       displayName: "Configure osquery"
       workingDirectory: $(Build.BinariesDirectory)\build
