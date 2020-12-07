@@ -15,6 +15,7 @@
 #include <osquery/tables/applications/chrome/utils.h>
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/expected/expected.h>
 #include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
@@ -36,6 +37,10 @@ const std::string kSecureProfilePreferencesFile = "Secure Preferences";
 const std::vector<std::reference_wrapper<const std::string>>
     kPossibleConfigFileNames = {std::ref(kProfilePreferencesFile),
                                 std::ref(kSecureProfilePreferencesFile)};
+
+/// Maximum size for the configuration files (Preferences,
+/// Secure Preferences, manifest.json)
+const std::streamoff kMaxConfigFileSize{102400};
 
 /// A list of possible path suffixes for each browser type
 using ChromePathSuffixMap =
@@ -329,6 +334,204 @@ bool getExtensionPathListFromPreferences(std::vector<std::string>& path_list,
   return true;
 }
 
+/// Captures a Chrome profile from the given path
+bool captureProfileSnapshotSettingsFromPath(
+    ChromeProfileSnapshot& snapshot, const ChromeProfilePath& profile_path) {
+  // Save path and type, so we can add all the chrome-based
+  // extensions in the same table
+  snapshot.type = profile_path.type;
+  snapshot.path = profile_path.value;
+  snapshot.uid = profile_path.uid;
+
+  // Save the contents of the configuration files
+  auto preferences_file_path =
+      fs::path(profile_path.value) / kProfilePreferencesFile;
+
+  auto secure_prefs_file_path =
+      fs::path(profile_path.value) / kSecureProfilePreferencesFile;
+
+  auto preferences_exp =
+      readTextFile(preferences_file_path.string(), kMaxConfigFileSize);
+
+  if (!preferences_exp.isError()) {
+    snapshot.preferences = preferences_exp.take();
+
+  } else {
+    const auto& error = preferences_exp.getError();
+    if (error.getErrorCode() == ReadTextFileError::MaxSizeExceeded) {
+      LOG(ERROR) << "The following preferences file is too big and the profile "
+                    "will be skipped: "
+                 << preferences_file_path.string();
+    }
+
+    return false;
+  }
+
+  preferences_exp =
+      readTextFile(secure_prefs_file_path.string(), kMaxConfigFileSize);
+
+  if (!preferences_exp.isError()) {
+    snapshot.secure_preferences = preferences_exp.take();
+
+  } else {
+    const auto& error = preferences_exp.getError();
+    if (error.getErrorCode() == ReadTextFileError::MaxSizeExceeded) {
+      LOG(ERROR) << "The following preferences file is too big and the profile "
+                    "will be skipped: "
+                 << secure_prefs_file_path.string();
+    }
+
+    return false;
+  }
+
+  if (snapshot.preferences.empty() && snapshot.secure_preferences.empty()) {
+    LOG(ERROR) << "Failed to read the Preferences file for the following "
+                  "profile snapshot " +
+                      preferences_file_path.string();
+
+    return false;
+  }
+
+  return true;
+}
+
+/// Captures a Chrome profile from the given path
+bool captureProfileSnapshotExtensionsFromPath(
+    ChromeProfileSnapshot& snapshot, const ChromeProfilePath& profile_path) {
+  // Enumerate all the extensions that are present inside this
+  // profile. Note that they may not be present in the config
+  // file. For now, let's store them all as unreferenced
+  auto extensions_folder_path = fs::path(profile_path.value) / "Extensions";
+
+  std::vector<std::string> extension_path_list = {};
+
+  {
+    std::vector<std::string> base_path_list;
+    auto status = listDirectoriesInDirectory(extensions_folder_path.string(),
+                                             base_path_list);
+
+    static_cast<void>(status);
+
+    for (const auto& base_path : base_path_list) {
+      std::vector<std::string> new_path_list = {};
+      status = listDirectoriesInDirectory(base_path, new_path_list);
+      static_cast<void>(status);
+
+      for (auto& new_path : new_path_list) {
+        boost::system::error_code error_code;
+        auto canonical_path = fs::canonical(new_path, error_code);
+        if (!error_code) {
+          canonical_path = canonical_path.string();
+        }
+
+        canonical_path.make_preferred();
+        new_path = canonical_path.string();
+      }
+
+      extension_path_list.insert(extension_path_list.end(),
+                                 std::make_move_iterator(new_path_list.begin()),
+                                 std::make_move_iterator(new_path_list.end()));
+    }
+  }
+
+  for (const auto& extension_path : extension_path_list) {
+    ChromeProfileSnapshot::Extension extension = {};
+    extension.path = extension_path;
+
+    auto manifest_path = fs::path(extension_path) / "manifest.json";
+    auto manifest_exp =
+        readTextFile(manifest_path.string(), kMaxConfigFileSize);
+
+    if (manifest_exp.isError()) {
+      LOG(ERROR) << "Failed to read the following manifest.json file: "
+                 << manifest_path.string()
+                 << ". The extension was referenced by the following profile: "
+                 << profile_path.value
+                 << ". Error: " << manifest_exp.getError().getMessage();
+
+      continue;
+    }
+
+    extension.manifest = manifest_exp.take();
+
+    snapshot.unreferenced_extensions.insert(
+        {extension_path, std::move(extension)});
+  }
+
+  // Now get a list of all the extensions referenced by the Preferences file.
+  std::vector<std::string> referenced_ext_path_list;
+
+  if (!getExtensionPathListFromPreferences(
+          referenced_ext_path_list, profile_path.value, snapshot.preferences)) {
+    // Assume this profile is broken and skip it
+    LOG(ERROR) << "Failed to parse the following profile: "
+               << profile_path.value;
+
+    return false;
+  }
+
+  {
+    std::vector<std::string> additional_ref_ext_path_list;
+    if (!getExtensionPathListFromPreferences(additional_ref_ext_path_list,
+                                             profile_path.value,
+                                             snapshot.secure_preferences)) {
+      // Assume this profile is broken and skip it
+      LOG(ERROR) << "Failed to parse the following profile: "
+                 << profile_path.value;
+
+      return false;
+    }
+
+    referenced_ext_path_list.insert(
+        referenced_ext_path_list.end(),
+        std::make_move_iterator(additional_ref_ext_path_list.begin()),
+        std::make_move_iterator(additional_ref_ext_path_list.end()));
+  }
+
+  for (const auto& referenced_ext_path : referenced_ext_path_list) {
+    auto extension_it =
+        snapshot.unreferenced_extensions.find(referenced_ext_path);
+
+    if (extension_it != snapshot.unreferenced_extensions.end()) {
+      // Move this extension to the referenced group
+      auto& extension = extension_it->second;
+
+      snapshot.referenced_extensions.insert(
+          {referenced_ext_path, std::move(extension)});
+
+      snapshot.unreferenced_extensions.erase(extension_it);
+
+    } else {
+      // This extension is outside the profile, so create a new
+      // entry
+      ChromeProfileSnapshot::Extension extension = {};
+      extension.path = referenced_ext_path;
+
+      auto manifest_path = fs::path(referenced_ext_path) / "manifest.json";
+      auto manifest_exp =
+          readTextFile(manifest_path.string(), kMaxConfigFileSize);
+
+      if (manifest_exp.isError()) {
+        LOG(ERROR)
+            << "Failed to read the following manifest.json file: "
+            << manifest_path.string()
+            << ". The extension was referenced by the following profile: "
+            << profile_path.value
+            << ". Error: " << manifest_exp.getError().getMessage();
+
+        continue;
+      }
+
+      extension.manifest = manifest_exp.take();
+
+      snapshot.referenced_extensions.insert(
+          {referenced_ext_path, std::move(extension)});
+    }
+  }
+
+  return true;
+}
+
 /// Retrieves a list of profiles and extensions with as few parsing
 /// as possible
 ChromeProfileSnapshotList getChromeProfileSnapshotList(
@@ -340,156 +543,12 @@ ChromeProfileSnapshotList getChromeProfileSnapshotList(
     // Save path and type, so we can add all the chrome-based
     // extensions in the same table
     ChromeProfileSnapshot snapshot = {};
-    snapshot.type = profile_path.type;
-    snapshot.path = profile_path.value;
-    snapshot.uid = profile_path.uid;
-
-    // Save the contents of the configuration files
-    auto preferences_file_path =
-        fs::path(profile_path.value) / kProfilePreferencesFile;
-    auto secure_prefs_file_path =
-        fs::path(profile_path.value) / kSecureProfilePreferencesFile;
-
-    /// TODO(alessandro): Remove usage of forensicReadFile()
-    auto status = forensicReadFile(secure_prefs_file_path.string(),
-                                   snapshot.secure_preferences);
-
-    static_cast<void>(status);
-
-    status =
-        forensicReadFile(preferences_file_path.string(), snapshot.preferences);
-
-    static_cast<void>(status);
-
-    if (snapshot.preferences.empty() && snapshot.secure_preferences.empty()) {
-      LOG(ERROR) << "Failed to read the Preferences file for the following "
-                    "profile snapshot " +
-                        preferences_file_path.string();
-
+    if (!captureProfileSnapshotSettingsFromPath(snapshot, profile_path)) {
       continue;
     }
 
-    // Enumerate all the extensions that are present inside this
-    // profile. Note that they may not be present in the config
-    // file. For now, let's store them all as unreferenced
-    auto extensions_folder_path = fs::path(profile_path.value) / "Extensions";
-
-    std::vector<std::string> extension_path_list = {};
-
-    {
-      std::vector<std::string> base_path_list;
-      auto status = listDirectoriesInDirectory(extensions_folder_path.string(),
-                                               base_path_list);
-
-      static_cast<void>(status);
-
-      for (const auto& base_path : base_path_list) {
-        std::vector<std::string> new_path_list = {};
-        status = listDirectoriesInDirectory(base_path, new_path_list);
-        static_cast<void>(status);
-
-        for (auto& new_path : new_path_list) {
-          boost::system::error_code error_code;
-          auto canonical_path = fs::canonical(new_path, error_code);
-          if (!error_code) {
-            canonical_path = canonical_path.string();
-          }
-
-          canonical_path.make_preferred();
-          new_path = canonical_path.string();
-        }
-
-        extension_path_list.insert(
-            extension_path_list.end(),
-            std::make_move_iterator(new_path_list.begin()),
-            std::make_move_iterator(new_path_list.end()));
-      }
-    }
-
-    for (const auto& extension_path : extension_path_list) {
-      ChromeProfileSnapshot::Extension extension = {};
-      extension.path = extension_path;
-
-      /// TODO(alessandro): Remove usage of forensicReadFile()
-      auto manifest_path = fs::path(extension_path) / "manifest.json";
-      if (!forensicReadFile(manifest_path.string(), extension.manifest).ok()) {
-        LOG(ERROR)
-            << "Failed to read the following manifest.json file: "
-            << manifest_path.string()
-            << ". The extension was referenced by the following profile: "
-            << profile_path.value;
-
-        continue;
-      }
-
-      snapshot.unreferenced_extensions.insert(
-          {extension_path, std::move(extension)});
-    }
-
-    // Now get a list of all the extensions referenced by the Preferences file.
-    std::vector<std::string> referenced_ext_path_list;
-
-    if (!getExtensionPathListFromPreferences(referenced_ext_path_list,
-                                             profile_path.value,
-                                             snapshot.preferences)) {
-      // Assume this profile is broken and skip it
-      LOG(ERROR) << "Failed to parse the following profile: "
-                 << profile_path.value;
+    if (!captureProfileSnapshotExtensionsFromPath(snapshot, profile_path)) {
       continue;
-    }
-
-    {
-      std::vector<std::string> additional_ref_ext_path_list;
-      if (!getExtensionPathListFromPreferences(additional_ref_ext_path_list,
-                                               profile_path.value,
-                                               snapshot.secure_preferences)) {
-        // Assume this profile is broken and skip it
-        LOG(ERROR) << "Failed to parse the following profile: "
-                   << profile_path.value;
-        continue;
-      }
-
-      referenced_ext_path_list.insert(
-          referenced_ext_path_list.end(),
-          std::make_move_iterator(additional_ref_ext_path_list.begin()),
-          std::make_move_iterator(additional_ref_ext_path_list.end()));
-    }
-
-    for (const auto& referenced_ext_path : referenced_ext_path_list) {
-      auto extension_it =
-          snapshot.unreferenced_extensions.find(referenced_ext_path);
-
-      if (extension_it != snapshot.unreferenced_extensions.end()) {
-        // Move this extension to the referenced group
-        auto& extension = extension_it->second;
-
-        snapshot.referenced_extensions.insert(
-            {referenced_ext_path, std::move(extension)});
-
-        snapshot.unreferenced_extensions.erase(extension_it);
-
-      } else {
-        // This extension is outside the profile, so create a new
-        // entry
-        ChromeProfileSnapshot::Extension extension = {};
-        extension.path = referenced_ext_path;
-
-        /// TODO(alessandro): Remove usage of forensicReadFile()
-        auto manifest_path = fs::path(referenced_ext_path) / "manifest.json";
-        if (!forensicReadFile(manifest_path.string(), extension.manifest)
-                 .ok()) {
-          VLOG(1) << "Failed to read the manifest.json file for the following "
-                     "extension: "
-                  << extension.path
-                  << ". The extension was referenced by the following profile: "
-                  << profile_path.value;
-
-          continue;
-        }
-
-        snapshot.referenced_extensions.insert(
-            {referenced_ext_path, std::move(extension)});
-      }
     }
 
     output.push_back(std::move(snapshot));
@@ -506,14 +565,16 @@ Status getLocalizationData(pt::iptree& parsed_localization,
   auto messages_file_path =
       fs::path(extension_path) / "_locales" / locale / "messages.json";
 
-  /// TODO(alessandro): Remove usage of forensicReadFile()
-  std::string messages_json;
-  auto status = forensicReadFile(messages_file_path, messages_json);
-  if (!status.ok()) {
+  auto messages_json_exp =
+      readTextFile(messages_file_path.string(), kMaxConfigFileSize);
+
+  if (messages_json_exp.isError()) {
     return Status::failure(
         "Failed to read the localization data for the following locale: " +
         locale);
   }
+
+  auto messages_json = messages_json_exp.take();
 
   pt::iptree output;
   if (!parseJsonString(output, messages_json)) {

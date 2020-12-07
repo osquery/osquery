@@ -59,11 +59,7 @@ QueryData genChromeExtensions(QueryContext& context) {
           extension, "optional_permissions_json", true, "{}"));
 
       auto persistent = getExtensionProperty(extension, "persistent", true);
-      if (boost::iequals(persistent, "true")) {
-        row["persistent"] = BIGINT(1);
-      } else {
-        row["persistent"] = BIGINT(0);
-      }
+      row["persistent"] = BIGINT(boost::iequals(persistent, "true") ? 1 : 0);
 
       row["description"] =
           SQL_TEXT(getExtensionProperty(extension, "description", true));
