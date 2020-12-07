@@ -54,6 +54,13 @@ const std::set<std::string> kWellKnownSids = {
 
 namespace tables {
 
+std::string getUserShell(const std::string& sid) {
+  // TODO: This column exists for cross-platform consistency, but
+  // the answer on Windows is arbitrary. %COMSPEC% env variable may
+  // be the best answer. Currently, hard-coded.
+  return "C:\\Windows\\system32\\cmd.exe";
+}
+
 std::string getUserHomeDir(const std::string& sid) {
   QueryData res;
   queryKey(kRegProfilePath + kRegSep + sid, res);
@@ -71,7 +78,8 @@ void genUser(const std::string& sidString, QueryData& results) {
 
   r["uuid"] = sidString;
   r["directory"] = getUserHomeDir(sidString);
-
+  r["shell"] = getUserShell(sidString);
+  
   PSID sid;
   auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
   if (ret == 0) {
@@ -87,8 +95,6 @@ void genUser(const std::string& sidString, QueryData& results) {
                   ? "roaming"
                   : "special";
 
-  // TODO
-  r["shell"] = "C:\\Windows\\system32\\cmd.exe";
   r["description"] = "";
 
   wchar_t accntName[UNLEN] = {0};
@@ -184,7 +190,7 @@ void processLocalAccounts(std::set<std::string>& processedSids,
         r["description"] =
             wstringToString(LPUSER_INFO_4(userLvl4Buff)->usri4_comment);
         r["directory"] = getUserHomeDir(sidString);
-        r["shell"] = "C:\\Windows\\System32\\cmd.exe";
+        r["shell"] = getUserShell(sidString);
         r["type"] = "local";
         if (userLvl4Buff != nullptr) {
           NetApiBufferFree(userLvl4Buff);
