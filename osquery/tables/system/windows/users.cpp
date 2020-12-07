@@ -79,33 +79,33 @@ void genUser(const std::string& sidString, QueryData& results) {
   r["uuid"] = sidString;
   r["directory"] = getUserHomeDir(sidString);
   r["shell"] = getUserShell(sidString);
+  r["type"] = kWellKnownSids.find(sidString) == kWellKnownSids.end()
+                  ? "roaming"
+                  : "special";
+  r["description"] = "";
   
   PSID sid;
   auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
   if (ret == 0) {
-    VLOG(1) << "Convert SID to string failed with " << GetLastError();
+    VLOG(1) << "Converting SIDstring to SID failed with " << GetLastError();
+  } else {
+    auto uid = getUidFromSid(sid);
+    auto gid = getGidFromSid(sid);
+    r["uid"] = BIGINT(uid);
+    r["gid"] = BIGINT(gid);
+    r["uid_signed"] = INTEGER(uid);
+    r["gid_signed"] = INTEGER(gid);
+
+    wchar_t accntName[UNLEN] = {0};
+    wchar_t domName[DNLEN] = {0};
+    unsigned long accntNameLen = UNLEN;
+    unsigned long domNameLen = DNLEN;
+    SID_NAME_USE eUse;
+    ret = LookupAccountSidW(
+        nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
+    r["username"] = ret != 0 ? wstringToString(accntName) : "";
   }
-  auto uid = getUidFromSid(sid);
-  auto gid = getGidFromSid(sid);
-  r["uid"] = BIGINT(uid);
-  r["gid"] = BIGINT(gid);
-  r["uid_signed"] = INTEGER(uid);
-  r["gid_signed"] = INTEGER(gid);
-  r["type"] = kWellKnownSids.find(sidString) == kWellKnownSids.end()
-                  ? "roaming"
-                  : "special";
-
-  r["description"] = "";
-
-  wchar_t accntName[UNLEN] = {0};
-  wchar_t domName[DNLEN] = {0};
-  unsigned long accntNameLen = UNLEN;
-  unsigned long domNameLen = DNLEN;
-  SID_NAME_USE eUse;
-  ret = LookupAccountSidW(
-      nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
-  r["username"] = ret != 0 ? wstringToString(accntName) : "";
-
+  
   results.push_back(r);
 }
 
@@ -192,6 +192,7 @@ void processLocalAccounts(std::set<std::string>& processedSids,
         r["directory"] = getUserHomeDir(sidString);
         r["shell"] = getUserShell(sidString);
         r["type"] = "local";
+
         if (userLvl4Buff != nullptr) {
           NetApiBufferFree(userLvl4Buff);
         }
