@@ -134,8 +134,8 @@ void processRoamingProfiles(const std::set<std::string>& processedSids,
 // Enumerate all local users
 void processLocalAccounts(std::set<std::string>& processedSids,
                           QueryData& results) {
-  unsigned long dwUserInfoLevel = 3; // 3 is valid for NetUserEnum(); 4 is not
-  unsigned long dwDetailedUserInfoLevel = 4; // level 4 returns the SID value
+  unsigned long dwUserInfoLevel = 1; // retrieve username with NetUserEnum()
+  unsigned long dwDetailedUserInfoLevel = 4; // get SID with NetUserGetInfo()
   unsigned long dwNumUsersRead = 0;
   unsigned long dwTotalUsers = 0;
   unsigned long resumeHandle = 0;
@@ -153,11 +153,11 @@ void processLocalAccounts(std::set<std::string>& processedSids,
 
     if ((ret == NERR_Success || ret == ERROR_MORE_DATA) &&
         userBuffer != nullptr) {
-      auto iterBuff = LPUSER_INFO_3(userBuffer);
+      auto iterBuff = LPUSER_INFO_1(userBuffer);
       for (size_t i = 0; i < dwNumUsersRead; i++) {
         LPBYTE userLvl4Buff = nullptr;
         ret = NetUserGetInfo(nullptr,
-                             iterBuff->usri3_name,
+                             iterBuff->usri1_name,
                              dwDetailedUserInfoLevel,
                              &userLvl4Buff);
 
@@ -165,8 +165,8 @@ void processLocalAccounts(std::set<std::string>& processedSids,
           if (userLvl4Buff != nullptr) {
             NetApiBufferFree(userLvl4Buff);
           }
-          VLOG(1) << "Failed to get sid for "
-                  << wstringToString(iterBuff->usri3_name)
+          VLOG(1) << "Failed to get SID for "
+                  << wstringToString(iterBuff->usri1_name)
                   << " with error code " << ret;
           iterBuff++;
           continue;
@@ -179,9 +179,9 @@ void processLocalAccounts(std::set<std::string>& processedSids,
 
         Row r;
         r["uuid"] = psidToString(sid);
-        r["username"] = wstringToString(iterBuff->usri3_name);
-        auto uid = iterBuff->usri3_user_id;
-        auto gid = iterBuff->usri3_primary_group_id;
+        r["username"] = wstringToString(iterBuff->usri1_name);
+        auto uid = getUidFromSid(LPUSER_INFO_4(userLvl4Buff)->usri4_user_sid);
+        auto gid = LPUSER_INFO_4(userLvl4Buff)->usri4_primary_group_id;
         r["uid"] = BIGINT(uid);
         r["gid"] = BIGINT(gid);
         r["uid_signed"] = INTEGER(uid);
