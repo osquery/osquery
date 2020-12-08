@@ -173,6 +173,7 @@ jobs:
 
     steps:
     - script: |
+        brew update
         brew upgrade
         brew install ccache flex bison
         sudo xcode-select -s /Applications/Xcode_10.3.app/Contents/Developer
