@@ -134,7 +134,8 @@ void processRoamingProfiles(const std::set<std::string>& processedSids,
 // Enumerate all local users
 void processLocalAccounts(std::set<std::string>& processedSids,
                           QueryData& results) {
-  unsigned long dwUserInfoLevel = 3;
+  unsigned long dwUserInfoLevel = 3; // 3 is valid for NetUserEnum(); 4 is not
+  unsigned long dwDetailedUserInfoLevel = 4; // level 4 returns the SID value
   unsigned long dwNumUsersRead = 0;
   unsigned long dwTotalUsers = 0;
   unsigned long resumeHandle = 0;
@@ -154,8 +155,6 @@ void processLocalAccounts(std::set<std::string>& processedSids,
         userBuffer != nullptr) {
       auto iterBuff = LPUSER_INFO_3(userBuffer);
       for (size_t i = 0; i < dwNumUsersRead; i++) {
-        // User level 4 contains the SID value
-        unsigned long dwDetailedUserInfoLevel = 4;
         LPBYTE userLvl4Buff = nullptr;
         ret = NetUserGetInfo(nullptr,
                              iterBuff->usri3_name,
