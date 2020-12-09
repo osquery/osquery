@@ -32,7 +32,8 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
-FLAG(bool, enable_file_events, false, "Enables the file_events publisher");
+
+DECLARE_bool(enable_file_events);
 
 std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemChangeOwner, "ATTRIBUTES_MODIFIED"},

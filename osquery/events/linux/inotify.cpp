@@ -27,7 +27,8 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
-FLAG(bool, enable_file_events, false, "Enables the file_events publisher");
+
+DECLARE_bool(enable_file_events);
 
 static const size_t kINotifyMaxEvents = 512;
 static const size_t kINotifyEventSize =
