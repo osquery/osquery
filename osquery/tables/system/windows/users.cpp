@@ -75,13 +75,14 @@ std::string getUserHomeDir(const std::string& sid) {
 
 // If given a list of UIDs to constrain the results, check if a particular SID
 // has a RID that matches any of those UIDs.
-bool sidMatchesAnyDesiredUids(const std::set<std::string>& uidStrings, const std::string& sidString) {
+bool sidMatchesAnyDesiredUids(const std::set<std::string>& uidStrings,
+                              const std::string& sidString) {
   // If there is no constraint of UIDs given, results will not be filtered
   if (uidStrings.empty()) {
     return true;
   }
 
-  auto toks =  osquery::split(sidString, "-");
+  auto toks = osquery::split(sidString, "-");
   auto uid = toks.at(toks.size() - 1);
   for (auto desiredUid : uidStrings) {
     if (uid.compare(desiredUid) == 0) {
@@ -103,7 +104,7 @@ void genUser(const std::string& sidString, QueryData& results) {
                   ? "roaming"
                   : "special";
   r["description"] = "";
-  
+
   PSID sid;
   auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
   if (ret == 0) {
@@ -125,12 +126,12 @@ void genUser(const std::string& sidString, QueryData& results) {
         nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
     r["username"] = ret != 0 ? wstringToString(accntName) : "";
   }
-  
+
   results.push_back(r);
 }
 
 // Enumerate the users from the profiles key in the Registry, matching only
-// the UIDs/RIDs (if any) and skipping any SIDs of local-only users that 
+// the UIDs/RIDs (if any) and skipping any SIDs of local-only users that
 // were already processed in the earlier API-based enumeration.
 void processRoamingProfiles(const std::set<std::string>& selectedUids,
                             const std::set<std::string>& processedSids,
@@ -145,7 +146,7 @@ void processRoamingProfiles(const std::set<std::string>& selectedUids,
     }
 
     auto sidString = profile.at("name");
-    
+
     if (sidMatchesAnyDesiredUids(selectedUids, sidString)) {
       // Skip this user if already processed
       if (processedSids.find(sidString) == processedSids.end()) {
@@ -222,12 +223,12 @@ void processLocalAccounts(const std::set<std::string>& selectedUids,
 
           results.push_back(r);
         }
-        
+
         // Free the buffer allocated by NetUserGetInfo()
         if (userLvl4Buff != nullptr) {
           NetApiBufferFree(userLvl4Buff);
         }
-        iterBuff++;  //index to the next record returned by NetUserEnum()
+        iterBuff++; // index to the next record returned by NetUserEnum()
       }
     } else {
       // If there are no local users something may be amiss.
@@ -247,7 +248,7 @@ QueryData genUsers(QueryContext& context) {
   std::set<std::string> processedSids;
   std::set<std::string> selectedUids;
 
-  // implement index on UUID (SID on Windows) column by returning only the 
+  // implement index on UUID (SID on Windows) column by returning only the
   // users in the constraint, bypassing the enumeration step entirely:
   if (context.constraints["uuid"].exists(EQUALS)) {
     auto sidStrings = context.constraints["uuid"].getAll(EQUALS);
