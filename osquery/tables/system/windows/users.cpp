@@ -161,7 +161,7 @@ void processRoamingProfiles(const std::set<std::string>& selectedUids,
 void processLocalAccounts(const std::set<std::string>& selectedUids,
                           std::set<std::string>& processedSids,
                           QueryData& results) {
-  unsigned long dwUserInfoLevel = 1; // retrieve username with NetUserEnum()
+  unsigned long dwUserInfoLevel = 0; // retrieve username with NetUserEnum()
   unsigned long dwDetailedUserInfoLevel = 4; // get SID with NetUserGetInfo()
   unsigned long dwNumUsersRead = 0;
   unsigned long dwTotalUsers = 0;
@@ -180,11 +180,11 @@ void processLocalAccounts(const std::set<std::string>& selectedUids,
 
     if ((ret == NERR_Success || ret == ERROR_MORE_DATA) &&
         userBuffer != nullptr) {
-      auto iterBuff = LPUSER_INFO_1(userBuffer);
+      auto iterBuff = LPUSER_INFO_0(userBuffer);
       for (size_t i = 0; i < dwNumUsersRead; i++) {
         LPBYTE userLvl4Buff = nullptr;
         ret = NetUserGetInfo(nullptr,
-                             iterBuff->usri1_name,
+                             iterBuff->usri0_name,
                              dwDetailedUserInfoLevel,
                              &userLvl4Buff);
 
@@ -193,7 +193,7 @@ void processLocalAccounts(const std::set<std::string>& selectedUids,
             NetApiBufferFree(userLvl4Buff);
           }
           VLOG(1) << "Failed to get SID for "
-                  << wstringToString(iterBuff->usri1_name)
+                  << wstringToString(iterBuff->usri0_name)
                   << " with error code " << ret;
           iterBuff++;
           continue;
@@ -209,7 +209,7 @@ void processLocalAccounts(const std::set<std::string>& selectedUids,
         if (sidMatchesAnyDesiredUids(selectedUids, sidString)) {
           Row r;
           r["uuid"] = sidString;
-          r["username"] = wstringToString(iterBuff->usri1_name);
+          r["username"] = wstringToString(iterBuff->usri0_name);
           r["uid"] = BIGINT(uid);
           r["gid"] = BIGINT(gid);
           r["uid_signed"] = INTEGER(uid);
