@@ -125,9 +125,9 @@ void genUser(const std::string& sidString, QueryData& results) {
     ret = LookupAccountSidW(
         nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
     r["username"] = ret != 0 ? wstringToString(accntName) : "";
-  }
 
-  results.push_back(r);
+    results.push_back(r);
+  }
 }
 
 // Enumerate the users from the profiles key in the Registry, matching only
