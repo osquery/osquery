@@ -12,7 +12,7 @@
 #include <map>
 
 namespace osquery {
-// TODO(alessandro): remove const from the write methods
+
 class MockedOsqueryDatabase final : public IDatabaseInterface {
  public:
   mutable std::map<std::string, std::string> key_map;
@@ -56,4 +56,5 @@ class MockedOsqueryDatabase final : public IDatabaseInterface {
                                   const std::string& prefix,
                                   size_t max) const override;
 };
+
 } // namespace osquery

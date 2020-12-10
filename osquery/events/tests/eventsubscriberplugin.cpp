@@ -6,6 +6,7 @@
  *
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
+
 #include "mockedosquerydatabase.h"
 
 #include <iomanip>
@@ -17,6 +18,7 @@
 #include <osquery/events/eventsubscriber.h>
 
 namespace osquery {
+
 class EventSubscriberPluginTests : public testing::Test {};
 
 TEST_F(EventSubscriberPluginTests, generateEventIdentifier) {
@@ -216,4 +218,5 @@ TEST_F(EventSubscriberPluginTests, generateRows) {
 
   EXPECT_EQ(callback_count, 20U);
 }
+
 } // namespace osquery

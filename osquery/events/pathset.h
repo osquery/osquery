@@ -21,6 +21,7 @@
 #include <osquery/utils/mutex.h>
 
 namespace osquery {
+
 /**
  * @brief multiset based implementation for path search.
  *

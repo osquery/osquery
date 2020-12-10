@@ -13,14 +13,17 @@
 #include "osquery/core/sql/row.h"
 
 namespace osquery {
+
 namespace {
+
 const Row kBaseRow = {
     {"key1", "value1"},
     {"key2", "value2"},
     {"key3", "value3"},
     {"key4", "value4"},
 };
-}
+
+} // namespace
 
 extern const std::string kEvents;
 extern const std::string kExecutingQuery;
@@ -185,4 +188,5 @@ Status MockedOsqueryDatabase::scanDatabaseKeys(const std::string& domain,
 
   return Status::success();
 }
+
 } // namespace osquery

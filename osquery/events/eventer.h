@@ -11,6 +11,7 @@
 #pragma once
 
 namespace osquery {
+
 /**
  * @brief EventSubscriber%s and Publishers may exist in various states.
  *
@@ -56,4 +57,5 @@ class Eventer {
 
   friend class EventFactory;
 };
+
 } // namespace osquery

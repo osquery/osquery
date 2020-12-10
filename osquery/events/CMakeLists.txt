@@ -181,6 +181,7 @@ function(generateOsqueryEventsEventsregistry)
     subscription.cpp
     eventer.cpp
     eventpublisherplugin.cpp
+    events.cpp
     eventfactory.cpp
     eventsubscriberplugin.cpp
   )
@@ -200,6 +201,7 @@ function(generateOsqueryEventsEventsregistry)
     eventfactory.h
     eventpublisher.h
     eventpublisherplugin.h
+    events.h
     eventsubscriber.h
     eventsubscriberplugin.h
     pathset.h

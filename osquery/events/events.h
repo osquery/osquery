@@ -1,4 +1,3 @@
-
 /**
  * Copyright (c) 2014-present, The osquery authors
  *
@@ -8,16 +7,10 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include "eventer.h"
-
 namespace osquery {
 
-EventState Eventer::state() const {
-  return state_;
-}
-
-void Eventer::state(EventState state) {
-  state_ = state;
-}
+/// Iterate the event publisher registry and create run loops for each using
+/// the event factory.
+void attachEvents();
 
 } // namespace osquery

@@ -18,6 +18,7 @@
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
+
 /// Use a single placeholder for the EventContextRef passed to EventCallback.
 using EventCallback = std::function<Status(const EventContextRef&,
                                            const SubscriptionContextRef&)>;
@@ -73,4 +74,5 @@ struct Subscription : private boost::noncopyable {
  public:
   Subscription() = delete;
 };
+
 } // namespace osquery

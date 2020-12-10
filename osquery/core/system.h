@@ -141,10 +141,6 @@ class Initializer : private boost::noncopyable {
   /// This pauses the watchdog process until the watcher thread stops.
   void waitForWatcher() const;
 
-  /// Iterate the event publisher registry and create run loops for each using
-  /// the event factory.
-  static void attachEvents();
-
  private:
   /// Set and wait for an active plugin optionally broadcasted.
   void initActivePlugin(const std::string& type, const std::string& name) const;

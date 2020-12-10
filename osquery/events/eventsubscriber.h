@@ -14,6 +14,7 @@
 #include <osquery/events/eventsubscriberplugin.h>
 
 namespace osquery {
+
 /**
  * @brief An interface binding Subscriptions, event response, and table
  *generation.
@@ -111,4 +112,5 @@ class EventSubscriber : public EventSubscriberPlugin {
   FRIEND_TEST(EventsTests, test_event_sub_context);
   FRIEND_TEST(EventsTests, test_event_toggle_subscribers);
 };
+
 } // namespace osquery

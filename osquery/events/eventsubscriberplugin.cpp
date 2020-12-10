@@ -7,9 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <iostream>
-#include <mutex>
-
 #include <osquery/config/config.h>
 #include <osquery/core/flags.h>
 #include <osquery/database/database.h>
@@ -24,7 +21,9 @@
 #include <osquery/utils/system/time.h>
 
 namespace osquery {
+
 namespace {
+
 /// Checkpoint interval to inspect max event buffering.
 const EventContextID kEventsCheckpoint{256U};
 
@@ -69,6 +68,7 @@ void removeDeprecatedEventKeysOnce() {
   static std::once_flag f;
   std::call_once(f, removeDeprecatedEventKeysOnceHelper);
 }
+
 } // namespace
 
 FLAG(bool,
@@ -350,8 +350,6 @@ void EventSubscriberPlugin::setDatabaseNamespace(Context& context,
 
 Status EventSubscriberPlugin::generateEventDataIndex(
     Context& context, IDatabaseInterface& db_interface) {
-  // TODO(alessandro): Add a scanDatabaseKeys version that lets us
-  // use a callback rather than returning all the keys in a vector
   std::vector<std::string> key_list;
 
   std::string prefix = "data." + context.database_namespace + ".";
@@ -677,4 +675,5 @@ Status EventSubscriberPlugin::setUp() {
 
   return Status::success();
 }
+
 } // namespace osquery

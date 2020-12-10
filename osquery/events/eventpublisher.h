@@ -12,6 +12,7 @@
 #include <osquery/events/eventpublisherplugin.h>
 
 namespace osquery {
+
 /**
  * @brief DECLARE_PUBLISHER supplies needed boilerplate code that applies a
  * string-type EventPublisherID to identify the publisher declaration.
@@ -127,4 +128,5 @@ class EventPublisher : public EventPublisherPlugin {
   FRIEND_TEST(EventsTests, test_event_subscriber_context);
   FRIEND_TEST(EventsTests, test_fire_event);
 };
+
 } // namespace osquery

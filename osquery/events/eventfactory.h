@@ -9,27 +9,17 @@
 
 #pragma once
 
-#include <atomic>
-#include <functional>
 #include <map>
 #include <memory>
-#include <mutex>
-#include <thread>
-#include <utility>
 #include <vector>
 
-#include <gtest/gtest_prod.h>
-
-#include <osquery/core/core.h>
-#include <osquery/core/tables.h>
-#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/events/eventer.h>
 #include <osquery/events/eventpublisherplugin.h>
 #include <osquery/events/subscription.h>
 #include <osquery/events/types.h>
-#include <osquery/utils/status/status.h>
 
 namespace osquery {
+
 /**
  * @brief A factory for associating event generators to EventPublisherID%s.
  *
@@ -236,4 +226,5 @@ class EventFactory : private boost::noncopyable {
   /// Factory publisher state manipulation.
   RecursiveMutex factory_lock_;
 };
+
 } // namespace osquery

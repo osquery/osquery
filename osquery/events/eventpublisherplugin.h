@@ -16,6 +16,7 @@
 #include <osquery/events/types.h>
 
 namespace osquery {
+
 class EventPublisherPlugin : public Plugin,
                              public InterruptableRunnable,
                              public Eventer {
@@ -173,4 +174,5 @@ class EventPublisherPlugin : public Plugin,
   FRIEND_TEST(EventsTests, test_event_publisher);
   FRIEND_TEST(EventsTests, test_fire_event);
 };
+
 } // namespace osquery

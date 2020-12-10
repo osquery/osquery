@@ -17,6 +17,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/database/database.h>
 #include <osquery/events/eventpublisher.h>
+#include <osquery/events/events.h>
 #include <osquery/events/eventsubscriber.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/utils/info/tool_type.h>
@@ -168,7 +169,7 @@ TEST_F(EventsTests, test_create_using_registry) {
   // The events API uses attachEvents to move registry event publishers and
   // subscribers into the events factory.
   EXPECT_EQ(EventFactory::numEventPublishers(), 0U);
-  Initializer::attachEvents();
+  attachEvents();
 
   // Store the number of default event publishers (in core).
   size_t default_publisher_count = EventFactory::numEventPublishers();
@@ -180,7 +181,7 @@ TEST_F(EventsTests, test_create_using_registry) {
   EXPECT_EQ(EventFactory::numEventPublishers(), default_publisher_count);
 
   // Now attach and make sure it was added.
-  Initializer::attachEvents();
+  attachEvents();
   EXPECT_EQ(EventFactory::numEventPublishers(), default_publisher_count + 1U);
 
   auto status = EventFactory::deregisterEventPublisher("unique");

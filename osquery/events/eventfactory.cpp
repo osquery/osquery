@@ -12,13 +12,14 @@
 #include <osquery/core/system.h>
 #include <osquery/events/eventfactory.h>
 #include <osquery/events/eventsubscriber.h>
-#include <osquery/events/types.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry.h>
 #include <osquery/sql/sql.h>
 
 namespace osquery {
+
 namespace {
+
 /**
  * @brief Details for each subscriber as it relates to the schedule.
  *
@@ -32,6 +33,7 @@ struct SubscriberExpirationDetails {
   /// The number of queries that should run between intervals.
   size_t query_count{0};
 };
+
 } // namespace
 
 FLAG(bool, disable_events, false, "Disable osquery publish/subscribe system");
@@ -49,11 +51,11 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
     auto base_sub = std::dynamic_pointer_cast<EventSubscriberPlugin>(sub);
     specialized_sub = std::static_pointer_cast<BaseEventSubscriber>(base_sub);
   } catch (const std::bad_cast& /* e */) {
-    return Status(1, "Incorrect plugin");
+    return Status::failure("Incorrect plugin");
   }
 
   if (specialized_sub == nullptr || specialized_sub.get() == nullptr) {
-    return Status(1, "Invalid subscriber");
+    return Status::failure("Invalid subscriber");
   }
 
   // The config may use an "events" key to explicitly enabled or disable
@@ -61,14 +63,15 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
   auto name = specialized_sub->getName();
   if (name.empty()) {
     // This subscriber did not override its name.
-    return Status(1, "Subscribers must have set a name");
+    return Status::failure("Subscribers must have set a name");
   }
 
   auto plugin = Config::get().getParser("events");
   if (plugin != nullptr && plugin.get() != nullptr) {
     const auto& data = plugin->getData().doc();
     // First perform explicit enabling.
-    if (data["events"].HasMember("enable_subscribers")) {
+    if (data["events"].HasMember("enable_subscribers") &&
+        data["events"]["enable_subscribers"].IsArray()) {
       for (const auto& item : data["events"]["enable_subscribers"].GetArray()) {
         if (item.GetString() == name) {
           VLOG(1) << "Enabling event subscriber: " << name;
@@ -77,7 +80,8 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
       }
     }
     // Then use explicit disabling as an ultimate override.
-    if (data["events"].HasMember("disable_subscribers")) {
+    if (data["events"].HasMember("disable_subscribers") &&
+        data["events"]["disable_subscribers"].IsArray()) {
       for (const auto& item :
            data["events"]["disable_subscribers"].GetArray()) {
         if (item.GetString() == name) {
@@ -116,7 +120,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
   // Set state of subscriber.
   if (!status.ok()) {
     specialized_sub->state(EventState::EVENT_FAILED);
-    return Status(1, status.getMessage());
+    return Status::failure(status.getMessage());
   } else {
     return Status::success();
   }
@@ -129,7 +133,7 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
     auto base_pub = std::dynamic_pointer_cast<EventPublisherPlugin>(pub);
     specialized_pub = std::static_pointer_cast<BaseEventPublisher>(base_pub);
   } catch (const std::bad_cast& /* e */) {
-    return Status(1, "Incorrect plugin");
+    return Status::failure("Incorrect plugin");
   }
 
   if (specialized_pub == nullptr || specialized_pub.get() == nullptr) {
@@ -139,7 +143,7 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
   auto type_id = specialized_pub->type();
   if (type_id.empty()) {
     // This subscriber did not override its name.
-    return Status(1, "Publishers must have a type");
+    return Status::failure("Publishers must have a type");
   }
 
   auto& ef = EventFactory::getInstance();
@@ -147,7 +151,7 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
     RecursiveLock lock(ef.factory_lock_);
     if (ef.event_pubs_.count(type_id) != 0) {
       // This is a duplicate event publisher.
-      return Status(1, "Duplicate publisher type");
+      return Status::failure("Duplicate publisher type");
     }
 
     ef.event_pubs_[type_id] = specialized_pub;
@@ -177,14 +181,18 @@ Status EventFactory::deregisterEventSubscriber(const std::string& sub) {
   auto& ef = EventFactory::getInstance();
 
   RecursiveLock lock(ef.factory_lock_);
-  if (ef.event_subs_.count(sub) == 0) {
-    return Status(1, "Event subscriber is missing");
+
+  auto subscriber_it = ef.event_subs_.find(sub);
+  if (subscriber_it == ef.event_subs_.end()) {
+    return Status::failure("Event subscriber is missing");
   }
 
-  auto& subscriber = ef.event_subs_.at(sub);
+  auto& subscriber = subscriber_it->second;
+  ef.event_subs_.erase(subscriber_it);
+
   subscriber->tearDown();
   subscriber->state(EventState::EVENT_NONE);
-  ef.event_subs_.erase(sub);
+
   return Status(0);
 }
 
@@ -200,7 +208,7 @@ Status EventFactory::addSubscription(const std::string& type_id,
                                      const SubscriptionRef& subscription) {
   EventPublisherRef publisher = getInstance().getEventPublisher(type_id);
   if (publisher == nullptr) {
-    return Status(1, "Unknown event publisher");
+    return Status::failure("Unknown event publisher");
   }
 
   // The event factory is responsible for configuring the event types.
@@ -234,7 +242,7 @@ Status EventFactory::deregisterEventPublisher(const std::string& type_id) {
   RecursiveLock lock(ef.factory_lock_);
   EventPublisherRef publisher = ef.getEventPublisher(type_id);
   if (publisher == nullptr) {
-    return Status(1, "No event publisher to deregister");
+    return Status::failure("No event publisher to deregister");
   }
 
   if (!FLAGS_disable_events) {
@@ -388,9 +396,9 @@ Status EventFactory::run(const std::string& type_id) {
   }
 
   if (publisher == nullptr) {
-    return Status(1, "Event publisher is missing");
+    return Status::failure("Event publisher is missing");
   } else if (publisher->hasStarted()) {
-    return Status(1, "Cannot restart an event publisher");
+    return Status::failure("Cannot restart an event publisher");
   }
 
   setThreadName(publisher->name());
@@ -475,4 +483,5 @@ void EventFactory::end(bool join) {
     ef.event_subs_.clear();
   }
 }
+
 } // namespace osquery

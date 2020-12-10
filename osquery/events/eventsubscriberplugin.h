@@ -19,6 +19,7 @@
 #include <osquery/utils/mutex.h>
 
 namespace osquery {
+
 class EventSubscriberPlugin : public Plugin, public Eventer {
  public:
   /**
@@ -288,4 +289,5 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   friend class DBFakeEventSubscriber;
   friend class BenchmarkEventSubscriber;
 };
+
 } // namespace osquery

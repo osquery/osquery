@@ -10,6 +10,7 @@
 #include <osquery/events/subscription.h>
 
 namespace osquery {
+
 Subscription::Subscription(std::string name)
     : subscriber_name(std::move(name)){};
 
@@ -25,4 +26,5 @@ SubscriptionRef Subscription::create(const std::string& name,
   subscription->callback = std::move(ec);
   return subscription;
 }
+
 } // namespace osquery

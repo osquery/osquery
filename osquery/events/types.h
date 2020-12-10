@@ -1,3 +1,12 @@
+/**
+ * Copyright (c) 2014-present, The osquery authors
+ *
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+ */
+
 #pragma once
 
 #include <map>
@@ -8,6 +17,7 @@
 #include <boost/core/noncopyable.hpp>
 
 namespace osquery {
+
 using EventContextID = uint64_t;
 using EventTime = uint64_t;
 using EventRecord = std::pair<std::string, EventTime>;
@@ -63,4 +73,5 @@ class EventSubscriber;
 
 using EventSubscriberRef = std::shared_ptr<EventSubscriber<BaseEventPublisher>>;
 using BaseEventSubscriber = EventSubscriber<BaseEventPublisher>;
+
 } // namespace osquery
