@@ -5,7 +5,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
-cmake_minimum_required(VERSION 3.17.5)
+cmake_minimum_required(VERSION 3.17.5 FATAL_ERROR)
 
 cmake_policy(SET CMP0083 NEW)
 
@@ -25,6 +25,20 @@ include(cmake/globals.cmake)
 include(cmake/options.cmake)
 include(cmake/flags.cmake)
 include(cmake/packaging.cmake)
+
+if(DEFINED PLATFORM_LINUX AND "${CMAKE_VERSION}" VERSION_GREATER_EQUAL "3.18.0")
+  if(OSQUERY_IGNORE_CMAKE_MAX_VERSION_CHECK)
+    message(WARNING
+      "CPack contained in CMake version 3.18 and newer generates RPM packages that won't install correctly on some distributions. " 
+      "You are using version ${CMAKE_VERSION} which has the bug, remember to use version 3.17.5 if a RPM package has to be generated.")
+  else()
+    message(FATAL_ERROR
+      "CPack contained in CMake version 3.18 and newer generates RPM packages that won't install correctly on some distributions. "
+      "You are using version ${CMAKE_VERSION} which has the bug, please use version 3.17.5 or set OSQUERY_IGNORE_CMAKE_MAX_VERSION_CHECK=TRUE "
+      "if you're not going to generate a RPM package."
+    )
+  endif()
+endif()
 
 if(OSQUERY_TOOLCHAIN_SYSROOT AND NOT DEFINED PLATFORM_LINUX)
   message(FATAL_ERROR "The custom toolchain can only be used with Linux, undefine OSQUERY_TOOLCHAIN_SYSROOT and specify a compiler to use")
