@@ -20,55 +20,142 @@
 
 namespace osquery {
 
+namespace ebpfpub = tob::ebpfpub;
+namespace ebpf = tob::ebpf;
+
 namespace {
 
 const std::size_t kEventMapSize{2048};
 const std::size_t kMaxNameToHandleAtSize{128U};
 
 using EventHandler = bool (*)(ISystemStateTracker& state,
-                              const tob::ebpfpub::IFunctionTracer::Event&);
+                              const ebpfpub::IFunctionTracer::Event&);
 
 using EventHandlerMap = std::unordered_map<std::uint64_t, EventHandler>;
 
 using BufferStorageMap =
-    std::unordered_map<std::uint8_t, tob::ebpfpub::IBufferStorage::Ref>;
+    std::unordered_map<std::uint8_t, ebpfpub::IBufferStorage::Ref>;
 
 struct FunctionTracerAllocator final {
   std::string syscall_name;
   EventHandler event_handler;
   std::uint8_t buffer_storage_pool{0U};
+  bool kprobe{false};
+  const ebpfpub::IFunctionTracer::ParameterList* parameter_list{nullptr};
+};
+
+std::unordered_set<std::string> kOptionalSyscallList{"openat2",
+
+#ifdef __aarch64__
+                                                     "fork",
+                                                     "vfork",
+                                                     "dup2",
+                                                     "dup3",
+                                                     "creat",
+                                                     "mknod",
+                                                     "open"
+#endif
+};
+
+const std::string kKprobeSyscallPrefix{
+#ifdef __aarch64__
+    "__arm64_sys_"
+#else
+    "__x64_sys_"
+#endif
 };
 
 using FunctionTracerAllocatorList = std::vector<FunctionTracerAllocator>;
 
-// Format: syscall, handler, memory pool id
+const ebpfpub::IFunctionTracer::ParameterList kExecveKprobeParameterList = {
+    {"filename",
+     ebpfpub::IFunctionTracer::Parameter::Type::String,
+     ebpfpub::IFunctionTracer::Parameter::Mode::In,
+     {}},
+
+    {"argv",
+     ebpfpub::IFunctionTracer::Parameter::Type::Argv,
+     ebpfpub::IFunctionTracer::Parameter::Mode::In,
+     10U},
+
+    {"envp",
+     ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+     ebpfpub::IFunctionTracer::Parameter::Mode::In,
+     8U}};
+
+const ebpfpub::IFunctionTracer::ParameterList kExecveatKprobeParameterList = {
+    {"fd",
+     ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+     ebpfpub::IFunctionTracer::Parameter::Mode::In,
+     8U},
+
+    {"filename",
+     ebpfpub::IFunctionTracer::Parameter::Type::String,
+     ebpfpub::IFunctionTracer::Parameter::Mode::In,
+     {}},
+
+    {"argv",
+     ebpfpub::IFunctionTracer::Parameter::Type::Argv,
+     ebpfpub::IFunctionTracer::Parameter::Mode::In,
+     10U},
+
+    {"envp",
+     ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+     ebpfpub::IFunctionTracer::Parameter::Mode::In,
+     8U},
+
+    {"flags",
+     ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+     ebpfpub::IFunctionTracer::Parameter::Mode::In,
+     8U}};
+
 const FunctionTracerAllocatorList kFunctionTracerAllocators = {
-    {"fork", &BPFEventPublisher::processForkEvent, 0U},
-    {"vfork", &BPFEventPublisher::processVforkEvent, 0U},
-    {"clone", &BPFEventPublisher::processCloneEvent, 0U},
-    {"close", &BPFEventPublisher::processCloseEvent, 0U},
-    {"dup", &BPFEventPublisher::processDupEvent, 0U},
-    {"dup2", &BPFEventPublisher::processDup2Event, 0U},
-    {"dup3", &BPFEventPublisher::processDup3Event, 0U},
-    {"creat", &BPFEventPublisher::processCreatEvent, 1U},
-    {"mknod", &BPFEventPublisher::processMknodatEvent, 1U},
-    {"mknodat", &BPFEventPublisher::processMknodatEvent, 1U},
-    {"name_to_handle_at", &BPFEventPublisher::processNameToHandleAtEvent, 1U},
-    {"open_by_handle_at", &BPFEventPublisher::processOpenByHandleAtEvent, 1U},
-    {"open", &BPFEventPublisher::processOpenEvent, 2U},
-    {"openat", &BPFEventPublisher::processOpenatEvent, 2U},
-    {"openat2", &BPFEventPublisher::processOpenat2Event, 1U},
-    {"execve", &BPFEventPublisher::processExecveEvent, 3U},
-    {"execveat", &BPFEventPublisher::processExecveatEvent, 3U},
-    {"socket", &BPFEventPublisher::processSocketEvent, 4U},
-    {"fcntl", &BPFEventPublisher::processFcntlEvent, 4U},
-    {"connect", &BPFEventPublisher::processConnectEvent, 4U},
-    {"accept", &BPFEventPublisher::processAcceptEvent, 4U},
-    {"accept4", &BPFEventPublisher::processAccept4Event, 4U},
-    {"bind", &BPFEventPublisher::processBindEvent, 4U},
-    {"listen", &BPFEventPublisher::processListenEvent, 4U},
-    {"chdir", &BPFEventPublisher::processChdirEvent, 5U},
-    {"fchdir", &BPFEventPublisher::processFchdirEvent, 5U}};
+    {"fork", &BPFEventPublisher::processForkEvent, 0U, false, nullptr},
+    {"vfork", &BPFEventPublisher::processVforkEvent, 0U, false, nullptr},
+    {"clone", &BPFEventPublisher::processCloneEvent, 0U, false, nullptr},
+    {"close", &BPFEventPublisher::processCloseEvent, 0U, false, nullptr},
+    {"dup", &BPFEventPublisher::processDupEvent, 0U, false, nullptr},
+    {"dup2", &BPFEventPublisher::processDup2Event, 0U, false, nullptr},
+    {"dup3", &BPFEventPublisher::processDup3Event, 0U, false, nullptr},
+    {"creat", &BPFEventPublisher::processCreatEvent, 1U, false, nullptr},
+    {"mknod", &BPFEventPublisher::processMknodatEvent, 1U, false, nullptr},
+    {"mknodat", &BPFEventPublisher::processMknodatEvent, 1U, false, nullptr},
+    {"open", &BPFEventPublisher::processOpenEvent, 2U, false, nullptr},
+    {"openat", &BPFEventPublisher::processOpenatEvent, 2U, false, nullptr},
+    {"openat2", &BPFEventPublisher::processOpenat2Event, 1U, false, nullptr},
+    {"socket", &BPFEventPublisher::processSocketEvent, 4U, false, nullptr},
+    {"fcntl", &BPFEventPublisher::processFcntlEvent, 4U, false, nullptr},
+    {"connect", &BPFEventPublisher::processConnectEvent, 4U, false, nullptr},
+    {"accept", &BPFEventPublisher::processAcceptEvent, 4U, false, nullptr},
+    {"accept4", &BPFEventPublisher::processAccept4Event, 4U, false, nullptr},
+    {"bind", &BPFEventPublisher::processBindEvent, 4U, false, nullptr},
+    {"listen", &BPFEventPublisher::processListenEvent, 4U, false, nullptr},
+    {"chdir", &BPFEventPublisher::processChdirEvent, 5U, false, nullptr},
+    {"fchdir", &BPFEventPublisher::processFchdirEvent, 5U, false, nullptr},
+
+    {"name_to_handle_at",
+     &BPFEventPublisher::processNameToHandleAtEvent,
+     1U,
+     false,
+     nullptr},
+
+    {"open_by_handle_at",
+     &BPFEventPublisher::processOpenByHandleAtEvent,
+     1U,
+     false,
+     nullptr},
+
+    {kKprobeSyscallPrefix + "execve",
+     &BPFEventPublisher::processExecveEvent,
+     3U,
+     true,
+     &kExecveKprobeParameterList},
+
+    {kKprobeSyscallPrefix + "execveat",
+     &BPFEventPublisher::processExecveatEvent,
+     3U,
+     true,
+     &kExecveatKprobeParameterList}};
 
 } // namespace
 
@@ -92,12 +179,12 @@ REGISTER(BPFEventPublisher, "event_publisher", "BPFEventPublisher");
 struct BPFEventPublisher::PrivateData final {
   bool initialized{false};
 
-  tob::ebpf::PerfEventArray::Ref perf_event_array;
-  tob::ebpfpub::IPerfEventReader::Ref perf_event_reader;
+  ebpf::PerfEventArray::Ref perf_event_array;
+  ebpfpub::IPerfEventReader::Ref perf_event_reader;
   BufferStorageMap buffer_storage_map;
   EventHandlerMap event_handler_map;
 
-  std::map<std::uint64_t, tob::ebpfpub::IFunctionTracer::Event> event_queue;
+  std::map<std::uint64_t, ebpfpub::IFunctionTracer::Event> event_queue;
   ISystemStateTracker::Ref system_state_tracker;
 };
 
@@ -112,7 +199,7 @@ Status BPFEventPublisher::setUp() {
   }
 
   auto perf_event_array_exp =
-      tob::ebpf::PerfEventArray::create(FLAGS_bpf_perf_event_array_exp);
+      ebpf::PerfEventArray::create(FLAGS_bpf_perf_event_array_exp);
 
   if (!perf_event_array_exp.succeeded()) {
     throw std::runtime_error("Failed to create the perf event array: " +
@@ -122,7 +209,7 @@ Status BPFEventPublisher::setUp() {
   d->perf_event_array = perf_event_array_exp.takeValue();
 
   auto perf_event_reader_exp =
-      tob::ebpfpub::IPerfEventReader::create(*d->perf_event_array.get());
+      ebpfpub::IPerfEventReader::create(*d->perf_event_array.get());
 
   if (!perf_event_reader_exp.succeeded()) {
     throw std::runtime_error("Failed to create the perf event reader: " +
@@ -136,8 +223,8 @@ Status BPFEventPublisher::setUp() {
         d->buffer_storage_map.find(tracer_allocator.buffer_storage_pool);
 
     if (buffer_storage_it == d->buffer_storage_map.end()) {
-      auto buffer_storage_exp = tob::ebpfpub::IBufferStorage::create(
-          FLAGS_bpf_buffer_storage_size, 4096);
+      auto buffer_storage_exp =
+          ebpfpub::IBufferStorage::create(FLAGS_bpf_buffer_storage_size, 4096);
 
       if (!buffer_storage_exp.succeeded()) {
         throw buffer_storage_exp.error();
@@ -152,12 +239,47 @@ Status BPFEventPublisher::setUp() {
 
     auto& buffer_storage = *buffer_storage_it->second.get();
 
-    auto function_tracer_exp =
-        tob::ebpfpub::IFunctionTracer::createFromSyscallTracepoint(
-            tracer_allocator.syscall_name,
-            buffer_storage,
-            *d->perf_event_array.get(),
-            kEventMapSize);
+    tob::StringErrorOr<ebpfpub::IFunctionTracer::Ref> function_tracer_exp;
+
+    if (tracer_allocator.kprobe) {
+      if (tracer_allocator.parameter_list == nullptr) {
+        LOG(WARNING) << "Skipping the kprobe for "
+                     << tracer_allocator.syscall_name
+                     << " due to missing parameter list";
+
+        continue;
+      }
+
+      auto& parameter_list = *tracer_allocator.parameter_list;
+
+      function_tracer_exp = ebpfpub::IFunctionTracer::createFromKprobe(
+          tracer_allocator.syscall_name,
+          parameter_list,
+          buffer_storage,
+          *d->perf_event_array.get(),
+          kEventMapSize);
+
+    } else {
+      if (tracer_allocator.parameter_list != nullptr) {
+        auto& parameter_list = *tracer_allocator.parameter_list;
+
+        function_tracer_exp =
+            ebpfpub::IFunctionTracer::createFromSyscallTracepoint(
+                tracer_allocator.syscall_name,
+                parameter_list,
+                buffer_storage,
+                *d->perf_event_array.get(),
+                kEventMapSize);
+
+      } else {
+        function_tracer_exp =
+            ebpfpub::IFunctionTracer::createFromSyscallTracepoint(
+                tracer_allocator.syscall_name,
+                buffer_storage,
+                *d->perf_event_array.get(),
+                kEventMapSize);
+      }
+    }
 
     if (!function_tracer_exp.succeeded()) {
       std::stringstream verbose_message;
@@ -165,13 +287,16 @@ Status BPFEventPublisher::setUp() {
                       << tracer_allocator.syscall_name << ": "
                       << function_tracer_exp.error().message();
 
-      if (tracer_allocator.syscall_name == "openat2") {
+      auto optional =
+          kOptionalSyscallList.count(tracer_allocator.syscall_name) != 0;
+      if (optional) {
         verbose_message << ". This syscall may not be available on this "
                            "system, continuing despite the error";
       }
 
       VLOG(1) << verbose_message.str();
-      if (tracer_allocator.syscall_name == "openat2") {
+
+      if (optional) {
         continue;
       }
 
@@ -224,15 +349,15 @@ Status BPFEventPublisher::run() {
         "Halting the publisher since initialization has failed");
   }
 
-  tob::ebpfpub::IPerfEventReader::ErrorCounters error_counters{};
+  ebpfpub::IPerfEventReader::ErrorCounters error_counters{};
   auto last_error_counters_report = getUnixTime();
 
   while (!isEnding()) {
     d->perf_event_reader->exec(
         std::chrono::seconds(1U),
 
-        [&](const tob::ebpfpub::IFunctionTracer::EventList& event_list,
-            const tob::ebpfpub::IPerfEventReader::ErrorCounters&
+        [&](const ebpfpub::IFunctionTracer::EventList& event_list,
+            const ebpfpub::IPerfEventReader::ErrorCounters&
                 new_error_counters) {
           error_counters.invalid_event += new_error_counters.invalid_event;
           error_counters.lost_events += new_error_counters.lost_events;
@@ -330,8 +455,7 @@ BPFEventPublisher::~BPFEventPublisher() {
 }
 
 bool BPFEventPublisher::processForkEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   auto child_process_id = static_cast<pid_t>(event.header.exit_code);
   if (child_process_id == -1) {
     return true;
@@ -342,14 +466,12 @@ bool BPFEventPublisher::processForkEvent(
 }
 
 bool BPFEventPublisher::processVforkEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   return processForkEvent(state, event);
 }
 
 bool BPFEventPublisher::processCloneEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   std::uint64_t clone_flags{};
   if (!getEventMapValue(clone_flags, event.in_field_map, "clone_flags")) {
     return false;
@@ -363,14 +485,13 @@ bool BPFEventPublisher::processCloneEvent(
 }
 
 bool BPFEventPublisher::processExecveEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   std::string binary_path;
   if (!getEventMapValue(binary_path, event.in_field_map, "filename")) {
     return false;
   }
 
-  tob::ebpfpub::IFunctionTracer::Event::Field::Argv argv;
+  ebpfpub::IFunctionTracer::Event::Field::Argv argv;
   if (!getEventMapValue(argv, event.in_field_map, "argv")) {
     return false;
   }
@@ -385,14 +506,13 @@ bool BPFEventPublisher::processExecveEvent(
 }
 
 bool BPFEventPublisher::processExecveatEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   std::string binary_path;
   if (!getEventMapValue(binary_path, event.in_field_map, "filename")) {
     return false;
   }
 
-  tob::ebpfpub::IFunctionTracer::Event::Field::Argv argv;
+  ebpfpub::IFunctionTracer::Event::Field::Argv argv;
   if (!getEventMapValue(argv, event.in_field_map, "argv")) {
     return false;
   }
@@ -418,8 +538,7 @@ bool BPFEventPublisher::processExecveatEvent(
 }
 
 bool BPFEventPublisher::processCloseEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   std::uint64_t fd_value{};
   if (!getEventMapValue(fd_value, event.in_field_map, "fd")) {
     return false;
@@ -440,8 +559,7 @@ bool BPFEventPublisher::processCloseEvent(
 }
 
 bool BPFEventPublisher::processDupEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   std::uint64_t fildes_value{};
   if (!getEventMapValue(fildes_value, event.in_field_map, "fildes")) {
     return false;
@@ -470,8 +588,7 @@ bool BPFEventPublisher::processDupEvent(
 }
 
 bool BPFEventPublisher::processDup2Event(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   auto exit_code = static_cast<int>(event.header.exit_code);
@@ -506,8 +623,7 @@ bool BPFEventPublisher::processDup2Event(
 }
 
 bool BPFEventPublisher::processDup3Event(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   auto exit_code = static_cast<int>(event.header.exit_code);
@@ -547,8 +663,7 @@ bool BPFEventPublisher::processDup3Event(
 }
 
 bool BPFEventPublisher::processCreatEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   auto newfd = static_cast<int>(event.header.exit_code);
@@ -569,8 +684,7 @@ bool BPFEventPublisher::processCreatEvent(
 }
 
 bool BPFEventPublisher::processMknodatEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   auto newfd = static_cast<int>(event.header.exit_code);
@@ -615,8 +729,7 @@ bool BPFEventPublisher::processMknodatEvent(
 }
 
 bool BPFEventPublisher::processNameToHandleAtEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return 0 when it succeeds
   if (event.header.exit_code != 0) {
     return true;
@@ -678,8 +791,7 @@ bool BPFEventPublisher::processNameToHandleAtEvent(
 }
 
 bool BPFEventPublisher::processOpenByHandleAtEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   auto newfd = static_cast<int>(event.header.exit_code);
@@ -723,8 +835,7 @@ bool BPFEventPublisher::processOpenByHandleAtEvent(
 }
 
 bool BPFEventPublisher::processOpenEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   auto newfd = static_cast<int>(event.header.exit_code);
@@ -750,8 +861,7 @@ bool BPFEventPublisher::processOpenEvent(
 }
 
 bool BPFEventPublisher::processOpenatEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   auto newfd = static_cast<int>(event.header.exit_code);
@@ -791,8 +901,7 @@ bool BPFEventPublisher::processOpenatEvent(
 }
 
 bool BPFEventPublisher::processOpenat2Event(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   auto newfd = static_cast<int>(event.header.exit_code);
@@ -810,7 +919,7 @@ bool BPFEventPublisher::processOpenat2Event(
     return false;
   }
 
-  tob::ebpfpub::IFunctionTracer::Event::Field::Buffer buffer;
+  ebpfpub::IFunctionTracer::Event::Field::Buffer buffer;
   if (!getEventMapValue(buffer, event.in_field_map, "how")) {
     return false;
   }
@@ -833,8 +942,7 @@ bool BPFEventPublisher::processOpenat2Event(
 }
 
 bool BPFEventPublisher::processChdirEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   if (event.header.exit_code != 0) {
     return true;
   }
@@ -849,8 +957,7 @@ bool BPFEventPublisher::processChdirEvent(
 }
 
 bool BPFEventPublisher::processFchdirEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   if (event.header.exit_code != 0) {
     return true;
   }
@@ -865,8 +972,7 @@ bool BPFEventPublisher::processFchdirEvent(
 }
 
 bool BPFEventPublisher::processSocketEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   if (static_cast<int>(event.header.exit_code) < 0) {
@@ -895,8 +1001,7 @@ bool BPFEventPublisher::processSocketEvent(
 }
 
 bool BPFEventPublisher::processFcntlEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   auto new_fd = static_cast<int>(event.header.exit_code);
@@ -932,8 +1037,7 @@ bool BPFEventPublisher::processFcntlEvent(
 }
 
 bool BPFEventPublisher::processConnectEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // Do not check for the exit code; this could be a non-blocking socket
   // that causes the syscall to always return -1
   std::uint64_t fd{};
@@ -941,7 +1045,7 @@ bool BPFEventPublisher::processConnectEvent(
     return false;
   }
 
-  tob::ebpfpub::IFunctionTracer::Event::Field::Buffer uservaddr;
+  ebpfpub::IFunctionTracer::Event::Field::Buffer uservaddr;
   if (!getEventMapValue(uservaddr, event.in_field_map, "uservaddr")) {
     return false;
   }
@@ -952,8 +1056,7 @@ bool BPFEventPublisher::processConnectEvent(
 }
 
 bool BPFEventPublisher::processAcceptEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   int newfd = static_cast<int>(event.header.exit_code);
@@ -966,7 +1069,7 @@ bool BPFEventPublisher::processAcceptEvent(
     return false;
   }
 
-  tob::ebpfpub::IFunctionTracer::Event::Field::Buffer upeer_sockaddr;
+  ebpfpub::IFunctionTracer::Event::Field::Buffer upeer_sockaddr;
   if (!getEventMapValue(
           upeer_sockaddr, event.out_field_map, "upeer_sockaddr")) {
     return false;
@@ -981,8 +1084,7 @@ bool BPFEventPublisher::processAcceptEvent(
 }
 
 bool BPFEventPublisher::processAccept4Event(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   // The syscall will return a negative errno code if something
   // didn't work
   int newfd = static_cast<int>(event.header.exit_code);
@@ -995,7 +1097,7 @@ bool BPFEventPublisher::processAccept4Event(
     return false;
   }
 
-  tob::ebpfpub::IFunctionTracer::Event::Field::Buffer upeer_sockaddr;
+  ebpfpub::IFunctionTracer::Event::Field::Buffer upeer_sockaddr;
   if (!getEventMapValue(
           upeer_sockaddr, event.out_field_map, "upeer_sockaddr")) {
     return false;
@@ -1019,8 +1121,7 @@ bool BPFEventPublisher::processAccept4Event(
 }
 
 bool BPFEventPublisher::processBindEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   if (event.header.exit_code != 0) {
     return true;
   }
@@ -1030,7 +1131,7 @@ bool BPFEventPublisher::processBindEvent(
     return false;
   }
 
-  tob::ebpfpub::IFunctionTracer::Event::Field::Buffer uservaddr;
+  ebpfpub::IFunctionTracer::Event::Field::Buffer uservaddr;
   if (!getEventMapValue(uservaddr, event.in_field_map, "umyaddr")) {
     return false;
   }
@@ -1040,8 +1141,7 @@ bool BPFEventPublisher::processBindEvent(
 }
 
 bool BPFEventPublisher::processListenEvent(
-    ISystemStateTracker& state,
-    const tob::ebpfpub::IFunctionTracer::Event& event) {
+    ISystemStateTracker& state, const ebpfpub::IFunctionTracer::Event& event) {
   if (event.header.exit_code != 0) {
     return true;
   }
