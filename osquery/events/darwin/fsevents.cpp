@@ -12,6 +12,7 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/core/flags.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
@@ -31,6 +32,8 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
+DECLARE_bool(enable_file_events);
 
 std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemChangeOwner, "ATTRIBUTES_MODIFIED"},
@@ -145,6 +148,10 @@ void FSEventsEventPublisher::stop() {
 }
 
 void FSEventsEventPublisher::tearDown() {
+  if (!FLAGS_enable_file_events) {
+    return;
+  }
+
   stop();
 
   // Do not keep a reference to the run loop.
@@ -211,6 +218,10 @@ void FSEventsEventPublisher::buildExcludePathsSet() {
 }
 
 void FSEventsEventPublisher::configure() {
+  if (!FLAGS_enable_file_events) {
+    return;
+  }
+
   // Rebuild the watch paths.
   stop();
 
@@ -233,6 +244,10 @@ void FSEventsEventPublisher::configure() {
 }
 
 Status FSEventsEventPublisher::run() {
+  if (!FLAGS_enable_file_events) {
+    return Status(1, "Publisher disabled via configuration");
+  }
+
   // The run entrypoint executes in a dedicated thread.
   bool needs_reset = false;
   {

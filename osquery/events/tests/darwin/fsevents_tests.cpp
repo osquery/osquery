@@ -28,6 +28,7 @@ namespace osquery {
 int kMaxEventLatency = 3000;
 
 DECLARE_bool(verbose);
+DECLARE_bool(enable_file_events);
 
 class FSEventsTests : public testing::Test {
  public:
@@ -43,6 +44,9 @@ class FSEventsTests : public testing::Test {
 
  protected:
   void SetUp() override {
+    enable_file_events_backup_ = FLAGS_enable_file_events;
+    FLAGS_enable_file_events = true;
+
     fs::create_directories(real_test_dir);
 
     setToolType(ToolType::TEST);
@@ -58,6 +62,8 @@ class FSEventsTests : public testing::Test {
   void TearDown() override {
     fs::remove_all(real_test_path);
     fs::remove_all(real_test_dir);
+
+    FLAGS_enable_file_events = enable_file_events_backup_;
   }
 
   void StartEventLoop() {
@@ -124,6 +130,7 @@ class FSEventsTests : public testing::Test {
   size_t count{0};
   std::shared_ptr<FSEventsEventPublisher> event_pub_{nullptr};
   std::thread temp_thread_;
+  bool enable_file_events_backup_{false};
 
  public:
   /// Trigger path is the current test's eventing sink (accessed anywhere).

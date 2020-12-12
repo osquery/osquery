@@ -16,6 +16,7 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/config/config.h>
+#include <osquery/core/flags.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
@@ -26,6 +27,8 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
+DECLARE_bool(enable_file_events);
 
 static const size_t kINotifyMaxEvents = 512;
 static const size_t kINotifyEventSize =
@@ -53,6 +56,10 @@ const uint32_t kFileAccessMasks = IN_OPEN | IN_ACCESS;
 REGISTER(INotifyEventPublisher, "event_publisher", "inotify");
 
 Status INotifyEventPublisher::setUp() {
+  if (!FLAGS_enable_file_events) {
+    return Status(1, "Publisher disabled via configuration");
+  }
+
   inotify_handle_ = ::inotify_init();
   // If this does not work throw an exception.
   if (inotify_handle_ == -1) {
@@ -150,6 +157,10 @@ void INotifyEventPublisher::buildExcludePathsSet() {
 }
 
 void INotifyEventPublisher::configure() {
+  if (!FLAGS_enable_file_events) {
+    return;
+  }
+
   if (inotify_handle_ == -1) {
     // This publisher has not been setup correctly.
     return;
@@ -193,6 +204,10 @@ void INotifyEventPublisher::configure() {
 }
 
 void INotifyEventPublisher::tearDown() {
+  if (!FLAGS_enable_file_events) {
+    return;
+  }
+
   if (inotify_handle_ > -1) {
     ::close(inotify_handle_);
   }
@@ -219,6 +234,10 @@ void INotifyEventPublisher::handleOverflow() {
 }
 
 Status INotifyEventPublisher::run() {
+  if (!FLAGS_enable_file_events) {
+    return Status(1, "Publisher disabled via configuration");
+  }
+
   struct pollfd fds[1];
   fds[0].fd = getHandle();
   fds[0].events = POLLIN;
