@@ -103,7 +103,6 @@ void genUser(const std::string& sidString, QueryData& results) {
   r["type"] = kWellKnownSids.find(sidString) == kWellKnownSids.end()
                   ? "roaming"
                   : "special";
-  r["description"] = "";
 
   PSID sid;
   auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
@@ -126,6 +125,21 @@ void genUser(const std::string& sidString, QueryData& results) {
     ret = LookupAccountSidW(
         nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
     r["username"] = ret != 0 ? wstringToString(accntName) : "";
+
+    // Also attempt to get the user account description comment. Move on if
+    // NetUserGetInfo returns an error, as it will for some system accounts.
+    unsigned long dwBasicUserInfoLevel = 2;
+    LPBYTE userLvl2Buff = nullptr;
+    ret =
+        NetUserGetInfo(nullptr, accntName, dwBasicUserInfoLevel, &userLvl2Buff);
+    if (ret == NERR_Success && userLvl2Buff != nullptr) {
+      r["description"] =
+          wstringToString(LPUSER_INFO_2(userLvl2Buff)->usri2_comment);
+    }
+
+    if (userLvl2Buff != nullptr) {
+      NetApiBufferFree(userLvl2Buff);
+    }
 
     results.push_back(r);
   }
