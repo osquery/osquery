@@ -100,20 +100,30 @@ jobs:
     - script: |
         cmake -DPACKAGING_SYSTEM=DEB $(Build.SourcesDirectory)
         cmake --build . --target package -j 3
+        cp *.deb $(Build.ArtifactStagingDirectory)
+        cp *.ddeb $(Build.ArtifactStagingDirectory)
       displayName: "Run DEB packaging"
       workingDirectory: $(BUILD_DIR)
 
     - script: |
         cmake -DPACKAGING_SYSTEM=RPM $(Build.SourcesDirectory)
         cmake --build . --target package -j 3
+        cp *.rpm $(Build.ArtifactStagingDirectory)
       displayName: "Run RPM packaging"
       workingDirectory: $(BUILD_DIR)
 
     - script: |
         cmake -DPACKAGING_SYSTEM=TGZ $(Build.SourcesDirectory)
         cmake --build . --target package -j 3
+        cp *.tar.gz $(Build.ArtifactStagingDirectory)
       displayName: "Run TGZ packaging"
       workingDirectory: $(BUILD_DIR)
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: "$(Build.ArtifactStagingDirectory)"
+        artifactName: "Linux $(BUILD_TYPE) Packages"
+      displayName: Publish Linux packages
 
     - script: |
         echo "##vso[task.setvariable variable=Status;isOutput=true]1"
@@ -229,14 +239,22 @@ jobs:
 
     - script: |
         cmake --build . --target package -j 3
+        cp *.pkg $(Build.ArtifactStagingDirectory)
       displayName: "Run productbuild packaging"
       workingDirectory: $(Build.BinariesDirectory)/build
 
     - script: |
         cmake -DPACKAGING_SYSTEM=TGZ $(Build.SourcesDirectory)
         cmake --build . --target package -j 3
+        cp *.tar.gz $(Build.ArtifactStagingDirectory)
       displayName: "Run TGZ packaging"
       workingDirectory: $(Build.BinariesDirectory)/build
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: "$(Build.ArtifactStagingDirectory)"
+        artifactName: "macOS $(BUILD_TYPE) Packages"
+      displayName: Publish macOS packages
 
     - script: |
         echo "##vso[task.setvariable variable=Status;isOutput=true]1"
@@ -396,8 +414,15 @@ jobs:
 
     - script: |
         cmake --build . --target package --config Release -j 3
+        cp *.msi $(Build.ArtifactStagingDirectory)
       displayName: "Run WIX packaging"
       workingDirectory: $(Build.BinariesDirectory)/build
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: "$(Build.ArtifactStagingDirectory)"
+        artifactName: "Windows-$(System.JobName) Packages"
+      displayName: Publish Windows packages
 
     - powershell: |
         # .artifactignore has to be copied in the cached folder, otherwise the CacheBeta task won't see it

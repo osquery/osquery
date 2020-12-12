@@ -18,6 +18,7 @@ set(windows_supported_packaging_system
 
 set(macos_supported_packaging_system
   productbuild
+  TGZ
   # Bundle
 )
 
