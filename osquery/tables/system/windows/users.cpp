@@ -18,6 +18,7 @@
 
 #include "osquery/tables/system/windows/registry.h"
 #include "osquery/tables/system/windows/users.h"
+#include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/process/process.h>
@@ -54,6 +55,13 @@ const std::set<std::string> kWellKnownSids = {
 
 namespace tables {
 
+std::string getUserShell(const std::string& sid) {
+  // TODO: This column exists for cross-platform consistency, but
+  // the answer on Windows is arbitrary. %COMSPEC% env variable may
+  // be the best answer. Currently, hard-coded.
+  return "C:\\Windows\\system32\\cmd.exe";
+}
+
 std::string getUserHomeDir(const std::string& sid) {
   QueryData res;
   queryKey(kRegProfilePath + kRegSep + sid, res);
@@ -65,7 +73,83 @@ std::string getUserHomeDir(const std::string& sid) {
   return "";
 }
 
-void processRoamingProfiles(const std::set<std::string>& processedSids,
+// If given a list of UIDs to constrain the results, check if a particular SID
+// has a RID that matches any of those UIDs.
+bool sidMatchesAnyDesiredUids(const std::set<std::string>& uidStrings,
+                              const std::string& sidString) {
+  // If there is no constraint of UIDs given, results will not be filtered
+  if (uidStrings.empty()) {
+    return true;
+  }
+
+  auto toks = osquery::split(sidString, "-");
+  auto uid = toks.at(toks.size() - 1);
+  for (auto desiredUid : uidStrings) {
+    if (uid.compare(desiredUid) == 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Given a SID, retrieve information about the matching user
+void genUser(const std::string& sidString, QueryData& results) {
+  Row r;
+
+  r["uuid"] = sidString;
+  r["directory"] = getUserHomeDir(sidString);
+  r["shell"] = getUserShell(sidString);
+  r["type"] = kWellKnownSids.find(sidString) == kWellKnownSids.end()
+                  ? "roaming"
+                  : "special";
+
+  PSID sid;
+  auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
+  if (ret == 0) {
+    VLOG(1) << "Converting SIDstring to SID failed with " << GetLastError();
+    return;
+  } else {
+    auto uid = getUidFromSid(sid);
+    auto gid = getGidFromSid(sid);
+    r["uid"] = BIGINT(uid);
+    r["gid"] = BIGINT(gid);
+    r["uid_signed"] = INTEGER(uid);
+    r["gid_signed"] = INTEGER(gid);
+
+    wchar_t accntName[UNLEN] = {0};
+    wchar_t domName[DNLEN] = {0};
+    unsigned long accntNameLen = UNLEN;
+    unsigned long domNameLen = DNLEN;
+    SID_NAME_USE eUse;
+    ret = LookupAccountSidW(
+        nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
+    r["username"] = ret != 0 ? wstringToString(accntName) : "";
+
+    // Also attempt to get the user account description comment. Move on if
+    // NetUserGetInfo returns an error, as it will for some system accounts.
+    unsigned long dwBasicUserInfoLevel = 2;
+    LPBYTE userLvl2Buff = nullptr;
+    ret =
+        NetUserGetInfo(nullptr, accntName, dwBasicUserInfoLevel, &userLvl2Buff);
+    if (ret == NERR_Success && userLvl2Buff != nullptr) {
+      r["description"] =
+          wstringToString(LPUSER_INFO_2(userLvl2Buff)->usri2_comment);
+    }
+
+    if (userLvl2Buff != nullptr) {
+      NetApiBufferFree(userLvl2Buff);
+    }
+
+    results.push_back(r);
+  }
+}
+
+// Enumerate the users from the profiles key in the Registry, matching only
+// the UIDs/RIDs (if any) and skipping any SIDs of local-only users that
+// were already processed in the earlier API-based enumeration.
+void processRoamingProfiles(const std::set<std::string>& selectedUids,
+                            const std::set<std::string>& processedSids,
                             QueryData& results) {
   QueryData regResults;
   queryKey(kRegProfilePath, regResults);
@@ -77,48 +161,26 @@ void processRoamingProfiles(const std::set<std::string>& processedSids,
     }
 
     auto sidString = profile.at("name");
-    if (processedSids.find(sidString) != processedSids.end()) {
-      continue;
+
+    if (sidMatchesAnyDesiredUids(selectedUids, sidString)) {
+      // Skip this user if already processed
+      if (processedSids.find(sidString) == processedSids.end()) {
+        genUser(sidString, results);
+      }
     }
-    r["uuid"] = sidString;
-    r["directory"] = getUserHomeDir(sidString);
-
-    PSID sid;
-    auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
-    if (ret == 0) {
-      VLOG(1) << "Convert SID to string failed with " << GetLastError();
-    }
-    auto uid = getUidFromSid(sid);
-    auto gid = getGidFromSid(sid);
-    r["uid"] = BIGINT(uid);
-    r["gid"] = BIGINT(gid);
-    r["uid_signed"] = INTEGER(uid);
-    r["gid_signed"] = INTEGER(gid);
-    r["type"] = kWellKnownSids.find(sidString) == kWellKnownSids.end()
-                    ? "roaming"
-                    : "special";
-
-    // TODO
-    r["shell"] = "C:\\Windows\\system32\\cmd.exe";
-    r["description"] = "";
-
-    wchar_t accntName[UNLEN] = {0};
-    wchar_t domName[DNLEN] = {0};
-    unsigned long accntNameLen = UNLEN;
-    unsigned long domNameLen = DNLEN;
-    SID_NAME_USE eUse;
-    ret = LookupAccountSidW(
-        nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
-    r["username"] = ret != 0 ? wstringToString(accntName) : "";
-    LocalFree(sid);
-
-    results.push_back(r);
   }
 }
 
-void processLocalAccounts(std::set<std::string>& processedSids,
+// Enumerate all local users, constraining results to the list of UIDs if
+// any, and recording all enumerated users' SIDs to exclude later from the
+// walk of the Roaming Profiles key in the registry.
+void processLocalAccounts(const std::set<std::string>& selectedUids,
+                          std::set<std::string>& processedSids,
                           QueryData& results) {
-  unsigned long dwUserInfoLevel = 3;
+  // Enumerate the users by only the usernames (level 0 struct) and then
+  // get the desired level of info for each (level 4 struct includes SIDs).
+  unsigned long dwUserInfoLevel = 0;
+  unsigned long dwDetailedUserInfoLevel = 4;
   unsigned long dwNumUsersRead = 0;
   unsigned long dwTotalUsers = 0;
   unsigned long resumeHandle = 0;
@@ -136,13 +198,11 @@ void processLocalAccounts(std::set<std::string>& processedSids,
 
     if ((ret == NERR_Success || ret == ERROR_MORE_DATA) &&
         userBuffer != nullptr) {
-      auto iterBuff = LPUSER_INFO_3(userBuffer);
+      auto iterBuff = LPUSER_INFO_0(userBuffer);
       for (size_t i = 0; i < dwNumUsersRead; i++) {
-        // User level 4 contains the SID value
-        unsigned long dwDetailedUserInfoLevel = 4;
         LPBYTE userLvl4Buff = nullptr;
         ret = NetUserGetInfo(nullptr,
-                             iterBuff->usri3_name,
+                             iterBuff->usri0_name,
                              dwDetailedUserInfoLevel,
                              &userLvl4Buff);
 
@@ -150,8 +210,8 @@ void processLocalAccounts(std::set<std::string>& processedSids,
           if (userLvl4Buff != nullptr) {
             NetApiBufferFree(userLvl4Buff);
           }
-          VLOG(1) << "Failed to get sid for "
-                  << wstringToString(iterBuff->usri3_name)
+          VLOG(1) << "Failed to get SID for "
+                  << wstringToString(iterBuff->usri0_name)
                   << " with error code " << ret;
           iterBuff++;
           continue;
@@ -159,34 +219,40 @@ void processLocalAccounts(std::set<std::string>& processedSids,
 
         // Will return empty string on fail
         auto sid = LPUSER_INFO_4(userLvl4Buff)->usri4_user_sid;
+        auto uid = getUidFromSid(sid);
+        auto gid = LPUSER_INFO_4(userLvl4Buff)->usri4_primary_group_id;
         auto sidString = psidToString(sid);
         processedSids.insert(sidString);
 
-        Row r;
-        r["uuid"] = psidToString(sid);
-        r["username"] = wstringToString(iterBuff->usri3_name);
-        auto uid = iterBuff->usri3_user_id;
-        auto gid = iterBuff->usri3_primary_group_id;
-        r["uid"] = BIGINT(uid);
-        r["gid"] = BIGINT(gid);
-        r["uid_signed"] = INTEGER(uid);
-        r["gid_signed"] = INTEGER(gid);
-        r["description"] =
-            wstringToString(LPUSER_INFO_4(userLvl4Buff)->usri4_comment);
-        r["directory"] = getUserHomeDir(sidString);
-        r["shell"] = "C:\\Windows\\System32\\cmd.exe";
-        r["type"] = "local";
+        if (sidMatchesAnyDesiredUids(selectedUids, sidString)) {
+          Row r;
+          r["uuid"] = sidString;
+          r["username"] = wstringToString(iterBuff->usri0_name);
+          r["uid"] = BIGINT(uid);
+          r["gid"] = BIGINT(gid);
+          r["uid_signed"] = INTEGER(uid);
+          r["gid_signed"] = INTEGER(gid);
+          r["description"] =
+              wstringToString(LPUSER_INFO_4(userLvl4Buff)->usri4_comment);
+          r["directory"] = getUserHomeDir(sidString);
+          r["shell"] = getUserShell(sidString);
+          r["type"] = "local";
+
+          results.push_back(r);
+        }
+
+        // Free the buffer allocated by NetUserGetInfo()
         if (userLvl4Buff != nullptr) {
           NetApiBufferFree(userLvl4Buff);
         }
-
-        results.push_back(r);
-        iterBuff++;
+        iterBuff++; // index to the next record returned by NetUserEnum()
       }
     } else {
       // If there are no local users something may be amiss.
       LOG(WARNING) << "NetUserEnum failed with " << ret;
     }
+
+    // Free the buffer allocated by NetUserEnum()
     if (userBuffer != nullptr) {
       NetApiBufferFree(userBuffer);
     }
@@ -197,9 +263,24 @@ void processLocalAccounts(std::set<std::string>& processedSids,
 QueryData genUsers(QueryContext& context) {
   QueryData results;
   std::set<std::string> processedSids;
+  std::set<std::string> selectedUids;
 
-  processLocalAccounts(processedSids, results);
-  processRoamingProfiles(processedSids, results);
+  // implement index on UUID (SID on Windows) column by returning only the
+  // users in the constraint, bypassing the enumeration step entirely:
+  if (context.constraints["uuid"].exists(EQUALS)) {
+    auto sidStrings = context.constraints["uuid"].getAll(EQUALS);
+    for (const auto& sidString : sidStrings) {
+      genUser(sidString, results);
+    }
+  } else {
+    // implement index on UID (RID on Windows) column by enumerating all users'
+    // SIDS and finding matches with the UID portion, then returning matches:
+    if (context.constraints["uid"].exists(EQUALS)) {
+      selectedUids = context.constraints["uid"].getAll(EQUALS);
+    }
+    processLocalAccounts(selectedUids, processedSids, results);
+    processRoamingProfiles(selectedUids, processedSids, results);
+  }
 
   return results;
 }
