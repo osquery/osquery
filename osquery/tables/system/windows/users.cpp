@@ -109,6 +109,7 @@ void genUser(const std::string& sidString, QueryData& results) {
   auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
   if (ret == 0) {
     VLOG(1) << "Converting SIDstring to SID failed with " << GetLastError();
+    return;
   } else {
     auto uid = getUidFromSid(sid);
     auto gid = getGidFromSid(sid);
@@ -162,8 +163,10 @@ void processRoamingProfiles(const std::set<std::string>& selectedUids,
 void processLocalAccounts(const std::set<std::string>& selectedUids,
                           std::set<std::string>& processedSids,
                           QueryData& results) {
-  unsigned long dwUserInfoLevel = 0; // retrieve username with NetUserEnum()
-  unsigned long dwDetailedUserInfoLevel = 4; // get SID with NetUserGetInfo()
+  // Enumerate the users by only the usernames (level 0 struct) and then
+  // get the desired level of info for each (level 4 struct includes SIDs).
+  unsigned long dwUserInfoLevel = 0;
+  unsigned long dwDetailedUserInfoLevel = 4;
   unsigned long dwNumUsersRead = 0;
   unsigned long dwTotalUsers = 0;
   unsigned long resumeHandle = 0;
