@@ -29,6 +29,47 @@
 
 namespace osquery {
 
+int sqliteAuthorizer(void* userData,
+                     int code,
+                     const char* arg3,
+                     const char* arg4,
+                     const char* arg5,
+                     const char* arg6);
+
+// Allowlist of SQLite actions. Any action not in this set is denied. See
+// possible values in https://sqlite.org/c3ref/c_alter_table.html.
+// ** Never allow SQLITE_ATTACH ** as it can be used to write arbitrary files.
+const std::unordered_set<int> kAllowedSQLiteActionCodes = {
+    // Enable basic functionality
+    SQLITE_READ,
+    SQLITE_SELECT,
+
+    // Some extensions implement writeable tables
+    SQLITE_INSERT,
+    SQLITE_UPDATE,
+    SQLITE_DELETE,
+
+    // Allow virtual tables to be attached
+    SQLITE_CREATE_VTABLE,
+    SQLITE_DROP_VTABLE,
+
+    // Users may sometimes want to create tables and views
+    SQLITE_CREATE_VIEW,
+    SQLITE_DROP_VIEW,
+    SQLITE_CREATE_TABLE,
+    SQLITE_DROP_TABLE,
+    SQLITE_CREATE_TEMP_TABLE,
+    SQLITE_DROP_TEMP_TABLE,
+    SQLITE_CREATE_TEMP_VIEW,
+    SQLITE_DROP_TEMP_VIEW,
+
+    // Required to allow calling functions in SQL
+    SQLITE_FUNCTION,
+
+    // Required for recursive queries
+    SQLITE_RECURSIVE,
+};
+
 class SQLiteDBManager;
 
 /**

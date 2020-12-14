@@ -16,6 +16,7 @@
 
 #include <osquery/core/core.h>
 #include <osquery/core/flags.h>
+#include <osquery/core/shutdown.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
@@ -270,6 +271,23 @@ SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, Mutex& mtx)
   }
 }
 
+// This function is called by SQLite when a statement is prepared and we use
+// it to allowlist specific actions.
+int sqliteAuthorizer(void* userData,
+                     int code,
+                     const char* arg3,
+                     const char* arg4,
+                     const char* arg5,
+                     const char* arg6) {
+  if (kAllowedSQLiteActionCodes.count(code) > 0) {
+    return SQLITE_OK;
+  }
+  LOG(ERROR) << "Authorizer denied action " << code << " "
+             << (arg3 ? arg3 : "null") << " " << (arg4 ? arg4 : "null") << " "
+             << (arg5 ? arg5 : "null") << " " << (arg6 ? arg6 : "null");
+  return SQLITE_DENY;
+}
+
 static inline void openOptimized(sqlite3*& db) {
   sqlite3_open(":memory:", &db);
 
@@ -290,6 +308,12 @@ static inline void openOptimized(sqlite3*& db) {
   registerFilesystemExtensions(db);
   registerHashingExtensions(db);
   registerEncodingExtensions(db);
+
+  auto rc = sqlite3_set_authorizer(db, &sqliteAuthorizer, nullptr);
+  if (rc != SQLITE_OK) {
+    LOG(ERROR) << "Failed to set sqlite authorizer: " << sqlite3_errmsg(db);
+    requestShutdown(rc);
+  }
 }
 
 void SQLiteDBInstance::init() {
@@ -458,6 +482,7 @@ SQLiteDBInstanceRef SQLiteDBManager::getConnection(bool primary) {
   if (!instance->isPrimary()) {
     attachVirtualTables(instance);
   }
+
   return instance;
 }
 

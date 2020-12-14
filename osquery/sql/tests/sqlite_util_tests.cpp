@@ -36,9 +36,10 @@ class SQLiteUtilTests : public testing::Test {
 
 std::shared_ptr<SQLiteDBInstance> getTestDBC() {
   auto dbc = SQLiteDBManager::getUnique();
+
   char* err = nullptr;
   std::vector<std::string> queries = {
-      "CREATE TABLE test_table (username varchar(30) primary key, age int)",
+      "CREATE TABLE test_table (username varchar(30), age int)",
       "INSERT INTO test_table VALUES (\"mike\", 23)",
       "INSERT INTO test_table VALUES (\"matt\", 24)"};
 
@@ -434,7 +435,7 @@ TEST_F(SQLiteUtilTests, test_column_type_determination) {
   // if they happen to have integer value.  And also test multi-statement
   // queries.
   testTypesExpected(
-      "CREATE TABLE test_types_table (username varchar(30) primary key, age "
+      "CREATE TABLE test_types_table (username varchar(30), age "
       "double);INSERT INTO test_types_table VALUES (\"mike\", 23); SELECT age "
       "from test_types_table",
       TypeMap({{"age", DOUBLE_TYPE}}));
@@ -448,6 +449,19 @@ TEST_F(SQLiteUtilTests, test_enable) {
   // Fake_table is explicitely in enabled_tables and
   // disable_tables, it should be disabled.
   ASSERT_TRUE(SQLiteDBManager::isDisabled("fake_table"));
+}
+
+TEST_F(SQLiteUtilTests, test_sqlite_authorizer) {
+  auto rc = sqliteAuthorizer(
+      nullptr, SQLITE_ATTACH, nullptr, nullptr, nullptr, nullptr);
+  EXPECT_EQ(SQLITE_DENY, rc);
+
+  rc = sqliteAuthorizer(nullptr, 534, nullptr, nullptr, nullptr, nullptr);
+  EXPECT_EQ(SQLITE_DENY, rc);
+
+  rc = sqliteAuthorizer(
+      nullptr, SQLITE_SELECT, nullptr, nullptr, nullptr, nullptr);
+  EXPECT_EQ(SQLITE_OK, rc);
 }
 
 } // namespace osquery

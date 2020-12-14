@@ -96,6 +96,14 @@ Status genTableRowsForSqliteTable(const fs::path& sqlite_db,
     return Status(1, "Could not open database");
   }
 
+  rc = sqlite3_set_authorizer(db, &sqliteAuthorizer, nullptr);
+  if (rc != SQLITE_OK) {
+    sqlite3_close(db);
+    auto errMsg =
+        std::string("Failed to set sqlite authorizer: ") + sqlite3_errmsg(db);
+    return Status(1, errMsg);
+  }
+
   sqlite3_stmt* stmt = nullptr;
   rc = sqlite3_prepare_v2(db, sqlite_query.c_str(), -1, &stmt, nullptr);
   if (rc != SQLITE_OK) {
