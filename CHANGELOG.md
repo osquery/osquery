@@ -5,14 +5,6 @@
 
 [Git Commits](https://github.com/osquery/osquery/compare/4.5.1...4.6.0)
 
-
-### FIXME: Please Categorize
-
-
-
-
-
-
 ### New Features
 
 - Adding support for pretty-printing JSON results in osqueryi ([#6695](https://github.com/osquery/osquery/pull/6695))
