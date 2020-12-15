@@ -1,5 +1,91 @@
 # osquery Changelog
 
+<a name="4.6.0"></a>
+## [4.6.0](https://github.com/osquery/osquery/releases/tag/4.6.0)
+
+[Git Commits](https://github.com/osquery/osquery/compare/4.5.1...4.6.0)
+
+### New Features
+
+- Initial implementations for BPF-based socket and process events tables ([#6571](https://github.com/osquery/osquery/pull/6571))
+- Support EC2 tables on Windows ([#6756](https://github.com/osquery/osquery/pull/6756))
+
+### Under the Hood improvements
+
+- BPF: Add container support to fork/vfork/clone ([#6721](https://github.com/osquery/osquery/pull/6721))
+- BPF: Additional improvements on the initial implementation ([#6717](https://github.com/osquery/osquery/pull/6717))
+- BPF: Fix the tests ([#6783](https://github.com/osquery/osquery/pull/6783))
+- BPF: Fix wrong d_type compare in filesystem classes ([#6774](https://github.com/osquery/osquery/pull/6774))
+- BPF: Implement additional syscalls to track file descriptor usage ([#6723](https://github.com/osquery/osquery/pull/6723))
+- Remove unused LTCG flag ([#6769](https://github.com/osquery/osquery/pull/6769))
+- Support TLS client certificate chains ([#6753](https://github.com/osquery/osquery/pull/6753))
+- Refactor carver to use the Scheduler ([#6671](https://github.com/osquery/osquery/pull/6671))
+- Add configuration flag to disable file_events by default ([#6663](https://github.com/osquery/osquery/pull/6663))
+- libs: Build x86_64 configurations on Ubuntu 14.04 ([#6687](https://github.com/osquery/osquery/pull/6687))
+- libs: Port the RocksDB Win7 compatibility patch to the MSBuild generator ([#6765](https://github.com/osquery/osquery/pull/6765))
+- libs: Update BPF libraries to support LLVM 11 ([#6775](https://github.com/osquery/osquery/pull/6775))
+- libs: Update RocksDB to version 6.14.5 ([#6759](https://github.com/osquery/osquery/pull/6759))
+- libs: Update bzip2 to version 1.0.8 ([#6786](https://github.com/osquery/osquery/pull/6786))
+- libs: Update ebpfpub to latest version ([#6757](https://github.com/osquery/osquery/pull/6757))
+- libs: Update sqlite to version 3.34.0 ([#6804](https://github.com/osquery/osquery/pull/6804))
+- libs: update aws-sdk to 1.7.230 ([#6749](https://github.com/osquery/osquery/pull/6749))
+- Adding support for pretty-printing JSON results in osqueryi ([#6695](https://github.com/osquery/osquery/pull/6695))
+
+### Table Changes
+
+- Add Yandex Browser support for chrome_extensions ([#6735](https://github.com/osquery/osquery/pull/6735))
+- Add additional file stat flags to Darwin (bsd_flags) ([#6699](https://github.com/osquery/osquery/pull/6699))
+- Add extended_attributes table to Linux, add support for Linux capabilities ([#6195](https://github.com/osquery/osquery/pull/6195))
+- Add indexed column support to Windows users table ([#6782](https://github.com/osquery/osquery/pull/6782))
+- Enable AWS Instance profile as credential provider on Windows ([#6754](https://github.com/osquery/osquery/pull/6754))
+- Add systemd support for startup_items on Linux ([#6562](https://github.com/osquery/osquery/pull/6562))
+
+### Bug Fixes
+
+- Do not use memset on VirtualTable, a non-POD type ([#6760](https://github.com/osquery/osquery/pull/6760))
+- Fix deadlock when registering two extensions ([#6745](https://github.com/osquery/osquery/pull/6745))
+- Fix last_connected column in wifi_networks on Catalina ([#6669](https://github.com/osquery/osquery/pull/6669))
+- Fix missing negations, duplicate rows in iptables table ([#6713](https://github.com/osquery/osquery/pull/6713))
+- Fix shadow table to detect empty passwords ([#6696](https://github.com/osquery/osquery/pull/6696))
+- Free memory allocated by ConvertStringSidToSid ([#6714](https://github.com/osquery/osquery/pull/6714))
+- PackageIdentifiers are optional in InstallHistory.plist ([#6767](https://github.com/osquery/osquery/pull/6767))
+- Removing PUNYCODE flag from windows string conversions ([#6730](https://github.com/osquery/osquery/pull/6730))
+- Fix memory leak in the dbus classes ([#6773](https://github.com/osquery/osquery/pull/6773))
+- Change the kernel_modules size column type to BIGINT ([#6712](https://github.com/osquery/osquery/pull/6712))
+
+### Documentation
+
+- Add a README.md to source-based libraries ([#6686](https://github.com/osquery/osquery/pull/6686))
+- Fix spelling typos ([#6705](https://github.com/osquery/osquery/pull/6705))
+- Journald Audit Logs Masking Documentation ([#6748](https://github.com/osquery/osquery/pull/6748))
+
+### Build
+
+- CI: Provide built packages as Azure artifacts ([#6772](https://github.com/osquery/osquery/pull/6772))
+- CI: Python installation improvements on Windows ([#6764](https://github.com/osquery/osquery/pull/6764))
+- CI: Update brew scripts ([#6794](https://github.com/osquery/osquery/pull/6794))
+- CMake: Disable BPF support if the LLVM libs are not compatible ([#6746](https://github.com/osquery/osquery/pull/6746))
+- CMake: Use CPACK_RPM_PACKAGE_RELEASE ([#6805](https://github.com/osquery/osquery/pull/6805))
+- CMake: Add max version limit to 3.18.0 on Linux ([#6801](https://github.com/osquery/osquery/pull/6801))
+- Change urls for submodules gpg-error, libgcrypt, libcap ([#6768](https://github.com/osquery/osquery/pull/6768))
+- Reduce linkage requirements for tests ([#6715](https://github.com/osquery/osquery/pull/6715))
+- Remove a Buck leftover ([#6799](https://github.com/osquery/osquery/pull/6799))
+- Remove boost workaround introduced in #5591 for string_view ([#6771](https://github.com/osquery/osquery/pull/6771))
+- Tests: Fix tests on Catalina ([#6704](https://github.com/osquery/osquery/pull/6704))
+- Update cmake_minum_required to 3.17.5 and pin version in CI ([#6770](https://github.com/osquery/osquery/pull/6770))
+- build: Fix Windows build on newer MSVC ([#6732](https://github.com/osquery/osquery/pull/6732))
+- extensions: Always compile examples to prevent them from breaking ([#6747](https://github.com/osquery/osquery/pull/6747))
+
+### Security Issues
+
+- Add SQLite authorizer to mitgate CVE-2020-26273 / GHSA-4g56-2482-x7q8 (https://github.com/osquery/osquery/commit/c3f9a3dae22d43ed3b4f6a403cbf89da4cba7c3c)
+
+### Packs
+
+- Updated unwanted-chrome-extensions ([#6720](https://github.com/osquery/osquery/pull/6720))
+- Restrict the usb_devices pack to Posix ([#6739](https://github.com/osquery/osquery/pull/6739))
+- Add Reptile rootkit to ossec-rootkit pack ([#6703](https://github.com/osquery/osquery/pull/6703))
+
 <a name="4.5.1"></a>
 ## [4.5.1](https://github.com/osquery/osquery/releases/tag/4.5.1)
 
