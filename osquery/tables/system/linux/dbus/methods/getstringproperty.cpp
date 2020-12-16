@@ -7,11 +7,11 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/tables/system/linux/dbus/methods/getproperty.h>
+#include <osquery/tables/system/linux/dbus/methods/getstringproperty.h>
 
 namespace osquery {
 
-Status GetPropertyMethodHandler::parseReply(
+Status GetStringPropertyMethodHandler::parseReply(
     Output& output, const UniqueDbusMessage& reply) const {
   output = {};
 

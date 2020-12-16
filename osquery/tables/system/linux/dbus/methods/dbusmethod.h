@@ -18,7 +18,7 @@
 namespace osquery {
 
 template <typename MethodHandler, typename... ArgumentList>
-class DbusMethod final : private MethodHandler {
+class DbusMethod final : public MethodHandler {
  public:
   using Output = typename MethodHandler::Output;
   using MethodHandler::parseReply;

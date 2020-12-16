@@ -53,7 +53,7 @@ function(generateOsqueryTablesSystemSystemtable)
     list(APPEND source_files
       freenux/cpu_time.cpp
       linux/dbus/methods/listunitsmethodhandler.cpp
-      linux/dbus/methods/getproperty.cpp
+      linux/dbus/methods/getstringproperty.cpp
       linux/dbus/uniquedbusconnection.cpp
       linux/dbus/uniquedbusmessage.cpp
       linux/acpi_tables.cpp
@@ -90,6 +90,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/users.cpp
       linux/selinux_settings.cpp
       linux/apparmor_profiles.cpp
+      linux/systemd_units.cpp
     )
 
   elseif(DEFINED PLATFORM_MACOS)
@@ -309,7 +310,7 @@ function(generateOsqueryTablesSystemSystemtable)
     list(APPEND platform_public_header_files
       linux/dbus/methods/dbusmethod.h
       linux/dbus/methods/listunitsmethodhandler.h
-      linux/dbus/methods/getproperty.h
+      linux/dbus/methods/getstringproperty.h
       linux/dbus/uniquedbusconnection.h
       linux/dbus/uniquedbusmessage.h
       linux/dbus/uniqueresource.h

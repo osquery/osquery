@@ -175,6 +175,7 @@ function(generateNativeTables)
     "linux/selinux_settings.table:linux"
     "linux/apparmor_profiles.table:linux"
     "linux/apparmor_events.table:linux"
+    "linux/systemd_units.table:linux"
     "linwin/intel_me_info.table:linux,windows"
     "linwin/ec2_instance_metadata.table:linux,windows"
     "linwin/ec2_instance_tags.table:linux,windows"
