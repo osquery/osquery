@@ -36,6 +36,7 @@ nav:
   - Process Auditing: deployment/process-auditing.md
   - Remote Settings: deployment/remote.md
   - Syslog Consumption: deployment/syslog.md
+  - Utility Tables: deployment/utility-tables.md
   - Debugging: deployment/debugging.md
 - Development:
   - Building osquery: development/building.md
