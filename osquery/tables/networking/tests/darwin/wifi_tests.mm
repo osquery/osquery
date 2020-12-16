@@ -63,7 +63,7 @@ TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
   for (CFIndex i = 0; i < count; i++) {
     parseNetworks((CFDictionaryRef)values[i], results);
   }
-  ASSERT_GT(results.size(), 0);
+  ASSERT_EQ(results.size(), 2U);
 
   Row expected1 = {
       {"ssid", "85e965a1 63ab"},
@@ -98,11 +98,25 @@ TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
     expected2.insert(std::pair<std::string, RowData>("auto_login", "0"));
   }
 
-  for (const auto& column : expected1) {
-    EXPECT_EQ(results.front()[column.first], column.second);
-  }
-  for (const auto& column : expected2) {
-    EXPECT_EQ(results.back()[column.first], column.second);
+  // The order of keys returned from parsing a plist file using
+  // CFDictionaryGetKeysAndValues() is deterministic, but not consistent across
+  // versions of macOS. I.e., the data in keys[0] and keys[1] are returned in
+  // a different order on macOS 10.15 than on 10.14 and earlier. To test that
+  // results[] rows' contents are equal to that of the expected rows in this
+  // test source, we first must peek at the value of the first column to match
+  // the order in which the keys were read from the plist file by the API.
+  for (auto&& testRow : results) {
+    if (testRow["ssid"] == "85e965a1 63ab") {
+      for (const auto& column : expected1) {
+        EXPECT_EQ(testRow[column.first], column.second);
+      }
+    } else if (testRow["ssid"] == "2890d228 3487") {
+      for (const auto& column : expected2) {
+        EXPECT_EQ(testRow[column.first], column.second);
+      }
+    } else {
+      FAIL() << "Unexpected data was read from airport.plist.";
+    }
   }
 }
 }
