@@ -70,6 +70,13 @@ const std::unordered_set<int> kAllowedSQLiteActionCodes = {
     SQLITE_RECURSIVE,
 };
 
+// Allowlist of SQLite pragmas. Any pragma not in this set is denied.
+const std::unordered_set<std::string> kAllowedSQLitePragmas = {
+    "table_info",
+    "table_xinfo",
+    "function_list",
+};
+
 class SQLiteDBManager;
 
 /**
