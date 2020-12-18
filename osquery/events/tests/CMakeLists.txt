@@ -52,7 +52,10 @@ function(generateOsqueryEventsTestsTest)
 endfunction()
 
 function(generateOsqueryEventsTestsEventsdatabasetestsTest)
-  add_osquery_executable(osquery_events_tests_eventsdatabasetests-test events_database_tests.cpp)
+  add_osquery_executable(osquery_events_tests_eventsdatabasetests-test
+    mockedosquerydatabase.cpp
+    eventsubscriberplugin.cpp
+  )
 
   target_link_libraries(osquery_events_tests_eventsdatabasetests-test PRIVATE
     osquery_cxx_settings

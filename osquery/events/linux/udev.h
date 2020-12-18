@@ -11,7 +11,8 @@
 
 #include <libudev.h>
 
-#include <osquery/events/events.h>
+#include <osquery/events/eventpublisher.h>
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {

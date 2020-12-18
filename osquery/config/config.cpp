@@ -27,7 +27,8 @@
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
 #include <osquery/database/database.h>
-#include <osquery/events/events.h>
+#include <osquery/dispatcher/dispatcher.h>
+#include <osquery/events/eventfactory.h>
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry.h>

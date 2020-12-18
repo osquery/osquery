@@ -13,6 +13,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/events/windows/evtsubscription.h>
 #include <osquery/utils/system/system.h>
 

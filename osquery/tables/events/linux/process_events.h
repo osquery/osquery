@@ -7,6 +7,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#pragma once
+
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/events/linux/auditeventpublisher.h>
 
 namespace osquery {

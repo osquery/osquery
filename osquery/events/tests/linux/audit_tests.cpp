@@ -18,7 +18,6 @@
 
 #include <osquery/core/flags.h>
 #include <osquery/core/tables.h>
-#include <osquery/events/events.h>
 
 #include "osquery/events/linux/auditdnetlink.h"
 #include "osquery/tests/test_util.h"

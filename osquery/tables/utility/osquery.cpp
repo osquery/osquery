@@ -13,7 +13,9 @@
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
-#include <osquery/events/events.h>
+#include <osquery/events/eventfactory.h>
+#include <osquery/events/eventpublisher.h>
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>

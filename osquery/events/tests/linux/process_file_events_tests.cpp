@@ -19,7 +19,6 @@
 
 #include <osquery/core/flags.h>
 #include <osquery/core/tables.h>
-#include <osquery/events/events.h>
 #include <osquery/events/linux/auditeventpublisher.h>
 #include <osquery/tables/events/linux/process_file_events.h>
 

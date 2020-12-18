@@ -17,7 +17,7 @@
 
 #include <CoreServices/CoreServices.h>
 
-#include <osquery/events/events.h>
+#include <osquery/events/eventpublisher.h>
 #include <osquery/utils/status/status.h>
 
 #include "osquery/events/pathset.h"

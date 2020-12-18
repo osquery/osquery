@@ -7,11 +7,12 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include <osquery/config/config.h>
 #include <osquery/core/tables.h>
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/events/linux/inotify.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
@@ -60,21 +61,24 @@ void FileEventSubscriber::configure() {
   auto parser = Config::getParser("file_paths");
   if (parser == nullptr) {
     LOG(ERROR) << "No key 'file_paths' found when parsing file events"
-        " subscriber configuration.";
+                  " subscriber configuration.";
     return;
   }
   auto const& doc = parser->getData().doc();
   auto file_accesses_it = doc.FindMember("file_accesses");
   if (file_accesses_it == doc.MemberEnd()) {
     LOG(ERROR) << "No key 'file_accesses' found when parsing file events"
-        " subscriber configuration.";
+                  " subscriber configuration.";
     return;
   }
   auto& accesses = file_accesses_it->value;
   if (accesses.GetType() != rapidjson::kArrayType) {
     LOG(ERROR) << "Wrong type found for file_accesses when parsing file events"
-        " subscriber configuration. Found (" << accesses.GetType() << "),"
-        " expected array (" << rapidjson::kArrayType << ").";
+                  " subscriber configuration. Found ("
+               << accesses.GetType()
+               << "),"
+                  " expected array ("
+               << rapidjson::kArrayType << ").";
     return;
   }
   Config::get().files([this, &accesses](const std::string& category,
@@ -124,4 +128,4 @@ Status FileEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   add(r);
   return Status::success();
 }
-}
+} // namespace osquery

@@ -9,6 +9,7 @@
 
 #include <ctime>
 
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/events/windows/windowseventlogparser.h>
 #include <osquery/events/windows/windowseventlogpublisher.h>
 

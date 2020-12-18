@@ -11,6 +11,7 @@
 
 #include <boost/optional.hpp>
 
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/events/windows/windowseventlogpublisher.h>
 
 namespace osquery {

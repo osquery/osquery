@@ -103,7 +103,6 @@ class Initializer : private boost::noncopyable {
   /// For compatibility. See the global method waitForShutdown.
   void waitForShutdown() const;
 
- public:
   /// For compatibility. See the global method requestShutdown.
   static void requestShutdown(int retcode = EXIT_SUCCESS);
 
@@ -133,7 +132,6 @@ class Initializer : private boost::noncopyable {
    */
   static bool isWatcher();
 
- public:
   /// Initialize this process as an osquery daemon worker.
   void initWorker(const std::string& name) const;
 
@@ -147,7 +145,6 @@ class Initializer : private boost::noncopyable {
   /// Set and wait for an active plugin optionally broadcasted.
   void initActivePlugin(const std::string& type, const std::string& name) const;
 
- private:
   /// A saved, mutable, reference to the process's argc.
   int* argc_{nullptr};
 
