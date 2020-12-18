@@ -39,6 +39,8 @@ function(generateNativeTables)
     chrome_extension_content_scripts.table
     curl.table
     curl_certificate.table
+    ec2_instance_metadata.table
+    ec2_instance_tags.table
     etc_hosts.table
     etc_protocols.table
     etc_services.table
@@ -176,8 +178,6 @@ function(generateNativeTables)
     "linux/apparmor_profiles.table:linux"
     "linux/apparmor_events.table:linux"
     "linwin/intel_me_info.table:linux,windows"
-    "linwin/ec2_instance_metadata.table:linux,windows"
-    "linwin/ec2_instance_tags.table:linux,windows"
     "lldpd/lldp_neighbors.table:linux,macos,freebsd"
     "kernel_info.table:linux,macos,windows"
     "macwin/certificates.table:macos,windows"
