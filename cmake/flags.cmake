@@ -7,6 +7,8 @@ if(NOT DEFINED OSQUERY_TOOLCHAIN_SYSROOT)
 endif()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 # The function creates the osquery_<c|cxx>_settings targets with compiler and linker flags
 # for internal targets and <c|cxx>_settings for any other target to use as a base.
 #
