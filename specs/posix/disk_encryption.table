@@ -8,6 +8,7 @@ schema([
     Column("uid", TEXT, "Currently authenticated user if available (Apple)"),
     Column("user_uuid", TEXT, "UUID of authenticated user if available (Apple)"),
     Column("encryption_status", TEXT, "Disk encryption status with one of following values: encrypted | not encrypted | undefined"),
+    Column("filevault_status", TEXT, "FileVault status with one of following values: on | off | unknown (Apple)"),
     ForeignKey(column="name", table="block_devices"),
     ForeignKey(column="uuid", table="block_devices"),
 ])
