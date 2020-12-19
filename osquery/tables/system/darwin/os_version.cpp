@@ -16,6 +16,7 @@
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/system/env.h>
 
 namespace osquery {
 namespace tables {
@@ -37,6 +38,9 @@ QueryData genOSVersion(QueryContext& context) {
   }
 
   // The version path plist is parsed by the OS X tool: sw_vers.
+  // We set a special ENV to ensure despite the fact Osquery is built against
+  // an pre Big Sur SDK, we want the modern numbering scheme for macOS.
+  setEnvVar("SYSTEM_VERSION_COMPAT", "1");
   auto sw_vers = SQL::selectAllFrom("plist", "path", EQUALS, kVersionPath);
   if (sw_vers.empty()) {
     return {r};
