@@ -27,7 +27,8 @@ TEST_F(locationServices, test_sanity) {
   ASSERT_EQ(data.size(), 1ul);
   ValidationMap row_map = {
       {"enabled", IntType},
-  } validate_rows(data, row_map);
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
