@@ -47,7 +47,6 @@ function(generateTestsIntegrationTablesTestsTest)
     interface_addresses.cpp
     interface_details.cpp
     listening_ports.cpp
-    location_services.cpp
     logged_in_users.cpp
     os_version.cpp
     osquery_events.cpp
@@ -224,6 +223,7 @@ function(generateTestsIntegrationTablesTestsTest)
       keychain_items.cpp
       launchd.cpp
       launchd_overrides.cpp
+      location_services.cpp
       managed_policies.cpp
       mdfind.cpp
       nfs_shares.cpp
