@@ -8,10 +8,8 @@
 
 namespace osquery { namespace extensions {
 
-
 ExtensionManager_extensions_args::~ExtensionManager_extensions_args() noexcept {
 }
-
 
 uint32_t ExtensionManager_extensions_args::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -51,10 +49,8 @@ uint32_t ExtensionManager_extensions_args::write(::apache::thrift::protocol::TPr
   return xfer;
 }
 
-
-ExtensionManager_extensions_pargs::~ExtensionManager_extensions_pargs() noexcept {
-}
-
+ExtensionManager_extensions_pargs::
+    ~ExtensionManager_extensions_pargs() noexcept {}
 
 uint32_t ExtensionManager_extensions_pargs::write(::apache::thrift::protocol::TProtocol* oprot) const {
   uint32_t xfer = 0;
@@ -66,10 +62,8 @@ uint32_t ExtensionManager_extensions_pargs::write(::apache::thrift::protocol::TP
   return xfer;
 }
 
-
-ExtensionManager_extensions_result::~ExtensionManager_extensions_result() noexcept {
-}
-
+ExtensionManager_extensions_result::
+    ~ExtensionManager_extensions_result() noexcept {}
 
 uint32_t ExtensionManager_extensions_result::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -101,8 +95,7 @@ uint32_t ExtensionManager_extensions_result::read(::apache::thrift::protocol::TP
             ::apache::thrift::protocol::TType _vtype45;
             xfer += iprot->readMapBegin(_ktype44, _vtype45, _size43);
             uint32_t _i47;
-            for (_i47 = 0; _i47 < _size43; ++_i47)
-            {
+            for (_i47 = 0; _i47 < _size43; ++_i47) {
               ExtensionRouteUUID _key48;
               xfer += iprot->readI64(_key48);
               InternalExtensionInfo& _val49 = this->success[_key48];
@@ -137,9 +130,10 @@ uint32_t ExtensionManager_extensions_result::write(::apache::thrift::protocol::T
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_MAP, 0);
     {
       xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_I64, ::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->success.size()));
-      std::map<ExtensionRouteUUID, InternalExtensionInfo> ::const_iterator _iter50;
-      for (_iter50 = this->success.begin(); _iter50 != this->success.end(); ++_iter50)
-      {
+      std::map<ExtensionRouteUUID, InternalExtensionInfo>::const_iterator
+          _iter50;
+      for (_iter50 = this->success.begin(); _iter50 != this->success.end();
+           ++_iter50) {
         xfer += oprot->writeI64(_iter50->first);
         xfer += _iter50->second.write(oprot);
       }
@@ -152,10 +146,8 @@ uint32_t ExtensionManager_extensions_result::write(::apache::thrift::protocol::T
   return xfer;
 }
 
-
-ExtensionManager_extensions_presult::~ExtensionManager_extensions_presult() noexcept {
-}
-
+ExtensionManager_extensions_presult::
+    ~ExtensionManager_extensions_presult() noexcept {}
 
 uint32_t ExtensionManager_extensions_presult::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -187,8 +179,7 @@ uint32_t ExtensionManager_extensions_presult::read(::apache::thrift::protocol::T
             ::apache::thrift::protocol::TType _vtype53;
             xfer += iprot->readMapBegin(_ktype52, _vtype53, _size51);
             uint32_t _i55;
-            for (_i55 = 0; _i55 < _size51; ++_i55)
-            {
+            for (_i55 = 0; _i55 < _size51; ++_i55) {
               ExtensionRouteUUID _key56;
               xfer += iprot->readI64(_key56);
               InternalExtensionInfo& _val57 = (*(this->success))[_key56];
@@ -213,10 +204,7 @@ uint32_t ExtensionManager_extensions_presult::read(::apache::thrift::protocol::T
   return xfer;
 }
 
-
-ExtensionManager_options_args::~ExtensionManager_options_args() noexcept {
-}
-
+ExtensionManager_options_args::~ExtensionManager_options_args() noexcept {}
 
 uint32_t ExtensionManager_options_args::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -256,10 +244,7 @@ uint32_t ExtensionManager_options_args::write(::apache::thrift::protocol::TProto
   return xfer;
 }
 
-
-ExtensionManager_options_pargs::~ExtensionManager_options_pargs() noexcept {
-}
-
+ExtensionManager_options_pargs::~ExtensionManager_options_pargs() noexcept {}
 
 uint32_t ExtensionManager_options_pargs::write(::apache::thrift::protocol::TProtocol* oprot) const {
   uint32_t xfer = 0;
@@ -271,10 +256,7 @@ uint32_t ExtensionManager_options_pargs::write(::apache::thrift::protocol::TProt
   return xfer;
 }
 
-
-ExtensionManager_options_result::~ExtensionManager_options_result() noexcept {
-}
-
+ExtensionManager_options_result::~ExtensionManager_options_result() noexcept {}
 
 uint32_t ExtensionManager_options_result::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -306,8 +288,7 @@ uint32_t ExtensionManager_options_result::read(::apache::thrift::protocol::TProt
             ::apache::thrift::protocol::TType _vtype60;
             xfer += iprot->readMapBegin(_ktype59, _vtype60, _size58);
             uint32_t _i62;
-            for (_i62 = 0; _i62 < _size58; ++_i62)
-            {
+            for (_i62 = 0; _i62 < _size58; ++_i62) {
               std::string _key63;
               xfer += iprot->readString(_key63);
               InternalOptionInfo& _val64 = this->success[_key63];
@@ -342,9 +323,9 @@ uint32_t ExtensionManager_options_result::write(::apache::thrift::protocol::TPro
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_MAP, 0);
     {
       xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->success.size()));
-      std::map<std::string, InternalOptionInfo> ::const_iterator _iter65;
-      for (_iter65 = this->success.begin(); _iter65 != this->success.end(); ++_iter65)
-      {
+      std::map<std::string, InternalOptionInfo>::const_iterator _iter65;
+      for (_iter65 = this->success.begin(); _iter65 != this->success.end();
+           ++_iter65) {
         xfer += oprot->writeString(_iter65->first);
         xfer += _iter65->second.write(oprot);
       }
@@ -357,10 +338,8 @@ uint32_t ExtensionManager_options_result::write(::apache::thrift::protocol::TPro
   return xfer;
 }
 
-
 ExtensionManager_options_presult::~ExtensionManager_options_presult() noexcept {
 }
-
 
 uint32_t ExtensionManager_options_presult::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -392,8 +371,7 @@ uint32_t ExtensionManager_options_presult::read(::apache::thrift::protocol::TPro
             ::apache::thrift::protocol::TType _vtype68;
             xfer += iprot->readMapBegin(_ktype67, _vtype68, _size66);
             uint32_t _i70;
-            for (_i70 = 0; _i70 < _size66; ++_i70)
-            {
+            for (_i70 = 0; _i70 < _size66; ++_i70) {
               std::string _key71;
               xfer += iprot->readString(_key71);
               InternalOptionInfo& _val72 = (*(this->success))[_key71];
@@ -418,10 +396,8 @@ uint32_t ExtensionManager_options_presult::read(::apache::thrift::protocol::TPro
   return xfer;
 }
 
-
-ExtensionManager_registerExtension_args::~ExtensionManager_registerExtension_args() noexcept {
-}
-
+ExtensionManager_registerExtension_args::
+    ~ExtensionManager_registerExtension_args() noexcept {}
 
 uint32_t ExtensionManager_registerExtension_args::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -461,8 +437,7 @@ uint32_t ExtensionManager_registerExtension_args::read(::apache::thrift::protoco
             ::apache::thrift::protocol::TType _vtype75;
             xfer += iprot->readMapBegin(_ktype74, _vtype75, _size73);
             uint32_t _i77;
-            for (_i77 = 0; _i77 < _size73; ++_i77)
-            {
+            for (_i77 = 0; _i77 < _size73; ++_i77) {
               std::string _key78;
               xfer += iprot->readString(_key78);
               ExtensionRouteTable& _val79 = this->registry[_key78];
@@ -473,8 +448,7 @@ uint32_t ExtensionManager_registerExtension_args::read(::apache::thrift::protoco
                 ::apache::thrift::protocol::TType _vtype82;
                 xfer += iprot->readMapBegin(_ktype81, _vtype82, _size80);
                 uint32_t _i84;
-                for (_i84 = 0; _i84 < _size80; ++_i84)
-                {
+                for (_i84 = 0; _i84 < _size80; ++_i84) {
                   std::string _key85;
                   xfer += iprot->readString(_key85);
                   ExtensionPluginResponse& _val86 = _val79[_key85];
@@ -485,17 +459,16 @@ uint32_t ExtensionManager_registerExtension_args::read(::apache::thrift::protoco
                     xfer += iprot->readListBegin(_etype90, _size87);
                     _val86.resize(_size87);
                     uint32_t _i91;
-                    for (_i91 = 0; _i91 < _size87; ++_i91)
-                    {
+                    for (_i91 = 0; _i91 < _size87; ++_i91) {
                       {
                         _val86[_i91].clear();
                         uint32_t _size92;
                         ::apache::thrift::protocol::TType _ktype93;
                         ::apache::thrift::protocol::TType _vtype94;
-                        xfer += iprot->readMapBegin(_ktype93, _vtype94, _size92);
+                        xfer +=
+                            iprot->readMapBegin(_ktype93, _vtype94, _size92);
                         uint32_t _i96;
-                        for (_i96 = 0; _i96 < _size92; ++_i96)
-                        {
+                        for (_i96 = 0; _i96 < _size92; ++_i96) {
                           std::string _key97;
                           xfer += iprot->readString(_key97);
                           std::string& _val98 = _val86[_i91][_key97];
@@ -541,26 +514,38 @@ uint32_t ExtensionManager_registerExtension_args::write(::apache::thrift::protoc
   xfer += oprot->writeFieldBegin("registry", ::apache::thrift::protocol::T_MAP, 2);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_MAP, static_cast<uint32_t>(this->registry.size()));
-    std::map<std::string, ExtensionRouteTable> ::const_iterator _iter99;
-    for (_iter99 = this->registry.begin(); _iter99 != this->registry.end(); ++_iter99)
-    {
+    std::map<std::string, ExtensionRouteTable>::const_iterator _iter99;
+    for (_iter99 = this->registry.begin(); _iter99 != this->registry.end();
+         ++_iter99) {
       xfer += oprot->writeString(_iter99->first);
       {
-        xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_LIST, static_cast<uint32_t>(_iter99->second.size()));
-        std::map<std::string, ExtensionPluginResponse> ::const_iterator _iter100;
-        for (_iter100 = _iter99->second.begin(); _iter100 != _iter99->second.end(); ++_iter100)
-        {
+        xfer +=
+            oprot->writeMapBegin(::apache::thrift::protocol::T_STRING,
+                                 ::apache::thrift::protocol::T_LIST,
+                                 static_cast<uint32_t>(_iter99->second.size()));
+        std::map<std::string, ExtensionPluginResponse>::const_iterator _iter100;
+        for (_iter100 = _iter99->second.begin();
+             _iter100 != _iter99->second.end();
+             ++_iter100) {
           xfer += oprot->writeString(_iter100->first);
           {
-            xfer += oprot->writeListBegin(::apache::thrift::protocol::T_MAP, static_cast<uint32_t>(_iter100->second.size()));
-            std::vector<std::map<std::string, std::string> > ::const_iterator _iter101;
-            for (_iter101 = _iter100->second.begin(); _iter101 != _iter100->second.end(); ++_iter101)
-            {
+            xfer += oprot->writeListBegin(
+                ::apache::thrift::protocol::T_MAP,
+                static_cast<uint32_t>(_iter100->second.size()));
+            std::vector<std::map<std::string, std::string>>::const_iterator
+                _iter101;
+            for (_iter101 = _iter100->second.begin();
+                 _iter101 != _iter100->second.end();
+                 ++_iter101) {
               {
-                xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*_iter101).size()));
-                std::map<std::string, std::string> ::const_iterator _iter102;
-                for (_iter102 = (*_iter101).begin(); _iter102 != (*_iter101).end(); ++_iter102)
-                {
+                xfer += oprot->writeMapBegin(
+                    ::apache::thrift::protocol::T_STRING,
+                    ::apache::thrift::protocol::T_STRING,
+                    static_cast<uint32_t>((*_iter101).size()));
+                std::map<std::string, std::string>::const_iterator _iter102;
+                for (_iter102 = (*_iter101).begin();
+                     _iter102 != (*_iter101).end();
+                     ++_iter102) {
                   xfer += oprot->writeString(_iter102->first);
                   xfer += oprot->writeString(_iter102->second);
                 }
@@ -582,10 +567,8 @@ uint32_t ExtensionManager_registerExtension_args::write(::apache::thrift::protoc
   return xfer;
 }
 
-
-ExtensionManager_registerExtension_pargs::~ExtensionManager_registerExtension_pargs() noexcept {
-}
-
+ExtensionManager_registerExtension_pargs::
+    ~ExtensionManager_registerExtension_pargs() noexcept {}
 
 uint32_t ExtensionManager_registerExtension_pargs::write(::apache::thrift::protocol::TProtocol* oprot) const {
   uint32_t xfer = 0;
@@ -599,26 +582,39 @@ uint32_t ExtensionManager_registerExtension_pargs::write(::apache::thrift::proto
   xfer += oprot->writeFieldBegin("registry", ::apache::thrift::protocol::T_MAP, 2);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_MAP, static_cast<uint32_t>((*(this->registry)).size()));
-    std::map<std::string, ExtensionRouteTable> ::const_iterator _iter103;
-    for (_iter103 = (*(this->registry)).begin(); _iter103 != (*(this->registry)).end(); ++_iter103)
-    {
+    std::map<std::string, ExtensionRouteTable>::const_iterator _iter103;
+    for (_iter103 = (*(this->registry)).begin();
+         _iter103 != (*(this->registry)).end();
+         ++_iter103) {
       xfer += oprot->writeString(_iter103->first);
       {
-        xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_LIST, static_cast<uint32_t>(_iter103->second.size()));
-        std::map<std::string, ExtensionPluginResponse> ::const_iterator _iter104;
-        for (_iter104 = _iter103->second.begin(); _iter104 != _iter103->second.end(); ++_iter104)
-        {
+        xfer += oprot->writeMapBegin(
+            ::apache::thrift::protocol::T_STRING,
+            ::apache::thrift::protocol::T_LIST,
+            static_cast<uint32_t>(_iter103->second.size()));
+        std::map<std::string, ExtensionPluginResponse>::const_iterator _iter104;
+        for (_iter104 = _iter103->second.begin();
+             _iter104 != _iter103->second.end();
+             ++_iter104) {
           xfer += oprot->writeString(_iter104->first);
           {
-            xfer += oprot->writeListBegin(::apache::thrift::protocol::T_MAP, static_cast<uint32_t>(_iter104->second.size()));
-            std::vector<std::map<std::string, std::string> > ::const_iterator _iter105;
-            for (_iter105 = _iter104->second.begin(); _iter105 != _iter104->second.end(); ++_iter105)
-            {
+            xfer += oprot->writeListBegin(
+                ::apache::thrift::protocol::T_MAP,
+                static_cast<uint32_t>(_iter104->second.size()));
+            std::vector<std::map<std::string, std::string>>::const_iterator
+                _iter105;
+            for (_iter105 = _iter104->second.begin();
+                 _iter105 != _iter104->second.end();
+                 ++_iter105) {
               {
-                xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*_iter105).size()));
-                std::map<std::string, std::string> ::const_iterator _iter106;
-                for (_iter106 = (*_iter105).begin(); _iter106 != (*_iter105).end(); ++_iter106)
-                {
+                xfer += oprot->writeMapBegin(
+                    ::apache::thrift::protocol::T_STRING,
+                    ::apache::thrift::protocol::T_STRING,
+                    static_cast<uint32_t>((*_iter105).size()));
+                std::map<std::string, std::string>::const_iterator _iter106;
+                for (_iter106 = (*_iter105).begin();
+                     _iter106 != (*_iter105).end();
+                     ++_iter106) {
                   xfer += oprot->writeString(_iter106->first);
                   xfer += oprot->writeString(_iter106->second);
                 }
@@ -640,10 +636,8 @@ uint32_t ExtensionManager_registerExtension_pargs::write(::apache::thrift::proto
   return xfer;
 }
 
-
-ExtensionManager_registerExtension_result::~ExtensionManager_registerExtension_result() noexcept {
-}
-
+ExtensionManager_registerExtension_result::
+    ~ExtensionManager_registerExtension_result() noexcept {}
 
 uint32_t ExtensionManager_registerExtension_result::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -702,10 +696,8 @@ uint32_t ExtensionManager_registerExtension_result::write(::apache::thrift::prot
   return xfer;
 }
 
-
-ExtensionManager_registerExtension_presult::~ExtensionManager_registerExtension_presult() noexcept {
-}
-
+ExtensionManager_registerExtension_presult::
+    ~ExtensionManager_registerExtension_presult() noexcept {}
 
 uint32_t ExtensionManager_registerExtension_presult::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -748,10 +740,8 @@ uint32_t ExtensionManager_registerExtension_presult::read(::apache::thrift::prot
   return xfer;
 }
 
-
-ExtensionManager_deregisterExtension_args::~ExtensionManager_deregisterExtension_args() noexcept {
-}
-
+ExtensionManager_deregisterExtension_args::
+    ~ExtensionManager_deregisterExtension_args() noexcept {}
 
 uint32_t ExtensionManager_deregisterExtension_args::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -808,10 +798,8 @@ uint32_t ExtensionManager_deregisterExtension_args::write(::apache::thrift::prot
   return xfer;
 }
 
-
-ExtensionManager_deregisterExtension_pargs::~ExtensionManager_deregisterExtension_pargs() noexcept {
-}
-
+ExtensionManager_deregisterExtension_pargs::
+    ~ExtensionManager_deregisterExtension_pargs() noexcept {}
 
 uint32_t ExtensionManager_deregisterExtension_pargs::write(::apache::thrift::protocol::TProtocol* oprot) const {
   uint32_t xfer = 0;
@@ -827,10 +815,8 @@ uint32_t ExtensionManager_deregisterExtension_pargs::write(::apache::thrift::pro
   return xfer;
 }
 
-
-ExtensionManager_deregisterExtension_result::~ExtensionManager_deregisterExtension_result() noexcept {
-}
-
+ExtensionManager_deregisterExtension_result::
+    ~ExtensionManager_deregisterExtension_result() noexcept {}
 
 uint32_t ExtensionManager_deregisterExtension_result::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -889,10 +875,8 @@ uint32_t ExtensionManager_deregisterExtension_result::write(::apache::thrift::pr
   return xfer;
 }
 
-
-ExtensionManager_deregisterExtension_presult::~ExtensionManager_deregisterExtension_presult() noexcept {
-}
-
+ExtensionManager_deregisterExtension_presult::
+    ~ExtensionManager_deregisterExtension_presult() noexcept {}
 
 uint32_t ExtensionManager_deregisterExtension_presult::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -935,10 +919,7 @@ uint32_t ExtensionManager_deregisterExtension_presult::read(::apache::thrift::pr
   return xfer;
 }
 
-
-ExtensionManager_query_args::~ExtensionManager_query_args() noexcept {
-}
-
+ExtensionManager_query_args::~ExtensionManager_query_args() noexcept {}
 
 uint32_t ExtensionManager_query_args::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -995,10 +976,7 @@ uint32_t ExtensionManager_query_args::write(::apache::thrift::protocol::TProtoco
   return xfer;
 }
 
-
-ExtensionManager_query_pargs::~ExtensionManager_query_pargs() noexcept {
-}
-
+ExtensionManager_query_pargs::~ExtensionManager_query_pargs() noexcept {}
 
 uint32_t ExtensionManager_query_pargs::write(::apache::thrift::protocol::TProtocol* oprot) const {
   uint32_t xfer = 0;
@@ -1014,10 +992,7 @@ uint32_t ExtensionManager_query_pargs::write(::apache::thrift::protocol::TProtoc
   return xfer;
 }
 
-
-ExtensionManager_query_result::~ExtensionManager_query_result() noexcept {
-}
-
+ExtensionManager_query_result::~ExtensionManager_query_result() noexcept {}
 
 uint32_t ExtensionManager_query_result::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -1076,10 +1051,7 @@ uint32_t ExtensionManager_query_result::write(::apache::thrift::protocol::TProto
   return xfer;
 }
 
-
-ExtensionManager_query_presult::~ExtensionManager_query_presult() noexcept {
-}
-
+ExtensionManager_query_presult::~ExtensionManager_query_presult() noexcept {}
 
 uint32_t ExtensionManager_query_presult::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -1122,10 +1094,8 @@ uint32_t ExtensionManager_query_presult::read(::apache::thrift::protocol::TProto
   return xfer;
 }
 
-
-ExtensionManager_getQueryColumns_args::~ExtensionManager_getQueryColumns_args() noexcept {
-}
-
+ExtensionManager_getQueryColumns_args::
+    ~ExtensionManager_getQueryColumns_args() noexcept {}
 
 uint32_t ExtensionManager_getQueryColumns_args::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -1182,10 +1152,8 @@ uint32_t ExtensionManager_getQueryColumns_args::write(::apache::thrift::protocol
   return xfer;
 }
 
-
-ExtensionManager_getQueryColumns_pargs::~ExtensionManager_getQueryColumns_pargs() noexcept {
-}
-
+ExtensionManager_getQueryColumns_pargs::
+    ~ExtensionManager_getQueryColumns_pargs() noexcept {}
 
 uint32_t ExtensionManager_getQueryColumns_pargs::write(::apache::thrift::protocol::TProtocol* oprot) const {
   uint32_t xfer = 0;
@@ -1201,10 +1169,8 @@ uint32_t ExtensionManager_getQueryColumns_pargs::write(::apache::thrift::protoco
   return xfer;
 }
 
-
-ExtensionManager_getQueryColumns_result::~ExtensionManager_getQueryColumns_result() noexcept {
-}
-
+ExtensionManager_getQueryColumns_result::
+    ~ExtensionManager_getQueryColumns_result() noexcept {}
 
 uint32_t ExtensionManager_getQueryColumns_result::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -1263,10 +1229,8 @@ uint32_t ExtensionManager_getQueryColumns_result::write(::apache::thrift::protoc
   return xfer;
 }
 
-
-ExtensionManager_getQueryColumns_presult::~ExtensionManager_getQueryColumns_presult() noexcept {
-}
-
+ExtensionManager_getQueryColumns_presult::
+    ~ExtensionManager_getQueryColumns_presult() noexcept {}
 
 uint32_t ExtensionManager_getQueryColumns_presult::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -1990,10 +1954,14 @@ void ExtensionManagerProcessor::process_getQueryColumns(int32_t seqid, ::apache:
   }
 }
 
-::std::shared_ptr< ::apache::thrift::TProcessor > ExtensionManagerProcessorFactory::getProcessor(const ::apache::thrift::TConnectionInfo& connInfo) {
+::std::shared_ptr<::apache::thrift::TProcessor>
+ExtensionManagerProcessorFactory::getProcessor(
+    const ::apache::thrift::TConnectionInfo& connInfo) {
   ::apache::thrift::ReleaseHandler< ExtensionManagerIfFactory > cleanup(handlerFactory_);
-  ::std::shared_ptr< ExtensionManagerIf > handler(handlerFactory_->getHandler(connInfo), cleanup);
-  ::std::shared_ptr< ::apache::thrift::TProcessor > processor(new ExtensionManagerProcessor(handler));
+  ::std::shared_ptr<ExtensionManagerIf> handler(
+      handlerFactory_->getHandler(connInfo), cleanup);
+  ::std::shared_ptr<::apache::thrift::TProcessor> processor(
+      new ExtensionManagerProcessor(handler));
   return processor;
 }
 
@@ -2029,10 +1997,11 @@ void ExtensionManagerConcurrentClient::recv_extensions(InternalExtensionList& _r
 
   // the read mutex gets dropped and reacquired as part of waitForWork()
   // The destructor of this sentry wakes up other clients
-  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(), seqid);
+  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(),
+                                                        seqid);
 
   while(true) {
-    if(!this->sync_->getPending(fname, mtype, rseqid)) {
+    if (!this->sync_->getPending(fname, mtype, rseqid)) {
       iprot_->readMessageBegin(fname, mtype, rseqid);
     }
     if(seqid == rseqid) {
@@ -2112,10 +2081,11 @@ void ExtensionManagerConcurrentClient::recv_options(InternalOptionList& _return,
 
   // the read mutex gets dropped and reacquired as part of waitForWork()
   // The destructor of this sentry wakes up other clients
-  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(), seqid);
+  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(),
+                                                        seqid);
 
   while(true) {
-    if(!this->sync_->getPending(fname, mtype, rseqid)) {
+    if (!this->sync_->getPending(fname, mtype, rseqid)) {
       iprot_->readMessageBegin(fname, mtype, rseqid);
     }
     if(seqid == rseqid) {
@@ -2197,10 +2167,11 @@ void ExtensionManagerConcurrentClient::recv_registerExtension(ExtensionStatus& _
 
   // the read mutex gets dropped and reacquired as part of waitForWork()
   // The destructor of this sentry wakes up other clients
-  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(), seqid);
+  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(),
+                                                        seqid);
 
   while(true) {
-    if(!this->sync_->getPending(fname, mtype, rseqid)) {
+    if (!this->sync_->getPending(fname, mtype, rseqid)) {
       iprot_->readMessageBegin(fname, mtype, rseqid);
     }
     if(seqid == rseqid) {
@@ -2281,10 +2252,11 @@ void ExtensionManagerConcurrentClient::recv_deregisterExtension(ExtensionStatus&
 
   // the read mutex gets dropped and reacquired as part of waitForWork()
   // The destructor of this sentry wakes up other clients
-  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(), seqid);
+  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(),
+                                                        seqid);
 
   while(true) {
-    if(!this->sync_->getPending(fname, mtype, rseqid)) {
+    if (!this->sync_->getPending(fname, mtype, rseqid)) {
       iprot_->readMessageBegin(fname, mtype, rseqid);
     }
     if(seqid == rseqid) {
@@ -2365,10 +2337,11 @@ void ExtensionManagerConcurrentClient::recv_query(ExtensionResponse& _return, co
 
   // the read mutex gets dropped and reacquired as part of waitForWork()
   // The destructor of this sentry wakes up other clients
-  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(), seqid);
+  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(),
+                                                        seqid);
 
   while(true) {
-    if(!this->sync_->getPending(fname, mtype, rseqid)) {
+    if (!this->sync_->getPending(fname, mtype, rseqid)) {
       iprot_->readMessageBegin(fname, mtype, rseqid);
     }
     if(seqid == rseqid) {
@@ -2449,10 +2422,11 @@ void ExtensionManagerConcurrentClient::recv_getQueryColumns(ExtensionResponse& _
 
   // the read mutex gets dropped and reacquired as part of waitForWork()
   // The destructor of this sentry wakes up other clients
-  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(), seqid);
+  ::apache::thrift::async::TConcurrentRecvSentry sentry(this->sync_.get(),
+                                                        seqid);
 
   while(true) {
-    if(!this->sync_->getPending(fname, mtype, rseqid)) {
+    if (!this->sync_->getPending(fname, mtype, rseqid)) {
       iprot_->readMessageBegin(fname, mtype, rseqid);
     }
     if(seqid == rseqid) {

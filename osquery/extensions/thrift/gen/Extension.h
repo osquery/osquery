@@ -7,10 +7,10 @@
 #ifndef Extension_H
 #define Extension_H
 
+#include "osquery_types.h"
+#include <memory>
 #include <thrift/TDispatchProcessor.h>
 #include <thrift/async/TConcurrentClientSyncInfo.h>
-#include <memory>
-#include "osquery_types.h"
 
 namespace osquery { namespace extensions {
 
@@ -39,7 +39,8 @@ class ExtensionIfFactory {
 
 class ExtensionIfSingletonFactory : virtual public ExtensionIfFactory {
  public:
-  ExtensionIfSingletonFactory(const ::std::shared_ptr<ExtensionIf>& iface) : iface_(iface) {}
+  ExtensionIfSingletonFactory(const ::std::shared_ptr<ExtensionIf>& iface)
+      : iface_(iface) {}
   virtual ~ExtensionIfSingletonFactory() {}
 
   virtual ExtensionIf* getHandler(const ::apache::thrift::TConnectionInfo&) {
@@ -96,8 +97,6 @@ class Extension_ping_args {
 
 class Extension_ping_pargs {
  public:
-
-
   virtual ~Extension_ping_pargs() noexcept;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
@@ -150,8 +149,6 @@ typedef struct _Extension_ping_presult__isset {
 
 class Extension_ping_presult {
  public:
-
-
   virtual ~Extension_ping_presult() noexcept;
   ExtensionStatus* success;
 
@@ -215,8 +212,6 @@ class Extension_call_args {
 
 class Extension_call_pargs {
  public:
-
-
   virtual ~Extension_call_pargs() noexcept;
   const std::string* registry;
   const std::string* item;
@@ -272,8 +267,6 @@ typedef struct _Extension_call_presult__isset {
 
 class Extension_call_presult {
  public:
-
-
   virtual ~Extension_call_presult() noexcept;
   ExtensionResponse* success;
 
@@ -314,8 +307,6 @@ class Extension_shutdown_args {
 
 class Extension_shutdown_pargs {
  public:
-
-
   virtual ~Extension_shutdown_pargs() noexcept;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
@@ -353,8 +344,6 @@ class Extension_shutdown_result {
 
 class Extension_shutdown_presult {
  public:
-
-
   virtual ~Extension_shutdown_presult() noexcept;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
@@ -363,27 +352,34 @@ class Extension_shutdown_presult {
 
 class ExtensionClient : virtual public ExtensionIf {
  public:
-  ExtensionClient(std::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
+  ExtensionClient(std::shared_ptr<::apache::thrift::protocol::TProtocol> prot) {
     setProtocol(prot);
   }
-  ExtensionClient(std::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, std::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) {
+  ExtensionClient(
+      std::shared_ptr<::apache::thrift::protocol::TProtocol> iprot,
+      std::shared_ptr<::apache::thrift::protocol::TProtocol> oprot) {
     setProtocol(iprot,oprot);
   }
+
  private:
-  void setProtocol(std::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
-  setProtocol(prot,prot);
+  void setProtocol(
+      std::shared_ptr<::apache::thrift::protocol::TProtocol> prot) {
+    setProtocol(prot, prot);
   }
-  void setProtocol(std::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, std::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) {
+  void setProtocol(
+      std::shared_ptr<::apache::thrift::protocol::TProtocol> iprot,
+      std::shared_ptr<::apache::thrift::protocol::TProtocol> oprot) {
     piprot_=iprot;
     poprot_=oprot;
     iprot_ = iprot.get();
     oprot_ = oprot.get();
   }
+
  public:
-  std::shared_ptr< ::apache::thrift::protocol::TProtocol> getInputProtocol() {
+  std::shared_ptr<::apache::thrift::protocol::TProtocol> getInputProtocol() {
     return piprot_;
   }
-  std::shared_ptr< ::apache::thrift::protocol::TProtocol> getOutputProtocol() {
+  std::shared_ptr<::apache::thrift::protocol::TProtocol> getOutputProtocol() {
     return poprot_;
   }
   void ping(ExtensionStatus& _return);
@@ -396,8 +392,8 @@ class ExtensionClient : virtual public ExtensionIf {
   void send_shutdown();
   void recv_shutdown();
  protected:
-  std::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
-  std::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
+  std::shared_ptr<::apache::thrift::protocol::TProtocol> piprot_;
+  std::shared_ptr<::apache::thrift::protocol::TProtocol> poprot_;
   ::apache::thrift::protocol::TProtocol* iprot_;
   ::apache::thrift::protocol::TProtocol* oprot_;
 };
@@ -414,8 +410,7 @@ class ExtensionProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_call(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_shutdown(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
-  ExtensionProcessor(::std::shared_ptr<ExtensionIf> iface) :
-    iface_(iface) {
+  ExtensionProcessor(::std::shared_ptr<ExtensionIf> iface) : iface_(iface) {
     processMap_["ping"] = &ExtensionProcessor::process_ping;
     processMap_["call"] = &ExtensionProcessor::process_call;
     processMap_["shutdown"] = &ExtensionProcessor::process_shutdown;
@@ -426,26 +421,29 @@ class ExtensionProcessor : public ::apache::thrift::TDispatchProcessor {
 
 class ExtensionProcessorFactory : public ::apache::thrift::TProcessorFactory {
  public:
-  ExtensionProcessorFactory(const ::std::shared_ptr< ExtensionIfFactory >& handlerFactory) :
-      handlerFactory_(handlerFactory) {}
+  ExtensionProcessorFactory(
+      const ::std::shared_ptr<ExtensionIfFactory>& handlerFactory)
+      : handlerFactory_(handlerFactory) {}
 
-  ::std::shared_ptr< ::apache::thrift::TProcessor > getProcessor(const ::apache::thrift::TConnectionInfo& connInfo);
+  ::std::shared_ptr<::apache::thrift::TProcessor> getProcessor(
+      const ::apache::thrift::TConnectionInfo& connInfo);
 
  protected:
-  ::std::shared_ptr< ExtensionIfFactory > handlerFactory_;
+  ::std::shared_ptr<ExtensionIfFactory> handlerFactory_;
 };
 
 class ExtensionMultiface : virtual public ExtensionIf {
  public:
-  ExtensionMultiface(std::vector<std::shared_ptr<ExtensionIf> >& ifaces) : ifaces_(ifaces) {
-  }
+  ExtensionMultiface(std::vector<std::shared_ptr<ExtensionIf>>& ifaces)
+      : ifaces_(ifaces) {}
   virtual ~ExtensionMultiface() {}
  protected:
-  std::vector<std::shared_ptr<ExtensionIf> > ifaces_;
+  std::vector<std::shared_ptr<ExtensionIf>> ifaces_;
   ExtensionMultiface() {}
   void add(::std::shared_ptr<ExtensionIf> iface) {
     ifaces_.push_back(iface);
   }
+
  public:
   void ping(ExtensionStatus& _return) {
     size_t sz = ifaces_.size();
@@ -483,29 +481,39 @@ class ExtensionMultiface : virtual public ExtensionIf {
 // only be used when you need to share a connection among multiple threads
 class ExtensionConcurrentClient : virtual public ExtensionIf {
  public:
-  ExtensionConcurrentClient(std::shared_ptr< ::apache::thrift::protocol::TProtocol> prot, std::shared_ptr<::apache::thrift::async::TConcurrentClientSyncInfo> sync) : sync_(sync)
-{
+  ExtensionConcurrentClient(
+      std::shared_ptr<::apache::thrift::protocol::TProtocol> prot,
+      std::shared_ptr<::apache::thrift::async::TConcurrentClientSyncInfo> sync)
+      : sync_(sync) {
     setProtocol(prot);
   }
-  ExtensionConcurrentClient(std::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, std::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot, std::shared_ptr<::apache::thrift::async::TConcurrentClientSyncInfo> sync) : sync_(sync)
-{
+  ExtensionConcurrentClient(
+      std::shared_ptr<::apache::thrift::protocol::TProtocol> iprot,
+      std::shared_ptr<::apache::thrift::protocol::TProtocol> oprot,
+      std::shared_ptr<::apache::thrift::async::TConcurrentClientSyncInfo> sync)
+      : sync_(sync) {
     setProtocol(iprot,oprot);
   }
+
  private:
-  void setProtocol(std::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
-  setProtocol(prot,prot);
+  void setProtocol(
+      std::shared_ptr<::apache::thrift::protocol::TProtocol> prot) {
+    setProtocol(prot, prot);
   }
-  void setProtocol(std::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, std::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) {
+  void setProtocol(
+      std::shared_ptr<::apache::thrift::protocol::TProtocol> iprot,
+      std::shared_ptr<::apache::thrift::protocol::TProtocol> oprot) {
     piprot_=iprot;
     poprot_=oprot;
     iprot_ = iprot.get();
     oprot_ = oprot.get();
   }
+
  public:
-  std::shared_ptr< ::apache::thrift::protocol::TProtocol> getInputProtocol() {
+  std::shared_ptr<::apache::thrift::protocol::TProtocol> getInputProtocol() {
     return piprot_;
   }
-  std::shared_ptr< ::apache::thrift::protocol::TProtocol> getOutputProtocol() {
+  std::shared_ptr<::apache::thrift::protocol::TProtocol> getOutputProtocol() {
     return poprot_;
   }
   void ping(ExtensionStatus& _return);
@@ -518,8 +526,8 @@ class ExtensionConcurrentClient : virtual public ExtensionIf {
   int32_t send_shutdown();
   void recv_shutdown(const int32_t seqid);
  protected:
-  std::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
-  std::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
+  std::shared_ptr<::apache::thrift::protocol::TProtocol> piprot_;
+  std::shared_ptr<::apache::thrift::protocol::TProtocol> poprot_;
   ::apache::thrift::protocol::TProtocol* iprot_;
   ::apache::thrift::protocol::TProtocol* oprot_;
   std::shared_ptr<::apache::thrift::async::TConcurrentClientSyncInfo> sync_;

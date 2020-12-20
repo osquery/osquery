@@ -36,7 +36,8 @@ std::ostream& operator<<(std::ostream& out, const ExtensionCode::type& val) {
 }
 
 std::string to_string(const ExtensionCode::type& val) {
-  std::map<int, const char*>::const_iterator it = _ExtensionCode_VALUES_TO_NAMES.find(val);
+  std::map<int, const char*>::const_iterator it =
+      _ExtensionCode_VALUES_TO_NAMES.find(val);
   if (it != _ExtensionCode_VALUES_TO_NAMES.end()) {
     return std::string(it->second);
   } else {
@@ -44,10 +45,7 @@ std::string to_string(const ExtensionCode::type& val) {
   }
 }
 
-
-InternalOptionInfo::~InternalOptionInfo() noexcept {
-}
-
+InternalOptionInfo::~InternalOptionInfo() noexcept {}
 
 void InternalOptionInfo::__set_value(const std::string& val) {
   this->value = val;
@@ -160,13 +158,14 @@ InternalOptionInfo::InternalOptionInfo(const InternalOptionInfo& other0) {
   type = other0.type;
   __isset = other0.__isset;
 }
-InternalOptionInfo::InternalOptionInfo( InternalOptionInfo&& other1) {
+InternalOptionInfo::InternalOptionInfo(InternalOptionInfo&& other1) {
   value = std::move(other1.value);
   default_value = std::move(other1.default_value);
   type = std::move(other1.type);
   __isset = std::move(other1.__isset);
 }
-InternalOptionInfo& InternalOptionInfo::operator=(const InternalOptionInfo& other2) {
+InternalOptionInfo& InternalOptionInfo::operator=(
+    const InternalOptionInfo& other2) {
   value = other2.value;
   default_value = other2.default_value;
   type = other2.type;
@@ -189,10 +188,7 @@ void InternalOptionInfo::printTo(std::ostream& out) const {
   out << ")";
 }
 
-
-InternalExtensionInfo::~InternalExtensionInfo() noexcept {
-}
-
+InternalExtensionInfo::~InternalExtensionInfo() noexcept {}
 
 void InternalExtensionInfo::__set_name(const std::string& val) {
   this->name = val;
@@ -316,21 +312,23 @@ void swap(InternalExtensionInfo &a, InternalExtensionInfo &b) {
   swap(a.__isset, b.__isset);
 }
 
-InternalExtensionInfo::InternalExtensionInfo(const InternalExtensionInfo& other4) {
+InternalExtensionInfo::InternalExtensionInfo(
+    const InternalExtensionInfo& other4) {
   name = other4.name;
   version = other4.version;
   sdk_version = other4.sdk_version;
   min_sdk_version = other4.min_sdk_version;
   __isset = other4.__isset;
 }
-InternalExtensionInfo::InternalExtensionInfo( InternalExtensionInfo&& other5) {
+InternalExtensionInfo::InternalExtensionInfo(InternalExtensionInfo&& other5) {
   name = std::move(other5.name);
   version = std::move(other5.version);
   sdk_version = std::move(other5.sdk_version);
   min_sdk_version = std::move(other5.min_sdk_version);
   __isset = std::move(other5.__isset);
 }
-InternalExtensionInfo& InternalExtensionInfo::operator=(const InternalExtensionInfo& other6) {
+InternalExtensionInfo& InternalExtensionInfo::operator=(
+    const InternalExtensionInfo& other6) {
   name = other6.name;
   version = other6.version;
   sdk_version = other6.sdk_version;
@@ -338,7 +336,8 @@ InternalExtensionInfo& InternalExtensionInfo::operator=(const InternalExtensionI
   __isset = other6.__isset;
   return *this;
 }
-InternalExtensionInfo& InternalExtensionInfo::operator=(InternalExtensionInfo&& other7) {
+InternalExtensionInfo& InternalExtensionInfo::operator=(
+    InternalExtensionInfo&& other7) {
   name = std::move(other7.name);
   version = std::move(other7.version);
   sdk_version = std::move(other7.sdk_version);
@@ -356,10 +355,7 @@ void InternalExtensionInfo::printTo(std::ostream& out) const {
   out << ")";
 }
 
-
-ExtensionStatus::~ExtensionStatus() noexcept {
-}
-
+ExtensionStatus::~ExtensionStatus() noexcept {}
 
 void ExtensionStatus::__set_code(const int32_t val) {
   this->code = val;
@@ -472,7 +468,7 @@ ExtensionStatus::ExtensionStatus(const ExtensionStatus& other8) {
   uuid = other8.uuid;
   __isset = other8.__isset;
 }
-ExtensionStatus::ExtensionStatus( ExtensionStatus&& other9) {
+ExtensionStatus::ExtensionStatus(ExtensionStatus&& other9) {
   code = std::move(other9.code);
   message = std::move(other9.message);
   uuid = std::move(other9.uuid);
@@ -501,10 +497,7 @@ void ExtensionStatus::printTo(std::ostream& out) const {
   out << ")";
 }
 
-
-ExtensionResponse::~ExtensionResponse() noexcept {
-}
-
+ExtensionResponse::~ExtensionResponse() noexcept {}
 
 void ExtensionResponse::__set_status(const ExtensionStatus& val) {
   this->status = val;
@@ -558,8 +551,7 @@ uint32_t ExtensionResponse::read(::apache::thrift::protocol::TProtocol* iprot) {
             xfer += iprot->readListBegin(_etype15, _size12);
             this->response.resize(_size12);
             uint32_t _i16;
-            for (_i16 = 0; _i16 < _size12; ++_i16)
-            {
+            for (_i16 = 0; _i16 < _size12; ++_i16) {
               {
                 this->response[_i16].clear();
                 uint32_t _size17;
@@ -567,8 +559,7 @@ uint32_t ExtensionResponse::read(::apache::thrift::protocol::TProtocol* iprot) {
                 ::apache::thrift::protocol::TType _vtype19;
                 xfer += iprot->readMapBegin(_ktype18, _vtype19, _size17);
                 uint32_t _i21;
-                for (_i21 = 0; _i21 < _size17; ++_i21)
-                {
+                for (_i21 = 0; _i21 < _size17; ++_i21) {
                   std::string _key22;
                   xfer += iprot->readString(_key22);
                   std::string& _val23 = this->response[_i16][_key22];
@@ -608,14 +599,16 @@ uint32_t ExtensionResponse::write(::apache::thrift::protocol::TProtocol* oprot) 
   xfer += oprot->writeFieldBegin("response", ::apache::thrift::protocol::T_LIST, 2);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_MAP, static_cast<uint32_t>(this->response.size()));
-    std::vector<std::map<std::string, std::string> > ::const_iterator _iter24;
-    for (_iter24 = this->response.begin(); _iter24 != this->response.end(); ++_iter24)
-    {
+    std::vector<std::map<std::string, std::string>>::const_iterator _iter24;
+    for (_iter24 = this->response.begin(); _iter24 != this->response.end();
+         ++_iter24) {
       {
-        xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*_iter24).size()));
-        std::map<std::string, std::string> ::const_iterator _iter25;
-        for (_iter25 = (*_iter24).begin(); _iter25 != (*_iter24).end(); ++_iter25)
-        {
+        xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING,
+                                     ::apache::thrift::protocol::T_STRING,
+                                     static_cast<uint32_t>((*_iter24).size()));
+        std::map<std::string, std::string>::const_iterator _iter25;
+        for (_iter25 = (*_iter24).begin(); _iter25 != (*_iter24).end();
+             ++_iter25) {
           xfer += oprot->writeString(_iter25->first);
           xfer += oprot->writeString(_iter25->second);
         }
@@ -643,12 +636,13 @@ ExtensionResponse::ExtensionResponse(const ExtensionResponse& other26) {
   response = other26.response;
   __isset = other26.__isset;
 }
-ExtensionResponse::ExtensionResponse( ExtensionResponse&& other27) {
+ExtensionResponse::ExtensionResponse(ExtensionResponse&& other27) {
   status = std::move(other27.status);
   response = std::move(other27.response);
   __isset = std::move(other27.__isset);
 }
-ExtensionResponse& ExtensionResponse::operator=(const ExtensionResponse& other28) {
+ExtensionResponse& ExtensionResponse::operator=(
+    const ExtensionResponse& other28) {
   status = other28.status;
   response = other28.response;
   __isset = other28.__isset;
@@ -668,10 +662,7 @@ void ExtensionResponse::printTo(std::ostream& out) const {
   out << ")";
 }
 
-
-ExtensionException::~ExtensionException() noexcept {
-}
-
+ExtensionException::~ExtensionException() noexcept {}
 
 void ExtensionException::__set_code(const int32_t val) {
   this->code = val;
@@ -778,26 +769,30 @@ void swap(ExtensionException &a, ExtensionException &b) {
   swap(a.__isset, b.__isset);
 }
 
-ExtensionException::ExtensionException(const ExtensionException& other30) : TException() {
+ExtensionException::ExtensionException(const ExtensionException& other30)
+    : TException() {
   code = other30.code;
   message = other30.message;
   uuid = other30.uuid;
   __isset = other30.__isset;
 }
-ExtensionException::ExtensionException( ExtensionException&& other31) : TException() {
+ExtensionException::ExtensionException(ExtensionException&& other31)
+    : TException() {
   code = std::move(other31.code);
   message = std::move(other31.message);
   uuid = std::move(other31.uuid);
   __isset = std::move(other31.__isset);
 }
-ExtensionException& ExtensionException::operator=(const ExtensionException& other32) {
+ExtensionException& ExtensionException::operator=(
+    const ExtensionException& other32) {
   code = other32.code;
   message = other32.message;
   uuid = other32.uuid;
   __isset = other32.__isset;
   return *this;
 }
-ExtensionException& ExtensionException::operator=(ExtensionException&& other33) {
+ExtensionException& ExtensionException::operator=(
+    ExtensionException&& other33) {
   code = std::move(other33.code);
   message = std::move(other33.message);
   uuid = std::move(other33.uuid);
@@ -823,5 +818,4 @@ const char* ExtensionException::what() const noexcept {
     return "TException - service has thrown: ExtensionException";
   }
 }
-
 }} // namespace

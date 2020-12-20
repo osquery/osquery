@@ -18,7 +18,6 @@
 #include <functional>
 #include <memory>
 
-
 namespace osquery { namespace extensions {
 
 struct ExtensionCode {
