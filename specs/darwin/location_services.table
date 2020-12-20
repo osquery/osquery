@@ -1,0 +1,6 @@
+table_name("location_services")
+description("Reports the status of the Location Services feature of the OS.")
+schema([
+    Column("enabled", INTEGER, "1 if Location Services are enabled, else 0"),
+])
+implementation("location_services@genLocationServices")

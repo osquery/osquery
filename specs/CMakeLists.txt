@@ -112,6 +112,7 @@ function(generateNativeTables)
     "darwin/keychain_items.table:macos"
     "darwin/launchd.table:macos"
     "darwin/launchd_overrides.table:macos"
+    "darwin/location_services.table:macos"
     "darwin/managed_policies.table:macos"
     "darwin/mdfind.table:macos"
     "darwin/mdls.table:macos"
