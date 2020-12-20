@@ -13,8 +13,6 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 
-namespace fs = boost::filesystem;
-
 namespace osquery {
 namespace tables {
 
@@ -25,9 +23,8 @@ QueryData genLocationServices(QueryContext& context) {
   @try {
     locationServicesEnabled = [CLLocationManager locationServicesEnabled];
   } @catch (NSException* exception) {
-    LOG(ERROR)
-        << "[CLLocationManager locationServicesEnabled]: threw exception "
-        << exception.name;
+    LOG(ERROR) << "CoreLocation API locationServicesEnabled threw exception: "
+               << exception.name;
     return {r};
   }
 

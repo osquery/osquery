@@ -47,6 +47,7 @@ function(generateTestsIntegrationTablesTestsTest)
     interface_addresses.cpp
     interface_details.cpp
     listening_ports.cpp
+    location_services.cpp
     logged_in_users.cpp
     os_version.cpp
     osquery_events.cpp
