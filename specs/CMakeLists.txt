@@ -80,7 +80,6 @@ function(generateNativeTables)
   set(platform_dependent_spec_files
     "arp_cache.table:linux,macos,windows"
     "atom_packages.table:linux,macos,windows"
-    "office_mru.table:windows"
     "darwin/account_policy_data.table:macos"
     "darwin/ad_config.table:macos"
     "darwin/alf.table:macos"
@@ -259,6 +258,7 @@ function(generateNativeTables)
     "windows/chassis_info.table:windows"
     "windows/logon_sessions.table:windows"
     "windows/ntfs_acl_permissions.table:windows"
+    "windows/office_mru.table:windows"
     "windows/scheduled_tasks.table:windows"
     "windows/windows_crashes.table:windows"
     "windows/services.table:windows"
