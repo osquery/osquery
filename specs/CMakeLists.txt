@@ -176,8 +176,6 @@ function(generateNativeTables)
     "linux/apparmor_events.table:linux"
     "linux/systemd_units.table:linux"
     "linwin/intel_me_info.table:linux,windows"
-    "linwin/ec2_instance_metadata.table:linux,windows"
-    "linwin/ec2_instance_tags.table:linux,windows"
     "lldpd/lldp_neighbors.table:linux,macos,freebsd"
     "kernel_info.table:linux,macos,windows"
     "macwin/certificates.table:macos,windows"
@@ -307,6 +305,13 @@ function(generateNativeTables)
     list(APPEND platform_dependent_spec_files
       "linux/bpf_process_events.table:linux"
       "linux/bpf_socket_events.table:linux"
+    )
+  endif()
+
+  if(OSQUERY_BUILD_AWS)
+    list(APPEND platform_dependent_spec_files
+      "linwin/ec2_instance_metadata.table:linux,windows"
+      "linwin/ec2_instance_tags.table:linux,windows"
     )
   endif()
 

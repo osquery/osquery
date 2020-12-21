@@ -85,6 +85,8 @@ option(OSQUERY_IGNORE_CMAKE_MAX_VERSION_CHECK "Ignore the maximum cmake version 
 # Unfortunately, due glog always enabling BUILD_TESTING, we have to force it off, so that tests won't be built
 overwrite_cache_variable("BUILD_TESTING" "BOOL" "OFF")
 
+option(OSQUERY_BUILD_AWS "Whether to build the aws tables and library, to decrease memory usage and increase speed during build." ON)
+
 set(third_party_source_list "source;formula")
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" CACHE STRING "A list of paths containing CMake module files")
