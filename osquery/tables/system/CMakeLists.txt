@@ -124,6 +124,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/keychain_items.cpp
       darwin/keychain_utils.cpp
       darwin/launchd.cpp
+      darwin/location_services.mm
       darwin/managed_policies.cpp
       darwin/mdfind.mm
       darwin/mdls.mm

@@ -170,6 +170,7 @@ function(setupBuildFlags)
         "-framework Foundation"
         "-framework CoreServices"
         "-framework CoreFoundation"
+        "-framework CoreLocation"
         "-framework CoreWLAN"
         "-framework CoreGraphics"
         "-framework DiskArbitration"

@@ -223,6 +223,7 @@ function(generateTestsIntegrationTablesTestsTest)
       keychain_items.cpp
       launchd.cpp
       launchd_overrides.cpp
+      location_services.cpp
       managed_policies.cpp
       mdfind.cpp
       nfs_shares.cpp
