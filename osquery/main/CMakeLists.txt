@@ -8,7 +8,7 @@
 function(osqueryMainMain)
   generateOsqueryMain()
 
-  if(OSQUERY_ENABLE_FUZZER_SANITIZERS AND OSQUERY_BUILD_TESTS AND PLATFORM_LINUX)
+  if(OSQUERY_BUILD_FUZZERS)
     add_subdirectory("harnesses")
   endif()
 endfunction()

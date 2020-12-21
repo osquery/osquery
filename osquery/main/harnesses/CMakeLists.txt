@@ -6,11 +6,11 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryMainHarnesses)
-  if(OSQUERY_ENABLE_FUZZER_SANITIZERS AND NOT OSQUERY_ENABLE_ADDRESS_SANITIZER)
+  if(OSQUERY_BUILD_FUZZERS AND NOT OSQUERY_ENABLE_ADDRESS_SANITIZER)
     message( FATAL_ERROR "If fuzzing is enabled, a sanitizer must be chosen. (Currently only OSQUERY_ENABLE_ADDRESS_SANITIZER is available.)" )
   endif()
 
-  if(OSQUERY_ENABLE_FUZZER_SANITIZERS AND
+  if(OSQUERY_BUILD_FUZZERS AND
       (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Release" AND NOT "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
     message( FATAL_ERROR "If fuzzing is enabled, it must be built in Release or RelWithDebInfo" )
   endif()
