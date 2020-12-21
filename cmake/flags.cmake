@@ -235,7 +235,7 @@ function(setupBuildFlags)
   elseif(DEFINED PLATFORM_WINDOWS)
 
     set(windows_common_compile_options
-      "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Z7;/Gs;/GS>"
+      "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Gs;/GS>"
       "$<$<CONFIG:Debug>:/Od;/UNDEBUG>$<$<NOT:$<CONFIG:Debug>>:/Ot>"
       /guard:cf
       /bigobj
@@ -243,6 +243,7 @@ function(setupBuildFlags)
 
     set(osquery_windows_compile_options
       /W3
+      "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Z7>"
     )
 
     set(windows_common_link_options
