@@ -74,6 +74,12 @@ option(OSQUERY_BUILD_ROOT_TESTS "Whether to enable and build tests that require 
 if(DEFINED PLATFORM_LINUX)
   option(OSQUERY_BUILD_FUZZERS "Whether to build fuzzing harnesses")
   option(OSQUERY_ENABLE_ADDRESS_SANITIZER "Whether to enable Address Sanitizer")
+  # This is required for Boost coroutines/context to be built in a way that are compatible to Valgrind
+  option(OSQUERY_ENABLE_VALGRIND_SUPPORT "Whether to enable support for osquery to be run under Valgrind")
+
+  if(OSQUERY_ENABLE_VALGRIND_SUPPORT AND OSQUERY_ENABLE_ADDRESS_SANITIZER)
+    message(FATAL_ERROR "Cannot mix Vagrind and ASAN sanitizers, please choose only one.")
+  endif()
 endif()
 
 option(OSQUERY_ENABLE_CLANG_TIDY "Enables clang-tidy support")
