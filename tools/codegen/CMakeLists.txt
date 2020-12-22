@@ -202,7 +202,7 @@ function(generateTableCategoryAmalgamation category_name)
     OUTPUT "${amalgamation_file}"
     COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${OSQUERY_PYTHON_PATH}" "${OSQUERY_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/codegen/amalgamate.py" --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${amalgamation_type} --sources "${generateTables_output}" --output "${amalgamation_file}"
     COMMENT "Generating amalgamation file for the ${category_name} tables..."
-    DEPENDS "${category_spec_files}" ${generateTables_targetList}
+    DEPENDS ${category_spec_files} ${generateTables_targetList}
   )
 
   # Build the library
