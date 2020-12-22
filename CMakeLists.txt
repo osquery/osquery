@@ -143,7 +143,6 @@ function(importLibraries)
     "Linux,Darwin,Windows:zlib"
     "Linux,Darwin,Windows:zstd"
     "Linux,Darwin,Windows:openssl"
-    "Linux,Darwin,Windows:aws-sdk-cpp"
     "Linux,Darwin,Windows:icu"
     "Linux:expat"
     "Linux:dbus"
@@ -153,6 +152,12 @@ function(importLibraries)
   if(OSQUERY_BUILD_BPF)
     list(APPEND library_descriptor_list
       "Linux:ebpfpub"
+    )
+  endif()
+
+  if(OSQUERY_BUILD_AWS)
+    list(APPEND library_descriptor_list
+      "Linux,Darwin,Windows:aws-sdk-cpp"
     )
   endif()
 

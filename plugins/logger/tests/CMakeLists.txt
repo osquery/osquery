@@ -6,10 +6,12 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(pluginsLoggerTestsMain)
+  if(OSQUERY_BUILD_AWS)
+    generatePluginsLoggerTestsAwskinesisloggertestsTest()
+  endif()
   generatePluginsLoggerTestsFilesystemloggertestsTest()
   generatePluginsLoggerTestsBufferedloggertestsTest()
   generatePluginsLoggerTestsKafkaproducerloggertestsTest()
-  generatePluginsLoggerTestsAwskinesisloggertestsTest()
   generatePluginsLoggerTestsTlsloggertestsTest()
 
   if(DEFINED PLATFORM_POSIX)
