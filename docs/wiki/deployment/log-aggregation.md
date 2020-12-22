@@ -9,7 +9,7 @@ When it comes to aggregating the logs that `osqueryd` generates, you have severa
 
 ## Logstash
 
-[LogStash](https://www.elastic.co/products/logstash) is an open source tool enabling you to collect, parse, index and forward logs. Logstash enables you to ingest osquery logs with its [file](https://www.elastic.co/guide/en/logstash/current/plugins-inputs-file.html) input plugin and then send the data to an aggregator via its extensive list of [output plugins](https://www.elastic.co/guide/en/logstash/current/output-plugins.html). A common datastore for logstash logs is [ElasticSearch](https://www.elastic.co/products/elasticsearch/).
+[LogStash](https://www.elastic.co/logstash) is an open source tool enabling you to collect, parse, index and forward logs. Logstash enables you to ingest osquery logs with its [file](https://www.elastic.co/guide/en/logstash/current/plugins-inputs-file.html) input plugin and then send the data to an aggregator via its extensive list of [output plugins](https://www.elastic.co/guide/en/logstash/current/output-plugins.html). A common datastore for logstash logs is [ElasticSearch](https://www.elastic.co/elasticsearch/).
 
 An example Logstash to ElasticSearch config may look like this:
 
@@ -76,7 +76,7 @@ The way in which you analyze logs is very dependent on how you aggregate logs. A
 
 ### Kibana
 
-If you are forwarding logs with [LogStash](https://www.elastic.co/products/logstash/) to [ElasticSearch](https://www.elastic.co/products/elasticsearch/), then you probably want to perform your analytics using [Kibana](https://www.elastic.co/products/kibana/).
+If you are forwarding logs with [LogStash](https://www.elastic.co/logstash/) to [ElasticSearch](https://www.elastic.co/elasticsearch/), then you probably want to perform your analytics using [Kibana](https://www.elastic.co/kibana/).
 
 Logstash will index logs into ElasticSearch using a default index format of logstash-YYYY-MM-DD. Kibana has a default Logstash dashboard and automatically field-extracts all log lines making them available for search.
 
@@ -94,4 +94,4 @@ Splunk will automatically extract the relevant fields for analytics, as shown be
 
 If you are using a log forwarder which has less requirements on how data is stored (for example, Splunk Forwarders require the use of Splunk, etc.), then you have many options on how you can interact with `osqueryd` data. It is recommended that you use whatever log analytics platform that you are comfortable with.
 
-Many people are very comfortable with [Logstash](https://www.elastic.co/products/logstash/). If you already have an existing Logstash/Elasticsearch deployment, that is a great option to exercise. If your organization uses a different backend log management solution, osquery should tie into that with minimal effort.
+Many people are very comfortable with [Logstash](https://www.elastic.co/logstash/). If you already have an existing Logstash/ElasticSearch deployment, that is a great option to exercise. If your organization uses a different backend log management solution, osquery should tie into that with minimal effort.
