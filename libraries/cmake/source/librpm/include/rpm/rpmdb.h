@@ -8,6 +8,7 @@
 
 #include <rpm/rpmtypes.h>
 #include <rpm/rpmsw.h>
+#include <sys/stat.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -153,6 +154,14 @@ Header rpmdbNextIterator(rpmdbMatchIterator mi);
 rpmdbMatchIterator rpmdbFreeIterator(rpmdbMatchIterator mi);
 
 /** \ingroup rpmdb
+ * Get an iterator for index keys
+ * @param db		rpm database
+ * @param rpmtag	the index to iterate over
+ * @return		the index iterator
+ */
+rpmdbIndexIterator rpmdbIndexKeyIteratorInit(rpmdb db, rpmDbiTag rpmtag);
+
+/** \ingroup rpmdb
  * Get an iterator for an index
  * @param db		rpm database
  * @param rpmtag	the index to iterate over
@@ -225,6 +234,22 @@ int rpmdbCtrl(rpmdb db, rpmdbCtrlOp ctrl);
  * @return 		cookie string (malloced), or NULL on error
  */
 char *rpmdbCookie(rpmdb db);
+
+/** \ingroup rpmdb
+ * Perform stat() on rpm database
+ * @param prefix	prefix or NULL for /
+ * @retval statbuf	returned data from stat()
+ * @return 		0 on success, -1 on error
+ */
+int rpmdbStat(const char *prefix, struct stat *statbuf);
+
+/** \ingroup rpmdb
+ * Perform stat() on an open rpm database
+ * @param db		rpm database
+ * @retval statbuf	returned data from stat()
+ * @return 		0 on success, -1 on error
+ */
+int rpmdbFStat(rpmdb db, struct stat *statbuf);
 
 #ifdef __cplusplus
 }

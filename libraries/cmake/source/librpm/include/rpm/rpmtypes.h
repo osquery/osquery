@@ -70,6 +70,7 @@ typedef struct rpmdbMatchIterator_s * rpmdbMatchIterator;
 typedef struct rpmtsi_s * rpmtsi;
 typedef struct rpmps_s * rpmps;
 typedef struct rpmtxn_s * rpmtxn;
+typedef struct rpmver_s * rpmver;
 
 typedef struct rpmdbIndexIterator_s * rpmdbIndexIterator;
 typedef const void * fnpyKey;

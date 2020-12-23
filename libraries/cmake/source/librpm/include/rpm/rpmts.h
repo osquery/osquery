@@ -51,7 +51,8 @@ enum rpmtransFlags_e {
     /* bit 26 unused */
     RPMTRANS_FLAG_NOMD5		= (1 << 27),	/*!< from --nomd5 */
     RPMTRANS_FLAG_NOFILEDIGEST	= (1 << 27),	/*!< from --nofiledigest (alias to --nomd5) */
-    /* bits 28-29 unused */
+    /* bit 28 unused */
+    RPMTRANS_FLAG_NOARTIFACTS	= (1 << 29),	/*!< from --noartifacts */
     RPMTRANS_FLAG_NOCONFIGS	= (1 << 30),	/*!< from --noconfigs */
     RPMTRANS_FLAG_DEPLOOPS	= (1 << 31)	/*!< from --deploops */
 };
