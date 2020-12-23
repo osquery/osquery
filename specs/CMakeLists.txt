@@ -169,7 +169,6 @@ function(generateNativeTables)
     "linux/memory_info.table:linux"
     "linux/msr.table:linux"
     "linux/memory_map.table:linux"
-    "linux/deb_packages.table:linux"
     "linux/elf_dynamic.table:linux"
     "linux/elf_sections.table:linux"
     "linux/selinux_settings.table:linux"
@@ -313,6 +312,12 @@ function(generateNativeTables)
     list(APPEND platform_dependent_spec_files
       "linwin/ec2_instance_metadata.table:linux,windows"
       "linwin/ec2_instance_tags.table:linux,windows"
+    )
+  endif()
+
+  if(OSQUERY_BUILD_DPKG)
+    list(APPEND platform_dependent_spec_files
+      "linux/deb_packages.table:linux"
     )
   endif()
 

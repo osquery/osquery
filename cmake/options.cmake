@@ -87,6 +87,7 @@ set(OSQUERY_CLANG_TIDY_CHECKS "-checks=cert-*,cppcoreguidelines-*,performance-*,
 
 option(OSQUERY_BUILD_BPF "Whether to enable and build BPF support" ON)
 option(OSQUERY_BUILD_AWS "Whether to build the aws tables and library, to decrease memory usage and increase speed during build." ON)
+option(OSQUERY_BUILD_DPKG "Whether to build the dpkg tables" ON)
 
 # This is a temporary option to ignore the version check if there's no intention to generate RPM packages
 option(OSQUERY_IGNORE_CMAKE_MAX_VERSION_CHECK "Ignore the maximum cmake version check introduced due to CPack generating incorrect RPM packages")

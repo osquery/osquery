@@ -151,7 +151,6 @@ function(generateTestsIntegrationTablesTestsTest)
     set(platform_source_files
       arp_cache.cpp
       atom_packages.cpp
-      deb_packages.cpp
       elf_dynamic.cpp
       elf_info.cpp
       elf_sections.cpp
@@ -187,6 +186,12 @@ function(generateTestsIntegrationTablesTestsTest)
       yara_events.cpp
       yara.cpp
     )
+
+    if(OSQUERY_BUILD_DPKG)
+      list(APPEND platform_source_files
+        deb_packages.cpp
+      )
+    endif()
 
     list(APPEND source_files ${platform_source_files})
   elseif(DEFINED PLATFORM_MACOS)
