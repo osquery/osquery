@@ -379,7 +379,6 @@ struct callback_data {
   char nullvalue[20]; /* The text to print when a NULL comes back from
                       ** the database */
   char outfile[FILENAME_MAX]; /* Filename for *out */
-  char* zFreeOnClose; /* Filename to free when closing */
   sqlite3_stmt* pStmt; /* Current statement if any. */
   FILE* pLog; /* Write log output here */
   int* aiIndent; /* Array of indents used in MODE_Explain */
@@ -1686,6 +1685,7 @@ int runQuery(struct callback_data* data, const char* query) {
   if (error != nullptr) {
     fprintf(stderr, "Error: %s\n", error);
     rc = (rc == 0) ? 1 : rc;
+    sqlite3_free(error);
   } else if (rc != 0) {
     fprintf(stderr, "Error: unable to process SQL \"%s\"\n", query);
   }
@@ -1771,6 +1771,9 @@ int launchIntoShell(int argc, char** argv) {
     } else {
       rc = runQuery(&data, query);
       if (rc != 0) {
+        if (data.prettyPrint != nullptr) {
+          delete data.prettyPrint;
+        }
         return rc;
       }
     }
@@ -1802,7 +1805,6 @@ int launchIntoShell(int argc, char** argv) {
   }
 
   set_table_name(&data, nullptr);
-  sqlite3_free(data.zFreeOnClose);
 
   if (data.prettyPrint != nullptr) {
     delete data.prettyPrint;
