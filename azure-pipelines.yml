@@ -100,13 +100,6 @@ jobs:
         workingDirectory: $(BUILD_DIR)
         cmakeArgs: --build . -j 3
 
-    - task: CMake@1
-      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux RelWithDebInfo'))
-      displayName: "Run cppcheck"
-      inputs:
-        workingDirectory: $(BUILD_DIR)
-        cmakeArgs: --build . --target cppcheck
-
     - script: |
         ctest --build-nocmake -LE "root-required" -V
       condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux RelWithDebInfo'))
@@ -118,6 +111,13 @@ jobs:
       condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux RelWithDebInfo'))
       displayName: "Run tests which requires root"
       workingDirectory: $(BUILD_DIR)
+
+    - task: CMake@1
+      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux RelWithDebInfo'))
+      displayName: "Run cppcheck"
+      inputs:
+        workingDirectory: $(BUILD_DIR)
+        cmakeArgs: --build . --target cppcheck
 
     - script: |
         cmake -DPACKAGING_SYSTEM=DEB $(Build.SourcesDirectory)
