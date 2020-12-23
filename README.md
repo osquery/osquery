@@ -95,7 +95,7 @@ and installation instructions visit
 Building osquery from source is encouraged! Check out our [build
 guide](https://osquery.readthedocs.io/en/latest/development/building/). Also
 check out our [contributing guide](CONTRIBUTING.md) and join the
-community on [Slack](https://slack.osquery.io).
+community on [Slack](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw).
 
 ## License
 
@@ -122,4 +122,4 @@ for background on the project, visit the [users
 guide](https://osquery.readthedocs.org/).
 
 Development and usage discussion is happening in the osquery Slack, grab an invite
-[here](https://slack.osquery.io)!
+[here](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw)!
