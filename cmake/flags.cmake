@@ -230,6 +230,17 @@ function(setupBuildFlags)
           -fsanitize=address
         )
       endif()
+
+      list(APPEND osquery_defines
+        OSQUERY_IS_FUZZING
+      )
+
+      target_compile_options(cxx_settings INTERFACE
+        -fno-omit-frame-pointer
+      )
+      target_compile_options(c_settings INTERFACE
+        -fno-omit-frame-pointer
+      )
     elseif(OSQUERY_ENABLE_ADDRESS_SANITIZER)
       target_compile_options(cxx_settings INTERFACE
         -fsanitize=address
