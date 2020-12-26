@@ -58,7 +58,6 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/dbus/uniquedbusmessage.cpp
       linux/acpi_tables.cpp
       linux/block_devices.cpp
-      linux/deb_packages.cpp
       linux/disk_encryption.cpp
       linux/elf_info.cpp
       linux/extended_attributes.cpp
@@ -92,6 +91,12 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/apparmor_profiles.cpp
       linux/systemd_units.cpp
     )
+
+    if(OSQUERY_BUILD_DPKG)
+      list(APPEND source_files
+        linux/deb_packages.cpp
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
@@ -266,7 +271,6 @@ function(generateOsqueryTablesSystemSystemtable)
   if(DEFINED PLATFORM_LINUX)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_libdevmapper
-      thirdparty_libdpkg
       thirdparty_libelfin
       thirdparty_libcryptsetup
       thirdparty_librpm
@@ -274,6 +278,12 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_dbus
       thirdparty_libcap
     )
+
+    if(OSQUERY_BUILD_DPKG)
+      target_link_libraries(osquery_tables_system_systemtable PUBLIC
+        thirdparty_libdpkg
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC

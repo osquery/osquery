@@ -117,7 +117,6 @@ function(importLibraries)
     "Linux:libaudit"
     "Linux:libcryptsetup"
     "Linux:libdevmapper"
-    "Linux:libdpkg"
     "Linux:libelfin"
     "Linux:libgcrypt"
     "Linux:libgpg-error"
@@ -158,6 +157,12 @@ function(importLibraries)
   if(OSQUERY_BUILD_AWS)
     list(APPEND library_descriptor_list
       "Linux,Darwin,Windows:aws-sdk-cpp"
+    )
+  endif()
+
+  if(OSQUERY_BUILD_DPKG)
+    list(APPEND library_descriptor_list
+      "Linux:libdpkg"
     )
   endif()
 
