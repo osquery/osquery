@@ -14,7 +14,6 @@
 #include <osquery/registry/registry.h>
 
 #include <boost/algorithm/string.hpp>
-//#include <boost/algorithm/string/classification.hpp>
 
 namespace osquery {
 
@@ -34,7 +33,7 @@ void attachEvents() {
 
     auto status = EventFactory::registerEventSubscriber(subscriber.second);
     if (!status.ok()) {
-      VLOG(1) << "Error registering subscriber: " << subscriber.first << ": "
+      VLOG(1) << "Skipping subscriber: " << subscriber.first << ": "
               << status.getMessage();
     }
   }
