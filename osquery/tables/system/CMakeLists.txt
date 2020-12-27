@@ -149,6 +149,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/smc_keys.cpp
       darwin/startup_items.cpp
       darwin/sysctl_utils.cpp
+      darwin/system_extensions.mm
       darwin/system_info.cpp
       darwin/time_machine.cpp
       darwin/usb_devices.cpp
