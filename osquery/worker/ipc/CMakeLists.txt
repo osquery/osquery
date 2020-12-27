@@ -66,9 +66,9 @@ function(generateOsqueryWorkerIpcPlatformTableContainerIpc)
       osquery_core_sql
       osquery_worker_logging_glog_logger
     )
-  endif()
 
-  generateIncludeNamespace(osquery_worker_ipc_platformtablecontaineripc "osquery/worker/ipc" FILE_ONLY ${public_header_files})
+    generateIncludeNamespace(osquery_worker_ipc_platformtablecontaineripc "osquery/worker/ipc" FILE_ONLY ${public_header_files})
+  endif()
 endfunction()
 
 function(generateOsqueryWorkerIpcTableChannel)
