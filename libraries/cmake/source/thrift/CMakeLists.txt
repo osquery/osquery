@@ -88,7 +88,7 @@ function(thriftMain)
     "${forced_include_file_flag}${CMAKE_CURRENT_SOURCE_DIR}/patches/random_shuffle.h"
   )
 
-  target_compile_definitions(thirdparty_thrift PRIVATE
+  target_compile_definitions(thirdparty_thrift PUBLIC
     THRIFT_STATIC_DEFINE
   )
 
