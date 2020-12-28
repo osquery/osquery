@@ -45,6 +45,16 @@ function(generateIncludeNamespace target_name namespace_path mode)
   endif()
 
   foreach(relative_source_file_path ${ARGN})
+    set(source_base_path "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(absolute_source_file_path "${source_base_path}/${relative_source_file_path}")
+
+    if(NOT EXISTS "${absolute_source_file_path}")
+      message(FATAL_ERROR
+        "Error while creating include namespace of target ${target_name}: the header at ${absolute_source_file_path} does not exists, "
+        "please correct the path or remove it from the list."
+      )
+    endif()
+
     get_filename_component(source_name "${relative_source_file_path}" NAME)
 
     set(target_namespace_root_directory "${CMAKE_BINARY_DIR}/ns_${target_name}")
@@ -56,8 +66,6 @@ function(generateIncludeNamespace target_name namespace_path mode)
     endif()
 
     get_filename_component(parent_folder_path "${output_source_file_path}" DIRECTORY)
-    set(source_base_path "${CMAKE_CURRENT_SOURCE_DIR}")
-    set(absolute_source_file_path "${source_base_path}/${relative_source_file_path}")
 
     add_custom_command(
       OUTPUT "${output_source_file_path}"
