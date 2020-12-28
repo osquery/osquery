@@ -70,7 +70,7 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
         continue;
       }
 
-      std::string old_query = "";
+      std::string old_query;
       getDatabaseValue(kQueries, kConfigViews + name, old_query);
       erase_views.erase(name);
 
@@ -81,9 +81,13 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
         continue;
       }
 
+#ifdef OSQUERY_IS_FUZZING
+      auto s = Status::success();
+#else
       // View has been updated
       osquery::query("DROP VIEW " + name, r);
       auto s = osquery::query("CREATE VIEW " + name + " AS " + query, r);
+#endif
       if (s.ok()) {
         setDatabaseValue(kQueries, kConfigViews + name, query);
       } else {
@@ -95,7 +99,9 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
   // Any views left are views that don't exist in the new configuration file
   // so we tear them down and remove them from the database.
   for (const auto& old_view : erase_views) {
+#ifndef OSQUERY_IS_FUZZING
     osquery::query("DROP VIEW " + old_view, r);
+#endif
     deleteDatabaseValue(kQueries, kConfigViews + old_view);
   }
 
@@ -104,4 +110,4 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
 }
 
 REGISTER_INTERNAL(ViewsConfigParserPlugin, "config_parser", "views");
-}
+} // namespace osquery
