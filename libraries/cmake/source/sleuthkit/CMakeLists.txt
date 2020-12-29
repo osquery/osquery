@@ -12,8 +12,6 @@ function(sleuthkitMain)
 
   add_library(thirdparty_sleuthkit_cpp
     "${library_root}/tsk/auto/auto.cpp"
-    "${library_root}/tsk/auto/auto_db.cpp"
-    "${library_root}/tsk/auto/case_db.cpp"
     "${library_root}/tsk/auto/guid.cpp"
     "${library_root}/tsk/auto/is_image_supported.cpp"
     "${library_root}/tsk/auto/tsk_db.cpp"

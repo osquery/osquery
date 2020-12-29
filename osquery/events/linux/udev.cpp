@@ -9,7 +9,6 @@
 
 #include <poll.h>
 
-#include <osquery/events/events.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>

@@ -18,7 +18,7 @@
 
 namespace osquery {
 
-class GetPropertyMethodHandler {
+class GetStringPropertyMethodHandler {
  public:
   constexpr static auto kDestination{"org.freedesktop.systemd1"};
   constexpr static auto kInterface{"org.freedesktop.DBus.Properties"};
@@ -28,12 +28,12 @@ class GetPropertyMethodHandler {
   Status parseReply(Output& output, const UniqueDbusMessage& reply) const;
 
  protected:
-  GetPropertyMethodHandler() = default;
-  virtual ~GetPropertyMethodHandler() = default;
+  GetStringPropertyMethodHandler() = default;
+  virtual ~GetStringPropertyMethodHandler() = default;
 };
 
-using GetPropertyMethod = DbusMethod<GetPropertyMethodHandler,
-                                     const std::string&,
-                                     const std::string&>;
+using GetStringPropertyMethod = DbusMethod<GetStringPropertyMethodHandler,
+                                           const std::string&,
+                                           const std::string&>;
 
 } // namespace osquery

@@ -36,14 +36,24 @@ TEST_F(browserPlugins, test_sanity) {
       {"disabled", IntType},
   };
 
-  auto const data = execute_query("select * from browser_plugins");
-  ASSERT_FALSE(data.empty());
-  validate_rows(data, row_map);
+  auto os_data = execute_query("select * from os_version");
+  ASSERT_EQ(os_data.size(), 1U);
 
+  auto const data = execute_query("select * from browser_plugins");
   auto const datauser =
       execute_query("select * from browser_plugins where uid = 0");
-  ASSERT_FALSE(datauser.empty());
-  validate_rows(datauser, row_map);
+
+  if (os_data.front().at("major") == "10" &&
+      std::stoi(os_data.front().at("minor")) < 15) {
+    ASSERT_FALSE(data.empty());
+    validate_rows(data, row_map);
+
+    ASSERT_FALSE(datauser.empty());
+    validate_rows(datauser, row_map);
+  } else {
+    ASSERT_TRUE(data.empty());
+    ASSERT_TRUE(datauser.empty());
+  }
 }
 
 } // namespace table_tests

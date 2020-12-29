@@ -18,7 +18,6 @@
 
 #include <osquery/core/flags.h>
 #include <osquery/events/darwin/openbsm.h>
-#include <osquery/events/events.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/utils/system/uptime.h>
 

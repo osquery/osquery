@@ -11,7 +11,7 @@
 ** This file is generated. Do not modify it manually!
 */
 
-#include <osquery/events/events.h>
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/core/tables.h>

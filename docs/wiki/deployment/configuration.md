@@ -247,7 +247,7 @@ When osquery's config parser is provided a string instead of inline dictionary t
 
 **Where can I get more packs?**
 
-We release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc.). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts. You can find the query packs that are released by the osquery team documented at [https://osquery.io/docs/packs](https://osquery.io/docs/packs) and the content in [**/packs**](https://github.com/osquery/osquery/blob/master/packs) within the osquery repository.
+We release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc.). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts. You can find the query packs that are released by the osquery team in [**/packs**](https://github.com/osquery/osquery/blob/master/packs) within the osquery repository.
 
 **How do I modify the default options in the provided packs?**
 

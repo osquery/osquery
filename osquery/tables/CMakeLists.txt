@@ -41,8 +41,13 @@ function(generateOsqueryTablesTableimplementations)
     )
   endif()
 
+  if(OSQUERY_BUILD_AWS)
+    target_link_libraries(osquery_tables_tableimplementations INTERFACE
+      osquery_tables_cloud_aws
+    )
+  endif()
+
   target_link_libraries(osquery_tables_tableimplementations INTERFACE
-    osquery_tables_cloud_aws
     osquery_tables_cloud_azure
   )
 

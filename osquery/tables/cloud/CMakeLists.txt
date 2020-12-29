@@ -6,7 +6,10 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesCloudMain)
-  generateOsqueryTablesCloudAws()
+  if(OSQUERY_BUILD_AWS)
+    generateOsqueryTablesCloudAws()
+  endif()
+
   generateOsqueryTablesCloudAzure()
 endfunction()
 

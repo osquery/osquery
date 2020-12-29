@@ -2,8 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>RememberedNetworks</key>
-	<array>
+	<key>Counter</key>
+	<integer>2</integer>
+	<key>KnownNetworks</key>
+	<dict>
+		<key>wifi.ssid.&lt;47f70e38 5cd1d54b 69&gt;</key>
 		<dict>
 			<key>AutoLogin</key>
 			<false/>
@@ -50,6 +53,7 @@
 			<key>TemporarilyDisabled</key>
 			<false/>
 		</dict>
+		<key>wifi.ssid.&lt;06fa78ca 7a47b05e b61d74cc 2e9e6622&gt;</key>
 		<dict>
 			<key>AutoLogin</key>
 			<false/>
@@ -93,8 +97,8 @@
 			<key>TemporarilyDisabled</key>
 			<false/>
 		</dict>
-	</array>
+	</dict>
 	<key>Version</key>
-	<integer>14</integer>
+	<integer>2200</integer>
 </dict>
 </plist>

@@ -8,7 +8,7 @@
 function(osqueryMainMain)
   generateOsqueryMain()
 
-  if((OSQUERY_ENABLE_FUZZER_SANITIZERS OR OSQUERY_BUILD_TESTS) AND DEFINED PLATFORM_LINUX)
+  if(OSQUERY_BUILD_FUZZERS)
     add_subdirectory("harnesses")
   endif()
 endfunction()
@@ -65,35 +65,24 @@ function(generateOsqueryMain)
     plugins_logger_stdout
     plugins_logger_syslog
     plugins_logger_tlslogger
+    plugins_logger_kafkaproducer
     plugins_numericmonitoring_filesystem
     plugins_remote_enroll_tlsenroll
     specs_tables
     thirdparty_boost
   )
 
-  if(DEFINED PLATFORM_LINUX)
+  if(OSQUERY_BUILD_AWS)
     target_link_libraries(osquery_main PUBLIC
       plugins_logger_awsfirehose
       plugins_logger_awskinesis
       plugins_logger_awslogforwarder
-      plugins_logger_kafkaproducer
     )
+  endif()
 
-  elseif(DEFINED PLATFORM_MACOS)
+  if(DEFINED PLATFORM_WINDOWS)
     target_link_libraries(osquery_main PUBLIC
-      plugins_logger_awsfirehose
-      plugins_logger_awskinesis
-      plugins_logger_awslogforwarder
-      plugins_logger_kafkaproducer
-    )
-
-  elseif(DEFINED PLATFORM_WINDOWS)
-    target_link_libraries(osquery_main PUBLIC
-      plugins_logger_awsfirehose
-      plugins_logger_awskinesis
-      plugins_logger_awslogforwarder
       plugins_logger_windowseventlog
-      plugins_logger_kafkaproducer
     )
   endif()
 

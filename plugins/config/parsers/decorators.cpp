@@ -241,6 +241,10 @@ inline void addDecoration(const std::string& source,
 
 inline void runDecorators(const std::string& source,
                           const std::vector<std::string>& queries) {
+#ifdef OSQUERY_IS_FUZZING
+  return;
+#else
+
   for (const auto& query : queries) {
     SQL results(query);
     if (results.rows().size() > 0) {
@@ -257,6 +261,7 @@ inline void runDecorators(const std::string& source,
       LOG(WARNING) << "Multiple rows returned for decorator query: " << query;
     }
   }
+#endif
 }
 
 void clearDecorations(const std::string& source) {

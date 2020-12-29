@@ -37,9 +37,16 @@ void genODEntries(ODRecordType record_type,
     return;
   }
 
+  NSString* attribute = nullptr;
+  if ([record_type isEqualToString:(kODRecordTypeGroups)]) {
+    attribute = kODAttributeTypePrimaryGroupID;
+  } else {
+    attribute = kODAttributeTypeUniqueID;
+  }
+
   ODQuery* query = [ODQuery queryWithNode:root
                            forRecordTypes:record_type
-                                attribute:kODAttributeTypeUniqueID
+                                attribute:attribute
                                 matchType:kODMatchEqualTo
                               queryValues:record
                          returnAttributes:kODAttributeTypeAllTypes

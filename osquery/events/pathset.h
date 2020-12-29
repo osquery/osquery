@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include <mutex>
 #include <set>
 #include <string>
 #include <vector>
@@ -19,6 +18,7 @@
 
 #include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/utils/mutex.h>
 
 namespace osquery {
 

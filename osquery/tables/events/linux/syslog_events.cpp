@@ -41,7 +41,7 @@ class SyslogEventSubscriber : public EventSubscriber<SyslogEventPublisher> {
     return FLAGS_syslog_events_expiry;
   }
 
-  size_t getEventsMax() override {
+  size_t getEventBatchesMax() override {
     return FLAGS_syslog_events_max;
   }
 

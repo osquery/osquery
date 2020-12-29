@@ -61,6 +61,15 @@ if(OSQUERY_ENABLE_CLANG_TIDY)
 endif()
 
 function(main)
+
+  findClangFormat()
+  findPythonExecutablePath()
+  generateSpecialTargets()
+
+  if(OSQUERY_ENABLE_FORMAT_ONLY)
+    return()
+  endif()
+
   message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
   message(STATUS "Shared libraries: ${BUILD_SHARED_LIBS}")
 
@@ -75,9 +84,6 @@ function(main)
       message(STATUS "Warning: the selected C or C++ compiler is not clang/clang++. Compilation may fail")
     endif()
   endif()
-
-  findPythonExecutablePath()
-  generateSpecialTargets()
 
   add_subdirectory("libraries")
   importLibraries()
@@ -111,7 +117,6 @@ function(importLibraries)
     "Linux:libaudit"
     "Linux:libcryptsetup"
     "Linux:libdevmapper"
-    "Linux:libdpkg"
     "Linux:libelfin"
     "Linux:libgcrypt"
     "Linux:libgpg-error"
@@ -137,7 +142,6 @@ function(importLibraries)
     "Linux,Darwin,Windows:zlib"
     "Linux,Darwin,Windows:zstd"
     "Linux,Darwin,Windows:openssl"
-    "Linux,Darwin,Windows:aws-sdk-cpp"
     "Linux,Darwin,Windows:icu"
     "Linux:expat"
     "Linux:dbus"
@@ -147,6 +151,18 @@ function(importLibraries)
   if(OSQUERY_BUILD_BPF)
     list(APPEND library_descriptor_list
       "Linux:ebpfpub"
+    )
+  endif()
+
+  if(OSQUERY_BUILD_AWS)
+    list(APPEND library_descriptor_list
+      "Linux,Darwin,Windows:aws-sdk-cpp"
+    )
+  endif()
+
+  if(OSQUERY_BUILD_DPKG)
+    list(APPEND library_descriptor_list
+      "Linux:libdpkg"
     )
   endif()
 

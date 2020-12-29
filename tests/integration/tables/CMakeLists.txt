@@ -140,13 +140,17 @@ function(generateTestsIntegrationTablesTestsTest)
     list(APPEND source_files ${platform_source_files})
   endif()
 
+  if(OSQUERY_BUILD_AWS AND (DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS))
+    list(APPEND source_files
+      ec2_instance_metadata.cpp
+      ec2_instance_tags.cpp
+    )
+  endif()
+
   if(DEFINED PLATFORM_LINUX)
     set(platform_source_files
       arp_cache.cpp
       atom_packages.cpp
-      deb_packages.cpp
-      ec2_instance_metadata.cpp
-      ec2_instance_tags.cpp
       elf_dynamic.cpp
       elf_info.cpp
       elf_sections.cpp
@@ -178,9 +182,16 @@ function(generateTestsIntegrationTablesTestsTest)
       socket_events.cpp
       startup_items.cpp
       syslog_events.cpp
+      systemd_units.cpp
       yara_events.cpp
       yara.cpp
     )
+
+    if(OSQUERY_BUILD_DPKG)
+      list(APPEND platform_source_files
+        deb_packages.cpp
+      )
+    endif()
 
     list(APPEND source_files ${platform_source_files})
   elseif(DEFINED PLATFORM_MACOS)
@@ -222,6 +233,7 @@ function(generateTestsIntegrationTablesTestsTest)
       keychain_items.cpp
       launchd.cpp
       launchd_overrides.cpp
+      location_services.cpp
       managed_policies.cpp
       mdfind.cpp
       nfs_shares.cpp

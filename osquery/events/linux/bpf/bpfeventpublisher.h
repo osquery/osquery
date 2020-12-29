@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include <osquery/events/events.h>
+#include <osquery/events/eventpublisher.h>
 #include <osquery/events/linux/bpf/isystemstatetracker.h>
 
 #include <ebpfpub/ifunctiontracer.h>

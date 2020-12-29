@@ -53,12 +53,11 @@ function(generateOsqueryTablesSystemSystemtable)
     list(APPEND source_files
       freenux/cpu_time.cpp
       linux/dbus/methods/listunitsmethodhandler.cpp
-      linux/dbus/methods/getproperty.cpp
+      linux/dbus/methods/getstringproperty.cpp
       linux/dbus/uniquedbusconnection.cpp
       linux/dbus/uniquedbusmessage.cpp
       linux/acpi_tables.cpp
       linux/block_devices.cpp
-      linux/deb_packages.cpp
       linux/disk_encryption.cpp
       linux/elf_info.cpp
       linux/extended_attributes.cpp
@@ -90,7 +89,14 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/users.cpp
       linux/selinux_settings.cpp
       linux/apparmor_profiles.cpp
+      linux/systemd_units.cpp
     )
+
+    if(OSQUERY_BUILD_DPKG)
+      list(APPEND source_files
+        linux/deb_packages.cpp
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
@@ -123,6 +129,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/keychain_items.cpp
       darwin/keychain_utils.cpp
       darwin/launchd.cpp
+      darwin/location_services.mm
       darwin/managed_policies.cpp
       darwin/mdfind.mm
       darwin/mdls.mm
@@ -264,7 +271,6 @@ function(generateOsqueryTablesSystemSystemtable)
   if(DEFINED PLATFORM_LINUX)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_libdevmapper
-      thirdparty_libdpkg
       thirdparty_libelfin
       thirdparty_libcryptsetup
       thirdparty_librpm
@@ -272,6 +278,12 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_dbus
       thirdparty_libcap
     )
+
+    if(OSQUERY_BUILD_DPKG)
+      target_link_libraries(osquery_tables_system_systemtable PUBLIC
+        thirdparty_libdpkg
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
@@ -309,7 +321,7 @@ function(generateOsqueryTablesSystemSystemtable)
     list(APPEND platform_public_header_files
       linux/dbus/methods/dbusmethod.h
       linux/dbus/methods/listunitsmethodhandler.h
-      linux/dbus/methods/getproperty.h
+      linux/dbus/methods/getstringproperty.h
       linux/dbus/uniquedbusconnection.h
       linux/dbus/uniquedbusmessage.h
       linux/dbus/uniqueresource.h
@@ -337,7 +349,6 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.h
       windows/certificates.h
       windows/users.h
-      windows/userassist.h
       windows/windows_eventlog.h
     )
   endif()

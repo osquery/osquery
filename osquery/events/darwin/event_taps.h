@@ -10,8 +10,7 @@
 #pragma once
 
 #include <ApplicationServices/ApplicationServices.h>
-
-#include <osquery/events/events.h>
+#include <osquery/events/eventsubscriber.h>
 
 namespace osquery {
 

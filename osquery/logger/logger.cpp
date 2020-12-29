@@ -22,7 +22,7 @@
 #include <osquery/core/plugins/logger.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
-#include <osquery/events/events.h>
+#include <osquery/events/eventfactory.h>
 #include <osquery/extensions/extensions.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/data_logger.h>
@@ -209,6 +209,10 @@ static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
 }
 
 void setVerboseLevel() {
+#ifdef OSQUERY_IS_FUZZING
+  return;
+#endif
+
   if (Flag::getValue("verbose") == "true") {
     // Turn verbosity up to 1.
     // Do log DEBUG, INFO, WARNING, ERROR to their log files.

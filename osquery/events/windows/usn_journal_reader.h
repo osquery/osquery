@@ -19,6 +19,8 @@
 
 #include <boost/functional/hash.hpp>
 
+#include <osquery/dispatcher/dispatcher.h>
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -26,7 +28,6 @@
 #include <Windows.h>
 #include <winioctl.h>
 
-#include <osquery/events/events.h>
 
 namespace osquery {
 

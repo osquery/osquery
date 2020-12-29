@@ -167,12 +167,28 @@ function(generateTables category)
     add_dependencies("${header_library_name}" "${header_generator_target_name}")
     target_include_directories("${header_library_name}" INTERFACE "${output_folder}")
 
-    list(APPEND generated_target_list "${table_target_name}")
+    list(APPEND generated_sources_list
+      "${generated_source_code}"
+    )
+  endforeach()
+
+  # Workaround for the fact that if we disable a table after having made a build with such table,
+  # the specific table .cpp is not removed from the build folder and will be picked up
+  # by the amalgamate.py, causing a linker error.
+  # CMake + Ninja doesn't have this issue, since Ninja contains a command to automatically delete
+  # all artifacts that are not generated in the current configuration, and such command is automatically
+  # called by CMake during configure time.
+  file(GLOB generated_table_sources_on_disk "${output_folder}/*.cpp")
+
+  foreach(generated_source ${generated_table_sources_on_disk})
+    if(NOT "${generated_source}" IN_LIST generated_sources_list)
+      file(REMOVE "${generated_source}")
+    endif()
   endforeach()
 
   # Return the base folder
   set(generateTables_output ${output_folder} PARENT_SCOPE)
-  set(generateTables_targetList ${generated_target_list} PARENT_SCOPE)
+  set(generateTables_outputList ${generated_sources_list} PARENT_SCOPE)
 endfunction()
 
 function(generateTableCategoryAmalgamation category_name)
@@ -187,6 +203,25 @@ function(generateTableCategoryAmalgamation category_name)
   # Generate the source files
   generateTables("${category_name}" ${category_spec_files})
 
+  # Workaround for the fact that CMake and the underlying build systems
+  # do not consider a change in the list of dependencies as a reason to rerun the custom command,
+  # if the inputs are not also directly used in the COMMAND, which then causes a command line change.
+  set(amalgamation_dep_list_file "${CMAKE_CURRENT_BINARY_DIR}/amalgamation_${category_name}_dep_list.txt")
+  if(EXISTS "${amalgamation_dep_list_file}")
+    set(tmp_amalgamation_dep_list_file "${CMAKE_CURRENT_BINARY_DIR}/amalgamation_${category_name}_dep_list.txt.tmp")
+    file(WRITE "${tmp_amalgamation_dep_list_file}" "${generateTables_outputList}")
+    file(SHA256 "${tmp_amalgamation_dep_list_file}" tmp_amalgamation_dep_list_file_sha)
+    file(SHA256 "${amalgamation_dep_list_file}" amalgamation_dep_list_file_sha)
+
+    if(NOT "${amalgamation_dep_list_file_sha}" STREQUAL "${tmp_amalgamation_dep_list_file_sha}")
+      file(RENAME "${tmp_amalgamation_dep_list_file}" "${amalgamation_dep_list_file}")
+    else()
+      file(REMOVE "${tmp_amalgamation_dep_list_file}")
+    endif()
+  else()
+    file(WRITE "${amalgamation_dep_list_file}" "${generateTables_outputList}")
+  endif()
+
   list(TRANSFORM category_spec_files PREPEND "${CMAKE_SOURCE_DIR}/specs/")
 
   # Amalgamate all the source files into a single one
@@ -198,11 +233,16 @@ function(generateTableCategoryAmalgamation category_name)
     set(amalgamation_type --category "${category_name}")
   endif()
 
+  list(APPEND amalgamate_deps
+    ${amalgamation_dep_list_file}
+    ${generateTables_outputList}
+  )
+
   add_custom_command(
     OUTPUT "${amalgamation_file}"
     COMMAND "${CMAKE_COMMAND}" -E env "PYTHONPATH=${OSQUERY_PYTHON_PATH}" "${OSQUERY_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/codegen/amalgamate.py" --templates "${CMAKE_SOURCE_DIR}/tools/codegen/templates" ${amalgamation_type} --sources "${generateTables_output}" --output "${amalgamation_file}"
     COMMENT "Generating amalgamation file for the ${category_name} tables..."
-    DEPENDS "${category_spec_files}" ${generateTables_targetList}
+    DEPENDS ${amalgamate_deps}
   )
 
   # Build the library

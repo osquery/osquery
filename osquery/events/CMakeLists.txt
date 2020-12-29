@@ -177,7 +177,16 @@ function(generateOsqueryEvents)
 endfunction()
 
 function(generateOsqueryEventsEventsregistry)
-  add_osquery_library(osquery_events_eventsregistry EXCLUDE_FROM_ALL events.cpp)
+  add_osquery_library(osquery_events_eventsregistry EXCLUDE_FROM_ALL
+    subscription.cpp
+    eventer.cpp
+    eventpublisherplugin.cpp
+    events.cpp
+    eventfactory.cpp
+    eventsubscriberplugin.cpp
+  )
+
+  enableLinkWholeArchive(osquery_events_eventsregistry)
 
   target_link_libraries(osquery_events_eventsregistry PUBLIC
     osquery_cxx_settings
@@ -188,7 +197,16 @@ function(generateOsqueryEventsEventsregistry)
   )
 
   set(public_header_files
+    eventer.h
+    eventfactory.h
+    eventpublisher.h
+    eventpublisherplugin.h
     events.h
+    eventsubscriber.h
+    eventsubscriberplugin.h
+    pathset.h
+    subscription.h
+    types.h
   )
 
   generateIncludeNamespace(osquery_events_eventsregistry "osquery/events" "FILE_ONLY" ${public_header_files})

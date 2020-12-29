@@ -13,9 +13,12 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
+#include <osquery/core/system.h>
 #include <osquery/core/tables.h>
 #include <osquery/database/database.h>
+#include <osquery/events/eventpublisher.h>
 #include <osquery/events/events.h>
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/utils/info/tool_type.h>
 

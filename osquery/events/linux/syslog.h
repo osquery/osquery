@@ -9,7 +9,8 @@
 
 #pragma once
 
-#include <osquery/events/events.h>
+#include <osquery/events/eventpublisher.h>
+#include <osquery/events/eventsubscriber.h>
 #include <osquery/utils/mutex.h>
 
 #include <boost/noncopyable.hpp>

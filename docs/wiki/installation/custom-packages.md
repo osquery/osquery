@@ -55,7 +55,7 @@ $ ./tools/deployment/make_osx_package.sh -c ~/Desktop/osquery.conf
 
 The distributable package can be found at `./build/darwin/osquery-VERSION.pkg`.
 
-You can now use your existing package distribution system ([JAMF](https://www.jamf.com), [Chef](https://www.chef.io/products/chef-infra/), etc.) to push this package to your infrastructure.
+You can now use your existing package distribution system ([JAMF](https://www.jamf.com), [Chef](https://www.chef.io/products/chef-infra), etc.) to push this package to your infrastructure.
 
 ### Custom LaunchDaemon
 

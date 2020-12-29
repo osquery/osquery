@@ -11,7 +11,6 @@
 ** This file is generated. Do not modify it manually!
 */
 
-#include <osquery/events/events.h>
 #include <osquery/logger/logger.h>
 #include <osquery/core/tables.h>
 #include <osquery/registry/registry_factory.h>

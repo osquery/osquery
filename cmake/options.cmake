@@ -71,16 +71,28 @@ option(OSQUERY_NO_DEBUG_SYMBOLS "Whether to build without debug symbols or not, 
 option(OSQUERY_BUILD_TESTS "Whether to enable and build tests or not")
 option(OSQUERY_BUILD_ROOT_TESTS "Whether to enable and build tests that require root access")
 
-option(OSQUERY_ENABLE_FUZZER_SANITIZERS "Whether to build fuzzing harnesses")
-option(OSQUERY_ENABLE_ADDRESS_SANITIZER "Whether to enable Address Sanitizer")
+if(DEFINED PLATFORM_LINUX)
+  option(OSQUERY_BUILD_FUZZERS "Whether to build fuzzing harnesses")
+  option(OSQUERY_ENABLE_ADDRESS_SANITIZER "Whether to enable Address Sanitizer")
+  # This is required for Boost coroutines/context to be built in a way that are compatible to Valgrind
+  option(OSQUERY_ENABLE_VALGRIND_SUPPORT "Whether to enable support for osquery to be run under Valgrind")
+
+  if(OSQUERY_ENABLE_VALGRIND_SUPPORT AND OSQUERY_ENABLE_ADDRESS_SANITIZER)
+    message(FATAL_ERROR "Cannot mix Vagrind and ASAN sanitizers, please choose only one.")
+  endif()
+endif()
 
 option(OSQUERY_ENABLE_CLANG_TIDY "Enables clang-tidy support")
 set(OSQUERY_CLANG_TIDY_CHECKS "-checks=cert-*,cppcoreguidelines-*,performance-*,portability-*,readability-*,modernize-*,bugprone-*" CACHE STRING "List of checks performed by clang-tidy")
 
-option(OSQUERY_BUILD_BPF "Whether to enable and build BPF support" true)
+option(OSQUERY_BUILD_BPF "Whether to enable and build BPF support" ON)
+option(OSQUERY_BUILD_AWS "Whether to build the aws tables and library, to decrease memory usage and increase speed during build." ON)
+option(OSQUERY_BUILD_DPKG "Whether to build the dpkg tables" ON)
 
 # This is a temporary option to ignore the version check if there's no intention to generate RPM packages
 option(OSQUERY_IGNORE_CMAKE_MAX_VERSION_CHECK "Ignore the maximum cmake version check introduced due to CPack generating incorrect RPM packages")
+
+option(OSQUERY_ENABLE_FORMAT_ONLY "Configure CMake to format only, not build")
 
 # Unfortunately, due glog always enabling BUILD_TESTING, we have to force it off, so that tests won't be built
 overwrite_cache_variable("BUILD_TESTING" "BOOL" "OFF")

@@ -282,6 +282,16 @@ int sqliteAuthorizer(void* userData,
   if (kAllowedSQLiteActionCodes.count(code) > 0) {
     return SQLITE_OK;
   }
+
+  // For PRAGMA check the name of the PRAGMA being called.
+  if (code == SQLITE_PRAGMA && arg3 != nullptr) {
+    std::string pragma = arg3;
+    std::transform(pragma.begin(), pragma.end(), pragma.begin(), ::tolower);
+    if (kAllowedSQLitePragmas.count(pragma) > 0) {
+      return SQLITE_OK;
+    }
+  }
+
   LOG(ERROR) << "Authorizer denied action " << code << " "
              << (arg3 ? arg3 : "null") << " " << (arg4 ? arg4 : "null") << " "
              << (arg5 ? arg5 : "null") << " " << (arg6 ? arg6 : "null");

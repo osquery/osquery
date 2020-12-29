@@ -16,11 +16,10 @@
 #include <osquery/config/config.h>
 #include <osquery/core/core.h>
 #include <osquery/database/database.h>
-#include <osquery/events/events.h>
+#include <osquery/events/eventsubscriberplugin.h>
 #include <osquery/filesystem/filesystem.h>
 
 namespace osquery {
-
 /// The following codes are specifically for checking whether the child worker
 /// or extension process ran successfully. These values should be the values
 /// captured as exit codes if all the child process checks complete without

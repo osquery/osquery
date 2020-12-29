@@ -25,7 +25,6 @@ namespace pt = boost::property_tree;
 namespace rj = rapidjson;
 
 namespace osquery {
-
 /// Generate a specific-use registry for database access abstraction.
 CREATE_REGISTRY(DatabasePlugin, "database");
 
@@ -35,6 +34,7 @@ CLI_FLAG(string,
          database_path,
          OSQUERY_DB_HOME "osquery.db",
          "If using a disk-based backing store, specify a path");
+
 FLAG_ALIAS(std::string, db_path, database_path);
 
 FLAG(bool, disable_database, false, "Disable the persistent RocksDB storage");
@@ -674,5 +674,70 @@ Status upgradeDatabase(int to_version) {
   }
 
   return Status::success();
+}
+
+class OsqueryDatabase final : public IDatabaseInterface {
+ public:
+  OsqueryDatabase() = default;
+  virtual ~OsqueryDatabase() = default;
+
+  virtual Status getDatabaseValue(const std::string& domain,
+                                  const std::string& key,
+                                  std::string& value) const override {
+    return osquery::getDatabaseValue(domain, key, value);
+  }
+
+  virtual Status getDatabaseValue(const std::string& domain,
+                                  const std::string& key,
+                                  int& value) const override {
+    return osquery::getDatabaseValue(domain, key, value);
+  }
+
+  virtual Status setDatabaseValue(const std::string& domain,
+                                  const std::string& key,
+                                  const std::string& value) const override {
+    return osquery::setDatabaseValue(domain, key, value);
+  }
+
+  virtual Status setDatabaseValue(const std::string& domain,
+                                  const std::string& key,
+                                  int value) const override {
+    return osquery::setDatabaseValue(domain, key, value);
+  }
+
+  virtual Status setDatabaseBatch(
+      const std::string& domain,
+      const DatabaseStringValueList& data) const override {
+    return osquery::setDatabaseBatch(domain, data);
+  }
+
+  virtual Status deleteDatabaseValue(const std::string& domain,
+                                     const std::string& key) const override {
+    return osquery::deleteDatabaseValue(domain, key);
+  }
+
+  virtual Status deleteDatabaseRange(const std::string& domain,
+                                     const std::string& low,
+                                     const std::string& high) const override {
+    return osquery::deleteDatabaseRange(domain, low, high);
+  }
+
+  virtual Status scanDatabaseKeys(const std::string& domain,
+                                  std::vector<std::string>& keys,
+                                  size_t max) const override {
+    return osquery::scanDatabaseKeys(domain, keys, max);
+  }
+
+  virtual Status scanDatabaseKeys(const std::string& domain,
+                                  std::vector<std::string>& keys,
+                                  const std::string& prefix,
+                                  size_t max) const override {
+    return osquery::scanDatabaseKeys(domain, keys, prefix, max);
+  }
+};
+
+IDatabaseInterface& getOsqueryDatabase() {
+  static OsqueryDatabase osquery_database;
+  return osquery_database;
 }
 } // namespace osquery

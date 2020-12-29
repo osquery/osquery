@@ -8,10 +8,22 @@
 	<dict>
 		<key>wifi.ssid.&lt;47f70e38 5cd1d54b 69&gt;</key>
 		<dict>
-			<key>AutoLogin</key>
-			<false/>
+			<key>AddedBy</key>
+			<integer>2</integer>
+			<key>BSSIDList</key>
+			<array>
+				<dict>
+					<key>LEAKY_AP_BSSID</key>
+					<string>14:ed:bb:34:cd:32</string>
+					<key>LEAKY_AP_LEARNED_DATA</key>
+					<data>
+					</data>
+				</dict>
+			</array>
 			<key>Captive</key>
 			<true/>
+			<key>CaptiveBypass</key>
+			<false/>
 			<key>ChannelHistory</key>
 			<array>
 				<dict>
@@ -21,18 +33,19 @@
 					<date>2015-07-20T23:28:03Z</date>
 				</dict>
 			</array>
-			<key>Closed</key>
-			<false/>
 			<key>CollocatedGroup</key>
-			<array>
-				<string>foo</string>
-				<string>bar</string>
-			</array>
+			<array/>
 			<key>Disabled</key>
 			<false/>
-			<key>LastConnected</key>
+			<key>HiddenNetwork</key>
+			<false/>
+			<key>LastAutoJoinAt</key>
 			<date>2015-07-20T23:28:03Z</date>
+			<key>NetworkWasCaptive</key>
+			<false/>
 			<key>Passpoint</key>
+			<false/>
+			<key>PersonalHotspot</key>
 			<false/>
 			<key>PossiblyHiddenNetwork</key>
 			<false/>
@@ -48,16 +61,32 @@
 			<string>WhyFi</string>
 			<key>SecurityType</key>
 			<string>Open</string>
+			<key>ShareMode</key>
+			<integer>3</integer>
 			<key>SystemMode</key>
 			<true/>
 			<key>TemporarilyDisabled</key>
 			<false/>
+			<key>UserRole</key>
+			<integer>1</integer>
 		</dict>
 		<key>wifi.ssid.&lt;06fa78ca 7a47b05e b61d74cc 2e9e6622&gt;</key>
 		<dict>
-			<key>AutoLogin</key>
-			<false/>
+			<key>AddedBy</key>
+			<integer>2</integer>
+			<key>BSSIDList</key>
+			<array>
+				<dict>
+					<key>LEAKY_AP_BSSID</key>
+					<string>14:ed:bb:34:cd:32</string>
+					<key>LEAKY_AP_LEARNED_DATA</key>
+					<data>
+					</data>
+				</dict>
+			</array>
 			<key>Captive</key>
+			<false/>
+			<key>CaptiveBypass</key>
 			<false/>
 			<key>ChannelHistory</key>
 			<array>
@@ -68,15 +97,19 @@
 					<date>2014-12-29T08:56:02Z</date>
 				</dict>
 			</array>
-			<key>Closed</key>
-			<false/>
 			<key>CollocatedGroup</key>
 			<array/>
 			<key>Disabled</key>
 			<false/>
-			<key>LastConnected</key>
+			<key>HiddenNetwork</key>
+			<false/>
+			<key>LastAutoJoinAt</key>
 			<date>2014-12-29T08:56:01Z</date>
+			<key>NetworkWasCaptive</key>
+			<false/>
 			<key>Passpoint</key>
+			<false/>
+			<key>PersonalHotspot</key>
 			<false/>
 			<key>PossiblyHiddenNetwork</key>
 			<false/>
@@ -92,13 +125,17 @@
 			<string>High-Fi</string>
 			<key>SecurityType</key>
 			<string>WPA2 Personal</string>
+			<key>ShareMode</key>
+			<integer>3</integer>
 			<key>SystemMode</key>
 			<true/>
 			<key>TemporarilyDisabled</key>
 			<false/>
+			<key>UserRole</key>
+			<integer>1</integer>
 		</dict>
 	</dict>
 	<key>Version</key>
-	<integer>2200</integer>
+	<integer>2600</integer>
 </dict>
 </plist>

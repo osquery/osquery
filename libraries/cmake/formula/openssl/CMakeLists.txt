@@ -1,7 +1,7 @@
 project(thirdparty_openssl)
 
-set(OPENSSL_VERSION "1.1.1g")
-set(OPENSSL_ARCHIVE_SHA256 "ddb04774f1e32f0c49751e21b67216ac87852ceb056b75209af2443400636d46")
+set(OPENSSL_VERSION "1.1.1i")
+set(OPENSSL_ARCHIVE_SHA256 "e8be6a35fe41d10603c3cc635e93289ed00bf34b79671a3a4de64fcee00d5242")
 
 include(ExternalProject)
 
@@ -19,6 +19,12 @@ function(opensslMain)
 
   add_library(thirdparty_openssl_ssl STATIC IMPORTED GLOBAL)
   add_library(thirdparty_openssl_crypto STATIC IMPORTED GLOBAL)
+
+  if("${CMAKE_GENERATOR}" STREQUAL "Unix Makefiles")
+    set(make_command "$(MAKE)")
+  else()
+    set(make_command "make")
+  endif()
 
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set(configure_command
@@ -38,12 +44,12 @@ function(opensslMain)
 
     set(build_command
       "${CMAKE_COMMAND}" -E make_directory "${install_prefix}/etc/openssl" &&
-      make depend &&
-      make
+      ${make_command} depend &&
+      ${make_command}
     )
 
     set(install_command
-      make install_sw install_ssldirs
+      ${make_command} install_sw install_ssldirs
     )
 
     set(openssl_libs
@@ -88,12 +94,12 @@ function(opensslMain)
     set(build_command
       /usr/bin/sed -i ".bak" "s+^CFLAGS=+CFLAGS=-isysroot ${CMAKE_OSX_SYSROOT} +g" "Makefile" &&
         "${CMAKE_COMMAND}" -E make_directory "${install_prefix}/etc/openssl" &&
-        make depend &&
-        make
+        ${make_command} depend &&
+        ${make_command}
     )
 
     set(install_command
-      make install_sw install_ssldirs
+      ${make_command} install_sw install_ssldirs
     )
 
     set(openssl_libs

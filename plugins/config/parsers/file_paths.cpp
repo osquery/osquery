@@ -46,7 +46,7 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
 
  private:
   /// The access map binds source to category.
-  std::map<std::string, std::vector<std::string> > access_map_;
+  std::map<std::string, std::vector<std::string>> access_map_;
 };
 
 Status FilePathsConfigParserPlugin::setUp() {
@@ -117,6 +117,10 @@ void FilePathsConfigParserPlugin::updateFilePaths(const JSON& file_paths,
 
 void FilePathsConfigParserPlugin::updateFilePathsQuery(
     const JSON& file_paths_query, const std::string& source) {
+#ifdef OSQUERY_IS_FUZZING
+  return;
+#else
+
   if (!file_paths_query.doc().IsObject()) {
     return;
   }
@@ -152,6 +156,7 @@ void FilePathsConfigParserPlugin::updateFilePathsQuery(
       }
     }
   }
+#endif
 }
 
 void FilePathsConfigParserPlugin::updateExcludePaths(
@@ -220,4 +225,4 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
 }
 
 REGISTER_INTERNAL(FilePathsConfigParserPlugin, "config_parser", "file_paths");
-}
+} // namespace osquery
