@@ -1,8 +1,8 @@
 table_name("selinux_settings")
 description("Track active SELinux settings.")
 schema([
-    Column("scope", TEXT, "Where the key is located inside the SELinuxFS mount point.", index=True),
-    Column("key", TEXT, "Key or class name.", index=True),
+    Column("scope", TEXT, "Where the key is located inside the SELinuxFS mount point."),
+    Column("key", TEXT, "Key or class name."),
     Column("value", TEXT, "Active value."),
 ])
 implementation("system/selinux_settings@genSELinuxSettings")
