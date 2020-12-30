@@ -39,8 +39,6 @@ function(generateNativeTables)
     chrome_extension_content_scripts.table
     curl.table
     curl_certificate.table
-    ec2_instance_metadata.table
-    ec2_instance_tags.table
     etc_hosts.table
     etc_protocols.table
     etc_services.table
