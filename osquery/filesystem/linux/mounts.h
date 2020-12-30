@@ -57,7 +57,7 @@ struct MountInformation final {
 };
 
 // Information about all mounted filesystems
-using MountedFilesystemMap = std::unordered_map<std::string, MountInformation>;
+using MountedFilesystems = std::vector<MountInformation>;
 
-Status getMountedFilesystemMap(MountedFilesystemMap& mounted_fs_info);
+Status getMountedFilesystems(MountedFilesystems& mounted_fs_info);
 } // namespace osquery

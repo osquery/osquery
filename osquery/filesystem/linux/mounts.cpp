@@ -44,7 +44,7 @@ Status getMountData(MountData& obj) {
 }
 } // namespace
 
-Status getMountedFilesystemMap(MountedFilesystemMap& mounted_fs_info) {
+Status getMountedFilesystems(MountedFilesystems& mounted_fs_info) {
   mounted_fs_info = {};
 
   MountData mount_data;
@@ -106,7 +106,7 @@ Status getMountedFilesystemMap(MountedFilesystemMap& mounted_fs_info) {
       }
     }
 
-    mounted_fs_info.insert({mount_info.path, std::move(mount_info)});
+    mounted_fs_info.emplace_back(std::move(mount_info));
   }
 
   return Status::success();
