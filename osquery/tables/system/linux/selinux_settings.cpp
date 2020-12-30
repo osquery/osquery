@@ -266,7 +266,7 @@ QueryData genSELinuxSettings(QueryContext& context) {
 
   status = generateClasses(row_list, selinuxfs_path);
   if (!status.ok()) {
-    LOG(ERROR) << "failed to bla bla";
+    LOG(ERROR) << "Failed to generate SELinux class: " << status.getMessage();
   }
 
   return row_list;
