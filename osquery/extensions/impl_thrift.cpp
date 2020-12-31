@@ -322,7 +322,6 @@ void ExtensionRunnerInterface::connect() {
   // Specify a security descriptor string, in SDDL format, that allows access
   // (to the named pipe) only to the System and the Built-in Administrators.
   const std::string& securityDescriptor = "D:(A;;FA;;;SY)(A;;FA;;;BA)";
-  // const std::string& securityDescriptor = "D(A;;FA;;;BA)";
   uint32_t bufsize = 1024;
   server_->transport = std::make_shared<TPlatformServerSocket>(
       path_, bufsize, TPIPE_SERVER_MAX_CONNS_DEFAULT, securityDescriptor);
