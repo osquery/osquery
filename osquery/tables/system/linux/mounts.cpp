@@ -14,8 +14,8 @@
 namespace osquery {
 namespace tables {
 QueryData genMounts(QueryContext& context) {
-  MountedFilesystemMap mounted_fs_map{};
-  auto status = getMountedFilesystemMap(mounted_fs_map);
+  MountedFilesystems mounted_fs{};
+  auto status = getMountedFilesystems(mounted_fs);
   if (!status.ok()) {
     LOG(ERROR) << "Failed to list the system mounts: " << status.getMessage();
     return {};
@@ -23,10 +23,8 @@ QueryData genMounts(QueryContext& context) {
 
   QueryData results;
 
-  for (const auto& p : mounted_fs_map) {
+  for (const auto& mount_info : mounted_fs) {
     Row r = {};
-
-    const auto& mount_info = p.second;
 
     r["type"] = mount_info.type;
     r["device"] = mount_info.device;
