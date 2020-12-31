@@ -309,9 +309,9 @@ function(generateNativeTables)
   endif()
 
   if(OSQUERY_BUILD_AWS)
-    list(APPEND platform_dependent_spec_files
-      "linwin/ec2_instance_metadata.table:linux,windows"
-      "linwin/ec2_instance_tags.table:linux,windows"
+    list(APPEND platform_independent_spec_files
+      "ec2_instance_metadata.table"
+      "ec2_instance_tags.table"
     )
   endif()
 
