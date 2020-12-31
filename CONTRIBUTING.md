@@ -120,9 +120,8 @@ the core team can merge pull requests and therefore at least one core
 team member will always review your PR, however reviews from the
 community are highly encouraged and desirable.
 
-Finally we try to keep only active PRs open. If your PR is stale we
-will close it, however if you want to get back to it at a certain
-point feel free to re-open, or comment on it.
+Finally, we try to keep only active PRs open, and we like to merge PRs as quickly as possible.
+If your PR is stale we will close it, however if you want to get back to it at a certain point feel free to re-open, or comment on it.
 
 ### A note about labels
 
@@ -134,18 +133,13 @@ don't need to care too much about this.
 
 ### Milestones and release versions
 
-We currently do not use any strict versioning scheme and we cut new
-versions as we feel it makes sense according to the new features
-implemented, whether critical bug-fixes where merged, the size of the
-release (i.e. how many commits since last version), etc.  We will
-however keep some near future milestones open and tag each PR with the
-milestone we think it is going to be merged for.
+We currently do not use a strict release schedule and we tag new minor versions ideally every two months.
+Otherwise, we may tag a release if it makes sense according to the new features implemented or if critical bug-fixes where merged.
+We keep several near-future milestones open and try to tag PRs with the milestone when appropriate.
 
-Milestones are used for larger releases and we might cut patch
-releases as we go. If your PR is tagged with the next milestone you
-can expect it to be merged as soon as it is ready. If your PR is
-tagged with a later milestone we'll only merge it after the previous
-milestones are closed.
+[Milestones](https://github.com/osquery/osquery/milestones) are used for the planned minor releases.
+If your PR is tagged with the next milestone you can expect it to be merged as soon as it is ready.
+We may keep PRs open and wait for a major release milestone if the code changes features that are not backwards-compatible.
 
 ### Branches and tags
 

@@ -90,6 +90,15 @@ To download the latest stable builds and for repository information
 and installation instructions visit
 [https://osquery.io/downloads](https://osquery.io/downloads/).
 
+We use a simple numbered versioning scheme `X.Y.Z`, where X is a major version, Y is a minor, and Z is a patch.
+We plan minor releases roughly every two months. These relases are tracked on our [Milestones](https://github.com/osquery/osquery/milestones) page. A patch release is used when there are unforseen bugs with out minor release and we need to quickly patch.
+A rare 'revision' release might be used if we need to change build configurations.
+
+Major, minor, and patch releases are tagged on GitHub and can be viewed on the [Releases](https://github.com/osquery/osquery/releases) page.
+We open a new [Release Checklist](https://github.com/osquery/osquery/blob/master/.github/ISSUE_TEMPLATE/New_Release.md) issue when we prepare a minor release. If you are interested in the status of a release, please find the corresponding checklist issue, and note that the issue will be marked closed when we are finished the checklist.
+We consider a release 'in testing' during the period of hosting new downloads on our website and adding them to our hosted repositories.
+We will mark the release as 'stable' on GitHub when enough testing has occurred, this usually takes two weeks.
+
 ## Build from source
 
 Building osquery from source is encouraged! Check out our [build
