@@ -32,8 +32,6 @@
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sqlite_util.h>
 
-#include <osquery/experimental/tracing/syscalls_tracing.h>
-
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -107,8 +105,6 @@ void startDaemon(Initializer& runner) {
 
   // Begin the schedule runloop.
   startScheduler();
-
-  osquery::events::init_syscall_tracing();
 
   runner.waitForShutdown();
 }
