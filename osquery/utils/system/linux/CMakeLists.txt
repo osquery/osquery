@@ -5,7 +5,4 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
-add_subdirectory("ebpf")
-add_subdirectory("perf_event")
 add_subdirectory("proc")
-add_subdirectory("tracing")
