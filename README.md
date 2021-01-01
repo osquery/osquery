@@ -91,7 +91,7 @@ and installation instructions visit
 [https://osquery.io/downloads](https://osquery.io/downloads/).
 
 We use a simple numbered versioning scheme `X.Y.Z`, where X is a major version, Y is a minor, and Z is a patch.
-We plan minor releases roughly every two months. These relases are tracked on our [Milestones](https://github.com/osquery/osquery/milestones) page. A patch release is used when there are unforseen bugs with out minor release and we need to quickly patch.
+We plan minor releases roughly every two months. These releases are tracked on our [Milestones](https://github.com/osquery/osquery/milestones) page. A patch release is used when there are unforeseen bugs with our minor release and we need to quickly patch.
 A rare 'revision' release might be used if we need to change build configurations.
 
 Major, minor, and patch releases are tagged on GitHub and can be viewed on the [Releases](https://github.com/osquery/osquery/releases) page.
