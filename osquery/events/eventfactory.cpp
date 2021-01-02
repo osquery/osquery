@@ -187,7 +187,7 @@ Status EventFactory::deregisterEventSubscriber(const std::string& sub) {
     return Status::failure("Event subscriber is missing");
   }
 
-  auto& subscriber = subscriber_it->second;
+  auto subscriber = subscriber_it->second;
   ef.event_subs_.erase(subscriber_it);
 
   subscriber->tearDown();
