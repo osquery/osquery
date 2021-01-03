@@ -15,6 +15,7 @@
 
 #include <osquery/events/eventer.h>
 #include <osquery/events/eventpublisherplugin.h>
+#include <osquery/events/eventsubscriberplugin.h>
 #include <osquery/events/subscription.h>
 #include <osquery/events/types.h>
 

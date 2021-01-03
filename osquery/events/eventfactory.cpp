@@ -45,22 +45,15 @@ EventFactory& EventFactory::getInstance() {
 }
 
 Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
-  // Try to downcast the plugin to an event subscriber.
-  EventSubscriberRef specialized_sub;
-  try {
-    auto base_sub = std::dynamic_pointer_cast<EventSubscriberPlugin>(sub);
-    specialized_sub = std::static_pointer_cast<BaseEventSubscriber>(base_sub);
-  } catch (const std::bad_cast& /* e */) {
-    return Status::failure("Incorrect plugin");
-  }
+  auto base_sub = std::dynamic_pointer_cast<EventSubscriberPlugin>(sub);
 
-  if (specialized_sub == nullptr || specialized_sub.get() == nullptr) {
-    return Status::failure("Invalid subscriber");
+  if (base_sub == nullptr) {
+    return Status::failure("Invalid subscriber type: " + sub->getName());
   }
 
   // The config may use an "events" key to explicitly enabled or disable
   // event subscribers. See EventSubscriber::disable.
-  auto name = specialized_sub->getName();
+  auto name = base_sub->getName();
   if (name.empty()) {
     // This subscriber did not override its name.
     return Status::failure("Subscribers must have set a name");
@@ -75,7 +68,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
       for (const auto& item : data["events"]["enable_subscribers"].GetArray()) {
         if (item.GetString() == name) {
           VLOG(1) << "Enabling event subscriber: " << name;
-          specialized_sub->disabled = false;
+          base_sub->disabled = false;
         }
       }
     }
@@ -86,40 +79,40 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
            data["events"]["disable_subscribers"].GetArray()) {
         if (item.GetString() == name) {
           VLOG(1) << "Disabling event subscriber: " << name;
-          specialized_sub->disabled = true;
+          base_sub->disabled = true;
         }
       }
     }
   }
 
-  if (specialized_sub->state() != EventState::EVENT_NONE) {
-    specialized_sub->tearDown();
+  if (base_sub->state() != EventState::EVENT_NONE) {
+    base_sub->tearDown();
   }
 
   // Allow subscribers a configure-time setup to determine if they should run.
-  auto status = specialized_sub->setUp();
+  auto status = base_sub->setUp();
   if (!status) {
-    specialized_sub->disabled = true;
+    base_sub->disabled = true;
   }
-  specialized_sub->state(EventState::EVENT_SETUP);
+  base_sub->state(EventState::EVENT_SETUP);
 
   // Let the subscriber initialize any Subscriptions.
-  if (!FLAGS_disable_events && !specialized_sub->disabled) {
-    status = specialized_sub->init();
-    specialized_sub->state(EventState::EVENT_RUNNING);
+  if (!FLAGS_disable_events && !base_sub->disabled) {
+    status = base_sub->init();
+    base_sub->state(EventState::EVENT_RUNNING);
   } else {
-    specialized_sub->state(EventState::EVENT_PAUSED);
+    base_sub->state(EventState::EVENT_PAUSED);
   }
 
   auto& ef = EventFactory::getInstance();
   {
     RecursiveLock lock(ef.factory_lock_);
-    ef.event_subs_[name] = specialized_sub;
+    ef.event_subs_[name] = base_sub;
   }
 
   // Set state of subscriber.
   if (!status.ok()) {
-    specialized_sub->state(EventState::EVENT_FAILED);
+    base_sub->state(EventState::EVENT_FAILED);
     return Status::failure(status.getMessage());
   } else {
     return Status::success();
@@ -127,22 +120,15 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
 }
 
 Status EventFactory::registerEventPublisher(const PluginRef& pub) {
-  // Try to downcast the plugin to an event publisher.
-  EventPublisherRef specialized_pub;
-  try {
-    auto base_pub = std::dynamic_pointer_cast<EventPublisherPlugin>(pub);
-    specialized_pub = std::static_pointer_cast<BaseEventPublisher>(base_pub);
-  } catch (const std::bad_cast& /* e */) {
-    return Status::failure("Incorrect plugin");
+  auto base_pub = std::dynamic_pointer_cast<EventPublisherPlugin>(pub);
+
+  if (base_pub == nullptr) {
+    return Status::failure("Invalid publisher type: " + pub->getName());
   }
 
-  if (specialized_pub == nullptr || specialized_pub.get() == nullptr) {
-    return Status::success();
-  }
-
-  auto type_id = specialized_pub->type();
+  auto type_id = base_pub->type();
   if (type_id.empty()) {
-    // This subscriber did not override its name.
+    // This publisher did not override its name.
     return Status::failure("Publishers must have a type");
   }
 
@@ -154,22 +140,22 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
       return Status::failure("Duplicate publisher type");
     }
 
-    ef.event_pubs_[type_id] = specialized_pub;
+    ef.event_pubs_[type_id] = base_pub;
   }
 
   // Do not set up event publisher if events are disabled.
   if (!FLAGS_disable_events) {
-    if (specialized_pub->state() != EventState::EVENT_NONE) {
-      specialized_pub->tearDown();
+    if (base_pub->state() != EventState::EVENT_NONE) {
+      base_pub->tearDown();
     }
 
-    auto status = specialized_pub->setUp();
-    specialized_pub->state(EventState::EVENT_SETUP);
+    auto status = base_pub->setUp();
+    base_pub->state(EventState::EVENT_SETUP);
     if (!status.ok()) {
       // Only start event loop if setUp succeeds.
       LOG(INFO) << "Event publisher not enabled: " << type_id << ": "
                 << status.what();
-      specialized_pub->isEnding(true);
+      base_pub->isEnding(true);
       return status;
     }
   }
@@ -267,7 +253,7 @@ EventPublisherRef EventFactory::getEventPublisher(const std::string& type_id) {
 
   RecursiveLock lock(ef.factory_lock_);
   if (ef.event_pubs_.count(type_id) == 0) {
-    LOG(ERROR) << "Requested unknown/failed event publisher: " + type_id;
+    LOG(ERROR) << "Requested unknown/failed event publisher: " << type_id;
     return nullptr;
   }
   return ef.event_pubs_.at(type_id);
@@ -279,7 +265,7 @@ EventSubscriberRef EventFactory::getEventSubscriber(
 
   RecursiveLock lock(ef.factory_lock_);
   if (!exists(name_id)) {
-    LOG(ERROR) << "Requested unknown event subscriber: " + name_id;
+    LOG(ERROR) << "Requested unknown event subscriber: " << name_id;
     return nullptr;
   }
   return ef.event_subs_.at(name_id);

@@ -34,6 +34,8 @@ using EventIndex = std::map<EventTime, EventIDList>;
  * passed an EventContext.
  */
 struct EventContext : private boost::noncopyable {
+  virtual ~EventContext() {}
+
   /// An unique counting ID specific to the EventPublisher%'s fired events.
   EventContextID id{0};
 
@@ -57,21 +59,15 @@ using EventContextRef = std::shared_ptr<EventContext>;
  * networking protocols at various stacks. Process creation may subscribe on
  * process name, parent pid, etc.
  */
-struct SubscriptionContext : private boost::noncopyable {};
+struct SubscriptionContext : private boost::noncopyable {
+  virtual ~SubscriptionContext(){};
+};
 
 using SubscriptionContextRef = std::shared_ptr<SubscriptionContext>;
 
-template <class SC, class EC>
-class EventPublisher;
+class EventPublisherPlugin;
+using EventPublisherRef = std::shared_ptr<EventPublisherPlugin>;
 
-using BaseEventPublisher = EventPublisher<SubscriptionContext, EventContext>;
-
-using EventPublisherRef = std::shared_ptr<BaseEventPublisher>;
-
-template <class PUB>
-class EventSubscriber;
-
-using EventSubscriberRef = std::shared_ptr<EventSubscriber<BaseEventPublisher>>;
-using BaseEventSubscriber = EventSubscriber<BaseEventPublisher>;
-
+class EventSubscriberPlugin;
+using EventSubscriberRef = std::shared_ptr<EventSubscriberPlugin>;
 } // namespace osquery

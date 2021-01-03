@@ -120,7 +120,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * EventPublisher instances will have run `setUp` and initialized their run
    * loops.
    */
-  EventSubscriberPlugin() = default;
+  explicit EventSubscriberPlugin(bool enabled);
 
   virtual ~EventSubscriberPlugin() override = default;
 
@@ -208,6 +208,9 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   explicit EventSubscriberPlugin(EventSubscriberPlugin const&) = delete;
   EventSubscriberPlugin& operator=(EventSubscriberPlugin const&) = delete;
 
+  /// Trampoline into the EventFactory and lookup the name of the publisher.
+  virtual const std::string& getType() const = 0;
+
  protected:
   /**
    * @brief Backing storage indexing namespace.
@@ -219,9 +222,6 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    */
   /// See getType for lookup rational.
   virtual const std::string dbNamespace() const;
-
-  /// Trampoline into the EventFactory and lookup the name of the publisher.
-  virtual const std::string& getType() const = 0;
 
   /// Get a handle to the EventPublisher.
   EventPublisherRef getPublisher() const;
@@ -282,12 +282,26 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
 
   Context context;
 
+  /**
+   * @brief Allow subscriber implementations to default disable themselves.
+   *
+   * A subscriber may induce latency on a system within the callback routines.
+   * Before the initialization and set up is performed the EventFactory can
+   * choose to exclude a subscriber if it is not explicitly enabled within
+   * the config.
+   *
+   * EventSubscriber%s that should be default-disabled should set this flag
+   * in their constructor or worst case before EventSubsciber::init.
+   */
+  bool disabled{false};
+
   friend class EventFactory;
   friend class EventPublisherPlugin;
 
   FRIEND_TEST(EventsTests, test_event_subscriber_configure);
+  FRIEND_TEST(EventsTests, test_event_toggle_subscribers);
+
   friend class DBFakeEventSubscriber;
   friend class BenchmarkEventSubscriber;
 };
-
 } // namespace osquery
