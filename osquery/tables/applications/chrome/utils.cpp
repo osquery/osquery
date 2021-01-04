@@ -33,6 +33,12 @@ const std::string kProfilePreferencesFile = "Preferences";
 /// The alternative 'Secure Preferences' file included in each profile
 const std::string kSecureProfilePreferencesFile = "Secure Preferences";
 
+/// Extension manifest name
+const std::string kExtensionManifestName{"manifest.json"};
+
+/// The name of the profile child folder containing extensions
+const std::string kExtensionsFolderName{"Extensions"};
+
 /// The possible configuration file names
 const std::vector<std::reference_wrapper<const std::string>>
     kPossibleConfigFileNames = {std::ref(kProfilePreferencesFile),
@@ -86,6 +92,17 @@ const std::unordered_map<ChromeBrowserType, std::string>
         {ChromeBrowserType::Edge, "edge"},
         {ChromeBrowserType::Edge, "edge_beta"},
 };
+
+/// Base paths for built-in extensions; used to silence warnings for
+/// extensions that have unreadable manifest.json files
+const std::vector<std::string> kBuiltInExtPathList{
+    "resources/cloud_print/manifest.json",
+    "resources/cryptotoken/manifest.json",
+    "resources/feedback/manifest.json",
+    "resources/hangout_services/manifest.json",
+    "resources/network_speech_synthesis/manifest.json",
+    "resources/pdf/manifest.json",
+    "resources/web_store/manifest.json"};
 
 /// A extension property that needs to be copied
 struct ExtensionProperty final {
@@ -318,7 +335,8 @@ bool getExtensionPathListFromPreferences(std::vector<std::string>& path_list,
 
     auto absolute_path = fs::path(opt_path.get());
     if (!absolute_path.is_absolute()) {
-      absolute_path = fs::path(profile_path) / "Extensions" / opt_path.get();
+      absolute_path =
+          fs::path(profile_path) / kExtensionsFolderName / opt_path.get();
     }
 
     boost::system::error_code error_code;
@@ -395,13 +413,40 @@ bool captureProfileSnapshotSettingsFromPath(
   return true;
 }
 
+/// Returns the base extension path
+std::string getBaseExtensionManifestPath(const fs::path& absolute_ext_path) {
+  auto parent_folder_name = absolute_ext_path.parent_path().filename();
+  auto extension_folder_name = absolute_ext_path.filename();
+
+  auto relative_manifest_path = fs::path(parent_folder_name) /
+                                extension_folder_name / kExtensionManifestName;
+
+  return relative_manifest_path.string();
+}
+
+/// Returns true if this extension is built-in
+bool isBuiltInChromeExtension(const fs::path& absolute_ext_path) {
+  auto base_ext_path = getBaseExtensionManifestPath(absolute_ext_path);
+
+  std::transform(base_ext_path.begin(),
+                 base_ext_path.end(),
+                 base_ext_path.begin(),
+                 [](char c) { return static_cast<char>(::tolower(c)); });
+
+  auto base_path_it = std::find(
+      kBuiltInExtPathList.begin(), kBuiltInExtPathList.end(), base_ext_path);
+
+  return base_path_it != kBuiltInExtPathList.end();
+}
+
 /// Captures a Chrome profile from the given path
 bool captureProfileSnapshotExtensionsFromPath(
     ChromeProfileSnapshot& snapshot, const ChromeProfilePath& profile_path) {
   // Enumerate all the extensions that are present inside this
   // profile. Note that they may not be present in the config
   // file. For now, let's store them all as unreferenced
-  auto extensions_folder_path = fs::path(profile_path.value) / "Extensions";
+  auto extensions_folder_path =
+      fs::path(profile_path.value) / kExtensionsFolderName;
 
   std::vector<std::string> extension_path_list = {};
 
@@ -438,16 +483,19 @@ bool captureProfileSnapshotExtensionsFromPath(
     ChromeProfileSnapshot::Extension extension = {};
     extension.path = extension_path;
 
-    auto manifest_path = fs::path(extension_path) / "manifest.json";
+    auto manifest_path = fs::path(extension_path) / kExtensionManifestName;
     auto manifest_exp =
         readTextFile(manifest_path.string(), kMaxConfigFileSize);
 
     if (manifest_exp.isError()) {
-      LOG(ERROR) << "Failed to read the following manifest.json file: "
-                 << manifest_path.string()
-                 << ". The extension was referenced by the following profile: "
-                 << profile_path.value
-                 << ". Error: " << manifest_exp.getError().getMessage();
+      if (!isBuiltInChromeExtension(extension_path)) {
+        LOG(ERROR)
+            << "Failed to read the following manifest.json file: "
+            << manifest_path.string()
+            << ". The extension was referenced by the following profile: "
+            << profile_path.value
+            << ". Error: " << manifest_exp.getError().getMessage();
+      }
 
       continue;
     }
@@ -507,17 +555,20 @@ bool captureProfileSnapshotExtensionsFromPath(
       ChromeProfileSnapshot::Extension extension = {};
       extension.path = referenced_ext_path;
 
-      auto manifest_path = fs::path(referenced_ext_path) / "manifest.json";
+      auto manifest_path =
+          fs::path(referenced_ext_path) / kExtensionManifestName;
       auto manifest_exp =
           readTextFile(manifest_path.string(), kMaxConfigFileSize);
 
       if (manifest_exp.isError()) {
-        LOG(ERROR)
-            << "Failed to read the following manifest.json file: "
-            << manifest_path.string()
-            << ". The extension was referenced by the following profile: "
-            << profile_path.value
-            << ". Error: " << manifest_exp.getError().getMessage();
+        if (!isBuiltInChromeExtension(referenced_ext_path)) {
+          LOG(ERROR)
+              << "Failed to read the following manifest.json file: "
+              << manifest_path.string()
+              << ". The extension was referenced by the following profile: "
+              << profile_path.value
+              << ". Error: " << manifest_exp.getError().getMessage();
+        }
 
         continue;
       }
@@ -818,7 +869,7 @@ Status getExtensionProfileSettings(
 
     auto ext_path = fs::path(opt_ext_path.get());
     if (!ext_path.is_absolute()) {
-      ext_path = fs::path(profile_path) / "Extensions" / ext_path;
+      ext_path = fs::path(profile_path) / kExtensionsFolderName / ext_path;
     }
 
     boost::system::error_code error_code;
