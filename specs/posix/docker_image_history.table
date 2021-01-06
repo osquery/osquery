@@ -1,0 +1,16 @@
+table_name("docker_image_history")
+description("Docker image history information.")
+schema([
+    Column("id", TEXT, "Image ID", index=True),
+    Column("created", BIGINT, "Time of creation as UNIX time"),
+    Column("size", BIGINT, "Size of instruction in bytes"),
+    Column("created_by", TEXT, "Created by instruction"),
+    Column("tags", TEXT, "Comma-separated list of tags"),
+    Column("comment", TEXT, "Instruction comment")
+])
+implementation("applications/docker@genImageHistory")
+examples([
+  "select * from docker_image_history",
+  "select * from docker_image_history where id = '6a2f32de169d'",
+  "select * from docker_image_history where id = '6a2f32de169d14e6f8a84538eaa28f2629872d7d4f580a303b296c60db36fbd7'"
+])

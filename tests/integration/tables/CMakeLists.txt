@@ -96,6 +96,7 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_container_processes.cpp
       docker_container_stats.cpp
       docker_containers.cpp
+      docker_image_history.cpp
       docker_image_labels.cpp
       docker_image_layers.cpp
       docker_images.cpp
