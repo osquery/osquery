@@ -224,7 +224,9 @@ The **tls** endpoint path, e.g.: `/api/v1/config` when using the **tls** config 
 
 `--config_tls_max_attempts=3`
 
-The total number of attempts that will be made to the remote config server if a request fails.
+The total number of attempts that will be made to the remote config server if a
+request fails. If an attempt fails, it will be retried with exponential
+backoff, up to the max number of attempts set.
 
 `--logger_tls_endpoint=`
 
@@ -237,7 +239,8 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. An enrol
 `--enroll_tls_max_attempts=3`
 
 The total number of attempts that will be made to the remote enroll server if a
-request fails.
+request fails. If an attempt fails, it will be retried with exponential
+backoff, up to the max number of attempts set.
 
 `--logger_tls_period=3`
 
