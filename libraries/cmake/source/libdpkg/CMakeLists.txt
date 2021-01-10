@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(libdpkgMain)
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(library_root "${OSQUERY_libdpkg_ROOT_DIR}")
 
   add_library(thirdparty_libdpkg
     "${library_root}/lib/dpkg/pkg-format.c"
