@@ -1,0 +1,34 @@
+diff --git a/lib/dpkg/trigdeferred.c b/lib/dpkg/trigdeferred.c
+index e5bb2c3..d40d995 100644
+--- a/lib/dpkg/trigdeferred.c
++++ b/lib/dpkg/trigdeferred.c
+@@ -74,6 +74,7 @@ constructfn(struct varbuf *vb, const char *dir, const char *tail)
+ enum trigdef_update_status
+ trigdef_update_start(enum trigdef_update_flags uf)
+ {
++	free(triggersdir);
+ 	triggersdir = dpkg_db_get_path(TRIGGERSDIR);
+ 
+ 	if (uf & TDUF_WRITE) {
+diff --git a/lib/dpkg/triglib.c b/lib/dpkg/triglib.c
+index 57bd2a6..365de7a 100644
+--- a/lib/dpkg/triglib.c
++++ b/lib/dpkg/triglib.c
+@@ -791,11 +791,16 @@ trig_incorporate(enum modstatdb_rw cstatus)
+ 	}
+ 	switch (ur) {
+ 	case TDUS_ERROR_EMPTY_DEFERRED:
++		free(triggersdir);
++		triggersdir = NULL;
+ 		return;
+ 	case TDUS_ERROR_NO_DIR:
+ 	case TDUS_ERROR_NO_DEFERRED:
+-		if (!trigh.transitional_activate)
++		if (!trigh.transitional_activate) {
++			free(triggersdir);
++			triggersdir = NULL;
+ 			return;
++		}
+ 	/* Fall through. */
+ 	case TDUS_NO_DEFERRED:
+ 		trigh.transitional_activate(cstatus);
