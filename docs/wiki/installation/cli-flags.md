@@ -224,15 +224,23 @@ The **tls** endpoint path, e.g.: `/api/v1/config` when using the **tls** config 
 
 `--config_tls_max_attempts=3`
 
-The total number of attempts that will be made to the remote config server if a request fails.
+The total number of attempts that will be made to the remote config server if a
+request fails. If an attempt fails, it will be retried with exponential
+backoff, up to the max number of attempts set.
 
 `--logger_tls_endpoint=`
 
 The **tls** endpoint path, e.g.: `/api/v1/logger` when using the **tls** logger plugin. See the other **tls_** related CLI flags.
 
-`--enrollment_tls_endpoint=`
+`--enroll_tls_endpoint=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. An enrollment process will be used to allow server-side implemented authentication and identification/authorization. You must provide an endpoint relative to the `--tls_hostname` URI.
+
+`--enroll_tls_max_attempts=3`
+
+The total number of attempts that will be made to the remote enroll server if a
+request fails. If an attempt fails, it will be retried with exponential
+backoff, up to the max number of attempts set.
 
 `--logger_tls_period=3`
 
