@@ -256,6 +256,7 @@ function(generateTestsIntegrationTablesTestsTest)
       smart_drive_info.cpp
       smc_keys.cpp
       startup_items.cpp
+      system_extensions.cpp
       temperature_sensors.cpp
       time_machine_backups.cpp
       time_machine_destinations.cpp

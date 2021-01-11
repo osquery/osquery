@@ -113,6 +113,7 @@ function(generateOsqueryTablesSystemDarwinTests)
     darwin/processes_tests.cpp
     darwin/smc_tests.cpp
     darwin/startup_items_tests.cpp
+    darwin/system_extensions_test.cpp
     darwin/signature_tests.mm
   )
 
