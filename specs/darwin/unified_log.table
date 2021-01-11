@@ -1,0 +1,9 @@
+table_name("unified_log")
+description("Queries the OSLog framework for entries in the system log.")
+
+schema([
+  Column("date",  TEXT, "timestamp associated with the entry"),
+  Column("message", TEXT, "composed message"),
+  Column("category", INTEGER, "the storage category for the entry"),
+])
+implementation("unified_log@genUnifiedLog")
