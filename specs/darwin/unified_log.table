@@ -3,7 +3,14 @@ description("Queries the OSLog framework for entries in the system log.")
 
 schema([
   Column("date",  TEXT, "timestamp associated with the entry"),
+  Column("storage", INTEGER, "the storage category for the entry"),
   Column("message", TEXT, "composed message"),
-  Column("category", INTEGER, "the storage category for the entry"),
+  Column("activity", INTEGER, "the activity ID associate with the entry"),
+  Column("process", TEXT, "the name of the process that made the entry"),
+  Column("pid", BIGINT, "the pid of the process that made the entry"),
+  Column("sender", TEXT, "the name of the binary image that made the entry"),
+  Column("tid", BIGINT, "the tid of the thread that made the entry"),
+  Column("category", TEXT, "the category of the os_log_t used"),
+  Column("subsystem", TEXT, "the subsystem of the os_log_t used")
 ])
 implementation("unified_log@genUnifiedLog")

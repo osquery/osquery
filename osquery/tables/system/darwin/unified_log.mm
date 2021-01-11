@@ -17,6 +17,7 @@ namespace osquery {
 namespace tables {
     
 void genUnifiedLog(QueryData &results) {
+
     if (@available(macOS 10.15, *)) {
     NSError *error = nil;
     OSLogStore *logstore = [OSLogStore localStoreAndReturnError:&error];
@@ -24,6 +25,10 @@ void genUnifiedLog(QueryData &results) {
         NSLog(@"error getting handle to log store: %@", error);
         return;
     }
+
+    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+    [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SS"];
+
 
     NSDate *interval = [NSDate dateWithTimeIntervalSinceNow:-10];
     OSLogEnumeratorOptions option = 0;
@@ -33,18 +38,32 @@ void genUnifiedLog(QueryData &results) {
                                                                predicate:nil 
                                                                    error:&error];
     if (error != nil) {
-        NSLog(@"error getting handle to log store: %@", error);
+        NSLog(@"error enumerating entries in system log: %@", error);
         return;
     }
-    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-    [dateFormatter setDateFormat:@"dd-MM-yyyy"];
-
-    for (OSLogEntry *entry in enumerator) {
+    for (OSLogEntryLog *entry in enumerator) {
         Row r;
         NSString *dateString = [dateFormatter stringFromDate:[entry date]];
         r["date"] = TEXT([dateString UTF8String]);
         r["message"] = TEXT([[entry composedMessage] UTF8String]);
-        r["category"] = INTEGER([entry storeCategory]);
+        r["storage"] = INTEGER([entry storeCategory]);
+        if ([entry respondsToSelector:@selector(activityIdentifier)]) {
+          r["activity"] = INTEGER([entry activityIdentifier]);
+          r["process"] = TEXT([[entry process] UTF8String]);
+          r["pid"] = INTEGER([entry processIdentifier]);
+          r["sender"] = TEXT([[entry sender] UTF8String]);
+          r["tid"] = INTEGER([entry threadIdentifier]);
+        }
+        if ([entry respondsToSelector:@selector(subsystem)]) {
+          NSString *subsystem = [entry subsystem];
+          if (subsystem != nil) {
+            r["subsystem"] = TEXT([subsystem UTF8String]);
+          }
+          NSString *category = [entry category];
+          if (category != nil) {
+            r["category"] = TEXT([category UTF8String]);
+          }
+        }
         results.push_back(r);
     }
     }
