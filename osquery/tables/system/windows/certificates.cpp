@@ -464,10 +464,10 @@ void addCertRow(PCCERT_CONTEXT certContext,
           : INTEGER(0);
 
   r["not_valid_before"] =
-      INTEGER(filetimeToUnixtime(certContext->pCertInfo->NotBefore));
+      BIGINT(filetimeToUnixtime(certContext->pCertInfo->NotBefore));
 
   r["not_valid_after"] =
-      INTEGER(filetimeToUnixtime(certContext->pCertInfo->NotAfter));
+      BIGINT(filetimeToUnixtime(certContext->pCertInfo->NotAfter));
 
   r["signing_algorithm"] =
       cryptOIDToString(certContext->pCertInfo->SignatureAlgorithm.pszObjId);
