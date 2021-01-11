@@ -212,7 +212,7 @@ Status handleRuleFiles(const std::string& category,
 
     YR_RULES* tmp_rules = nullptr;
     std::string rule = item.GetString();
-    if (rule[0] != '/') {
+    if (boost::filesystem::path(rule).is_relative()) {
       rule = kYARAHome + rule;
     }
 
