@@ -2,7 +2,7 @@ table_name("unified_log")
 description("Queries the OSLog framework for entries in the system log.")
 
 schema([
-  Column("date",  TEXT, "timestamp associated with the entry"),
+  Column("timestamp", BIGINT, "unix timestamp associated with the entry", additional=True),
   Column("storage", INTEGER, "the storage category for the entry"),
   Column("message", TEXT, "composed message"),
   Column("activity", INTEGER, "the activity ID associate with the entry"),
@@ -11,6 +11,6 @@ schema([
   Column("sender", TEXT, "the name of the binary image that made the entry"),
   Column("tid", BIGINT, "the tid of the thread that made the entry"),
   Column("category", TEXT, "the category of the os_log_t used"),
-  Column("subsystem", TEXT, "the subsystem of the os_log_t used")
+  Column("subsystem", TEXT, "the subsystem of the os_log_t used", additional=True)
 ])
 implementation("unified_log@genUnifiedLog")

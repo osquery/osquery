@@ -12,11 +12,12 @@
 #include <OSLog/OSLog.h>
 
 #include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 namespace tables {
-    
-void genUnifiedLog(QueryData &results) {
+
+void genUnifiedLog(QueryContext& context, QueryData &results) {
 
     if (@available(macOS 10.15, *)) {
     NSError *error = nil;
@@ -26,16 +27,46 @@ void genUnifiedLog(QueryData &results) {
         return;
     }
 
-    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-    [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SS"];
+    OSLogPosition *position = nil;
+
+    NSMutableArray *subpredicates = [[NSMutableArray alloc] init];
+    if (context.hasConstraint("timestamp", GREATER_THAN)) {
+        auto start_time = context.constraints["timestamp"].getAll(GREATER_THAN);
+        if (start_time.size() > 1) {
+            VLOG(1) << "Received multiple constraint values for timestamp > constraint.  "
+                       "Only the first will be evaluated.";
+        }
+
+        double provided_timestamp = [[NSString stringWithUTF8String:start_time.begin()->c_str()] doubleValue];
+        NSDate *provided_date = [NSDate dateWithTimeIntervalSince1970:provided_timestamp];
+        [subpredicates addObject:[NSPredicate predicateWithFormat:@"date > %@", provided_date]];
+
+        position = [logstore positionWithDate:provided_date];
+    }
+
+    if (context.hasConstraint("timestamp", LESS_THAN)) {
+        auto end_time = context.constraints["timestamp"].getAll(LESS_THAN);
+        if (end_time.size() > 1) {
+            VLOG(1) << "Received multiple constraing values for timestamp < constraint.  "
+                       "Only the first will be evaluated.";
+        }
+
+        double provided_timestamp = [[NSString stringWithUTF8String:end_time.begin()->c_str()] doubleValue];
+        [subpredicates addObject:[NSPredicate predicateWithFormat:@"date < %@", [NSDate dateWithTimeIntervalSince1970: provided_timestamp]]];
+    }
+
+    if (context.hasConstraint("subsystem", EQUALS)) {
+        auto subsystem = context.constraints["subsystem"].getAll(EQUALS);
+        [subpredicates addObject:[NSPredicate predicateWithFormat:@"subsystem == %@", [NSString stringWithUTF8String:subsystem.begin()->c_str()]]];
+    }
 
 
-    NSDate *interval = [NSDate dateWithTimeIntervalSinceNow:-10];
+    NSPredicate *predicate = [NSCompoundPredicate andPredicateWithSubpredicates:subpredicates];
+
     OSLogEnumeratorOptions option = 0;
-    OSLogPosition *position = [logstore positionWithDate:interval];
     OSLogEnumerator *enumerator = [logstore entriesEnumeratorWithOptions:option
                                                                 position:position
-                                                               predicate:nil 
+                                                               predicate:predicate
                                                                    error:&error];
     if (error != nil) {
         NSLog(@"error enumerating entries in system log: %@", error);
@@ -43,10 +74,10 @@ void genUnifiedLog(QueryData &results) {
     }
     for (OSLogEntryLog *entry in enumerator) {
         Row r;
-        NSString *dateString = [dateFormatter stringFromDate:[entry date]];
-        r["date"] = TEXT([dateString UTF8String]);
+        r["timestamp"] = BIGINT([[entry date] timeIntervalSince1970]);
         r["message"] = TEXT([[entry composedMessage] UTF8String]);
         r["storage"] = INTEGER([entry storeCategory]);
+
         if ([entry respondsToSelector:@selector(activityIdentifier)]) {
           r["activity"] = INTEGER([entry activityIdentifier]);
           r["process"] = TEXT([[entry process] UTF8String]);
@@ -54,6 +85,7 @@ void genUnifiedLog(QueryData &results) {
           r["sender"] = TEXT([[entry sender] UTF8String]);
           r["tid"] = INTEGER([entry threadIdentifier]);
         }
+
         if ([entry respondsToSelector:@selector(subsystem)]) {
           NSString *subsystem = [entry subsystem];
           if (subsystem != nil) {
@@ -71,9 +103,8 @@ void genUnifiedLog(QueryData &results) {
 
 QueryData genUnifiedLog(QueryContext& context) {
   QueryData results;
-  Row row;
   @autoreleasepool {
-    genUnifiedLog(results);
+    genUnifiedLog(context, results);
   }
   return results;
 }
