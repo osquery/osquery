@@ -18,10 +18,10 @@
 #include <thrift/transport/TBufferTransports.h>
 
 #ifdef WIN32
-#include <osquery/filesystem/fileops.h>
-#include <osquery/process/windows/process_ops.h>
 #include <thrift/transport/TPipe.h>
 #include <thrift/transport/TPipeServer.h>
+#include <osquery/filesystem/fileops.h>
+#include <osquery/process/windows/process_ops.h>
 #else
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TSocket.h>
@@ -324,8 +324,8 @@ void ExtensionRunnerInterface::connect() {
   // Specify a security descriptor string, in SDDL format, that allows RW access
   // (to the named pipe) only to the System and the Built-in Administrators.
   std::string sddlString = "D:(A;;FA;;;SY)(A;;FA;;;BA)";
-
-  // Attempt to get the current user's SID and also allow RW access to that.
+  
+  // Attempt to get the current user's SID and also allow RW access to that.    
   auto ptuSmartPtr = getCurrentUserInfo();
   if (ptuSmartPtr) {
     PTOKEN_USER ptu = reinterpret_cast<PTOKEN_USER>(ptuSmartPtr.get());
