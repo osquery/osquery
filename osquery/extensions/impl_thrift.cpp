@@ -18,6 +18,8 @@
 #include <thrift/transport/TBufferTransports.h>
 
 #ifdef WIN32
+#include <osquery/filesystem/fileops.h>
+#include <osquery/process/windows/process_ops.h>
 #include <thrift/transport/TPipe.h>
 #include <thrift/transport/TPipeServer.h>
 #else
@@ -318,7 +320,29 @@ void ExtensionRunnerInterface::serve() {
 }
 
 void ExtensionRunnerInterface::connect() {
+#ifdef WIN32
+  // Specify a security descriptor string, in SDDL format, that allows RW access
+  // (to the named pipe) only to the System and the Built-in Administrators.
+  std::string sddlString = "D:(A;;FA;;;SY)(A;;FA;;;BA)";
+
+  // Attempt to get the current user's SID and also allow RW access to that.
+  auto ptuSmartPtr = getCurrentUserInfo();
+  if (ptuSmartPtr) {
+    PTOKEN_USER ptu = reinterpret_cast<PTOKEN_USER>(ptuSmartPtr.get());
+    const std::string& userSid = psidToString(ptu->User.Sid);
+    sddlString += "(A;;FA;;;" + userSid + ")";
+  } else {
+    VLOG(1) << "Failed to allow current user access to the Thrift server "
+               "(named pipe). Extensions must run as Administrator.";
+  }
+
+  const std::string& securityDescriptor = sddlString;
+  uint32_t bufsize = 1024;
+  server_->transport = std::make_shared<TPlatformServerSocket>(
+      path_, bufsize, TPIPE_SERVER_MAX_CONNS_DEFAULT, securityDescriptor);
+#else
   server_->transport = std::make_shared<TPlatformServerSocket>(path_);
+#endif
 
   // Construct the service's transport, protocol, thread pool.
   auto transport_fac = std::make_shared<TBufferedTransportFactory>();
