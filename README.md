@@ -11,17 +11,17 @@ osquery is a SQL powered operating system instrumentation, monitoring, and analy
 Available for Linux, macOS, Windows, and FreeBSD.
 </p>
 
-**Information and resources**
-- Homepage: https://osquery.io
-- Downloads: https://osquery.io/downloads
-- Documentation: https://osquery.readthedocs.org
-- Stack Overflow: https://stackoverflow.com/questions/tagged/osquery
-- Table Schema: https://osquery.io/schema
-- Query Packs: [https://osquery.io/packs](https://github.com/osquery/osquery/tree/master/packs)
+## Information and resources
+
+- Homepage: [osquery.io](https://osquery.io)
+- Downloads: [osquery.io/downloads](https://osquery.io/downloads)
+- Documentation: [ReadTheDocs](https://osquery.readthedocs.org)
+- Stack Overflow: [Stack Overflow questions](https://stackoverflow.com/questions/tagged/osquery)
+- Table Schema: [osquery.io/schema](https://osquery.io/schema)
+- Query Packs: [osquery.io/packs](https://github.com/osquery/osquery/tree/master/packs)
 - Slack: [Request an auto-invite!](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw)
 - Build Status: [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) [![Coverity Scan Build Status](https://scan.coverity.com/projects/13317/badge.svg)](https://scan.coverity.com/projects/osquery) [![Documentation Status](https://readthedocs.org/projects/osquery/badge/?version=latest)](https://osquery.readthedocs.io/en/latest/?badge=latest)
 - CII Best Practices: [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125)
-
 
 ## What is osquery?
 
@@ -36,16 +36,19 @@ understand the expressiveness that is afforded to you by osquery, consider the f
 queries:
 
 List the [`users`](https://osquery.io/schema/current#users):
+
 ```sql
 SELECT * FROM users;
 ```
 
 Check the [`processes`](https://osquery.io/schema/current#processes) that have a deleted executable:
+
 ```sql
 SELECT * FROM processes WHERE on_disk = 0;
 ```
 
 Get the process name, port, and PID, for processes listening on all interfaces:
+
 ```sql
 SELECT DISTINCT processes.name, listening_ports.port, processes.pid
   FROM listening_ports JOIN processes USING (pid)
@@ -53,6 +56,7 @@ SELECT DISTINCT processes.name, listening_ports.port, processes.pid
 ```
 
 Find every macOS LaunchDaemon that launches an executable and keeps it running:
+
 ```sql
 SELECT name, program || program_arguments AS executable
   FROM launchd
@@ -78,11 +82,12 @@ SELECT address, mac, mac_count
 ```
 
 These queries can be:
-* performed on an ad-hoc basis to explore operating system state using the
+
+- performed on an ad-hoc basis to explore operating system state using the
   [osqueryi](https://osquery.readthedocs.org/en/latest/introduction/using-osqueryi/) shell
-* executed via a [scheduler](https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/)
+- executed via a [scheduler](https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/)
   to monitor operating system state across a set of hosts
-* launched from custom applications using osquery Thrift APIs
+- launched from custom applications using osquery Thrift APIs
 
 ## Download & Install
 

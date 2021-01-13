@@ -92,7 +92,7 @@ CPU: default 25% (for 9 seconds), restrictive 18% (for 9 seconds)
 
 The normal level allows for 10 restarts if the limits are violated. The restrictive allows for only 4, then the service will be disabled. For both there is a linear backoff of 5 seconds, doubling each retry.
 
-It is better to set the level to disabled (`-1`) rather than disabling the watchdog outright, as the worker/watcher concept is used for extensions autoloading too. 
+It is better to set the level to disabled (`-1`) rather than disabling the watchdog outright, as the worker/watcher concept is used for extensions auto-loading too.
 
 The watchdog "profiles" can be overridden for Memory and CPU Utilization.
 
@@ -161,12 +161,12 @@ Path to the extensions UNIX domain socket.
 
 `--extensions_autoload=/etc/osquery/extensions.load`
 
-Optional path to a list of autoloaded and managed extensions.
-If using an extension to provide a proprietary config or logger plugin the extension process can be started by the daemon. Include line-delimited paths to extension executables. See the extensions [deployment](../deployment/extensions.md) page for more details on extension autoloading.
+Optional path to a list of auto-loaded and managed extensions.
+If using an extension to provide a proprietary config or logger plugin the extension process can be started by the daemon. Include line-delimited paths to extension executables. See the extensions [deployment](../deployment/extensions.md) page for more details on extension auto-loading.
 
 `--extensions_timeout=3`
 
-Seconds to wait for autoloaded extensions to register.
+Seconds to wait for auto-loaded extensions to register.
 osqueryd may depend on a config plugin from an extension. If the requested config plugin name is not registered within the timeout the daemon will exit with a failure.
 
 `--extensions_interval=3`
@@ -276,7 +276,7 @@ It is often not the intention of the schedule author to run these queries togeth
 
 Max time drift in seconds.
 The scheduler tries to compensate the splay drift until the delta exceeds this value.
-If the max drift is exceeded the splay will be reseted to zero and the compensation process will start from the beginning.
+If the max drift is exceeded the splay will be reset to zero and the compensation process will start from the beginning.
 This is needed to avoid the problem of endless compensation (which is CPU greedy) after a long SIGSTOP/SIGCONT pause or something similar. Set it to zero to disable drift compensation.
 
 `--pack_refresh_interval=3600`
@@ -429,7 +429,7 @@ Compression codec to use for compressing message sets. Valid options are ("none"
 
 `--buffered_log_max=1000000`
 
-There are multiple logger plugins that use a "buffered logging" implementation. The TLS and AWS loggers use this approach. This flag sets the maximum number of logs to buffer before dropping new logs. If the buffered logs have not been shuttled to the logger destintation they will be purged in order of their timestamp. The oldest logs are purged first.
+There are multiple logger plugins that use a "buffered logging" implementation. The TLS and AWS loggers use this approach. This flag sets the maximum number of logs to buffer before dropping new logs. If the buffered logs have not been shuttled to the logger destination they will be purged in order of their timestamp. The oldest logs are purged first.
 
 Setting this to value to `0` means unlimited logs will be buffered.
 

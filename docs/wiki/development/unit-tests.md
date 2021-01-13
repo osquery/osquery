@@ -1,6 +1,6 @@
 # Unit testing in osquery
 
-All commits to osquery should be well unit-tested. Having tests is useful for many reasons. In addition to the subtle advantage of being able to assert program correctness, tests are often the smallest possible executable which can run a given bit of code. This makes testing new features for memory leaks much easier. Using tools like valgrind in conjunction with compiled tests, we can directly analyze the desired code with minimal outside influence.
+All commits to osquery should be well unit-tested. Having tests is useful for many reasons. In addition to the subtle advantage of being able to assert program correctness, tests are often the smallest possible executable which can run a given bit of code. This makes testing new features for memory leaks much easier. Using tools like Valgrind in conjunction with compiled tests, we can directly analyze the desired code with minimal outside influence.
 
 ## Writing a test
 
