@@ -14,10 +14,91 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 
+#include <boost/algorithm/string/replace.hpp>
+
+namespace ba = boost::algorithm;
+
 namespace osquery {
 namespace tables {
 
-void genUnifiedLog(QueryContext& context, QueryData &results) {
+const std::map<ConstraintOperator, NSPredicateOperatorType> supportedOps = {
+    {EQUALS, NSEqualToPredicateOperatorType},
+    {GREATER_THAN, NSGreaterThanPredicateOperatorType},
+    {GREATER_THAN_OR_EQUALS, NSGreaterThanOrEqualToPredicateOperatorType},
+    {LESS_THAN, NSLessThanPredicateOperatorType},
+    {LESS_THAN_OR_EQUALS, NSLessThanOrEqualToPredicateOperatorType},
+    {LIKE, NSLikePredicateOperatorType}
+};
+
+const std::map<std::string, std::string>  columnToOSLogEntryProp {
+    {"timestamp", "date"},
+    {"message", "composedMessage"},
+    {"storage", "storeCategory"},
+    {"activity", "activityIdentifier"},
+    {"process", "process"},
+    {"pid", "processIdentifier"},
+    {"sender", "sender"},
+    {"tid", "threadIdentifier"},
+    {"subsystem", "subsystem"},
+    {"category", "category"}
+};
+
+const std::map<std::string, bool>  columnIsNumeric {
+    {"timestamp", false},
+    {"message", false},
+    {"storage", true},
+    {"activity", true},
+    {"process", false},
+    {"pid", true},
+    {"sender", false},
+    {"tid", true},
+    {"subsystem", false},
+    {"category", false}
+};
+
+std::string convertLikeExpr(const std::string &value) {
+    // for the LIKE operator in NSPredicates, '*' matches 0 or more characters
+    //   and '?' matches a single character
+    std::string res = ba::replace_all_copy(value, "%", "*");
+    ba::replace_all(res, "_", "?");
+    return res;
+}
+
+void addQueryOp(NSMutableArray *preds,
+                const std::string &key,
+                const std::string &value,
+                ConstraintOperator op) {
+    if (supportedOps.count(op) > 0) {
+        std::string modified_val = value;
+        std::string modified_key = columnToOSLogEntryProp.at(key);
+        if (op == LIKE) {
+            modified_val = convertLikeExpr(value);
+        }
+        NSExpression *keyExp = [NSExpression expressionForKeyPath:[NSString stringWithUTF8String:modified_key.c_str()]];
+        NSString *valStr = [NSString stringWithUTF8String:modified_val.c_str()];
+
+        NSExpression *valExp = nil;
+        if (key == "timestamp") {
+            double provided_timestamp = [valStr doubleValue];
+            valExp = [NSExpression expressionForConstantValue:[NSDate dateWithTimeIntervalSince1970: provided_timestamp]];
+        } else if (columnIsNumeric.at(key)) {
+            valExp = [NSExpression expressionWithFormat:@"%lld", [valStr longLongValue]];
+        } else {
+            valExp = [NSExpression expressionForConstantValue:valStr];
+        }
+
+        NSPredicate *pred = [NSComparisonPredicate
+            predicateWithLeftExpression:keyExp
+            rightExpression:valExp
+            modifier:NSDirectPredicateModifier
+            type:supportedOps.at(op)
+            options:0];
+        [preds addObject:pred];
+    }
+}
+
+
+void genUnifiedLog(QueryContext& queryContext, QueryData &results) {
 
     if (@available(macOS 10.15, *)) {
     NSError *error = nil;
@@ -30,40 +111,30 @@ void genUnifiedLog(QueryContext& context, QueryData &results) {
     OSLogPosition *position = nil;
 
     NSMutableArray *subpredicates = [[NSMutableArray alloc] init];
-    if (context.hasConstraint("timestamp", GREATER_THAN)) {
-        auto start_time = context.constraints["timestamp"].getAll(GREATER_THAN);
-        if (start_time.size() > 1) {
-            VLOG(1) << "Received multiple constraint values for timestamp > constraint.  "
-                       "Only the first will be evaluated.";
-        }
+    if (queryContext.hasConstraint("timestamp", GREATER_THAN)) {
+        auto start_time = queryContext.constraints["timestamp"].getAll(GREATER_THAN);
 
         double provided_timestamp = [[NSString stringWithUTF8String:start_time.begin()->c_str()] doubleValue];
         NSDate *provided_date = [NSDate dateWithTimeIntervalSince1970:provided_timestamp];
-        [subpredicates addObject:[NSPredicate predicateWithFormat:@"date > %@", provided_date]];
 
         position = [logstore positionWithDate:provided_date];
     }
 
-    if (context.hasConstraint("timestamp", LESS_THAN)) {
-        auto end_time = context.constraints["timestamp"].getAll(LESS_THAN);
-        if (end_time.size() > 1) {
-            VLOG(1) << "Received multiple constraing values for timestamp < constraint.  "
-                       "Only the first will be evaluated.";
+    for (const auto &it : queryContext.constraints) {
+        const std::string &key = it.first;
+        for (const auto &constraint : it.second.getAll()) {
+            addQueryOp(subpredicates, key, constraint.expr,
+                       static_cast<ConstraintOperator>(constraint.op));
         }
-
-        double provided_timestamp = [[NSString stringWithUTF8String:end_time.begin()->c_str()] doubleValue];
-        [subpredicates addObject:[NSPredicate predicateWithFormat:@"date < %@", [NSDate dateWithTimeIntervalSince1970: provided_timestamp]]];
     }
 
-    if (context.hasConstraint("subsystem", EQUALS)) {
-        auto subsystem = context.constraints["subsystem"].getAll(EQUALS);
-        [subpredicates addObject:[NSPredicate predicateWithFormat:@"subsystem == %@", [NSString stringWithUTF8String:subsystem.begin()->c_str()]]];
-    }
-
-
+    // QueryContext.constraints doesn't list how the constraints interact with each other,
+    // so we assume they're all ANDed together.
     NSPredicate *predicate = [NSCompoundPredicate andPredicateWithSubpredicates:subpredicates];
 
+    // enumerate the entries in ascending order by timestamp
     OSLogEnumeratorOptions option = 0;
+
     OSLogEnumerator *enumerator = [logstore entriesEnumeratorWithOptions:option
                                                                 position:position
                                                                predicate:predicate
@@ -103,8 +174,12 @@ void genUnifiedLog(QueryContext& context, QueryData &results) {
 
 QueryData genUnifiedLog(QueryContext& context) {
   QueryData results;
+  if (@available(macOS 10.15, *)) {
   @autoreleasepool {
     genUnifiedLog(context, results);
+  }
+  } else {
+    VLOG(1) << "OSLog framework is not available";
   }
   return results;
 }
