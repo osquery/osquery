@@ -159,7 +159,7 @@ jobs:
       id: release_cppcheck_runner
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
-        cmake --build . --target cppcheck | tee cppcheck_release.txt
+        cmake --build . --target cppcheck 2>&1 | tee cppcheck_release.txt
 
     - name: Store the cppcheck log (Release)
       uses: actions/upload-artifact@v1
@@ -188,7 +188,7 @@ jobs:
       id: debug_cppcheck_runner
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
-        cmake --build . --target cppcheck | tee cppcheck_debug.txt
+        cmake --build . --target cppcheck 2>&1 | tee cppcheck_debug.txt
 
     - name: Store the cppcheck log (Debug)
       uses: actions/upload-artifact@v1
