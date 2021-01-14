@@ -226,9 +226,9 @@ Status procGetSocketList(int family,
   switch (family) {
   case AF_INET:
     if (kLinuxProtocolNames.count(protocol) == 0) {
-      return Status(1,
-                    "Invalid family " + std::to_string(protocol) +
-                        " for AF_INET family");
+      return Status(
+          1,
+          "Invalid family " + std::to_string(protocol) + " for AF_INET family");
     } else {
       path += kLinuxProtocolNames.at(protocol);
     }
