@@ -1716,7 +1716,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
          << std::setw(sizeof(unsigned long long) * 2) << std::hex << file_index;
   std::string file_id(stream.str());
 
-  // Windows has fileid's that are displayed in hex using:
+  // Windows has file IDs that are displayed in hex using:
   // fsutil file queryfileid <filename>
   wfile_stat->file_id = file_id;
 
