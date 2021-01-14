@@ -400,7 +400,7 @@ Status EventFactory::run(const std::string& type_id) {
       break;
     }
     publisher->restart_count_++;
-    // This is a 'default' cool-off implemented in interruptibleRunnable.
+    // This is a 'default' cool-off implemented in InterruptibleRunnable.
     // If a publisher fails to perform some sort of interruption point, this
     // prevents the thread from thrashing through exiting checks.
     publisher->pause(std::chrono::milliseconds(200));

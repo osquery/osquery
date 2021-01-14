@@ -18,7 +18,7 @@
 namespace osquery {
 
 class EventPublisherPlugin : public Plugin,
-                             public interruptibleRunnable,
+                             public InterruptibleRunnable,
                              public Eventer {
  public:
   /**

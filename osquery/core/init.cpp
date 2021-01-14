@@ -619,7 +619,7 @@ void Initializer::start() const {
  * The goal is to wait until interrupted or an alarm timeout. If the timeout
  * occurs then osquery is stuck shutting down and we force-terminate.
  */
-class AlarmRunnable : public interruptibleRunnable {
+class AlarmRunnable : public InterruptibleRunnable {
  public:
   /// Thread entry point.
   void run() {
