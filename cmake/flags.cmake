@@ -273,6 +273,7 @@ function(setupBuildFlags)
 
     set(windows_common_link_options
       /SUBSYSTEM:CONSOLE
+      /INCREMENTAL:NO
       ntdll.lib
       ole32.lib
       oleaut32.lib
