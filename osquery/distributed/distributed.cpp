@@ -231,7 +231,7 @@ Status Distributed::acceptWork(const std::string& work) {
                        "distributed_accelerate_checkins_expire",
                        std::to_string(getUnixTime() + duration));
     } else {
-      VLOG(1) << "Falied to Accelerate: Timeframe is not an integer";
+      VLOG(1) << "Failed to Accelerate: Timeframe is not an integer";
     }
   }
   return Status::success();

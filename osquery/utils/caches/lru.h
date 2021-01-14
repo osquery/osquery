@@ -44,7 +44,7 @@ class LRU {
   /**
    * @brief Insert new key and value to the cache.
    *
-   * @details Key and value are taked by const reference, that means they will
+   * @details Key and value are taken by const reference, that means they will
    * be copied to cache. If value with the same kay is exists in the cache it
    * will be replaced with new one.
    *

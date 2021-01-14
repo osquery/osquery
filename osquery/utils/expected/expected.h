@@ -61,7 +61,7 @@
  *        break;
  *   }
  * }
- * @see osquery/utils/exptected/tests/expected.cpp for more examples.
+ * @see osquery/utils/expected/tests/expected.cpp for more examples.
  *
  * Rvalue ref-qualified methods of unconditional access value or error are
  * explicitly deleted. As far as `osquery` does not have an exceptions we

@@ -82,7 +82,7 @@ class ExtendedAttributesTableTests : public testing::Test {
     for (const auto& p : kTestAttributeList) {
       const auto& attribute_name = p.first;
       if (attribute_name.find("user.") != 0U) {
-        throw std::logic_error("Invalud test attribute name");
+        throw std::logic_error("Invalid test attribute name");
       }
 
       const auto& desc = p.second;

@@ -62,7 +62,7 @@ def get_base_commit(base_branch):
                 ["git", "merge-base", "HEAD", base_branch]
                 ).decode().strip()
     except OSError as e:
-        print("{}\n\n{}".format("Failed to execut git", str(e)))
+        print("{}\n\n{}".format("Failed to execute git", str(e)))
     except subprocess.CalledProcessError as e:
         print("{}\n\n{}".format("Failed to determine merge-base", str(e)))
 

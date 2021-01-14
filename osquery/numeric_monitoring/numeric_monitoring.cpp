@@ -34,7 +34,7 @@ FLAG(string,
 FLAG(uint64,
      numeric_monitoring_pre_aggregation_time,
      60,
-     "Time period in seconds for numeric monitoring pre-aggreagation buffer.");
+     "Time period in seconds for numeric monitoring pre-aggregation buffer.");
 
 namespace {
 using monitoring::PreAggregationType;

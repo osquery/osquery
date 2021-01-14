@@ -128,7 +128,7 @@ class Query {
    * which can be accessed via the getColumnFamilyName getter method.
    *
    * @param name The query name.
-   * @param q a SheduledQuery struct.
+   * @param q a ScheduledQuery struct.
    */
   explicit Query(std::string name, const ScheduledQuery& q)
       : query_(q.query), name_(std::move(name)) {}

@@ -208,7 +208,7 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
   doc.add("epoch", static_cast<size_t>(item.epoch), obj);
   doc.add("counter", static_cast<size_t>(item.counter), obj);
 
-  // Apply field indicatiting if numerics are serialized as numbers
+  // Apply field indicating if numerics are serialized as numbers
   doc.add("numerics", FLAGS_logger_numerics, obj);
 
   // Append the decorations.

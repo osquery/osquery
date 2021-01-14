@@ -167,7 +167,7 @@ Status BPFEventPublisher::setUp() {
 
       if (tracer_allocator.syscall_name == "openat2") {
         verbose_message << ". This syscall may not be available on this "
-                           "system, continuining despite the error";
+                           "system, continuing despite the error";
       }
 
       VLOG(1) << verbose_message.str();

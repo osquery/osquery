@@ -58,7 +58,7 @@ class ExternalSQLPlugin : public SQLPlugin {
                          TableColumns& columns) const override;
 };
 
-/// Status get a list of active extenions.
+/// Status get a list of active extensions.
 Status getExtensions(ExtensionList& extensions);
 
 /// Internal getExtensions using a UNIX domain socket path.

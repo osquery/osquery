@@ -275,7 +275,7 @@ QueryData genYara(QueryContext& context) {
   YaraScanContext scanContext;
 
   // Initialize yara library
-  auto init_status = yaraInitilize();
+  auto init_status = yaraInitialize();
   if (!init_status.ok()) {
     LOG(WARNING) << init_status.toString();
     return results;

@@ -20,7 +20,7 @@ namespace osquery {
  * @brief Column options allow for more-complicated modeling of concepts.
  *
  * To accommodate the oddities of operating system concepts we make use of
- * simple SQLite abstractions like indexs/keys and foreign keys, we also
+ * simple SQLite abstractions like indexes/keys and foreign keys, we also
  * allow for optimizing based on query constraints (WHERE).
  *
  * There are several 'complications' where the default table filter (SELECT)

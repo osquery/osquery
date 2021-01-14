@@ -30,7 +30,7 @@ TEST_F(battery, test_sanity) {
   // ASSERT_EQ(data.size(), 1ul);
   // ASSERT_EQ(data.size(), 0ul);
   // 3. Build validation map
-  // See helper.h for avaialbe flags
+  // See helper.h for available flags
   // Or use custom DataCheck object
   // ValidationMap row_map = {
   //      {"manufacturer", NormalType}

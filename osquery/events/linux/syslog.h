@@ -87,7 +87,7 @@ class NonBlockingFStream : public boost::noncopyable {
    * a complete line was dequeued from the managed stream. If too much data is
    * written and our internal buffer overflows then no data will be output.
    *
-   * Overflowing the internal buffer does not break the reading. If this occures
+   * Overflowing the internal buffer does not break the reading. If this occurs
    * then expect a line to be truncated and only yield the max bytes.
    */
   Status getline(std::string& output);

@@ -59,10 +59,10 @@ inline void verifyTrue(bool expected_true, const char* msg) {
 }
 
 /**
- * Class for debug variables and verifys regarding to it.
- * It is designed to contain a value of given type and perform some verifys and
- * updates to it in debug build.
- * In release build objects are empty and verifys and updates do nothing.
+ * Class for debug variables and verifications regarding to it.
+ * It is designed to contain a value of given type and perform some
+ * verifications and updates to it in debug build.
+ * In release build objects are empty; verifications and updates do nothing.
  *
  * See examples of usage in tests osquery/debug/tests/debug_only_tests.cpp
  */

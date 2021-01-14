@@ -17,7 +17,7 @@
  *
  * Abstracting the SQL implementation behind the osquery registry allows
  * the SDK (libosquery) to describe how the SQL implementation is used without
- * having dependencies on the thrird-party code.
+ * having dependencies on the third-party code.
  *
  * When osqueryd/osqueryi are built libosquery_additional, the library which
  * provides the core plugins and core virtual tables, includes SQLite as
