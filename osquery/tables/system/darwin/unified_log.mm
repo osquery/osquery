@@ -104,7 +104,7 @@ void genUnifiedLog(QueryContext& queryContext, QueryData &results) {
     NSError *error = nil;
     OSLogStore *logstore = [OSLogStore localStoreAndReturnError:&error];
     if (error != nil) {
-        NSLog(@"error getting handle to log store: %@", error);
+        VLOG(1) << "error getting handle to log store: " << [[error localizedDescription] UTF8String];
         return;
     }
 
@@ -140,7 +140,7 @@ void genUnifiedLog(QueryContext& queryContext, QueryData &results) {
                                                                predicate:predicate
                                                                    error:&error];
     if (error != nil) {
-        NSLog(@"error enumerating entries in system log: %@", error);
+        VLOG(1) << "error enumerating entries in system log: " <<  [[error localizedDescription] UTF8String];
         return;
     }
     for (OSLogEntryLog *entry in enumerator) {
