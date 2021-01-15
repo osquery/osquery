@@ -107,7 +107,7 @@ osquery project page <https://osquery.io>.
 $ ./build/darwin/osquery/example_extension.ext --socket /Users/USERNAME/.osquery/shell.em &
 ```
 
-Before executing the extension we've inspected the potential CLI flags, which are a subset of the shell or daemon's [CLI flags](../installation/cli-flags.md). We executed the example extension in the background, so now we can resume the osqeury shell and use the 'example' table provided by the extension.
+Before executing the extension we've inspected the potential CLI flags, which are a subset of the shell or daemon's [CLI flags](../installation/cli-flags.md). We executed the example extension in the background, so now we can resume the osquery shell and use the 'example' table provided by the extension.
 
 ```sh
 [2] 98795

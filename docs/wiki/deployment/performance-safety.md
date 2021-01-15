@@ -67,11 +67,11 @@ To estimate how often these should run, you should evaluate what a differential 
 
 ### Understanding the output from profile.py
 
-The osquery `profile.py` script uses `utils.py` in `tools/tests/` which uses python’s `psutil` library to collect process stats for osqueryi as its running given queries. 
+The osquery `profile.py` script uses `utils.py` in `tools/tests/` which uses python’s `psutil` library to collect process stats for osqueryi as its running given queries.
 
 The script returns 5 stats:
 
-**Utilization (U)**: Utilization is calculated by taking the average of non-0 results of the cpu_percent(interval=1) function in `psutils.Process()`. This value can be greater than 100% for processes with threads running across different CPUs. The script sets an interval of 1 meaning that the function compares process time to system CPU times elapsed before and after the 1 second interval. This is a blocking call. 
+**Utilization (U)**: Utilization is calculated by taking the average of non-0 results of the cpu_percent(interval=1) function in `psutils.Process()`. This value can be greater than 100% for processes with threads running across different CPUs. The script sets an interval of 1 meaning that the function compares process time to system CPU times elapsed before and after the 1 second interval. This is a blocking call.
 
 **CPU time (C)**: CPU time uses the `psutils.Process()`'s `cpu_times()` function. It returns a named tuple containing user, system, children_user, system_user, and iowait
 
@@ -81,11 +81,10 @@ The script returns 5 stats:
 - system_user: user time of all child processes (always 0 on Windows and macOS).
 - iowait: (Linux) time spent waiting for blocking I/O to complete. This value is excluded from user and system times count (because the CPU is not doing any work).
 
-The profile script adds user and system together for the CPU 
-Time output.
+The profile script adds user and system together for the CPU Time output.
 
 **Duration (D)**:
-Duration is calculated by taking the subtracting `start_time` - 2 from the current time. The start time is set before the script starts the `osqueryi` process to run the query. The `start_time` - 2 comes from the `--profile_delay` flag used by the profile.py script. This flag causes osquery to wait before and after running the code under test. The 2 is to make up for this wait time. 
+Duration is calculated by taking the subtracting `start_time` - 2 from the current time. The start time is set before the script starts the `osqueryi` process to run the query. The `start_time` - 2 comes from the `--profile_delay` flag used by the profile.py script. This flag causes osquery to wait before and after running the code under test. The 2 is to make up for this wait time.
 
 **fds (F)**: Uses the `num_fds()` function and returns the file descriptors used by the `osqueryi` process during query execution
 

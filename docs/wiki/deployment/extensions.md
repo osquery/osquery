@@ -17,7 +17,7 @@ icacls .\Extensions /inheritance:r /t
 icacls .\Extensions /inheritance:d /t
 ```
 
-## Autoloading Extensions
+## Auto-loading Extensions
 
 The following [CLI flags](../installation/cli-flags.md) control extension auto-loading:
 
@@ -73,7 +73,7 @@ $ cat /etc/osquery/osquery.flags
 ## Retrieving Tables and Columns with SQL
 
 Aside from the `.tables` and `.schema` shell builtins, there is an alternative way to retrieve all available tables and columns: using SQL.
- 
+
 To retrieve all tables:
 
 ```sqlite

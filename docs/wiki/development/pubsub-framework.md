@@ -22,7 +22,7 @@ When scheduling queries that include `_events` (subscriber-based) tables, additi
 
 An osquery event publisher is a combination of a threaded run loop and event storage abstraction. The publisher loops on some selected resource or uses operating system APIs to register callbacks. The loop or callback introspects on the event and sends it to every appropriate subscriber. An osquery event subscriber will send subscriptions to a publisher, save published data, and react to a query by returning appropriate data.
 
-The pubsub runflow is exposed as a publisher `setUp()`, a series of `addSubscription(const SubscriptionRef)` by subscribers, a publisher `configure()`, and finally a new thread scheduled with the publisher's `run()` static method as the entrypoint. For every event the publisher receives it will loop through every `Subscription` and call `fire(const EventContextRef, EventTime)` to send the event to the subscriber.
+The pubsub runflow is exposed as a publisher `setUp()`, a series of `addSubscription(const SubscriptionRef)` by subscribers, a publisher `configure()`, and finally a new thread scheduled with the publisher's `run()` static method as the entry point. For every event the publisher receives it will loop through every `Subscription` and call `fire(const EventContextRef, EventTime)` to send the event to the subscriber.
 
 ## Example: inotify
 

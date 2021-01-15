@@ -1,4 +1,4 @@
-# Reading syslogs with osquery
+# Reading syslog with osquery
 
 osquery 1.7.3 introduced support for consuming and querying the macOS system log via Apple System Log (ASL). osquery 1.7.4 introduced support for the Linux syslog via **rsyslog**. This document explains how to configure and use these syslog tables.
 
