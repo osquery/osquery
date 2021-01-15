@@ -28,9 +28,9 @@ namespace osquery {
 class Status;
 class Dispatcher;
 
-class InterruptableRunnable {
+class InterruptibleRunnable {
  public:
-  virtual ~InterruptableRunnable() = default;
+  virtual ~InterruptibleRunnable() = default;
 
   /**
    * @brief The std::thread's interruption point.
@@ -52,7 +52,7 @@ class InterruptableRunnable {
   /// Put the runnable into an interruptible sleep.
   void pause(std::chrono::milliseconds milli);
 
-  /// Name of the InterruptableRunnable which is also the thread name
+  /// Name of the InterruptibleRunnable which is also the thread name
   std::string runnable_name_;
 
  private:
@@ -75,7 +75,7 @@ class InterruptableRunnable {
 };
 
 class InternalRunnable : private boost::noncopyable,
-                         public InterruptableRunnable {
+                         public InterruptibleRunnable {
  public:
   InternalRunnable(const std::string& name) : run_(false) {
     runnable_name_ = name;

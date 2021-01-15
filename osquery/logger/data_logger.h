@@ -35,7 +35,7 @@ void initStatusLogger(const std::string& name, bool init_glog = true);
 
 /**
  * @brief Initialize the osquery Logger facility by dumping the buffered status
- * logs and configurating status log forwarding.
+ * logs and configuring status log forwarding.
  *
  * initLogger will disable the `BufferedLogSink` facility, dump any status logs
  * emitted between process start and this init call, then configure the new

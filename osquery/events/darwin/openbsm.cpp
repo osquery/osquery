@@ -64,7 +64,7 @@ Status OpenBSMEventPublisher::configureAuditPipe() {
   }
 
   if (true == FLAGS_audit_allow_user_events) {
-    // capture user (login, autherization etc...) events
+    // capture user (login, authorization, etc.) events
     ev_classes.insert("lo");
     ev_classes.insert("aa");
   }

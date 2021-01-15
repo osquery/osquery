@@ -143,7 +143,7 @@ class FSEventsEventPublisher
   std::set<std::string> transformSubscription(
       FSEventsSubscriptionContextRef& sc) const;
 
-  /// Build the set of excluded paths for which events are not to be propogated.
+  /// Build the set of excluded paths for which events are not to be propagated.
   void buildExcludePathsSet();
 
  private:

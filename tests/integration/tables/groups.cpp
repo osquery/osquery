@@ -27,7 +27,7 @@ class groups : public testing::Test {
 
 TEST_F(groups, test_sanity) {
   // Build validation map
-  // See helper.h for avaialbe flags
+  // See helper.h for available flags
   // Or use custom DataCheck object
   ValidationMap row_map = {
       {"gid", IntType},

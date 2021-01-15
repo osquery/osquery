@@ -74,7 +74,7 @@ Mutex kDatabaseReset;
  */
 const size_t kDatabaseMaxRetryCount{25};
 
-/// Number of millisecons to pause between database initialize retries.
+/// Number of milliseconds to pause between database initialize retries.
 const size_t kDatabaseRetryDelay{200};
 
 Status DatabasePlugin::reset() {
@@ -479,7 +479,7 @@ Status initDatabasePlugin() {
     }
 
     if (FLAGS_disable_database) {
-      // Do not try multiple times to initialize the emphemeral plugin.
+      // Do not try multiple times to initialize the ephemeral plugin.
       break;
     }
     sleepFor(kDatabaseRetryDelay);

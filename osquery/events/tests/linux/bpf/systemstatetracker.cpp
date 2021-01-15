@@ -1316,7 +1316,7 @@ TEST_F(SystemStateTrackerTests, saveFileHandle) {
   EXPECT_EQ(context.file_handle_struct_map.count(index), 1U);
   EXPECT_EQ(context.file_handle_struct_index.size(), 1U);
 
-  // Make sure that the handle was saved correcly
+  // Make sure that the handle was saved correctly
   auto first_item_it = context.file_handle_struct_map.begin();
   const auto& file_handle_struct = first_item_it->second;
 

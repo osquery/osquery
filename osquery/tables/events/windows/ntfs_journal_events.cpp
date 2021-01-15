@@ -320,14 +320,14 @@ void processConfiguration(const NTFSEventSubscriptionContextRef context,
     // resolveFilePattern should filter out any nonexistent files,
     // so this should never be the case (except for TOCTOU).
     if (file_hnd == INVALID_HANDLE_VALUE) {
-      TLOG << "Couldn't open " << path << " while buiding FRN set";
+      TLOG << "Couldn't open " << path << " while building FRN set";
       continue;
     }
 
     // NOTE(woodruffw): This shouldn't fail once we have a valid handle, but
     // there's another TOCTOU here: another process could delete the file before
     // we get its information. We don't want to lock the file, though, since it
-    // could be something imporant used by another process.
+    // could be something important used by another process.
     USNFileReferenceNumber frn{};
 
 #if _WIN32_WINNT > _WIN32_WINNT_WIN7

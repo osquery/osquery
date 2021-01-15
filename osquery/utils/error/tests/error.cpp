@@ -34,10 +34,10 @@ GTEST_TEST(ErrorTest, initialization) {
 }
 
 GTEST_TEST(ErrorTest, recursive) {
-  auto orignalError = std::make_unique<osquery::Error<TestError>>(
+  auto originalError = std::make_unique<osquery::Error<TestError>>(
       TestError::SomeError, "SuperTestMessage");
   auto error = osquery::Error<TestError>(
-      TestError::AnotherError, "TestMessage", std::move(orignalError));
+      TestError::AnotherError, "TestMessage", std::move(originalError));
   EXPECT_TRUE(error.hasUnderlyingError());
 
   auto shortMsg = error.getNonRecursiveMessage();

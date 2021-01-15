@@ -17,7 +17,7 @@ namespace osquery {
 /// The worker_threads define the default thread pool size.
 FLAG(int32, worker_threads, 4, "Number of work dispatch threads");
 
-void InterruptableRunnable::interrupt() {
+void InterruptibleRunnable::interrupt() {
   // Set the service as interrupted.
   if (!interrupted_.exchange(true)) {
     // Tear down the service's resources such that exiting the expected run
@@ -29,11 +29,11 @@ void InterruptableRunnable::interrupt() {
   }
 }
 
-bool InterruptableRunnable::interrupted() {
+bool InterruptibleRunnable::interrupted() {
   return interrupted_;
 }
 
-void InterruptableRunnable::pause(std::chrono::milliseconds milli) {
+void InterruptibleRunnable::pause(std::chrono::milliseconds milli) {
   std::unique_lock<std::mutex> lock(condition_lock);
   if (!interrupted_) {
     condition_.wait_for(lock, milli);

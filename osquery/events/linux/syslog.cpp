@@ -229,7 +229,7 @@ void SyslogEventPublisher::unlockPipe() {
 
 Status SyslogEventPublisher::run() {
   // This run function will be called by the event factory with ~100ms pause
-  // (see InterruptableRunnable::pause()) between runs. In case something goes
+  // (see InterruptibleRunnable::pause()) between runs. In case something goes
   // weird and there is a huge amount of input, we limit how many logs we
   // take in per run to avoid pegging the CPU.
 
