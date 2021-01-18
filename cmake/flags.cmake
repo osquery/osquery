@@ -62,6 +62,7 @@ function(setupBuildFlags)
       -fno-limit-debug-info
       -pipe
       -pedantic
+      -pthread
     )
 
     if(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
