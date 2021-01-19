@@ -64,7 +64,7 @@ void addQueryOp(NSMutableArray* preds,
                 const std::string& key,
                 const std::string& value,
                 ConstraintOperator op) {
-  if (supportedOps.count(op) > 0) {
+  if (supportedOps.count(op) > 0 && columnToOSLogEntryProp.count(key) > 0) {
     std::string modified_val = value;
     std::string modified_key = columnToOSLogEntryProp.at(key);
     if (op == LIKE) {
@@ -103,14 +103,15 @@ void genUnifiedLog(QueryContext& queryContext, QueryData& results) {
     NSError* error = nil;
     OSLogStore* logstore = [OSLogStore localStoreAndReturnError:&error];
     if (error != nil) {
-      VLOG(1) << "error getting handle to log store: "
-              << [[error localizedDescription] UTF8String];
+      TLOG << "error getting handle to log store: "
+           << [[error localizedDescription] UTF8String];
       return;
     }
 
     OSLogPosition* position = nil;
 
-    NSMutableArray* subpredicates = [[NSMutableArray alloc] init];
+    // the timestamp column can be used to aggressively filter
+    // results returned from the log store
     if (queryContext.hasConstraint("timestamp", GREATER_THAN)) {
       auto start_time =
           queryContext.constraints["timestamp"].getAll(GREATER_THAN);
@@ -123,6 +124,9 @@ void genUnifiedLog(QueryContext& queryContext, QueryData& results) {
       position = [logstore positionWithDate:provided_date];
     }
 
+    // grab all the supported columns used in simple constraints and make a
+    // compound predicate out of them.
+    NSMutableArray* subpredicates = [[NSMutableArray alloc] init];
     for (const auto& it : queryContext.constraints) {
       const std::string& key = it.first;
       for (const auto& constraint : it.second.getAll()) {
@@ -145,8 +149,8 @@ void genUnifiedLog(QueryContext& queryContext, QueryData& results) {
                                      predicate:predicate
                                          error:&error];
     if (error != nil) {
-      VLOG(1) << "error enumerating entries in system log: "
-              << [[error localizedDescription] UTF8String];
+      TLOG << "error enumerating entries in system log: "
+           << [[error localizedDescription] UTF8String];
       return;
     }
     for (OSLogEntryLog* entry in enumerator) {
@@ -172,6 +176,9 @@ void genUnifiedLog(QueryContext& queryContext, QueryData& results) {
         if (category != nil) {
           r["category"] = TEXT([category UTF8String]);
         }
+      }
+      if ([entry respondsToSelector:@selector(level)]) {
+        r["level"] = INTEGER([entry level]);
       }
       results.push_back(r);
     }
