@@ -69,7 +69,7 @@ pip3 install --user setuptools pexpect==3.3 psutil timeout_decorator six thrift=
 
 ### Step 2: Download and build source on macOS
 
-In the following example, the use of the additional CMake argument `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.11` specifies macOS 10.11 as the minimum compatible macOS version to which you can deploy osquery (this affects the version of the macOS SDK used at build time).
+In the following example, the use of the additional CMake argument `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.12` specifies macOS 10.12 as the minimum compatible macOS version to which you can deploy osquery (this affects the version of the macOS SDK used at build time).
 
 ```bash
 # Download source
@@ -78,7 +78,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 ..
+cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 ..
 
 # Build
 cmake --build . -j $(sysctl -n hw.ncpu)
@@ -343,7 +343,7 @@ On macOS you can choose between a TGZ or a PKG, which is the default.
 You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
 
 ```sh
-cmake -DPACKAGING_SYSTEM=TGZ -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 ..
+cmake -DPACKAGING_SYSTEM=TGZ -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 ..
 cmake --build . --target package
 ```
 
