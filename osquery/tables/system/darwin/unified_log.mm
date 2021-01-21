@@ -186,7 +186,16 @@ void genUnifiedLog(QueryContext& queryContext, QueryData& results) {
         }
       }
       if ([entry respondsToSelector:@selector(level)]) {
-        r["level"] = INTEGER([entry level]);
+        const char* logLevelNames[] = {
+            [OSLogEntryLogLevelUndefined] = "undefined",
+            [OSLogEntryLogLevelDebug] = "debug",
+            [OSLogEntryLogLevelInfo] = "info",
+            [OSLogEntryLogLevelNotice] = "default",
+            [OSLogEntryLogLevelError] = "error",
+            [OSLogEntryLogLevelFault] = "fault",
+        };
+
+        r["level"] = TEXT(logLevelNames[[entry level]]);
       }
       results.push_back(r);
     }
