@@ -112,12 +112,20 @@ void genUnifiedLog(QueryContext& queryContext, QueryData& results) {
 
     // the timestamp column can be used to aggressively filter
     // results returned from the log store
-    if (queryContext.hasConstraint("timestamp", GREATER_THAN)) {
-      auto start_time =
-          queryContext.constraints["timestamp"].getAll(GREATER_THAN);
+    if (queryContext.hasConstraint("timestamp", GREATER_THAN) ||
+        queryContext.hasConstraint("timestamp", GREATER_THAN_OR_EQUALS)) {
+      std::string start_time;
+      if (queryContext.hasConstraint("timestamp", GREATER_THAN)) {
+        start_time =
+            *queryContext.constraints["timestamp"].getAll(GREATER_THAN).begin();
+      } else {
+        start_time = *queryContext.constraints["timestamp"]
+                          .getAll(GREATER_THAN_OR_EQUALS)
+                          .begin();
+      }
 
-      double provided_timestamp = [[NSString
-          stringWithUTF8String:start_time.begin()->c_str()] doubleValue];
+      double provided_timestamp =
+          [[NSString stringWithUTF8String:start_time.c_str()] doubleValue];
       NSDate* provided_date =
           [NSDate dateWithTimeIntervalSince1970:provided_timestamp];
 
