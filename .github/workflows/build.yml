@@ -574,7 +574,7 @@ jobs:
 
     - name: Select the Xcode version
       run: |
-        sudo xcode-select -s /Applications/Xcode_11.7.app/Contents/Developer
+        sudo xcode-select -s /Applications/Xcode_12.3.app/Contents/Developer
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
@@ -598,7 +598,7 @@ jobs:
 
       run: |
         cmake -G "Unix Makefiles" \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 \
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
