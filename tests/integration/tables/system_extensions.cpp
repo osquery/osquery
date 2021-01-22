@@ -31,7 +31,8 @@ TEST_F(SystemExtension, test_sanity) {
                            {"version", NormalType},
                            {"category", NormalType},
                            {"bundle_path", NormalType},
-                           {"team", NormalType}};
+                           {"team", NormalType},
+                           {"mdm_managed", NonNegativeInt}};
   validate_rows(data, row_map);
 }
 
