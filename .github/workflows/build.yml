@@ -115,9 +115,11 @@ jobs:
       run: |
         rel_build_path="workspace/build"
         rel_source_path="workspace/src"
+        rel_install_path="workspace/install"
 
         mkdir -p ${rel_build_path} \
-                 ${rel_source_path}
+                 ${rel_source_path} \
+                 ${rel_install_path}
 
         mv .git "${rel_source_path}"
         ( cd "${rel_source_path}" && git reset --hard )
@@ -271,11 +273,16 @@ jobs:
         rel_build_path="workspace/usr/src/debug/osquery/build"
         rel_src_path="workspace/padding-required-by-rpm-packages/src"
         rel_ccache_path="workspace/ccache"
+        rel_package_data_path="workspace/package_data"
+        rel_packaging_path="workspace/osquery-packaging"
+        rel_package_build_path="workspace/package-build"
 
         mkdir -p ${rel_build_path} \
                  ${rel_src_path} \
                  ${rel_ccache_path} \
-                 ${rel_src_path}
+                 ${rel_src_path} \
+                 ${rel_package_data_path} \
+                 ${rel_package_build_path}
 
         chown -R ${{ steps.unprivileged_user.outputs.NAME }}:${{ steps.unprivileged_user.outputs.NAME }} .
 
@@ -284,8 +291,16 @@ jobs:
 
         echo ::set-output name=SOURCE::$(realpath ${rel_src_path})
         echo ::set-output name=BINARY::$(realpath ${rel_build_path})
-        echo ::set-output name=REL_BINARY::${rel_build_path}
         echo ::set-output name=CCACHE::$(realpath ${rel_ccache_path})
+        echo ::set-output name=PACKAGING::$(realpath ${rel_packaging_path})
+        echo ::set-output name=PACKAGE_DATA::$(realpath ${rel_package_data_path})
+        echo ::set-output name=REL_PACKAGE_BUILD::${rel_package_build_path}
+        echo ::set-output name=PACKAGE_BUILD::$(realpath ${rel_package_build_path})
+
+    - name: Clone the osquery-packaging repository
+      run: |
+        git clone https://github.com/osquery/osquery-packaging \
+          ${{ steps.build_paths.outputs.PACKAGING }}
 
     # One of the tests in the test suit will spawn a Docker container
     # using this socket. Allow the unprivileged user we created
@@ -359,85 +374,107 @@ jobs:
       run: |
         sudo -u root ctest --build-nocmake -L "root-required" -V
 
-    - name: Create the DEB package
+    - name: Run the install target
       if: matrix.build_type == 'RelWithDebInfo'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+        DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
       run: |
-        cmake -DPACKAGING_SYSTEM=DEB "${{ steps.build_paths.outputs.SOURCE }}"
-        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+        cmake \
+          --build . \
+          --target install \
+          -j ${{ steps.build_job_count.outputs.VALUE }}
 
-    - name: Create the RPM package
+    # Since we need to run CMake to create the packages with osquery-packaging, the
+    # configuration will fail unless the C and C++ compilers are found
+    - name: Install packaging dependencies
       if: matrix.build_type == 'RelWithDebInfo'
-
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
-
-      working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
-        cmake -DPACKAGING_SYSTEM=RPM "${{ steps.build_paths.outputs.SOURCE }}"
-        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+        sudo apt update
+        sudo apt install build-essential gcc g++ -y
 
-    - name: Create the TGZ package
+    - name: Create the packages
       if: matrix.build_type == 'RelWithDebInfo'
-      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
 
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      shell: bash
 
       run: |
-        cmake -DPACKAGING_SYSTEM=TGZ "${{ steps.build_paths.outputs.SOURCE }}"
-        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+        osquery_version=$(cd ${{ steps.build_paths.outputs.SOURCE }} && git describe --tags --always )
+
+        tar pcvzf package_data.tar.gz \
+          ${{ steps.build_paths.outputs.PACKAGE_DATA }}
+
+        package_format_list=( "DEB" "RPM" "TGZ" )
+
+        for package_format in "${package_format_list[@]}" ; do
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCPACK_GENERATOR=${package_format} \
+            -DOSQUERY_PACKAGE_VERSION=${osquery_version} \
+            -DOSQUERY_DATA_PATH=${{ steps.build_paths.outputs.PACKAGE_DATA }} \
+            -DOSQUERY_SOURCE_DIRECTORY_LIST="${{ steps.build_paths.outputs.SOURCE }};${{ steps.build_paths.outputs.BINARY }}" \
+            ${{ steps.build_paths.outputs.PACKAGING }}
+
+          cmake --build . \
+            --target package
+        done
 
     - name: Locate the packages
       if: matrix.build_type == 'RelWithDebInfo'
-      working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      id: package_names
+      id: packages
       shell: bash
       run: |
-        echo ::set-output name=DEB_PACKAGE_NAME::$(ls *.deb)
-        echo ::set-output name=DDEB_PACKAGE_NAME::$(ls *.ddeb)
-        echo ::set-output name=RELEASE_RPM_PACKAGE_NAME::$(ls osquery-?.*.rpm)
-        echo ::set-output name=DEBUGINFO_RPM_PACKAGE_NAME::$(ls osquery-debuginfo-*.rpm)
-        echo ::set-output name=TARGZ_PACKAGE_NAME::$(ls *.tar.gz)
+        echo ::set-output name=REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH::${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz
+        echo ::set-output name=REL_UNSIGNED_RELEASE_DEB_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.deb)
+        echo ::set-output name=REL_UNSIGNED_DEBUG_DEB_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.ddeb)
+        echo ::set-output name=REL_UNSIGNED_RELEASE_RPM_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-?.*.rpm)
+        echo ::set-output name=REL_UNSIGNED_DEBUG_RPM_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)
+        echo ::set-output name=REL_UNSIGNED_RELEASE_TGZ_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_x86_64.tar.gz)
 
-    - name: Store the .deb package artifact
+    - name: Store the unsigned release package data artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v1
       with:
-        name: linux_deb_package_x86_64-${{ matrix.build_type }}
-        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DEB_PACKAGE_NAME }}
+        name: linux_unsigned_release_package_data
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Store the .ddeb package artifact
+    - name: Store the unsigned release DEB artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v1
       with:
-        name: linux_dbgsym_deb_package_x86_64-${{ matrix.build_type }}
-        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DDEB_PACKAGE_NAME }}
+        name: linux_unsigned_release_deb
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_DEB_PATH }}
 
-    - name: Store the release .rpm package artifact
+    - name: Store the unsigned debug DEB artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v1
       with:
-        name: linux_rpm_package_x86_64-${{ matrix.build_type }}
-        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.RELEASE_RPM_PACKAGE_NAME }}
+        name: linux_unsigned_debug_deb
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_DEB_PATH }}
 
-    - name: Store the debuginfo .rpm package artifact
+    - name: Store the unsigned release RPM artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v1
       with:
-        name: linux_debuginfo_rpm_package_x86_64-${{ matrix.build_type }}
-        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DEBUGINFO_RPM_PACKAGE_NAME }}
+        name: linux_unsigned_release_rpm
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_RPM_PATH }}
 
-    - name: Store the .tar.gz package artifact
+    - name: Store the unsigned debug RPM artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v1
       with:
-        name: linux_targz_package_x86_64-${{ matrix.build_type }}
-        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.TARGZ_PACKAGE_NAME }}
+        name: linux_unsigned_debug_rpm
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_RPM_PATH }}
+
+    - name: Store the unsigned release TGZ artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v1
+      with:
+        name: linux_unsigned_release_tgz
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
@@ -476,25 +513,38 @@ jobs:
         rel_ccache_path="workspace/ccache"
         rel_downloads_path="workspace/downloads"
         rel_install_path="workspace/install"
+        rel_package_data_path="workspace/package_data"
+        rel_packaging_path="workspace/osquery-packaging"
+        rel_package_build_path="workspace/package-build"
 
         mkdir -p ${rel_build_path} \
                  ${rel_ccache_path} \
                  ${rel_downloads_path} \
-                 ${rel_install_path}
+                 ${rel_install_path} \
+                 ${rel_package_data_path} \
+                 ${rel_package_build_path}
 
         echo ::set-output name=SOURCE::$(pwd)/${rel_src_path}
         echo ::set-output name=REL_SOURCE::${rel_src_path}
         echo ::set-output name=BINARY::$(pwd)/${rel_build_path}
-        echo ::set-output name=REL_BINARY::${rel_build_path}
         echo ::set-output name=CCACHE::$(pwd)/${rel_ccache_path}
         echo ::set-output name=DOWNLOADS::$(pwd)/${rel_downloads_path}
         echo ::set-output name=INSTALL::$(pwd)/${rel_install_path}
+        echo ::set-output name=PACKAGING::$(pwd)/${rel_packaging_path}
+        echo ::set-output name=PACKAGE_DATA::$(pwd)/${rel_package_data_path}
+        echo ::set-output name=REL_PACKAGE_BUILD::${rel_package_build_path}
+        echo ::set-output name=PACKAGE_BUILD::$(pwd)/${rel_package_build_path}
 
     - name: Clone the osquery repository
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
+
+    - name: Clone the osquery-packaging repository
+      run: |
+        git clone https://github.com/osquery/osquery-packaging \
+          ${{ steps.build_paths.outputs.PACKAGING }}
 
     - name: Update the cache (ccache)
       uses: actions/cache@v2
@@ -622,51 +672,74 @@ jobs:
       run: |
         ctest --build-nocmake -V
 
-    - name: Create the TGZ package
+    - name: Run the install target
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+        DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
       run: |
-        cmake -G "Unix Makefiles" \
-          -DPACKAGING_SYSTEM=TGZ \
-          ${{ steps.build_paths.outputs.SOURCE }}
+        cmake \
+          --build . \
+          --target install \
+          -j ${{ steps.build_job_count.outputs.VALUE }}
 
-        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+    - name: Create the packages
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
 
-    - name: Create the PKG package
-      working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      shell: bash
 
       run: |
-        cmake -G "Unix Makefiles" \
-          -DPACKAGING_SYSTEM=productbuild \
-          ${{ steps.build_paths.outputs.SOURCE }}
+        osquery_version=$(cd ${{ steps.build_paths.outputs.SOURCE }} && git describe --tags --always )
 
-        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+        tar pcvzf package_data.tar.gz \
+          -C ${{ steps.build_paths.outputs.PACKAGE_DATA }} \
+          .
+
+        package_format_list=( "productbuild" "TGZ" )
+
+        for package_format in "${package_format_list[@]}" ; do
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCPACK_GENERATOR=${package_format} \
+            -DOSQUERY_PACKAGE_VERSION=${osquery_version} \
+            -DOSQUERY_DATA_PATH=${{ steps.build_paths.outputs.PACKAGE_DATA }} \
+            ${{ steps.build_paths.outputs.PACKAGING }}
+
+          cmake --build . \
+            --target package
+        done
 
     - name: Locate the packages
+      if: matrix.build_type == 'Release'
+      id: packages
       shell: bash
-      working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      id: package_names
       run: |
-        echo ::set-output name=TARGZ_PACKAGE_NAME::$(ls *.tar.gz)
-        echo ::set-output name=PKG_PACKAGE_NAME::$(ls *.pkg)
+        echo ::set-output name=REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)
+        echo ::set-output name=REL_UNSIGNED_RELEASE_PKG_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.pkg)
+        echo ::set-output name=REL_UNSIGNED_RELEASE_TGZ_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.tar.gz | grep -v package_data)
 
-    - name: Store the .tar.gz package artifact
+    - name: Store the unsigned release package data artifact
+      if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v1
       with:
-        name: ${{ matrix.os }}_targz_package-${{ matrix.build_type }}
-        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.TARGZ_PACKAGE_NAME }}
+        name: macos_unsigned_release_package_data
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Store the .pkg package artifact
+    - name: Store the unsigned release PKG artifact
+      if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v1
       with:
-        name: ${{ matrix.os }}_pkg_package-${{ matrix.build_type }}
-        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.PKG_PACKAGE_NAME }}
+        name: macos_unsigned_release_pkg
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PKG_PATH }}
+
+    - name: Store the unsigned release TGZ artifact
+      if: matrix.build_type == 'Release'
+      uses: actions/upload-artifact@v1
+      with:
+        name: macos_unsigned_release_tgz
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
@@ -700,21 +773,25 @@ jobs:
         $rel_sccache_path = "w\sccache"
         $rel_downloads_path = "w\downloads"
         $rel_install_path = "w\install"
+        $rel_package_data_path="w\package_data"
+        $rel_packaging_path="w\osquery-packaging"
 
         New-Item -ItemType Directory -Force -Path $rel_build_path
         New-Item -ItemType Directory -Force -Path $rel_sccache_path
         New-Item -ItemType Directory -Force -Path $rel_downloads_path
         New-Item -ItemType Directory -Force -Path $rel_install_path
+        New-Item -ItemType Directory -Force -Path $rel_package_data_path
 
         $base_dir = (Get-Item .).FullName
 
         echo "::set-output name=SOURCE::$base_dir\$rel_src_path"
         echo "::set-output name=REL_SOURCE::$rel_src_path"
         echo "::set-output name=BINARY::$base_dir\$rel_build_path"
-        echo "::set-output name=REL_BINARY::$rel_build_path"
         echo "::set-output name=SCCACHE::$base_dir\$rel_sccache_path"
         echo "::set-output name=DOWNLOADS::$base_dir\$rel_downloads_path"
         echo "::set-output name=INSTALL::$base_dir\$rel_install_path"
+        echo "::set-output name=PACKAGING::$base_dir\$rel_packaging_path"
+        echo "::set-output name=PACKAGE_DATA::$base_dir\$rel_package_data_path"
 
     # Symbolic links are supported by default on Linux and macOS. On
     # Windows, we have to enable them explicitly. They are used to
@@ -730,6 +807,21 @@ jobs:
       with:
         fetch-depth: 0
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
+
+    - name: Detect the osquery version
+      shell: powershell
+      id: osquery_version
+      run: |
+        cd ${{ steps.build_paths.outputs.SOURCE }}
+        $osquery_version=$(git describe --tags --abbrev=0)
+
+        echo "::set-output name=VALUE::$osquery_version"
+
+    # TODO: The osquery-packaging version must be pinned
+    - name: Clone the osquery-packaging repository
+      run: |
+        cd w
+        git clone https://github.com/osquery/osquery-packaging
 
     - name: Update the cache (sccache)
       uses: actions/cache@v2
@@ -868,7 +960,7 @@ jobs:
         cmake -G Ninja ^
           -DCMAKE_C_COMPILER=cl.exe ^
           -DCMAKE_CXX_COMPILER=cl.exe ^
-          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ^
           -DOSQUERY_BUILD_TESTS=ON ^
           -DCMAKE_C_COMPILER_LAUNCHER="sccache.exe" ^
           -DCMAKE_CXX_COMPILER_LAUNCHER="sccache.exe" ^
@@ -896,59 +988,86 @@ jobs:
       run: |
         ctest --build-nocmake -C Release -V
 
-    - name: Build the MSI package
-      shell: cmd
+    - name: Run the install target
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
-        SCCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
-        SCCACHE_CACHE_SIZE: "5G"
+        CCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
+        DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
+
+      run: |
+        cmake --build . --target install -j 3
+
+    - name: Create the packages
+      shell: cmd
 
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
 
-        cmake -G Ninja ^
-          -DPACKAGING_SYSTEM=WIX ^
-          ${{ steps.build_paths.outputs.SOURCE }}
+        cd ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
 
-        cmake --build . --target package --config Release -j 3
+        7z ^
+          a windows_package_data.zip ^
+          ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
-    - name: Build the NuGet package
-      shell: cmd
-      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+        if %errorlevel% neq 0 exit /b %errorlevel%
 
-      env:
-        SCCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
-        SCCACHE_CACHE_SIZE: "5G"
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ^
+          -DCPACK_GENERATOR=WIX ^
+          -DOSQUERY_PACKAGE_VERSION=${{ steps.osquery_version.outputs.VALUE }} ^
+          -DOSQUERY_DATA_PATH=${{ steps.build_paths.outputs.PACKAGE_DATA }} ^
+          -DOSQUERY_BITNESS=${{ matrix.bitness }} ^
+          ${{ steps.build_paths.outputs.PACKAGING }}
 
-      run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
+        if %errorlevel% neq 0 exit /b %errorlevel%
 
-        cmake -G Ninja ^
-          -DPACKAGING_SYSTEM=NuGet ^
-          ${{ steps.build_paths.outputs.SOURCE }}
+        cmake --build . ^
+          --config Release ^
+          --target package
 
-        cmake --build . --target package --config Release -j 3
+        if %errorlevel% neq 0 exit /b %errorlevel%
+
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ^
+          -DCPACK_GENERATOR=NuGet ^
+          -DOSQUERY_PACKAGE_VERSION=${{ steps.osquery_version.outputs.VALUE }} ^
+          -DOSQUERY_DATA_PATH=${{ steps.build_paths.outputs.PACKAGE_DATA }} ^
+          -DOSQUERY_BITNESS=${{ matrix.bitness }} ^
+          ${{ steps.build_paths.outputs.PACKAGING }}
+
+        if %errorlevel% neq 0 exit /b %errorlevel%
+
+        cmake --build . ^
+          --config Release ^
+          --target package
+
+        if %errorlevel% neq 0 exit /b %errorlevel%
 
     - name: Locate the packages
-      working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      id: package_names
+      working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
+      id: packages
       shell: bash
       run: |
-        echo ::set-output name=MSI_PACKAGE_NAME::$(ls *.msi)
-        echo ::set-output name=NUPKG_PACKAGE_NAME::$(ls *.nupkg)
+        echo ::set-output name=REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH::$(ls *.zip)
+        echo ::set-output name=REL_UNSIGNED_RELEASE_MSI_PATH::$(ls *.msi)
+        echo ::set-output name=REL_UNSIGNED_RELEASE_NUPKG_PATH::$(ls *.nupkg)
 
-    - name: Store the .msi package artifact
+    - name: Store the unsigned release package data artifact
       uses: actions/upload-artifact@v1
       with:
-        name: ${{ matrix.os }}-${{ matrix.bitness }}_msi_package
-        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.MSI_PACKAGE_NAME }}
+        name: windows${{ matrix.bitness }}_unsigned_release_package_data
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Store the .nupkg package artifact
+    - name: Store the unsigned release MSI artifact
       uses: actions/upload-artifact@v1
       with:
-        name: ${{ matrix.os }}-${{ matrix.bitness }}_nupkg_package
-        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.NUPKG_PACKAGE_NAME }}
+        name: windows${{ matrix.bitness }}_unsigned_release_msi
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_MSI_PATH }}
+
+    - name: Store the unsigned release NUPKG artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: windows${{ matrix.bitness }}_unsigned_release_nupkg
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_NUPKG_PATH }}
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
