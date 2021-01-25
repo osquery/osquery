@@ -24,21 +24,6 @@ endif()
 include(cmake/globals.cmake)
 include(cmake/options.cmake)
 include(cmake/flags.cmake)
-include(cmake/packaging.cmake)
-
-if(DEFINED PLATFORM_LINUX AND "${CMAKE_VERSION}" VERSION_GREATER_EQUAL "3.18.0")
-  if(OSQUERY_IGNORE_CMAKE_MAX_VERSION_CHECK)
-    message(WARNING
-      "CPack contained in CMake version 3.18 and newer generates RPM packages that won't install correctly on some distributions. " 
-      "You are using version ${CMAKE_VERSION} which has the bug, remember to use version 3.17.5 if a RPM package has to be generated.")
-  else()
-    message(FATAL_ERROR
-      "CPack contained in CMake version 3.18 and newer generates RPM packages that won't install correctly on some distributions. "
-      "You are using version ${CMAKE_VERSION} which has the bug, please use version 3.17.5 or set OSQUERY_IGNORE_CMAKE_MAX_VERSION_CHECK=TRUE "
-      "if you're not going to generate a RPM package."
-    )
-  endif()
-endif()
 
 if(OSQUERY_TOOLCHAIN_SYSROOT AND NOT DEFINED PLATFORM_LINUX)
   message(FATAL_ERROR "The custom toolchain can only be used with Linux, undefine OSQUERY_TOOLCHAIN_SYSROOT and specify a compiler to use")
@@ -99,9 +84,7 @@ function(main)
     enableOsqueryWEL()
   endif()
 
-  identifyPackagingSystem()
-  generateInstallTargets()
-  generatePackageTarget()
+  generateInstallDirectives()
 endfunction()
 
 function(importLibraries)
@@ -224,6 +207,285 @@ function(importLibraries)
       endif()
     endif()
   endforeach()
+endfunction()
+
+function(generateInstallDirectives)
+  get_property(augeas_lenses_path
+    GLOBAL PROPERTY "AUGEAS_LENSES_FOLDER_PATH"
+  )
+
+  if(PLATFORM_LINUX)
+    install(
+      FILES "tools/deployment/linux_packaging/deb/conffiles"
+      DESTINATION "/control/deb"
+    )
+
+    install(
+      FILES "tools/deployment/linux_packaging/deb/osqueryd.service"
+      DESTINATION "/control/deb/lib/systemd/system"
+    )
+
+    install(
+      FILES "tools/deployment/linux_packaging/deb/copyright"
+      DESTINATION "/control/deb"
+    )
+
+    install(
+      FILES "tools/deployment/linux_packaging/deb/osquery.initd"
+      DESTINATION "/control/deb/etc/init.d"
+
+      PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ             GROUP_EXECUTE
+        WORLD_READ             WORLD_EXECUTE
+    )
+
+    install(
+      FILES "tools/deployment/linux_packaging/deb/osquery.initd"
+      DESTINATION "/control/rpm/etc/init.d"
+
+      PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ             GROUP_EXECUTE
+        WORLD_READ             WORLD_EXECUTE
+    )
+
+    install(
+      FILES "tools/deployment/linux_packaging/rpm/osqueryd.service"
+      DESTINATION "/control/rpm/lib/systemd/system"
+    )
+
+    install(
+      FILES "tools/deployment/linux_packaging/postinst"
+      DESTINATION "/control"
+    )
+
+    install(
+      TARGETS osqueryd
+      DESTINATION "bin"
+    )
+
+    execute_process(
+      COMMAND "${CMAKE_COMMAND}" -E create_symlink osqueryd osqueryi
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    install(
+      FILES "${CMAKE_CURRENT_BINARY_DIR}/osqueryi"
+      DESTINATION "bin"
+    )
+
+    install(
+      FILES "tools/deployment/osqueryctl"
+      DESTINATION "bin"
+
+      PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ             GROUP_EXECUTE
+        WORLD_READ             WORLD_EXECUTE
+    )
+
+    install(
+      FILES "tools/deployment/osquery.example.conf"
+      DESTINATION "share/osquery"
+    )
+
+    install(
+      DIRECTORY "${augeas_lenses_path}/"
+      DESTINATION "share/osquery/lenses"
+      FILES_MATCHING PATTERN "*.aug"
+      PATTERN "tests" EXCLUDE
+    )
+
+    install(
+      FILES "${augeas_lenses_path}/../COPYING"
+      DESTINATION "share/osquery/lenses"
+    )
+
+    install(
+      DIRECTORY "packs"
+      DESTINATION "share/osquery"
+    )
+
+    install(
+      FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem"
+      DESTINATION "share/osquery/certs"
+    )
+
+    install(
+      FILES "tools/deployment/linux_packaging/osqueryd.sysconfig"
+      DESTINATION "/control/deb/etc/default"
+    )
+
+    install(
+      FILES "tools/deployment/linux_packaging/osqueryd.sysconfig"
+      DESTINATION "/control/rpm/etc/sysconfig"
+    )
+
+    install(
+      DIRECTORY
+      DESTINATION "/etc/osquery"
+    )
+
+  elseif(PLATFORM_WINDOWS)
+    install(
+      TARGETS osqueryd
+      DESTINATION "/data/osqueryd"
+    )
+
+    install(
+      PROGRAMS "$<TARGET_FILE:osqueryd>"
+      DESTINATION "/data"
+      RENAME "osqueryi.exe"
+    )
+
+    install(
+      DIRECTORY "tools/deployment/windows_packaging/chocolatey/tools"
+      DESTINATION "/control/nupkg"
+    )
+
+    install(
+      FILES "LICENSE"
+      DESTINATION "/control/nupkg/extras"
+      RENAME "LICENSE.txt"
+    )
+
+    install(
+      FILES "LICENSE"
+      DESTINATION "/control/msi"
+      RENAME "wix_license.txt"
+    )
+
+    install(
+      FILES "tools/deployment/windows_packaging/chocolatey/VERIFICATION.txt"
+      DESTINATION "/control/nupkg/extras"
+    )
+    
+    install(
+      FILES "tools/deployment/osquery.example.conf"
+      DESTINATION "/data"
+      RENAME "osquery.conf"
+    )
+
+    install(
+      FILES "tools/wel/osquery.man"
+      DESTINATION "/data"
+    )
+
+    install(
+      FILES "tools/deployment/windows_packaging/manage-osqueryd.ps1"
+      DESTINATION "/data"
+    )
+
+    install(
+      FILES "tools/deployment/windows_packaging/osquery_utils.ps1"
+      DESTINATION "/data"
+    )
+
+    install(
+      FILES "tools/deployment/windows_packaging/osquery.flags"
+      DESTINATION "/data"
+    )
+
+    install(
+      FILES "tools/deployment/windows_packaging/manage-osqueryd.ps1"
+      DESTINATION "/control/nupkg/extras"
+    )
+
+    install(
+      FILES "tools/deployment/windows_packaging/osquery_utils.ps1"
+      DESTINATION "/control/nupkg/tools"
+    )
+
+    install(
+      FILES "tools/deployment/windows_packaging/osquery.ico"
+      DESTINATION "/control/msi"
+    )
+
+    install(
+      FILES "tools/deployment/windows_packaging/msi/osquery_wix_patch.xml"
+      DESTINATION "/control/msi"
+    )
+
+    install(
+      FILES "tools/deployment/certs.pem"
+      DESTINATION "/data/certs"
+    )
+
+    install(
+      DIRECTORY
+      DESTINATION "/data/log"
+    )
+
+  elseif(PLATFORM_MACOS)
+    install(
+      FILES "tools/deployment/macos_packaging/pkg/productbuild.sh"
+      DESTINATION "/control/pkg"
+    )
+
+    install(
+      TARGETS osqueryd
+      DESTINATION "bin"
+    )
+
+    execute_process(
+      COMMAND "${CMAKE_COMMAND}" -E create_symlink osqueryd osqueryi
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    install(
+      FILES "${CMAKE_CURRENT_BINARY_DIR}/osqueryi"
+      DESTINATION "bin"
+    )
+
+    install(
+      FILES "tools/deployment/osqueryctl"
+      DESTINATION "bin"
+    )
+
+    install(
+      DIRECTORY "${augeas_lenses_path}"
+      DESTINATION "/private/var/osquery/lenses"
+      FILES_MATCHING PATTERN "*.aug"
+      PATTERN "tests" EXCLUDE
+    )
+
+    install(
+      DIRECTORY "packs"
+      DESTINATION "/private/var/osquery"
+    )
+
+    install(
+      FILES "tools/deployment/certs.pem"
+      DESTINATION "/private/var/osquery/certs"
+    )
+
+    install(
+      FILES
+        "tools/deployment/osquery.example.conf"
+
+      DESTINATION
+        "/private/var/osquery"
+    )
+
+    install(
+      FILES
+        "tools/deployment/macos_packaging/pkg/com.facebook.osqueryd.conf"
+        "tools/deployment/macos_packaging/pkg/com.facebook.osqueryd.plist"
+
+      DESTINATION
+        "/control/pkg"
+    )
+
+    install(
+      FILES "LICENSE"
+      DESTINATION "/control/pkg"
+      RENAME "LICENSE.txt"
+    )
+
+  else()
+    message(FATAL_ERROR "Unsupported platform")
+  endif()
 endfunction()
 
 main()
