@@ -1,5 +1,5 @@
 <CPackWiXPatch>
-    <CPackWiXFragment Id="CM_CP_osqueryd.osqueryd.exe">
+    <CPackWiXFragment Id="CM_CP_osquery.osqueryd.osqueryd.exe">
         <CreateFolder>
             <Permission User="[WIX_ACCOUNT_USERS]" Read="yes"
               ReadExtendedAttributes="yes" Traverse="yes"
