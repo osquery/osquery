@@ -15,9 +15,13 @@
 name: build
 
 on:
+  # Run this workflow once every 6 hours against the master branch
+  schedule:
+   - cron: "0 */6 * * *"
+
   push:
     branches:
-      - '*'
+      - 'master'
 
     tags:
       - 'v*'
@@ -411,7 +415,7 @@ jobs:
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v1
       with:
-        name: linux_deb_package-${{ matrix.build_type }}
+        name: linux_dbgsym_deb_package-${{ matrix.build_type }}
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DDEB_PACKAGE_NAME }}
 
     - name: Store the release .rpm package artifact
