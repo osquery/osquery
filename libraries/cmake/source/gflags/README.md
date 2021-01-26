@@ -1,5 +1,7 @@
 # gflags
 
+Notes to reproduce the library configuration and generated files
+
 ## Linux
 
 Using CentOS 6.10 (glibc 2.12)
@@ -32,6 +34,7 @@ cmake ../ -DCMAKE_BUILD_TYPE=Release -DBUILD_gflags_LIB=ON -DBUILD_gflags_nothre
 ## Windows
 
 Configure with
+
 ```sh
 cmake -G "Visual Studio 16 2019" -A x64 ../ -DBUILD_gflags_LIB=ON -DBUILD_gflags_nothreads_LIB=OFF -DGFLAGS_NAMESPACE=gflags
 ```
@@ -40,20 +43,24 @@ cmake -G "Visual Studio 16 2019" -A x64 ../ -DBUILD_gflags_LIB=ON -DBUILD_gflags
 ## macOS
 
 Configure with
+
 ```sh
 cmake ../ -DCMAKE_BUILD_TYPE=Release -DBUILD_gflags_LIB=ON -DBUILD_gflags_nothreads_LIB=OFF -DGFLAGS_NAMESPACE=gflags
 ```
 
 
 ## All platforms
+
 Copy the generated files under `include` from the build folder, to the respective folders in the osquery source under `libraries/cmake/source/gflags/generated`
 
 Copy only once (it's the same for all platforms)
+
 ```
 include/gflags/gflags_completions.h -> generated/gflags/gflags_completions.h
 ```
 
 Then copy for each os
+
 ```
 include/gflags/defines.h -> generated/<os>/private/defines.h
 include/gflags/gflags_declare.h -> generated/<os>/public/gflags/gflags_declare.h

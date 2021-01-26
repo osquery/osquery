@@ -1,5 +1,7 @@
 # glog
 
+Notes to reproduce the library configuration and generated files
+
 ## Linux
 
 Using CentOS 6.10 (glibc 2.12)
@@ -33,6 +35,7 @@ cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THR
 ## Windows
 
 Configure with
+
 ```sh
 cmake -G "Visual Studio 16 2019" -A x64 ../ -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON
 ```
@@ -41,6 +44,7 @@ cmake -G "Visual Studio 16 2019" -A x64 ../ -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DW
 ## macOS
 
 Configure with
+
 ```sh
 cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON
 ```
