@@ -199,17 +199,15 @@ void genUnifiedLog(QueryContext& queryContext, QueryData& results) {
       }
       results.push_back(r);
     }
+  } else {
+    VLOG(1) << "OSLog framework is not available";
   }
 }
 
 QueryData genUnifiedLog(QueryContext& context) {
   QueryData results;
-  if (@available(macOS 10.15, *)) {
-    @autoreleasepool {
-      genUnifiedLog(context, results);
-    }
-  } else {
-    VLOG(1) << "OSLog framework is not available";
+  @autoreleasepool {
+    genUnifiedLog(context, results);
   }
   return results;
 }
