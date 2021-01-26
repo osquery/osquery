@@ -1,5 +1,5 @@
 table_name("physical_disk_performance")
-description("Provides provides raw data from performance counters that monitor hard or fixed disk drives on the system.")
+description("Provides raw data from performance counters that monitor hard or fixed disk drives on the system.")
 schema([
     Column("name", TEXT, "Name of the physical disk"),
     Column("avg_disk_bytes_per_read", BIGINT, "Average number of bytes transferred from the disk during read operations"),
