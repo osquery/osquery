@@ -98,116 +98,113 @@ void addQueryOp(NSMutableArray* preds,
   }
 }
 
-void genUnifiedLog(QueryContext& queryContext, QueryData& results) {
+QueryData genUnifiedLog(QueryContext& queryContext) {
+  QueryData results;
   if (@available(macOS 10.15, *)) {
-    NSError* error = nil;
-    OSLogStore* logstore = [OSLogStore localStoreAndReturnError:&error];
-    if (error != nil) {
-      TLOG << "error getting handle to log store: "
-           << [[error localizedDescription] UTF8String];
-      return;
-    }
-
-    OSLogPosition* position = nil;
-
-    // the timestamp column can be used to aggressively filter
-    // results returned from the log store
-    if (queryContext.hasConstraint("timestamp", GREATER_THAN) ||
-        queryContext.hasConstraint("timestamp", GREATER_THAN_OR_EQUALS)) {
-      std::string start_time;
-      if (queryContext.hasConstraint("timestamp", GREATER_THAN)) {
-        start_time =
-            *queryContext.constraints["timestamp"].getAll(GREATER_THAN).begin();
-      } else {
-        start_time = *queryContext.constraints["timestamp"]
-                          .getAll(GREATER_THAN_OR_EQUALS)
-                          .begin();
+    @autoreleasepool {
+      NSError* error = nil;
+      OSLogStore* logstore = [OSLogStore localStoreAndReturnError:&error];
+      if (error != nil) {
+        TLOG << "error getting handle to log store: "
+             << [[error localizedDescription] UTF8String];
+        return QueryData();
       }
 
-      double provided_timestamp =
-          [[NSString stringWithUTF8String:start_time.c_str()] doubleValue];
-      NSDate* provided_date =
-          [NSDate dateWithTimeIntervalSince1970:provided_timestamp];
+      OSLogPosition* position = nil;
 
-      position = [logstore positionWithDate:provided_date];
-    }
-
-    // grab all the supported columns used in simple constraints and make a
-    // compound predicate out of them.
-    NSMutableArray* subpredicates = [[NSMutableArray alloc] init];
-    for (const auto& it : queryContext.constraints) {
-      const std::string& key = it.first;
-      for (const auto& constraint : it.second.getAll()) {
-        addQueryOp(subpredicates,
-                   key,
-                   constraint.expr,
-                   static_cast<ConstraintOperator>(constraint.op));
-      }
-    }
-
-    NSPredicate* predicate =
-        [NSCompoundPredicate andPredicateWithSubpredicates:subpredicates];
-
-    // enumerate the entries in ascending order by timestamp
-    OSLogEnumeratorOptions option = 0;
-
-    OSLogEnumerator* enumerator =
-        [logstore entriesEnumeratorWithOptions:option
-                                      position:position
-                                     predicate:predicate
-                                         error:&error];
-    if (error != nil) {
-      TLOG << "error enumerating entries in system log: "
-           << [[error localizedDescription] UTF8String];
-      return;
-    }
-    for (OSLogEntryLog* entry in enumerator) {
-      Row r;
-      r["timestamp"] = BIGINT([[entry date] timeIntervalSince1970]);
-      r["message"] = TEXT([[entry composedMessage] UTF8String]);
-      r["storage"] = INTEGER([entry storeCategory]);
-
-      if ([entry respondsToSelector:@selector(activityIdentifier)]) {
-        r["activity"] = INTEGER([entry activityIdentifier]);
-        r["process"] = TEXT([[entry process] UTF8String]);
-        r["pid"] = INTEGER([entry processIdentifier]);
-        r["sender"] = TEXT([[entry sender] UTF8String]);
-        r["tid"] = INTEGER([entry threadIdentifier]);
-      }
-
-      if ([entry respondsToSelector:@selector(subsystem)]) {
-        NSString* subsystem = [entry subsystem];
-        if (subsystem != nil) {
-          r["subsystem"] = TEXT([subsystem UTF8String]);
+      // the timestamp column can be used to aggressively filter
+      // results returned from the log store
+      if (queryContext.hasConstraint("timestamp", GREATER_THAN) ||
+          queryContext.hasConstraint("timestamp", GREATER_THAN_OR_EQUALS)) {
+        std::string start_time;
+        if (queryContext.hasConstraint("timestamp", GREATER_THAN)) {
+          start_time = *queryContext.constraints["timestamp"]
+                            .getAll(GREATER_THAN)
+                            .begin();
+        } else {
+          start_time = *queryContext.constraints["timestamp"]
+                            .getAll(GREATER_THAN_OR_EQUALS)
+                            .begin();
         }
-        NSString* category = [entry category];
-        if (category != nil) {
-          r["category"] = TEXT([category UTF8String]);
+
+        double provided_timestamp =
+            [[NSString stringWithUTF8String:start_time.c_str()] doubleValue];
+        NSDate* provided_date =
+            [NSDate dateWithTimeIntervalSince1970:provided_timestamp];
+
+        position = [logstore positionWithDate:provided_date];
+      }
+
+      // grab all the supported columns used in simple constraints and make a
+      // compound predicate out of them.
+      NSMutableArray* subpredicates = [[NSMutableArray alloc] init];
+      for (const auto& it : queryContext.constraints) {
+        const std::string& key = it.first;
+        for (const auto& constraint : it.second.getAll()) {
+          addQueryOp(subpredicates,
+                     key,
+                     constraint.expr,
+                     static_cast<ConstraintOperator>(constraint.op));
         }
       }
-      if ([entry respondsToSelector:@selector(level)]) {
-        const char* logLevelNames[] = {
-            [OSLogEntryLogLevelUndefined] = "undefined",
-            [OSLogEntryLogLevelDebug] = "debug",
-            [OSLogEntryLogLevelInfo] = "info",
-            [OSLogEntryLogLevelNotice] = "default",
-            [OSLogEntryLogLevelError] = "error",
-            [OSLogEntryLogLevelFault] = "fault",
-        };
 
-        r["level"] = TEXT(logLevelNames[[entry level]]);
+      NSPredicate* predicate =
+          [NSCompoundPredicate andPredicateWithSubpredicates:subpredicates];
+
+      // enumerate the entries in ascending order by timestamp
+      OSLogEnumeratorOptions option = 0;
+
+      OSLogEnumerator* enumerator =
+          [logstore entriesEnumeratorWithOptions:option
+                                        position:position
+                                       predicate:predicate
+                                           error:&error];
+      if (error != nil) {
+        TLOG << "error enumerating entries in system log: "
+             << [[error localizedDescription] UTF8String];
+        return QueryData();
       }
-      results.push_back(r);
+      for (OSLogEntryLog* entry in enumerator) {
+        Row r;
+        r["timestamp"] = BIGINT([[entry date] timeIntervalSince1970]);
+        r["message"] = TEXT([[entry composedMessage] UTF8String]);
+        r["storage"] = INTEGER([entry storeCategory]);
+
+        if ([entry respondsToSelector:@selector(activityIdentifier)]) {
+          r["activity"] = INTEGER([entry activityIdentifier]);
+          r["process"] = TEXT([[entry process] UTF8String]);
+          r["pid"] = INTEGER([entry processIdentifier]);
+          r["sender"] = TEXT([[entry sender] UTF8String]);
+          r["tid"] = INTEGER([entry threadIdentifier]);
+        }
+
+        if ([entry respondsToSelector:@selector(subsystem)]) {
+          NSString* subsystem = [entry subsystem];
+          if (subsystem != nil) {
+            r["subsystem"] = TEXT([subsystem UTF8String]);
+          }
+          NSString* category = [entry category];
+          if (category != nil) {
+            r["category"] = TEXT([category UTF8String]);
+          }
+        }
+        if ([entry respondsToSelector:@selector(level)]) {
+          const char* logLevelNames[] = {
+              [OSLogEntryLogLevelUndefined] = "undefined",
+              [OSLogEntryLogLevelDebug] = "debug",
+              [OSLogEntryLogLevelInfo] = "info",
+              [OSLogEntryLogLevelNotice] = "default",
+              [OSLogEntryLogLevelError] = "error",
+              [OSLogEntryLogLevelFault] = "fault",
+          };
+
+          r["level"] = TEXT(logLevelNames[[entry level]]);
+        }
+        results.push_back(r);
+      }
     }
   } else {
     VLOG(1) << "OSLog framework is not available";
-  }
-}
-
-QueryData genUnifiedLog(QueryContext& context) {
-  QueryData results;
-  @autoreleasepool {
-    genUnifiedLog(context, results);
   }
   return results;
 }
