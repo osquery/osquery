@@ -42,6 +42,11 @@ function(generateOsqueryUtils)
       darwin/plist.mm
     )
   endif()
+  if(DEFINED PLATFORM_WINDOWS)
+    list(APPEND source_files
+      windows/shellitem.cpp
+    )
+  endif()
 
   add_osquery_library(osquery_utils EXCLUDE_FROM_ALL
     ${source_files}
@@ -78,6 +83,14 @@ function(generateOsqueryUtils)
   if(DEFINED PLATFORM_MACOS)
     set(platform_public_header_files
       darwin/plist.h
+    )
+
+    generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})
+  endif()
+
+  if(DEFINED PLATFORM_WINDOWS)
+    set(platform_public_header_files
+      windows/shellitem.h
     )
 
     generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})

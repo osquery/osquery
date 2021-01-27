@@ -22,6 +22,7 @@ function(osqueryUtilsSystemMain)
   generateOsqueryUtilsSystemTime()
   generateOsqueryUtilsSystem()
   generateOsqueryUtilsSystemUptime()
+  #generateOsqueryUtilsSystemShellItem()
 endfunction()
 
 function(generateOsqueryUtilsSystemEnv)
@@ -238,6 +239,36 @@ function(generateOsqueryUtilsSystemUptime)
 
   generateIncludeNamespace(osquery_utils_system_uptime "osquery/utils/system" "FILE_ONLY" ${public_header_files})
 endfunction()
+
+
+#function(generateOsqueryUtilsSystemShellItem)
+#  if(DEFINED PLATFORM_WINDOWS)
+#    set(source_files
+#      windows/shellitem.cpp
+#    )
+#      else()
+#    return()
+#  endif()
+
+ #     add_osquery_library(osquery_utils_system_shellitem EXCLUDE_FROM_ALL
+ #   ${source_files}
+ # )
+
+#    target_link_libraries(osquery_utils_system_shellitem PUBLIC
+#    osquery_cxx_settings
+#   osquery_utils_info
+#    thirdparty_boost
+#    osquery_logger
+
+# )
+#      if(DEFINED PLATFORM_WINDOWS)
+#    set(public_header_files
+#      windows/shellitem.h
+#    )
+#  endif()
+#    generateIncludeNamespace(osquery_utils_system_shellitem "osquery/utils/system" "FILE_ONLY" ${public_header_files})
+
+#endfunction()
 
 function(generateOsqueryUtilsSystemErrnoErrnotestsTest)
 

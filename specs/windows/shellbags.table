@@ -1,0 +1,18 @@
+table_name("shellbags")
+description("Shellbags, shows directories accessed.")
+schema([
+    Column("path", TEXT, "Directory name."),
+    Column("modified_time", INTEGER, "Directory Modified time."),
+    Column("created_time", INTEGER, "Directory Created time."),
+    Column("accessed_time", INTEGER, "Directory Accessed time."),
+    Column("first_interacted", INTEGER, "Directory first interaction time."),
+    Column("last_interacted", INTEGER, "Directory last interaction time."),
+    Column("mft_entry", INTEGER, "Directory mft entry."),
+    Column("mft_sequence", INTEGER, "Directory mft sequence."),
+
+
+])
+implementation("shellbags@genShellbags")
+examples([
+  "select * from shellbags;",
+])
