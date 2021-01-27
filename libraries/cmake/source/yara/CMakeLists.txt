@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(yaraMain)
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/libyara")
+  set(library_root "${OSQUERY_yara_ROOT_DIR}/libyara")
 
   add_library(thirdparty_yara
     "${library_root}/ahocorasick.c"

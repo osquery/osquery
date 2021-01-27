@@ -1,0 +1,365 @@
+diff --git a/libyara/grammar.c b/libyara/grammar.c
+index bd6a000..403b398 100644
+--- a/libyara/grammar.c
++++ b/libyara/grammar.c
+@@ -2756,19 +2756,19 @@ yyreduce:
+         switch((yyvsp[0].expression).type)
+         {
+           case EXPRESSION_TYPE_INTEGER:
+-            strlcpy((yyval.c_string), "i", YR_MAX_FUNCTION_ARGS);
++            yara_strlcpy((yyval.c_string), "i", YR_MAX_FUNCTION_ARGS);
+             break;
+           case EXPRESSION_TYPE_FLOAT:
+-            strlcpy((yyval.c_string), "f", YR_MAX_FUNCTION_ARGS);
++            yara_strlcpy((yyval.c_string), "f", YR_MAX_FUNCTION_ARGS);
+             break;
+           case EXPRESSION_TYPE_BOOLEAN:
+-            strlcpy((yyval.c_string), "b", YR_MAX_FUNCTION_ARGS);
++            yara_strlcpy((yyval.c_string), "b", YR_MAX_FUNCTION_ARGS);
+             break;
+           case EXPRESSION_TYPE_STRING:
+-            strlcpy((yyval.c_string), "s", YR_MAX_FUNCTION_ARGS);
++            yara_strlcpy((yyval.c_string), "s", YR_MAX_FUNCTION_ARGS);
+             break;
+           case EXPRESSION_TYPE_REGEXP:
+-            strlcpy((yyval.c_string), "r", YR_MAX_FUNCTION_ARGS);
++            yara_strlcpy((yyval.c_string), "r", YR_MAX_FUNCTION_ARGS);
+             break;
+           case EXPRESSION_TYPE_UNKNOWN:
+             yr_free((yyval.c_string));
+@@ -2798,19 +2798,19 @@ yyreduce:
+           switch((yyvsp[0].expression).type)
+           {
+             case EXPRESSION_TYPE_INTEGER:
+-              strlcat((yyvsp[-2].c_string), "i", YR_MAX_FUNCTION_ARGS);
++              yara_strlcat((yyvsp[-2].c_string), "i", YR_MAX_FUNCTION_ARGS);
+               break;
+             case EXPRESSION_TYPE_FLOAT:
+-              strlcat((yyvsp[-2].c_string), "f", YR_MAX_FUNCTION_ARGS);
++              yara_strlcat((yyvsp[-2].c_string), "f", YR_MAX_FUNCTION_ARGS);
+               break;
+             case EXPRESSION_TYPE_BOOLEAN:
+-              strlcat((yyvsp[-2].c_string), "b", YR_MAX_FUNCTION_ARGS);
++              yara_strlcat((yyvsp[-2].c_string), "b", YR_MAX_FUNCTION_ARGS);
+               break;
+             case EXPRESSION_TYPE_STRING:
+-              strlcat((yyvsp[-2].c_string), "s", YR_MAX_FUNCTION_ARGS);
++              yara_strlcat((yyvsp[-2].c_string), "s", YR_MAX_FUNCTION_ARGS);
+               break;
+             case EXPRESSION_TYPE_REGEXP:
+-              strlcat((yyvsp[-2].c_string), "r", YR_MAX_FUNCTION_ARGS);
++              yara_strlcat((yyvsp[-2].c_string), "r", YR_MAX_FUNCTION_ARGS);
+               break;
+             case EXPRESSION_TYPE_UNKNOWN:
+               result = ERROR_WRONG_TYPE;
+diff --git a/libyara/hex_lexer.c b/libyara/hex_lexer.c
+index 87ad873..ea953f5 100644
+--- a/libyara/hex_lexer.c
++++ b/libyara/hex_lexer.c
+@@ -907,7 +907,7 @@ YY_RULE_SETUP
+ #line 98 "hex_lexer.l"
+ {
+ 
+-  yylval->integer = xtoi(yytext);
++  yylval->integer = yara_xtoi(yytext);
+   return _BYTE_;
+ }
+ 	YY_BREAK
+@@ -917,7 +917,7 @@ YY_RULE_SETUP
+ {
+ 
+   yytext[1] = '0'; // replace ? by 0
+-  yylval->integer = xtoi(yytext) | 0xF000 ;
++  yylval->integer = yara_xtoi(yytext) | 0xF000 ;
+   return _MASKED_BYTE_;
+ }
+ 	YY_BREAK
+@@ -927,7 +927,7 @@ YY_RULE_SETUP
+ {
+ 
+   yytext[0] = '0'; // replace ? by 0
+-  yylval->integer = xtoi(yytext) | 0x0F00 ;
++  yylval->integer = yara_xtoi(yytext) | 0x0F00 ;
+   return _MASKED_BYTE_;
+ }
+ 	YY_BREAK
+@@ -2233,7 +2233,7 @@ void yyerror(
+   {
+     lex_env->last_error = ERROR_INVALID_HEX_STRING;
+ 
+-    strlcpy(
++    yara_strlcpy(
+         lex_env->last_error_message,
+         error_message,
+         sizeof(lex_env->last_error_message));
+@@ -2285,7 +2285,7 @@ int yr_parse_hex_string(
+ 
+   if (lex_env.last_error != ERROR_SUCCESS)
+   {
+-    strlcpy(error->message, lex_env.last_error_message, sizeof(error->message));
++    yara_strlcpy(error->message, lex_env.last_error_message, sizeof(error->message));
+     return lex_env.last_error;
+   }
+ 
+diff --git a/libyara/include/yara/compiler.h b/libyara/include/yara/compiler.h
+index 426f799..b750261 100644
+--- a/libyara/include/yara/compiler.h
++++ b/libyara/include/yara/compiler.h
+@@ -275,7 +275,7 @@ typedef struct _YR_COMPILER
+ 
+ 
+ #define yr_compiler_set_error_extra_info(compiler, info) \
+-    strlcpy( \
++    yara_strlcpy( \
+         compiler->last_error_extra_info, \
+         info, \
+         sizeof(compiler->last_error_extra_info)); \
+diff --git a/libyara/include/yara/strutils.h b/libyara/include/yara/strutils.h
+index d47afba..ba9e123 100644
+--- a/libyara/include/yara/strutils.h
++++ b/libyara/include/yara/strutils.h
+@@ -78,20 +78,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ #endif
+ 
+ 
+-uint64_t xtoi(
++uint64_t yara_xtoi(
+     const char* hexstr);
+ 
+ 
+-#if !HAVE_STRLCPY && !defined(strlcpy)
+-size_t strlcpy(
++#if !HAVE_STRLCPY && !defined(yara_strlcpy)
++size_t yara_strlcpy(
+     char *dst,
+     const char *src,
+     size_t size);
+ #endif
+ 
+ 
+-#if !HAVE_STRLCAT && !defined(strlcat)
+-size_t strlcat(
++#if !HAVE_STRLCAT && !defined(yara_strlcat)
++size_t yara_strlcat(
+     char *dst,
+     const char *src,
+     size_t size);
+@@ -107,16 +107,16 @@ void* memmem(
+ #endif
+ 
+ 
+-int strnlen_w(
++int yara_strnlen_w(
+     const char* w_str);
+ 
+ 
+-int strcmp_w(
++int yara_strcmp_w(
+     const char* w_str,
+     const char* str);
+ 
+ 
+-size_t strlcpy_w(
++size_t yara_strlcpy_w(
+     char* dst,
+     const char* w_src,
+     size_t n);
+diff --git a/libyara/lexer.c b/libyara/lexer.c
+index cb8dee7..1fa924e 100644
+--- a/libyara/lexer.c
++++ b/libyara/lexer.c
+@@ -1643,7 +1643,7 @@ YY_RULE_SETUP
+     }
+     else
+     {
+-      strlcpy(buffer, current_file_name, sizeof(buffer));
++      yara_strlcpy(buffer, current_file_name, sizeof(buffer));
+       s = strrchr(buffer, '/');
+ 
+       #ifdef _MSC_VER
+@@ -1662,7 +1662,7 @@ YY_RULE_SETUP
+         f = s + 1;
+         #endif
+ 
+-        strlcpy(f, yyextra->lex_buf, sizeof(buffer) - (f - buffer));
++        yara_strlcpy(f, yyextra->lex_buf, sizeof(buffer) - (f - buffer));
+         include_path = buffer;
+       }
+       else
+@@ -2098,7 +2098,7 @@ YY_RULE_SETUP
+       s->flags |= SIZED_STRING_FLAGS_DOT_ALL;
+ 
+     *yyextra->lex_buf_ptr = '\0';
+-    strlcpy(s->c_string, yyextra->lex_buf, s->length + 1);
++    yara_strlcpy(s->c_string, yyextra->lex_buf, s->length + 1);
+     yylval->sized_string = s;
+   }
+   else
+@@ -2184,7 +2184,7 @@ YY_RULE_SETUP
+ 
+   alloc_sized_string(s, strlen(yytext));
+ 
+-  strlcpy(s->c_string, yytext, s->length + 1);
++  yara_strlcpy(s->c_string, yytext, s->length + 1);
+   yylval->sized_string = s;
+ 
+   return _HEX_STRING_;
+diff --git a/libyara/modules/pe/pe.c b/libyara/modules/pe/pe.c
+index 8eace26..e05f97c 100644
+--- a/libyara/modules/pe/pe.c
++++ b/libyara/modules/pe/pe.c
+@@ -626,14 +626,14 @@ static void pe_parse_version_info(
+   if (!fits_in_pe(pe, version_info->Key, sizeof("VS_VERSION_INFO") * 2))
+     return;
+ 
+-  if (strcmp_w(version_info->Key, "VS_VERSION_INFO") != 0)
++  if (yara_strcmp_w(version_info->Key, "VS_VERSION_INFO") != 0)
+     return;
+ 
+   version_info = ADD_OFFSET(
+       version_info, sizeof(VERSION_INFO) + 86);
+ 
+   while(fits_in_pe(pe, version_info->Key, sizeof("VarFileInfo") * 2) &&
+-        strcmp_w(version_info->Key, "VarFileInfo") == 0 &&
++        yara_strcmp_w(version_info->Key, "VarFileInfo") == 0 &&
+         yr_le16toh(version_info->Length) != 0)
+   {
+     version_info = ADD_OFFSET(
+@@ -642,7 +642,7 @@ static void pe_parse_version_info(
+   }
+ 
+   while(fits_in_pe(pe, version_info->Key, sizeof("StringFileInfo") * 2) &&
+-        strcmp_w(version_info->Key, "StringFileInfo") == 0 &&
++        yara_strcmp_w(version_info->Key, "StringFileInfo") == 0 &&
+         yr_le16toh(version_info->Length) != 0)
+   {
+     PVERSION_INFO string_table = ADD_OFFSET(
+@@ -660,7 +660,7 @@ static void pe_parse_version_info(
+     {
+       PVERSION_INFO string = ADD_OFFSET(
+           string_table,
+-          sizeof(VERSION_INFO) + 2 * (strnlen_w(string_table->Key) + 1));
++          sizeof(VERSION_INFO) + 2 * (yara_strnlen_w(string_table->Key) + 1));
+ 
+       string_table = ADD_OFFSET(
+           string_table,
+@@ -674,15 +674,15 @@ static void pe_parse_version_info(
+         if (yr_le16toh(string->ValueLength) > 0)
+         {
+           char* string_value = (char*) ADD_OFFSET(string,
+-              sizeof(VERSION_INFO) + 2 * (strnlen_w(string->Key) + 1));
++              sizeof(VERSION_INFO) + 2 * (yara_strnlen_w(string->Key) + 1));
+ 
+           if (wide_string_fits_in_pe(pe, string_value))
+           {
+             char key[64];
+             char value[256];
+ 
+-            strlcpy_w(key, string->Key, sizeof(key));
+-            strlcpy_w(value, string_value, sizeof(value));
++            yara_strlcpy_w(key, string->Key, sizeof(key));
++            yara_strlcpy_w(value, string_value, sizeof(value));
+ 
+             set_string(value, pe->object, "version_info[%s]", key);
+           }
+@@ -2227,7 +2227,7 @@ define_function(imphash)
+     if (!dll_name)
+       return ERROR_INSUFFICIENT_MEMORY;
+ 
+-    strlcpy(dll_name, dll->name, dll_name_len + 1);
++    yara_strlcpy(dll_name, dll->name, dll_name_len + 1);
+ 
+     func = dll->functions;
+ 
+diff --git a/libyara/re_lexer.c b/libyara/re_lexer.c
+index bc37d9a..c7530f6 100644
+--- a/libyara/re_lexer.c
++++ b/libyara/re_lexer.c
+@@ -2642,7 +2642,7 @@ void yyerror(
+   {
+     lex_env->last_error = ERROR_INVALID_REGULAR_EXPRESSION;
+ 
+-    strlcpy(
++    yara_strlcpy(
+         lex_env->last_error_message,
+         error_message,
+         sizeof(lex_env->last_error_message));
+@@ -2684,7 +2684,7 @@ int yr_parse_re_string(
+     yr_re_ast_destroy(*re_ast);
+     *re_ast = NULL;
+ 
+-    strlcpy(
++    yara_strlcpy(
+         error->message,
+         lex_env.last_error_message,
+         sizeof(error->message));
+diff --git a/libyara/strutils.c b/libyara/strutils.c
+index 934ae86..8af57d4 100644
+--- a/libyara/strutils.c
++++ b/libyara/strutils.c
+@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ 
+ #include <yara/strutils.h>
+ 
+-uint64_t xtoi(
++uint64_t yara_xtoi(
+     const char* hexstr)
+ {
+   size_t i;
+@@ -82,14 +82,14 @@ uint64_t xtoi(
+ 
+ /*
+ 
+-strlcpy and strlcat are defined in FreeBSD and OpenBSD,
++yara_strlcpy and yara_strlcat are defined in FreeBSD and OpenBSD,
+ the following implementations were taken from OpenBSD.
+ 
+ */
+ 
+-#if !HAVE_STRLCPY && !defined(strlcpy)
++#if !HAVE_STRLCPY && !defined(yara_strlcpy)
+ 
+-size_t strlcpy(
++size_t yara_strlcpy(
+     char* dst,
+     const char* src,
+     size_t size)
+@@ -126,9 +126,9 @@ size_t strlcpy(
+ #endif
+ 
+ 
+-#if !HAVE_STRLCAT && !defined(strlcat)
++#if !HAVE_STRLCAT && !defined(yara_strlcat)
+ 
+-size_t strlcat(
++size_t yara_strlcat(
+     char* dst,
+     const char* src,
+     size_t size)
+@@ -166,7 +166,7 @@ size_t strlcat(
+ #endif
+ 
+ 
+-int strnlen_w(
++int yara_strnlen_w(
+     const char* w_str)
+ {
+   int len = 0;
+@@ -181,7 +181,7 @@ int strnlen_w(
+ }
+ 
+ 
+-int strcmp_w(
++int yara_strcmp_w(
+     const char* w_str,
+     const char* str)
+ {
+@@ -200,7 +200,7 @@ int strcmp_w(
+ }
+ 
+ 
+-size_t strlcpy_w(
++size_t yara_strlcpy_w(
+     char* dst,
+     const char* w_src,
+     size_t n)
