@@ -144,6 +144,7 @@ function(librpmMain)
   # This mirrors detection done by autoconf/headers.m4 as CMake code.
   #
   if(DEFINED PLATFORM_LINUX)
+    include(CheckSymbolExists)
     CHECK_SYMBOL_EXISTS(major "sys/mkdev.h" MAJOR_IN_MKDEV)
     CHECK_SYMBOL_EXISTS(major "sys/sysmacros.h" MAJOR_IN_SYSMACROS) 
     if(MAJOR_IN_MKDEV)

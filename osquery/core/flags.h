@@ -14,21 +14,11 @@
 
 #include <boost/noncopyable.hpp>
 
-#define GFLAGS_DLL_DEFINE_FLAG
-#ifndef GFLAGS_DLL_DECLARE_FLAG
-#define GFLAGS_DLL_DECLARE_FLAG
-#endif
 #define STRIP_FLAG_HELP 1
 #include <gflags/gflags.h>
 
 #include <osquery/core/core.h>
 #include <osquery/utils/status/status.h>
-
-#ifdef FREEBSD
-#define GFLAGS_NAMESPACE gflags
-#elif !defined(GFLAGS_NAMESPACE)
-#define GFLAGS_NAMESPACE google
-#endif
 
 namespace osquery {
 
