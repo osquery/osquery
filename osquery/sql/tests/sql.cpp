@@ -403,6 +403,66 @@ TEST_F(SQLTests, test_regex_split_too_big) {
 }
 
 /*
+ * concat
+ */
+TEST_F(SQLTests, test_concat) {
+  QueryData d;
+
+  auto status = query(
+      "select concat() as t0, \
+              concat('hello') as t1, \
+              concat('hello', 'world') as t2, \
+              concat('hello', NULL, 'world') as t3, \
+              concat(1, 2, 3, 'go') as t4, \
+              concat('') as t5",
+      d);
+  ASSERT_TRUE(status.ok());
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "");
+  EXPECT_EQ(d[0]["t1"], "hello");
+  EXPECT_EQ(d[0]["t2"], "helloworld");
+  EXPECT_EQ(d[0]["t3"], "helloworld");
+  EXPECT_EQ(d[0]["t4"], "123go");
+  EXPECT_EQ(d[0]["t5"], "");
+}
+
+/*
+ * concat_ws
+ */
+TEST_F(SQLTests, test_concat_ws) {
+  QueryData d;
+
+  auto status = query(
+      "select concat_ws('') as t0, \
+              concat_ws(NULL) as t1, \
+              concat_ws(', ', 'hello', 'world', 1, 2, 3) as t2, \
+              concat_ws('', 'hello', 'world', 1, 2, 3) as t3, \
+              concat_ws(NULL, 'hello', 'world', 1, 2, 3) as t4, \
+              concat_ws(' ', 'hello', NULL, 'world') as t5, \
+              concat_ws('x', 'hello') as t6, \
+              concat_ws('x', '', '') as t7",
+
+      d);
+  ASSERT_TRUE(status.ok());
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "");
+  EXPECT_EQ(d[0]["t1"], "");
+  EXPECT_EQ(d[0]["t2"], "hello, world, 1, 2, 3");
+  EXPECT_EQ(d[0]["t3"], "helloworld123");
+  EXPECT_EQ(d[0]["t4"], "helloworld123");
+  EXPECT_EQ(d[0]["t5"], "hello world");
+  EXPECT_EQ(d[0]["t6"], "hello");
+  EXPECT_EQ(d[0]["t7"], "x");
+}
+
+TEST_F(SQLTests, test_concat_ws_fail) {
+  QueryData d;
+
+  auto status = query("select concat_ws()", d);
+  ASSERT_TRUE(!status.ok());
+}
+
+/*
  * ssdeep_compare
  */
 
