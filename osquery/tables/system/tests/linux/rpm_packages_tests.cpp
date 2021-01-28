@@ -57,10 +57,13 @@ class RpmTests : public ::testing::Test {
 
     if (config_.is_initialized()) {
       setEnvVar("RPM_CONFIGDIR", *config_);
-      delMacro(nullptr, "_dbpath");
-      delMacro(nullptr, "rpmdb");
       config_ = boost::none;
+    } else {
+      unsetEnvVar("RPM_CONFIGDIR");
     }
+
+    delMacro(nullptr, "_dbpath");
+    delMacro(nullptr, "rpmdb");
   }
 
  private:
@@ -90,7 +93,6 @@ std::ostream& operator<<(std::ostream& s, const PackageDetails& pd) {
 typedef std::function<void(struct PackageDetails&)> packageCallback;
 
 Status queryRpmDb(packageCallback predicate) {
-  // The following implementation uses http://rpm.org/api/4.11.1/
   rpmInitCrypto();
   if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
     rpmFreeCrypto();
