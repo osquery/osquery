@@ -32,7 +32,7 @@ using namespace testing;
 namespace osquery {
 namespace tables {
 
-rpmlogCallback kPreviousCallback{nullptr};
+rpmlogCallback gPreviousCallback{nullptr};
 
 class RpmTests : public ::testing::Test {
  public:
@@ -42,7 +42,7 @@ class RpmTests : public ::testing::Test {
 
  protected:
   void SetUp() {
-    kPreviousCallback = rpmlogSetCallback(&RpmTests::Callback, nullptr);
+    gPreviousCallback = rpmlogSetCallback(&RpmTests::Callback, nullptr);
   }
 
   void setConfig(const std::string& path) {
@@ -53,7 +53,7 @@ class RpmTests : public ::testing::Test {
   }
 
   void TearDown() {
-    rpmlogSetCallback(kPreviousCallback, nullptr);
+    rpmlogSetCallback(gPreviousCallback, nullptr);
 
     if (config_.is_initialized()) {
       setEnvVar("RPM_CONFIGDIR", *config_);
