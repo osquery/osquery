@@ -238,12 +238,12 @@ static void concatStringFunc(sqlite3_context* context,
 }
 
 /**
- * @brief Concatenate strings ignoring nulls, with seperator
+ * @brief Concatenate strings ignoring nulls, with separator
  */
 static void concatWSStringFunc(sqlite3_context* context,
                                int argc,
                                sqlite3_value** argv) {
-  // First arg is the seperator. Error if not present
+  // First arg is the separator. Error if not present
   if (argc == 0) {
     LOG(INFO) << "Missing separator to concat_ws";
     sqlite3_result_error(context, "Missing separator to concat_ws", -1);

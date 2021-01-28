@@ -246,7 +246,7 @@ TEST_F(SQLTests, test_regex_match_invalid2) {
 TEST_F(SQLTests, test_regex_match_invalid3) {
   QueryData d;
   // `|` is an invalid regexp but std::basic_regex doesn't complain, and treats
-  // it much as an empty string. Encode that expection here in tests.
+  // it much as an empty string. Encode that exception here in tests.
   query("select regex_match('foo/bar', '|', 0) as test", d);
   ASSERT_EQ(d.size(), 1U);
 
@@ -386,7 +386,7 @@ TEST_F(SQLTests, test_regex_split_invalid2) {
 TEST_F(SQLTests, test_regex_split_with_or) {
   QueryData d;
   // `|` is an invalid regexp but std::basic_regex doesn't complain, and treats
-  // it much as an empty string. Encode that expection here in tests.
+  // it much as an empty string. Encode that exception here in tests.
   query("select regex_split('foo/bar', '|', 0) as test", d);
   ASSERT_EQ(d.size(), 1U);
 
