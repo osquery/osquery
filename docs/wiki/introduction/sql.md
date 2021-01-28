@@ -277,6 +277,7 @@ subqueries, so they make sense as local-additions:
     <details>
     <summary>Concat function example:</summary>
     <p>
+
       osquery> .mode line
 
       osquery> select concat('hello', NULL, ' ', 'world');
@@ -290,6 +291,7 @@ subqueries, so they make sense as local-additions:
     <details>
     <summary>Concat_ws function example:</summary>
     <p>
+
       osquery> .mode line
 
       osquery> select concat_ws(' ', 'hello', NULL, 'world');
