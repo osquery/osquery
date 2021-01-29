@@ -34,11 +34,13 @@ function(generateOsqueryTablesSystemLinuxTests)
     linux/pci_devices_tests.cpp
     linux/pcidb_tests.cpp
     linux/portage_tests.cpp
+    linux/rpm_packages_tests.cpp
     linux/selinux_settings_tests.cpp
   )
 
   target_link_libraries(osquery_tables_system_linux_tests-test PRIVATE
     osquery_cxx_settings
+    osquery_config_tests_testutils
     osquery_core
     osquery_core_sql
     osquery_database
@@ -183,7 +185,6 @@ function(generateOsqueryTablesSystemTestsAugeasTestsTest)
 
   add_dependencies(osquery_tables_system_tests_augeastests-test osquery_tables_system_tests_augeaslenses)
   add_dependencies(osquery_tables_system_tests_augeaslenses thirdparty_augeas)
-
 endfunction()
 
 osqueryTablesSystemTestsMain()

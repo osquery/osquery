@@ -367,6 +367,11 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_LINUX)
     add_test(NAME osquery_tables_system_linux_tests-test COMMAND osquery_tables_system_linux_tests-test)
+
+    set_tests_properties(
+      osquery_tables_system_linux_tests-test
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
   elseif(DEFINED PLATFORM_MACOS)
     add_test(NAME osquery_tables_system_darwin_tests-test COMMAND osquery_tables_system_darwin_tests-test)
 
