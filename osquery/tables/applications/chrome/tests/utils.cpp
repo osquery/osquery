@@ -387,6 +387,18 @@ TEST_F(ChromeUtilsTests, getChromeProfilesFromSnapshotList) {
   ASSERT_FALSE(referenced_extension.profile_settings.empty());
 }
 
+TEST_F(ChromeUtilsTests, webkitTimeToUnixTimestamp) {
+  auto timestamp_exp = webkitTimeToUnixTimestamp("13251227857389874");
+  ASSERT_FALSE(timestamp_exp.isError());
+
+  auto timestamp = timestamp_exp.take();
+  ASSERT_EQ(timestamp, 1606754257);
+
+  timestamp_exp = webkitTimeToUnixTimestamp("100");
+  ASSERT_TRUE(timestamp_exp.isError());
+  ASSERT_EQ(timestamp_exp.getErrorCode(), ConversionError::InvalidArgument);
+}
+
 } // namespace tables
 
 } // namespace osquery

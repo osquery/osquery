@@ -13,6 +13,8 @@
 
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/expected/expected.h>
 
 #include <unordered_map>
 
@@ -187,6 +189,11 @@ std::string getExtensionProperty(
 std::string getExtensionProfileSettingsValue(
     const ChromeProfile::Extension& extension,
     const std::string& property_name);
+
+using ExpectedUnixTimestamp = Expected<std::int64_t, ConversionError>;
+
+/// Converts a timestamp from Webkit to Unix format
+ExpectedUnixTimestamp webkitTimeToUnixTimestamp(const std::string& timestamp);
 
 } // namespace tables
 

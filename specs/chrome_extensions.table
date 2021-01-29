@@ -23,7 +23,8 @@ schema([
     Column("referenced", BIGINT, "1 if this extension is referenced by the Preferences file of the profile"),
     Column("from_webstore", TEXT, "True if this extension was installed from the web store"),
     Column("state", TEXT, "1 if this extension is enabled"),
-    Column("install_time", TEXT, "When the extension was installed in the profile"),
+    Column("install_time", TEXT, "Extension install time, in its original Webkit format"),
+    Column("install_timestamp", BIGINT, "Extension install time, converted to unix time"),
     Column("manifest_json", TEXT, "The manifest file of the extension", hidden=True),
     ForeignKey(column="uid", table="users"),
 ])

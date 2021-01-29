@@ -14,8 +14,6 @@
 #include <osquery/logger/logger.h>
 #include <osquery/tables/applications/chrome/utils.h>
 #include <osquery/tables/system/system_utils.h>
-#include <osquery/utils/conversions/tryto.h>
-#include <osquery/utils/expected/expected.h>
 #include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
@@ -914,6 +912,23 @@ Status getExtensionProfileSettings(
   return Status::success();
 }
 
+ExpectedUnixTimestamp webkitTimeToUnixTimestamp(const std::string& timestamp) {
+  auto int_time_exp = tryTo<std::int64_t>(timestamp);
+  if (int_time_exp.isError()) {
+    return int_time_exp.takeError();
+  }
+
+  // This value is expressed as microseconds since 01/01/1601 00:00:00
+  auto unix_timestamp = (int_time_exp.take() / 1000000LL) - 11644473600LL;
+  if (unix_timestamp < 0) {
+    return ExpectedUnixTimestamp::failure(
+        ConversionError::InvalidArgument,
+        "The webkit to unix timestamp conversion returned a negative number");
+  }
+
+  return ExpectedUnixTimestamp::success(unix_timestamp);
+}
+
 Status getExtensionFromSnapshot(
     ChromeProfile::Extension& extension,
     const ChromeProfileSnapshot::Extension& snapshot) {
@@ -1166,8 +1181,8 @@ std::string getExtensionProfileSettingsValue(
   std::string value;
   auto succeeded =
       getProperty(value, extension.profile_settings, property_name);
-  static_cast<void>(succeeded);
 
+  static_cast<void>(succeeded);
   return value;
 }
 

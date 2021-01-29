@@ -9,6 +9,7 @@
 
 #include <osquery/logger/logger.h>
 #include <osquery/tables/applications/chrome/utils.h>
+#include <osquery/utils/conversions/tryto.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -76,6 +77,22 @@ QueryData genChromeExtensions(QueryContext& context) {
 
       row["install_time"] =
           SQL_TEXT(getExtensionProfileSettingsValue(extension, "install_time"));
+
+      std::int64_t converted_timestamp{-1};
+
+      auto converted_timestamp_exp =
+          webkitTimeToUnixTimestamp(row.at("install_time"));
+
+      if (converted_timestamp_exp.isError()) {
+        LOG(ERROR) << "Failed to parse the install_time value '"
+                   << row.at("install_time")
+                   << "' from the following extension: " << extension.path;
+
+      } else {
+        converted_timestamp = converted_timestamp_exp.take();
+      }
+
+      row["install_timestamp"] = BIGINT(converted_timestamp);
 
       row["identifier"] =
           SQL_TEXT(getExtensionProfileSettingsValue(extension, "identifier"));
