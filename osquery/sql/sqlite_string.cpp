@@ -250,10 +250,10 @@ static void concatWSStringFunc(sqlite3_context* context,
     return;
   }
 
-  std::string sep = "";
-  if (SQLITE_NULL != sqlite3_value_type(argv[0])) {
-    sep = reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
-  }
+  const std::string sep =
+      (SQLITE_NULL != sqlite3_value_type(argv[0]))
+          ? reinterpret_cast<const char*>(sqlite3_value_text(argv[0]))
+          : "";
 
   // If we have less than 2 args, no point to iterating. Return an empty string
   if (argc == 1) {
