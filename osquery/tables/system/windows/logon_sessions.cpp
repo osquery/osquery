@@ -73,7 +73,21 @@ QueryData queryLogonSessions(QueryContext& context) {
       if (sid) {
         LocalFree(sid);
       }
-      r["logon_time"] = BIGINT(longIntToUnixtime(session_data->LogonTime));
+
+      auto logon_time = longIntToUnixtime(session_data->LogonTime);
+      auto logoff_time = longIntToUnixtime(session_data->LogffTime);
+      r["logon_time"] = BIGINT(logon_time);
+
+      if (logoff_time >= 0) {
+        r["logoff_time"] = BIGINT(logoff_time);
+        r["duration"] = BIGINT(logoff_time - logon_time);
+      }
+
+      if (longIntToUnixtime(session_data->KickOffTime) >= 0) {
+        r["kickoff_time"] =
+            BIGINT(longIntToUnixtime(session_data->KickOffTime));
+      }
+
       r["logon_server"] = wstringToString(session_data->LogonServer.Buffer);
       r["dns_domain_name"] =
           wstringToString(session_data->DnsDomainName.Buffer);
