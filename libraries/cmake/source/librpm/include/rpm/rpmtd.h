@@ -363,7 +363,7 @@ int rpmtdFromArgv(rpmtd td, rpmTagVal tag, ARGV_t argv);
  */
 int rpmtdFromArgi(rpmtd td, rpmTagVal tag, ARGI_t argi);
 
-/* \ingroup rpmtd
+/** \ingroup rpmtd
  * Perform deep copy of container.
  * Create a modifiable copy of tag data container (on string arrays each
  * string is separately allocated)
@@ -373,7 +373,7 @@ int rpmtdFromArgi(rpmtd td, rpmTagVal tag, ARGI_t argi);
  */
 rpmtd rpmtdDup(rpmtd td);
 
-/* \ingroup rpmtd
+/** \ingroup rpmtd
  * Push string array container contents to a string pool, return string ids.
  * @param td		Tag data container
  * @param pool		String pool

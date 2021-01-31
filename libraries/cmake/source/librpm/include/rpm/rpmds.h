@@ -49,7 +49,8 @@ enum rpmsenseFlags_e {
     RPMSENSE_TRIGGERPREIN = (1 << 25),	/*!< %triggerprein dependency. */
     RPMSENSE_KEYRING	= (1 << 26),
     /* bit 27 unused */
-    RPMSENSE_CONFIG	= (1 << 28)
+    RPMSENSE_CONFIG	= (1 << 28),
+    RPMSENSE_META	= (1 << 29),	/*!< meta dependency. */
 };
 
 typedef rpmFlags rpmsenseFlags;
@@ -73,6 +74,7 @@ typedef rpmFlags rpmsenseFlags;
     RPMSENSE_PRETRANS | \
     RPMSENSE_POSTTRANS | \
     RPMSENSE_PREREQ | \
+    RPMSENSE_META | \
     RPMSENSE_MISSINGOK)
 
 #define	_notpre(_x)		((_x) & ~RPMSENSE_PREREQ)
@@ -81,14 +83,18 @@ typedef rpmFlags rpmsenseFlags;
 #define	_ERASE_ONLY_MASK  \
     _notpre(RPMSENSE_SCRIPT_PREUN|RPMSENSE_SCRIPT_POSTUN)
 #define _UNORDERED_ONLY_MASK \
-    _notpre(RPMSENSE_RPMLIB|RPMSENSE_CONFIG|RPMSENSE_PRETRANS|RPMSENSE_POSTTRANS|RPMSENSE_SCRIPT_VERIFY)
+    _notpre(RPMSENSE_RPMLIB|RPMSENSE_CONFIG|RPMSENSE_PRETRANS|RPMSENSE_POSTTRANS|RPMSENSE_SCRIPT_VERIFY|RPMSENSE_META)
+#define _FORCE_ORDER_ONLY_MASK \
+    _notpre(RPMSENSE_SCRIPT_PRE|RPMSENSE_SCRIPT_POST|RPMSENSE_SCRIPT_PREUN|RPMSENSE_SCRIPT_POSTUN)
 
 #define	isLegacyPreReq(_x)  (((_x) & _ALL_REQUIRES_MASK) == RPMSENSE_PREREQ)
 #define	isInstallPreReq(_x)	((_x) & _INSTALL_ONLY_MASK)
 #define	isErasePreReq(_x)	((_x) & _ERASE_ONLY_MASK)
-#define	isUnorderedReq(_x)	((_x) & _UNORDERED_ONLY_MASK)
-
-
+#define	isUnorderedReq(_x)	((_x) & _UNORDERED_ONLY_MASK && \
+				 !((_x) & _FORCE_ORDER_ONLY_MASK))
+#define isTransientReq(_x)	(isInstallPreReq(_x) && \
+				 !isErasePreReq(_x) &&	\
+				 !((_x) & RPMSENSE_META))
 
 /** \ingroup rpmds
  * Return only those flags allowed for given type of dependencies
@@ -293,25 +299,17 @@ int rpmdsIsWeak(rpmds ds);
 int rpmdsIsReverse(rpmds ds);
 
 /** \ingroup rpmds
- * Return current "Don't promote Epoch:" flag.
- *
- * This flag controls for Epoch: promotion when a dependency set is
- * compared. If the flag is set (for already installed packages), then
- * an unspecified value will be treated as Epoch: 0. Otherwise (for added
- * packages), the Epoch: portion of the comparison is skipped if the value
- * is not specified, i.e. an unspecified Epoch: is assumed to be equal
- * in dependency comparisons.
- *
- * @param ds		dependency set
- * @return		current "Don't promote Epoch:" flag
+ * Obsolete, do not use.
+ * @param ds		unused
+ * @return		1 always
  */
 int rpmdsNoPromote(const rpmds ds);
 
 /** \ingroup rpmds
- * Set "Don't promote Epoch:" flag.
- * @param ds		dependency set
- * @param nopromote	Should an unspecified Epoch: be treated as Epoch: 0?
- * @return		previous "Don't promote Epoch:" flag
+ * Obsolete, do not use.
+ * @param ds		unused
+ * @param nopromote	unused
+ * @return		1 always
  */
 int rpmdsSetNoPromote(rpmds ds, int nopromote);
 
@@ -382,7 +380,7 @@ int rpmdsCompare(const rpmds A, const rpmds B);
  * Compare package provides dependencies from header with a single dependency.
  * @param h		header
  * @param req		dependency set
- * @param nopromote	Don't promote Epoch: in comparison?
+ * @param nopromote	unused
  * @return		1 if any dependency overlaps, 0 otherwise
  */
 int rpmdsAnyMatchesDep (const Header h, const rpmds req, int nopromote);
@@ -392,7 +390,7 @@ int rpmdsAnyMatchesDep (const Header h, const rpmds req, int nopromote);
  * @param h		header
  * @param ix            index in header provides
  * @param req		dependency set
- * @param nopromote	Don't promote Epoch: in comparison?
+ * @param nopromote	unused
  * @return		1 if any dependency overlaps, 0 otherwise
  */
 int rpmdsMatchesDep (const Header h, int ix, const rpmds req, int nopromote);
@@ -401,7 +399,7 @@ int rpmdsMatchesDep (const Header h, int ix, const rpmds req, int nopromote);
  * Compare package name-version-release from header with a single dependency.
  * @param h		header
  * @param req		dependency set
- * @param nopromote	Don't promote Epoch: in comparison?
+ * @param nopromote	unused
  * @return		1 if dependency overlaps, 0 otherwise
  */
 int rpmdsNVRMatchesDep(const Header h, const rpmds req, int nopromote);

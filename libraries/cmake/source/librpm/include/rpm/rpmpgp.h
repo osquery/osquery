@@ -8,6 +8,10 @@
  *
  * Text from RFC-2440 in comments is
  *	Copyright (C) The Internet Society (1998).  All Rights Reserved.
+ *
+ * EdDSA algorithm identifier value taken from
+ *      https://datatracker.ietf.org/doc/draft-ietf-openpgp-rfc4880bis/
+ * This value is used in gnupg since version 2.1.0
  */
 
 #include <string.h>
@@ -152,6 +156,7 @@ typedef enum pgpSigType_e {
        20         - Elgamal (Encrypt or Sign)
        21         - Reserved for Diffie-Hellman (X9.42,
                     as defined for IETF-S/MIME)
+       22         - EdDSA
        100 to 110 - Private/Experimental algorithm.
 \endverbatim
  *
@@ -168,7 +173,8 @@ typedef enum pgpPubkeyAlgo_e {
     PGPPUBKEYALGO_EC		= 18,	/*!< Elliptic Curve */
     PGPPUBKEYALGO_ECDSA		= 19,	/*!< ECDSA */
     PGPPUBKEYALGO_ELGAMAL	= 20,	/*!< Elgamal */
-    PGPPUBKEYALGO_DH		= 21	/*!< Diffie-Hellman (X9.42) */
+    PGPPUBKEYALGO_DH		= 21,	/*!< Diffie-Hellman (X9.42) */
+    PGPPUBKEYALGO_EDDSA		= 22	/*!< EdDSA */
 } pgpPubkeyAlgo;
 
 /** \ingroup rpmpgp
@@ -269,6 +275,22 @@ typedef enum pgpHashAlgo_e {
 } pgpHashAlgo;
 
 /** \ingroup rpmpgp
+ * ECC Curves
+ *
+ * The following curve ids are private to rpm. PGP uses
+ * oids to identify a curve.
+ */
+typedef enum pgpCurveId_e {
+    PGPCURVE_NIST_P_256		=  1,	/*!< NIST P-256 */
+    PGPCURVE_NIST_P_384		=  2,	/*!< NIST P-384 */
+    PGPCURVE_NIST_P_521		=  3,	/*!< NIST P-521 */
+    PGPCURVE_BRAINPOOL_P256R1	=  4,	/*!< brainpoolP256r1 */
+    PGPCURVE_BRAINPOOL_P512R1	=  5,	/*!< brainpoolP512r1 */
+    PGPCURVE_ED25519		=  6,	/*!< Ed25519 */
+    PGPCURVE_CURVE25519		=  7,	/*!< Curve25519 */
+} pgpCurveId;
+
+/** \ingroup rpmpgp
  * 5.2.2. Version 3 Signature Packet Format
  * 
  * The body of a version 3 Signature Packet contains:
@@ -285,7 +307,7 @@ typedef enum pgpHashAlgo_e {
  * Algorithm Specific Fields for RSA signatures:
  *   - multiprecision integer (MPI) of RSA signature value m**d.
  *
- * Algorithm Specific Fields for DSA signatures:
+ * Algorithm Specific Fields for DSA and EdDSA signatures:
  *   - MPI of DSA value r.
  *   - MPI of DSA value s.
  */
@@ -642,6 +664,11 @@ typedef struct pgpPktKeyV3_s {
  *       - MPI of Elgamal public key value y (= g**x where x is
  *         secret).
  *
+ *     Algorithm Specific Fields for EdDSA public keys:
+ *       - variable length field containing a curve OID
+ *       - MPI of an EC point representing a public key Q
+ *         (a compressed point prefixed with the octet 0x40)
+ *
  */
 typedef struct pgpPktKeyV4_s {
     uint8_t version;	/*!< version number (4). */
@@ -718,7 +745,7 @@ typedef union pgpPktKey_u {
     struct pgpPktKeyV4_s v4;
 } pgpPktKey;
 
-/* \ingroup rpmpgp
+/** \ingroup rpmpgp
  * 5.6. Compressed Data Packet (Tag 8)
  *
  * The Compressed Data packet contains compressed data. Typically, this
@@ -747,7 +774,7 @@ typedef struct pgpPktCdata_s {
     uint8_t data[1];
 } pgpPktCdata;
 
-/* \ingroup rpmpgp
+/** \ingroup rpmpgp
  * 5.7. Symmetrically Encrypted Data Packet (Tag 9)
  *
  * The Symmetrically Encrypted Data packet contains data encrypted with
@@ -785,7 +812,7 @@ typedef struct pgpPktEdata_s {
     uint8_t data[1];
 } pgpPktEdata;
 
-/* \ingroup rpmpgp
+/** \ingroup rpmpgp
  * 5.8. Marker Packet (Obsolete Literal Packet) (Tag 10)
  *
  * An experimental version of PGP used this packet as the Literal
@@ -801,7 +828,7 @@ typedef struct pgpPktEdata_s {
  * in order to cause that version to report that newer software is
  * necessary to process the message.
  */
-/* \ingroup rpmpgp
+/** \ingroup rpmpgp
  * 5.9. Literal Data Packet (Tag 11)
  *
  * A Literal Data packet contains the body of a message; data that is
@@ -838,7 +865,7 @@ typedef struct pgpPktLdata_s {
     uint8_t filename[1];
 } pgpPktLdata;
 
-/* \ingroup rpmpgp
+/** \ingroup rpmpgp
  * 5.10. Trust Packet (Tag 12)
  *
  * The Trust packet is used only within keyrings and is not normally
@@ -855,7 +882,7 @@ typedef struct pgpPktTrust_s {
     uint8_t flag;
 } pgpPktTrust;
 
-/* \ingroup rpmpgp
+/** \ingroup rpmpgp
  * 5.11. User ID Packet (Tag 13)
  *
  * A User ID packet consists of data that is intended to represent the
