@@ -75,7 +75,7 @@ QueryData queryLogonSessions(QueryContext& context) {
       }
 
       auto logon_time = longIntToUnixtime(session_data->LogonTime);
-      auto logoff_time = longIntToUnixtime(session_data->LogffTime);
+      auto logoff_time = longIntToUnixtime(session_data->LogoffTime);
       r["logon_time"] = BIGINT(logon_time);
 
       if (logoff_time >= 0) {
