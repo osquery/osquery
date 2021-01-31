@@ -122,9 +122,9 @@ int rpmfiArchiveWriteFile(rpmfi fi, FD_t fd);
  * @param fi		file info
  * @param buf		pointer to buffer
  * @param size		number of bytes to read
- * @return		bytes actually read
+ * @return		bytes actually read, -1 on error
  */
-size_t rpmfiArchiveRead(rpmfi fi, void * buf, size_t size);
+ssize_t rpmfiArchiveRead(rpmfi fi, void * buf, size_t size);
 
 /** \ingroup payload
  * Has current file content stored in the archive

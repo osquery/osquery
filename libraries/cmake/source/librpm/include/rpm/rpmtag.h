@@ -324,8 +324,8 @@ typedef enum rpmTag_e {
     RPMTAG_RECOMMENDFLAGS	= 5048,	/* i[] */
     RPMTAG_SUGGESTNAME		= 5049,	/* s[] */
 #define	RPMTAG_SUGGESTS RPMTAG_SUGGESTNAME	/* s[] */
-    RPMTAG_SUGGESTVERSION	= 5050,	/* s[] extension */
-    RPMTAG_SUGGESTFLAGS		= 5051,	/* i[] extension */
+    RPMTAG_SUGGESTVERSION	= 5050,	/* s[] */
+    RPMTAG_SUGGESTFLAGS		= 5051,	/* i[] */
     RPMTAG_SUPPLEMENTNAME	= 5052,	/* s[] */
 #define	RPMTAG_SUPPLEMENTS RPMTAG_SUPPLEMENTNAME /* s[] */
     RPMTAG_SUPPLEMENTVERSION	= 5053,	/* s[] */
@@ -373,6 +373,7 @@ typedef enum rpmTag_e {
     RPMTAG_AUTOINSTALLED	= 5094, /* i reservation (unimplemented) */
     RPMTAG_IDENTITY		= 5095, /* s reservation (unimplemented) */
     RPMTAG_MODULARITYLABEL	= 5096, /* s */
+    RPMTAG_PAYLOADDIGESTALT	= 5097, /* s[] */
 
     RPMTAG_FIRSTFREE_TAG	/*!< internal */
 } rpmTag;

@@ -340,7 +340,7 @@ char * headerGetAsString(Header h, rpmTagVal tag);
  */
 const char * headerGetString(Header h, rpmTagVal tag);
 
-/* \ingroup header
+/** \ingroup header
  * Return a simple number tag (or extension) from header
  * @param h		header
  * @param tag		tag to retrieve
