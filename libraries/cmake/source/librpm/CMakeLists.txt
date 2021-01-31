@@ -9,7 +9,7 @@ function(librpmMain)
   set(library_root "${OSQUERY_librpm_ROOT_DIR}")
 
   set(rpm_library_srcs
-    "${library_root}/lib/backend/db3.c"
+    "${library_root}/lib/backend/bdb_ro.c"
     "${library_root}/lib/backend/dbi.c"
     "${library_root}/lib/backend/dummydb.c"
     "${library_root}/lib/backend/dbiset.c"
@@ -161,7 +161,6 @@ function(librpmMain)
   endif()
 
   target_link_libraries(thirdparty_librpm PUBLIC
-    thirdparty_berkeley-db
     thirdparty_openssl
     thirdparty_zlib
     thirdparty_libmagic

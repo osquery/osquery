@@ -36,7 +36,7 @@ export LDFLAGS="${CFLAGS} -L$OPENSSL_LINK -L$LIBMAGIC_LINK -L$POPT_LINK"
 export CC=clang
 
 ./autogen.sh
-./configure --enable-static --with-crypto=openssl --without-archive --enable-bdb --enable-bdb-ro=no --without-lua --disable-plugins --disable-openmp
+./configure --enable-static --with-crypto=openssl --without-archive --enable-bdb --enable-bdb-ro --without-lua --disable-plugins --disable-openmp
 ```
 
 Then copy
@@ -56,8 +56,6 @@ cp ./lib/tagtbl.C ../generated/lib/
 And set (in the appropriate places):
 
 ```sh
-#define HAVE_DB_H 1
-#define WITH_BDB 1
 #define HAVE_LZMA_H 1
 #define HAVE_ZSTD 1
 ```
