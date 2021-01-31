@@ -143,8 +143,16 @@ Status procEnumerateProcesses(UserData& user_data,
                               bool (*callback)(const std::string&, UserData&)) {
   boost::filesystem::directory_iterator it(kLinuxProcPath), end;
 
-  try {
-    for (; it != end; ++it) {
+  // Some hardening schemes grant only partial permission to
+  // /proc. Because of that, we want to keep iterating even if we get
+  // a failure. Track if we've gotten any success, and return based on
+  // that instead of from an individual iteration. (This does mean
+  // that if you have no permissions, you may get a bunch of verbose
+  // logs saying so. See https://github.com/osquery/osquery/issues/5709
+  bool anySuccess = false;
+
+  for (; it != end; ++it) {
+    try {
       if (!boost::filesystem::is_directory(it->status())) {
         continue;
       }
@@ -159,10 +167,17 @@ Status procEnumerateProcesses(UserData& user_data,
       if (ret == false) {
         break;
       }
+
+      anySuccess = true;
+    } catch (const boost::filesystem::filesystem_error& e) {
+      VLOG(1) << "Exception iterating Linux processes: " << e.what()
+              << "Iterating onward\n";
     }
-  } catch (const boost::filesystem::filesystem_error& e) {
-    VLOG(1) << "Exception iterating Linux processes: " << e.what();
-    return Status(1, e.what());
+  }
+
+  if (!anySuccess) {
+    VLOG(1) << "No success iterating linux /proc. Permissions problems?\n";
+    return Status(1, "No success iterating linux /proc");
   }
 
   return Status(0);
