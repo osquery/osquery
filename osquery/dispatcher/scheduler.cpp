@@ -55,6 +55,7 @@ HIDDEN_FLAG(bool,
 /// Used to bypass (optimize-out) the set-differential of query results.
 DECLARE_bool(events_optimize);
 DECLARE_bool(enable_numeric_monitoring);
+DECLARE_bool(verbose);
 
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   if (FLAGS_enable_numeric_monitoring) {
@@ -100,7 +101,11 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
 
 Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
-  VLOG(1) << "Executing scheduled query " << name << ": " << query.query;
+  if (!FLAGS_verbose) {
+    LOG(INFO) << "Executing scheduled query " << name;
+  } else {
+    VLOG(1) << "Executing scheduled query " << name << ": " << query.query;
+  }
   runDecorators(DECORATE_ALWAYS);
 
   auto sql = monitor(name, query);
