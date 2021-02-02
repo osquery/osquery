@@ -176,7 +176,7 @@ Status procEnumerateProcesses(UserData& user_data,
 
   if (!anySuccess) {
     VLOG(1) << "No success iterating linux /proc\n";
-    return Success::failure("No success iterating linux /proc");
+    return Status::failure("No success iterating linux /proc");
   }
 
   return Status(0);
@@ -227,7 +227,7 @@ Status procEnumerateProcessDescriptors(const std::string& pid,
     }
   } catch (boost::filesystem::filesystem_error& e) {
     VLOG(1) << "Exception iterating process file descriptors: " << e.what();
-    return Success::failure(e.what());
+    return Status::failure(e.what());
   }
 
   return Status(0);
