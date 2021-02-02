@@ -170,14 +170,13 @@ Status procEnumerateProcesses(UserData& user_data,
 
       anySuccess = true;
     } catch (const boost::filesystem::filesystem_error& e) {
-      VLOG(1) << "Exception iterating Linux processes: " << e.what()
-              << "Iterating onward\n";
+      VLOG(1) << "Exception iterating Linux /proc: " << e.what();
     }
   }
 
   if (!anySuccess) {
-    VLOG(1) << "No success iterating linux /proc. Permissions problems?\n";
-    return Status(1, "No success iterating linux /proc");
+    VLOG(1) << "No success iterating linux /proc\n";
+    return Success::failure("No success iterating linux /proc");
   }
 
   return Status(0);
@@ -228,7 +227,7 @@ Status procEnumerateProcessDescriptors(const std::string& pid,
     }
   } catch (boost::filesystem::filesystem_error& e) {
     VLOG(1) << "Exception iterating process file descriptors: " << e.what();
-    return Status(1, e.what());
+    return Success::failure(e.what());
   }
 
   return Status(0);
