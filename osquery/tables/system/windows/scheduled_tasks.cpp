@@ -127,13 +127,13 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
     VariantTimeToSystemTime(dRunTime, &st);
     SystemTimeToFileTime(&st, &ft);
     LocalFileTimeToFileTime(&ft, &locFt);
-    r["last_run_time"] = INTEGER(filetimeToUnixtime(locFt));
+    r["last_run_time"] = BIGINT(filetimeToUnixtime(locFt));
 
     pRegisteredTask->get_NextRunTime(&dRunTime);
     VariantTimeToSystemTime(dRunTime, &st);
     SystemTimeToFileTime(&st, &ft);
     LocalFileTimeToFileTime(&ft, &locFt);
-    r["next_run_time"] = INTEGER(filetimeToUnixtime(locFt));
+    r["next_run_time"] = BIGINT(filetimeToUnixtime(locFt));
 
     ITaskDefinition* taskDef = nullptr;
     IActionCollection* tActionCollection = nullptr;

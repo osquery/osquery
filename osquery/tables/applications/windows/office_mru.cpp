@@ -74,7 +74,7 @@ void parseOfficeData(QueryData& results,
   file_time.dwLowDateTime = large_time.LowPart;
   auto open_time = filetimeToUnixtime(file_time);
 
-  r["last_opened_time"] = INTEGER(open_time);
+  r["last_opened_time"] = BIGINT(open_time);
   r["sid"] = sid;
   results.push_back(r);
 }
