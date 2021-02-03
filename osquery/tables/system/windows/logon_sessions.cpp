@@ -48,57 +48,72 @@ QueryData queryLogonSessions(QueryContext& context) {
   NTSTATUS status = LsaEnumerateLogonSessions(&session_count, &sessions);
 
   QueryData results;
-  if (status == kLsaStatusSuccess) {
-    for (ULONG i = 0; i < session_count; i++) {
-      PSECURITY_LOGON_SESSION_DATA session_data = NULL;
-      NTSTATUS status = LsaGetLogonSessionData(&sessions[i], &session_data);
-      if (status != kLsaStatusSuccess) {
-        continue;
-      }
+  
+  if (status != kLsaStatusSuccess) {
+    return results;
+  }
 
-      Row r;
-      r["logon_id"] = INTEGER(session_data->LogonId.LowPart);
-      r["user"] = wstringToString(session_data->UserName.Buffer);
-      r["logon_domain"] = wstringToString(session_data->LogonDomain.Buffer);
-      r["authentication_package"] =
-          wstringToString(session_data->AuthenticationPackage.Buffer);
-      r["logon_type"] =
-          kLogonTypeToStr.find(SECURITY_LOGON_TYPE(session_data->LogonType))
-              ->second;
-      r["session_id"] = INTEGER(session_data->Session);
-      LPWSTR sid = nullptr;
-      if (ConvertSidToStringSidW(session_data->Sid, &sid)) {
-        r["logon_sid"] = wstringToString(sid);
-      }
-      if (sid) {
-        LocalFree(sid);
-      }
-
-      auto logon_time = longIntToUnixtime(session_data->LogonTime);
-      auto logoff_time = longIntToUnixtime(session_data->LogoffTime);
-      r["logon_time"] = BIGINT(logon_time);
-
-      if (logoff_time >= 0) {
-        r["logoff_time"] = BIGINT(logoff_time);
-        r["duration"] = BIGINT(logoff_time - logon_time);
-      }
-
-      if (longIntToUnixtime(session_data->KickOffTime) >= 0) {
-        r["kickoff_time"] =
-            BIGINT(longIntToUnixtime(session_data->KickOffTime));
-      }
-
-      r["logon_server"] = wstringToString(session_data->LogonServer.Buffer);
-      r["dns_domain_name"] =
-          wstringToString(session_data->DnsDomainName.Buffer);
-      r["upn"] = wstringToString(session_data->Upn.Buffer);
-      r["logon_script"] = wstringToString(session_data->LogonScript.Buffer);
-      r["profile_path"] = wstringToString(session_data->ProfilePath.Buffer);
-      r["home_directory"] = wstringToString(session_data->HomeDirectory.Buffer);
-      r["home_directory_drive"] =
-          wstringToString(session_data->HomeDirectoryDrive.Buffer);
-      results.push_back(std::move(r));
+  for (ULONG i = 0; i < session_count; i++) {
+    PSECURITY_LOGON_SESSION_DATA session_data = NULL;
+    NTSTATUS status = LsaGetLogonSessionData(&sessions[i], &session_data);
+    if (status != kLsaStatusSuccess) {
+      continue;
     }
+
+    Row r;
+    r["logon_id"] = INTEGER(session_data->LogonId.LowPart);
+    r["user"] = wstringToString(session_data->UserName.Buffer);
+    r["logon_domain"] = wstringToString(session_data->LogonDomain.Buffer);
+    r["authentication_package"] =
+      wstringToString(session_data->AuthenticationPackage.Buffer);
+    r["logon_type"] =
+      kLogonTypeToStr.find(SECURITY_LOGON_TYPE(session_data->LogonType))
+      ->second;
+    r["session_id"] = INTEGER(session_data->Session);
+    LPWSTR sid = nullptr;
+    if (ConvertSidToStringSidW(session_data->Sid, &sid)) {
+      r["logon_sid"] = wstringToString(sid);
+    }
+    if (sid) {
+      LocalFree(sid);
+    }
+
+    auto logon_time = longIntToUnixtime(session_data->LogonTime);
+
+    r["logon_time"] = BIGINT(logon_time);
+
+    if (session_data->LogoffTime >= 0 && session_data->LogoffTime <= 9223372036854775807) { // 2^63 - 1
+      auto logoff_time = longIntToUnixtime(session_data->LogoffTime);
+      
+      auto lot = session_data->LogoffTime;
+      auto lit = session_data->LogonTime;
+      VLOG(1) << "seph logoff high " << lot.HighPart
+	      << " low " << lot.LowPart
+	      << " quad " << lot.QuadPart;
+	
+      VLOG(1) << "seph login  high " << lit.HighPart
+	      << " low " << lit.LowPart
+	      << " quad " << lit.QuadPart;
+      
+      r["logoff_time"] = BIGINT(logoff_time);
+      r["duration"] = BIGINT(logoff_time - logon_time);
+    }
+
+    if (longIntToUnixtime(session_data->KickOffTime) >= 0) {
+      r["kickoff_time"] =
+	BIGINT(longIntToUnixtime(session_data->KickOffTime));
+    }
+
+    r["logon_server"] = wstringToString(session_data->LogonServer.Buffer);
+    r["dns_domain_name"] =
+      wstringToString(session_data->DnsDomainName.Buffer);
+    r["upn"] = wstringToString(session_data->Upn.Buffer);
+    r["logon_script"] = wstringToString(session_data->LogonScript.Buffer);
+    r["profile_path"] = wstringToString(session_data->ProfilePath.Buffer);
+    r["home_directory"] = wstringToString(session_data->HomeDirectory.Buffer);
+    r["home_directory_drive"] =
+      wstringToString(session_data->HomeDirectoryDrive.Buffer);
+    results.push_back(std::move(r));
   }
   return results;
 } // function queryLogonSessions
