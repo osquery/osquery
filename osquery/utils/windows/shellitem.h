@@ -16,19 +16,31 @@ struct ShellFileEntryData {
   std::string path;
   long long dos_created;
   long long dos_accessed;
+  long long dos_modified;
   int ext_size;
   int version;
   std::string extension_sig;
   std::string identifier;
-  int mft_entry;
+  long mft_entry;
   int mft_sequence;
   int string_size;
 };
 namespace osquery {
-ShellFileEntryData fileEntry(const std::string& shell_data,
-                                      const size_t& offset);
+ShellFileEntryData fileEntry(const std::string& shell_data);
 
 // return property name if decoded or return guid string
 std::string propertyStore(const std::string& shell_data,
                           const std::vector<size_t>& wps_list);
+
+std::string networkShareItem(const std::string& shell_data);
+
+std::string zipContentItem(const std::string& shell_data);
+
+std::string rootFolderItem(const std::string& shell_data);
+
+std::string driveLetterItem(const std::string& shell_data);
+
+std::string controlPanelCategoryItem(const std::string& shell_data);
+
+std::string controlPanelItem(const std::string& shell_data);
 }

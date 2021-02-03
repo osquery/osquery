@@ -81,7 +81,7 @@ LONGLONG parseFatTime(const std::string& fat_data) {
   int fat_month = (fat_date & 0b0000000111100000) >> 5;
   int fat_day = fat_date & 0b0000000000011111;
 
-  //std::cout << fat_time_data << std::endl;
+  //std::cout << "FAT TIME: " << fat_time_data << std::endl;
   auto fat_time = std::stoi(fat_time_data.substr(2, 2), nullptr, 16) << 8;
   fat_time |= std::stoi(fat_time_data.substr(0, 2), nullptr, 16);
   int fat_sec = (fat_time & 0b0000000000011111) * 2;

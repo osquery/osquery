@@ -8,27 +8,43 @@
  */
 
 #include <osquery/logger/logger.h>
-#include <string>
-#include <boost/algorithm/string.hpp>
+#include <osquery/utils/conversions/windows/windows_time.h>
+//#include <osquery/core/core.h>
+//#include <osquery/core/tables.h>
+//#include <osquery/tables/system/windows/registry.h>
 #include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string.hpp>
+#include <string>
 
 #include <iostream>
+
+// add ftp and optical! (maybe mtp...)
 
 struct ShellFileEntryData {
   std::string path;
   long long dos_created;
   long long dos_accessed;
+  long long dos_modified;
   int ext_size;
   int version;
   std::string extension_sig;
   std::string identifier;
-  int mft_entry;
+  long long mft_entry;
   int mft_sequence;
   int string_size;
 };
 
+const std::string kNetworkShareIds[6] = {"41", "42", "46", "47", "4C", "C3"};
+
+// Only 0400EFBE and 2600EFBE have been widely seen
+const std::string kShellItemExtensions[23] = {
+    "0400EFBE", "0000EFBE", "0100EFBE", "0200EFBE", "0300EFBE", "0500EFBE",
+    "0600EFBE", "0800EFBE", "0900EFBE", "0A00EFBE", "0B00EFBE", "0C00EFBE",
+    "0e00EFBE", "1000EFBE", "1300EFBE", "1400EFBE", "1600EFBE", "1700EFBE",
+    "1900EFBE", "1A00EFBE", "2100EFBE", "2500EFBE", "2600EFBE"};
+
 // property sets/GUIDs associated with name entries?
-  const std::string kPropertySets[15] = {"000214A1-0000-0000-C000-000000000046",
+const std::string kPropertySets[15] = {"000214A1-0000-0000-C000-000000000046",
                                        "01A3057A-74D6-4E80-BEA7-DC4C212CE50A",
                                        "46588AE2-4CBC-4338-BBFC-139326986DCE",
                                        "4D545058-4FCE-4578-95C8-8698A9BC0F49",
@@ -44,26 +60,71 @@ struct ShellFileEntryData {
                                        "EF6B490D-5CD8-437A-AFFC-DA8B60EE4A3C",
                                        "F29F85E0-4FF9-1068-AB91-08002B27B3D9"};
 namespace osquery {
-ShellFileEntryData fileEntry(const std::string& shell_data, const size_t& entry_offset) {
+/*
+std::string guidLookup(std::string& guid) {
+  // std::cout << "GUID Lookup!" << std::endl;
+  // std::cout << "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\{" + guid +
+  // "}"
+  //          << std::endl;
+  QueryData guid_data;
+  queryKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\{" + guid + "}",
+           guid_data);
+  for (const auto& rKey : guid_data) {
+    auto key_type = rKey.find("type");
+    auto key_path = rKey.find("path");
+    if (key_type == rKey.end() || key_path == rKey.end()) {
+      continue;
+    }
+
+    auto key_name = rKey.at("name");
+    if (key_name == "(Default)") {
+      // std::cout << rKey.at("data") << std::endl;
+      if (rKey.at("data") == "") {
+        return "{" + guid + "}";
+      }
+      return rKey.at("data");
+    }
+  }
+  return "{" + guid + "}";
+}*/
+
+ShellFileEntryData fileEntry(const std::string& shell_data) {
+  // check shellitem extension version
+  size_t offset;
+  std::string extension_sig;
+  size_t entry_offset = 0;
+  for (const auto& ext : kShellItemExtensions) {
+    offset = shell_data.find(ext);
+    if (offset != std::string::npos) {
+      extension_sig = shell_data.substr(offset, 8);
+      entry_offset = offset - 8;
+    }
+  }
   ShellFileEntryData file_entry;
   std::string version = shell_data.substr(entry_offset + 4, 4);
-  //std::cout << "Parsing file entry!" << std::endl;
+  std::cout << "Parsing file entry!" << std::endl;
   // swap endianess
   std::reverse(version.begin(), version.end());
   for (std::size_t i = 0; i < version.length(); i += 2) {
     std::swap(version[i], version[i + 1]);
   }
   file_entry.version = std::stoi(version, nullptr, 16);
-  if (file_entry.version < 7) {
-    LOG(WARNING) << "Shellitem format unsupported. Expecting version 1 or version 7 or "
-                    "higher, got version: "
-                 << file_entry.version;
+  if (file_entry.version < 7 && file_entry.version != 1) {
+    LOG(WARNING)
+        << "Shellitem format unsupported. Expecting version 1 or version 7 or "
+           "higher, got version: "
+        << file_entry.version;
+    std::cout << shell_data << std::endl;
     file_entry.version = 0;
     return file_entry;
   }
   file_entry.extension_sig = shell_data.substr(entry_offset + 8, 8);
-  //file_entry.dos_created = shell_data.substr(entry_offset + 16, 8);
-  //file_entry.dos_accessed = shell_data.substr(entry_offset + 24, 8);
+  file_entry.dos_modified = parseFatTime(shell_data.substr(16, 8));
+  file_entry.dos_created =
+      parseFatTime(shell_data.substr(entry_offset + 16, 8));
+  file_entry.dos_accessed =
+      parseFatTime(shell_data.substr(entry_offset + 24, 8));
+  //std::cout << "Parsed timestamps" << std::endl;
   file_entry.identifier = shell_data.substr(entry_offset + 32, 4);
   std::string mft_entry = shell_data.substr(entry_offset + 40, 12);
   // swap endianess
@@ -71,7 +132,8 @@ ShellFileEntryData fileEntry(const std::string& shell_data, const size_t& entry_
   for (std::size_t i = 0; i < mft_entry.length(); i += 2) {
     std::swap(mft_entry[i], mft_entry[i + 1]);
   }
-  file_entry.mft_entry = std::stoi(mft_entry, nullptr, 16);
+  //std::cout << "MFT entry: " << mft_entry << std::endl;
+  file_entry.mft_entry = std::stoll(mft_entry, nullptr, 16);
 
   std::string mft_sequence = shell_data.substr(entry_offset + 52, 4);
   std::reverse(mft_sequence.begin(), mft_sequence.end());
@@ -80,49 +142,51 @@ ShellFileEntryData fileEntry(const std::string& shell_data, const size_t& entry_
   }
   file_entry.mft_sequence = std::stoi(mft_sequence, nullptr, 16);
 
-    std::string string_size = shell_data.substr(entry_offset + 72, 4);
+  std::string string_size = shell_data.substr(entry_offset + 72, 4);
+  //std::cout << "String size is: " << string_size << std::endl;
   std::reverse(string_size.begin(), string_size.end());
-    for (std::size_t i = 0; i < string_size.length(); i += 2) {
+  for (std::size_t i = 0; i < string_size.length(); i += 2) {
     std::swap(string_size[i], string_size[i + 1]);
   }
-    file_entry.string_size = std::stoi(string_size, nullptr, 16);
+  // NOT USING STRING SIZE FOR ANYTHING???
+  file_entry.string_size = std::stoi(string_size, nullptr, 16);
   std::string entry_name = shell_data.substr(entry_offset + 92);
-   // std::cout << entry_name << std::endl;
+  std::cout << "eNTRY name: " << entry_name << std::endl;
 
-    // path name ends with 0000
+  // path name ends with 0000 (end of string)
   size_t name_end = entry_name.find("0000");
-    std::string shell_name = entry_name.substr(0, name_end);
+  std::string shell_name = entry_name.substr(0, name_end);
   // Path is in unicode, extra 00
   boost::erase_all(shell_name, "00");
 
-  // verify the the hex string length is even. This fixes issues with 10 base hex values
-  // Example 7000690070000000... (pip)
-    if (shell_name.length() % 2 != 0) {
+  // is this really needed???
+  // verify the the hex string length is even. This fixes issues with 10 base
+  // hex values Example 7000690070000000... (pip)
+  if (shell_name.length() % 2 != 0) {
     shell_name += "0";
-    }
+  }
   std::string name;
 
-    // Convert hex path to readable string
-    try {
+  // Convert hex path to readable string
+  try {
     name = boost::algorithm::unhex(shell_name);
-    } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                   << shell_name;
-    }
-  //std::cout << name << std::endl;
-    file_entry.path = name;
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+                 << shell_name;
+  }
+  std::cout << shell_data << std::endl;
+  std::cout << name << std::endl;
+  file_entry.path = name;
 
   return file_entry;
 }
 
 // returns property store name or GUID/id if name not found
-std::string propertyStore(
-    const std::string& shell_data,
-    const std::vector<size_t>& wps_list) {
-
+std::string propertyStore(const std::string& shell_data,
+                          const std::vector<size_t>& wps_list) {
   std::string guid_string;
   for (const auto& offsets : wps_list) {
-     std::string guid_little = shell_data.substr(offsets + 8, 32);
+    std::string guid_little = shell_data.substr(offsets + 8, 32);
     // std::cout << "GUID little: " << guid_little << std::endl;
     std::vector<std::string> guids;
     // std::string guid_1 = guid_little.substr(0, 8);
@@ -147,15 +211,16 @@ std::string propertyStore(
         continue;
       }
       std::string name_size = shell_data.substr(offsets + 48, 8);
-      //std::cout << name_size << std::endl;
+      // std::cout << name_size << std::endl;
       std::reverse(name_size.begin(), name_size.end());
       for (std::size_t i = 0; i < name_size.length(); i += 2) {
         std::swap(name_size[i], name_size[i + 1]);
       }
       unsigned int size = std::stoi(name_size, nullptr, 16);
-      std::cout << size << std::endl;
+      // std::cout << size << std::endl;
       // String name size starts at 0 and its also in unicode
-      //std::cout << shell_data.substr(offsets + 74, (size+1) * 4) << std::endl;
+      // std::cout << shell_data.substr(offsets + 74, (size+1) * 4) <<
+      // std::endl;
       std::string name = shell_data.substr(offsets + 74, (size + 1) * 4);
       // Convert hex path to readable string
       try {
@@ -168,6 +233,181 @@ std::string propertyStore(
       return name;
     }
   }
+  return guid_string;
+}
+
+std::string networkShareItem(const std::string& bag_entry) {
+  for (const auto& net_id : kNetworkShareIds) {
+    // std::cout << bag_entry.substr(4, 2) << std::endl;
+    if (net_id == bag_entry.substr(4, 2)) {
+      // std::cout << net_id << std::endl;
+      // std::cout << "network id match!" << std::endl;
+      // subtract 10 from the final offset from find <--explain better :)
+      std::string network_path =
+          bag_entry.substr(10, bag_entry.find("00", 10) - 10);
+      std::cout << network_path << std::endl;
+      std::string name;
+      try {
+        name = boost::algorithm::unhex(network_path);
+      } catch (const boost::algorithm::hex_decode_error& /* e */) {
+        LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+                     << bag_entry;
+        // std::string full_path = "";
+        // for (const auto& path : build_shellbag) {
+        //  full_path += path;
+        //}
+        // full_path.pop_back();
+        // full_path += "[UNKNOWN SHELL ITEM]";
+        // r["path"] = full_path;
+        // results.push_back(r);
+        return "[UNKNOWN NETWORK SHELL ITEM]";
+      }
+      return name + "\\";
+      /*
+      build_shellbag.push_back(name + "\\");
+      std::string full_path = "";
+      for (const auto& path : build_shellbag) {
+        full_path += path;
+      }
+      std::cout << full_path << std::endl;
+      full_path.pop_back();
+
+      // network share paths do not have timestamps or MFT data
+      r["path"] = full_path;
+      results.push_back(r);
+      parseShellEntries(key_path->second, build_shellbag, results);
+      build_shellbag.pop_back();
+      return;
+      */
+    }
+  }
+  return "";
+}
+
+std::string zipContentItem(const std::string& shell_data) {
+  // std::cout << shell_data << std::endl;
+  // std::cout << shell_data.substr(168, 2) << std::endl;
+  int path_size = std::stoi(shell_data.substr(168, 2), nullptr, 16);
+
+  // Zip folders can go down a max of two directories
+  int second_path_size = std::stoi(shell_data.substr(176, 2), nullptr, 16);
+  std::string path = shell_data.substr(184, path_size * 4);
+  // Path is in unicode, extra 00
+  boost::erase_all(path, "00");
+  // Convert hex path to readable string
+  try {
+    path = boost::algorithm::unhex(path);
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+                 << path;
+    return "[PATH DECODE ERROR]";
+  }
+  if (second_path_size != 0) {
+    path += "/";
+    std::string second_path = shell_data.substr(200, second_path_size * 4);
+    boost::erase_all(second_path, "00");
+    // Convert hex path to readable string
+    try {
+      second_path = boost::algorithm::unhex(second_path);
+      path += second_path;
+    } catch (const boost::algorithm::hex_decode_error& /* e */) {
+      LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+                   << second_path;
+      path += "[PATH DECODE ERROR]";
+      return path;
+    }
+  }
+  // std::cout << path << std::endl;
+  return path;
+}
+
+std::string rootFolderItem(const std::string& shell_data) {
+  std::string guid_little = shell_data.substr(8, 32);
+  // std::cout << "GUID little: " << guid_little << std::endl;
+  std::vector<std::string> guids;
+  // The first 3 parts of the GUID are in little endian
+  guids.push_back(guid_little.substr(0, 8));
+  guids.push_back(guid_little.substr(8, 4));
+  guids.push_back(guid_little.substr(12, 4));
+
+  std::string guid_4 = guid_little.substr(16, 4);
+  std::string guid_5 = guid_little.substr(20, 12);
+  for (auto& guid : guids) {
+    std::reverse(guid.begin(), guid.end());
+    for (std::size_t i = 0; i < guid.length(); i += 2) {
+      std::swap(guid[i], guid[i + 1]);
+    }
+  }
+  std::string guid_string =
+      guids[0] + "-" + guids[1] + "-" + guids[2] + "-" + guid_4 + "-" + guid_5;
+  // std::cout << "CorrectGUID : " + guid_string << std::endl;
+  return guid_string; // guidLookup(guid_string);
+}
+
+std::string driveLetterItem(const std::string& shell_data) {
+  std::string volume;
+  // Convert hex path to readable string
+  try {
+    volume = boost::algorithm::unhex(shell_data.substr(6, 6));
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING) << "Failed to decode Shellbag hex values to string: "
+                 << shell_data;
+    return "[UNKNOWN DRIVE VOLUME]";
+  }
+  return volume;
+}
+
+std::string controlPanelCategoryItem(const std::string& shell_data) {
+  std::string panel_id = shell_data.substr(16, 2);
+  std::cout << "Panel id is: " << panel_id << std::endl;
+  if (panel_id == "00") {
+    return "All Control Panel Items"; // <---- is this right/??
+  } else if (panel_id == "01") {
+    return "Appearence and Personalization";
+  } else if (panel_id == "02") {
+    return "Hardware and Sound";
+  } else if (panel_id == "03") {
+    return "Network and Internet";
+  } else if (panel_id == "04") {
+    return "Sound, Speech, and Audio Devices";
+  } else if (panel_id == "05") {
+    return "System and Security";
+  } else if (panel_id == "06") {
+    return "Clock, Language, and Region";
+  } else if (panel_id == "07") {
+    return "Ease of Access";
+  } else if (panel_id == "08") {
+    return "Programs";
+  } else if (panel_id == "09") {
+    return "User Accounts";
+  } else if (panel_id == "10") {
+    return "Security Center";
+  } else if (panel_id == "11") {
+    return "Mobile PC";
+  } else {
+    LOG(WARNING) << "Unknown panel category: " << shell_data;
+    return "[UNKNOWN PANEL CATEGORY]";
+  }
+}
+
+std::string controlPanelItem(const std::string& shell_data) {
+  std::string guid_little = shell_data.substr(28, 32);
+  std::vector<std::string> guids;
+  guids.push_back(guid_little.substr(0, 8));
+  guids.push_back(guid_little.substr(8, 4));
+  guids.push_back(guid_little.substr(12, 4));
+
+  std::string guid_4 = guid_little.substr(16, 4);
+  std::string guid_5 = guid_little.substr(20, 12);
+  for (auto& guid : guids) {
+    std::reverse(guid.begin(), guid.end());
+    for (std::size_t i = 0; i < guid.length(); i += 2) {
+      std::swap(guid[i], guid[i + 1]);
+    }
+  }
+  std::string guid_string =
+      guids[0] + "-" + guids[1] + "-" + guids[2] + "-" + guid_4 + "-" + guid_5;
+  std::cout << "Control Panel GUID: " << guid_string << std::endl;
   return guid_string;
 }
 } // namespace osquery

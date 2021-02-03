@@ -1,6 +1,7 @@
 table_name("shellbags")
 description("Shellbags, shows directories accessed.")
 schema([
+    Column("sid", TEXT, "User SID"),
     Column("path", TEXT, "Directory name."),
     Column("modified_time", INTEGER, "Directory Modified time."),
     Column("created_time", INTEGER, "Directory Created time."),
