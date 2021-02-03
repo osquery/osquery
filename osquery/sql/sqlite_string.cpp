@@ -231,6 +231,13 @@ static void concatStringFunc(sqlite3_context* context,
     output.append(reinterpret_cast<const char*>(sqlite3_value_text(argv[i])));
   }
 
+  // Give up if the output is so large it's length overflows int
+  if (output.size() > std::numeric_limits<int>::max()) {
+    LOG(INFO) << "Too much data for concat";
+    sqlite3_result_error(context, "Too much data for concat", -1);
+    return;
+  }
+
   sqlite3_result_text(context,
                       output.c_str(),
                       static_cast<int>(output.size()),
@@ -272,6 +279,13 @@ static void concatWSStringFunc(sqlite3_context* context,
     if (i + 1 < argc) {
       output.append(sep);
     }
+  }
+
+  // Give up if the output is so large it's length overflows int
+  if (output.size() > std::numeric_limits<int>::max()) {
+    LOG(INFO) << "Too much data for concat_ws";
+    sqlite3_result_error(context, "Too much data for concat_ws", -1);
+    return;
   }
 
   sqlite3_result_text(context,
