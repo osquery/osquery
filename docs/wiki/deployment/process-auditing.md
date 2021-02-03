@@ -214,9 +214,11 @@ This problem can be easily fixed by disabling hotswapping. This setting is unfor
 
 ## macOS process & socket auditing
 
-osquery supports OpenBSM audit on macOS platforms. To enable it in osquery, you need to set `--disable_audit=false`
+osquery supports OpenBSM audit on macOS platforms. To enable it in osquery, you need to set the following command line flags `--disable_audit=false --disable_events=false --audit_allow_config`.
 
-On macOS, osquery reads from the OpenBSM audit subsystem. This feature is already enabled on all macOS installations, but with its default settings it doesn't audit process execution or the root user. To start process auditing on macOS, edit the `audit_control` file in `/etc/security/`. An example configuration is provided below, but the important flags are: `ex`, `pc`, `argv`, and `arge`. The `ex` flag will log `exec` events while `pc` logs `exec`, `fork`, and `exit`. If you don't need `fork` and `exit` you may leave that flag out however in future, getting parent pid may require `fork`. If you care about getting the arguments and environment variables you also need `argv` and `arge`. More about these flags can be found [here](https://www.freebsd.org/cgi/man.cgi?apropos=0&sektion=5&query=audit_control&manpath=FreeBSD+7.0-current&format=html). Note that it might require a reboot of the system for these new flags to take effect. `audit -s` should restart the system but your mileage may vary.
+On macOS, osquery reads from the OpenBSM audit subsystem. This feature is already enabled on all macOS installations, but the default settings do not audit process execution or the root user. The osquery command line flag `--audit_allow_config` will make run-time configuration changes to your system audit to enable these features. This is all you need to get up and running.
+
+Alternatively, instead of using the `--audit_allow_config` flag, you may edit the `audit_control` file in `/etc/security/` for more granular/nuanced needs. This is optional and considered an "advanced configuration". An example configuration is provided below, but the important flags are: `ex`, `pc`, `argv`, and `arge`. The `ex` flag will log `exec` events while `pc` logs `exec`, `fork`, and `exit`. If you don't need `fork` and `exit` you may leave that flag out however in the future, getting parent pid may require `fork`. If you care about getting the arguments and environment variables you also need `argv` and `arge`. More about these flags can be found [here](https://www.freebsd.org/cgi/man.cgi?apropos=0&sektion=5&query=audit_control&manpath=FreeBSD+7.0-current&format=html). Note that it might require a reboot of the system for these new flags to take effect. `audit -s` should restart the system but your mileage may vary.
 
 ```
 #
