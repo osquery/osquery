@@ -170,13 +170,12 @@ Status procEnumerateProcesses(UserData& user_data,
 
       anySuccess = true;
     } catch (const boost::filesystem::filesystem_error& e) {
-      VLOG(1) << "Exception iterating Linux /proc: " << e.what();
+      VLOG(1) << "Exception enumerating /proc: " << e.what();
     }
   }
 
   if (!anySuccess) {
-    VLOG(1) << "No success iterating linux /proc\n";
-    return Status::failure("No success iterating linux /proc");
+    return Status::failure("Unsuccessful enumerating /proc");
   }
 
   return Status(0);
