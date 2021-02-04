@@ -323,7 +323,7 @@ vagrant ssh aws-amazon2015.03
 
 ## Building packages
 
-The packaging logic has been moved to the [osquery-packaging](https://github.com/osquery/osquery-packaging) repository, in an effort to make the release procedure avoid dependencies to the complexities of osquery. Packages are created in two steps:
+The packaging logic is now in a separate repository, [osquery-packaging](https://github.com/osquery/osquery-packaging). Packages are created in two steps:
 
 1. Create the package data from osquery/osquery
 2. Use the osquery/osquery-packaging logic to create the actual packages
@@ -339,8 +339,8 @@ This approach allows maintainers to easily re-generate all the officially suppor
 ```sh
 cd build_folder
 mkdir package_data
-export DESTDIR=$(pwd)/package_data  # if you are on Windows: set DESTDIR=path
-cmake --build . --target install    # If you are on Windows, add --config Release
+export DESTDIR=$(pwd)/package_data  # on Windows: `set DESTDIR=path` or `$Env:DESTDIR=path` for PowerShell
+cmake --build . --target install    # on Windows: add --config Release
 ```
 The newly created folder will include several components:
 
@@ -349,7 +349,7 @@ The newly created folder will include several components:
 - A default, or fall-back, OpenSSL certificate store (found within the repository)
 - The example query packs from the repository
 - Folder structures required for logging
-- Windows: a small management script `osqueryctl`
+- Windows: small management scripts: `osqueryctl` and `manage-osqueryd.ps1`
 - Linux: systemd units, with initd script wrappers
 - macOS: a LaunchDaemon unit
 - Package control files (i.e.: deb-specific configurations, XML data required by WIX to generate MSI, etc..)
@@ -441,7 +441,7 @@ cmake --build . --config Release --target package
 ### Creating the macOS packages
 
 macOS-specific parameters:
- - **CPACK_GENERATOR**: Either `productbuild` or `TGZ`
+ - **CPACK_GENERATOR**: Either `productbuild` (PKG  files) or `TGZ`
 
 ```sh
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
