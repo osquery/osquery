@@ -42,19 +42,6 @@ const std::string kSQLGlobWildcard{"%"};
 /// Globbing wildcard recursive character (double wildcard).
 const std::string kSQLGlobRecursive{kSQLGlobWildcard + kSQLGlobWildcard};
 
-/// Error codes for readTextFile
-enum class ReadTextFileError {
-  IOError,
-  MaxSizeExceeded,
-  MemoryAllocationFailure
-};
-
-/// Either a buffer or a ReadTextFileError error
-using ExpectedTextFile = Expected<std::string, ReadTextFileError>;
-
-/// Reads the specified text file
-ExpectedTextFile readTextFile(const std::string& path, std::streamoff max_size);
-
 /**
  * @brief Read a file from disk.
  *

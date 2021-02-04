@@ -107,67 +107,6 @@ struct OpenReadableFile : private boost::noncopyable {
   bool blocking_io;
 };
 
-ExpectedTextFile readTextFile(const std::string& path,
-                              std::streamoff max_size) {
-  std::ifstream input_file(path, std::ios::in);
-  if (!input_file) {
-    return ExpectedTextFile::failure(
-        ReadTextFileError::IOError,
-        "Failed to open the following file: " + path);
-  }
-
-  input_file.seekg(0, std::ios::end);
-  if (!input_file) {
-    return ExpectedTextFile::failure(
-        ReadTextFileError::IOError,
-        "Failed to seek at the end of the following file: " + path);
-  }
-
-  auto file_size = input_file.tellg();
-  if (file_size > max_size) {
-    std::stringstream message;
-    message << "The following file has exceeded the " << max_size
-            << " bytes limit: " << path;
-
-    return ExpectedTextFile::failure(ReadTextFileError::MaxSizeExceeded,
-                                     message.str());
-  }
-
-  input_file.seekg(0, std::ios::beg);
-  if (!input_file) {
-    return ExpectedTextFile::failure(
-        ReadTextFileError::IOError,
-        "Failed to seek at the start of the following file: " + path);
-  }
-
-  try {
-    std::string buffer(file_size, 0U);
-
-    input_file.read(&buffer[0], static_cast<std::streamsize>(file_size));
-    if (!input_file) {
-      return ExpectedTextFile::failure(
-          ReadTextFileError::IOError,
-          "Failed to read the following file: " + path);
-    }
-
-    return ExpectedTextFile::success(buffer);
-
-  } catch (const std::length_error&) {
-    return ExpectedTextFile::failure(
-        ReadTextFileError::MemoryAllocationFailure,
-        "The following file has exceeded the std::string max size limit: " +
-            path);
-
-  } catch (const std::bad_alloc&) {
-    std::stringstream message;
-    message << "Failed to allocate the required " << file_size
-            << " bytes to read the following file: " << path;
-
-    return ExpectedTextFile::failure(ReadTextFileError::MemoryAllocationFailure,
-                                     message.str());
-  }
-}
-
 Status readFile(const fs::path& path,
                 size_t size,
                 size_t block_size,

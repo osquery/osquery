@@ -42,10 +42,6 @@ const std::vector<std::reference_wrapper<const std::string>>
     kPossibleConfigFileNames = {std::ref(kProfilePreferencesFile),
                                 std::ref(kSecureProfilePreferencesFile)};
 
-/// Maximum size for the configuration files (Preferences,
-/// Secure Preferences, manifest.json)
-const std::streamoff kMaxConfigFileSize{102400};
-
 /// A list of possible path suffixes for each browser type
 using ChromePathSuffixMap =
     std::vector<std::tuple<ChromeBrowserType, std::string>>;
@@ -366,37 +362,17 @@ bool captureProfileSnapshotSettingsFromPath(
   auto secure_prefs_file_path =
       fs::path(profile_path.value) / kSecureProfilePreferencesFile;
 
-  auto preferences_exp =
-      readTextFile(preferences_file_path.string(), kMaxConfigFileSize);
+  auto status =
+      readFile(preferences_file_path.string(), snapshot.preferences, 0);
 
-  if (!preferences_exp.isError()) {
-    snapshot.preferences = preferences_exp.take();
-
-  } else {
-    const auto& error = preferences_exp.getError();
-    if (error.getErrorCode() == ReadTextFileError::MaxSizeExceeded) {
-      LOG(ERROR) << "The following preferences file is too big and the profile "
-                    "will be skipped: "
-                 << preferences_file_path.string();
-    }
-
+  if (!status.ok()) {
     return false;
   }
 
-  preferences_exp =
-      readTextFile(secure_prefs_file_path.string(), kMaxConfigFileSize);
+  status =
+      readFile(secure_prefs_file_path.string(), snapshot.secure_preferences, 0);
 
-  if (!preferences_exp.isError()) {
-    snapshot.secure_preferences = preferences_exp.take();
-
-  } else {
-    const auto& error = preferences_exp.getError();
-    if (error.getErrorCode() == ReadTextFileError::MaxSizeExceeded) {
-      LOG(ERROR) << "The following preferences file is too big and the profile "
-                    "will be skipped: "
-                 << secure_prefs_file_path.string();
-    }
-
+  if (!status.ok()) {
     return false;
   }
 
@@ -482,23 +458,19 @@ bool captureProfileSnapshotExtensionsFromPath(
     extension.path = extension_path;
 
     auto manifest_path = fs::path(extension_path) / kExtensionManifestName;
-    auto manifest_exp =
-        readTextFile(manifest_path.string(), kMaxConfigFileSize);
+    auto status = readFile(manifest_path.string(), extension.manifest, 0);
 
-    if (manifest_exp.isError()) {
+    if (!status.ok()) {
       if (!isBuiltInChromeExtension(extension_path)) {
         LOG(ERROR)
             << "Failed to read the following manifest.json file: "
             << manifest_path.string()
             << ". The extension was referenced by the following profile: "
-            << profile_path.value
-            << ". Error: " << manifest_exp.getError().getMessage();
+            << profile_path.value;
       }
 
       continue;
     }
-
-    extension.manifest = manifest_exp.take();
 
     snapshot.unreferenced_extensions.insert(
         {extension_path, std::move(extension)});
@@ -555,23 +527,20 @@ bool captureProfileSnapshotExtensionsFromPath(
 
       auto manifest_path =
           fs::path(referenced_ext_path) / kExtensionManifestName;
-      auto manifest_exp =
-          readTextFile(manifest_path.string(), kMaxConfigFileSize);
 
-      if (manifest_exp.isError()) {
+      auto status = readFile(manifest_path.string(), extension.manifest, 0);
+
+      if (!status.ok()) {
         if (!isBuiltInChromeExtension(referenced_ext_path)) {
           LOG(ERROR)
               << "Failed to read the following manifest.json file: "
               << manifest_path.string()
               << ". The extension was referenced by the following profile: "
-              << profile_path.value
-              << ". Error: " << manifest_exp.getError().getMessage();
+              << profile_path.value;
         }
 
         continue;
       }
-
-      extension.manifest = manifest_exp.take();
 
       snapshot.referenced_extensions.insert(
           {referenced_ext_path, std::move(extension)});
@@ -614,16 +583,14 @@ Status getLocalizationData(pt::iptree& parsed_localization,
   auto messages_file_path =
       fs::path(extension_path) / "_locales" / locale / "messages.json";
 
-  auto messages_json_exp =
-      readTextFile(messages_file_path.string(), kMaxConfigFileSize);
+  std::string messages_json;
+  auto status = readFile(messages_file_path.string(), messages_json, 0);
 
-  if (messages_json_exp.isError()) {
+  if (!status.ok()) {
     return Status::failure(
         "Failed to read the localization data for the following locale: " +
         locale);
   }
-
-  auto messages_json = messages_json_exp.take();
 
   pt::iptree output;
   if (!parseJsonString(output, messages_json)) {
