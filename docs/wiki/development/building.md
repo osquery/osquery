@@ -321,37 +321,61 @@ vagrant up aws-amazon2015.03 --provider=aws
 vagrant ssh aws-amazon2015.03
 ```
 
-## Custom Packages
+## Building packages
 
-Package creation is facilitated by CPack. Creating a standalone custom package on any platform should be as simple as running:
+The packaging logic has been moved to the [osquery-packaging](https://github.com/osquery/osquery-packaging) repository, in an effort to make the release procedure avoid dependencies to the complexities of osquery. Packages are created in two steps:
+
+1. Create the package data from osquery/osquery
+2. Use the osquery/osquery-packaging logic to create the actual packages
+
+This approach allows maintainers to easily re-generate all the officially supported packages without going through the whole build process, which is especially useful when applying code signing from a protected machine.
+
+### Generating the package data
+
+1. Build osquery
+2. Create a destination folder and set its path in the `DESTDIR` environment variable
+3. Run the `install` target
 
 ```sh
-cmake --build . --target package
+cd build_folder
+mkdir package_data
+export DESTDIR=$(pwd)/package_data  # if you are on Windows: set DESTDIR=path
+cmake --build . --target install    # If you are on Windows, add --config Release
 ```
+The newly created folder will include several components:
 
-Invoking the `package` target will instruct `cpack` to auto resolve all of the package
-dependencies for osquery and build a platform specific package. The package created will include several components:
-
-- The executables: `osqueryd`, `osqueryi`, and small management script `osqueryctl`
-- An osquery systemd unit on Linux (with initd script wrapper)
-- An osquery LaunchDaemon on macOS
+- The executables: `osqueryd`, `osqueryi`
 - The lenses provided by our Augeas third-party dependency
 - A default, or fall-back, OpenSSL certificate store (found within the repository)
 - The example query packs from the repository
 - Folder structures required for logging
+- Windows: a small management script `osqueryctl`
+- Linux: systemd units, with initd script wrappers
+- macOS: a LaunchDaemon unit
+- Package control files (i.e.: deb-specific configurations, XML data required by WIX to generate MSI, etc..)
 
-What follows are instructions for directly invoking `cpack` on each platform, should
-you wish to create a more custom deployment package. For the most part this is not
-encouraged, and users should stick with leveraging the `package` target as detailed above.
+### Identifying the osquery version
 
-### On Linux
+**Linux, macOS**
 
-To create a DEB, RPM, or TGZ on Linux, CPack will attempt to auto-detect the appropriate package type.
-You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
+```sh
+cd osquery_source_folder
+git fetch --tags
 
-Note: RPM will always try to create debuginfo packages, to do so though it needs the source folder
-to be in a path that's longer than `/usr/src/debug/osquery/src_0` and the build folder
-to be in a path that's longer than `/usr/src/debug/osquery/src_1`.
+export OSQUERY_VERSION=$(git describe --tags --always)
+```
+
+**Windows**
+```batch
+cd osquery_source_folder
+
+git fetch --tags
+git describe --tags --abbrev=0
+
+set OSQUERY_VERSION=<version_here>
+```
+
+### Preparing to build the the osquery-packaging repository
 
 Pre-requisites (for RPM builds):
 
@@ -362,40 +386,70 @@ sudo apt install binutils elfutils
 Generating an RPM package:
 
 ```sh
-cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain -DPACKAGING_SYSTEM=RPM ..
-cmake --build . --target package
+git clone https://github.com/osquery/osquery-packaging
+
+mkdir build
+cd build
 ```
+Common input parameters
+ - **OSQUERY_VERSION**: can be customized, but we usually use the output of `git describe --always`
+ - **OSQUERY_DATA_PATH**: Where the package data has been installed
+
+### Creating the Linux packages
 
 When generating packages, the install path for osquery is determined by `CMAKE_INSTALL_PREFIX` (default:
  `/usr/local/`) when building the TGZ "package", and `CMAKE_PACKAGING_INSTALL_PREFIX` (default: `/usr/`)
   when building either the DEB or RPM packages.
 
-### On Windows
+Linux-specific parameters:
+ - **CPACK_GENERATOR**: Either `DEB`, `RPM` or `TGZ`
+ - **OSQUERY_SOURCE_DIRECTORY_LIST**: An optional list of paths, populated when creating the debuginfo and dbgsym packages for DEB/RPM. Pass the source and the build folders of osquery if you want to generate them.
 
-On Windows CPack will create an MSI by default. You can toggle this behavior to instead create a
-Chocolatey package by overriding the CMake `PACKAGING_SYSTEM` variable similar to Linux.
-
-To create a default MSI package use the following:
+*Note: RPM will always try to create debuginfo packages, to do so though it needs the source folder to be in a path that's longer than `/usr/src/debug/osquery/src_0` and the build folder to be in a path that's longer than `/usr/src/debug/osquery/src_1`.*
 
 ```sh
-cmake -G "Visual Studio 16 2019" -A x64 ..
-cmake --build . --config Release --target package
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DCPACK_GENERATOR=DEB \
+  -DOSQUERY_PACKAGE_VERSION=${OSQUERY_VERSION} \
+  -DOSQUERY_DATA_PATH=${DESTDIR} \
+  -DOSQUERY_SOURCE_DIRECTORY_LIST="osquery-src-path;osquery-build-path" \
+  ../osquery-packaging
+
+cmake --build . --target package
 ```
 
-To instead generate a Chocolatey package, use the following:
+### Creating the Windows packages
 
-```sh
-cmake -DPACKAGING_SYSTEM=NuGet -G "Visual Studio 16 2019" -A x64 ..
+Windows-specific parameters:
+ - **CPACK_GENERATOR**: Either `WIX` or `NuGet`
+ - **OSQUERY_BITNESS**: Either 32 or 64, depending on which architecture has been built
+
+*Note: Please note that the NuGet and WIX generators only support the `a.b.c` version format. If the commit being built is not tagged, consider using `git describe --tags --abbrev=0`*
+
+```batch
+call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+
+cmake -DCMAKE_BUILD_TYPE=Release ^
+  -DCPACK_GENERATOR=WIX ^
+  -DOSQUERY_PACKAGE_VERSION=%OSQUERY_VERSION% ^
+  -DOSQUERY_DATA_PATH=%DESTDIR% ^
+  -DOSQUERY_BITNESS=64 ^
+  ..\osquery-packaging
+
 cmake --build . --config Release --target package
 ```
+### Creating the macOS packages
 
-### On macOS
-
-On macOS you can choose between a TGZ or the default PKG.
-You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
+macOS-specific parameters:
+ - **CPACK_GENERATOR**: Either `productbuild` or `TGZ`
 
 ```sh
-cmake -DPACKAGING_SYSTEM=TGZ -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 ..
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DCPACK_GENERATOR=productbuild \
+  -DOSQUERY_PACKAGE_VERSION=${OSQUERY_VERSION} \
+  -DOSQUERY_DATA_PATH=${DESTDIR} \
+  ../osquery-packaging
+
 cmake --build . --target package
 ```
 
