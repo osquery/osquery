@@ -47,7 +47,7 @@
 /* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
 
 /* Define to 1 if you have the <db.h> header file. */
-#define HAVE_DB_H 1
+/* #undef HAVE_DB_H */
 
 /* Define if the GNU dcgettext() function is already present or preinstalled.
    */
@@ -386,10 +386,10 @@
 /* #undef WITH_AUDIT */
 
 /* Define if BDB is available */
-#define WITH_BDB 1
+/* #undef WITH_BDB */
 
 /* Build with read-only Berkeley DB */
-/* #undef WITH_BDB_RO 1 */
+#define WITH_BDB_RO 1
 
 /* Build with beecrypt instead of nss3 support? */
 /* #undef WITH_BEECRYPT */
