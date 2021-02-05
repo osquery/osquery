@@ -210,31 +210,34 @@ static void regexStringMatchFunc(sqlite3_context* context,
                       SQLITE_TRANSIENT);
 }
 
-/**
- * @brief Concatenate strings ignoring nulls
- */
-static void concatStringFunc(sqlite3_context* context,
-                             int argc,
-                             sqlite3_value** argv) {
-  // Nothing to concat, no point.
-  if (argc == 0) {
+static void concatFunc(sqlite3_context* context,
+                       std::string sep,
+                       int starting,
+                       int argc,
+                       sqlite3_value** argv) {
+  // Nothing to concat, early return
+  if ((argc - starting) == 0) {
     return;
   }
 
   std::string output;
 
-  for (auto i = 0; i < argc; i++) {
+  for (auto i = starting; i < argc; i++) {
     if (SQLITE_NULL == sqlite3_value_type(argv[i])) {
       continue;
     }
 
     output.append(reinterpret_cast<const char*>(sqlite3_value_text(argv[i])));
+
+    if (sep != "" && i + 1 < argc) {
+      output.append(sep);
+    }
   }
 
   // Give up if the output is so large it's length overflows int
   if (output.size() > std::numeric_limits<int>::max()) {
-    LOG(INFO) << "Too much data for concat";
-    sqlite3_result_error(context, "Too much data for concat", -1);
+    LOG(INFO) << "Too much data for concat_ws";
+    sqlite3_result_error(context, "Too much data for concat_ws", -1);
     return;
   }
 
@@ -242,6 +245,15 @@ static void concatStringFunc(sqlite3_context* context,
                       output.c_str(),
                       static_cast<int>(output.size()),
                       SQLITE_TRANSIENT);
+}
+
+/**
+ * @brief Concatenate strings ignoring nulls
+ */
+static void concatStringFunc(sqlite3_context* context,
+                             int argc,
+                             sqlite3_value** argv) {
+  concatFunc(context, "", 0, argc, argv);
 }
 
 /**
@@ -262,36 +274,7 @@ static void concatWSStringFunc(sqlite3_context* context,
           ? reinterpret_cast<const char*>(sqlite3_value_text(argv[0]))
           : "";
 
-  // If we have less than 2 args, no point to iterating. Return an empty string
-  if (argc == 1) {
-    return;
-  }
-
-  std::string output;
-
-  for (auto i = 1; i < argc; i++) {
-    if (SQLITE_NULL == sqlite3_value_type(argv[i])) {
-      continue;
-    }
-
-    output.append(reinterpret_cast<const char*>(sqlite3_value_text(argv[i])));
-
-    if (i + 1 < argc) {
-      output.append(sep);
-    }
-  }
-
-  // Give up if the output is so large it's length overflows int
-  if (output.size() > std::numeric_limits<int>::max()) {
-    LOG(INFO) << "Too much data for concat_ws";
-    sqlite3_result_error(context, "Too much data for concat_ws", -1);
-    return;
-  }
-
-  sqlite3_result_text(context,
-                      output.c_str(),
-                      static_cast<int>(output.size()),
-                      SQLITE_TRANSIENT);
+  concatFunc(context, sep, 1, argc, argv);
 }
 
 /**
