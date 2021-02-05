@@ -269,8 +269,6 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
 
 #### String functions
 
-String functions are always helpful. Some are helpful within
-subqueries, so they make sense as local-additions:
 
 - `concat(ARG1, ARG2, ARG3...)`: Concatenate arguments, ignoring nulls.
 
