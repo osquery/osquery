@@ -9,16 +9,12 @@
 
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
-//#include <osquery/core/core.h>
-//#include <osquery/core/tables.h>
-//#include <osquery/tables/system/windows/registry.h>
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 #include <string>
+#include <vector>
 
 #include <iostream>
-
-// add ftp and optical! (maybe mtp...)
 
 struct ShellFileEntryData {
   std::string path;
@@ -60,49 +56,53 @@ const std::string kPropertySets[15] = {"000214A1-0000-0000-C000-000000000046",
                                        "EF6B490D-5CD8-437A-AFFC-DA8B60EE4A3C",
                                        "F29F85E0-4FF9-1068-AB91-08002B27B3D9"};
 namespace osquery {
-/*
-std::string guidLookup(std::string& guid) {
-  // std::cout << "GUID Lookup!" << std::endl;
-  // std::cout << "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\{" + guid +
-  // "}"
-  //          << std::endl;
-  QueryData guid_data;
-  queryKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\{" + guid + "}",
-           guid_data);
-  for (const auto& rKey : guid_data) {
-    auto key_type = rKey.find("type");
-    auto key_path = rKey.find("path");
-    if (key_type == rKey.end() || key_path == rKey.end()) {
-      continue;
-    }
+std::string guidParse(const std::string& guid_little) {
+  std::vector<std::string> guids;
+  guids.push_back(guid_little.substr(0, 8));
+  guids.push_back(guid_little.substr(8, 4));
+  guids.push_back(guid_little.substr(12, 4));
 
-    auto key_name = rKey.at("name");
-    if (key_name == "(Default)") {
-      // std::cout << rKey.at("data") << std::endl;
-      if (rKey.at("data") == "") {
-        return "{" + guid + "}";
-      }
-      return rKey.at("data");
+  std::string guid_4 = guid_little.substr(16, 4);
+  std::string guid_5 = guid_little.substr(20, 12);
+
+  // The first 16 GUID characters are in litte endian format
+  for (auto& guid : guids) {
+    std::reverse(guid.begin(), guid.end());
+    for (std::size_t i = 0; i < guid.length(); i += 2) {
+      std::swap(guid[i], guid[i + 1]);
     }
   }
-  return "{" + guid + "}";
-}*/
+  std::string guid_string =
+      guids[0] + "-" + guids[1] + "-" + guids[2] + "-" + guid_4 + "-" + guid_5;
+  return guid_string;
+}
 
 ShellFileEntryData fileEntry(const std::string& shell_data) {
   // check shellitem extension version
   size_t offset;
   std::string extension_sig;
   size_t entry_offset = 0;
+  if (shell_data.find("0400EFBE") != std::string::npos) {
+    offset = shell_data.find("0400EFBE");
+    // std::cout << "Found a shellitem extension!. Sig is: " << "0400EFBE" <<
+    // std::endl;
+    extension_sig = shell_data.substr(offset, 8);
+    entry_offset = offset - 8;
+  } else if (shell_data.find("2600EFBE") != std::string::npos) {
+    offset = shell_data.find("2600EFBE");
+    extension_sig = shell_data.substr(offset, 8);
+    entry_offset = offset - 8;
+  }
+  /*
   for (const auto& ext : kShellItemExtensions) {
     offset = shell_data.find(ext);
     if (offset != std::string::npos) {
       extension_sig = shell_data.substr(offset, 8);
       entry_offset = offset - 8;
     }
-  }
+  }*/
   ShellFileEntryData file_entry;
   std::string version = shell_data.substr(entry_offset + 4, 4);
-  std::cout << "Parsing file entry!" << std::endl;
   // swap endianess
   std::reverse(version.begin(), version.end());
   for (std::size_t i = 0; i < version.length(); i += 2) {
@@ -119,12 +119,28 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     return file_entry;
   }
   file_entry.extension_sig = shell_data.substr(entry_offset + 8, 8);
-  file_entry.dos_modified = parseFatTime(shell_data.substr(16, 8));
+
+  // May contain Users Files folder, modified time is at offset 0x18 
+  std::string timestamp = "";
+  if (shell_data.find("43465346") != std::string::npos) {
+    timestamp = shell_data.substr(36, 8);
+    file_entry.dos_modified =
+        (timestamp == "00000000")
+            ? 0LL
+            : parseFatTime(
+                  timestamp);
+  } else {
+    timestamp = shell_data.substr(16, 8);
+    file_entry.dos_modified =
+        (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
+  }
+  timestamp = shell_data.substr(entry_offset + 16, 8);
   file_entry.dos_created =
-      parseFatTime(shell_data.substr(entry_offset + 16, 8));
+      (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
+  timestamp = shell_data.substr(entry_offset + 24, 8);
   file_entry.dos_accessed =
-      parseFatTime(shell_data.substr(entry_offset + 24, 8));
-  //std::cout << "Parsed timestamps" << std::endl;
+      (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
+  // std::cout << "Parsed timestamps" << std::endl;
   file_entry.identifier = shell_data.substr(entry_offset + 32, 4);
   std::string mft_entry = shell_data.substr(entry_offset + 40, 12);
   // swap endianess
@@ -132,18 +148,25 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   for (std::size_t i = 0; i < mft_entry.length(); i += 2) {
     std::swap(mft_entry[i], mft_entry[i + 1]);
   }
-  //std::cout << "MFT entry: " << mft_entry << std::endl;
-  file_entry.mft_entry = std::stoll(mft_entry, nullptr, 16);
+  if (mft_entry == "000000000000") {
+    file_entry.mft_entry = 0LL;
+  } else {
+    file_entry.mft_entry = std::stoll(mft_entry, nullptr, 16);
+  }
 
   std::string mft_sequence = shell_data.substr(entry_offset + 52, 4);
   std::reverse(mft_sequence.begin(), mft_sequence.end());
   for (std::size_t i = 0; i < mft_sequence.length(); i += 2) {
     std::swap(mft_sequence[i], mft_sequence[i + 1]);
   }
-  file_entry.mft_sequence = std::stoi(mft_sequence, nullptr, 16);
+  if (mft_sequence == "0000") {
+    file_entry.mft_sequence = 0LL;
+  } else {
+    file_entry.mft_sequence = std::stoi(mft_sequence, nullptr, 16);
+  }
 
   std::string string_size = shell_data.substr(entry_offset + 72, 4);
-  //std::cout << "String size is: " << string_size << std::endl;
+  // std::cout << "String size is: " << string_size << std::endl;
   std::reverse(string_size.begin(), string_size.end());
   for (std::size_t i = 0; i < string_size.length(); i += 2) {
     std::swap(string_size[i], string_size[i + 1]);
@@ -151,7 +174,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   // NOT USING STRING SIZE FOR ANYTHING???
   file_entry.string_size = std::stoi(string_size, nullptr, 16);
   std::string entry_name = shell_data.substr(entry_offset + 92);
-  std::cout << "eNTRY name: " << entry_name << std::endl;
+  // std::cout << "ENTRY name: " << entry_name << std::endl;
 
   // path name ends with 0000 (end of string)
   size_t name_end = entry_name.find("0000");
@@ -174,10 +197,8 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
                  << shell_name;
   }
-  std::cout << shell_data << std::endl;
-  std::cout << name << std::endl;
+  // std::cout << shell_data << std::endl;
   file_entry.path = name;
-
   return file_entry;
 }
 
@@ -187,25 +208,7 @@ std::string propertyStore(const std::string& shell_data,
   std::string guid_string;
   for (const auto& offsets : wps_list) {
     std::string guid_little = shell_data.substr(offsets + 8, 32);
-    // std::cout << "GUID little: " << guid_little << std::endl;
-    std::vector<std::string> guids;
-    // std::string guid_1 = guid_little.substr(0, 8);
-    guids.push_back(guid_little.substr(0, 8));
-    guids.push_back(guid_little.substr(8, 4));
-    guids.push_back(guid_little.substr(12, 4));
-
-    // std::string guid_2 = guid_little.substr(8, 4);
-    // std::string guid_3 = guid_little.substr(12, 4);
-    std::string guid_4 = guid_little.substr(16, 4);
-    std::string guid_5 = guid_little.substr(20, 12);
-    for (auto& guid : guids) {
-      std::reverse(guid.begin(), guid.end());
-      for (std::size_t i = 0; i < guid.length(); i += 2) {
-        std::swap(guid[i], guid[i + 1]);
-      }
-    }
-    std::string guid_string = guids[0] + "-" + guids[1] + "-" + guids[2] + "-" +
-                              guid_4 + "-" + guid_5;
+    std::string guid_string = guidParse(guid_little);
     for (const auto& property_list : kPropertySets) {
       if (guid_string != property_list) {
         continue;
@@ -217,10 +220,6 @@ std::string propertyStore(const std::string& shell_data,
         std::swap(name_size[i], name_size[i + 1]);
       }
       unsigned int size = std::stoi(name_size, nullptr, 16);
-      // std::cout << size << std::endl;
-      // String name size starts at 0 and its also in unicode
-      // std::cout << shell_data.substr(offsets + 74, (size+1) * 4) <<
-      // std::endl;
       std::string name = shell_data.substr(offsets + 74, (size + 1) * 4);
       // Convert hex path to readable string
       try {
@@ -323,25 +322,8 @@ std::string zipContentItem(const std::string& shell_data) {
 
 std::string rootFolderItem(const std::string& shell_data) {
   std::string guid_little = shell_data.substr(8, 32);
-  // std::cout << "GUID little: " << guid_little << std::endl;
-  std::vector<std::string> guids;
-  // The first 3 parts of the GUID are in little endian
-  guids.push_back(guid_little.substr(0, 8));
-  guids.push_back(guid_little.substr(8, 4));
-  guids.push_back(guid_little.substr(12, 4));
-
-  std::string guid_4 = guid_little.substr(16, 4);
-  std::string guid_5 = guid_little.substr(20, 12);
-  for (auto& guid : guids) {
-    std::reverse(guid.begin(), guid.end());
-    for (std::size_t i = 0; i < guid.length(); i += 2) {
-      std::swap(guid[i], guid[i + 1]);
-    }
-  }
-  std::string guid_string =
-      guids[0] + "-" + guids[1] + "-" + guids[2] + "-" + guid_4 + "-" + guid_5;
-  // std::cout << "CorrectGUID : " + guid_string << std::endl;
-  return guid_string; // guidLookup(guid_string);
+  std::string guid_string = guidParse(guid_little);
+  return guid_string;
 }
 
 std::string driveLetterItem(const std::string& shell_data) {
@@ -359,7 +341,7 @@ std::string driveLetterItem(const std::string& shell_data) {
 
 std::string controlPanelCategoryItem(const std::string& shell_data) {
   std::string panel_id = shell_data.substr(16, 2);
-  std::cout << "Panel id is: " << panel_id << std::endl;
+  // std::cout << "Panel id is: " << panel_id << std::endl;
   if (panel_id == "00") {
     return "All Control Panel Items"; // <---- is this right/??
   } else if (panel_id == "01") {
@@ -392,22 +374,126 @@ std::string controlPanelCategoryItem(const std::string& shell_data) {
 
 std::string controlPanelItem(const std::string& shell_data) {
   std::string guid_little = shell_data.substr(28, 32);
-  std::vector<std::string> guids;
-  guids.push_back(guid_little.substr(0, 8));
-  guids.push_back(guid_little.substr(8, 4));
-  guids.push_back(guid_little.substr(12, 4));
-
-  std::string guid_4 = guid_little.substr(16, 4);
-  std::string guid_5 = guid_little.substr(20, 12);
-  for (auto& guid : guids) {
-    std::reverse(guid.begin(), guid.end());
-    for (std::size_t i = 0; i < guid.length(); i += 2) {
-      std::swap(guid[i], guid[i + 1]);
-    }
-  }
-  std::string guid_string =
-      guids[0] + "-" + guids[1] + "-" + guids[2] + "-" + guid_4 + "-" + guid_5;
-  std::cout << "Control Panel GUID: " << guid_string << std::endl;
+  std::string guid_string = guidParse(guid_little);
   return guid_string;
+}
+
+ShellFileEntryData opticalDiscItem(const std::string& shell_data) {
+  // check shellitem extension version
+  size_t offset;
+  std::string extension_sig;
+  size_t entry_offset = 0;
+  ShellFileEntryData file_entry;
+  offset = shell_data.find("0400EFBE");
+  if (offset == std::string::npos) {
+    LOG(WARNING) << "Shellitem format unsupported. Did not find expected shell "
+                    "extension";
+    std::cout << shell_data << std::endl;
+    file_entry.version = 0;
+    return file_entry;
+  }
+  extension_sig = shell_data.substr(offset, 8);
+  entry_offset = offset - 8;
+
+  std::string version = shell_data.substr(entry_offset + 4, 4);
+  std::cout << "Parsing optical file entry!" << std::endl;
+  // swap endianess
+  std::reverse(version.begin(), version.end());
+  for (std::size_t i = 0; i < version.length(); i += 2) {
+    std::swap(version[i], version[i + 1]);
+  }
+  file_entry.version = std::stoi(version, nullptr, 16);
+  if (file_entry.version < 7 && file_entry.version != 1) {
+    LOG(WARNING)
+        << "Shellitem format unsupported. Expecting version 1 or version 7 or "
+           "higher, got version: "
+        << file_entry.version;
+    std::cout << shell_data << std::endl;
+    file_entry.version = 0;
+    return file_entry;
+  }
+  file_entry.extension_sig = shell_data.substr(entry_offset + 8, 8);
+  file_entry.dos_modified = parseFatTime(shell_data.substr(16, 8));
+  file_entry.dos_created =
+      parseFatTime(shell_data.substr(entry_offset + 16, 8));
+  file_entry.dos_accessed =
+      parseFatTime(shell_data.substr(entry_offset + 24, 8));
+  file_entry.identifier = shell_data.substr(entry_offset + 32, 4);
+  std::string mft_entry = shell_data.substr(entry_offset + 40, 12);
+  // swap endianess
+  std::reverse(mft_entry.begin(), mft_entry.end());
+  for (std::size_t i = 0; i < mft_entry.length(); i += 2) {
+    std::swap(mft_entry[i], mft_entry[i + 1]);
+  }
+  // std::cout << "MFT entry: " << mft_entry << std::endl;
+  file_entry.mft_entry = std::stoll(mft_entry, nullptr, 16);
+
+  std::string mft_sequence = shell_data.substr(entry_offset + 52, 4);
+  std::reverse(mft_sequence.begin(), mft_sequence.end());
+  for (std::size_t i = 0; i < mft_sequence.length(); i += 2) {
+    std::swap(mft_sequence[i], mft_sequence[i + 1]);
+  }
+  file_entry.mft_sequence = std::stoi(mft_sequence, nullptr, 16);
+
+  std::string string_size = shell_data.substr(entry_offset + 72, 4);
+  // std::cout << "String size is: " << string_size << std::endl;
+  std::reverse(string_size.begin(), string_size.end());
+  for (std::size_t i = 0; i < string_size.length(); i += 2) {
+    std::swap(string_size[i], string_size[i + 1]);
+  }
+  // NOT USING STRING SIZE FOR ANYTHING???
+  file_entry.string_size = std::stoi(string_size, nullptr, 16);
+  std::string entry_name = shell_data.substr(entry_offset + 92);
+  std::cout << "eNTRY name: " << entry_name << std::endl;
+
+  // path name ends with 0000 (end of string)
+  size_t name_end = entry_name.find("0000");
+  std::string shell_name = entry_name.substr(0, name_end);
+  // Path is in unicode, extra 00
+  boost::erase_all(shell_name, "00");
+
+  // is this really needed???
+  // verify the the hex string length is even. This fixes issues with 10 base
+  // hex values Example 7000690070000000... (pip)
+  if (shell_name.length() % 2 != 0) {
+    shell_name += "0";
+  }
+  std::string name;
+
+  // Convert hex path to readable string
+  try {
+    name = boost::algorithm::unhex(shell_name);
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+                 << shell_name;
+  }
+  std::cout << shell_data << std::endl;
+  std::cout << name << std::endl;
+  file_entry.path = name;
+
+  return file_entry;
+}
+
+std::vector<std::string> ftpItem(const std::string& shell_data) {
+  std::vector<std::string> ftp_data;
+  std::string access_time =
+      shell_data.substr(28, 16); // shell data contains connection time
+  // std::cout << access_time << std::endl;
+  ftp_data.push_back(access_time);
+  // find end of string
+  size_t offset = shell_data.find("00", 92);
+  size_t hostname_size = offset - 92;
+  std::string ftp_hostname = shell_data.substr(92, hostname_size);
+  // std::cout << ftp_hostname << std::endl;
+  std::string name;
+  try {
+    name = boost::algorithm::unhex(ftp_hostname);
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+                 << shell_data;
+    ftp_data.push_back("[UNKNOWN NAME]");
+  }
+  ftp_data.push_back(name);
+  return ftp_data;
 }
 } // namespace osquery

@@ -12,6 +12,7 @@
 #include <osquery/utils/system/system.h>
 
 #include <string>
+#include <vector>
 struct ShellFileEntryData {
   std::string path;
   long long dos_created;
@@ -26,21 +27,92 @@ struct ShellFileEntryData {
   int string_size;
 };
 namespace osquery {
+/**
+ * @brief Windows helper function for parsing file entry shell items
+ * epoch.
+ *
+ * @returns The file entry data structure
+ */
 ShellFileEntryData fileEntry(const std::string& shell_data);
 
-// return property name if decoded or return guid string
+/**
+ * @brief Windows helper function for parsing Windows Property lists
+ * epoch.
+ *
+ * @returns The Windows Property List GUID name or GUID value
+ */
 std::string propertyStore(const std::string& shell_data,
                           const std::vector<size_t>& wps_list);
 
+/**
+ * @brief Windows helper function for parsing netshare shell items
+ * epoch.
+ *
+ * @returns The network share name
+ */
 std::string networkShareItem(const std::string& shell_data);
 
+/**
+ * @brief Windows helper function for parsing zip content shell items
+ * epoch.
+ *
+ * @returns The zip content name
+ */
 std::string zipContentItem(const std::string& shell_data);
 
+/**
+ * @brief Windows helper function for parsing root folder shell items
+ * epoch.
+ *
+ * @returns The root folder name
+ */
 std::string rootFolderItem(const std::string& shell_data);
 
+/**
+ * @brief Windows helper function for parsing drive letter shell items
+ * epoch.
+ *
+ * @returns The drive name
+ */
 std::string driveLetterItem(const std::string& shell_data);
 
+/**
+ * @brief Windows helper function for parsing conrol panel category shell items
+ * epoch.
+ *
+ * @returns The control panel category name
+ */
 std::string controlPanelCategoryItem(const std::string& shell_data);
 
+/**
+ * @brief Windows helper function for parsing conrol panel shell items
+ * epoch.
+ *
+ * @returns The control panel name
+ */
 std::string controlPanelItem(const std::string& shell_data);
+
+/**
+ * @brief Windows helper function for parsing optical disc shell items
+ * epoch.
+ *
+ * @returns The File Entry structure name
+ */
+ShellFileEntryData opticalDiscItem(const std::string& shell_Data);
+
+/**
+ * @brief Windows helper function for parsing ftp shell items
+ * epoch.
+ *
+ * @returns The ftp hostname name
+ */
+std::vector<std::string> ftpItem(const std::string& shell_data);
+
+/**
+ * @brief Windows helper function for parsing little endian guid data
+ * epoch.
+ *
+ * @returns GUID string in the proper order
+ */
+std::string guidParse(const std::string& guid_little);
 }
