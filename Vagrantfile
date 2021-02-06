@@ -54,6 +54,9 @@ targets = {
   "archlinux" => {
     "box" => "archlinux/archlinux"
   },
+  "fedora33" => {
+    "box" => "fedora/33-cloud-base"
+  },
   "suse11" => {
     "box" => "elastic/sles-11-x86_64"
   },
