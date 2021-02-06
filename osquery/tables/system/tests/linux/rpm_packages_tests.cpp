@@ -158,5 +158,43 @@ TEST_F(RpmTests, test_bdb_packages) {
   EXPECT_EQ(expected, packages);
 };
 
+TEST_F(RpmTests, test_sqlite_packages) {
+  auto dropper = DropPrivileges::get();
+  if (isUserAdmin()) {
+    ASSERT_TRUE(dropper->dropTo("nobody"));
+  }
+
+  auto sqlite_config = getTestConfigDirectory() / "rpm" / "rpm-sqlite";
+  sqlite_config = boost::filesystem::absolute(sqlite_config);
+  this->setConfig(sqlite_config.string());
+
+  std::vector<struct PackageDetails> packages;
+  auto getPackage = [&packages](struct PackageDetails& pd) {
+    packages.push_back(pd);
+  };
+
+  ASSERT_TRUE(queryRpmDb(getPackage).ok());
+
+  std::vector<struct PackageDetails> expected = {
+      {"deltarpm", "3.6.2", "b94aeacccb128594c1c385a19a36b7237fd7bd55"},
+      {"python3-rpm", "4.16.0", "cb4fd19975ffb22a6c67fa1ced0dd98cf039e2c3"},
+      {"rpm", "4.16.0", "f1b7a4ad5d2497a44039ba20a2e83e7e60d52472"},
+      {"rpm-build-libs", "4.16.0", "0e964be137e7489228e91d16d16ade7a38474bce"},
+      {"rpm-libs", "4.16.0", "4eb167bef01b1c0684f870ef791ec4de3db96ca2"},
+      {"rpm-plugin-selinux",
+       "4.16.0",
+       "2118e44fbdbdcd7bbf8306630bf03c289a6401cc"},
+      {"rpm-plugin-systemd-inhibit",
+       "4.16.0",
+       "74890e714d68b144750b5529617361b4a4f64430"},
+      {"rpm-sign-libs", "4.16.0", "01c6d988e05b320c9620e66b8bda57b8dd1749fe"},
+      {"systemd-rpm-macros",
+       "246.6",
+       "50805b7fdfeef333d918a0da76c636e7ef182e36"},
+  };
+
+  EXPECT_EQ(expected, packages);
+};
+
 } // namespace tables
 } // namespace osquery

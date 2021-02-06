@@ -407,7 +407,7 @@
 /* #undef WITH_SELINUX */
 
 /* Define if SQLITE is available */
-/* #undef WITH_SQLITE */
+#define WITH_SQLITE 1
 
 /* Enable large inode numbers on Mac OS X 10.5.  */
 #ifndef _DARWIN_USE_64_BIT_INODE
