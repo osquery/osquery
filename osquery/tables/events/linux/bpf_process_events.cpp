@@ -11,9 +11,9 @@
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
 #include <osquery/tables/events/linux/bpf_process_events.h>
+#include <osquery/utils/json/json.h>
 
 #include <boost/algorithm/string.hpp>
-#include <rapidjson/document.h>
 
 namespace osquery {
 

@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(rapidjsonMain)
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(library_root "${OSQUERY_rapidjson_ROOT_DIR}")
 
   add_library(thirdparty_rapidjson INTERFACE)
   target_include_directories(thirdparty_rapidjson SYSTEM INTERFACE

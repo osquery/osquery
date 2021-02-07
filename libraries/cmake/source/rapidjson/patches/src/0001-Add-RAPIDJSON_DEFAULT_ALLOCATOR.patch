@@ -1,0 +1,113 @@
+From b16cec1a1aff158f5002250139528cf8a4b413d8 Mon Sep 17 00:00:00 2001
+From: mdamle <makarand.damle@gmail.com>
+Date: Mon, 24 Feb 2020 19:34:28 -0800
+Subject: [PATCH] Closes #1643 (#1644)
+
+This change comes up with compile time pre-processor directives to
+tune the behavior of rapidjson wrt memory consumption. The idea is to
+allow each module using this library to choose the right defaults based
+on how it consumes memory and what performance it expects.
+
+1. RAPIDJSON_DEFAULT_ALLOCATOR: If defined allows you to choose
+	CrtAllocator over MemoryPoolAllocator. If it is not defined, chooses MemoryPoolAllocator by default.
+2. RAPIDJSON_DEFAULT_STACK_ALLOCATOR: If defined allows you to choose
+	MemoryPoolAllocator over CrtAllocator. If it is not defined, chooses CrtAllocator by default.
+3. RAPIDJSON_VALUE_DEFAULT_OBJECT_CAPACITY and RAPIDJSON_VALUE_DEFAULT_ARRAY_CAPACITY: If defined and set to a
+	value, uses that value for default number of objects/array elements to be pre-allocated. If not defined,
+	uses value of 16: the current default.
+
+Verified that all tests pass.
+---
+ include/rapidjson/document.h | 51 +++++++++++++++++++++++++++++++++---
+ 1 file changed, 47 insertions(+), 4 deletions(-)
+
+diff --git a/include/rapidjson/document.h b/include/rapidjson/document.h
+index f07023467..3f66e41d2 100644
+--- a/include/rapidjson/document.h
++++ b/include/rapidjson/document.h
+@@ -56,6 +56,48 @@ class GenericValue;
+ template <typename Encoding, typename Allocator, typename StackAllocator>
+ class GenericDocument;
+ 
++/*! \def RAPIDJSON_DEFAULT_ALLOCATOR
++    \ingroup RAPIDJSON_CONFIG
++    \brief Allows to choose default allocator.
++
++    User can define this to use CrtAllocator or MemoryPoolAllocator.
++*/
++#ifndef RAPIDJSON_DEFAULT_ALLOCATOR
++#define RAPIDJSON_DEFAULT_ALLOCATOR MemoryPoolAllocator<CrtAllocator>
++#endif
++
++/*! \def RAPIDJSON_DEFAULT_STACK_ALLOCATOR
++    \ingroup RAPIDJSON_CONFIG
++    \brief Allows to choose default stack allocator for Document.
++
++    User can define this to use CrtAllocator or MemoryPoolAllocator.
++*/
++#ifndef RAPIDJSON_DEFAULT_STACK_ALLOCATOR
++#define RAPIDJSON_DEFAULT_STACK_ALLOCATOR CrtAllocator
++#endif
++
++/*! \def RAPIDJSON_VALUE_DEFAULT_OBJECT_CAPACITY
++    \ingroup RAPIDJSON_CONFIG
++    \brief User defined kDefaultObjectCapacity value.
++
++    User can define this as any natural number.
++*/
++#ifndef RAPIDJSON_VALUE_DEFAULT_OBJECT_CAPACITY
++// number of objects that rapidjson::Value allocates memory for by default
++#define RAPIDJSON_VALUE_DEFAULT_OBJECT_CAPACITY 16
++#endif
++
++/*! \def RAPIDJSON_VALUE_DEFAULT_ARRAY_CAPACITY
++    \ingroup RAPIDJSON_CONFIG
++    \brief User defined kDefaultArrayCapacity value.
++
++    User can define this as any natural number.
++*/
++#ifndef RAPIDJSON_VALUE_DEFAULT_ARRAY_CAPACITY
++// number of array elements that rapidjson::Value allocates memory for by default
++#define RAPIDJSON_VALUE_DEFAULT_ARRAY_CAPACITY 16
++#endif
++
+ //! Name-value pair in a JSON object value.
+ /*!
+     This class was internal to GenericValue. It used to be a inner struct.
+@@ -604,7 +646,7 @@ template <bool, typename> class GenericObject;
+     \tparam Encoding    Encoding of the value. (Even non-string values need to have the same encoding in a document)
+     \tparam Allocator   Allocator type for allocating memory of object, array and string.
+ */
+-template <typename Encoding, typename Allocator = MemoryPoolAllocator<> > 
++template <typename Encoding, typename Allocator = RAPIDJSON_DEFAULT_ALLOCATOR >
+ class GenericValue {
+ public:
+     //! Name-value pair in an object.
+@@ -1969,8 +2011,8 @@ class GenericValue {
+         kTypeMask = 0x07
+     };
+ 
+-    static const SizeType kDefaultArrayCapacity = 16;
+-    static const SizeType kDefaultObjectCapacity = 16;
++    static const SizeType kDefaultArrayCapacity = RAPIDJSON_VALUE_DEFAULT_ARRAY_CAPACITY;
++    static const SizeType kDefaultObjectCapacity = RAPIDJSON_VALUE_DEFAULT_OBJECT_CAPACITY;
+ 
+     struct Flag {
+ #if RAPIDJSON_48BITPOINTER_OPTIMIZATION
+@@ -2150,7 +2192,7 @@ typedef GenericValue<UTF8<> > Value;
+     \tparam StackAllocator Allocator for allocating memory for stack during parsing.
+     \warning Although GenericDocument inherits from GenericValue, the API does \b not provide any virtual functions, especially no virtual destructor.  To avoid memory leaks, do not \c delete a GenericDocument object via a pointer to a GenericValue.
+ */
+-template <typename Encoding, typename Allocator = MemoryPoolAllocator<>, typename StackAllocator = CrtAllocator>
++template <typename Encoding, typename Allocator = RAPIDJSON_DEFAULT_ALLOCATOR, typename StackAllocator = RAPIDJSON_DEFAULT_STACK_ALLOCATOR >
+ class GenericDocument : public GenericValue<Encoding, Allocator> {
+ public:
+     typedef typename Encoding::Ch Ch;                       //!< Character type derived from Encoding.
+@@ -2535,6 +2577,7 @@ class GenericDocument : public GenericValue<Encoding, Allocator> {
+ //! GenericDocument with UTF8 encoding
+ typedef GenericDocument<UTF8<> > Document;
+ 
++
+ //! Helper class for accessing Value of array type.
+ /*!
+     Instance of this helper class is obtained by \c GenericValue::GetArray().

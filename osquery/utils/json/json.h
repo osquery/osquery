@@ -28,6 +28,14 @@
  */
 #define RAPIDJSON_PARSE_DEFAULT_FLAGS (kParseIterativeFlag)
 
+/**
+ * This protects us from pooling memory within long-lived documents.
+ * See https://github.com/Tencent/rapidjson/pull/1644 for the change.
+ *
+ * This must be defined before including RapidJSON headers.
+ */
+#define RAPIDJSON_DEFAULT_ALLOCATOR rapidjson::CrtAllocator
+
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/prettywriter.h>

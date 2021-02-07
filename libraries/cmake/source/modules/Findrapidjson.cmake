@@ -14,4 +14,7 @@ importSourceSubmodule(
 
   SUBMODULES
     "src"
+
+  PATCH
+    "src"
 )
