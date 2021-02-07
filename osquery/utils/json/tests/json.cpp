@@ -272,4 +272,22 @@ TEST_F(ConversionsTests, test_json_largeexp) {
 
   EXPECT_TRUE(doc.fromString(json).ok());
 }
+
+TEST_F(ConversionsTests, test_json_default_allocator) {
+  // This test assures our RapidJSON patches are included.
+  auto doc = JSON::newObject();
+  rapidjson::Document* rdoc;
+
+  // If this does not compile then the default allocator is MemoryPoolAllocator.
+  // A compile error may occur if RapidJSON is not "vendored in".
+  rapidjson::GenericDocument<rapidjson::UTF8<>,
+                             rapidjson::CrtAllocator,
+                             rapidjson::CrtAllocator>
+      rgendoc;
+
+  rdoc = &rgendoc;
+  ASSERT_NE(rdoc, nullptr);
+  rdoc = &doc.doc();
+  ASSERT_NE(rdoc, nullptr);
+}
 } // namespace osquery
