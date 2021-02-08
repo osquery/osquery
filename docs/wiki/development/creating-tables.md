@@ -184,7 +184,7 @@ TEST_F(TimeExample, test_sanity) {
 
 Here you can see we are selecting from `time_example` and expecting exactly 1 row. We then place restrictions on the data in each column. There are a set of default checks that simple verify the data type, for example, `NonNegativeInt`, `NonEmptyString`, `NormalType`, ranging to more complex and specific checks. The [`helper.h`](https://github.com/osquery/osquery/tree/master/tests/integration/tables/helper.h) header classes and enumerations for checking validity. Please feel empowered to extend it.
 
-To make this compile, open `./tests/integration/tables/CMakeLists.txt`, find the function `generateTestsIntegrationTablesTestsTest` and add `time_example.cpp`. You will need to configure CMake with `-DOSQUERY_BUILD_TESTS=ON` for the integration test to run. Please see the Building and [Testing](../development/building/#testing) documentation for more details.
+To make this compile, open `./tests/integration/tables/CMakeLists.txt`, find the function `generateTestsIntegrationTablesTestsTest` and add `time_example.cpp`. You will need to configure CMake with `-DOSQUERY_BUILD_TESTS=ON` for the integration test to run. Please see the Building and [Testing](../building/#testing) documentation for more details.
 
 ## Using where clauses
 
@@ -204,7 +204,7 @@ Examples:
   }
 ```
 
-`processes` optionally uses a predicate. A syscall to list process pids requires few resources. Enumerating "/proc" information and parsing environment/argument uses MANY resources. The table implementation includes:
+`processes` optionally uses a predicate. A syscall to list process PIDs requires few resources. Enumerating "/proc" information and parsing environment/argument uses MANY resources. The table implementation includes:
 
 ```cpp
   for (auto &pid : pidlist) {

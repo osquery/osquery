@@ -1,6 +1,6 @@
 # Logging osquery to AWS
 
-As of osquery version 1.7.4, osquery can log results directly to Amazon AWS [Kinesis Streams](https://aws.amazon.com/kinesis/streams/) and [Kinesis Firehose](https://aws.amazon.com/kinesis/firehose/). For users of these services, `osqueryd` can eliminate the need for a separate log forwarding daemon running in your deployments.
+As of osquery version 1.7.4, osquery can log results directly to Amazon AWS [Kinesis Streams](https://aws.amazon.com/kinesis/data-streams/) and [Kinesis Firehose](https://aws.amazon.com/kinesis/data-firehose/). For users of these services, `osqueryd` can eliminate the need for a separate log forwarding daemon running in your deployments.
 
 ## Configuration
 
@@ -28,7 +28,7 @@ Some configuration is shared between the two plugins:
 When working with AWS, osquery will look for credentials and region configuration in the following order:
 
 1. Configuration flags
-2. Profile from the [AWS config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-config-files) (only if `--aws_profile_name` is specified)
+2. Profile from the [AWS config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) (only if `--aws_profile_name` is specified)
 3. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 4. `default` profile in the AWS config files
 5. Profile from the EC2 Instance Metadata Service

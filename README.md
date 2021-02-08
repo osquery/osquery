@@ -11,17 +11,17 @@ osquery is a SQL powered operating system instrumentation, monitoring, and analy
 Available for Linux, macOS, Windows, and FreeBSD.
 </p>
 
-**Information and resources**
-- Homepage: https://osquery.io
-- Downloads: https://osquery.io/downloads
-- Documentation: https://osquery.readthedocs.org
-- Stack Overflow: https://stackoverflow.com/questions/tagged/osquery
-- Table Schema: https://osquery.io/schema
-- Query Packs: [https://osquery.io/packs](https://github.com/osquery/osquery/tree/master/packs)
-- Slack: [Request an auto-invite!](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw)
-- Build Status: [![Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) [![Coverity Scan Build Status](https://scan.coverity.com/projects/13317/badge.svg)](https://scan.coverity.com/projects/osquery) [![Documentation Status](https://readthedocs.org/projects/osquery/badge/?version=latest)](https://osquery.readthedocs.io/en/latest/?badge=latest)
-- CII Best Practices: [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125)
+## Information and resources
 
+- Homepage: [osquery.io](https://osquery.io)
+- Downloads: [osquery.io/downloads](https://osquery.io/downloads)
+- Documentation: [ReadTheDocs](https://osquery.readthedocs.org)
+- Stack Overflow: [Stack Overflow questions](https://stackoverflow.com/questions/tagged/osquery)
+- Table Schema: [osquery.io/schema](https://osquery.io/schema)
+- Query Packs: [osquery.io/packs](https://github.com/osquery/osquery/tree/master/packs)
+- Slack: [Request an auto-invite!](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw)
+- Build Status: [![GitHub Actions Build Status](https://github.com/osquery/osquery/workflows/build/badge.svg)](https://github.com/osquery/osquery/actions?query=workflow%3Abuild+branch%3Amaster) [![Azure Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) [![Coverity Scan Build Status](https://scan.coverity.com/projects/13317/badge.svg)](https://scan.coverity.com/projects/osquery) [![Documentation Status](https://readthedocs.org/projects/osquery/badge/?version=latest)](https://osquery.readthedocs.io/en/latest/?badge=latest)
+- CII Best Practices: [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125)
 
 ## What is osquery?
 
@@ -36,16 +36,19 @@ understand the expressiveness that is afforded to you by osquery, consider the f
 queries:
 
 List the [`users`](https://osquery.io/schema/current#users):
+
 ```sql
 SELECT * FROM users;
 ```
 
 Check the [`processes`](https://osquery.io/schema/current#processes) that have a deleted executable:
+
 ```sql
 SELECT * FROM processes WHERE on_disk = 0;
 ```
 
 Get the process name, port, and PID, for processes listening on all interfaces:
+
 ```sql
 SELECT DISTINCT processes.name, listening_ports.port, processes.pid
   FROM listening_ports JOIN processes USING (pid)
@@ -53,6 +56,7 @@ SELECT DISTINCT processes.name, listening_ports.port, processes.pid
 ```
 
 Find every macOS LaunchDaemon that launches an executable and keeps it running:
+
 ```sql
 SELECT name, program || program_arguments AS executable
   FROM launchd
@@ -78,11 +82,12 @@ SELECT address, mac, mac_count
 ```
 
 These queries can be:
-* performed on an ad-hoc basis to explore operating system state using the
+
+- performed on an ad-hoc basis to explore operating system state using the
   [osqueryi](https://osquery.readthedocs.org/en/latest/introduction/using-osqueryi/) shell
-* executed via a [scheduler](https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/)
+- executed via a [scheduler](https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/)
   to monitor operating system state across a set of hosts
-* launched from custom applications using osquery Thrift APIs
+- launched from custom applications using osquery Thrift APIs
 
 ## Download & Install
 
@@ -90,12 +95,21 @@ To download the latest stable builds and for repository information
 and installation instructions visit
 [https://osquery.io/downloads](https://osquery.io/downloads/).
 
+We use a simple numbered versioning scheme `X.Y.Z`, where X is a major version, Y is a minor, and Z is a patch.
+We plan minor releases roughly every two months. These releases are tracked on our [Milestones](https://github.com/osquery/osquery/milestones) page. A patch release is used when there are unforeseen bugs with our minor release and we need to quickly patch.
+A rare 'revision' release might be used if we need to change build configurations.
+
+Major, minor, and patch releases are tagged on GitHub and can be viewed on the [Releases](https://github.com/osquery/osquery/releases) page.
+We open a new [Release Checklist](https://github.com/osquery/osquery/blob/master/.github/ISSUE_TEMPLATE/New_Release.md) issue when we prepare a minor release. If you are interested in the status of a release, please find the corresponding checklist issue, and note that the issue will be marked closed when we are finished the checklist.
+We consider a release 'in testing' during the period of hosting new downloads on our website and adding them to our hosted repositories.
+We will mark the release as 'stable' on GitHub when enough testing has occurred, this usually takes two weeks.
+
 ## Build from source
 
 Building osquery from source is encouraged! Check out our [build
 guide](https://osquery.readthedocs.io/en/latest/development/building/). Also
 check out our [contributing guide](CONTRIBUTING.md) and join the
-community on [Slack](https://slack.osquery.io).
+community on [Slack](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw).
 
 ## License
 
@@ -122,4 +136,4 @@ for background on the project, visit the [users
 guide](https://osquery.readthedocs.org/).
 
 Development and usage discussion is happening in the osquery Slack, grab an invite
-[here](https://slack.osquery.io)!
+[here](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw)!

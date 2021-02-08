@@ -16,7 +16,7 @@ schema([
     Column("sgid", BIGINT, "Unsigned saved group ID"),
     Column("on_disk", INTEGER,
         "The process path exists yes=1, no=0, unknown=-1"),
-    Column("wired_size", BIGINT, "Bytes of unpagable memory used by process"),
+    Column("wired_size", BIGINT, "Bytes of unpageable memory used by process"),
     Column("resident_size", BIGINT, "Bytes of private memory used by process"),
     Column("total_size", BIGINT, "Total virtual memory size",
         aliases=["phys_footprint"]),

@@ -1,6 +1,6 @@
 # The osquery SDK
 
-The osquery "public API" or SDK is the set of osquery headers and a subset of the source "cpp" files implementing what we call osquery **core**. The core code can be thought of as the framework or platform, it is everything except for the SQLite code and most table implementations. The public headers can be found in [osquery/include/osquery/](https://github.com/osquery/osquery/tree/master/include/osquery).
+The osquery "public API" or SDK is the set of osquery headers and a subset of the source "cpp" files implementing what we call osquery **core**. The core code can be thought of as the framework or platform, it is everything except for the SQLite code and most table implementations. The public headers can be found in [/osquery/osquery/sdk/](https://github.com/osquery/osquery/tree/master/osquery/sdk).
 
 osquery is organized into a **core**, **additional**, and **testing** during a default build from source. We call the set of public headers implementing **core** the 'osquery SDK'. This SDK can be used to build osquery outside of our CMake build system with a minimum set of dependencies. This organization better isolates OS API dependencies from development tools and libraries and provides a logical separation between code needed for extensions and module compiling.
 
@@ -14,11 +14,13 @@ Extensions use osquery's [Thrift API](https://github.com/osquery/osquery/blob/ma
 
 Only the osquery SDK provides the simple `startExtension` symbol that manages the life of your process, including the Thrift service threads and a watchdog.
 
-osquery extensions should statically link the **core** code and use the `<osquery/sdk.h>` helper include file. C++ extensions should link: boost, thrift, glog, gflags, and optionally rocksdb for eventing. Let's walk through a basic example extension in C++ (source for [example_extension.cpp](https://github.com/osquery/osquery/blob/master/osquery/examples/example_extension.cpp)):
+osquery extensions should statically link the **core** code and use the `<osquery/sdk.h>` helper include file. C++ extensions should link: boost, thrift, glog, gflags, and optionally rocksdb for eventing. Let's walk through a basic example extension in C++ (source for [read_only_table/main.cpp](https://github.com/osquery/osquery/tree/master/external/examples)):
 
 ```cpp
-// Note 1: Include the sdk.h helper.
-#include <osquery/sdk.h>
+// Note 1: Include the SDK and helpers
+#include <osquery/core/system.h>
+#include <osquery/sdk/sdk.h>
+#include <osquery/sql/dynamic_table_row.h>
 
 using namespace osquery;
 
@@ -32,13 +34,14 @@ class ExampleTablePlugin : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& request) override {
-    QueryData results;
-    Row r;
+  TableRows generate(QueryContext& request) {
+    TableRows results;
 
+    auto r = make_table_row();
     r["example_text"] = "example";
     r["example_integer"] = INTEGER(1);
-    results.push_back(r);
+
+    results.push_back(std::move(r));
     return results;
   }
 };
@@ -57,7 +60,7 @@ int main(int argc, char* argv[]) {
     runner.requestShutdown(status.getCode());
   }
 
-  // Finally, shutdown.
+  // Finally wait for a signal / interrupt to shutdown.
   runner.waitForShutdown();
   return 0;
 }
@@ -69,7 +72,7 @@ The `osqueryi` or `osqueryd` processes start an "extension manager" Thrift servi
 
 Please see the deployment [guide on extensions](../deployment/extensions.md) for a more-complete overview of how and why extensions are used.
 
-If you [build from source](../development/building.md), you will build an example extension. The code can be found in the [`osquery/examples`](https://github.com/osquery/osquery/blob/master/osquery/examples/example_extension.cpp) folder; it adds a config plugin called "example" and additional table called "example". There are two ways to run an extension: load the extension at an arbitrary time after shell or daemon execution, or request an "autoload" of extensions. The auto-loading method has several advantages, such as allowing dependencies on external config plugins and inheriting the same process monitoring as is applied to the osquery core worker processes.
+If you [build from source](../development/building.md), you will build an example extension. The code can be found in the [`osquery/external/examples`](https://github.com/osquery/osquery/tree/master/external/examples) folder; it adds a config plugin called "example" and additional table called "example". There are two ways to run an extension: load the extension at an arbitrary time after shell or daemon execution, or request an "autoload" of extensions. The auto-loading method has several advantages, such as allowing dependencies on external config plugins and inheriting the same process monitoring as is applied to the osquery core worker processes.
 
 The `osqueryi` shell also allows a quick and easy command-line autoload using `--extension`. Let's review both options.
 
@@ -104,7 +107,7 @@ osquery project page <https://osquery.io>.
 $ ./build/darwin/osquery/example_extension.ext --socket /Users/USERNAME/.osquery/shell.em &
 ```
 
-Before executing the extension we've inspected the potential CLI flags, which are a subset of the shell or daemon's [CLI flags](../installation/cli-flags.md). We executed the example extension in the background, so now we can resume the osqeury shell and use the 'example' table provided by the extension.
+Before executing the extension we've inspected the potential CLI flags, which are a subset of the shell or daemon's [CLI flags](../installation/cli-flags.md). We executed the example extension in the background, so now we can resume the osquery shell and use the 'example' table provided by the extension.
 
 ```sh
 [2] 98795
@@ -137,7 +140,7 @@ Your "external" extension, in the sense that the code is developed and contained
 
 This will find and compile all `.*\.{cpp,c,mm}` files within your external directory. If you need something more complicated, add a `CMakeLists.txt` to your directory and add your targets to the `externals` target.
 
-See [`CMake/CMakeLibs.cmake`](https://github.com/osquery/osquery/blob/master/CMake/CMakeLibs.cmake) for more information about the `ADD_OSQUERY_EXTENSION` CMake macro.
+See [`/osquery/external/cmake/cmakelibs.cmake`](https://github.com/osquery/osquery/blob/master/external/cmake/cmakelibs.cmake) for more information about the `addOsqueryExtension` and `addOsqueryExtensionEx` CMake macros.
 
 Example:
 

@@ -1,16 +1,16 @@
-# Reading syslogs with osquery
+# Reading syslog with osquery
 
 osquery 1.7.3 introduced support for consuming and querying the macOS system log via Apple System Log (ASL). osquery 1.7.4 introduced support for the Linux syslog via **rsyslog**. This document explains how to configure and use these syslog tables.
 
 ## macOS Syslog
 
-On macOS, the `asl` virtual table makes use of Apple's ASL store, querying this structured store using the routines provided in [`asl.h`](https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man3/asl.3.html).
+On macOS, the `asl` virtual table makes use of Apple's ASL store, querying this structured store using the routines provided in [`asl.h`](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/asl_set.3.html).
 
 ### macOS Configuration
 
 No configuration is required to begin using the `asl` table. Note, however, that the table is only able to query logs that are available in the ASL store.
 
-If your target logs are not already being sent to the ASL store by your current configuration, take a look at the [man page](https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man5/asl.conf.5.html) for `asl.conf`, and use the `store` action to ensure your logs of interest are available in the store. `asl.conf` is also responsible for the rotation and retention settings of the ASL store.
+If your target logs are not already being sent to the ASL store by your current configuration, take a look at the [man page](https://www.unix.com/man-page/osx/5/asl.conf/) for `asl.conf`, and use the `store` action to ensure your logs of interest are available in the store. `asl.conf` is also responsible for the rotation and retention settings of the ASL store.
 
 The configuration for `/var/log/install.log` and `/var/log/commerce.log` is hardcoded into the Apple provided syslog binaries, and we are not aware of a way to configure ASL to send these logs to the store.
 

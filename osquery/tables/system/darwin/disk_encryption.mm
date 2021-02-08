@@ -33,6 +33,9 @@ namespace tables {
  */
 const std::string kEncryptionType = "AES-XTS";
 const std::string kAPFSFileSystem = "apfs";
+const std::string kFileVaultStatusOn = "on";
+const std::string kFileVaultStatusOff = "off";
+const std::string kFileVaultStatusUnknown = "unknown";
 const std::string kEncryptionStatusEncrypted = "encrypted";
 const std::string kEncryptionStatusUndefined = "undefined";
 const std::string kEncryptionStatusNotEncrypted = "not encrypted";
@@ -125,6 +128,7 @@ void genFDEStatusForAPFS(Row& r) {
   // Set encryption_status as undefined at start
   // and change it to encrypted | not encrypted in future
   r["encryption_status"] = kEncryptionStatusUndefined;
+  r["filevault_status"] = kFileVaultStatusUnknown;
 
   // BEWARE: Because of the dynamic nature of the calls in this function, we
   // must be careful to properly clean up the memory. Any future modifications
@@ -242,6 +246,7 @@ void genFDEStatusForAPFS(Row& r) {
   int err = 0;
 
   char isEncrypted = 0;
+
   // err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
   @try {
     SEL selector = @selector(isEncryptedVolume:encrypted:);
@@ -267,6 +272,34 @@ void genFDEStatusForAPFS(Row& r) {
     // For backward compatibility reasons mark disk as
     // not encrypted
     r["encrypted"] = "0";
+    cleanup();
+    return;
+  }
+
+  char isFileVaultEnabled = 0;
+
+  // err = [apfs isFileVaultEnabled:targetVol enabled:&isFileVaultEnabled];
+  @try {
+    SEL selector = @selector(isFileVaultEnabled:enabled:);
+    IMP methodIMP = [apfs methodForSelector:selector];
+    if (methodIMP == nullptr) {
+      LOG(ERROR) << "Failed to get method IMP for isFileVaultEnabled:enabled:";
+      cleanup();
+      return;
+    }
+    int (*function)(id, SEL, DADiskRef, char*) =
+        (int (*)(id, SEL, DADiskRef, char*))(methodIMP);
+    err = function(apfs, selector, targetVol, &isFileVaultEnabled);
+  } @catch (NSException* exception) {
+    LOG(ERROR) << "isFileVaultEnabled:enabled: threw exception "
+               << exception.name;
+    cleanup();
+    return;
+  }
+  if (err != 0) {
+    // This is expected behaviour on some configurations
+    // We can't handle error here so just log
+    LOG(INFO) << "Error calling isFileVaultEnabled:enabled:";
     cleanup();
     return;
   }
@@ -325,6 +358,10 @@ void genFDEStatusForAPFS(Row& r) {
 
   r["encryption_status"] =
       isEncrypted ? kEncryptionStatusEncrypted : kEncryptionStatusNotEncrypted;
+
+  r["filevault_status"] =
+      isFileVaultEnabled ? kFileVaultStatusOn : kFileVaultStatusOff;
+
   r["encrypted"] = isEncrypted ? "1" : "0";
   r["type"] = isEncrypted ? "APFS Encryption" : "";
 }
@@ -363,11 +400,20 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
     auto encrypted = getIOKitProperty(properties, kCoreStorageIsEncryptedKey_);
     if (encrypted.empty()) {
       r["encryption_status"] = kEncryptionStatusUndefined;
+      r["filevault_status"] = kFileVaultStatusUnknown;
       r["encrypted"] = "0";
     } else {
       r["encrypted"] = encrypted;
+
       r["encryption_status"] = encrypted == "1" ? kEncryptionStatusEncrypted
                                                 : kEncryptionStatusNotEncrypted;
+
+      // On non-APFS drives we consider encryption and filevault to mean the
+      // same thing as it makes the UX of querying the table for the most
+      // common case (finding macs without Filevault enabled)
+      r["filevault_status"] =
+          encrypted == "1" ? kFileVaultStatusOn : kFileVaultStatusOff;
+
       id_t uid;
       uuid_string_t uuid_string = {0};
       if (genUid(uid, uuid_string).ok()) {

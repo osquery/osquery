@@ -88,7 +88,7 @@ class DatabasePlugin : public Plugin {
    * Database value access indexing is abstracted into domains and keys.
    * Both are string values but exist separately for simple indexing without
    * API-enforcing tokenization. In some cases we do add a component-specific
-   * tokeninzation to keys.
+   * tokenization to keys.
    *
    * @param domain A string value representing abstract storage indexing.
    * @param key A string value representing the lookup/retrieval key.

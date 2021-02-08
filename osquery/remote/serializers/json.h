@@ -24,7 +24,7 @@ class JSONSerializer : public Serializer {
   Status serialize(const JSON& json, std::string& serialized);
 
   /**
-   * @brief See Serializer::desiralize
+   * @brief See Serializer::deserialize
    */
   Status deserialize(const std::string& serialized, JSON& json);
 

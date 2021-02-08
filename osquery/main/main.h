@@ -19,7 +19,7 @@ namespace osquery {
  * @brief Install osqueryd as a service for the platform.
  *
  * Currently, this is only used by Windows. POSIX platforms use a companion
- * script called osquerycrl to move files and install launch daemons or init
+ * script called osquerycrtl to move files and install launch daemons or init
  * scripts/systemd units.
  *
  * This disconnect of install flows is a limitation. The POSIX install flows

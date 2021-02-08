@@ -58,7 +58,6 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/dbus/uniquedbusmessage.cpp
       linux/acpi_tables.cpp
       linux/block_devices.cpp
-      linux/deb_packages.cpp
       linux/disk_encryption.cpp
       linux/elf_info.cpp
       linux/extended_attributes.cpp
@@ -93,6 +92,12 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/systemd_units.cpp
     )
 
+    if(OSQUERY_BUILD_DPKG)
+      list(APPEND source_files
+        linux/deb_packages.cpp
+      )
+    endif()
+
   elseif(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
       darwin/account_policy_data.mm
@@ -124,6 +129,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/keychain_items.cpp
       darwin/keychain_utils.cpp
       darwin/launchd.cpp
+      darwin/location_services.mm
       darwin/managed_policies.cpp
       darwin/mdfind.mm
       darwin/mdls.mm
@@ -148,6 +154,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/smc_keys.cpp
       darwin/startup_items.cpp
       darwin/sysctl_utils.cpp
+      darwin/system_extensions.mm
       darwin/system_info.cpp
       darwin/time_machine.cpp
       darwin/usb_devices.cpp
@@ -266,7 +273,6 @@ function(generateOsqueryTablesSystemSystemtable)
   if(DEFINED PLATFORM_LINUX)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_libdevmapper
-      thirdparty_libdpkg
       thirdparty_libelfin
       thirdparty_libcryptsetup
       thirdparty_librpm
@@ -274,6 +280,12 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_dbus
       thirdparty_libcap
     )
+
+    if(OSQUERY_BUILD_DPKG)
+      target_link_libraries(osquery_tables_system_systemtable PUBLIC
+        thirdparty_libdpkg
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
@@ -339,7 +351,6 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.h
       windows/certificates.h
       windows/users.h
-      windows/userassist.h
       windows/windows_eventlog.h
     )
   endif()
@@ -357,6 +368,11 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_LINUX)
     add_test(NAME osquery_tables_system_linux_tests-test COMMAND osquery_tables_system_linux_tests-test)
+
+    set_tests_properties(
+      osquery_tables_system_linux_tests-test
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
   elseif(DEFINED PLATFORM_MACOS)
     add_test(NAME osquery_tables_system_darwin_tests-test COMMAND osquery_tables_system_darwin_tests-test)
 

@@ -28,26 +28,25 @@ namespace {
 Status getSelinuxfsMountPath(std::string& path) {
   path = {};
 
-  MountedFilesystemMap mounted_fs_map{};
-  auto status = getMountedFilesystemMap(mounted_fs_map);
+  MountedFilesystems mounted_fs{};
+  auto status = getMountedFilesystems(mounted_fs);
   if (!status.ok()) {
     return status;
   }
 
   // clang-format off
   auto selinuxfs_info_it = std::find_if(
-    mounted_fs_map.begin(),
-    mounted_fs_map.end(),
+    mounted_fs.begin(),
+    mounted_fs.end(),
 
-    [](const std::pair<std::string, MountInformation> &p) -> bool {
-      const auto &fs_type = p.second.type;
-      return (fs_type == "selinuxfs");
+    [](const MountInformation &mount_info) -> bool {
+      return (mount_info.type == "selinuxfs");
     }
   );
   // clang-format on
 
-  if (selinuxfs_info_it != mounted_fs_map.end()) {
-    path = selinuxfs_info_it->second.path;
+  if (selinuxfs_info_it != mounted_fs.end()) {
+    path = selinuxfs_info_it->path;
   }
 
   return Status::success();
@@ -266,7 +265,7 @@ QueryData genSELinuxSettings(QueryContext& context) {
 
   status = generateClasses(row_list, selinuxfs_path);
   if (!status.ok()) {
-    LOG(ERROR) << "failed to bla bla";
+    LOG(ERROR) << "Failed to generate SELinux class: " << status.getMessage();
   }
 
   return row_list;

@@ -2,7 +2,7 @@
 
 For details on how `osqueryd` schedules queries and loads information from a config, see the [configuration](../deployment/configuration.md) deployment guide.
 
-You may need to distribute osquery configurations in a different way than the default method. To support all deployment types, the way that `osqueryd` retrieves its configuration is itself completely pluggable and customizable. By default, `osqueryd` will look for a JSON file on disk using the default config plugin: **filesystem**. If you distribute configurations via something like [Zookeeper](https://zookeeper.apache.org) or [etcd](https://github.com/coreos/etcd), you need to write a C++ function that can acquire a string of JSON. This developer tutorial will walk through the default filesystem config plugin as a demonstration for creating new config inputs.
+You may need to distribute osquery configurations in a different way than the default method. To support all deployment types, the way that `osqueryd` retrieves its configuration is itself completely pluggable and customizable. By default, `osqueryd` will look for a JSON file on disk using the default config plugin: **filesystem**. If you distribute configurations via something like [Zookeeper](https://zookeeper.apache.org) or [etcd](https://github.com/etcd-io/etcd), you need to write a C++ function that can acquire a string of JSON. This developer tutorial will walk through the default filesystem config plugin as a demonstration for creating new config inputs.
 
 ## Example: Filesystem config
 

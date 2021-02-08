@@ -4,7 +4,7 @@ osquery supports many flavors of Linux, macOS, and Windows.
 
 While osquery runs on a large number of operating systems, we only provide build instructions for a select few.
 
-The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v142 on Windows, and AppleClang from Xcode Command Line Tools 10.2.1.
+The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v142 on Windows, and AppleClang from Xcode Command Line Tools 11.7.
 
 ## Prerequisites
 
@@ -69,7 +69,7 @@ pip3 install --user setuptools pexpect==3.3 psutil timeout_decorator six thrift=
 
 ### Step 2: Download and build source on macOS
 
-In the following example, the use of the additional CMake argument `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.11` specifies macOS 10.11 as the minimum compatible macOS version to which you can deploy osquery (this affects the version of the macOS SDK used at build time).
+In the following example, the use of the additional CMake argument `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.12` specifies macOS 10.12 as the minimum compatible macOS version to which you can deploy osquery (this affects the version of the macOS SDK used at build time).
 
 ```bash
 # Download source
@@ -78,7 +78,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 ..
+cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 ..
 
 # Build
 cmake --build . -j $(sysctl -n hw.ncpu)
@@ -101,7 +101,7 @@ Note: It may be easier to install these prerequisites using [Chocolatey](https:/
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest): Select "checkout as-is, commit as-is". Later check "Enable symbolic links" support.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Wix Toolset](https://wixtoolset.org/releases/)
-- [Strawberry Perl](http://strawberryperl.com/) for the OpenSSL formula. It is recommended to install it to the default destination path.
+- [Strawberry Perl](https://strawberryperl.com/) for the OpenSSL formula. It is recommended to install it to the default destination path.
 - [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
 
 ### Optional: Install Python tests prerequisites
@@ -343,7 +343,7 @@ On macOS you can choose between a TGZ or a PKG, which is the default.
 You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
 
 ```sh
-cmake -DPACKAGING_SYSTEM=TGZ -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 ..
+cmake -DPACKAGING_SYSTEM=TGZ -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 ..
 cmake --build . --target package
 ```
 

@@ -247,7 +247,7 @@ When osquery's config parser is provided a string instead of inline dictionary t
 
 **Where can I get more packs?**
 
-We release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc.). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts. You can find the query packs that are released by the osquery team documented at [https://osquery.io/docs/packs](https://osquery.io/docs/packs) and the content in [**/packs**](https://github.com/osquery/osquery/blob/master/packs) within the osquery repository.
+We release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc.). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts. You can find the query packs that are released by the osquery team in [**/packs**](https://github.com/osquery/osquery/blob/master/packs) within the osquery repository.
 
 **How do I modify the default options in the provided packs?**
 
@@ -318,7 +318,7 @@ The basic scheduled query specification includes:
 - `platform`: restrict this query to a given platform, default is 'all' platforms; you may use commas to set multiple platforms
 - `version`: only run on osquery versions greater than or equal-to this version string
 - `shard`: restrict this query to a percentage (1-100) of target hosts
-- `denylist`: a boolean to determine if this query may be denylisted (when stopped for excessive resource consumption), default true
+- `denylist`: a boolean to determine if this query may be denylisted (when stopped by the Watchdog for excessive resource consumption), default true
 
 The `platform` key can be:
 
@@ -330,6 +330,8 @@ The `platform` key can be:
 - `any` or `all` for all, alternatively no platform key selects all
 
 The `shard` key works by hashing the hostname then taking the quotient 255 of the first byte. This allows us to select a deterministic 'preview' for the query, this helps when slow-rolling or testing new queries.
+
+Note that queries are still constrained by the Watchdog when the `denylist` key is set to false. This means that setting `denylist` to false is _not_ sufficient to ensure a query will be run without resource constraints. Queries stopped by the Watchdog should be addressed by modifying the query SQL and/or Watchdog configuration until the limits are not exceeded.
 
 The schedule and associated queries generate a timeline of events through the defined intervals. There are several tables `*_events` which natively yield a time series, all other tables are subjected to execution on an interval. When the results from a table differ from the results when the query was last executed, logs are emitted with `{"action": "removed"}` or `{"action": "added"}` for the appropriate action.
 

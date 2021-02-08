@@ -55,7 +55,7 @@ void YARACompilerCallback(int error_level,
 
 // yr_initialize maintains a reference count and avoid
 // re-initialization
-Status yaraInitilize(void) {
+Status yaraInitialize(void) {
   auto result = yr_initialize();
   if (result != ERROR_SUCCESS) {
     return Status::failure("Failed to initialize YARA " +
@@ -212,7 +212,7 @@ Status handleRuleFiles(const std::string& category,
 
     YR_RULES* tmp_rules = nullptr;
     std::string rule = item.GetString();
-    if (rule[0] != '/') {
+    if (boost::filesystem::path(rule).is_relative()) {
       rule = kYARAHome + rule;
     }
 

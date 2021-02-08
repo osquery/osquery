@@ -11,7 +11,6 @@
 #include <osquery/core/flags.h>
 #include <osquery/database/database.h>
 #include <osquery/events/eventfactory.h>
-#include <osquery/events/eventpublisher.h>
 #include <osquery/events/eventsubscriberplugin.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
@@ -88,6 +87,9 @@ FLAG(uint64,
      "Maximum number of event batches per type to buffer");
 
 CREATE_REGISTRY(EventSubscriberPlugin, "event_subscriber");
+
+EventSubscriberPlugin::EventSubscriberPlugin(bool enabled)
+    : disabled(!enabled) {}
 
 Status EventSubscriberPlugin::init() {
   return Status::success();

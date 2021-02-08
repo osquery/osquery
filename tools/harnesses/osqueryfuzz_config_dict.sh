@@ -23,9 +23,10 @@ function main() {
 
   # dict format is keyword="value" or just "value" - so we need to make sure our output is quoted.
 
-  egrep -h -R -o "HasMember\\(\"([^\"]+)\"\\)" ./  | sed 's/HasMember(//' | sed 's/)//' > tmp
+  egrep -h -R -o "HasMember\\(\"([^\"]+)\"\\)" $SCRIPT_DIR/../../osquery $SCRIPT_DIR/../../plugins  | sed 's/HasMember(//' | sed 's/)//' > tmp
   egrep -h -o -e "\"([^\"]+)\"" $SCRIPT_DIR/../tests/configs/*.conf >> tmp
   egrep -h -o -e "\"([^\"]+)\"" $SCRIPT_DIR/../../packs/*.conf >> tmp
+  egrep -h -R -o "FLAG\(.*\)" $SCRIPT_DIR/../../osquery $SCRIPT_DIR/../../plugins | awk -F ', ' '{ print "\""$2"\"" }' >> tmp
 
   sort tmp | uniq > $1
   rm tmp

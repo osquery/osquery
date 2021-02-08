@@ -236,6 +236,65 @@ TEST_F(ConfigTests, test_config_depth) {
 
   ASSERT_TRUE(status.ok()) << status.getMessage();
   ASSERT_FALSE(get().validateConfig(doc).ok());
+
+  /* The first top member has 10 levels of nesting, which is fine,
+     but each nested object contains duplicated keys.
+     The second top member has its key duplicated and a too deeply nested tree
+     of objects. Verify that the validation algorithm doesn't get stuck with
+     duplicated keys in the first top member tree and it's able to correctly
+     verify that the second member is too deep. */
+  auto add_nested_objects_with_duplicate_keys =
+      [](std::string& invalid_config) {
+        // clang-format off
+        std::string first_member_tree =
+        "{"
+          "\"1\" : {"
+            "\"2\" : {"
+              "\"3\" : {"
+                "\"4\" : {"
+                  "\"5\" : {"
+                    "\"6\" : {"
+                      "\"7\" : {"
+                        "\"8\" : {"
+                          "\"9\" : {"
+                            "\"10\" : {}"
+                          "},"
+                          "\"9\" : {}"
+                        "},"
+                        "\"8\" : {}"
+                      "},"
+                      "\"7\" : {}"
+                    "},"
+                    "\"6\" : {}"
+                  "},"
+                  "\"5\" : {}"
+                "},"
+                "\"4\" : {}"
+              "},"
+              "\"3\" : {}"
+            "},"
+            "\"2\" : {}"
+          "},";
+        // clang-format on
+        std::string second_member_tree;
+
+        second_member_tree += "\"1\": ";
+        for (int i = 0; i < 99; ++i) {
+          second_member_tree += "{\"1\": ";
+        }
+
+        second_member_tree += "{}";
+        second_member_tree += std::string(100, '}');
+        invalid_config = first_member_tree + second_member_tree;
+      };
+
+  invalid_config.clear();
+  add_nested_objects_with_duplicate_keys(invalid_config);
+
+  status = doc.fromString(invalid_config, JSON::ParseMode::Iterative);
+
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  ASSERT_FALSE(get().validateConfig(doc).ok());
 }
 
 TEST_F(ConfigTests, test_config_too_big) {

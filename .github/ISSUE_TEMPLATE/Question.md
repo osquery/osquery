@@ -11,7 +11,7 @@ about: You have a question about osquery
 
 We only use issues to track bugs, feature requests or blueprints, for everything else check out Slack or the other channels bellow:
 
-Slack : https://slack.osquery.io/
+Slack : https://osquery.slack.com
 
 Reddit : https://www.reddit.com/r/osquery/
 

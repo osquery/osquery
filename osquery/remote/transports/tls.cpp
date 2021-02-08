@@ -153,7 +153,8 @@ http::Client::Options TLSTransport::getInternalOptions() {
   }
 
   options.openssl_ciphers(kTLSCiphers);
-  options.openssl_options(SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2 | SSL_OP_ALL);
+  options.openssl_options(SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2 | SSL_OP_NO_TLSv1 |
+                          SSL_OP_NO_TLSv1_1 | SSL_OP_ALL);
 
   if (client_certificate_file_.size() > 0) {
     if (!osquery::isReadable(client_certificate_file_).ok()) {

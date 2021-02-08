@@ -8,6 +8,8 @@
  */
 
 #pragma once
+#include <functional>
+#include <memory>
 
 #include <osquery/events/eventfactory.h>
 #include <osquery/events/eventpublisher.h>
@@ -59,23 +61,28 @@ class EventSubscriber : public EventSubscriberPlugin {
    * @param entry A templated EventSubscriber member function.
    * @param sc The subscription context.
    */
-  template <class T, typename E>
-  void subscribe(Status (T::*entry)(const std::shared_ptr<E>&, const SCRef&),
+  template <typename T>
+  void subscribe(Status (T::*entry)(const ECRef&, const SCRef&),
                  const SCRef& sc) {
-    using std::placeholders::_1;
-    using std::placeholders::_2;
-    using CallbackFunc =
-        Status (T::*)(const EventContextRef&, const SubscriptionContextRef&);
-
-    // Down-cast the pointer to the member function.
-    auto base_entry = reinterpret_cast<CallbackFunc>(entry);
-    // Up-cast the EventSubscriber to the caller.
+    // Down-cast the EventSubscriber to the caller.
     auto sub = dynamic_cast<T*>(this);
-    if (base_entry != nullptr && sub != nullptr) {
-      // Create a callable through the member function using the instance of the
-      // EventSubscriber and a single parameter placeholder (the EventContext).
-      auto cb = std::bind(base_entry, sub, _1, _2);
-      // Add a subscription using the callable and SubscriptionContext.
+    if (sub != nullptr) {
+      /* Create a lambda to call the "sub" event subscriber callback passed as
+         "entry", properly handling the downcast of the callback arguments. The
+         lambda is supposed to be saved into a std::function that hides the
+         subscriber type, and uses base classes for the callback arguments, so
+         that it can be saved in a generic container.*/
+      auto cb = [sub, entry](const EventContextRef& ec,
+                             const SubscriptionContextRef& sc) -> Status {
+        return std::invoke(
+            entry,
+            *sub,
+            std::dynamic_pointer_cast<typename ECRef::element_type>(ec),
+            std::dynamic_pointer_cast<typename SCRef::element_type>(sc));
+      };
+
+      // Add a subscription using the callable and
+      // SubscriptionContext.
       Status stat =
           EventFactory::addSubscription(sub->getType(), sub->getName(), sc, cb);
       if (stat.ok()) {
@@ -86,31 +93,7 @@ class EventSubscriber : public EventSubscriberPlugin {
 
  public:
   explicit EventSubscriber(bool enabled = true)
-      : EventSubscriberPlugin(), disabled(!enabled) {}
-  ~EventSubscriber() override = default;
-
- protected:
-  /**
-   * @brief Allow subscriber implementations to default disable themselves.
-   *
-   * A subscriber may induce latency on a system within the callback routines.
-   * Before the initialization and set up is performed the EventFactory can
-   * choose to exclude a subscriber if it is not explicitly enabled within
-   * the config.
-   *
-   * EventSubscriber%s that should be default-disabled should set this flag
-   * in their constructor or worst case before EventSubsciber::init.
-   */
-  bool disabled{false};
-
- private:
-  friend class EventFactory;
-
- private:
-  FRIEND_TEST(EventsTests, test_event_sub);
-  FRIEND_TEST(EventsTests, test_event_sub_subscribe);
-  FRIEND_TEST(EventsTests, test_event_sub_context);
-  FRIEND_TEST(EventsTests, test_event_toggle_subscribers);
+      : EventSubscriberPlugin(enabled) {}
 };
 
 } // namespace osquery

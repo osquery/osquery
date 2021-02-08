@@ -152,6 +152,9 @@
 /* Define to 1 if you have the <openssl/x509v3.h> header file. */
 /* #undef HAVE_OPENSSL_X509V3_H */
 
+/* Define to 1 if you have the <poll.h> header file. */
+#define HAVE_POLL_H 1
+
 /* Define to 1 if you have the `pow' function. */
 #define HAVE_POW 1
 
@@ -182,6 +185,9 @@
 
 /* Define to 1 if you have the `setlocale' function. */
 #define HAVE_SETLOCALE 1
+
+/* Define to 1 if you have the <signal.h> header file. */
+#define HAVE_SIGNAL_H 1
 
 /* Define to 1 if you have the `socket' function. */
 #define HAVE_SOCKET 1
@@ -234,6 +240,9 @@
 
 /* Define to 1 if you have the `strtoul' function. */
 #define HAVE_STRTOUL 1
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#define HAVE_SYS_IOCTL_H 1
 
 /* Define to 1 if you have the <sys/param.h> header file. */
 #define HAVE_SYS_PARAM_H 1
@@ -313,7 +322,7 @@
 #define PACKAGE_NAME "thrift"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "thrift 0.11.0"
+#define PACKAGE_STRING "thrift 0.13.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "thrift"
@@ -322,7 +331,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.11.0"
+#define PACKAGE_VERSION "0.13.0"
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #define RETSIGTYPE void
@@ -362,10 +371,6 @@
 
 /* Possible value for SIGNED_RIGHT_SHIFT_IS */
 #define UNKNOWN_RIGHT_SHIFT 3
-
-/* experimental --enable-boostthreads that replaces POSIX pthread by
-   boost::thread */
-/* #undef USE_BOOST_THREAD */
 
 /* Version number of package */
 

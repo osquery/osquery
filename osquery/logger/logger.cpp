@@ -122,7 +122,7 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
             const char* message,
             size_t message_len) override;
 
-  /// Pop from the aync sender queue and wait for one send to complete.
+  /// Pop from the async sender queue and wait for one send to complete.
   void WaitTillSent() override;
 
  public:
@@ -209,6 +209,10 @@ static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
 }
 
 void setVerboseLevel() {
+#ifdef OSQUERY_IS_FUZZING
+  return;
+#endif
+
   if (Flag::getValue("verbose") == "true") {
     // Turn verbosity up to 1.
     // Do log DEBUG, INFO, WARNING, ERROR to their log files.

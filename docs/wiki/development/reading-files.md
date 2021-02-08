@@ -1,11 +1,13 @@
-[include/osquery/filesystem.h](https://github.com/osquery/osquery/blob/master/include/osquery/filesystem.h) contains utilities for accessing the filesystem.
+# Reading Files
+
+[/osquery/filesystem/filesystem.h](https://github.com/osquery/osquery/blob/master/osquery/filesystem/filesystem.h) contains utilities for accessing the filesystem.
 
 Consider the following example for reading a file from the filesystem:
 
 ```cpp
 #include <iostream>
 #include <string>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 
 const std::string kPath = "/foo/bar.txt"
 
@@ -34,7 +36,7 @@ To internalize the main API, consider the same example without error checking:
 ```cpp
 #include <iostream>
 #include <string>
-#include <osquery/filesystem.h>
+#include <osquery/filesystem/filesystem.h>
 
 int main(int argc, char* argv[]) {
   std::string content;

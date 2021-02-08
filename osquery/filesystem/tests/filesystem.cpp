@@ -443,8 +443,13 @@ TEST_F(FilesystemTests, test_safe_permissions) {
 // compiling on linux
 #ifdef __linux__
 TEST_F(FilesystemTests, test_user_namespace_parser) {
-  auto temp_path = fs::unique_path().native();
-  EXPECT_EQ(fs::create_directory(temp_path), true);
+  auto unique_path = fs::temp_directory_path() /
+                     fs::unique_path("osquery.tests.user_ns_parser.%%%%.%%%%");
+
+  auto temp_path = unique_path.native();
+
+  boost::system::error_code error_code;
+  EXPECT_EQ(fs::create_directory(temp_path, error_code), true);
 
   auto symlink_path = temp_path + "/namespace";
   EXPECT_EQ(symlink("namespace:[112233]", symlink_path.data()), 0);

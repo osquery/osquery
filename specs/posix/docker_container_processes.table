@@ -12,7 +12,7 @@ schema([
     Column("egid", BIGINT, "Effective group ID"),
     Column("suid", BIGINT, "Saved user ID"),
     Column("sgid", BIGINT, "Saved group ID"),
-    Column("wired_size", BIGINT, "Bytes of unpagable memory used by process"),
+    Column("wired_size", BIGINT, "Bytes of unpageable memory used by process"),
     Column("resident_size", BIGINT, "Bytes of private memory used by process"),
     Column("total_size", BIGINT, "Total virtual memory size",
         aliases=["phys_footprint"]),

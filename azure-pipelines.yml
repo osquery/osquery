@@ -13,9 +13,15 @@ jobs:
         Release:
           BUILD_TYPE: Release
           EXTRA_CMAKE_ARGS:
+          BUILD_TESTS: ON
+        RelWithDebInfo:
+          BUILD_TYPE: RelWithDebInfo
+          EXTRA_CMAKE_ARGS:
+          BUILD_TESTS: OFF
         Debug:
           BUILD_TYPE: Debug
           EXTRA_CMAKE_ARGS: -DOSQUERY_NO_DEBUG_SYMBOLS=ON
+          BUILD_TESTS: ON
 
     pool:
       vmImage: 'Ubuntu-16.04'
@@ -39,6 +45,29 @@ jobs:
     - script: mkdir -p $(BUILD_DIR)
       displayName: "Create build folder"
 
+    - task: CMake@1
+      displayName: "Configure osquery for formatting"
+      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux RelWithDebInfo'))
+      inputs:
+        workingDirectory: $(BUILD_DIR)
+        cmakeArgs:
+          -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain
+          -DOSQUERY_ENABLE_FORMAT_ONLY=ON
+          $(Build.SourcesDirectory)
+
+    - script: |
+        ./tools/formatting/format-test.sh --build $(BUILD_DIR)
+      displayName: "format_check.py test"
+      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux RelWithDebInfo'))
+      workingDirectory: $(Build.SourcesDirectory)
+
+    - task: CMake@1
+      displayName: "Check code formatting"
+      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux RelWithDebInfo'))
+      inputs:
+        workingDirectory: $(BUILD_DIR)
+        cmakeArgs: --build . --target format_check
+
     - task: CacheBeta@2
       inputs:
         key: submodules | Linux | $(SubmoduleCacheVersion) | $(Build.SourceVersion)
@@ -50,23 +79,13 @@ jobs:
         cmake --version
         cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) \
               -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain \
-              -DOSQUERY_BUILD_TESTS=ON \
-              -DOSQUERY_BUILD_ROOT_TESTS=ON \
+              -DOSQUERY_BUILD_TESTS=$(BUILD_TESTS) \
+              -DOSQUERY_BUILD_ROOT_TESTS=$(BUILD_TESTS) \
+              -UOSQUERY_ENABLE_FORMAT_ONLY \
               $(EXTRA_CMAKE_ARGS) \
               $(Build.SourcesDirectory)
       displayName: "Configure osquery"
       workingDirectory: $(BUILD_DIR)
-
-    - script: |
-        ./tools/formatting/format-test.sh --build $(BUILD_DIR)
-      displayName: "format_check.py test"
-      workingDirectory: $(Build.SourcesDirectory)
-
-    - task: CMake@1
-      displayName: "Check code formatting"
-      inputs:
-        workingDirectory: $(BUILD_DIR)
-        cmakeArgs: --build . --target format_check
 
     - task: CacheBeta@2
       inputs:
@@ -81,27 +100,31 @@ jobs:
         workingDirectory: $(BUILD_DIR)
         cmakeArgs: --build . -j 3
 
+    - script: |
+        ctest --build-nocmake -LE "root-required" -V
+      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux RelWithDebInfo'))
+      displayName: "Run tests with a normal user"
+      workingDirectory: $(BUILD_DIR)
+
+    - script: |
+        sudo ctest --build-nocmake -L "root-required" -V
+      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux RelWithDebInfo'))
+      displayName: "Run tests which requires root"
+      workingDirectory: $(BUILD_DIR)
+
     - task: CMake@1
+      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux RelWithDebInfo'))
       displayName: "Run cppcheck"
       inputs:
         workingDirectory: $(BUILD_DIR)
         cmakeArgs: --build . --target cppcheck
 
     - script: |
-        ctest --build-nocmake -LE "root-required" -V
-      displayName: "Run tests with a normal user"
-      workingDirectory: $(BUILD_DIR)
-
-    - script: |
-        sudo ctest --build-nocmake -L "root-required" -V
-      displayName: "Run tests which requires root"
-      workingDirectory: $(BUILD_DIR)
-
-    - script: |
         cmake -DPACKAGING_SYSTEM=DEB $(Build.SourcesDirectory)
         cmake --build . --target package -j 3
         cp *.deb $(Build.ArtifactStagingDirectory)
         cp *.ddeb $(Build.ArtifactStagingDirectory)
+      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux Release'))
       displayName: "Run DEB packaging"
       workingDirectory: $(BUILD_DIR)
 
@@ -109,6 +132,7 @@ jobs:
         cmake -DPACKAGING_SYSTEM=RPM $(Build.SourcesDirectory)
         cmake --build . --target package -j 3
         cp *.rpm $(Build.ArtifactStagingDirectory)
+      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux Release'))
       displayName: "Run RPM packaging"
       workingDirectory: $(BUILD_DIR)
 
@@ -116,10 +140,12 @@ jobs:
         cmake -DPACKAGING_SYSTEM=TGZ $(Build.SourcesDirectory)
         cmake --build . --target package -j 3
         cp *.tar.gz $(Build.ArtifactStagingDirectory)
+      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux Release'))
       displayName: "Run TGZ packaging"
       workingDirectory: $(BUILD_DIR)
 
     - task: PublishBuildArtifacts@1
+      condition: and(succeeded(), ne(variables['Agent.JobName'], 'Linux Release'))
       inputs:
         pathToPublish: "$(Build.ArtifactStagingDirectory)"
         artifactName: "Linux $(BUILD_TYPE) Packages"
@@ -146,13 +172,14 @@ jobs:
 
     variables:
       LinuxReleaseStatus: $[ dependencies.LinuxBuild.outputs['Release.JobResult.Status'] ]
+      LinuxRelWithDebInfoStatus: $[ dependencies.LinuxBuild.outputs['RelWithDebInfo.JobResult.Status'] ]
       LinuxDebugStatus: $[ dependencies.LinuxBuild.outputs['Debug.JobResult.Status'] ]
 
     steps:
     - checkout: none
 
     - script: |
-        if [ -z "$(LinuxReleaseStatus)" ] || [ -z "$(LinuxDebugStatus)" ]; then
+        if [ -z "$(LinuxReleaseStatus)" ] || [ -z "$(LinuxDebugStatus)" ] || [ -z "$(LinuxRelWithDebInfoStatus)" ]; then
           exit 1
         fi
       displayName: "Detect Linux jobs build statuses"
@@ -174,7 +201,7 @@ jobs:
           EXTRA_CMAKE_ARGS: -DOSQUERY_NO_DEBUG_SYMBOLS=ON
 
     pool:
-      vmImage: macos-10.14
+      vmImage: macos-10.15
 
     timeoutInMinutes: 120
 
@@ -187,7 +214,7 @@ jobs:
         brew update
         brew upgrade
         brew install ccache flex bison
-        sudo xcode-select -s /Applications/Xcode_10.3.app/Contents/Developer
+        sudo xcode-select -s /Applications/Xcode_12.3.app/Contents/Developer
       displayName: "Upgrade Homebrew and install build prerequisites"
       timeoutInMinutes: 20
 
@@ -213,7 +240,7 @@ jobs:
 
     - script: |
         cmake --version
-        cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 \
+        cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 \
               -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) \
               -DOSQUERY_BUILD_TESTS=ON \
               $(EXTRA_CMAKE_ARGS) \

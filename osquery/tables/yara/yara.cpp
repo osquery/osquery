@@ -220,7 +220,9 @@ Status getYaraRules(YARAConfigParser parser,
     YR_RULES* tmp_rules = nullptr;
     switch (sign_type) {
     case YC_FILE: {
-      auto path = (sign[0] != '/') ? (kYARAHome + sign) : sign;
+      auto path = (boost::filesystem::path(sign).is_relative())
+                      ? (kYARAHome + sign)
+                      : sign;
       auto status = compileSingleFile(path, &tmp_rules);
       if (!status.ok()) {
         LOG(WARNING) << "YARA compile error: " << status.toString();
@@ -275,7 +277,7 @@ QueryData genYara(QueryContext& context) {
   YaraScanContext scanContext;
 
   // Initialize yara library
-  auto init_status = yaraInitilize();
+  auto init_status = yaraInitialize();
   if (!init_status.ok()) {
     LOG(WARNING) << init_status.toString();
     return results;

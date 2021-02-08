@@ -111,7 +111,7 @@ class RegistryFactory : private boost::noncopyable {
                    const std::string& item_name);
 
   /// Get a registry's active plugin.
-  std::string getActive(const std::string& registry_nane) const;
+  std::string getActive(const std::string& registry_name) const;
 
   bool exists(const std::string& registry_name) const {
     return (registries_.count(registry_name) > 0);

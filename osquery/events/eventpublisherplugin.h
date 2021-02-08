@@ -18,7 +18,7 @@
 namespace osquery {
 
 class EventPublisherPlugin : public Plugin,
-                             public InterruptableRunnable,
+                             public InterruptibleRunnable,
                              public Eventer {
  public:
   /**
@@ -174,5 +174,4 @@ class EventPublisherPlugin : public Plugin,
   FRIEND_TEST(EventsTests, test_event_publisher);
   FRIEND_TEST(EventsTests, test_fire_event);
 };
-
 } // namespace osquery

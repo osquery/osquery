@@ -41,7 +41,7 @@ function(generateOsqueryTablesTableimplementations)
     )
   endif()
 
-  if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS)
+  if(OSQUERY_BUILD_AWS)
     target_link_libraries(osquery_tables_tableimplementations INTERFACE
       osquery_tables_cloud_aws
     )

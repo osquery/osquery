@@ -42,7 +42,7 @@ $ osqueryi --json "SELECT * FROM routes WHERE destination = '::1'"
 You may also pipe a query as *stdin*. The input will be executed on the `osqueryi` shell and must be well-formed SQL or `osqueryi` meta-commands. Note the added ';' to the query when using *stdin*:
 
 ```
-$ echo "SELECT * FROM routes WHERE destination = '::1';" | osqueryi --json
+echo "SELECT * FROM routes WHERE destination = '::1';" | osqueryi --json
 ```
 
 ## Getting help

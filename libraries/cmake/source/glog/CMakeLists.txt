@@ -6,40 +6,91 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(googleLogMain)
-  set(disabled_option_list
-    WITH_TLS
-    WITH_GFLAGS
-  )
-
-  set(enabled_option_list
-    HAVE_LIB_GFLAGS
-    WITH_THREADS
-  )
-
-  foreach(option_name ${disabled_option_list})
-    set("${option_name}" false CACHE BOOL "" FORCE)
-  endforeach()
-
-  foreach(option_name ${enabled_option_list})
-    set("${option_name}" true CACHE BOOL "" FORCE)
-  endforeach()
 
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
-  add_subdirectory("${library_root}" "${CMAKE_CURRENT_BINARY_DIR}/submodule" EXCLUDE_FROM_ALL)
 
-  copyInterfaceTargetFlagsTo(glog thirdparty_cxx_settings PRIVATE)
+  set(sources
+    "${library_root}/src/demangle.cc"
+    "${library_root}/src/logging.cc"
+    "${library_root}/src/raw_logging.cc"
+    "${library_root}/src/symbolize.cc"
+    "${library_root}/src/utilities.cc"
+    "${library_root}/src/vlog_is_on.cc"
+    "${library_root}/src/signalhandler.cc"
+  )
 
-  get_target_property(gflags_include_directory thirdparty_gflags INTERFACE_INCLUDE_DIRECTORIES)
-  target_include_directories(glog PRIVATE "${gflags_include_directory}")
+  configure_file("${library_root}/src/glog/log_severity.h" "${CMAKE_CURRENT_BINARY_DIR}/glog/log_severity.h" COPYONLY)
 
-  # Small hack to set glog's includes as SYSTEM
-  get_target_property(glog_include_directory glog INTERFACE_INCLUDE_DIRECTORIES)
-  target_include_directories(glog SYSTEM INTERFACE ${glog_include_directory})
+  if(DEFINED PLATFORM_WINDOWS)
+    list(APPEND sources
+      "${library_root}/src/windows/port.cc"
+    )
+  endif()
 
-  add_library(thirdparty_glog INTERFACE)
-  target_link_libraries(thirdparty_glog INTERFACE
-    glog
-    thirdparty_gflags
+  add_library(thirdparty_glog ${sources})
+
+  if(DEFINED PLATFORM_POSIX)
+    target_compile_options(thirdparty_glog PUBLIC
+      -Wno-unnamed-type-template-args
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    target_compile_definitions(thirdparty_glog
+      PRIVATE
+        HAVE_SNPRINTF
+      PUBLIC
+        GLOG_NO_ABBREVIATED_SEVERITIES
+      )
+  endif()
+
+  target_compile_definitions(thirdparty_glog PUBLIC
+    GOOGLE_GLOG_DLL_DECL=
+  )
+
+  target_link_libraries(thirdparty_glog
+    PRIVATE
+      thirdparty_cxx_settings
+    PUBLIC
+      thirdparty_gflags
+  )
+
+  if(DEFINED PLATFORM_LINUX)
+    target_include_directories(thirdparty_glog
+      PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/private"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/public"
+
+      SYSTEM INTERFACE
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/public"
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    target_include_directories(thirdparty_glog
+      PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/private"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/public"
+        "${library_root}/src/windows"
+
+      SYSTEM INTERFACE
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/public"
+        "${library_root}/src/windows"
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    target_include_directories(thirdparty_glog
+      PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/private"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/public"
+
+      SYSTEM INTERFACE
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/public"
+    )
+  endif()
+
+  target_include_directories(thirdparty_glog
+    PRIVATE
+      "${library_root}/src"
+      "${CMAKE_CURRENT_BINARY_DIR}"
+
+    SYSTEM INTERFACE
+      "${CMAKE_CURRENT_BINARY_DIR}"
   )
 endfunction()
 

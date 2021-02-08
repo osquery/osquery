@@ -1,0 +1,16 @@
+table_name("system_extensions")
+description("macOS (>= 10.15) system extension table.")
+schema([
+    Column("path", TEXT, "Original path of system extension"),
+    Column("UUID", TEXT, "Extension unique id"),
+    Column("state", TEXT, "System extension state"),
+    Column("identifier", TEXT, "Identifier name"),
+    Column("version", TEXT, "System extension version"),
+    Column("category", TEXT, "System extension category"),
+    Column("bundle_path", TEXT, "System extension bundle path"),
+    Column("team", TEXT, "Signing team ID")
+])
+implementation("system_extensions@genSystemExtensions")
+examples([
+  "select * from system_extensions",
+])

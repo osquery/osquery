@@ -28,7 +28,7 @@ CANONICAL_PLATFORMS = {
     "darwin": "Darwin (Apple OS X)",
     "linux": "Ubuntu, CentOS",
     "freebsd": "FreeBSD",
-    "posix": "POSIX-compatible Plaforms",
+    "posix": "POSIX-compatible Platforms",
     "windows": "Microsoft Windows",
     "utility": "Utility",
     "yara": "YARA",

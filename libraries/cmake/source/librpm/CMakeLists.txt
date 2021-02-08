@@ -6,10 +6,11 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(librpmMain)
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(library_root "${OSQUERY_librpm_ROOT_DIR}")
 
   set(rpm_library_srcs
-    "${library_root}/lib/backend/db3.c"
+    "${library_root}/lib/backend/bdb_ro.c"
+    "${library_root}/lib/backend/sqlite.c"
     "${library_root}/lib/backend/dbi.c"
     "${library_root}/lib/backend/dummydb.c"
     "${library_root}/lib/backend/dbiset.c"
@@ -46,7 +47,6 @@ function(librpmMain)
     "${library_root}/lib/rpmte.c"
     "${library_root}/lib/rpmts.c"
     "${library_root}/lib/rpmfs.c"
-    "${library_root}/lib/rpmvercmp.c"
     "${library_root}/lib/signature.c"
     "${library_root}/lib/transaction.c"
     "${library_root}/lib/verify.c"
@@ -101,6 +101,8 @@ function(librpmMain)
     "${library_root}/rpmio/rpmglob.c"
     "${library_root}/rpmio/rpmkeyring.c"
     "${library_root}/rpmio/rpmstrpool.c"
+    "${library_root}/rpmio/rpmver.c"
+    "${library_root}/rpmio/rpmvercmp.c"
     "${library_root}/rpmio/digest_openssl.c"
   )
 
@@ -123,7 +125,7 @@ function(librpmMain)
   target_compile_definitions(thirdparty_librpm PRIVATE
     HAVE_CONFIG_H
     LIBRPMALIAS_EXECPATH="/usr/local/bin"
-    LIBRPMALIAS_FILENAME="rpmpopt-4.15.1"
+    LIBRPMALIAS_FILENAME="rpmpopt-4.16.1.2"
     LOCALEDIR="/usr/local/share/locale"
     LOCALSTATEDIR="/usr/local/var"
     PIC
@@ -144,6 +146,7 @@ function(librpmMain)
   # This mirrors detection done by autoconf/headers.m4 as CMake code.
   #
   if(DEFINED PLATFORM_LINUX)
+    include(CheckSymbolExists)
     CHECK_SYMBOL_EXISTS(major "sys/mkdev.h" MAJOR_IN_MKDEV)
     CHECK_SYMBOL_EXISTS(major "sys/sysmacros.h" MAJOR_IN_SYSMACROS) 
     if(MAJOR_IN_MKDEV)
@@ -159,7 +162,7 @@ function(librpmMain)
   endif()
 
   target_link_libraries(thirdparty_librpm PUBLIC
-    thirdparty_berkeley-db
+    thirdparty_sqlite
     thirdparty_openssl
     thirdparty_zlib
     thirdparty_libmagic

@@ -630,7 +630,7 @@ Status Config::validateConfig(const JSON& document) {
         for (rapidjson::Value::ConstMemberIterator itr = node.MemberBegin();
              itr != node.MemberEnd();
              ++itr) {
-          nodes.push(node[itr->name]);
+          nodes.push(itr->value);
         }
       } else if (node.IsArray()) {
         for (size_t i = 0; i < node.Size(); ++i) {

@@ -9,6 +9,8 @@ ldd --version
 ldd (GNU libc) 2.12.2
 ```
 
+Install `libtool`, `pkg-config`, and `automake`.
+
 Generated with the following commands:
 
 ```sh

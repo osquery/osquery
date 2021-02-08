@@ -287,8 +287,8 @@ GTEST_TEST(ExpectedTest, error__takeOr) {
 GTEST_TEST(ExpectedTest, error__takeOr_with_user_defined_class) {
   class SomeTestClass {
    public:
-    explicit SomeTestClass(const std::string& prefix, const std::string& sufix)
-        : text{prefix + " - " + sufix} {}
+    explicit SomeTestClass(const std::string& prefix, const std::string& suffix)
+        : text{prefix + " - " + suffix} {}
 
     std::string text;
   };

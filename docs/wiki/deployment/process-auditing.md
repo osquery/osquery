@@ -169,7 +169,7 @@ osqueryi --audit_allow_config=true --audit_allow_sockets=true --audit_persist=tr
 
 If you would like to debug the raw audit events as `osqueryd` sees them, use the hidden flag `--audit_debug`. This will print all of the RAW audit lines to osquery's `stdout`.
 
-> NOTICE: Linux systems running `journald` will collect logging data originating from the kernel audit subsystem (something that osquery enables) from several sources, including audit records. To avoid performance problems on busy boxes (specially when osquery event tables are enabled), it is recommended to mask audit logs from entering the journal with the following command `systemctl mask --now systemd-journald-audit.socket`. 
+> NOTICE: Linux systems running `journald` will collect logging data originating from the kernel audit subsystem (something that osquery enables) from several sources, including audit records. To avoid performance problems on busy boxes (specially when osquery event tables are enabled), it is recommended to mask audit logs from entering the journal with the following command `systemctl mask --now systemd-journald-audit.socket`.
 
 ## User event auditing with Audit
 
@@ -182,10 +182,12 @@ When osquery is running on a recent kernel (>= 4.18), the BPF eventing framework
 In order to start the publisher and enable the subscribers, the following flags must be passed: `--disable_events=false --enable_bpf_events=true`. The `--verbose` flag can also be extremely useful when setting up the configuration for the first time, since it emit more debug information when something fails.
 
 The BPF framework will make use of a perf event array and several per-cpu maps in order to receive events and correctly capture strings and buffers. These structures can be configured using the following command line flags:
- - **bpf_perf_event_array_exp**: size of the perf event array, as a power of two
- - **bpf_buffer_storage_size**: how many slots of 4096 bytes should be available in each memory pool
 
-Memory usage depends on both
+- **bpf_perf_event_array_exp**: size of the perf event array, as a power of two
+- **bpf_buffer_storage_size**: how many slots of 4096 bytes should be available in each memory pool
+
+Memory usage depends on both:
+
  1. How many processors are currently online
  2. How many processors can be added by hotswapping
 
@@ -212,9 +214,11 @@ This problem can be easily fixed by disabling hotswapping. This setting is unfor
 
 ## macOS process & socket auditing
 
-osquery supports OpenBSM audit on macOS platforms. To enable it in osquery, you need to set `--disable_audit=false`
+osquery supports OpenBSM audit on macOS platforms. To enable it in osquery, you need to set the following command line flags `--disable_audit=false --disable_events=false --audit_allow_config`.
 
-On macOS, osquery reads from the OpenBSM audit subsystem. This feature is already enabled on all macOS installations, but with its default settings it doesn't audit process execution or the root user. To start process auditing on macOS, edit the `audit_control` file in `/etc/security/`. An example configuration is provided below, but the important flags are: `ex`, `pc`, `argv`, and `arge`. The `ex` flag will log `exec` events while `pc` logs `exec`, `fork`, and `exit`. If you don't need `fork` and `exit` you may leave that flag out however in future, getting parent pid may require `fork`. If you care about getting the arguments and environment variables you also need `argv` and `arge`. More about these flags can be found [here](https://www.freebsd.org/cgi/man.cgi?apropos=0&sektion=5&query=audit_control&manpath=FreeBSD+7.0-current&format=html). Note that it might require a reboot of the system for these new flags to take effect. `audit -s` should restart the system but your mileage may vary.
+On macOS, osquery reads from the OpenBSM audit subsystem. This feature is already enabled on all macOS installations, but the default settings do not audit process execution or the root user. The osquery command line flag `--audit_allow_config` will make run-time configuration changes to your system audit to enable these features. This is all you need to get up and running.
+
+Alternatively, instead of using the `--audit_allow_config` flag, you may edit the `audit_control` file in `/etc/security/` for more granular/nuanced needs. This is optional and considered an "advanced configuration". An example configuration is provided below, but the important flags are: `ex`, `pc`, `argv`, and `arge`. The `ex` flag will log `exec` events while `pc` logs `exec`, `fork`, and `exit`. If you don't need `fork` and `exit` you may leave that flag out however in the future, getting parent pid may require `fork`. If you care about getting the arguments and environment variables you also need `argv` and `arge`. More about these flags can be found [here](https://www.freebsd.org/cgi/man.cgi?apropos=0&sektion=5&query=audit_control&manpath=FreeBSD+7.0-current&format=html). Note that it might require a reboot of the system for these new flags to take effect. `audit -s` should restart the system but your mileage may vary.
 
 ```
 #

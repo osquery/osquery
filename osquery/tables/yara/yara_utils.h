@@ -34,7 +34,7 @@ void YARACompilerCallback(int error_level,
                           const char* message,
                           void* user_data);
 
-Status yaraInitilize(void);
+Status yaraInitialize(void);
 
 Status yaraFinalize(void);
 

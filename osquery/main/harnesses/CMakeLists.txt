@@ -6,12 +6,14 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryMainHarnesses)
-  if(OSQUERY_ENABLE_FUZZER_SANITIZERS AND NOT OSQUERY_ENABLE_ADDRESS_SANITIZER)
-    message( FATAL_ERROR "If fuzzing is enabled, a sanitizer must be chosen. (Currently only OSQUERY_ENABLE_ADDRESS_SANITIZER is available.)" )
+  if(OSQUERY_BUILD_FUZZERS AND
+      NOT (OSQUERY_ENABLE_ADDRESS_SANITIZER OR OSQUERY_ENABLE_VALGRIND_SUPPORT))
+    message(FATAL_ERROR "If fuzzing is enabled, a sanitizer must be chosen. "
+      "Please choose between OSQUERY_ENABLE_ADDRESS_SANITIZER and OSQUERY_ENABLE_VALGRIND_SUPPORT.")
   endif()
 
-  if(OSQUERY_ENABLE_FUZZER_SANITIZERS AND
-      (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Release" AND NOT "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
+  if(OSQUERY_BUILD_FUZZERS AND
+      NOT ("${CMAKE_BUILD_TYPE}" STREQUAL "Release" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
     message( FATAL_ERROR "If fuzzing is enabled, it must be built in Release or RelWithDebInfo" )
   endif()
 
@@ -28,7 +30,6 @@ function(osqueryMainHarnesses)
     osquery_devtools
     osquery_dispatcher
     osquery_experimental_eventsstream_registry
-    osquery_experimental_tracing_syscallstracing
     osquery_extensions
     osquery_extensions_implthrift
     osquery_logger_datalogger

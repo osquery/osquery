@@ -62,6 +62,7 @@ function(setupBuildFlags)
       -fno-limit-debug-info
       -pipe
       -pedantic
+      -pthread
     )
 
     if(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
@@ -170,6 +171,7 @@ function(setupBuildFlags)
         "-framework Foundation"
         "-framework CoreServices"
         "-framework CoreFoundation"
+        "-framework CoreLocation"
         "-framework CoreWLAN"
         "-framework CoreGraphics"
         "-framework DiskArbitration"
@@ -210,32 +212,56 @@ function(setupBuildFlags)
       target_compile_options(c_settings INTERFACE -g0)
     endif()
 
-    if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
-      target_compile_options(cxx_settings INTERFACE
-        -fsanitize=address,fuzzer-no-link
-        -fsanitize-coverage=edge,indirect-calls
-      )
-      target_compile_options(c_settings INTERFACE
-        -fsanitize=address,fuzzer-no-link
-        -fsanitize-coverage=edge,indirect-calls
+    if(OSQUERY_BUILD_FUZZERS)
+      if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
+        target_compile_options(cxx_settings INTERFACE
+          -fsanitize=address,fuzzer-no-link
+          -fsanitize-coverage=edge,indirect-calls
+        )
+        target_compile_options(c_settings INTERFACE
+          -fsanitize=address,fuzzer-no-link
+          -fsanitize-coverage=edge,indirect-calls
+        )
+
+        # Require at least address (may be refactored out)
+        target_link_options(cxx_settings INTERFACE
+          -fsanitize=address
+        )
+        target_link_options(c_settings INTERFACE
+          -fsanitize=address
+        )
+      endif()
+
+      list(APPEND osquery_defines
+        OSQUERY_IS_FUZZING
       )
 
-      # Support ASAN within coroutines2.
-      # Note that __ucontext__ is orders of magnitude slower than __fcontext__.
-      target_compile_definitions(cxx_settings INTERFACE
-        BOOST_USE_UCONTEXT
-        BOOST_USE_ASAN
+      target_compile_options(cxx_settings INTERFACE
+        -fno-omit-frame-pointer
+      )
+      target_compile_options(c_settings INTERFACE
+        -fno-omit-frame-pointer
+      )
+    elseif(OSQUERY_ENABLE_ADDRESS_SANITIZER)
+      target_compile_options(cxx_settings INTERFACE
+        -fsanitize=address
+      )
+      target_compile_options(c_settings INTERFACE
+        -fsanitize=address
       )
 
       # Require at least address (may be refactored out)
       target_link_options(cxx_settings INTERFACE
         -fsanitize=address
       )
+      target_link_options(c_settings INTERFACE
+        -fsanitize=address
+      )
     endif()
   elseif(DEFINED PLATFORM_WINDOWS)
 
     set(windows_common_compile_options
-      "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Z7;/Gs;/GS>"
+      "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Gs;/GS>"
       "$<$<CONFIG:Debug>:/Od;/UNDEBUG>$<$<NOT:$<CONFIG:Debug>>:/Ot>"
       /guard:cf
       /bigobj
@@ -243,10 +269,12 @@ function(setupBuildFlags)
 
     set(osquery_windows_compile_options
       /W3
+      "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Z7>"
     )
 
     set(windows_common_link_options
       /SUBSYSTEM:CONSOLE
+      /INCREMENTAL:NO
       ntdll.lib
       ole32.lib
       oleaut32.lib

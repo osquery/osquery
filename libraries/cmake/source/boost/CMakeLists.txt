@@ -29,6 +29,74 @@ function(boostMain)
   generateBoostWinapi()
   generateBoostEndian()
 
+  if(OSQUERY_ENABLE_VALGRIND_SUPPORT)
+    set(valgrind_header_possible_paths
+      /usr/include/valgrind
+      /usr/local/include/valgrind
+    )
+
+    find_file(VALGRIND_HEADER_PATH valgrind.h HINTS ${valgrind_header_possible_paths})
+
+    if("${VALGRIND_HEADER_PATH}" STREQUAL "VALGRIND_HEADER_PATH-NOTFOUND")
+      message(FATAL_ERROR "Could not find valgrind.h. Please install Valgrind and provide the path to its header.")
+    else()
+      message(STATUS "Found valgrind header: ${VALGRIND_HEADER_PATH}")
+    endif()
+
+    # We copy the header into the build folder, so that if it's installed in the system
+    # we are not forced to include a folder which can contain other headers we don't want.
+    set(valgrind_header_dest "${CMAKE_CURRENT_BINARY_DIR}/external_headers/valgrind/valgrind.h")
+
+    add_custom_target(provide_valgrind_header DEPENDS "${valgrind_header_dest}")
+
+    add_custom_command(OUTPUT "${valgrind_header_dest}"
+      COMMAND "${CMAKE_COMMAND}" -E copy "${VALGRIND_HEADER_PATH}" "${valgrind_header_dest}"
+      DEPENDS "${VALGRIND_HEADER_PATH}"
+    )
+
+    add_dependencies(thirdparty_boost_coroutine provide_valgrind_header)
+    add_dependencies(thirdparty_boost_coroutine2 provide_valgrind_header)
+    add_dependencies(thirdparty_boost_context provide_valgrind_header)
+
+    target_compile_definitions(thirdparty_boost_coroutine PUBLIC
+      BOOST_USE_VALGRIND
+    )
+    target_include_directories(thirdparty_boost_coroutine SYSTEM PUBLIC
+      "${CMAKE_CURRENT_BINARY_DIR}/external_headers"
+    )
+
+    target_compile_definitions(thirdparty_boost_coroutine2 INTERFACE
+      BOOST_USE_VALGRIND
+    )
+    target_include_directories(thirdparty_boost_coroutine2 SYSTEM INTERFACE
+      "${CMAKE_CURRENT_BINARY_DIR}/external_headers"
+    )
+
+    target_compile_definitions(thirdparty_boost_context PUBLIC
+      BOOST_USE_VALGRIND
+    )
+    target_include_directories(thirdparty_boost_context SYSTEM PUBLIC
+      "${CMAKE_CURRENT_BINARY_DIR}/external_headers"
+    )
+  endif()
+
+  if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
+    # Support ASAN within coroutine, context and coroutines2.
+    # Note that __ucontext__ is orders of magnitude slower than __fcontext__.
+    target_compile_definitions(thirdparty_boost_coroutine PUBLIC
+      BOOST_USE_UCONTEXT
+      BOOST_USE_ASAN
+    )
+    target_compile_definitions(thirdparty_boost_coroutine2 INTERFACE
+      BOOST_USE_UCONTEXT
+      BOOST_USE_ASAN
+    )
+    target_compile_definitions(thirdparty_boost_context PUBLIC
+      BOOST_USE_UCONTEXT
+      BOOST_USE_ASAN
+    )
+  endif()
+
   add_library(thirdparty_boost INTERFACE)
 
   target_link_libraries(thirdparty_boost INTERFACE

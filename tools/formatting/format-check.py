@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 
-def check(base_commit, exclude_folders):
+def check(base_commit, exclude_folders, clang_binary):
     try:
         cmd = [
           sys.executable,
@@ -26,6 +26,9 @@ def check(base_commit, exclude_folders):
 
         if exclude_folders:
             cmd += ["--exclude-folders", exclude_folders]
+
+        if clang_binary:
+            cmd += ["--binary", clang_binary]
 
         p = subprocess.Popen(cmd,
                              stdout=subprocess.PIPE,
@@ -59,7 +62,7 @@ def get_base_commit(base_branch):
                 ["git", "merge-base", "HEAD", base_branch]
                 ).decode().strip()
     except OSError as e:
-        print("{}\n\n{}".format("Failed to execut git", str(e)))
+        print("{}\n\n{}".format("Failed to execute git", str(e)))
     except subprocess.CalledProcessError as e:
         print("{}\n\n{}".format("Failed to determine merge-base", str(e)))
 
@@ -69,26 +72,34 @@ def get_base_commit(base_branch):
 def main():
     parser = argparse.ArgumentParser(description="Check code changes formatting.")
     parser.add_argument(
-            "--exclude-folders",
-            metavar="excluded_folders",
-            type=str,
-            default="",
-            help="comma-separated list of relative paths to folders to exclude from formatting"
+        "--exclude-folders",
+        metavar="excluded_folders",
+        type=str,
+        default="",
+        help="comma-separated list of relative paths to folders to exclude from formatting"
     )
     parser.add_argument(
-            "base_branch",
-            metavar="base_branch",
-            type=str,
-            nargs="?",
-            default="master",
-            help="The base branch to compare to.",
-            )
+        "--binary",
+        metavar="clang_binary",
+        dest="clang_binary",
+        type=str,
+        default="",
+        help="Path to the clang-format binary"
+    )
+    parser.add_argument(
+        "base_branch",
+        metavar="base_branch",
+        type=str,
+        nargs="?",
+        default="master",
+        help="The base branch to compare to.",
+    )
 
     args = parser.parse_args()
 
     base_commit = get_base_commit(args.base_branch)
 
-    return check(base_commit, args.exclude_folders) if base_commit is not None else False
+    return check(base_commit, args.exclude_folders, args.clang_binary) if base_commit is not None else False
 
 if __name__ == "__main__":
     sys.exit(not main())

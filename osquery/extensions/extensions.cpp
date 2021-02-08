@@ -659,7 +659,7 @@ Status getExtensions(const std::string& manager_path,
   // Add the extension manager to the list called (core).
   extensions[0] = {"core", kVersion, "0.0.0", kSDKVersion};
 
-  // Convert from Thrift-internal list type to RouteUUID/ExtenionInfo type.
+  // Convert from Thrift-internal list type to RouteUUID/ExtensionInfo type.
   for (const auto& ext : ext_list) {
     extensions[ext.first] = {ext.second.name,
                              ext.second.version,

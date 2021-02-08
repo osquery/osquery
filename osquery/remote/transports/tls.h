@@ -91,7 +91,7 @@ class TLSTransport : public Transport {
    * This returns basic/generial options.
    *
    * Use these options if you are communicating with AWS or generic Internet
-   * infrastrucutre.
+   * infrastructure.
    */
   http::Client::Options getOptions();
 

@@ -1,0 +1,958 @@
+#
+# Copyright (c) 2014-present, The osquery authors
+#
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+#
+
+# Due to a limitation in how GitHub Actions works, we can't reference
+# jobs in another file inside the `needs` statement.
+#
+# This configuration file takes care of the Windows, macOS and Linux
+# builds on the x86 platform.
+name: build
+
+on:
+  # Run this workflow once every 6 hours against the master branch
+  schedule:
+   - cron: "0 */6 * * *"
+
+  push:
+    branches:
+      - 'master'
+
+    tags:
+      - 'v*'
+
+  pull_request:
+    branches:
+      - '*'
+
+# If the initial code sanity checks are passing, then one job
+# per [`platform` * `build_type`] will start, building osquery
+# and generating packages that are later attached to the commit
+# (or PR) as build artifacts.
+jobs:
+  # This job performs basic source code check, looking for formatting
+  # issues and missing copyright headers
+  check_code_style:
+    runs-on: ubuntu-18.04
+
+    container:
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-v9
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+
+    steps:
+
+    # We are using checkout@v1 because the checkout@v2 action downloads
+    # the source code without cloning if the installed git is < v2.18.
+    # Once we update the image we will also be able to select the clone
+    # destination; right now we are moving the .git folder manually.
+    - name: Clone the osquery repository
+      uses: actions/checkout@v1
+
+    # This script makes sure that the copyright headers have been correctly
+    # placed on all the source code files
+    - name: Check the copyright headers
+      run: |
+        ./tools/ci/scripts/check_copyright_headers.py
+
+    - name: Setup the build paths
+      shell: bash
+      id: build_paths
+      run: |
+        rel_build_path="workspace/build"
+        rel_source_path="workspace/src"
+
+        mkdir -p "${rel_build_path}"
+        ln -sf "$(pwd)" "${rel_source_path}"
+
+        echo ::set-output name=SOURCE::$(realpath ${rel_source_path})
+        echo ::set-output name=BINARY::$(realpath ${rel_build_path})
+
+    - name: Configure the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="/usr/local/osquery-toolchain" \
+          -DOSQUERY_ENABLE_FORMAT_ONLY=ON \
+          "${{ steps.build_paths.outputs.SOURCE }}"
+
+    # Formatting is tested against the clang-format binary we ship
+    # with the osquery-toolchain, so this job is only performed once on
+    # a Linux machine.
+    - name: Check code formatting
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run:
+        cmake --build . --target format_check
+
+
+
+
+  # This job runs source code analysis tools (currently, just cppcheck)
+  check_source_code:
+    needs: check_code_style
+
+    runs-on: ${{ matrix.os }}
+
+    container:
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-v9
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+
+    steps:
+    - name: Clone the osquery repository
+      uses: actions/checkout@v1
+
+    - name: Setup the build paths
+      shell: bash
+      id: build_paths
+      run: |
+        rel_build_path="workspace/build"
+        rel_source_path="workspace/src"
+
+        mkdir -p ${rel_build_path} \
+                 ${rel_source_path}
+
+        mv .git "${rel_source_path}"
+        ( cd "${rel_source_path}" && git reset --hard )
+
+        echo ::set-output name=SOURCE::$(realpath ${rel_source_path})
+        echo ::set-output name=BINARY::$(realpath ${rel_build_path})
+        echo ::set-output name=REL_BINARY::${rel_build_path}
+
+    - name: Update the cache (git submodules)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+
+        key: |
+          gitmodules_${{ matrix.os }}_${{ github.sha }}
+
+        restore-keys: |
+          gitmodules_${{ matrix.os }}
+
+    - name: Update the git submodules
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      run: |
+        git submodule sync --recursive
+
+    - name: Configure the project (Release)
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="/usr/local/osquery-toolchain" \
+          -DCMAKE_BUILD_TYPE:STRING=Release \
+          -DOSQUERY_BUILD_TESTS=ON \
+          -DOSQUERY_BUILD_ROOT_TESTS=ON \
+          "${{ steps.build_paths.outputs.SOURCE }}"
+
+    - name: Initialize the project (Release)
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        cmake --build . --target prepare_for_ide
+
+    - name: Run cppcheck (Release)
+      shell: bash
+      id: release_cppcheck_runner
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        cmake --build . --target cppcheck 2>&1 | tee cppcheck_release.txt
+
+    - name: Store the cppcheck log (Release)
+      uses: actions/upload-artifact@v1
+      with:
+        name: cppcheck-release
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_release.txt
+
+    - name: Configure the project (Debug)
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="/usr/local/osquery-toolchain" \
+          -DCMAKE_BUILD_TYPE:STRING=Debug \
+          -DOSQUERY_BUILD_TESTS=ON \
+          -DOSQUERY_BUILD_ROOT_TESTS=ON \
+          "${{ steps.build_paths.outputs.SOURCE }}"
+
+    - name: Initialize the project (Debug)
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        cmake --build . --target prepare_for_ide
+
+    - name: Run cppcheck (Debug)
+      shell: bash
+      id: debug_cppcheck_runner
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        cmake --build . --target cppcheck 2>&1 | tee cppcheck_debug.txt
+
+    - name: Store the cppcheck log (Debug)
+      uses: actions/upload-artifact@v1
+      with:
+        name: cppcheck-debug
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_debug.txt
+
+
+
+
+  # The Linux build will only start once we know that the code
+  # has been properly formatted
+  build_linux:
+    needs: check_code_style
+
+    runs-on: ${{ matrix.os }}
+
+    container:
+      image: trailofbits/osquery:ubuntu-18.04-toolchain-v9
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+
+    strategy:
+      matrix:
+        build_type: [Release, RelWithDebInfo, Debug]
+        os: [ubuntu-18.04]
+
+    steps:
+    - name: Clone the osquery repository
+      uses: actions/checkout@v1
+
+    - name: Select the build job count
+      shell: bash
+      id: build_job_count
+      run: |
+        echo ::set-output name=VALUE::$(($(nproc) + 1))
+
+    - name: Select the build options for the tests
+      shell: bash
+      id: tests_build_settings
+      run: |
+        if [[ "${{ matrix.build_type }}" == "RelWithDebInfo" ]] ; then
+          echo ::set-output name=VALUE::OFF
+        else
+          echo ::set-output name=VALUE::ON
+        fi
+
+    # We don't have enough space on the worker to actually generate all
+    # the debug symbols (osquery + dependencies), so we have a flag to
+    # disable them when running a Debug build
+    - name: Select the debug symbols options
+      shell: bash
+      id: debug_symbols_settings
+      run: |
+        if [[ "${{ matrix.build_type }}" == "Debug" ]] ; then
+          echo ::set-output name=VALUE::ON
+        else
+          echo ::set-output name=VALUE::OFF
+        fi
+
+    # When we spawn in the container, we are root; create an unprivileged
+    # user now so that we can later use it to launch the normal user tests
+    - name: Create a non-root user
+      if: matrix.build_type != 'RelWithDebInfo'
+      id: unprivileged_user
+      run: |
+        useradd -m -s /bin/bash unprivileged_user
+        echo ::set-output name=NAME::unprivileged_user
+
+    # Due to how the RPM packaging tools work, we have to adhere to some
+    # character count requirements in the build path vs source path.
+    #
+    # Failing to do so, will break the debuginfo RPM package.
+    - name: Setup the build paths
+      id: build_paths
+      run: |
+        rel_build_path="workspace/usr/src/debug/osquery/build"
+        rel_src_path="workspace/padding-required-by-rpm-packages/src"
+        rel_ccache_path="workspace/ccache"
+
+        mkdir -p ${rel_build_path} \
+                 ${rel_src_path} \
+                 ${rel_ccache_path} \
+                 ${rel_src_path}
+
+        chown -R ${{ steps.unprivileged_user.outputs.NAME }}:${{ steps.unprivileged_user.outputs.NAME }} .
+
+        mv .git "${rel_src_path}"
+        ( cd "${rel_src_path}" && git reset --hard )
+
+        echo ::set-output name=SOURCE::$(realpath ${rel_src_path})
+        echo ::set-output name=BINARY::$(realpath ${rel_build_path})
+        echo ::set-output name=REL_BINARY::${rel_build_path}
+        echo ::set-output name=CCACHE::$(realpath ${rel_ccache_path})
+
+    # One of the tests in the test suit will spawn a Docker container
+    # using this socket. Allow the unprivileged user we created
+    # to access it.
+    - name: Update the Docker socket permissions
+      if: matrix.build_type != 'RelWithDebInfo'
+      run: |
+        chmod 666 /var/run/docker.sock
+
+    - name: Update the cache (ccache)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.CCACHE }}
+
+        key: |
+          ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+
+        restore-keys: |
+          ccache_${{ matrix.os }}_${{ matrix.build_type }}
+
+    - name: Update the cache (git submodules)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+
+        key: |
+          gitmodules_${{ matrix.os }}_${{ github.sha }}
+
+        restore-keys: |
+          gitmodules_${{ matrix.os }}
+
+    - name: Update the git submodules
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      run: |
+        git submodule sync --recursive
+
+    - name: Configure the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
+          -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="/usr/local/osquery-toolchain" \
+          -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
+          -DOSQUERY_BUILD_TESTS=${{ steps.tests_build_settings.outputs.VALUE }} \
+          -DOSQUERY_BUILD_ROOT_TESTS=${{ steps.tests_build_settings.outputs.VALUE }} \
+          "${{ steps.build_paths.outputs.SOURCE }}"
+
+    - name: Build the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    # Only run the tests on Debug and Release configurations; skip RelWithDebInfo
+    - name: Run the tests as normal user
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      if: matrix.build_type != 'RelWithDebInfo'
+      run: |
+        sudo -u ${{ steps.unprivileged_user.outputs.NAME }} ctest --build-nocmake -LE "root-required" -V
+
+    - name: Run the tests as root user
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      if: matrix.build_type != 'RelWithDebInfo'
+      run: |
+        sudo -u root ctest --build-nocmake -L "root-required" -V
+
+    - name: Create the DEB package
+      if: matrix.build_type == 'RelWithDebInfo'
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake -DPACKAGING_SYSTEM=DEB "${{ steps.build_paths.outputs.SOURCE }}"
+        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Create the RPM package
+      if: matrix.build_type == 'RelWithDebInfo'
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        cmake -DPACKAGING_SYSTEM=RPM "${{ steps.build_paths.outputs.SOURCE }}"
+        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Create the TGZ package
+      if: matrix.build_type == 'RelWithDebInfo'
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake -DPACKAGING_SYSTEM=TGZ "${{ steps.build_paths.outputs.SOURCE }}"
+        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Locate the packages
+      if: matrix.build_type == 'RelWithDebInfo'
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      id: package_names
+      shell: bash
+      run: |
+        echo ::set-output name=DEB_PACKAGE_NAME::$(ls *.deb)
+        echo ::set-output name=DDEB_PACKAGE_NAME::$(ls *.ddeb)
+        echo ::set-output name=RELEASE_RPM_PACKAGE_NAME::$(ls osquery-?.*.rpm)
+        echo ::set-output name=DEBUGINFO_RPM_PACKAGE_NAME::$(ls osquery-debuginfo-*.rpm)
+        echo ::set-output name=TARGZ_PACKAGE_NAME::$(ls *.tar.gz)
+
+    - name: Store the .deb package artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v1
+      with:
+        name: linux_deb_package-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DEB_PACKAGE_NAME }}
+
+    - name: Store the .ddeb package artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v1
+      with:
+        name: linux_dbgsym_deb_package-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DDEB_PACKAGE_NAME }}
+
+    - name: Store the release .rpm package artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v1
+      with:
+        name: linux_rpm_package-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.RELEASE_RPM_PACKAGE_NAME }}
+
+    - name: Store the debuginfo .rpm package artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v1
+      with:
+        name: linux_debuginfo_rpm_package-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DEBUGINFO_RPM_PACKAGE_NAME }}
+
+    - name: Store the .tar.gz package artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v1
+      with:
+        name: linux_targz_package-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.TARGZ_PACKAGE_NAME }}
+
+    # Before we terminate this job, delete the build folder. The cache
+    # actions will require the disk space to create the archives.
+    - name: Reclaim disk space
+      run: |
+        rm -rf ${{ steps.build_paths.outputs.BINARY }}
+
+
+
+
+  # The macOS build will only start once we know that the code
+  # has been properly formatted
+  build_macos:
+    needs: check_code_style
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        build_type: [Release, Debug]
+        os: [macos-10.15]
+
+    steps:
+    - name: Select the build job count
+      shell: bash
+      id: build_job_count
+      run: |
+        echo ::set-output name=VALUE::$(($(sysctl -n hw.logicalcpu) + 1))
+
+    - name: Setup the build paths
+      shell: bash
+      id: build_paths
+      run: |
+        rel_build_path="workspace/build"
+        rel_src_path="workspace/src"
+        rel_ccache_path="workspace/ccache"
+        rel_downloads_path="workspace/downloads"
+        rel_install_path="workspace/install"
+
+        mkdir -p ${rel_build_path} \
+                 ${rel_ccache_path} \
+                 ${rel_downloads_path} \
+                 ${rel_install_path}
+
+        echo ::set-output name=SOURCE::$(pwd)/${rel_src_path}
+        echo ::set-output name=REL_SOURCE::${rel_src_path}
+        echo ::set-output name=BINARY::$(pwd)/${rel_build_path}
+        echo ::set-output name=REL_BINARY::${rel_build_path}
+        echo ::set-output name=CCACHE::$(pwd)/${rel_ccache_path}
+        echo ::set-output name=DOWNLOADS::$(pwd)/${rel_downloads_path}
+        echo ::set-output name=INSTALL::$(pwd)/${rel_install_path}
+
+    - name: Clone the osquery repository
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        path: ${{ steps.build_paths.outputs.REL_SOURCE }}
+
+    - name: Update the cache (ccache)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.CCACHE }}
+
+        key: |
+          ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+
+        restore-keys: |
+          ccache_${{ matrix.os }}_${{ matrix.build_type }}
+
+    - name: Update the cache (git submodules)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+
+        key: |
+          gitmodules_${{ matrix.os }}_${{ github.sha }}
+
+        restore-keys: |
+          gitmodules_${{ matrix.os }}
+
+    - name: Update the cache (downloads)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
+
+        key: |
+          downloads_${{ matrix.os }}_${{ github.sha }}
+
+        restore-keys: |
+          downloads_${{ matrix.os }}
+
+    - name: Update the git submodules
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      run: |
+        git submodule sync --recursive
+
+    - name: Install build dependencies
+      run: |
+        brew install ccache flex bison
+
+    - name: Install tests dependencies
+      run: |
+        pip3 install setuptools \
+                     pexpect==3.3 \
+                     psutil \
+                     timeout_decorator \
+                     six \
+                     thrift==0.11.0 \
+                     osquery
+
+    # We have to download CMake from the official website; a simple
+    # caching mechanism has been implemented so that we don't keep
+    # hitting the cmake.org website over and over again at each run
+    - name: Install CMake
+      shell: bash
+      run: |
+        long_ver=3.17.5
+        short_ver=$(echo ${long_ver} | cut -d '.' -f 1-2)
+
+        folder_name="cmake-${long_ver}-Darwin-x86_64"
+        filename="${folder_name}.tar.gz"
+
+        url="https://cmake.org/files/v${short_ver}/${filename}"
+        local_path="${{ steps.build_paths.outputs.DOWNLOADS }}/${filename}"
+
+        if [[ ! -f "${local_path}" ]]; then
+          wget "${url}" -O "${local_path}"
+
+          ls -t ${{ steps.build_paths.outputs.DOWNLOADS }}/cmake* | tail -n +2 | while read archive_file ; do
+            rm "${archive_file}"
+          done
+        fi
+
+        tar xf "${local_path}" \
+            -C "${{ steps.build_paths.outputs.INSTALL }}"
+
+        echo "${{ steps.build_paths.outputs.INSTALL }}/${folder_name}/CMake.app/Contents/bin" >> $GITHUB_PATH
+
+    - name: Select the Xcode version
+      run: |
+        sudo xcode-select -s /Applications/Xcode_12.3.app/Contents/Developer
+
+    # We don't have enough space on the worker to actually generate all
+    # the debug symbols (osquery + dependencies), so we have a flag to
+    # disable them when running a Debug build
+    - name: Select the debug symbols options
+      shell: bash
+      id: debug_symbols_settings
+      run: |
+        if [[ "${{ matrix.build_type }}" == "Debug" ]] ; then
+          echo ::set-output name=VALUE::ON
+        else
+          echo ::set-output name=VALUE::OFF
+        fi
+
+    - name: Configure the project
+      shell: bash
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 \
+          -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
+          -DOSQUERY_BUILD_TESTS=ON \
+          -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
+          ${{ steps.build_paths.outputs.SOURCE }}
+
+    - name: Build the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Run the tests
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        ctest --build-nocmake -V
+
+    - name: Create the TGZ package
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DPACKAGING_SYSTEM=TGZ \
+          ${{ steps.build_paths.outputs.SOURCE }}
+
+        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Create the PKG package
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DPACKAGING_SYSTEM=productbuild \
+          ${{ steps.build_paths.outputs.SOURCE }}
+
+        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Locate the packages
+      shell: bash
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      id: package_names
+      run: |
+        echo ::set-output name=TARGZ_PACKAGE_NAME::$(ls *.tar.gz)
+        echo ::set-output name=PKG_PACKAGE_NAME::$(ls *.pkg)
+
+    - name: Store the .tar.gz package artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ matrix.os }}_targz_package-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.TARGZ_PACKAGE_NAME }}
+
+    - name: Store the .pkg package artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ matrix.os }}_pkg_package-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.PKG_PACKAGE_NAME }}
+
+    # Before we terminate this job, delete the build folder. The cache
+    # actions will require the disk space to create the archives.
+    - name: Reclaim disk space
+      run: |
+        rm -rf ${{ steps.build_paths.outputs.BINARY }}
+
+
+
+
+  # The Windows build will only start once we know that the code
+  # has been properly formatted
+  build_windows:
+    needs: check_code_style
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        build_type: [Release]
+        bitness: [32, 64]
+        os: [windows-2019]
+
+    steps:
+    - name: Setup the build paths
+      shell: powershell
+      id: build_paths
+      run: |
+        $rel_src_path = "w\src"
+        $rel_build_path = "w\build"
+        $rel_sccache_path = "w\sccache"
+        $rel_downloads_path = "w\downloads"
+        $rel_install_path = "w\install"
+
+        New-Item -ItemType Directory -Force -Path $rel_build_path
+        New-Item -ItemType Directory -Force -Path $rel_sccache_path
+        New-Item -ItemType Directory -Force -Path $rel_downloads_path
+        New-Item -ItemType Directory -Force -Path $rel_install_path
+
+        $base_dir = (Get-Item .).FullName
+
+        echo "::set-output name=SOURCE::$base_dir\$rel_src_path"
+        echo "::set-output name=REL_SOURCE::$rel_src_path"
+        echo "::set-output name=BINARY::$base_dir\$rel_build_path"
+        echo "::set-output name=REL_BINARY::$rel_build_path"
+        echo "::set-output name=SCCACHE::$base_dir\$rel_sccache_path"
+        echo "::set-output name=DOWNLOADS::$base_dir\$rel_downloads_path"
+        echo "::set-output name=INSTALL::$base_dir\$rel_install_path"
+
+    # Symbolic links are supported by default on Linux and macOS. On
+    # Windows, we have to enable them explicitly. They are used to
+    # handle the include header namespace support that came with
+    # the initial Buck build system refactor
+    - name: Configure git
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.symlinks true
+
+    - name: Clone the osquery repository
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        path: ${{ steps.build_paths.outputs.REL_SOURCE }}
+
+    - name: Update the cache (sccache)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.SCCACHE }}
+
+        key: |
+          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ github.sha }}
+
+        restore-keys: |
+          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
+
+    - name: Update the cache (git submodules)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
+
+        key: |
+          gitmodules_${{ matrix.os }}_${{ github.sha }}
+
+        restore-keys: |
+          gitmodules_${{ matrix.os }}
+
+    - name: Update the cache (downloads)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
+
+        key: |
+          downloads_${{ matrix.os }}_${{ github.sha }}
+
+        restore-keys: |
+          downloads_${{ matrix.os }}
+
+    - name: Initialize the Python 3 installation
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.x"
+        architecture: "x64"
+
+    # The runners will likely have both the x86 and x64 versions of
+    # Python but we always need the 64-bit one regardless of which
+    # architecture we are building for.
+    #
+    # The setup-python action should have put the right Python version
+    # in the PATH variable for us, so locate the installation directory
+    # so we can use it as a hint when we configure the project with
+    # CMake
+    - name: Locate the Python root directory
+      id: python_root_directory
+      shell: powershell
+      run: |
+        $python_executable_path = $(Get-Command python.exe | Select-Object -ExpandProperty Definition)
+        $python_root_directory = (Get-Item $python_executable_path).Directory.FullName
+
+        echo "::set-output name=VALUE::$python_root_directory"
+
+    # Install the Python dependencies needed for our testing framework
+    - name: Install tests prerequisites
+      run: |
+        python -m pip install --upgrade pip
+
+        python -m pip install wheel `
+                              setuptools `
+                              psutil `
+                              timeout_decorator `
+                              thrift==0.11.0 `
+                              osquery `
+                              pywin32
+
+    - name: Install Strawberry Perl
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      shell: powershell
+      run: |
+        tools\ci\scripts\install_openssl_formula_dependencies.ps1
+
+    # TODO: Implement a cache so we don't keep hitting the server at each run
+    - name: Install CMake
+      working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
+      shell: powershell
+      run: |
+        $long_cmake_ver = "3.17.5"
+        $short_cmake_ver = $($long_cmake_ver.split(".")[0] + "." + $long_cmake_ver.split(".")[1])
+
+        $folder_name = $("cmake-" + $long_cmake_ver + "-win64-x64")
+        $archive_name = $($folder_name + ".zip")
+
+        $url = $("https://cmake.org/files/v" + $short_cmake_ver + "/" + $archive_name)
+
+        (New-Object System.Net.WebClient).DownloadFile($url, $archive_name)
+        7z x -o${{ steps.build_paths.outputs.INSTALL }} -y $archive_name
+
+        echo "${{ steps.build_paths.outputs.INSTALL }}\$folder_name\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    # TODO: Implement a cache so we don't keep hitting the server at each run
+    - name: Install sccache
+      working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
+      shell: powershell
+      run: |
+        $long_version = "0.0.1"
+
+        $archive_name = $("sccache-" + $long_version + "-windows.7z")
+        $url = $("https://github.com/osquery/sccache/releases/download/" + $long_version + "-osquery/" + $archive_name)
+
+        (New-Object System.Net.WebClient).DownloadFile($url, $archive_name)
+        7z x -o${{ steps.build_paths.outputs.INSTALL }}\sccache -y $archive_name
+
+        echo "${{ steps.build_paths.outputs.INSTALL }}\sccache" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    # TODO: Implement a cache so we don't keep hitting the server at each run
+    - name: Install Ninja
+      working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
+      shell: powershell
+      run: |
+        $long_version = "1.10.0"
+
+        $archive_name = "ninja-win.zip"
+        $url = $("https://github.com/ninja-build/ninja/releases/download/v" + $long_version + "/" + $archive_name)
+
+        (New-Object System.Net.WebClient).DownloadFile($url, $archive_name)
+        7z x -o${{ steps.build_paths.outputs.INSTALL }}\ninja -y $archive_name
+
+        echo "${{ steps.build_paths.outputs.INSTALL }}\ninja" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Configure the project
+      shell: cmd
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        SCCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
+        SCCACHE_CACHE_SIZE: "5G"
+
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
+
+        cmake -G Ninja ^
+          -DCMAKE_C_COMPILER=cl.exe ^
+          -DCMAKE_CXX_COMPILER=cl.exe ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DOSQUERY_BUILD_TESTS=ON ^
+          -DCMAKE_C_COMPILER_LAUNCHER="sccache.exe" ^
+          -DCMAKE_CXX_COMPILER_LAUNCHER="sccache.exe" ^
+          -DPython3_ROOT_DIR=${{ steps.python_root_directory.outputs.VALUE }} ^
+          ${{ steps.build_paths.outputs.SOURCE }}
+
+    - name: Build the project
+      shell: cmd
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        SCCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
+        SCCACHE_CACHE_SIZE: "5G"
+
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
+
+        cmake --build . -j 3
+
+        if %errorlevel% neq 0 exit /b %errorlevel%
+        sccache.exe --stop-server
+
+    - name: Run the tests
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        ctest --build-nocmake -C Release -V
+
+    - name: Build the MSI package
+      shell: cmd
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        SCCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
+        SCCACHE_CACHE_SIZE: "5G"
+
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
+
+        cmake -G Ninja ^
+          -DPACKAGING_SYSTEM=WIX ^
+          ${{ steps.build_paths.outputs.SOURCE }}
+
+        cmake --build . --target package --config Release -j 3
+
+    - name: Build the NuGet package
+      shell: cmd
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        SCCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
+        SCCACHE_CACHE_SIZE: "5G"
+
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
+
+        cmake -G Ninja ^
+          -DPACKAGING_SYSTEM=NuGet ^
+          ${{ steps.build_paths.outputs.SOURCE }}
+
+        cmake --build . --target package --config Release -j 3
+
+    - name: Locate the packages
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      id: package_names
+      shell: bash
+      run: |
+        echo ::set-output name=MSI_PACKAGE_NAME::$(ls *.msi)
+        echo ::set-output name=NUPKG_PACKAGE_NAME::$(ls *.nupkg)
+
+    - name: Store the .msi package artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ matrix.os }}-${{ matrix.bitness }}_msi_package
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.MSI_PACKAGE_NAME }}
+
+    - name: Store the .nupkg package artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ matrix.os }}-${{ matrix.bitness }}_nupkg_package
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.NUPKG_PACKAGE_NAME }}
+
+    # Before we terminate this job, delete the build folder. The cache
+    # actions will require the disk space to create the archives.
+    - name: Reclaim disk space
+      shell: powershell
+      run: |
+        rm -r -Force ${{ steps.build_paths.outputs.BINARY }}
