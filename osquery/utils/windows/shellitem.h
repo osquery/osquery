@@ -22,7 +22,7 @@ struct ShellFileEntryData {
   int version;
   std::string extension_sig;
   std::string identifier;
-  long mft_entry;
+  long long mft_entry;
   int mft_sequence;
   int string_size;
 };
@@ -115,4 +115,12 @@ std::vector<std::string> ftpItem(const std::string& shell_data);
  * @returns GUID string in the proper order
  */
 std::string guidParse(const std::string& guid_little);
+
+/**
+ * @brief Windows helper function for parsing user property drive data
+ * epoch.
+ *
+ * @returns The drive name
+ */
+std::string propertyViewDrive(const std::string& shell_data);
 }

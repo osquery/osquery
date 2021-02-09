@@ -32,7 +32,7 @@ struct ShellFileEntryData {
 
 const std::string kNetworkShareIds[6] = {"41", "42", "46", "47", "4C", "C3"};
 
-// Only 0400EFBE and 2600EFBE have been widely seen
+// Only 0400EFBE and 2600EFBE are needed to recreate browsed directories
 const std::string kShellItemExtensions[23] = {
     "0400EFBE", "0000EFBE", "0100EFBE", "0200EFBE", "0300EFBE", "0500EFBE",
     "0600EFBE", "0800EFBE", "0900EFBE", "0A00EFBE", "0B00EFBE", "0C00EFBE",
@@ -84,8 +84,6 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   size_t entry_offset = 0;
   if (shell_data.find("0400EFBE") != std::string::npos) {
     offset = shell_data.find("0400EFBE");
-    // std::cout << "Found a shellitem extension!. Sig is: " << "0400EFBE" <<
-    // std::endl;
     extension_sig = shell_data.substr(offset, 8);
     entry_offset = offset - 8;
   } else if (shell_data.find("2600EFBE") != std::string::npos) {
@@ -93,14 +91,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     extension_sig = shell_data.substr(offset, 8);
     entry_offset = offset - 8;
   }
-  /*
-  for (const auto& ext : kShellItemExtensions) {
-    offset = shell_data.find(ext);
-    if (offset != std::string::npos) {
-      extension_sig = shell_data.substr(offset, 8);
-      entry_offset = offset - 8;
-    }
-  }*/
+
   ShellFileEntryData file_entry;
   std::string version = shell_data.substr(entry_offset + 4, 4);
   // swap endianess
@@ -140,11 +131,13 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   timestamp = shell_data.substr(entry_offset + 24, 8);
   file_entry.dos_accessed =
       (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
-  // std::cout << "Parsed timestamps" << std::endl;
   file_entry.identifier = shell_data.substr(entry_offset + 32, 4);
-  std::string mft_entry = shell_data.substr(entry_offset + 40, 12);
+  std::string ntfs_data = shell_data.substr(entry_offset + 40, 16);
+  std::cout << ntfs_data << std::endl;
+  std::string mft_entry = ntfs_data.substr(0, 12);
   // swap endianess
   std::reverse(mft_entry.begin(), mft_entry.end());
+  std::cout << mft_entry << std::endl;
   for (std::size_t i = 0; i < mft_entry.length(); i += 2) {
     std::swap(mft_entry[i], mft_entry[i + 1]);
   }
@@ -154,15 +147,20 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     file_entry.mft_entry = std::stoll(mft_entry, nullptr, 16);
   }
 
-  std::string mft_sequence = shell_data.substr(entry_offset + 52, 4);
+  std::string mft_sequence =
+      ntfs_data.substr(11, 4);
   std::reverse(mft_sequence.begin(), mft_sequence.end());
+  std::cout << "MFT pre-swap sequence: " << mft_sequence << std::endl;
+
   for (std::size_t i = 0; i < mft_sequence.length(); i += 2) {
     std::swap(mft_sequence[i], mft_sequence[i + 1]);
   }
+  std::cout << "MFT sequence: " << mft_sequence << std::endl;
   if (mft_sequence == "0000") {
-    file_entry.mft_sequence = 0LL;
+    file_entry.mft_sequence = 0;
   } else {
     file_entry.mft_sequence = std::stoi(mft_sequence, nullptr, 16);
+    std::cout << file_entry.mft_sequence << std::endl;
   }
 
   std::string string_size = shell_data.substr(entry_offset + 72, 4);
@@ -189,7 +187,6 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     shell_name += "0";
   }
   std::string name;
-
   // Convert hex path to readable string
   try {
     name = boost::algorithm::unhex(shell_name);
@@ -214,19 +211,20 @@ std::string propertyStore(const std::string& shell_data,
         continue;
       }
       std::string name_size = shell_data.substr(offsets + 48, 8);
-      // std::cout << name_size << std::endl;
       std::reverse(name_size.begin(), name_size.end());
       for (std::size_t i = 0; i < name_size.length(); i += 2) {
         std::swap(name_size[i], name_size[i + 1]);
       }
-      unsigned int size = std::stoi(name_size, nullptr, 16);
-      std::string name = shell_data.substr(offsets + 74, (size + 1) * 4);
+      int size = std::stoi(name_size, nullptr, 16);
+      std::string string_hex = shell_data.substr(offsets + 74, (size + 1) * 4);
+      boost::erase_all(string_hex, "00");
+      std::string name;
       // Convert hex path to readable string
       try {
-        name = boost::algorithm::unhex(name);
+        name = boost::algorithm::unhex(string_hex);
       } catch (const boost::algorithm::hex_decode_error& /* e */) {
-        LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                     << name;
+        LOG(WARNING) << "Failed to decode Windows Property List hex values to string: "
+                     << shell_data;
         return guid_string;
       }
       return name;
@@ -235,57 +233,27 @@ std::string propertyStore(const std::string& shell_data,
   return guid_string;
 }
 
-std::string networkShareItem(const std::string& bag_entry) {
+std::string networkShareItem(const std::string& shell_data) {
   for (const auto& net_id : kNetworkShareIds) {
-    // std::cout << bag_entry.substr(4, 2) << std::endl;
-    if (net_id == bag_entry.substr(4, 2)) {
-      // std::cout << net_id << std::endl;
-      // std::cout << "network id match!" << std::endl;
+    if (net_id == shell_data.substr(4, 2)) {
       // subtract 10 from the final offset from find <--explain better :)
       std::string network_path =
-          bag_entry.substr(10, bag_entry.find("00", 10) - 10);
-      std::cout << network_path << std::endl;
+          shell_data.substr(10, shell_data.find("00", 10) - 10);
       std::string name;
       try {
         name = boost::algorithm::unhex(network_path);
       } catch (const boost::algorithm::hex_decode_error& /* e */) {
         LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                     << bag_entry;
-        // std::string full_path = "";
-        // for (const auto& path : build_shellbag) {
-        //  full_path += path;
-        //}
-        // full_path.pop_back();
-        // full_path += "[UNKNOWN SHELL ITEM]";
-        // r["path"] = full_path;
-        // results.push_back(r);
+                     << shell_data;
         return "[UNKNOWN NETWORK SHELL ITEM]";
       }
-      return name + "\\";
-      /*
-      build_shellbag.push_back(name + "\\");
-      std::string full_path = "";
-      for (const auto& path : build_shellbag) {
-        full_path += path;
-      }
-      std::cout << full_path << std::endl;
-      full_path.pop_back();
-
-      // network share paths do not have timestamps or MFT data
-      r["path"] = full_path;
-      results.push_back(r);
-      parseShellEntries(key_path->second, build_shellbag, results);
-      build_shellbag.pop_back();
-      return;
-      */
+      return name;
     }
   }
-  return "";
+  return "[UNKNOWN NETWORK SHELL ITEM]";
 }
 
 std::string zipContentItem(const std::string& shell_data) {
-  // std::cout << shell_data << std::endl;
-  // std::cout << shell_data.substr(168, 2) << std::endl;
   int path_size = std::stoi(shell_data.substr(168, 2), nullptr, 16);
 
   // Zip folders can go down a max of two directories
@@ -478,13 +446,11 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
   std::vector<std::string> ftp_data;
   std::string access_time =
       shell_data.substr(28, 16); // shell data contains connection time
-  // std::cout << access_time << std::endl;
   ftp_data.push_back(access_time);
   // find end of string
   size_t offset = shell_data.find("00", 92);
   size_t hostname_size = offset - 92;
   std::string ftp_hostname = shell_data.substr(92, hostname_size);
-  // std::cout << ftp_hostname << std::endl;
   std::string name;
   try {
     name = boost::algorithm::unhex(ftp_hostname);
@@ -495,5 +461,18 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
   }
   ftp_data.push_back(name);
   return ftp_data;
+}
+
+std::string propertyViewDrive(const std::string& shell_data) {
+  std::string drive_hex = shell_data.substr(26, 6);
+  std::string name;
+  try {
+    name = boost::algorithm::unhex(drive_hex);
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+                 << shell_data;
+    return "[UNKNOWN USER PROPERTY DRIVE NAME]";
+  }
+  return name;
 }
 } // namespace osquery
