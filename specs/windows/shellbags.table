@@ -2,14 +2,13 @@ table_name("shellbags")
 description("Shellbags, shows directories accessed.")
 schema([
     Column("sid", TEXT, "User SID"),
+    Column("source", TEXT, "Shellbags source Registry file"),
     Column("path", TEXT, "Directory name."),
     Column("modified_time", INTEGER, "Directory Modified time."),
     Column("created_time", INTEGER, "Directory Created time."),
     Column("accessed_time", INTEGER, "Directory Accessed time."),
-    Column("mft_entry", INTEGER, "Directory mft entry."),
+    Column("mft_entry", BIGINT, "Directory mft entry."),
     Column("mft_sequence", INTEGER, "Directory mft sequence."),
-
-
 ])
 implementation("shellbags@genShellbags")
 examples([

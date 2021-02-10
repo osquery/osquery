@@ -7,10 +7,10 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/logger/logger.h>
-#include <osquery/utils/conversions/windows/windows_time.h>
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
+#include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 #include <string>
 #include <vector>
 
@@ -39,7 +39,7 @@ const std::string kShellItemExtensions[23] = {
     "0e00EFBE", "1000EFBE", "1300EFBE", "1400EFBE", "1600EFBE", "1700EFBE",
     "1900EFBE", "1A00EFBE", "2100EFBE", "2500EFBE", "2600EFBE"};
 
-// property sets/GUIDs associated with name entries?
+// Property set GUIDs associated with name entries
 const std::string kPropertySets[15] = {"000214A1-0000-0000-C000-000000000046",
                                        "01A3057A-74D6-4E80-BEA7-DC4C212CE50A",
                                        "46588AE2-4CBC-4338-BBFC-139326986DCE",
@@ -78,10 +78,11 @@ std::string guidParse(const std::string& guid_little) {
 }
 
 ShellFileEntryData fileEntry(const std::string& shell_data) {
-  // check shellitem extension version
   size_t offset;
   std::string extension_sig;
   size_t entry_offset = 0;
+  // "0400EFBE" or "2600EFBE" are the primary shell extensions needed to build
+  // directory paths
   if (shell_data.find("0400EFBE") != std::string::npos) {
     offset = shell_data.find("0400EFBE");
     extension_sig = shell_data.substr(offset, 8);
@@ -111,15 +112,13 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   }
   file_entry.extension_sig = shell_data.substr(entry_offset + 8, 8);
 
-  // May contain Users Files folder, modified time is at offset 0x18 
+  // Shell data may contain Users Files folder signature, modified time is at
+  // offset 0x18
   std::string timestamp = "";
   if (shell_data.find("43465346") != std::string::npos) {
     timestamp = shell_data.substr(36, 8);
     file_entry.dos_modified =
-        (timestamp == "00000000")
-            ? 0LL
-            : parseFatTime(
-                  timestamp);
+        (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
   } else {
     timestamp = shell_data.substr(16, 8);
     file_entry.dos_modified =
@@ -135,6 +134,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   std::string ntfs_data = shell_data.substr(entry_offset + 40, 16);
   std::cout << ntfs_data << std::endl;
   std::string mft_entry = ntfs_data.substr(0, 12);
+
   // swap endianess
   std::reverse(mft_entry.begin(), mft_entry.end());
   std::cout << mft_entry << std::endl;
@@ -144,23 +144,20 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   if (mft_entry == "000000000000") {
     file_entry.mft_entry = 0LL;
   } else {
+    std::cout << "MFT ENTRY: " << mft_entry << std::endl;
     file_entry.mft_entry = std::stoll(mft_entry, nullptr, 16);
+    std::cout << "MFT value: " << file_entry.mft_entry << std::endl;
   }
 
-  std::string mft_sequence =
-      ntfs_data.substr(11, 4);
+  std::string mft_sequence = ntfs_data.substr(12, 4);
   std::reverse(mft_sequence.begin(), mft_sequence.end());
-  std::cout << "MFT pre-swap sequence: " << mft_sequence << std::endl;
-
   for (std::size_t i = 0; i < mft_sequence.length(); i += 2) {
     std::swap(mft_sequence[i], mft_sequence[i + 1]);
   }
-  std::cout << "MFT sequence: " << mft_sequence << std::endl;
   if (mft_sequence == "0000") {
     file_entry.mft_sequence = 0;
   } else {
     file_entry.mft_sequence = std::stoi(mft_sequence, nullptr, 16);
-    std::cout << file_entry.mft_sequence << std::endl;
   }
 
   std::string string_size = shell_data.substr(entry_offset + 72, 4);
@@ -172,7 +169,6 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   // NOT USING STRING SIZE FOR ANYTHING???
   file_entry.string_size = std::stoi(string_size, nullptr, 16);
   std::string entry_name = shell_data.substr(entry_offset + 92);
-  // std::cout << "ENTRY name: " << entry_name << std::endl;
 
   // path name ends with 0000 (end of string)
   size_t name_end = entry_name.find("0000");
@@ -194,8 +190,8 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
                  << shell_name;
   }
-  // std::cout << shell_data << std::endl;
   file_entry.path = name;
+  std::cout << file_entry.path << std::endl;
   return file_entry;
 }
 
@@ -206,6 +202,7 @@ std::string propertyStore(const std::string& shell_data,
   for (const auto& offsets : wps_list) {
     std::string guid_little = shell_data.substr(offsets + 8, 32);
     std::string guid_string = guidParse(guid_little);
+    // If GUID property set is found get the property set name
     for (const auto& property_list : kPropertySets) {
       if (guid_string != property_list) {
         continue;
@@ -223,8 +220,9 @@ std::string propertyStore(const std::string& shell_data,
       try {
         name = boost::algorithm::unhex(string_hex);
       } catch (const boost::algorithm::hex_decode_error& /* e */) {
-        LOG(WARNING) << "Failed to decode Windows Property List hex values to string: "
-                     << shell_data;
+        LOG(WARNING)
+            << "Failed to decode Windows Property List hex values to string: "
+            << shell_data;
         return guid_string;
       }
       return name;
@@ -236,7 +234,7 @@ std::string propertyStore(const std::string& shell_data,
 std::string networkShareItem(const std::string& shell_data) {
   for (const auto& net_id : kNetworkShareIds) {
     if (net_id == shell_data.substr(4, 2)) {
-      // subtract 10 from the final offset from find <--explain better :)
+      // Network path ends with "00"
       std::string network_path =
           shell_data.substr(10, shell_data.find("00", 10) - 10);
       std::string name;
@@ -261,14 +259,16 @@ std::string zipContentItem(const std::string& shell_data) {
   std::string path = shell_data.substr(184, path_size * 4);
   // Path is in unicode, extra 00
   boost::erase_all(path, "00");
+
   // Convert hex path to readable string
   try {
     path = boost::algorithm::unhex(path);
   } catch (const boost::algorithm::hex_decode_error& /* e */) {
     LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
                  << path;
-    return "[PATH DECODE ERROR]";
+    return "[ZIP PATH DECODE ERROR]";
   }
+
   if (second_path_size != 0) {
     path += "/";
     std::string second_path = shell_data.substr(200, second_path_size * 4);
@@ -280,11 +280,10 @@ std::string zipContentItem(const std::string& shell_data) {
     } catch (const boost::algorithm::hex_decode_error& /* e */) {
       LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
                    << second_path;
-      path += "[PATH DECODE ERROR]";
+      path += "[ZIP PATH DECODE ERROR]";
       return path;
     }
   }
-  // std::cout << path << std::endl;
   return path;
 }
 
@@ -309,7 +308,6 @@ std::string driveLetterItem(const std::string& shell_data) {
 
 std::string controlPanelCategoryItem(const std::string& shell_data) {
   std::string panel_id = shell_data.substr(16, 2);
-  // std::cout << "Panel id is: " << panel_id << std::endl;
   if (panel_id == "00") {
     return "All Control Panel Items"; // <---- is this right/??
   } else if (panel_id == "01") {
@@ -447,6 +445,7 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
   std::string access_time =
       shell_data.substr(28, 16); // shell data contains connection time
   ftp_data.push_back(access_time);
+
   // find end of string
   size_t offset = shell_data.find("00", 92);
   size_t hostname_size = offset - 92;
@@ -474,5 +473,26 @@ std::string propertyViewDrive(const std::string& shell_data) {
     return "[UNKNOWN USER PROPERTY DRIVE NAME]";
   }
   return name;
+}
+
+std::string variableFtp(const std::string& shell_data) {
+  int name_size = std::stoi(shell_data.substr(62, 2), nullptr, 16);
+  std::string hex_name = shell_data.substr(76, name_size * 2);
+  boost::erase_all(hex_name, "00");
+  std::string name;
+  try {
+    name = boost::algorithm::unhex(hex_name);
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+                 << shell_data;
+    return "[UNKNOWN VARIABLE FTP NAME]";
+  }
+  return name;
+}
+
+std::string variableGuid(const std::string& shell_data) {
+  std::string guid_little = shell_data.substr(28, 32);
+  std::string guid_string = guidParse(guid_little);
+  return guid_string;
 }
 } // namespace osquery

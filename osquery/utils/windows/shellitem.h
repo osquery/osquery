@@ -123,4 +123,8 @@ std::string guidParse(const std::string& guid_little);
  * @returns The drive name
  */
 std::string propertyViewDrive(const std::string& shell_data);
+
+std::string variableGuid(const std::string& shell_data);
+
+std::string variableFtp(const std::string& shell_data);
 }

@@ -70,12 +70,16 @@ std::string guidLookup(std::string& guid) {
 void parseShellData(const std::string& shell_data,
                     std::vector<std::string>& build_shellbag,
                     QueryData& results,
-                    const std::string& sid) {
+                    const std::string& sid,
+                    const std::string& source) {
   Row r;
   r["sid"] = sid;
+  r["source"] = source;
   size_t offset;
   std::string extension_sig = "";
   size_t extension_offset = 0;
+  // "0400EFBE" or "2600EFBE" are primary shell extensions needed to build
+  // directory paths
   if (shell_data.find("0400EFBE") != std::string::npos) {
     offset = shell_data.find("0400EFBE");
     extension_sig = shell_data.substr(offset, 8);
@@ -105,18 +109,15 @@ void parseShellData(const std::string& shell_data,
     }
     r["path"] = full_path;
     results.push_back(r);
-    // No timestamps for root folder item
     return;
   } else if ((sig == "31" || sig == "30" || sig == "32" || sig == "35" ||
               sig == "B1") &&
              extension_sig == "0400EFBE") { // Directory/File Entry
     file_entry = fileEntry(shell_data);
-  } else if (sig == "00" && extension_sig == "0400EFBE") { // Optical disc
-    // Optical disc contains unique sig "AugM"
-    if (shell_data.find("417567AD") == std::string::npos) {
-      LOG(WARNING) << "Unknown ShellItem: " << shell_data;
-      return;
-    }
+  } else if (sig == "00" &&
+             (shell_data.find("417567AD") !=
+              std::string::npos)) { // Optical disc, contains unique sig "AugM"
+    std::cout << "OPTICAL DISC!" << std::endl;
     return;
   } else if ((sig == "2F" || sig == "23" || sig == "25" || sig == "29" ||
               sig == "2A" || sig == "2E") &&
@@ -129,7 +130,6 @@ void parseShellData(const std::string& shell_data,
     }
     r["path"] = full_path;
     results.push_back(r);
-    // No timestamps for drive letters
     return;
   } else if (sig == "01") { // Control Panel Category
     std::string panel = controlPanelCategoryItem(shell_data);
@@ -157,7 +157,6 @@ void parseShellData(const std::string& shell_data,
     full_path.pop_back();
     r["path"] = full_path;
     results.push_back(r);
-    // No timestamps for network shares
     return;
   } else if (sig == "61") { // FTP/URI
     std::vector<std::string> ftp_data = ftpItem(shell_data);
@@ -168,6 +167,36 @@ void parseShellData(const std::string& shell_data,
     full_path.pop_back();
     r["path"] = full_path;
     r["accessed_time"] = unix_time;
+    results.push_back(r);
+    return;
+  } else if (sig == "74" && shell_data.find("43465346") !=
+                                std::string::npos) { // User Property View
+    file_entry = fileEntry(shell_data);
+  } else if (sig ==
+             "00") { // Variable shell item, can contain a variety of formats
+    if (shell_data.find("EEBBFE23") != std::string::npos) {
+      std::string guid_string = variableGuid(shell_data);
+      std::string guid_name = guidLookup(guid_string);
+      build_shellbag.push_back(guid_name + "\\");
+      std::string full_path = buildPath(build_shellbag);
+      full_path.pop_back();
+      r["path"] = full_path;
+      results.push_back(r);
+      return;
+    } else if (shell_data.find("00000005") != std::string::npos) {
+      std::string ftp_name = variableFtp(shell_data);
+      build_shellbag.push_back(ftp_name + "\\");
+      std::string full_path = buildPath(build_shellbag);
+      full_path.pop_back();
+      r["path"] = full_path;
+      results.push_back(r);
+      return;
+    }
+    LOG(WARNING) << "Unknown variable format: " << shell_data;
+    build_shellbag.push_back("[UNKNOWN VARIABLE FORMAT]\\");
+    std::string full_path = buildPath(build_shellbag);
+    full_path.pop_back();
+    r["path"] = full_path;
     results.push_back(r);
     return;
   } else {
@@ -183,10 +212,9 @@ void parseShellData(const std::string& shell_data,
       results.push_back(r);
       return;
     } else if (shell_data.find("31535053") != std::string::npos) {
-      // User Property View contains "Autolist", data is typically associated
-      // with Explorer searches
-      if (shell_data.find("4100750074006F004C00690073007400") !=
-          std::string::npos) {
+      // User Property View contains "D5DFA323", data is likely associated
+      // with Explorer searches?
+      if (shell_data.find("D5DFA323") != std::string::npos) {
         build_shellbag.push_back("[USER PROPERTY VIEW]\\");
         std::string full_path = buildPath(build_shellbag);
         full_path.pop_back();
@@ -253,7 +281,7 @@ void parseShellData(const std::string& shell_data,
   full_path.pop_back();
 
   r["path"] = full_path;
-  r["mft_entry"] = INTEGER(mft_entry);
+  r["mft_entry"] = BIGINT(mft_entry);
   r["mft_sequence"] = INTEGER(mft_sequence);
   results.push_back(r);
 }
@@ -262,7 +290,8 @@ void parseShellData(const std::string& shell_data,
 void parseShellbags(const std::string& path,
                     std::vector<std::string>& build_shellbag,
                     QueryData& results,
-                    const std::string& sid) {
+                    const std::string& sid,
+                    const std::string& source) {
   QueryData shellbag_data;
   queryKey(path, shellbag_data);
   for (const auto& rKey : shellbag_data) {
@@ -278,8 +307,8 @@ void parseShellbags(const std::string& path,
     if (rKey.at("data") == "") {
       continue;
     }
-    parseShellData(rKey.at("data"), build_shellbag, results, sid);
-    parseShellbags(key_path->second, build_shellbag, results, sid);
+    parseShellData(rKey.at("data"), build_shellbag, results, sid, source);
+    parseShellbags(key_path->second, build_shellbag, results, sid, source);
     if (build_shellbag.size() > 0) {
       build_shellbag.pop_back();
     }
@@ -288,7 +317,8 @@ void parseShellbags(const std::string& path,
 
 void parseRegistry(const std::string& full_path,
                    const std::string& sid,
-                   QueryData& results) {
+                   QueryData& results,
+                   const std::string& source) {
   QueryData shellbag_results;
   queryKey(full_path, shellbag_results);
   for (const auto& uKey : shellbag_results) {
@@ -305,8 +335,8 @@ void parseRegistry(const std::string& full_path,
       continue;
     }
     std::vector<std::string> build_shellbag;
-    parseShellData(uKey.at("data"), build_shellbag, results, sid);
-    parseShellbags(key_path->second, build_shellbag, results, sid);
+    parseShellData(uKey.at("data"), build_shellbag, results, sid, source);
+    parseShellbags(key_path->second, build_shellbag, results, sid, source);
   }
 }
 
@@ -331,14 +361,16 @@ QueryData genShellbags(QueryContext& context) {
       sid_end = full_path.find("\\", sid_start);
     }
     std::string sid = full_path.substr(sid_start, sid_end - sid_start);
-    // Shellbags may exist in both SID_Classes and SID Keys but the paths are
+    // Shellbags may exist in both SID_Classes (UsrClass.dat) and SID (NTUSER.dat) Keys but the paths are
     // different
     if (full_path.find("_Classes") == std::string::npos) {
       full_path = key_path->second + kShellBagPathNtuser;
-      parseRegistry(full_path, sid, results);
+      std::string source = "ntuser.dat";
+      parseRegistry(full_path, sid, results, source);
       continue;
     }
-    parseRegistry(full_path, sid, results);
+    std::string source = "usrclass.dat";
+    parseRegistry(full_path, sid, results, source);
   }
   return results;
 }
