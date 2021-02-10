@@ -193,14 +193,14 @@ Discovery queries look like:
 {
   "discovery": [
     "SELECT pid FROM processes WHERE name = 'foobar';",
-    "SELECT count(*) FROM users WHERE username like 'www%';"
+    "SELECT 1 FROM users WHERE username like 'www%';"
   ],
   "queries": {}
 }
 ```
 
 In the above example, the pack will only execute on hosts which are running
-processes called "foobar" or has users that start with "www".
+processes called "foobar" and has users that start with "www".
 
 Discovery queries are refreshed for all packs every 60 minutes. You can
 change this value via the `pack_refresh_interval` configuration option.
@@ -365,7 +365,7 @@ As with scheduled queries, described above, each pack borrows the `platform`, `v
 
 The `queries` key mimics the configuration's `schedule` key.
 
-The `discovery` query set feature is described in detail in the above packs section. This array should include queries to be executed in an `OR` manner.
+The `discovery` query set feature is described in detail in the above packs section. This array should include queries to be executed in an `AND` manner.
 
 ### File Paths
 
