@@ -85,10 +85,12 @@ TEST_F(XattrTests, getExtendedAttributeNameList) {
                                              test_file_path.string());
 
   ASSERT_TRUE(status.ok());
-  ASSERT_EQ(kTestAttributeList.size(), attribute_name_list.size());
+  ASSERT_GE(attribute_name_list.size(), kTestAttributeList.size());
 
-  for (const auto& attribute_name : attribute_name_list) {
-    EXPECT_TRUE(kTestAttributeList.count(attribute_name) > 0U);
+  for (const auto& attribute_name : kTestAttributeList) {
+    EXPECT_TRUE(std::find(attribute_name_list.begin(),
+                          attribute_name_list.end(),
+                          attribute_name.first) != attribute_name_list.end());
   }
 }
 
