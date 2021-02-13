@@ -12,9 +12,7 @@
 #include <osquery/utils/conversions/windows/windows_time.h>
 
 #include <string>
-#include <iostream>
 #include <time.h>
-
 namespace osquery {
 
 LONGLONG filetimeToUnixtime(const FILETIME& ft) {
@@ -61,15 +59,12 @@ LONGLONG littleEndianToUnixTime(const std::string& time_data) {
 }
 
 LONGLONG parseFatTime(const std::string& fat_data) {
-  //std::cout << "Parsing FAT Time!" << std::endl;
   if (fat_data.length() != 8) {
     LOG(WARNING)
         << "Incorrect FAT timestamp format, expecting string length 8, got: "
         << fat_data;
     return 0ll;
   }
-
-  //std::cout << fat_data << std::endl;
   std::string fat_date_data = fat_data.substr(0, 4);
   std::string fat_time_data = fat_data.substr(4, 4);
 
@@ -77,16 +72,15 @@ LONGLONG parseFatTime(const std::string& fat_data) {
   fat_date |= std::stoi(fat_date_data.substr(0, 2), nullptr, 16);
 
   // Year is stored as number of years after 1980. Ex: 2020 is stored as 40
-  int fat_year = ((fat_date & 0b1111111000000000) >> 9) + 1980;
-  int fat_month = (fat_date & 0b0000000111100000) >> 5;
-  int fat_day = fat_date & 0b0000000000011111;
+  int fat_year = ((fat_date & 0xfe00) >> 9) + 1980;
+  int fat_month = (fat_date & 0x1e0) >> 5;
+  int fat_day = fat_date & 0x1f;
 
-  //std::cout << "FAT TIME: " << fat_time_data << std::endl;
   auto fat_time = std::stoi(fat_time_data.substr(2, 2), nullptr, 16) << 8;
   fat_time |= std::stoi(fat_time_data.substr(0, 2), nullptr, 16);
-  int fat_sec = (fat_time & 0b0000000000011111) * 2;
-  int fat_min = (fat_time & 0b0000011111100000) >> 5;
-  int fat_hour = (fat_time & 0b1111100000000000) >> 11;
+  int fat_sec = (fat_time & 0x1f) * 2;
+  int fat_min = (fat_time & 0x7e0) >> 5;
+  int fat_hour = (fat_time & 0xf800) >> 11;
 
   struct tm fat_timestamp = {0};
   fat_timestamp.tm_year = fat_year - 1900;
@@ -97,8 +91,6 @@ LONGLONG parseFatTime(const std::string& fat_data) {
   fat_timestamp.tm_sec = fat_sec;
 
   time_t epoch = _mkgmtime(&fat_timestamp);
-  //std::cout << epoch << std::endl;
-
   return epoch;
 }
 

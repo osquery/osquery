@@ -307,6 +307,7 @@ function(generateTestsIntegrationTablesTestsTest)
       scheduled_tasks.cpp
       services.cpp
       shared_resources.cpp
+      shellbags.cpp
       shimcache.cpp
       startup_items.cpp
       userassist.cpp

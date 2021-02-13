@@ -11,25 +11,11 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/registry.h>
-#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/shellitem.h>
 
-#include <boost/algorithm/hex.hpp>
-#include <boost/algorithm/string.hpp>
-
-#include <cctype>
 #include <string>
 #include <vector>
-
-#include <iostream>
-
-// Only 0400EFBE and 2600EFBE have been widely seen
-const std::string kShellItemExtensions[23] = {
-    "0400EFBE", "0000EFBE", "0100EFBE", "0200EFBE", "0300EFBE", "0500EFBE",
-    "0600EFBE", "0800EFBE", "0900EFBE", "0A00EFBE", "0B00EFBE", "0C00EFBE",
-    "0e00EFBE", "1000EFBE", "1300EFBE", "1400EFBE", "1600EFBE", "1700EFBE",
-    "1900EFBE", "1A00EFBE", "2100EFBE", "2500EFBE", "2600EFBE"};
 
 namespace osquery {
 namespace tables {
@@ -38,7 +24,7 @@ constexpr auto kShellBagPath =
 constexpr auto kShellBagPathNtuser =
     "\\Software\\Microsoft\\Windows\\Shell\\BagMRU";
 
-std::string buildPath(std::vector<std::string>& build_shellbag) {
+std::string buildPath(const std::vector<std::string>& build_shellbag) {
   std::string full_path = "";
   for (const auto& path : build_shellbag) {
     full_path += path;
@@ -46,7 +32,7 @@ std::string buildPath(std::vector<std::string>& build_shellbag) {
   return full_path;
 }
 
-std::string guidLookup(std::string& guid) {
+std::string guidLookup(const std::string& guid) {
   QueryData guid_data;
   queryKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\{" + guid + "}",
            guid_data);
@@ -77,26 +63,33 @@ void parseShellData(const std::string& shell_data,
   r["source"] = source;
   size_t offset;
   std::string extension_sig = "";
-  size_t extension_offset = 0;
   // "0400EFBE" or "2600EFBE" are primary shell extensions needed to build
   // directory paths
   if (shell_data.find("0400EFBE") != std::string::npos) {
     offset = shell_data.find("0400EFBE");
     extension_sig = shell_data.substr(offset, 8);
-    extension_offset = offset - 8;
   } else if (shell_data.find("2600EFBE") != std::string::npos) {
     offset = shell_data.find("2600EFBE");
     extension_sig = shell_data.substr(offset, 8);
-    extension_offset = offset - 8;
   }
 
   std::string sig = shell_data.substr(4, 2);
   ShellFileEntryData file_entry;
-  if (sig == "1F" &&
-      shell_data.find("31535053") == std::string::npos) { // Root Folder
+  if (shell_data.length() > 200 && extension_sig == "" &&
+      (shell_data.substr(80, 2) == "2F" ||
+       shell_data.substr(76, 2) == "2F")) { // Zip contents
+    std::string path = zipContentItem(shell_data);
+    build_shellbag.push_back(path + "\\");
+    std::string full_path = buildPath(build_shellbag);
+    full_path.pop_back();
+    r["path"] = full_path;
+    results.push_back(r);
+    return;
+  } else if (sig == "1F" &&
+             shell_data.find("31535053") == std::string::npos) { // Root Folder
     std::string name;
     std::string full_path;
-    if (shell_data.substr(8, 2) == "2F") {
+    if (shell_data.substr(8, 2) == "2F") { // User Property View Drive
       name = propertyViewDrive(shell_data);
       build_shellbag.push_back(name);
       full_path = buildPath(build_shellbag);
@@ -114,14 +107,22 @@ void parseShellData(const std::string& shell_data,
               sig == "B1") &&
              extension_sig == "0400EFBE") { // Directory/File Entry
     file_entry = fileEntry(shell_data);
-  } else if (sig == "00" &&
-             (shell_data.find("417567AD") !=
-              std::string::npos)) { // Optical disc, contains unique sig "AugM"
-    std::cout << "OPTICAL DISC!" << std::endl;
-    return;
   } else if ((sig == "2F" || sig == "23" || sig == "25" || sig == "29" ||
               sig == "2A" || sig == "2E") &&
-             extension_sig == "") { // add check for 19     // Drive Letter
+             (extension_sig == "" ||
+              extension_sig == "2600EFBE")) { // Drive Letter
+    if (shell_data.substr(6, 2) == "80" && extension_sig == "2600EFBE") {
+      std::string guid_little = shell_data.substr(8, 32);
+      std::string guid_string = guidParse(guid_little);
+      std::string guid_name = guidLookup(guid_string);
+
+      build_shellbag.push_back(guid_name + "\\");
+      std::string full_path = buildPath(build_shellbag);
+      full_path.pop_back();
+      r["path"] = full_path;
+      results.push_back(r);
+      return;
+    }
     std::string drive_name = driveLetterItem(shell_data);
     build_shellbag.push_back(drive_name);
     std::string full_path = "";
@@ -170,7 +171,7 @@ void parseShellData(const std::string& shell_data,
     results.push_back(r);
     return;
   } else if (sig == "74" && shell_data.find("43465346") !=
-                                std::string::npos) { // User Property View
+                                std::string::npos) { // User File View
     file_entry = fileEntry(shell_data);
   } else if (sig ==
              "00") { // Variable shell item, can contain a variety of formats
@@ -192,6 +193,7 @@ void parseShellData(const std::string& shell_data,
       results.push_back(r);
       return;
     }
+
     LOG(WARNING) << "Unknown variable format: " << shell_data;
     build_shellbag.push_back("[UNKNOWN VARIABLE FORMAT]\\");
     std::string full_path = buildPath(build_shellbag);
@@ -200,21 +202,14 @@ void parseShellData(const std::string& shell_data,
     results.push_back(r);
     return;
   } else {
-    if (extension_sig == "2600EFBE" && sig != "1F") {
-      std::string guid_little = shell_data.substr(8, 32);
-      std::string guid_string = guidParse(guid_little);
-      std::string guid_name = guidLookup(guid_string);
-
-      build_shellbag.push_back(guid_name + "\\");
-      std::string full_path = buildPath(build_shellbag);
-      full_path.pop_back();
-      r["path"] = full_path;
-      results.push_back(r);
-      return;
-    } else if (shell_data.find("31535053") != std::string::npos) {
-      // User Property View contains "D5DFA323", data is likely associated
-      // with Explorer searches?
-      if (shell_data.find("D5DFA323") != std::string::npos) {
+    if (shell_data.find("31535053") != std::string::npos) {
+      // User Property View contains several signatures, data is likely
+      // associated with Explorer searches?
+      if ((shell_data.find("D5DFA323") != std::string::npos) ||
+          (shell_data.find("81191410") != std::string::npos) ||
+          (shell_data.find("EEBBFE23") != std::string::npos) ||
+          (shell_data.find("BBAF933B") != std::string::npos) ||
+          (shell_data.find("00EEBEBE") != std::string::npos)) {
         build_shellbag.push_back("[USER PROPERTY VIEW]\\");
         std::string full_path = buildPath(build_shellbag);
         full_path.pop_back();
@@ -237,19 +232,7 @@ void parseShellData(const std::string& shell_data,
       r["path"] = full_path;
       results.push_back(r);
       return;
-    } else if (extension_sig == "0400EFBE" &&
-               sig != "1F") { // <----------- REmove this?
-      file_entry = fileEntry(shell_data);
     } else {
-      if (shell_data.length() > 200 && extension_sig == "" && sig != "1F") {
-        std::string path = zipContentItem(shell_data);
-        build_shellbag.push_back(path + "\\");
-        std::string full_path = buildPath(build_shellbag);
-        full_path.pop_back();
-        r["path"] = full_path;
-        results.push_back(r);
-        return;
-      }
       LOG(WARNING) << "Unsupported Shellbag format: " << shell_data;
       build_shellbag.push_back("[UNSUPPORTED FORMAT]\\");
       std::string full_path = buildPath(build_shellbag);
@@ -260,7 +243,8 @@ void parseShellData(const std::string& shell_data,
     }
   }
 
-  if (file_entry.version == 0) {
+  if (file_entry.path == "[UNSUPPORTED SHELL EXTENSION]\\") {
+    build_shellbag.push_back(file_entry.path);
     std::string full_path = buildPath(build_shellbag);
     full_path.pop_back();
     r["path"] = full_path;
@@ -272,9 +256,7 @@ void parseShellData(const std::string& shell_data,
   r["created_time"] = INTEGER(file_entry.dos_created);
   r["accessed_time"] = INTEGER(file_entry.dos_accessed);
 
-  if (file_entry.path != "") {
-    build_shellbag.push_back(file_entry.path + "\\");
-  }
+  build_shellbag.push_back(file_entry.path + "\\");
   long long mft_entry = file_entry.mft_entry;
   int mft_sequence = file_entry.mft_sequence;
   std::string full_path = buildPath(build_shellbag);
@@ -300,7 +282,7 @@ void parseShellbags(const std::string& path,
     if (key_type == rKey.end() || key_path == rKey.end()) {
       continue;
     }
-    // Shellbags Reg keys last character is a number
+    // For Shellbags Reg keys the last character is a number
     if (!isdigit(key_path->second.back())) {
       continue;
     }
@@ -361,8 +343,8 @@ QueryData genShellbags(QueryContext& context) {
       sid_end = full_path.find("\\", sid_start);
     }
     std::string sid = full_path.substr(sid_start, sid_end - sid_start);
-    // Shellbags may exist in both SID_Classes (UsrClass.dat) and SID (NTUSER.dat) Keys but the paths are
-    // different
+    // Shellbags may exist in both SID_Classes (UsrClass.dat) and SID
+    // (NTUSER.dat) Keys but the paths are different
     if (full_path.find("_Classes") == std::string::npos) {
       full_path = key_path->second + kShellBagPathNtuser;
       std::string source = "ntuser.dat";

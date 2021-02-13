@@ -39,7 +39,7 @@ LONGLONG littleEndianToUnixTime(const std::string& time_data);
 
 /**
  * @brief Windows helper function for parsing and converting FAT time to Unix
- * epoch. 
+ * epoch.
  *
  * @returns The unix epoch timestamp representation of FAT time
  */

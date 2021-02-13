@@ -18,7 +18,6 @@ struct ShellFileEntryData {
   long long dos_created;
   long long dos_accessed;
   long long dos_modified;
-  int ext_size;
   int version;
   std::string extension_sig;
   std::string identifier;
@@ -93,18 +92,10 @@ std::string controlPanelCategoryItem(const std::string& shell_data);
 std::string controlPanelItem(const std::string& shell_data);
 
 /**
- * @brief Windows helper function for parsing optical disc shell items
- * epoch.
- *
- * @returns The File Entry structure name
- */
-ShellFileEntryData opticalDiscItem(const std::string& shell_Data);
-
-/**
  * @brief Windows helper function for parsing ftp shell items
  * epoch.
  *
- * @returns The ftp hostname name
+ * @returns The ftp hostname
  */
 std::vector<std::string> ftpItem(const std::string& shell_data);
 
@@ -124,7 +115,19 @@ std::string guidParse(const std::string& guid_little);
  */
 std::string propertyViewDrive(const std::string& shell_data);
 
+/**
+ * @brief Windows helper function for parsing user variable GUID data
+ * epoch.
+ *
+ * @returns The GUID name or GUID
+ */
 std::string variableGuid(const std::string& shell_data);
 
+/**
+ * @brief Windows helper function for parsing variable FTP data
+ * epoch.
+ *
+ * @returns The ftp string
+ */
 std::string variableFtp(const std::string& shell_data);
-}
+} // namespace osquery

@@ -7,21 +7,20 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <boost/algorithm/hex.hpp>
-#include <boost/algorithm/string.hpp>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+
+#include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include <string>
 #include <vector>
-
-#include <iostream>
 
 struct ShellFileEntryData {
   std::string path;
   long long dos_created;
   long long dos_accessed;
   long long dos_modified;
-  int ext_size;
   int version;
   std::string extension_sig;
   std::string identifier;
@@ -31,13 +30,6 @@ struct ShellFileEntryData {
 };
 
 const std::string kNetworkShareIds[6] = {"41", "42", "46", "47", "4C", "C3"};
-
-// Only 0400EFBE and 2600EFBE are needed to recreate browsed directories
-const std::string kShellItemExtensions[23] = {
-    "0400EFBE", "0000EFBE", "0100EFBE", "0200EFBE", "0300EFBE", "0500EFBE",
-    "0600EFBE", "0800EFBE", "0900EFBE", "0A00EFBE", "0B00EFBE", "0C00EFBE",
-    "0e00EFBE", "1000EFBE", "1300EFBE", "1400EFBE", "1600EFBE", "1700EFBE",
-    "1900EFBE", "1A00EFBE", "2100EFBE", "2500EFBE", "2600EFBE"};
 
 // Property set GUIDs associated with name entries
 const std::string kPropertySets[15] = {"000214A1-0000-0000-C000-000000000046",
@@ -92,8 +84,16 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     extension_sig = shell_data.substr(offset, 8);
     entry_offset = offset - 8;
   }
-
   ShellFileEntryData file_entry;
+
+  if (entry_offset == 0) {
+    LOG(WARNING)
+        << "Could not find supported file entry extension in shell data: "
+        << shell_data;
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]\\";
+    return file_entry;
+  }
+
   std::string version = shell_data.substr(entry_offset + 4, 4);
   // swap endianess
   std::reverse(version.begin(), version.end());
@@ -104,10 +104,9 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   if (file_entry.version < 7 && file_entry.version != 1) {
     LOG(WARNING)
         << "Shellitem format unsupported. Expecting version 1 or version 7 or "
-           "higher, got version: "
-        << file_entry.version;
-    std::cout << shell_data << std::endl;
-    file_entry.version = 0;
+           "higher: "
+        << shell_data;
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]\\";
     return file_entry;
   }
   file_entry.extension_sig = shell_data.substr(entry_offset + 8, 8);
@@ -132,21 +131,17 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
       (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
   file_entry.identifier = shell_data.substr(entry_offset + 32, 4);
   std::string ntfs_data = shell_data.substr(entry_offset + 40, 16);
-  std::cout << ntfs_data << std::endl;
   std::string mft_entry = ntfs_data.substr(0, 12);
 
   // swap endianess
   std::reverse(mft_entry.begin(), mft_entry.end());
-  std::cout << mft_entry << std::endl;
   for (std::size_t i = 0; i < mft_entry.length(); i += 2) {
     std::swap(mft_entry[i], mft_entry[i + 1]);
   }
   if (mft_entry == "000000000000") {
     file_entry.mft_entry = 0LL;
   } else {
-    std::cout << "MFT ENTRY: " << mft_entry << std::endl;
     file_entry.mft_entry = std::stoll(mft_entry, nullptr, 16);
-    std::cout << "MFT value: " << file_entry.mft_entry << std::endl;
   }
 
   std::string mft_sequence = ntfs_data.substr(12, 4);
@@ -161,12 +156,10 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   }
 
   std::string string_size = shell_data.substr(entry_offset + 72, 4);
-  // std::cout << "String size is: " << string_size << std::endl;
   std::reverse(string_size.begin(), string_size.end());
   for (std::size_t i = 0; i < string_size.length(); i += 2) {
     std::swap(string_size[i], string_size[i + 1]);
   }
-  // NOT USING STRING SIZE FOR ANYTHING???
   file_entry.string_size = std::stoi(string_size, nullptr, 16);
   std::string entry_name = shell_data.substr(entry_offset + 92);
 
@@ -176,9 +169,8 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   // Path is in unicode, extra 00
   boost::erase_all(shell_name, "00");
 
-  // is this really needed???
   // verify the the hex string length is even. This fixes issues with 10 base
-  // hex values Example 7000690070000000... (pip)
+  // hex values Example 70006900700000... (pip)
   if (shell_name.length() % 2 != 0) {
     shell_name += "0";
   }
@@ -189,9 +181,10 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   } catch (const boost::algorithm::hex_decode_error& /* e */) {
     LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
                  << shell_name;
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]\\";
+    return file_entry;
   }
   file_entry.path = name;
-  std::cout << file_entry.path << std::endl;
   return file_entry;
 }
 
@@ -201,7 +194,7 @@ std::string propertyStore(const std::string& shell_data,
   std::string guid_string;
   for (const auto& offsets : wps_list) {
     std::string guid_little = shell_data.substr(offsets + 8, 32);
-    std::string guid_string = guidParse(guid_little);
+    guid_string = guidParse(guid_little);
     // If GUID property set is found get the property set name
     for (const auto& property_list : kPropertySets) {
       if (guid_string != property_list) {
@@ -252,15 +245,17 @@ std::string networkShareItem(const std::string& shell_data) {
 }
 
 std::string zipContentItem(const std::string& shell_data) {
-  int path_size = std::stoi(shell_data.substr(168, 2), nullptr, 16);
+  std::string path_size_string = shell_data.substr(168, 4);
+  std::reverse(path_size_string.begin(), path_size_string.end());
+  for (std::size_t i = 0; i < path_size_string.length(); i += 2) {
+    std::swap(path_size_string[i], path_size_string[i + 1]);
+  }
+  int path_size = std::stoi(path_size_string, nullptr, 16);
 
-  // Zip folders can go down a max of two directories
-  int second_path_size = std::stoi(shell_data.substr(176, 2), nullptr, 16);
   std::string path = shell_data.substr(184, path_size * 4);
   // Path is in unicode, extra 00
   boost::erase_all(path, "00");
 
-  // Convert hex path to readable string
   try {
     path = boost::algorithm::unhex(path);
   } catch (const boost::algorithm::hex_decode_error& /* e */) {
@@ -268,12 +263,20 @@ std::string zipContentItem(const std::string& shell_data) {
                  << path;
     return "[ZIP PATH DECODE ERROR]";
   }
+  // Zip folders can go down a max of two directories
+  std::string second_path_size_string = shell_data.substr(176, 4);
+  std::reverse(second_path_size_string.begin(), second_path_size_string.end());
+  for (std::size_t i = 0; i < second_path_size_string.length(); i += 2) {
+    std::swap(second_path_size_string[i], second_path_size_string[i + 1]);
+  }
+  int second_path_size = std::stoi(second_path_size_string, nullptr, 16);
 
   if (second_path_size != 0) {
     path += "/";
-    std::string second_path = shell_data.substr(200, second_path_size * 4);
+    std::string second_path =
+        shell_data.substr((184 + (path_size * 4) + 4), second_path_size * 4);
     boost::erase_all(second_path, "00");
-    // Convert hex path to readable string
+
     try {
       second_path = boost::algorithm::unhex(second_path);
       path += second_path;
@@ -295,7 +298,6 @@ std::string rootFolderItem(const std::string& shell_data) {
 
 std::string driveLetterItem(const std::string& shell_data) {
   std::string volume;
-  // Convert hex path to readable string
   try {
     volume = boost::algorithm::unhex(shell_data.substr(6, 6));
   } catch (const boost::algorithm::hex_decode_error& /* e */) {
@@ -309,7 +311,7 @@ std::string driveLetterItem(const std::string& shell_data) {
 std::string controlPanelCategoryItem(const std::string& shell_data) {
   std::string panel_id = shell_data.substr(16, 2);
   if (panel_id == "00") {
-    return "All Control Panel Items"; // <---- is this right/??
+    return "All Control Panel Items";
   } else if (panel_id == "01") {
     return "Appearence and Personalization";
   } else if (panel_id == "02") {
@@ -342,102 +344,6 @@ std::string controlPanelItem(const std::string& shell_data) {
   std::string guid_little = shell_data.substr(28, 32);
   std::string guid_string = guidParse(guid_little);
   return guid_string;
-}
-
-ShellFileEntryData opticalDiscItem(const std::string& shell_data) {
-  // check shellitem extension version
-  size_t offset;
-  std::string extension_sig;
-  size_t entry_offset = 0;
-  ShellFileEntryData file_entry;
-  offset = shell_data.find("0400EFBE");
-  if (offset == std::string::npos) {
-    LOG(WARNING) << "Shellitem format unsupported. Did not find expected shell "
-                    "extension";
-    std::cout << shell_data << std::endl;
-    file_entry.version = 0;
-    return file_entry;
-  }
-  extension_sig = shell_data.substr(offset, 8);
-  entry_offset = offset - 8;
-
-  std::string version = shell_data.substr(entry_offset + 4, 4);
-  std::cout << "Parsing optical file entry!" << std::endl;
-  // swap endianess
-  std::reverse(version.begin(), version.end());
-  for (std::size_t i = 0; i < version.length(); i += 2) {
-    std::swap(version[i], version[i + 1]);
-  }
-  file_entry.version = std::stoi(version, nullptr, 16);
-  if (file_entry.version < 7 && file_entry.version != 1) {
-    LOG(WARNING)
-        << "Shellitem format unsupported. Expecting version 1 or version 7 or "
-           "higher, got version: "
-        << file_entry.version;
-    std::cout << shell_data << std::endl;
-    file_entry.version = 0;
-    return file_entry;
-  }
-  file_entry.extension_sig = shell_data.substr(entry_offset + 8, 8);
-  file_entry.dos_modified = parseFatTime(shell_data.substr(16, 8));
-  file_entry.dos_created =
-      parseFatTime(shell_data.substr(entry_offset + 16, 8));
-  file_entry.dos_accessed =
-      parseFatTime(shell_data.substr(entry_offset + 24, 8));
-  file_entry.identifier = shell_data.substr(entry_offset + 32, 4);
-  std::string mft_entry = shell_data.substr(entry_offset + 40, 12);
-  // swap endianess
-  std::reverse(mft_entry.begin(), mft_entry.end());
-  for (std::size_t i = 0; i < mft_entry.length(); i += 2) {
-    std::swap(mft_entry[i], mft_entry[i + 1]);
-  }
-  // std::cout << "MFT entry: " << mft_entry << std::endl;
-  file_entry.mft_entry = std::stoll(mft_entry, nullptr, 16);
-
-  std::string mft_sequence = shell_data.substr(entry_offset + 52, 4);
-  std::reverse(mft_sequence.begin(), mft_sequence.end());
-  for (std::size_t i = 0; i < mft_sequence.length(); i += 2) {
-    std::swap(mft_sequence[i], mft_sequence[i + 1]);
-  }
-  file_entry.mft_sequence = std::stoi(mft_sequence, nullptr, 16);
-
-  std::string string_size = shell_data.substr(entry_offset + 72, 4);
-  // std::cout << "String size is: " << string_size << std::endl;
-  std::reverse(string_size.begin(), string_size.end());
-  for (std::size_t i = 0; i < string_size.length(); i += 2) {
-    std::swap(string_size[i], string_size[i + 1]);
-  }
-  // NOT USING STRING SIZE FOR ANYTHING???
-  file_entry.string_size = std::stoi(string_size, nullptr, 16);
-  std::string entry_name = shell_data.substr(entry_offset + 92);
-  std::cout << "eNTRY name: " << entry_name << std::endl;
-
-  // path name ends with 0000 (end of string)
-  size_t name_end = entry_name.find("0000");
-  std::string shell_name = entry_name.substr(0, name_end);
-  // Path is in unicode, extra 00
-  boost::erase_all(shell_name, "00");
-
-  // is this really needed???
-  // verify the the hex string length is even. This fixes issues with 10 base
-  // hex values Example 7000690070000000... (pip)
-  if (shell_name.length() % 2 != 0) {
-    shell_name += "0";
-  }
-  std::string name;
-
-  // Convert hex path to readable string
-  try {
-    name = boost::algorithm::unhex(shell_name);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_name;
-  }
-  std::cout << shell_data << std::endl;
-  std::cout << name << std::endl;
-  file_entry.path = name;
-
-  return file_entry;
 }
 
 std::vector<std::string> ftpItem(const std::string& shell_data) {
@@ -479,6 +385,7 @@ std::string variableFtp(const std::string& shell_data) {
   int name_size = std::stoi(shell_data.substr(62, 2), nullptr, 16);
   std::string hex_name = shell_data.substr(76, name_size * 2);
   boost::erase_all(hex_name, "00");
+
   std::string name;
   try {
     name = boost::algorithm::unhex(hex_name);
