@@ -174,7 +174,7 @@ void parseShellData(const std::string& shell_data,
                                 std::string::npos) { // User File View
     file_entry = fileEntry(shell_data);
   } else if (sig ==
-             "00") { // Variable shell item, can contain a variety of formats
+             "00") { // Variable shell item, can contain a variety of shell item formats
     if (shell_data.find("EEBBFE23") != std::string::npos) {
       std::string guid_string = variableGuid(shell_data);
       std::string guid_name = guidLookup(guid_string);
@@ -184,7 +184,7 @@ void parseShellData(const std::string& shell_data,
       r["path"] = full_path;
       results.push_back(r);
       return;
-    } else if (shell_data.find("00000005") != std::string::npos) {
+    } else if (shell_data.substr(12, 8) == "05000000" || shell_data.substr(12, 8) == "05000300") {
       std::string ftp_name = variableFtp(shell_data);
       build_shellbag.push_back(ftp_name + "\\");
       std::string full_path = buildPath(build_shellbag);
@@ -192,8 +192,36 @@ void parseShellData(const std::string& shell_data,
       r["path"] = full_path;
       results.push_back(r);
       return;
+    } else if (shell_data.find("31535053") != std::string::npos) {
+      // User Property View contains several signatures, data is likely
+      // associated with Explorer searches?
+      if ((shell_data.find("D5DFA323") != std::string::npos) ||
+          (shell_data.find("81191410") != std::string::npos) ||
+          (shell_data.find("EEBBFE23") != std::string::npos) ||
+          (shell_data.find("00EEBEBE") != std::string::npos)) {
+        build_shellbag.push_back("[VARIABLE USER PROPERTY VIEW]\\");
+        std::string full_path = buildPath(build_shellbag);
+        full_path.pop_back();
+        r["path"] = full_path;
+        results.push_back(r);
+        return;
+      }
+      std::vector<size_t> wps_list;
+      // check if Windows Property Store version 1SPS is in shellbag data,
+      // there could be multiple
+      size_t wps = shell_data.find("31535053");
+      while (wps != std::string::npos) {
+        wps_list.push_back(wps);
+        wps = shell_data.find("31535053", wps + 1);
+      }
+      std::string property_name = propertyStore(shell_data, wps_list);
+      build_shellbag.push_back(property_name + "\\");
+      std::string full_path = buildPath(build_shellbag);
+      full_path.pop_back();
+      r["path"] = full_path;
+      results.push_back(r);
+      return;
     }
-
     LOG(WARNING) << "Unknown variable format: " << shell_data;
     build_shellbag.push_back("[UNKNOWN VARIABLE FORMAT]\\");
     std::string full_path = buildPath(build_shellbag);
