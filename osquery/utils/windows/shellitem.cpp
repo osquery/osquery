@@ -382,13 +382,24 @@ std::string propertyViewDrive(const std::string& shell_data) {
 }
 
 std::string variableFtp(const std::string& shell_data) {
-  int name_size = std::stoi(shell_data.substr(62, 2), nullptr, 16);
-  std::string hex_name = shell_data.substr(76, name_size * 2);
-  boost::erase_all(hex_name, "00");
+  // Short FTP name starts at string offset 76
+  if (shell_data.length() < 76) {
+    LOG(WARNING) << "FTP Variable name smaller than 76 chars: " << shell_data;
+    return "[UNKNOWN VARIABLE FTP NAME]";
+  }
+  std::string name_start = shell_data.substr(76);
+  // Short name should end with 0000
+  size_t offset = name_start.find("0000");
 
+  if (offset == std::string::npos) {
+    LOG(WARNING) << "Could not identify Variable FTP name: " << shell_data;
+    return "[UNKNOWN VARIABLE FTP NAME]";
+  }
+  std::string long_name = name_start.substr(offset);
+  boost::erase_all(long_name, "00");
   std::string name;
   try {
-    name = boost::algorithm::unhex(hex_name);
+    name = boost::algorithm::unhex(long_name);
   } catch (const boost::algorithm::hex_decode_error& /* e */) {
     LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
                  << shell_data;
