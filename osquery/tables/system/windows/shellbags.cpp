@@ -285,8 +285,8 @@ void parseShellData(const std::string& shell_data,
         results.push_back(r);
         return;
       }
-      // User Property View mal additional other types of signatures, data is
-      // likely associated with Explorer searches?
+      // User Property View may have additional other types of signatures, data
+      // is likely associated with Explorer searches?
       if ((shell_data.find("81191410") != std::string::npos) ||
           (shell_data.find("EEBBFE23") != std::string::npos) ||
           (shell_data.find("BBAF933B") != std::string::npos) ||
