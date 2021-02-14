@@ -115,7 +115,8 @@ void parseShellData(const std::string& shell_data,
              (extension_sig == "" || extension_sig == "2600EFBE" ||
               extension_sig == "2500EFBE")) { // Drive Letter
     if (shell_data.substr(6, 2) == "80" &&
-        (extension_sig == "2600EFBE" || extension_sig == "2500EFBE")) {
+        (extension_sig == "2600EFBE" || extension_sig == "2500EFBE" ||
+         extension_sig == "")) { // Check if GUID exists
       std::string guid_little = shell_data.substr(8, 32);
       std::string guid_string = guidParse(guid_little);
       std::string guid_name = guidLookup(guid_string);
@@ -271,10 +272,22 @@ void parseShellData(const std::string& shell_data,
     return;
   } else {
     if (shell_data.find("31535053") != std::string::npos) {
-      // User Property View contains several signatures, data is likely
-      // associated with Explorer searches?
-      if ((shell_data.find("D5DFA323") != std::string::npos) ||
-          (shell_data.find("81191410") != std::string::npos) ||
+      if (shell_data.find("D5DFA323") !=
+          std::string::npos) { // User Property View
+        std::string property_guid = shell_data.substr(226, 32);
+        std::string guid_string = guidParse(property_guid);
+
+        std::string guid_name = guidLookup(guid_string);
+        build_shellbag.push_back(guid_name + "\\");
+        std::string full_path = buildPath(build_shellbag);
+        full_path.pop_back();
+        r["path"] = full_path;
+        results.push_back(r);
+        return;
+      }
+      // User Property View mal additional other types of signatures, data is
+      // likely associated with Explorer searches?
+      if ((shell_data.find("81191410") != std::string::npos) ||
           (shell_data.find("EEBBFE23") != std::string::npos) ||
           (shell_data.find("BBAF933B") != std::string::npos) ||
           (shell_data.find("00EEBEBE") != std::string::npos)) {
