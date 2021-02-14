@@ -130,4 +130,28 @@ std::string variableGuid(const std::string& shell_data);
  * @returns The ftp string
  */
 std::string variableFtp(const std::string& shell_data);
+
+/**
+ * @brief Windows helper function for parsing MTP device data
+ * epoch.
+ *
+ * @returns The MTP device name
+ */
+std::string mtpDevice(const std::string& shell_data);
+
+/**
+ * @brief Windows helper function for parsing MTP folder name data
+ * epoch.
+ *
+ * @returns The MTP folder name
+ */
+std::string mtpFolder(const std::string& shell_data);
+
+/**
+ * @brief Windows helper function for parsing MTP root name data
+ * epoch.
+ *
+ * @returns The MTP root name
+ */
+std::string mtpRoot(const std::string& shell_data);
 } // namespace osquery

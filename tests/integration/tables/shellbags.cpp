@@ -21,7 +21,7 @@ class ShellbagsTest : public testing::Test {
 TEST_F(ShellbagsTest, test_sanity) {
   QueryData const rows = execute_query("select * from shellbags");
   QueryData const specific_query_rows =
-      execute_query("select * from shellbags where path like '%\%'");
+      execute_query("select * from shellbags where path like '%This PC%'");
 
   ASSERT_GT(rows.size(), 0ul);
   ASSERT_GT(specific_query_rows.size(), 0ul);

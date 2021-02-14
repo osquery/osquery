@@ -63,13 +63,16 @@ void parseShellData(const std::string& shell_data,
   r["source"] = source;
   size_t offset;
   std::string extension_sig = "";
-  // "0400EFBE" or "2600EFBE" are primary shell extensions needed to build
-  // directory paths
+  // "0400EFBE", "2600EFBE", "2500EFBE" are the primary shell extensions needed
+  // to build directory paths
   if (shell_data.find("0400EFBE") != std::string::npos) {
     offset = shell_data.find("0400EFBE");
     extension_sig = shell_data.substr(offset, 8);
   } else if (shell_data.find("2600EFBE") != std::string::npos) {
     offset = shell_data.find("2600EFBE");
+    extension_sig = shell_data.substr(offset, 8);
+  } else if (shell_data.find("2500EFBE") != std::string::npos) {
+    offset = shell_data.find("2500EFBE");
     extension_sig = shell_data.substr(offset, 8);
   }
 
@@ -109,9 +112,10 @@ void parseShellData(const std::string& shell_data,
     file_entry = fileEntry(shell_data);
   } else if ((sig == "2F" || sig == "23" || sig == "25" || sig == "29" ||
               sig == "2A" || sig == "2E") &&
-             (extension_sig == "" ||
-              extension_sig == "2600EFBE")) { // Drive Letter
-    if (shell_data.substr(6, 2) == "80" && extension_sig == "2600EFBE") {
+             (extension_sig == "" || extension_sig == "2600EFBE" ||
+              extension_sig == "2500EFBE")) { // Drive Letter
+    if (shell_data.substr(6, 2) == "80" &&
+        (extension_sig == "2600EFBE" || extension_sig == "2500EFBE")) {
       std::string guid_little = shell_data.substr(8, 32);
       std::string guid_string = guidParse(guid_little);
       std::string guid_name = guidLookup(guid_string);
@@ -122,13 +126,31 @@ void parseShellData(const std::string& shell_data,
       r["path"] = full_path;
       results.push_back(r);
       return;
+    } else if (shell_data.find("5C007500730062002300") != std::string::npos &&
+               extension_sig == "") { // Check for \usb#
+      std::string name = mtpRoot(shell_data);
+      build_shellbag.push_back(name + "\\");
+      std::string full_path = buildPath(build_shellbag);
+      full_path.pop_back();
+
+      r["path"] = full_path;
+      results.push_back(r);
+      return;
+    }
+
+    // Drive letter should have ":\"
+    if (shell_data.find("3A5C") == std::string::npos) {
+      build_shellbag.push_back("[UNKNOWN DRIVE NAME]\\");
+      std::string full_path = buildPath(build_shellbag);
+      full_path.pop_back();
+
+      r["path"] = full_path;
+      results.push_back(r);
+      return;
     }
     std::string drive_name = driveLetterItem(shell_data);
     build_shellbag.push_back(drive_name);
-    std::string full_path = "";
-    for (const auto& path : build_shellbag) {
-      full_path += path;
-    }
+    std::string full_path = buildPath(build_shellbag);
     r["path"] = full_path;
     results.push_back(r);
     return;
@@ -173,8 +195,8 @@ void parseShellData(const std::string& shell_data,
   } else if (sig == "74" && shell_data.find("43465346") !=
                                 std::string::npos) { // User File View
     file_entry = fileEntry(shell_data);
-  } else if (sig ==
-             "00") { // Variable shell item, can contain a variety of shell item formats
+  } else if (sig == "00") { // Variable shell item, can contain a variety of
+                            // shell item formats
     if (shell_data.find("EEBBFE23") != std::string::npos) {
       std::string guid_string = variableGuid(shell_data);
       std::string guid_name = guidLookup(guid_string);
@@ -184,7 +206,8 @@ void parseShellData(const std::string& shell_data,
       r["path"] = full_path;
       results.push_back(r);
       return;
-    } else if (shell_data.substr(12, 8) == "05000000" || shell_data.substr(12, 8) == "05000300") {
+    } else if (shell_data.substr(12, 8) == "05000000" ||
+               shell_data.substr(12, 8) == "05000300") {
       std::string ftp_name = variableFtp(shell_data);
       build_shellbag.push_back(ftp_name + "\\");
       std::string full_path = buildPath(build_shellbag);
@@ -216,6 +239,23 @@ void parseShellData(const std::string& shell_data,
       }
       std::string property_name = propertyStore(shell_data, wps_list);
       build_shellbag.push_back(property_name + "\\");
+      std::string full_path = buildPath(build_shellbag);
+      full_path.pop_back();
+      r["path"] = full_path;
+      results.push_back(r);
+      return;
+    } else if (shell_data.find("0505203110") !=
+               std::string::npos) { // MTP Device
+      std::string name = mtpDevice(shell_data);
+      build_shellbag.push_back(name + "\\");
+      std::string full_path = buildPath(build_shellbag);
+      full_path.pop_back();
+      r["path"] = full_path;
+      results.push_back(r);
+      return;
+    } else if (shell_data.find("06201907") != std::string::npos) { // MTP Folder
+      std::string name = mtpFolder(shell_data);
+      build_shellbag.push_back(name + "\\");
       std::string full_path = buildPath(build_shellbag);
       full_path.pop_back();
       r["path"] = full_path;

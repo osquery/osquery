@@ -413,4 +413,59 @@ std::string variableGuid(const std::string& shell_data) {
   std::string guid_string = guidParse(guid_little);
   return guid_string;
 }
+
+std::string mtpFolder(const std::string& shell_data) {
+  std::string name_size = shell_data.substr(124, 8);
+  std::reverse(name_size.begin(), name_size.end());
+  for (std::size_t i = 0; i < name_size.length(); i += 2) {
+    std::swap(name_size[i], name_size[i + 1]);
+  }
+  int size = std::stoi(name_size, nullptr, 16);
+  std::string path_name = shell_data.substr(148, size * 4);
+  boost::erase_all(path_name, "00");
+  std::string name;
+  try {
+    name = boost::algorithm::unhex(path_name);
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+                 << shell_data;
+    return "[UNKNOWN MTP FOLDER NAME]";
+  }
+  return name;
+}
+
+std::string mtpDevice(const std::string& shell_data) {
+  std::string name_size = shell_data.substr(76, 8);
+  std::reverse(name_size.begin(), name_size.end());
+  for (std::size_t i = 0; i < name_size.length(); i += 2) {
+    std::swap(name_size[i], name_size[i + 1]);
+  }
+  int size = std::stoi(name_size, nullptr, 16);
+  std::string path_name = shell_data.substr(108, size * 4);
+  boost::erase_all(path_name, "00");
+  std::string name;
+  try {
+    name = boost::algorithm::unhex(path_name);
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+                 << shell_data;
+    return "[UNKNOWN MTP DEVICE NAME]";
+  }
+  return name;
+}
+
+std::string mtpRoot(const std::string& shell_data) {
+  size_t name_end = shell_data.find("000000", 80);
+  std::string path_name = shell_data.substr(80, name_end - 80);
+  boost::erase_all(path_name, "00");
+  std::string name;
+  try {
+    name = boost::algorithm::unhex(path_name);
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+                 << shell_data;
+    return "[UNKNOWN MTP ROOT NAME]";
+  }
+  return name;
+}
 } // namespace osquery
