@@ -1,5 +1,5 @@
 table_name("shellbags")
-description("Shellbags, shows directories accessed.")
+description("Shows directories accessed via Windows Explorer.")
 schema([
     Column("sid", TEXT, "User SID"),
     Column("source", TEXT, "Shellbags source Registry file"),
