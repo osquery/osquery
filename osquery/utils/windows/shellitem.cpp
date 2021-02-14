@@ -397,6 +397,11 @@ std::string variableFtp(const std::string& shell_data) {
   }
   std::string long_name = name_start.substr(offset);
   boost::erase_all(long_name, "00");
+  // Check to make sure name is even, fixes issues with 10 base characters
+  // Ex: p is 70
+  if (long_name.length() % 2 != 0) {
+    long_name += "0";
+  }
   std::string name;
   try {
     name = boost::algorithm::unhex(long_name);
