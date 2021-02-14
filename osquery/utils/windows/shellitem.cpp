@@ -73,14 +73,9 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   size_t offset;
   std::string extension_sig;
   size_t entry_offset = 0;
-  // "0400EFBE" or "2600EFBE" are the primary shell extensions needed to build
-  // directory paths
+  // Find "0400EFBE" offset
   if (shell_data.find("0400EFBE") != std::string::npos) {
     offset = shell_data.find("0400EFBE");
-    extension_sig = shell_data.substr(offset, 8);
-    entry_offset = offset - 8;
-  } else if (shell_data.find("2600EFBE") != std::string::npos) {
-    offset = shell_data.find("2600EFBE");
     extension_sig = shell_data.substr(offset, 8);
     entry_offset = offset - 8;
   }
@@ -101,7 +96,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     std::swap(version[i], version[i + 1]);
   }
   file_entry.version = std::stoi(version, nullptr, 16);
-  if (file_entry.version < 7 && file_entry.version != 1) {
+  if (file_entry.version < 7 || file_entry.version == 1) {
     LOG(WARNING)
         << "Shellitem format unsupported. Expecting version 1 or version 7 or "
            "higher: "
