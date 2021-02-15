@@ -398,6 +398,10 @@ If `--host_identifier=specified` is set, use this value as the host identifier.
 
 Enable verbose informational messages.
 
+`--thrift_verbose=false`
+
+Enable thrift global output.
+
 `--logger_path=/var/log/osquery/`
 
 Directory path for `ERROR`/`WARN`/`INFO` and query results logging.
