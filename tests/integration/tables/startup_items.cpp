@@ -58,7 +58,7 @@ TEST_F(StartupItemsTest, test_sanity) {
       auto status = std::find(valid_systemd_status_values.begin(),
                               valid_systemd_status_values.end(),
                               row.at("status"));
-      EXPECT_EQ(status, valid_systemd_status_values.end())
+      EXPECT_NE(status, valid_systemd_status_values.end())
           << "Expected status to be one of "
           << boost::algorithm::join(valid_systemd_status_values, ", ")
           << ", but " << row.at("status") << " has been found";
