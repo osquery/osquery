@@ -114,6 +114,7 @@ void WindowsEventSubscriber::generateRow(Row& row,
   row["source"] = SQL_TEXT(windows_event.source);
   row["provider_name"] = SQL_TEXT(windows_event.provider_name);
   row["provider_guid"] = SQL_TEXT(windows_event.provider_guid);
+  row["computer_name"] = SQL_TEXT(windows_event.computer_name);
   row["eventid"] = INTEGER(windows_event.event_id);
   row["task"] = INTEGER(windows_event.task_id);
   row["level"] = INTEGER(windows_event.level);
