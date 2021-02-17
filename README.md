@@ -20,7 +20,7 @@ Available for Linux, macOS, Windows, and FreeBSD.
 - Table Schema: [osquery.io/schema](https://osquery.io/schema)
 - Query Packs: [osquery.io/packs](https://github.com/osquery/osquery/tree/master/packs)
 - Slack: [Request an auto-invite!](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw)
-- Build Status: [![GitHub Actions Build Status](https://github.com/osquery/osquery/workflows/build/badge.svg)](https://github.com/osquery/osquery/actions?query=workflow%3Abuild+branch%3Amaster) [![Azure Build Status](https://dev.azure.com/trailofbits/osquery/_apis/build/status/osquery?branchName=master)](https://dev.azure.com/trailofbits/osquery/_build/latest?definitionId=6&branchName=master) [![Coverity Scan Build Status](https://scan.coverity.com/projects/13317/badge.svg)](https://scan.coverity.com/projects/osquery) [![Documentation Status](https://readthedocs.org/projects/osquery/badge/?version=latest)](https://osquery.readthedocs.io/en/latest/?badge=latest)
+- Build Status: [![GitHub Actions Build Status](https://github.com/osquery/osquery/workflows/build/badge.svg)](https://github.com/osquery/osquery/actions?query=workflow%3Abuild+branch%3Amaster) [![Coverity Scan Build Status](https://scan.coverity.com/projects/13317/badge.svg)](https://scan.coverity.com/projects/osquery) [![Documentation Status](https://readthedocs.org/projects/osquery/badge/?version=latest)](https://osquery.readthedocs.io/en/latest/?badge=latest)
 - CII Best Practices: [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125)
 
 ## What is osquery?
