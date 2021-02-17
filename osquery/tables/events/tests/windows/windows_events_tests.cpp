@@ -130,7 +130,7 @@ TEST_F(WindowsEventsTests, test_recorded_events) {
 
       EXPECT_EQ(windows_event.provider_guid,
                 expected_event_data.get<std::string>("provider_guid"));
-   
+
       EXPECT_EQ(windows_event.computer_name,
                 expected_event_data.get<std::string>("computer_name"));
 
