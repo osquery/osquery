@@ -374,6 +374,8 @@ void ExtensionRunnerInterface::init(RouteUUID uuid, bool manager) {
   if (FLAGS_thrift_verbose) {
     GlobalOutput.setOutputFunction(
         [](const char* message) -> void { VLOG(1) << "Thrift: " << message; });
+  } else {
+    GlobalOutput.setOutputFunction([](const char* message) -> void {});
   }
 }
 
