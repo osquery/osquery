@@ -331,14 +331,14 @@ Since event rows are only "added" it does not make sense to emit "removed" resul
 
 `--events_max=50000`
 
-Maximum number of events to buffer in the backing store while waiting for a query to "'drain" them (if and only if the events are old enough to be expired out, see above). For example, the default value indicates that a maximum of the `50000` most recent events will be stored. The right value for *your* osquery deployment, if you want to avoid missed/dropped events, should be considered based on the combination of your host's event occurrence frequency and the interval of your scheduled queries of those tables.
+Maximum number of events to buffer in the backing store while waiting for a query to "drain" them (if and only if the events are old enough to be expired out, see above). For example, the default value indicates that a maximum of the `50000` most recent events will be stored. The right value for *your* osquery deployment, if you want to avoid missed/dropped events, should be considered based on the combination of your host's event occurrence frequency and the interval of your scheduled queries of those tables.
 
 ### Windows-only events control flags
 
-`  --enable_ntfs_event_publisher					Enables the NTFS event publisher
---enable_powershell_events_subscriber			Enables Powershell events
---enable_windows_events_publisher				Enables the Windows events publisher
---enable_windows_events_subscriber				Enables Windows Event Log events`
+`--enable_ntfs_event_publisher					Enables the NTFS event publisher`
+`--enable_powershell_events_subscriber			Enables Powershell events`
+`--enable_windows_events_publisher				Enables the Windows events publisher`
+`--enable_windows_events_subscriber				Enables Windows Event Log events`
 
 On Windows, in addition to the `--disable_events=false` flag mentioned above, each category of evented data must also be enabled individually, by enabling the corresponding osquery publisher and osquery subscriber. By default, all are disabled, and the corresponding evented tables will be empty. Note that an event publisher within osquery subscribes to events *from the OS* and then publishes them to an osquery event subscriber. For the current complete list of event sources usable by osquery, see `osqueryi.exe --help | findstr -i Event`.
 
