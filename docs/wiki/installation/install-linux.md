@@ -1,21 +1,25 @@
-# Install osquery on Linux
+# Installing osquery on Linux
 
-A 'universal' Linux package can be created for each package distribution system. These packages contain the osquery daemon, shell, example configuration and startup scripts. Note that the `/etc/init.d/osqueryd` script does not automatically start the daemon until a configuration file is created.
+A 'universal' Linux package can be created for each package distribution system. These packages contain the osquery daemon, shell, example configuration and startup scripts. Note that the `/etc/init.d/osqueryd` script does not automatically start the daemon until a configuration file is created (see "Running osquery," below).
 
 Each osquery tag (stable release) is published to **yum** and **apt** repositories for our supported operating systems: [https://osquery.io/downloads](https://osquery.io/downloads/).
 
 The default packages create the following structure:
 
 ```sh
+/etc/init.d/osqueryd
 /etc/osquery/
-/usr/share/osquery/osquery.example.conf
-/usr/share/osquery/lenses/{*}.aug
-/usr/share/osquery/packs/{*}.conf
+/etc/sysconfig/osqueryd
+/usr/local/bin/osqueryctl
+/usr/local/bin/osqueryd
+/usr/local/bin/osqueryi
+/usr/local/lib/systemd/system/osqueryd.service
+/usr/local/share/osquery/certs/certs.pem
+/usr/local/share/osquery/lenses/{*}.aug
+/usr/local/share/osquery/packs/{*}.conf
+/usr/local/share/osquery/osquery.example.conf
 /var/log/osquery/
-/usr/lib/osquery/
-/usr/bin/osqueryctl
-/usr/bin/osqueryd
-/usr/bin/osqueryi
+/var/osquery/
 ```
 
 ## Installing osquery
@@ -26,12 +30,12 @@ To install osquery, follow the instructions on the [Downloads](https://osquery.i
 
 ## Running osquery
 
-To start a standalone osquery use: `osqueryi`. This does not need a server or service. All the table implementations are included!
+To start a standalone osquery use: `osqueryi`. This does not need an osquery server or service. All the table implementations are included!
 
-After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to the `osqueryd`, the daemon, tool. To start the daemon:
+After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to `osqueryd`, the daemon, too. To start the daemon:
 
 ```sh
-sudo cp /usr/share/osquery/osquery.example.conf /etc/osquery/osquery.conf
+sudo cp /usr/local/share/osquery/osquery.example.conf /etc/osquery/osquery.conf
 # sudo service osqueryd start
 sudo systemctl start osqueryd
 ```
