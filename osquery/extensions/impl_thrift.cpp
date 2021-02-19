@@ -41,6 +41,8 @@
 
 namespace osquery {
 
+FLAG(bool, thrift_verbose, false, "Enable the thrift log handler");
+
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
@@ -369,8 +371,12 @@ void ExtensionRunnerInterface::init(RouteUUID uuid, bool manager) {
         std::make_shared<extensions::ExtensionManagerProcessor>(handler);
   }
   // Set the global output function for thrift
-  GlobalOutput.setOutputFunction(
-      [](const char* message) -> void { VLOG(1) << "Thrift: " << message; });
+  if (FLAGS_thrift_verbose) {
+    GlobalOutput.setOutputFunction(
+        [](const char* message) -> void { VLOG(1) << "Thrift: " << message; });
+  } else {
+    GlobalOutput.setOutputFunction([](const char* message) -> void {});
+  }
 }
 
 void ExtensionRunnerInterface::stopServer() {
