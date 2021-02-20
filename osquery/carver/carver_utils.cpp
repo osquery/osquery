@@ -8,7 +8,6 @@
  */
 
 #include <osquery/core/flags.h>
-#include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/join.h>
@@ -67,11 +66,12 @@ std::string createCarveGuid() {
 }
 
 Status carvePaths(const std::set<std::string>& paths,
-                  const std::string& request_id) {
-  auto guid = generateNewUUID();
+                  const std::string& request_id,
+                  std::string& carve_guid) {
+  carve_guid = createCarveGuid();
 
   JSON tree;
-  tree.add("carve_guid", guid);
+  tree.add("carve_guid", carve_guid);
   tree.add("time", getUnixTime());
   tree.add("status", kCarverStatusScheduled);
   tree.add("sha256", "");
@@ -92,6 +92,6 @@ Status carvePaths(const std::set<std::string>& paths,
   }
 
   kCarverPendingCarves = true;
-  return setDatabaseValue(kCarves, kCarverDBPrefix + guid, out);
+  return setDatabaseValue(kCarves, kCarverDBPrefix + carve_guid, out);
 }
 } // namespace osquery

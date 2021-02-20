@@ -63,9 +63,11 @@ std::string createCarveGuid();
  *
  * @param paths A set of paths (directories and files) to carve.
  * @param request_id A string identifier to be included in the carve response.
+ * @param carve_guid An output GUID identifying the carve request.
  *
  * @return A status returning if the carves were scheduled successfully.
  */
 Status carvePaths(const std::set<std::string>& paths,
-                  const std::string& request_id);
+                  const std::string& request_id,
+                  std::string& carve_guid);
 } // namespace osquery

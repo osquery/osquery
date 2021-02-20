@@ -111,7 +111,7 @@ class CarverTests : public testing::Test {
 
 TEST_F(CarverTests, test_carve_files_locally) {
   auto guid = createCarveGuid();
-  std::string requestId = "";
+  std::string requestId = createCarveGuid();
   FakeCarver carve(getCarvePaths(), guid, requestId);
 
   ASSERT_TRUE(carve.createPaths());
@@ -130,7 +130,7 @@ TEST_F(CarverTests, test_carve_files_locally) {
 
 TEST_F(CarverTests, test_carve) {
   auto guid = createCarveGuid();
-  std::string requestId = "";
+  std::string requestId = createCarveGuid();
   FakeCarver carve(getCarvePaths(), guid, requestId);
   auto s = carve.carve();
   ASSERT_TRUE(s.ok());
@@ -138,8 +138,10 @@ TEST_F(CarverTests, test_carve) {
 
 TEST_F(CarverTests, test_schedule_carves) {
   // Request paths for carving.
-  auto s = osquery::carvePaths(getCarvePaths(), "request-id");
+  std::string new_carve_guid;
+  auto s = osquery::carvePaths(getCarvePaths(), "request-id", new_carve_guid);
   ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(new_carve_guid.empty());
 
   ASSERT_FALSE(FakeCarverRunner::running());
   {
@@ -173,10 +175,16 @@ TEST_F(CarverTests, test_expiration) {
   }
 
   // Create 2 carve requests.
-  auto s = osquery::carvePaths(getCarvePaths(), "request-id");
+  std::string first_carve_guid;
+  auto first_request_id = createCarveGuid();
+  auto s =
+      osquery::carvePaths(getCarvePaths(), first_request_id, first_carve_guid);
   ASSERT_TRUE(s.ok());
-  s = osquery::carvePaths(getCarvePaths(), "request-id");
+
+  std::string second_carve_guid;
+  s = osquery::carvePaths(getCarvePaths(), "request-id", second_carve_guid);
   ASSERT_TRUE(s.ok());
+  EXPECT_NE(first_carve_guid, second_carve_guid);
 
   {
     // Set one request to an expired time.
@@ -191,7 +199,11 @@ TEST_F(CarverTests, test_expiration) {
     JSON tree;
     s = tree.fromString(carve);
     ASSERT_TRUE(s.ok());
+
     std::string guid(tree.doc()["carve_guid"].GetString());
+    EXPECT_EQ(guid, first_carve_guid);
+    std::string request_id(tree.doc()["request_id"].GetString());
+    EXPECT_EQ(request_id, first_request_id);
 
     tree.add("time", 0);
     tree.add("status", kCarverStatusSuccess);
@@ -219,7 +231,9 @@ TEST_F(CarverTests, test_expiration) {
     JSON tree;
     s = tree.fromString(carve);
     ASSERT_TRUE(s.ok());
+
     std::string guid(tree.doc()["carve_guid"].GetString());
+    EXPECT_EQ(guid, second_carve_guid);
 
     // This time only update the time.
     // Expect the carve to have been successful.
