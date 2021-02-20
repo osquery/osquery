@@ -10,10 +10,6 @@
 #include <set>
 #include <string>
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-
 #include <osquery/carver/carver_utils.h>
 #include <osquery/core/flags.h>
 #include <osquery/logger/logger.h>
