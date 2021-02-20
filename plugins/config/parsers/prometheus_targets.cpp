@@ -26,9 +26,11 @@ Status PrometheusMetricsConfigParserPlugin::update(const std::string& source,
                                                    const ParserConfig& config) {
   auto prometheus_targets = config.find(kPrometheusParserRootKey);
   if (prometheus_targets != config.end()) {
-    auto obj = data_.getObject();
-    data_.copyFrom(prometheus_targets->second.doc(), obj);
-    data_.add(kPrometheusParserRootKey, obj);
+    auto doc = JSON::newObject();
+    auto obj = doc.getObject();
+    doc.copyFrom(prometheus_targets->second.doc(), obj);
+    doc.add(kPrometheusParserRootKey, obj);
+    data_ = std::move(doc);
   }
 
   return Status();

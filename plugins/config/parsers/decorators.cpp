@@ -136,6 +136,10 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
     runDecorators(DECORATE_LOAD, 0, source);
   }
 
+  auto doc = JSON::newObject();
+  doc.copyFrom(data_.doc());
+  data_ = std::move(doc);
+
   return Status(0, "OK");
 }
 
