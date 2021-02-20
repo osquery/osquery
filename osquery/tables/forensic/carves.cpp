@@ -59,6 +59,7 @@ void enumerateCarves(QueryData& results) {
 
     stringToRow("sha256", r, tree);
     stringToRow("carve_guid", r, tree);
+    stringToRow("request_id", r, tree);
     stringToRow("status", r, tree);
     stringToRow("path", r, tree);
     r["carve"] = INTEGER(0);
@@ -89,7 +90,10 @@ QueryData genCarves(QueryContext& context) {
 
   if (context.constraints["carve"].exists(EQUALS) && paths.size() > 0 &&
       !FLAGS_disable_carver) {
-    carvePaths(paths);
+    // TODO(6727): This should introspect into the requesting action.
+    // Indicate if the initiator is a distributed query or the schedule.
+    auto request_id = createCarveGuid();
+    carvePaths(paths, request_id);
   }
   enumerateCarves(results);
 

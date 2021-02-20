@@ -17,6 +17,10 @@
 
 #include <osquery/carver/carver_utils.h>
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 namespace osquery {
 
 CLI_FLAG(bool,
@@ -58,7 +62,12 @@ void updateCarveValue(const std::string& guid,
   }
 }
 
-Status carvePaths(const std::set<std::string>& paths) {
+std::string createCarveGuid() {
+  return boost::uuids::to_string(boost::uuids::random_generator()());
+}
+
+Status carvePaths(const std::set<std::string>& paths,
+                  const std::string& request_id) {
   auto guid = generateNewUUID();
 
   JSON tree;
@@ -67,6 +76,7 @@ Status carvePaths(const std::set<std::string>& paths) {
   tree.add("status", kCarverStatusScheduled);
   tree.add("sha256", "");
   tree.add("size", -1);
+  tree.add("request_id", request_id);
 
   if (paths.size() > 1) {
     tree.add("path", osquery::join(paths, ","));

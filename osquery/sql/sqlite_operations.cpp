@@ -10,6 +10,10 @@
 #include <set>
 #include <string>
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 #include <osquery/carver/carver_utils.h>
 #include <osquery/core/flags.h>
 #include <osquery/logger/logger.h>
@@ -52,8 +56,12 @@ static void addCarveFile(sqlite3_context* ctx, int argc, sqlite3_value** argv) {
 static void executeCarve(sqlite3_context* ctx) {
   WriteLock lock(kFunctionCarveMutex);
   if (!FLAGS_carver_disable_function) {
-    carvePaths(kFunctionCarvePaths);
-    sqlite3_result_text(ctx, "Carve Started", 13, SQLITE_TRANSIENT);
+    auto request_id = createCarveGuid();
+    carvePaths(kFunctionCarvePaths, request_id);
+    sqlite3_result_text(ctx,
+                        std::string("Carve Started: " + request_id).c_str(),
+                        13,
+                        SQLITE_TRANSIENT);
   } else {
     LOG(WARNING) << "Carver as a function is disabled";
     sqlite3_result_text(ctx, "Carve Failed", 13, SQLITE_TRANSIENT);

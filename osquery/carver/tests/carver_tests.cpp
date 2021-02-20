@@ -8,9 +8,6 @@
  */
 
 #include <boost/filesystem.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
 #include <gtest/gtest.h>
 
@@ -53,10 +50,6 @@ class FakeCarver : public Carver {
 class FakeCarverRunner : public CarverRunner<FakeCarver> {
  public:
   FakeCarverRunner() : CarverRunner() {}
-};
-
-std::string genGuid() {
-  return boost::uuids::to_string(boost::uuids::random_generator()());
 };
 
 class CarverTests : public testing::Test {
@@ -117,7 +110,7 @@ class CarverTests : public testing::Test {
 };
 
 TEST_F(CarverTests, test_carve_files_locally) {
-  auto guid = genGuid();
+  auto guid = createCarveGuid();
   std::string requestId = "";
   FakeCarver carve(getCarvePaths(), guid, requestId);
 
@@ -136,7 +129,7 @@ TEST_F(CarverTests, test_carve_files_locally) {
 }
 
 TEST_F(CarverTests, test_carve) {
-  auto guid = genGuid();
+  auto guid = createCarveGuid();
   std::string requestId = "";
   FakeCarver carve(getCarvePaths(), guid, requestId);
   auto s = carve.carve();
@@ -145,7 +138,7 @@ TEST_F(CarverTests, test_carve) {
 
 TEST_F(CarverTests, test_schedule_carves) {
   // Request paths for carving.
-  auto s = osquery::carvePaths(getCarvePaths());
+  auto s = osquery::carvePaths(getCarvePaths(), "request-id");
   ASSERT_TRUE(s.ok());
 
   ASSERT_FALSE(FakeCarverRunner::running());
@@ -180,9 +173,9 @@ TEST_F(CarverTests, test_expiration) {
   }
 
   // Create 2 carve requests.
-  auto s = osquery::carvePaths(getCarvePaths());
+  auto s = osquery::carvePaths(getCarvePaths(), "request-id");
   ASSERT_TRUE(s.ok());
-  s = osquery::carvePaths(getCarvePaths());
+  s = osquery::carvePaths(getCarvePaths(), "request-id");
   ASSERT_TRUE(s.ok());
 
   {
@@ -249,7 +242,7 @@ TEST_F(CarverTests, test_expiration) {
 }
 
 TEST_F(CarverTests, test_carve_files_not_exists) {
-  auto guid = genGuid();
+  auto guid = createCarveGuid();
   std::string requestId = "";
   const std::set<std::string> notExistsCarvePaths = {
       (getFilesToCarveDir() / "not_exists").string()};
