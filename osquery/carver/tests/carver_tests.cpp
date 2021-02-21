@@ -8,9 +8,6 @@
  */
 
 #include <boost/filesystem.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
 #include <gtest/gtest.h>
 
@@ -53,10 +50,6 @@ class FakeCarver : public Carver {
 class FakeCarverRunner : public CarverRunner<FakeCarver> {
  public:
   FakeCarverRunner() : CarverRunner() {}
-};
-
-std::string genGuid() {
-  return boost::uuids::to_string(boost::uuids::random_generator()());
 };
 
 class CarverTests : public testing::Test {
@@ -117,8 +110,8 @@ class CarverTests : public testing::Test {
 };
 
 TEST_F(CarverTests, test_carve_files_locally) {
-  auto guid = genGuid();
-  std::string requestId = "";
+  auto guid = createCarveGuid();
+  std::string requestId = createCarveGuid();
   FakeCarver carve(getCarvePaths(), guid, requestId);
 
   ASSERT_TRUE(carve.createPaths());
@@ -136,8 +129,8 @@ TEST_F(CarverTests, test_carve_files_locally) {
 }
 
 TEST_F(CarverTests, test_carve) {
-  auto guid = genGuid();
-  std::string requestId = "";
+  auto guid = createCarveGuid();
+  std::string requestId = createCarveGuid();
   FakeCarver carve(getCarvePaths(), guid, requestId);
   auto s = carve.carve();
   ASSERT_TRUE(s.ok());
@@ -145,8 +138,10 @@ TEST_F(CarverTests, test_carve) {
 
 TEST_F(CarverTests, test_schedule_carves) {
   // Request paths for carving.
-  auto s = osquery::carvePaths(getCarvePaths());
+  std::string new_carve_guid;
+  auto s = osquery::carvePaths(getCarvePaths(), "request-id", new_carve_guid);
   ASSERT_TRUE(s.ok());
+  EXPECT_FALSE(new_carve_guid.empty());
 
   ASSERT_FALSE(FakeCarverRunner::running());
   {
@@ -180,10 +175,14 @@ TEST_F(CarverTests, test_expiration) {
   }
 
   // Create 2 carve requests.
-  auto s = osquery::carvePaths(getCarvePaths());
+  std::string first_carve_guid;
+  auto s = osquery::carvePaths(getCarvePaths(), "request-id", first_carve_guid);
   ASSERT_TRUE(s.ok());
-  s = osquery::carvePaths(getCarvePaths());
+
+  std::string second_carve_guid;
+  s = osquery::carvePaths(getCarvePaths(), "request-id", second_carve_guid);
   ASSERT_TRUE(s.ok());
+  EXPECT_NE(first_carve_guid, second_carve_guid);
 
   {
     // Set one request to an expired time.
@@ -198,7 +197,11 @@ TEST_F(CarverTests, test_expiration) {
     JSON tree;
     s = tree.fromString(carve);
     ASSERT_TRUE(s.ok());
+
     std::string guid(tree.doc()["carve_guid"].GetString());
+    EXPECT_FALSE(guid.empty());
+    std::string request_id(tree.doc()["request_id"].GetString());
+    EXPECT_EQ(request_id, "request-id");
 
     tree.add("time", 0);
     tree.add("status", kCarverStatusSuccess);
@@ -226,7 +229,9 @@ TEST_F(CarverTests, test_expiration) {
     JSON tree;
     s = tree.fromString(carve);
     ASSERT_TRUE(s.ok());
+
     std::string guid(tree.doc()["carve_guid"].GetString());
+    EXPECT_FALSE(guid.empty());
 
     // This time only update the time.
     // Expect the carve to have been successful.
@@ -249,7 +254,7 @@ TEST_F(CarverTests, test_expiration) {
 }
 
 TEST_F(CarverTests, test_carve_files_not_exists) {
-  auto guid = genGuid();
+  auto guid = createCarveGuid();
   std::string requestId = "";
   const std::set<std::string> notExistsCarvePaths = {
       (getFilesToCarveDir() / "not_exists").string()};

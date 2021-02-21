@@ -50,6 +50,9 @@ void updateCarveValue(const std::string& guid,
                       const std::string& key,
                       const std::string& value);
 
+/// Returns a UUID.
+std::string createCarveGuid();
+
 /**
  * @brief Request a file carve of the given paths.
  *
@@ -58,7 +61,13 @@ void updateCarveValue(const std::string& guid,
  * from unexpectedly blocking query execution. We do not want to wait for remote
  * servies to return before a query completes in this case.
  *
+ * @param paths A set of paths (directories and files) to carve.
+ * @param request_id A string identifier to be included in the carve response.
+ * @param carve_guid An output GUID identifying the carve request.
+ *
  * @return A status returning if the carves were scheduled successfully.
  */
-Status carvePaths(const std::set<std::string>& paths);
+Status carvePaths(const std::set<std::string>& paths,
+                  const std::string& request_id,
+                  std::string& carve_guid);
 } // namespace osquery
