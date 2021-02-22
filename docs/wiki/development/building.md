@@ -313,22 +313,10 @@ Note: RPM will always try to create debuginfo packages, to do so though it needs
 to be in a path that's longer than `/usr/src/debug/osquery/src_0` and the build folder
 to be in a path that's longer than `/usr/src/debug/osquery/src_1`.
 
-Pre-requisites (for RPM builds):
-
-```sh
-sudo apt install binutils elfutils
-```
-
-Generating an RPM package:
-
 ```sh
 cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain -DPACKAGING_SYSTEM=RPM ..
 cmake --build . --target package
 ```
-
-When generating packages, the install path for osquery is determined by `CMAKE_INSTALL_PREFIX` (default:
- `/usr/local/`) when building the TGZ "package," and `CMAKE_PACKAGING_INSTALL_PREFIX` (default: `/usr/`)
-  when building either the DEB or RPM packages.
 
 ### On Windows
 
@@ -351,7 +339,7 @@ cmake --build . --config Release --target package
 
 ### On macOS
 
-On macOS you can choose between a TGZ or the default PKG.
+On macOS you can choose between a TGZ or a PKG, which is the default.
 You may override this with the CMake `PACKAGING_SYSTEM` variable as seen in the example below.
 
 ```sh
