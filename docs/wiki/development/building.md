@@ -327,7 +327,7 @@ cmake --build . --target package
 ```
 
 When generating packages, the install path for osquery is determined by `CMAKE_INSTALL_PREFIX` (default:
- `/usr/local/`) when building the TGZ "package," and `CMAKE_PACKAGING_INSTALL_PREFIX` (default: `/usr/`)
+ `/usr/local/`) when building the TGZ "package", and `CMAKE_PACKAGING_INSTALL_PREFIX` (default: `/usr/`)
   when building either the DEB or RPM packages.
 
 ### On Windows
