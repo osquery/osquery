@@ -236,7 +236,6 @@ static void concatFunc(sqlite3_context* context,
 
   // Give up if the output is so large it's length overflows int
   if (output.size() > std::numeric_limits<int>::max()) {
-    LOG(INFO) << "Too much data for concat_ws";
     sqlite3_result_error(context, "Too much data for concat_ws", -1);
     return;
   }
@@ -264,7 +263,6 @@ static void concatWSStringFunc(sqlite3_context* context,
                                sqlite3_value** argv) {
   // First arg is the separator. Error if not present
   if (argc == 0) {
-    LOG(INFO) << "Missing separator to concat_ws";
     sqlite3_result_error(context, "Missing separator to concat_ws", -1);
     return;
   }
