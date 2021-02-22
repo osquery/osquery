@@ -248,7 +248,7 @@ This starts a HTTPS server bound to port 8080 using some fake CA/server cert and
 
 We will use an `osqueryd` client and set the required TLS settings. When enforcing TLS server authentication, note that the example server is using a toy certificate with the subject: `C=US, ST=California, O=osquery-testing, CN=localhost`:
 
-```text
+```shell
 $ osqueryd --verbose --ephemeral --disable_database \
     --tls_hostname localhost:8080 \
     --tls_server_certs ./tools/tests/test_server_ca.pem \
