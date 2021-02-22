@@ -215,7 +215,7 @@ Additionally, the osquery TLS clients use a `osquery/X.Y.Z` UserAgent, where "X.
 
 The most basic example of a server implementing the remote settings API is the [./tools/tests/test_http_server.py](https://github.com/osquery/osquery/blob/master/tools/tests/test_http_server.py) example script. Let's start this server and have `osqueryd` exercise the API:
 
-```text
+```shell
 $ ./tools/tests/test_http_server.py -h
 usage: test_http_server.py [-h] [--tls] [--persist] [--timeout TIMEOUT]
                            [--cert CERT_FILE] [--key PRIVATE_KEY_FILE]
