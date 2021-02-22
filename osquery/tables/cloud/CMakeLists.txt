@@ -11,6 +11,7 @@ function(osqueryTablesCloudMain)
   endif()
 
   generateOsqueryTablesCloudAzure()
+  generateOsqueryTablesCloudYCloud()
 endfunction()
 
 function(generateOsqueryTablesCloudAws)
@@ -39,6 +40,19 @@ function(generateOsqueryTablesCloudAzure)
     osquery_cxx_settings
     osquery_logger
     osquery_utils_azure
+    thirdparty_boost
+  )
+endfunction()
+
+function(generateOsqueryTablesCloudYCloud)
+  add_osquery_library(osquery_tables_cloud_ycloud EXCLUDE_FROM_ALL
+    ycloud/ycloud_instance_metadata.cpp
+  )
+
+  target_link_libraries(osquery_tables_cloud_ycloud PUBLIC
+    osquery_cxx_settings
+    osquery_logger
+    osquery_utils_ycloud
     thirdparty_boost
   )
 endfunction()
