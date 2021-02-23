@@ -49,6 +49,46 @@ mkdir build; cd build
 cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
 cmake --build . -j10 # where 10 is the number of parallel build jobs
 ```
+## Linux (Ubuntu 18, aarch64/arm64)
+
+The initial directory is assumed to be `/home/<user>`.
+
+```bash
+# Install the prerequisites
+sudo apt install --no-install-recommends git python3 bison flex make
+
+# Optional: install python tests prerequisites
+sudo apt install --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel
+pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
+
+# Optional: install RPM packaging prerequisites
+sudo apt install --no-install-recommends rpm binutils
+
+# Download and install the osquery toolchain
+wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-aarch64.tar.xz
+sudo tar xvf osquery-toolchain-1.1.0-aarch64.tar.xz -C /usr/local
+
+# Build CMake from source
+# CMake > 3.19.3 includes 64b Arm Linux binaries however it also has a bug that prevents creating RPMs properly
+wget https://github.com/Kitware/CMake/releases/download/v3.17.5/cmake-3.17.5.tar.gz
+sudo apt install gcc g++ libssl-dev
+tar zxvf cmake-3.17.5.tar.gz
+pushd cmake-3.17.5/
+./bootstrap -- -DCMAKE_BUILD_TYPE:STRING=Release
+make -j`nproc`
+sudo make install
+popd
+# Verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`
+
+# Download source
+git clone https://github.com/osquery/osquery
+cd osquery
+
+# Build osquery
+mkdir build; cd build
+cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
+cmake --build . -j10 # where 10 is the number of parallel build jobs
+```
 
 ## macOS
 
