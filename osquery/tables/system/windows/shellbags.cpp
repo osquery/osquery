@@ -11,11 +11,14 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/registry.h>
+#include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/shellitem.h>
 
 #include <string>
 #include <vector>
+
+#include <iostream>
 
 namespace osquery {
 namespace tables {
@@ -23,14 +26,6 @@ constexpr auto kShellBagPath =
     "\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\BagMRU";
 constexpr auto kShellBagPathNtuser =
     "\\Software\\Microsoft\\Windows\\Shell\\BagMRU";
-
-std::string buildPath(const std::vector<std::string>& build_shellbag) {
-  std::string full_path = "";
-  for (const auto& path : build_shellbag) {
-    full_path += path;
-  }
-  return full_path;
-}
 
 std::string guidLookup(const std::string& guid) {
   QueryData guid_data;
@@ -61,19 +56,15 @@ void parseShellData(const std::string& shell_data,
   Row r;
   r["sid"] = sid;
   r["source"] = source;
-  size_t offset;
   std::string extension_sig = "";
   // "0400EFBE", "2600EFBE", "2500EFBE" are the primary shell extensions needed
   // to build directory paths
   if (shell_data.find("0400EFBE") != std::string::npos) {
-    offset = shell_data.find("0400EFBE");
-    extension_sig = shell_data.substr(offset, 8);
+    extension_sig = "0400EFBE";
   } else if (shell_data.find("2600EFBE") != std::string::npos) {
-    offset = shell_data.find("2600EFBE");
-    extension_sig = shell_data.substr(offset, 8);
+    extension_sig = "2600EFBE";
   } else if (shell_data.find("2500EFBE") != std::string::npos) {
-    offset = shell_data.find("2500EFBE");
-    extension_sig = shell_data.substr(offset, 8);
+    extension_sig = "2500EFBE";
   }
 
   std::string sig = shell_data.substr(4, 2);
@@ -82,9 +73,8 @@ void parseShellData(const std::string& shell_data,
       (shell_data.substr(80, 2) == "2F" ||
        shell_data.substr(76, 2) == "2F")) { // Zip contents
     std::string path = zipContentItem(shell_data);
-    build_shellbag.push_back(path + "\\");
-    std::string full_path = buildPath(build_shellbag);
-    full_path.pop_back();
+    build_shellbag.push_back(path);
+    std::string full_path = osquery::join(build_shellbag, "\\");
     r["path"] = full_path;
     results.push_back(r);
     return;
@@ -94,14 +84,16 @@ void parseShellData(const std::string& shell_data,
     std::string full_path;
     if (shell_data.substr(8, 2) == "2F") { // User Property View Drive
       name = propertyViewDrive(shell_data);
+      // osquery::join adds "\" to entries, remove drive "\"
+      name.pop_back();
       build_shellbag.push_back(name);
-      full_path = buildPath(build_shellbag);
+      full_path = osquery::join(build_shellbag, "\\");
+      full_path += "\\";
     } else {
       std::string root_name = rootFolderItem(shell_data);
       name = guidLookup(root_name);
-      build_shellbag.push_back(name + "\\");
-      full_path = buildPath(build_shellbag);
-      full_path.pop_back();
+      build_shellbag.push_back(name);
+      full_path = osquery::join(build_shellbag, "\\");
     }
     r["path"] = full_path;
     results.push_back(r);
@@ -121,19 +113,16 @@ void parseShellData(const std::string& shell_data,
       std::string guid_string = guidParse(guid_little);
       std::string guid_name = guidLookup(guid_string);
 
-      build_shellbag.push_back(guid_name + "\\");
-      std::string full_path = buildPath(build_shellbag);
-      full_path.pop_back();
+      build_shellbag.push_back(guid_name);
+      std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
       results.push_back(r);
       return;
     } else if (shell_data.find("5C007500730062002300") != std::string::npos &&
                extension_sig == "") { // Check for \usb#
       std::string name = mtpRoot(shell_data);
-      build_shellbag.push_back(name + "\\");
-      std::string full_path = buildPath(build_shellbag);
-      full_path.pop_back();
-
+      build_shellbag.push_back(name);
+      std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
       results.push_back(r);
       return;
@@ -141,25 +130,25 @@ void parseShellData(const std::string& shell_data,
 
     // Drive letter should have ":\"
     if (shell_data.find("3A5C") == std::string::npos) {
-      build_shellbag.push_back("[UNKNOWN DRIVE NAME]\\");
-      std::string full_path = buildPath(build_shellbag);
-      full_path.pop_back();
-
+      build_shellbag.push_back("[UNKNOWN DRIVE NAME]");
+      std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
       results.push_back(r);
       return;
     }
     std::string drive_name = driveLetterItem(shell_data);
+    // osquery::join adds "\" to entries, remove drive "\"
+    drive_name.pop_back();
     build_shellbag.push_back(drive_name);
-    std::string full_path = buildPath(build_shellbag);
-    r["path"] = full_path;
+    std::string full_path = osquery::join(build_shellbag, "\\");
+
+    r["path"] = full_path + "\\";
     results.push_back(r);
     return;
   } else if (sig == "01") { // Control Panel Category
     std::string panel = controlPanelCategoryItem(shell_data);
-    build_shellbag.push_back(panel + "\\");
-    std::string full_path = buildPath(build_shellbag);
-    full_path.pop_back();
+    build_shellbag.push_back(panel);
+    std::string full_path = osquery::join(build_shellbag, "\\");
     r["path"] = full_path;
     results.push_back(r);
     return;
@@ -167,30 +156,26 @@ void parseShellData(const std::string& shell_data,
     std::string control_guid = controlPanelItem(shell_data);
     std::string guid_name = guidLookup(control_guid);
 
-    build_shellbag.push_back(guid_name + "\\");
-    std::string full_path = buildPath(build_shellbag);
-    full_path.pop_back();
+    build_shellbag.push_back(guid_name);
+    std::string full_path = osquery::join(build_shellbag, "\\");
     r["path"] = full_path;
     results.push_back(r);
     return;
   } else if (sig == "C3" || sig == "41" || sig == "42" || sig == "46" ||
              sig == "47" || sig == "4C") { // Network share
     std::string network_share = networkShareItem(shell_data);
-    build_shellbag.push_back(network_share + "\\");
-    std::string full_path = buildPath(build_shellbag);
-    full_path.pop_back();
+    build_shellbag.push_back(network_share);
+    std::string full_path = osquery::join(build_shellbag, "\\");
     r["path"] = full_path;
     results.push_back(r);
     return;
   } else if (sig == "61") { // FTP/URI
     std::vector<std::string> ftp_data = ftpItem(shell_data);
     long long unix_time = littleEndianToUnixTime(ftp_data[0]);
-    build_shellbag.push_back(ftp_data[1] + "\\");
-
-    std::string full_path = buildPath(build_shellbag);
-    full_path.pop_back();
+    build_shellbag.push_back(ftp_data[1]);
+    std::string full_path = osquery::join(build_shellbag, "\\");
     r["path"] = full_path;
-    r["accessed_time"] = unix_time;
+    r["accessed_time"] = INTEGER(unix_time);
     results.push_back(r);
     return;
   } else if (sig == "74" && shell_data.find("43465346") !=
@@ -201,18 +186,16 @@ void parseShellData(const std::string& shell_data,
     if (shell_data.find("EEBBFE23") != std::string::npos) {
       std::string guid_string = variableGuid(shell_data);
       std::string guid_name = guidLookup(guid_string);
-      build_shellbag.push_back(guid_name + "\\");
-      std::string full_path = buildPath(build_shellbag);
-      full_path.pop_back();
+      build_shellbag.push_back(guid_name);
+      std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
       results.push_back(r);
       return;
     } else if (shell_data.substr(12, 8) == "05000000" ||
                shell_data.substr(12, 8) == "05000300") {
       std::string ftp_name = variableFtp(shell_data);
-      build_shellbag.push_back(ftp_name + "\\");
-      std::string full_path = buildPath(build_shellbag);
-      full_path.pop_back();
+      build_shellbag.push_back(ftp_name);
+      std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
       results.push_back(r);
       return;
@@ -223,9 +206,8 @@ void parseShellData(const std::string& shell_data,
           (shell_data.find("81191410") != std::string::npos) ||
           (shell_data.find("EEBBFE23") != std::string::npos) ||
           (shell_data.find("00EEBEBE") != std::string::npos)) {
-        build_shellbag.push_back("[VARIABLE USER PROPERTY VIEW]\\");
-        std::string full_path = buildPath(build_shellbag);
-        full_path.pop_back();
+        build_shellbag.push_back("[VARIABLE USER PROPERTY VIEW]");
+        std::string full_path = osquery::join(build_shellbag, "\\");
         r["path"] = full_path;
         results.push_back(r);
         return;
@@ -239,34 +221,31 @@ void parseShellData(const std::string& shell_data,
         wps = shell_data.find("31535053", wps + 1);
       }
       std::string property_name = propertyStore(shell_data, wps_list);
-      build_shellbag.push_back(property_name + "\\");
-      std::string full_path = buildPath(build_shellbag);
-      full_path.pop_back();
+      std::cout << "Property Store!!!!" << std::endl;
+      build_shellbag.push_back(property_name);
+      std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
       results.push_back(r);
       return;
     } else if (shell_data.find("0505203110") !=
                std::string::npos) { // MTP Device
       std::string name = mtpDevice(shell_data);
-      build_shellbag.push_back(name + "\\");
-      std::string full_path = buildPath(build_shellbag);
-      full_path.pop_back();
+      build_shellbag.push_back(name);
+      std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
       results.push_back(r);
       return;
     } else if (shell_data.find("06201907") != std::string::npos) { // MTP Folder
       std::string name = mtpFolder(shell_data);
-      build_shellbag.push_back(name + "\\");
-      std::string full_path = buildPath(build_shellbag);
-      full_path.pop_back();
+      build_shellbag.push_back(name);
+      std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
       results.push_back(r);
       return;
     }
     LOG(WARNING) << "Unknown variable format: " << shell_data;
-    build_shellbag.push_back("[UNKNOWN VARIABLE FORMAT]\\");
-    std::string full_path = buildPath(build_shellbag);
-    full_path.pop_back();
+    build_shellbag.push_back("[UNKNOWN VARIABLE FORMAT]");
+    std::string full_path = osquery::join(build_shellbag, "\\");
     r["path"] = full_path;
     results.push_back(r);
     return;
@@ -278,9 +257,8 @@ void parseShellData(const std::string& shell_data,
         std::string guid_string = guidParse(property_guid);
 
         std::string guid_name = guidLookup(guid_string);
-        build_shellbag.push_back(guid_name + "\\");
-        std::string full_path = buildPath(build_shellbag);
-        full_path.pop_back();
+        build_shellbag.push_back(guid_name);
+        std::string full_path = osquery::join(build_shellbag, "\\");
         r["path"] = full_path;
         results.push_back(r);
         return;
@@ -291,9 +269,8 @@ void parseShellData(const std::string& shell_data,
           (shell_data.find("EEBBFE23") != std::string::npos) ||
           (shell_data.find("BBAF933B") != std::string::npos) ||
           (shell_data.find("00EEBEBE") != std::string::npos)) {
-        build_shellbag.push_back("[USER PROPERTY VIEW]\\");
-        std::string full_path = buildPath(build_shellbag);
-        full_path.pop_back();
+        build_shellbag.push_back("[USER PROPERTY VIEW]");
+        std::string full_path = osquery::join(build_shellbag, "\\");
         r["path"] = full_path;
         results.push_back(r);
         return;
@@ -307,27 +284,25 @@ void parseShellData(const std::string& shell_data,
         wps = shell_data.find("31535053", wps + 1);
       }
       std::string property_name = propertyStore(shell_data, wps_list);
-      build_shellbag.push_back(property_name + "\\");
-      std::string full_path = buildPath(build_shellbag);
-      full_path.pop_back();
+      std::cout << "Property store" << std::endl;
+      build_shellbag.push_back(property_name);
+      std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
       results.push_back(r);
       return;
     } else {
       LOG(WARNING) << "Unsupported Shellbag format: " << shell_data;
-      build_shellbag.push_back("[UNSUPPORTED FORMAT]\\");
-      std::string full_path = buildPath(build_shellbag);
-      full_path.pop_back();
+      build_shellbag.push_back("[UNSUPPORTED FORMAT]");
+      std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
       results.push_back(r);
       return;
     }
   }
 
-  if (file_entry.path == "[UNSUPPORTED SHELL EXTENSION]\\") {
+  if (file_entry.path == "[UNSUPPORTED SHELL EXTENSION]") {
     build_shellbag.push_back(file_entry.path);
-    std::string full_path = buildPath(build_shellbag);
-    full_path.pop_back();
+    std::string full_path = osquery::join(build_shellbag, "\\");
     r["path"] = full_path;
     results.push_back(r);
     return;
@@ -337,11 +312,10 @@ void parseShellData(const std::string& shell_data,
   r["created_time"] = INTEGER(file_entry.dos_created);
   r["accessed_time"] = INTEGER(file_entry.dos_accessed);
 
-  build_shellbag.push_back(file_entry.path + "\\");
+  build_shellbag.push_back(file_entry.path);
   long long mft_entry = file_entry.mft_entry;
   int mft_sequence = file_entry.mft_sequence;
-  std::string full_path = buildPath(build_shellbag);
-  full_path.pop_back();
+  std::string full_path = osquery::join(build_shellbag, "\\");
 
   r["path"] = full_path;
   r["mft_entry"] = BIGINT(mft_entry);

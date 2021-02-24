@@ -8,6 +8,7 @@
  */
 
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 
 #include <boost/algorithm/hex.hpp>
@@ -81,27 +82,22 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   }
   ShellFileEntryData file_entry;
 
-  if (entry_offset == 0) {
+  if (entry_offset <= 0) {
     LOG(WARNING)
         << "Could not find supported file entry extension in shell data: "
         << shell_data;
-    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]\\";
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
 
   std::string version = shell_data.substr(entry_offset + 4, 4);
-  // swap endianess
-  std::reverse(version.begin(), version.end());
-  for (std::size_t i = 0; i < version.length(); i += 2) {
-    std::swap(version[i], version[i + 1]);
-  }
+  version = swapEndianess(version);
   file_entry.version = std::stoi(version, nullptr, 16);
-  if (file_entry.version < 7 || file_entry.version == 1) {
-    LOG(WARNING)
-        << "Shellitem format unsupported. Expecting version 1 or version 7 or "
-           "higher: "
-        << shell_data;
-    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]\\";
+  if (file_entry.version < 7) {
+    LOG(WARNING) << "Shellitem format unsupported. Expecting version 7 or "
+                    "higher: "
+                 << shell_data;
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
   file_entry.extension_sig = shell_data.substr(entry_offset + 8, 8);
@@ -127,12 +123,8 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   file_entry.identifier = shell_data.substr(entry_offset + 32, 4);
   std::string ntfs_data = shell_data.substr(entry_offset + 40, 16);
   std::string mft_entry = ntfs_data.substr(0, 12);
+  mft_entry = swapEndianess(mft_entry);
 
-  // swap endianess
-  std::reverse(mft_entry.begin(), mft_entry.end());
-  for (std::size_t i = 0; i < mft_entry.length(); i += 2) {
-    std::swap(mft_entry[i], mft_entry[i + 1]);
-  }
   if (mft_entry == "000000000000") {
     file_entry.mft_entry = 0LL;
   } else {
@@ -140,10 +132,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   }
 
   std::string mft_sequence = ntfs_data.substr(12, 4);
-  std::reverse(mft_sequence.begin(), mft_sequence.end());
-  for (std::size_t i = 0; i < mft_sequence.length(); i += 2) {
-    std::swap(mft_sequence[i], mft_sequence[i + 1]);
-  }
+  mft_sequence = swapEndianess(mft_sequence);
   if (mft_sequence == "0000") {
     file_entry.mft_sequence = 0;
   } else {
@@ -151,10 +140,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   }
 
   std::string string_size = shell_data.substr(entry_offset + 72, 4);
-  std::reverse(string_size.begin(), string_size.end());
-  for (std::size_t i = 0; i < string_size.length(); i += 2) {
-    std::swap(string_size[i], string_size[i + 1]);
-  }
+  string_size = swapEndianess(string_size);
   file_entry.string_size = std::stoi(string_size, nullptr, 16);
   std::string entry_name = shell_data.substr(entry_offset + 92);
 
@@ -176,7 +162,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   } catch (const boost::algorithm::hex_decode_error& /* e */) {
     LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
                  << shell_name;
-    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]\\";
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
   file_entry.path = name;
@@ -196,10 +182,7 @@ std::string propertyStore(const std::string& shell_data,
         continue;
       }
       std::string name_size = shell_data.substr(offsets + 48, 8);
-      std::reverse(name_size.begin(), name_size.end());
-      for (std::size_t i = 0; i < name_size.length(); i += 2) {
-        std::swap(name_size[i], name_size[i + 1]);
-      }
+      name_size = swapEndianess(name_size);
       int size = std::stoi(name_size, nullptr, 16);
       std::string string_hex = shell_data.substr(offsets + 74, (size + 1) * 4);
       boost::erase_all(string_hex, "00");
@@ -241,10 +224,7 @@ std::string networkShareItem(const std::string& shell_data) {
 
 std::string zipContentItem(const std::string& shell_data) {
   std::string path_size_string = shell_data.substr(168, 4);
-  std::reverse(path_size_string.begin(), path_size_string.end());
-  for (std::size_t i = 0; i < path_size_string.length(); i += 2) {
-    std::swap(path_size_string[i], path_size_string[i + 1]);
-  }
+  path_size_string = swapEndianess(path_size_string);
   int path_size = std::stoi(path_size_string, nullptr, 16);
 
   std::string path = shell_data.substr(184, path_size * 4);
@@ -260,10 +240,7 @@ std::string zipContentItem(const std::string& shell_data) {
   }
   // Zip folders can go down a max of two directories
   std::string second_path_size_string = shell_data.substr(176, 4);
-  std::reverse(second_path_size_string.begin(), second_path_size_string.end());
-  for (std::size_t i = 0; i < second_path_size_string.length(); i += 2) {
-    std::swap(second_path_size_string[i], second_path_size_string[i + 1]);
-  }
+  second_path_size_string = swapEndianess(second_path_size_string);
   int second_path_size = std::stoi(second_path_size_string, nullptr, 16);
 
   if (second_path_size != 0) {
@@ -416,10 +393,7 @@ std::string variableGuid(const std::string& shell_data) {
 
 std::string mtpFolder(const std::string& shell_data) {
   std::string name_size = shell_data.substr(124, 8);
-  std::reverse(name_size.begin(), name_size.end());
-  for (std::size_t i = 0; i < name_size.length(); i += 2) {
-    std::swap(name_size[i], name_size[i + 1]);
-  }
+  name_size = swapEndianess(name_size);
   int size = std::stoi(name_size, nullptr, 16);
   std::string path_name = shell_data.substr(148, size * 4);
   boost::erase_all(path_name, "00");
@@ -436,10 +410,7 @@ std::string mtpFolder(const std::string& shell_data) {
 
 std::string mtpDevice(const std::string& shell_data) {
   std::string name_size = shell_data.substr(76, 8);
-  std::reverse(name_size.begin(), name_size.end());
-  for (std::size_t i = 0; i < name_size.length(); i += 2) {
-    std::swap(name_size[i], name_size[i + 1]);
-  }
+  name_size = swapEndianess(name_size);
   int size = std::stoi(name_size, nullptr, 16);
   std::string path_name = shell_data.substr(108, size * 4);
   boost::erase_all(path_name, "00");

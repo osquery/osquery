@@ -122,6 +122,7 @@ function(generateOsqueryUtilsUtilstestsTest)
     list(APPEND source_files
       tests/windows/env.cpp
       tests/windows/filetime.cpp
+      tests/windows/shellitems.cpp
     )
   endif()
 

@@ -7,8 +7,8 @@ schema([
     Column("modified_time", INTEGER, "Directory Modified time."),
     Column("created_time", INTEGER, "Directory Created time."),
     Column("accessed_time", INTEGER, "Directory Accessed time."),
-    Column("mft_entry", BIGINT, "Directory mft entry."),
-    Column("mft_sequence", INTEGER, "Directory mft sequence."),
+    Column("mft_entry", BIGINT, "Directory master file table entry."),
+    Column("mft_sequence", INTEGER, "Directory master file table sequence."),
 ])
 implementation("shellbags@genShellbags")
 examples([

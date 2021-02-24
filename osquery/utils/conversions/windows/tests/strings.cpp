@@ -65,4 +65,11 @@ TEST_F(ConversionsTests, test_wstring_to_string_extended) {
   EXPECT_EQ(narrowString, expected);
 }
 
+TEST_F(ConversionsTests, test_swapendianiess) {
+  std::string little_endian{"IJGHEFCDAB"};
+  auto swapendian = swapEndianess(little_endian);
+  std::string expected{"ABCDEFGHIJ"};
+  EXPECT_EQ(swapendian, expected);
+}
+
 } // namespace osquery
