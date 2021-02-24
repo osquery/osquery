@@ -205,7 +205,7 @@ TEST_F(ShellitemTests, test_shellitem_propertystore) {
 TEST_F(ShellitemTests, test_shellitem_networkshare) {
   std::string data = "3A00C301815C5C766D776172652D686F73745C53686172656420466F6C6465727300564D776172652053686172656420466F6C64657273003F000000";
   auto name = networkShareItem(data);
-  ASSERT_TRUE(name == "\\vmware-host\Shared Folders");
+  ASSERT_TRUE(name == "\\\\vmware-host\\Shared Folders");
 }
 
 } // namespace osquery

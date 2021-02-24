@@ -18,8 +18,6 @@
 #include <string>
 #include <vector>
 
-#include <iostream>
-
 namespace osquery {
 namespace tables {
 constexpr auto kShellBagPath =
@@ -221,7 +219,6 @@ void parseShellData(const std::string& shell_data,
         wps = shell_data.find("31535053", wps + 1);
       }
       std::string property_name = propertyStore(shell_data, wps_list);
-      std::cout << "Property Store!!!!" << std::endl;
       build_shellbag.push_back(property_name);
       std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
@@ -284,7 +281,6 @@ void parseShellData(const std::string& shell_data,
         wps = shell_data.find("31535053", wps + 1);
       }
       std::string property_name = propertyStore(shell_data, wps_list);
-      std::cout << "Property store" << std::endl;
       build_shellbag.push_back(property_name);
       std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
