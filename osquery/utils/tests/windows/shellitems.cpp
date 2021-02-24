@@ -191,21 +191,21 @@ TEST_F(ShellitemTests, test_shellitem_propertyviewdrive) {
 }
 
 TEST_F(ShellitemTests, test_shellitem_propertystore) {
-  //std::string data = "";
-  //std::vector<size_t> wps_list;
-  //size_t wps = data.find("31535053");
-  //while (wps != std::string::npos) {
-   // wps_list.push_back(wps);
-   // wps = data.find("31535053", wps + 1);
- // }
-  //auto name = propertyStore(data, wps_list);
-  //ASSERT_TRUE(name == "CLSID_BinaryAutoList");
+  std::string data = "100100000A01BBAF933BFC000400000000002D000000315350537343E50ABE43AD4F85E469DC8633986E110000000B000000000B000000FFFF000000000000450000003153505330F125B7EF471A10A5F102608C9EEBAC290000000A000000001F0000000C00000076006D0077006100720065002D0068006F00730074000000000000005900000031535053A66A63283D95D211B5D600C04FD918D03D0000001F000000001F0000001600000056004D0077006100720065002000530068006100720065006400200046006F006C0064006500720073000000000000002D000000315350533AA4BDDEB337834391E74498DA2995AB1100000003000000001300000000000000000000000000000000000000";
+  std::vector<size_t> wps_list;
+  size_t wps = data.find("31535053");
+  while (wps != std::string::npos) {
+    wps_list.push_back(wps);
+    wps = data.find("31535053", wps + 1);
+  }
+  auto name = propertyStore(data, wps_list);
+  ASSERT_TRUE(name == "vmware-host");
 }
 
 TEST_F(ShellitemTests, test_shellitem_networkshare) {
-  std::string data = "";
-  // auto name = networkShareItem(data);
-  // ASSERT_TRUE(name == "Programs and Features");
+  std::string data = "3A00C301815C5C766D776172652D686F73745C53686172656420466F6C6465727300564D776172652053686172656420466F6C64657273003F000000";
+  auto name = networkShareItem(data);
+  ASSERT_TRUE(name == "\\vmware-host\Shared Folders");
 }
 
 } // namespace osquery
