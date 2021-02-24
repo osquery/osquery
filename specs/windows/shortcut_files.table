@@ -1,0 +1,15 @@
+table_name("shortcut_files")
+description("View data about Windows Shortcut files.")
+schema([
+    Column("path", TEXT, "Directory name."),
+    Column("source_path", TEXT, "Original file path"),
+    Column("source_modified_time", INTEGER, "Source Modified time."),
+    Column("source_created_time", INTEGER, "Source Created time."),
+    Column("source_accessed_time", INTEGER, "Source Accessed time."),
+    Column("mft_entry", BIGINT, "Directory mft entry."),
+    Column("mft_sequence", INTEGER, "Directory mft sequence."),
+])
+implementation("shortcut_files@genShortcutFiles")
+examples([
+  "select * from shortcut_files;",
+])
