@@ -129,4 +129,13 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
   return filetimeToUnixtime(timeStore);
 }
 
+std::string swapEndianess(const std::string& endian_string) {
+  std::string swap_string = endian_string;
+  std::reverse(swap_string.begin(), swap_string.end());
+  for (std::size_t i = 0; i < swap_string.length(); i += 2) {
+    std::swap(swap_string[i], swap_string[i + 1]);
+  }
+  return swap_string;
+}
+
 } // namespace osquery

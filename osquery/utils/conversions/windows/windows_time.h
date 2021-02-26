@@ -37,4 +37,12 @@ LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
  */
 LONGLONG littleEndianToUnixTime(const std::string& time_data);
 
+/**
+ * @brief Windows helper function for parsing and converting FAT time to Unix
+ * epoch.
+ *
+ * @returns The unix epoch timestamp representation of FAT time
+ */
+LONGLONG parseFatTime(const std::string& dos_data);
+
 } // namespace osquery
