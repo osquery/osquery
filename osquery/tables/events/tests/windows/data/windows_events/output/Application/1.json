@@ -1,12 +1,429 @@
 {
-    "osquery_time": "1592478128",
-    "datetime": "2020-06-09T18:12:25.4809506Z",
-    "source": "Application",
-    "provider_name": "SecurityCenter",
-    "provider_guid": "",
-    "event_id": "1",
-    "task_id": "0",
-    "level": "4",
-    "keywords": "0x80000000000000",
-    "data": "{\"EventData\":\"\"}"
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-09T18:12:25.4809506Z",
+  "source": "Application",
+  "provider_name": "SecurityCenter",
+  "provider_guid": "",
+  "event_id": "1",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":\"\"}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:50:39.9637099Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-RestartManager",
+  "provider_guid": "{0888e5ef-9b98-4695-979d-e92ce4247224}",
+  "event_id": "10000",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x8000000000000000",
+  "data": "{\"UserData\":{\"RmSessionEvent\":{\"<xmlattr>\":{\"xmlns\":\"http:\\/\\/www.microsoft.com\\/2005\\/08\\/Windows\\/Reliability\\/RestartManager\\/\"},\"RmSessionId\":\"0\",\"UTCStartTime\":\"2020-06-05T12:50:39.9512623Z\"}}}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:48:44.4193752Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-RestartManager",
+  "provider_guid": "{0888e5ef-9b98-4695-979d-e92ce4247224}",
+  "event_id": "10001",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x8000000000000000",
+  "data": "{\"UserData\":{\"RmSessionEvent\":{\"<xmlattr>\":{\"xmlns\":\"http:\\/\\/www.microsoft.com\\/2005\\/08\\/Windows\\/Reliability\\/RestartManager\\/\"},\"RmSessionId\":\"0\",\"UTCStartTime\":\"2020-06-05T12:48:44.1077859Z\"}}}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-12T15:27:08.4281618Z",
+  "source": "Application",
+  "provider_name": "ESENT",
+  "provider_guid": "",
+  "event_id": "102",
+  "task_id": "1",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"SearchIndexer\",\"5780,P,98\",\"Windows: \",\"0\",\"10\",\"00\",\"19041\",\"0000\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:50:12.7641605Z",
+  "source": "Application",
+  "provider_name": "MsiInstaller",
+  "provider_guid": "",
+  "event_id": "1042",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"C:\\\\ProgramData\\\\Package Cache\\\\{15E06EC7-2755-BD07-45AD-98DF1679A6BE}v10.1.18362.1\\\\Installers\\\\Windows App Certification Kit x64-x86_en-us.msi\",\"3688\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"(NULL)\",\"\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:26:50.0010927Z",
+  "source": "Application",
+  "provider_name": "ESENT",
+  "provider_guid": "",
+  "event_id": "105",
+  "task_id": "1",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"SearchIndexer\",\"3664,D,0\",\"Windows: \",\"0\",\"0\",\"\\n[1] 0.021433 +J(0) +M(C:0K, Fs:346, WS:1360K # 0K, PF:5020K # 5020K, P:5020K)\\n[2] 0.000603 +J(0) +M(C:0K, Fs:128, WS:508K # 0K, PF:380K # 380K, P:380K)\\n[3] 0.003797 +J(0) +M(C:0K, Fs:6, WS:24K # 0K, PF:64K # 64K, P:64K)\\n[4] 0.000253 +J(0) +M(C:0K, Fs:28, WS:108K # 0K, PF:352K # 352K, P:352K)\\n[5] 0.001055 +J(0) +M(C:0K, Fs:12, WS:48K # 0K, PF:24K # 24K, P:24K)\\n[6] 0.000477 +J(0) +M(C:0K, Fs:24, WS:96K # 0K, PF:12K # 12K, P:12K)\\n[7] -\\n[8] -\\n[9] -\\n[10] -\\n[11] -\\n[12] -\\n[13] 0.111539 -0.035088 (2) WT +J(CM:0, PgRf:0, Rd:0\\/0, Dy:0\\/0, Lg:616\\/1) +M(C:0K, Fs:568, WS:1252K # 1216K, PF:20K # 1040K, P:20K)\\n[14] 0.000012 +J(0)\\n[15] 0.000051 +J(0) +M(C:0K, Fs:64, WS:256K # 0K, PF:64K # 0K, P:64K)\\n[16] 0.140959 -0.117526 (2) WT +J(0) +M(C:0K, Fs:6, WS:16K # 0K, PF:0K # 0K, P:0K).\",\"\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T13:25:29.3994964Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-Security-SPP",
+  "provider_guid": "{E23B33B0-C8C9-472C-A5F9-F2BDFEA0F156}",
+  "event_id": "1061",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"27\",\"49\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T16:12:07.4170796Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-Security-SPP",
+  "provider_guid": "{E23B33B0-C8C9-472C-A5F9-F2BDFEA0F156}",
+  "event_id": "1066",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"C:\\\\Windows\\\\system32\\\\sppwinob.dll, msft:spp\\/windowsfunctionality\\/agent\\/7.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:rm\\/algorithm\\/inherited\\/1.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:rm\\/algorithm\\/phone\\/1.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:rm\\/algorithm\\/pkey\\/detect, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:spp\\/ActionScheduler\\/1.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:spp\\/TaskScheduler\\/1.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:spp\\/statecollector\\/pkey, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:spp\\/volume\\/services\\/kms\\/1.0, 0x00000000, 0x00000000\\nC:\\\\Windows\\\\system32\\\\sppobjs.dll, msft:spp\\/volume\\/services\\/kms\\/activationinfo\\/1.0, 0x00000000, 0x00000000\\n\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:49:03.1326595Z",
+  "source": "Application",
+  "provider_name": "MsiInstaller",
+  "provider_guid": "",
+  "event_id": "11707",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":{\"\":\"Product: icecap_collectionresources -- Installation completed successfully.\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"\",\"Binary\":\"7B31453645353930342D453937462D343146372D423344422D3043384344333138304533437D\"}}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T16:22:32.4438522Z",
+  "source": "Application",
+  "provider_name": "SecurityCenter",
+  "provider_guid": "",
+  "event_id": "15",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"Windows Defender\",\"SECURITY_PRODUCT_STATE_ON\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T15:11:34.3510397Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-User Profiles Service",
+  "provider_guid": "{89b1e9f0-5aff-44a6-9b44-0a07a7ce5845}",
+  "event_id": "1532",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x8000000000000000",
+  "data": "{\"EventData\":\"\"}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:28:49.8446108Z",
+  "source": "Application",
+  "provider_name": "SecurityCenter",
+  "provider_guid": "",
+  "event_id": "16",
+  "task_id": "0",
+  "level": "2",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":{\"\":\"Windows Defender\",\"\":\"SECURITY_PRODUCT_STATE_ON\",\"Binary\":\"02000000\"}}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-09T18:59:08.7477702Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-Security-SPP",
+  "provider_guid": "{E23B33B0-C8C9-472C-A5F9-F2BDFEA0F156}",
+  "event_id": "16384",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"2020-06-10T18:10:08Z\",\"RulesEngine\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-17T14:27:46.5802095Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-Security-SPP",
+  "provider_guid": "{E23B33B0-C8C9-472C-A5F9-F2BDFEA0F156}",
+  "event_id": "16394",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":\"\"}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:55:29.1803401Z",
+  "source": "Application",
+  "provider_name": "MsiInstaller",
+  "provider_guid": "",
+  "event_id": "11708",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":{\"\":\"Product: Strawberry Perl (64-bit) -- Installation failed.\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"(NULL)\",\"\":\"\",\"Binary\":\"7B41323445343936412D364541432D313031342D384134342D4339323133354438383131357D2C2031363032\"}}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-12T14:59:40.7280202Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-Defrag",
+  "provider_guid": "",
+  "event_id": "258",
+  "task_id": "0",
+  "level": "0",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":{\"\":\"defragmentation\",\"\":\"System Reserved\",\"Binary\":\"0000000034020000FD0100000000000022B651A2296BEDD85E9C8D030000000000000000\"}}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-12T15:59:22.7563417Z",
+  "source": "Application",
+  "provider_name": "ESENT",
+  "provider_guid": "",
+  "event_id": "300",
+  "task_id": "3",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"svchost\",\"7444,R,98\",\"DS_Token_DB: \"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-12T15:27:08.4908738Z",
+  "source": "Application",
+  "provider_name": "ESENT",
+  "provider_guid": "",
+  "event_id": "301",
+  "task_id": "3",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"SearchIndexer\",\"5780,R,98\",\"Windows: \",\"C:\\\\ProgramData\\\\Microsoft\\\\Search\\\\Data\\\\Applications\\\\Windows\\\\edb.jtx\",\"\\n[1] 0.040883 -0.022310 (50) CM -0.010393 (7) WT +J(CM:50, PgRf:939, Rd:0\\/50, Dy:50\\/1884, Lg:705257\\/2963) +M(C:0K, Fs:640, WS:2392K # 2312K, PF:2368K # 2272K, P:2368K).\",\"Commit   \",\"665\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-17T14:37:58.3256510Z",
+  "source": "Application",
+  "provider_name": "ESENT",
+  "provider_guid": "",
+  "event_id": "302",
+  "task_id": "3",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"svchost\",\"4228,U,98\",\"DS_Token_DB: \"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:27:00.6413707Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-CAPI2",
+  "provider_guid": "{5bbca4a8-b209-48dc-a8c7-b23d3e5216fb}",
+  "event_id": "4112",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x8080000000000000",
+  "data": "{\"EventData\":[\"‎13 ‎August ‎2019 17:18:35\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:28:37.6707803Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-CAPI2",
+  "provider_guid": "{5bbca4a8-b209-48dc-a8c7-b23d3e5216fb}",
+  "event_id": "4113",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x8080000000000000",
+  "data": "{\"EventData\":[\"‎Thursday, ‎June ‎1, ‎2017 12:28:59 AM\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-12T15:26:37.2397863Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-EventSystem",
+  "provider_guid": "{899daace-4868-4295-afcd-9eb8fb497561}",
+  "event_id": "4625",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":{\"param1\":\"86400\",\"param2\":\"SuppressDuplicateDuration\",\"param3\":\"Software\\\\Microsoft\\\\EventSystem\\\\EventLog\"}}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:28:54.0607833Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-Search-ProfileNotify",
+  "provider_guid": "{FC6F77DD-769A-470E-BCF9-1B6555A118BE}",
+  "event_id": "5",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":{\"User\":\"DESKTOP-4AR7BIA\\\\alessandro\",\"Binary\":\"\"}}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:26:55.2425065Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-WMI",
+  "provider_guid": "{1edeee53-0afe-4609-b846-d8c0b2075b1f}",
+  "event_id": "5611",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x8000000000000000",
+  "data": "{\"EventData\":\"\"}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T13:25:27.5647678Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-WMI",
+  "provider_guid": "{1edeee53-0afe-4609-b846-d8c0b2075b1f}",
+  "event_id": "5615",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x8000000000000000",
+  "data": "{\"EventData\":\"\"}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-12T15:26:41.3003847Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-WMI",
+  "provider_guid": "{1edeee53-0afe-4609-b846-d8c0b2075b1f}",
+  "event_id": "5617",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x8000000000000000",
+  "data": "{\"EventData\":\"\"}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:27:00.1729766Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-Winlogon",
+  "provider_guid": "{DBE9B383-7CF3-4331-91CC-A3CB16A3B538}",
+  "event_id": "6000",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":{\"\":\"SessionEnv\",\"Binary\":\"D9060000\"}}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:26:59.9069581Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-Winlogon",
+  "provider_guid": "{DBE9B383-7CF3-4331-91CC-A3CB16A3B538}",
+  "event_id": "6003",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":{\"\":\"SessionEnv\",\"Binary\":\"D9060000\"}}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:27:03.3760524Z",
+  "source": "Application",
+  "provider_name": "ESENT",
+  "provider_guid": "",
+  "event_id": "642",
+  "task_id": "1",
+  "level": "3",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"wuaueng.dll\",\"5408,D,35\",\"SUS20ClientDataStore: \",\"0x40000001 (JET_efvUseEngineDefault)\",\"9120 (0x23a0)\",\"1568.20.0\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:46:57.5106726Z",
+  "source": "Application",
+  "provider_name": "System Restore",
+  "provider_guid": "",
+  "event_id": "8195",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":{\"\":\"C:\\\\Program Files (x86)\\\\Microsoft Visual Studio\\\\Installer\\\\resources\\\\app\\\\ServiceHub\\\\Hosts\\\\Microsoft.ServiceHub.Host.CLR\\\\vs_installerservice.exe Files (x86)\\\\Microsoft Visual Studio\\\\Installer\\\\resources\\\\app\\\\ServiceHub\\\\Hosts\\\\Microsoft.ServiceHub.Host.CLR\\\\vs_installerservice.exe\\\" \\\"desktopClr$C94B8CFE-E3FD-4BAF-A941-2866DBB566FE\\\" \\\"net.pipe:\\/\\/8D4CBCD2EAAFE9895BBC7D4F475EE46F\\\"\",\"\":\"\",\"Binary\":\"000000008900000083000000000000004386252307000000000000000000000000000000\"}}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-17T14:27:52.1112601Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-Security-SPP",
+  "provider_guid": "{E23B33B0-C8C9-472C-A5F9-F2BDFEA0F156}",
+  "event_id": "8198",
+  "task_id": "0",
+  "level": "2",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"hr=0x8007139F\",\"RuleId=31e71c49-8da7-4a2f-ad92-45d98a1c79ba;Action=AutoActivate;AppId=55c92734-d682-4d71-983e-d6ec3f16059f;SkuId=9fbaf5d6-4d83-4422-870d-fdda6e5858aa;NotificationInterval=1440;Trigger=TimerEvent\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T12:30:58.0116534Z",
+  "source": "Application",
+  "provider_name": "Microsoft-Windows-Security-SPP",
+  "provider_guid": "{E23B33B0-C8C9-472C-A5F9-F2BDFEA0F156}",
+  "event_id": "8230",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":[\"Security-SPP-Action-StateData (REG_SZ) =AppId=55c92734-d682-4d71-983e-d6ec3f16059f;LastConsumptionReason=0xc004f034;LastNotificationId=NeverActivated;LicenseState=SL_LICENSING_STATUS_NOTIFICATION;PartialProductKey=PKCKT;ProductKeyType=Retail;SkuId=9fbaf5d6-4d83-4422-870d-fdda6e5858aa;ruleId=31e71c49-8da7-4a2f-ad92-45d98a1c79ba;uxDifferentiator=RETAIL\"]}",
+  "computer_name": "DESKTOP-4AR7BIA"
+}
+{
+  "osquery_time": "1592478128",
+  "datetime": "2020-06-05T16:13:32.1424781Z",
+  "source": "Application",
+  "provider_name": "Desktop Window Manager",
+  "provider_guid": "",
+  "event_id": "9027",
+  "task_id": "0",
+  "level": "4",
+  "keywords": "0x80000000000000",
+  "data": "{\"EventData\":\"\"}",
+  "computer_name": "DESKTOP-4AR7BIA"
 }
