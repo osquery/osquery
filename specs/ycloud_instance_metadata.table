@@ -1,0 +1,19 @@
+table_name("ycloud_instance_metadata")
+description("Yandex.Cloud instance metadata.")
+schema([
+    Column("instance_id", TEXT, "Unique identifier for the VM", index=True),
+    Column("folder_id", TEXT, "Folder identifier for the VM"),
+    Column("name", TEXT, "Name of the VM"),
+    Column("description", TEXT, "Description of the VM"),
+    Column("hostname", TEXT, "Hostname of the VM"),
+    Column("zone", TEXT, "Availability zone of the VM"),
+    Column("ssh_public_key", TEXT, "SSH public key. Only available if supplied at instance launch time"),
+    Column("serial_port_enabled", TEXT, "Indicates if serial port is enabled for the VM"),
+    Column("metadata_endpoint", TEXT, "Endpoint used to fetch VM metadata", index=True),
+])
+attributes(cacheable=True)
+implementation("cloud/ycloud_metadata@genYCloudMetadata")
+examples([
+    "select * from ycloud_instance_metadata",
+    "select * from ycloud_instance_metadata where metadata_endpoint=\"http://169.254.169.254\""
+])
