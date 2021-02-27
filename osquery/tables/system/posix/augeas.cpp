@@ -15,6 +15,7 @@
 #include <unordered_set>
 
 #include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include <osquery/core/flags.h>
 #include <osquery/core/tables.h>
@@ -95,9 +96,9 @@ void matchAugeasPattern(augeas* aug,
       path = path.substr(6);
       // The caller is responsible for the matching memory.
       free(file);
-    } else {
-      // The iterator is currently pointing to a folder so we extract the path
-      // from the node.
+    } else if (node.compare(0, 6, "/files") == 0) {
+      // If iterator is currently pointing to a directory, it should
+      // appear in /files. Extract the path and from the node
       path = node.substr(6);
     }
 
@@ -121,7 +122,10 @@ class AugeasHandle {
   void initialize() {
     std::call_once(initialized, [this]() {
       this->aug = aug_init(
-          nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE | AUG_NO_LOAD);
+          nullptr,
+          FLAGS_augeas_lenses.c_str(),
+          AUG_NO_ERR_CLOSE | AUG_NO_LOAD | AUG_NO_STDINC | AUG_SAVE_NOOP);
+
       // Handle initialization errors.
       if (this->aug == nullptr) {
         LOG(ERROR) << "An error has occurred while trying to initialize augeas";
@@ -150,7 +154,41 @@ class AugeasHandle {
 
 static AugeasHandle kAugeasHandle;
 
+// Augeas presents data as a slash deliminaed file system. It uses
+// `/*` as a single level wildcard, and `//*` as a recursive
+// wildcard. However, sqlite uses % as a wildcard. To allow for LIKE
+// expressions, we convert.
+void convertWildcards(std::string& str) {
+  size_t pos;
+  while ((pos = str.find("%%")) != std::string::npos) {
+    str.replace(pos, 2, "/*");
+  }
+  while ((pos = str.find("%")) != std::string::npos) {
+    str.replace(pos, 1, "*");
+  }
+}
+
 QueryData genAugeas(QueryContext& context) {
+  // Strategy for handling augeas
+  // (As informed by forensic examination of the underlying code)
+  //
+  // Augeas is a powerful tool for representing configuration files
+  // as a tree, and then querying against it. However, it's native
+  // interfaces don't feel osquery's underlying model. So we shim a bit.
+  //
+  // Augeas normally reads everything it can into a giant
+  // tree. Files are rooted at `/files`, while augeas is rooted at
+  // `/augeas`. Information is queried from augeas by running
+  // matches against the tree paths.  In contrast, osquery tends to
+  // operate by loading data at runtime, frequently by file path.
+  //
+  // We bridge these worlds, by adding a `path` column to the
+  // osquery output. This path is the filepath, and not the tree
+  // path.
+  //
+  // To query, we append the augeas wildcard, and then match. The
+  // returned path records have the appropriate value because they
+  // refer to real paths.
   kAugeasHandle.initialize();
 
   if (kAugeasHandle.error == true) {
@@ -158,7 +196,17 @@ QueryData genAugeas(QueryContext& context) {
   }
 
   augeas* aug = kAugeasHandle.aug;
-  aug_load(aug);
+
+  // Load everything. While it would be interesting to do this for
+  // only the requested files, it's not clearly possible to
+  // _unload_. So at present, load everything. (For refernce, it
+  // takes abvout 0.3 seconds to run aug_load on seph's laptop.)
+  int ret = aug_load(aug);
+  if (ret != 0) {
+    LOG(ERROR) << "An error has occurred while trying to load augeas: "
+               << aug_error_message(aug);
+    return {};
+  }
 
   QueryData results;
   std::unordered_set<std::string> patterns;
@@ -168,12 +216,26 @@ QueryData genAugeas(QueryContext& context) {
     patterns.insert(nodes.begin(), nodes.end());
   }
 
+  if (context.hasConstraint("node", LIKE)) {
+    auto nodes = context.constraints["node"].getAll(LIKE);
+    for (std::string node : nodes) {
+      if (node.empty()) {
+        continue;
+      }
+      convertWildcards(node);
+      patterns.insert(node);
+    }
+  }
+
   if (context.hasConstraint("path", EQUALS)) {
-    // Allow requests via filesystem path.
     auto paths = context.constraints["path"].getAll(EQUALS);
     std::ostringstream pattern;
 
     for (const auto& path : paths) {
+      if (path.empty()) {
+        continue;
+      }
+
       pattern << "/files" << path;
       patterns.insert(pattern.str());
 
@@ -182,6 +244,36 @@ QueryData genAugeas(QueryContext& context) {
 
       pattern << "/files" << path << "//*";
       patterns.insert(pattern.str());
+
+      pattern.clear();
+      pattern.str(std::string());
+    }
+  }
+
+  // This LIKE strategy only works because we've loaded the entire
+  // augeas system. If we ever move to loading by explicit files, this
+  // will break.
+  if (context.hasConstraint("path", LIKE)) {
+    auto paths = context.constraints["path"].getAll(LIKE);
+    std::ostringstream pattern;
+
+    for (std::string path : paths) {
+      if (path.empty()) {
+        continue;
+      }
+
+      convertWildcards(path);
+
+      pattern << "/files" << path;
+      patterns.insert(pattern.str());
+
+      pattern.clear();
+      pattern.str(std::string());
+
+      if (!strncmp(&path.back(), "*", 1)) {
+        pattern << "/files" << path << "//*";
+        patterns.insert(pattern.str());
+      }
 
       pattern.clear();
       pattern.str(std::string());
