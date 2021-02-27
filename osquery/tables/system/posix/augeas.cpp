@@ -134,12 +134,14 @@ class AugeasHandle {
             << "An error has occurred while trying to initialize augeas: "
             << aug_error_message(this->aug);
         aug_close(this->aug);
+        this->aug = nullptr;
       }
     });
   }
 
   ~AugeasHandle() {
     aug_close(aug);
+    aug = nullptr;
   }
 
  private:
