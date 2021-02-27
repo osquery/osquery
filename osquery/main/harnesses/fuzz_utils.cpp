@@ -18,9 +18,9 @@
 namespace osquery {
 
 std::set<std::string> kDisabledFuzzingTables = {
-  "file",
-  "hash",
-  "yara",
+    "file",
+    "hash",
+    "yara",
 };
 
 int osqueryFuzzerInitialize(int* argc, char*** argv) {
