@@ -6,6 +6,7 @@ schema([
     Column("source", TEXT, "Source or channel of the event"),
     Column("provider_name", TEXT, "Provider name of the event"),
     Column("provider_guid", TEXT, "Provider guid of the event"),
+    Column("computer_name", TEXT, "Hostname of system where event was generated"),
     Column("eventid", INTEGER, "Event ID of the event"),
     Column("task", INTEGER, "Task value associated with the event"),
     Column("level", INTEGER, "The severity level associated with the event"),
