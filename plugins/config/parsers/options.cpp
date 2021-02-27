@@ -53,15 +53,24 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
     return Status();
   }
 
-  if (!data_.doc().HasMember("options")) {
-    auto obj = data_.getObject();
-    data_.add("options", obj);
-  }
+  {
+    auto doc = JSON::newObject();
 
-  if (co->second.doc().IsObject()) {
-    auto obj = data_.getObject();
-    data_.copyFrom(co->second.doc(), obj);
-    data_.mergeObject(data_.doc()["options"], obj);
+    {
+      auto obj = doc.getObject();
+      if (data_.doc().HasMember("options")) {
+        doc.copyFrom(data_.doc()["options"], obj);
+      }
+      doc.add("options", obj);
+    }
+
+    if (co->second.doc().IsObject()) {
+      auto obj = doc.getObject();
+      doc.copyFrom(co->second.doc(), obj);
+      doc.mergeObject(doc.doc()["options"], obj);
+    }
+
+    data_ = std::move(doc);
   }
 
   const auto& options = data_.doc()["options"];
