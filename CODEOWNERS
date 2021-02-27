@@ -5,8 +5,7 @@
 # precedence.
 
 # General write access
-* @osquery/osquery-committers
-* @osquery/technical-steering-committee
+* @osquery/osquery-committers @osquery/technical-steering-committee
 
 .github/workflows @osquery/osquery-build-wardens
 
