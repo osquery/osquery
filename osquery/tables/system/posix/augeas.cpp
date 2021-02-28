@@ -15,7 +15,6 @@
 #include <unordered_set>
 
 #include <boost/algorithm/string/join.hpp>
-#include <boost/algorithm/string/predicate.hpp>
 
 #include <osquery/core/flags.h>
 #include <osquery/core/tables.h>
@@ -154,10 +153,10 @@ class AugeasHandle {
 
 static AugeasHandle kAugeasHandle;
 
-// Augeas presents data as a slash deliminaed file system. It uses
-// `/*` as a single level wildcard, and `//*` as a recursive
-// wildcard. However, sqlite uses % as a wildcard. To allow for LIKE
-// expressions, we convert.
+// Augeas presents data as a slash seperated tree. It uses `/*` as a
+// single level wildcard, and `//*` as a recursive wildcard. However,
+// sqlite uses % as a wildcard. To allow for LIKE expressions, we
+// convert.
 void convertWildcards(std::string& str) {
   size_t pos;
   while ((pos = str.find("%%")) != std::string::npos) {
@@ -199,7 +198,7 @@ QueryData genAugeas(QueryContext& context) {
 
   // Load everything. While it would be interesting to do this for
   // only the requested files, it's not clearly possible to
-  // _unload_. So at present, load everything. (For refernce, it
+  // _unload_. So at present, load everything. (For reference, it
   // takes abvout 0.3 seconds to run aug_load on seph's laptop.)
   int ret = aug_load(aug);
   if (ret != 0) {
