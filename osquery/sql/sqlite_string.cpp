@@ -210,6 +210,71 @@ static void regexStringMatchFunc(sqlite3_context* context,
                       SQLITE_TRANSIENT);
 }
 
+static void concatFunc(sqlite3_context* context,
+                       std::string sep,
+                       int starting,
+                       int argc,
+                       sqlite3_value** argv) {
+  // Nothing to concat, early return
+  if ((argc - starting) == 0) {
+    return;
+  }
+
+  std::string output;
+
+  for (auto i = starting; i < argc; i++) {
+    if (SQLITE_NULL == sqlite3_value_type(argv[i])) {
+      continue;
+    }
+
+    output.append(reinterpret_cast<const char*>(sqlite3_value_text(argv[i])));
+
+    if (sep != "" && i + 1 < argc) {
+      output.append(sep);
+    }
+  }
+
+  // Give up if the output is so large it's length overflows int
+  if (output.size() > std::numeric_limits<int>::max()) {
+    sqlite3_result_error(context, "Too much data for concat_ws", -1);
+    return;
+  }
+
+  sqlite3_result_text(context,
+                      output.c_str(),
+                      static_cast<int>(output.size()),
+                      SQLITE_TRANSIENT);
+}
+
+/**
+ * @brief Concatenate strings ignoring nulls
+ */
+static void concatStringFunc(sqlite3_context* context,
+                             int argc,
+                             sqlite3_value** argv) {
+  concatFunc(context, "", 0, argc, argv);
+}
+
+/**
+ * @brief Concatenate strings ignoring nulls, with separator
+ */
+static void concatWSStringFunc(sqlite3_context* context,
+                               int argc,
+                               sqlite3_value** argv) {
+  // First arg is the separator. Error if not present
+  if (argc == 0) {
+    sqlite3_result_error(context, "Missing separator to concat_ws", -1);
+    return;
+  }
+
+  const std::string sep =
+      (SQLITE_NULL != sqlite3_value_type(argv[0]))
+          ? reinterpret_cast<const char*>(sqlite3_value_text(argv[0]))
+          : "";
+
+  concatFunc(context, sep, 1, argc, argv);
+}
+
 /**
  * @brief Convert an IPv4 string address to decimal.
  */
@@ -269,6 +334,22 @@ void registerStringExtensions(sqlite3* db) {
                           SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           regexStringMatchFunc,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "concat",
+                          -1,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          concatStringFunc,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "concat_ws",
+                          -1,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          concatWSStringFunc,
                           nullptr,
                           nullptr);
 }
