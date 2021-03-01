@@ -123,6 +123,7 @@ function(generateNativeTables)
     "darwin/plist.table:macos"
     "darwin/power_sensors.table:macos"
     "darwin/preferences.table:macos"
+    "darwin/process_es_events.table:macos"
     "darwin/quicklook_cache.table:macos"
     "darwin/running_apps.table:macos"
     "darwin/safari_extensions.table:macos"

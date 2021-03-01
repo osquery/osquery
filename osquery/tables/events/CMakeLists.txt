@@ -44,6 +44,7 @@ function(generateOsqueryTablesEventsEventstable)
       darwin/disk_events.cpp
       darwin/file_events.cpp
       darwin/hardware_events.cpp
+      darwin/process_es_events.cpp
       darwin/socket_events.cpp
       darwin/openbsm_events.cpp
       darwin/user_interaction_events.cpp
@@ -77,6 +78,7 @@ function(generateOsqueryTablesEventsEventstable)
 
   if(DEFINED PLATFORM_MACOS)
     target_link_libraries(osquery_tables_events_eventstable PUBLIC bsm)
+    target_link_libraries(osquery_tables_events_eventstable PUBLIC EndpointSecurity "-Wl,-weak_library,/usr/lib/libEndpointSecurity.dylib")
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
