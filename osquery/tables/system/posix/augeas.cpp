@@ -121,7 +121,9 @@ class AugeasHandle {
   void initialize() {
     std::call_once(initialized, [this]() {
       this->aug = aug_init(
-          nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE | AUG_NO_LOAD);
+          nullptr,
+          FLAGS_augeas_lenses.c_str(),
+          AUG_NO_ERR_CLOSE | AUG_NO_LOAD | AUG_NO_STDINC | AUG_SAVE_NOOP);
       // Handle initialization errors.
       if (this->aug == nullptr) {
         LOG(ERROR) << "An error has occurred while trying to initialize augeas";
