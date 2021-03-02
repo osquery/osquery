@@ -42,6 +42,7 @@ struct LinkFlags {
   bool unalias_on_save;
   bool environment_path;
   bool local_id_for_unc_target;
+  bool error;
 };
 
 struct LinkFileHeader {
@@ -49,15 +50,58 @@ struct LinkFileHeader {
   std::string guid;
   LinkFlags flags;
   std::string file_attribute;
-  std::string creation_time;
-  std::string access_time;
-  std::string modified_time;
-  std::string file_size;
+  long long creation_time;
+  long long access_time;
+  long long modified_time;
+  long long file_size;
   std::string icon_index;
   std::string window_value;
   std::string hot_key;
 };
+struct TargetInfo {
+  std::string root_folder;
+  std::string path;
+  long long mft_entry;
+  int mft_sequence;
+  std::string data;
+};
+
+struct LocationInfo {
+  std::string type;
+  std::string serial;
+  std::string device;
+  std::string name;
+  std::string provider_type;
+  std::string data;
+};
+
+struct DataStringInfo {
+  std::string description;
+  std::string relative_path;
+  std::string working_path;
+  std::string arguments;
+  std::string icon_location;
+  std::string data;
+};
+
+struct ExtraDataTracker {
+  std::string hostname;
+  std::string droid_volume;
+  std::string droid_file;
+  std::string birth_droid_volume;
+  std::string birth_droid_file;
+};
 
 namespace osquery {
 LinkFileHeader parseShortcutHeader(const std::string& header);
-}
+TargetInfo parseTargetInfo(const std::string& target_info);
+LocationInfo parseLocationData(const std::string& location_data);
+DataStringInfo parseDataString(const std::string& data,
+                               bool unicode,
+                               bool& description,
+                               bool& relative_path,
+                               bool& working_path,
+                               bool& icon_location,
+                               bool& command_args);
+ExtraDataTracker parseExtraDataTracker(const std::string& data);
+} // namespace osquery

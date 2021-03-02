@@ -1,13 +1,18 @@
 table_name("shortcut_files")
 description("View data about Windows Shortcut files.")
 schema([
-    Column("path", TEXT, "Directory name."),
-    Column("source_path", TEXT, "Original file path"),
-    Column("source_modified_time", INTEGER, "Source Modified time."),
-    Column("source_created_time", INTEGER, "Source Created time."),
-    Column("source_accessed_time", INTEGER, "Source Accessed time."),
-    Column("mft_entry", BIGINT, "Directory mft entry."),
-    Column("mft_sequence", INTEGER, "Directory mft sequence."),
+    Column("path", TEXT, "Directory name.", required=True),
+    Column("target_path", TEXT, "Target file path"),
+    Column("target_modified", INTEGER, "Target Modified time."),
+    Column("target_created", INTEGER, "Target Created time."),
+    Column("target_accessed", INTEGER, "Target Accessed time."),
+    Column("target_size", BIGINT, "Size of target file."),
+    Column("relative_path", TEXT, "Relative path to target file from lnk file."),
+    Column("command_args", TEXT, "Command args passed to lnk file"),
+    Column("hostname", TEXT, "Optional hostname of the target file."),
+    Column("device_type", TEXT, "Device containing the target file."),
+    Column("mft_entry", BIGINT, "Target mft entry."),
+    Column("mft_sequence", INTEGER, "Target mft sequence."),
 ])
 implementation("shortcut_files@genShortcutFiles")
 examples([
