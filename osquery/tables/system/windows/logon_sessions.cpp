@@ -70,9 +70,8 @@ QueryData queryLogonSessions(QueryContext& context) {
       if (ConvertSidToStringSidW(session_data->Sid, &sid)) {
         r["logon_sid"] = wstringToString(sid);
       }
-      if (sid) {
-        LocalFree(sid);
-      }
+      LocalFree(sid);
+
       r["logon_time"] = BIGINT(longIntToUnixtime(session_data->LogonTime));
       r["logon_server"] = wstringToString(session_data->LogonServer.Buffer);
       r["dns_domain_name"] =
