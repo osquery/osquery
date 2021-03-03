@@ -117,7 +117,7 @@ QueryData genUserAssist(QueryContext& context) {
             auto count = executionNum(assist_data);
             r["count"] = INTEGER(count);
           }
-          r["last_execution_time"] = INTEGER(time_str);
+          r["last_execution_time"] = BIGINT(time_str);
           r["sid"] = uKey.at("name");
           results.push_back(r);
         }

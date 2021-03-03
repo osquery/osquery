@@ -50,7 +50,7 @@ QueryData genBackgroundActivitiesModerator(QueryContext& context) {
       if (r["path"] != "SequenceNumber" && r["path"] != "Version") {
         auto time_data = bKey.at("data").substr(0, 16);
         auto time_str = littleEndianToUnixTime(time_data);
-        r["last_execution_time"] = INTEGER(time_str);
+        r["last_execution_time"] = BIGINT(time_str);
       }
 
       results.push_back(r);
