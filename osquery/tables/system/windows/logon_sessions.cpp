@@ -66,13 +66,7 @@ QueryData queryLogonSessions(QueryContext& context) {
           kLogonTypeToStr.find(SECURITY_LOGON_TYPE(session_data->LogonType))
               ->second;
       r["session_id"] = INTEGER(session_data->Session);
-      LPWSTR sid = nullptr;
-      if (ConvertSidToStringSidW(session_data->Sid, &sid)) {
-        r["logon_sid"] = wstringToString(sid);
-      }
-      if (sid) {
-        LocalFree(sid);
-      }
+      r["logon_sid"] = psidToString(session_data->Sid);
       r["logon_time"] = BIGINT(longIntToUnixtime(session_data->LogonTime));
       r["logon_server"] = wstringToString(session_data->LogonServer.Buffer);
       r["dns_domain_name"] =
