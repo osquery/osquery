@@ -17,6 +17,12 @@
 
 namespace osquery {
 
+std::set<std::string> kDisabledFuzzingTables = {
+    "file",
+    "hash",
+    "yara",
+};
+
 int osqueryFuzzerInitialize(int* argc, char*** argv) {
   osquery::registryAndPluginInit();
   osquery::initDatabasePluginForTesting();
@@ -28,12 +34,15 @@ int osqueryFuzzerInitialize(int* argc, char*** argv) {
   sqlite3_limit(db, SQLITE_LIMIT_VDBE_OP, 25000);
   sqlite3_limit(db, SQLITE_LIMIT_LENGTH, 50000);
 
-  osquery::PluginRequest r;
-  r["action"] = "detach";
-  r["table"] = "file";
+  for (const auto& table_name : kDisabledFuzzingTables) {
+    osquery::PluginRequest r;
+    r["action"] = "detach";
+    r["table"] = table_name;
 
-  osquery::PluginResponse rsp;
-  osquery::Registry::get().call("sql", r, rsp);
+    osquery::PluginResponse rsp;
+    osquery::Registry::get().call("sql", r, rsp);
+  }
+
   FLAGS_minloglevel = 4;
 
   return 0;
