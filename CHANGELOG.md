@@ -56,6 +56,7 @@
 
 ### Documentation
 
+- Add 4.7.0 CHANGELOG ([#6985](#https://github.com/osquery/osquery/pull/6985))
 - Clarify FIM exclude category documentation ([#6966](https://github.com/osquery/osquery/pull/6966))
 - Update the Linux install steps and package listing ([#6956](https://github.com/osquery/osquery/pull/6956))
 - Update the info about osquery's TLS version support ([#6963](https://github.com/osquery/osquery/pull/6963))
