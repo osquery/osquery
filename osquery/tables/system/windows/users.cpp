@@ -125,6 +125,7 @@ void genUser(const std::string& sidString, QueryData& results) {
     ret = LookupAccountSidW(
         nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
     r["username"] = ret != 0 ? wstringToString(accntName) : "";
+    LocalFree(sid);
 
     // Also attempt to get the user account description comment. Move on if
     // NetUserGetInfo returns an error, as it will for some system accounts.
