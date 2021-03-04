@@ -124,12 +124,12 @@ uint32_t getGidFromSid(PSID sid) {
           gid = rid;
         }
       }
-    } 
+    }
 
     // If none of the above worked, User may not have a Local Group
     if (gid == static_cast<uint32_t>(-1)) {
       // Fallback to using its RID from its USER_INFO_3 struct
-      NetApiBufferFree(userBuff);  // free the level 0 buff from above
+      NetApiBufferFree(userBuff); // free the level 0 buff from above
       userInfoLevel = 3;
       ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
       if (ret == NERR_Success) {
