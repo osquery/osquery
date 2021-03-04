@@ -27,6 +27,7 @@ namespace osquery {
 
 struct EndpointSecuritySubscriptionContext : public SubscriptionContext {
   std::vector<es_event_type_t> es_event_subscriptions_;
+  std::vector<Row> row_list;
 };
 
 using EndpointSecuritySubscriptionContextRef = std::shared_ptr<EndpointSecuritySubscriptionContext>;
@@ -93,7 +94,7 @@ class EndpointSecurityPublisher : public EventPublisher<EndpointSecuritySubscrip
     return Status::success();
   }
 
-  bool shouldFire(const EndpointSecurityEventContextRef& sc, const EndpointSecurityEventContextRef& ec) const API_AVAILABLE(macos(10.15));
+  bool shouldFire(const EndpointSecuritySubscriptionContextRef& sc, const EndpointSecurityEventContextRef& ec) const override API_AVAILABLE(macos(10.15));
 
   virtual ~EndpointSecurityPublisher() API_AVAILABLE(macos(10.15)) {
     tearDown();

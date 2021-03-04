@@ -84,6 +84,12 @@ Status ESProcessEventSubscriber::Callback(const EndpointSecurityEventContextRef&
     r["exit_code"] = INTEGER(ec->exit_code);
   }
 
+  /*
+  sc->row_list.push_back(std::move(r));
+  if (!sc->row_list.empty()) {
+    addBatch(sc->row_list);
+  }*/
+
   add(r);
   return Status::success();
 }

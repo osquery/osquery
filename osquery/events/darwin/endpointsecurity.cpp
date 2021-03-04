@@ -107,7 +107,9 @@ static inline std::string getStringFromToken(es_string_token_t* t) {
 }
 
 static inline std::string getCwdPathFromPid(pid_t pid) {
-  return "";
+  struct proc_vnodepathinfo vpi {};
+  auto bytes = proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &vpi, sizeof(vpi));
+  return bytes <= 0 ? "" : vpi.pvi_cdir.vip_path;
 }
 
 static inline std::string getCDHash(const es_process_t* p) {
@@ -117,6 +119,31 @@ static inline std::string getCDHash(const es_process_t* p) {
   }
   auto s = hash.str();
   return s.find_first_not_of(s.front()) == std::string::npos ? "" : s;
+}
+
+static inline void getProperties(const es_process_t* p, const EndpointSecurityEventContextRef& ec) {
+  auto audit_token = p->audit_token;
+  ec->pid = audit_token_to_pid(audit_token);
+  ec->parent = p->ppid;
+  ec->original_parent = p->original_ppid;
+
+  ec->path = getPath(p);
+  ec->cwd = getCwdPathFromPid(ec->pid);
+
+  ec->uid = audit_token_to_ruid(audit_token);
+  ec->euid = audit_token_to_egid(audit_token);
+  ec->gid = audit_token_to_rgid(audit_token);
+  ec->egid = audit_token_to_egid(audit_token);
+
+  ec->signing_id = getSigningId(p);
+  ec->team_id = getTeamId(p);
+  ec->cdhash = getCDHash(p);
+  ec->platform_binary = p->is_platform_binary;
+
+  auto user = getpwuid(ec->uid);
+  ec->username = std::string(user->pw_name);
+
+  ec->cwd = getCwdPathFromPid(ec->pid);
 }
 
 void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
@@ -139,32 +166,14 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
     ec->global_seq_num = message->global_seq_num;
   }
 
-  auto audit_token = message->process->audit_token;
-  ec->pid = audit_token_to_pid(audit_token);
-  ec->parent = message->process->ppid;
-  ec->original_parent = message->process->original_ppid;
-
-  ec->path = getPath(message->process);
-  ec->cwd = getCwdPathFromPid(ec->pid);
-
-  ec->uid = audit_token_to_ruid(audit_token);
-  ec->euid = audit_token_to_egid(audit_token);
-  ec->gid = audit_token_to_rgid(audit_token);
-  ec->egid = audit_token_to_egid(audit_token);
-
-  ec->signing_id = getSigningId(message->process);
-  ec->team_id = getTeamId(message->process);
-  ec->cdhash = getCDHash(message->process);
-  ec->platform_binary = message->process->is_platform_binary;
-
-  auto user = getpwuid(ec->uid);
-  ec->username = std::string(user->pw_name);
+  getProperties(message->process, ec);
 
   switch (message->event_type) {
   case ES_EVENT_TYPE_NOTIFY_EXEC: {
     ec->es_event = ES_EVENT_TYPE_NOTIFY_EXEC;
     ec->event_type = "exec";
 
+    getProperties(message->event.exec.target, ec);
     ec->argc = es_exec_arg_count(&message->event.exec);
     std::stringstream args;
     for (auto i = 0; i < ec->argc; i++) {
@@ -182,13 +191,16 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
       envs << s << ' ';
     }
     ec->envs = envs.str();
+
+    if (ec->version >= 3) {
+      ec->cwd = getStringFromToken(&message->event.exec.cwd->path);
+    }
   }
     break;
   case ES_EVENT_TYPE_NOTIFY_FORK: {
     ec->es_event = ES_EVENT_TYPE_NOTIFY_FORK;
     ec->event_type = "fork";
     ec->child_pid = audit_token_to_pid(message->event.fork.child->audit_token);
-
   }
     break;
   case ES_EVENT_TYPE_NOTIFY_EXIT: {
@@ -203,7 +215,7 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
   EventFactory::fire<EndpointSecurityPublisher>(ec);
 }
 
-bool EndpointSecurityPublisher::shouldFire(const EndpointSecurityEventContextRef& sc, const EndpointSecurityEventContextRef& ec) const {
+bool EndpointSecurityPublisher::shouldFire(const EndpointSecuritySubscriptionContextRef& sc, const EndpointSecurityEventContextRef& ec) const {
   return true;
 }
 
