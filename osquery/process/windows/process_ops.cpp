@@ -114,8 +114,7 @@ uint32_t getGidFromSid(PSID sid) {
       LPLOCALGROUP_USERS_INFO_0 pTmpBuf;
       DWORD i;
 
-      // A user often has more than one local group, but we only return the
-      // first!
+      // A user often has more than one local group. We only return the first!
       if (userGroupsBuff != NULL) {
         // From group name to group SID to the RID (osquery concept of GID):
         sidSmartPtr = getSidFromUsername(userGroupsBuff->lgrui0_name);
@@ -124,6 +123,17 @@ uint32_t getGidFromSid(PSID sid) {
           auto rid = getRidFromSid(sidPtr);
           gid = rid;
         }
+      }
+    } 
+
+    // If none of the above worked, User may not have a Local Group
+    if (gid == static_cast<uint32_t>(-1)) {
+      // Fallback to using its RID from its USER_INFO_3 struct
+      NetApiBufferFree(userBuff);  // free the level 0 buff from above
+      userInfoLevel = 3;
+      ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
+      if (ret == NERR_Success) {
+        gid = LPUSER_INFO_3(userBuff)->usri3_primary_group_id;
       }
     }
   }
