@@ -221,7 +221,7 @@ void processLocalAccounts(const std::set<std::string>& selectedUids,
         // Will return empty string on fail
         auto sid = LPUSER_INFO_4(userLvl4Buff)->usri4_user_sid;
         auto uid = getUidFromSid(sid);
-        auto gid = LPUSER_INFO_4(userLvl4Buff)->usri4_primary_group_id;
+        auto gid = getGidFromSid(sid);
         auto sidString = psidToString(sid);
         processedSids.insert(sidString);
 
