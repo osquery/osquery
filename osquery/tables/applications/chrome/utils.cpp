@@ -8,6 +8,7 @@
  */
 
 #include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/hashing/hashing.h>
@@ -96,7 +97,15 @@ const std::vector<std::string> kBuiltInExtPathList{
     "resources/hangout_services/manifest.json",
     "resources/network_speech_synthesis/manifest.json",
     "resources/pdf/manifest.json",
-    "resources/web_store/manifest.json"};
+    "resources/web_store/manifest.json",
+    "resources/edge_clipboard/manifest.json",
+    "resources/media_internals_services/manifest.json",
+    "resources/edge_collections/manifest.json",
+    "resources/microsoft_web_store/manifest.json",
+    "resources/edge_feedback/manifest.json",
+    "resources/microsoft_voices/manifest.json",
+    "resources/edge_pdf/manifest.json",
+    "resources/webrtc_internals/manifest.json"};
 
 /// A extension property that needs to be copied
 struct ExtensionProperty final {
@@ -401,6 +410,10 @@ std::string getBaseExtensionManifestPath(const fs::path& absolute_ext_path) {
 /// Returns true if this extension is built-in
 bool isBuiltInChromeExtension(const fs::path& absolute_ext_path) {
   auto base_ext_path = getBaseExtensionManifestPath(absolute_ext_path);
+
+#ifdef WIN32
+  boost::replace_all(base_ext_path, "\\", "/");
+#endif
 
   std::transform(base_ext_path.begin(),
                  base_ext_path.end(),
