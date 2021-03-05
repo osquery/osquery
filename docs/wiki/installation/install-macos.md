@@ -1,6 +1,6 @@
 # Installing on macOS
 
-Continuous Integration currently tests stable release versions of osquery against macOS 10.15 (see the `vmImage: macos-10.15` line in the [CI configuration](https://github.com/osquery/osquery/blob/master/azure-pipelines.yml). There are no reported issues which block expected core functionality on 10.12 and greater, however 10.11 and previous macOS versions are not supported.
+Continuous Integration currently tests macOS builds of osquery against macOS 10.15 (see the `os: [macos-10.15]` line in the `build_macos` section of the [CI configuration](https://github.com/osquery/osquery/blob/master/.github/workflows/build.yml). All core functionality of osquery should work on macOS 10.12 or newer, although some tables may read data present only on certain versions of macOS, as Apple adds new data sources or deprecates others. Versions of macOS 10.11 and older are no longer supported.
 
 ## Package Installation
 
