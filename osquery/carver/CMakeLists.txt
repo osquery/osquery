@@ -25,7 +25,6 @@ function(generateOsqueryCarver)
     osquery_core
     osquery_carver_utils
     osquery_dispatcher
-    osquery_distributed
     osquery_filesystem
     osquery_hashing
     osquery_remote_utility

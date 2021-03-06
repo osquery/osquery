@@ -7,6 +7,7 @@ schema([
     Column("path", TEXT, "The path of the requested carve", additional=True),
     Column("status", TEXT, "Status of the carve, can be STARTING, PENDING, SUCCESS, or FAILED"),
     Column("carve_guid", TEXT, "Identifying value of the carve session", index=True),
+    Column("request_id", TEXT, "Identifying value of the carve request (e.g., scheduled query name, distributed request, etc)"),
     Column("carve", INTEGER, "Set this value to '1' to start a file carve", additional=True)
 ])
 implementation("forensic/carves@genCarves")

@@ -319,25 +319,35 @@ Maximum file read size. The daemon or shell will first 'stat' each file before r
 
 `--disable_events=false`
 
-Disable osquery Operating System [eventing publish subscribe](../development/pubsub-framework.md) APIs. This will implicitly disable several tables that report based on logged events.
+Disable or enable osquery Operating System [eventing publish-subscribe](../development/pubsub-framework.md) APIs. Setting this to `true` (which is the default value) disables tables that report evented data (tables whose names end with `_events`) and querying them will generate a warning.
 
 `--events_expiry=3600`
 
-Timeout to expire [eventing publish subscribe](../development/pubsub-framework.md) results from the backing-store. This expiration is only applied when results are queried. For example, if `--events_expiry=1` then events will only practically exist for a single select from the subscriber. If no select occurs then events will be saved in the backing store indefinitely.
+Expiration age for evented data (in seconds), applied once the data is queried. Until an evented table is queried, its collected events are cached in backing-store. *Events are only expired (i.e., removed from the table) when the evented table is queried.* For example, if `--events_expiry=1`, then events older than 1 second will only appear in the next `SELECT` from the subscriber. If no `SELECT` occurs, those events will be saved in the backing store *indefinitely* or until the `events_max` limit is reached (see below). If, on the other hand, the table contains recent events that have not yet reached expiration age, the same table can be queried repeatedly in quick succession and the same data will continue to be present unless it had reached the expiration age when it was last queried, at which point it will be removed. `3600` seconds is the default, but if querying on an interval shorter than `3600`, you may wish to lower this value to avoid retrieving duplicate events.
 
 `--events_optimize=true`
 
-Since event rows are only "added" it does not make sense to emit "removed" results. An optimization can occur within the osquery daemon's query schedule. Every time the select query runs on a subscriber the current time is saved. Subsequent selects will use the previously saved time as the lower bound. This optimization is removed if any constraints on the "time" column are included.
+Since event rows are only "added" it does not make sense to emit "removed" results. An optimization can occur within the osquery daemon's query schedule. Every time the `SELECT` query runs on a subscriber, the current time is saved. Subsequent `SELECT`s will use the previously saved time as the lower bound. This optimization is removed if any constraints on the "time" column are included.
 
 `--events_max=50000`
 
-Maximum number of events to buffer in the backing store while waiting for a query to 'drain' or trigger an expiration. If the expiration (`events_expiry`) is set to 1 hour, this max value indicates that only 50000 events will be stored before dropping each hour. In this case the limiting time is almost always the scheduled query. If a scheduled query that select from events-based tables occurs sooner than the expiration time that interval becomes the limit.
+Maximum number of events to buffer in the backing store while waiting for a query to "drain" them (if and only if the events are old enough to be expired out, see above). For example, the default value indicates that a maximum of the `50000` most recent events will be stored. The right value for *your* osquery deployment, if you want to avoid missed/dropped events, should be considered based on the combination of your host's event occurrence frequency and the interval of your scheduled queries of those tables.
 
 ### Windows-only events control flags
 
+`--enable_ntfs_event_publisher           Enables the NTFS event publisher`
+
+`--enable_powershell_events_subscriber   Enables Powershell events`
+
+`--enable_windows_events_publisher       Enables the Windows events publisher`
+
+`--enable_windows_events_subscriber      Enables Windows Event Log events`
+
+On Windows, in addition to the `--disable_events=false` flag mentioned above, each category of evented data must also be enabled individually, by enabling the corresponding osquery publisher and osquery subscriber. By default, all are disabled, and the corresponding evented tables will be empty. Note that an event publisher within osquery subscribes to events *from the OS* and then publishes them to an osquery event subscriber. For the current complete list of event sources usable by osquery, see `osqueryi.exe --help | findstr -i Event`.
+
 `--windows_event_channels=System,Application,Setup,Security`
 
-List of Windows event log channels to subscribe to. By default the Windows event log publisher will subscribe to some of the more common major event log channels. However you can subscribe to additional channels using the `Log Name` field value in the Windows event viewer. Note the lack of quotes around the channel names. For example, to subscribe to Windows Powershell script block logging one would first enable the feature and then subscribe to the channel with `--windows_event_channels=Microsoft-Windows-PowerShell/Operational`
+List of Windows Event Log channels for osquery to subscribe to. By default, osquery's Windows Event Log publisher will deliver some of the more common major event log channels. However, you can select additional channels using the `Log Name` field value in the Windows event viewer. Note the lack of quotes around the channel names. For example, to subscribe to Windows PowerShell script block logging, one would first enable the feature in Windows itself, and then subscribe to the channel with `--windows_event_channels=Microsoft-Windows-PowerShell/Operational`
 
 ### Linux-only events control flags
 
@@ -397,6 +407,10 @@ If `--host_identifier=specified` is set, use this value as the host identifier.
 `--verbose=false`
 
 Enable verbose informational messages.
+
+`--thrift_verbose=false`
+
+Enable thrift global output.
 
 `--logger_path=/var/log/osquery/`
 

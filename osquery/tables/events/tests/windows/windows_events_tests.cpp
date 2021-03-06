@@ -25,6 +25,7 @@ const std::vector<std::string> kExpectedOutputFieldList = {"datetime",
                                                            "source",
                                                            "provider_name",
                                                            "provider_guid",
+                                                           "computer_name",
                                                            "event_id",
                                                            "task_id",
                                                            "level",
@@ -130,6 +131,9 @@ TEST_F(WindowsEventsTests, test_recorded_events) {
       EXPECT_EQ(windows_event.provider_guid,
                 expected_event_data.get<std::string>("provider_guid"));
 
+      EXPECT_EQ(windows_event.computer_name,
+                expected_event_data.get<std::string>("computer_name"));
+
       EXPECT_EQ(windows_event.event_id,
                 expected_event_data.get<int>("event_id"));
 
@@ -162,6 +166,7 @@ TEST_F(WindowsEventsTests, row_generation) {
     "source",
     "provider_name",
     "provider_guid",
+    "computer_name",
 
     // event id
     1,
@@ -188,13 +193,14 @@ TEST_F(WindowsEventsTests, row_generation) {
   Row row;
   WindowsEventSubscriber::generateRow(row, test_event);
 
-  ASSERT_EQ(row.size(), 10U);
+  ASSERT_EQ(row.size(), 11U);
 
   EXPECT_EQ(row["time"], "1");
   EXPECT_EQ(row["datetime"], "datetime");
   EXPECT_EQ(row["source"], "source");
   EXPECT_EQ(row["provider_name"], "provider_name");
   EXPECT_EQ(row["provider_guid"], "provider_guid");
+  EXPECT_EQ(row["computer_name"], "computer_name");
   EXPECT_EQ(row["eventid"], "1");
   EXPECT_EQ(row["task"], "2");
   EXPECT_EQ(row["level"], "3");

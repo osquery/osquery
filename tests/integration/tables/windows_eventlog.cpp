@@ -35,6 +35,7 @@ TEST_F(windowsEventLog, test_sanity) {
       {"tid", IntType},
       {"provider_name", NormalType},
       {"provider_guid", NormalType},
+      {"computer_name", NormalType},
       {"task", IntType},
       {"level", IntType},
       {"keywords", NormalType},

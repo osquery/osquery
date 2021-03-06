@@ -70,18 +70,18 @@ Status TLSLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
 }
 
 Status TLSLoggerPlugin::setUp() {
-  auto node_key = getNodeKey("tls");
-  if (!FLAGS_disable_enrollment && node_key.size() == 0) {
-    // Could not generate a node key, continue logging to stderr.
-    return Status(1, "No node key, TLS logging disabled.");
-  }
-
   // Start the log forwarding/flushing thread.
   forwarder_ = std::make_shared<TLSLogForwarder>();
   Status s = forwarder_->setUp();
   if (!s.ok()) {
     LOG(ERROR) << "Error initializing TLS logger: " << s.getMessage();
     return s;
+  }
+
+  auto node_key = getNodeKey("tls");
+  if (!FLAGS_disable_enrollment && node_key.size() == 0) {
+    // Could not generate a node key, continue logging to stderr.
+    return Status(1, "No node key, TLS logging disabled.");
   }
 
   Dispatcher::addService(forwarder_);

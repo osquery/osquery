@@ -72,6 +72,7 @@ function(generateTestsIntegrationTablesTestsTest)
     device_file.cpp
     device_hash.cpp
     device_partitions.cpp
+    ycloud_instance_metadata.cpp
   )
 
   if(TARGET_PROCESSOR STREQUAL "x86_64")

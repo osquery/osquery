@@ -97,14 +97,16 @@ int profile(int argc, char* argv[]) {
 void startDaemon(Initializer& runner) {
   runner.start();
 
-  // Conditionally begin the distributed query service
-  auto s = startDistributed();
-  if (!s.ok()) {
-    VLOG(1) << "Not starting the distributed query service: " << s.toString();
-  }
+  if (!shutdownRequested()) {
+    // Conditionally begin the distributed query service
+    auto s = startDistributed();
+    if (!s.ok()) {
+      VLOG(1) << "Not starting the distributed query service: " << s.toString();
+    }
 
-  // Begin the schedule runloop.
-  startScheduler();
+    // Begin the schedule runloop.
+    startScheduler();
+  }
 
   runner.waitForShutdown();
 }

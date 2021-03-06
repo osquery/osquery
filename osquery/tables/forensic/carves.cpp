@@ -29,7 +29,7 @@ inline void stringToRow(const std::string& key, Row& r, JSON& tree) {
   }
 }
 
-void enumerateCarves(QueryData& results) {
+void enumerateCarves(QueryData& results, const std::string& new_guid) {
   std::vector<std::string> carves;
   scanDatabaseKeys(kCarves, carves, kCarverDBPrefix);
 
@@ -59,9 +59,15 @@ void enumerateCarves(QueryData& results) {
 
     stringToRow("sha256", r, tree);
     stringToRow("carve_guid", r, tree);
+    stringToRow("request_id", r, tree);
     stringToRow("status", r, tree);
     stringToRow("path", r, tree);
-    r["carve"] = INTEGER(0);
+
+    // This table can be used to request a new carve.
+    // If this is the case then return this single result.
+    auto new_request = (!new_guid.empty() && new_guid == r["carve_guid"]);
+    r["carve"] = INTEGER((new_request) ? 1 : 0);
+
     results.push_back(r);
   }
 }
@@ -87,11 +93,18 @@ QueryData genCarves(QueryContext& context) {
         return status;
       }));
 
-  if (context.constraints["carve"].exists(EQUALS) && paths.size() > 0 &&
-      !FLAGS_disable_carver) {
-    carvePaths(paths);
+  // A carve is requested if carve = 1 exists in the predicate.
+  auto requests = context.constraints["carve"].getAll<int>(EQUALS);
+  auto carve_requested = requests.find(1) != requests.end();
+
+  std::string new_carve_guid;
+  if (!FLAGS_disable_carver && carve_requested && !paths.empty()) {
+    // TODO(6727): This should introspect into the requesting action.
+    // Indicate if the initiator is a distributed query or the schedule.
+    auto request_id = createCarveGuid();
+    carvePaths(paths, request_id, new_carve_guid);
   }
-  enumerateCarves(results);
+  enumerateCarves(results, new_carve_guid);
 
   return results;
 }

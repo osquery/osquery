@@ -69,10 +69,10 @@ struct TargetInfo {
 struct LocationInfo {
   std::string type;
   std::string serial;
-  std::string device;
-  std::string name;
-  std::string provider_type;
   std::string data;
+  std::string local_path;
+  std::string common_path;
+  std::string share_name;
 };
 
 struct DataStringInfo {

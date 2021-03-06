@@ -53,7 +53,7 @@ bool isUnconnectedPipe(ino_t inode, const InodeToPipesMap& pipe_partners) {
 int parseInode(const std::string& pipe_str) {
   std::smatch match;
   if (std::regex_search(pipe_str, match, std::regex("\\d+"))) {
-    return std::stoi(match[0]);
+    return std::stoul(match[0]);
   } else {
     return 0;
   }

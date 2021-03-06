@@ -221,6 +221,10 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
     updateExcludePaths(exclude_paths->second);
   }
 
+  auto doc = JSON::newObject();
+  doc.copyFrom(data_.doc());
+  data_ = std::move(doc);
+
   return Status::success();
 }
 

@@ -855,7 +855,7 @@ QueryData genContainerStats(QueryContext& context) {
       Row r;
       r["id"] = id;
       r["name"] = container.get<std::string>("name", "");
-      r["pids"] = container.get<int>("pids_stats.current", 0);
+      r["pids"] = INTEGER(container.get<int>("pids_stats.current", 0));
       const std::string& read = container.get<std::string>("read", "");
       long read_unix_time = getUnixTime(read, false);
       r["read"] = BIGINT(read_unix_time);

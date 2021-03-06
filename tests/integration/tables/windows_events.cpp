@@ -38,6 +38,7 @@ TEST_F(windowsEvents, test_sanity) {
   //      {"source", NormalType}
   //      {"provider_name", NormalType}
   //      {"provider_guid", NormalType}
+  //      {"computer_name", NormalType}
   //      {"eventid", IntType}
   //      {"task", IntType}
   //      {"level", IntType}

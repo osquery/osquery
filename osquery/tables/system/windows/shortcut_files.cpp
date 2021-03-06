@@ -50,12 +50,15 @@ QueryData genShortcutFiles(QueryContext& context) {
 
   boost::system::error_code ec;
   for (const auto& lnk : paths) {
-    // std::cout << lnk << std::endl;
+    std::cout << lnk << std::endl;
     boost::filesystem::path path = lnk;
     if (!boost::filesystem::is_regular_file(path, ec)) {
       continue;
     }
     std::ifstream check_lnk(lnk, std::ios::out | std::ios::binary);
+    if (!check_lnk) {
+      LOG(WARNING) << "Failed to read header: " << lnk;
+    }
     char check_data[20];
     check_lnk.read(check_data, 20);
     check_lnk.close();
@@ -64,12 +67,11 @@ QueryData genShortcutFiles(QueryContext& context) {
     for (const auto& hex_char : check_data) {
       std::stringstream value;
       value << std::hex << std::uppercase << (int)(hex_char);
-      // Add additional 0 if single hex value is 0-F to make it perfectly
-      // balance...
+      // Add additional 0 if single hex value is 0-F
       if (value.str().size() == 1) {
         check_ss << "0";
       }
-      check_ss << value.str(); // std::hex << (int)(hex_char);
+      check_ss << value.str();
     }
     std::string header_sig = check_ss.str();
 
@@ -85,8 +87,7 @@ QueryData genShortcutFiles(QueryContext& context) {
     // Read the whole shortcut file
     std::ifstream read_lnk(lnk, std::ios::out | std::ios::binary);
     if (!read_lnk) {
-      std::cout << "Error!" << std::endl;
-      std::cout << lnk << std::endl;
+      LOG(WARNING) << "Failed to read file: " << lnk;
     }
 
     std::vector<unsigned char> lnk_data(
@@ -96,14 +97,12 @@ QueryData genShortcutFiles(QueryContext& context) {
     std::stringstream ss;
     for (const auto& hex_char : lnk_data) {
       std::stringstream value;
-      // std::cout << std::hex << (int)test << std::endl;
       value << std::hex << std::uppercase << (int)(hex_char);
-      // Add additional 0 if single hex value is 0-F to make it perfectly
-      // balance...
+      // Add additional 0 if single hex value is 0-F
       if (value.str().size() == 1) {
         ss << "0";
       }
-      ss << value.str(); // std::hex << (int)(hex_char);
+      ss << value.str();
     }
     const std::string lnk_hex = ss.str();
     LinkFileHeader data;
@@ -113,6 +112,9 @@ QueryData genShortcutFiles(QueryContext& context) {
     DataStringInfo data_info_string;
 
     data = parseShortcutHeader(lnk_hex);
+    if (data.header == "") {
+      continue;
+    }
     std::string data_string = lnk_hex.substr(156);
     if (data.flags.has_target_id_list) {
       target_data = parseTargetInfo(lnk_hex.substr(156));
@@ -136,7 +138,7 @@ QueryData genShortcutFiles(QueryContext& context) {
     }
     extra_data = parseExtraDataTracker(data_string);
 
-    std::string target_path = target_data.path;
+    std::string target_path = "";
     if (target_data.root_folder != "") {
       std::string guid_name;
       std::vector<std::string> full_path;
@@ -149,10 +151,14 @@ QueryData genShortcutFiles(QueryContext& context) {
       }
       full_path.push_back(target_data.path);
       target_path = osquery::join(full_path, "\\");
+    } else {
+      target_path = target_data.path;
     }
 
     r["path"] = lnk;
     r["target_path"] = target_path;
+    r["local_path"] = location_data.local_path;
+    r["common_path"] = location_data.common_path;
     r["target_created"] = INTEGER(data.creation_time);
     r["target_modified"] = INTEGER(data.modified_time);
     r["target_accessed"] = INTEGER(data.access_time);
@@ -161,6 +167,8 @@ QueryData genShortcutFiles(QueryContext& context) {
     r["command_args"] = data_info_string.arguments;
     r["hostname"] = extra_data.hostname;
     r["device_type"] = location_data.type;
+    r["volume_serial"] = location_data.serial;
+    r["share_name"] = location_data.share_name;
     r["mft_entry"] = BIGINT(target_data.mft_entry);
     r["mft_sequence"] = INTEGER(target_data.mft_sequence);
     results.push_back(r);
