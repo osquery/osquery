@@ -30,7 +30,6 @@ namespace tables {
 QueryData genShortcutFiles(QueryContext& context) {
   QueryData results;
   auto paths = context.constraints["path"].getAll(EQUALS);
-  Row r;
   // Expand contraints
   context.expandConstraints(
       "path",
@@ -50,14 +49,13 @@ QueryData genShortcutFiles(QueryContext& context) {
 
   boost::system::error_code ec;
   for (const auto& lnk : paths) {
-    std::cout << lnk << std::endl;
     boost::filesystem::path path = lnk;
     if (!boost::filesystem::is_regular_file(path, ec)) {
       continue;
     }
     std::ifstream check_lnk(lnk, std::ios::out | std::ios::binary);
     if (!check_lnk) {
-      LOG(WARNING) << "Failed to read header: " << lnk;
+      LOG(WARNING) << "Failed to read header for shortcut file: " << lnk;
     }
     char check_data[20];
     check_lnk.read(check_data, 20);
@@ -115,9 +113,9 @@ QueryData genShortcutFiles(QueryContext& context) {
     if (data.header == "") {
       continue;
     }
-    std::string data_string = lnk_hex.substr(156);
+    std::string data_string = lnk_hex.substr(152);
     if (data.flags.has_target_id_list) {
-      target_data = parseTargetInfo(lnk_hex.substr(156));
+      target_data = parseTargetInfo(data_string);
       data_string = target_data.data;
     }
     if (data.flags.has_link_info) {
@@ -154,23 +152,34 @@ QueryData genShortcutFiles(QueryContext& context) {
     } else {
       target_path = target_data.path;
     }
-
+    Row r;
     r["path"] = lnk;
-    r["target_path"] = target_path;
-    r["local_path"] = location_data.local_path;
-    r["common_path"] = location_data.common_path;
     r["target_created"] = INTEGER(data.creation_time);
     r["target_modified"] = INTEGER(data.modified_time);
     r["target_accessed"] = INTEGER(data.access_time);
     r["target_size"] = BIGINT(data.file_size);
-    r["relative_directory"] = data_info_string.relative_path;
-    r["command_args"] = data_info_string.arguments;
+
+    if (data.flags.has_target_id_list) {
+      r["target_path"] = target_path;
+      if (target_data.mft_entry != -1LL) {
+        r["mft_entry"] = BIGINT(target_data.mft_entry);
+        r["mft_sequence"] = INTEGER(target_data.mft_sequence);
+      }
+    }
+    if (data.flags.has_link_info) {
+      r["local_path"] = location_data.local_path;
+      r["common_path"] = location_data.common_path;
+      r["device_type"] = location_data.type;
+      r["volume_serial"] = location_data.serial;
+      r["share_name"] = location_data.share_name;
+    }
+    if (data.flags.has_name || data.flags.has_relative_path ||
+        data.flags.has_working_dir || data.flags.has_arguments ||
+        data.flags.has_icon_location) {
+      r["relative_path"] = data_info_string.relative_path;
+      r["command_args"] = data_info_string.arguments;
+    }
     r["hostname"] = extra_data.hostname;
-    r["device_type"] = location_data.type;
-    r["volume_serial"] = location_data.serial;
-    r["share_name"] = location_data.share_name;
-    r["mft_entry"] = BIGINT(target_data.mft_entry);
-    r["mft_sequence"] = INTEGER(target_data.mft_sequence);
     results.push_back(r);
   }
   return results;

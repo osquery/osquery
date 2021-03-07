@@ -126,6 +126,7 @@ function(generateOsqueryUtilsUtilstestsTest)
       tests/windows/env.cpp
       tests/windows/filetime.cpp
       tests/windows/shellitems.cpp
+      tests/windows/shelllnk.cpp
     )
   endif()
 

@@ -15,8 +15,9 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <iostream>
 #include <sstream>
+
+#include <iostream>
 struct LinkFlags {
   bool has_target_id_list;
   bool has_link_info;
@@ -168,12 +169,13 @@ LinkFileHeader parseShortcutHeader(const std::string& header) {
   return lnk_header;
 }
 TargetInfo parseTargetInfo(const std::string& target_info) {
-  std::string data = target_info;
+    // Skip the first two bytes
+  std::string data = target_info.substr(4);
   TargetInfo target_lnk;
   std::vector<std::string> build_path;
   ShellFileEntryData file_entry;
-  file_entry.mft_entry = 0LL;
-  file_entry.mft_sequence = 0LL;
+  file_entry.mft_entry = -1LL;
+  file_entry.mft_sequence = -1;
   // Loop through all the shellitems
   while (true) {
     std::string str_item_size = data.substr(0, 4);
@@ -198,8 +200,6 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
       continue;
     } else if (sig == "2F" || sig == "23" || sig == "25" || sig == "29" ||
                sig == "2A" || sig == "2E") {
-      // std::cout << "Drive entry!" << std::endl;
-      // std::cout << data << std::endl;
       if (item_string.substr(6, 2) == "80" ||
           (item_string.find("2600EFBE") != std::string::npos ||
            item_string.find("2500EFBE") !=
@@ -278,8 +278,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
     } else if (type == "06000000") {
       location_info.type = "RAM drive";
     } else {
-      LOG(WARNING) << "Unknown volume type: " << data;
-      location_info.type = "UNKNOWN VOLUME TYPE";
+      LOG(WARNING) << "Unknown volume type: " << type;
       data.erase(0, location_size);
       location_info.data = data;
       return location_info;
@@ -390,8 +389,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
     } else if (type == "00004300") {
       location_info.type = "WNNC_NET_GOOGLE";
     } else {
-      LOG(WARNING) << "Unknown network type: " << data;
-      location_info.type = "UNKNOWN NETWORK TYPE";
+      LOG(WARNING) << "Unknown network type: " << type;
       data.erase(0, location_size);
       location_info.data = data;
       return location_info;
@@ -425,7 +423,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
                    << share_name;
     }
   } else {
-    location_info.type = "UNKNOWN LOCATION TYPE";
+    LOG(WARNING) << "Unknown location type: " << location_type;
   }
   data.erase(0, location_size);
   location_info.data = data;
@@ -545,8 +543,8 @@ DataStringInfo parseDataString(const std::string& data,
 ExtraDataTracker parseExtraDataTracker(const std::string& data) {
   ExtraDataTracker data_tracker;
   // Check for tracker database, contains hostname. It may not exist.
-  if (data.find("60000000") == std::string::npos &&
-      data.find("030000A0") == std::string::npos) {
+  if ((data.find("60000000") == std::string::npos) ||
+      (data.find("030000A0") == std::string::npos)) {
     data_tracker.hostname = "";
     return data_tracker;
   }

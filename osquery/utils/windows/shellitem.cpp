@@ -100,7 +100,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
-  file_entry.extension_sig = shell_data.substr(entry_offset + 8, 8);
+  file_entry.extension_sig = extension_sig;
 
   // Shell data may contain Users Files folder signature, modified time is at
   // offset 0x18
@@ -142,7 +142,17 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   std::string string_size = shell_data.substr(entry_offset + 72, 4);
   string_size = swapEndianess(string_size);
   file_entry.string_size = std::stoi(string_size, nullptr, 16);
-  std::string entry_name = shell_data.substr(entry_offset + 92);
+  int name_offset = 0;
+  if (file_entry.version >= 7) {
+    name_offset = 72;
+  }
+  if (file_entry.version >= 8) {
+    name_offset = 84;
+  }
+  if (file_entry.version >= 9) {
+    name_offset = 92;
+  }
+  std::string entry_name = shell_data.substr(entry_offset + name_offset);
 
   // path name ends with 0000 (end of string)
   size_t name_end = entry_name.find("0000");
