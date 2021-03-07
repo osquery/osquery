@@ -54,6 +54,11 @@
 - Fix leaks when a query fails from the shell ([#6849](https://github.com/osquery/osquery/pull/6849))
 - Fix additional relative path check in Yara for Windows ([#6894](https://github.com/osquery/osquery/pull/6894))
 
+- Make Group ID columns consistent across Windows tables ([#6987](https://github.com/osquery/osquery/pull/6987))
+- Fix mem leak regression with Windows' sids API ([#6984](https://github.com/osquery/osquery/pull/6984))
+- Fix error in process_open_files inode need stoul, not stoi ([#6983](https://github.com/osquery/osquery/pull/6983))
+
+
 ### Documentation
 
 - Add 4.7.0 CHANGELOG ([#6985](#https://github.com/osquery/osquery/pull/6985))
@@ -73,6 +78,7 @@
 - Fix all broken or redirected URLs and references ([#6835](https://github.com/osquery/osquery/pull/6835))
 - Fix incorrect Slack urls ([#6844](https://github.com/osquery/osquery/pull/6844))
 - Fix packs discovery queries documentation ([#6946](https://github.com/osquery/osquery/pull/6946))
+- Change reference about Azure Pipelines to GitHub Actions ([#6988](https://github.com/osquery/osquery/pull/6988))
 
 ### Build
 
@@ -112,6 +118,7 @@
 - libraries: Update librpm to version 4.16.1.2 ([#6850](https://github.com/osquery/osquery/pull/6850))
 - libraries: Update thrift to version 0.13.0 ([#6822](https://github.com/osquery/osquery/pull/6822))
 - libraries: Update openssl to version 1.1.1i ([#6820](https://github.com/osquery/osquery/pull/6820))
+- Remove hash and yara table from fuzz harnesses ([#6972](https://github.com/osquery/osquery/pull/6972))
 
 ### Security Issues
 
