@@ -53,11 +53,9 @@
 - Do not ignore mountpoints that have the same mount path ([#6871](https://github.com/osquery/osquery/pull/6871))
 - Fix leaks when a query fails from the shell ([#6849](https://github.com/osquery/osquery/pull/6849))
 - Fix additional relative path check in Yara for Windows ([#6894](https://github.com/osquery/osquery/pull/6894))
-
 - Make Group ID columns consistent across Windows tables ([#6987](https://github.com/osquery/osquery/pull/6987))
 - Fix mem leak regression with Windows' sids API ([#6984](https://github.com/osquery/osquery/pull/6984))
 - Fix error in process_open_files inode need stoul, not stoi ([#6983](https://github.com/osquery/osquery/pull/6983))
-
 
 ### Documentation
 
@@ -119,8 +117,6 @@
 - libraries: Update thrift to version 0.13.0 ([#6822](https://github.com/osquery/osquery/pull/6822))
 - libraries: Update openssl to version 1.1.1i ([#6820](https://github.com/osquery/osquery/pull/6820))
 - Remove hash and yara table from fuzz harnesses ([#6972](https://github.com/osquery/osquery/pull/6972))
-
-### Security Issues
 
 ### Hardening
 
