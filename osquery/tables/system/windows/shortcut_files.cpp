@@ -54,12 +54,14 @@ QueryData genShortcutFiles(QueryContext& context) {
       continue;
     }
     std::ifstream check_lnk(lnk, std::ios::out | std::ios::binary);
-    if (!check_lnk) {
-      LOG(WARNING) << "Failed to read header for shortcut file: " << lnk;
+    if (check_lnk.fail()) {
+      LOG(WARNING) << "Failed to read header for shortcut file: " << lnk
+                   << ". Received error: " << errno;
+      continue;
     }
     char check_data[20];
     check_lnk.read(check_data, 20);
-    check_lnk.close();
+    check_lnk.seekg(0);
 
     std::stringstream check_ss;
     for (const auto& hex_char : check_data) {
@@ -83,15 +85,10 @@ QueryData genShortcutFiles(QueryContext& context) {
     }
 
     // Read the whole shortcut file
-    std::ifstream read_lnk(lnk, std::ios::out | std::ios::binary);
-    if (!read_lnk) {
-      LOG(WARNING) << "Failed to read file: " << lnk;
-    }
-
     std::vector<unsigned char> lnk_data(
-        (std::istreambuf_iterator<char>(read_lnk)),
+        (std::istreambuf_iterator<char>(check_lnk)),
         (std::istreambuf_iterator<char>()));
-    read_lnk.close();
+    check_lnk.close();
     std::stringstream ss;
     for (const auto& hex_char : lnk_data) {
       std::stringstream value;
@@ -147,9 +144,40 @@ QueryData genShortcutFiles(QueryContext& context) {
       } else {
         full_path.push_back("{" + target_data.root_folder + "}");
       }
-      full_path.push_back(target_data.path);
+      if (target_data.control_panel != "" ||
+          target_data.control_panel_category != "") {
+        std::string guid_name;
+        full_path.push_back(target_data.control_panel_category);
+        status = getClassName("{" + target_data.control_panel + "}", guid_name);
+        if (status.ok()) {
+          full_path.push_back(guid_name);
+        } else {
+          full_path.push_back("{" + target_data.control_panel + "}");
+        }
+
+        target_path = osquery::join(full_path, "\\");
+      } else {
+        if (target_data.path != "") {
+          full_path.push_back(target_data.path);
+        }
+        target_path = osquery::join(full_path, "\\");
+      }
+    } else if (target_data.property_guid != "") {
+      std::string guid_name;
+      std::vector<std::string> full_path;
+      auto status =
+          getClassName("{" + target_data.property_guid + "}", guid_name);
+      if (status.ok()) {
+        full_path.push_back(guid_name);
+      } else {
+        full_path.push_back("{" + target_data.property_guid + "}");
+      }
       target_path = osquery::join(full_path, "\\");
     } else {
+      // Check if path is only a volume
+      if (target_data.path.size() == 2 && target_data.path.back() == ':') {
+        target_data.path = target_data.path + "\\";
+      }
       target_path = target_data.path;
     }
     Row r;
@@ -178,6 +206,9 @@ QueryData genShortcutFiles(QueryContext& context) {
         data.flags.has_icon_location) {
       r["relative_path"] = data_info_string.relative_path;
       r["command_args"] = data_info_string.arguments;
+      r["icon_path"] = data_info_string.icon_location;
+      r["working_path"] = data_info_string.working_path;
+      r["description"] = data_info_string.description;
     }
     r["hostname"] = extra_data.hostname;
     results.push_back(r);

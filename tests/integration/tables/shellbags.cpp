@@ -20,11 +20,7 @@ class ShellbagsTest : public testing::Test {
 
 TEST_F(ShellbagsTest, test_sanity) {
   QueryData const rows = execute_query("select * from shellbags");
-<<<<<<< HEAD
-  if (rows.size() > 0) {
-=======
   if (!rows.empty()) {
->>>>>>> upstream/master
     QueryData const specific_query_rows =
         execute_query("select * from shellbags where path like '%This PC%'");
 

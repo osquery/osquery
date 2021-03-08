@@ -10,10 +10,11 @@
 #include <gtest/gtest.h>
 #include <osquery/utils/windows/shelllnk.h>
 
+#include <iostream>
 #include <string>
 
 namespace osquery {
-class ShelllnkTests : pubilc testing::Test {};
+class ShelllnkTests : public testing::Test {};
 
 TEST_F(ShelllnkTests, test_shelllnk_header) {
   std::string data =
@@ -56,9 +57,9 @@ TEST_F(ShelllnkTests, test_shelllnk_header) {
       "0000680000000048000000902F5408000000000000501F00000000000000000000000000"
       "000000";
   auto header_data = parseShortcutHeader(data);
-  ASSERT_TRUE(header_data.modified == 1615079705);
-  ASSERT_TRUE(header_data.created == 1615079705);
-  ASSERT_TRUE(header_data.accessed == 1615079705);
+  ASSERT_TRUE(header_data.modified_time == 1615079705);
+  ASSERT_TRUE(header_data.creation_time == 1615079705);
+  ASSERT_TRUE(header_data.access_time == 1615079705);
   ASSERT_TRUE(header_data.file_size == 0);
 }
 
@@ -101,9 +102,10 @@ TEST_F(ShelllnkTests, test_shelllnk_target_info) {
       "00000048000000902F5408000000000000501F00000000000000000000000000000000";
 
   auto target_info = parseTargetInfo(data);
+  std::cout << target_info.path << std::endl;
   ASSERT_TRUE(
-      target_info.path,
-      "This PC\\C:\\Users\\bob\\Desktop\\navi\\hey\\listen\\lnk\\save_hyrule.txt");
+      target_info.path ==
+      "C:\\Users\\bob\\Desktop\\navi\\hey\\listen\\lnk\\save_hyrule.txt");
   ASSERT_TRUE(target_info.mft_entry == 44925);
   ASSERT_TRUE(target_info.mft_sequence == 114);
 }
@@ -125,10 +127,11 @@ TEST_F(ShelllnkTests, test_shelllnk_location_info) {
       "8C1D000000680000000048000000902F5408000000000000501F00000000000000000000"
       "000000000000";
   auto location_info = parseLocationData(data);
-  ASSERT_TRUE(location_info.local_path,
-              "C:\\Users\\bob\\Desktop\\navi\\hey\\listen\\lnk\\save_hyrule.txt");
-  ASSERT_TRUE(location_info.type, "Fixed storage media (harddisk)");
-  ASSERT_TRUE(location_info.serial, "D49D126F");
+  ASSERT_TRUE(
+      location_info.local_path ==
+      "C:\\Users\\bob\\Desktop\\navi\\hey\\listen\\lnk\\save_hyrule.txt");
+  ASSERT_TRUE(location_info.type == "Fixed storage media (harddisk)");
+  ASSERT_TRUE(location_info.serial == "D49D126F");
 }
 
 TEST_F(ShelllnkTests, test_shelllnk_data_string) {
@@ -144,8 +147,22 @@ TEST_F(ShelllnkTests, test_shelllnk_data_string) {
       "A0F60800276EB45E45000000090000A03900000031535053B1166D44AD8D7048A748402E"
       "A43D788C1D000000680000000048000000902F5408000000000000501F00000000000000"
       "000000000000000000";
-  auto data_string = parseDataString(data, true, false, true, true, false, false);
-  ASSERT_TRUE(data_string.relative_path, "..\\..\\..\\..\\..\\Desktop\\navi\\hey\\listen\\lnk\\save_hyrule.txt");
+  bool unicode = true;
+  bool has_name = false;
+  bool has_relative_path = true;
+  bool has_working_dir = true;
+  bool has_icon_location = false;
+  bool has_args = false;
+  auto data_string = parseDataString(data,
+                                     unicode,
+                                     has_name,
+                                     has_relative_path,
+                                     has_working_dir,
+                                     has_icon_location,
+                                     has_args);
+  ASSERT_TRUE(
+      data_string.relative_path ==
+      "..\\..\\..\\..\\..\\Desktop\\navi\\hey\\listen\\lnk\\save_hyrule.txt");
 }
 
 TEST_F(ShelllnkTests, test_shelllnk_extra_data_tracker) {
@@ -156,6 +173,6 @@ TEST_F(ShelllnkTests, test_shelllnk_extra_data_tracker) {
       "31535053B1166D44AD8D7048A748402EA43D788C1D000000680000000048000000902F54"
       "08000000000000501F00000000000000000000000000000000";
   auto extra_data = parseExtraDataTracker(data);
-  ASSERT_TRUE(extra_data.hostname, "desktop-eis938n");
+  ASSERT_TRUE(extra_data.hostname == "desktop-eis938n");
 }
-}
+} // namespace osquery

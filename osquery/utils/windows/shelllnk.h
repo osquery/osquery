@@ -58,12 +58,16 @@ struct LinkFileHeader {
   std::string window_value;
   std::string hot_key;
 };
+
 struct TargetInfo {
   std::string root_folder;
+  std::string control_panel;
+  std::string control_panel_category;
   std::string path;
   long long mft_entry;
   int mft_sequence;
   std::string data;
+  std::string property_guid;
 };
 
 struct LocationInfo {
@@ -93,9 +97,33 @@ struct ExtraDataTracker {
 };
 
 namespace osquery {
+
+/**
+ * @brief Windows helper function for parsing shortcut header data
+ *
+ * @returns The shortcut header structure
+ */
 LinkFileHeader parseShortcutHeader(const std::string& header);
+
+/**
+ * @brief Windows helper function for parsing shortcut target data
+ *
+ * @returns The shortcut target structure
+ */
 TargetInfo parseTargetInfo(const std::string& target_info);
+
+/**
+ * @brief Windows helper function for parsing shortcut location data
+ *
+ * @returns The shortcut location structure
+ */
 LocationInfo parseLocationData(const std::string& location_data);
+
+/**
+ * @brief Windows helper function for parsing shortcut data string data
+ *
+ * @returns The shortcut data string structure
+ */
 DataStringInfo parseDataString(const std::string& data,
                                bool unicode,
                                bool& description,
@@ -103,5 +131,11 @@ DataStringInfo parseDataString(const std::string& data,
                                bool& working_path,
                                bool& icon_location,
                                bool& command_args);
+
+/**
+ * @brief Windows helper function for parsing shortcut extra data tracker
+ *
+ * @returns The shortcut extra data tracker structure
+ */
 ExtraDataTracker parseExtraDataTracker(const std::string& data);
 } // namespace osquery

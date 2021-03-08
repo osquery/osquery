@@ -15,9 +15,9 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <iostream>
 #include <sstream>
 
-#include <iostream>
 struct LinkFlags {
   bool has_target_id_list;
   bool has_link_info;
@@ -47,6 +47,7 @@ struct LinkFlags {
   bool environment_path;
   bool local_id_for_unc_target;
 };
+
 struct LinkFileHeader {
   std::string header;
   std::string guid;
@@ -63,10 +64,13 @@ struct LinkFileHeader {
 
 struct TargetInfo {
   std::string root_folder;
+  std::string control_panel;
+  std::string control_panel_category;
   std::string path;
   long long mft_entry;
   int mft_sequence;
   std::string data;
+  std::string property_guid;
 };
 
 struct LocationInfo {
@@ -96,6 +100,7 @@ struct ExtraDataTracker {
 };
 
 namespace osquery {
+
 LinkFlags parseShortcutFlags(const std::string& flags) {
   std::string flags_swap = swapEndianess(flags);
   int flags_int = std::stoi(flags_swap, nullptr, 16);
@@ -129,6 +134,7 @@ LinkFlags parseShortcutFlags(const std::string& flags) {
   lnk_flags.local_id_for_unc_target = (bool)(flags_int & 0x4000000);
   return lnk_flags;
 }
+
 LinkFileHeader parseShortcutHeader(const std::string& header) {
   LinkFileHeader lnk_header;
 
@@ -168,11 +174,14 @@ LinkFileHeader parseShortcutHeader(const std::string& header) {
   lnk_header.hot_key = header.substr(128, 4);
   return lnk_header;
 }
+
 TargetInfo parseTargetInfo(const std::string& target_info) {
-    // Skip the first two bytes
+  // Skip the first two bytes
   std::string data = target_info.substr(4);
   TargetInfo target_lnk;
   std::vector<std::string> build_path;
+  std::vector<std::string> property_build;
+
   ShellFileEntryData file_entry;
   file_entry.mft_entry = -1LL;
   file_entry.mft_sequence = -1;
@@ -182,13 +191,34 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
     str_item_size = swapEndianess(str_item_size);
     int item_size = std::stoi(str_item_size, nullptr, 16) * 2;
     // Empty target item sizes will cause infinte loop, sometimes at the end of
-    // the item there will be extra zeros
+    // the item there may be extra zeros
     if (item_size == 0) {
       break;
     }
     std::string sig = data.substr(4, 2);
     std::string item_string = data.substr(0, item_size);
     if (sig == "1F") {
+      if (item_string.substr(8, 2) == "2F") { // User Property View Drive
+        std::string name = propertyViewDrive(item_string);
+        // osquery::join adds "\" to entries, remove drive "\"
+        name.pop_back();
+        build_path.push_back(name);
+        data.erase(0, item_size);
+        continue;
+      }
+      if (item_string.find("31535053") != std::string::npos) {
+        if (item_string.find("D5DFA323") !=
+            std::string::npos) { // User Property View
+          std::string property_guid = item_string.substr(226, 32);
+          std::string guid_string = guidParse(property_guid);
+          target_lnk.property_guid = guid_string;
+          data.erase(0, item_size);
+          continue;
+        }
+        LOG(WARNING) << "Unknown user property data: " << item_string;
+        data.erase(0, item_size);
+        continue;
+      }
       target_lnk.root_folder = rootFolderItem(item_string);
       data.erase(0, item_size);
       continue;
@@ -196,6 +226,16 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
                sig == "B1") {
       file_entry = fileEntry(item_string);
       build_path.push_back(file_entry.path);
+      data.erase(0, item_size);
+      continue;
+    } else if (sig == "01") { // Control Panel Category
+      std::string panel = controlPanelCategoryItem(item_string);
+      target_lnk.control_panel_category = panel;
+      data.erase(0, item_size);
+      continue;
+    } else if (sig == "71") { // Control Panel
+      std::string control_guid = controlPanelItem(item_string);
+      target_lnk.control_panel = control_guid;
       data.erase(0, item_size);
       continue;
     } else if (sig == "2F" || sig == "23" || sig == "25" || sig == "29" ||
@@ -250,6 +290,7 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
   target_lnk.data = data;
   return target_lnk;
 }
+
 LocationInfo parseLocationData(const std::string& location_data) {
   LocationInfo location_info;
   std::string data = location_data.substr(4);
@@ -277,6 +318,8 @@ LocationInfo parseLocationData(const std::string& location_data) {
       location_info.type = "Optical disc (CD-ROM, DVD, BD)";
     } else if (type == "06000000") {
       location_info.type = "RAM drive";
+    } else if (type == "02000000") {
+      location_info.type = "Removable storage media (floppy, usb)";
     } else {
       LOG(WARNING) << "Unknown volume type: " << type;
       data.erase(0, location_size);
@@ -308,15 +351,15 @@ LocationInfo parseLocationData(const std::string& location_data) {
     std::string type = data.substr((offset * 2) + 32, 8);
     if (type == "00001a00") {
       location_info.type = "WNNC_NET_AVID";
-    } else if (type == "00001b00") {
+    } else if (type == "00001B00") {
       location_info.type = "WNNC_NET_DOCUSPACE";
-    } else if (type == "00001c00") {
+    } else if (type == "00001C00") {
       location_info.type = "WNNC_NET_MANGOSOFT";
-    } else if (type == "00001d00") {
+    } else if (type == "00001D00") {
       location_info.type = "WNNC_NET_SERNET";
-    } else if (type == "00001e00") {
+    } else if (type == "00001E00") {
       location_info.type = "WNNC_NET_RIVERFRONT1";
-    } else if (type == "00001f00") {
+    } else if (type == "00001F00") {
       location_info.type = "WNNC_NET_RIVERFRONT2";
     } else if (type == "00002000") {
       location_info.type = "WNNC_NET_DECORB";
@@ -336,17 +379,17 @@ LocationInfo parseLocationData(const std::string& location_data) {
       location_info.type = "WNNC_NET_3IN1";
     } else if (type == "00002900") {
       location_info.type = "WNNC_NET_EXTENDNET";
-    } else if (type == "00002a00") {
+    } else if (type == "00002A00") {
       location_info.type = "WNNC_NET_STAC";
-    } else if (type == "00002b00") {
+    } else if (type == "00002B00") {
       location_info.type = "WNNC_NET_FOXBAT";
-    } else if (type == "00002c00") {
+    } else if (type == "00002C00") {
       location_info.type = "WNNC_NET_YAHOO";
-    } else if (type == "00002d00") {
+    } else if (type == "00002D00") {
       location_info.type = "WNNC_NET_EXIFS";
-    } else if (type == "00002e00") {
+    } else if (type == "00002E00") {
       location_info.type = "WNNC_NET_DAV";
-    } else if (type == "00002f00") {
+    } else if (type == "00002F00") {
       location_info.type = "WNNC_NET_KNOWARE";
     } else if (type == "00003000") {
       location_info.type = "WNNC_NET_OBJECT_DIRE";
@@ -368,17 +411,17 @@ LocationInfo parseLocationData(const std::string& location_data) {
       location_info.type = "WNNC_NET_QUINCY";
     } else if (type == "00003900") {
       location_info.type = "WNNC_NET_OPENAFS";
-    } else if (type == "00003a00") {
+    } else if (type == "00003A00") {
       location_info.type = "WNNC_NET_AVID1";
-    } else if (type == "00003b00") {
+    } else if (type == "00003B00") {
       location_info.type = "WNNC_NET_DFS";
-    } else if (type == "00003c00") {
+    } else if (type == "00003C00") {
       location_info.type = "WNNC_NET_KWNP";
-    } else if (type == "00003d00") {
+    } else if (type == "00003D00") {
       location_info.type = "WNNC_NET_ZENWORKS";
-    } else if (type == "00003e00") {
+    } else if (type == "00003E00") {
       location_info.type = "WNNC_NET_DRIVEONWEB";
-    } else if (type == "00003f00") {
+    } else if (type == "00003F00") {
       location_info.type = "WNNC_NET_VMWARE";
     } else if (type == "00004000") {
       location_info.type = "WNNC_NET_RSFX";
@@ -398,6 +441,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
     common_path_offset = swapEndianess(common_path_offset);
     int path_offset = std::stoi(common_path_offset, nullptr, 16) * 2;
     size_t common_path_size = data.find("00", path_offset);
+    // Size should be even but if values end in base 10 it will be odd
     if (common_path_size % 2 != 0) {
       common_path_size++;
     }
@@ -429,6 +473,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
   location_info.data = data;
   return location_info;
 }
+
 DataStringInfo parseDataString(const std::string& data,
                                bool unicode,
                                bool& description,
@@ -440,8 +485,16 @@ DataStringInfo parseDataString(const std::string& data,
   std::string data_str_type = "";
   DataStringInfo data_info;
   std::string str_data_size = data_string.substr(0, 4);
+  // Previous lnk data may have extra zeros
+  if (str_data_size == "0000") {
+    data_string.erase(0, 4);
+    str_data_size = data_string.substr(0, 4);
+  }
   str_data_size = swapEndianess(str_data_size);
   int data_size = std::stoi(str_data_size, nullptr, 16);
+
+  // Data strings go in the following order: description, relative path, working
+  // path, command args, icon location Some may not exist
   if (description) {
     if (unicode) {
       data_size = data_size * 4;
@@ -450,10 +503,11 @@ DataStringInfo parseDataString(const std::string& data,
     if (unicode) {
       boost::erase_all(data_str_type, "00");
     }
+
     try {
       data_info.description = boost::algorithm::unhex(data_str_type);
     } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode Description hex values to string: "
+      LOG(WARNING) << "Failed to decode description hex values to string: "
                    << data_str_type;
     }
     data_string.erase(0, data_size + 4);
@@ -472,7 +526,7 @@ DataStringInfo parseDataString(const std::string& data,
     try {
       data_info.relative_path = boost::algorithm::unhex(data_str_type);
     } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode Relative Path hex values to string: "
+      LOG(WARNING) << "Failed to decode relative path hex values to string: "
                    << data_str_type;
     }
     data_string.erase(0, data_size + 4);
@@ -491,7 +545,7 @@ DataStringInfo parseDataString(const std::string& data,
     try {
       data_info.working_path = boost::algorithm::unhex(data_str_type);
     } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode Working Path hex values to string: "
+      LOG(WARNING) << "Failed to decode working path hex values to string: "
                    << data_str_type;
     }
     data_string.erase(0, data_size + 4);
@@ -510,7 +564,7 @@ DataStringInfo parseDataString(const std::string& data,
     try {
       data_info.arguments = boost::algorithm::unhex(data_str_type);
     } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode Command args hex values to string: "
+      LOG(WARNING) << "Failed to decode command args hex values to string: "
                    << data_str_type;
     }
     data_string.erase(0, data_size + 4);
@@ -529,7 +583,7 @@ DataStringInfo parseDataString(const std::string& data,
     try {
       data_info.icon_location = boost::algorithm::unhex(data_str_type);
     } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode Icon Location hex values to string: "
+      LOG(WARNING) << "Failed to decode icon location hex values to string: "
                    << data_str_type;
     }
     data_string.erase(0, data_size + 4);
@@ -540,6 +594,7 @@ DataStringInfo parseDataString(const std::string& data,
   data_info.data = data_string;
   return data_info;
 }
+
 ExtraDataTracker parseExtraDataTracker(const std::string& data) {
   ExtraDataTracker data_tracker;
   // Check for tracker database, contains hostname. It may not exist.
@@ -553,7 +608,7 @@ ExtraDataTracker parseExtraDataTracker(const std::string& data) {
   try {
     data_tracker.hostname = boost::algorithm::unhex(hostname);
   } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode hostname hex values to string: "
+    LOG(WARNING) << "Failed to decode extra data tracker hex values to string: "
                  << hostname;
   }
   std::string guid = data.substr(extra_offset + 56, 32);
