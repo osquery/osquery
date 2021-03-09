@@ -21,7 +21,7 @@ namespace ba = boost::algorithm;
 namespace osquery {
 namespace tables {
 
-const std::map<ConstraintOperator, NSPredicateOperatorType> supportedOps = {
+const std::map<ConstraintOperator, NSPredicateOperatorType> kSupportedOps = {
     {EQUALS, NSEqualToPredicateOperatorType},
     {GREATER_THAN, NSGreaterThanPredicateOperatorType},
     {GREATER_THAN_OR_EQUALS, NSGreaterThanOrEqualToPredicateOperatorType},
@@ -29,7 +29,7 @@ const std::map<ConstraintOperator, NSPredicateOperatorType> supportedOps = {
     {LESS_THAN_OR_EQUALS, NSLessThanOrEqualToPredicateOperatorType},
     {LIKE, NSLikePredicateOperatorType}};
 
-const std::map<std::string, std::string> columnToOSLogEntryProp = {
+const std::map<std::string, std::string> kColumnToOSLogEntryProp = {
     {"timestamp", "date"},
     {"message", "composedMessage"},
     {"storage", "storeCategory"},
@@ -41,7 +41,7 @@ const std::map<std::string, std::string> columnToOSLogEntryProp = {
     {"subsystem", "subsystem"},
     {"category", "category"}};
 
-const std::map<std::string, bool> columnIsNumeric = {{"timestamp", false},
+const std::map<std::string, bool> kColumnIsNumeric = {{"timestamp", false},
                                                      {"message", false},
                                                      {"storage", true},
                                                      {"activity", true},
@@ -64,9 +64,9 @@ void addQueryOp(NSMutableArray* preds,
                 const std::string& key,
                 const std::string& value,
                 ConstraintOperator op) {
-  if (supportedOps.count(op) > 0 && columnToOSLogEntryProp.count(key) > 0) {
+  if (kSupportedOps.count(op) > 0 && kColumnToOSLogEntryProp.count(key) > 0) {
     std::string modified_val = value;
-    std::string modified_key = columnToOSLogEntryProp.at(key);
+    std::string modified_key = kColumnToOSLogEntryProp.at(key);
     if (op == LIKE) {
       modified_val = convertLikeExpr(value);
     }
@@ -81,7 +81,7 @@ void addQueryOp(NSMutableArray* preds,
       valExp = [NSExpression
           expressionForConstantValue:
               [NSDate dateWithTimeIntervalSince1970:provided_timestamp]];
-    } else if (columnIsNumeric.at(key)) {
+    } else if (kColumnIsNumeric.at(key)) {
       valExp =
           [NSExpression expressionWithFormat:@"%lld", [valStr longLongValue]];
     } else {
@@ -92,7 +92,7 @@ void addQueryOp(NSMutableArray* preds,
         predicateWithLeftExpression:keyExp
                     rightExpression:valExp
                            modifier:NSDirectPredicateModifier
-                               type:supportedOps.at(op)
+                               type:kSupportedOps.at(op)
                             options:0];
     [preds addObject:pred];
   }
