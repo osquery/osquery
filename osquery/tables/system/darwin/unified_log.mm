@@ -107,7 +107,7 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
       if (error != nil) {
         TLOG << "error getting handle to log store: "
              << [[error localizedDescription] UTF8String];
-        return QueryData();
+        return {};
       }
 
       OSLogPosition* position = nil;
@@ -162,7 +162,7 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
       if (error != nil) {
         TLOG << "error enumerating entries in system log: "
              << [[error localizedDescription] UTF8String];
-        return QueryData();
+        return {};
       }
       for (OSLogEntryLog* entry in enumerator) {
         Row r;
