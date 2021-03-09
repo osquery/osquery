@@ -13,10 +13,6 @@
 #include <osquery/utils/windows/shellitem.h>
 
 #include <boost/algorithm/hex.hpp>
-#include <boost/algorithm/string.hpp>
-
-#include <iostream>
-#include <sstream>
 
 struct LinkFlags {
   bool has_target_id_list;
@@ -239,11 +235,11 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
       data.erase(0, item_size);
       continue;
     } else if (sig == "2F" || sig == "23" || sig == "25" || sig == "29" ||
-               sig == "2A" || sig == "2E") {
+               sig == "2A" || sig == "2E") { // Driver letter
       if (item_string.substr(6, 2) == "80" ||
           (item_string.find("2600EFBE") != std::string::npos ||
            item_string.find("2500EFBE") !=
-               std::string::npos)) { // Check if GUID exists
+               std::string::npos)) { // Check if a GUID exists
         std::string guid_little = item_string.substr(8, 32);
         std::string guid_string = guidParse(guid_little);
 
@@ -256,13 +252,13 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
       build_path.push_back(drive);
       data.erase(0, item_size);
       continue;
-    } else if ((sig == "74") &&
+    } else if ((sig == "74") && // User File View
                item_string.find("43465346") != std::string::npos) {
       file_entry = fileEntry(item_string);
       build_path.push_back(file_entry.path);
       data.erase(0, item_size);
       continue;
-    } else if ((sig == "61")) {
+    } else if ((sig == "61")) { // FTP/URI entry
       std::vector<std::string> ftp_data = ftpItem(item_string);
       build_path.push_back(ftp_data[1]);
       data.erase(0, item_size);
@@ -485,7 +481,7 @@ DataStringInfo parseDataString(const std::string& data,
   std::string data_str_type = "";
   DataStringInfo data_info;
   std::string str_data_size = data_string.substr(0, 4);
-  // Previous lnk data may have extra zeros
+  // Previous lnk data may have extra zeros (due to Unicode null termination?)
   if (str_data_size == "0000") {
     data_string.erase(0, 4);
     str_data_size = data_string.substr(0, 4);
@@ -494,7 +490,7 @@ DataStringInfo parseDataString(const std::string& data,
   int data_size = std::stoi(str_data_size, nullptr, 16);
 
   // Data strings go in the following order: description, relative path, working
-  // path, command args, icon location Some may not exist
+  // path, command args, icon location. Some may not exist
   if (description) {
     if (unicode) {
       data_size = data_size * 4;
@@ -604,7 +600,7 @@ ExtraDataTracker parseExtraDataTracker(const std::string& data) {
     return data_tracker;
   }
   size_t extra_offset = data.find("030000A0") + 24;
-  std::string hostname = data.substr(extra_offset, 32);
+  std::string hostname = data.substr(extra_offset, 30);
   try {
     data_tracker.hostname = boost::algorithm::unhex(hostname);
   } catch (const boost::algorithm::hex_decode_error& /* e */) {

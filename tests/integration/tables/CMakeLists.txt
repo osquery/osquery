@@ -310,6 +310,7 @@ function(generateTestsIntegrationTablesTestsTest)
       shared_resources.cpp
       shellbags.cpp
       shimcache.cpp
+      shortcut_files.cpp
       startup_items.cpp
       userassist.cpp
       video_info.cpp

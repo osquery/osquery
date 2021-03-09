@@ -16,11 +16,8 @@
 #include <osquery/logger/logger.h>
 #include <osquery/utils/windows/shelllnk.h>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
-#include <fstream>
-#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -53,20 +50,14 @@ QueryData genShortcutFiles(QueryContext& context) {
     if (!boost::filesystem::is_regular_file(path, ec)) {
       continue;
     }
-    std::ifstream check_lnk(lnk, std::ios::out | std::ios::binary);
-    if (check_lnk.fail()) {
-      LOG(WARNING) << "Failed to read header for shortcut file: " << lnk
-                   << ". Received error: " << errno;
-      continue;
+    std::string lnk_content;
+    if (!readFile(path, lnk_content, 20).ok()) {
+      LOG(WARNING) << "Failed to read shortcut file: " << lnk;
     }
-    char check_data[20];
-    check_lnk.read(check_data, 20);
-    check_lnk.seekg(0);
-
     std::stringstream check_ss;
-    for (const auto& hex_char : check_data) {
+    for (const auto& hex_char : lnk_content) {
       std::stringstream value;
-      value << std::hex << std::uppercase << (int)(hex_char);
+      value << std::hex << std::uppercase << (int)(unsigned char)(hex_char);
       // Add additional 0 if single hex value is 0-F
       if (value.str().size() == 1) {
         check_ss << "0";
@@ -75,9 +66,6 @@ QueryData genShortcutFiles(QueryContext& context) {
     }
     std::string header_sig = check_ss.str();
 
-    // remove signed extension characters
-    boost::erase_all(header_sig, "FFFFFF");
-
     // Check for shortcut header size (0x0000004c) and GUID
     // (00021401-0000-0000-c000-000000000046)
     if (header_sig != "4C0000000114020000000000C000000000000046") {
@@ -85,20 +73,21 @@ QueryData genShortcutFiles(QueryContext& context) {
     }
 
     // Read the whole shortcut file
-    std::vector<unsigned char> lnk_data(
-        (std::istreambuf_iterator<char>(check_lnk)),
-        (std::istreambuf_iterator<char>()));
-    check_lnk.close();
+    lnk_content = "";
+    if (!readFile(path, lnk_content).ok()) {
+      LOG(WARNING) << "Failed to read shortcut file: " << lnk;
+    }
     std::stringstream ss;
-    for (const auto& hex_char : lnk_data) {
+    for (const auto& hex_char : lnk_content) {
       std::stringstream value;
-      value << std::hex << std::uppercase << (int)(hex_char);
+      value << std::hex << std::uppercase << (int)(unsigned char)(hex_char);
       // Add additional 0 if single hex value is 0-F
       if (value.str().size() == 1) {
         ss << "0";
       }
       ss << value.str();
     }
+
     const std::string lnk_hex = ss.str();
     LinkFileHeader data;
     TargetInfo target_data;
@@ -134,6 +123,7 @@ QueryData genShortcutFiles(QueryContext& context) {
     extra_data = parseExtraDataTracker(data_string);
 
     std::string target_path = "";
+    // Lookup and combine GUIDs and target file path
     if (target_data.root_folder != "") {
       std::string guid_name;
       std::vector<std::string> full_path;
@@ -158,7 +148,12 @@ QueryData genShortcutFiles(QueryContext& context) {
         target_path = osquery::join(full_path, "\\");
       } else {
         if (target_data.path != "") {
-          full_path.push_back(target_data.path);
+          // Check if path is only a volume
+          if (target_data.path.size() == 2 && target_data.path.back() == ':') {
+            target_data.path = target_data.path + "\\";
+          } else {
+            full_path.push_back(target_data.path);
+          }
         }
         target_path = osquery::join(full_path, "\\");
       }

@@ -10,7 +10,6 @@
 #include <gtest/gtest.h>
 #include <osquery/utils/windows/shelllnk.h>
 
-#include <iostream>
 #include <string>
 
 namespace osquery {
@@ -102,7 +101,6 @@ TEST_F(ShelllnkTests, test_shelllnk_target_info) {
       "00000048000000902F5408000000000000501F00000000000000000000000000000000";
 
   auto target_info = parseTargetInfo(data);
-  std::cout << target_info.path << std::endl;
   ASSERT_TRUE(
       target_info.path ==
       "C:\\Users\\bob\\Desktop\\navi\\hey\\listen\\lnk\\save_hyrule.txt");
