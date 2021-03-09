@@ -176,7 +176,6 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
   std::string data = target_info.substr(4);
   TargetInfo target_lnk;
   std::vector<std::string> build_path;
-  std::vector<std::string> property_build;
 
   ShellFileEntryData file_entry;
   file_entry.mft_entry = -1LL;
@@ -471,14 +470,14 @@ LocationInfo parseLocationData(const std::string& location_data) {
 }
 
 DataStringInfo parseDataString(const std::string& data,
-                               bool unicode,
-                               bool& description,
-                               bool& relative_path,
-                               bool& working_path,
-                               bool& icon_location,
-                               bool& command_args) {
+                               const bool unicode,
+                               const bool& description,
+                               const bool& relative_path,
+                               const bool& working_path,
+                               const bool& icon_location,
+                               const bool& command_args) {
   std::string data_string = data;
-  std::string data_str_type = "";
+  std::string data_str_type;
   DataStringInfo data_info;
   std::string str_data_size = data_string.substr(0, 4);
   // Previous lnk data may have extra zeros (due to Unicode null termination?)
@@ -600,20 +599,26 @@ ExtraDataTracker parseExtraDataTracker(const std::string& data) {
     return data_tracker;
   }
   size_t extra_offset = data.find("030000A0") + 24;
-  std::string hostname = data.substr(extra_offset, 30);
+  std::string hostname = data.substr(extra_offset, 32);
+  boost::erase_all(hostname, "00");
+  // Size should be even but if values end in base 10 it will be odd
+  if (hostname.size() % 2 != 0) {
+    hostname = hostname + "0";
+  }
+
   try {
     data_tracker.hostname = boost::algorithm::unhex(hostname);
   } catch (const boost::algorithm::hex_decode_error& /* e */) {
     LOG(WARNING) << "Failed to decode extra data tracker hex values to string: "
                  << hostname;
   }
-  std::string guid = data.substr(extra_offset + 56, 32);
+  std::string guid = data.substr(extra_offset + 32, 32);
   data_tracker.droid_volume = guidParse(guid);
-  guid = data.substr(extra_offset + 88, 32);
+  guid = data.substr(extra_offset + 64, 32);
   data_tracker.droid_file = guidParse(guid);
-  guid = data.substr(extra_offset + 120, 32);
+  guid = data.substr(extra_offset + 96, 32);
   data_tracker.birth_droid_volume = guidParse(guid);
-  guid = data.substr(extra_offset + 152, 32);
+  guid = data.substr(extra_offset + 128, 32);
   data_tracker.birth_droid_file = guidParse(guid);
   return data_tracker;
 }
