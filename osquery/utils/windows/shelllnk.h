@@ -125,12 +125,12 @@ LocationInfo parseLocationData(const std::string& location_data);
  * @returns The shortcut data string structure
  */
 DataStringInfo parseDataString(const std::string& data,
-                              const bool unicode,
-                              const bool& description,
-                              const bool& relative_path,
-                              const bool& working_path,
-                              const bool& icon_location,
-                              const bool& command_args);
+                               const bool unicode,
+                               const bool& description,
+                               const bool& relative_path,
+                               const bool& working_path,
+                               const bool& icon_location,
+                               const bool& command_args);
 
 /**
  * @brief Windows helper function for parsing shortcut extra data tracker

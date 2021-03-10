@@ -53,6 +53,7 @@ QueryData genShortcutFiles(QueryContext& context) {
     std::string lnk_content;
     if (!readFile(path, lnk_content, 20).ok()) {
       LOG(WARNING) << "Failed to read shortcut file: " << lnk;
+      continue;
     }
     std::stringstream check_ss;
     for (const auto& hex_char : lnk_content) {
@@ -76,6 +77,7 @@ QueryData genShortcutFiles(QueryContext& context) {
     lnk_content = "";
     if (!readFile(path, lnk_content).ok()) {
       LOG(WARNING) << "Failed to read shortcut file: " << lnk;
+      continue;
     }
     std::stringstream ss;
     for (const auto& hex_char : lnk_content) {
@@ -127,6 +129,7 @@ QueryData genShortcutFiles(QueryContext& context) {
     if (target_data.root_folder != "") {
       std::string guid_name;
       std::vector<std::string> full_path;
+      // Check for GUID name if osquery fails to find it, fallback to the GUID
       auto status =
           getClassName("{" + target_data.root_folder + "}", guid_name);
       if (status.ok()) {
@@ -134,6 +137,7 @@ QueryData genShortcutFiles(QueryContext& context) {
       } else {
         full_path.push_back("{" + target_data.root_folder + "}");
       }
+      // If Control Panel items were found lookup GUIDs and build path
       if (target_data.control_panel != "" ||
           target_data.control_panel_category != "") {
         std::string guid_name;
@@ -157,7 +161,8 @@ QueryData genShortcutFiles(QueryContext& context) {
         }
         target_path = osquery::join(full_path, "\\");
       }
-    } else if (target_data.property_guid != "") {
+    } else if (target_data.property_guid !=
+               "") { // Lookup up GUID name for User Property Views
       std::string guid_name;
       std::vector<std::string> full_path;
       auto status =
