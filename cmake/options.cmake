@@ -73,6 +73,10 @@ option(OSQUERY_BUILD_ROOT_TESTS "Whether to enable and build tests that require 
 
 option(OSQUERY_ENABLE_ADDRESS_SANITIZER "Whether to enable Address Sanitizer")
 
+if(DEFINED PLATFORM_POSIX)
+  option(OSQUERY_ENABLE_THREAD_SANITIZER "Whether to enable Thread Sanitizer")
+endif()
+
 if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS)
   option(OSQUERY_BUILD_FUZZERS "Whether to build fuzzing harnesses")
 
