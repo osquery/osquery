@@ -272,7 +272,7 @@ function(generateInstallTargets)
     install(DIRECTORY COMPONENT osquery DESTINATION /private/var/osquery)
 
     install(DIRECTORY "${augeas_lenses_path}" COMPONENT osquery
-            DESTINATION /private/var/osquery/lenses
+            DESTINATION /private/var/osquery
             FILES_MATCHING PATTERN "*.aug"
             PATTERN "tests" EXCLUDE)
 
