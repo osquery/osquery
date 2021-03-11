@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryEventsMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()

@@ -122,7 +122,6 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_error_info.cpp
       mounts.cpp
       oem_strings.cpp
-      opera_extensions.cpp
       pci_devices.cpp
       process_envs.cpp
       process_events.cpp
