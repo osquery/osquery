@@ -20,10 +20,12 @@
 - Add `ycloud_instance_metadata` table ([#6961](https://github.com/osquery/osquery/pull/6961))
 - Add `computer` column to Windows Eventlogs ([#6952](https://github.com/osquery/osquery/pull/6952))
 - Add `filevault_status` column to disk_encryption table ([#6823](https://github.com/osquery/osquery/pull/6823))
+- Update `chrome_extensions` table -- more browser support and tests ([#6780](https://github.com/osquery/osquery/pull/6780))
 - Update `office_mru` table to correct platforms ([#6827](https://github.com/osquery/osquery/pull/6827))
 - Update `augeas` table not to  autoload system lenses ([#6980](https://github.com/osquery/osquery/pull/6980))
 - Update aws table to include macOS ([#6817](https://github.com/osquery/osquery/pull/6817))
 - Fix loading of YARA rules on Windows ([#6893](https://github.com/osquery/osquery/pull/6893))
+
 
 ### Under the Hood improvements
 
@@ -56,6 +58,8 @@
 - Make Group ID columns consistent across Windows tables ([#6987](https://github.com/osquery/osquery/pull/6987))
 - Fix mem leak regression with Windows sids API ([#6984](https://github.com/osquery/osquery/pull/6984))
 - Fix error in `process_open_files` inode need stoul, not stoi ([#6983](https://github.com/osquery/osquery/pull/6983))
+- Add `journal_mode` to the sqlite authorizer ([#6999](https://github.com/osquery/osquery/pull/6999))
+- Always use BIGINT macro for `long long` data ([#6986](https://github.com/osquery/osquery/pull/6986))
 
 ### Documentation
 
@@ -117,6 +121,7 @@
 - libraries: Update thrift to version 0.13.0 ([#6822](https://github.com/osquery/osquery/pull/6822))
 - libraries: Update openssl to version 1.1.1i ([#6820](https://github.com/osquery/osquery/pull/6820))
 - Remove `hash` and `yara` table from fuzz harnesses ([#6972](https://github.com/osquery/osquery/pull/6972))
+- CPack: Remove extraneous lenses directory for augues on macOS ([#6998](https://github.com/osquery/osquery/pull/6998))
 
 ### Hardening
 
