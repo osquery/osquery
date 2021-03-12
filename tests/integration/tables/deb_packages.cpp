@@ -35,8 +35,8 @@ TEST_F(DebPackages, test_sanity) {
                              {"revision", NormalType},
                              {"status", NonEmptyString},
                              {"maintainer", NonEmptyString},
-                             {"section", NonEmptyString},
-                             {"priority", NonEmptyString}};
+                             {"section", NormalType},
+                             {"priority", NormalType}};
 
     validate_rows(rows, row_map);
 
