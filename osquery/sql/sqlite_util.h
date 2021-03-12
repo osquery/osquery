@@ -75,6 +75,7 @@ const std::unordered_set<std::string> kAllowedSQLitePragmas = {
     "table_info",
     "table_xinfo",
     "function_list",
+    "journal_mode",
 };
 
 class SQLiteDBManager;
