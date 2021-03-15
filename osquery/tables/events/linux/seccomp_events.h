@@ -27,11 +27,11 @@
 #endif
 
 #ifndef SECCOMP_RET_KILL_THREAD
-#define SECCOMP_RET_KILL_THREAD  SECCOMP_RET_KILL /* kill the thread */
+#define SECCOMP_RET_KILL_THREAD SECCOMP_RET_KILL /* kill the thread */
 #endif
 
 #ifndef SECCOMP_RET_LOG
-#define SECCOMP_RET_LOG          0x7ffc0000U /* allow after logging */
+#define SECCOMP_RET_LOG 0x7ffc0000U /* allow after logging */
 #endif
 
 // End to #include <linux/seccomp.h> additions
