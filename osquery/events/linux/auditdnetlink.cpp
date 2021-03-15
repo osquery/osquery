@@ -65,6 +65,7 @@ DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
 DECLARE_bool(audit_allow_selinux_events);
 DECLARE_bool(audit_allow_apparmor_events);
+DECLARE_bool(audit_allow_seccomp_events);
 
 namespace {
 
@@ -98,12 +99,15 @@ bool ShouldHandle(const audit_reply& reply) noexcept {
     return FLAGS_audit_allow_selinux_events;
   }
 
+  if (reply.type == AUDIT_SECCOMP) {
+    return FLAGS_audit_allow_seccomp_events;
+  }
+
   switch (reply.type) {
   case NLMSG_NOOP:
   case NLMSG_DONE:
   case NLMSG_ERROR:
   case AUDIT_LIST_RULES:
-  case AUDIT_SECCOMP:
   case AUDIT_GET:
   case (AUDIT_GET + 1)...(AUDIT_LIST_RULES - 1):
   case (AUDIT_LIST_RULES + 1)...(AUDIT_FIRST_USER_MSG - 1):
@@ -734,7 +738,7 @@ void AuditdNetlinkParser::start() {
       }
 
       // We are not interested in all messages; only get the ones related to
-      // user events, syscalls, SELinux events and AppArmor events
+      // user events, seccomp, syscalls, SELinux events and AppArmor events
       if (!ShouldHandle(reply)) {
         continue;
       }

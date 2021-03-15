@@ -149,6 +149,7 @@ function(generateNativeTables)
     "freebsd/fbsd_kmods.table:freebsd"
     "freebsd/pkg_packages.table:freebsd"
     "linux/selinux_events.table:linux"
+    "linux/seccomp_events.table:linux"
     "linux/elf_symbols.table:linux"
     "linux/portage_use.table:linux"
     "linux/rpm_package_files.table:linux"
