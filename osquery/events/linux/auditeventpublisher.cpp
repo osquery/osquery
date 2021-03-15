@@ -47,7 +47,6 @@ bool IsPublisherEnabled() noexcept {
           FLAGS_audit_allow_kill_process_events ||
           FLAGS_audit_allow_apparmor_events ||
           FLAGS_audit_allow_seccomp_events);
-
 }
 } // namespace
 

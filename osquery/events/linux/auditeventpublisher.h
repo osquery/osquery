@@ -105,12 +105,11 @@ struct AuditEvent final {
   enum class Type { UserEvent, Syscall, SELinux, AppArmor, Seccomp };
 
   Type type;
-  boost::
-      variant<UserAuditEventData,
-              SyscallAuditEventData,
-              AppArmorAuditEventData,
-              SeccompAuditEventData>
-          data;
+  boost::variant<UserAuditEventData,
+                 SyscallAuditEventData,
+                 AppArmorAuditEventData,
+                 SeccompAuditEventData>
+      data;
 
   std::vector<AuditEventRecord> record_list;
 };
