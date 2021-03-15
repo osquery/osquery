@@ -17,7 +17,7 @@
 
 /* Additions to #include <linux/seccomp.h>
  * Some used constants introduced only in kernel 4.14
- * Osquery tries to be compatible to older kernel 
+ * Osquery tries to be compatible to older kernel
  * so we define newer constants if they are missing in seccomp.h
  * Constant values are taken from kernel tag v4.14
  * https://github.com/torvalds/linux/blob/v4.14/include/uapi/linux/seccomp.h#L32
