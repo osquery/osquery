@@ -27,7 +27,7 @@ A special flag, part of Google Flags, can be used to read additional flags from 
 
 Include line-delimited switches to be interpreted and used as CLI-flags:
 
-```
+```text
 --config_plugin=custom_plugin
 --logger_plugin=custom_plugin
 --distributed_plugin=custom_plugin

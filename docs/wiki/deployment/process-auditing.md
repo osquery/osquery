@@ -193,17 +193,17 @@ Memory usage depends on both:
 
 The BPF event publisher uses 6 memory pools, grouping system calls in order to evenly distribute memory usage. Not counting the internal maps used to merge sys_enter/sys_exit events (the size for these maps is rather small), memory usage can be easily estimated with the following formula:
 
-```
+```cpp
 buffer_storage_bytes = memory_pool_count * (bpf_buffer_storage_size * 4096) * possible_cpu_count
 ```
 
-```
+```cpp
 perf_bytes = (2 ^ bpf_perf_event_array_exp) * online_cpu_count
 ```
 
 The cpu count numbers can be read from the `/sys` folder:
 
-```
+```text
 possible_cpu_count: /sys/devices/system/cpu/possible
 online_cpu_count: /sys/devices/system/cpu/online
 ```
@@ -218,7 +218,7 @@ osquery supports OpenBSM audit on macOS platforms. To enable it in osquery, you 
 
 On macOS, osquery reads from the OpenBSM audit subsystem. This feature is already enabled on all macOS installations, but with its default settings it doesn't audit process execution or the root user. To start process auditing on macOS, edit the `audit_control` file in `/etc/security/`. An example configuration is provided below, but the important flags are: `ex`, `pc`, `argv`, and `arge`. The `ex` flag will log `exec` events while `pc` logs `exec`, `fork`, and `exit`. If you don't need `fork` and `exit` you may leave that flag out however in future, getting parent pid may require `fork`. If you care about getting the arguments and environment variables you also need `argv` and `arge`. More about these flags can be found [here](https://www.freebsd.org/cgi/man.cgi?apropos=0&sektion=5&query=audit_control&manpath=FreeBSD+7.0-current&format=html). Note that it might require a reboot of the system for these new flags to take effect. `audit -s` should restart the system but your mileage may vary.
 
-```
+```text
 #
 # $P4: //depot/projects/trustedbsd/openbsm/etc/audit_control#8 $
 #
