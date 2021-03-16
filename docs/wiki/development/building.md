@@ -52,11 +52,15 @@ cmake --build . -j10 # where 10 is the number of parallel build jobs
 
 ## macOS
 
+The current build of osquery supports deployment to the same set of macOS versions (macOS 10.12 and newer).  _Building_ osquery from source on macOS now requires 10.15 Catalina.
+
 The initial directory is assumed to be `/Users/<user>`
 
 ### Step 1: Install macOS prerequisites
 
-Please ensure [Homebrew](https://brew.sh/) has been installed, first. Then do the following.
+Please ensure [Homebrew](https://brew.sh/) has been installed, and install a _full copy_ of Xcode 12 or newer (not just the Xcode command-line tools, although you need to install those too — launch Xcode after installing or upgrading, and complete its installation of the "additional components" when prompted).
+
+Then do the following.
 
 ```bash
 # Install prerequisites
@@ -83,6 +87,14 @@ cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 ..
 # Build
 cmake --build . -j $(sysctl -n hw.ncpu)
 ```
+
+### Features Requiring Special Build Entitlements
+
+Certain functionality on macOS requires an entitled and code-signed executable. By default, macOS builds from source will be _unsigned_ and these particular features will be disabled at runtime.
+
+Specifically, the `process_es_events` table makes use of the EndpointSecurity APIs, which require osquery to be code-signed with a certificate possessing the EndpointSecurity Client entitlement. If unsigned, osquery will still run as normal, but `process_es_events` will be disabled.
+
+Organizations wishing to code-sign osquery themselves will need their Apple Developer team _account owner_ to manually request and obtain the EndpointSecurity Client entitlement from Apple, for their organization's code-signing certificate. Developers can also disable SIP in a development VM and use ad-hoc code-signing, if they want to work on `process_es_events` without pursuing the entitlement.
 
 ## Windows 10
 
