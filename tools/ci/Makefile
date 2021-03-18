@@ -6,8 +6,9 @@ all:
 # build a multiplatform image, and then push to the local docker
 # instance. Thus, these targets are for building and pushing to the
 # remote, and building some test images locally.
+container: TAG = $(shell git rev-parse --short HEAD)
 container:
-	docker buildx build --platform linux/amd64,linux/arm64 --push -t osquery/builder18.04 -f osquery-ubuntu18.04-toolchain.dockerfile .
+	docker buildx build --platform linux/amd64,linux/arm64 --push -t osquery/builder18.04:latest  -t osquery/builder18.04:$(TAG) -f osquery-ubuntu18.04-toolchain.dockerfile .
 
 arm:
 	docker buildx build --platform linux/arm64 --load -t osquerybuilder:$@  -f osquery-ubuntu18.04-toolchain.dockerfile .
