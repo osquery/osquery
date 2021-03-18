@@ -64,7 +64,6 @@ FROM base2 as base3
 
 FROM base3 AS base4
 RUN locale-gen en_US.UTF-8
-ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
 
 RUN apt autoremove --purge -y
 RUN rm -rf /usr/local/doc /usr/local/bin/cmake-gui
@@ -76,3 +75,4 @@ RUN rm -rf /var/lib/apt/lists/*
 # image.
 FROM scratch AS builder
 COPY --from=base4 / /
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
