@@ -61,7 +61,6 @@ FROM base2 as base3
 #	&& sudo tar xvf cmake-${cmakeVer}-Linux-${ARCH}.tar.gz -C /usr/local --strip 1 \
 #	&& rm cmake-${cmakeVer}-Linux-${ARCH}.tar.gz
 
-
 FROM base3 AS base4
 RUN locale-gen en_US.UTF-8
 
