@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-18.04
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v9
+      image: osquery/builder18.04:0aa3775ce
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     steps:
@@ -98,7 +98,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v9
+      image: osquery/builder18.04:0aa3775ce
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
@@ -211,7 +211,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v9
+      image: osquery/builder18.04:0aa3775ce
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
