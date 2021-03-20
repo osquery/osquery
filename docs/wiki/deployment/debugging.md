@@ -2,7 +2,7 @@
 
 Here are some debugging tips and tricks related to the daemon and shell from a deployment and usage perspective. Please see the development documentation in the next section for debugging code changes.
 
-Almost every situation requiring debugging should ultimately be solved with bug fixes or better documentation. In these cases,  the documentation usually surfaces in the form of verbose messages in the tools.
+Almost every situation requiring debugging should ultimately be solved with bug fixes or better documentation. In these cases, the documentation usually surfaces in the form of verbose messages in the tools.
 
 Please feel encouraged to add additional messages in the code, or create GitHub issues documenting your experience and suggestions for documentation or code improvements.
 
@@ -97,6 +97,44 @@ osqueryd worker respawning too quickly: 1 times
 ```
 
 The watchdog implements an exponential backoff when respawning workers and the associated 'dirty' query is denylisted from running for 24 hours.
+
+### Inspecting daemon state using the shell
+
+The `osqueryi` shell can "connect" to another osquery extension socket. Queries within that shell will be forwarded to the remote socket. This feature is especially helpful to inspect a daemon's `osquery_schedule` and `osquery_flags` configuration. The `osquery_schedule` table maintains runtime statistics for schedule execution. Keep in mind that this runtime data is transient, and only available to a daemon.
+
+Please consider the following example that demonstrates this functionality:
+
+```shell
+$ osqueryi
+osquery> .socket
+/home/$USER/.osquery/shell.em
+osquery> select pid from osquery_info;
++------+
+| pid  |
++------+
+| 1533 |
++------+
+osquery>
+```
+
+Then in another shell, the `.connect` method is used:
+
+```shell
+osquery> select pid from osquery_info;
++-------+
+| pid   |
++-------+
+| 20123 |
++-------+
+osquery> .connect /home/$USER/.osquery/shell.em
+[*]osquery> select pid from osquery_info;
++------+
+| pid  |
++------+
+| 1533 |
++------+
+[*]osquery>
+```
 
 ### Checking the database sanity
 
