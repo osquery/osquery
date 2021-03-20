@@ -86,6 +86,7 @@ jobs:
         include:
         - os: ${{ needs.start_aarch64_ec2_runners.outputs.label }}
           build_type: RelWithDebInfo
+          cache_key: ubuntu-20.04_aarch64
 
     steps:
     - name: Clone the osquery repository
