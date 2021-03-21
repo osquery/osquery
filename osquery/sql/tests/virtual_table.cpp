@@ -214,8 +214,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   auto dbc = SQLiteDBManager::get();
 
   // Virtual tables require the registry/plugin API to query tables.
-  auto status =
-      attachTableInternal("failed_sample", "(foo INTEGER)", dbc, false);
+  auto status = attachTableInternal("failed_sample", dbc, false);
   EXPECT_EQ(status.getCode(), SQLITE_ERROR);
 
   // The table attach will complete only when the table name is registered.
