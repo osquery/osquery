@@ -21,8 +21,7 @@ class LogRotate {
   static const size_t kUncompressedCount{1};
 
  public:
-  LogRotate(const std::string& path)
-      : path_(path) {}
+  LogRotate(const std::string& path) : path_(path) {}
   virtual ~LogRotate() = default;
 
   /// Check if the current file under rotation has exceeded the limits.

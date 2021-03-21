@@ -41,7 +41,8 @@ class FilesystemLoggerTests : public testing::Test {
     registryAndPluginInit();
     initDatabasePluginForTesting();
 
-    auto logger_path = fs::temp_directory_path() /
+    auto logger_path =
+        fs::temp_directory_path() /
         fs::unique_path("osquery.filesystem_logger_tests.%%%%.%%%%.logs");
 
     FLAGS_logger_path = logger_path.string();
@@ -66,8 +67,7 @@ class FilesystemLoggerTests : public testing::Test {
     EXPECT_EQ(content, "");
   }
 
-  void TearDown() override {
-  }
+  void TearDown() override {}
 
   std::string getContent() {
     return std::string();

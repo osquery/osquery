@@ -19,7 +19,6 @@
 namespace osquery {
 
 class FilesystemLoggerPlugin : public LoggerPlugin {
-
  public:
   FilesystemLoggerPlugin();
   virtual ~FilesystemLoggerPlugin();

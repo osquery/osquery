@@ -30,8 +30,7 @@ class LogRotateTests : public testing::Test {
 
 class FakeLogRotate : public LogRotate {
  public:
-  FakeLogRotate(const std::string& path)
-      : LogRotate(path) {}
+  FakeLogRotate(const std::string& path) : LogRotate(path) {}
 
   void insertFile(const std::string& filepath, size_t filesize) {
     fs_[filepath] = filesize;
