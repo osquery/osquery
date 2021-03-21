@@ -230,9 +230,9 @@ void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
   // Timeout is the number of seconds from starting.
-  timeout_ += (timeout_ == 0) ? 0 : i;
+  auto end = (timeout_ == 0) ? 0 : timeout_ + i;
 
-  for (; (timeout_ == 0) || (i <= timeout_); ++i) {
+  for (; (end == 0) || (i <= end); ++i) {
     auto start_time_point = std::chrono::steady_clock::now();
     Config::get().scheduledQueries(([&i](const std::string& name,
                                          const ScheduledQuery& query) {
