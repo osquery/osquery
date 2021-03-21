@@ -229,13 +229,13 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   status = attachTableInternal("sample", dbc, false);
   EXPECT_EQ(status.getCode(), SQLITE_OK);
 
+  // The sqlite_temp_master table worked before 4.7.0.
+  // We now expect it NOT to work since not all tables were added correctly.
   std::string const q =
-      "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
+      "SELECT * FROM sqlite_temp_master WHERE tbl_name='sample';";
   QueryData results;
   status = queryInternal(q, results, dbc);
-  EXPECT_EQ(
-      "CREATE VIRTUAL TABLE sample USING sample(`foo` INTEGER, `bar` TEXT)",
-      results[0]["sql"]);
+  EXPECT_EQ(results.size(), 0);
 }
 
 TEST_F(VirtualTableTests, test_sqlite3_table_joins) {

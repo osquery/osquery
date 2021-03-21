@@ -1081,6 +1081,11 @@ Status attachTableInternal(const std::string& name,
     return Status(0, getStringForSQLiteReturnCode(0));
   }
 
+  // Require the table exist in the registry.
+  if (!Registry::get().exists("table", name)) {
+    return Status(1);
+  }
+
   struct sqlite3_module* module =
       tables::sqlite::getVirtualTableModule(name, is_extension);
   if (module == nullptr) {
@@ -1143,16 +1148,9 @@ void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
 #endif
   }
 
-  PluginResponse response;
-  bool is_extension = false;
-
   for (const auto& name : RegistryFactory::get().names("table")) {
     // Column information is nice for virtual table create call.
-    auto status =
-        Registry::call("table", name, {{"action", "columns"}}, response);
-    if (status.ok()) {
-      attachTableInternal(name, instance, is_extension);
-    }
+    attachTableInternal(name, instance, false);
   }
 }
 } // namespace osquery
