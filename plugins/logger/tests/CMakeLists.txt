@@ -20,7 +20,10 @@ function(pluginsLoggerTestsMain)
 endfunction()
 
 function(generatePluginsLoggerTestsFilesystemloggertestsTest)
-  add_osquery_executable(plugins_logger_tests_filesystemloggertests-test filesystem_logger.cpp)
+  add_osquery_executable(plugins_logger_tests_filesystemloggertests-test
+    filesystem_logger_tests.cpp
+    logrotate_tests.cpp
+  )
 
   target_link_libraries(plugins_logger_tests_filesystemloggertests-test PRIVATE
     osquery_cxx_settings
