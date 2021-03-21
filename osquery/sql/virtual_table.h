@@ -79,7 +79,6 @@ struct VirtualTable : private boost::noncopyable {
 
 /// Attach a table plugin name to an in-memory SQLite database.
 Status attachTableInternal(const std::string& name,
-                           const std::string& statement,
                            const SQLiteDBInstanceRef& instance,
                            bool is_extension);
 
