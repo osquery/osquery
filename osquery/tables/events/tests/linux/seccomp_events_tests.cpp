@@ -7,8 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#ifdef __linux__
-
 #include <gtest/gtest.h>
 
 #include "osquery/events/linux/auditeventpublisher.h"
@@ -114,5 +112,3 @@ TEST_F(SeccompEventsTests, test_seccomp_value_decode_mips) {
   EXPECT_EQ(result["code"], "ERRNO");
 }
 } // namespace osquery
-
-#endif

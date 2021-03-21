@@ -415,13 +415,13 @@ REGISTER(SeccompEventSubscriber, "event_subscriber", "seccomp_events");
 
 Status SeccompEventSubscriber::init() {
   if (!FLAGS_audit_allow_seccomp_events) {
-    return Status(1, "Seccomp subscriber disabled via configuration");
+    return Status::failure("Seccomp subscriber disabled via configuration");
   }
 
   auto sc = createSubscriptionContext();
   subscribe(&SeccompEventSubscriber::Callback, sc);
 
-  return Status();
+  return Status::success();
 }
 
 Status SeccompEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
@@ -435,13 +435,12 @@ Status SeccompEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     add(row);
   }
 
-  return Status();
+  return Status::success();
 }
 
 void SeccompEventSubscriber::parseEvent(const AuditEvent& event,
                                         Row& parsed_event) noexcept {
   const auto& event_data = boost::get<SeccompAuditEventData>(event.data);
-  // parsed_event["uptime"] = std::to_string(tables::getUptime());
   parsed_event["uptime"] = std::to_string(getUptime());
   std::uint64_t arch = 0;
   std::uint64_t value = 0;
@@ -518,6 +517,6 @@ Status SeccompEventSubscriber::processEvents(
     data.push_back(parsed_event);
   }
 
-  return Status();
+  return Status::success();
 }
 } // namespace osquery
