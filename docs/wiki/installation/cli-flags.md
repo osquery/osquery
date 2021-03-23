@@ -405,7 +405,7 @@ File mode for output log files by the **filesystem** plugin (provided as a decim
 
 `--logger_rotate=false`
 
-When enabled, the **filesystem** plugin will rotate logs based on size. An example includes `/var/log/osquery/osqueryd.results.log` being rotated to `/var/log/osquery/osqueryd.results.log.1` when the trigger size is reached. Files after the first rotation will be gzip-compressed and will use the `.gz` file extension. A max number of log files will be maintained and logs overflowing this count will be deleted after rotation.
+When enabled, the **filesystem** plugin will rotate logs based on size. An example includes `/var/log/osquery/osqueryd.results.log` being rotated to `/var/log/osquery/osqueryd.results.log.1` when the trigger size is reached. Files after the first rotation will be Zstandard-compressed and will use the `.zst` file extension. A max number of log files will be maintained and logs overflowing this count will be deleted after rotation.
 
 `--logger_rotate_size=26214400` (25MB)
 

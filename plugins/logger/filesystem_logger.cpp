@@ -97,14 +97,13 @@ Status LogRotate::moveFile(const std::string& source, const std::string& dest) {
 
 Status LogRotate::compressFile(const std::string& source,
                                const std::string& dest) {
-  // TODO: implement the compression.
-  return osquery::movePath(source, dest);
+  return osquery::compress(source, dest);
 }
 
 std::string LogRotate::getRotateFile(size_t offset) {
   auto filename = path_ + '.' + std::to_string(offset);
   if (offset > kUncompressedCount) {
-    filename += ".gz";
+    filename += ".zst";
   }
   return filename;
 }
