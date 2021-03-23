@@ -32,13 +32,17 @@ pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
 sudo apt install --no-install-recommends rpm binutils
 
 # Download and install the osquery toolchain
-wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-x86_64.tar.xz
-sudo tar xvf osquery-toolchain-1.1.0-x86_64.tar.xz -C /usr/local
+export ARCH=$(uname -m) # There is toolchain support for x86_64 and aarch64.
+wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-${ARCH}.tar.xz
+sudo tar xvf osquery-toolchain-1.1.0-${ARCH}.tar.xz -C /usr/local
 
-# Download and install a newer CMake
-wget https://cmake.org/files/v3.17/cmake-3.17.5-Linux-x86_64.tar.gz
-sudo tar xvf cmake-3.17.5-Linux-x86_64.tar.gz -C /usr/local --strip 1
-# Verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`
+# Download and install a newer CMake.
+# Afterward, verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`.
+# Please see the note below for building CMake on aarch64.
+if [[ "${ARCH}" = "x86_64" ]]; then
+  wget https://cmake.org/files/v3.17/cmake-3.17.5-Linux-${ARCH}.tar.gz
+  sudo tar xvf cmake-3.17.5-Linux-${ARCH}.tar.gz -C /usr/local --strip 1
+fi
 
 # Download source
 git clone https://github.com/osquery/osquery
@@ -48,6 +52,24 @@ cd osquery
 mkdir build; cd build
 cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
 cmake --build . -j10 # where 10 is the number of parallel build jobs
+```
+
+**CMake on aarch64**
+
+If you are building for aarch64 then please notes CMake > 3.19.3 includes aarch64 Linux binaries,
+however it also has a bug that prevents creating RPMs properly.
+
+Prefer to build and install CMake from source:
+
+```bash
+wget https://github.com/Kitware/CMake/releases/download/v3.17.5/cmake-3.17.5.tar.gz
+sudo apt install gcc g++ libssl-dev
+tar zxvf cmake-3.17.5.tar.gz
+pushd cmake-3.17.5/
+./bootstrap -- -DCMAKE_BUILD_TYPE:STRING=Release
+make -j`nproc`
+sudo make install
+popd
 ```
 
 ## macOS
