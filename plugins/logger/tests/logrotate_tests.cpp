@@ -129,18 +129,18 @@ TEST_F(LogRotateTests, test_rotate_missing_file) {
   rotate.setRotateSize(100);
   rotate.rotate(5);
 
-  ASSERT_TRUE(rotate.pathExists("/doesnotexist/logdir.2.gz"));
+  ASSERT_TRUE(rotate.pathExists("/doesnotexist/logdir.2.zst"));
   // Expect this to be compressed.
-  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.2.gz"), 4000);
+  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.2.zst"), 4000);
   EXPECT_TRUE(rotate.pathExists("/doesnotexist/logdir.1"));
   EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.1"), 1000);
 
   // Try another rotate.
   rotate.insertFile("/doesnotexist/logdir", 500);
   rotate.rotate(5);
-  ASSERT_TRUE(rotate.pathExists("/doesnotexist/logdir.3.gz"));
-  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.3.gz"), 4000);
-  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.2.gz"), 500);
+  ASSERT_TRUE(rotate.pathExists("/doesnotexist/logdir.3.zst"));
+  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.3.zst"), 4000);
+  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.2.zst"), 500);
   EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.1"), 500);
 
   auto s = rotate.rotate(5);
@@ -152,25 +152,25 @@ TEST_F(LogRotateTests, test_rotate_overflow) {
   FakeLogRotate rotate("/doesnotexist/logdir");
   rotate.insertFile("/doesnotexist/logdir", 100);
   rotate.insertFile("/doesnotexist/logdir.1", 500);
-  rotate.insertFile("/doesnotexist/logdir.2.gz", 800);
-  rotate.insertFile("/doesnotexist/logdir.3.gz", 2000);
+  rotate.insertFile("/doesnotexist/logdir.2.zst", 800);
+  rotate.insertFile("/doesnotexist/logdir.3.zst", 2000);
   rotate.setRotateSize(100);
   rotate.rotate(3);
 
   EXPECT_FALSE(rotate.pathExists("/doesnotexist/logdir"));
-  EXPECT_FALSE(rotate.pathExists("/doesnotexist/logdir.4.gz"));
+  EXPECT_FALSE(rotate.pathExists("/doesnotexist/logdir.4.zst"));
   EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.1"), 100);
-  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.2.gz"), 250);
-  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.3.gz"), 800);
+  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.2.zst"), 250);
+  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.3.zst"), 800);
 
   // Rotate owns these files so a 'new' max rotate will remove old files.
   rotate.insertFile("/doesnotexist/logdir", 3000);
   rotate.rotate(2);
 
   EXPECT_FALSE(rotate.pathExists("/doesnotexist/logdir"));
-  EXPECT_FALSE(rotate.pathExists("/doesnotexist/logdir.3.gz"));
+  EXPECT_FALSE(rotate.pathExists("/doesnotexist/logdir.3.zst"));
   EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.1"), 3000);
-  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.2.gz"), 50);
+  EXPECT_EQ(rotate.fileSize("/doesnotexist/logdir.2.zst"), 50);
 }
 
 } // namespace osquery
