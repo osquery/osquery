@@ -16,17 +16,13 @@ name: build_aarch64
 on:
   push:
     branches:
-      - 'master'
+      - '*'
 
     tags:
       - '*'
 
-# If the initial code sanity checks are passing, then one job
-# per [`platform` * `build_type`] will start, building osquery
-# and generating packages that are later attached to the commit
-# (or PR) as build artifacts.
 jobs:
-  # Starts optional self-hosted runners.
+  # Starts self-hosted runners.
   start_aarch64_ec2_runners:
     runs-on: ubuntu-latest
     outputs:
@@ -50,11 +46,12 @@ jobs:
           subnet-id: subnet-06390365e72579736
           security-group-id: sg-0757a3162c999331b
 
-  # Stops optional self-hosted runners.
+  # Stops self-hosted runners.
   stop_aarch64_ec2_runners:
     needs:
       - start_aarch64_ec2_runners
       - build_linux_aarch64
+    if: always()
 
     runs-on: ubuntu-latest
 
@@ -73,13 +70,16 @@ jobs:
           label: ${{ needs.start_aarch64_ec2_runners.outputs.label }}
           ec2-instance-id: ${{ needs.start_aarch64_ec2_runners.outputs.ec2-instance-id }}
 
-  # The Linux build will only start once we know that the code
-  # has been properly formatted
+  # The Linux build will only start once the runner has started.
   build_linux_aarch64:
     needs:
       - start_aarch64_ec2_runners
 
     runs-on: ${{ matrix.os }}
+
+    container:
+      image: osquery/builder18.04:0aa3775ce
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
       matrix:
