@@ -94,6 +94,7 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
                                IID_PPV_ARGS(&pCimDateTime));
   if (!SUCCEEDED(hres)) {
     LOG(WARNING) << "Failed to init CoCreateInstance with " << hres;
+    pCimDateTime->Release();
     return -1;
   }
 
@@ -104,6 +105,7 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
   hres = pCimDateTime->put_Value(bSrcStr);
   if (!SUCCEEDED(hres)) {
     LOG(WARNING) << "Failed to init CimDateTime with " << hres;
+    pCimDateTime->Release();
     return -1;
   }
 
@@ -113,6 +115,7 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
       scope_guard::create([&bstrFileTime]() { SysFreeString(bstrFileTime); });
   // VARIANT_FALSE means we fetch the time in UTC
   hres = pCimDateTime->GetFileTime(VARIANT_FALSE, &bstrFileTime);
+  pCimDateTime->Release();
   if (!SUCCEEDED(hres)) {
     LOG(WARNING) << "Failed to convert CimDateTime to FILETIME with " << hres;
     return -1;
