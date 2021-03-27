@@ -88,9 +88,6 @@ std::string bstrToString(const BSTR src) {
 LONGLONG cimDatetimeToUnixtime(const std::string& src) {
   // First init the SWbemDateTime class
   ISWbemDateTime* pCimDateTime = nullptr;
-  auto pCimDateTimeManager =
-      scope_guard::create([&pCimDateTime]() { pCimDateTime->Release(); });
-
   auto hres = CoCreateInstance(CLSID_SWbemDateTime,
                                nullptr,
                                CLSCTX_INPROC_SERVER,
@@ -99,6 +96,8 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
     LOG(WARNING) << "Failed to init CoCreateInstance with " << hres;
     return -1;
   }
+  auto pCimDateTimeManager =
+      scope_guard::create([&pCimDateTime]() { pCimDateTime->Release(); });
 
   // Then load up our CIM Datetime string into said class
   auto bSrcStr = SysAllocString(stringToWstring(src.c_str()).c_str());
