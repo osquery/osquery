@@ -88,13 +88,15 @@ std::string bstrToString(const BSTR src) {
 LONGLONG cimDatetimeToUnixtime(const std::string& src) {
   // First init the SWbemDateTime class
   ISWbemDateTime* pCimDateTime = nullptr;
+  auto pCimDateTimeManager =
+      scope_guard::create([&pCimDateTime]() { pCimDateTime->Release(); });
+
   auto hres = CoCreateInstance(CLSID_SWbemDateTime,
                                nullptr,
                                CLSCTX_INPROC_SERVER,
                                IID_PPV_ARGS(&pCimDateTime));
   if (!SUCCEEDED(hres)) {
     LOG(WARNING) << "Failed to init CoCreateInstance with " << hres;
-    pCimDateTime->Release();
     return -1;
   }
 
@@ -105,7 +107,6 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
   hres = pCimDateTime->put_Value(bSrcStr);
   if (!SUCCEEDED(hres)) {
     LOG(WARNING) << "Failed to init CimDateTime with " << hres;
-    pCimDateTime->Release();
     return -1;
   }
 
@@ -115,7 +116,6 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
       scope_guard::create([&bstrFileTime]() { SysFreeString(bstrFileTime); });
   // VARIANT_FALSE means we fetch the time in UTC
   hres = pCimDateTime->GetFileTime(VARIANT_FALSE, &bstrFileTime);
-  pCimDateTime->Release();
   if (!SUCCEEDED(hres)) {
     LOG(WARNING) << "Failed to convert CimDateTime to FILETIME with " << hres;
     return -1;
