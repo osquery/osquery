@@ -401,7 +401,7 @@ Directory path for `ERROR`/`WARN`/`INFO` and query result logging by the **files
 
 `--logger_mode=420`
 
-File mode for output log files by the **filesystem** plugin (provided as a decimal string). Note that this affects both the query result log and the status logs. **Warning**: If run as root, log files may contain sensitive information!
+File mode for output log files by the **filesystem** plugin (provided as an octal string). Note that this affects both the query result log and the status logs. **Warning**: If run as root, log files may contain sensitive information!
 
 `--logger_rotate=false`
 
