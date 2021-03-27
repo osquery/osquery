@@ -269,8 +269,8 @@ Status getProcessCommandLineLegacy(HANDLE proc,
   RTL_USER_PROCESS_PARAMETERS upp;
   auto s = getUserProcessParameters(proc, upp, pid);
   if (!s.ok()) {
-    LOG(INFO) << "Failed to get PEB UPP for " << pid << " with "
-              << GetLastError();
+    VLOG(1) << "Failed to get PEB UPP for " << pid << " with "
+            << GetLastError();
     return s;
   }
 
@@ -335,8 +335,8 @@ Status getProcessCurrentDirectory(HANDLE proc,
   RTL_USER_PROCESS_PARAMETERS upp;
   auto s = getUserProcessParameters(proc, upp, pid);
   if (!s.ok()) {
-    LOG(INFO) << "Failed to get PEB UPP for " << pid << " with "
-              << GetLastError();
+    VLOG(1) << "Failed to get PEB UPP for " << pid << " with "
+            << GetLastError();
     return s;
   }
 
@@ -363,7 +363,7 @@ void getProcessPathInfo(HANDLE& proc,
   SecureZeroMemory(path.data(), kMaxPathSize);
   auto ret = QueryFullProcessImageNameW(proc, 0, path.data(), &out);
   if (ret != TRUE) {
-    LOG(INFO) << "Failed to lookup path information for process " << pid;
+    VLOG(1) << "Failed to lookup path information for process " << pid;
   } else {
     r["path"] = SQL_TEXT(wstringToString(path.data()));
   }
@@ -377,7 +377,7 @@ void getProcessPathInfo(HANDLE& proc,
   std::string currDir{""};
   auto s = getProcessCurrentDirectory(proc, currDir, pid);
   if (!s.ok()) {
-    LOG(INFO) << "Failed to get cwd for " << pid << " with " << GetLastError();
+    VLOG(1) << "Failed to get cwd for " << pid << " with " << GetLastError();
   } else {
     r["cwd"] = SQL_TEXT(currDir);
   }
