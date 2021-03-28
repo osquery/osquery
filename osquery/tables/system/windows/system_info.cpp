@@ -45,15 +45,24 @@ QueryData genSystemInfo(QueryContext& context) {
     r["cpu_logical_cores"] = INTEGER(numProcs);
     wmiResultsProc[0].GetLong("NumberOfCores", numProcs);
     r["cpu_physical_cores"] = INTEGER(numProcs);
-    wmiResults[0].GetString("TotalPhysicalMemory", r["physical_memory"]);
     wmiResults[0].GetString("Manufacturer", r["hardware_vendor"]);
     wmiResults[0].GetString("Model", r["hardware_model"]);
   } else {
     r["cpu_logical_cores"] = "-1";
     r["cpu_physical_cores"] = "-1";
-    r["physical_memory"] = "-1";
     r["hardware_vendor"] = "-1";
     r["hardware_model"] = "-1";
+  }
+
+  // Physical memory size is reported from Win32_PhysicalMemory. See
+  // TotalPhysicalMemory at
+  // https://docs.microsoft.com/en-us/windows/win32/cimwin32prov/win32-computersystem
+  const WmiRequest wmiSystemReqMem("select * from Win32_PhysicalMemory");
+  const std::vector<WmiResultItem>& wmiResultsMem = wmiSystemReqMem.results();
+  if (wmiResultsMem.empty()) {
+    r["physical_memory"] = "-1";
+  } else {
+    wmiResultsMem[0].GetString("Capacity", r["physical_memory"]);
   }
 
   QueryData regResults;
