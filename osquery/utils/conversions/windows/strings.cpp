@@ -96,6 +96,11 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
     LOG(WARNING) << "Failed to init CoCreateInstance with " << hres;
     return -1;
   }
+  auto pCimDateTimeManager = scope_guard::create([&pCimDateTime]() {
+    if (pCimDateTime != nullptr) {
+      pCimDateTime->Release();
+    }
+  });
 
   // Then load up our CIM Datetime string into said class
   auto bSrcStr = SysAllocString(stringToWstring(src.c_str()).c_str());
