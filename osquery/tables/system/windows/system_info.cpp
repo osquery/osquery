@@ -13,9 +13,10 @@
 #include <osquery/core/tables.h>
 #include <osquery/sql/sql.h>
 
+#include <osquery/core/windows/wmi.h>
+#include <osquery/logger/logger.h>
+#include <osquery/tables/system/windows/registry.h>
 #include <osquery/utils/conversions/tryto.h>
-#include "osquery/core/windows/wmi.h"
-#include "osquery/tables/system/windows/registry.h"
 
 namespace osquery {
 namespace tables {
@@ -57,12 +58,26 @@ QueryData genSystemInfo(QueryContext& context) {
   // Physical memory size is reported from Win32_PhysicalMemory. See
   // TotalPhysicalMemory at
   // https://docs.microsoft.com/en-us/windows/win32/cimwin32prov/win32-computersystem
-  const WmiRequest wmiSystemReqMem("select * from Win32_PhysicalMemory");
+  const WmiRequest wmiSystemReqMem("select Capacity from Win32_PhysicalMemory");
   const std::vector<WmiResultItem>& wmiResultsMem = wmiSystemReqMem.results();
   if (wmiResultsMem.empty()) {
     r["physical_memory"] = "-1";
   } else {
-    wmiResultsMem[0].GetString("Capacity", r["physical_memory"]);
+    // capacity is documented as being a uint64, but it actually coming back as
+    // a string.
+    unsigned __int64 sum = 0;
+    std::string capacityStr = "0";
+    for (const auto& wmiResult : wmiResultsMem) {
+      auto s = wmiResult.GetString("Capacity", capacityStr);
+      if (s.ok() == false) {
+        VLOG(1) << "Warning unable to get memory module capacity value from "
+                   "wmi results: "
+                << s.getMessage();
+        continue;
+      }
+      sum += std::stoull(capacityStr);
+    }
+    r["physical_memory"] = BIGINT(sum); // FIXME, need typecast?
   }
 
   QueryData regResults;
