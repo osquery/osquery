@@ -65,17 +65,23 @@ QueryData genSystemInfo(QueryContext& context) {
   } else {
     // capacity is documented as being a uint64, but it actually coming back as
     // a string.
-    unsigned __int64 sum = 0;
-    std::string capacityStr = "0";
+    uint64_t sum = 0;
     for (const auto& wmiResult : wmiResultsMem) {
+      std::string capacityStr = "0";
       auto s = wmiResult.GetString("Capacity", capacityStr);
-      if (s.ok() == false) {
-        VLOG(1) << "Warning unable to get memory module capacity value from "
-                   "wmi results: "
-                << s.getMessage();
+      if (!s.ok()) {
+        LOG(INFO) << "Warning unable to get memory module capacity value from "
+                     "wmi results: "
+                  << s.getMessage();
         continue;
       }
-      sum += std::stoull(capacityStr);
+      auto c = tryTo<uint64_t>(capacityStr);
+      if (c.isError()) {
+        LOG(INFO) << "Warning unable to coerce capacity into int";
+        continue;
+      }
+
+      sum += c.take();
     }
     r["physical_memory"] = BIGINT(sum);
   }
