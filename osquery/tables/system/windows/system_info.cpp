@@ -77,7 +77,7 @@ QueryData genSystemInfo(QueryContext& context) {
       }
       sum += std::stoull(capacityStr);
     }
-    r["physical_memory"] = BIGINT(sum); // FIXME, need typecast?
+    r["physical_memory"] = BIGINT(sum);
   }
 
   QueryData regResults;
