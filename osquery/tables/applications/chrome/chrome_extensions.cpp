@@ -75,19 +75,19 @@ QueryData genChromeExtensions(QueryContext& context) {
       row["from_webstore"] = SQL_TEXT(
           getExtensionProfileSettingsValue(extension, "from_webstore"));
 
-      // install_time is sometimes empty. Roll with it...
-      auto raw_install_time =
-          getExtensionProfileSettingsValue(extension, "install_time");
-      if (raw_install_time != "") {
+      // Raw install time
+      row["install_time"] =
+          SQL_TEXT(getExtensionProfileSettingsValue(extension, "install_time"));
+
+      // If the install time is present, and we can convert it, do so.
+      if (row["install_time"] != "") {
         auto converted_timestamp_exp =
-            webkitTimeToUnixTimestamp(raw_install_time);
+            webkitTimeToUnixTimestamp(row["install_time"]);
 
         if (converted_timestamp_exp.isError()) {
           LOG(ERROR) << "Failed to parse the install_time value '"
-                     << raw_install_time
+                     << row["install_time"]
                      << "' from the following extension: " << extension.path;
-
-          row["install_time"] = SQL_TEXT(raw_install_time);
         } else {
           row["install_timestamp"] = BIGINT(converted_timestamp_exp.take());
         }
