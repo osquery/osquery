@@ -75,24 +75,23 @@ QueryData genChromeExtensions(QueryContext& context) {
       row["from_webstore"] = SQL_TEXT(
           getExtensionProfileSettingsValue(extension, "from_webstore"));
 
-      row["install_time"] =
-          SQL_TEXT(getExtensionProfileSettingsValue(extension, "install_time"));
+      // install_time is sometimes empty. Roll with it...
+      auto raw_install_time =
+          getExtensionProfileSettingsValue(extension, "install_time");
+      if (raw_install_time != "") {
+        auto converted_timestamp_exp =
+            webkitTimeToUnixTimestamp(raw_install_time);
 
-      std::int64_t converted_timestamp{-1};
+        if (converted_timestamp_exp.isError()) {
+          LOG(ERROR) << "Failed to parse the install_time value '"
+                     << raw_install_time
+                     << "' from the following extension: " << extension.path;
 
-      auto converted_timestamp_exp =
-          webkitTimeToUnixTimestamp(row.at("install_time"));
-
-      if (converted_timestamp_exp.isError()) {
-        LOG(ERROR) << "Failed to parse the install_time value '"
-                   << row.at("install_time")
-                   << "' from the following extension: " << extension.path;
-
-      } else {
-        converted_timestamp = converted_timestamp_exp.take();
+          row["install_time"] = SQL_TEXT(raw_install_time);
+        } else {
+          row["install_timestamp"] = BIGINT(converted_timestamp_exp.take());
+        }
       }
-
-      row["install_timestamp"] = BIGINT(converted_timestamp);
 
       row["identifier"] =
           SQL_TEXT(getExtensionProfileSettingsValue(extension, "identifier"));
