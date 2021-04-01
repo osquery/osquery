@@ -545,7 +545,7 @@ bool captureProfileSnapshotExtensionsFromPath(
 
       if (!status.ok()) {
         if (!isBuiltInChromeExtension(referenced_ext_path)) {
-          LOG(ERROR)
+          LOG(INFO)
               << "Failed to read the following manifest.json file: "
               << manifest_path.string()
               << ". The extension was referenced by the following profile: "
