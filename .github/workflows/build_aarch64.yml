@@ -1,0 +1,315 @@
+#
+# Copyright (c) 2014-present, The osquery authors
+#
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+#
+
+# Due to a limitation in how GitHub Actions works, we can't reference
+# jobs in another file inside the `needs` statement.
+#
+# This configuration file takes care of Linux on aarch64.
+name: build_aarch64
+
+on:
+  push:
+    branches:
+      - '*'
+
+    tags:
+      - '*'
+
+jobs:
+  # Starts self-hosted runners.
+  start_aarch64_ec2_runners:
+    runs-on: ubuntu-latest
+    outputs:
+      label: ${{ steps.start_ec2_runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start_ec2_runner.outputs.ec2-instance-id }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.EC2_GITHUB_RUNNER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.EC2_GITHUB_RUNNER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.EC2_GITHUB_RUNNER_AWS_REGION }}
+      - name: Start aarch64 EC2 runner
+        id: start_ec2_runner
+        uses: theopolis/ec2-github-runner@main
+        with:
+          mode: start
+          github-token: ${{ secrets.EC2_GITHUB_RUNNER_GH_PERSONAL_ACCESS_TOKEN }}
+          ec2-image-id: ami-063d99d9ce1bebbe8
+          ec2-instance-type: c6g.4xlarge
+          subnet-id: subnet-06390365e72579736
+          security-group-id: sg-0757a3162c999331b
+
+  # Stops self-hosted runners.
+  stop_aarch64_ec2_runners:
+    needs:
+      - start_aarch64_ec2_runners
+      - build_linux_aarch64
+    if: always()
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.EC2_GITHUB_RUNNER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.EC2_GITHUB_RUNNER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.EC2_GITHUB_RUNNER_AWS_REGION }}
+      - name: Stop aarch64 EC2 runner
+        uses: theopolis/ec2-github-runner@main
+        with:
+          mode: stop
+          github-token: ${{ secrets.EC2_GITHUB_RUNNER_GH_PERSONAL_ACCESS_TOKEN }}
+          label: ${{ needs.start_aarch64_ec2_runners.outputs.label }}
+          ec2-instance-id: ${{ needs.start_aarch64_ec2_runners.outputs.ec2-instance-id }}
+
+  # The Linux build will only start once the runner has started.
+  build_linux_aarch64:
+    needs:
+      - start_aarch64_ec2_runners
+
+    runs-on: ${{ matrix.os }}
+
+    container:
+      image: osquery/builder18.04:0aa3775ce
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+
+    strategy:
+      matrix:
+        include:
+        - os: ${{ needs.start_aarch64_ec2_runners.outputs.label }}
+          build_type: RelWithDebInfo
+          cache_key: ubuntu-20.04_aarch64
+
+    steps:
+    - name: Clone the osquery repository
+      uses: actions/checkout@v1
+
+    - name: Select the build job count
+      shell: bash
+      id: build_job_count
+      run: |
+        echo ::set-output name=VALUE::$(($(nproc) + 1))
+
+    - name: Select the build options for the tests
+      shell: bash
+      id: tests_build_settings
+      run: |
+        if [[ "${{ matrix.build_type }}" == "RelWithDebInfo" ]] ; then
+          echo ::set-output name=VALUE::OFF
+        else
+          echo ::set-output name=VALUE::ON
+        fi
+
+    # We don't have enough space on the worker to actually generate all
+    # the debug symbols (osquery + dependencies), so we have a flag to
+    # disable them when running a Debug build
+    - name: Select the debug symbols options
+      shell: bash
+      id: debug_symbols_settings
+      run: |
+        if [[ "${{ matrix.build_type }}" == "Debug" ]] ; then
+          echo ::set-output name=VALUE::ON
+        else
+          echo ::set-output name=VALUE::OFF
+        fi
+
+    # When we spawn in the container, we are root; create an unprivileged
+    # user now so that we can later use it to launch the normal user tests
+    - name: Create a non-root user
+      if: matrix.build_type != 'RelWithDebInfo'
+      id: unprivileged_user
+      run: |
+        useradd -m -s /bin/bash unprivileged_user
+        echo ::set-output name=NAME::unprivileged_user
+
+    # Due to how the RPM packaging tools work, we have to adhere to some
+    # character count requirements in the build path vs source path.
+    #
+    # Failing to do so, will break the debuginfo RPM package.
+    - name: Setup the build paths
+      id: build_paths
+      run: |
+        rel_build_path="workspace/usr/src/debug/osquery/build"
+        rel_src_path="workspace/padding-required-by-rpm-packages/src"
+        rel_ccache_path="workspace/ccache"
+
+        mkdir -p ${rel_build_path} \
+                 ${rel_src_path} \
+                 ${rel_ccache_path} \
+                 ${rel_src_path}
+
+        chown -R ${{ steps.unprivileged_user.outputs.NAME }}:${{ steps.unprivileged_user.outputs.NAME }} .
+
+        mv .git "${rel_src_path}"
+        ( cd "${rel_src_path}" && git reset --hard )
+
+        echo ::set-output name=SOURCE::$(realpath ${rel_src_path})
+        echo ::set-output name=BINARY::$(realpath ${rel_build_path})
+        echo ::set-output name=REL_BINARY::${rel_build_path}
+        echo ::set-output name=CCACHE::$(realpath ${rel_ccache_path})
+
+    # One of the tests in the test suit will spawn a Docker container
+    # using this socket. Allow the unprivileged user we created
+    # to access it.
+    - name: Update the Docker socket permissions
+      if: matrix.build_type != 'RelWithDebInfo'
+      run: |
+        chmod 666 /var/run/docker.sock
+
+    - name: Update the cache (ccache)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.CCACHE }}
+
+        key: |
+          ccache_${{ matrix.cache_key }}_${{ matrix.build_type }}_${{ github.sha }}
+
+        restore-keys: |
+          ccache_${{ matrix.cache_key }}_${{ matrix.build_type }}
+
+    - name: Update the cache (git submodules)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+
+        key: |
+          gitmodules_${{ matrix.cache_key }}_${{ github.sha }}
+
+        restore-keys: |
+          gitmodules_${{ matrix.cache_key }}
+
+    - name: Update the git submodules
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      run: |
+        git submodule sync --recursive
+
+    - name: Configure the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
+          -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="/usr/local/osquery-toolchain" \
+          -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
+          -DOSQUERY_BUILD_TESTS=${{ steps.tests_build_settings.outputs.VALUE }} \
+          -DOSQUERY_BUILD_ROOT_TESTS=${{ steps.tests_build_settings.outputs.VALUE }} \
+          "${{ steps.build_paths.outputs.SOURCE }}"
+
+    - name: Build the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    # Only run the tests on Debug and Release configurations; skip RelWithDebInfo
+    - name: Run the tests as normal user
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      if: matrix.build_type != 'RelWithDebInfo'
+      run: |
+        sudo -u ${{ steps.unprivileged_user.outputs.NAME }} ctest --build-nocmake -LE "root-required" -V
+
+    - name: Run the tests as root user
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      if: matrix.build_type != 'RelWithDebInfo'
+      run: |
+        sudo -u root ctest --build-nocmake -L "root-required" -V
+
+    - name: Create the DEB package
+      if: matrix.build_type == 'RelWithDebInfo'
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake -DPACKAGING_SYSTEM=DEB "${{ steps.build_paths.outputs.SOURCE }}"
+        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Create the RPM package
+      if: matrix.build_type == 'RelWithDebInfo'
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        cmake -DPACKAGING_SYSTEM=RPM "${{ steps.build_paths.outputs.SOURCE }}"
+        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Create the TGZ package
+      if: matrix.build_type == 'RelWithDebInfo'
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake -DPACKAGING_SYSTEM=TGZ "${{ steps.build_paths.outputs.SOURCE }}"
+        cmake --build . --target package -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Locate the packages
+      if: matrix.build_type == 'RelWithDebInfo'
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      id: package_names
+      shell: bash
+      run: |
+        echo ::set-output name=DEB_PACKAGE_NAME::$(ls *.deb)
+        echo ::set-output name=DDEB_PACKAGE_NAME::$(ls *.ddeb)
+        echo ::set-output name=RELEASE_RPM_PACKAGE_NAME::$(ls osquery-?.*.rpm)
+        echo ::set-output name=DEBUGINFO_RPM_PACKAGE_NAME::$(ls osquery-debuginfo-*.rpm)
+        echo ::set-output name=TARGZ_PACKAGE_NAME::$(ls *.tar.gz)
+
+    - name: Store the .deb package artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v1
+      with:
+        name: linux_deb_package_aarch64-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DEB_PACKAGE_NAME }}
+
+    - name: Store the .ddeb package artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v1
+      with:
+        name: linux_dbgsym_deb_package_aarch64-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DDEB_PACKAGE_NAME }}
+
+    - name: Store the release .rpm package artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v1
+      with:
+        name: linux_rpm_package_aarch64-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.RELEASE_RPM_PACKAGE_NAME }}
+
+    - name: Store the debuginfo .rpm package artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v1
+      with:
+        name: linux_debuginfo_rpm_package_aarch64-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DEBUGINFO_RPM_PACKAGE_NAME }}
+
+    - name: Store the .tar.gz package artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v1
+      with:
+        name: linux_targz_package_aarch64-${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.TARGZ_PACKAGE_NAME }}
+
+    # Before we terminate this job, delete the build folder. The cache
+    # actions will require the disk space to create the archives.
+    - name: Reclaim disk space
+      run: |
+        rm -rf ${{ steps.build_paths.outputs.BINARY }}
