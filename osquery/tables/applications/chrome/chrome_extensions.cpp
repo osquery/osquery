@@ -80,7 +80,7 @@ QueryData genChromeExtensions(QueryContext& context) {
           SQL_TEXT(getExtensionProfileSettingsValue(extension, "install_time"));
 
       // If the install time is present, and we can convert it, do so.
-      if (row["install_time"] != "") {
+      if (!row["install_time"].empty()) {
         auto converted_timestamp_exp =
             webkitTimeToUnixTimestamp(row["install_time"]);
 
