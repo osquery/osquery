@@ -167,3 +167,11 @@ In some cases, the problem might be interference from additional security permis
 - On macOS, the `osqueryd` agent (or `Terminal.app`, if using `osqueryi`) may need Full Disk Access permissions, in Security and Privacy settings.
 
 Also, remember you can run `osqueryd` with the `--verbose` flag to see if any helpful warnings appear.
+
+If you're attempting to use FIM on Linux via Audit and you see an error like the following, your system is probably configured to use `auditd`; unfortunately osquery cannot share access to the Audit subsystem with `auditd`. You can use osquery with one of the other FIM sources, or discontinue the use of `auditd`.
+
+```text
+osquery> I1107 17:49:42.229321  8235 auditdnetlink.cpp:601] Failed to set the netlink owner
+```
+
+Last but not least, see the troubleshooting guidance in [process auditing with osquery](./process-auditing.md), which similarly covers the topic of event-based tables in osquery and its use of the Audit subsystem on Linux.
