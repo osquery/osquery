@@ -19,6 +19,12 @@ To specify which files and directories you wish to monitor, you must use *fnmatc
 
 ## Matching examples
 
+The three elements of a FIM config in osquery are (a) the scheduled query against `file_events`, (b) the added `file_paths` section, and (c) the `exclude_paths` sections.
+
+The `file_events` query is scheduled to collect all of the FIM events that have occurred on any files within the paths specified within `file_paths` but excluding the paths specified within `exclude_paths` on a five minute interval. At a high level, this means events are buffered within osquery and sent to the configured _logger_ every five minutes. That is, the events are always recorded in real time; the interval is just how often the already recorded events will be logged.
+
+After you identify the files and directories you wish to monitor, add their match rules to the `file_paths` section in the osquery FIM config.
+
 - `/Users/%/Library`: Monitor for changes to every user's Library folder, *but not the contents within*.
 - `/Users/%/Library/`: Monitor for changes to files *within* each Library folder, but not the contents of their subdirectories.
 - `/Users/%/Library/%`: Same, changes to files within each Library folder.
@@ -29,9 +35,7 @@ To specify which files and directories you wish to monitor, you must use *fnmatc
 
 **Note:** Many applications may *replace* a file instead of editing it in place. If you monitor the file directly, osquery will need to be restarted in order to monitor the replacement. You can avoid this by monitoring the containing *directory* instead.
 
-After you identify the files and directories you wish to monitor, add their match rules to the `file_paths` section in the osquery FIM config.
-
-The three elements of a FIM config in osquery are (a) the scheduled query against `file_events`, (b) the added `file_paths` section, and (c) the `exclude_paths` sections. The `file_events` query is scheduled to collect all of the FIM events that have occurred on any files within the paths specified within `file_paths` but excluding the paths specified within `exclude_paths` on a five minute interval. At a high level, this means events are buffered within osquery and sent to the configured _logger_ every five minutes.
+**Note:** Remember to specify home paths as, for instance, `/Users/%`, instead of `~/%` which will not work.
 
 ## Example FIM Config
 
@@ -149,3 +153,17 @@ Monitoring file accesses on Linux uses `inotify` and may incur unexpected and un
 The above configuration snippet will enable file integrity monitoring for `homes`, `etc`, and `tmp` but only enable access monitoring for the `homes` and `etc` directories.
 
 > NOTICE: The hashes of files will not be calculated, to avoid generating additional access events.
+
+## Troubleshooting FIM
+
+Sometimes, despite a correct osquery configuration, the file events tables don't receive any events.
+
+First, make sure you are launching osquery as root/Administrator.
+
+In some cases, the problem might be interference from additional security permissions settings:
+
+- On CentOS-like systems, check that the SElinux settings are not preventing osquery from performing FIM.
+- On Debian-like systems, check that AppArmor is not blocking osquery.
+- On macOS, the `osqueryd` agent (or `Terminal.app`, if using `osqueryi`) may need Full Disk Access permissions, in Security and Privacy settings.
+
+Also, remember you can run `osqueryd` with the `--verbose` flag to see if any helpful warnings appear.
