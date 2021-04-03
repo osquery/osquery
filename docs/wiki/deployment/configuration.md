@@ -622,6 +622,36 @@ Open a text editor and create a file named `atc_tables.json` using the columns, 
 
 You can test this locally before deploying to your fleet and add more columns as necessary: `/usr/local/bin/osqueryi --verbose --config_path atc_tables.json`
 
+### Events
+
+"Events" refers to the event-based tables.
+Events are published into osquery by operating system or application specific APIs; and within osquery certain tables "subscribe" to these publishers.
+There is usually a 1-to-many relationship between publishers and subscribers.
+See the [development documentation](../development/pubsub-framework.md) for more information on event publishing and subscribing.
+Events are almost always tweaked via CLI flags and _options_ referenced above.
+
+The configuration supports a method to explicitly allow and deny events subscribers.
+If you choose to explicitly allow subscribers, then all will be disabled except for those specificied in the allow list.
+If you choose to explicitly deny subscribers, then all will be enabled except for those specificied in the deny list.
+
+You may want to explicitly disable subscribers if you are only interested in a single type of data produced by a general publisher.
+
+Here is an example configuration:
+
+```json
+{
+  "schedule": {...},
+  "events": {
+    "disable_subscribers": ["yara_events"]
+  }
+}
+```
+
+You can inspect the list of subscribers using the query `SELECT * FROM osquery_events where type = 'subscriber';`.
+This table will show `1` for the `active` column if a subscriber is enabled.
+Note that publishers are more complex and cannot be disabled and enabled this way, please look for a specific CLI flag to control specific publishers.
+Also note that different platforms such as Windows and Linux have different sets of subscriber tables. 
+
 ## Chef Configuration
 
 Here are example Chef cookbook recipes and files for macOS and Linux deployments. Consider improving the recipes using node attributes to further control what nodes and clients enable osquery. It helps to create a canary or a testing set that implements a separate "testing" configuration. These recipes assume you are deploying the macOS package or the Linux package separately.
