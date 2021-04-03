@@ -16,6 +16,140 @@
 
 namespace osquery {
 
+FLAG(bool,
+     audit_allow_seccomp_events,
+     false,
+     "Allow the audit publisher to process seccomp events");
+
+REGISTER(SeccompEventSubscriber, "event_subscriber", "seccomp_events");
+
+namespace {
+
+/// Extracts the specified integer key from the given <std::uint64_t,
+/// std::string> unordered_map
+bool GetStringFieldFromIntMap(
+    std::string& value,
+    const std::unordered_map<std::uint64_t, std::string>& fields,
+    const std::uint64_t key,
+    const std::string& default_value = std::string()) noexcept {
+  auto it = fields.find(key);
+  if (it == fields.end()) {
+    value = default_value;
+    return false;
+  }
+
+  value = it->second;
+  return true;
+}
+} // namespace
+
+Status SeccompEventSubscriber::init() {
+  if (!FLAGS_audit_allow_seccomp_events) {
+    return Status::failure("Seccomp subscriber disabled via configuration");
+  }
+
+  auto sc = createSubscriptionContext();
+  subscribe(&SeccompEventSubscriber::Callback, sc);
+
+  return Status::success();
+}
+
+Status SeccompEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
+  QueryData data;
+  auto status = processEvents(data, ec->audit_events);
+  if (!status.ok()) {
+    return status;
+  }
+
+  for (auto& row : data) {
+    add(row);
+  }
+
+  return Status::success();
+}
+
+void SeccompEventSubscriber::parseEvent(const AuditEvent& event,
+                                        Row& parsed_event) noexcept {
+  const auto& event_data = boost::get<SeccompAuditEventData>(event.data);
+  parsed_event["uptime"] = std::to_string(getUptime());
+  std::uint64_t arch = 0;
+  std::uint64_t value = 0;
+
+  for (const auto& field : event_data.fields) {
+    switch (field.second.which()) {
+    case 0:
+      // string field
+      parsed_event[field.first] = boost::get<std::string>(field.second);
+      break;
+    case 1:
+      // int field
+      value = boost::get<const std::uint64_t>(field.second);
+      if (field.first == "arch") {
+        std::string symbolic_code_value = "";
+        arch = value;
+        parsed_event[field.first] =
+            GetStringFieldFromIntMap(symbolic_code_value,
+                                     SeccompEventSubscriber::arch_codes_map,
+                                     value)
+                ? symbolic_code_value
+                : std::to_string(value) + "(unknown)";
+        break;
+      }
+      if (field.first == "syscall" && arch == AUDIT_ARCH_X86_64) {
+        std::string symbolic_code_value = "";
+        parsed_event[field.first] =
+            GetStringFieldFromIntMap(symbolic_code_value,
+                                     SeccompEventSubscriber::syscall_x86_64_map,
+                                     value)
+                ? symbolic_code_value
+                : std::to_string(value) + "(unknown)";
+        break;
+      }
+      if (field.first == "syscall" && arch != AUDIT_ARCH_X86_64) {
+        parsed_event[field.first] = std::to_string(value);
+        break;
+      }
+      if (field.first == "code") {
+        std::string symbolic_code_value = "";
+        parsed_event[field.first] =
+            GetStringFieldFromIntMap(
+                symbolic_code_value,
+                SeccompEventSubscriber::seccomp_actions_map,
+                value)
+                ? symbolic_code_value
+                : std::to_string(value) + "(unknown)";
+        break;
+      }
+      parsed_event[field.first] = UNSIGNED_BIGINT(value);
+      break;
+    default:
+      continue;
+    }
+  }
+}
+
+Status SeccompEventSubscriber::processEvents(
+    QueryData& data, const std::vector<AuditEvent>& event_list) noexcept {
+  data.clear();
+
+  for (const auto& event : event_list) {
+    if (event.type != AuditEvent::Type::Seccomp) {
+      continue;
+    }
+
+    if (event.record_list.size() != 1) {
+      VLOG(1) << "SeccompEventSubscriber got record list";
+      continue;
+    }
+
+    Row parsed_event;
+    parseEvent(event, parsed_event);
+    data.push_back(std::move(parsed_event));
+  }
+
+  return Status::success();
+}
+
 const std::unordered_map<std::uint64_t, std::string>
     SeccompEventSubscriber::seccomp_actions_map = {
         {SECCOMP_RET_KILL_PROCESS, "KILL_PROCESS"},
@@ -401,122 +535,4 @@ const std::unordered_map<std::uint64_t, std::string>
         {332, "statx"},
         {333, "io_pgetevents"},
         {334, "rseq"}};
-
-FLAG(bool,
-     audit_allow_seccomp_events,
-     false,
-     "Allow the audit publisher to process seccomp events");
-
-REGISTER(SeccompEventSubscriber, "event_subscriber", "seccomp_events");
-
-// namespace tables {
-// extern long getUptime();
-// }
-
-Status SeccompEventSubscriber::init() {
-  if (!FLAGS_audit_allow_seccomp_events) {
-    return Status::failure("Seccomp subscriber disabled via configuration");
-  }
-
-  auto sc = createSubscriptionContext();
-  subscribe(&SeccompEventSubscriber::Callback, sc);
-
-  return Status::success();
-}
-
-Status SeccompEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
-  QueryData data;
-  auto status = processEvents(data, ec->audit_events);
-  if (!status.ok()) {
-    return status;
-  }
-
-  for (auto& row : data) {
-    add(row);
-  }
-
-  return Status::success();
-}
-
-void SeccompEventSubscriber::parseEvent(const AuditEvent& event,
-                                        Row& parsed_event) noexcept {
-  const auto& event_data = boost::get<SeccompAuditEventData>(event.data);
-  parsed_event["uptime"] = std::to_string(getUptime());
-  std::uint64_t arch = 0;
-  std::uint64_t value = 0;
-
-  for (const auto& field : event_data.fields) {
-    switch (field.second.which()) {
-    case 0:
-      // string field
-      parsed_event[field.first] = boost::get<std::string>(field.second);
-      break;
-    case 1:
-      // int field
-      value = boost::get<const std::uint64_t>(field.second);
-      if (field.first == "arch") {
-        std::string symbolic_code_value = "";
-        arch = value;
-        parsed_event[field.first] =
-            GetStringFieldFromIntMap(symbolic_code_value,
-                                     SeccompEventSubscriber::arch_codes_map,
-                                     value)
-                ? symbolic_code_value
-                : std::to_string(value) + "(unknown)";
-        break;
-      }
-      if (field.first == "syscall" && arch == AUDIT_ARCH_X86_64) {
-        std::string symbolic_code_value = "";
-        parsed_event[field.first] =
-            GetStringFieldFromIntMap(symbolic_code_value,
-                                     SeccompEventSubscriber::syscall_x86_64_map,
-                                     value)
-                ? symbolic_code_value
-                : std::to_string(value) + "(unknown)";
-        break;
-      }
-      if (field.first == "syscall" && arch != AUDIT_ARCH_X86_64) {
-        parsed_event[field.first] = std::to_string(value);
-        break;
-      }
-      if (field.first == "code") {
-        std::string symbolic_code_value = "";
-        parsed_event[field.first] =
-            GetStringFieldFromIntMap(
-                symbolic_code_value,
-                SeccompEventSubscriber::seccomp_actions_map,
-                value)
-                ? symbolic_code_value
-                : std::to_string(value) + "(unknown)";
-        break;
-      }
-      parsed_event[field.first] = UNSIGNED_BIGINT(value);
-      break;
-    default:
-      continue;
-    }
-  }
-}
-
-Status SeccompEventSubscriber::processEvents(
-    QueryData& data, const std::vector<AuditEvent>& event_list) noexcept {
-  data.clear();
-
-  for (const auto& event : event_list) {
-    if (event.type != AuditEvent::Type::Seccomp) {
-      continue;
-    }
-
-    if (event.record_list.size() != 1) {
-      VLOG(1) << "SeccompEventSubscriber got record list";
-      continue;
-    }
-
-    Row parsed_event;
-    parseEvent(event, parsed_event);
-    data.push_back(parsed_event);
-  }
-
-  return Status::success();
-}
 } // namespace osquery

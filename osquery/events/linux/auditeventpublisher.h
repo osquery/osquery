@@ -173,14 +173,6 @@ bool GetStringFieldFromMap(
     const std::string& name,
     const std::string& default_value = std::string()) noexcept;
 
-/// Extracts the specified integer key from the given <std::uint64_t,
-/// std::string> unordered_map
-bool GetStringFieldFromIntMap(
-    std::string& value,
-    const std::unordered_map<std::uint64_t, std::string>& fields,
-    const std::uint64_t key,
-    const std::string& default_value = std::string()) noexcept;
-
 /// Extracts the specified integer key from the given string map
 bool GetIntegerFieldFromMap(
     std::uint64_t& value,

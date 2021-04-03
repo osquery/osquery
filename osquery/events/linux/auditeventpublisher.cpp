@@ -434,21 +434,6 @@ bool GetStringFieldFromMap(std::string& value,
   return true;
 }
 
-bool GetStringFieldFromIntMap(
-    std::string& value,
-    const std::unordered_map<std::uint64_t, std::string>& fields,
-    const std::uint64_t key,
-    const std::string& default_value) noexcept {
-  auto it = fields.find(key);
-  if (it == fields.end()) {
-    value = default_value;
-    return false;
-  }
-
-  value = it->second;
-  return true;
-}
-
 bool GetIntegerFieldFromMap(std::uint64_t& value,
                             const std::map<std::string, std::string>& field_map,
                             const std::string& field_name,
