@@ -26,6 +26,7 @@ function(generateOsqueryTablesEventsEventstable)
       linux/process_events.cpp
       linux/process_file_events.cpp
       linux/selinux_events.cpp
+      linux/seccomp_events.cpp
       linux/socket_events.cpp
       linux/syslog_events.cpp
       linux/user_events.cpp
@@ -96,12 +97,14 @@ function(generateOsqueryTablesEventsEventstable)
       linux/bpf_process_events.h
       linux/bpf_socket_events.h
       linux/selinux_events.h
+      linux/seccomp_events.h
       linux/apparmor_events.h
       linux/socket_events.h
     )
 
     generateIncludeNamespace(osquery_tables_events_eventstable "osquery/tables/events" "FULL_PATH" ${platform_public_header_files})
 
+    add_test(NAME osquery_tables_events_tests_seccompeventstests-test COMMAND osquery_tables_events_tests_seccompeventstests-test)
     add_test(NAME osquery_tables_events_tests_selinuxeventstests-test COMMAND osquery_tables_events_tests_selinuxeventstests-test)
     add_test(NAME osquery_tables_events_tests_processeventstests-test COMMAND osquery_tables_events_tests_processeventstests-test)
   endif()
