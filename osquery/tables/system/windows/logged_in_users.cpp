@@ -150,7 +150,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
   }
 
   if (pSessionInfo != nullptr) {
-    WTSFreeMemory(pSessionInfo);
+    WTSFreeMemoryEx(WTSTypeSessionInfoLevel1, pSessionInfo, count);
     pSessionInfo = nullptr;
   }
 
