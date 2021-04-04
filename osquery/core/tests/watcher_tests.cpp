@@ -48,8 +48,11 @@ class WatcherTests : public testing::Test {
  */
 class MockWatcherRunner : public WatcherRunner {
  public:
-  MockWatcherRunner(int argc, char** argv, bool use_worker)
-      : WatcherRunner(argc, argv, use_worker) {}
+  MockWatcherRunner(int argc,
+                    char** argv,
+                    bool use_worker,
+                    const std::shared_ptr<Watcher>& watcher)
+      : WatcherRunner(argc, argv, use_worker, watcher) {}
 
   /// The state machine requested the 'worker' to stop.
   MOCK_CONST_METHOD1(stopChild, void(const PlatformProcess& child));
@@ -96,7 +99,8 @@ class FakePlatformProcess : public PlatformProcess {
 };
 
 TEST_F(WatcherTests, test_watcherrunner_watch) {
-  MockWatcherRunner runner(0, nullptr, false);
+  auto watcher = std::make_shared<Watcher>();
+  MockWatcherRunner runner(0, nullptr, false, watcher);
 
   // Use the cross-platform abstractions to inspect the current test process.
   auto test_process = PlatformProcess::getCurrentProcess();
@@ -120,7 +124,8 @@ TEST_F(WatcherTests, test_watcherrunner_watch) {
 }
 
 TEST_F(WatcherTests, test_watcherrunner_stop) {
-  MockWatcherRunner runner(0, nullptr, false);
+  auto watcher = std::make_shared<Watcher>();
+  MockWatcherRunner runner(0, nullptr, false, watcher);
 
   auto test_process = PlatformProcess::getCurrentProcess();
   auto fake_test_process = FakePlatformProcess(test_process->nativeHandle());
@@ -137,8 +142,11 @@ TEST_F(WatcherTests, test_watcherrunner_stop) {
 
 class MockWithWatchWatcherRunner : public WatcherRunner {
  public:
-  MockWithWatchWatcherRunner(int argc, char** argv, bool use_worker)
-      : WatcherRunner(argc, argv, use_worker) {}
+  MockWithWatchWatcherRunner(int argc,
+                             char** argv,
+                             bool use_worker,
+                             const std::shared_ptr<Watcher>& watcher)
+      : WatcherRunner(argc, argv, use_worker, watcher) {}
 
   /// This super-mock now mocks the watch method.
   MOCK_CONST_METHOD1(watch, bool(const PlatformProcess& child));
@@ -156,7 +164,8 @@ class MockWithWatchWatcherRunner : public WatcherRunner {
 
 TEST_F(WatcherTests, test_watcherrunner_loop) {
   // This time construct the runner with a use_worker=true.
-  MockWithWatchWatcherRunner runner(0, nullptr, true);
+  auto watcher = std::make_shared<Watcher>();
+  MockWithWatchWatcherRunner runner(0, nullptr, true, watcher);
 
   // Use a method introduced for testing purposes to request a single run of
   // the WatcherRunner's thread entry point.
@@ -174,7 +183,8 @@ TEST_F(WatcherTests, test_watcherrunner_loop) {
 }
 
 TEST_F(WatcherTests, test_watcherrunner_loop_failure) {
-  MockWithWatchWatcherRunner runner(0, nullptr, true);
+  auto watcher = std::make_shared<Watcher>();
+  MockWithWatchWatcherRunner runner(0, nullptr, true, watcher);
   runner.runOnce();
 
   // Now the watch method returns false, indicating the previous worker failed
@@ -189,7 +199,8 @@ TEST_F(WatcherTests, test_watcherrunner_loop_failure) {
 
 TEST_F(WatcherTests, test_watcherrunner_loop_disabled) {
   // Now construct without using a worker.
-  MockWithWatchWatcherRunner runner(0, nullptr, false);
+  auto watcher = std::make_shared<Watcher>();
+  MockWithWatchWatcherRunner runner(0, nullptr, false, watcher);
   runner.runOnce();
 
   // There is no worker process, nothing should be watched.
@@ -202,8 +213,11 @@ TEST_F(WatcherTests, test_watcherrunner_loop_disabled) {
 
 class FakeWatcherRunner : public WatcherRunner {
  public:
-  FakeWatcherRunner(int argc, char** argv, bool use_worker)
-      : WatcherRunner(argc, argv, use_worker) {}
+  FakeWatcherRunner(int argc,
+                    char** argv,
+                    bool use_worker,
+                    const std::shared_ptr<Watcher>& watcher)
+      : WatcherRunner(argc, argv, use_worker, watcher) {}
 
   /**
    * @brief What the runner's internals will use as process state.
@@ -228,7 +242,8 @@ class FakeWatcherRunner : public WatcherRunner {
 };
 
 TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
-  FakeWatcherRunner runner(0, nullptr, true);
+  auto watcher = std::make_shared<Watcher>();
+  FakeWatcherRunner runner(0, nullptr, true, watcher);
 
   // Construct a process state, assume this would have been returned from the
   // processes table, which the WorkerRunner normally uses internally.
@@ -280,7 +295,8 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
 }
 
 TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
-  FakeWatcherRunner runner(0, nullptr, true);
+  auto watcher = std::make_shared<Watcher>();
+  FakeWatcherRunner runner(0, nullptr, true, watcher);
 
   auto test_process = PlatformProcess::getCurrentProcess();
   auto fake_test_process = FakePlatformProcess(test_process->nativeHandle());
@@ -295,8 +311,8 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
   runner.setProcessRow({r});
 
   // Set the worker start time.
-  auto start_time = Watcher::get().workerStartTime();
-  Watcher::get().workerStartTime(getUnixTime() - 1);
+  auto start_time = watcher->workerStartTime();
+  watcher->workerStartTime(getUnixTime() - 1);
 
   // Check the fake process sanity, which records the state at t=0.
   EXPECT_TRUE(runner.isChildSane(fake_test_process));
@@ -318,6 +334,6 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
   EXPECT_FALSE(runner.watch(fake_test_process));
 
   FLAGS_watchdog_delay = delay;
-  Watcher::get().workerStartTime(start_time);
+  watcher->workerStartTime(start_time);
 }
 } // namespace osquery
