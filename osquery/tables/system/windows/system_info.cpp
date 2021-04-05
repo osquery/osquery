@@ -55,35 +55,26 @@ QueryData genSystemInfo(QueryContext& context) {
     r["hardware_model"] = "-1";
   }
 
-  // Physical memory size is reported from Win32_PhysicalMemory. See
-  // TotalPhysicalMemory at
-  // https://docs.microsoft.com/en-us/windows/win32/cimwin32prov/win32-computersystem
-  const WmiRequest wmiSystemReqMem("select Capacity from Win32_PhysicalMemory");
-  const std::vector<WmiResultItem>& wmiResultsMem = wmiSystemReqMem.results();
-  if (wmiResultsMem.empty()) {
-    r["physical_memory"] = "-1";
+  // win32-computersystem mis-reports TotalPhysicalMemory -- it's
+  // actually reporting post bios allocations. (See note at
+  // https://docs.microsoft.com/en-us/windows/win32/cimwin32prov/win32-computersystem)
+  // So instead, we use an API call --
+  // https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getphysicallyinstalledsystemmemory
+  uint64_t physicallyInstallMemory;
+  if (GetPhysicallyInstalledSystemMemory(&physicallyInstallMemory)) {
+    r["physical_memory"] = BIGINT(physicallyInstallMemory * 1024);
   } else {
-    // capacity is documented as being a uint64, but it actually coming back as
-    // a string.
-    uint64_t sum = 0;
-    for (const auto& wmiResult : wmiResultsMem) {
-      std::string capacityStr = "0";
-      auto s = wmiResult.GetString("Capacity", capacityStr);
-      if (!s.ok()) {
-        LOG(INFO) << "Warning unable to get memory module capacity value from "
-                     "wmi results: "
-                  << s.getMessage();
-        continue;
-      }
-      auto c = tryTo<uint64_t>(capacityStr);
-      if (c.isError()) {
-        LOG(INFO) << "Warning unable to coerce capacity into int";
-        continue;
-      }
-
-      sum += c.take();
+    auto lastError = GetLastError();
+    if (lastError == ERROR_INVALID_DATA) {
+      LOG(INFO)
+          << "Got error trying to determine the physically installed memory: "
+          << "SMBIOS data is malformed";
+    } else {
+      LOG(INFO)
+          << "Got error trying to determine the physically installed memory: "
+          << std::to_string(::GetLastError());
     }
-    r["physical_memory"] = BIGINT(sum);
+    r["physical_memory"] = "-1";
   }
 
   QueryData regResults;
