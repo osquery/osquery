@@ -72,7 +72,7 @@ QueryData genSystemInfo(QueryContext& context) {
     } else {
       LOG(INFO)
           << "Got error trying to determine the physically installed memory: "
-          << std::to_string(::GetLastError());
+          << std::to_string(lastError);
     }
     r["physical_memory"] = "-1";
   }
