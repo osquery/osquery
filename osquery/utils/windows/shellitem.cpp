@@ -143,14 +143,12 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   string_size = swapEndianess(string_size);
   file_entry.string_size = std::stoi(string_size, nullptr, 16);
   int name_offset = 0;
-  if (file_entry.version >= 7) {
-    name_offset = 72;
-  }
-  if (file_entry.version >= 8) {
-    name_offset = 84;
-  }
   if (file_entry.version >= 9) {
     name_offset = 92;
+  } else if (file_entry.version == 8) {
+    name_offset = 84;
+  } else if (file_entry.version == 7) {
+    name_offset = 72;
   }
   std::string entry_name = shell_data.substr(entry_offset + name_offset);
 
@@ -338,6 +336,7 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
     if (shell_data.size() < 92) {
       LOG(WARNING) << "Unexpected ShellItem URI size: " << shell_data;
       ftp_data.push_back("[UNKNOWN NAME]");
+      return ftp_data;
     }
     std::string access_time =
         shell_data.substr(28, 16); // shell data contains connection time
@@ -358,6 +357,7 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
           << "Failed to decode ShellItem URI/FTP hex values to string: "
           << shell_data;
       ftp_data.push_back("[UNKNOWN NAME]");
+      return ftp_data;
     }
     ftp_data.push_back(name);
     return ftp_data;
@@ -366,6 +366,7 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
   if (shell_data.size() < 92) {
     LOG(WARNING) << "Unexpected ShellItem URI size: " << shell_data;
     ftp_data.push_back("[UNKNOWN NAME]");
+    return ftp_data;
   }
   int hostname_size = 0;
   std::string name_size = "";
@@ -379,6 +380,11 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
     name_size = swapEndianess(name_size);
     hostname_size = std::stoi(name_size, nullptr, 16) * 2;
   }
+  if (hostname_size < 0) {
+    LOG(WARNING) << "Unexepcted hostname size: " << shell_data;
+    ftp_data.push_back("[UNKNOWN NAME]");
+    return ftp_data;
+  }
   std::string ftp_hostname = shell_data.substr(92, hostname_size);
   std::string name;
   boost::erase_all(ftp_hostname, "00");
@@ -389,6 +395,7 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
     LOG(WARNING) << "Failed to decode ShellItem URI/FTP hex values to string: "
                  << shell_data;
     ftp_data.push_back("[UNKNOWN NAME]");
+    return ftp_data;
   }
   ftp_data.push_back(name);
   return ftp_data;

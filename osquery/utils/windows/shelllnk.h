@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+namespace osquery {
+
 struct LinkFlags {
   bool has_target_id_list;
   bool has_link_info;
@@ -96,8 +98,6 @@ struct ExtraDataTracker {
   std::string birth_droid_file;
 };
 
-namespace osquery {
-
 /**
  * @brief Windows helper function for parsing shortcut header data
  *
@@ -126,11 +126,11 @@ LocationInfo parseLocationData(const std::string& location_data);
  */
 DataStringInfo parseDataString(const std::string& data,
                                const bool unicode,
-                               const bool& description,
-                               const bool& relative_path,
-                               const bool& working_path,
-                               const bool& icon_location,
-                               const bool& command_args);
+                               const bool description,
+                               const bool relative_path,
+                               const bool working_path,
+                               const bool icon_location,
+                               const bool command_args);
 
 /**
  * @brief Windows helper function for parsing shortcut extra data tracker

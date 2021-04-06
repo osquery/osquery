@@ -52,17 +52,14 @@ QueryData genShortcutFiles(QueryContext& context) {
     }
     std::string lnk_content;
     if (!readFile(path, lnk_content, 20).ok()) {
-      LOG(WARNING) << "Failed to read shortcut file: " << lnk;
+      VLOG(1) << "Failed to read shortcut file: " << lnk;
       continue;
     }
     std::stringstream check_ss;
     for (const auto& hex_char : lnk_content) {
       std::stringstream value;
+      value << std::setfill('0') << std::setw(2);
       value << std::hex << std::uppercase << (int)(unsigned char)(hex_char);
-      // Add additional 0 if single hex value is 0-F
-      if (value.str().size() == 1) {
-        check_ss << "0";
-      }
       check_ss << value.str();
     }
     std::string header_sig = check_ss.str();
@@ -82,11 +79,8 @@ QueryData genShortcutFiles(QueryContext& context) {
     std::stringstream ss;
     for (const auto& hex_char : lnk_content) {
       std::stringstream value;
+      value << std::setfill('0') << std::setw(2);
       value << std::hex << std::uppercase << (int)(unsigned char)(hex_char);
-      // Add additional 0 if single hex value is 0-F
-      if (value.str().size() == 1) {
-        ss << "0";
-      }
       ss << value.str();
     }
 
@@ -98,10 +92,11 @@ QueryData genShortcutFiles(QueryContext& context) {
     DataStringInfo data_info_string;
 
     data = parseShortcutHeader(lnk_hex);
-    if (data.header == "") {
+    if (data.header.empty()) {
       continue;
     }
-    std::string data_string = lnk_hex.substr(152);
+    const int lnk_data = 152;
+    std::string data_string = lnk_hex.substr(lnk_data);
     if (data.flags.has_target_id_list) {
       target_data = parseTargetInfo(data_string);
       data_string = target_data.data;
@@ -126,32 +121,32 @@ QueryData genShortcutFiles(QueryContext& context) {
 
     std::string target_path = "";
     // Lookup and combine GUIDs and target file path
-    if (target_data.root_folder != "") {
+    if (!target_data.root_folder.empty()) {
       std::string guid_name;
       std::vector<std::string> full_path;
       // Check for GUID name if osquery fails to find it, fallback to the GUID
       auto status =
-          getClassName("{" + target_data.root_folder + "}", guid_name);
+          getClassName('{' + target_data.root_folder + '}', guid_name);
       if (status.ok()) {
         full_path.push_back(guid_name);
       } else {
-        full_path.push_back("{" + target_data.root_folder + "}");
+        full_path.push_back('{' + target_data.root_folder + '}');
       }
       // If Control Panel items were found lookup GUIDs and build path
-      if (target_data.control_panel != "" ||
-          target_data.control_panel_category != "") {
+      if (!target_data.control_panel.empty() ||
+          !target_data.control_panel_category.empty()) {
         std::string guid_name;
         full_path.push_back(target_data.control_panel_category);
-        status = getClassName("{" + target_data.control_panel + "}", guid_name);
+        status = getClassName('{' + target_data.control_panel + '}', guid_name);
         if (status.ok()) {
           full_path.push_back(guid_name);
         } else {
-          full_path.push_back("{" + target_data.control_panel + "}");
+          full_path.push_back('{' + target_data.control_panel + '}');
         }
 
         target_path = osquery::join(full_path, "\\");
       } else {
-        if (target_data.path != "") {
+        if (!target_data.path.empty()) {
           // Check if path is only a volume
           if (target_data.path.size() == 2 && target_data.path.back() == ':') {
             target_data.path = target_data.path + "\\";
@@ -161,16 +156,16 @@ QueryData genShortcutFiles(QueryContext& context) {
         }
         target_path = osquery::join(full_path, "\\");
       }
-    } else if (target_data.property_guid !=
-               "") { // Lookup up GUID name for User Property Views
+    } else if (!target_data.property_guid.empty()) {
+      // Lookup up GUID name for User Property Views
       std::string guid_name;
       std::vector<std::string> full_path;
       auto status =
-          getClassName("{" + target_data.property_guid + "}", guid_name);
+          getClassName('{' + target_data.property_guid + '}', guid_name);
       if (status.ok()) {
         full_path.push_back(guid_name);
       } else {
-        full_path.push_back("{" + target_data.property_guid + "}");
+        full_path.push_back('{' + target_data.property_guid + '}');
       }
       target_path = osquery::join(full_path, "\\");
     } else {

@@ -8,11 +8,14 @@
  */
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/shellitem.h>
 
 #include <boost/algorithm/hex.hpp>
+
+namespace osquery {
 
 struct LinkFlags {
   bool has_target_id_list;
@@ -95,8 +98,6 @@ struct ExtraDataTracker {
   std::string birth_droid_file;
 };
 
-namespace osquery {
-
 LinkFlags parseShortcutFlags(const std::string& flags) {
   std::string flags_swap = swapEndianess(flags);
   int flags_int = std::stoi(flags_swap, nullptr, 16);
@@ -164,7 +165,8 @@ LinkFileHeader parseShortcutHeader(const std::string& header) {
   }
   std::string file_size_str = swapEndianess(header.substr(104, 8));
 
-  lnk_header.file_size = std::stoll(file_size_str, nullptr, 16);
+  lnk_header.file_size =
+      tryTo<unsigned long long>(file_size_str, 16).takeOr(0ull);
   lnk_header.icon_index = header.substr(112, 8);
   lnk_header.window_value = header.substr(120, 8);
   lnk_header.hot_key = header.substr(128, 4);
@@ -286,6 +288,96 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
   return target_lnk;
 }
 
+std::string getLocationType(std::string& type) {
+  std::string location_type = "";
+  if (type == "00001a00") {
+    location_type = "WNNC_NET_AVID";
+  } else if (type == "00001B00") {
+    location_type = "WNNC_NET_DOCUSPACE";
+  } else if (type == "00001C00") {
+    location_type = "WNNC_NET_MANGOSOFT";
+  } else if (type == "00001D00") {
+    location_type = "WNNC_NET_SERNET";
+  } else if (type == "00001E00") {
+    location_type = "WNNC_NET_RIVERFRONT1";
+  } else if (type == "00001F00") {
+    location_type = "WNNC_NET_RIVERFRONT2";
+  } else if (type == "00002000") {
+    location_type = "WNNC_NET_DECORB";
+  } else if (type == "00002100") {
+    location_type = "WNNC_NET_PROTSTOR";
+  } else if (type == "00002200") {
+    location_type = "WNNC_NET_FJ_REDIR";
+  } else if (type == "00002300") {
+    location_type = "WNNC_NET_DISTINCT";
+  } else if (type == "00002400") {
+    location_type = "WNNC_NET_TWINS";
+  } else if (type == "00002500") {
+    location_type = "WNNC_NET_RDR2SAMPLE";
+  } else if (type == "00002600") {
+    location_type = "WNNC_NET_CSC";
+  } else if (type == "00002700") {
+    location_type = "WNNC_NET_3IN1";
+  } else if (type == "00002900") {
+    location_type = "WNNC_NET_EXTENDNET";
+  } else if (type == "00002A00") {
+    location_type = "WNNC_NET_STAC";
+  } else if (type == "00002B00") {
+    location_type = "WNNC_NET_FOXBAT";
+  } else if (type == "00002C00") {
+    location_type = "WNNC_NET_YAHOO";
+  } else if (type == "00002D00") {
+    location_type = "WNNC_NET_EXIFS";
+  } else if (type == "00002E00") {
+    location_type = "WNNC_NET_DAV";
+  } else if (type == "00002F00") {
+    location_type = "WNNC_NET_KNOWARE";
+  } else if (type == "00003000") {
+    location_type = "WNNC_NET_OBJECT_DIRE";
+  } else if (type == "00003100") {
+    location_type = "WNNC_NET_MASFAX";
+  } else if (type == "00003200") {
+    location_type = "WNNC_NET_HOB_NFS";
+  } else if (type == "00003300") {
+    location_type = "WNNC_NET_SHIVA";
+  } else if (type == "00003400") {
+    location_type = "WNNC_NET_IBMAL";
+  } else if (type == "00003500") {
+    location_type = "WNNC_NET_LOCK";
+  } else if (type == "00003600") {
+    location_type = "WNNC_NET_TERMSRV";
+  } else if (type == "00003700") {
+    location_type = "WNNC_NET_SRT";
+  } else if (type == "00003800") {
+    location_type = "WNNC_NET_QUINCY";
+  } else if (type == "00003900") {
+    location_type = "WNNC_NET_OPENAFS";
+  } else if (type == "00003A00") {
+    location_type = "WNNC_NET_AVID1";
+  } else if (type == "00003B00") {
+    location_type = "WNNC_NET_DFS";
+  } else if (type == "00003C00") {
+    location_type = "WNNC_NET_KWNP";
+  } else if (type == "00003D00") {
+    location_type = "WNNC_NET_ZENWORKS";
+  } else if (type == "00003E00") {
+    location_type = "WNNC_NET_DRIVEONWEB";
+  } else if (type == "00003F00") {
+    location_type = "WNNC_NET_VMWARE";
+  } else if (type == "00004000") {
+    location_type = "WNNC_NET_RSFX";
+  } else if (type == "00004100") {
+    location_type = "WNNC_NET_MFILES";
+  } else if (type == "00004200") {
+    location_type = "WNNC_NET_MS_NFS";
+  } else if (type == "00004300") {
+    location_type = "WNNC_NET_GOOGLE";
+  } else {
+    LOG(WARNING) << "Unknown network type: " << type;
+  }
+  return location_type;
+}
+
 LocationInfo parseLocationData(const std::string& location_data) {
   LocationInfo location_info;
   std::string data = location_data.substr(4);
@@ -344,94 +436,13 @@ LocationInfo parseLocationData(const std::string& location_data) {
     network_offset = swapEndianess(network_offset);
     int offset = std::stoi(network_offset, nullptr, 16);
     std::string type = data.substr((offset * 2) + 32, 8);
-    if (type == "00001a00") {
-      location_info.type = "WNNC_NET_AVID";
-    } else if (type == "00001B00") {
-      location_info.type = "WNNC_NET_DOCUSPACE";
-    } else if (type == "00001C00") {
-      location_info.type = "WNNC_NET_MANGOSOFT";
-    } else if (type == "00001D00") {
-      location_info.type = "WNNC_NET_SERNET";
-    } else if (type == "00001E00") {
-      location_info.type = "WNNC_NET_RIVERFRONT1";
-    } else if (type == "00001F00") {
-      location_info.type = "WNNC_NET_RIVERFRONT2";
-    } else if (type == "00002000") {
-      location_info.type = "WNNC_NET_DECORB";
-    } else if (type == "00002100") {
-      location_info.type = "WNNC_NET_PROTSTOR";
-    } else if (type == "00002200") {
-      location_info.type = "WNNC_NET_FJ_REDIR";
-    } else if (type == "00002300") {
-      location_info.type = "WNNC_NET_DISTINCT";
-    } else if (type == "00002400") {
-      location_info.type = "WNNC_NET_TWINS";
-    } else if (type == "00002500") {
-      location_info.type = "WNNC_NET_RDR2SAMPLE";
-    } else if (type == "00002600") {
-      location_info.type = "WNNC_NET_CSC";
-    } else if (type == "00002700") {
-      location_info.type = "WNNC_NET_3IN1";
-    } else if (type == "00002900") {
-      location_info.type = "WNNC_NET_EXTENDNET";
-    } else if (type == "00002A00") {
-      location_info.type = "WNNC_NET_STAC";
-    } else if (type == "00002B00") {
-      location_info.type = "WNNC_NET_FOXBAT";
-    } else if (type == "00002C00") {
-      location_info.type = "WNNC_NET_YAHOO";
-    } else if (type == "00002D00") {
-      location_info.type = "WNNC_NET_EXIFS";
-    } else if (type == "00002E00") {
-      location_info.type = "WNNC_NET_DAV";
-    } else if (type == "00002F00") {
-      location_info.type = "WNNC_NET_KNOWARE";
-    } else if (type == "00003000") {
-      location_info.type = "WNNC_NET_OBJECT_DIRE";
-    } else if (type == "00003100") {
-      location_info.type = "WNNC_NET_MASFAX";
-    } else if (type == "00003200") {
-      location_info.type = "WNNC_NET_HOB_NFS";
-    } else if (type == "00003300") {
-      location_info.type = "WNNC_NET_SHIVA";
-    } else if (type == "00003400") {
-      location_info.type = "WNNC_NET_IBMAL";
-    } else if (type == "00003500") {
-      location_info.type = "WNNC_NET_LOCK";
-    } else if (type == "00003600") {
-      location_info.type = "WNNC_NET_TERMSRV";
-    } else if (type == "00003700") {
-      location_info.type = "WNNC_NET_SRT";
-    } else if (type == "00003800") {
-      location_info.type = "WNNC_NET_QUINCY";
-    } else if (type == "00003900") {
-      location_info.type = "WNNC_NET_OPENAFS";
-    } else if (type == "00003A00") {
-      location_info.type = "WNNC_NET_AVID1";
-    } else if (type == "00003B00") {
-      location_info.type = "WNNC_NET_DFS";
-    } else if (type == "00003C00") {
-      location_info.type = "WNNC_NET_KWNP";
-    } else if (type == "00003D00") {
-      location_info.type = "WNNC_NET_ZENWORKS";
-    } else if (type == "00003E00") {
-      location_info.type = "WNNC_NET_DRIVEONWEB";
-    } else if (type == "00003F00") {
-      location_info.type = "WNNC_NET_VMWARE";
-    } else if (type == "00004000") {
-      location_info.type = "WNNC_NET_RSFX";
-    } else if (type == "00004100") {
-      location_info.type = "WNNC_NET_MFILES";
-    } else if (type == "00004200") {
-      location_info.type = "WNNC_NET_MS_NFS";
-    } else if (type == "00004300") {
-      location_info.type = "WNNC_NET_GOOGLE";
-    } else {
-      LOG(WARNING) << "Unknown network type: " << type;
+    std::string location_type = getLocationType(type);
+    if (location_type.empty()) {
       data.erase(0, location_size);
       location_info.data = data;
       return location_info;
     }
+    location_info.type = location_type;
     std::string common_path_offset = data.substr(48, 8);
     common_path_offset = swapEndianess(common_path_offset);
     int path_offset = std::stoi(common_path_offset, nullptr, 16) * 2;
@@ -471,11 +482,11 @@ LocationInfo parseLocationData(const std::string& location_data) {
 
 DataStringInfo parseDataString(const std::string& data,
                                const bool unicode,
-                               const bool& description,
-                               const bool& relative_path,
-                               const bool& working_path,
-                               const bool& icon_location,
-                               const bool& command_args) {
+                               const bool description,
+                               const bool relative_path,
+                               const bool working_path,
+                               const bool icon_location,
+                               const bool command_args) {
   std::string data_string = data;
   std::string data_str_type;
   DataStringInfo data_info;
