@@ -335,6 +335,7 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
   } else {
     if (shell_data.size() < 92) {
       LOG(WARNING) << "Unexpected ShellItem URI size: " << shell_data;
+      ftp_data.push_back("0000000000000000");
       ftp_data.push_back("[UNKNOWN NAME]");
       return ftp_data;
     }

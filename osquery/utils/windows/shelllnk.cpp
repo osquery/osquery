@@ -100,7 +100,7 @@ struct ExtraDataTracker {
 
 LinkFlags parseShortcutFlags(const std::string& flags) {
   std::string flags_swap = swapEndianess(flags);
-  int flags_int = std::stoi(flags_swap, nullptr, 16);
+  int flags_int = tryTo<int>(flags_swap, 16).takeOr(0);
   LinkFlags lnk_flags;
   lnk_flags.has_target_id_list = (bool)(flags_int & 0x1);
   lnk_flags.has_link_info = (bool)(flags_int & 0x2);
@@ -186,7 +186,7 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
   while (true) {
     std::string str_item_size = data.substr(0, 4);
     str_item_size = swapEndianess(str_item_size);
-    int item_size = std::stoi(str_item_size, nullptr, 16) * 2;
+    int item_size = tryTo<int>(str_item_size, 16).takeOr(0) * 2;
     // Empty target item sizes will cause infinte loop, sometimes at the end of
     // the item there may be extra zeros
     if (item_size == 0) {
@@ -383,7 +383,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
   std::string data = location_data.substr(4);
   std::string str_location_size = data.substr(0, 8);
   str_location_size = swapEndianess(str_location_size);
-  int location_size = std::stoi(str_location_size, nullptr, 16) * 2;
+  int location_size = tryTo<int>(str_location_size, 16).takeOr(0) * 2;
 
   std::string location_type = data.substr(16, 8);
   location_type = swapEndianess(location_type);
@@ -391,7 +391,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
   if (location_type == "00000001") {
     std::string volume_offset = data.substr(24, 8);
     volume_offset = swapEndianess(volume_offset);
-    int offset = std::stoi(volume_offset, nullptr, 16);
+    int offset = tryTo<int>(volume_offset, 16).takeOr(0);
     std::string type = data.substr((offset * 2) + 8, 8);
     if (type == "03000000") {
       location_info.type = "Fixed storage media (harddisk)";
@@ -415,7 +415,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
     }
     std::string local_path_offset = data.substr(32, 8);
     local_path_offset = swapEndianess(local_path_offset);
-    int path_offset = std::stoi(local_path_offset, nullptr, 16) * 2;
+    int path_offset = tryTo<int>(local_path_offset, 16).takeOr(0) * 2;
     size_t local_path_size = data.find("00", path_offset);
     // Size should be even but if values end in base 10 it will be odd
     if (local_path_size % 2 != 0) {
@@ -434,7 +434,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
   } else if (location_type == "00000002") {
     std::string network_offset = data.substr(40, 8);
     network_offset = swapEndianess(network_offset);
-    int offset = std::stoi(network_offset, nullptr, 16);
+    int offset = tryTo<int>(network_offset, 16).takeOr(0);
     std::string type = data.substr((offset * 2) + 32, 8);
     std::string location_type = getLocationType(type);
     if (location_type.empty()) {
@@ -445,7 +445,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
     location_info.type = location_type;
     std::string common_path_offset = data.substr(48, 8);
     common_path_offset = swapEndianess(common_path_offset);
-    int path_offset = std::stoi(common_path_offset, nullptr, 16) * 2;
+    int path_offset = tryTo<int>(common_path_offset, 16).takeOr(0) * 2;
     size_t common_path_size = data.find("00", path_offset);
     // Size should be even but if values end in base 10 it will be odd
     if (common_path_size % 2 != 0) {
@@ -461,7 +461,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
     }
     std::string share_name_offset = data.substr((offset * 2) + 16, 8);
     share_name_offset = swapEndianess(share_name_offset);
-    int share_offset = std::stoi(share_name_offset, nullptr, 16);
+    int share_offset = tryTo<int>(share_name_offset, 16).takeOr(0);
     size_t share_name_size = data.find("00", (offset * 2) + share_offset * 2);
     std::string share_name =
         data.substr((offset * 2) + share_offset * 2,
@@ -497,7 +497,7 @@ DataStringInfo parseDataString(const std::string& data,
     str_data_size = data_string.substr(0, 4);
   }
   str_data_size = swapEndianess(str_data_size);
-  int data_size = std::stoi(str_data_size, nullptr, 16);
+  int data_size = tryTo<int>(str_data_size, 16).takeOr(0);
 
   // Data strings go in the following order: description, relative path, working
   // path, command args, icon location. Some may not exist
@@ -519,7 +519,7 @@ DataStringInfo parseDataString(const std::string& data,
     data_string.erase(0, data_size + 4);
     str_data_size = data_string.substr(0, 4);
     str_data_size = swapEndianess(str_data_size);
-    data_size = std::stoi(str_data_size, nullptr, 16);
+    data_size = tryTo<int>(str_data_size, 16).takeOr(0);
   }
   if (relative_path) {
     if (unicode) {
@@ -538,7 +538,7 @@ DataStringInfo parseDataString(const std::string& data,
     data_string.erase(0, data_size + 4);
     str_data_size = data_string.substr(0, 4);
     str_data_size = swapEndianess(str_data_size);
-    data_size = std::stoi(str_data_size, nullptr, 16);
+    data_size = tryTo<int>(str_data_size, 16).takeOr(0);
   }
   if (working_path) {
     if (unicode) {
@@ -557,7 +557,7 @@ DataStringInfo parseDataString(const std::string& data,
     data_string.erase(0, data_size + 4);
     str_data_size = data_string.substr(0, 4);
     str_data_size = swapEndianess(str_data_size);
-    data_size = std::stoi(str_data_size, nullptr, 16);
+    data_size = tryTo<int>(str_data_size, 16).takeOr(0);
   }
   if (command_args) {
     if (unicode) {
@@ -576,7 +576,7 @@ DataStringInfo parseDataString(const std::string& data,
     data_string.erase(0, data_size + 4);
     str_data_size = data_string.substr(0, 4);
     str_data_size = swapEndianess(str_data_size);
-    data_size = std::stoi(str_data_size, nullptr, 16);
+    data_size = tryTo<int>(str_data_size, 16).takeOr(0);
   }
   if (icon_location) {
     if (unicode) {
@@ -595,7 +595,7 @@ DataStringInfo parseDataString(const std::string& data,
     data_string.erase(0, data_size + 4);
     str_data_size = data_string.substr(0, 4);
     str_data_size = swapEndianess(str_data_size);
-    data_size = std::stoi(str_data_size, nullptr, 16);
+    data_size = tryTo<int>(str_data_size, 16).takeOr(0);
   }
   data_info.data = data_string;
   return data_info;
