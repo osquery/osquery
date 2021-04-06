@@ -14,7 +14,7 @@
 #include <osquery/utils/windows/shellitem.h>
 
 #include <boost/algorithm/hex.hpp>
-
+#include <iostream>
 namespace osquery {
 
 struct LinkFlags {
@@ -244,7 +244,7 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
         std::string guid_little = item_string.substr(8, 32);
         std::string guid_string = guidParse(guid_little);
 
-        build_path.push_back("{" + guid_string + "}");
+        build_path.push_back('{' + guid_string + '}');
         data.erase(0, item_size);
         continue;
       }
@@ -392,6 +392,7 @@ LocationInfo parseLocationData(const std::string& location_data) {
     std::string volume_offset = data.substr(24, 8);
     volume_offset = swapEndianess(volume_offset);
     int offset = tryTo<int>(volume_offset, 16).takeOr(0);
+    std::cout << offset << std::endl;
     std::string type = data.substr((offset * 2) + 8, 8);
     if (type == "03000000") {
       location_info.type = "Fixed storage media (harddisk)";
