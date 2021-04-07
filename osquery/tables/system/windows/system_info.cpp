@@ -13,9 +13,10 @@
 #include <osquery/core/tables.h>
 #include <osquery/sql/sql.h>
 
+#include <osquery/core/windows/wmi.h>
+#include <osquery/logger/logger.h>
+#include <osquery/tables/system/windows/registry.h>
 #include <osquery/utils/conversions/tryto.h>
-#include "osquery/core/windows/wmi.h"
-#include "osquery/tables/system/windows/registry.h"
 
 namespace osquery {
 namespace tables {
@@ -45,15 +46,35 @@ QueryData genSystemInfo(QueryContext& context) {
     r["cpu_logical_cores"] = INTEGER(numProcs);
     wmiResultsProc[0].GetLong("NumberOfCores", numProcs);
     r["cpu_physical_cores"] = INTEGER(numProcs);
-    wmiResults[0].GetString("TotalPhysicalMemory", r["physical_memory"]);
     wmiResults[0].GetString("Manufacturer", r["hardware_vendor"]);
     wmiResults[0].GetString("Model", r["hardware_model"]);
   } else {
     r["cpu_logical_cores"] = "-1";
     r["cpu_physical_cores"] = "-1";
-    r["physical_memory"] = "-1";
     r["hardware_vendor"] = "-1";
     r["hardware_model"] = "-1";
+  }
+
+  // win32-computersystem mis-reports TotalPhysicalMemory -- it's
+  // actually reporting post bios allocations. (See note at
+  // https://docs.microsoft.com/en-us/windows/win32/cimwin32prov/win32-computersystem)
+  // So instead, we use an API call --
+  // https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getphysicallyinstalledsystemmemory
+  uint64_t physicallyInstallMemory;
+  if (GetPhysicallyInstalledSystemMemory(&physicallyInstallMemory)) {
+    r["physical_memory"] = BIGINT(physicallyInstallMemory * 1024);
+  } else {
+    auto lastError = GetLastError();
+    if (lastError == ERROR_INVALID_DATA) {
+      LOG(INFO)
+          << "Got error trying to determine the physically installed memory: "
+          << "SMBIOS data is malformed";
+    } else {
+      LOG(INFO)
+          << "Got error trying to determine the physically installed memory: "
+          << std::to_string(lastError);
+    }
+    r["physical_memory"] = "-1";
   }
 
   QueryData regResults;
