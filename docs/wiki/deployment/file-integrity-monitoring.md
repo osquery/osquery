@@ -111,7 +111,7 @@ As file changes happen, events will appear in the [**file_events**](https://osqu
 
 ## Tuning Linux inotify limits
 
-On Linux, the `file_events` table in osquery uses `inotify` to subscribe to file changes. There are inherently some limitations on the number of files that can be monitored, since each `inotify` watch takes up a certain amount of memory in kernel space (non-swappable memory). Adjusting your limits accordingly can help increase the file limit, at a cost of kernel memory.
+On Linux, the `file_events` table in osquery uses inotify to subscribe to file changes. There are inherently some limitations on the number of files that can be monitored, since each inotify watch takes up a certain amount of memory in kernel space (non-swappable memory). Adjusting your limits accordingly can help increase the file limit, at a cost of kernel memory.
 
 ### Example sysctl.conf modifications
 
@@ -130,7 +130,7 @@ fs.inotify.max_queued_events = 32768
 
 In addition to FIM, which generates events if a file is created/modified/deleted, osquery also supports file *access* monitoring which can generate events if a file is accessed.
 
-Monitoring file accesses on Linux uses `inotify` and may incur unexpected and unwanted performance overhead. To prevent 'flooding' of access events alongside FIM, enabling access events for `file_path` categories is an explicit opt-in. You may add categories that were defined in your `file_paths` stanza:
+Monitoring file accesses on Linux uses inotify and may incur unexpected and unwanted performance overhead. To prevent 'flooding' of access events alongside FIM, enabling access events for `file_path` categories is an explicit opt-in. You may add categories that were defined in your `file_paths` stanza:
 
 ```json
 {
@@ -181,8 +181,8 @@ Last but not least, see the troubleshooting guidance in [process auditing with o
 Implementing FIM across all platforms and using multiple sources means that there are a few problematic corner cases. This is not an exhaustive list, but rather, some long-standing issues to be aware of. If you encounter one that is not in our tracked issues, please submit it.
 
 - On some platforms, it may not be possible to monitor a given path, until a file or directory already exists at that path. [Issue 3212](https://github.com/osquery/osquery/issues/3212)
-- If a watched file is deleted, iNotify stops watching that path. [Issue 6495](https://github.com/osquery/osquery/issues/6495)
-- With iNotify, moving a directory of directories into a watched directory does not immediately add all of those subdirectories to the watched set. [Issue 1969](https://github.com/osquery/osquery/issues/1969)
-- With iNotify, you'll get a "modify" event on every occurrence of an open-file-with-write-permission action. [Issue 3920](https://github.com/osquery/osquery/issues/3920)
-- If you have a directory with an extremely large number of subdirectories, setting a watch on it using iNotify will exhaust the available iNotify handles and result in receiving no events. Setting an `exclude_path` on the subdirectories will not help here; the workaround is to be more specific with the `file_paths`. Unfortunately, this means not being able to watch for new files/directories getting created in a directory that already has many subdirectories. [Issue 4296](https://github.com/osquery/osquery/issues/4296)
-- iNotify may not track events done via hard links [Issue 5704](https://github.com/osquery/osquery/issues/5704)
+- If a watched file is deleted, inotify stops watching that path. [Issue 6495](https://github.com/osquery/osquery/issues/6495)
+- With inotify, moving a directory of directories into a watched directory does not immediately add all of those subdirectories to the watched set. [Issue 1969](https://github.com/osquery/osquery/issues/1969)
+- With inotify, you'll get a "modify" event on every occurrence of an open-file-with-write-permission action. [Issue 3920](https://github.com/osquery/osquery/issues/3920)
+- If you have a directory with an extremely large number of subdirectories, setting a watch on it using inotify will exhaust the available inotify handles and result in receiving no events. Setting an `exclude_path` on the subdirectories will not help here; the workaround is to be more specific with the `file_paths`. Unfortunately, this means not being able to watch for new files/directories getting created in a directory that already has many subdirectories. [Issue 4296](https://github.com/osquery/osquery/issues/4296)
+- inotify may not track events done via hard links [Issue 5704](https://github.com/osquery/osquery/issues/5704)
