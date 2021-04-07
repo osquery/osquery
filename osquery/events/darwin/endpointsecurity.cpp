@@ -10,21 +10,25 @@
 #include <iomanip>
 #include <pwd.h>
 
-#include <osquery/events/darwin/endpointsecurity.h>
 #include <osquery/core/flags.h>
+#include <osquery/events/darwin/endpointsecurity.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 
 namespace osquery {
 
-FLAG(bool, disable_endpointsecurity, true, "Disable receiving events from the EndpointSecurity subsystem");
+FLAG(bool,
+     disable_endpointsecurity,
+     true,
+     "Disable receiving events from the EndpointSecurity subsystem");
 
 REGISTER(EndpointSecurityPublisher, "event_publisher", "endpointsecurity")
 
 Status EndpointSecurityPublisher::setUp() {
   if (__builtin_available(macos 10.15, *)) {
     if (FLAGS_disable_endpointsecurity) {
-      return Status::failure(1, "EndpointSecurity is disabled via configuration");
+      return Status::failure(1,
+                             "EndpointSecurity is disabled via configuration");
     }
 
     auto handler = ^(es_client_t* client, const es_message_t* message) {
@@ -44,16 +48,20 @@ Status EndpointSecurityPublisher::setUp() {
     case ES_NEW_CLIENT_RESULT_ERR_NOT_ENTITLED:
       return Status::failure(1, "EndpointSecurity client lacks entitlement");
     case ES_NEW_CLIENT_RESULT_ERR_NOT_PERMITTED:
-      return Status::failure(1, "EndpointSecurity client lacks user TCC permissions");
+      return Status::failure(
+          1, "EndpointSecurity client lacks user TCC permissions");
     case ES_NEW_CLIENT_RESULT_ERR_NOT_PRIVILEGED:
-      return Status::failure(1, "EndpointSecurity client is not running as root");
+      return Status::failure(1,
+                             "EndpointSecurity client is not running as root");
     case ES_NEW_CLIENT_RESULT_ERR_TOO_MANY_CLIENTS:
-      return Status::failure(1, "Too many EndpointSecurity clients running on the system");
+      return Status::failure(
+          1, "Too many EndpointSecurity clients running on the system");
     default:
       return Status::failure(1, "EndpointSecurity: Unknown error");
     }
   } else {
-    return Status::failure(1, "EndpointSecurity is only available on macOS 10.15 and higher");
+    return Status::failure(
+        1, "EndpointSecurity is only available on macOS 10.15 and higher");
   }
 }
 
@@ -115,13 +123,15 @@ static inline std::string getCwdPathFromPid(pid_t pid) {
 static inline std::string getCDHash(const es_process_t* p) {
   std::stringstream hash;
   for (unsigned char i : p->cdhash) {
-    hash << std::hex << std::setfill('0') << std::setw(2) << static_cast<unsigned int>(i);
+    hash << std::hex << std::setfill('0') << std::setw(2)
+         << static_cast<unsigned int>(i);
   }
   auto s = hash.str();
   return s.find_first_not_of(s.front()) == std::string::npos ? "" : s;
 }
 
-static inline void getProperties(const es_process_t* p, const EndpointSecurityEventContextRef& ec) {
+static inline void getProperties(const es_process_t* p,
+                                 const EndpointSecurityEventContextRef& ec) {
   auto audit_token = p->audit_token;
   ec->pid = audit_token_to_pid(audit_token);
   ec->parent = p->ppid;
@@ -195,14 +205,12 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
     if (ec->version >= 3) {
       ec->cwd = getStringFromToken(&message->event.exec.cwd->path);
     }
-  }
-    break;
+  } break;
   case ES_EVENT_TYPE_NOTIFY_FORK: {
     ec->es_event = ES_EVENT_TYPE_NOTIFY_FORK;
     ec->event_type = "fork";
     ec->child_pid = audit_token_to_pid(message->event.fork.child->audit_token);
-  }
-    break;
+  } break;
   case ES_EVENT_TYPE_NOTIFY_EXIT: {
     ec->es_event = ES_EVENT_TYPE_NOTIFY_EXIT;
     ec->event_type = "exit";
@@ -215,9 +223,10 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
   EventFactory::fire<EndpointSecurityPublisher>(ec);
 }
 
-bool EndpointSecurityPublisher::shouldFire(const EndpointSecuritySubscriptionContextRef& sc, const EndpointSecurityEventContextRef& ec) const {
+bool EndpointSecurityPublisher::shouldFire(
+    const EndpointSecuritySubscriptionContextRef& sc,
+    const EndpointSecurityEventContextRef& ec) const {
   return true;
 }
 
-
-}
+} // namespace osquery

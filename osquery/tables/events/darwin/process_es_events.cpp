@@ -11,9 +11,9 @@
 #include <EndpointSecurity/EndpointSecurity.h>
 #include <os/availability.h>
 
-#include <osquery/events/events.h>
-#include <osquery/events/darwin/endpointsecurity.h>
 #include <osquery/core/flags.h>
+#include <osquery/events/darwin/endpointsecurity.h>
+#include <osquery/events/events.h>
 #include <osquery/registry/registry_factory.h>
 
 namespace osquery {
@@ -30,18 +30,15 @@ Status ESProcessEventSubscriber::init() {
 
     subscribe(&ESProcessEventSubscriber::Callback, sc);
 
-
     return Status::success();
   } else {
     return Status::failure(1, "Only available on macOS 10.15 and higher");
   }
 }
 
-// move event process here
-// keep a vector of Rows for batching
-//Status ProcessEvent()
-
-Status ESProcessEventSubscriber::Callback(const EndpointSecurityEventContextRef& ec, const EndpointSecuritySubscriptionContextRef& sc) {
+Status ESProcessEventSubscriber::Callback(
+    const EndpointSecurityEventContextRef& ec,
+    const EndpointSecuritySubscriptionContextRef& sc) {
   Row r;
 
   r["version"] = INTEGER(ec->version);
@@ -84,14 +81,12 @@ Status ESProcessEventSubscriber::Callback(const EndpointSecurityEventContextRef&
     r["exit_code"] = INTEGER(ec->exit_code);
   }
 
-  /*
-  sc->row_list.push_back(std::move(r));
+  sc->row_list = {r};
   if (!sc->row_list.empty()) {
     addBatch(sc->row_list);
-  }*/
+  }
 
-  add(r);
   return Status::success();
 }
 
-}
+} // namespace osquery
