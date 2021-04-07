@@ -14,8 +14,10 @@ This is generally difficult to install.
 You will need to install:
 
 ```sh
-sudo apt-get install libmagic-dev libpopt-dev
+sudo apt-get install libmagic-dev libpopt-dev autopoint zlib1g-dev
 ```
+
+And you will need a "built" version of osquery in `./build` to find/use our exact OpenSSL version.
 
 Generated with the following commands:
 
@@ -34,20 +36,26 @@ export LDFLAGS="${CFLAGS} -L$OPENSSL_LINK -L$LIBMAGIC_LINK -L$POPT_LINK"
 export CC=clang
 
 ./autogen.sh
-./configure --enable-static --with-crypto=openssl --without-archive --enable-bdb=no --without-lua --disable-plugins --disable-openmp
+./configure --enable-static --with-crypto=openssl --without-archive --enable-bdb --enable-bdb-ro --enable_sqlite --without-lua --disable-plugins --disable-openmp
 ```
 
 Then copy
 
 ```sh
 cp ./config.h ../config/config.h
+cp ./lib/rpmhash.C ../generated/lib/
+```
+
+Run `make` and then copy the include files:
+
+```sh
+cp -R ./include ../
+cp ./lib/tagtbl.C ../generated/lib/
 ```
 
 And set (in the appropriate places):
 
 ```sh
-#define HAVE_DB_H 1
-#define WITH_BDB 1
 #define HAVE_LZMA_H 1
 #define HAVE_ZSTD 1
 ```

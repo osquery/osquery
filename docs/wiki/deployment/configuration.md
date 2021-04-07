@@ -193,14 +193,14 @@ Discovery queries look like:
 {
   "discovery": [
     "SELECT pid FROM processes WHERE name = 'foobar';",
-    "SELECT count(*) FROM users WHERE username like 'www%';"
+    "SELECT 1 FROM users WHERE username like 'www%';"
   ],
   "queries": {}
 }
 ```
 
 In the above example, the pack will only execute on hosts which are running
-processes called "foobar" or has users that start with "www".
+processes called "foobar" and has users that start with "www".
 
 Discovery queries are refreshed for all packs every 60 minutes. You can
 change this value via the `pack_refresh_interval` configuration option.
@@ -365,7 +365,7 @@ As with scheduled queries, described above, each pack borrows the `platform`, `v
 
 The `queries` key mimics the configuration's `schedule` key.
 
-The `discovery` query set feature is described in detail in the above packs section. This array should include queries to be executed in an `OR` manner.
+The `discovery` query set feature is described in detail in the above packs section. This array should include queries to be executed in an `AND` manner.
 
 ### File Paths
 
@@ -621,6 +621,36 @@ Open a text editor and create a file named `atc_tables.json` using the columns, 
 ```
 
 You can test this locally before deploying to your fleet and add more columns as necessary: `/usr/local/bin/osqueryi --verbose --config_path atc_tables.json`
+
+### Events
+
+"Events" refers to the event-based tables.
+Events are published into osquery by operating system or application specific APIs; and within osquery certain tables "subscribe" to these publishers.
+There is usually a 1-to-many relationship between publishers and subscribers.
+See the [development documentation](../development/pubsub-framework.md) for more information on event publishing and subscribing.
+Events are almost always tweaked via CLI flags and _options_ referenced above.
+
+The configuration supports a method to explicitly allow and deny events subscribers.
+If you choose to explicitly allow subscribers, then all will be disabled except for those specificied in the allow list.
+If you choose to explicitly deny subscribers, then all will be enabled except for those specificied in the deny list.
+
+You may want to explicitly disable subscribers if you are only interested in a single type of data produced by a general publisher.
+
+Here is an example configuration:
+
+```json
+{
+  "schedule": {...},
+  "events": {
+    "disable_subscribers": ["yara_events"]
+  }
+}
+```
+
+You can inspect the list of subscribers using the query `SELECT * FROM osquery_events where type = 'subscriber';`.
+This table will show `1` for the `active` column if a subscriber is enabled.
+Note that publishers are more complex and cannot be disabled and enabled this way, please look for a specific CLI flag to control specific publishers.
+Also note that different platforms such as Windows and Linux have different sets of subscriber tables. 
 
 ## Chef Configuration
 

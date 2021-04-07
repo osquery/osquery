@@ -76,20 +76,11 @@ TEST_F(CACertsTests, test_certificate_properties) {
 
   X509_check_ca(x_cert);
 
-// Temporary workaround for Buck compiling with an older openssl version
-#if OPENSSL_VERSION_NUMBER < 0x10101000L
-  const auto* subject_key_id = x_cert->skid;
-
-  ASSERT_NE(subject_key_id, nullptr);
-
-  auto skid = genKIDProperty(subject_key_id->data, subject_key_id->length);
-#else
   const auto* subject_key_id = X509_get0_subject_key_id(x_cert);
 
   ASSERT_NE(subject_key_id, nullptr);
 
   auto skid = genKIDProperty(subject_key_id->data, subject_key_id->length);
-#endif
 
   EXPECT_EQ("f2b99b00e0ee60d57c426ce3e64e3fdc6f6411c0", skid);
 

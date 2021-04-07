@@ -125,6 +125,7 @@ void genUser(const std::string& sidString, QueryData& results) {
     ret = LookupAccountSidW(
         nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
     r["username"] = ret != 0 ? wstringToString(accntName) : "";
+    LocalFree(sid);
 
     // Also attempt to get the user account description comment. Move on if
     // NetUserGetInfo returns an error, as it will for some system accounts.
@@ -220,7 +221,7 @@ void processLocalAccounts(const std::set<std::string>& selectedUids,
         // Will return empty string on fail
         auto sid = LPUSER_INFO_4(userLvl4Buff)->usri4_user_sid;
         auto uid = getUidFromSid(sid);
-        auto gid = LPUSER_INFO_4(userLvl4Buff)->usri4_primary_group_id;
+        auto gid = getGidFromSid(sid);
         auto sidString = psidToString(sid);
         processedSids.insert(sidString);
 

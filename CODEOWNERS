@@ -5,9 +5,10 @@
 # precedence.
 
 # General write access
-* @osquery/osquery-committers, @osquery/facebook-osquery-write
+* @osquery/osquery-committers @osquery/technical-steering-committee
+
+.github/workflows @osquery/osquery-build-wardens
 
 # As CODEOWNERS is last match oriented, we restrict slightly more
 # sensitive files here.
-CODEOWNERS		@osquery/foundation-committers
-azure-pipelines.yml	@osquery/foundation-committers
+CODEOWNERS		@osquery/technical-steering-committee

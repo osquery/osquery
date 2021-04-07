@@ -36,9 +36,11 @@ Status EventsConfigParserPlugin::update(const std::string& source,
                                         const ParserConfig& config) {
   auto events = config.find("events");
   if (events != config.end()) {
-    auto obj = data_.getObject();
-    data_.copyFrom(events->second.doc(), obj);
-    data_.add("events", obj, data_.doc());
+    auto doc = JSON::newObject();
+    auto obj = doc.getObject();
+    doc.copyFrom(events->second.doc(), obj);
+    doc.add("events", obj);
+    data_ = std::move(doc);
   }
   return Status();
 }

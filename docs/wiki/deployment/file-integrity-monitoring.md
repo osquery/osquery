@@ -65,10 +65,10 @@ The three areas below that are relevant to FIM are the scheduled query against `
 }
 ```
 
-Do not use arbitrary category names under the `exclude_paths` node; only valid categories are allowed.
+Do not use arbitrary category names under the `exclude_paths` node; only valid names are allowed.
 
-- `valid category` - Categories which are mentioned under `file_paths` node. In the above example config `homes`, `etc` and `tmp` are termed as valid categories.
-- `invalid category` - Any other category name apart from `homes`, `etc` and `tmp` are considered as invalid categories.
+- **Valid categories** - Categories referenced under the `file_paths` node. In the above example config, `homes`, `etc` and `tmp` are valid categories.
+- **Invalid categories** - Any name not referenced under `file_paths`. In the above example, any name besides `homes`, `etc` and `tmp` is invalid.
 
 In addition to `file_paths`, one can use `file_paths_query` to specify the file paths to monitor as `path` column of the results of the given query. For example:
 

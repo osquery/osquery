@@ -55,7 +55,7 @@ Now that osquery is properly laid out on the filesystem, we need to create a new
 
 For example:
 
-* To install the service using Powershell we bundle a helper function living in the repo at `.\tools\manage-windows-service.ps1` which can be invoked as follows:
+* To install the service using Powershell we bundle a helper function living in the repo at `.\tools\manage-osqueryd.ps1` which can be invoked as follows:
 
 ````PowerShell
 C:\Program Files\osquery

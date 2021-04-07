@@ -23,6 +23,7 @@ function(osqueryUtilsMain)
   add_subdirectory("conversions")
   add_subdirectory("versioning")
   add_subdirectory("schemer")
+  add_subdirectory("ycloud")
 
   if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsUtilstestsTest()
@@ -42,6 +43,11 @@ function(generateOsqueryUtils)
   if(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
       darwin/plist.mm
+    )
+  endif()
+  if(DEFINED PLATFORM_WINDOWS)
+    list(APPEND source_files
+      windows/shellitem.cpp
     )
   endif()
 
@@ -85,6 +91,14 @@ function(generateOsqueryUtils)
     generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})
   endif()
 
+  if(DEFINED PLATFORM_WINDOWS)
+    set(platform_public_header_files
+      windows/shellitem.h
+    )
+
+    generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})
+  endif()
+
   set(attribute_public_header_files
     attribute.h
   )
@@ -109,6 +123,7 @@ function(generateOsqueryUtilsUtilstestsTest)
     list(APPEND source_files
       tests/windows/env.cpp
       tests/windows/filetime.cpp
+      tests/windows/shellitems.cpp
     )
   endif()
 

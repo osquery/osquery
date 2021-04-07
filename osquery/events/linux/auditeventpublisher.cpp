@@ -28,6 +28,7 @@ DECLARE_bool(audit_allow_user_events);
 DECLARE_bool(audit_allow_selinux_events);
 DECLARE_bool(audit_allow_kill_process_events);
 DECLARE_bool(audit_allow_apparmor_events);
+DECLARE_bool(audit_allow_seccomp_events);
 
 REGISTER(AuditEventPublisher, "event_publisher", "auditeventpublisher");
 
@@ -44,7 +45,8 @@ bool IsPublisherEnabled() noexcept {
           FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events ||
           FLAGS_audit_allow_selinux_events ||
           FLAGS_audit_allow_kill_process_events ||
-          FLAGS_audit_allow_apparmor_events);
+          FLAGS_audit_allow_apparmor_events ||
+          FLAGS_audit_allow_seccomp_events);
 }
 } // namespace
 
@@ -180,6 +182,19 @@ void AuditEventPublisher::ProcessEvents(
         audit_event.data = data;
         event_context->audit_events.push_back(audit_event);
       }
+
+      // Seccomp events
+    } else if (audit_event_record.type == AUDIT_SECCOMP) {
+      SeccompAuditEventData data;
+
+      parseSeccompEvent(audit_event_record, data);
+
+      AuditEvent audit_event;
+      audit_event.type = AuditEvent::Type::Seccomp;
+      audit_event.data = data;
+      audit_event.record_list.push_back(audit_event_record);
+      event_context->audit_events.push_back(audit_event);
+
     } else if (audit_event_record.type == AUDIT_SYSCALL) {
       if (audit_event_it != trace_context.end()) {
         VLOG(1) << "Received a duplicated event.";
@@ -447,6 +462,35 @@ std::string StripQuotes(const std::string& value) noexcept {
     return value.substr(1, value.length() - 2);
   } else {
     return value;
+  }
+}
+
+void parseSeccompEvent(const AuditEventRecord& record,
+                       SeccompAuditEventData& data) noexcept {
+  // Fill SeccompAuditEventData structure with data from audit_event_record
+  for (auto& field : data.fields) {
+    switch (field.second.which()) {
+    case 0: {
+      // string field
+      std::string value = "";
+      field.second =
+          GetStringFieldFromMap(value, record.fields, field.first) ? value : "";
+      break;
+    }
+    case 1: {
+      // int field
+      std::uint64_t value = 0;
+      int base = 10;
+      if (field.first == "arch" || field.first == "code") {
+        base = 16;
+      }
+      field.second =
+          GetIntegerFieldFromMap(value, record.fields, field.first, base)
+              ? value
+              : 0;
+      break;
+    }
+    }
   }
 }
 

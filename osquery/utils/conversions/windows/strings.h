@@ -52,4 +52,10 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src);
  */
 std::string bstrToString(const BSTR src);
 
+/**
+ * @brief Windows helper function to swap endianess of a string
+ *
+ * @returns The swap endianess (little endian returns big endian, vice-versa)
+ */
+std::string swapEndianess(const std::string& endian_string);
 } // namespace osquery

@@ -40,6 +40,7 @@ TEST_F(SystemControlsTest, test_sanity) {
                            "kernel",
                            "machdep",
                            "net",
+                           "sunrpc",
                            "user",
                            "vfs",
                            "vm"}},

@@ -4,9 +4,6 @@
 /* Build with dbus support? */
 /* #undef DBUS */
 
-/* Build with dmalloc support? */
-/* #undef DMALLOC */
-
 /* Build with systemd inhibit plugin? */
 #define ENABLE_INHIBIT_PLUGIN 1
 
@@ -41,16 +38,16 @@
 /* Have cap_compare function? */
 /* #undef HAVE_CAP_COMPARE */
 
-/* Define to 1 if you have the MacOS X function CFLocaleCopyCurrent in the
+/* Define to 1 if you have the Mac OS X function CFLocaleCopyCurrent in the
    CoreFoundation framework. */
 /* #undef HAVE_CFLOCALECOPYCURRENT */
 
-/* Define to 1 if you have the MacOS X function CFPreferencesCopyAppValue in
+/* Define to 1 if you have the Mac OS X function CFPreferencesCopyAppValue in
    the CoreFoundation framework. */
 /* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
 
 /* Define to 1 if you have the <db.h> header file. */
-#define HAVE_DB_H 1
+/* #undef HAVE_DB_H */
 
 /* Define if the GNU dcgettext() function is already present or preinstalled.
    */
@@ -91,14 +88,14 @@
 /* Define to 1 if OpenSSL has EVP_MD_CTX_new */
 #define HAVE_EVP_MD_CTX_NEW 1
 
-/* Define to 1 if you have the <fcntl.h> header file. */
-#define HAVE_FCNTL_H 1
-
 /* Define to 1 if you have the `fdatasync' function. */
 #define HAVE_FDATASYNC 1
 
 /* Define to 1 if you have the <gelf.h> header file. */
 /* #undef HAVE_GELF_H */
+
+/* Define to 1 if you have the `getaddrinfo' function. */
+#define HAVE_GETADDRINFO 1
 
 /* Define to 1 if you have the `getauxval' function. */
 /* #undef HAVE_GETAUXVAL */
@@ -118,7 +115,7 @@
 /* Define as 1 if your zlib has gzseek() */
 #define HAVE_GZSEEK 1
 
-/* Define if you have the iconv() function. */
+/* Define if you have the iconv() function and it works. */
 #define HAVE_ICONV 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
@@ -150,6 +147,9 @@
 
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
+
+/* Define to 1 if you have the `localtime_r' function. */
+#define HAVE_LOCALTIME_R 1
 
 /* Define to 1 if you have the `lsetxattr' function. */
 /* #undef HAVE_LSETXATTR */
@@ -228,6 +228,9 @@
 
 /* Define to 1 if you have the `setprogname' function. */
 /* #undef HAVE_SETPROGNAME */
+
+/* Define to 1 if you have the `statvfs' function. */
+#define HAVE_STATVFS 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
@@ -328,7 +331,7 @@
 #define PACKAGE_NAME "rpm"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "rpm 4.15.1"
+#define PACKAGE_STRING "rpm 4.16.1.2"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "rpm"
@@ -337,31 +340,13 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.15.1"
+#define PACKAGE_VERSION "4.16.1.2"
 
 /* canonical vendor */
 #define RPMCANONVENDOR "unknown"
 
 /* run-time variable directory */
 #define RUNDIR "/run"
-
-/* Define if struct statfs has the f_bavail member */
-#define STATFS_HAS_F_BAVAIL 1
-
-/* statfs in <sys/mount.h> (for Digital Unix 4.0D systems) */
-/* #undef STATFS_IN_SYS_MOUNT */
-
-/* statfs in <sys/statfs.h> (for Irix 6.4 systems) */
-/* #undef STATFS_IN_SYS_STATFS */
-
-/* statfs in <sys/statvfs.h> (for solaris 2.6+ systems) */
-#define STATFS_IN_SYS_STATVFS 1
-
-/* statfs in <sys/vfs.h> (for linux systems) */
-/* #undef STATFS_IN_SYS_VFS */
-
-/* Define if the statfs() call takes 4 arguments */
-/* #undef STAT_STATFS4 */
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
@@ -392,7 +377,7 @@
 
 
 /* Version number of package */
-#define VERSION "4.15.1"
+#define VERSION "4.16.1.2"
 
 /* Build with acl support? */
 /* #undef WITH_ACL */
@@ -401,7 +386,10 @@
 /* #undef WITH_AUDIT */
 
 /* Define if BDB is available */
-#define WITH_BDB 1
+/* #undef WITH_BDB */
+
+/* Build with read-only Berkeley DB */
+#define WITH_BDB_RO 1
 
 /* Build with beecrypt instead of nss3 support? */
 /* #undef WITH_BEECRYPT */
@@ -412,14 +400,14 @@
 /* Build with imaevm support? */
 /* #undef WITH_IMAEVM */
 
-/* Define if LMDB is available */
-/* #undef WITH_LMDB */
-
 /* Build with lua support? */
 /* #undef WITH_LUA */
 
 /* Build with selinux support? */
 /* #undef WITH_SELINUX */
+
+/* Define if SQLITE is available */
+#define WITH_SQLITE 1
 
 /* Enable large inode numbers on Mac OS X 10.5.  */
 #ifndef _DARWIN_USE_64_BIT_INODE

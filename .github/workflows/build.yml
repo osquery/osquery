@@ -24,7 +24,7 @@ on:
       - 'master'
 
     tags:
-      - 'v*'
+      - '*'
 
   pull_request:
     branches:
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-18.04
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v9
+      image: osquery/builder18.04:0aa3775ce
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     steps:
@@ -98,7 +98,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v9
+      image: osquery/builder18.04:0aa3775ce
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
@@ -211,7 +211,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: trailofbits/osquery:ubuntu-18.04-toolchain-v9
+      image: osquery/builder18.04:0aa3775ce
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
@@ -408,35 +408,35 @@ jobs:
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v1
       with:
-        name: linux_deb_package-${{ matrix.build_type }}
+        name: linux_deb_package_x86_64-${{ matrix.build_type }}
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DEB_PACKAGE_NAME }}
 
     - name: Store the .ddeb package artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v1
       with:
-        name: linux_dbgsym_deb_package-${{ matrix.build_type }}
+        name: linux_dbgsym_deb_package_x86_64-${{ matrix.build_type }}
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DDEB_PACKAGE_NAME }}
 
     - name: Store the release .rpm package artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v1
       with:
-        name: linux_rpm_package-${{ matrix.build_type }}
+        name: linux_rpm_package_x86_64-${{ matrix.build_type }}
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.RELEASE_RPM_PACKAGE_NAME }}
 
     - name: Store the debuginfo .rpm package artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v1
       with:
-        name: linux_debuginfo_rpm_package-${{ matrix.build_type }}
+        name: linux_debuginfo_rpm_package_x86_64-${{ matrix.build_type }}
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.DEBUGINFO_RPM_PACKAGE_NAME }}
 
     - name: Store the .tar.gz package artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v1
       with:
-        name: linux_targz_package-${{ matrix.build_type }}
+        name: linux_targz_package_x86_64-${{ matrix.build_type }}
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/${{ steps.package_names.outputs.TARGZ_PACKAGE_NAME }}
 
     # Before we terminate this job, delete the build folder. The cache

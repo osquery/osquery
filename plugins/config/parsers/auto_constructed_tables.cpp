@@ -114,9 +114,13 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     return Status::success();
   }
 
-  auto obj = data_.getObject();
-  data_.copyFrom(cv->second.doc(), obj);
-  data_.add(kParserKey, obj);
+  {
+    auto doc = JSON::newObject();
+    auto obj = doc.getObject();
+    doc.copyFrom(cv->second.doc(), obj);
+    doc.add(kParserKey, obj);
+    data_ = std::move(doc);
+  }
 
   const auto& ac_tables = data_.doc()[kParserKey];
   auto tables = RegistryFactory::get().registry("table");

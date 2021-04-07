@@ -25,6 +25,7 @@ struct WELEvent final {
   std::string source;
   std::string provider_name;
   std::string provider_guid;
+  std::string computer_name;
 
   std::int64_t event_id{0U};
   std::int64_t task_id{0U};

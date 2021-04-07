@@ -72,6 +72,7 @@ function(generateTestsIntegrationTablesTestsTest)
     device_file.cpp
     device_hash.cpp
     device_partitions.cpp
+    ycloud_instance_metadata.cpp
   )
 
   if(TARGET_PROCESSOR STREQUAL "x86_64")
@@ -121,7 +122,6 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_error_info.cpp
       mounts.cpp
       oem_strings.cpp
-      opera_extensions.cpp
       pci_devices.cpp
       process_envs.cpp
       process_events.cpp
@@ -307,6 +307,7 @@ function(generateTestsIntegrationTablesTestsTest)
       scheduled_tasks.cpp
       services.cpp
       shared_resources.cpp
+      shellbags.cpp
       shimcache.cpp
       startup_items.cpp
       userassist.cpp

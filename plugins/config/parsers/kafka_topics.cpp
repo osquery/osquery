@@ -26,9 +26,11 @@ Status KafkaTopicsConfigParserPlugin::update(const std::string& source,
                                              const ParserConfig& config) {
   auto topics = config.find(kKafkaTopicParserRootKey);
   if (topics != config.end()) {
-    auto obj = data_.getObject();
-    data_.copyFrom(topics->second.doc(), obj);
-    data_.add(kKafkaTopicParserRootKey, obj);
+    auto doc = JSON::newObject();
+    auto obj = doc.getObject();
+    doc.copyFrom(topics->second.doc(), obj);
+    doc.add(kKafkaTopicParserRootKey, obj);
+    data_ = std::move(doc);
   }
   return Status();
 }

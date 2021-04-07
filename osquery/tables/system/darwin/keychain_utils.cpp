@@ -111,12 +111,7 @@ void genAlgorithmProperties(X509* cert,
       // The EVP_size for EC keys returns the maximum buffer for storing the
       // key data, it does not indicate the size/strength of the curve.
       if (nid == NID_X9_62_id_ecPublicKey) {
-// Temporary workaround for Buck compiling with an older openssl version
-#if OPENSSL_VERSION_NUMBER < 0x10101000L
-        const EC_KEY* ec_pkey = pkey->pkey.ec;
-#else
         const EC_KEY* ec_pkey = EVP_PKEY_get0_EC_KEY(pkey);
-#endif
         const EC_GROUP* ec_pkey_group = EC_KEY_get0_group(ec_pkey);
         int curve_nid = EC_GROUP_get_curve_name(ec_pkey_group);
         if (curve_nid != NID_undef) {
@@ -219,12 +214,8 @@ void genCommonName(X509* cert,
 
   ASN1_STRING* commonNameData = X509_NAME_ENTRY_get_data(commonNameEntry);
 
-// Temporary workaround for Buck compiling with an older openssl version
-#if OPENSSL_VERSION_NUMBER < 0x10101000L
-  const auto* data = ASN1_STRING_data(commonNameData);
-#else
   const auto* data = ASN1_STRING_get0_data(commonNameData);
-#endif
+
   common_name = std::string(reinterpret_cast<const char*>(data));
 }
 

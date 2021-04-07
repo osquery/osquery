@@ -13,10 +13,17 @@
 extern "C" {
 #endif
 
+enum rpmSignFlags_e {
+    RPMSIGN_FLAG_NONE		= 0,
+    RPMSIGN_FLAG_IMA		= (1 << 0),
+    RPMSIGN_FLAG_RPMV3		= (1 << 1),
+};
+typedef rpmFlags rpmSignFlags;
+
 struct rpmSignArgs {
     char *keyid;
     pgpHashAlgo hashalgo;
-    int signfiles;
+    rpmSignFlags signflags;
     /* ... what else? */
 };
 

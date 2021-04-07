@@ -41,4 +41,11 @@ TEST_F(ConversionsTests, test_long_int_to_unixtime) {
   EXPECT_EQ(converted, 1593277666);
 }
 
+TEST_F(ConversionsTests, test_fattime_to_unixtime) {
+  std::string fattime = "24450000";
+
+  auto converted = parseFatTime(fattime);
+  EXPECT_EQ(converted, 1409788800);
+}
+
 } // namespace osquery

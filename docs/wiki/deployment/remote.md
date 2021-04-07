@@ -193,9 +193,9 @@ The TLS client does not handle HTTP errors, if the service returns a bad request
 
 We include a very basic example python TLS/HTTPS server: [./tools/tests/test_http_server.py](https://github.com/osquery/osquery/blob/master/tools/tests/test_http_server.py). And a set of unit/integration tests: [./osquery/remote/transports/tests/tls_transports_tests.cpp](https://github.com/osquery/osquery/blob/master/osquery/remote/transports/tests/tls_transports_tests.cpp) for a reference server implementation.
 
-The TLS clients built into osquery use the system-provided OpenSSL libraries. The clients use osquery's `http_client` built on top of Boost.Beast ASIO header-library.
+The TLS clients built into osquery are implemented in its own `http_client`, built on top of Boost.Beast ASIO header-library and a statically linked copy of OpenSSL (does not use a system OpenSSL library, even if present).
 
-On macOS, Linux, and FreeBSD the TLS client prefers the TLS 1.2 protocol, but includes TLS 1.1/1.0 as well as the following cipher suites:
+The osquery TLS client implementation supports only TLS protocol v1.2, and intentionally no longer supports the deprecated TLS 1.1/1.0, as of osquery v4.7.0. The following cipher suites are supported by the TLS client (see `/osquery/remote/transports/tls.h`):
 
 ```text
 ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:\
@@ -215,7 +215,7 @@ Additionally, the osquery TLS clients use a `osquery/X.Y.Z` UserAgent, where "X.
 
 The most basic example of a server implementing the remote settings API is the [./tools/tests/test_http_server.py](https://github.com/osquery/osquery/blob/master/tools/tests/test_http_server.py) example script. Let's start this server and have `osqueryd` exercise the API:
 
-```
+```shell
 $ ./tools/tests/test_http_server.py -h
 usage: test_http_server.py [-h] [--tls] [--persist] [--timeout TIMEOUT]
                            [--cert CERT_FILE] [--key PRIVATE_KEY_FILE]
@@ -248,7 +248,7 @@ This starts a HTTPS server bound to port 8080 using some fake CA/server cert and
 
 We will use an `osqueryd` client and set the required TLS settings. When enforcing TLS server authentication, note that the example server is using a toy certificate with the subject: `C=US, ST=California, O=osquery-testing, CN=localhost`:
 
-```
+```shell
 $ osqueryd --verbose --ephemeral --disable_database \
     --tls_hostname localhost:8080 \
     --tls_server_certs ./tools/tests/test_server_ca.pem \

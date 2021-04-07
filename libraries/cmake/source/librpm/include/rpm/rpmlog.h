@@ -96,7 +96,7 @@ typedef	enum rpmlogFac_e {
 #define	RPMLOG_NOWAIT	0x10	/*!< don't wait for console forks: DEPRECATED */
 #define	RPMLOG_PERROR	0x20	/*!< log to stderr as well */
 
-/* \ingroup rpmlog
+/** \ingroup rpmlog
  * Option flags for callback return value.
  */
 #define RPMLOG_DEFAULT	0x01	/*!< perform default logging */	

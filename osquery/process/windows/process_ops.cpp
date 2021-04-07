@@ -60,7 +60,7 @@ uint32_t getGidFromSid(PSID sid) {
   DWORD unameSize = 0;
   DWORD domNameSize = 1;
 
-  // LookupAccountSid first gets the size of the username buff required.
+  // LookupAccountSid first gets the size of the name buff required
   LookupAccountSidW(
       nullptr, sid, nullptr, &unameSize, nullptr, &domNameSize, &eUse);
   std::vector<wchar_t> uname(unameSize);
@@ -76,9 +76,11 @@ uint32_t getGidFromSid(PSID sid) {
   if (accountFound == 0) {
     return static_cast<uint32_t>(-1);
   }
-  // USER_INFO_3 struct contains the RID (uid) of our user
-  DWORD userInfoLevel = 3;
+
+  // Use NetUserGetInfo() level 0 to get username
+  DWORD userInfoLevel = 0;
   LPBYTE userBuff = nullptr;
+  LPLOCALGROUP_USERS_INFO_0 userGroupsBuff = nullptr;
   auto gid = static_cast<uint32_t>(-1);
   auto ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
 
@@ -88,12 +90,57 @@ uint32_t getGidFromSid(PSID sid) {
     auto toks = osquery::split(sidString, "-");
     gid = tryTo<uint32_t>(toks.at(toks.size() - 1), 10).takeOr(gid);
     LocalFree(sidString);
-
   } else if (ret == NERR_Success) {
-    gid = LPUSER_INFO_3(userBuff)->usri3_primary_group_id;
+    // Use NetUserGetLocalGroups to get a Local Group GID for this user
+    LPWSTR userName = LPUSER_INFO_0(userBuff)->usri0_name;
+    WORD level = 0;
+    DWORD flags = 0;
+    DWORD prefMaxLen = MAX_PREFERRED_LENGTH;
+    DWORD entriesRead = 0;
+    DWORD totalEntries = 0;
+    std::unique_ptr<BYTE[]> sidSmartPtr = nullptr;
+    PSID sidPtr = nullptr;
+
+    ret = NetUserGetLocalGroups(nullptr,
+                                userName,
+                                level,
+                                flags,
+                                (LPBYTE*)&userGroupsBuff,
+                                prefMaxLen,
+                                &entriesRead,
+                                &totalEntries);
+
+    if (ret == NERR_Success) {
+      LPLOCALGROUP_USERS_INFO_0 pTmpBuf;
+      DWORD i;
+
+      // A user often has more than one local group. We only return the first!
+      if (userGroupsBuff != NULL) {
+        // From group name to group SID to the RID (osquery concept of GID):
+        sidSmartPtr = getSidFromUsername(userGroupsBuff->lgrui0_name);
+        if (sidSmartPtr != nullptr) {
+          sidPtr = static_cast<PSID>(sidSmartPtr.get());
+          auto rid = getRidFromSid(sidPtr);
+          gid = rid;
+        }
+      }
+    }
+
+    // If none of the above worked, User may not have a Local Group
+    if (gid == static_cast<uint32_t>(-1)) {
+      // Fallback to using its RID from its USER_INFO_4 struct
+      NetApiBufferFree(userBuff); // free the level 0 buff from above
+      userInfoLevel = 4;
+      ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
+      if (ret == NERR_Success) {
+        gid = LPUSER_INFO_4(userBuff)->usri4_primary_group_id;
+      }
+    }
   }
 
   NetApiBufferFree(userBuff);
+  NetApiBufferFree(userGroupsBuff);
+
   return gid;
 }
 

@@ -1,0 +1,24 @@
+table_name("seccomp_events")
+
+description("A virtual table that tracks seccomp events.")
+
+schema([
+    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("uptime", BIGINT, "Time of execution in system uptime"),
+    Column("auid", UNSIGNED_BIGINT, "Audit user ID (loginuid) of the user who started the analyzed process"),
+    Column("uid", UNSIGNED_BIGINT, "User ID of the user who started the analyzed process"),
+    Column("gid", UNSIGNED_BIGINT, "Group ID of the user who started the analyzed process"),
+    Column("ses", UNSIGNED_BIGINT, "Session ID of the session from which the analyzed process was invoked"),
+    Column("pid", UNSIGNED_BIGINT, "Process ID"),
+    Column("comm", TEXT, "Command-line name of the command that was used to invoke the analyzed process"),
+    Column("exe", TEXT, "The path to the executable that was used to invoke the analyzed process"),
+    Column("sig", BIGINT, "Signal value sent to process by seccomp"),
+    Column("arch", TEXT, "Information about the CPU architecture"),
+    Column("syscall", TEXT, "Type of the system call"),
+    Column("compat", BIGINT, "Is system call in compatibility mode"),
+    Column("ip", TEXT, "Instruction pointer value"),
+    Column("code", TEXT, "The seccomp action"),
+])
+
+attributes(event_subscriber=True)
+implementation("seccomp_events@seccomp_events::genTable")

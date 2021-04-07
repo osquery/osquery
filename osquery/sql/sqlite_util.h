@@ -53,7 +53,7 @@ const std::unordered_set<int> kAllowedSQLiteActionCodes = {
     SQLITE_CREATE_VTABLE,
     SQLITE_DROP_VTABLE,
 
-    // Users may sometimes want to create tables and views
+    // Users may create tables and views
     SQLITE_CREATE_VIEW,
     SQLITE_DROP_VIEW,
     SQLITE_CREATE_TABLE,
@@ -68,13 +68,18 @@ const std::unordered_set<int> kAllowedSQLiteActionCodes = {
 
     // Required for recursive queries
     SQLITE_RECURSIVE,
+
+    // Allow transactions. These are used by people to manage tmp tables
+    SQLITE_TRANSACTION,
 };
 
-// Allowlist of SQLite pragmas. Any pragma not in this set is denied.
+// Allowlist of SQLite pragmas. Any pragma not in this set is
+// denied. See possible values in https://sqlite.org/pragma.html
 const std::unordered_set<std::string> kAllowedSQLitePragmas = {
     "table_info",
     "table_xinfo",
     "function_list",
+    "journal_mode",
 };
 
 class SQLiteDBManager;

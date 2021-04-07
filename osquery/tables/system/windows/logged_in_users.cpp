@@ -90,7 +90,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
     if (utcTime.dwLowDateTime != 0 || utcTime.dwHighDateTime != 0) {
       unixTime = filetimeToUnixtime(utcTime);
     }
-    r["time"] = INTEGER(unixTime);
+    r["time"] = BIGINT(unixTime);
 
     LPWSTR clientInfo = nullptr;
     bytesRet = 0;
@@ -150,7 +150,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
   }
 
   if (pSessionInfo != nullptr) {
-    WTSFreeMemory(pSessionInfo);
+    WTSFreeMemoryEx(WTSTypeSessionInfoLevel1, pSessionInfo, count);
     pSessionInfo = nullptr;
   }
 

@@ -49,6 +49,7 @@ function(generateOsqueryTablesTableimplementations)
 
   target_link_libraries(osquery_tables_tableimplementations INTERFACE
     osquery_tables_cloud_azure
+    osquery_tables_cloud_ycloud
   )
 
   target_link_libraries(osquery_tables_tableimplementations INTERFACE

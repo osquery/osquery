@@ -8,7 +8,6 @@
  */
 
 #include <osquery/core/flags.h>
-#include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/join.h>
@@ -16,6 +15,10 @@
 #include <osquery/utils/system/time.h>
 
 #include <osquery/carver/carver_utils.h>
+
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 namespace osquery {
 
@@ -58,15 +61,22 @@ void updateCarveValue(const std::string& guid,
   }
 }
 
-Status carvePaths(const std::set<std::string>& paths) {
-  auto guid = generateNewUUID();
+std::string createCarveGuid() {
+  return boost::uuids::to_string(boost::uuids::random_generator()());
+}
+
+Status carvePaths(const std::set<std::string>& paths,
+                  const std::string& request_id,
+                  std::string& carve_guid) {
+  carve_guid = createCarveGuid();
 
   JSON tree;
-  tree.add("carve_guid", guid);
+  tree.add("carve_guid", carve_guid);
   tree.add("time", getUnixTime());
   tree.add("status", kCarverStatusScheduled);
   tree.add("sha256", "");
   tree.add("size", -1);
+  tree.add("request_id", request_id);
 
   if (paths.size() > 1) {
     tree.add("path", osquery::join(paths, ","));
@@ -82,6 +92,6 @@ Status carvePaths(const std::set<std::string>& paths) {
   }
 
   kCarverPendingCarves = true;
-  return setDatabaseValue(kCarves, kCarverDBPrefix + guid, out);
+  return setDatabaseValue(kCarves, kCarverDBPrefix + carve_guid, out);
 }
 } // namespace osquery

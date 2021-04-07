@@ -5,7 +5,7 @@ schema([
     Column("user", TEXT, "User login name"),
     Column("tty", TEXT, "Device name"),
     Column("host", TEXT, "Remote hostname"),
-    Column("time", INTEGER, "Time entry was made"),
+    Column("time", BIGINT, "Time entry was made"),
     Column("pid", INTEGER, "Process (or thread) ID"),
 ])
 extended_schema(WINDOWS, [

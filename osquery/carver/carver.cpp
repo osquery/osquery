@@ -16,7 +16,6 @@
 #include <osquery/carver/carver.h>
 #include <osquery/carver/carver_utils.h>
 #include <osquery/database/database.h>
-#include <osquery/distributed/distributed.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/core/flags.h>
 #include <osquery/hashing/hashing.h>
@@ -122,7 +121,14 @@ void CarverRunnable::start() {
       paths.insert(path);
     }
 
-    auto requestId = Distributed::getCurrentRequestId();
+    std::string requestId;
+    if (doc.HasMember("request_id") && doc["request_id"].IsString()) {
+      requestId = doc["request_id"].GetString();
+    } else {
+      // Handle stored requests from older osquery versions.
+      requestId = createCarveGuid();
+    }
+
     doCarve(paths, guid, requestId);
   }
 

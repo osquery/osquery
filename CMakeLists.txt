@@ -107,7 +107,6 @@ endfunction()
 function(importLibraries)
   set(library_descriptor_list
     "Linux,Darwin:augeas"
-    "Linux:berkeley-db"
     "Linux,Darwin,Windows:boost"
     "Linux,Darwin,Windows:bzip2"
     "Linux,Darwin,Windows:gflags"

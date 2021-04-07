@@ -96,6 +96,11 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
     LOG(WARNING) << "Failed to init CoCreateInstance with " << hres;
     return -1;
   }
+  auto pCimDateTimeManager = scope_guard::create([&pCimDateTime]() {
+    if (pCimDateTime != nullptr) {
+      pCimDateTime->Release();
+    }
+  });
 
   // Then load up our CIM Datetime string into said class
   auto bSrcStr = SysAllocString(stringToWstring(src.c_str()).c_str());
@@ -127,6 +132,15 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
 
   // And finally convert this to a Unix epoch timestamp
   return filetimeToUnixtime(timeStore);
+}
+
+std::string swapEndianess(const std::string& endian_string) {
+  std::string swap_string = endian_string;
+  std::reverse(swap_string.begin(), swap_string.end());
+  for (std::size_t i = 0; i < swap_string.length(); i += 2) {
+    std::swap(swap_string[i], swap_string[i + 1]);
+  }
+  return swap_string;
 }
 
 } // namespace osquery

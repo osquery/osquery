@@ -37,6 +37,9 @@ const std::string kInputCapabilities{
     "cap_dac_override,cap_net_admin,cap_net_raw+eip"};
 const std::string kExpectedCapabilities{"= " + kInputCapabilities};
 
+const ExtendedAttributeTestValue kCapabilitiesExtendedAttribute = {
+    {} /* ignored */, kExpectedCapabilities, false};
+
 // clang-format off
 const std::unordered_map<std::string, ExtendedAttributeTestValue> kTestAttributeList = {
   // Not printable
@@ -123,14 +126,16 @@ TEST_F(ExtendedAttributesTableTests, generate) {
       tables::generateXattrRowsForPath(output, temporary_file_path.string());
   ASSERT_TRUE(status.ok());
 
-  // Make sure we have the correct number of rows; if we are not being run
-  // as root, we may have failed to set the capabilities on the test file
-  auto expected_row_count = kTestAttributeList.size();
+  // Make sure we are trying to find the correct list of attributes; if we are
+  // not being run as root, we may have failed to set the capabilities on the
+  // test file
+  auto attributes_to_find = kTestAttributeList;
   if (check_capabilities) {
-    ++expected_row_count;
+    attributes_to_find.emplace(kCapabilitiesAttributeName,
+                               kCapabilitiesExtendedAttribute);
   }
 
-  ASSERT_EQ(output.size(), expected_row_count);
+  ASSERT_GE(output.size(), attributes_to_find.size());
 
   auto temp_folder = boost::filesystem::temp_directory_path();
   const auto& expected_directory_field = temp_folder.string();
@@ -140,19 +145,29 @@ TEST_F(ExtendedAttributesTableTests, generate) {
     EXPECT_EQ(r.at("path"), temporary_file_path.string());
     EXPECT_EQ(r.at("directory"), expected_directory_field);
 
-    const auto& key = r.at("key");
-    if (key == kCapabilitiesAttributeName) {
-      EXPECT_EQ(r.at("base64"), "0");
-      EXPECT_EQ(r.at("value"), kExpectedCapabilities);
+    auto attribute_it = attributes_to_find.find(r.at("key"));
 
-    } else {
-      auto it = kTestAttributeList.find(key);
-      ASSERT_TRUE(it != kTestAttributeList.end());
-
-      const auto& expected_values = it->second;
-      EXPECT_EQ(r.at("base64"), expected_values.base64 ? "1" : "0");
-      EXPECT_EQ(r.at("value"), expected_values.expected_output);
+    if (attribute_it != attributes_to_find.end()) {
+      const auto& expected_values = attribute_it->second;
+      ASSERT_EQ(r.at("base64"), expected_values.base64 ? "1" : "0");
+      ASSERT_EQ(r.at("value"), expected_values.expected_output);
+      attributes_to_find.erase(attribute_it);
     }
   }
+
+  auto map_keys_to_string = [](const auto& map) -> std::string {
+    std::string output;
+    for (const auto& pair : map) {
+      output += pair.first + ", ";
+    }
+
+    output.erase(output.size() - 2, 2);
+
+    return output;
+  };
+
+  EXPECT_TRUE(attributes_to_find.empty())
+      << "Not all the expected attributes have been found, missing "
+      << map_keys_to_string(attributes_to_find);
 }
 } // namespace osquery

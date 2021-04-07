@@ -1,0 +1,16 @@
+table_name("shellbags")
+description("Shows directories accessed via Windows Explorer.")
+schema([
+    Column("sid", TEXT, "User SID"),
+    Column("source", TEXT, "Shellbags source Registry file"),
+    Column("path", TEXT, "Directory name."),
+    Column("modified_time", BIGINT, "Directory Modified time."),
+    Column("created_time", BIGINT, "Directory Created time."),
+    Column("accessed_time", BIGINT, "Directory Accessed time."),
+    Column("mft_entry", BIGINT, "Directory master file table entry."),
+    Column("mft_sequence", INTEGER, "Directory master file table sequence."),
+])
+implementation("shellbags@genShellbags")
+examples([
+  "select * from shellbags;",
+])

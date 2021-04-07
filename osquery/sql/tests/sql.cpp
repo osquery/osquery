@@ -246,7 +246,7 @@ TEST_F(SQLTests, test_regex_match_invalid2) {
 TEST_F(SQLTests, test_regex_match_invalid3) {
   QueryData d;
   // `|` is an invalid regexp but std::basic_regex doesn't complain, and treats
-  // it much as an empty string. Encode that expection here in tests.
+  // it much as an empty string. Encode that exception here in tests.
   query("select regex_match('foo/bar', '|', 0) as test", d);
   ASSERT_EQ(d.size(), 1U);
 
@@ -386,7 +386,7 @@ TEST_F(SQLTests, test_regex_split_invalid2) {
 TEST_F(SQLTests, test_regex_split_with_or) {
   QueryData d;
   // `|` is an invalid regexp but std::basic_regex doesn't complain, and treats
-  // it much as an empty string. Encode that expection here in tests.
+  // it much as an empty string. Encode that exception here in tests.
   query("select regex_split('foo/bar', '|', 0) as test", d);
   ASSERT_EQ(d.size(), 1U);
 
@@ -399,6 +399,66 @@ TEST_F(SQLTests, test_regex_split_too_big) {
   QueryData d;
   std::string regex(100000, '|');
   auto status = query("select regex_split('foo/bar', '" + regex + "', 0)", d);
+  ASSERT_TRUE(!status.ok());
+}
+
+/*
+ * concat
+ */
+TEST_F(SQLTests, test_concat) {
+  QueryData d;
+
+  auto status = query(
+      "select concat() as t0, \
+              concat('hello') as t1, \
+              concat('hello', 'world') as t2, \
+              concat('hello', NULL, 'world') as t3, \
+              concat(1, 2, 3, 'go') as t4, \
+              concat('') as t5",
+      d);
+  ASSERT_TRUE(status.ok());
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "");
+  EXPECT_EQ(d[0]["t1"], "hello");
+  EXPECT_EQ(d[0]["t2"], "helloworld");
+  EXPECT_EQ(d[0]["t3"], "helloworld");
+  EXPECT_EQ(d[0]["t4"], "123go");
+  EXPECT_EQ(d[0]["t5"], "");
+}
+
+/*
+ * concat_ws
+ */
+TEST_F(SQLTests, test_concat_ws) {
+  QueryData d;
+
+  auto status = query(
+      "select concat_ws('') as t0, \
+              concat_ws(NULL) as t1, \
+              concat_ws(', ', 'hello', 'world', 1, 2, 3) as t2, \
+              concat_ws('', 'hello', 'world', 1, 2, 3) as t3, \
+              concat_ws(NULL, 'hello', 'world', 1, 2, 3) as t4, \
+              concat_ws(' ', 'hello', NULL, 'world') as t5, \
+              concat_ws('x', 'hello') as t6, \
+              concat_ws('x', '', '') as t7",
+
+      d);
+  ASSERT_TRUE(status.ok());
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "");
+  EXPECT_EQ(d[0]["t1"], "");
+  EXPECT_EQ(d[0]["t2"], "hello, world, 1, 2, 3");
+  EXPECT_EQ(d[0]["t3"], "helloworld123");
+  EXPECT_EQ(d[0]["t4"], "helloworld123");
+  EXPECT_EQ(d[0]["t5"], "hello world");
+  EXPECT_EQ(d[0]["t6"], "hello");
+  EXPECT_EQ(d[0]["t7"], "x");
+}
+
+TEST_F(SQLTests, test_concat_ws_fail) {
+  QueryData d;
+
+  auto status = query("select concat_ws()", d);
   ASSERT_TRUE(!status.ok());
 }
 

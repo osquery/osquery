@@ -1,18 +1,21 @@
 table_name("chrome_extension_content_scripts")
 description("Chrome browser extension content scripts.")
 schema([
-    Column("uid", BIGINT, "The local user that owns the extension",
-        index=True),
+    Column("browser_type", TEXT, "The browser type (Valid values: chrome, chromium, opera, yandex, brave)"),
+    Column("uid", BIGINT, "The local user that owns the extension", index=True),
     Column("identifier", TEXT, "Extension identifier"),
     Column("version", TEXT, "Extension-supplied version"),
     Column("script", TEXT, "The content script used by the extension"),
     Column("match", TEXT, "The pattern that the script is matched against"),
+    Column("profile_path", TEXT, "The profile path"),
+    Column("path", TEXT, "Path to extension folder"),
+    Column("referenced", BIGINT, "1 if this extension is referenced by the Preferences file of the profile"),
     ForeignKey(column="uid", table="users"),
 ])
 attributes(user_data=True)
 implementation("applications/browser_chrome@genChromeExtensionContentScripts")
 examples([
-    "select * from chrome_extensions join chrome_extension_content_scripts using (identifier)",
+    "SELECT chrome_extension_content_scripts.* FROM users JOIN chrome_extension_content_scripts USING (uid) GROUP BY identifier, match",
 ])
 fuzz_paths([
     "/Library/Application Support/Google/Chrome/",

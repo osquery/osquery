@@ -65,14 +65,51 @@ struct AppArmorAuditEventData final {
                 {"ouid", 0}};
 };
 
+/*
+   Message example:
+   auid=65876 uid=0 gid=0 ses=12684 pid=18204 comm="qemu-system-x86"
+   exe="/usr/bin/qemu-system-x86_64" sig=0 arch=c000003e syscall=271 compat=0
+   ip=0x7f6ba2cdd811 code=0x7ffc0000
+ */
+struct SeccompAuditEventData final {
+  std::unordered_map<std::string, boost::variant<std::string, std::uint64_t>>
+      fields = {{"auid", 0}, // audit user ID (loginuid) of the user who started
+                             // the analyzed process
+                {"uid", 0}, // user ID
+                {"gid", 0}, // group ID
+                {"ses", 0}, // session ID
+                {"pid", 0}, // process ID
+
+                {"comm", ""}, // command-line name of the command that was
+                              // used to invoke the analyzed process
+
+                {"exe", ""}, // the path to the executable that was used
+                             // to invoke the analyzed process
+
+                {"sig", 0}, // signal value sent to process by seccomp
+
+                {"arch", 0}, // information about the CPU architecture
+                {"syscall", 0}, // type of the system call
+
+                {"compat", 0}, // result of in_compat_syscall()
+                               // is system call in compatibility mode
+
+                {"ip", ""}, // result of KSTK_EIP(current)
+                            // instruction pointer value
+
+                {"code", 0}}; // the seccomp action
+};
+
 /// Audit event descriptor
 struct AuditEvent final {
-  enum class Type { UserEvent, Syscall, SELinux, AppArmor };
+  enum class Type { UserEvent, Syscall, SELinux, AppArmor, Seccomp };
 
   Type type;
-  boost::
-      variant<UserAuditEventData, SyscallAuditEventData, AppArmorAuditEventData>
-          data;
+  boost::variant<UserAuditEventData,
+                 SyscallAuditEventData,
+                 AppArmorAuditEventData,
+                 SeccompAuditEventData>
+      data;
 
   std::vector<AuditEventRecord> record_list;
 };
@@ -154,4 +191,7 @@ void CopyFieldFromMap(
 
 // Strips first and last quote from string if present
 std::string StripQuotes(const std::string& value) noexcept;
+
+void parseSeccompEvent(const AuditEventRecord& record,
+                       SeccompAuditEventData& data) noexcept;
 } // namespace osquery
