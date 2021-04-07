@@ -102,11 +102,7 @@ jobs:
       shell: bash
       id: tests_build_settings
       run: |
-        if [[ "${{ matrix.build_type }}" == "RelWithDebInfo" ]] ; then
-          echo ::set-output name=VALUE::OFF
-        else
-          echo ::set-output name=VALUE::ON
-        fi
+        echo ::set-output name=VALUE::ON
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
@@ -124,7 +120,6 @@ jobs:
     # When we spawn in the container, we are root; create an unprivileged
     # user now so that we can later use it to launch the normal user tests
     - name: Create a non-root user
-      if: matrix.build_type != 'RelWithDebInfo'
       id: unprivileged_user
       run: |
         useradd -m -s /bin/bash unprivileged_user
@@ -160,7 +155,6 @@ jobs:
     # using this socket. Allow the unprivileged user we created
     # to access it.
     - name: Update the Docker socket permissions
-      if: matrix.build_type != 'RelWithDebInfo'
       run: |
         chmod 666 /var/run/docker.sock
 
@@ -215,16 +209,13 @@ jobs:
       run: |
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
-    # Only run the tests on Debug and Release configurations; skip RelWithDebInfo
     - name: Run the tests as normal user
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      if: matrix.build_type != 'RelWithDebInfo'
       run: |
         sudo -u ${{ steps.unprivileged_user.outputs.NAME }} ctest --build-nocmake -LE "root-required" -V
 
     - name: Run the tests as root user
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      if: matrix.build_type != 'RelWithDebInfo'
       run: |
         sudo -u root ctest --build-nocmake -L "root-required" -V
 
