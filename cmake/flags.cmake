@@ -274,7 +274,6 @@ function(setupBuildFlags)
 
     set(windows_common_link_options
       /SUBSYSTEM:CONSOLE
-      /INCREMENTAL:NO
       ntdll.lib
       ole32.lib
       oleaut32.lib
@@ -301,6 +300,16 @@ function(setupBuildFlags)
       gdi32.lib
       mswsock.lib
     )
+
+    if(OSQUERY_ENABLE_INCREMENTAL_LINKING)
+      list(APPEND windows_common_link_options
+        /INCREMENTAL
+      )
+    else()
+      list(APPEND windows_common_link_options
+        /INCREMENTAL:NO
+      )
+    endif()
 
     set(osquery_windows_common_defines
       WIN32=1
