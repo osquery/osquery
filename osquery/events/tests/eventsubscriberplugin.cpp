@@ -219,4 +219,71 @@ TEST_F(EventSubscriberPluginTests, generateRows) {
   EXPECT_EQ(callback_count, 20U);
 }
 
+class FakeEventSubscriberPlugin : public EventSubscriberPlugin {
+ public:
+  FakeEventSubscriberPlugin() : EventSubscriberPlugin(true){};
+
+  const std::string& getType() const override {
+    static std::string name{"fake_subscriber"};
+    return name;
+  }
+
+  void setShouldOptimize(bool optimize) {
+    optimize_ = optimize;
+  }
+
+  void setQueryCount(size_t count) {
+    total_queries_ = count;
+  }
+
+  void setExecutedQuery(const std::string&) override {
+    executed_queries_++;
+  }
+
+  bool executedAllQueries() const override {
+    return total_queries_ == executed_queries_;
+  }
+
+  size_t executedQueries() const {
+    return executed_queries_;
+  }
+
+ private:
+  bool shouldOptimize() const override {
+    return optimize_;
+  }
+
+ private:
+  bool optimize_{false};
+  size_t total_queries_{0};
+  size_t executed_queries_{0};
+};
+
+TEST_F(EventSubscriberPluginTests, generateRowsWithOptimize) {
+  MockedOsqueryDatabase mocked_database;
+  FakeEventSubscriberPlugin subscriber;
+
+  subscriber.setQueryCount(2);
+  subscriber.setShouldOptimize(false);
+
+  size_t callback_count;
+  auto callback = [&callback_count](Row) { ++callback_count; };
+  subscriber.generateRows(mocked_database, callback, 0, 0);
+  // Queries are not tracked when not optimizing.
+  EXPECT_EQ(0, subscriber.executedQueries());
+
+  const EventTime event_time{10U};
+  const std::size_t event_id{20U};
+  subscriber.setOptimizeData(mocked_database, event_time, event_id);
+
+  subscriber.setShouldOptimize(true);
+  subscriber.generateRows(mocked_database, callback, 0, 0);
+  EXPECT_EQ(1, subscriber.executedQueries());
+  // Optimize time has not been set because all queries have not run.
+  EXPECT_GT(subscriber.optimize_time_, 0);
+
+  subscriber.generateRows(mocked_database, callback, 0, 0);
+  ASSERT_TRUE(subscriber.executedAllQueries());
+  EXPECT_GT(subscriber.optimize_time_, 0);
+}
 } // namespace osquery

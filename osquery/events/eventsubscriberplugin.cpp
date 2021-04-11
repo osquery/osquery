@@ -211,6 +211,48 @@ size_t EventSubscriberPlugin::getEventBatchesMax() {
   return FLAGS_events_max;
 }
 
+bool EventSubscriberPlugin::shouldOptimize() const {
+  return isDaemon() && FLAGS_events_optimize;
+}
+
+void EventSubscriberPlugin::setExecutedQuery(const std::string& query_name) {
+  WriteLock lock(event_query_record_);
+  if (!query_name.empty() && queries_.count(query_name) == 0) {
+    queries_.insert(query_name);
+  }
+}
+
+void EventSubscriberPlugin::generateRows(IDatabaseInterface& db_interface,
+                                         std::function<void(Row)> callback,
+                                         EventTime start_time,
+                                         EventTime stop_time) {
+  if (shouldOptimize()) {
+    // If the daemon is querying a subscriber without a 'time' constraint and
+    // allows optimization, only emit events since the last query.
+    std::string query_name;
+    getOptimizeData(db_interface, optimize_time_, optimize_eid_, query_name);
+
+    start_time = optimize_time_;
+    optimize_time_ = getUnixTime() - 1;
+
+    // Track the queries that have selected data.
+    setExecutedQuery(query_name);
+  }
+
+  if (executedAllQueries()) {
+    expireEventBatches(
+        this->context, db_interface, getEventsExpiry(), getUnixTime());
+  }
+
+  generateRows(this->context, db_interface, callback, start_time, stop_time);
+
+  if (shouldOptimize()) {
+    setOptimizeData(db_interface, optimize_time_, optimize_eid_);
+  }
+
+  last_query_time_ = getUnixTime();
+}
+
 void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
   // Stop is an unsigned (-1), our end of time equivalent.
   EventTime start = 0, stop = 0;
@@ -231,40 +273,13 @@ void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
         stop = std::min(stop, expr);
       }
     }
-  } else if (isDaemon() && FLAGS_events_optimize) {
-    // If the daemon is querying a subscriber without a 'time' constraint and
-    // allows optimization, only emit events since the last query.
-    std::string query_name;
-    getOptimizeData(
-        getOsqueryDatabase(), optimize_time_, optimize_eid_, query_name);
-
-    start = optimize_time_;
-    optimize_time_ = getUnixTime() - 1;
-
-    // Track the queries that have selected data.
-    WriteLock lock(event_query_record_);
-    if (!query_name.empty() && queries_.count(query_name) == 0) {
-      queries_.insert(query_name);
-    }
-  }
-
-  if (executedAllQueries()) {
-    expireEventBatches(
-        this->context, getOsqueryDatabase(), getEventsExpiry(), getUnixTime());
   }
 
   auto generateRowsCallback = [&yield](Row row) {
     yield(TableRowHolder(new DynamicTableRow(std::move(row))));
   };
 
-  generateRows(
-      this->context, getOsqueryDatabase(), generateRowsCallback, start, stop);
-
-  if (FLAGS_events_optimize) {
-    setOptimizeData(getOsqueryDatabase(), optimize_time_, optimize_eid_);
-  }
-
-  last_query_time_ = getUnixTime();
+  generateRows(getOsqueryDatabase(), generateRowsCallback, start, stop);
 }
 
 size_t EventSubscriberPlugin::numSubscriptions() const {
