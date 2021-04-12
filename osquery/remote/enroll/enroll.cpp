@@ -17,6 +17,7 @@
 #include <osquery/registry/registry_factory.h>
 #include <osquery/remote/enroll/enroll.h>
 #include <osquery/sql/sql.h>
+#include <osquery/utils/mutex.h>
 #include <osquery/utils/system/time.h>
 
 namespace osquery {
@@ -61,20 +62,31 @@ CLI_FLAG(bool,
 CREATE_LAZY_REGISTRY(EnrollPlugin, "enroll");
 
 const std::set<std::string> kEnrollHostDetails{
-    "os_version", "osquery_info", "system_info", "platform_info",
+    "os_version",
+    "osquery_info",
+    "system_info",
+    "platform_info",
 };
 
+// This mutex guards the node key so that multiple threads cannot initiate
+// re-enrollment at the same time.
+Mutex node_key_mutex;
+
 Status clearNodeKey() {
+  WriteLock lock(node_key_mutex);
   return deleteDatabaseValue(kPersistentSettings, "nodeKey");
 }
 
 std::string getNodeKey(const std::string& enroll_plugin) {
+  UpgradeLock lock(node_key_mutex);
   std::string node_key;
   getDatabaseValue(kPersistentSettings, "nodeKey", node_key);
   if (node_key.size() > 0) {
     // A non-empty node key was found in the backing-store (cache).
     return node_key;
   }
+
+  WriteUpgradeLock wlock(lock);
 
   // The node key request time is recorded before the enroll request occurs.
   auto request_time = std::to_string(getUnixTime());
@@ -141,4 +153,4 @@ Status EnrollPlugin::call(const PluginRequest& request,
     return Status::success();
   }
 }
-}
+} // namespace osquery
