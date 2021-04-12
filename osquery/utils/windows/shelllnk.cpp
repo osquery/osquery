@@ -6,96 +6,18 @@
  *
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
+
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/shellitem.h>
+#include <osquery/utils/windows/shelllnk.h>
 
 #include <boost/algorithm/hex.hpp>
+
 namespace osquery {
-
-struct LinkFlags {
-  bool has_target_id_list;
-  bool has_link_info;
-  bool has_name;
-  bool has_relative_path;
-  bool has_working_dir;
-  bool has_arguments;
-  bool has_icon_location;
-  bool is_unicode;
-  bool no_link_info;
-  bool has_exp_string;
-  bool separate_process;
-  bool unused;
-  bool has_darwin_id;
-  bool run_as_user;
-  bool has_icon;
-  bool pid_alias;
-  bool unused2;
-  bool shim_layer;
-  bool no_link_track;
-  bool target_metadata;
-  bool disable_link_path;
-  bool disable_folder_tracking;
-  bool disable_folder_alias;
-  bool link_to_link;
-  bool unalias_on_save;
-  bool environment_path;
-  bool local_id_for_unc_target;
-};
-
-struct LinkFileHeader {
-  std::string header;
-  std::string guid;
-  LinkFlags flags;
-  std::string file_attribute;
-  long long creation_time;
-  long long access_time;
-  long long modified_time;
-  long long file_size;
-  std::string icon_index;
-  std::string window_value;
-  std::string hot_key;
-};
-
-struct TargetInfo {
-  std::string root_folder;
-  std::string control_panel;
-  std::string control_panel_category;
-  std::string path;
-  long long mft_entry;
-  int mft_sequence;
-  std::string data;
-  std::string property_guid;
-};
-
-struct LocationInfo {
-  std::string type;
-  std::string serial;
-  std::string data;
-  std::string local_path;
-  std::string common_path;
-  std::string share_name;
-};
-
-struct DataStringInfo {
-  std::string description;
-  std::string relative_path;
-  std::string working_path;
-  std::string arguments;
-  std::string icon_location;
-  std::string data;
-};
-
-struct ExtraDataTracker {
-  std::string hostname;
-  std::string droid_volume;
-  std::string droid_file;
-  std::string birth_droid_volume;
-  std::string birth_droid_file;
-};
 
 LinkFlags parseShortcutFlags(const std::string& flags) {
   std::string flags_swap = swapEndianess(flags);
@@ -267,7 +189,7 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
                               // shell item formats
       if (item_string.find("EEBBFE23") != std::string::npos) {
         std::string guid_string = variableGuid(item_string);
-        build_path.push_back("{" + guid_string + "}");
+        build_path.push_back('{' + guid_string + '}');
         data.erase(0, item_size);
         continue;
       } else if (item_string.substr(12, 8) == "05000000" ||
@@ -479,6 +401,29 @@ LocationInfo parseLocationData(const std::string& location_data) {
   return location_info;
 }
 
+std::string parseLnkData(const std::string& data_string,
+                         const bool unicode,
+                         const int& size) {
+  int data_size = size;
+  if (unicode) {
+    data_size = data_size * 4;
+  }
+  std::string data_str_type = data_string.substr(4, data_size);
+  if (unicode) {
+    boost::erase_all(data_str_type, "00");
+  }
+
+  try {
+    std::string lnk_data = boost::algorithm::unhex(data_str_type);
+    return lnk_data;
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING)
+        << "Failed to decode shortcut data string hex values to string: "
+        << data_str_type;
+    return "";
+  }
+}
+
 DataStringInfo parseDataString(const std::string& data,
                                const bool unicode,
                                const bool description,
@@ -487,7 +432,6 @@ DataStringInfo parseDataString(const std::string& data,
                                const bool icon_location,
                                const bool command_args) {
   std::string data_string = data;
-  std::string data_str_type;
   DataStringInfo data_info;
   std::string str_data_size = data_string.substr(0, 4);
   // Previous lnk data may have extra zeros (due to Unicode null termination?)
@@ -501,19 +445,9 @@ DataStringInfo parseDataString(const std::string& data,
   // Data strings go in the following order: description, relative path, working
   // path, command args, icon location. Some may not exist
   if (description) {
+    data_info.description = parseLnkData(data_string, unicode, data_size);
     if (unicode) {
       data_size = data_size * 4;
-    }
-    data_str_type = data_string.substr(4, data_size);
-    if (unicode) {
-      boost::erase_all(data_str_type, "00");
-    }
-
-    try {
-      data_info.description = boost::algorithm::unhex(data_str_type);
-    } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode description hex values to string: "
-                   << data_str_type;
     }
     data_string.erase(0, data_size + 4);
     str_data_size = data_string.substr(0, 4);
@@ -521,18 +455,9 @@ DataStringInfo parseDataString(const std::string& data,
     data_size = tryTo<int>(str_data_size, 16).takeOr(0);
   }
   if (relative_path) {
+    data_info.relative_path = parseLnkData(data_string, unicode, data_size);
     if (unicode) {
       data_size = data_size * 4;
-    }
-    data_str_type = data_string.substr(4, data_size);
-    if (unicode) {
-      boost::erase_all(data_str_type, "00");
-    }
-    try {
-      data_info.relative_path = boost::algorithm::unhex(data_str_type);
-    } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode relative path hex values to string: "
-                   << data_str_type;
     }
     data_string.erase(0, data_size + 4);
     str_data_size = data_string.substr(0, 4);
@@ -540,18 +465,9 @@ DataStringInfo parseDataString(const std::string& data,
     data_size = tryTo<int>(str_data_size, 16).takeOr(0);
   }
   if (working_path) {
+    data_info.working_path = parseLnkData(data_string, unicode, data_size);
     if (unicode) {
       data_size = data_size * 4;
-    }
-    data_str_type = data_string.substr(4, data_size);
-    if (unicode) {
-      boost::erase_all(data_str_type, "00");
-    }
-    try {
-      data_info.working_path = boost::algorithm::unhex(data_str_type);
-    } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode working path hex values to string: "
-                   << data_str_type;
     }
     data_string.erase(0, data_size + 4);
     str_data_size = data_string.substr(0, 4);
@@ -559,18 +475,9 @@ DataStringInfo parseDataString(const std::string& data,
     data_size = tryTo<int>(str_data_size, 16).takeOr(0);
   }
   if (command_args) {
+    data_info.arguments = parseLnkData(data_string, unicode, data_size);
     if (unicode) {
       data_size = data_size * 4;
-    }
-    data_str_type = data_string.substr(4, data_size);
-    if (unicode) {
-      boost::erase_all(data_str_type, "00");
-    }
-    try {
-      data_info.arguments = boost::algorithm::unhex(data_str_type);
-    } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode command args hex values to string: "
-                   << data_str_type;
     }
     data_string.erase(0, data_size + 4);
     str_data_size = data_string.substr(0, 4);
@@ -578,18 +485,9 @@ DataStringInfo parseDataString(const std::string& data,
     data_size = tryTo<int>(str_data_size, 16).takeOr(0);
   }
   if (icon_location) {
+    data_info.icon_location = parseLnkData(data_string, unicode, data_size);
     if (unicode) {
       data_size = data_size * 4;
-    }
-    data_str_type = data_string.substr(4, data_size);
-    if (unicode) {
-      boost::erase_all(data_str_type, "00");
-    }
-    try {
-      data_info.icon_location = boost::algorithm::unhex(data_str_type);
-    } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode icon location hex values to string: "
-                   << data_str_type;
     }
     data_string.erase(0, data_size + 4);
     str_data_size = data_string.substr(0, 4);

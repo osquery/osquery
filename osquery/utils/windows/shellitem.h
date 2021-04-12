@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+namespace osquery {
+
 struct ShellFileEntryData {
   std::string path;
   long long dos_created;
@@ -27,7 +29,6 @@ struct ShellFileEntryData {
   int string_size;
 };
 
-namespace osquery {
 /**
  * @brief Windows helper function for parsing file entry shell items
  *
