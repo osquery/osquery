@@ -111,6 +111,9 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    */
   virtual size_t getEventBatchesMax();
 
+  /// Determine if the subscriber should attempt optmization.
+  virtual bool shouldOptimize() const;
+
  public:
   /**
    * @brief A single instance requirement for static callback facilities.
@@ -137,6 +140,22 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    */
   virtual void genTable(RowYield& yield, QueryContext& ctx) USED_SYMBOL;
 
+  /**
+   * @brief Return all events added by this EventSubscriber within start, stop.
+   *
+   * This is used internally (for the most part) by EventSubscriber::genTable.
+   *
+   * @param db_interface A database interface.
+   * @param callback A callback encapsulating Row yield method.
+   * @param start_time Inclusive lower bound time limit.
+   * @param end_time Inclusive upper bound time limit.
+   * @return Set of event rows matching time limits.
+   */
+  void generateRows(IDatabaseInterface& db_interface,
+                    std::function<void(Row)> callback,
+                    EventTime start_time,
+                    EventTime stop_stop);
+
   /// Number of Subscription%s this EventSubscriber has used.
   size_t numSubscriptions() const;
 
@@ -144,7 +163,10 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   EventContextID numEvents() const;
 
   /// Compare the number of queries run against the queries configured.
-  bool executedAllQueries() const;
+  virtual bool executedAllQueries() const;
+
+  /// Track a query execution.
+  virtual void setExecutedQuery(const std::string& query_name);
 
   struct Context final {
     std::string database_namespace;
@@ -193,12 +215,13 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    *
    * This is used internally (for the most part) by EventSubscriber::genTable.
    *
-   * @param yield The Row yield method.
+   * @param context The subscriber context.
+   * @param db_interface A database interface.
+   * @param callback A callback encapsulating Row yield method.
    * @param start_time Inclusive lower bound time limit.
    * @param end_time Inclusive upper bound time limit.
    * @return Set of event rows matching time limits.
    */
-
   static void generateRows(Context& context,
                            IDatabaseInterface& db_interface,
                            std::function<void(Row)> callback,
@@ -300,6 +323,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
 
   FRIEND_TEST(EventsTests, test_event_subscriber_configure);
   FRIEND_TEST(EventsTests, test_event_toggle_subscribers);
+  FRIEND_TEST(EventSubscriberPluginTests, generateRowsWithOptimize);
 
   friend class DBFakeEventSubscriber;
   friend class BenchmarkEventSubscriber;
