@@ -113,7 +113,7 @@ class EndpointSecurityPublisher
       API_AVAILABLE(macos(10.15));
 
  private:
-  es_client_s* es_client_ = nullptr;
+  es_client_s* es_client_{nullptr};
   bool es_client_success_{false};
 };
 

@@ -103,11 +103,14 @@ static inline std::string getPath(const es_process_t* p) {
 }
 
 static inline std::string getSigningId(const es_process_t* p) {
-  return p->signing_id.length > 0 ? p->signing_id.data : "";
+  return p->signing_id.length > 0 && p->signing_id.data != nullptr
+             ? p->signing_id.data
+             : "";
 }
 
 static inline std::string getTeamId(const es_process_t* p) {
-  return p->team_id.length > 0 ? p->team_id.data : "";
+  return p->team_id.length > 0 && p->team_id.data != nullptr ? p->team_id.data
+                                                             : "";
 }
 
 static inline std::string getStringFromToken(es_string_token_t* t) {
@@ -151,7 +154,7 @@ static inline void getProperties(const es_process_t* p,
   ec->platform_binary = p->is_platform_binary;
 
   auto user = getpwuid(ec->uid);
-  ec->username = std::string(user->pw_name);
+  ec->username = user->pw_name != nullptr ? std::string(user->pw_name) : "";
 
   ec->cwd = getCwdPathFromPid(ec->pid);
 }
@@ -185,22 +188,26 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
 
     getProperties(message->event.exec.target, ec);
     ec->argc = es_exec_arg_count(&message->event.exec);
-    std::stringstream args;
-    for (auto i = 0; i < ec->argc; i++) {
-      auto arg = es_exec_arg(&message->event.exec, i);
-      auto s = getStringFromToken(&arg);
-      args << s << ' ';
+    {
+      std::stringstream args;
+      for (auto i = 0; i < ec->argc; i++) {
+        auto arg = es_exec_arg(&message->event.exec, i);
+        auto s = getStringFromToken(&arg);
+        args << s << ' ';
+      }
+      ec->args = args.str();
     }
-    ec->args = args.str();
 
     ec->envc = es_exec_env_count(&message->event.exec);
-    std::stringstream envs;
-    for (auto i = 0; i < ec->envc; i++) {
-      auto env = es_exec_env(&message->event.exec, i);
-      auto s = getStringFromToken(&env);
-      envs << s << ' ';
+    {
+      std::stringstream envs;
+      for (auto i = 0; i < ec->envc; i++) {
+        auto env = es_exec_env(&message->event.exec, i);
+        auto s = getStringFromToken(&env);
+        envs << s << ' ';
+      }
+      ec->envs = envs.str();
     }
-    ec->envs = envs.str();
 
     if (ec->version >= 3) {
       ec->cwd = getStringFromToken(&message->event.exec.cwd->path);
