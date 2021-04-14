@@ -182,6 +182,14 @@ class Query {
    */
   bool isNewQuery() const;
 
+  /// Determines if this is a first run or new query.
+  void getQueryStatus(uint64_t epoch,
+                      bool& fresh_results,
+                      bool& new_query) const;
+
+  /// Increment and return the query counter.
+  Status incrementCounter(bool reset, uint64_t& counter) const;
+
   /**
    * @brief Add a new set of results to the persistent storage.
    *
@@ -219,6 +227,12 @@ class Query {
                        uint64_t& counter,
                        DiffResults& dr,
                        bool calculate_diff = true) const;
+
+  /// A version of adding new results for events-based queries.
+  Status addNewEvents(QueryDataTyped current_qd,
+                      const uint64_t current_epoch,
+                      uint64_t& counter,
+                      DiffResults& dr) const;
 
   /**
    * @brief The most recent result set for a scheduled query.
