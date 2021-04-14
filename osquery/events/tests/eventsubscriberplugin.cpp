@@ -37,6 +37,7 @@ TEST_F(EventSubscriberPluginTests, setDatabaseNamespace) {
 TEST_F(EventSubscriberPluginTests, generateEventDataIndex) {
   // We start with 10 good keys and 10 malformed ones
   MockedOsqueryDatabase mocked_database;
+  mocked_database.generateEvents("type", "name");
   EXPECT_EQ(mocked_database.key_map.size(), 20U);
 
   EventSubscriberPlugin::Context context;
@@ -61,6 +62,7 @@ TEST_F(EventSubscriberPluginTests, toIndex) {
 
 TEST_F(EventSubscriberPluginTests, setOptimizeData) {
   MockedOsqueryDatabase mocked_database;
+  mocked_database.generateEvents("type", "name");
   EXPECT_EQ(mocked_database.key_map.size(), 20U);
 
   const EventTime kEventTime{10U};
@@ -92,6 +94,7 @@ TEST_F(EventSubscriberPluginTests, timeFromRecord) {
 
 TEST_F(EventSubscriberPluginTests, getOptimizeData) {
   MockedOsqueryDatabase mocked_database;
+  mocked_database.generateEvents("type", "name");
   EXPECT_EQ(mocked_database.key_map.size(), 20U);
 
   const EventTime kEventTime{10U};
@@ -128,6 +131,7 @@ TEST_F(EventSubscriberPluginTests, databaseKeyForEventId) {
 
 TEST_F(EventSubscriberPluginTests, removeOverflowingEventBatches) {
   MockedOsqueryDatabase mocked_database;
+  mocked_database.generateEvents("type", "name");
   EXPECT_EQ(mocked_database.key_map.size(), 20U);
 
   EventSubscriberPlugin::Context context;
@@ -167,6 +171,7 @@ TEST_F(EventSubscriberPluginTests, removeOverflowingEventBatches) {
 
 TEST_F(EventSubscriberPluginTests, expireEventBatches) {
   MockedOsqueryDatabase mocked_database;
+  mocked_database.generateEvents("type", "name");
   EXPECT_EQ(mocked_database.key_map.size(), 20U);
 
   EventSubscriberPlugin::Context context;
@@ -187,6 +192,7 @@ TEST_F(EventSubscriberPluginTests, expireEventBatches) {
 
 TEST_F(EventSubscriberPluginTests, generateRows) {
   MockedOsqueryDatabase mocked_database;
+  mocked_database.generateEvents("type", "name");
   EXPECT_EQ(mocked_database.key_map.size(), 20U);
 
   EventSubscriberPlugin::Context context;
@@ -221,10 +227,13 @@ TEST_F(EventSubscriberPluginTests, generateRows) {
 
 class FakeEventSubscriberPlugin : public EventSubscriberPlugin {
  public:
-  FakeEventSubscriberPlugin() : EventSubscriberPlugin(true){};
+  FakeEventSubscriberPlugin(IDatabaseInterface& db)
+      : EventSubscriberPlugin(true), db_{db} {
+    setName("fake");
+  };
 
   const std::string& getType() const override {
-    static std::string name{"fake_subscriber"};
+    static std::string name{"fake"};
     return name;
   }
 
@@ -232,20 +241,12 @@ class FakeEventSubscriberPlugin : public EventSubscriberPlugin {
     optimize_ = optimize;
   }
 
-  void setQueryCount(size_t count) {
-    total_queries_ = count;
+  uint64_t getTime() const override {
+    return time_;
   }
 
-  void setExecutedQuery(const std::string&) override {
-    executed_queries_++;
-  }
-
-  bool executedAllQueries() const override {
-    return total_queries_ == executed_queries_;
-  }
-
-  size_t executedQueries() const {
-    return executed_queries_;
+  void setTime(uint64_t t) {
+    time_ = t;
   }
 
  private:
@@ -253,37 +254,90 @@ class FakeEventSubscriberPlugin : public EventSubscriberPlugin {
     return optimize_;
   }
 
+  IDatabaseInterface& getDatabase() const override {
+    return db_;
+  }
+
  private:
   bool optimize_{false};
-  size_t total_queries_{0};
-  size_t executed_queries_{0};
+  IDatabaseInterface& db_;
+  uint64_t time_{0};
 };
+
+TEST_F(EventSubscriberPluginTests, getExpireTime) {
+  MockedOsqueryDatabase mocked_database;
+  FakeEventSubscriberPlugin subscriber(mocked_database);
+
+  subscriber.setTime(10);
+  auto expire_time = subscriber.getExpireTime();
+  EXPECT_EQ(subscriber.getTime(), expire_time);
+
+  subscriber.resetQueryCount(2);
+  subscriber.setExecutedQuery("test1", 2);
+  subscriber.setExecutedQuery("test2", 5);
+  expire_time = subscriber.getExpireTime();
+  EXPECT_EQ(2U, expire_time);
+}
+
+TEST_F(EventSubscriberPluginTests, generateRowsWithExpiry) {
+  MockedOsqueryDatabase mocked_database;
+  FakeEventSubscriberPlugin subscriber(mocked_database);
+  mocked_database.generateEvents(subscriber.getType(), subscriber.getName());
+
+  subscriber.setDatabaseNamespace();
+  subscriber.generateEventDataIndex();
+
+  // Always return true for "executedAllQueries".
+  subscriber.resetQueryCount(0);
+  subscriber.setShouldOptimize(false);
+  ASSERT_TRUE(subscriber.executedAllQueries());
+
+  size_t callback_count{0U};
+  auto callback = [&callback_count](Row) { ++callback_count; };
+  // Time is in the future.
+  subscriber.setTime(20);
+  subscriber.generateRows(callback, true, 0, 0);
+  EXPECT_EQ(10U, callback_count);
+  // Events are expired after being queried.
+  subscriber.generateRows(callback, true, 0, 0);
+  EXPECT_EQ(10U, callback_count);
+}
 
 TEST_F(EventSubscriberPluginTests, generateRowsWithOptimize) {
   MockedOsqueryDatabase mocked_database;
-  FakeEventSubscriberPlugin subscriber;
+  FakeEventSubscriberPlugin subscriber(mocked_database);
+  mocked_database.generateEvents(subscriber.getType(), subscriber.getName());
 
-  subscriber.setQueryCount(2);
+  subscriber.setDatabaseNamespace();
+  subscriber.generateEventDataIndex();
+
+  subscriber.resetQueryCount(2);
   subscriber.setShouldOptimize(false);
 
-  size_t callback_count;
+  size_t callback_count{0U};
   auto callback = [&callback_count](Row) { ++callback_count; };
-  subscriber.generateRows(mocked_database, callback, 0, 0);
+  subscriber.generateRows(callback, true, 0, 0);
   // Queries are not tracked when not optimizing.
-  EXPECT_EQ(0, subscriber.executedQueries());
+  EXPECT_EQ(0U, subscriber.queries_.size());
+  EXPECT_EQ(10U, callback_count);
 
-  const EventTime event_time{10U};
-  const std::size_t event_id{20U};
+  const EventTime event_time{0U};
+  const std::size_t event_id{0U};
   subscriber.setOptimizeData(mocked_database, event_time, event_id);
 
+  callback_count = 0;
+  subscriber.setTime(2);
   subscriber.setShouldOptimize(true);
-  subscriber.generateRows(mocked_database, callback, 0, 0);
-  EXPECT_EQ(1, subscriber.executedQueries());
-  // Optimize time has not been set because all queries have not run.
-  EXPECT_GT(subscriber.optimize_time_, 0);
+  subscriber.generateRows(callback, true, 0, 0);
+  EXPECT_EQ(10U, callback_count);
+  EXPECT_EQ(1U, subscriber.queries_.size());
+  EXPECT_EQ(1U, subscriber.optimize_time_);
 
-  subscriber.generateRows(mocked_database, callback, 0, 0);
-  ASSERT_TRUE(subscriber.executedAllQueries());
-  EXPECT_GT(subscriber.optimize_time_, 0);
+  // This should continue from the optimized placement.
+  callback_count = 0;
+  subscriber.generateRows(callback, true, 0, 0);
+  ASSERT_FALSE(subscriber.executedAllQueries());
+  EXPECT_EQ(9U, callback_count);
+  EXPECT_EQ(1U, subscriber.optimize_time_);
 }
 } // namespace osquery

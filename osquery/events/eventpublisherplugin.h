@@ -142,6 +142,9 @@ class EventPublisherPlugin : public Plugin,
   virtual void fireCallback(const SubscriptionRef& sub,
                             const EventContextRef& ec) const = 0;
 
+  /// Return the current time (included to assist testing).
+  virtual uint64_t getTime() const;
+
   /// A lock for subscription manipulation.
   mutable Mutex subscription_lock_;
 

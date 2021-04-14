@@ -28,9 +28,10 @@ const Row kBaseRow = {
 extern const std::string kEvents;
 extern const std::string kExecutingQuery;
 
-MockedOsqueryDatabase::MockedOsqueryDatabase() {
+void MockedOsqueryDatabase::generateEvents(const std::string& publisher,
+                                           const std::string& name) {
   EventSubscriberPlugin::Context context;
-  EventSubscriberPlugin::setDatabaseNamespace(context, "type", "name");
+  EventSubscriberPlugin::setDatabaseNamespace(context, publisher, name);
 
   auto row = kBaseRow;
 
@@ -113,7 +114,7 @@ Status MockedOsqueryDatabase::setDatabaseValue(const std::string& domain,
         key);
   }
 
-  key_map.insert({key, value});
+  key_map[key] = value;
   return Status::success();
 }
 
