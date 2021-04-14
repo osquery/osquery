@@ -10,7 +10,7 @@ Because different platforms have different choices for collecting real-time even
 | -------------- | -------- | -------- | -------- |
 | Process events | [`process_events`](https://osquery.io/schema/current#process_events)    | Audit (Linux), OpenBSM (macOS)  | Linux, macOS (10.15 and older) |
 | Process events | [`bpf_process_events`](https://osquery.io/schema/current#bpf_process_events) | BPF | Linux (kernel 4.11 and newer) |
-| Process events | [`process_es_events`](https://osquery.io/schema/current#process_es_events) | EndpointSecurity | macOS (10.15 and newer) |
+| Process events | [`es_process_events`](https://osquery.io/schema/current#es_process_events) | EndpointSecurity | macOS (10.15 and newer) |
 | Socket events  | [`socket_events`](https://osquery.io/schema/current#process_events)      | Audit (Linux), OpenBSM (macOS) | Linux, macOS (10.15 and older) |
 | Socket events  | [`bpf_socket_events`](https://osquery.io/schema/current#bpf_socket_events) | BPF | Linux (kernel 4.11 and newer) |
 
@@ -233,15 +233,15 @@ To enable EndpointSecurity in osquery, set `--disable_endpointsecurity=false` in
 
 EndpointSecurity is already enabled in the OS on all macOS hosts beginning with macOS 10.15, and needs no special configuration. There are however some additional steps to permit osquery to collect events.
 
-For osquery to capture events in its `process_es_events` table, it must have the Full Disk Access (FDA) permission enabled in macOS Privacy & Security settings. Without this permission, osquery will run as normal, but the table will always be empty. **Note:** If osquery is already running without the permission, it must be restarted after you have granted the permission.
+For osquery to capture events in its `es_process_events` table, it must have the Full Disk Access (FDA) permission enabled in macOS Privacy & Security settings. Without this permission, osquery will run as normal, but the table will always be empty. **Note:** If osquery is already running without the permission, it must be restarted after you have granted the permission.
 
-**If osquery is not granted the FDA permission, it will not prompt the user to grant it.** It will just issue a warning (when running with `--verbose`), and the `process_es_events` table will simply be empty when queried.
+**If osquery is not granted the FDA permission, it will not prompt the user to grant it.** It will just issue a warning (when running with `--verbose`), and the `es_process_events` table will simply be empty when queried.
 
 #### Full Disk Access
 
 The FDA permission (or lack thereof) is inherited from `Terminal.app` when running osquery interactively, but is *not* inherited from `launchctl` when running as a service (including when started using the `osqueryctl` helper script).
 
-| Parent Process | Steps Taken Before Launching osquery | Querying `process_es_events` |
+| Parent Process | Steps Taken Before Launching osquery | Querying `es_process_events` |
 | -------- | -------- | -------- |
 | `Terminal.app`¹   | Give Full Disk Access to `Terminal.app` only  | Success     |
 | `Terminal.app`¹  | Give FDA only to osquery only, or do nothing  |  No events |

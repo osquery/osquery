@@ -121,7 +121,7 @@ class ESProcessEventSubscriber
     : public EventSubscriber<EndpointSecurityPublisher> {
  public:
   ESProcessEventSubscriber() {
-    setName("process_es_events");
+    setName("es_process_events");
   }
 
   Status init() override API_AVAILABLE(macos(10.15));

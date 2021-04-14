@@ -1,4 +1,4 @@
-table_name("process_es_events")
+table_name("es_process_events")
 description("Process execution events from EndpointSecurity.")
 schema([
     Column("version", INTEGER, "Version of EndpointSecurity event"),
@@ -29,4 +29,4 @@ schema([
     Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)
-implementation("events/darwin/process_es_events@process_es_events::genTable")
+implementation("events/darwin/es_process_events@es_process_events::genTable")

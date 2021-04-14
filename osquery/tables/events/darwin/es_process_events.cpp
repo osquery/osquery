@@ -18,7 +18,7 @@
 
 namespace osquery {
 
-REGISTER(ESProcessEventSubscriber, "event_subscriber", "process_es_events");
+REGISTER(ESProcessEventSubscriber, "event_subscriber", "es_proceess_events");
 
 Status ESProcessEventSubscriber::init() {
   if (__builtin_available(macos 10.15, *)) {
