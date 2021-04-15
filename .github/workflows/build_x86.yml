@@ -12,7 +12,7 @@
 #
 # This configuration file takes care of the Windows, macOS and Linux
 # builds on the x86 platform.
-name: build
+name: build_x86
 
 on:
   # Run this workflow once every 6 hours against the master branch
