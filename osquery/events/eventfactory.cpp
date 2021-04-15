@@ -351,10 +351,7 @@ void EventFactory::configUpdate() {
       LOG(INFO) << "Subscriber expiration is too low: "
                 << subscriber->getName();
     }
-    subscriber->query_count_ = details.second.query_count;
-
-    WriteLock subscriber_lock(subscriber->event_query_record_);
-    subscriber->queries_.clear();
+    subscriber->resetQueryCount(details.second.query_count);
   }
 
   // If events are enabled configure the subscribers before publishers.

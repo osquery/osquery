@@ -69,7 +69,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
     ec->id = ec_id;
     if (ec->time == 0) {
       if (time == 0) {
-        time = getUnixTime();
+        time = getTime();
       }
       ec->time = time;
     }
@@ -82,6 +82,10 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
       fireCallback(subscription, ec);
     }
   }
+}
+
+uint64_t EventPublisherPlugin::getTime() const {
+  return getUnixTime();
 }
 
 void EventPublisherPlugin::configure() {}

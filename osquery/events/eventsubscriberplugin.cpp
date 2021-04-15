@@ -101,7 +101,7 @@ Status EventSubscriberPlugin::call(const PluginRequest&, PluginResponse&) {
 
 Status EventSubscriberPlugin::add(const Row& r) {
   std::vector<Row> batch = {r};
-  return addBatch(batch, getUnixTime());
+  return addBatch(batch, getTime());
 }
 
 Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list) {
@@ -118,7 +118,7 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
   EventIDList event_id_list;
   event_id_list.reserve(row_list.size());
 
-  auto event_time = custom_event_time != 0 ? custom_event_time : getUnixTime();
+  auto event_time = custom_event_time != 0 ? custom_event_time : getTime();
   auto string_event_time = std::to_string(event_time);
 
   for (auto& row : row_list) {
@@ -185,18 +185,16 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
   // Use the last EventID and a checkpoint bucket size to periodically apply
   // buffer eviction. Eviction occurs if the total count exceeds events_max.
   if (cleanup_events) {
-    removeOverflowingEventBatches(
-        context, getOsqueryDatabase(), getEventBatchesMax());
+    removeOverflowingEventBatches(context, getDatabase(), getEventBatchesMax());
 
-    expireEventBatches(
-        context, getOsqueryDatabase(), getEventsExpiry(), getUnixTime());
+    expireEventBatches(context, getDatabase(), getMinExpiry(), getTime());
   }
 
   return Status::success();
 }
 
 Status EventSubscriberPlugin::generateEventDataIndex() {
-  return generateEventDataIndex(context, getOsqueryDatabase());
+  return generateEventDataIndex(context, getDatabase());
 }
 
 EventID EventSubscriberPlugin::getEventID() {
@@ -215,48 +213,74 @@ bool EventSubscriberPlugin::shouldOptimize() const {
   return isDaemon() && FLAGS_events_optimize;
 }
 
-void EventSubscriberPlugin::setExecutedQuery(const std::string& query_name) {
-  WriteLock lock(event_query_record_);
-  if (!query_name.empty() && queries_.count(query_name) == 0) {
-    queries_.insert(query_name);
-  }
+void EventSubscriberPlugin::resetQueryCount(size_t count) {
+  WriteLock subscriber_lock(event_query_record_);
+  queries_.clear();
+  query_count_ = count;
 }
 
-void EventSubscriberPlugin::generateRows(IDatabaseInterface& db_interface,
-                                         std::function<void(Row)> callback,
+void EventSubscriberPlugin::setExecutedQuery(const std::string& query_name,
+                                             uint64_t query_time) {
+  WriteLock lock(event_query_record_);
+  queries_[query_name] = query_time;
+}
+
+size_t EventSubscriberPlugin::getMinExpiry() {
+  auto expiry = getEventsExpiry();
+  if (expiry < min_expiration_) {
+    return min_expiration_;
+  }
+  return expiry;
+}
+
+uint64_t EventSubscriberPlugin::getExpireTime() {
+  if (query_count_ == 0) {
+    return getTime();
+  }
+
+  WriteLock subscriber_lock(event_query_record_);
+  auto it = std::min_element(
+      std::begin(queries_),
+      std::end(queries_),
+      [](const auto& l, const auto& r) { return l.second < r.second; });
+  return it == queries_.end() ? getTime() : it->second;
+}
+
+void EventSubscriberPlugin::generateRows(std::function<void(Row)> callback,
+                                         bool can_optimize,
                                          EventTime start_time,
                                          EventTime stop_time) {
-  if (shouldOptimize()) {
+  if (can_optimize && shouldOptimize()) {
     // If the daemon is querying a subscriber without a 'time' constraint and
     // allows optimization, only emit events since the last query.
     std::string query_name;
-    getOptimizeData(db_interface, optimize_time_, optimize_eid_, query_name);
+    getOptimizeData(getDatabase(), optimize_time_, optimize_eid_, query_name);
 
     start_time = optimize_time_;
-    optimize_time_ = getUnixTime() - 1;
+    optimize_time_ = getTime() - 1;
 
     // Track the queries that have selected data.
-    setExecutedQuery(query_name);
+    setExecutedQuery(query_name, optimize_time_);
   }
+
+  generateRows(this->context, getDatabase(), callback, start_time, stop_time);
 
   if (executedAllQueries()) {
     expireEventBatches(
-        this->context, db_interface, getEventsExpiry(), getUnixTime());
+        this->context, getDatabase(), getMinExpiry(), getExpireTime());
   }
 
-  generateRows(this->context, db_interface, callback, start_time, stop_time);
-
-  if (shouldOptimize()) {
-    setOptimizeData(db_interface, optimize_time_, optimize_eid_);
+  if (can_optimize && shouldOptimize()) {
+    setOptimizeData(getDatabase(), optimize_time_, optimize_eid_);
   }
-
-  last_query_time_ = getUnixTime();
 }
 
 void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
   // Stop is an unsigned (-1), our end of time equivalent.
   EventTime start = 0, stop = 0;
+  bool can_optimize{true};
   if (context.constraints["time"].getAll().size() > 0) {
+    can_optimize = false;
     // Use the 'time' constraint to optimize backing-store lookups.
     for (const auto& constraint : context.constraints["time"].getAll()) {
       EventTime expr = timeFromRecord(constraint.expr);
@@ -279,7 +303,7 @@ void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
     yield(TableRowHolder(new DynamicTableRow(std::move(row))));
   };
 
-  generateRows(getOsqueryDatabase(), generateRowsCallback, start, stop);
+  generateRows(generateRowsCallback, can_optimize, start, stop);
 }
 
 size_t EventSubscriberPlugin::numSubscriptions() const {
@@ -665,6 +689,14 @@ const std::string EventSubscriberPlugin::dbNamespace() const {
   return getType() + '.' + getName();
 }
 
+uint64_t EventSubscriberPlugin::getTime() const {
+  return getUnixTime();
+}
+
+IDatabaseInterface& EventSubscriberPlugin::getDatabase() const {
+  return getOsqueryDatabase();
+}
+
 EventPublisherRef EventSubscriberPlugin::getPublisher() const {
   return EventFactory::getEventPublisher(getType());
 }
@@ -680,15 +712,17 @@ void EventSubscriberPlugin::removeSubscriptions() {
   getPublisher()->removeSubscriptions(getName());
 }
 
-Status EventSubscriberPlugin::setUp() {
+void EventSubscriberPlugin::setDatabaseNamespace() {
   setDatabaseNamespace(context, getType(), getName());
+}
+
+Status EventSubscriberPlugin::setUp() {
+  setDatabaseNamespace();
   generateEventDataIndex();
 
-  expireEventBatches(
-      context, getOsqueryDatabase(), getEventsExpiry(), getUnixTime());
+  expireEventBatches(context, getDatabase(), getMinExpiry(), getTime());
 
-  removeOverflowingEventBatches(
-      context, getOsqueryDatabase(), getEventBatchesMax());
+  removeOverflowingEventBatches(context, getDatabase(), getEventBatchesMax());
 
   return Status::success();
 }

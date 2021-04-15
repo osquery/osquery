@@ -17,8 +17,10 @@ class MockedOsqueryDatabase final : public IDatabaseInterface {
  public:
   mutable std::map<std::string, std::string> key_map;
 
-  MockedOsqueryDatabase();
+  MockedOsqueryDatabase() = default;
   virtual ~MockedOsqueryDatabase() override = default;
+
+  void generateEvents(const std::string& publisher, const std::string& name);
 
   virtual Status getDatabaseValue(const std::string& domain,
                                   const std::string& key,
