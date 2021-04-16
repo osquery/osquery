@@ -9,7 +9,7 @@ Representing commits from 13 contributors! Thank you all.
 
 ### New Features
 
-- shell: Add .connect meta command ([#6944](https://github.com/osquery/osquery/pull/6944))
+- shell: Add `.connect` meta command ([#6944](https://github.com/osquery/osquery/pull/6944))
 
 ### Table Changes
 
@@ -23,12 +23,12 @@ Representing commits from 13 contributors! Thank you all.
 
 - Use epoch and counter for events-based queries ([#7051](https://github.com/osquery/osquery/pull/7051))
 - Guard node key to prevent duplicate enrollments ([#7052](https://github.com/osquery/osquery/pull/7052))
-- Change windows calculation for `physical_memory` ([#7028](https://github.com/osquery/osquery/pull/7028))
-- bugfix-7019: Free using WTSFreeMemoryEx for WTSEnumerateSessionsExW ([#7039](https://github.com/osquery/osquery/pull/7039))
-- Release variable in windows data conversation ([#7024](https://github.com/osquery/osquery/pull/7024))
+- Change windows calculation for physical_memory ([#7028](https://github.com/osquery/osquery/pull/7028))
+- Free using WTSFreeMemoryEx for WTSEnumerateSessionsExW ([#7039](https://github.com/osquery/osquery/pull/7039))
+- Release variable in Windows data conversation ([#7024](https://github.com/osquery/osquery/pull/7024))
 - Update to `chrome_extensions` to not error on uncommon cases ([#7032](https://github.com/osquery/osquery/pull/7032))
-- Add transactions to the sqlite authorizer PRAGMAs ([#7029](https://github.com/osquery/osquery/pull/7029))
-- Change windows messages to verbose ([#7027](https://github.com/osquery/osquery/pull/7027))
+- Add transactions to the SQLite authorizer PRAGMAs ([#7029](https://github.com/osquery/osquery/pull/7029))
+- Change Windows messages to verbose ([#7027](https://github.com/osquery/osquery/pull/7027))
 - Fix scheduler to print the correct number of elapsed seconds ([#7016](https://github.com/osquery/osquery/pull/7016))
 
 ### Documentation
@@ -37,7 +37,7 @@ Representing commits from 13 contributors! Thank you all.
 - Improve docs on FIM, mention NTFS and Audit, etc. ([#7036](https://github.com/osquery/osquery/pull/7036))
 - config: Add docs for the events top-level-key ([#7040](https://github.com/osquery/osquery/pull/7040))
 - Add funding link on GitHub generated page ([#7043](https://github.com/osquery/osquery/pull/7043))
-- Correct the example in the windows_events table spec ([#7035](https://github.com/osquery/osquery/pull/7035))
+- Correct the example in the `windows_events` table spec ([#7035](https://github.com/osquery/osquery/pull/7035))
 - Correct docs about OpenSSL and TLS behavior ([#7033](https://github.com/osquery/osquery/pull/7033))
 - Update docs to describe how to build for aarch64/arm64 (#6285) ([#6970](https://github.com/osquery/osquery/pull/6970))
 - Docs: add a note on enabling Windows to build with CMake's long paths ([#7010](https://github.com/osquery/osquery/pull/7010))
@@ -51,15 +51,9 @@ Representing commits from 13 contributors! Thank you all.
 - Move CI to using docker from osquery ([#7012](https://github.com/osquery/osquery/pull/7012))
 - Update dockerfile to multiplatform ([#7011](https://github.com/osquery/osquery/pull/7011))
 - Run GH Actions workflows on all tags ([#7004](https://github.com/osquery/osquery/pull/7004))
-- Setting non-required deb_packages fields as optional in test ([#7001](https://github.com/osquery/osquery/pull/7001))
+- Setting non-required `deb_packages` fields as optional in test ([#7001](https://github.com/osquery/osquery/pull/7001))
 - Disable BPF events tests if OSQUERY_BUILD_BPF is false ([#7002](https://github.com/osquery/osquery/pull/7002))
 - libs: Update OpenSSL to version 1.1.1k ([#7026](https://github.com/osquery/osquery/pull/7026))
-
-### Security Issues
-
-
-### Hardening
-
 
 <a name="4.7.0"></a>
 ## [4.7.0](https://github.com/osquery/osquery/releases/tag/4.7.0)
