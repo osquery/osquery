@@ -84,19 +84,19 @@ Status getMountedFilesystems(MountedFilesystems& mounted_fs_info) {
       if (statfs(mount_info.path.c_str(), &stats) == 0) {
         MountInformation::StatFsInfo statfs_info = {};
 
-        statfs_info.block_size = static_cast<std::uint32_t>(stats.f_bsize);
-        statfs_info.block_count = static_cast<std::uint32_t>(stats.f_blocks);
+        statfs_info.block_size = static_cast<std::int64_t>(stats.f_bsize);
+        statfs_info.block_count = static_cast<std::int64_t>(stats.f_blocks);
 
         statfs_info.free_block_count =
-            static_cast<std::uint32_t>(stats.f_bfree);
+            static_cast<std::int64_t>(stats.f_bfree);
 
         statfs_info.unprivileged_free_block_count =
-            static_cast<std::uint32_t>(stats.f_bavail);
+            static_cast<std::int64_t>(stats.f_bavail);
 
-        statfs_info.inode_count = static_cast<std::uint32_t>(stats.f_files);
+        statfs_info.inode_count = static_cast<std::int64_t>(stats.f_files);
 
         statfs_info.free_inode_count =
-            static_cast<std::uint32_t>(stats.f_ffree);
+            static_cast<std::int64_t>(stats.f_ffree);
 
         mount_info.optional_statfs_info = std::move(statfs_info);
 
