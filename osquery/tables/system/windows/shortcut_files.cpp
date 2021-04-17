@@ -205,10 +205,6 @@ QueryData genShortcutFiles(QueryContext& context) {
 
     const std::string lnk_hex = ss.str();
     LinkFileHeader data;
-    TargetInfo target_data;
-    LocationInfo location_data;
-    ExtraDataTracker extra_data;
-    DataStringInfo data_info_string;
 
     data = parseShortcutHeader(lnk_hex);
     if (data.header.empty()) {
