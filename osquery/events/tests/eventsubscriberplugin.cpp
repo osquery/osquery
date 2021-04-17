@@ -103,7 +103,7 @@ TEST_F(EventSubscriberPluginTests, getOptimizeData) {
       mocked_database, kEventTime, kEventIdentifier);
 
   EventTime event_time{};
-  std::size_t event_id{};
+  EventID event_id{};
   std::string query_name;
   EventSubscriberPlugin::getOptimizeData(
       mocked_database, event_time, event_id, query_name);
@@ -334,7 +334,7 @@ TEST_F(EventSubscriberPluginTests, generateRowsWithOptimize) {
   EXPECT_EQ(10U, callback_count);
 
   const EventTime event_time{0U};
-  const std::size_t event_id{0U};
+  const EventID event_id{0U};
   subscriber.setOptimizeData(mocked_database, event_time, event_id);
 
   callback_count = 0;

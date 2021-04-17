@@ -337,7 +337,7 @@ std::string EventSubscriberPlugin::toIndex(std::uint64_t i) {
 
 void EventSubscriberPlugin::setOptimizeData(IDatabaseInterface& db_interface,
                                             EventTime time,
-                                            size_t eid) {
+                                            EventID eid) {
   // Store the optimization time and eid.
   std::string query_name;
   db_interface.getDatabaseValue(
@@ -360,7 +360,7 @@ EventTime EventSubscriberPlugin::timeFromRecord(const std::string& record) {
 
 void EventSubscriberPlugin::getOptimizeData(IDatabaseInterface& db_interface,
                                             EventTime& o_time,
-                                            size_t& o_eid,
+                                            EventID& o_eid,
                                             std::string& query_name) {
   // Read the optimization time for the current executing query.
   db_interface.getDatabaseValue(
@@ -383,7 +383,7 @@ void EventSubscriberPlugin::getOptimizeData(IDatabaseInterface& db_interface,
     db_interface.getDatabaseValue(
         kEvents, "optimize_eid." + query_name, content);
 
-    o_eid = tryTo<std::size_t>(content).takeOr(std::size_t{0});
+    o_eid = tryTo<EventID>(content).takeOr(EventID{0});
   }
 }
 

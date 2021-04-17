@@ -191,13 +191,13 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
 
   static void setOptimizeData(IDatabaseInterface& db_interface,
                               EventTime time,
-                              size_t eid);
+                              EventID eid);
 
   static EventTime timeFromRecord(const std::string& record);
 
   static void getOptimizeData(IDatabaseInterface& db_interface,
                               EventTime& o_time,
-                              size_t& o_eid,
+                              EventID& o_eid,
                               std::string& query_name);
 
   static EventID generateEventIdentifier(Context& context);
