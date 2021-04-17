@@ -24,6 +24,125 @@
 namespace osquery {
 namespace tables {
 
+void parseShortcutFiles(QueryData& results,
+                        LinkFileHeader& data,
+                        std::string& data_string,
+                        std::string& lnk) {
+  TargetInfo target_data;
+  LocationInfo location_data;
+  ExtraDataTracker extra_data;
+  DataStringInfo data_info_string;
+  if (data.flags.has_target_id_list) {
+    target_data = parseTargetInfo(data_string);
+    data_string = target_data.data;
+  }
+  if (data.flags.has_link_info) {
+    location_data = parseLocationData(data_string);
+    data_string = location_data.data;
+  }
+  if (data.flags.has_name || data.flags.has_relative_path ||
+      data.flags.has_working_dir || data.flags.has_arguments ||
+      data.flags.has_icon_location) {
+    data_info_string = parseDataString(data_string,
+                                       data.flags.is_unicode,
+                                       data.flags.has_name,
+                                       data.flags.has_relative_path,
+                                       data.flags.has_working_dir,
+                                       data.flags.has_icon_location,
+                                       data.flags.has_arguments);
+    data_string = data_info_string.data;
+  }
+  extra_data = parseExtraDataTracker(data_string);
+
+  std::string target_path = "";
+  // Lookup and combine GUIDs and target file path
+  if (!target_data.root_folder.empty()) {
+    std::string guid_name;
+    std::vector<std::string> full_path;
+    // Check for GUID name if osquery fails to find it, fallback to the GUID
+    auto status = getClassName('{' + target_data.root_folder + '}', guid_name);
+    if (status.ok()) {
+      full_path.push_back(guid_name);
+    } else {
+      full_path.push_back('{' + target_data.root_folder + '}');
+    }
+    // If Control Panel items were found lookup GUIDs and build path
+    if (!target_data.control_panel.empty() ||
+        !target_data.control_panel_category.empty()) {
+      std::string guid_name;
+      full_path.push_back(target_data.control_panel_category);
+      status = getClassName('{' + target_data.control_panel + '}', guid_name);
+      if (status.ok()) {
+        full_path.push_back(guid_name);
+      } else {
+        full_path.push_back('{' + target_data.control_panel + '}');
+      }
+
+      target_path = osquery::join(full_path, "\\");
+    } else {
+      if (!target_data.path.empty()) {
+        // Check if path is only a volume
+        if (target_data.path.size() == 2 && target_data.path.back() == ':') {
+          target_data.path = target_data.path + "\\";
+        } else {
+          full_path.push_back(target_data.path);
+        }
+      }
+      target_path = osquery::join(full_path, "\\");
+    }
+  } else if (!target_data.property_guid.empty()) {
+    // Lookup up GUID name for User Property Views
+    std::string guid_name;
+    std::vector<std::string> full_path;
+    auto status =
+        getClassName('{' + target_data.property_guid + '}', guid_name);
+    if (status.ok()) {
+      full_path.push_back(guid_name);
+    } else {
+      full_path.push_back('{' + target_data.property_guid + '}');
+    }
+    target_path = osquery::join(full_path, "\\");
+  } else {
+    // Check if path is only a volume
+    if (target_data.path.size() == 2 && target_data.path.back() == ':') {
+      target_data.path = target_data.path + "\\";
+    }
+    target_path = target_data.path;
+  }
+  Row r;
+  r["path"] = lnk;
+  r["target_created"] = INTEGER(data.creation_time);
+  r["target_modified"] = INTEGER(data.modified_time);
+  r["target_accessed"] = INTEGER(data.access_time);
+  r["target_size"] = BIGINT(data.file_size);
+
+  if (data.flags.has_target_id_list) {
+    r["target_path"] = target_path;
+    if (target_data.mft_entry != -1LL) {
+      r["mft_entry"] = BIGINT(target_data.mft_entry);
+      r["mft_sequence"] = INTEGER(target_data.mft_sequence);
+    }
+  }
+  if (data.flags.has_link_info) {
+    r["local_path"] = location_data.local_path;
+    r["common_path"] = location_data.common_path;
+    r["device_type"] = location_data.type;
+    r["volume_serial"] = location_data.serial;
+    r["share_name"] = location_data.share_name;
+  }
+  if (data.flags.has_name || data.flags.has_relative_path ||
+      data.flags.has_working_dir || data.flags.has_arguments ||
+      data.flags.has_icon_location) {
+    r["relative_path"] = data_info_string.relative_path;
+    r["command_args"] = data_info_string.arguments;
+    r["icon_path"] = data_info_string.icon_location;
+    r["working_path"] = data_info_string.working_path;
+    r["description"] = data_info_string.description;
+  }
+  r["hostname"] = extra_data.hostname;
+  results.push_back(r);
+}
+
 QueryData genShortcutFiles(QueryContext& context) {
   QueryData results;
   auto paths = context.constraints["path"].getAll(EQUALS);
@@ -97,116 +216,8 @@ QueryData genShortcutFiles(QueryContext& context) {
     }
     const int lnk_data = 152;
     std::string data_string = lnk_hex.substr(lnk_data);
-    if (data.flags.has_target_id_list) {
-      target_data = parseTargetInfo(data_string);
-      data_string = target_data.data;
-    }
-    if (data.flags.has_link_info) {
-      location_data = parseLocationData(data_string);
-      data_string = location_data.data;
-    }
-    if (data.flags.has_name || data.flags.has_relative_path ||
-        data.flags.has_working_dir || data.flags.has_arguments ||
-        data.flags.has_icon_location) {
-      data_info_string = parseDataString(data_string,
-                                         data.flags.is_unicode,
-                                         data.flags.has_name,
-                                         data.flags.has_relative_path,
-                                         data.flags.has_working_dir,
-                                         data.flags.has_icon_location,
-                                         data.flags.has_arguments);
-      data_string = data_info_string.data;
-    }
-    extra_data = parseExtraDataTracker(data_string);
-
-    std::string target_path = "";
-    // Lookup and combine GUIDs and target file path
-    if (!target_data.root_folder.empty()) {
-      std::string guid_name;
-      std::vector<std::string> full_path;
-      // Check for GUID name if osquery fails to find it, fallback to the GUID
-      auto status =
-          getClassName('{' + target_data.root_folder + '}', guid_name);
-      if (status.ok()) {
-        full_path.push_back(guid_name);
-      } else {
-        full_path.push_back('{' + target_data.root_folder + '}');
-      }
-      // If Control Panel items were found lookup GUIDs and build path
-      if (!target_data.control_panel.empty() ||
-          !target_data.control_panel_category.empty()) {
-        std::string guid_name;
-        full_path.push_back(target_data.control_panel_category);
-        status = getClassName('{' + target_data.control_panel + '}', guid_name);
-        if (status.ok()) {
-          full_path.push_back(guid_name);
-        } else {
-          full_path.push_back('{' + target_data.control_panel + '}');
-        }
-
-        target_path = osquery::join(full_path, "\\");
-      } else {
-        if (!target_data.path.empty()) {
-          // Check if path is only a volume
-          if (target_data.path.size() == 2 && target_data.path.back() == ':') {
-            target_data.path = target_data.path + "\\";
-          } else {
-            full_path.push_back(target_data.path);
-          }
-        }
-        target_path = osquery::join(full_path, "\\");
-      }
-    } else if (!target_data.property_guid.empty()) {
-      // Lookup up GUID name for User Property Views
-      std::string guid_name;
-      std::vector<std::string> full_path;
-      auto status =
-          getClassName('{' + target_data.property_guid + '}', guid_name);
-      if (status.ok()) {
-        full_path.push_back(guid_name);
-      } else {
-        full_path.push_back('{' + target_data.property_guid + '}');
-      }
-      target_path = osquery::join(full_path, "\\");
-    } else {
-      // Check if path is only a volume
-      if (target_data.path.size() == 2 && target_data.path.back() == ':') {
-        target_data.path = target_data.path + "\\";
-      }
-      target_path = target_data.path;
-    }
-    Row r;
-    r["path"] = lnk;
-    r["target_created"] = INTEGER(data.creation_time);
-    r["target_modified"] = INTEGER(data.modified_time);
-    r["target_accessed"] = INTEGER(data.access_time);
-    r["target_size"] = BIGINT(data.file_size);
-
-    if (data.flags.has_target_id_list) {
-      r["target_path"] = target_path;
-      if (target_data.mft_entry != -1LL) {
-        r["mft_entry"] = BIGINT(target_data.mft_entry);
-        r["mft_sequence"] = INTEGER(target_data.mft_sequence);
-      }
-    }
-    if (data.flags.has_link_info) {
-      r["local_path"] = location_data.local_path;
-      r["common_path"] = location_data.common_path;
-      r["device_type"] = location_data.type;
-      r["volume_serial"] = location_data.serial;
-      r["share_name"] = location_data.share_name;
-    }
-    if (data.flags.has_name || data.flags.has_relative_path ||
-        data.flags.has_working_dir || data.flags.has_arguments ||
-        data.flags.has_icon_location) {
-      r["relative_path"] = data_info_string.relative_path;
-      r["command_args"] = data_info_string.arguments;
-      r["icon_path"] = data_info_string.icon_location;
-      r["working_path"] = data_info_string.working_path;
-      r["description"] = data_info_string.description;
-    }
-    r["hostname"] = extra_data.hostname;
-    results.push_back(r);
+    std::string lnk_path = lnk;
+    parseShortcutFiles(results, data, data_string, lnk_path);
   }
   return results;
 }

@@ -301,7 +301,11 @@ std::string getLocationType(std::string& type) {
 
 LocationInfo parseLocationData(const std::string& location_data) {
   LocationInfo location_info;
-  std::string data = location_data.substr(4);
+  std::string data = location_data;
+  // Previous lnk data may have extra zeros (due to Unicode null termination?)
+  if (data.substr(0, 4) == "0000") {
+    data = data.substr(4);
+  }
   std::string str_location_size = data.substr(0, 8);
   str_location_size = swapEndianess(str_location_size);
   int location_size = tryTo<int>(str_location_size, 16).takeOr(0) * 2;
@@ -442,57 +446,34 @@ DataStringInfo parseDataString(const std::string& data,
   str_data_size = swapEndianess(str_data_size);
   int data_size = tryTo<int>(str_data_size, 16).takeOr(0);
 
+  auto dataStringParse = [&data_size, &data_string](std::string& target,
+                                                    bool unicode) {
+    target = parseLnkData(data_string, unicode, data_size);
+    if (unicode) {
+      data_size = data_size * 4;
+    }
+    data_string.erase(0, data_size + 4);
+    auto str_data_size = data_string.substr(0, 4);
+    str_data_size = swapEndianess(str_data_size);
+    data_size = tryTo<int>(str_data_size, 16).takeOr(0);
+  };
+
   // Data strings go in the following order: description, relative path, working
   // path, command args, icon location. Some may not exist
   if (description) {
-    data_info.description = parseLnkData(data_string, unicode, data_size);
-    if (unicode) {
-      data_size = data_size * 4;
-    }
-    data_string.erase(0, data_size + 4);
-    str_data_size = data_string.substr(0, 4);
-    str_data_size = swapEndianess(str_data_size);
-    data_size = tryTo<int>(str_data_size, 16).takeOr(0);
+    dataStringParse(data_info.description, unicode);
   }
   if (relative_path) {
-    data_info.relative_path = parseLnkData(data_string, unicode, data_size);
-    if (unicode) {
-      data_size = data_size * 4;
-    }
-    data_string.erase(0, data_size + 4);
-    str_data_size = data_string.substr(0, 4);
-    str_data_size = swapEndianess(str_data_size);
-    data_size = tryTo<int>(str_data_size, 16).takeOr(0);
+    dataStringParse(data_info.relative_path, unicode);
   }
   if (working_path) {
-    data_info.working_path = parseLnkData(data_string, unicode, data_size);
-    if (unicode) {
-      data_size = data_size * 4;
-    }
-    data_string.erase(0, data_size + 4);
-    str_data_size = data_string.substr(0, 4);
-    str_data_size = swapEndianess(str_data_size);
-    data_size = tryTo<int>(str_data_size, 16).takeOr(0);
+    dataStringParse(data_info.working_path, unicode);
   }
   if (command_args) {
-    data_info.arguments = parseLnkData(data_string, unicode, data_size);
-    if (unicode) {
-      data_size = data_size * 4;
-    }
-    data_string.erase(0, data_size + 4);
-    str_data_size = data_string.substr(0, 4);
-    str_data_size = swapEndianess(str_data_size);
-    data_size = tryTo<int>(str_data_size, 16).takeOr(0);
+    dataStringParse(data_info.arguments, unicode);
   }
   if (icon_location) {
-    data_info.icon_location = parseLnkData(data_string, unicode, data_size);
-    if (unicode) {
-      data_size = data_size * 4;
-    }
-    data_string.erase(0, data_size + 4);
-    str_data_size = data_string.substr(0, 4);
-    str_data_size = swapEndianess(str_data_size);
-    data_size = tryTo<int>(str_data_size, 16).takeOr(0);
+    dataStringParse(data_info.icon_location, unicode);
   }
   data_info.data = data_string;
   return data_info;
