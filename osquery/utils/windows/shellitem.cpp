@@ -8,27 +8,16 @@
  */
 
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/windows/shellitem.h>
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <string>
 #include <vector>
-
-struct ShellFileEntryData {
-  std::string path;
-  long long dos_created;
-  long long dos_accessed;
-  long long dos_modified;
-  int version;
-  std::string extension_sig;
-  std::string identifier;
-  long long mft_entry;
-  int mft_sequence;
-  int string_size;
-};
 
 const std::string kNetworkShareIds[6] = {"41", "42", "46", "47", "4C", "C3"};
 
@@ -92,7 +81,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
 
   std::string version = shell_data.substr(entry_offset + 4, 4);
   version = swapEndianess(version);
-  file_entry.version = std::stoi(version, nullptr, 16);
+  file_entry.version = tryTo<int>(version, 16).takeOr(0);
   if (file_entry.version < 7) {
     LOG(WARNING) << "Shellitem format unsupported. Expecting version 7 or "
                     "higher: "
@@ -100,7 +89,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
-  file_entry.extension_sig = shell_data.substr(entry_offset + 8, 8);
+  file_entry.extension_sig = extension_sig;
 
   // Shell data may contain Users Files folder signature, modified time is at
   // offset 0x18
@@ -128,7 +117,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   if (mft_entry == "000000000000") {
     file_entry.mft_entry = 0LL;
   } else {
-    file_entry.mft_entry = std::stoll(mft_entry, nullptr, 16);
+    file_entry.mft_entry = tryTo<long long>(mft_entry, 16).takeOr(0ll);
   }
 
   std::string mft_sequence = ntfs_data.substr(12, 4);
@@ -136,13 +125,21 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   if (mft_sequence == "0000") {
     file_entry.mft_sequence = 0;
   } else {
-    file_entry.mft_sequence = std::stoi(mft_sequence, nullptr, 16);
+    file_entry.mft_sequence = tryTo<int>(mft_sequence, 16).takeOr(0);
   }
 
   std::string string_size = shell_data.substr(entry_offset + 72, 4);
   string_size = swapEndianess(string_size);
-  file_entry.string_size = std::stoi(string_size, nullptr, 16);
-  std::string entry_name = shell_data.substr(entry_offset + 92);
+  file_entry.string_size = tryTo<int>(string_size, 16).takeOr(0);
+  int name_offset = 0;
+  if (file_entry.version >= 9) {
+    name_offset = 92;
+  } else if (file_entry.version == 8) {
+    name_offset = 84;
+  } else if (file_entry.version == 7) {
+    name_offset = 72;
+  }
+  std::string entry_name = shell_data.substr(entry_offset + name_offset);
 
   // path name ends with 0000 (end of string)
   size_t name_end = entry_name.find("0000");
@@ -183,7 +180,7 @@ std::string propertyStore(const std::string& shell_data,
       }
       std::string name_size = shell_data.substr(offsets + 48, 8);
       name_size = swapEndianess(name_size);
-      int size = std::stoi(name_size, nullptr, 16);
+      int size = tryTo<int>(name_size, 16).takeOr(0);
       std::string string_hex = shell_data.substr(offsets + 74, (size + 1) * 4);
       boost::erase_all(string_hex, "00");
       std::string name;
@@ -225,7 +222,7 @@ std::string networkShareItem(const std::string& shell_data) {
 std::string zipContentItem(const std::string& shell_data) {
   std::string path_size_string = shell_data.substr(168, 4);
   path_size_string = swapEndianess(path_size_string);
-  int path_size = std::stoi(path_size_string, nullptr, 16);
+  int path_size = tryTo<int>(path_size_string, 16).takeOr(0);
 
   std::string path = shell_data.substr(184, path_size * 4);
   // Path is in unicode, extra 00
@@ -241,7 +238,7 @@ std::string zipContentItem(const std::string& shell_data) {
   // Zip folders can go down a max of two directories
   std::string second_path_size_string = shell_data.substr(176, 4);
   second_path_size_string = swapEndianess(second_path_size_string);
-  int second_path_size = std::stoi(second_path_size_string, nullptr, 16);
+  int second_path_size = tryTo<int>(second_path_size_string, 16).takeOr(0);
 
   if (second_path_size != 0) {
     path += "/";
@@ -320,21 +317,72 @@ std::string controlPanelItem(const std::string& shell_data) {
 
 std::vector<std::string> ftpItem(const std::string& shell_data) {
   std::vector<std::string> ftp_data;
-  std::string access_time =
-      shell_data.substr(28, 16); // shell data contains connection time
-  ftp_data.push_back(access_time);
+  std::string unicode = shell_data.substr(6, 2);
+  std::string uri_size = shell_data.substr(8, 4);
+  if (uri_size == "0000") {
+    ftp_data.push_back("0000000000000000");
+  } else {
+    if (shell_data.size() < 92) {
+      LOG(WARNING) << "Unexpected ShellItem URI size: " << shell_data;
+      ftp_data.push_back("0000000000000000");
+      ftp_data.push_back("[UNKNOWN NAME]");
+      return ftp_data;
+    }
+    std::string access_time =
+        shell_data.substr(28, 16); // shell data contains connection time
+    ftp_data.push_back(access_time);
+  }
 
+  if (uri_size == "0000" && unicode == "80") {
+    // find end of string
+    size_t offset = shell_data.find("0000", 16);
+    size_t hostname_size = offset - 12;
+    std::string ftp_hostname = shell_data.substr(12, hostname_size);
+    std::string name;
+    boost::erase_all(ftp_hostname, "00");
+    try {
+      name = boost::algorithm::unhex(ftp_hostname);
+    } catch (const boost::algorithm::hex_decode_error& /* e */) {
+      LOG(WARNING)
+          << "Failed to decode ShellItem URI/FTP hex values to string: "
+          << shell_data;
+      ftp_data.push_back("[UNKNOWN NAME]");
+      return ftp_data;
+    }
+    ftp_data.push_back(name);
+    return ftp_data;
+  }
+
+  if (shell_data.size() < 92) {
+    LOG(WARNING) << "Unexpected ShellItem URI size: " << shell_data;
+    ftp_data.push_back("[UNKNOWN NAME]");
+    return ftp_data;
+  }
+  int hostname_size = 0;
+  std::string name_size = shell_data.substr(84, 8);
+  name_size = swapEndianess(name_size);
   // find end of string
-  size_t offset = shell_data.find("00", 92);
-  size_t hostname_size = offset - 92;
+  if (unicode == "80") {
+    hostname_size = tryTo<int>(name_size, 16).takeOr(0) * 4;
+  } else {
+    hostname_size = tryTo<int>(name_size, 16).takeOr(0) * 2;
+  }
+  if (hostname_size == 0) {
+    LOG(WARNING) << "Unexepcted hostname size: " << shell_data;
+    ftp_data.push_back("[UNKNOWN NAME]");
+    return ftp_data;
+  }
   std::string ftp_hostname = shell_data.substr(92, hostname_size);
   std::string name;
+  boost::erase_all(ftp_hostname, "00");
+
   try {
     name = boost::algorithm::unhex(ftp_hostname);
   } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
+    LOG(WARNING) << "Failed to decode ShellItem URI/FTP hex values to string: "
                  << shell_data;
     ftp_data.push_back("[UNKNOWN NAME]");
+    return ftp_data;
   }
   ftp_data.push_back(name);
   return ftp_data;
@@ -394,7 +442,7 @@ std::string variableGuid(const std::string& shell_data) {
 std::string mtpFolder(const std::string& shell_data) {
   std::string name_size = shell_data.substr(124, 8);
   name_size = swapEndianess(name_size);
-  int size = std::stoi(name_size, nullptr, 16);
+  int size = tryTo<int>(name_size, 16).takeOr(0);
   std::string path_name = shell_data.substr(148, size * 4);
   boost::erase_all(path_name, "00");
   std::string name;
@@ -411,7 +459,7 @@ std::string mtpFolder(const std::string& shell_data) {
 std::string mtpDevice(const std::string& shell_data) {
   std::string name_size = shell_data.substr(76, 8);
   name_size = swapEndianess(name_size);
-  int size = std::stoi(name_size, nullptr, 16);
+  int size = tryTo<int>(name_size, 16).takeOr(0);
   std::string path_name = shell_data.substr(108, size * 4);
   boost::erase_all(path_name, "00");
   std::string name;
