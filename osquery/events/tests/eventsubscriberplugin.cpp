@@ -214,7 +214,7 @@ TEST_F(EventSubscriberPluginTests, generateRows) {
   last = EventSubscriberPlugin::generateRows(
       context, mocked_database, callback, 2, 1);
   EXPECT_EQ(callback_count, 0U);
-  EXPECT_EQ(last->first, 0U);
+  EXPECT_EQ(last, context.event_index.end());
 
   last = EventSubscriberPlugin::generateRows(
       context, mocked_database, callback, 0, 0);
@@ -234,7 +234,7 @@ TEST_F(EventSubscriberPluginTests, generateRows) {
   last = EventSubscriberPlugin::generateRows(
       context, mocked_database, callback, 10, 15);
   EXPECT_EQ(callback_count, 20U);
-  EXPECT_EQ(last->first, 0U);
+  EXPECT_EQ(last, context.event_index.end());
 }
 
 class FakeEventSubscriberPlugin : public EventSubscriberPlugin {

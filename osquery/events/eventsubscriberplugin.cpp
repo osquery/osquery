@@ -263,23 +263,25 @@ void EventSubscriberPlugin::generateRows(std::function<void(Row)> callback,
     setExecutedQuery(query_name, start_time);
   }
 
-  auto last = generateRows(this->context,
-                           getDatabase(),
-                           callback,
-                           start_time,
-                           stop_time,
-                           optimize_eid);
+  {
+    auto last = generateRows(this->context,
+                             getDatabase(),
+                             callback,
+                             start_time,
+                             stop_time,
+                             optimize_eid);
+
+    if (can_optimize && shouldOptimize()) {
+      if (last != this->context.event_index.end()) {
+        auto last_eid = last->second.empty() ? 0 : last->second.back();
+        setOptimizeData(getDatabase(), last->first, last_eid);
+      }
+    }
+  }
 
   if (executedAllQueries()) {
     expireEventBatches(
         this->context, getDatabase(), getMinExpiry(), getExpireTime());
-  }
-
-  if (can_optimize && shouldOptimize()) {
-    if (last != this->context.event_index.end()) {
-      auto last_eid = last->second.empty() ? 0 : last->second.back();
-      setOptimizeData(getDatabase(), last->first, last_eid);
-    }
   }
 }
 
