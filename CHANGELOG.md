@@ -7,20 +7,33 @@
 
 Representing commits from 13 contributors! Thank you all.
 
+This version fixes a regression introduced in 4.7.0 related to events expiration optimization.
+Please read ([#7055](https://github.com/osquery/osquery/pull/7055)) for more information.
+
 ### New Features
 
 - shell: Add `.connect` meta command ([#6944](https://github.com/osquery/osquery/pull/6944))
 
 ### Table Changes
 
-- Add `seccomp_events` table ([#7006](https://github.com/osquery/osquery/pull/7006))
+- Add `seccomp_events` table for Linux ([#7006](https://github.com/osquery/osquery/pull/7006))
+- Add `shortcut_files` table for Windows ([#6994](https://github.com/osquery/osquery/pull/6994))
 
 ### Under the Hood improvements
 
 - Removing Keyboard Event Taps from osx-attacks pack ([#7023](https://github.com/osquery/osquery/pull/7023))
+- Refactor watcher out of singleton pattern ([#7042](https://github.com/osquery/osquery/pull/7042))
+- Small events subscriber refactor to increase test coverage ([#7050](https://github.com/osquery/osquery/pull/7050))
+- Setting non-required `deb_packages` fields as optional in test ([#7001](https://github.com/osquery/osquery/pull/7001))
+- libs: Update OpenSSL to version 1.1.1k ([#7026](https://github.com/osquery/osquery/pull/7026))
+
+Please note that osquery is not known to be effected by any security issues in OpenSSL.
+Bumping the version included with osquery is good practice but does not directly address any known security issues.
 
 ### Bug Fixes
 
+- Handle events optimization edge cases ([#7060](https://github.com/osquery/osquery/pull/7060))
+- Fix optimization for multiple queries using the same subscriber ([#7055](https://github.com/osquery/osquery/pull/7055))
 - Use epoch and counter for events-based queries ([#7051](https://github.com/osquery/osquery/pull/7051))
 - Guard node key to prevent duplicate enrollments ([#7052](https://github.com/osquery/osquery/pull/7052))
 - Change windows calculation for physical_memory ([#7028](https://github.com/osquery/osquery/pull/7028))
@@ -44,16 +57,13 @@ Representing commits from 13 contributors! Thank you all.
 
 ### Build
 
-- Small events subscriber refactor to increase test coverage ([#7050](https://github.com/osquery/osquery/pull/7050))
 - Add an option to enable incremental linking on Windows ([#7044](https://github.com/osquery/osquery/pull/7044))
 - Remove Buck leftovers that supported building with old versions of OpenSSL ([#7034](https://github.com/osquery/osquery/pull/7034))
 - Add build_aarch64 workflow for push ([#7014](https://github.com/osquery/osquery/pull/7014))
 - Move CI to using docker from osquery ([#7012](https://github.com/osquery/osquery/pull/7012))
 - Update dockerfile to multiplatform ([#7011](https://github.com/osquery/osquery/pull/7011))
 - Run GH Actions workflows on all tags ([#7004](https://github.com/osquery/osquery/pull/7004))
-- Setting non-required `deb_packages` fields as optional in test ([#7001](https://github.com/osquery/osquery/pull/7001))
 - Disable BPF events tests if OSQUERY_BUILD_BPF is false ([#7002](https://github.com/osquery/osquery/pull/7002))
-- libs: Update OpenSSL to version 1.1.1k ([#7026](https://github.com/osquery/osquery/pull/7026))
 
 <a name="4.7.0"></a>
 ## [4.7.0](https://github.com/osquery/osquery/releases/tag/4.7.0)
