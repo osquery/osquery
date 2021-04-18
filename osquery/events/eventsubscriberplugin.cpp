@@ -250,28 +250,38 @@ void EventSubscriberPlugin::generateRows(std::function<void(Row)> callback,
                                          bool can_optimize,
                                          EventTime start_time,
                                          EventTime stop_time) {
+  EventTime optimize_time{0U};
+  EventID optimize_eid{0U};
   if (can_optimize && shouldOptimize()) {
     // If the daemon is querying a subscriber without a 'time' constraint and
     // allows optimization, only emit events since the last query.
     std::string query_name;
-    getOptimizeData(getDatabase(), optimize_time_, optimize_eid_, query_name);
-
-    start_time = optimize_time_;
-    optimize_time_ = getTime() - 1;
+    getOptimizeData(getDatabase(), optimize_time, optimize_eid, query_name);
+    start_time = optimize_time == 0 ? 0 : optimize_time - 1;
 
     // Track the queries that have selected data.
-    setExecutedQuery(query_name, optimize_time_);
+    setExecutedQuery(query_name, start_time);
   }
 
-  generateRows(this->context, getDatabase(), callback, start_time, stop_time);
+  {
+    auto last = generateRows(this->context,
+                             getDatabase(),
+                             callback,
+                             start_time,
+                             stop_time,
+                             optimize_eid);
+
+    if (can_optimize && shouldOptimize()) {
+      if (last != this->context.event_index.end()) {
+        auto last_eid = last->second.empty() ? 0 : last->second.back();
+        setOptimizeData(getDatabase(), last->first, last_eid);
+      }
+    }
+  }
 
   if (executedAllQueries()) {
     expireEventBatches(
         this->context, getDatabase(), getMinExpiry(), getExpireTime());
-  }
-
-  if (can_optimize && shouldOptimize()) {
-    setOptimizeData(getDatabase(), optimize_time_, optimize_eid_);
   }
 }
 
@@ -329,7 +339,7 @@ std::string EventSubscriberPlugin::toIndex(std::uint64_t i) {
 
 void EventSubscriberPlugin::setOptimizeData(IDatabaseInterface& db_interface,
                                             EventTime time,
-                                            size_t eid) {
+                                            EventID eid) {
   // Store the optimization time and eid.
   std::string query_name;
   db_interface.getDatabaseValue(
@@ -352,7 +362,7 @@ EventTime EventSubscriberPlugin::timeFromRecord(const std::string& record) {
 
 void EventSubscriberPlugin::getOptimizeData(IDatabaseInterface& db_interface,
                                             EventTime& o_time,
-                                            size_t& o_eid,
+                                            EventID& o_eid,
                                             std::string& query_name) {
   // Read the optimization time for the current executing query.
   db_interface.getDatabaseValue(
@@ -375,7 +385,7 @@ void EventSubscriberPlugin::getOptimizeData(IDatabaseInterface& db_interface,
     db_interface.getDatabaseValue(
         kEvents, "optimize_eid." + query_name, content);
 
-    o_eid = tryTo<std::size_t>(content).takeOr(std::size_t{0});
+    o_eid = tryTo<EventID>(content).takeOr(EventID{0});
   }
 }
 
@@ -571,7 +581,7 @@ void EventSubscriberPlugin::expireEventBatches(Context& context,
                                                IDatabaseInterface& db_interface,
                                                std::size_t events_expiry,
                                                std::size_t current_time) {
-  if (events_expiry == 0) {
+  if (events_expiry == 0 || current_time == 0) {
     return;
   }
 
@@ -620,13 +630,16 @@ void EventSubscriberPlugin::expireEventBatches(Context& context,
   }
 }
 
-void EventSubscriberPlugin::generateRows(Context& context,
-                                         IDatabaseInterface& db_interface,
-                                         std::function<void(Row)> callback,
-                                         EventTime start_time,
-                                         EventTime end_time) {
+EventIndex::iterator EventSubscriberPlugin::generateRows(
+    Context& context,
+    IDatabaseInterface& db_interface,
+    std::function<void(Row)> callback,
+    EventTime start_time,
+    EventTime end_time,
+    EventID last_eid) {
+  auto last = context.event_index.end();
   if (end_time != 0 && start_time > end_time) {
-    return;
+    return last;
   }
 
   EventIndex::iterator lower_bound_it;
@@ -636,7 +649,7 @@ void EventSubscriberPlugin::generateRows(Context& context,
   } else {
     lower_bound_it = context.event_index.lower_bound(start_time);
     if (lower_bound_it == context.event_index.end()) {
-      return;
+      return last;
     }
   }
 
@@ -645,11 +658,14 @@ void EventSubscriberPlugin::generateRows(Context& context,
                             : context.event_index.upper_bound(end_time);
 
   std::vector<std::string> invalid_key_list;
-
   for (auto it = lower_bound_it; it != upper_bound_it; ++it) {
     const auto& event_id_list = it->second;
 
     for (const auto& event_identifier : event_id_list) {
+      if (last_eid >= event_identifier) {
+        // A previous optimized query has already visited this event.
+        continue;
+      }
       auto key = databaseKeyForEventId(context, event_identifier);
 
       std::string serialized_row;
@@ -668,6 +684,7 @@ void EventSubscriberPlugin::generateRows(Context& context,
 
       callback(std::move(row));
     }
+    last = it;
   }
 
   if (!invalid_key_list.empty()) {
@@ -683,6 +700,7 @@ void EventSubscriberPlugin::generateRows(Context& context,
     LOG(ERROR) << "Found " << invalid_key_list.size() << " invalid events ("
                << erased_key_count << " have been successfully erased)";
   }
+  return last;
 }
 
 const std::string EventSubscriberPlugin::dbNamespace() const {

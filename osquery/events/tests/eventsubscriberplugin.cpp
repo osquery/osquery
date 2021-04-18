@@ -103,7 +103,7 @@ TEST_F(EventSubscriberPluginTests, getOptimizeData) {
       mocked_database, kEventTime, kEventIdentifier);
 
   EventTime event_time{};
-  std::size_t event_id{};
+  EventID event_id{};
   std::string query_name;
   EventSubscriberPlugin::getOptimizeData(
       mocked_database, event_time, event_id, query_name);
@@ -186,6 +186,9 @@ TEST_F(EventSubscriberPluginTests, expireEventBatches) {
   EventSubscriberPlugin::expireEventBatches(context, mocked_database, 0, 0);
   EXPECT_EQ(context.event_index.size(), 10U);
 
+  EventSubscriberPlugin::expireEventBatches(context, mocked_database, 1, 0);
+  EXPECT_EQ(context.event_index.size(), 10U);
+
   EventSubscriberPlugin::expireEventBatches(context, mocked_database, 1, 5);
   EXPECT_EQ(context.event_index.size(), 5U);
 }
@@ -207,22 +210,31 @@ TEST_F(EventSubscriberPluginTests, generateRows) {
   std::size_t callback_count{0U};
   auto callback = [&callback_count](Row) { ++callback_count; };
 
-  EventSubscriberPlugin::generateRows(context, mocked_database, callback, 2, 1);
+  EventIndex::iterator last;
+  last = EventSubscriberPlugin::generateRows(
+      context, mocked_database, callback, 2, 1);
   EXPECT_EQ(callback_count, 0U);
+  EXPECT_EQ(last, context.event_index.end());
 
-  EventSubscriberPlugin::generateRows(context, mocked_database, callback, 0, 0);
+  last = EventSubscriberPlugin::generateRows(
+      context, mocked_database, callback, 0, 0);
   EXPECT_EQ(callback_count, 10U);
+  EXPECT_EQ(last->first, 9U);
 
-  EventSubscriberPlugin::generateRows(context, mocked_database, callback, 0, 4);
+  last = EventSubscriberPlugin::generateRows(
+      context, mocked_database, callback, 0, 4);
   EXPECT_EQ(callback_count, 15U);
+  EXPECT_EQ(last->first, 4U);
 
-  EventSubscriberPlugin::generateRows(context, mocked_database, callback, 5, 9);
+  last = EventSubscriberPlugin::generateRows(
+      context, mocked_database, callback, 5, 9);
   EXPECT_EQ(callback_count, 20U);
+  EXPECT_EQ(last->first, 9U);
 
-  EventSubscriberPlugin::generateRows(
+  last = EventSubscriberPlugin::generateRows(
       context, mocked_database, callback, 10, 15);
-
   EXPECT_EQ(callback_count, 20U);
+  EXPECT_EQ(last, context.event_index.end());
 }
 
 class FakeEventSubscriberPlugin : public EventSubscriberPlugin {
@@ -322,22 +334,24 @@ TEST_F(EventSubscriberPluginTests, generateRowsWithOptimize) {
   EXPECT_EQ(10U, callback_count);
 
   const EventTime event_time{0U};
-  const std::size_t event_id{0U};
+  const EventID event_id{0U};
   subscriber.setOptimizeData(mocked_database, event_time, event_id);
 
   callback_count = 0;
-  subscriber.setTime(2);
   subscriber.setShouldOptimize(true);
-  subscriber.generateRows(callback, true, 0, 0);
-  EXPECT_EQ(10U, callback_count);
+  subscriber.generateRows(callback, true, 0, 5);
+  EXPECT_EQ(6U, callback_count);
   EXPECT_EQ(1U, subscriber.queries_.size());
-  EXPECT_EQ(1U, subscriber.optimize_time_);
 
   // This should continue from the optimized placement.
   callback_count = 0;
   subscriber.generateRows(callback, true, 0, 0);
+  EXPECT_EQ(4U, callback_count);
+  EXPECT_EQ(1U, subscriber.queries_.size());
+
+  callback_count = 0;
+  subscriber.generateRows(callback, true, 0, 0);
   ASSERT_FALSE(subscriber.executedAllQueries());
-  EXPECT_EQ(9U, callback_count);
-  EXPECT_EQ(1U, subscriber.optimize_time_);
+  EXPECT_EQ(0U, callback_count);
 }
 } // namespace osquery

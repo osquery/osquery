@@ -191,13 +191,13 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
 
   static void setOptimizeData(IDatabaseInterface& db_interface,
                               EventTime time,
-                              size_t eid);
+                              EventID eid);
 
   static EventTime timeFromRecord(const std::string& record);
 
   static void getOptimizeData(IDatabaseInterface& db_interface,
                               EventTime& o_time,
-                              size_t& o_eid,
+                              EventID& o_eid,
                               std::string& query_name);
 
   static EventID generateEventIdentifier(Context& context);
@@ -230,13 +230,15 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * @param callback A callback encapsulating Row yield method.
    * @param start_time Inclusive lower bound time limit.
    * @param end_time Inclusive upper bound time limit.
-   * @return Set of event rows matching time limits.
+   * @param last_eid (optional) The last visited event id.
+   * @return The upper bound time or 0 if there were no events in the range.
    */
-  static void generateRows(Context& context,
-                           IDatabaseInterface& db_interface,
-                           std::function<void(Row)> callback,
-                           EventTime start_time,
-                           EventTime end_time);
+  static EventIndex::iterator generateRows(Context& context,
+                                           IDatabaseInterface& db_interface,
+                                           std::function<void(Row)> callback,
+                                           EventTime start_time,
+                                           EventTime end_time,
+                                           EventID last_eid = 0);
 
   explicit EventSubscriberPlugin(EventSubscriberPlugin const&) = delete;
   EventSubscriberPlugin& operator=(EventSubscriberPlugin const&) = delete;
@@ -282,24 +284,6 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
 
   /// Do not respond to periodic/scheduled/triggered event expiration requests.
   bool expire_events_{true};
-
-  /**
-   * @brief Optimize subscriber selects by tracking the last select time.
-   *
-   * Event subscribers may optimize selects when used in a daemon schedule by
-   * requiring an event 'time' constraint and otherwise applying a minimum time
-   * as the last time the scheduled query ran.
-   */
-  EventTime optimize_time_{0};
-
-  /**
-   * @brief Last event ID returned while using events-optimization.
-   *
-   * A time with second precision is not sufficient, but it works for index
-   * retrieval. While sorting using the time optimization, discard events
-   * before or equal to the optimization ID.
-   */
-  size_t optimize_eid_{0};
 
   /// The minimum acceptable expiration, based on the query schedule.
   std::atomic<size_t> min_expiration_{0};
