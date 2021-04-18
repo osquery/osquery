@@ -12,14 +12,27 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
-#include <osquery/tables/applications/browser_utils.h>
 #include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace osquery {
+
 namespace tables {
+
+namespace {
+
+/// A helper check to rename bool-type values as 1 or 0.
+inline void jsonBoolAsInt(std::string& s) {
+  auto expected = tryTo<bool>(s);
+  if (expected.isValue()) {
+    s = expected.get() ? "1" : "0";
+  }
+}
+
+} // namespace
 
 /// Each home directory will include custom extensions.
 #if defined(__APPLE__)

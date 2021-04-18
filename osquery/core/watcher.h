@@ -94,11 +94,12 @@ struct PerformanceState {
  */
 class Watcher : private boost::noncopyable {
  public:
-  /// Instance accessor
-  static Watcher& get() {
-    static Watcher instance;
-    return instance;
+  /// Do not request the lock until extensions are used.
+  Watcher() : worker_restarts_(0) {
+    setWorker(std::make_shared<PlatformProcess>());
   }
+
+  virtual ~Watcher() {}
 
   /// Become responsible for the worker's fate, but do not guarantee its safety.
   void bindFates() {
@@ -112,7 +113,7 @@ class Watcher : private boost::noncopyable {
    * broadcast from potentially-loaded extensions. If no extensions are loaded
    * and an active (selected at command line) plugin is missing, fail quickly.
    */
-  bool hasManagedExtensions() const;
+  static bool hasManagedExtensions();
 
   /// Check the status of the last worker.
   int getWorkerStatus() const {
@@ -126,22 +127,6 @@ class Watcher : private boost::noncopyable {
    * each process and optionally monitor the performance.
    */
   void loadExtensions();
-
-  /// Lock access to extensions.
-  void lock() {
-    get().lock_.lock();
-  }
-
-  /// Unlock access to extensions.
-  void unlock() {
-    get().lock_.unlock();
-  }
-
-  /// Allow other parts of the codebase to check worker state.
-  bool isWorkerValid() const {
-    WriteLock lock(worker_mutex_);
-    return worker_->isValid();
-  }
 
  private:
   /// Accessor for the worker process.
@@ -173,7 +158,6 @@ class Watcher : private boost::noncopyable {
 
   /// Setter for worker process.
   void setWorker(const std::shared_ptr<PlatformProcess>& child) {
-    WriteLock lock(worker_mutex_);
     worker_ = child;
   }
 
@@ -194,17 +178,6 @@ class Watcher : private boost::noncopyable {
     return !restart_worker_;
   }
 
- private:
-  /// Do not request the lock until extensions are used.
-  Watcher() : worker_restarts_(0), lock_(mutex_, std::defer_lock) {
-    setWorker(std::make_shared<PlatformProcess>());
-  }
-
-  Watcher(Watcher const&);
-  void operator=(Watcher const&);
-  virtual ~Watcher() {}
-
- private:
   /// Inform the watcher that the worker restarted without cause.
   void workerRestarted() {
     worker_restarts_++;
@@ -225,7 +198,6 @@ class Watcher : private boost::noncopyable {
   /// Performance states for each autoloadable extension binary.
   std::map<std::string, PerformanceState> extension_states_;
 
- private:
   /// Keep the single worker process/thread ID for inspection.
   std::shared_ptr<PlatformProcess> worker_;
 
@@ -243,16 +215,6 @@ class Watcher : private boost::noncopyable {
 
   /// Record the exit status of the most recent worker.
   std::atomic<int> worker_status_{-1};
-
- private:
-  /// Set and access the worker process.
-  mutable Mutex worker_mutex_;
-
-  /// Mutex and lock around extensions access.
-  Mutex mutex_;
-
-  /// Mutex and lock around extensions access.
-  std::unique_lock<Mutex> lock_;
 
  private:
   friend class WatcherRunner;
@@ -275,13 +237,10 @@ class WatcherRunner : public InternalRunnable {
    * @param argv The osquery process argv.
    * @param use_worker True if the process should spawn and monitor a worker.
    */
-  explicit WatcherRunner(int argc, char** argv, bool use_worker)
-      : InternalRunnable("WatcherRunner"),
-        argc_(argc),
-        argv_(argv),
-        use_worker_(use_worker) {
-    (void)argc_;
-  }
+  explicit WatcherRunner(int argc,
+                         char** argv,
+                         bool use_worker,
+                         const std::shared_ptr<Watcher>& watcher);
 
  private:
   /// Dispatcher (this service thread's) entry point.
@@ -342,6 +301,9 @@ class WatcherRunner : public InternalRunnable {
 
   /// Similarly to the uncontrolled worker restarted, count each extension.
   std::map<std::string, size_t> extension_restarts_;
+
+  /// Watcher instance.
+  std::shared_ptr<Watcher> watcher_{nullptr};
 
  private:
   FRIEND_TEST(WatcherTests, test_watcherrunner_watch);

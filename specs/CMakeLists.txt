@@ -149,6 +149,7 @@ function(generateNativeTables)
     "freebsd/fbsd_kmods.table:freebsd"
     "freebsd/pkg_packages.table:freebsd"
     "linux/selinux_events.table:linux"
+    "linux/seccomp_events.table:linux"
     "linux/elf_symbols.table:linux"
     "linux/portage_use.table:linux"
     "linux/rpm_package_files.table:linux"
@@ -232,7 +233,6 @@ function(generateNativeTables)
     "posix/memory_error_info.table:linux,macos"
     "posix/mounts.table:linux,macos,freebsd"
     "posix/oem_strings.table:linux,macos"
-    "posix/opera_extensions.table:linux,macos,freebsd"
     "posix/pci_devices.table:linux,macos"
     "posix/process_envs.table:linux,macos,freebsd"
     "posix/process_events.table:linux,macos,freebsd"
@@ -302,6 +302,7 @@ function(generateNativeTables)
     "windows/shimcache.table:windows"
     "windows/shellbags.table:windows"
     "windows/prefetch.table:windows"
+    "windows/shortcut_files.table:windows"
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd,windows"
   )

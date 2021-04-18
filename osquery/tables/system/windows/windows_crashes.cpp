@@ -629,7 +629,7 @@ QueryData genCrashLogs(QueryContext& context) {
 
   if (!fs::exists(dumpFolderLocation) ||
       !fs::is_directory(dumpFolderLocation)) {
-    LOG(ERROR) << "No crash dump directory found";
+    VLOG(1) << "No crash dump directory found";
     return results;
   }
 

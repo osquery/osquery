@@ -44,16 +44,6 @@ void genCertificate(X509* cert, const std::string& path, QueryData& results) {
   r["ca"] = (CertificateIsCA(cert)) ? INTEGER(1) : INTEGER(0);
   r["self_signed"] = (CertificateIsSelfSigned(cert)) ? INTEGER(1) : INTEGER(0);
 
-// Temporary workaround for Buck compiling with an older openssl version
-#if OPENSSL_VERSION_NUMBER < 0x10101000L
-  r["key_usage"] = genKeyUsage(cert->ex_kusage);
-  r["authority_key_id"] =
-      (cert->akid && cert->akid->keyid)
-          ? genKIDProperty(cert->akid->keyid->data, cert->akid->keyid->length)
-          : "";
-  r["subject_key_id"] =
-      (cert->skid) ? genKIDProperty(cert->skid->data, cert->skid->length) : "";
-#else
   r["key_usage"] = genKeyUsage(X509_get_key_usage(cert));
 
   const auto* cert_key_id = X509_get0_authority_key_id(cert);
@@ -63,7 +53,6 @@ void genCertificate(X509* cert, const std::string& path, QueryData& results) {
   cert_key_id = X509_get0_subject_key_id(cert);
   r["subject_key_id"] =
       cert_key_id ? genKIDProperty(cert_key_id->data, cert_key_id->length) : "";
-#endif
 
   r["serial"] = genSerialForCertificate(cert);
 

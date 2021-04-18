@@ -37,6 +37,7 @@
 #include <osquery/core/flags.h>
 #include <osquery/database/database.h>
 #include <osquery/devtools/devtools.h>
+#include <osquery/extensions/interface.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/process/process.h>
 #include <osquery/registry/registry_factory.h>
@@ -69,6 +70,7 @@ SHELL_FLAG(string, pack, "", "Run all queries in a pack");
 /// Define short-hand shell switches.
 SHELL_FLAG(bool, L, false, "List all table names");
 SHELL_FLAG(string, A, "", "Select all from a table");
+SHELL_FLAG(string, connect, "", "Connect to an extension socket");
 
 DECLARE_string(nullvalue);
 DECLARE_string(extensions_socket);
@@ -89,6 +91,8 @@ static char zHelp[] =
     "\n"
     ".all [TABLE]     Select all from a table\n"
     ".bail ON|OFF     Stop after hitting an error\n"
+    ".connect PATH    Connect to an osquery extension socket\n"
+    ".disconnect      Disconnect from a connected extension socket\n"
     ".echo ON|OFF     Turn command echo on or off\n"
     ".exit            Exit this program\n"
     ".features        List osquery's features and their statuses\n"
@@ -105,7 +109,7 @@ static char zHelp[] =
     ".quit            Exit this program\n"
     ".schema [TABLE]  Show the CREATE statements\n"
     ".separator STR   Change separator used by output mode\n"
-    ".socket          Show the osquery extensions socket path\n"
+    ".socket          Show the local osquery extensions socket path\n"
     ".show            Show the current values for various settings\n"
     ".summary         Alias for the show meta command\n"
     ".tables [TABLE]  List names of tables\n"
@@ -244,8 +248,8 @@ static bool stdin_is_interactive = true;
 // True if an interrupt (Control-C) has been received.
 static volatile int seenInterrupt = 0;
 
-static char mainPrompt[26]; // First line prompt. default: "sqlite> "
-static char continuePrompt[26]; // Continuation prompt. default: "   ...> "
+static char mainPrompt[30]; // First line prompt. default: "sqlite> "
+static char continuePrompt[30]; // Continuation prompt. default: "   ...> "
 
 // A global char* and an SQL function to access its current value
 // from within an SQL statement. This program used to use the
@@ -274,6 +278,31 @@ static void print_bold(const char* zText) {
   if (stdin_is_interactive) {
     printf("\033[0m");
   }
+}
+
+static void connect_socket() {
+  print_bold("Connected to extension socket ");
+  print_bold(osquery::FLAGS_connect.c_str());
+  print_bold(" for debugging\n");
+
+  std::string backup_prompt(mainPrompt);
+  sqlite3_snprintf(
+      sizeof(mainPrompt), mainPrompt, "[*]%s", backup_prompt.c_str());
+  backup_prompt = continuePrompt;
+  sqlite3_snprintf(
+      sizeof(continuePrompt), continuePrompt, "[*]%s", backup_prompt.c_str());
+}
+
+static void disconnect_socket() {
+  print_bold("Disconnected from extension socket ");
+  print_bold(osquery::FLAGS_connect.c_str());
+  print_bold("\n");
+
+  std::string backup_prompt(mainPrompt + strlen("[*]"));
+  sqlite3_snprintf(sizeof(mainPrompt), mainPrompt, backup_prompt.c_str());
+  backup_prompt = continuePrompt + strlen("[*]");
+  sqlite3_snprintf(
+      sizeof(continuePrompt), continuePrompt, backup_prompt.c_str());
 }
 
 /*
@@ -797,6 +826,64 @@ static char* save_err_msg(sqlite3* db) {
   return zErrMsg;
 }
 
+static int shell_exec_remote(
+    const char* zSql, /* SQL to be evaluated */
+    int (*xCallback)(
+        void*, int, const char**, const char**, int*), /* Callback function */
+    /* (not the same as sqlite3_exec) */
+    struct callback_data* pArg, /* Pointer to struct callback_data */
+    char** pzErrMsg /* Error msg written here */
+) {
+  osquery::QueryData qd, types;
+
+  auto setError = [](char** pzErrMsg, const osquery::Status& s) {
+    const auto msg = s.getMessage();
+    auto* zErrMsg = reinterpret_cast<char*>(sqlite3_malloc(msg.size() + 1));
+    if (zErrMsg != nullptr) {
+      memset(zErrMsg, 0, msg.size() + 1);
+      memcpy(zErrMsg, msg.c_str(), msg.size());
+    }
+    *pzErrMsg = zErrMsg;
+  };
+
+  try {
+    osquery::ExtensionManagerClient client(osquery::FLAGS_connect);
+    auto s = client.query(zSql, qd);
+    if (!s.ok()) {
+      setError(pzErrMsg, s);
+      return s.getCode();
+    }
+
+    // Extract the correct column order.
+    s = client.getQueryColumns(zSql, types);
+    if (!s.ok()) {
+      setError(pzErrMsg, s);
+      return s.getCode();
+    }
+  } catch (const std::exception& e) {
+    auto s = osquery::Status::failure("Extension call failed: " +
+                                      std::string(e.what()));
+    setError(pzErrMsg, s);
+    return s.getCode();
+  }
+
+  for (const auto& r : qd) {
+    std::vector<const char*> columns;
+    std::vector<const char*> values;
+    for (const auto& col : types) {
+      auto val = r.find(col.begin()->first);
+      if (val != r.end()) {
+        values.push_back(val->second.c_str());
+        columns.push_back(val->first.c_str());
+      }
+    }
+    xCallback(pArg, r.size(), &values[0], &columns[0], nullptr);
+  }
+
+  pretty_print_if_needed(pArg);
+  return 0;
+}
+
 /*
 ** Execute a statement or set of statements.  Print
 ** any result rows/columns depending on the current mode
@@ -814,6 +901,10 @@ static int shell_exec(
     struct callback_data* pArg, /* Pointer to struct callback_data */
     char** pzErrMsg /* Error msg written here */
 ) {
+  if (!osquery::FLAGS_connect.empty()) {
+    return shell_exec_remote(zSql, xCallback, pArg, pzErrMsg);
+  }
+
   // Grab a lock on the managed DB instance.
   auto dbc = osquery::SQLiteDBManager::get();
   auto db = dbc->db();
@@ -1318,8 +1409,33 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
   }
 
   if (c == 's' && strncmp(azArg[0], "socket", n) == 0 && nArg == 1) {
-    fprintf(p->out, "%s\n", osquery::FLAGS_extensions_socket.c_str());
+    fprintf(p->out, "%s", osquery::FLAGS_extensions_socket.c_str());
+    if (!osquery::FLAGS_connect.empty()) {
+      fprintf(p->out, " (connected to %s)", osquery::FLAGS_connect.c_str());
+    }
+    fprintf(p->out, "\n");
     return rc;
+  }
+
+  if (c == 'c' && strncmp(azArg[0], "connect", n) == 0 && nArg == 2) {
+    if (osquery::FLAGS_connect.empty()) {
+      osquery::FLAGS_connect = azArg[1];
+      connect_socket();
+      return rc;
+    } else {
+      fprintf(stderr, "Error: Please disconnect from the current socket\n");
+      return 1;
+    }
+  }
+  if (c == 'd' && strncmp(azArg[0], "disconnect", n) == 0 && nArg == 1) {
+    if (!osquery::FLAGS_connect.empty()) {
+      disconnect_socket();
+      osquery::FLAGS_connect = "";
+      return rc;
+    } else {
+      fprintf(stderr, "Error: Not connected to a socket\n");
+      return 1;
+    }
   }
 
   // A meta command may act on the database, grab a lock and instance.
@@ -1752,6 +1868,10 @@ int launchIntoShell(int argc, char** argv) {
       sizeof(data.nullvalue), data.nullvalue, "%s", FLAGS_nullvalue.c_str());
 
   int rc = 0;
+  if (!FLAGS_connect.empty()) {
+    connect_socket();
+  }
+
   if (FLAGS_L || !FLAGS_A.empty()) {
     // Helper meta commands from shell switches.
     std::string query = (FLAGS_L) ? ".tables" : ".all " + FLAGS_A;

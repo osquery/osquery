@@ -92,6 +92,54 @@ bool Query::isNewQuery() const {
   return (query != query_);
 }
 
+void Query::getQueryStatus(uint64_t epoch,
+                           bool& fresh_results,
+                           bool& new_query) const {
+  if (!isQueryNameInDatabase()) {
+    // This is the first encounter of the scheduled query.
+    fresh_results = true;
+    new_query = true;
+    LOG(INFO) << "Storing initial results for new scheduled query: " << name_;
+    saveQuery(name_, query_);
+  } else if (getPreviousEpoch() != epoch) {
+    fresh_results = true;
+    LOG(INFO) << "New Epoch " << epoch << " for scheduled query " << name_;
+  } else if (isNewQuery()) {
+    // This query is 'new' in that the previous results may be invalid.
+    new_query = true;
+    LOG(INFO) << "Scheduled query has been updated: " + name_;
+    saveQuery(name_, query_);
+  }
+}
+
+Status Query::incrementCounter(bool reset, uint64_t& counter) const {
+  counter = getQueryCounter(reset);
+  return setDatabaseValue(kQueries, name_ + "counter", std::to_string(counter));
+}
+
+Status Query::addNewEvents(QueryDataTyped current_qd,
+                           const uint64_t current_epoch,
+                           uint64_t& counter,
+                           DiffResults& dr) const {
+  bool fresh_results = false;
+  bool new_query = false;
+  getQueryStatus(current_epoch, fresh_results, new_query);
+  if (fresh_results) {
+    auto status = setDatabaseValue(kQueries, name_, "{}");
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  dr.added = std::move(current_qd);
+  if (!dr.added.empty()) {
+    auto status = incrementCounter(fresh_results || new_query, counter);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  return Status::success();
+}
+
 Status Query::addNewResults(QueryDataTyped qd,
                             const uint64_t epoch,
                             uint64_t& counter) const {
@@ -107,21 +155,7 @@ Status Query::addNewResults(QueryDataTyped current_qd,
   // The current results are 'fresh' when not calculating a differential.
   bool fresh_results = !calculate_diff;
   bool new_query = false;
-  if (!isQueryNameInDatabase()) {
-    // This is the first encounter of the scheduled query.
-    fresh_results = true;
-    LOG(INFO) << "Storing initial results for new scheduled query: " << name_;
-    saveQuery(name_, query_);
-  } else if (getPreviousEpoch() != current_epoch) {
-    fresh_results = true;
-    LOG(INFO) << "New Epoch " << current_epoch << " for scheduled query "
-              << name_;
-  } else if (isNewQuery()) {
-    // This query is 'new' in that the previous results may be invalid.
-    new_query = true;
-    LOG(INFO) << "Scheduled query has been updated: " + name_;
-    saveQuery(name_, query_);
-  }
+  getQueryStatus(current_epoch, fresh_results, new_query);
 
   // Use a 'target' avoid copying the query data when serializing and saving.
   // If a differential is requested and needed the target remains the original
@@ -166,9 +200,7 @@ Status Query::addNewResults(QueryDataTyped current_qd,
   }
 
   if (update_db || fresh_results || new_query) {
-    counter = getQueryCounter(fresh_results || new_query);
-    auto status =
-        setDatabaseValue(kQueries, name_ + "counter", std::to_string(counter));
+    auto status = incrementCounter(fresh_results || new_query, counter);
     if (!status.ok()) {
       return status;
     }

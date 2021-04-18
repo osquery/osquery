@@ -173,7 +173,7 @@ void parseShellData(const std::string& shell_data,
     build_shellbag.push_back(ftp_data[1]);
     std::string full_path = osquery::join(build_shellbag, "\\");
     r["path"] = full_path;
-    r["accessed_time"] = INTEGER(unix_time);
+    r["accessed_time"] = BIGINT(unix_time);
     results.push_back(r);
     return;
   } else if (sig == "74" && shell_data.find("43465346") !=
@@ -304,9 +304,9 @@ void parseShellData(const std::string& shell_data,
     return;
   }
 
-  r["modified_time"] = INTEGER(file_entry.dos_modified);
-  r["created_time"] = INTEGER(file_entry.dos_created);
-  r["accessed_time"] = INTEGER(file_entry.dos_accessed);
+  r["modified_time"] = BIGINT(file_entry.dos_modified);
+  r["created_time"] = BIGINT(file_entry.dos_created);
+  r["accessed_time"] = BIGINT(file_entry.dos_accessed);
 
   build_shellbag.push_back(file_entry.path);
   long long mft_entry = file_entry.mft_entry;

@@ -49,6 +49,7 @@ function(generateOsqueryUtils)
     list(APPEND source_files
       windows/shellitem.cpp
       windows/lzxpress.cpp
+      windows/shelllnk.cpp
     )
   endif()
 
@@ -95,7 +96,11 @@ function(generateOsqueryUtils)
   if(DEFINED PLATFORM_WINDOWS)
     set(platform_public_header_files
       windows/shellitem.h
+<<<<<<< HEAD
       windows/lzxpress.h
+=======
+      windows/shelllnk.h
+>>>>>>> upstream/master
     )
 
     generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})
@@ -126,6 +131,7 @@ function(generateOsqueryUtilsUtilstestsTest)
       tests/windows/env.cpp
       tests/windows/filetime.cpp
       tests/windows/shellitems.cpp
+      tests/windows/shelllnk.cpp
     )
   endif()
 

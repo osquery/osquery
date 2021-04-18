@@ -111,6 +111,38 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    */
   virtual size_t getEventBatchesMax();
 
+  /// Determine if the subscriber should attempt optmization.
+  virtual bool shouldOptimize() const;
+
+  /**
+   * @brief Return all events added by this EventSubscriber within start, stop.
+   *
+   * This is used internally (for the most part) by EventSubscriber::genTable.
+   *
+   * @param callback A callback encapsulating Row yield method.
+   * @param can_optimize If true then optimization can be considered.
+   * @param start_time Inclusive lower bound time limit.
+   * @param end_time Inclusive upper bound time limit.
+   * @return Set of event rows matching time limits.
+   */
+  void generateRows(std::function<void(Row)> callback,
+                    bool can_optimize,
+                    EventTime start_time,
+                    EventTime stop_stop);
+
+  /// Track a query execution.
+  virtual void setExecutedQuery(const std::string& query_name,
+                                uint64_t query_time);
+
+  /// Set the number of queries in the schedule using this subscriber.
+  void resetQueryCount(size_t count);
+
+  /// Return the smallest expiry window based on the query schedule.
+  size_t getMinExpiry();
+
+  /// Return either the current time or the oldest optimized time.
+  uint64_t getExpireTime();
+
  public:
   /**
    * @brief A single instance requirement for static callback facilities.
@@ -144,7 +176,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   EventContextID numEvents() const;
 
   /// Compare the number of queries run against the queries configured.
-  bool executedAllQueries() const;
+  virtual bool executedAllQueries() const;
 
   struct Context final {
     std::string database_namespace;
@@ -193,12 +225,13 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    *
    * This is used internally (for the most part) by EventSubscriber::genTable.
    *
-   * @param yield The Row yield method.
+   * @param context The subscriber context.
+   * @param db_interface A database interface.
+   * @param callback A callback encapsulating Row yield method.
    * @param start_time Inclusive lower bound time limit.
    * @param end_time Inclusive upper bound time limit.
    * @return Set of event rows matching time limits.
    */
-
   static void generateRows(Context& context,
                            IDatabaseInterface& db_interface,
                            std::function<void(Row)> callback,
@@ -223,11 +256,20 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   /// See getType for lookup rational.
   virtual const std::string dbNamespace() const;
 
+  /// Return the current time (included to assist testing).
+  virtual uint64_t getTime() const;
+
+  /// Return the backing storage (included to assist testing).
+  virtual IDatabaseInterface& getDatabase() const;
+
   /// Get a handle to the EventPublisher.
   EventPublisherRef getPublisher() const;
 
   /// Remove all subscriptions from this subscriber.
   void removeSubscriptions();
+
+  /// Set the subscriber type and name on the managed context.
+  void setDatabaseNamespace();
 
   /// A helper value counting the number of fired events tracked by publishers.
   EventContextID event_count_{0};
@@ -240,9 +282,6 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
 
   /// Do not respond to periodic/scheduled/triggered event expiration requests.
   bool expire_events_{true};
-
-  /// When the last query hit this subscriber
-  std::size_t last_query_time_{};
 
   /**
    * @brief Optimize subscriber selects by tracking the last select time.
@@ -269,7 +308,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   std::atomic<size_t> query_count_{0};
 
   /// Set of queries that have used this subscriber table.
-  std::set<std::string> queries_;
+  std::map<std::string, uint64_t> queries_;
 
   /// Lock used when incrementing the EventID database index.
   Mutex event_id_lock_;
@@ -300,6 +339,9 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
 
   FRIEND_TEST(EventsTests, test_event_subscriber_configure);
   FRIEND_TEST(EventsTests, test_event_toggle_subscribers);
+  FRIEND_TEST(EventSubscriberPluginTests, getExpireTime);
+  FRIEND_TEST(EventSubscriberPluginTests, generateRowsWithExpiry);
+  FRIEND_TEST(EventSubscriberPluginTests, generateRowsWithOptimize);
 
   friend class DBFakeEventSubscriber;
   friend class BenchmarkEventSubscriber;

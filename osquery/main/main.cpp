@@ -120,7 +120,7 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
     osquery::FLAGS_disable_events = true;
     osquery::FLAGS_disable_caching = true;
     // The shell may have loaded table extensions, if not, disable the manager.
-    if (!osquery::Watcher::get().hasManagedExtensions() &&
+    if (!osquery::Watcher::hasManagedExtensions() &&
         Flag::isDefault("disable_extensions")) {
       osquery::FLAGS_disable_extensions = true;
     }

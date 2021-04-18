@@ -152,14 +152,16 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   if (!FLAGS_events_optimize || !sql.eventBased()) {
     status = dbQuery.addNewResults(
         std::move(sql.rowsTyped()), item.epoch, item.counter, diff_results);
-    if (!status.ok()) {
-      std::string message = "Error adding new results to database for query " +
-                            name + ": " + status.what();
-      // If the database is not available then the daemon cannot continue.
-      requestShutdown(EXIT_CATASTROPHIC, message);
-    }
   } else {
-    diff_results.added = std::move(sql.rowsTyped());
+    status = dbQuery.addNewEvents(
+        std::move(sql.rowsTyped()), item.epoch, item.counter, diff_results);
+  }
+
+  if (!status.ok()) {
+    std::string message = "Error adding new results to database for query " +
+                          name + ": " + status.what();
+    // If the database is not available then the daemon cannot continue.
+    requestShutdown(EXIT_CATASTROPHIC, message);
   }
 
   if (!query.reportRemovedRows()) {
@@ -230,9 +232,9 @@ void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
   // Timeout is the number of seconds from starting.
-  timeout_ += (timeout_ == 0) ? 0 : i;
+  auto end = (timeout_ == 0) ? 0 : timeout_ + i;
 
-  for (; (timeout_ == 0) || (i <= timeout_); ++i) {
+  for (; (end == 0) || (i <= end); ++i) {
     auto start_time_point = std::chrono::steady_clock::now();
     Config::get().scheduledQueries(([&i](const std::string& name,
                                          const ScheduledQuery& query) {
