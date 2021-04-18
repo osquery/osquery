@@ -55,6 +55,7 @@ not known to be effected by any security issues in OpenSSL.
 - Correct docs about OpenSSL and TLS behavior ([#7033](https://github.com/osquery/osquery/pull/7033))
 - Update docs to describe how to build for aarch64/arm64 (#6285) ([#6970](https://github.com/osquery/osquery/pull/6970))
 - Add a note on enabling Windows to build with CMake's long paths ([#7010](https://github.com/osquery/osquery/pull/7010))
+- Add 4.8.0 CHANGELOG ([#7057](https://github.com/osquery/osquery/pull/7057))
 
 ### Build
 
