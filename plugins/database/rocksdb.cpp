@@ -146,8 +146,9 @@ Status RocksDBDatabasePlugin::setUp() {
   }
 
   if (!s.ok() || db_ == nullptr) {
-    LOG(INFO) << "Rocksdb open failed (" << s.code() << ":" << s.subcode()
-              << ") " << s.ToString();
+    LOG(INFO) << "Rocksdb open failed (" << static_cast<uint32_t>(s.code())
+              << ":" << static_cast<uint32_t>(s.subcode()) << ") "
+              << s.ToString();
     // A failed open in R/W mode is a runtime error.
     return Status(1, s.ToString());
   }
