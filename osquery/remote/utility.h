@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <chrono>
+
 // clang-format off
 // Keep it on top of all other includes to fix double include WinSock.h header file
 // which is windows specific boost build problem
@@ -18,6 +20,7 @@
 #include <osquery/remote/enroll/enroll.h>
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
+#include <osquery/core/shutdown.h>
 
 #include <osquery/process/process.h>
 #include <osquery/remote/requests.h>
@@ -260,7 +263,8 @@ class TLSRequestHelper : private boost::noncopyable {
       }
     }
 
-    for (size_t i = 1; i <= attempts; i++) {
+    bool should_shutdown = false;
+    for (size_t i = 1; i <= attempts && !should_shutdown; i++) {
       s = TLSRequestHelper::go<TSerializer>(uri, params, output);
       if (s.ok()) {
         return s;
@@ -271,7 +275,9 @@ class TLSRequestHelper : private boost::noncopyable {
       for (auto& m : override_params_doc.GetObject()) {
         params.add(m.name.GetString(), m.value);
       }
-      sleepFor(i * i * 1000);
+
+      should_shutdown =
+          waitTimeoutOrShutdown(std::chrono::milliseconds(i * i * 1000));
     }
     return s;
   }
@@ -295,4 +301,4 @@ class TLSRequestHelper : private boost::noncopyable {
     return TLSRequestHelper::go<TSerializer>(uri, params, output, attempts);
   }
 };
-}
+} // namespace osquery

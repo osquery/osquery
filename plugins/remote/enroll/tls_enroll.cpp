@@ -26,6 +26,7 @@
 #include <osquery/remote/requests.h>
 #include <osquery/remote/serializers/json.h>
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/core/shutdown.h>
 
 namespace osquery {
 
@@ -59,6 +60,11 @@ HIDDEN_FLAG(string,
 REGISTER_INTERNAL(TLSEnrollPlugin, "enroll", "tls");
 
 std::string TLSEnrollPlugin::enroll() {
+  if (shutdownRequested()) {
+    LOG(WARNING) << "Enrollment won't be attempted due to a shutdown request";
+    return {};
+  }
+
   // If no node secret has been negotiated, try a TLS request.
   auto uri = "https://" + FLAGS_tls_hostname + FLAGS_enroll_tls_endpoint;
   if (FLAGS_tls_secret_always) {
@@ -67,16 +73,23 @@ std::string TLSEnrollPlugin::enroll() {
   }
 
   std::string node_key;
+  bool should_shutdown = false;
   VLOG(1) << "TLSEnrollPlugin requesting a node enroll key from: " << uri;
-  for (size_t i = 1; i <= FLAGS_tls_enroll_max_attempts; i++) {
+  for (size_t i = 1; i <= FLAGS_tls_enroll_max_attempts && !should_shutdown;
+       i++) {
     auto status = requestKey(uri, node_key);
     if (status.ok() || i == FLAGS_tls_enroll_max_attempts) {
       break;
     }
-
     LOG(WARNING) << "Failed enrollment request to " << uri << " ("
                  << status.what() << ") retrying...";
-    sleepFor(i * i * 1000);
+
+    should_shutdown =
+        waitTimeoutOrShutdown(std::chrono::milliseconds(i * i * 1000));
+  }
+
+  if (should_shutdown) {
+    LOG(WARNING) << "Enrollment attempts interrupted due to a shutdown request";
   }
 
   return node_key;

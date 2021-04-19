@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <csignal>
 #include <string>
 
@@ -38,6 +39,15 @@ void setShutdownExitCode(int retcode);
  * This method should be called before Initializer::shutdown.
  */
 void waitForShutdown();
+
+/**
+ * @brief Wait either the timeout or until a #requestShutdown is issued.
+ *
+ * This method is meant to provide a sleep interruptible by the shutdown
+ * procedure. Especially useful when having to do long sleeps during retries,
+ * like during an enrollment failure.
+ */
+bool waitTimeoutOrShutdown(std::chrono::milliseconds timeout);
 
 /**
  * @brief Check if something has requested a shutdown.

@@ -53,6 +53,12 @@ void waitForShutdown() {
       lock, [] { return (kShutdownData.requested) ? true : false; });
 }
 
+bool waitTimeoutOrShutdown(std::chrono::milliseconds timeout) {
+  std::unique_lock<std::mutex> lock(kShutdownData.request_mutex);
+  return kShutdownData.request_signal.wait_for(
+      lock, timeout, [] { return kShutdownData.requested.load(); });
+}
+
 void requestShutdown(int retcode) {
   static std::once_flag thrown;
   std::call_once(thrown, [&retcode]() {
