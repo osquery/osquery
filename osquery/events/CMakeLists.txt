@@ -41,6 +41,7 @@ function(generateOsqueryEvents)
       audit_flags.cpp
       file_events_flags.cpp
       darwin/diskarbitration.cpp
+      darwin/endpointsecurity.cpp
       darwin/event_taps.cpp
       darwin/fsevents.cpp
       darwin/iokit.cpp
@@ -134,6 +135,7 @@ function(generateOsqueryEvents)
   elseif(DEFINED PLATFORM_MACOS)
     set(platform_public_header_files
       darwin/diskarbitration.h
+      darwin/endpointsecurity.h
       darwin/event_taps.h
       darwin/fsevents.h
       darwin/iokit.h

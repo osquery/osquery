@@ -1,0 +1,32 @@
+table_name("es_process_events")
+description("Process execution events from EndpointSecurity.")
+schema([
+    Column("version", INTEGER, "Version of EndpointSecurity event"),
+    Column("seq_num", BIGINT, "Per event sequence number"),
+    Column("global_seq_num", BIGINT, "Global sequence number"),
+    Column("pid", BIGINT, "Process (or thread) ID"),
+    Column("path", TEXT, "Path of executed file"),
+    Column("parent", BIGINT, "Parent process ID"),
+    Column("original_parent", BIGINT, "Original parent process ID in case of reparenting"),
+    Column("cmdline", TEXT, "Command line arguments (argv)"),
+    Column("cmdline_count", BIGINT, "Number of command line arguments"),
+    Column("env", TEXT, "Environment variables delimited by spaces"),
+    Column("env_count", BIGINT, "Number of environment variables"),
+    Column("cwd", TEXT, "The process current working directory"),
+    Column("uid", BIGINT, "User ID of the process"),
+    Column("euid", BIGINT, "Effective User ID of the process"),
+    Column("gid", BIGINT, "Group ID of the process"),
+    Column("egid", BIGINT, "Effective Group ID of the process"),
+    Column("username", TEXT, "Username"),
+    Column("signing_id", TEXT, "Signature identifier of the process"),
+    Column("team_id", TEXT, "Team identifier of thd process"),
+    Column("cdhash", TEXT, "Codesigning hash of the process"),
+    Column("platform_binary", INTEGER, "Indicates if the binary is Apple signed binary (1) or not (0)"),
+    Column("exit_code", INTEGER, "Exit code of a process in case of an exit event"),
+    Column("child_pid", BIGINT, "Process ID of a child process in case of a fork event"),
+    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("event_type", TEXT, "Type of EndpointSecurity event"),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("events/darwin/es_process_events@es_process_events::genTable")
