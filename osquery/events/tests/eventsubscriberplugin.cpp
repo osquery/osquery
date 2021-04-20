@@ -261,6 +261,14 @@ class FakeEventSubscriberPlugin : public EventSubscriberPlugin {
     time_ = t;
   }
 
+  void setEventsExpiry(size_t expiry) {
+    expiry_ = expiry;
+  }
+
+  size_t getEventsExpiry() override {
+    return expiry_;
+  }
+
  private:
   bool shouldOptimize() const override {
     return optimize_;
@@ -274,6 +282,7 @@ class FakeEventSubscriberPlugin : public EventSubscriberPlugin {
   bool optimize_{false};
   IDatabaseInterface& db_;
   uint64_t time_{0};
+  size_t expiry_{0};
 };
 
 TEST_F(EventSubscriberPluginTests, getExpireTime) {
@@ -282,13 +291,40 @@ TEST_F(EventSubscriberPluginTests, getExpireTime) {
 
   subscriber.setTime(10);
   auto expire_time = subscriber.getExpireTime();
+  ASSERT_EQ(10U, subscriber.getTime());
   EXPECT_EQ(subscriber.getTime(), expire_time);
 
   subscriber.resetQueryCount(2);
+  // A count without any executed queries returns the current time.
+  expire_time = subscriber.getExpireTime();
+  EXPECT_EQ(subscriber.getTime(), expire_time);
+
+  // The expire time is the least recent executed query time.
   subscriber.setExecutedQuery("test1", 2);
   subscriber.setExecutedQuery("test2", 5);
   expire_time = subscriber.getExpireTime();
   EXPECT_EQ(2U, expire_time);
+
+  subscriber.setExecutedQuery("test1", 10);
+  expire_time = subscriber.getExpireTime();
+  EXPECT_EQ(5U, expire_time);
+}
+
+TEST_F(EventSubscriberPluginTests, getEventsExpiry) {
+  MockedOsqueryDatabase mocked_database;
+  FakeEventSubscriberPlugin subscriber(mocked_database);
+
+  subscriber.setEventsExpiry(10);
+  auto expiry = subscriber.getMinExpiry();
+  EXPECT_EQ(10U, expiry);
+
+  subscriber.setMinExpiry(20);
+  expiry = subscriber.getMinExpiry();
+  EXPECT_EQ(20U, expiry);
+
+  subscriber.setMinExpiry(5);
+  expiry = subscriber.getMinExpiry();
+  EXPECT_EQ(10U, expiry);
 }
 
 TEST_F(EventSubscriberPluginTests, generateRowsWithExpiry) {
@@ -298,6 +334,7 @@ TEST_F(EventSubscriberPluginTests, generateRowsWithExpiry) {
 
   subscriber.setDatabaseNamespace();
   subscriber.generateEventDataIndex();
+  subscriber.setEventsExpiry(100);
 
   // Always return true for "executedAllQueries".
   subscriber.resetQueryCount(0);

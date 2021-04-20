@@ -140,6 +140,9 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   /// Return the smallest expiry window based on the query schedule.
   size_t getMinExpiry();
 
+  /// Set a minimum expiration windows based on the query schedule.
+  void setMinExpiry(size_t expiry);
+
   /// Return either the current time or the oldest optimized time.
   uint64_t getExpireTime();
 
@@ -324,6 +327,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   FRIEND_TEST(EventsTests, test_event_subscriber_configure);
   FRIEND_TEST(EventsTests, test_event_toggle_subscribers);
   FRIEND_TEST(EventSubscriberPluginTests, getExpireTime);
+  FRIEND_TEST(EventSubscriberPluginTests, getEventsExpiry);
   FRIEND_TEST(EventSubscriberPluginTests, generateRowsWithExpiry);
   FRIEND_TEST(EventSubscriberPluginTests, generateRowsWithOptimize);
 

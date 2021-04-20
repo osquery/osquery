@@ -233,6 +233,10 @@ size_t EventSubscriberPlugin::getMinExpiry() {
   return expiry;
 }
 
+void EventSubscriberPlugin::setMinExpiry(size_t expiry) {
+  min_expiration_ = expiry;
+}
+
 uint64_t EventSubscriberPlugin::getExpireTime() {
   if (query_count_ == 0) {
     return getTime();

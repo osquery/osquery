@@ -342,14 +342,16 @@ void EventFactory::configUpdate() {
 
     RecursiveLock lock(ef.factory_lock_);
     auto subscriber = ef.getEventSubscriber(details.first);
-    subscriber->min_expiration_ = details.second.max_interval * 3;
-    subscriber->min_expiration_ += (60 - (subscriber->min_expiration_ % 60));
+    auto min_expiry = details.second.max_interval * 3;
+    min_expiry += (60 - (min_expiry % 60));
+    subscriber->setMinExpiry(min_expiry);
 
     // Emit a warning for each subscriber affected by the small expiration.
     auto expiry = subscriber->getEventsExpiry();
-    if (expiry > 0 && subscriber->min_expiration_ > expiry) {
-      LOG(INFO) << "Subscriber expiration is too low: "
-                << subscriber->getName();
+    if (expiry > 0 && min_expiry > expiry) {
+      LOG(INFO) << "The minimum events expiration timeout for "
+                << subscriber->getName()
+                << " has been adjusted: " << min_expiry;
     }
     subscriber->resetQueryCount(details.second.query_count);
   }
