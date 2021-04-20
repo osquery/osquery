@@ -281,8 +281,7 @@ class OsquerydTest(unittest.TestCase):
         except subprocess.CalledProcessError:
             return ('', '')
 
-    @test_base.flaky
-    def test_1_install_run_stop_uninstall_windows_service(self):
+    def test_install_run_stop_uninstall_windows_service(self):
         name = 'osqueryd_test_{}'.format(self.test_instance)
         code, _ = installService(name, self.bin_path)
         self.assertEqual(code, 0)
@@ -323,8 +322,7 @@ class OsquerydTest(unittest.TestCase):
         code, _ = queryService(name)
         self.assertEqual(code, 1060)
 
-    @test_base.flaky
-    def test_2_thrash_windows_service(self):
+    def test_thrash_windows_service(self):
         # Install the service
         name = 'osqueryd_test_{}'.format(self.test_instance)
         code, _ = installService(name, self.bin_path)
@@ -375,4 +373,3 @@ if __name__ == '__main__':
     assertUserIsAdmin()
     with test_base.CleanChildProcesses():
         test_base.Tester().run()
-    unittest.main()
