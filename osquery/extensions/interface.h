@@ -322,7 +322,7 @@ class ExtensionClientCore : private boost::noncopyable {
    */
   void init(const std::string& path, bool manager = false);
 
-  /// Set the receive and send timeout.
+  /// Set the receive and send timeout in seconds.
   void setTimeouts(size_t timeout);
 
   /// Check if the client is an extension manager.
@@ -348,9 +348,9 @@ class ExtensionClient : public ExtensionClientCore, public ExtensionAPI {
    * @note The default timeout to wait for buffered (whole-content) responses
    * is 5 minutes.
    * @param path This is the socket path for the client communication.
-   * @param timeout [optional] time in milliseconds to wait for input.
+   * @param timeout [optional] time in seconds to wait for input.
    */
-  explicit ExtensionClient(const std::string& path, size_t timeout = 5000 * 60);
+  explicit ExtensionClient(const std::string& path, size_t timeout = 0);
   ~ExtensionClient();
 
  protected:
@@ -378,10 +378,9 @@ class ExtensionManagerClient : public ExtensionClient,
    * @brief Create a client to a manager extension.
    *
    * @param path This is the socket path for the manager communication.
-   * @param timeout [optional] time in milliseconds to wait for input.
+   * @param timeout [optional] time in seconds to wait for input.
    */
-  explicit ExtensionManagerClient(const std::string& path,
-                                  size_t timeout = 5000 * 60);
+  explicit ExtensionManagerClient(const std::string& path, size_t timeout = 0);
   ~ExtensionManagerClient();
 
  public:

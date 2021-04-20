@@ -182,7 +182,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     if (socketExists(path)) {
       try {
         // Create a client with a 10-second receive timeout.
-        ExtensionManagerClient client(path, 10 * 1000);
+        ExtensionManagerClient client(path, 10);
         auto status = client.ping();
         return Status::success();
       } catch (const std::exception& /* e */) {
