@@ -96,11 +96,8 @@ function(generateOsqueryUtils)
   if(DEFINED PLATFORM_WINDOWS)
     set(platform_public_header_files
       windows/shellitem.h
-<<<<<<< HEAD
       windows/lzxpress.h
-=======
       windows/shelllnk.h
->>>>>>> upstream/master
     )
 
     generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})
