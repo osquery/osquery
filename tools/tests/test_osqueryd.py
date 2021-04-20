@@ -19,8 +19,7 @@ import test_base
 
 
 class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
-    @test_base.flaky
-    def test_1_daemon_without_watchdog(self):
+    def test_daemon_without_watchdog(self):
         daemon = self._run_daemon({
             "disable_watchdog": True,
             "disable_extensions": True,
@@ -28,8 +27,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
         daemon.kill()
 
-    @test_base.flaky
-    def test_2_daemon_with_option(self):
+    def test_daemon_with_option(self):
         logger_path = test_base.getTestDirectory(test_base.TEMP_DIR)
         daemon = self._run_daemon(
             {
@@ -64,8 +62,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(len(data) > 0)
         daemon.kill()
 
-    @test_base.flaky
-    def test_3_daemon_with_watchdog(self):
+    def test_daemon_with_watchdog(self):
         # This test does not join the service threads properly (waits for int).
         if os.environ.get('SANITIZE') is not None:
             return
@@ -87,8 +84,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         # dies when the watcher goes away
         self.assertTrue(daemon.isDead(children[0]))
 
-    @test_base.flaky
-    def test_3_daemon_lost_worker(self):
+    def test_daemon_lost_worker(self):
         # Test that killed workers are respawned by the watcher
         if os.environ.get('SANITIZE') is not None:
             return
@@ -118,8 +114,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         children = daemon.getChildren()
         self.assertTrue(len(children) > 0)
 
-    @test_base.flaky
-    def test_4_daemon_sighup(self):
+    def test_daemon_sighup(self):
         # A hangup signal should not do anything to the daemon.
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -131,8 +126,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         os.kill(daemon.proc.pid, sig)
         self.assertTrue(daemon.isAlive())
 
-    @test_base.flaky
-    def test_5_daemon_sigint(self):
+    def test_daemon_sigint(self):
         # An interrupt signal will cause the daemon to stop.
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -148,8 +142,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         if os.name != "nt":
             self.assertEqual(daemon.retcode, 0)
 
-    @test_base.flaky
-    def test_6_logger_mode(self):
+    def test_logger_mode(self):
         logger_path = test_base.getTestDirectory(test_base.TEMP_DIR)
         test_mode = 0o754  # Strange mode that should never exist
         daemon = self._run_daemon(
@@ -194,7 +187,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
         daemon.kill()
 
-    def test_7_logger_stdout(self):
+    def test_logger_stdout(self):
         logger_path = test_base.getTestDirectory(test_base.TEMP_DIR)
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -216,7 +209,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(pathDoesntExist())
         daemon.kill()
 
-    def test_8_hostid_uuid(self):
+    def test_hostid_uuid(self):
         # Test added to test using UUID as hostname ident for issue #3195
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -230,7 +223,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
         daemon.kill()
 
-    def test_9_hostid_instance(self):
+    def test_hostid_instance(self):
         daemon = self._run_daemon({
             "disable_watchdog": True,
             "disable_extensions": True,

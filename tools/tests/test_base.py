@@ -382,9 +382,9 @@ def getLatestOsqueryBinary(binary):
 
 class ProcessGenerator(object):
     '''Helper methods to patch into a unittest'''
-    generators = []
 
     def setUp(self):
+        self.generators = []
         utils.reset_dir(TEMP_DIR)
 
     def _run_daemon(self,
@@ -450,6 +450,7 @@ class ProcessGenerator(object):
                     os.kill(generator.pid, sig)
                 except Exception as e:
                     pass
+        self.generators = []
 
 
 class EXClient(object):
@@ -552,36 +553,12 @@ class TimeoutRunner(object):
         timer.cancel()
 
 
-def flaky(gen):
-    exceptions = []
-    def attempt(this):
-        try:
-            gen(this)
-            return True
-        except Exception as e:
-            import traceback
-            _, _, tb = sys.exc_info()
-            exceptions.append(e)
-            print(traceback.format_tb(tb)[1])
-        return False
-
-    def wrapper(this):
-        for i in range(3):
-            if attempt(this):
-                return True
-            # The attempt failed, try to setup again.
-            this.tearDown()
-            this.setUp()
-        i = 1
-        for exc in exceptions:
-            print("Test (attempt %d) %s::%s failed: %s" %
-                  (i, this.__class__.__name__, gen.__name__, str(exc)))
-            i += 1
-        if len(exceptions) > 0:
-            raise exceptions[0]
-        return False
-
-    return wrapper
+class SequentialTestLoader(unittest.TestLoader):
+    def getTestCaseNames(self, testCaseClass):
+        test_names = super().getTestCaseNames(testCaseClass)
+        testcase_methods = list(testCaseClass.__dict__.keys())
+        test_names.sort(key=testcase_methods.index)
+        return test_names
 
 
 class Tester(object):
@@ -636,7 +613,7 @@ class Tester(object):
         unittest_args = [sys.argv[0]]
         if ARGS.verbose:
             unittest_args += ["-v"]
-        unittest.main(argv=unittest_args)
+        unittest.main(argv=unittest_args, testLoader=SequentialTestLoader())
 
 
 def expect(functional, expected, interval=0.01, timeout=4):
