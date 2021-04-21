@@ -93,6 +93,7 @@ TEST_F(SystemExtensionTests, test_parse_ptree) {
             "/Applications/LuLu.app/Contents/Library/SystemExtensions/"
             "com.objective-see.lulu.extension.systemextension");
   EXPECT_EQ(results[0]["bundle_path"], "/Applications/LuLu.app");
+  EXPECT_EQ(results[0]["mdm_managed"], "0");
 }
 
 TEST_F(SystemExtensionTests, test_parse_plist) {
@@ -120,6 +121,7 @@ TEST_F(SystemExtensionTests, test_parse_plist) {
             "/Applications/LuLu.app/Contents/Library/SystemExtensions/"
             "com.objective-see.lulu.extension.systemextension");
   EXPECT_EQ(results[0]["bundle_path"], "/Applications/LuLu.app");
+  EXPECT_EQ(results[0]["mdm_managed"], "0");
 }
 
 } // namespace tables

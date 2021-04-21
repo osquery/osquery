@@ -8,7 +8,8 @@ schema([
     Column("version", TEXT, "System extension version"),
     Column("category", TEXT, "System extension category"),
     Column("bundle_path", TEXT, "System extension bundle path"),
-    Column("team", TEXT, "Signing team ID")
+    Column("team", TEXT, "Signing team ID"),
+    Column("mdm_managed", INTEGER, "1 if managed by MDM system extension payload configuration, 0 otherwise")
 ])
 implementation("system_extensions@genSystemExtensions")
 examples([
