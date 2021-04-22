@@ -112,7 +112,10 @@ DECLARE_bool(enable_numeric_monitoring);
 CLI_FLAG(bool, S, false, "Run as a shell process");
 CLI_FLAG(bool, D, false, "Run as a daemon process");
 CLI_FLAG(bool, daemonize, false, "Attempt to daemonize (POSIX only)");
-CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
+CLI_FLAG(uint64,
+         alarm_timeout,
+         15,
+         "Seconds to wait for a graceful shutdown. Minimum is 4");
 
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 
@@ -160,7 +163,19 @@ void signalHandler(int num) {
 
   Initializer::requestShutdown(rc);
 }
+
+bool validateAlarmTimeout(const char* flagname, std::uint64_t value) {
+  if (value < 10) {
+    osquery::systemLog("Alarm timeout cannot be lower than 10 seconds");
+    std::cerr << "Alarm timeout cannot be lower than 10 seconds" << std::endl;
+    return false;
+  }
+
+  return true;
+}
 } // namespace
+
+DEFINE_validator(alarm_timeout, &validateAlarmTimeout);
 
 static inline void printUsage(const std::string& binary, ToolType tool) {
   // Parse help options before gflags. Only display osquery-related options.
