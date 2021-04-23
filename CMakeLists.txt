@@ -425,6 +425,14 @@ function(generateInstallDirectives)
   elseif(PLATFORM_MACOS)
     install(
       FILES
+        "tools/deployment/macos_packaging/osquery.entitlements"
+
+      DESTINATION
+        "/control"
+    )
+
+    install(
+      FILES
         "tools/deployment/macos_packaging/pkg/productbuild.sh"
 
       DESTINATION
