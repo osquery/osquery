@@ -15,6 +15,11 @@
 #include <vector>
 
 namespace osquery {
+/**
+ * @brief Windows helper function to decompress LZ Xpress Huffman compression data
+ *
+ * @returns Decompressed data as hex encoded string or error
+ */
 std::string decompressLZxpress(std::vector<char> compressed_data,
                                unsigned long size);
 }

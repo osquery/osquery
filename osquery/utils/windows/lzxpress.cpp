@@ -67,7 +67,6 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
   std::cout << "Workspace Results: " << results << std::endl;
   // Add check for results/status
   unsigned char* compressed_data = new unsigned char[prefetch_data.size() - 8];
-  std::cout << prefetch_data.size() << std::endl;
 
   // Substract header size from compressed data size
   for (int i = 8; i < prefetch_data.size(); i++) {
@@ -77,7 +76,6 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
 
   unsigned long buffer_size =
       static_cast<unsigned long>(prefetch_data.size() - 8);
-  std::cout << "Data size is: " << buffer_size << std::endl;
   unsigned long final_size = 0ul;
   PVOID fragment_workspace = new unsigned char*[fragmentWorkSpaceSize];
   auto decom_results = RtlDecompressBufferEx(COMPRESSION_FORMAT_XPRESS_HUFF,
