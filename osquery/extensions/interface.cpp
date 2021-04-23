@@ -94,7 +94,8 @@ Status ExtensionManagerInterface::registerExtension(
   for (const auto& change : kSDKVersionChanges) {
     if (!versionAtLeast(change, info.sdk_version)) {
       LOG(WARNING) << "Could not add extension " << info.name
-                   << ": incompatible extension SDK " << info.sdk_version;
+                   << ": incompatible extension SDK " << info.sdk_version
+                   << ", minimum required is " << change;
       return Status((int)ExtensionCode::EXT_FAILED,
                     "Incompatible extension SDK version");
     }
