@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
 
   // Finally wait for a signal / interrupt to shutdown.
   runner.waitForShutdown();
-  return 0;
+  return runner.shutdown(0);
 }
 ```
 
