@@ -96,7 +96,6 @@ PrefetchHeader parseHeader(std::string& prefetch_data) {
   // Find UTF end-of-string character
   size_t name_end = prefetch_data.find("0000", 32);
   std::string name = prefetch_data.substr(32, name_end - 32);
-  // std::cout << "Hex nameis: " << name << std::endl;
 
   // File names are in Unicode/UTF
   boost::erase_all(name, "00");
@@ -178,8 +177,17 @@ void parsePrefetchData(QueryData& results,
   std::string volume_serial = dir_list.substr(32, 8);
   volume_serial = swapEndianess(volume_serial);
   const std::string directory = "directory";
+  std::string dir_offset_str = dir_list.substr(56, 8);
+  //  std::cout << dir_offset_str << std::endl;
+  dir_offset_str = swapEndianess(dir_offset_str);
+  int dir_offset = tryTo<int>(dir_offset_str, 16).takeOr(-1);
+  if (dir_offset == -1) {
+    LOG(WARNING) << "Could not convert directory access offset to integer: "
+                 << prefetch_data;
+    return;
+  }
   std::vector<std::string> accessed_dirs_list =
-      parseAccessedData(dir_list.substr(804), directory);
+      parseAccessedData(dir_list.substr(dir_offset + 4), directory);
   std::string dirs_accessed_list = osquery::join(accessed_dirs_list, ",");
 
   std::string run_times = "0000000000000000";
@@ -190,6 +198,7 @@ void parsePrefetchData(QueryData& results,
   } else {
     run_times = prefetch_data.substr(256, 128);
   }
+  // std::cout << run_times << std::endl;
   std::vector<std::string> timestamps;
   while (run_times.size() != 0) {
     if (run_times.substr(0, 16) == "0000000000000000") {
@@ -226,6 +235,8 @@ void parsePrefetchData(QueryData& results,
   r["size"] = INTEGER(header.file_size);
   r["volume_serial"] = volume_serial;
   r["volume_creation"] = INTEGER(creation);
+  r["number_of_accessed_files"] = INTEGER(accessed_file_list.size());
+  r["number_of_accessed_directories"] = INTEGER(accessed_dirs_list.size());
   r["accessed_files"] = files_accessed_list;
   r["accessed_directories"] = dirs_accessed_list;
   results.push_back(r);
@@ -234,7 +245,6 @@ void parsePrefetchData(QueryData& results,
 void parsePrefetchVersion(QueryData& results,
                           std::string& prefetch_data,
                           std::string& file_path) {
-  std::cout << "lets parse the data!" << std::endl;
   std::string str_version = prefetch_data.substr(0, 8);
   str_version = swapEndianess(str_version);
   int version = tryTo<int>(str_version, 16).takeOr(0);

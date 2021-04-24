@@ -17,11 +17,10 @@
 
 #include <algorithm>
 #include <iterator>
+#include <sstream>
 #include <string>
 #include <vector>
 
-#include <iostream>
-#include <sstream>
 #include <winternl.h>
 
 namespace osquery {
@@ -52,6 +51,10 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
   RtlGetCompressionWorkSpaceSize =
       (pRtlGetCompressionWorkSpaceSize)GetProcAddress(
           hDLL, "RtlGetCompressionWorkSpaceSize");
+  if (RtlGetCompressionWorkSpaceSize == nullptr) {
+    LOG(ERROR) << "Failed to load function RtlGetCompressionWorkSpaceSize";
+    return "Error";
+  }
   RtlDecompressBufferEx =
       (pRtlDecompressBufferEx)GetProcAddress(hDLL, "RtlDecompressBufferEx");
 
@@ -64,8 +67,10 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
   auto results = RtlGetCompressionWorkSpaceSize(COMPRESSION_FORMAT_XPRESS_HUFF,
                                                 &bufferWorkSpaceSize,
                                                 &fragmentWorkSpaceSize);
-  std::cout << "Workspace Results: " << results << std::endl;
-  // Add check for results/status
+  if (results != 0) {
+    LOG(ERROR) << "Failed to set compression workspace size";
+    return "Error";
+  }
   unsigned char* compressed_data = new unsigned char[prefetch_data.size() - 8];
 
   // Substract header size from compressed data size
@@ -85,8 +90,10 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
                                              buffer_size,
                                              &final_size,
                                              fragment_workspace);
-  std::cout << output_buffer[4] << output_buffer[5] << output_buffer[6]
-            << output_buffer[7] << std::endl;
+  if (decom_results != 0) {
+    LOG(ERROR) << "Failed to decompress data";
+    return "Error";
+  }
   std::stringstream ss;
   for (unsigned long i = 0; i < size; i++) {
     std::stringstream value;
@@ -95,7 +102,6 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
     ss << value.str();
   }
   std::string decompress_hex = ss.str();
-  //std::cout << decompress_hex << std::endl;
   return decompress_hex;
 }
 
