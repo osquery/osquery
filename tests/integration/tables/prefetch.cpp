@@ -31,7 +31,7 @@ TEST_F(PrefetchTest, test_sanity) {
       {"hash", NormalType},
       {"accessed_directories", NormalType},
       {"last_execution_time", NormalType},
-      {"other_execution_times", NormalType},
+      {"execution_times", NormalType},
       {"count", NormalType},
       {"size", NormalType},
       {"volume_serial", NormalType},
