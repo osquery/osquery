@@ -34,7 +34,7 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
   }
 
   typedef HRESULT(WINAPI * pRtlDecompressBufferEx)(
-      _In_ unsigned int16 format,
+      _In_ unsigned short format,
       _Out_ unsigned char* uncompressedBuffer,
       _In_ unsigned long uncompressedSize,
       _In_ unsigned char* data,
