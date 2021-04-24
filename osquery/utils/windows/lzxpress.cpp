@@ -6,7 +6,6 @@
  *
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
-#include <windows.h>
 
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
@@ -21,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include <windows.h>
 #include <winternl.h>
 
 namespace osquery {
@@ -34,17 +34,18 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
   }
 
   typedef HRESULT(WINAPI * pRtlDecompressBufferEx)(
-      _In_ USHORT format,
-      _Out_ PUCHAR uncompressedBuffer,
-      _In_ ULONG uncompressedSize,
-      _In_ PUCHAR data,
-      _In_ ULONG dataSize,
-      _Out_ PULONG finalSize,
+      _In_ unsigned int16 format,
+      _Out_ unsigned char* uncompressedBuffer,
+      _In_ unsigned long uncompressedSize,
+      _In_ unsigned char* data,
+      _In_ unsigned long dataSize,
+      _Out_ unsigned long* finalSize,
       _In_ PVOID workspace);
+
   typedef HRESULT(WINAPI * pRtlGetCompressionWorkSpaceSize)(
-      _In_ USHORT Format,
-      _Out_ PULONG BufferWorkSpaceSize,
-      _Out_ PULONG FragmentWorkSpaceSize);
+      _In_ unsigned int16 format,
+      _Out_ unsigned long* bufferWorkSpaceSize,
+      _Out_ unsigned long* fragmentWorkSpaceSize);
 
   pRtlDecompressBufferEx RtlDecompressBufferEx;
   pRtlGetCompressionWorkSpaceSize RtlGetCompressionWorkSpaceSize;

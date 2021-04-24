@@ -302,6 +302,7 @@ function(generateTestsIntegrationTablesTestsTest)
       physical_disk_performance.cpp
       pipes.cpp
       powershell_events.cpp
+      prefetch.cpp
       programs.cpp
       registry.cpp
       scheduled_tasks.cpp

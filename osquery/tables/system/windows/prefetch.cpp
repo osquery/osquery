@@ -17,8 +17,6 @@
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/lzxpress.h>
 
-#include <fstream>
-#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -31,7 +29,7 @@
 namespace osquery {
 namespace tables {
 const std::string kPrefetchLocation = "C:\\Windows\\Prefetch\\";
-// const std::string kPrefetchLocation = "C:\\Users\\bob\\Downloads\\";
+
 struct PrefetchHeader {
   int file_size;
   std::string filename;
@@ -68,7 +66,7 @@ std::vector<std::string> parseAccessedData(const std::string& data,
       LOG(WARNING) << "Failed to decode accessed " << type
                    << " hex values to string: " << data;
     }
-    // Directories seem to have extra padding/bytes at the beginning
+    // Directories sometimes have extra padding/bytes at the beginning
     if (type == "directory") {
       name_size = name_size + 4;
     }
@@ -87,7 +85,7 @@ std::vector<std::string> parseAccessedData(const std::string& data,
   return accessed_files;
 }
 
-PrefetchHeader parseHeader(std::string& prefetch_data) {
+PrefetchHeader parseHeader(const std::string& prefetch_data) {
   PrefetchHeader header_data;
   std::string size = prefetch_data.substr(24, 8);
   size = swapEndianess(size);
@@ -114,9 +112,9 @@ PrefetchHeader parseHeader(std::string& prefetch_data) {
 }
 
 void parsePrefetchData(QueryData& results,
-                       std::string& prefetch_data,
-                       std::string& file_path,
-                       int& version) {
+                       const std::string& prefetch_data,
+                       const std::string& file_path,
+                       const int& version) {
   auto header = parseHeader(prefetch_data);
 
   std::string filename_list_offset = prefetch_data.substr(200, 8);
@@ -148,7 +146,6 @@ void parsePrefetchData(QueryData& results,
     LOG(WARNING) << "Could not get volume listing offset: " << prefetch_data;
     return;
   }
-  // std::cout << "Volume offset: " << volume_offset << std::endl;
 
   std::string str_volume_numbers = prefetch_data.substr(224, 8);
   str_volume_numbers = swapEndianess(str_volume_numbers);
@@ -158,7 +155,6 @@ void parsePrefetchData(QueryData& results,
     return;
   }
   std::string volume_list_size = prefetch_data.substr(232, 8);
-
   volume_list_size = swapEndianess(volume_list_size);
   int volume_size = tryTo<int>(volume_list_size, 16).takeOr(-1);
   if (size == -1) {
@@ -168,17 +164,7 @@ void parsePrefetchData(QueryData& results,
 
   std::string dir_list =
       prefetch_data.substr(volume_offset * 2, volume_size * 2);
-
-  std::string volume_creation = dir_list.substr(16, 16);
-  long long creation = 0LL;
-  if (volume_creation != "0000000000000000") {
-    creation = littleEndianToUnixTime(volume_creation);
-  }
-  std::string volume_serial = dir_list.substr(32, 8);
-  volume_serial = swapEndianess(volume_serial);
-  const std::string directory = "directory";
   std::string dir_offset_str = dir_list.substr(56, 8);
-  //  std::cout << dir_offset_str << std::endl;
   dir_offset_str = swapEndianess(dir_offset_str);
   int dir_offset = tryTo<int>(dir_offset_str, 16).takeOr(-1);
   if (dir_offset == -1) {
@@ -186,8 +172,26 @@ void parsePrefetchData(QueryData& results,
                  << prefetch_data;
     return;
   }
+
+  std::vector<std::string> volume_creation_list;
+  std::vector<std::string> volume_serial_list;
+  while (volume_numbers > 0) {
+    std::string volume_creation = dir_list.substr(16, 16);
+    long long creation = 0LL;
+    if (volume_creation != "0000000000000000") {
+      creation = littleEndianToUnixTime(volume_creation);
+    }
+    volume_creation_list.push_back(std::to_string(creation));
+    std::string volume_serial = dir_list.substr(32, 8);
+    volume_serial = swapEndianess(volume_serial);
+    volume_serial_list.push_back(volume_serial);
+    volume_numbers -= 1;
+    dir_list.erase(0, 192);
+  }
+  const std::string directory = "directory";
+
   std::vector<std::string> accessed_dirs_list =
-      parseAccessedData(dir_list.substr(dir_offset + 4), directory);
+      parseAccessedData(dir_list.substr(dir_offset), directory);
   std::string dirs_accessed_list = osquery::join(accessed_dirs_list, ",");
 
   std::string run_times = "0000000000000000";
@@ -198,7 +202,6 @@ void parsePrefetchData(QueryData& results,
   } else {
     run_times = prefetch_data.substr(256, 128);
   }
-  // std::cout << run_times << std::endl;
   std::vector<std::string> timestamps;
   while (run_times.size() != 0) {
     if (run_times.substr(0, 16) == "0000000000000000") {
@@ -233,8 +236,8 @@ void parsePrefetchData(QueryData& results,
   r["other_execution_times"] = timestamp_list;
   r["count"] = INTEGER(count);
   r["size"] = INTEGER(header.file_size);
-  r["volume_serial"] = volume_serial;
-  r["volume_creation"] = INTEGER(creation);
+  r["volume_serial"] = osquery::join(volume_serial_list, ",");
+  r["volume_creation"] = osquery::join(volume_creation_list, ",");
   r["number_of_accessed_files"] = INTEGER(accessed_file_list.size());
   r["number_of_accessed_directories"] = INTEGER(accessed_dirs_list.size());
   r["accessed_files"] = files_accessed_list;
@@ -243,8 +246,8 @@ void parsePrefetchData(QueryData& results,
 }
 
 void parsePrefetchVersion(QueryData& results,
-                          std::string& prefetch_data,
-                          std::string& file_path) {
+                          const std::string& prefetch_data,
+                          const std::string& file_path) {
   std::string str_version = prefetch_data.substr(0, 8);
   str_version = swapEndianess(str_version);
   int version = tryTo<int>(str_version, 16).takeOr(0);
@@ -261,10 +264,8 @@ QueryData genPrefetch(QueryContext& context) {
   std::vector<std::string> prefetch_files;
   if (listFilesInDirectory(kPrefetchLocation, prefetch_files)) {
     for (const auto& file : prefetch_files) {
-      std::string prefetch_content;
       if (boost::algorithm::iends_with(file, ".pf") &&
           boost::filesystem::is_regular_file(file)) {
-        std::cout << file << std::endl;
         std::ifstream input_file(file, std::ios::in | std::ios::binary);
         std::vector<char> compressed_data(
             (std::istreambuf_iterator<char>(input_file)),
@@ -308,10 +309,11 @@ QueryData genPrefetch(QueryContext& context) {
         } else {
           std::stringstream prefetch_ss;
 
-          for (const auto& data : compressed_data) {
+          for (const auto& compressed : compressed_data) {
             std::stringstream value;
             value << std::setfill('0') << std::setw(2);
-            value << std::hex << std::uppercase << (int)(unsigned char)(data);
+            value << std::hex << std::uppercase
+                  << (int)(unsigned char)(compressed);
             prefetch_ss << value.str();
           }
           data = prefetch_ss.str();
