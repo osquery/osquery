@@ -43,7 +43,7 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
       _In_ PVOID workspace);
 
   typedef HRESULT(WINAPI * pRtlGetCompressionWorkSpaceSize)(
-      _In_ unsigned int16 format,
+      _In_ unsigned short format,
       _Out_ unsigned long* bufferWorkSpaceSize,
       _Out_ unsigned long* fragmentWorkSpaceSize);
 
