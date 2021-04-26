@@ -70,6 +70,11 @@ class SchedulerRunner : public InternalRunnable {
   std::chrono::milliseconds time_drift_;
 
   const std::chrono::milliseconds max_time_drift_;
+
+  /// Tests should not always trigger a shutdown when the scheduler expires,
+  /// so let tests decide when this should happen.
+  FRIEND_TEST(TLSConfigTests, test_runner_and_scheduler);
+  bool request_shutdown_on_expiration{true};
 };
 
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query);
@@ -79,4 +84,4 @@ void startScheduler();
 
 /// Helper scheduler start with variable settings for testing.
 void startScheduler(unsigned long int timeout, size_t interval);
-}
+} // namespace osquery

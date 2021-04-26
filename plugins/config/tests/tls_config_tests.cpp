@@ -113,8 +113,12 @@ TEST_F(TLSConfigTests, test_runner_and_scheduler) {
   Config::get().load();
 
   // Start a scheduler runner for 3 seconds.
-  ASSERT_TRUE(
-      Dispatcher::addService(std::make_shared<SchedulerRunner>(1, 1)).ok());
+  {
+    auto scheduler_runner = std::make_shared<SchedulerRunner>(1, 1);
+    scheduler_runner->request_shutdown_on_expiration = false;
+
+    ASSERT_TRUE(Dispatcher::addService(scheduler_runner).ok());
+  }
   // Reload our instance config.
   ASSERT_TRUE(Config::get().load().ok());
 
