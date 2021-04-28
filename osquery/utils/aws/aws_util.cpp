@@ -393,11 +393,11 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
     }
 
     initAwsSdk();
+    http::Request req(kEc2MetadataUrl + "dynamic/instance-identity/document");
     auto token = getIMDSToken();
     if (!token.empty()) {
       req << http::Request::Header(kImdsTokenHeader, token);
     }
-    http::Request req(kEc2MetadataUrl + "dynamic/instance-identity/document");
     http::Client::Options options;
     options.timeout(3);
     http::Client client(options);
