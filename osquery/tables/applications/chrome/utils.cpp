@@ -475,11 +475,10 @@ bool captureProfileSnapshotExtensionsFromPath(
 
     if (!status.ok()) {
       if (!isBuiltInChromeExtension(extension_path)) {
-        LOG(ERROR)
-            << "Failed to read the following manifest.json file: "
-            << manifest_path.string()
-            << ". The extension was referenced by the following profile: "
-            << profile_path.value;
+        LOG(INFO) << "Failed to read the following manifest.json file: "
+                  << manifest_path.string()
+                  << ". The extension was referenced by the following profile: "
+                  << profile_path.value;
       }
 
       continue;
@@ -545,7 +544,7 @@ bool captureProfileSnapshotExtensionsFromPath(
 
       if (!status.ok()) {
         if (!isBuiltInChromeExtension(referenced_ext_path)) {
-          LOG(INFO)
+          LOG(ERROR)
               << "Failed to read the following manifest.json file: "
               << manifest_path.string()
               << ". The extension was referenced by the following profile: "

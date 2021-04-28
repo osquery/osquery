@@ -23,21 +23,36 @@ class chromeExtensions : public testing::Test {
 };
 
 TEST_F(chromeExtensions, test_sanity) {
-  auto const data = execute_query("select * from chrome_extensions");
+  auto const data = execute_query(
+      "select *, permissions_json, optional_permissions_json, manifest_json "
+      "from chrome_extensions");
+
   ASSERT_GE(data.size(), 0ul);
-  ValidationMap row_map = {{"uid", IntType},
-                           {"name", NonEmptyString},
-                           {"identifier", NonEmptyString},
-                           {"version", NonEmptyString},
+  ValidationMap row_map = {{"browser_type", NormalType},
+                           {"uid", IntType},
+                           {"name", NormalType},
+                           {"profile", NormalType},
+                           {"profile_path", NormalType},
+                           {"identifier", NormalType},
+                           {"version", NormalType},
                            {"description", NormalType},
-                           {"locale", NormalType},
-                           {"update_url", NonEmptyString},
+                           {"default_locale", NormalType},
+                           {"current_locale", NormalType},
+                           {"update_url", NormalType},
                            {"author", NormalType},
-                           {"optional_permissions", NormalType},
                            {"persistent", IntType},
-                           {"path", NonEmptyString},
+                           {"path", NormalType},
                            {"permissions", NormalType},
-                           {"profile", NormalType}};
+                           {"permissions_json", NormalType},
+                           {"optional_permissions", NormalType},
+                           {"optional_permissions_json", NormalType},
+                           {"manifest_hash", NormalType},
+                           {"referenced", IntType},
+                           {"from_webstore", NormalType},
+                           {"state", NormalType},
+                           {"install_time", NormalType},
+                           {"install_timestamp", IntType},
+                           {"manifest_json", NormalType}};
   validate_rows(data, row_map);
 }
 
