@@ -44,6 +44,18 @@ extern const std::string kEc2MetadataUrl;
 /// Hypervisor UUID file
 extern const std::string kHypervisorUuid;
 
+/// URL resource to request IMDSv2 API token
+extern const std::string kImdsTokenResource;
+
+/// Token header to be used in HTTP GET requests for IMDSv2 API calls
+extern const std::string kImdsTokenHeader;
+
+/// Header for specifying TTL for IMDSv2 API token
+extern const std::string kImdsTokenTtlHeader;
+
+/// Default TTL value for IMDSv2 API token
+extern const std::string kImdsTokenTtlDefaultValue;
+
 /**
  * @brief Client factory for the Osquery HTTP client
  */
@@ -158,6 +170,17 @@ class OsqueryAWSCredentialsProviderChain
 void initAwsSdk();
 
 /**
+ * @brief Returns a token for use with Instance Metadata Service (IMDSv2) API
+ *
+ * This method makes an HTTP PUT request with kImdsTokenTtlHeader
+ * to request a token, which can subsequently used to make GET requests to the
+ * Instance Metadata Service endpoint.
+ *
+ * @return token as a string if successful, empty string otherwise
+ */
+std::string getIMDSToken();
+
+/**
  * @brief Checks to see if this machine is EC2 instance.
  *
  * This method caches results after first check and returns cached data. It
@@ -245,4 +268,4 @@ Status makeAWSClient(std::shared_ptr<Client>& client,
  * @return 0 if successful, 1 if there were issues
  */
 Status appendLogTypeToJson(const std::string& log_type, std::string& log);
-}
+} // namespace osquery
