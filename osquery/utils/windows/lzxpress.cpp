@@ -8,21 +8,11 @@
  */
 
 #include <osquery/logger/logger.h>
-#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/windows/lzxpress.h>
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
-
-#include <algorithm>
-#include <iterator>
-#include <sstream>
-#include <string>
-#include <vector>
-
-#include <windows.h>
-#include <winternl.h>
 
 namespace osquery {
 ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
@@ -63,6 +53,7 @@ ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
   RtlDecompressBufferEx = reinterpret_cast<pRtlDecompressBufferEx>(
       GetProcAddress(hDLL, "RtlDecompressBufferEx"));
 
+  // Check for decompression function, only exists on Win8+
   if (RtlDecompressBufferEx == nullptr) {
     LOG(ERROR) << "Failed to load function RtlDecompressBufferEx";
     return ExpectedDecompressData::failure(
@@ -112,6 +103,10 @@ ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
     ss << value.str();
   }
   std::string decompress_hex = ss.str();
+  free(compressed_data);
+  free(fragment_workspace);
+  free(output_buffer);
+
   return ExpectedDecompressData::success(decompress_hex);
 }
 

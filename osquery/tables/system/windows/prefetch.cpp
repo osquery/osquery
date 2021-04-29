@@ -18,17 +18,12 @@
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/lzxpress.h>
 
-#include <sstream>
-#include <string>
-#include <vector>
-
-#include <boost/algorithm/algorithm.hpp>
 #include <boost/algorithm/hex.hpp>
-#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
 namespace osquery {
 namespace tables {
+
 const std::string kPrefetchLocation = "C:\\Windows\\Prefetch\\";
 
 std::vector<std::string> parseAccessedData(const std::string& data,
@@ -228,7 +223,7 @@ void parsePrefetchData(QueryData& results,
   r["filename"] = header.filename;
   r["hash"] = header.prefetch_hash;
   r["last_execution_time"] = INTEGER(timestamps[0]);
-  r["other_execution_times"] = timestamp_list;
+  r["execution_times"] = timestamp_list;
   r["count"] = INTEGER(count);
   r["size"] = INTEGER(header.file_size);
   r["volume_serial"] = osquery::join(volume_serial_list, ",");
@@ -287,7 +282,7 @@ QueryData genPrefetch(QueryContext& context) {
         }
         std::string data = "";
         std::string file_path = file;
-        // Check for compression signature. Prefetch is compressed on Win8+
+        // Check for compression signature. Prefetch may be compressed on Win8+
         if (header_sig == "MAM") {
           std::string prefetch_size = swapEndianess(decom_ss.str());
           unsigned long size =
@@ -296,7 +291,6 @@ QueryData genPrefetch(QueryContext& context) {
             LOG(WARNING) << "Could not get prefetch data size for: "
                          << file_path;
             continue;
-            // return results;
           }
           auto expected_data = decompressLZxpress(compressed_data, size);
           if (expected_data.isError()) {
