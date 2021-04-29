@@ -11,6 +11,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/tables/system/windows/prefetch.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
@@ -29,12 +30,6 @@
 namespace osquery {
 namespace tables {
 const std::string kPrefetchLocation = "C:\\Windows\\Prefetch\\";
-
-struct PrefetchHeader {
-  int file_size;
-  std::string filename;
-  std::string prefetch_hash;
-};
 
 std::vector<std::string> parseAccessedData(const std::string& data,
                                            const std::string& type) {
@@ -284,7 +279,8 @@ QueryData genPrefetch(QueryContext& context) {
           } else if (sig_size > 3) {
             std::stringstream value;
             value << std::setfill('0') << std::setw(2);
-            value << std::hex << std::uppercase << (int)(unsigned char)(data);
+            value << std::hex << std::uppercase
+                  << static_cast<int>(static_cast<unsigned char>((data)));
             decom_ss << value.str();
           }
           sig_size++;
@@ -302,10 +298,11 @@ QueryData genPrefetch(QueryContext& context) {
             continue;
             // return results;
           }
-          data = decompressLZxpress(compressed_data, size);
-          if (data == "Error") {
+          auto expected_data = decompressLZxpress(compressed_data, size);
+          if (expected_data.isError()) {
             continue;
           }
+          data = expected_data.take();
         } else {
           std::stringstream prefetch_ss;
 
@@ -313,10 +310,17 @@ QueryData genPrefetch(QueryContext& context) {
             std::stringstream value;
             value << std::setfill('0') << std::setw(2);
             value << std::hex << std::uppercase
-                  << (int)(unsigned char)(compressed);
+                  << static_cast<int>(static_cast<unsigned char>((compressed)));
             prefetch_ss << value.str();
           }
           data = prefetch_ss.str();
+        }
+        const std::string sig_header = data.substr(8, 8);
+        // Check for "SCCA" signature
+        if (sig_header != "53434341") {
+          LOG(WARNING) << "Unsupported prefetch file, missing header: "
+                       << file_path;
+          continue;
         }
         parsePrefetchVersion(results, data, file_path);
       }

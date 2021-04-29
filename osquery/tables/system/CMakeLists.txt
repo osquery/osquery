@@ -354,6 +354,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/certificates.h
       windows/users.h
       windows/windows_eventlog.h
+      windows/prefetch.h
     )
   endif()
 

@@ -9,6 +9,7 @@
 
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/expected/expected.h>
 #include <osquery/utils/windows/lzxpress.h>
 
 #include <boost/algorithm/hex.hpp>
@@ -24,13 +25,14 @@
 #include <winternl.h>
 
 namespace osquery {
-std::string decompressLZxpress(std::vector<char> prefetch_data,
-                               unsigned long size) {
+ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
+                                          unsigned long size) {
   static HMODULE hDLL =
       LoadLibraryExW(L"ntdll.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
   if (hDLL == nullptr) {
     LOG(ERROR) << "Failed to load ntdll.dll";
-    return "Error";
+    return ExpectedDecompressData::failure(ConversionError::InvalidArgument,
+                                           "Failed to load ntdll.dll");
   }
 
   typedef HRESULT(WINAPI * pRtlDecompressBufferEx)(
@@ -50,18 +52,22 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
   pRtlDecompressBufferEx RtlDecompressBufferEx;
   pRtlGetCompressionWorkSpaceSize RtlGetCompressionWorkSpaceSize;
   RtlGetCompressionWorkSpaceSize =
-      (pRtlGetCompressionWorkSpaceSize)GetProcAddress(
-          hDLL, "RtlGetCompressionWorkSpaceSize");
+      reinterpret_cast<pRtlGetCompressionWorkSpaceSize>(
+          GetProcAddress(hDLL, "RtlGetCompressionWorkSpaceSize"));
   if (RtlGetCompressionWorkSpaceSize == nullptr) {
     LOG(ERROR) << "Failed to load function RtlGetCompressionWorkSpaceSize";
-    return "Error";
+    return ExpectedDecompressData::failure(
+        ConversionError::InvalidArgument,
+        "Failed to load function RtlGetCompressionWorkSpaceSize");
   }
-  RtlDecompressBufferEx =
-      (pRtlDecompressBufferEx)GetProcAddress(hDLL, "RtlDecompressBufferEx");
+  RtlDecompressBufferEx = reinterpret_cast<pRtlDecompressBufferEx>(
+      GetProcAddress(hDLL, "RtlDecompressBufferEx"));
 
   if (RtlDecompressBufferEx == nullptr) {
     LOG(ERROR) << "Failed to load function RtlDecompressBufferEx";
-    return "Error";
+    return ExpectedDecompressData::failure(
+        ConversionError::InvalidArgument,
+        "Failed to load function RtlDecompressBufferEx");
   }
   unsigned long bufferWorkSpaceSize = 0ul;
   unsigned long fragmentWorkSpaceSize = 0ul;
@@ -70,7 +76,9 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
                                                 &fragmentWorkSpaceSize);
   if (results != 0) {
     LOG(ERROR) << "Failed to set compression workspace size";
-    return "Error";
+    return ExpectedDecompressData::failure(
+        ConversionError::InvalidArgument,
+        "Failed to set compression workspace size");
   }
   unsigned char* compressed_data = new unsigned char[prefetch_data.size() - 8];
 
@@ -93,17 +101,18 @@ std::string decompressLZxpress(std::vector<char> prefetch_data,
                                              fragment_workspace);
   if (decom_results != 0) {
     LOG(ERROR) << "Failed to decompress data";
-    return "Error";
+    return ExpectedDecompressData::failure(ConversionError::InvalidArgument,
+                                           "Failed to decompress data");
   }
   std::stringstream ss;
   for (unsigned long i = 0; i < size; i++) {
     std::stringstream value;
     value << std::setfill('0') << std::setw(2);
-    value << std::hex << std::uppercase << (int)(output_buffer[i]);
+    value << std::hex << std::uppercase << static_cast<int>((output_buffer[i]));
     ss << value.str();
   }
   std::string decompress_hex = ss.str();
-  return decompress_hex;
+  return ExpectedDecompressData::success(decompress_hex);
 }
 
 } // namespace osquery
