@@ -34,6 +34,8 @@ function(generateOsqueryEvents)
         linux/bpf/processcontextfactory.cpp
         linux/bpf/setrlimit.cpp
         linux/bpf/systemstatetracker.cpp
+        linux/bpf/usertracer.cpp
+        linux/bpf/usertracermanager.cpp
       )
     endif()
 
@@ -130,6 +132,8 @@ function(generateOsqueryEvents)
         linux/bpf/setrlimit.h
         linux/bpf/systemstatetracker.h
         linux/bpf/uniquedir.h
+        linux/bpf/usertracer.h
+        linux/bpf/usertracermanager.h
       )
     endif()
 
