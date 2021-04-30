@@ -323,7 +323,7 @@ QueryData genPrefetch(QueryContext& context) {
   std::vector<std::string> prefetch_files;
 
   // There are no required columns for prefetch, but prefetch can take a bit of
-  // time to parse if a path constraint is provided parse only prefetch file(s)
+  // time to parse. If a path constraint is provided parse only prefetch file(s)
   // in path
   auto paths = context.constraints["path"].getAll(EQUALS);
   // Expand constraints
