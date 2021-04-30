@@ -254,6 +254,7 @@ void parsePrefetch(const std::vector<std::string>& prefetch_files,
   for (const auto& file : prefetch_files) {
     if (boost::algorithm::iends_with(file, ".pf") &&
         boost::filesystem::is_regular_file(file)) {
+      LOG(INFO) << "Parsing prefetch file: " << file;
       std::ifstream input_file(file, std::ios::in | std::ios::binary);
       std::vector<char> compressed_data(
           (std::istreambuf_iterator<char>(input_file)),
