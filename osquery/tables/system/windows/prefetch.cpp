@@ -249,76 +249,106 @@ void parsePrefetchVersion(QueryData& results,
   }
 }
 
+void parsePrefetch(const std::vector<std::string>& prefetch_files,
+                   QueryData& results) {
+  for (const auto& file : prefetch_files) {
+    if (boost::algorithm::iends_with(file, ".pf") &&
+        boost::filesystem::is_regular_file(file)) {
+      std::ifstream input_file(file, std::ios::in | std::ios::binary);
+      std::vector<char> compressed_data(
+          (std::istreambuf_iterator<char>(input_file)),
+          (std::istreambuf_iterator<char>()));
+      input_file.close();
+      int sig_size = 0;
+      std::string header_sig = "";
+      std::stringstream decom_ss;
+      // Get header information
+      for (const auto& data : compressed_data) {
+        if (sig_size == 8) {
+          break;
+        }
+        if (sig_size < 3) {
+          header_sig += data;
+        } else if (sig_size > 3) {
+          std::stringstream value;
+          value << std::setfill('0') << std::setw(2);
+          value << std::hex << std::uppercase
+                << static_cast<int>(static_cast<unsigned char>((data)));
+          decom_ss << value.str();
+        }
+        sig_size++;
+      }
+      std::string data = "";
+      std::string file_path = file;
+      // Check for compression signature. Prefetch may be compressed on Win8+
+      if (header_sig == "MAM") {
+        std::string prefetch_size = swapEndianess(decom_ss.str());
+        unsigned long size =
+            tryTo<unsigned long>(prefetch_size, 16).takeOr(0ul);
+        if (size == 0l) {
+          LOG(WARNING) << "Could not get prefetch data size for: " << file_path;
+          continue;
+        }
+        auto expected_data = decompressLZxpress(compressed_data, size);
+        if (expected_data.isError()) {
+          continue;
+        }
+        data = expected_data.take();
+      } else {
+        std::stringstream prefetch_ss;
+
+        for (const auto& compressed : compressed_data) {
+          std::stringstream value;
+          value << std::setfill('0') << std::setw(2);
+          value << std::hex << std::uppercase
+                << static_cast<int>(static_cast<unsigned char>((compressed)));
+          prefetch_ss << value.str();
+        }
+        data = prefetch_ss.str();
+      }
+      const std::string sig_header = data.substr(8, 8);
+      // Check for "SCCA" signature
+      if (sig_header != "53434341") {
+        LOG(WARNING) << "Unsupported prefetch file, missing header: "
+                     << file_path;
+        continue;
+      }
+      parsePrefetchVersion(results, data, file_path);
+    }
+  }
+}
+
 QueryData genPrefetch(QueryContext& context) {
   QueryData results;
   std::vector<std::string> prefetch_files;
-  if (listFilesInDirectory(kPrefetchLocation, prefetch_files)) {
-    for (const auto& file : prefetch_files) {
-      if (boost::algorithm::iends_with(file, ".pf") &&
-          boost::filesystem::is_regular_file(file)) {
-        std::ifstream input_file(file, std::ios::in | std::ios::binary);
-        std::vector<char> compressed_data(
-            (std::istreambuf_iterator<char>(input_file)),
-            (std::istreambuf_iterator<char>()));
-        input_file.close();
-        int sig_size = 0;
-        std::string header_sig = "";
-        std::stringstream decom_ss;
-        // Get header information
-        for (const auto& data : compressed_data) {
-          if (sig_size == 8) {
-            break;
-          }
-          if (sig_size < 3) {
-            header_sig += data;
-          } else if (sig_size > 3) {
-            std::stringstream value;
-            value << std::setfill('0') << std::setw(2);
-            value << std::hex << std::uppercase
-                  << static_cast<int>(static_cast<unsigned char>((data)));
-            decom_ss << value.str();
-          }
-          sig_size++;
-        }
-        std::string data = "";
-        std::string file_path = file;
-        // Check for compression signature. Prefetch may be compressed on Win8+
-        if (header_sig == "MAM") {
-          std::string prefetch_size = swapEndianess(decom_ss.str());
-          unsigned long size =
-              tryTo<unsigned long>(prefetch_size, 16).takeOr(0ul);
-          if (size == 0l) {
-            LOG(WARNING) << "Could not get prefetch data size for: "
-                         << file_path;
-            continue;
-          }
-          auto expected_data = decompressLZxpress(compressed_data, size);
-          if (expected_data.isError()) {
-            continue;
-          }
-          data = expected_data.take();
-        } else {
-          std::stringstream prefetch_ss;
 
-          for (const auto& compressed : compressed_data) {
-            std::stringstream value;
-            value << std::setfill('0') << std::setw(2);
-            value << std::hex << std::uppercase
-                  << static_cast<int>(static_cast<unsigned char>((compressed)));
-            prefetch_ss << value.str();
+  // There are no required columns for prefetch, but prefetch can take a bit of
+  // time to parse if a path constraint is provided parse only prefetch file(s)
+  // in path
+  auto paths = context.constraints["path"].getAll(EQUALS);
+  // Expand constraints
+  context.expandConstraints(
+      "path",
+      LIKE,
+      paths,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
           }
-          data = prefetch_ss.str();
         }
-        const std::string sig_header = data.substr(8, 8);
-        // Check for "SCCA" signature
-        if (sig_header != "53434341") {
-          LOG(WARNING) << "Unsupported prefetch file, missing header: "
-                       << file_path;
-          continue;
-        }
-        parsePrefetchVersion(results, data, file_path);
-      }
-    }
+        return status;
+      }));
+  if (paths.size() > 0) {
+    std::vector<std::string> prefetch_files2(paths.begin(), paths.end());
+    parsePrefetch(prefetch_files2, results);
+  } else if (listFilesInDirectory(kPrefetchLocation, prefetch_files)) {
+    parsePrefetch(prefetch_files, results);
+  } else {
+    LOG(WARNING) << "No prefetch files to parse";
   }
 
   return results;

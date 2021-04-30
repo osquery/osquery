@@ -17,14 +17,6 @@
 namespace osquery {
 ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
                                           unsigned long size) {
-  static HMODULE hDLL =
-      LoadLibraryExW(L"ntdll.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-  if (hDLL == nullptr) {
-    LOG(ERROR) << "Failed to load ntdll.dll";
-    return ExpectedDecompressData::failure(ConversionError::InvalidArgument,
-                                           "Failed to load ntdll.dll");
-  }
-
   typedef HRESULT(WINAPI * pRtlDecompressBufferEx)(
       _In_ unsigned short format,
       _Out_ unsigned char* uncompressedBuffer,
@@ -42,8 +34,8 @@ ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
   pRtlDecompressBufferEx RtlDecompressBufferEx;
   pRtlGetCompressionWorkSpaceSize RtlGetCompressionWorkSpaceSize;
   RtlGetCompressionWorkSpaceSize =
-      reinterpret_cast<pRtlGetCompressionWorkSpaceSize>(
-          GetProcAddress(hDLL, "RtlGetCompressionWorkSpaceSize"));
+      reinterpret_cast<pRtlGetCompressionWorkSpaceSize>(GetProcAddress(
+          GetModuleHandleA("ntdll.dll"), "RtlGetCompressionWorkSpaceSize"));
   if (RtlGetCompressionWorkSpaceSize == nullptr) {
     LOG(ERROR) << "Failed to load function RtlGetCompressionWorkSpaceSize";
     return ExpectedDecompressData::failure(
@@ -51,7 +43,7 @@ ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
         "Failed to load function RtlGetCompressionWorkSpaceSize");
   }
   RtlDecompressBufferEx = reinterpret_cast<pRtlDecompressBufferEx>(
-      GetProcAddress(hDLL, "RtlDecompressBufferEx"));
+      GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlDecompressBufferEx"));
 
   // Check for decompression function, only exists on Win8+
   if (RtlDecompressBufferEx == nullptr) {
@@ -71,25 +63,28 @@ ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
         ConversionError::InvalidArgument,
         "Failed to set compression workspace size");
   }
-  unsigned char* compressed_data = new unsigned char[prefetch_data.size() - 8];
+  std::vector<unsigned char> compressed_data;
+  compressed_data.resize(prefetch_data.size() - 8);
 
   // Substract header size from compressed data size
   for (int i = 8; i < prefetch_data.size(); i++) {
     compressed_data[i - 8] = prefetch_data[i];
   }
-  unsigned char* output_buffer = new unsigned char[size];
+  std::vector<unsigned char> output_buffer;
+  output_buffer.resize(size);
 
   unsigned long buffer_size =
       static_cast<unsigned long>(prefetch_data.size() - 8);
   unsigned long final_size = 0ul;
-  PVOID fragment_workspace = new unsigned char*[fragmentWorkSpaceSize];
+  std::vector<PVOID> fragment_workspace;
+  fragment_workspace.resize(fragmentWorkSpaceSize);
   auto decom_results = RtlDecompressBufferEx(COMPRESSION_FORMAT_XPRESS_HUFF,
-                                             output_buffer,
+                                             output_buffer.data(),
                                              size,
-                                             compressed_data,
+                                             compressed_data.data(),
                                              buffer_size,
                                              &final_size,
-                                             fragment_workspace);
+                                             fragment_workspace.data());
   if (decom_results != 0) {
     LOG(ERROR) << "Failed to decompress data";
     return ExpectedDecompressData::failure(ConversionError::InvalidArgument,
@@ -103,10 +98,6 @@ ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
     ss << value.str();
   }
   std::string decompress_hex = ss.str();
-  free(compressed_data);
-  free(fragment_workspace);
-  free(output_buffer);
-
   return ExpectedDecompressData::success(decompress_hex);
 }
 
