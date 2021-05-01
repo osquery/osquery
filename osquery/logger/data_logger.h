@@ -22,6 +22,8 @@
 
 namespace osquery {
 
+enum class LoggerRelayMode { Sync, Async };
+
 /// Set the verbose mode, changes Glog's sinking logic and will affect plugins.
 void setVerboseLevel();
 
@@ -120,13 +122,10 @@ Status logSnapshotQuery(const QueryLogItem& item);
  * Extensions, the registry, configuration, and optional config/logger plugins
  * are all protected as a monitored worker.
  */
-void relayStatusLogs(bool async = false);
+void relayStatusLogs(LoggerRelayMode relay_mode = LoggerRelayMode::Sync);
 
 /// Inspect the number of internal-buffered status log lines.
 size_t queuedStatuses();
-
-/// Inspect the number of active internal status log sender threads.
-size_t queuedSenders();
 
 /**
  * @brief Write a log line to the OS system log.
