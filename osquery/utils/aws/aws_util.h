@@ -168,6 +168,13 @@ void initAwsSdk();
 bool isEc2Instance();
 
 /**
+ * @brief Retrieve the AWS IMDSv2 token
+ * 
+ * @return Token on success else empty string on error
+ */
+std::string getAwsImdsV2Token();
+
+/**
  * @brief Returns EC2 instance ID and region of this machine.
  *
  * If this is EC2 instance, returns the instance ID and region by querying the

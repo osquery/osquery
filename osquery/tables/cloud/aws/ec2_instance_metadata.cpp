@@ -132,6 +132,11 @@ std::string Ec2MetaData::doGet() const {
   options.timeout(3);
   http::Client client(options);
 
+  std::string token = getAwsImdsV2Token();
+  if (!token.empty()) {
+    req.set("X-aws-ec2-metadata-token", token);
+  }
+
   try {
     http::Response res = client.get(req);
     boost::uint16_t http_status_code = res.status();

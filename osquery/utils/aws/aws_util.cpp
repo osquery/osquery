@@ -101,6 +101,9 @@ static const std::set<std::string> kAwsRegions = {
 // Default AWS region to use when no region set in flags or profile
 static RegionName kDefaultAWSRegion = Aws::Region::US_EAST_1;
 
+// Mutex lock while getting AWS IMDSv2 token
+static std::mutex getTokenMutex;
+
 std::shared_ptr<Aws::Http::HttpClient>
 OsqueryHttpClientFactory::CreateHttpClient(
     const Aws::Client::ClientConfiguration& clientConfiguration) const {
@@ -408,6 +411,43 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
   region = cached_region;
 }
 
+std::string getAwsImdsV2Token() {
+  static std::string token;
+  static unsigned long int token_expires_at = 0;
+  const std::lock_guard<std::mutex> lock(getTokenMutex);
+  const unsigned long int token_ttl = 21600;
+  unsigned long int now = ::time(0);
+  if (now < token_expires_at) {
+    return token;
+  }
+
+  http::Request req(kEc2MetadataUrl + std::string("api/token"));
+  http::Client::Options options;
+  options.timeout(3);
+  http::Client client(options);
+  std::string body;
+
+  try {
+    req.set("X-aws-ec2-metadata-token-ttl-seconds", std::to_string(token_ttl));
+    http::Response res = client.put(req, body);
+    if(res.status() == 200) {
+      token = res.body();
+      // Set the expiry time of token few seconds before ist time to live(ttl) as network 
+      // might induse delay
+      token_expires_at = now + token_ttl - 5;
+    } else {
+      token.clear();
+    }
+  } catch (const std::system_error& e) {
+    token.clear();
+    VLOG(1) << "Error generating AWS IMDSv2 token: " << e.what();
+  } catch (const std::runtime_error& e) {
+    token.clear();
+    VLOG(1) << "Error generating AWS IMDSv2 token: " << e.what();
+  }
+  return token;
+}
+
 bool isEc2Instance() {
   static std::atomic<bool> checked(false);
   static std::atomic<bool> is_ec2_instance(false);
@@ -431,6 +471,11 @@ bool isEc2Instance() {
     http::Client::Options options;
     options.timeout(3);
     http::Client client(options);
+
+    std::string token = getAwsImdsV2Token();
+    if (!token.empty()) {
+        req.set("X-aws-ec2-metadata-token", token);
+    }
 
     try {
       http::Response res = client.get(req);
