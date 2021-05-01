@@ -18,18 +18,18 @@ namespace osquery {
 ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
                                           unsigned long size) {
   typedef HRESULT(WINAPI * pRtlDecompressBufferEx)(
-      _In_ unsigned short format,
-      _Out_ unsigned char* uncompressedBuffer,
-      _In_ unsigned long uncompressedSize,
-      _In_ unsigned char* data,
-      _In_ unsigned long dataSize,
-      _Out_ unsigned long* finalSize,
+      _In_ USHORT format,
+      _Out_ PUCHAR uncompressedBuffer,
+      _In_ ULONG uncompressedSize,
+      _In_ PUCHAR data,
+      _In_ ULONG dataSize,
+      _Out_ PULONG finalSize,
       _In_ PVOID workspace);
 
   typedef HRESULT(WINAPI * pRtlGetCompressionWorkSpaceSize)(
-      _In_ unsigned short format,
-      _Out_ unsigned long* bufferWorkSpaceSize,
-      _Out_ unsigned long* fragmentWorkSpaceSize);
+      _In_ USHORT format,
+      _Out_ PULONG bufferWorkSpaceSize,
+      _Out_ PULONG fragmentWorkSpaceSize);
 
   pRtlDecompressBufferEx RtlDecompressBufferEx;
   pRtlGetCompressionWorkSpaceSize RtlGetCompressionWorkSpaceSize;
@@ -52,8 +52,8 @@ ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
         ConversionError::InvalidArgument,
         "Failed to load function RtlDecompressBufferEx");
   }
-  unsigned long bufferWorkSpaceSize = 0ul;
-  unsigned long fragmentWorkSpaceSize = 0ul;
+  ULONG bufferWorkSpaceSize = 0ul;
+  ULONG fragmentWorkSpaceSize = 0ul;
   auto results = RtlGetCompressionWorkSpaceSize(COMPRESSION_FORMAT_XPRESS_HUFF,
                                                 &bufferWorkSpaceSize,
                                                 &fragmentWorkSpaceSize);
@@ -63,19 +63,18 @@ ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
         ConversionError::InvalidArgument,
         "Failed to set compression workspace size");
   }
-  std::vector<unsigned char> compressed_data;
+  std::vector<UCHAR> compressed_data;
   compressed_data.resize(prefetch_data.size() - 8);
 
   // Substract header size from compressed data size
   for (int i = 8; i < prefetch_data.size(); i++) {
     compressed_data[i - 8] = prefetch_data[i];
   }
-  std::vector<unsigned char> output_buffer;
+  std::vector<UCHAR> output_buffer;
   output_buffer.resize(size);
 
-  unsigned long buffer_size =
-      static_cast<unsigned long>(prefetch_data.size() - 8);
-  unsigned long final_size = 0ul;
+  ULONG buffer_size = static_cast<ULONG>(prefetch_data.size() - 8);
+  ULONG final_size = 0ul;
   std::vector<PVOID> fragment_workspace;
   fragment_workspace.resize(fragmentWorkSpaceSize);
   auto decom_results = RtlDecompressBufferEx(COMPRESSION_FORMAT_XPRESS_HUFF,

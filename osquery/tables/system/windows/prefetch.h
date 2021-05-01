@@ -11,6 +11,7 @@
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
+#include <osquery/utils/conversions/tryto.h>
 
 #include <string>
 
@@ -23,20 +24,24 @@ struct PrefetchHeader {
   std::string prefetch_hash;
 };
 
+using ExpectedPrefetchHeader = Expected<PrefetchHeader, ConversionError>;
+using ExpectedPrefetchAccessedData =
+    Expected<std::vector<std::string>, ConversionError>;
+
 /**
  * @brief Windows helper function to parse prefetch header data
  *
- * @returns Prefetch header data
+ * @returns Expected prefetch header data
  */
-PrefetchHeader parseHeader(const std::string& prefetch_data);
+ExpectedPrefetchHeader parseHeader(const std::string& prefetch_data);
 
 /**
  * @brief Windows helper function to parse accessed data in prefetch file
  *
- * @returns Accessed data list
+ * @returns Expected accessed data list
  */
-std::vector<std::string> parseAccessedData(const std::string& data,
-                                           const std::string& type);
+ExpectedPrefetchAccessedData parseAccessedData(const std::string& data,
+                                               const std::string& type);
 
 } // namespace tables
 } // namespace osquery

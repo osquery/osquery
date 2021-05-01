@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include "osquery/filesystem/fileops.h"
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
@@ -24,10 +25,10 @@
 namespace osquery {
 namespace tables {
 
-const std::string kPrefetchLocation = "C:\\Windows\\Prefetch\\";
+const std::string kPrefetchLocation = getSystemRoot().string() + "\\Prefetch\\";
 
-std::vector<std::string> parseAccessedData(const std::string& data,
-                                           const std::string& type) {
+ExpectedPrefetchAccessedData parseAccessedData(const std::string& data,
+                                               const std::string& type) {
   std::vector<std::string> accessed_files;
   std::string list_data = data;
   size_t directory_beginning = 0;
@@ -55,6 +56,9 @@ std::vector<std::string> parseAccessedData(const std::string& data,
     } catch (const boost::algorithm::hex_decode_error& /* e */) {
       LOG(WARNING) << "Failed to decode accessed " << type
                    << " hex values to string: " << data;
+      return ExpectedPrefetchAccessedData::failure(
+          ConversionError::InvalidArgument,
+          "Failed to decode " + type + " hex values to string");
     }
     // Directories sometimes have extra padding/bytes at the beginning
     if (type == "directory") {
@@ -72,10 +76,10 @@ std::vector<std::string> parseAccessedData(const std::string& data,
       break;
     }
   }
-  return accessed_files;
+  return ExpectedPrefetchAccessedData::success(accessed_files);
 }
 
-PrefetchHeader parseHeader(const std::string& prefetch_data) {
+ExpectedPrefetchHeader parseHeader(const std::string& prefetch_data) {
   PrefetchHeader header_data;
   std::string size = prefetch_data.substr(24, 8);
   size = swapEndianess(size);
@@ -95,17 +99,24 @@ PrefetchHeader parseHeader(const std::string& prefetch_data) {
   } catch (const boost::algorithm::hex_decode_error& /* e */) {
     LOG(WARNING) << "Failed to decode filename hex values to string: "
                  << prefetch_data;
+    return ExpectedPrefetchHeader::failure(
+        ConversionError::InvalidArgument,
+        "Failed to decode filename hex values to string");
   }
   std::string crc_hash = prefetch_data.substr(152, 8);
   header_data.prefetch_hash = swapEndianess(crc_hash);
-  return header_data;
+  return ExpectedPrefetchHeader::success(header_data);
 }
 
 void parsePrefetchData(QueryData& results,
                        const std::string& prefetch_data,
                        const std::string& file_path,
                        const int& version) {
-  auto header = parseHeader(prefetch_data);
+  auto expected_header = parseHeader(prefetch_data);
+  if (expected_header.isError()) {
+    return;
+  }
+  PrefetchHeader header = expected_header.take();
 
   std::string filename_list_offset = prefetch_data.substr(200, 8);
   filename_list_offset = swapEndianess(filename_list_offset);
@@ -124,9 +135,12 @@ void parsePrefetchData(QueryData& results,
 
   std::string file_list = prefetch_data.substr(offset * 2, size * 2);
   const std::string filename = "filename";
+  auto expected_accessed_file_list = parseAccessedData(file_list, filename);
+  if (expected_accessed_file_list.isError()) {
+    return;
+  }
   std::vector<std::string> accessed_file_list =
-      parseAccessedData(file_list, filename);
-
+      expected_accessed_file_list.take();
   std::string files_accessed_list = osquery::join(accessed_file_list, ",");
 
   std::string volume_list_offset = prefetch_data.substr(216, 8);
@@ -180,8 +194,13 @@ void parsePrefetchData(QueryData& results,
   }
   const std::string directory = "directory";
 
-  std::vector<std::string> accessed_dirs_list =
+  auto expected_accessed_dirs_list =
       parseAccessedData(dir_list.substr(dir_offset), directory);
+  if (expected_accessed_dirs_list.isError()) {
+    return;
+  }
+  std::vector<std::string> accessed_dirs_list =
+      expected_accessed_dirs_list.take();
   std::string dirs_accessed_list = osquery::join(accessed_dirs_list, ",");
 
   std::string run_times = "0000000000000000";
@@ -344,8 +363,8 @@ QueryData genPrefetch(QueryContext& context) {
         return status;
       }));
   if (paths.size() > 0) {
-    std::vector<std::string> prefetch_files2(paths.begin(), paths.end());
-    parsePrefetch(prefetch_files2, results);
+    std::vector<std::string> input_files(paths.begin(), paths.end());
+    parsePrefetch(input_files, results);
   } else if (listFilesInDirectory(kPrefetchLocation, prefetch_files)) {
     parsePrefetch(prefetch_files, results);
   } else {
