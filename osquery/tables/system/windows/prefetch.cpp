@@ -25,7 +25,7 @@
 namespace osquery {
 namespace tables {
 
-const std::string kPrefetchLocation = getSystemRoot().string() + "\\Prefetch\\";
+const std::string kPrefetchLocation = (getSystemRoot() / "Prefetch\\").string();
 
 ExpectedPrefetchAccessedData parseAccessedData(const std::string& data,
                                                const std::string& type) {
