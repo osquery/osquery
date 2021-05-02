@@ -823,17 +823,6 @@ jobs:
         cd w
         git clone https://github.com/osquery/osquery-packaging
 
-    - name: Update the cache (sccache)
-      uses: actions/cache@v2
-      with:
-        path: ${{ steps.build_paths.outputs.SCCACHE }}
-
-        key: |
-          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ github.sha }}
-
-        restore-keys: |
-          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
-
     - name: Update the cache (git submodules)
       uses: actions/cache@v2
       with:
@@ -966,6 +955,54 @@ jobs:
           -DCMAKE_CXX_COMPILER_LAUNCHER="sccache.exe" ^
           -DPython3_ROOT_DIR=${{ steps.python_root_directory.outputs.VALUE }} ^
           ${{ steps.build_paths.outputs.SOURCE }}
+
+    - name: Determine compiler version
+      id: determine_compiler_version
+      shell: pwsh
+      run: |
+        $compiler = (Get-Content "${{ steps.build_paths.outputs.BINARY }}\CMakeCache.txt" | Select-String -Pattern "CMAKE_CXX_COMPILER:STRING=(.*)").Matches[0].Groups[1].Value
+
+        echo "Compiler configured by CMake is $compiler"
+
+        if ($compiler -eq $null || $compiler -eq "") {
+          Write-Error "Could not find the configured compiler" -ErrorAction Stop
+        }
+
+        <#
+           We run the compiler help option; the compiler will write its version in stderr.
+           Due to how powershell works, we have to go through some hoops to extract the stderr to a variable
+           and also avoid it considering the command as failed because stderr contains messages.
+           The expression runs the compiler in a subshell, discards its stdout, then the stderr of the subshell is redirected
+           to the stdout of the parent shell.
+        #>
+        $ErrorActionPreference = 'Continue'
+        $erroutput = $( & "$compiler" /? 1>$null ) 2>&1
+        $ErrorActionPreference = 'Stop'
+
+        if ($erroutput -eq $null || $erroutput -eq "") {
+          Write-Error "Failed to run the compiler at $compiler" -ErrorAction Stop
+        }
+
+        $version = ($erroutput | Select-String -Pattern "Compiler Version (.*) for").Matches[0].Groups[1].Value.Replace(".", "")
+
+        if ($version -eq $null || $version -eq "") {
+          Write-Error "Failed to determine compiler version for $compiler and output $erroutput" -ErrorAction Stop
+        }
+
+        echo "Found compiler version $version"
+
+        echo "::set-output name=COMPILER_VERSION::$version"
+
+    - name: Update the cache (sccache)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.SCCACHE }}
+
+        key: |
+          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}_${{ github.sha }}
+
+        restore-keys: |
+          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}
 
     - name: Build the project
       shell: cmd
