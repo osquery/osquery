@@ -50,10 +50,7 @@ const std::string kFilesystemLoggerFilename = "osqueryd.results.log";
 const std::string kFilesystemLoggerSnapshots = "osqueryd.snapshots.log";
 
 bool LogRotate::shouldRotate() {
-  if (this->fileSize(path_) >= this->getRotateSize()) {
-    return true;
-  }
-  return false;
+  return this->fileSize(path_) >= this->getRotateSize();
 }
 
 Status LogRotate::rotate(size_t max_files) {
